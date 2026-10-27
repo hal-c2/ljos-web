@@ -17,7 +17,7 @@ unchanged. Names are resolved at compile time, so nothing interprets QML at run
 time: a binding is a getter Solid tracks, and an `id` is a JavaScript `const`.
 
 A file that imports Qt's modules is compiled against Qt's own types
-(`crates/qml_solid/src/qt/types.txt`, generated from the `.qmltypes` of a Qt
+(`crates/qml_solid/types.txt`, generated from the `.qmltypes` of a Qt
 installation), and what it creates are the objects of `packages/runtime`:
 QtQuick written for the DOM on Solid's signals. The yardstick is Qt's own
 examples (`corpus/qtdoc`): `mise run gallery` compiles each, renders it in a

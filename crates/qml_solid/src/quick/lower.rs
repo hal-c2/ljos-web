@@ -33,7 +33,7 @@ use super::{
     texts::Text,
     types::{self, Member, Origin, Property, Types},
 };
-use crate::{Error, build::B, qt};
+use crate::{Error, build::B};
 
 /// What the module has to import.
 #[derive(Default)]
@@ -620,7 +620,7 @@ impl<'a, 's> Lower<'a, 's> {
         if !built.attach.iter().any(|attached| *attached == type_name) {
             built.attach.push(type_name);
         }
-        let attached = self.types.base(&found.kind).and_then(qt::Type::attached);
+        let attached = self.types.base(&found.kind).and_then(qt_types::Type::attached);
         let handler = match rest {
             [name] => types::handled(name)
                 .filter(|_| attached.is_none_or(|attached| attached.property(name).is_none())),
@@ -1014,7 +1014,7 @@ impl<'a, 's> Lower<'a, 's> {
     }
 }
 
-fn qt_property(ty: &'static qt::Type, path: &[&str]) -> Option<Property> {
+fn qt_property(ty: &'static qt_types::Type, path: &[&str]) -> Option<Property> {
     let (first, rest) = path.split_first()?;
     let mut property = types::qt_property(ty.property(first)?);
     for name in rest {

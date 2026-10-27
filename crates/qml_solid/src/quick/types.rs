@@ -2,18 +2,15 @@
 //!
 //! A name is looked up the way QML does: the file's inline components, then
 //! its imports from the last to the first, then the files next to it. What
-//! Qt's own types have comes from Qt's description of them ([`crate::qt`]);
+//! Qt's own types have comes from Qt's description of them ([`qt_types`]);
 //! what a component has, from the file that declares it.
 
 pub(crate) use crate::project::{directory, join};
-use crate::{
-    project::{Key, Project, Shape, Source},
-    qt,
-};
+use crate::project::{Key, Project, Shape, Source};
 
 #[derive(Clone)]
 pub(crate) enum Kind {
-    Qt(&'static qt::Type),
+    Qt(&'static qt_types::Type),
     /// A QML file, or an inline component of one.
     Component(Key),
 }
@@ -61,7 +58,7 @@ pub(crate) struct Property {
     /// An object written there is a list of one.
     pub is_list: bool,
     /// The type of the value, for the properties under it: `font.bold`.
-    pub value: Option<&'static qt::Type>,
+    pub value: Option<&'static qt_types::Type>,
 }
 
 /// The path to import `target` by from the module of `file`, both keys.
@@ -118,7 +115,7 @@ impl<'p> Types<'p> {
                             origin: Origin::File(file),
                         });
                     }
-                    if let Some(ty) = qt::module(uri).and_then(|module| module.type_named(name)) {
+                    if let Some(ty) = qt_types::module(uri).and_then(|module| module.type_named(name)) {
                         let origin = match qualifier {
                             Some(_) => Origin::Namespace,
                             None => Origin::Module(uri.clone()),
@@ -161,7 +158,7 @@ impl<'p> Types<'p> {
             // a style of Qt Quick Controls names `Overlay` and imports nothing
             // for it.
             for uri in self.project.modules_of(self.file) {
-                if let Some(ty) = qt::module(uri).and_then(|module| module.type_named(name)) {
+                if let Some(ty) = qt_types::module(uri).and_then(|module| module.type_named(name)) {
                     return Some(Found { kind: Kind::Qt(ty), origin: Origin::Module(uri.clone()) });
                 }
             }
@@ -243,7 +240,7 @@ impl<'p> Types<'p> {
     }
 
     /// The Qt type a component's objects are, however many components down.
-    pub(crate) fn base(&self, kind: &Kind) -> Option<&'static qt::Type> {
+    pub(crate) fn base(&self, kind: &Kind) -> Option<&'static qt_types::Type> {
         let mut kind = kind.clone();
         for _ in 0..64 {
             match kind {
@@ -446,19 +443,23 @@ impl<'p> Types<'p> {
     }
 }
 
-pub(crate) fn qt_property(property: &'static qt::Property) -> Property {
+pub(crate) fn qt_property(property: &'static qt_types::Property) -> Property {
     Property {
         is_component: property.is_component,
         is_url: property.type_name == "QUrl" && !property.is_list,
         is_text: property.type_name == "QString" && !property.is_list,
         is_script: property.type_name == "QQmlScriptString" && property.name == "script",
-        takes_key: property.takes_key(),
+        // An int, or a property declared with an enum: it takes a key
+        // (`Text.AlignLeft`), which is the key's name at run time.
+        takes_key: !property.is_list
+            && (property.type_name == "int"
+                || qt_types::is_enum_name(property.type_name.rsplit("::").next().unwrap_or(property.type_name))),
         is_list: property.is_list,
         value: property.value_type(),
     }
 }
 
-pub(crate) fn qt_member(ty: &'static qt::Type, name: &str) -> Option<Member> {
+pub(crate) fn qt_member(ty: &'static qt_types::Type, name: &str) -> Option<Member> {
     if let Some(property) = ty.property(name) {
         return Some(Member::Property(qt_property(property)));
     }
@@ -500,7 +501,7 @@ fn shape_member(shape: &Shape, name: &str) -> Option<Member> {
 /// The property whose new value Qt's signal `name` carries: `text`, of the
 /// `textChanged(text)` of a Text. Qt says it signal by signal, and most carry
 /// nothing: `widthChanged()`, and the change of any property QML declares.
-pub(crate) fn carried<'n>(ty: &'static qt::Type, name: &'n str) -> Option<&'n str> {
+pub(crate) fn carried<'n>(ty: &'static qt_types::Type, name: &'n str) -> Option<&'n str> {
     let property = name.strip_suffix("Changed")?;
     let [parameter] = ty.signal(name)?.parameters.as_slice() else { return None };
     // Not the value, by the name Qt gives it: by how much a handler moved

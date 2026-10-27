@@ -31,7 +31,7 @@ use super::{
     texts::{self, Text},
     types::{Kind, Origin, Types},
 };
-use crate::{Error, build::B, project::Source, qt};
+use crate::{Error, build::B, project::Source};
 
 pub(crate) fn resolve<'a>(
     b: B<'a>,
@@ -498,7 +498,7 @@ impl<'a> Resolver<'a, '_, '_> {
         let origin = match self.types.project.module_type(uri, name) {
             Some(file) => Origin::File(file.to_string()),
             None => {
-                qt::module(uri)?.type_named(name)?;
+                qt_types::module(uri)?.type_named(name)?;
                 Origin::Module(uri.to_string())
             }
         };
@@ -508,7 +508,7 @@ impl<'a> Resolver<'a, '_, '_> {
     }
 }
 
-fn has_enum(ty: &'static qt::Type, name: &str) -> bool {
+fn has_enum(ty: &'static qt_types::Type, name: &str) -> bool {
     let mut current = Some(ty);
     while let Some(ty) = current {
         if ty.enums.iter().any(|enumeration| enumeration.name == name || enumeration.alias == Some(name)) {

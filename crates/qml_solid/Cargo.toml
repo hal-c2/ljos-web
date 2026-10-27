@@ -6,6 +6,7 @@ license.workspace = true
 publish = false
 
 [dependencies]
+qt_types = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "984cc3e43ff200f24db376aad50a2389b25641c4" }
 qml_syntax = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "984cc3e43ff200f24db376aad50a2389b25641c4" }
 oxc_allocator = "0.144"
 oxc_ast = "0.144"

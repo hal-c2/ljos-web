@@ -1,7 +1,7 @@
 //! QtQuick: a QML file as a module of the runtime's components.
 //!
 //! This is the path a file takes when what it imports is Qt's. The types it
-//! names are the ones Qt describes ([`crate::qt`]) and the components of the
+//! names are the ones Qt describes ([`qt_types`]) and the components of the
 //! project; what comes out is a function per component that creates its
 //! objects with the runtime's types (`packages/runtime`).
 

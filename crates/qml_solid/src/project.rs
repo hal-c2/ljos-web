@@ -15,7 +15,7 @@ use oxc_ast_visit::{Visit, walk};
 use qml_syntax::ast::*;
 
 use crate::{
-    Error, qt,
+    Error,
     quick::texts,
     registry::{Element, Prop, Types},
     scope::{Own, alias_target, classify, object_id},
@@ -293,7 +293,7 @@ impl Project {
             has.extend(shape.ids.iter().map(String::as_str));
             let declared =
                 shape.properties.keys().chain(shape.signals.keys()).chain(&shape.functions).map(String::as_str);
-            has.extend(declared.filter(|name| !qt::is_member_name(name)));
+            has.extend(declared.filter(|name| !qt_types::is_member_name(name)));
         }
         // What a text is to find where it is written is whatever is there
         // by that name.

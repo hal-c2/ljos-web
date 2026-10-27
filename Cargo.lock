@@ -263,7 +263,6 @@ checksum = "47d9d19d1d6efa0109d2f65ff4c85cddd50bd572e5a00127ab10987290bcefae"
 [[package]]
 name = "ljos_oxc_parser"
 version = "0.144.0"
-source = "git+ssh://git@github.com/hal-c2/ljos-ui.git?rev=984cc3e43ff200f24db376aad50a2389b25641c4#984cc3e43ff200f24db376aad50a2389b25641c4"
 dependencies = [
  "bitflags",
  "cow-utils",
@@ -806,13 +805,13 @@ dependencies = [
  "oxc_str",
  "oxc_syntax",
  "qml_syntax",
+ "qt_types",
  "solidjs-compiler",
 ]
 
 [[package]]
 name = "qml_syntax"
 version = "0.0.0"
-source = "git+ssh://git@github.com/hal-c2/ljos-ui.git?rev=984cc3e43ff200f24db376aad50a2389b25641c4#984cc3e43ff200f24db376aad50a2389b25641c4"
 dependencies = [
  "ljos_oxc_parser",
  "oxc_allocator",
@@ -830,6 +829,10 @@ dependencies = [
  "oxc_span",
  "qml_syntax",
 ]
+
+[[package]]
+name = "qt_types"
+version = "0.0.0"
 
 [[package]]
 name = "quote"
@@ -1215,3 +1218,7 @@ name = "zmij"
 version = "1.0.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b"
+
+[[patch.unused]]
+name = "qml_front"
+version = "0.0.0"

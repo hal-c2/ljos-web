@@ -16,7 +16,6 @@ mod dialects;
 pub mod discover;
 mod lower;
 mod project;
-mod qt;
 mod quick;
 mod registry;
 mod resolve;
@@ -28,7 +27,7 @@ use oxc_diagnostics::Diagnostics;
 use oxc_span::Span;
 
 pub use project::Project;
-pub use qt::{native_types, written_types};
+pub use qt_types::{native_types, written_types};
 pub use solidjs_compiler::CompileOptions as SolidOptions;
 
 use crate::{build::B, lower::Lower, registry::Types, scope::Scopes};
