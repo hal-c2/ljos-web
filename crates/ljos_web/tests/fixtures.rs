@@ -4,7 +4,7 @@
 
 use std::{fs, path::Path};
 
-use qml_solid::{Options, compile};
+use ljos_web::{Options, compile};
 
 #[test]
 fn tui_bricks() {

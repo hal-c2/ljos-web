@@ -1,7 +1,7 @@
 //! What one QML file asks of another: a component takes exactly what the
 //! instances in its project set on it.
 
-use qml_solid::{Options, Project, compile, lowered_source};
+use ljos_web::{Options, Project, compile, lowered_source};
 
 /// The lowering of `name`, compiled with all of `files`.
 fn lowered_in(files: &[(&str, &str)], name: &str) -> Result<String, Vec<String>> {

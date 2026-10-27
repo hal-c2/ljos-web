@@ -1,6 +1,6 @@
 //! What a project's `qmldir` and `CMakeLists.txt` files say its modules are.
 
-use qml_solid::discover::{Module, Resource, Type, cmake, kept, qmldir};
+use ljos_web::discover::{Module, Resource, Type, cmake, kept, qmldir};
 
 fn module(uri: &str, types: &[(&str, &str)]) -> Module {
     Module {

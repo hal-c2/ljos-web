@@ -283,6 +283,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "ljos_web"
+version = "0.0.0"
+dependencies = [
+ "oxc_allocator",
+ "oxc_ast",
+ "oxc_ast_visit",
+ "oxc_codegen",
+ "oxc_diagnostics",
+ "oxc_parser",
+ "oxc_semantic",
+ "oxc_span",
+ "oxc_str",
+ "oxc_syntax",
+ "qml_front",
+ "qml_syntax",
+ "qt_types",
+ "solidjs-compiler",
+]
+
+[[package]]
 name = "lock_api"
 version = "0.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -799,26 +819,6 @@ dependencies = [
  "qml_syntax",
  "qt_types",
  "thiserror",
-]
-
-[[package]]
-name = "qml_solid"
-version = "0.0.0"
-dependencies = [
- "oxc_allocator",
- "oxc_ast",
- "oxc_ast_visit",
- "oxc_codegen",
- "oxc_diagnostics",
- "oxc_parser",
- "oxc_semantic",
- "oxc_span",
- "oxc_str",
- "oxc_syntax",
- "qml_front",
- "qml_syntax",
- "qt_types",
- "solidjs-compiler",
 ]
 
 [[package]]

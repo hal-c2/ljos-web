@@ -1,7 +1,7 @@
 //! QtQuick: a file whose imports are Qt's becomes a module of the runtime's
 //! components, its names settled when it is compiled.
 
-use qml_solid::{Options, Project, compile, lowered_source};
+use ljos_web::{Options, Project, compile, lowered_source};
 
 /// The lowering of `name`, compiled with all of `files`.
 fn lowered_in(files: &[(&str, &str)], name: &str) -> Result<String, Vec<String>> {
@@ -685,7 +685,7 @@ fn a_script_is_the_module_its_import_is() {
         files: Some(vec!["Block.qml".to_string(), "towers/Melee.qml".to_string()]),
         ..Options::default()
     };
-    let code = qml_solid::compile_script(
+    let code = ljos_web::compile_script(
         r#".pragma library // Shared
 .import QtQuick as QQ
 .import "other.js" as Other
@@ -717,7 +717,7 @@ board[0] = tower("Melee");
     assert_lacks(&code, ".pragma library\n");
 
     let failed = |source: &str| {
-        qml_solid::compile_script(source, &Options::default()).unwrap_err().remove(0).message
+        ljos_web::compile_script(source, &Options::default()).unwrap_err().remove(0).message
     };
     assert_eq!(failed(".pragma library\nfunction area() { return width * height; }"), "`width` is not defined");
     assert_contains(&failed("function area() { return width; }"), "a script that is not a library takes it from the object");

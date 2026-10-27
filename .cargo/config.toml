@@ -1,4 +1,4 @@
 # The table of Qt's types is Ljós's `qt_types` crate reading this
 # repository's generated table (`mise run types` writes it).
 [env]
-LJOS_QT_TYPES = { value = "crates/qml_solid/types.txt", relative = true }
+LJOS_QT_TYPES = { value = "crates/ljos_web/types.txt", relative = true }

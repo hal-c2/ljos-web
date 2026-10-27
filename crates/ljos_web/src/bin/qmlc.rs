@@ -29,7 +29,7 @@ use std::{
     sync::OnceLock,
 };
 
-use qml_solid::{Options, Project, compile, compile_script, discover, lowered_source, native_types, written_types};
+use ljos_web::{Options, Project, compile, compile_script, discover, lowered_source, native_types, written_types};
 
 /// The file selectors given, the first to have a file deciding.
 static SELECTORS: OnceLock<Vec<String>> = OnceLock::new();

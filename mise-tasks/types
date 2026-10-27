@@ -4,8 +4,8 @@
 set -euo pipefail
 # The generator is Ljós's `qmltypes`, at the rev the compiler's front end
 # is taken from: one generator, in its home repository.
-rev=$(grep -oE 'rev = "[0-9a-f]{40}"' crates/qml_solid/Cargo.toml | head -1 | cut -d'"' -f2)
+rev=$(grep -oE 'rev = "[0-9a-f]{40}"' crates/ljos_web/Cargo.toml | head -1 | cut -d'"' -f2)
 root="$PWD/target/qmltypes-tool"
 CARGO_NET_GIT_FETCH_WITH_CLI=true cargo install --quiet --locked --force \
   --git ssh://git@github.com/hal-c2/ljos-ui.git --rev "$rev" qmltypes --root "$root"
-exec "$root/bin/qmltypes" --out crates/qml_solid/types.txt "$@"
+exec "$root/bin/qmltypes" --out crates/ljos_web/types.txt "$@"

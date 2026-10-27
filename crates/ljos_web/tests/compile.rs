@@ -1,6 +1,6 @@
 //! What the lowering builds for Solid, and what Solid makes of it.
 
-use qml_solid::{Options, compile, lowered_source};
+use ljos_web::{Options, compile, lowered_source};
 
 fn options() -> Options {
     Options { name: "Sample".to_string(), ..Options::default() }
