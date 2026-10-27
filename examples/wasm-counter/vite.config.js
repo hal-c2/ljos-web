@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
-import qml from "qml-solid/vite";
+import qml from "ljos-web/vite";
 
 const path = (relative) => fileURLToPath(new URL(relative, import.meta.url));
 
@@ -28,5 +28,5 @@ export default defineConfig({
       standins: [path("./types")],
     }),
   ],
-  resolve: { dedupe: ["solid-js", "@solidjs/web", "qml-solid"] },
+  resolve: { dedupe: ["solid-js", "@solidjs/web", "ljos-web"] },
 });

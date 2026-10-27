@@ -1,5 +1,5 @@
-import "qml-solid/runtime.css";
-import { mount } from "qml-solid/object";
+import "ljos-web/runtime.css";
+import { mount } from "ljos-web/object";
 import Main from "../qml/Main.qml";
 import { Counter as RustCounter } from "../pkg/wasm_counter.js";
 

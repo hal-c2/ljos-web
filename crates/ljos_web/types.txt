@@ -1,5 +1,5 @@
 # The QML types of Qt 6.11, as its qmldir and qmltypes files describe them.
-# Written by `mise run types` (crates/qmltypes), read by qml_solid::qt. Not edited by hand.
+# Written by `mise run types` (crates/qmltypes), read by ljos_web through qt_types. Not edited by hand.
 module QML
 	Component QQmlComponent
 	Easing QQmlEasing

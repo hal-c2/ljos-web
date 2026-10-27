@@ -18,4 +18,4 @@ cargo test
 cargo build --release --target wasm32-unknown-unknown
 "$bindgen" target/wasm32-unknown-unknown/release/wasm_counter.wasm --out-dir pkg --target web
 
-pnpm --filter qml-solid-example-wasm-counter test "$@"
+pnpm --filter ljos-web-example-wasm-counter test "$@"

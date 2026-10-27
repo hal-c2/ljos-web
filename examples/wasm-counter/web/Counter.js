@@ -11,7 +11,7 @@
 // settles, so what depends on it is up to date before the call that
 // changed it returns. Nothing polls, and a read never crosses.
 import { onCleanup, untrack } from "solid-js";
-import { defineType, kinds, onChange, QtObject, settle, slot, typed } from "qml-solid/object";
+import { defineType, kinds, onChange, QtObject, settle, slot, typed } from "ljos-web/object";
 import init, { Counter as RustCounter } from "../pkg/wasm_counter.js";
 
 // The module is there before any object of it is: compiled QML makes

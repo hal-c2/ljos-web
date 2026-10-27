@@ -15,7 +15,7 @@ ljostypes.json ──▶ the compiler's type table (what the Rust types are)
 generated glue ──▶ each Rust type as a type of the runtime's kernel
 ```
 
-The QML is compiled by qml-solid exactly as it is today. What is new
+The QML is compiled by ljos-web exactly as it is today. What is new
 is that a type the application has in Rust is there at run time as a
 wasm struct behind a small generated face, used by compiled QML as
 it uses `Rectangle` or `Timer`. One application codebase then covers
@@ -39,7 +39,7 @@ the same application:
   change in wasm is told, synchronously, to whoever follows it
   (section 4).
 - **No parser in the shipped page**: QML is compiled ahead of time,
-  as qml-solid already does; the wasm is the application's logic,
+  as ljos-web already does; the wasm is the application's logic,
   never an interpreter for QML.
 
 ## 1. The shape of a native type on the web
@@ -183,13 +183,12 @@ exactly the compiler's — `module_type`, `property`, `signal`
 the parsed `ljostypes.json` answers them with
 `members_checked` semantics: a member the type does not have is a
 compile error, as it is in a desktop AOT build (`lable: 1`,
-`onBumpd:`). When qml-solid's compiler finishes moving onto
-`qml_syntax`/`qml_front` (another worker's task, not this one's),
-`qmlc` gains `--types ljostypes.json` and the Vite plugin passes
-it; the output for a type of the dump is an import from the
+`onBumpd:`). The compiler now reads QML through
+`qml_syntax`/`qml_front`, so `qmlc` can gain
+`--types ljostypes.json`, which the Vite plugin passes; the output for a type of the dump is an import from the
 module's JS (`import { Counter } from "ljos-web/Example"`), which
 the application's Vite configuration aliases to the generated
-module of section 2 — the same way `qml-solid/QtQuick` names a
+module of section 2 — the same way `ljos-web/QtQuick` names a
 runtime module today.
 
 Rejected: generating `.qmltypes` from the dump and reading it back
@@ -656,7 +655,7 @@ What runs today, end to end (`mise run test:wasm-counter`):
   over the wasm, exactly the pieces of section 2 that a
   `QtObject` type needs, and the seam rules of section 4
   (value-carrying tellings, the `known` cache, held writes).
-- `vite.config.js` — the qml-solid plugin with the stand-in
+- `vite.config.js` — the ljos-web plugin with the stand-in
   directory, plus a five-line plugin putting the face where
   compiled QML asks for the stand-in file.
 - `tests/counter.spec.js` — four Playwright tests against the
@@ -685,7 +684,7 @@ size, as the runtime's test pages do.
 
 To look at it rather than test it: run the mise task once (it
 builds the wasm into `pkg/`), then
-`pnpm --filter qml-solid-example-wasm-counter dev` and open the
+`pnpm --filter ljos-web-example-wasm-counter dev` and open the
 address Vite prints, in a browser.
 
 What the spike deliberately is not: no generated code (the

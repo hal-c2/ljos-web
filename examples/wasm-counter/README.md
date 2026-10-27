@@ -19,5 +19,5 @@ mise run test:wasm-counter
 ```
 
 Look at it: build as above, then serve the example with Vite
-(`pnpm --filter qml-solid-example-wasm-counter dev`) and open the
+(`pnpm --filter ljos-web-example-wasm-counter dev`) and open the
 address it prints.
