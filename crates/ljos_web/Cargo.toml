@@ -6,9 +6,9 @@ license.workspace = true
 publish = false
 
 [dependencies]
-qml_front = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "984cc3e43ff200f24db376aad50a2389b25641c4" }
-qt_types = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "984cc3e43ff200f24db376aad50a2389b25641c4" }
-qml_syntax = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "984cc3e43ff200f24db376aad50a2389b25641c4" }
+qml_front = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "b6c095671da1ae9066b26ef803a35944afa2158f" }
+qt_types = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "b6c095671da1ae9066b26ef803a35944afa2158f" }
+qml_syntax = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "b6c095671da1ae9066b26ef803a35944afa2158f" }
 oxc_allocator = "0.144"
 oxc_ast = "0.144"
 oxc_ast_visit = "0.144"
