@@ -138,7 +138,9 @@ impl<'a> Resolver<'a, '_, '_> {
     }
 
     /// What reads `name` where it is written; None to leave it as it is.
-    /// `written` when it is assigned to: then it has to be one place.
+    /// `written` when it is assigned to: then it has to be one place. What
+    /// the name is, is the front end's reading of the file
+    /// ([`qml_front::names`]); what JavaScript reads it as is written here.
     fn bare(&mut self, name: &str, span: Span, written: bool) -> Option<Expression<'a>> {
         let b = self.b;
         let tree = self.tree;
@@ -149,58 +151,46 @@ impl<'a> Resolver<'a, '_, '_> {
         }
 
         let inside = tree.object_at(span.start);
-        let scope = tree.scope_at(span.start);
-        // The target's names come first, and nothing of the PropertyChanges
-        // it is written in is in sight.
-        let aimed = tree.aimed(span.start);
-        let mut context = tree.objects[inside].context;
-        // What the delegates the expression is in are given, innermost first.
-        // What that is depends on the model, which only the running program
-        // has: a name an object further out has may be a role further in.
-        let mut data: Vec<&str> = Vec::new();
-        let mut found = None;
-        let mut first = true;
-        loop {
-            let root = tree.contexts[context].root;
-            // Only the innermost context has a scope object: further out, a
-            // name is a member of the component's root or nothing.
-            let candidates =
-                if first && scope != root && !aimed { [Some(scope), Some(root)] } else { [Some(root), None] };
-            first = false;
-            if let Some(object) =
-                candidates.into_iter().flatten().find(|object| tree.member(self.types, *object, name).is_some())
-            {
-                found = Some(b.member(self.handle(object), name));
-                break;
-            }
-            if let Some(given) = tree.data(context) {
-                data.push(given);
-                // What every delegate is given, whatever the model.
-                if matches!(name, "index" | "model" | "modelData") {
-                    break;
+        let names = qml_front::names::Names { tree: &tree.front, types: self.types.front() };
+        let resolution = names.lookup(name, span.start);
+        let (aimed, roles, target) = match resolution {
+            Some(resolution) => {
+                if let Some(qml_front::names::Target::Global(global)) = &resolution.target {
+                    if *global == qml_front::names::Global::Qml
+                        && let Some(global) = QML_GLOBALS.iter().find(|global| **global == name)
+                    {
+                        self.uses.globals.insert(global);
+                    }
+                    return None;
                 }
+                (resolution.aimed.is_some(), resolution.roles, resolution.target)
             }
-            match tree.contexts[context].outer {
-                Some(outer) => context = outer,
-                None => break,
+            None => (false, Vec::new(), None),
+        };
+        // An id of a component around this one is no binding of the function
+        // this is written in: it is found as the program runs, as below. An
+        // id of this component is one, and JavaScript had already resolved
+        // it wherever the script could see it, so it does not come here.
+        let target = target.filter(|target| {
+            !matches!(target, qml_front::names::Target::Id(object) if tree.objects[*object].context != tree.objects[inside].context)
+        });
+        let mut read = target.map(|target| match target {
+            qml_front::names::Target::Id(object) => self.handle(object),
+            qml_front::names::Target::Property { object, name } => b.member(self.handle(object), &name),
+            qml_front::names::Target::Context { context, name } => {
+                b.member(b.id(tree.data(context).unwrap_or("$data")), &name)
             }
-        }
-
-        if found.is_none() {
-            if let Some(global) = QML_GLOBALS.iter().find(|global| **global == name) {
-                self.uses.globals.insert(global);
-                return None;
+            // A lowercase name is none of these.
+            qml_front::names::Target::Type(_) | qml_front::names::Target::Namespace(_) | qml_front::names::Target::Global(_) => {
+                b.id(name)
             }
-            if JS_GLOBALS.contains(&name) {
-                return None;
-            }
-        }
-        if written && found.is_some() {
-            return found;
+        });
+        if written && read.is_some() && roles.is_empty() {
+            return read;
         }
         // `"name" in $data ? $data.name : outer.name`, from the outside in.
-        let mut read = found;
-        for given in data.into_iter().rev() {
+        for context in roles.into_iter().rev() {
+            let given = tree.data(context).unwrap_or("$data");
             let own = b.member(b.id(given), name);
             read = Some(match read {
                 Some(outer) => b.conditional(b.binary(b.string(name), BinaryOperator::In, b.id(given)), own, outer),
@@ -275,7 +265,7 @@ impl<'a> Resolver<'a, '_, '_> {
         if ty.0.enum_value(member).is_some() {
             return Access::Static;
         }
-        if has_enum(ty.0, member) {
+        if qml_front::TypeOracle::has_enum(&qml_front::QtTypeOracle, qml_front::QtType(ty.0), member) {
             return Access::Enum;
         }
         if ty.0.attaches(member) && !ty.0.is_singleton && !is_singleton { Access::Attached } else { rest }
@@ -508,16 +498,6 @@ impl<'a> Resolver<'a, '_, '_> {
     }
 }
 
-fn has_enum(ty: &'static qt_types::Type, name: &str) -> bool {
-    let mut current = Some(ty);
-    while let Some(ty) = current {
-        if ty.enums.iter().any(|enumeration| enumeration.name == name || enumeration.alias == Some(name)) {
-            return true;
-        }
-        current = ty.prototype();
-    }
-    false
-}
 
 impl<'a> VisitMut<'a> for Resolver<'a, '_, '_> {
     fn visit_expression(&mut self, expression: &mut Expression<'a>) {
@@ -689,82 +669,7 @@ impl<'a> VisitMut<'a> for Pruner<'_> {
     }
 }
 
-/// What QML puts in every script's scope, whatever is imported.
-pub(crate) const QML_GLOBALS: &[&str] = &[
-    "Qt",
-    "qsTr",
-    "qsTrId",
-    "qsTranslate",
-    "qsTrNoOp",
-    "qsTrIdNoOp",
-    "qsTranslateNoOp",
-    "QT_TR_NOOP",
-    "QT_TRID_NOOP",
-    "QT_TRANSLATE_NOOP",
-    "print",
-    "gc",
-    "XMLHttpRequest",
-];
-
-pub(crate) const JS_GLOBALS: &[&str] = &[
-    "undefined",
-    "NaN",
-    "Infinity",
-    "globalThis",
-    "console",
-    "arguments",
-    "eval",
-    "parseInt",
-    "parseFloat",
-    "isNaN",
-    "isFinite",
-    "escape",
-    "unescape",
-    "encodeURI",
-    "encodeURIComponent",
-    "decodeURI",
-    "decodeURIComponent",
-    "Math",
-    "JSON",
-    "Reflect",
-    "Proxy",
-    "Object",
-    "Function",
-    "Array",
-    "String",
-    "Number",
-    "Boolean",
-    "Symbol",
-    "BigInt",
-    "Date",
-    "RegExp",
-    "Map",
-    "Set",
-    "WeakMap",
-    "WeakSet",
-    "Promise",
-    "ArrayBuffer",
-    "DataView",
-    "Int8Array",
-    "Uint8Array",
-    "Uint8ClampedArray",
-    "Int16Array",
-    "Uint16Array",
-    "Int32Array",
-    "Uint32Array",
-    "Float32Array",
-    "Float64Array",
-    "Error",
-    "EvalError",
-    "TypeError",
-    "RangeError",
-    "ReferenceError",
-    "SyntaxError",
-    "URIError",
-    "Intl",
-    "URL",
-    "URLSearchParams",
-];
+pub(crate) use qml_front::names::{JS_GLOBALS, QML_GLOBALS};
 
 /// What `import "lib.js" as Lib` or `import QtQuick.Controls as C` is to the
 /// module: a namespace import of `source`, under `prefix` for a Qt module.

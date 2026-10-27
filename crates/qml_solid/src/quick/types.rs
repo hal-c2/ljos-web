@@ -258,8 +258,10 @@ impl TypeOracle for WebOracle {
         QtTypeOracle.is_unlisted(qt(ty))
     }
 
-    fn adds_member(&self, ty: Qt, name: &str) -> bool {
-        QtTypeOracle.adds_member(qt(ty), name)
+    fn adds_member(&self, _ty: Qt, _name: &str) -> bool {
+        // Ljós's own table names members its runtime adds to Qt's types;
+        // the web runtime has no such member by that fact alone.
+        false
     }
 
     fn unknown_type_note(&self, name: &str) -> Option<&'static str> {
