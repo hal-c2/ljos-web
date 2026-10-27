@@ -26,7 +26,7 @@ use oxc_ast_visit::{VisitMut, walk_mut};
 use oxc_span::Span;
 use oxc_syntax::operator::BinaryOperator;
 
-use crate::{Error, Options, build::B, project, project::Project};
+use crate::{Error, Options, build::B, project::Project};
 
 /// A text some `Qt.createQmlObject` is given.
 pub(crate) struct Text {
@@ -148,7 +148,7 @@ pub(crate) fn declare<'a>(
     let mut project = project.clone();
     let mut options = options.clone();
     options.name = format!("{}{}", options.name, name(index));
-    project.insert(&options.name, project::summarize(&parsed.document));
+    project.insert_document(&options.name, &parsed.document);
     let program = super::lower_from(b, source, parsed.document, &project, &options, files, true)?;
 
     let mut body = b.vec();

@@ -195,7 +195,7 @@ impl<'p> Types<'p> {
         for _ in 0..64 {
             let Kind::Component(key) = kind else { return None };
             let shape = self.project.shape(&key)?;
-            if shape.enums.values().any(|keys| keys.iter().any(|key| key == member)) {
+            if shape.enums.values().any(|keys| keys.iter().any(|key| key.name == member)) {
                 return Some(false);
             }
             if shape.enums.contains_key(member) {
@@ -223,7 +223,7 @@ impl<'p> Types<'p> {
             };
             let Some(shape) = self.project.shape(&file) else { return false };
             if shape.enums.iter().any(|(name, keys)| {
-                scope.is_none_or(|scope| scope == name) && keys.iter().any(|known| known == key)
+                scope.is_none_or(|scope| scope == name) && keys.iter().any(|known| known.name == key)
             }) {
                 return true;
             }

@@ -188,7 +188,7 @@ fn lower<'a>(
     // components are used nowhere else.
     let open = options.project.is_none();
     let mut project = options.project.clone().unwrap_or_default();
-    project.insert(&options.name, project::summarize(&parsed.document));
+    project.insert_document(&options.name, &parsed.document);
     let types = Types::of(&parsed.document.imports);
     let b = B::new(allocator);
     if !types.has_dialect() {
