@@ -1,7 +1,7 @@
 import { defineConfig } from "@playwright/test";
 
 // Two checkouts can run their tests at once if each is given its own port.
-const port = Number(process.env.QML_SOLID_PORT ?? 4174);
+const port = Number(process.env.LJOS_WEB_PORT ?? 4174);
 
 export default defineConfig({
   testDir: ".",

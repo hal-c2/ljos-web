@@ -24,9 +24,9 @@
 //     StackLayout { id: none; y: 300 }
 //     Item { id: plain; Rectangle { id: outside; width: 5; height: 5 } }
 // }
-import { $object } from "qml-solid/object";
-import { Item, Rectangle } from "qml-solid/QtQuick";
-import { ColumnLayout, Layout, StackLayout } from "qml-solid/QtQuick/Layouts";
+import { $object } from "ljos-web/object";
+import { Item, Rectangle } from "ljos-web/QtQuick";
+import { ColumnLayout, Layout, StackLayout } from "ljos-web/QtQuick/Layouts";
 import { make } from "../scene.js";
 
 const names = ["root", "stack", "capped", "fixed", "sizeful", "stackLoose", "holder", "held", "none", "outside"];

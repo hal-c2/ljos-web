@@ -31,7 +31,7 @@ const WRITABLE = { ownedWrite: true };
 // A binding gives a value, never a promise of one.
 const SYNC = { sync: true };
 // What `Qt.binding(f)` marks its function with: assigning one binds.
-const BINDING = Symbol.for("qml-solid.binding");
+const BINDING = Symbol.for("ljos-web.binding");
 
 const versioned = () => createSignal(0, WRITABLE);
 
@@ -1714,7 +1714,7 @@ export function $url(value, base) {
 export function absent(module, name, installed = true) {
   const fail = () => {
     throw new Error(
-      installed ? `${module}: ${name} is not in qml-solid yet` : `${module}: ${name} is QML of Qt's own, and Qt's ${module} is not installed here`,
+      installed ? `${module}: ${name} is not in ljos-web yet` : `${module}: ${name} is QML of Qt's own, and Qt's ${module} is not installed here`,
     );
   };
   return new Proxy(fail, {

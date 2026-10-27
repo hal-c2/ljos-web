@@ -21,8 +21,8 @@
 //     }
 //     Rectangle { id: beside; x: outer.x + outer.width; y: outer.y; width: first.implicitWidth; height: outer.height }
 // }
-import { $object } from "qml-solid/object";
-import { Column, Item, Rectangle, Row } from "qml-solid/QtQuick";
+import { $object } from "ljos-web/object";
+import { Column, Item, Rectangle, Row } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 export const objects = {};

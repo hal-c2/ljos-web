@@ -8,8 +8,8 @@ import { delegateEvents as _$delegateEvents } from "@solidjs/web";
 import { For as _$For } from "@solidjs/web";
 var _tmpl$ = /* @__PURE__ */ _$template(`<div class=q-item data-object-name=selectOverlay style=border-width:1px;border-style:solid;border-radius:0.5ch;flex-direction:column;flex-shrink:0;padding-left:1ch;padding-right:1ch><span class=q-text><span></span><span>↑/↓ or click · Enter apply · Esc cancel</span></span><span class=q-text data-object-name=selectStatus>`);
 var _tmpl$2 = /* @__PURE__ */ _$template(`<div class=q-item style=flex-direction:column;flex-shrink:0><span class=q-text style=height:1lh;white-space:pre></span><span class=q-text style=height:1lh;white-space:pre>`);
-import { $model } from "qml-solid/runtime";
-import { Shell, Theme } from "qml-solid/host";
+import { $model } from "ljos-web/runtime";
+import { Shell, Theme } from "ljos-web/host";
 export default function SelectOverlay(props) {
 	const overlay$model = () => Shell.state.select;
 	var _el$ = _tmpl$();

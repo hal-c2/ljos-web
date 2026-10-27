@@ -17,8 +17,8 @@
 //     Loader { id: later; y: 200; asynchronous: true; sourceComponent: rect }
 //     Loader { id: file; x: 100; y: 200; source: "parts/Card.qml"; onLoaded: log.push("file " + item.label) }
 // }
-import { $component, $define, $file, $object } from "qml-solid/object";
-import { Item, Loader, QtObject, Rectangle } from "qml-solid/QtQuick";
+import { $component, $define, $file, $object } from "ljos-web/object";
+import { Item, Loader, QtObject, Rectangle } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 import Card from "./parts/card.js";

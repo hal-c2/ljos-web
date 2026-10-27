@@ -27,9 +27,9 @@ const isScript = (id) => {
 const runtime = import.meta.dirname;
 const natives = () => JSON.parse(readFileSync(join(runtime, "package.json"), "utf8")).exports;
 
-// `qml-solid/QtQuick/Controls`: a module of Qt's, not `qml-solid/object`.
-const MODULE = /^qml-solid\/(Qt[\w/]*)$/;
-const VIRTUAL = "\0qml-solid:";
+// `ljos-web/QtQuick/Controls`: a module of Qt's, not `ljos-web/object`.
+const MODULE = /^ljos-web\/(Qt[\w/]*)$/;
+const VIRTUAL = "\0ljos-web:";
 // Qt's own QML is of no program, and takes the style of the one that came
 // to it: its address says which (`DebugView.qml?for=Material`), and so does
 // that of each module on the way.
@@ -257,7 +257,7 @@ export default function qml({ qmlc = "qmlc", args = [], qt, style, controls, sta
     (typeof style === "function" ? style(importer) : style) ?? set(importer)?.Controls?.Style?.replace(/^Default$/, "Basic");
   const stood = (file) => (typeof standins === "function" ? standins(file) : standins) ?? [];
   const compiled = new Map();
-  let cache = join(runtime, "node_modules/.vite/qml-solid");
+  let cache = join(runtime, "node_modules/.vite/ljos-web");
   // The pictures of a module, by what its QML names them: next to the QML
   // when the installation has them there, otherwise read out of the plugin
   // when the QML names any, or what the runtime has of the module does: the
@@ -277,7 +277,7 @@ export default function qml({ qmlc = "qmlc", args = [], qt, style, controls, sta
         directory = join(cache, version || "qt", owner, kind);
         if (!existsSync(directory)) {
           const failed = extract(join(bins || "", "qml"), owner.replaceAll("/", "."), folder, directory);
-          if (failed) console.warn(`qml-solid: the ${kind} of ${owner} could not be read out of Qt: ${failed}`);
+          if (failed) console.warn(`ljos-web: the ${kind} of ${owner} could not be read out of Qt: ${failed}`);
         }
       }
       return readdirSync(directory)
@@ -302,12 +302,12 @@ export default function qml({ qmlc = "qmlc", args = [], qt, style, controls, sta
       const directory = join(cache, version || "qt", module, ...folder.split("/"));
       if (!existsSync(directory)) {
         const failed = extract(join(bins || "", "qml"), module.replaceAll("/", "."), `qrc:/${folder}`, directory);
-        if (failed) console.warn(`qml-solid: ${folder} of ${module} could not be read out of Qt: ${failed}`);
+        if (failed) console.warn(`ljos-web: ${folder} of ${module} could not be read out of Qt: ${failed}`);
       }
       const names = readdirSync(directory).filter((name) => !name.startsWith(".") && !name.includes("@"));
       // Nothing read is not kept: the next build asks Qt again.
       if (names.length === 0) {
-        console.warn(`qml-solid: nothing of ${folder} could be read out of Qt's ${module.replaceAll("/", ".")}`);
+        console.warn(`ljos-web: nothing of ${folder} could be read out of Qt's ${module.replaceAll("/", ".")}`);
         rmSync(directory, { recursive: true, force: true });
       }
       return names.map((name) => [`qrc:/${folder}/${name}`, `${join(directory, name)}?url`]);
@@ -390,18 +390,18 @@ export default function qml({ qmlc = "qmlc", args = [], qt, style, controls, sta
     return { about, native, brought, missing, uninstalled, names, fitted };
   };
   return {
-    name: "qml-solid",
+    name: "ljos-web",
     // Before Vite's own: a script is told from any other `.js` file by who
     // imports it, and only here is that known.
     enforce: "pre",
     configResolved(config) {
-      cache = join(config.cacheDir, "qml-solid");
+      cache = join(config.cacheDir, "ljos-web");
     },
     // Qt's own QML is outside the project. What the runtime itself is built
     // on that is no module (SQLite, for QtQuick.LocalStorage) is bundled
     // for the browser before a page asks for it.
     config(config) {
-      const optimizeDeps = { include: ["qml-solid > sql.js"] };
+      const optimizeDeps = { include: ["ljos-web > sql.js"] };
       if (roots.length === 0) return { optimizeDeps };
       const allowed = config.server?.fs?.allow ? [] : [searchForWorkspaceRoot(config.root ?? process.cwd())];
       return { optimizeDeps, server: { fs: { allow: [...allowed, ...roots] } } };
@@ -430,7 +430,7 @@ export default function qml({ qmlc = "qmlc", args = [], qt, style, controls, sta
       if (/^[\w@]/.test(source)) {
         const found = await this.resolve(source, importer, { ...options, skipSelf: true }).catch(() => null);
         if (found) return found;
-        const own = natives()[source.replace(/^qml-solid(?=\/)/, ".")];
+        const own = natives()[source.replace(/^ljos-web(?=\/)/, ".")];
         return own ? join(runtime, own) : this.resolve(source, join(runtime, "index.js"), { ...options, skipSelf: true });
       }
       // What Qt's own QML has next to it is of the same program.
@@ -481,7 +481,7 @@ export default function qml({ qmlc = "qmlc", args = [], qt, style, controls, sta
           }
         }
         for (const [name, file] of fitted) lines.push(`export { default as ${name} } from ${JSON.stringify(file)};`);
-        for (const [uri, names] of brought) lines.push(`export { ${names.join(", ")} } from "qml-solid/${uri}";`);
+        for (const [uri, names] of brought) lines.push(`export { ${names.join(", ")} } from "ljos-web/${uri}";`);
         // A style is told to what it is the style of: what is not QML in it
         // (the colours and fonts of a control) goes by which was chosen.
         if (asked.has("style") && brought.length > 0) {

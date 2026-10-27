@@ -20,9 +20,9 @@
 //
 // The page says what is in a folder: the one Qt was asked about, as it gave
 // it unsorted.
-import { $component, $define, $object } from "qml-solid/object";
-import { FolderListModel, folders } from "qml-solid/Qt/labs/folderlistmodel";
-import { Item, Rectangle, Repeater } from "qml-solid/QtQuick";
+import { $component, $define, $object } from "ljos-web/object";
+import { FolderListModel, folders } from "ljos-web/Qt/labs/folderlistmodel";
+import { Item, Rectangle, Repeater } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 const now = new Date(Date.UTC(2026, 9, 3, 11, 53, 36));

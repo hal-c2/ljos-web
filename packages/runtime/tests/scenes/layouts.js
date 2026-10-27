@@ -70,9 +70,9 @@
 //         id: empty; y: 280
 //     }
 // }
-import { $object } from "qml-solid/object";
-import { Item, Rectangle } from "qml-solid/QtQuick";
-import { ColumnLayout, Layout, RowLayout } from "qml-solid/QtQuick/Layouts";
+import { $object } from "ljos-web/object";
+import { Item, Rectangle } from "ljos-web/QtQuick";
+import { ColumnLayout, Layout, RowLayout } from "ljos-web/QtQuick/Layouts";
 import { make } from "../scene.js";
 
 const names = [

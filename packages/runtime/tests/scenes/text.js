@@ -78,8 +78,8 @@
 //         verticalAlignment: TextEdit.AlignBottom }
 //     TextEdit { id: editEnd; text: "abc\n" }
 // }
-import { $object } from "qml-solid/object";
-import { Font, FontMetrics, Item, Text, TextEdit, TextInput, TextMetrics } from "qml-solid/QtQuick";
+import { $object } from "ljos-web/object";
+import { Font, FontMetrics, Item, Text, TextEdit, TextInput, TextMetrics } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 export const objects = {};

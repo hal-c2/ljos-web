@@ -37,9 +37,9 @@
 //                                              maskThresholdMin: 0.3; maskSpreadAtMin: 0.2
 //                                              maskThresholdMax: 0.8; maskSpreadAtMax: 0.4; maskInverted: true }
 // }
-import { $object } from "qml-solid/object";
-import { Image, Item, Rectangle } from "qml-solid/QtQuick";
-import { MultiEffect } from "qml-solid/QtQuick/Effects";
+import { $object } from "ljos-web/object";
+import { Image, Item, Rectangle } from "ljos-web/QtQuick";
+import { MultiEffect } from "ljos-web/QtQuick/Effects";
 import { make } from "../scene.js";
 
 export const objects = {};

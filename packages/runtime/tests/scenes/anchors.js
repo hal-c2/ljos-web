@@ -8,8 +8,8 @@
 //                 anchors.verticalCenter: parent.verticalCenter; height: 20 }
 //     Rectangle { id: half; width: parent.width / 2; height: 10; anchors.bottom: parent.bottom }
 // }
-import { $object } from "qml-solid/object";
-import { Item, Rectangle } from "qml-solid/QtQuick";
+import { $object } from "ljos-web/object";
+import { Item, Rectangle } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 const names = ["root", "fill", "centre", "after", "later", "between", "half"];

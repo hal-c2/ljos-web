@@ -8,8 +8,8 @@ import { setAttribute as _$setAttribute } from "@solidjs/web";
 import { For as _$For } from "@solidjs/web";
 var _tmpl$ = /* @__PURE__ */ _$template(`<div class=q-item data-object-name=approvals style=flex-direction:column;flex-shrink:0;align-self:center;border-width:1px;border-style:solid;border-radius:0.5ch;padding-left:1ch;padding-right:1ch><div class=q-item style=flex-direction:row><span class=q-text>Approval required</span><span class=q-text></span></div><span class=q-text>`);
 var _tmpl$2 = /* @__PURE__ */ _$template(`<div class=q-item style=flex-direction:row><span class=q-text></span><span class=q-text>`);
-import { $ch, $model } from "qml-solid/runtime";
-import { Shell, Theme } from "qml-solid/host";
+import { $ch, $model } from "ljos-web/runtime";
+import { Shell, Theme } from "ljos-web/host";
 export default function Approvals(props) {
 	const panel$approvals = () => Shell.state.approvals;
 	var _el$ = _tmpl$();

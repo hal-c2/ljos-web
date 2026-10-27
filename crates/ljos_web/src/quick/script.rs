@@ -14,7 +14,7 @@
 //! ```
 //!
 //! ```js
-//! import * as QQ from "qml-solid/QtQuick";
+//! import * as QQ from "ljos-web/QtQuick";
 //! export var board = [];
 //! export function index(column, row) { return column + row * 10; }
 //! ```

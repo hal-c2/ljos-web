@@ -41,8 +41,8 @@
 //     Path { id: round; startX: 10; startY: 10; PathLine { x: 50; y: 10 } PathLine { x: 10; y: 50 }
 //            PathLine { x: 10; y: 10 } }
 // }
-import { $object } from "qml-solid/object";
-import { Qt } from "qml-solid/QtQml";
+import { $object } from "ljos-web/object";
+import { Qt } from "ljos-web/QtQml";
 import {
   Item,
   Path,
@@ -57,7 +57,7 @@ import {
   PathQuad,
   PathRectangle,
   PathSvg,
-} from "qml-solid/QtQuick";
+} from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 const names = [

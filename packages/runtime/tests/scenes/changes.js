@@ -35,7 +35,7 @@
 //         transitions: Transition { id: fade; NumberAnimation { property: "opacity"; duration: 100 } }
 //     }
 // }
-import { $define, $object } from "qml-solid/object";
+import { $define, $object } from "ljos-web/object";
 import {
   AnchorAnimation,
   AnchorChanges,
@@ -51,7 +51,7 @@ import {
   StateChangeScript,
   StateGroup,
   Transition,
-} from "qml-solid/QtQuick";
+} from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 const names = ["root", "left", "token", "right", "bar", "group", "fade"];

@@ -3,8 +3,8 @@
 // module exports as `objects` is there for a test to read and assign to. A
 // scene may be QML: then the objects are what its root has aliases for.
 // With `&still` time stands still from the start, for `window.clock` to move.
-import { flush, mount } from "qml-solid/object";
-import { clock } from "qml-solid/QtQuick";
+import { flush, mount } from "ljos-web/object";
+import { clock } from "ljos-web/QtQuick";
 
 const scenes = import.meta.glob("./scenes/*.{js,qml}");
 const asked = new URLSearchParams(location.search);

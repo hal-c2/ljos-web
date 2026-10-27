@@ -56,8 +56,8 @@
 //     }
 //     ListView { id: empty; width: 100; height: 100; delegate: Item {} }
 // }
-import { $component, $define, $object, $signal } from "qml-solid/object";
-import { Item, ListElement, ListModel, ListView, ObjectModel, Rectangle } from "qml-solid/QtQuick";
+import { $component, $define, $object, $signal } from "ljos-web/object";
+import { Item, ListElement, ListModel, ListView, ObjectModel, Rectangle } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 // `made` counts the delegates created, by view: scrolling makes those that

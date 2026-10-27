@@ -39,9 +39,9 @@
 //         Rectangle { id: inside; x: 172; width: 6; height: 10; color: "black" } }
 //     Shape { id: empty }
 // }
-import { $object, $signal } from "qml-solid/object";
-import { GradientStop, Item, PathAngleArc, PathLine, PathRectangle, PathSvg, Rectangle } from "qml-solid/QtQuick";
-import { ConicalGradient, LinearGradient, RadialGradient, Shape, ShapePath } from "qml-solid/QtQuick/Shapes";
+import { $object, $signal } from "ljos-web/object";
+import { GradientStop, Item, PathAngleArc, PathLine, PathRectangle, PathSvg, Rectangle } from "ljos-web/QtQuick";
+import { ConicalGradient, LinearGradient, RadialGradient, Shape, ShapePath } from "ljos-web/QtQuick/Shapes";
 import { make } from "../scene.js";
 
 const names = [

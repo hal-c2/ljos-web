@@ -1,1 +1,1 @@
-../../../crates/qml_solid/tests/fixtures/tui/ThreadOverlay.qml
+../../../crates/ljos_web/tests/fixtures/tui/ThreadOverlay.qml

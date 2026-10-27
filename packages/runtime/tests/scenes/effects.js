@@ -63,10 +63,10 @@
 //                   autoPaddingEnabled: false; paddingRect: Qt.rect(20, 0, 0, 20) }
 //     MultiEffect { id: none; x: 30; y: 40 }
 // }
-import { $object, $signal } from "qml-solid/object";
-import { Qt } from "qml-solid/QtQml";
-import { Item, Rectangle } from "qml-solid/QtQuick";
-import { MultiEffect } from "qml-solid/QtQuick/Effects";
+import { $object, $signal } from "ljos-web/object";
+import { Qt } from "ljos-web/QtQml";
+import { Item, Rectangle } from "ljos-web/QtQuick";
+import { MultiEffect } from "ljos-web/QtQuick/Effects";
 import { make } from "../scene.js";
 
 export const objects = { MultiEffect };

@@ -39,7 +39,7 @@ test("a type Qt has and the runtime does not is there to be named, and says so w
     // the QML is.
     return [typeof FlexboxLayout, said(() => make(FlexboxLayout)), said(() => FlexboxLayout.Wrap), said(() => make(Flexed))];
   });
-  const message = "QtQuick.Layouts: FlexboxLayout is not in qml-solid yet";
+  const message = "QtQuick.Layouts: FlexboxLayout is not in ljos-web yet";
   expect(read).toEqual(["function", message, message, message]);
 });
 

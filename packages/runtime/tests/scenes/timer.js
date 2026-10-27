@@ -16,8 +16,8 @@
 //         onTriggered: log.push("frame " + currentFrame + " " + frameTime + " " + elapsedTime.toFixed(3))
 //     }
 // }
-import { $define, $object, $signal } from "qml-solid/object";
-import { clock, FrameAnimation, Item, NumberAnimation, Rectangle, Timer } from "qml-solid/QtQuick";
+import { $define, $object, $signal } from "ljos-web/object";
+import { clock, FrameAnimation, Item, NumberAnimation, Rectangle, Timer } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 const names = ["root", "box", "once", "tick", "bound", "slide", "frames"];

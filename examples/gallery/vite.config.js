@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
-import qml from "qml-solid/vite";
+import qml from "ljos-web/vite";
 import { manifestFile, readManifest } from "./manifest.js";
 
 const path = (relative) => fileURLToPath(new URL(relative, import.meta.url));
@@ -133,10 +133,10 @@ export default defineConfig({
   plugins: [examples(), assets(), tolerant(qml({ qmlc: process.env.QMLC ?? path("../../target/debug/qmlc"), args, style, controls, standins }))],
   resolve: {
     // Qt's examples have no app behind them: nothing to find here.
-    alias: { "qml-solid/host": path("./host.js") },
+    alias: { "ljos-web/host": path("./host.js") },
     // The QML is in the corpus, outside this package: what its compiled
     // output imports still resolves from here.
-    dedupe: ["solid-js", "@solidjs/web", "qml-solid"],
+    dedupe: ["solid-js", "@solidjs/web", "ljos-web"],
   },
   // Known before the first example is loaded, so the server does not reload
   // the page to bundle them when it meets them.

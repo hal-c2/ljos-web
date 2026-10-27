@@ -11,8 +11,8 @@
 // `follower` is a palette as an item has one: it follows another (its
 // parent's) and answers for the group the item is in.
 import { createSignal } from "solid-js";
-import { $object, QtObject } from "qml-solid/object";
-import { ColorGroup, Item, Palette, Rectangle, SystemPalette } from "qml-solid/QtQuick";
+import { $object, QtObject } from "ljos-web/object";
+import { ColorGroup, Item, Palette, Rectangle, SystemPalette } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 export const objects = { SystemPalette };

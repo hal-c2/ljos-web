@@ -1,1 +1,1 @@
-../../../crates/qml_solid/tests/fixtures/tui/RevertPicker.qml
+../../../crates/ljos_web/tests/fixtures/tui/RevertPicker.qml

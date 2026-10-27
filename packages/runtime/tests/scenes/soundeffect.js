@@ -12,9 +12,9 @@
 //     SoundEffect { id: broken; source: "/assets/flag.png"; onStatusChanged: log.push("broken status " + status) }
 //     SoundEffect { id: none }
 // }
-import { $object } from "qml-solid/object";
-import { clock, Item } from "qml-solid/QtQuick";
-import { SoundEffect } from "qml-solid/QtMultimedia";
+import { $object } from "ljos-web/object";
+import { clock, Item } from "ljos-web/QtQuick";
+import { SoundEffect } from "ljos-web/QtMultimedia";
 import { make } from "../scene.js";
 
 const names = ["beep", "other", "once", "broken", "none"];

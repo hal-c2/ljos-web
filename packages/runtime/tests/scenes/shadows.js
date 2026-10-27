@@ -11,10 +11,10 @@
 //     RectangularShadow { id: big; x: 300; y: 150; width: 40; height: 40; blur: 0; radius: 80 }
 //     RectangularShadow { id: none }
 // }
-import { $object } from "qml-solid/object";
-import { Qt } from "qml-solid/QtQml";
-import { Item } from "qml-solid/QtQuick";
-import { RectangularShadow } from "qml-solid/QtQuick/Effects";
+import { $object } from "ljos-web/object";
+import { Qt } from "ljos-web/QtQml";
+import { Item } from "ljos-web/QtQuick";
+import { RectangularShadow } from "ljos-web/QtQuick/Effects";
 import { make } from "../scene.js";
 
 export const objects = { Qt };

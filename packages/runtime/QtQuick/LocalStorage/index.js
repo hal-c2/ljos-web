@@ -18,7 +18,7 @@ const failure = (code, message) => Object.assign(new Error(message), { code });
 
 // ------------------------------------------------------------------ keeping
 
-const KEPT = "qml-solid.LocalStorage";
+const KEPT = "ljos-web.LocalStorage";
 const STORE = "databases";
 
 const done = (request) =>

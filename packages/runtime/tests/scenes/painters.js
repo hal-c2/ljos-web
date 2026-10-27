@@ -1,6 +1,6 @@
 // The scenes of `painters.spec.js`: `?scene=painters&part=<name>` is
 // `<name>.qml`, with time standing still so that the test says when it is.
-import { clock } from "qml-solid/QtQuick";
+import { clock } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 const parts = import.meta.glob(["./painted.qml", "./moving.qml"], { eager: true });

@@ -46,8 +46,8 @@ Rectangle {
     Text { text: root.width; font.bold: true; anchors.fill: parent }
 }"#,
     );
-    assert_contains(&code, r#"import { $object } from "qml-solid/object";"#);
-    assert_contains(&code, r#"import { Rectangle, Text } from "qml-solid/QtQuick";"#);
+    assert_contains(&code, r#"import { $object } from "ljos-web/object";"#);
+    assert_contains(&code, r#"import { Rectangle, Text } from "ljos-web/QtQuick";"#);
     assert_contains(&code, "export default function Sample($props) {");
     // An instance that has an id made the object already.
     assert_contains(&code, "const root = $props.$self ?? $object();");
@@ -127,7 +127,7 @@ MouseArea {
     assert_contains(&code, "Keys$onReturnPressed={(event) => console.log(event.key)}");
     assert_contains(&code, r#"Component$onCompleted={() => console.log("made")}"#);
     assert_contains(&code, "$attach={[Keys]}");
-    assert_contains(&code, r#"import { Keys, MouseArea } from "qml-solid/QtQuick";"#);
+    assert_contains(&code, r#"import { Keys, MouseArea } from "ljos-web/QtQuick";"#);
 }
 
 #[test]
@@ -196,12 +196,12 @@ Item {
     );
     assert_contains(&code, "Layout$fillWidth={true}");
     assert_contains(&code, "$attach={[Layout]}");
-    assert_contains(&code, r#"import { Layout } from "qml-solid/QtQuick/Layouts";"#);
+    assert_contains(&code, r#"import { Layout } from "ljos-web/QtQuick/Layouts";"#);
     assert_contains(&code, "width={ListView.attached(cell).view ? ListView.attached(cell).view.width : 0}");
     assert_contains(&code, "style={Text$Raised} horizontalAlignment={Text$AlignHCenter} elide={Qt$ElideRight}");
     assert_contains(&code, "orientation={ListView$Horizontal} snapMode={ListView$SnapOneItem}");
     assert_contains(&code, "const ListView$SnapOneItem = ListView.SnapOneItem;");
-    assert_contains(&code, r#"import { Qt } from "qml-solid/QtQml";"#);
+    assert_contains(&code, r#"import { Qt } from "ljos-web/QtQml";"#);
 }
 
 #[test]
@@ -218,7 +218,7 @@ Item {
     }
 }"#,
     );
-    assert_contains(&code, r#"import { XMLHttpRequest } from "qml-solid/QtQml";"#);
+    assert_contains(&code, r#"import { XMLHttpRequest } from "ljos-web/QtQml";"#);
 }
 
 #[test]
@@ -259,7 +259,7 @@ Item {
     assert_contains(&code, "visible={ListView.attached(cell).isCurrentItem && W.Window.attached($1).active}");
     assert_contains(&code, "flags={Qt.Window}");
     assert_contains(&code, "ListView.attached(cell.parent).delayRemove = true");
-    assert_contains(&code, r#"import { Item, Keys, ListView, Text } from "qml-solid/QtQuick";"#);
+    assert_contains(&code, r#"import { Item, Keys, ListView, Text } from "ljos-web/QtQuick";"#);
 }
 
 #[test]
@@ -562,8 +562,8 @@ Item {
     )
     .unwrap();
     // What the text imports is imported with what the file does, once.
-    assert_contains(&code, r#"import { Item, Rectangle, Text } from "qml-solid/QtQuick";"#);
-    assert_contains(&code, r#"import { Button } from "qml-solid/QtQuick/Controls";"#);
+    assert_contains(&code, r#"import { Item, Rectangle, Text } from "ljos-web/QtQuick";"#);
+    assert_contains(&code, r#"import { Button } from "ljos-web/QtQuick/Controls";"#);
     assert_contains(&code, r#"import Tile from "./Tile.qml";"#);
     assert_lacks(&code, r#"from "./Sample.qml""#);
     assert_contains(
@@ -647,14 +647,14 @@ Item {
 }"#,
         &["Sample.qml", "pages/About.qml", "pages/Home.qml", "parts/Dial.qml"],
     );
-    assert_contains(&code, r#"import { $file, $files, $object, $string, $url } from "qml-solid/object";"#);
+    assert_contains(&code, r#"import { $file, $files, $object, $string, $url } from "ljos-web/object";"#);
     // Nothing is left for `Qt` to make as the program runs.
-    assert_lacks(&code, r#"from "qml-solid/QtQml""#);
+    assert_lacks(&code, r#"from "ljos-web/QtQml""#);
     assert_contains(&code, r#"import $file1 from "./parts/Dial.qml";"#);
     assert_contains(&code, r#"import $file2 from "./pages/Home.qml";"#);
     assert_contains(&code, "$file($file1)");
     // A type of a module, by their names, is the component the module has.
-    assert_contains(&code, r#"import { Item, Loader, Rectangle, Text } from "qml-solid/QtQuick";"#);
+    assert_contains(&code, r#"import { Item, Loader, Rectangle, Text } from "ljos-web/QtQuick";"#);
     assert_contains(&code, "other={$file(Rectangle)}");
     assert_contains(&code, r#"icon={new URL("icons/a.png", import.meta.url).href}"#);
     assert_contains(&code, "where={$url(root.page, import.meta.url)}");
@@ -703,10 +703,10 @@ board[0] = tower("Melee");
     )
     .unwrap_or_else(|errors| panic!("{errors:?}"))
     .code;
-    assert_contains(&code, r#"import { $file, $files } from "qml-solid/object";"#);
+    assert_contains(&code, r#"import { $file, $files } from "ljos-web/object";"#);
     // Only what is still named: `Qt` was only asked for components.
-    assert_contains(&code, r#"import { qsTr } from "qml-solid/QtQml";"#);
-    assert_contains(&code, r#"import * as QQ from "qml-solid/QtQuick";"#);
+    assert_contains(&code, r#"import { qsTr } from "ljos-web/QtQml";"#);
+    assert_contains(&code, r#"import * as QQ from "ljos-web/QtQuick";"#);
     assert_contains(&code, r#"import * as Other from "./other.js";"#);
     assert_contains(&code, r#"import $file1 from "./Block.qml";"#);
     assert_contains(&code, "const $files1 = $files({ \"towers/Melee.qml\": () => $file2 }, import.meta.url);");
@@ -771,7 +771,7 @@ fn a_module_may_be_imported_as_a_name() {
     let code = lowered(
         "import QtQuick\nimport QtQuick.Controls as C\nimport \"lib.js\" as Lib\nItem { C.Button { text: Lib.title(C.Button.Ok) } }",
     );
-    assert_contains(&code, r#"import * as C from "qml-solid/QtQuick/Controls";"#);
+    assert_contains(&code, r#"import * as C from "ljos-web/QtQuick/Controls";"#);
     assert_contains(&code, r#"import * as Lib from "./lib.js";"#);
     assert_contains(&code, "<C.Button text={Lib.title(C.Button.Ok)}></C.Button>");
 }
@@ -804,7 +804,7 @@ Item {
         ("Mark", "import QtQuick\nItem { id: mark; width: board.width }"),
     ];
     let code = lowered_in(&files, "Sample").unwrap_or_else(|errors| panic!("{errors:?}"));
-    assert_contains(&code, r#"import { $context, $int, $lookup, $object } from "qml-solid/object";"#);
+    assert_contains(&code, r#"import { $context, $int, $lookup, $object } from "ljos-web/object";"#);
     // An inline component is a component of its own: the file's ids are
     // those of whatever makes it, which is not always the file.
     assert_contains(&code, "const $scope1 = $context($props.$context, $1);");
@@ -1033,7 +1033,7 @@ QtObject {
     assert_contains(&code, "height={Units.Small}");
 
     let code = lowered_in(&files, "Units").unwrap_or_else(|errors| panic!("{errors:?}"));
-    assert_contains(&code, r#"import { $int, $object, $singleton } from "qml-solid/object";"#);
+    assert_contains(&code, r#"import { $int, $object, $singleton } from "ljos-web/object";"#);
     assert_contains(&code, "function Units$component($props) {");
     assert_lacks(&code, "export default function");
     assert_contains(&code, "twice={Units().grid * 2}");
@@ -1043,7 +1043,7 @@ QtObject {
     // One named like the type it is one of leaves the name to the type.
     let files = [("QtObject", "pragma Singleton\nimport QtQuick\nQtObject { property int grid: 8 }")];
     let code = lowered_in(&files, "QtObject").unwrap_or_else(|errors| panic!("{errors:?}"));
-    assert_contains(&code, r#"import { QtObject } from "qml-solid/QtQuick";"#);
+    assert_contains(&code, r#"import { QtObject } from "ljos-web/QtQuick";"#);
     assert_contains(&code, "const QtObject$singleton = $singleton(QtObject$component, {});");
     assert_contains(&code, "Object.setPrototypeOf(QtObject$singleton, QtObject);");
     assert_contains(&code, "export default QtObject$singleton;");
@@ -1097,7 +1097,7 @@ T.Control {
     T.ScrollIndicator.vertical: T.ScrollIndicator { }
 }"#,
     );
-    assert_contains(&code, r#"import * as T from "qml-solid/QtQuick/Templates";"#);
+    assert_contains(&code, r#"import * as T from "ljos-web/QtQuick/Templates";"#);
     // The attached object goes by the type's own name.
     assert_contains(&code, "ScrollIndicator$vertical={<T.ScrollIndicator");
     assert_contains(&code, "$attach={[T.ScrollIndicator]}");
@@ -1203,7 +1203,7 @@ Item {
     }
     let options = Options { name: "views/Main".to_string(), project: Some(project), ..Options::default() };
     let code = lowered_source(source, &options).unwrap_or_else(|errors| panic!("{errors:?}"));
-    assert_contains(&code, r#"import { $object, $resource, $string, $url } from "qml-solid/object";"#);
+    assert_contains(&code, r#"import { $object, $resource, $string, $url } from "ljos-web/object";"#);
     // By where it is from the file.
     assert_contains(&code, r#"$resource("qrc:/qt/qml/Palette/icons/qt.png", new URL("../icons/qt.png", import.meta.url).href);"#);
     assert_contains(&code, r#"$resource("qrc:/data/medals.csv", new URL("../../data/medals.csv", import.meta.url).href);"#);
@@ -1232,7 +1232,7 @@ fn a_file_of_a_module_of_qt_has_the_types_of_that_module() {
     project.add_type("QtQuick.Controls.Basic", "Dialog", "Dialog");
     let options = Options { name: "Dialog".to_string(), project: Some(project), ..Options::default() };
     let code = lowered_source(source, &options).unwrap_or_else(|errors| panic!("{errors:?}"));
-    assert_contains(&code, r#"import { Overlay } from "qml-solid/QtQuick/Controls/Basic";"#);
+    assert_contains(&code, r#"import { Overlay } from "ljos-web/QtQuick/Controls/Basic";"#);
 
     // A file of no module has to import it.
     let errors = errors(source);

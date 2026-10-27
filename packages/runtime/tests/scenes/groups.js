@@ -31,7 +31,7 @@
 //     NumberAnimation { id: thicken; target: other; property: "border.width"; to: 6; duration: 100 }
 //     PropertyAnimation { id: jump; target: other; property: "visible"; to: false; duration: 100 }
 // }
-import { $object } from "qml-solid/object";
+import { $object } from "ljos-web/object";
 import {
   Animation,
   clock,
@@ -46,7 +46,7 @@ import {
   RotationAnimation,
   ScriptAction,
   SequentialAnimation,
-} from "qml-solid/QtQuick";
+} from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 const names = ["root", "box", "sequence", "together", "other", "bounce", "turn", "thicken", "jump"];

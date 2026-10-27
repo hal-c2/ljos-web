@@ -5,7 +5,7 @@ test.afterEach(async ({ page }) => {
   await page.evaluate(async () => {
     await window.objects.saved();
     await new Promise((resolve) => {
-      const deleting = indexedDB.deleteDatabase("qml-solid.LocalStorage");
+      const deleting = indexedDB.deleteDatabase("ljos-web.LocalStorage");
       deleting.onsuccess = deleting.onerror = deleting.onblocked = resolve;
     });
   });

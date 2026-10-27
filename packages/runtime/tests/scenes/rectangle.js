@@ -10,8 +10,8 @@
 //     Rectangle { id: shaded; y: 60; width: 50; height: 40
 //                 gradient: Gradient { GradientStop { position: 0; color: "red" } GradientStop { position: 1; color: "blue" } } }
 // }
-import { $object } from "qml-solid/object";
-import { Gradient, GradientStop, Item, Rectangle, Rotation } from "qml-solid/QtQuick";
+import { $object } from "ljos-web/object";
+import { Gradient, GradientStop, Item, Rectangle, Rotation } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 const names = ["root", "plain", "round", "hidden", "inside", "turned", "spun", "shaded"];

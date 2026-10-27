@@ -21,8 +21,8 @@
 //     }
 //     TextEdit { id: notes; y: 120; width: 150; height: 60; Keys.onEscapePressed: log.push("notes escape") }
 // }
-import { $object } from "qml-solid/object";
-import { FocusScope, Item, KeyNavigation, Keys, TextEdit, TextInput } from "qml-solid/QtQuick";
+import { $object } from "ljos-web/object";
+import { FocusScope, Item, KeyNavigation, Keys, TextEdit, TextInput } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 const names = ["root", "scope", "field", "other", "notes"];

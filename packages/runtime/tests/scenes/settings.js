@@ -12,10 +12,10 @@
 //     }
 //     Settings { id: other; property int count: 10 }
 // }
-import { $define, $object, $signal } from "qml-solid/object";
-import { Settings as LabsSettings } from "qml-solid/Qt/labs/settings";
-import { Settings, StandardPaths } from "qml-solid/QtCore";
-import { Application, Item } from "qml-solid/QtQuick";
+import { $define, $object, $signal } from "ljos-web/object";
+import { Settings as LabsSettings } from "ljos-web/Qt/labs/settings";
+import { Settings, StandardPaths } from "ljos-web/QtCore";
+import { Application, Item } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 export const objects = { Application, LabsSettings, Settings, StandardPaths };

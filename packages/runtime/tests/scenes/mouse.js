@@ -132,8 +132,8 @@
 //     MouseArea { id: covered; x: 300; y: 200; width: 60; height: 40; onClicked: log.push("covered clicked") }
 //     Rectangle { x: 300; y: 200; width: 60; height: 40; color: "gray" }
 // }
-import { $define, $object, $signal } from "qml-solid/object";
-import { clock, Item, MouseArea, Rectangle } from "qml-solid/QtQuick";
+import { $define, $object, $signal } from "ljos-web/object";
+import { clock, Item, MouseArea, Rectangle } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 const names = [

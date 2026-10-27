@@ -4,8 +4,8 @@
 // What became of the example is on `window.gallery` (`status` is "loading",
 // then "rendered" or "failed", with the `error`) for whoever drives the page,
 // and `busy()` is how many files the scene still waits for.
-import "qml-solid/runtime.css";
-import { busy, mount } from "qml-solid/object";
+import "ljos-web/runtime.css";
+import { busy, mount } from "ljos-web/object";
 import examples from "virtual:examples";
 
 const stage = document.getElementById("stage");

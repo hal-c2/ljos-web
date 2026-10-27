@@ -5,9 +5,9 @@
 //     Rectangle { id: bar; width: 10; height: 10; color: Qt.rgba(0, 0, 1, 1) }
 //     Rectangle { id: follower; y: 20; width: 5; height: 10 }
 // }
-import { $define, $object, $signal } from "qml-solid/object";
-import { Component, gc, Locale, print, qsTr, qsTrId, qsTranslate, Qt, QT_TR_NOOP, QT_TRANSLATE_NOOP, QT_TRID_NOOP } from "qml-solid/QtQml";
-import { Application, Item, Rectangle } from "qml-solid/QtQuick";
+import { $define, $object, $signal } from "ljos-web/object";
+import { Component, gc, Locale, print, qsTr, qsTrId, qsTranslate, Qt, QT_TR_NOOP, QT_TRANSLATE_NOOP, QT_TRID_NOOP } from "ljos-web/QtQml";
+import { Application, Item, Rectangle } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 export const objects = {

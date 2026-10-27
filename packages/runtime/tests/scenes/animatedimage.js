@@ -6,8 +6,8 @@
 //     AnimatedImage { id: large; x: 60; width: 40; height: 40; source: "/assets/blink.gif"; speed: 2 }
 //     AnimatedImage { id: none; x: 120 }
 // }
-import { $object } from "qml-solid/object";
-import { AnimatedImage, clock, Item } from "qml-solid/QtQuick";
+import { $object } from "ljos-web/object";
+import { AnimatedImage, clock, Item } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 // The clock stands still: a test moves it.

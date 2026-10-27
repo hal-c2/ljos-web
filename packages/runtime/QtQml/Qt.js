@@ -10,7 +10,7 @@ import { general, Matrix4x4, Point, Quaternion, Rect, Size, Vector2d, Vector3d, 
 
 // What marks the function `Qt.binding` returns: a slot assigned one takes it
 // as a binding. A registered symbol, so the kernel needs nothing from here.
-export const BINDING = Symbol.for("qml-solid.binding");
+export const BINDING = Symbol.for("ljos-web.binding");
 
 function need(args, count) {
   if (args.length < count) throw new Error("Insufficient arguments");

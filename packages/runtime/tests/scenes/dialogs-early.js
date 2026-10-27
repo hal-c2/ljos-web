@@ -24,9 +24,9 @@
 //     }
 //     Component.onCompleted: console.log("dialogs made")
 // }
-import { $object } from "qml-solid/object";
-import { Item } from "qml-solid/QtQuick";
-import { ColorDialog, FileDialog, MessageDialog } from "qml-solid/QtQuick/Dialogs";
+import { $object } from "ljos-web/object";
+import { Item } from "ljos-web/QtQuick";
+import { ColorDialog, FileDialog, MessageDialog } from "ljos-web/QtQuick/Dialogs";
 import { make } from "../scene.js";
 
 const names = ["root", "files", "colors", "message"];

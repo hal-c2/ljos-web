@@ -7,9 +7,9 @@
 //     Rectangle { id: clear; x: 200; width: 40; height: 40; color: "transparent"; border.color: "#80ff0000" }
 //     Rectangle { id: hsl; x: 250; width: 40; height: 40; color: Qt.hsla(0.6, 0.5, 0.4, 1) }
 // }
-import { $object } from "qml-solid/object";
-import { Qt } from "qml-solid/QtQml";
-import { Item, Rectangle } from "qml-solid/QtQuick";
+import { $object } from "ljos-web/object";
+import { Qt } from "ljos-web/QtQml";
+import { Item, Rectangle } from "ljos-web/QtQuick";
 import { mix } from "../../QtQuick/color.js";
 import { make } from "../scene.js";
 

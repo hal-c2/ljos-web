@@ -37,8 +37,8 @@
 //         QtObject { objectName: "thing " + index }
 //     }
 // }
-import { $component, $define, $object, $signal } from "qml-solid/object";
-import { Instantiator, Item, ListElement, ListModel, QtObject, Rectangle, Repeater } from "qml-solid/QtQuick";
+import { $component, $define, $object, $signal } from "ljos-web/object";
+import { Instantiator, Item, ListElement, ListModel, QtObject, Rectangle, Repeater } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 // `made` counts the delegates created, by Repeater: a row that is kept is

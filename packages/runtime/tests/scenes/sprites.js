@@ -1,6 +1,6 @@
 // The scenes of `sprites.spec.js`: `?scene=sprites&part=<name>` is
 // `sprites/<name>.qml`, with time standing still before anything plays.
-import { clock } from "qml-solid/QtQuick";
+import { clock } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 const parts = import.meta.glob("./sprites/*.qml", { eager: true });

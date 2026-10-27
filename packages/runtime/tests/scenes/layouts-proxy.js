@@ -20,9 +20,9 @@
 //
 // There is no Loader here: `load()` makes what it would, and returns what
 // destroys it again.
-import { $object, instantiate } from "qml-solid/object";
-import { Item, Rectangle } from "qml-solid/QtQuick";
-import { ColumnLayout, Layout, LayoutItemProxy, RowLayout } from "qml-solid/QtQuick/Layouts";
+import { $object, instantiate } from "ljos-web/object";
+import { Item, Rectangle } from "ljos-web/QtQuick";
+import { ColumnLayout, Layout, LayoutItemProxy, RowLayout } from "ljos-web/QtQuick/Layouts";
 import { flush } from "solid-js";
 import { make } from "../scene.js";
 

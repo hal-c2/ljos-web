@@ -260,6 +260,6 @@ fn a_file_alone_takes_unknown_types_for_components() {
     let code = lowered_source("import OpenTUI\nItem { Badge { label: qsTr(\"a\"); onPicked: Shell.pick() } }", &options)
         .unwrap();
     assert_contains(&code, r#"import Badge from "./Badge.qml";"#);
-    assert_contains(&code, r#"import { qsTr } from "qml-solid/runtime";"#);
+    assert_contains(&code, r#"import { qsTr } from "ljos-web/runtime";"#);
     assert_contains(&code, r#"<Badge label={qsTr("a")} onPicked={() => Shell.pick()}></Badge>"#);
 }

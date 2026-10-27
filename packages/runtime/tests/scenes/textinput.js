@@ -39,7 +39,7 @@
 //         horizontalAlignment: TextEdit.AlignHCenter; verticalAlignment: TextEdit.AlignBottom
 //     }
 // }
-import { $object } from "qml-solid/object";
+import { $object } from "ljos-web/object";
 import {
   DoubleValidator,
   FontLoader,
@@ -49,7 +49,7 @@ import {
   Text,
   TextEdit,
   TextInput,
-} from "qml-solid/QtQuick";
+} from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 export const objects = { log: [] };

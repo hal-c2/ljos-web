@@ -11,8 +11,8 @@
 //     Rectangle { id: other; x: 200; y: 150; width: 40; height: 40; scale: 0.5; color: "maroon" }
 //     Rectangle { id: hidden; x: 300; y: 200; width: 40; height: 40; visible: false }
 // }
-import { $object } from "qml-solid/object";
-import { Item, Rectangle, Scale, Translate } from "qml-solid/QtQuick";
+import { $object } from "ljos-web/object";
+import { Item, Rectangle, Scale, Translate } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 const names = ["root", "geo", "geoChild", "other", "hidden"];

@@ -1,1 +1,1 @@
-../../../crates/qml_solid/tests/fixtures/tui/SelectOverlay.qml
+../../../crates/ljos_web/tests/fixtures/tui/SelectOverlay.qml

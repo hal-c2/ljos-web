@@ -41,7 +41,7 @@ pub struct Options {
     /// Module that exports the unit helpers and `Qt`.
     pub runtime_module: String,
     /// What Qt's modules are imported under: `QtQuick.Controls` is
-    /// `qml-solid/QtQuick/Controls`, and the object model `qml-solid/object`.
+    /// `ljos-web/QtQuick/Controls`, and the object model `ljos-web/object`.
     pub qt_module: String,
     /// Extension put on the import of a sibling component (`./Name.qml`).
     pub component_extension: String,
@@ -70,9 +70,9 @@ impl Default for Options {
     fn default() -> Self {
         Self {
             name: "Component".to_string(),
-            host_module: "qml-solid/host".to_string(),
-            runtime_module: "qml-solid/runtime".to_string(),
-            qt_module: "qml-solid".to_string(),
+            host_module: "ljos-web/host".to_string(),
+            runtime_module: "ljos-web/runtime".to_string(),
+            qt_module: "ljos-web".to_string(),
             component_extension: ".qml".to_string(),
             project: None,
             files: None,

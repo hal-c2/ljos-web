@@ -15,7 +15,7 @@
 // archive and nothing of the example reads. One that has no archive has the
 // names of its files in a source of its own (`listed`), each of them under
 // `url`: those are downloaded one by one into `files`. The cache is
-// QML_SOLID_ASSETS, or `qml-solid/assets` in the user's cache directory.
+// LJOS_WEB_ASSETS, or `ljos-web/assets` in the user's cache directory.
 import { spawnSync } from "node:child_process";
 import { createWriteStream, existsSync, mkdirSync, readFileSync, renameSync, rmSync } from "node:fs";
 import { homedir } from "node:os";
@@ -24,7 +24,7 @@ import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { fileURLToPath } from "node:url";
 
-const cache = process.env.QML_SOLID_ASSETS ?? join(process.env.XDG_CACHE_HOME ?? join(homedir(), ".cache"), "qml-solid", "assets");
+const cache = process.env.LJOS_WEB_ASSETS ?? join(process.env.XDG_CACHE_HOME ?? join(homedir(), ".cache"), "ljos-web", "assets");
 
 // Where an example's assets are kept, where each directory of them is in
 // the example as built (`places`: `[in the example, in the cache]`) and at

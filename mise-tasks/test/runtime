@@ -3,4 +3,4 @@
 #MISE depends=["build:compiler", "browser"]
 set -euo pipefail
 
-pnpm --filter qml-solid test "$@"
+pnpm --filter ljos-web test "$@"

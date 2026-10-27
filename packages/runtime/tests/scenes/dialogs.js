@@ -47,8 +47,8 @@
 //     VideoOutput { id: output; width: 100; height: 100 }
 //     Image { id: picture; x: 100 }
 // }
-import { $object, QtObject } from "qml-solid/object";
-import { Image, Item } from "qml-solid/QtQuick";
+import { $object, QtObject } from "ljos-web/object";
+import { Image, Item } from "ljos-web/QtQuick";
 import {
   ColorDialog,
   FileDialog,
@@ -57,8 +57,8 @@ import {
   MessageDialog,
   pickedFile,
   pickedFolder,
-} from "qml-solid/QtQuick/Dialogs";
-import { MediaPlayer, VideoOutput } from "qml-solid/QtMultimedia";
+} from "ljos-web/QtQuick/Dialogs";
+import { MediaPlayer, VideoOutput } from "ljos-web/QtMultimedia";
 import { make } from "../scene.js";
 
 const names = [

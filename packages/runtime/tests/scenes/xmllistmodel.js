@@ -26,9 +26,9 @@
 //     }
 //     Repeater { id: titles; model: single; Item { property string value: modelData } }
 // }
-import { $component, $define, $object, $signal } from "qml-solid/object";
-import { XmlListModel, XmlListModelRole } from "qml-solid/QtQml/XmlListModel";
-import { Item, Rectangle, Repeater } from "qml-solid/QtQuick";
+import { $component, $define, $object, $signal } from "ljos-web/object";
+import { XmlListModel, XmlListModelRole } from "ljos-web/QtQml/XmlListModel";
+import { Item, Rectangle, Repeater } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 export const objects = { log: [], made: 0, XmlListModel };

@@ -87,8 +87,8 @@
 //         Rectangle { width: 40; height: 20 }
 //     }
 // }
-import { $object } from "qml-solid/object";
-import { Column, Flow, Grid, Item, Positioner, Rectangle, Row } from "qml-solid/QtQuick";
+import { $object } from "ljos-web/object";
+import { Column, Flow, Grid, Item, Positioner, Rectangle, Row } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 const names = [

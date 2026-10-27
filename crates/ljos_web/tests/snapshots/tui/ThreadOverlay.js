@@ -5,7 +5,7 @@ import { setStyleProperty as _$setStyleProperty } from "@solidjs/web";
 import { effect as _$effect } from "@solidjs/web";
 var _tmpl$ = /* @__PURE__ */ _$template(`<div class=q-item data-object-name=threadOverlay style=flex-shrink:0;border-width:1px;border-style:solid;border-radius:0.5ch;flex-direction:column;padding-left:1ch;padding-right:1ch><span class=q-text data-object-name=confirmDeleteText></span><span class=q-text>y delete · n / Esc cancel`);
 import { createMemo } from "solid-js";
-import { Shell, Theme } from "qml-solid/host";
+import { Shell, Theme } from "ljos-web/host";
 export default function ThreadOverlay(props) {
 	const overlay$state = () => Shell.state.overlay;
 	const overlay$confirming = createMemo(() => overlay$state() !== null && overlay$state().kind === "confirmDelete", { "lazy": true });

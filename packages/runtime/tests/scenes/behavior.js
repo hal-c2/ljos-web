@@ -19,7 +19,7 @@
 //         Behavior on x { SmoothedAnimation { id: smooth; velocity: 100 } }
 //     }
 // }
-import { $define, $object, $signal } from "qml-solid/object";
+import { $define, $object, $signal } from "ljos-web/object";
 import {
   Behavior,
   clock,
@@ -29,7 +29,7 @@ import {
   Rectangle,
   SmoothedAnimation,
   SpringAnimation,
-} from "qml-solid/QtQuick";
+} from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 const names = ["root", "box", "follow", "glide", "tail", "sprung", "spring", "eased", "smooth"];

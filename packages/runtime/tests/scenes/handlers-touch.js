@@ -71,7 +71,7 @@
 //         }
 //     }
 // }
-import { $object } from "qml-solid/object";
+import { $object } from "ljos-web/object";
 import {
   clock,
   DragHandler,
@@ -83,7 +83,7 @@ import {
   Rectangle,
   TapHandler,
   WheelHandler,
-} from "qml-solid/QtQuick";
+} from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 const names = ["root", "pinched", "pinch", "area", "areaTarget", "inArea", "wheeled", "wr", "scaled", "ws", "slid", "wx"];

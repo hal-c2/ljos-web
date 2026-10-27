@@ -93,7 +93,7 @@ export const Settings = defineType("Settings", QtObject, {
     $key(name) {
       const { organization, name: program } = application();
       const where = [this.location || this.fileName, organization, program, this.category].filter(Boolean);
-      return `qml-solid:${[...where, name].join("/")}`;
+      return `ljos-web:${[...where, name].join("/")}`;
     },
   },
   setup(self) {

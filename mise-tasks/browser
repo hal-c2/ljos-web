@@ -2,4 +2,4 @@
 #MISE description="Fetch the browser Playwright drives"
 #MISE depends=["packages"]
 set -euo pipefail
-pnpm --filter qml-solid-example-web exec playwright install chromium
+pnpm --filter ljos-web-example-web exec playwright install chromium

@@ -40,8 +40,8 @@
 //     }
 //     FontMetrics { id: face; font.family: boxes.name; font.pixelSize: 16 }
 // }
-import { $object } from "qml-solid/object";
-import { Font, FontLoader, FontMetrics, Item, Text, TextMetrics } from "qml-solid/QtQuick";
+import { $object } from "ljos-web/object";
+import { Font, FontLoader, FontMetrics, Item, Text, TextMetrics } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 export const objects = {};

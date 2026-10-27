@@ -119,7 +119,7 @@ function page(rows) {
     .join("\n");
   return `<!doctype html>
 <meta charset="utf-8">
-<title>qml-solid: Qt's examples, web against Qt</title>
+<title>ljos-web: Qt's examples, web against Qt</title>
 <style>
   body { font: 13px/1.4 system-ui, sans-serif; margin: 16px; }
   table { border-collapse: collapse; }

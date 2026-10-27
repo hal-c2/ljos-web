@@ -46,7 +46,7 @@ fn literals_fold_into_the_template() {
     );
     // Nothing is left to do at run time.
     assert!(!code.contains("_$effect"), "{code}");
-    assert!(!code.contains("qml-solid/runtime"), "{code}");
+    assert!(!code.contains("ljos-web/runtime"), "{code}");
 }
 
 #[test]
@@ -55,7 +55,7 @@ fn bindings_become_grouped_effects() {
     width: Shell.state.width
     Text { text: Shell.state.title; color: Theme.colors.text }
 }"#);
-    assert_contains(&code, r#"import { Shell, Theme } from "qml-solid/host";"#);
+    assert_contains(&code, r#"import { Shell, Theme } from "ljos-web/host";"#);
     assert_contains(&code, "_$insert(_el$2, () => {\n\t\treturn Shell.state.title;\n\t});");
     assert_contains(&code, r#"_$setStyleProperty(_el$, "width", "#);
     assert_contains(&code, r#"_$setStyleProperty(_el$2, "color", "#);

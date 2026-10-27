@@ -1,5 +1,5 @@
 {
-  "name": "qml-solid-example-web",
+  "name": "ljos-web-example-web",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@solidjs/web": "2.0.0-rc.13",
-    "qml-solid": "workspace:*",
+    "ljos-web": "workspace:*",
     "solid-js": "2.0.0-rc.13"
   },
   "devDependencies": {

@@ -1,4 +1,4 @@
-# qml-solid
+# ljos-web
 
 Compiles QML to Solid 2 components for the web.
 
@@ -17,7 +17,7 @@ unchanged. Names are resolved at compile time, so nothing interprets QML at run
 time: a binding is a getter Solid tracks, and an `id` is a JavaScript `const`.
 
 A file that imports Qt's modules is compiled against Qt's own types
-(`crates/qml_solid/types.txt`, generated from the `.qmltypes` of a Qt
+(`crates/ljos_web/types.txt`, generated from the `.qmltypes` of a Qt
 installation), and what it creates are the objects of `packages/runtime`:
 QtQuick written for the DOM on Solid's signals. The yardstick is Qt's own
 examples (`corpus/qtdoc`): `mise run gallery` compiles each, renders it in a
@@ -25,12 +25,12 @@ browser and compares it with the picture real Qt renders.
 
 ## Layout
 
-- `crates/qml_solid`: the compiler (`qml_solid::compile`, `compile_script`) and the `qmlc` binary.
+- `crates/ljos_web`: the compiler (`ljos_web::compile`, `compile_script`) and the `qmlc` binary.
 - The table of Qt's types is made by Ljós's `qmltypes` generator (`mise run types`),
   in the ljos-ui repository the front end comes from.
 - `packages/runtime`: what compiled output imports, one module per QML module
-  (`qml-solid/QtQuick`, `qml-solid/QtQuick/Layouts`, `qml-solid/QtQml`, ...), the kernel they
-  are written on (`qml-solid/object`), and the Vite plugin (`qml-solid/vite`).
+  (`ljos-web/QtQuick`, `ljos-web/QtQuick/Layouts`, `ljos-web/QtQml`, ...), the kernel they
+  are written on (`ljos-web/object`), and the Vite plugin (`ljos-web/vite`).
 - `examples/gallery`: Qt's examples in the browser, and the report on how each does.
 - `examples/web`: QML rendered in the browser with the `import OpenTUI` dialect.
 - `examples/wasm-counter`: a type written in Rust, compiled to WebAssembly and
@@ -80,16 +80,16 @@ wherever their packages were unpacked; a table made without them loses their
 types. `mise run reference` finds them as Qt does, by `QML_IMPORT_PATH`,
 `QT_PLUGIN_PATH` and `LD_LIBRARY_PATH`.
 
-`qml-solid/vite` is a Vite plugin that runs `qmlc` on `.qml` imports and on the
+`ljos-web/vite` is a Vite plugin that runs `qmlc` on `.qml` imports and on the
 scripts they import:
 
 ```js
-import qml from "qml-solid/vite";
+import qml from "ljos-web/vite";
 export default { plugins: [qml({ qmlc: "path/to/qmlc" })] };
 ```
 
 ```js
-import { mount } from "qml-solid/object";
+import { mount } from "ljos-web/object";
 import Main from "./Main.qml";
 mount(Main, document.getElementById("app"));
 ```
@@ -114,7 +114,7 @@ repository: what is built from them carries Qt's licence.
 A type Qt has in C++ and the runtime does not have yet is in its module all the
 same (`qmlc --types` says which those are): a style names every control, and a
 program that uses three of them needs those three. Using one that is not there
-is an error that names it, `QtQuick.Templates: Dial is not in qml-solid yet`.
+is an error that names it, `QtQuick.Templates: Dial is not in ljos-web yet`.
 Likewise a type that is QML of Qt's own (`qmlc --qml-types`), where that module
 of Qt's is not installed: `QtQuick3D.Helpers: OrbitCameraController is QML of
 Qt's own, and Qt's QtQuick3D.Helpers is not installed here`. The gallery tells
@@ -122,8 +122,8 @@ of such an example and does not hold it to what it rendered before.
 
 Some of Qt's examples have their pictures, meshes and fonts downloaded when
 they are built, not in their sources. The manifest says where from (`assets`),
-and `mise run assets ID` fetches them into `~/.cache/qml-solid/assets` (or
-`QML_SOLID_ASSETS`): the gallery serves them from there as if they were in the
+and `mise run assets ID` fetches them into `~/.cache/ljos-web/assets` (or
+`LJOS_WEB_ASSETS`): the gallery serves them from there as if they were in the
 example, and `mise run reference` puts them where the build would. An example
 without them still renders, with what it has, and is not held to Qt's picture.
 One that downloads them itself as it starts (car-configurator) asks a browser
@@ -149,7 +149,7 @@ the object.
 
 QML lets an instance set any property of a component's root object, handle its
 signals and give it children. A component is therefore compiled with the files
-next to it and the modules it imports (`qml_solid::Project`; `qmlc` and the
+next to it and the modules it imports (`ljos_web::Project`; `qmlc` and the
 Vite plugin read the file's directory, its `qmldir` and the directories it
 imports): what a type is, what its properties are and which names are ids of
 an enclosing file are all known when the file is compiled. A name nothing
@@ -167,7 +167,7 @@ A file the program has beside it as it runs is named without saying from
 where, `file:content/images/dust.png`: Qt looks in the directory the program
 was started in. The program put it there itself, so what stands in for that
 part of it says where a browser finds the directory:
-`beside("file:content/", url)` of `qml-solid/object`.
+`beside("file:content/", url)` of `ljos-web/object`.
 
 A file is a function that makes its root object:
 
@@ -227,11 +227,11 @@ are found once the page says which files there are (the kernel's `resources`,
 an address for each), since a page cannot look into a folder. The `@2x`
 pictures are not used, and the font is Qt's own, not Open Sans.
 
-The `import OpenTUI` dialect (`crates/qml_solid/src/dialects`) is the other
+The `import OpenTUI` dialect (`crates/ljos_web/src/dialects`) is the other
 way a module can be given: a table that says what its types and properties
 mean on the DOM, compiled to Solid's templates with no runtime types at all
 (`Item`, `Rectangle`, `Text`, `Span`, `Bold`, `Repeater`; a cell is `1ch` wide
-and `1lh` tall). The fixtures in `crates/qml_solid/tests/fixtures/tui` use it.
+and `1lh` tall). The fixtures in `crates/ljos_web/tests/fixtures/tui` use it.
 
 ## Vendored crates
 

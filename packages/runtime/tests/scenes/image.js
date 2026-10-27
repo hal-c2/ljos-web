@@ -28,8 +28,8 @@
 //         border { left: 10; top: 10; right: 10; bottom: 10 }
 //     }
 // }
-import { $object } from "qml-solid/object";
-import { BorderImage, Image, Item } from "qml-solid/QtQuick";
+import { $object } from "ljos-web/object";
+import { BorderImage, Image, Item } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 export const objects = {};

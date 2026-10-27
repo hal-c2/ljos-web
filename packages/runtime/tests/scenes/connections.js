@@ -24,8 +24,8 @@
 //     }
 //     Binding { id: tagged; target: two; property: "tag"; value: root.count; when: root.count > 1 }
 // }
-import { $define, $object, $signal, signal } from "qml-solid/object";
-import { Binding, Connections, Item, Rectangle } from "qml-solid/QtQuick";
+import { $define, $object, $signal, signal } from "ljos-web/object";
+import { Binding, Connections, Item, Rectangle } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 const names = ["root", "one", "two", "own", "link", "gated", "quiet", "none", "bind", "keep", "tagged"];

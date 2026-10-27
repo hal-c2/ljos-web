@@ -655,7 +655,7 @@ function number(where, text) {
 // no browser takes) with the short format, as Qt does too. A date given
 // nothing at all is written out in full, as Qt writes it. Anything else is
 // the browser's business as before.
-const PATCHED = Symbol.for("qml-solid.locale");
+const PATCHED = Symbol.for("ljos-web.locale");
 
 function extend(target, name, ours, takes) {
   const original = target[name];

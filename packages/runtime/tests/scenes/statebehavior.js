@@ -11,7 +11,7 @@
 //     ]
 //     transitions: Transition { id: via; to: "taken"; NumberAnimation { property: "x"; duration: 100 } }
 // }
-import { $object } from "qml-solid/object";
+import { $object } from "ljos-web/object";
 import {
   Behavior,
   clock,
@@ -21,7 +21,7 @@ import {
   Rectangle,
   State,
   Transition,
-} from "qml-solid/QtQuick";
+} from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 const names = ["root", "box", "slide", "drop", "via"];

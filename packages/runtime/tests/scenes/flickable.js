@@ -16,8 +16,8 @@
 //     Flickable { id: plain; y: 150; width: 100; height: 80; interactive: false; Rectangle { id: lone; width: 30; height: 30 } }
 //     Component { id: extra; Rectangle { width: 8; height: 8 } }
 // }
-import { $component, $object } from "qml-solid/object";
-import { Flickable, Item, Rectangle, Repeater } from "qml-solid/QtQuick";
+import { $component, $object } from "ljos-web/object";
+import { Flickable, Item, Rectangle, Repeater } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 export const objects = { log: [] };

@@ -36,10 +36,10 @@
 //     Component.onCompleted: log.push("own " + width + "x" + height)
 //     Rectangle { id: filling; anchors.fill: parent }
 // }
-import { $define, $object, $signal, defineType, instantiate, mount, QtObject } from "qml-solid/object";
-import { Qt } from "qml-solid/QtQml";
-import { Application, Item, Rectangle, Screen } from "qml-solid/QtQuick";
-import { Window } from "qml-solid/QtQuick/Window";
+import { $define, $object, $signal, defineType, instantiate, mount, QtObject } from "ljos-web/object";
+import { Qt } from "ljos-web/QtQml";
+import { Application, Item, Rectangle, Screen } from "ljos-web/QtQuick";
+import { Window } from "ljos-web/QtQuick/Window";
 import { make } from "../scene.js";
 
 export const objects = { Application, log: [], Qt, Screen, Window };

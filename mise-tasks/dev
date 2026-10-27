@@ -2,4 +2,4 @@
 #MISE description="Serve the web example with Vite; QML recompiles as it is edited"
 #MISE depends=["build:compiler", "packages"]
 set -euo pipefail
-exec pnpm --filter qml-solid-example-web dev "$@"
+exec pnpm --filter ljos-web-example-web dev "$@"

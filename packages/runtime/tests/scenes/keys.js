@@ -83,8 +83,8 @@
 //     Shortcut { sequence: "Ctrl+D"; onActivatedAmbiguously: log.push("one of two") }
 //     Shortcut { sequence: "Ctrl+D"; onActivatedAmbiguously: log.push("other of two") }
 // }
-import { $object } from "qml-solid/object";
-import { FocusScope, Item, KeyNavigation, Keys, Shortcut, StandardKey } from "qml-solid/QtQuick";
+import { $object } from "ljos-web/object";
+import { FocusScope, Item, KeyNavigation, Keys, Shortcut, StandardKey } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 const names = [

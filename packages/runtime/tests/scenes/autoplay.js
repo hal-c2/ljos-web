@@ -21,9 +21,9 @@
 //         Component.onCompleted: play()
 //     }
 // }
-import { $object } from "qml-solid/object";
-import { Item } from "qml-solid/QtQuick";
-import { AudioOutput, MediaPlayer, SoundEffect, VideoOutput } from "qml-solid/QtMultimedia";
+import { $object } from "ljos-web/object";
+import { Item } from "ljos-web/QtQuick";
+import { AudioOutput, MediaPlayer, SoundEffect, VideoOutput } from "ljos-web/QtMultimedia";
 import { make } from "../scene.js";
 
 const names = ["root", "player", "output", "effect"];

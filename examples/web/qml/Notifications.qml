@@ -1,1 +1,1 @@
-../../../crates/qml_solid/tests/fixtures/tui/Notifications.qml
+../../../crates/ljos_web/tests/fixtures/tui/Notifications.qml

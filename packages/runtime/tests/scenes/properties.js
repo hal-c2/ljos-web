@@ -8,8 +8,8 @@
 //     Rectangle { id: follower; y: 20; width: bar.width; height: 10 }
 //     Component.onCompleted: log.push("completed " + follower.width)
 // }
-import { $define, $object, $signal, signal } from "qml-solid/object";
-import { Item, Rectangle } from "qml-solid/QtQuick";
+import { $define, $object, $signal, signal } from "ljos-web/object";
+import { Item, Rectangle } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 export const objects = { log: [] };

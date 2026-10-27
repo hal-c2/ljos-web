@@ -2,4 +2,4 @@
 #MISE description="Playwright, against the built web example"
 #MISE depends=["build:compiler", "browser"]
 set -euo pipefail
-pnpm --filter qml-solid-example-web test "$@"
+pnpm --filter ljos-web-example-web test "$@"

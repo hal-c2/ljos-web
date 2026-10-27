@@ -1,7 +1,7 @@
 // The scenes of `particles.spec.js`: `?scene=particles&part=<name>` is
 // `particles/<name>.qml`, with time standing still before its system starts.
 // What the root has aliases for is what a test reads.
-import { clock } from "qml-solid/QtQuick";
+import { clock } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 const parts = import.meta.glob("./particles/*.qml", { eager: true });

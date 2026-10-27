@@ -35,7 +35,7 @@ function compileAll(example) {
     const run = spawnSync(qmlc, [...(example.standins ? ["--with", example.standins] : []), join(example.directory, file)], { encoding: "utf8" });
     if (run.error) throw new Error(`could not run ${qmlc}: ${run.error.message}`);
     if (run.status !== 0) errors[file] = run.stderr.trim().replaceAll(example.directory + "/", "");
-    for (const [, module] of run.stdout.matchAll(/ from "qml-solid\/([^"]+)";/g)) {
+    for (const [, module] of run.stdout.matchAll(/ from "ljos-web\/([^"]+)";/g)) {
       if (!runtime.has(module)) lacks.add(module.replaceAll("/", "."));
     }
   }
@@ -114,7 +114,7 @@ for (const example of readManifest()) {
       const body = (await again?.text().catch(() => "")) ?? "";
       const said = body.match(/const error = (\{.*\})\s*$/m)?.[1];
       const message = said ? JSON.parse(said).message : `${response.status()} for ${response.url()}`;
-      const missing = message.match(/^"\.\/(\S+)" is not exported .* from package \S+qml-solid /)?.[1];
+      const missing = message.match(/^"\.\/(\S+)" is not exported .* from package \S+ljos-web /)?.[1];
       refused.push(missing ? `the runtime has no ${missing.replaceAll("/", ".")}` : message);
     };
     page.on("response", (response) => answers.push(answered(response)));

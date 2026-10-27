@@ -4,8 +4,8 @@
 //
 // What a program does with `LocalStorage` it does in JavaScript: the tests
 // do the same with what the module exports.
-import { LocalStorage, saved } from "qml-solid/QtQuick/LocalStorage";
-import { Item } from "qml-solid/QtQuick";
+import { LocalStorage, saved } from "ljos-web/QtQuick/LocalStorage";
+import { Item } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 export const objects = { LocalStorage, saved };

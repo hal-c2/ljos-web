@@ -66,7 +66,7 @@
 //         TapHandler { acceptedDevices: PointerDevice.TouchScreen; onTapped: (point, button) => log.push(`finger tapped b=${button}`) }
 //     }
 // }
-import { $object } from "qml-solid/object";
+import { $object } from "ljos-web/object";
 import {
   clock,
   DragHandler,
@@ -76,7 +76,7 @@ import {
   PointerDevice,
   Rectangle,
   TapHandler,
-} from "qml-solid/QtQuick";
+} from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 const names = ["root", "dh", "dhh", "dhma", "ex", "exin", "both", "hv", "hvma", "hv2", "two", "late", "lateTap"];

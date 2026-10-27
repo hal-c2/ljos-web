@@ -7,8 +7,8 @@ import { delegateEvents as _$delegateEvents } from "@solidjs/web";
 import { For as _$For } from "@solidjs/web";
 var _tmpl$ = /* @__PURE__ */ _$template(`<div class=q-item data-object-name=contextMenuLayer style=position:absolute;left:0ch;top:0lh;z-index:100><div class=q-item data-object-name=contextMenu style=position:absolute;border-width:1px;border-style:solid;border-radius:0.5ch;flex-direction:column;padding-left:1ch;padding-right:1ch;overflow:hidden>`);
 var _tmpl$2 = /* @__PURE__ */ _$template(`<div class=q-item style=height:1lh;flex-shrink:0><span class=q-text style=flex-grow:1;white-space:pre>`);
-import { $ch, $lh, $model } from "qml-solid/runtime";
-import { Shell, Theme } from "qml-solid/host";
+import { $ch, $lh, $model } from "ljos-web/runtime";
+import { Shell, Theme } from "ljos-web/host";
 export default function ContextMenu(props) {
 	const layer$menu = () => Shell.state.contextMenu;
 	var _el$ = _tmpl$();

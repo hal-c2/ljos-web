@@ -37,8 +37,8 @@
 //     }
 //     Boxed { id: arabic; x: 200; y: 180; width: 100; text: "مرحبا" }
 // }
-import { $object } from "qml-solid/object";
-import { FontLoader, Item, Text } from "qml-solid/QtQuick";
+import { $object } from "ljos-web/object";
+import { FontLoader, Item, Text } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 export const objects = { log: [] };

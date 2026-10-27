@@ -7,8 +7,8 @@ import { delegateEvents as _$delegateEvents } from "@solidjs/web";
 import { For as _$For } from "@solidjs/web";
 var _tmpl$ = /* @__PURE__ */ _$template(`<div class=q-item data-object-name=filesPanel style=flex-direction:column;flex-grow:1;flex-shrink:1;border-width:1px;border-style:solid;border-radius:0.5ch;padding-left:1ch;padding-right:1ch><span class=q-text data-object-name=filesHeader style=flex-shrink:0;white-space:pre;overflow:hidden;text-overflow:ellipsis;white-space:pre><span></span></span><span class=q-text data-object-name=filesMessage>`);
 var _tmpl$2 = /* @__PURE__ */ _$template(`<div class=q-item style=flex-shrink:0;height:1lh><span class=q-text style=white-space:pre;overflow:hidden;text-overflow:ellipsis;white-space:pre>`);
-import { $model } from "qml-solid/runtime";
-import { Shell, Theme } from "qml-solid/host";
+import { $model } from "ljos-web/runtime";
+import { Shell, Theme } from "ljos-web/host";
 export default function FilesPanel(props) {
 	const panel$files = () => Shell.state.files;
 	var _el$ = _tmpl$();

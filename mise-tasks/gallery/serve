@@ -3,4 +3,4 @@
 #MISE depends=["build:compiler", "packages"]
 set -euo pipefail
 git submodule update --init --depth 1 corpus/qtdoc
-exec pnpm --filter qml-solid-example-gallery dev "$@"
+exec pnpm --filter ljos-web-example-gallery dev "$@"

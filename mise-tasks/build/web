@@ -2,4 +2,4 @@
 #MISE description="Bundle the web example"
 #MISE depends=["build:compiler", "packages"]
 set -euo pipefail
-pnpm --filter qml-solid-example-web build
+pnpm --filter ljos-web-example-web build

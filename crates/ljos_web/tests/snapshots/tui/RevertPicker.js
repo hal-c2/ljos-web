@@ -6,8 +6,8 @@ import { effect as _$effect } from "@solidjs/web";
 import { For as _$For } from "@solidjs/web";
 var _tmpl$ = /* @__PURE__ */ _$template(`<div class=q-item data-object-name=revertPicker style=flex-direction:column;flex-shrink:0;border-width:1px;border-style:solid;border-radius:0.5ch;padding-left:1ch;padding-right:1ch><span class=q-text></span><span class=q-text></span><span class=q-text>`);
 var _tmpl$2 = /* @__PURE__ */ _$template(`<span class=q-text style=height:1lh;white-space:pre>`);
-import { $model } from "qml-solid/runtime";
-import { Shell, Theme } from "qml-solid/host";
+import { $model } from "ljos-web/runtime";
+import { Shell, Theme } from "ljos-web/host";
 export default function RevertPicker(props) {
 	const picker$revert = () => Shell.state.revert;
 	var _el$ = _tmpl$();

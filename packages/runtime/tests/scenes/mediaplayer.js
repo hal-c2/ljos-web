@@ -23,9 +23,9 @@
 //     VideoOutput { id: output; anchors.fill: parent }
 //     Video { id: video; y: 100; width: 100; height: 50; onPlaying: log.push("video playing") ... }
 // }
-import { $object } from "qml-solid/object";
-import { Item } from "qml-solid/QtQuick";
-import { AudioOutput, MediaDevices, MediaMetaData, MediaPlayer, Video, VideoOutput } from "qml-solid/QtMultimedia";
+import { $object } from "ljos-web/object";
+import { Item } from "ljos-web/QtQuick";
+import { AudioOutput, MediaDevices, MediaMetaData, MediaPlayer, Video, VideoOutput } from "ljos-web/QtMultimedia";
 import { make } from "../scene.js";
 
 const names = ["root", "devices", "player", "audio", "output", "video"];

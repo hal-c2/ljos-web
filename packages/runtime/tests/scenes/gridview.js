@@ -27,8 +27,8 @@
 //         delegate: Rectangle { required property string name; width: 40; height: 40 }
 //     }
 // }
-import { $component, $define, $object } from "qml-solid/object";
-import { GridView, Item, ListElement, ListModel, Rectangle } from "qml-solid/QtQuick";
+import { $component, $define, $object } from "ljos-web/object";
+import { GridView, Item, ListElement, ListModel, Rectangle } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 export const objects = { made: { grid: 0, columns: 0, many: 0, named: 0 } };

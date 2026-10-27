@@ -3,9 +3,9 @@
 // that can be checked, and unchecks the others beside it as an exclusive
 // button does.
 import { untrack } from "solid-js";
-import { $component, $object, defineType, onChange } from "qml-solid/object";
-import { Flickable, Item, ListView, Rectangle, Row } from "qml-solid/QtQuick";
-import { Control, TabBar } from "qml-solid/QtQuick/Templates";
+import { $component, $object, defineType, onChange } from "ljos-web/object";
+import { Flickable, Item, ListView, Rectangle, Row } from "ljos-web/QtQuick";
+import { Control, TabBar } from "ljos-web/QtQuick/Templates";
 import { make } from "../scene.js";
 
 const TabButton = defineType("TabButton", Control, {

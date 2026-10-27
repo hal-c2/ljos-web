@@ -18,15 +18,15 @@
 //
 // with the style `?style=` names, as the build chooses one: the types are
 // those of QtQuick.Templates, which is what a style's are underneath.
-import { $object, chosen, defineType } from "qml-solid/object";
-import { Qt } from "qml-solid/QtQml";
-import { Item } from "qml-solid/QtQuick";
-import "qml-solid/QtQuick/Controls/Basic";
-import "qml-solid/QtQuick/Controls/Fusion";
-import "qml-solid/QtQuick/Controls/Material";
-import "qml-solid/QtQuick/Controls/Universal";
-import { Color } from "qml-solid/QtQuick/Controls/impl";
-import { ApplicationWindow, Control, GroupBox, Label, Pane, ToolBar } from "qml-solid/QtQuick/Templates";
+import { $object, chosen, defineType } from "ljos-web/object";
+import { Qt } from "ljos-web/QtQml";
+import { Item } from "ljos-web/QtQuick";
+import "ljos-web/QtQuick/Controls/Basic";
+import "ljos-web/QtQuick/Controls/Fusion";
+import "ljos-web/QtQuick/Controls/Material";
+import "ljos-web/QtQuick/Controls/Universal";
+import { Color } from "ljos-web/QtQuick/Controls/impl";
+import { ApplicationWindow, Control, GroupBox, Label, Pane, ToolBar } from "ljos-web/QtQuick/Templates";
 import { make } from "../scene.js";
 
 chosen.set("QtQuick.Controls", `QtQuick.Controls.${new URLSearchParams(location.search).get("style")}`);

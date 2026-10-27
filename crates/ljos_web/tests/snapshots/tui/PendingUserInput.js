@@ -7,8 +7,8 @@ import { effect as _$effect } from "@solidjs/web";
 import { For as _$For } from "@solidjs/web";
 var _tmpl$ = /* @__PURE__ */ _$template(`<div class=q-item data-object-name=pendingUserInput style=flex-direction:column;flex-shrink:0;margin-bottom:1lh><span class=q-text></span><span class=q-text></span><span class=q-text>`);
 var _tmpl$2 = /* @__PURE__ */ _$template(`<span class=q-text>`);
-import { $model } from "qml-solid/runtime";
-import { Shell, Theme } from "qml-solid/host";
+import { $model } from "ljos-web/runtime";
+import { Shell, Theme } from "ljos-web/host";
 export default function PendingUserInput(props) {
 	const panel$input = () => Shell.state.userInput;
 	var _el$ = _tmpl$();

@@ -1,10 +1,10 @@
 // A module of Qt's that is partly QML: `tests/qt` stands for the Qt that is
 // installed, and has a style or two of a module the runtime has nothing of.
-import { $object } from "qml-solid/object";
-import { Item, Text } from "qml-solid/QtQuick";
-import { FlexboxLayout, Flexed, Rack, RowLayout } from "qml-solid/QtQuick/Layouts";
-import { LightmapperOutputWindow } from "qml-solid/QtQuick3D";
-import * as Shelves from "qml-solid/QtShelf";
+import { $object } from "ljos-web/object";
+import { Item, Text } from "ljos-web/QtQuick";
+import { FlexboxLayout, Flexed, Rack, RowLayout } from "ljos-web/QtQuick/Layouts";
+import { LightmapperOutputWindow } from "ljos-web/QtQuick3D";
+import * as Shelves from "ljos-web/QtShelf";
 import { make } from "../scene.js";
 
 const { Shelf } = Shelves;

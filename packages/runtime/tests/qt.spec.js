@@ -573,12 +573,12 @@ test("settings are kept in the page's storage, as text", async ({ page }) => {
   const stored = () => page.evaluate(() => Object.fromEntries(Object.entries(localStorage).sort()));
   // What the QML says is stored when nothing was.
   expect(await stored()).toEqual({
-    "qml-solid:count": '"10"',
-    "qml-solid:main/count": '"1"',
-    "qml-solid:main/flag": '"true"',
-    "qml-solid:main/list": '["1","2"]',
-    "qml-solid:main/name": '"n"',
-    "qml-solid:main/ratio": '"1.5"',
+    "ljos-web:count": '"10"',
+    "ljos-web:main/count": '"1"',
+    "ljos-web:main/flag": '"true"',
+    "ljos-web:main/list": '["1","2"]',
+    "ljos-web:main/name": '"n"',
+    "ljos-web:main/ratio": '"1.5"',
   });
   expect(
     await answers(page, () => {
@@ -601,11 +601,11 @@ test("settings are kept in the page's storage, as text", async ({ page }) => {
     }),
   ).toEqual([4, 4, 7, undefined, undefined, 5, 10, true, "main", ""]);
   expect(await stored()).toMatchObject({
-    "qml-solid:main/count": '"4"',
-    "qml-solid:main/name": '"changed"',
-    "qml-solid:main/flag": '"false"',
-    "qml-solid:main/extra": '"5"',
-    "qml-solid:count": '"10"',
+    "ljos-web:main/count": '"4"',
+    "ljos-web:main/name": '"changed"',
+    "ljos-web:main/flag": '"false"',
+    "ljos-web:main/extra": '"5"',
+    "ljos-web:count": '"10"',
   });
 
   // The next run of the program: what was stored replaces what the QML says,
@@ -636,7 +636,7 @@ test("settings are kept in the page's storage, as text", async ({ page }) => {
       return [() => st.value("count"), () => (st.location = "elsewhere"), () => st.value("count", "none"), () => st.sync(), () => st.value("count")];
     }),
   ).toEqual([undefined, "elsewhere", "none", undefined, 4]);
-  expect(await page.evaluate(() => localStorage.getItem("qml-solid:elsewhere/Org/App/main/count"))).toBe('"4"');
+  expect(await page.evaluate(() => localStorage.getItem("ljos-web:elsewhere/Org/App/main/count"))).toBe('"4"');
 });
 
 test("a page has no standard paths", async ({ page }) => {

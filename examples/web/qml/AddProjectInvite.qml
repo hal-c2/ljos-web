@@ -1,1 +1,1 @@
-../../../crates/qml_solid/tests/fixtures/tui/AddProjectInvite.qml
+../../../crates/ljos_web/tests/fixtures/tui/AddProjectInvite.qml

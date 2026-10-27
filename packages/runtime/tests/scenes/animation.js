@@ -23,8 +23,8 @@
 //     NumberAnimation { id: instant; target: box; property: "z"; to: 5; duration: 0
 //         onStarted: log.push("instant started"); onFinished: log.push("instant finished " + box.z) }
 // }
-import { $object } from "qml-solid/object";
-import { Animation, clock, Easing, Item, NumberAnimation, Rectangle } from "qml-solid/QtQuick";
+import { $object } from "ljos-web/object";
+import { Animation, clock, Easing, Item, NumberAnimation, Rectangle } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 const names = ["root", "box", "source", "move", "grow", "loop", "forever", "instant"];

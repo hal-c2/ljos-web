@@ -36,7 +36,7 @@
 //         }
 //     ]
 // }
-import { $define, $object, $signal } from "qml-solid/object";
+import { $define, $object, $signal } from "ljos-web/object";
 import {
   clock,
   Item,
@@ -46,7 +46,7 @@ import {
   SequentialAnimation,
   State,
   Transition,
-} from "qml-solid/QtQuick";
+} from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 const names = ["root", "box", "ab", "any"];

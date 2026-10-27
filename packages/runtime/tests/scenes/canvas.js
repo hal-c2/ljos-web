@@ -66,9 +66,9 @@
 //             ctx.drawImage("/assets/circle.png", 0, 0)
 //         } }
 // }
-import { $define, $object, $signal } from "qml-solid/object";
-import { Qt } from "qml-solid/QtQml";
-import { Canvas, clock, Item } from "qml-solid/QtQuick";
+import { $define, $object, $signal } from "ljos-web/object";
+import { Qt } from "ljos-web/QtQml";
+import { Canvas, clock, Item } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 export const objects = { Qt, clock, log: [] };

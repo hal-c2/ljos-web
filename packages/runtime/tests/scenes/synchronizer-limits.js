@@ -16,9 +16,9 @@
 //
 // `Dial` stands for a control: its value is never more than `to`, and
 // `sealed` is what it is whatever it is given.
-import { $object, defineType, QtObject } from "qml-solid/object";
-import { Synchronizer } from "qml-solid/Qt/labs/synchronizer";
-import { Item } from "qml-solid/QtQuick";
+import { $object, defineType, QtObject } from "ljos-web/object";
+import { Synchronizer } from "ljos-web/Qt/labs/synchronizer";
+import { Item } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 const Dial = defineType("Dial", QtObject, {

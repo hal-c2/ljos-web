@@ -3,7 +3,7 @@ import { setStyleProperty as _$setStyleProperty } from "@solidjs/web";
 import { effect as _$effect } from "@solidjs/web";
 import { delegateEvents as _$delegateEvents } from "@solidjs/web";
 var _tmpl$ = /* @__PURE__ */ _$template(`<div class=q-item data-object-name=addProjectInvite style=flex-direction:column;padding-left:1ch;padding-right:1ch;padding-top:1lh;padding-bottom:1lh><span class=q-text data-object-name=addProjectInviteTitle style=font-weight:bold>What should we work on?</span><span class=q-text>Add a project to start your first thread.</span><span class=q-text data-object-name=addProjectInviteAction>[ Add project ]`);
-import { Shell, Theme } from "qml-solid/host";
+import { Shell, Theme } from "ljos-web/host";
 export default function AddProjectInvite(props) {
 	var _el$ = _tmpl$();
 	var _el$2 = _el$.firstChild;
