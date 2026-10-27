@@ -124,8 +124,8 @@ impl<'a> Resolver<'a, '_, '_> {
     }
 
     fn handle(&mut self, object: usize) -> Expression<'a> {
-        let handle = &self.tree.objects[object].handle;
-        self.uses.handles.insert(handle.clone());
+        let handle = self.tree.handle(object);
+        self.uses.handles.insert(handle.to_string());
         self.b.id(handle)
     }
 
@@ -173,7 +173,7 @@ impl<'a> Resolver<'a, '_, '_> {
                 found = Some(b.member(self.handle(object), name));
                 break;
             }
-            if let Some(given) = &tree.contexts[context].data {
+            if let Some(given) = tree.data(context) {
                 data.push(given);
                 // What every delegate is given, whatever the model.
                 if matches!(name, "index" | "model" | "modelData") {
@@ -272,13 +272,13 @@ impl<'a> Resolver<'a, '_, '_> {
         let is_singleton = self.types.is_singleton(kind);
         let rest = if is_singleton { Access::Singleton } else { Access::Static };
         let Some(ty) = self.types.base(kind) else { return rest };
-        if ty.enum_value(member).is_some() {
+        if ty.0.enum_value(member).is_some() {
             return Access::Static;
         }
-        if has_enum(ty, member) {
+        if has_enum(ty.0, member) {
             return Access::Enum;
         }
-        if ty.attaches(member) && !ty.is_singleton && !is_singleton { Access::Attached } else { rest }
+        if ty.0.attaches(member) && !ty.0.is_singleton && !is_singleton { Access::Attached } else { rest }
     }
 
     /// `Type.member`, when `expression` is exactly that.
@@ -408,12 +408,12 @@ impl<'a> Resolver<'a, '_, '_> {
         let path: Vec<&str> = namespace.into_iter().chain([name.as_str()]).collect();
         let found = self.types.find(&path)?;
         let ty = self.types.base(&found.kind)?;
-        if ty.is_singleton {
+        if ty.0.is_singleton {
             return None;
         }
         match wanted {
-            Some(wanted) if !ty.attaches(wanted) => return None,
-            None if ty.attached().is_none() || matches!(of, Attaching::Here(_)) => return None,
+            Some(wanted) if !ty.0.attaches(wanted) => return None,
+            None if ty.0.attached().is_none() || matches!(of, Attaching::Here(_)) => return None,
             _ => {}
         }
         Some(match of {

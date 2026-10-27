@@ -26,7 +26,7 @@ use crate::{
     scope::{Own, alias_target, classify, object_id},
 };
 
-pub(crate) use qml_front::project::{Key, Shape, Source, Summary, directory, join, summarize};
+pub(crate) use qml_front::project::{Key, Source, Summary, summarize};
 pub(crate) use qml_front::scope::is_group;
 
 /// The components a file can name: its own inline components and the files
@@ -137,6 +137,11 @@ impl Project {
         Self::default()
     }
 
+    /// The front end's project: what the shared reading of a file asks.
+    pub(crate) fn front(&self) -> &qml_front::project::Project {
+        &self.front
+    }
+
     /// Adds the file of the component `name`. A file that does not parse is
     /// left out, and its errors returned.
     pub fn add(&mut self, name: &str, source: &str) -> Result<(), Vec<Error>> {
@@ -189,16 +194,6 @@ impl Project {
     /// given is taken as such a type takes it.
     pub fn stand_in(&mut self, file: &str) {
         self.front.stand_in(file);
-    }
-
-    pub(crate) fn stands_in(&self, file: &str) -> bool {
-        self.front.stands_in(file)
-    }
-
-    /// The modules `file` is a type of: it sees their other types as it sees
-    /// the files next to it.
-    pub(crate) fn modules_of(&self, file: &str) -> &[String] {
-        self.front.modules_of(file)
     }
 
     /// Whether the file was added, and parsed.
@@ -264,10 +259,6 @@ impl Project {
 
     pub(crate) fn summary(&self, file: &str) -> Option<&Summary> {
         self.front.summary(file)
-    }
-
-    pub(crate) fn shape(&self, key: &Key) -> Option<&Shape> {
-        self.front.shape(key)
     }
 
     pub(crate) fn interface(&self, key: &Key) -> Option<&Interface> {

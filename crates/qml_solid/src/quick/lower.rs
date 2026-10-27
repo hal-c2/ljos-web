@@ -70,7 +70,8 @@ impl Uses {
             Origin::Namespace => {
                 self.namespaces.insert(first.to_string());
             }
-            Origin::Inline => {}
+            // The web runtime has these modules: nothing stands in.
+            Origin::Inline | Origin::StandIn(_) => {}
         }
     }
 }
@@ -177,7 +178,7 @@ impl<'a, 's> Lower<'a, 's> {
     ) -> (Statement<'a>, Vec<(String, Expression<'a>)>) {
         let b = self.b;
         let index = self.tree.index_of(&root);
-        let handle = self.tree.objects[index].handle.clone();
+        let handle = self.tree.handle(index).to_string();
         let children = children_target(&root).unwrap_or_else(|| handle.clone());
         // What an instance gives the root goes through its binding.
         self.uses.handles.insert(handle.clone());
@@ -262,7 +263,7 @@ impl<'a, 's> Lower<'a, 's> {
         let tree = self.tree;
         let index = tree.index_of(&object);
         let info = &tree.objects[index];
-        let handle = info.handle.as_str();
+        let handle = tree.handle(index);
         let tag = object.type_name.to_string();
         if let Some(origin) = &info.origin {
             self.uses.origin(&tag, origin);
@@ -428,7 +429,7 @@ impl<'a, 's> Lower<'a, 's> {
         let tree = self.tree;
         if let Some(on) = &child.on {
             let property = on.parts.join("$");
-            let target = tree.objects[index].handle.as_str();
+            let target = tree.handle(index);
             let element = self.element(child, Role::Source { target, property });
             built.children.push(b.child(element));
             return;
@@ -437,7 +438,7 @@ impl<'a, 's> Lower<'a, 's> {
         let default = tree.objects[index].kind.as_ref().and_then(|kind| self.types.default_component(kind));
         let value = self.object_value(child);
         match default {
-            Some(name) => built.attributes.push(b.attr(name, value)),
+            Some(name) => built.attributes.push(b.attr(&name, value)),
             // Nothing takes a `Component` as a child: its id is how it is used.
             None if is_template => {}
             None => built.children.push(b.child(value)),
@@ -473,7 +474,7 @@ impl<'a, 's> Lower<'a, 's> {
     /// `Component { id: name; Object { } }`: the template of the object in it.
     fn template(&mut self, object: QmlObject<'a>, index: usize) -> Expression<'a> {
         let b = self.b;
-        let handle = self.tree.objects[index].handle.as_str();
+        let handle = self.tree.handle(index);
         let has_id = scope::id(&object).is_some();
         let span = object.type_name.span;
         let mut content = None;
@@ -503,7 +504,7 @@ impl<'a, 's> Lower<'a, 's> {
     fn delegate(&mut self, object: QmlObject<'a>, index: usize) -> Expression<'a> {
         let b = self.b;
         let tree = self.tree;
-        let data = tree.contexts[tree.objects[index].context].data.as_deref().unwrap_or("$data");
+        let data = tree.data(tree.objects[index].context).unwrap_or("$data");
         self.open();
         let element = self.element(object, Role::Template(data));
         let frame = self.close();
@@ -541,14 +542,14 @@ impl<'a, 's> Lower<'a, 's> {
         let handler = match path.as_slice() {
             [name] => types::handled(name)
                 .filter(|_| !matches!(self.tree.member(self.types, index, name), Some(Member::Property(_)))),
-            [.., name] => types::handled(name).filter(|_| held.is_none_or(|held| held.property(name).is_none())),
+            [.., name] => types::handled(name).filter(|_| held.is_none_or(|held| held.0.property(name).is_none())),
             [] => None,
         };
         let value = match handler {
             Some(signal) => {
                 let parameters = match (path.len(), held) {
                     (1, _) => self.tree.signal(self.types, index, &signal).unwrap_or_default(),
-                    (_, Some(held)) => held
+                    (_, Some(held)) => held.0
                         .signal(&signal)
                         .map(|signal| signal.parameters.iter().map(|name| (*name).to_string()).collect())
                         .unwrap_or_default(),
@@ -570,7 +571,7 @@ impl<'a, 's> Lower<'a, 's> {
                 };
                 let mut handler = self.handler(binding.value, &parameters, span);
                 if let Some(property) = carried.filter(|_| takes) {
-                    let mut told = vec![self.tree.objects[index].handle.as_str()];
+                    let mut told = vec![self.tree.handle(index)];
                     told.extend(&path[..path.len() - 1]);
                     told.push(property);
                     self.told(&mut handler, &told);
@@ -578,7 +579,7 @@ impl<'a, 's> Lower<'a, 's> {
                 handler
             }
             None => {
-                let property = self.tree.property(self.types, index, &path).unwrap_or_default();
+                let property = self.tree.property(self.types, index, &path).unwrap_or_else(types::no_property);
                 if self.makes(&binding.value) {
                     built.made.push(path.join("$"));
                 }
@@ -620,7 +621,7 @@ impl<'a, 's> Lower<'a, 's> {
         if !built.attach.iter().any(|attached| *attached == type_name) {
             built.attach.push(type_name);
         }
-        let attached = self.types.base(&found.kind).and_then(qt_types::Type::attached);
+        let attached = self.types.base(&found.kind).and_then(|ty| ty.0.attached());
         let handler = match rest {
             [name] => types::handled(name)
                 .filter(|_| attached.is_none_or(|attached| attached.property(name).is_none())),
@@ -635,7 +636,7 @@ impl<'a, 's> Lower<'a, 's> {
                 self.handler(value, &parameters, span)
             }
             None => {
-                let property = attached.and_then(|attached| qt_property(attached, rest)).unwrap_or_default();
+                let property = attached.and_then(|attached| qt_property(attached, rest)).unwrap_or_else(types::no_property);
                 self.value(value, property)
             }
         };
@@ -680,7 +681,7 @@ impl<'a, 's> Lower<'a, 's> {
             QmlBindingValue::Expression(expression) => b.arrow(given, expression),
             QmlBindingValue::Statement(statement) => b.arrow_block(given, self.worth(statement)),
             value => {
-                let value = self.value(value, Property::default());
+                let value = self.value(value, types::no_property());
                 b.arrow(given, value)
             }
         };
@@ -780,7 +781,7 @@ impl<'a, 's> Lower<'a, 's> {
             if let Some(target) = tree.target(index)
                 && let Some(property) = tree.carried(self.types, target, &signal)
             {
-                self.told(&mut expression, &[tree.objects[target].handle.as_str(), property]);
+                self.told(&mut expression, &[tree.handle(target), property]);
             }
             built.attributes.push(self.b.attr(&name, expression));
         } else {
@@ -793,7 +794,7 @@ impl<'a, 's> Lower<'a, 's> {
             .kind
             .as_ref()
             .and_then(|kind| self.types.base(kind))
-            .is_some_and(|ty| ty.class == class)
+            .is_some_and(|ty| ty.0.class == class)
     }
 
     /// What a handler is: a function of the signal's arguments, by the names
@@ -1018,7 +1019,7 @@ fn qt_property(ty: &'static qt_types::Type, path: &[&str]) -> Option<Property> {
     let (first, rest) = path.split_first()?;
     let mut property = types::qt_property(ty.property(first)?);
     for name in rest {
-        property = types::qt_property(property.value?.property(name)?);
+        property = types::qt_property(property.value?.0.property(name)?);
     }
     Some(property)
 }

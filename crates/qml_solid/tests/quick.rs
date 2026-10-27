@@ -450,7 +450,10 @@ Rectangle {
     assert_contains(&code, "<Item $self={body}>{$props.children}</Item></Rectangle>");
     assert_eq!(
         errors("import QtQuick\nItem { property alias text: nobody.text }"),
-        ["`text` is an alias of nothing: an alias names an id, or a property of one"]
+        [
+            "`nobody` is not an id in this component",
+            "`text` is an alias of nothing: an alias names an id, or a property of one"
+        ]
     );
 }
 
