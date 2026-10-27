@@ -5,7 +5,7 @@
 //! here: a dialect. Another target (or another look for the same app) is
 //! another table, not another compiler.
 
-use oxc_parser::qml::ast::{QmlImport, QmlImportSource};
+use qml_syntax::ast::{QmlImport, QmlImportSource};
 
 use crate::dialects;
 

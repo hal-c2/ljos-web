@@ -29,8 +29,8 @@ use std::collections::{BTreeSet, HashSet};
 use oxc_allocator::Allocator;
 use oxc_ast::ast::*;
 use oxc_ast_visit::{VisitMut, walk_mut};
-use oxc_parser::Parser;
 use oxc_semantic::SemanticBuilder;
+use oxc_parser::Parser;
 use oxc_span::{GetSpan, SourceType, Span};
 
 use super::{

@@ -9,7 +9,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use oxc_parser::qml::ast::*;
+use qml_syntax::ast::*;
 use oxc_span::Span;
 
 use super::types::{self, Kind, Member, Origin, Property, Types};

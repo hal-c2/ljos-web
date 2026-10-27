@@ -2,8 +2,7 @@
 //! is and what the root declares, which is all an instance of it can reach.
 
 use oxc_allocator::Allocator;
-use oxc_parser::{Parser, qml::ast::*};
-use oxc_span::SourceType;
+use qml_syntax::ast::*;
 
 use crate::model::{Enum, Property, Signal};
 
@@ -25,9 +24,9 @@ pub struct QmlFile {
 
 pub fn read(source: &str) -> Result<QmlFile, String> {
     let allocator = Allocator::default();
-    let parsed = Parser::new(&allocator, source, SourceType::ts()).parse_qml();
+    let parsed = qml_syntax::parse(&allocator, source);
     if let Some(diagnostic) = parsed.diagnostics.first() {
-        let offset = diagnostic.labels.first().map_or(0, |label| label.offset() as usize);
+        let offset = diagnostic.span.start as usize;
         let line = source[..offset.min(source.len())].matches('\n').count() + 1;
         return Err(format!("line {line}: {}", diagnostic.message));
     }

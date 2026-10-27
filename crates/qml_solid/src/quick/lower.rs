@@ -23,7 +23,7 @@ use std::collections::{BTreeMap, BTreeSet, HashSet};
 use oxc_allocator::{ArenaBox, ArenaVec};
 use oxc_ast::ast::*;
 use oxc_ast_visit::Visit;
-use oxc_parser::qml::ast::*;
+use qml_syntax::ast::*;
 use oxc_span::Span;
 
 use super::{

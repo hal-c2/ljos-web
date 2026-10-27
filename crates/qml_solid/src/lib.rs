@@ -25,8 +25,7 @@ mod scope;
 use oxc_allocator::Allocator;
 use oxc_ast::ast::Program;
 use oxc_diagnostics::Diagnostics;
-use oxc_parser::Parser;
-use oxc_span::{SourceType, Span};
+use oxc_span::Span;
 
 pub use project::Project;
 pub use qt::{native_types, written_types};
@@ -112,6 +111,12 @@ impl Error {
     }
 }
 
+impl From<qml_syntax::Diagnostic> for Error {
+    fn from(diagnostic: qml_syntax::Diagnostic) -> Self {
+        Self::new(diagnostic.message, diagnostic.span)
+    }
+}
+
 /// Compiles a QML file to a JavaScript module whose default export is a Solid
 /// component.
 pub fn compile(source: &str, options: &Options) -> Result<Output, Vec<Error>> {
@@ -175,9 +180,9 @@ fn lower<'a>(
     source: &'a str,
     options: &Options,
 ) -> Result<(Program<'a>, Target), Vec<Error>> {
-    let parsed = Parser::new(allocator, source, SourceType::ts()).parse_qml();
+    let parsed = qml_syntax::parse(allocator, source);
     if !parsed.diagnostics.is_empty() {
-        return Err(parse_errors(parsed.diagnostics));
+        return Err(parsed.diagnostics.into_iter().map(Error::from).collect());
     }
 
     // The file is part of its own project: it may use itself, and its inline

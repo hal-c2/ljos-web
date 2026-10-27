@@ -23,11 +23,10 @@ use std::collections::{HashMap, HashSet};
 
 use oxc_ast::ast::*;
 use oxc_ast_visit::{VisitMut, walk_mut};
-use oxc_parser::Parser;
-use oxc_span::{SourceType, Span};
+use oxc_span::Span;
 use oxc_syntax::operator::BinaryOperator;
 
-use crate::{Error, Options, build::B, parse_errors, project, project::Project};
+use crate::{Error, Options, build::B, project, project::Project};
 
 /// A text some `Qt.createQmlObject` is given.
 pub(crate) struct Text {
@@ -131,11 +130,11 @@ pub(crate) fn declare<'a>(
     // that place in the file.
     let from = text.span.start as usize + 1;
     let source: &'a str = b.allocator().alloc_str(&format!("{}{}", " ".repeat(from), text.source));
-    let parsed = Parser::new(b.allocator(), source, SourceType::ts()).parse_qml();
+    let parsed = qml_syntax::parse(b.allocator(), source);
     if !parsed.diagnostics.is_empty() {
         // What was put into the text where QML is read is not there to read.
         let put = |error: &Error| source[error.span.start as usize..].chars().next().is_some_and(is_hole);
-        let mut errors = parse_errors(parsed.diagnostics);
+        let mut errors: Vec<Error> = parsed.diagnostics.into_iter().map(Error::from).collect();
         for error in errors.iter_mut().filter(|error| put(error)) {
             error.message = UNREAD.to_string();
         }

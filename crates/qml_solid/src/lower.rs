@@ -10,7 +10,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use oxc_allocator::{ArenaVec, CloneIn};
 use oxc_ast::ast::*;
-use oxc_parser::qml::ast::*;
+use qml_syntax::ast::*;
 use oxc_span::Span;
 use oxc_syntax::operator::BinaryOperator;
 

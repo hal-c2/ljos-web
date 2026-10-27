@@ -12,11 +12,10 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use oxc_allocator::Allocator;
 use oxc_ast::ast::{CallExpression, Expression, IdentifierReference};
 use oxc_ast_visit::{Visit, walk};
-use oxc_parser::{Parser, qml::ast::*};
-use oxc_span::SourceType;
+use qml_syntax::ast::*;
 
 use crate::{
-    Error, parse_errors, qt,
+    Error, qt,
     quick::texts,
     registry::{Element, Prop, Types},
     scope::{Own, alias_target, classify, object_id},
@@ -204,9 +203,9 @@ impl Project {
     /// left out, and its errors returned.
     pub fn add(&mut self, name: &str, source: &str) -> Result<(), Vec<Error>> {
         let allocator = Allocator::default();
-        let parsed = Parser::new(&allocator, source, SourceType::ts()).parse_qml();
+        let parsed = qml_syntax::parse(&allocator, source);
         if !parsed.diagnostics.is_empty() {
-            return Err(parse_errors(parsed.diagnostics));
+            return Err(parsed.diagnostics.into_iter().map(Error::from).collect());
         }
         self.insert(name, summarize(&parsed.document));
         Ok(())
@@ -615,7 +614,7 @@ impl<'a> Visit<'a> for Names {
     fn visit_call_expression(&mut self, call: &CallExpression<'a>) {
         if let Some(text) = texts::given(call).and_then(texts::written) {
             let allocator = Allocator::default();
-            let parsed = Parser::new(&allocator, &text.0, SourceType::ts()).parse_qml();
+            let parsed = qml_syntax::parse(&allocator, &text.0);
             if parsed.diagnostics.is_empty() {
                 for shape in summarize(&parsed.document).shapes {
                     self.sought.extend(shape.mentions);

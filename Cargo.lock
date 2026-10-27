@@ -261,6 +261,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "47d9d19d1d6efa0109d2f65ff4c85cddd50bd572e5a00127ab10987290bcefae"
 
 [[package]]
+name = "ljos_oxc_parser"
+version = "0.144.0"
+source = "git+ssh://git@github.com/hal-c2/ljos-ui.git?rev=984cc3e43ff200f24db376aad50a2389b25641c4#984cc3e43ff200f24db376aad50a2389b25641c4"
+dependencies = [
+ "bitflags",
+ "cow-utils",
+ "memchr",
+ "num-bigint",
+ "num-traits",
+ "oxc_allocator",
+ "oxc_ast",
+ "oxc_data_structures",
+ "oxc_diagnostics",
+ "oxc_ecmascript",
+ "oxc_regular_expression",
+ "oxc_span",
+ "oxc_str",
+ "oxc_syntax",
+ "rustc-hash",
+ "seq-macro",
+]
+
+[[package]]
 name = "lock_api"
 version = "0.4.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -505,6 +528,8 @@ dependencies = [
 [[package]]
 name = "oxc_parser"
 version = "0.144.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d13016de81370106ea4065cfabe4a278dc09e82523cfe22bb6a8ab8e993b4c3a"
 dependencies = [
  "bitflags",
  "cow-utils",
@@ -780,7 +805,20 @@ dependencies = [
  "oxc_span",
  "oxc_str",
  "oxc_syntax",
+ "qml_syntax",
  "solidjs-compiler",
+]
+
+[[package]]
+name = "qml_syntax"
+version = "0.0.0"
+source = "git+ssh://git@github.com/hal-c2/ljos-ui.git?rev=984cc3e43ff200f24db376aad50a2389b25641c4#984cc3e43ff200f24db376aad50a2389b25641c4"
+dependencies = [
+ "ljos_oxc_parser",
+ "oxc_allocator",
+ "oxc_ast",
+ "oxc_diagnostics",
+ "oxc_span",
 ]
 
 [[package]]
@@ -789,8 +827,8 @@ version = "0.0.0"
 dependencies = [
  "oxc_allocator",
  "oxc_ast",
- "oxc_parser",
  "oxc_span",
+ "qml_syntax",
 ]
 
 [[package]]

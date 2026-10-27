@@ -2,15 +2,12 @@
 
 use oxc_allocator::Allocator;
 use oxc_ast::ast::{Expression, Statement};
-use oxc_parser::{
-    Parser,
-    qml::ast::{QmlBindingValue, QmlDocument, QmlImportSource, QmlMember, QmlObject},
-};
-use oxc_span::{GetSpan, SourceType, Span};
+use qml_syntax::ast::{QmlBindingValue, QmlDocument, QmlImportSource, QmlMember, QmlObject};
+use oxc_span::{GetSpan, Span};
 
 fn parse<'a>(allocator: &'a Allocator, source: &'a str) -> QmlDocument<'a> {
-    let parsed = Parser::new(allocator, source, SourceType::ts()).parse_qml();
-    let messages: Vec<_> = parsed.diagnostics.iter().map(|d| d.message.to_string()).collect();
+    let parsed = qml_syntax::parse(allocator, source);
+    let messages: Vec<_> = parsed.diagnostics.iter().map(|d| d.message.clone()).collect();
     assert!(messages.is_empty(), "{messages:?}");
     assert!(!parsed.panicked);
     parsed.document
@@ -18,8 +15,8 @@ fn parse<'a>(allocator: &'a Allocator, source: &'a str) -> QmlDocument<'a> {
 
 fn diagnostics(source: &str) -> Vec<String> {
     let allocator = Allocator::default();
-    let parsed = Parser::new(&allocator, source, SourceType::ts()).parse_qml();
-    parsed.diagnostics.iter().map(|d| d.message.to_string()).collect()
+    let parsed = qml_syntax::parse(&allocator, source);
+    parsed.diagnostics.iter().map(|d| d.message.clone()).collect()
 }
 
 fn text(source: &str, span: Span) -> &str {
@@ -173,12 +170,11 @@ fn binding_values() {
     states: [ State { name: "a" }, State { name: "b" } ]
     model: [1, 2, 3]
     range: ({ from: 0, to: 9 })
-    limits: { "from": 0, to: 9 }
+    limits: { "from": 0, "to": 9 }
     onMoved: { count = 0 }
     height: { width }
     onChosen: { if (active) { move() } }
     onLeft: { while (busy) { step() } }
-    tools: { pick(item) { return item } }
 }"#;
     let document = parse(&allocator, source);
     let value = |index: usize| {
@@ -205,14 +201,14 @@ fn binding_values() {
     assert_eq!(states.len(), 2);
     assert!(matches!(value(9), QmlBindingValue::Expression(Expression::ArrayExpression(_))));
     assert!(matches!(value(10), QmlBindingValue::Expression(Expression::ParenthesizedExpression(_))));
-    // Braces are an object when what is in them could be nothing else.
+    // Braces are an object only when they start as JSON does: a string or
+    // number key, and then every key is one (as Qt reads them).
     assert!(matches!(value(11), QmlBindingValue::Expression(Expression::ObjectExpression(_))));
     assert!(matches!(value(12), QmlBindingValue::Statement(Statement::BlockStatement(_))));
     assert!(matches!(value(13), QmlBindingValue::Statement(Statement::BlockStatement(_))));
     // A statement written as a call and a block is no method of that name.
     assert!(matches!(value(14), QmlBindingValue::Statement(Statement::BlockStatement(_))));
     assert!(matches!(value(15), QmlBindingValue::Statement(Statement::BlockStatement(_))));
-    assert!(matches!(value(16), QmlBindingValue::Expression(Expression::ObjectExpression(_))));
 }
 
 #[test]
@@ -231,4 +227,8 @@ fn syntax_errors() {
     assert!(!diagnostics("import\nItem {}").is_empty());
     assert!(!diagnostics("Item {} Item {}").is_empty());
     assert!(!diagnostics("").is_empty());
+    // Mixed keys: after a string key, a bare name is no key of Qt's object.
+    assert!(!diagnostics("Item { property var x: { \"a\": 1, b: 2 } }").is_empty());
+    // Nor is a method shorthand: braces are a block, and that is no script.
+    assert!(!diagnostics("Item { property var x: { pick(item) { return item } } }").is_empty());
 }

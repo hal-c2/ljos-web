@@ -15,7 +15,7 @@ pub(crate) mod texts;
 mod types;
 
 use oxc_ast::ast::Program;
-use oxc_parser::qml::ast::QmlDocument;
+use qml_syntax::ast::QmlDocument;
 
 use self::{lower::Lower, scope::Tree, types::Types};
 use crate::{Error, Options, build::B, project::Project};

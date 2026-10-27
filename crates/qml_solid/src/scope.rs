@@ -8,7 +8,7 @@ use std::collections::{HashMap, HashSet};
 
 use oxc_ast::ast::*;
 use oxc_ast_visit::{Visit, walk};
-use oxc_parser::qml::ast::*;
+use qml_syntax::ast::*;
 use oxc_span::Span;
 use oxc_syntax::scope::ScopeFlags;
 

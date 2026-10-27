@@ -234,9 +234,9 @@ and `1lh` tall). The fixtures in `crates/qml_solid/tests/fixtures/tui` use it.
 
 ## Vendored crates
 
-- `vendor/oxc_parser`: crates.io `oxc_parser` 0.144.0 (MIT). Added `src/qml/`
-  and `Parser::parse_qml` in `src/lib.rs`, plus a `qml` diagnostic in
-  `src/diagnostics.rs`. Wired in with `[patch.crates-io]`.
+- The QML parser is not vendored here: it is Ljós's `qml_syntax` crate
+  (a git dependency on the ljos-ui repository), whose oxc fork carries the
+  QML mode. There is one copy of that fork, and it lives there.
 - `vendor/solidjs-compiler`: `packages/compiler` of solidjs/solid at `e44b2e4`
   (2.0.0-rc.13, MIT). Added `compile_program`, which takes an Oxc `Program`
   instead of source text; default features are empty so nothing needs Node.
