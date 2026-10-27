@@ -10,7 +10,6 @@ use oxc_ast::ast::*;
 use oxc_ast_visit::{Visit, walk};
 use qml_syntax::ast::*;
 use oxc_span::Span;
-use oxc_syntax::scope::ScopeFlags;
 
 use crate::Error;
 
@@ -97,43 +96,7 @@ impl Object<'_> {
     }
 }
 
-/// A handler that belongs to a declaration of the object it is written on.
-#[derive(Debug, PartialEq, Eq)]
-pub(crate) enum Own {
-    /// `onPicked` for `signal picked`.
-    Signal(String),
-    /// `onTitleChanged` for `property string title`.
-    Changed(String),
-    /// `Component.onCompleted`.
-    Completed,
-    /// `Component.onDestruction`.
-    Destruction,
-}
-
-pub(crate) fn classify(
-    name: &str,
-    is_signal: impl Fn(&str) -> bool,
-    is_property: impl Fn(&str) -> bool,
-) -> Option<Own> {
-    match name {
-        "Component.onCompleted" => return Some(Own::Completed),
-        "Component.onDestruction" => return Some(Own::Destruction),
-        _ => {}
-    }
-    let handled = handled(name)?;
-    if is_signal(&handled) {
-        return Some(Own::Signal(handled));
-    }
-    let property = handled.strip_suffix("Changed")?;
-    is_property(property).then(|| Own::Changed(property.to_string()))
-}
-
-/// `onPicked` → `picked`: the signal a handler name stands for.
-pub(crate) fn handled(name: &str) -> Option<String> {
-    let rest = name.strip_prefix("on")?;
-    let first = rest.chars().next().filter(char::is_ascii_uppercase)?;
-    Some(format!("{}{}", first.to_ascii_lowercase(), &rest[1..]))
-}
+pub(crate) use qml_front::scope::{Own, classify, handled, is_literal, object_id, walk_leaves};
 
 /// `property alias name: id.property`, when the target is a built-in property:
 /// the alias is the binding and the target reads it.
@@ -505,21 +468,9 @@ impl<'a> Analysis<'a, '_> {
 
 /// The `id` and property path of `property alias name: id.property`.
 pub(crate) fn alias_target<'a>(property: &QmlPropertyDeclaration<'a>) -> Option<(&'a str, String)> {
-    let Some(QmlBindingValue::Expression(expression)) = property.value.as_ref() else {
-        return None;
-    };
-    let mut expression = expression;
-    let mut path = Vec::new();
-    while let Expression::StaticMemberExpression(member) = expression {
-        path.push(member.property.name.as_str());
-        expression = &member.object;
-    }
-    let Expression::Identifier(id) = expression else { return None };
-    if path.is_empty() {
-        return None;
-    }
-    path.reverse();
-    Some((id.name.as_str(), path.join(".")))
+    // A dialect's aliases are of a property (`id.property`), never of the
+    // object itself, which the front end's reading also names.
+    qml_front::scope::alias_target(property).filter(|(_, target)| !target.is_empty())
 }
 
 fn collect_ids(object: &QmlObject<'_>, ids: &mut HashSet<String>) {
@@ -545,16 +496,6 @@ fn collect_ids(object: &QmlObject<'_>, ids: &mut HashSet<String>) {
     }
 }
 
-pub(crate) fn object_id<'a>(object: &QmlObject<'a>) -> Option<&'a str> {
-    object.members.iter().find_map(|member| match member {
-        QmlMember::Binding(QmlBinding {
-            name,
-            value: QmlBindingValue::Expression(Expression::Identifier(id)),
-            ..
-        }) if name.as_simple() == Some("id") => Some(id.name.as_str()),
-        _ => None,
-    })
-}
 
 /// What a `Repeater` hands its delegate, decided by the shape of its model.
 fn repeater_delegate(repeater: &QmlObject<'_>) -> Delegate {
@@ -571,19 +512,6 @@ fn repeater_delegate(repeater: &QmlObject<'_>) -> Delegate {
     if count { Delegate::COUNT } else { Delegate::EACH }
 }
 
-pub(crate) fn is_literal(expression: &Expression<'_>) -> bool {
-    match expression {
-        Expression::NumericLiteral(_)
-        | Expression::StringLiteral(_)
-        | Expression::BooleanLiteral(_)
-        | Expression::NullLiteral(_) => true,
-        Expression::UnaryExpression(unary) => {
-            matches!(unary.argument, Expression::NumericLiteral(_))
-        }
-        Expression::ParenthesizedExpression(inner) => is_literal(&inner.expression),
-        _ => false,
-    }
-}
 
 /// `a`, `a.b`, `a.b.c`: a read with no work in it.
 fn is_member_chain(expression: &Expression<'_>) -> bool {
@@ -639,32 +567,4 @@ impl<'a> Visit<'a> for Assigned<'a> {
     }
 }
 
-fn walk_value<'a>(value: &QmlBindingValue<'a>, visitor: &mut impl Visit<'a>) {
-    match value {
-        QmlBindingValue::Expression(expression) => visitor.visit_expression(expression),
-        QmlBindingValue::Statement(statement) => visitor.visit_statement(statement),
-        QmlBindingValue::Object(object) => walk_leaves(object, visitor),
-        QmlBindingValue::Objects(objects) => {
-            for object in objects {
-                walk_leaves(object, visitor);
-            }
-        }
-    }
-}
 
-fn walk_leaves<'a>(object: &QmlObject<'a>, visitor: &mut impl Visit<'a>) {
-    for member in &object.members {
-        match member {
-            QmlMember::Object(child) => walk_leaves(child, visitor),
-            QmlMember::Binding(binding) => walk_value(&binding.value, visitor),
-            QmlMember::Property(property) => {
-                if let Some(value) = &property.value {
-                    walk_value(value, visitor);
-                }
-            }
-            QmlMember::Function(function) => visitor.visit_function(function, ScopeFlags::Function),
-            QmlMember::InlineComponent(inline) => walk_leaves(&inline.object, visitor),
-            QmlMember::Signal(_) | QmlMember::Enum(_) => {}
-        }
-    }
-}
