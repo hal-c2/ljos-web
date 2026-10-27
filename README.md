@@ -32,6 +32,8 @@ browser and compares it with the picture real Qt renders.
   are written on (`qml-solid/object`), and the Vite plugin (`qml-solid/vite`).
 - `examples/gallery`: Qt's examples in the browser, and the report on how each does.
 - `examples/web`: QML rendered in the browser with the `import OpenTUI` dialect.
+- `examples/wasm-counter`: a type written in Rust, compiled to WebAssembly and
+  used from QML in the browser — the first spike of ljos-web (`docs/LJOS_WEB.md`).
 - `corpus/qtdoc`: Qt's own examples (a submodule); `corpus/examples.json` says where each
   starts and what it needs, `corpus/reference` has Qt's pictures of them.
 - `mise-tasks/`: install, build, run, test, gallery and corpus, see below.
