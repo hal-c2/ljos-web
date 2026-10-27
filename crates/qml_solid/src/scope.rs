@@ -96,7 +96,7 @@ impl Object<'_> {
     }
 }
 
-pub(crate) use qml_front::scope::{Own, classify, handled, is_literal, object_id, walk_leaves};
+pub(crate) use qml_front::scope::{Own, classify, is_literal, object_id, walk_leaves};
 
 /// `property alias name: id.property`, when the target is a built-in property:
 /// the alias is the binding and the target reads it.

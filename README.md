@@ -26,7 +26,8 @@ browser and compares it with the picture real Qt renders.
 ## Layout
 
 - `crates/qml_solid`: the compiler (`qml_solid::compile`, `compile_script`) and the `qmlc` binary.
-- `crates/qmltypes`: makes the table of Qt's types from a Qt installation (`mise run types`).
+- The table of Qt's types is made by Ljós's `qmltypes` generator (`mise run types`),
+  in the ljos-ui repository the front end comes from.
 - `packages/runtime`: what compiled output imports, one module per QML module
   (`qml-solid/QtQuick`, `qml-solid/QtQuick/Layouts`, `qml-solid/QtQml`, ...), the kernel they
   are written on (`qml-solid/object`), and the Vite plugin (`qml-solid/vite`).

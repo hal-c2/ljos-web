@@ -833,16 +833,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "qmltypes"
-version = "0.0.0"
-dependencies = [
- "oxc_allocator",
- "oxc_ast",
- "oxc_span",
- "qml_syntax",
-]
-
-[[package]]
 name = "qt_types"
 version = "0.0.0"
 
