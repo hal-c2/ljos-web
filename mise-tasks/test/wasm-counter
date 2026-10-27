@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+#MISE description="The wasm-counter spike: a Rust Counter bound from QML, in a browser (docs/LJOS_WEB.md)"
+#MISE depends=["build:compiler", "browser"]
+set -euo pipefail
+
+cd examples/wasm-counter
+
+# The tool that makes JavaScript of what wasm-bindgen wrote into the
+# .wasm, the version the crate is pinned to (its Cargo.toml).
+bindgen=.tools/wasm-bindgen-0.2.114-x86_64-unknown-linux-musl/wasm-bindgen
+if [ ! -x "$bindgen" ]; then
+  mkdir -p .tools
+  curl -fsSL https://github.com/rustwasm/wasm-bindgen/releases/download/0.2.114/wasm-bindgen-0.2.114-x86_64-unknown-linux-musl.tar.gz \
+    | tar xz -C .tools
+fi
+
+cargo test
+cargo build --release --target wasm32-unknown-unknown
+"$bindgen" target/wasm32-unknown-unknown/release/wasm_counter.wasm --out-dir pkg --target web
+
+pnpm --filter qml-solid-example-wasm-counter test "$@"
