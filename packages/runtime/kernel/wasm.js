@@ -17,6 +17,19 @@ const WRITABLE = { ownedWrite: true };
 const runs = [];
 const faces = [];
 const watchers = [];
+// The graph reuses a disposed node's number, but a slot or a signal's
+// closure may still hold it and read or touch it late. So the page's handle
+// is the number plus how many times it was disposed, times 2^32: a stale
+// handle is told apart from the live one and is nothing. Until a number is
+// reused the handle is the number itself, a small integer.
+const SPAN = 2 ** 32;
+const reused = [];
+const handle = (index) => index + (reused[index] ?? 0) * SPAN;
+// The node number of `of`, or undefined when that node is gone.
+function number(of) {
+  const index = of >>> 0;
+  return handle(index) === of ? index : undefined;
+}
 // A throw cannot unwind through the graph's frames (it would leave a node
 // computing for ever): it is kept, the graph finishes, and it is thrown
 // again on this side once the call into the graph returns.
@@ -59,30 +72,46 @@ function rethrow() {
 // a Solid computation.
 export const followed = () => evaluating > 0 || getObserver() !== null;
 
-function dispose(index) {
+function dispose(of) {
+  const index = number(of);
+  if (index === undefined) return;
   const watcher = watchers[index];
   if (watcher !== undefined) k.ljos_dispose(watcher);
-  k.ljos_dispose(index);
+  // Before the graph can hand the number out again.
   runs[index] = faces[index] = watchers[index] = undefined;
+  reused[index] = (reused[index] ?? 0) + 1;
+  k.ljos_dispose(index);
+  // Disposing tells what depended on the node, which may evaluate. This
+  // runs as an owner's cleanup, which a throw would cut short, so what an
+  // evaluation threw is reported here rather than left for the next read.
+  if (thrown !== null) {
+    const { error } = thrown;
+    thrown = null;
+    reportError(error);
+  }
 }
 
-function owned(index, owner) {
-  if (owner) runWithOwner(owner, () => onCleanup(() => dispose(index)));
-  return index;
+function made(index, owner) {
+  const of = handle(index);
+  if (owner) runWithOwner(owner, () => onCleanup(() => dispose(of)));
+  return of;
 }
 
 // A value kept here that the graph is told of when it changes.
-export const cell = (owner) => owned(k.ljos_cell(), owner);
+export const cell = (owner) => made(k.ljos_cell(), owner);
 
 // A binding: `run` evaluates it and says whether it gave something new.
 export function binding(owner, run) {
   const index = k.ljos_binding();
   runs[index] = () => untrack(run);
-  return owned(index, owner);
+  return made(index, owner);
 }
 
-// Brings `index` up to date and has whoever is reading follow it.
-export function read(index, owner) {
+// Brings the node up to date and has whoever is reading follow it. A node
+// that is gone reads as nothing and is followed by no one.
+export function read(of, owner) {
+  const index = number(of);
+  if (index === undefined) return;
   if (getObserver()) {
     let face = faces[index];
     if (!face) {
@@ -95,8 +124,10 @@ export function read(index, owner) {
   rethrow();
 }
 
-// The value kept for `index` changed: what depends on it is told now.
-export function touch(index) {
+// The value kept for the node changed: what depends on it is told now.
+export function touch(of) {
+  const index = number(of);
+  if (index === undefined) return;
   k.ljos_bump(index);
   rethrow();
 }

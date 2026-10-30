@@ -249,3 +249,12 @@ test("an item's own properties make what they are given the number or the yes-or
   await page.evaluate(() => (window.scene.given = false));
   expect(await page.evaluate(() => window.scene.bound.$node.style.opacity)).toBe("0");
 });
+
+test("a node's number handed out again is not followed through what held it before", async ({ page }) => {
+  await open(page, "kernelreuse");
+  const reuse = await page.evaluate(() => window.objects.reuse());
+  test.skip(reuse === null, "only the wasm kernel numbers its nodes");
+  // The number is the old node's, the handle is not; the reader is told of
+  // the new node's change, and not of a touch through the old handle.
+  expect(reuse).toEqual({ reused: true, distinct: true, seen: [1, 2, 2] });
+});
