@@ -26,7 +26,7 @@ import {
 import { Color, color } from "./QtQuick/color.js";
 // Which graph is under the slots: Solid's signals, or Ljós's own graph in
 // wasm (`kernel/wasm.js`), as the build's `ljos-wasm-kernel` condition says.
-import { binding, cell, followed, read as follow, touch, version, WASM } from "#kernel";
+import { binding, cell, followed, read as follow, signal as counted, touch, WASM } from "#kernel";
 
 // Solid refuses a write from a component's body or a computation; an object
 // is assigned to from wherever its QML says.
@@ -61,7 +61,7 @@ let early = 0;
 // The object an `id` names, made before the type that fills it in runs.
 export function $object() {
   const self = Object.create(pending);
-  const [track, touch] = WASM ? version(getOwner()) : createSignal(0, WRITABLE);
+  const [track, touch] = counted(0, getOwner());
   hidden(self, "$track", track);
   hidden(self, "$touch", touch);
   return self;
@@ -506,11 +506,24 @@ function graphed(owner, compute, first) {
   let index;
   let evaluating = false;
   let done = false;
+  // What an evaluation made (an effect, an object a binding gives) is its
+  // own, and ends once the next evaluation is over, as what a memo makes
+  // does: under whatever owner was current when the graph ran it, it would
+  // outlive it and pile up. Not at once: what ends may write, and a write
+  // inside the evaluation would run it again.
+  let made = null;
   const run = () => {
     const before = held;
+    const spent = made;
+    if (spent) after(spent);
     evaluating = true;
     try {
-      held = compute();
+      held = runWithOwner(null, () =>
+        createRoot((dispose) => {
+          made = dispose;
+          return compute();
+        }),
+      );
     } finally {
       evaluating = false;
     }
@@ -536,6 +549,7 @@ function graphed(owner, compute, first) {
   // Made, and evaluated, as it is taken: as Solid's memo is.
   read.start = () => {
     if (index === undefined) {
+      if (owner) runWithOwner(owner, () => onCleanup(() => made?.()));
       index = binding(owner, run);
       untrack(get);
     }
@@ -1881,7 +1895,7 @@ export function $define(self, members) {
 export function $signal(initial) {
   const binding = typeof initial === "function";
   const owner = getOwner();
-  const [version, bump] = WASM ? version(owner) : createSignal(0, WRITABLE);
+  const [version, bump] = counted(0, owner);
   let assigned = !binding;
   let value = binding ? undefined : initial;
   // Made when first read: by then what the binding names exists.
