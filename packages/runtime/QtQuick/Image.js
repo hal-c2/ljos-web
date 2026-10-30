@@ -3,7 +3,7 @@
 // The browser loads and paints it. What QML reads of it is computed here as
 // Qt computes it: the size it would have been loaded at, which is the item's
 // implicit size, and the rectangle it is painted in.
-import { createSignal } from "solid-js";
+import { signal } from "#kernel";
 import { defineType, derived, effect, flush, group, located } from "../object.js";
 import { given, lazy, rules, sized } from "./compute.js";
 import { Rect } from "../QtQml/values.js";
@@ -14,7 +14,6 @@ rules(`
 .qq-image > canvas { position: absolute; left: 0; top: 0; }
 `);
 
-const WRITABLE = { ownedWrite: true };
 const NULL = 0;
 const READY = 1;
 const LOADING = 2;
@@ -26,7 +25,7 @@ const SCALABLE = /\.svgz?(?:[?#]|$)|^data:image\/svg\+xml/i;
 
 // A picture being loaded: how far it is, and its size once it is there.
 export function picture(url) {
-  const [status, setStatus] = createSignal(LOADING, WRITABLE);
+  const [status, setStatus] = signal(LOADING);
   const record = { url, status, width: 0, height: 0, scalable: SCALABLE.test(url), frames: null };
   record.settle = (state) => {
     setStatus(state);
