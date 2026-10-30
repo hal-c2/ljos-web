@@ -23,6 +23,10 @@ const watchers = [];
 // handle is told apart from the live one and is nothing. Until a number is
 // reused the handle is the number itself, a small integer.
 const SPAN = 2 ** 32;
+// The count wraps where the handle would pass 2^53 and stop being exact; a
+// stale handle then has to lie unused through 2^21 reuses of its number to
+// be taken for the live one.
+const GENERATIONS = 2 ** 21;
 const reused = [];
 const handle = (index) => index + (reused[index] ?? 0) * SPAN;
 // The node number of `of`, or undefined when that node is gone.
@@ -79,7 +83,7 @@ function dispose(of) {
   if (watcher !== undefined) k.ljos_dispose(watcher);
   // Before the graph can hand the number out again.
   runs[index] = faces[index] = watchers[index] = undefined;
-  reused[index] = (reused[index] ?? 0) + 1;
+  reused[index] = ((reused[index] ?? 0) + 1) % GENERATIONS;
   k.ljos_dispose(index);
   // Disposing tells what depended on the node, which may evaluate. This
   // runs as an owner's cleanup, which a throw would cut short, so what an
