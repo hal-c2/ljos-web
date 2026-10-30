@@ -38,9 +38,415 @@ the same application:
 - **0 % CPU when idle** (§2.5): nothing polls, nothing ticks. A
   change in wasm is told, synchronously, to whoever follows it
   (section 4).
-- **No parser in the shipped page**: QML is compiled ahead of time,
-  as ljos-web already does; the wasm is the application's logic,
-  never an interpreter for QML.
+- **No parser in the shipped page by default**: QML is compiled
+  ahead of time, as ljos-web already does; the wasm is the
+  application's logic and Ljós's own semantics (Part I), never an
+  interpreter for JavaScript. A site that opts in to live shells
+  (A9) ships the compiler as a lazily loaded chunk, and what it
+  compiles is tier-1 IR, not JS.
+
+## Part I — Aligned: Solid draws, Ljós decides
+
+Sections 1–15 (Part II) are about an application's *own* Rust types
+on the web. This part is about the runtime underneath them:
+`packages/runtime`, 72 k lines of JavaScript that re-implement, over
+Solid, what ljos-ui's crates already implement natively — the
+property graph, Qt's value coercions, layout arithmetic, states,
+animation timing, models. Two implementations of one semantics drift;
+every divergence is a bug found twice. "Aligned" is the plan to make
+them one.
+
+### A1. Goals and non-goals
+
+Goals:
+
+1. **Solid where it renders, Rust where it decides.** Solid stays the
+   renderer: it builds and patches the DOM, owns events, focus,
+   scrolling, text measuring and every browser API. The *decisions* —
+   what a binding evaluates to and when, what a value coerces to, where
+   a positioner puts its children, which state is active, what an
+   easing curve gives at t — are ljos-ui's crates compiled to
+   `wasm32-unknown-unknown`, **the same source the desktop builds**,
+   never a port.
+2. **Few crossings.** The JS↔wasm boundary is crossed per node, not
+   per value: numbers in, numbers out, no strings, no objects, no
+   serialisation on any hot path (A4).
+3. **An honest budget.** ≤ 250 kB gzip for a first useful page,
+   measured by the build on every change (A8). The wasm is counted,
+   the JS it replaces is subtracted.
+4. **Behaviour parity, proven the same way as native.** The `@web`
+   surface of ljos-ui's Gherkin ledger, with qml6 as the oracle
+   (section 11, A7). A semantics moved to Rust is moved because the
+   ledger says the Rust one is right.
+5. **Live QML shells, opt-in.** A site may let its visitor drop in a
+   QML shell that recomposes the site's blocks, compiled in the
+   browser, with no more power than the blocks give (A9).
+
+Non-goals:
+
+- Drawing with wgpu/vello into a canvas instead of the DOM. The DOM
+  is the web's accessibility tree, text input, selection, find-in-page
+  and scrolling; ljos-web keeps them. (3D is the exception: A10.)
+- Replacing Solid's reactivity in what Solid alone reads (a
+  component's local UI state). Only QML's property graph moves.
+- Moving browser-bound modules: Flickable (native scrolling is the
+  design), TextInput, pointer capture, the clock driver, font
+  measuring, Window, Image/Canvas/Particles/ShaderEffect painting,
+  QtQuick3D's scene, Charts/Graphs, Multimedia (audit, A3).
+- Shipping a QML parser by default (goal 9 says an application *may*;
+  A9 is how a site opts in).
+- A server for live shells. ljos-web defines the publish interface;
+  the site brings the endpoint.
+
+### A2. Modules and their seams
+
+```text
+             compile time                           run time (browser)
+ .qml ──qmlc (Rust)──▶ Solid JSX ──vite──▶ ┌────────────────────────────────┐
+                                           │ Solid components (DOM)         │
+                                           │   ▲ faces: one Solid signal    │
+                                           │   │ per followed node          │
+                                           │ packages/runtime (JS)          │
+                                           │   object.js: defineType, Slot, │
+                                           │   values kept here             │
+                                           │   │ #kernel  (seam K)          │
+                                           │   ▼                            │
+                                           │ kernel/wasm.js  ◀─ u32 ─▶ wasm │
+                                           │                  ljos_web_kernel│
+                                           │                  └ ljos_reactive│
+                                           │                  └ (later) value│
+                                           │                    kinds, layout│
+                                           │                    states, anim │
+                                           └────────────────────────────────┘
+```
+
+| Module | Where | Role | Interface (seam) |
+|---|---|---|---|
+| `qmlc` (`crates/ljos_web`) | ljos-web | QML → Solid JSX, over `qml_front`/`qt_types` | `vite.js` plugin; unchanged by this part |
+| `packages/runtime` | ljos-web | QtQuick on the DOM; defines types (`defineType`), keeps values in `Slot`s | imports the kernel only through `#kernel` |
+| `#kernel` (seam K) | ljos-web | The property/binding kernel, chosen at build time | `cell`, `binding`, `read`, `touch`, `version`, `signal`, `followed`, `live`, `WASM` |
+| `kernel/solid.js` | ljos-web | Adapter: Solid's own signals (the runtime as it was) | seam K |
+| `kernel/wasm.js` | ljos-web | Adapter: raw wasm imports/exports, faces, rethrow | seam K above, seam W below |
+| seam W | — | `ljos` import module: `evaluate(u32)->u32`, `changed(u32)`; exports `ljos_cell/binding/read/pull/bump/follow/dispose/live` | numbers only |
+| `ljos_web_kernel` | ljos-web now, ljos-ui later | Owns the graph: `Kernel` over `Graph<u32>` + a `Host` trait | seam W; `Host` for native tests |
+| `ljos_reactive` | ljos-ui (git dep, pinned rev) | Push-pull graph, Qt loop breaking | unchanged by the spike |
+| value/layout/states/anim crates | ljos-ui | A5 | each behind a numbers-only export set, as seam W |
+
+**DECISION:** the kernel is chosen at *build time* through
+`packages/runtime/package.json`'s `imports` (`"#kernel"`, condition
+`ljos-wasm-kernel`; Vite's `resolve.conditions` from
+`LJOS_KERNEL=wasm`). No runtime branch on the hot path beyond a
+constant, both kernels testable from one tree, and the Solid one is
+deleted when the `@web` ledger holds the same scenarios on the wasm
+one (milestone W10).
+
+**DECISION:** `ljos_web_kernel` lives in ljos-web for the spike and
+moves to ljos-ui as `crates/ljos_web` (section 13 item 3) when the
+first ljos-ui change it needs lands: it is general-purpose (no site,
+no application in it) and it is what an application's own wasm links,
+so there is **one wasm per page** — the kernel and the application's
+types in one module, never two instances of `ljos_reactive`.
+
+### A3. What stays JS, what moves (the audit)
+
+From a classification of every `packages/runtime` module against
+ljos-ui's crates (`$S/web/audit-runtime.md`, 2026-10-30):
+
+| Moves to Rust (shared source) | ljos-ui home | Ready for wasm? |
+|---|---|---|
+| Property graph: `Slot` layering, `ringed`/`looped`/`bound`, `after`/`settle`/`flush` ordering | `ljos_reactive` | **yes** — the spike |
+| Value kinds: int/real/string/numeral/date coercion | `ljos_engine/src/number.rs`, `value.rs` | needs `ljos_meta` split (section 13 item 2) |
+| Colour | `ljos_ir/src/color.rs` | yes |
+| Locale, number/date formats | `ljos_i18n` | yes (no engine dep) |
+| Easing, smooth, spring | `ljos_quick/src/animation/{easing,smooth,spring}.rs` | code yes; crate no (A6) |
+| Layout arithmetic | `ljos_quick/src/layouts/distribute.rs` | code yes; crate no |
+| Positioners, anchors, states, animation jobs, views' layout pass, models | `ljos_quick`, `ljos_engine` | no — sit on `Engine` |
+
+| Stays JS/Solid | Why |
+|---|---|
+| `defineType`, `mount`, faces, the DOM half of every item | the renderer |
+| Flickable, TextInput, pointer/hit-testing, focus *events* | browser behaviour is the design |
+| clock driver (rAF/timeouts) | host wakeups; deadlines may come from Rust |
+| font measuring, Image/Canvas/ShaderEffect/Particles painting | browser APIs |
+| QtQuick3D, Charts/Graphs, Multimedia, LocalStorage, XHR | browser APIs / A10 |
+
+**DECISION:** move by *semantics*, not by file. A piece moves when its
+ljos-ui crate builds for wasm32 with no `cfg` in the shared code
+beyond the clock (A6), and the `@web` scenarios covering it pass on
+both kernels before the JS copy is deleted.
+
+### A4. The JS↔wasm boundary (what the spike proved)
+
+The rule: **topology and scheduling cross; values do not.** The graph
+in wasm is `Graph<u32>`: each node's value is a *version*. The real
+value stays in the JS `Slot` (or the binding's closure). So:
+
+| Operation | Crossings |
+|---|---|
+| Tracked read of a property | 1 JS→wasm (`ljos_read`) |
+| Write | 1 JS→wasm (`ljos_bump`), then the graph's own pushes |
+| Binding evaluation | 1 wasm→JS (`evaluate(node)`), returning "changed?" |
+| Solid follows a node | 1 JS→wasm once (`ljos_follow`), then 1 wasm→JS (`changed`) per change |
+
+- A Solid computation reads the graph through a **face**: a Solid
+  signal made the first time a Solid observer reads that node, bumped
+  by a graph `watch` through `changed`. Nodes nobody draws have none.
+- A Rust binding evaluates its JS under `untrack`: what it reads, it
+  reads through seam K, so the graph sees every edge.
+- **A JS throw never unwinds through wasm frames** (it would leave a
+  node computing forever): `evaluate` catches into `thrown`, the graph
+  finishes, `rethrow()` throws on the JS side after the export
+  returns. QML's "binding error → warn, keep the old value" stays in
+  `object.js` as before.
+- **DECISION:** each evaluation the graph runs has a Solid owner of
+  its own (a root), ended once the *next* evaluation is over, through
+  the runtime's `after` queue. A memo gave `ringed` that for free;
+  without it, effects a binding made piled up under whoever happened
+  to pull it (the first full run grew one face to 28 500 subscribers
+  and was killed at its memory cap), and ending them *during* the
+  next evaluation wrote into the graph from inside it and never
+  finished.
+- **DECISION:** raw imports/exports, u32 only, no wasm-bindgen for the
+  kernel. wasm-bindgen's JS shim and its heap/externref table buy
+  nothing when only integers cross, and the module stays loadable by
+  any `WebAssembly.instantiate`.
+- **DECISION:** what the runtime still keeps in a Solid signal of its
+  own (79 `createSignal` and 12 `createMemo` sites in 55 files) is
+  invisible to a binding the graph runs. Each site moves to
+  `signal()`/`version()` from `#kernel` (same shape as
+  `createSignal`; on the Solid kernel it *is* `createSignal`). The
+  spike moved three (`placing.js` `Settling`, `Repeater` count,
+  `Image` status) and each turned a failing scenario green. This is a
+  mechanical pass; the `@web` run on the wasm kernel finds every
+  site missed.
+
+**Measured** (headless Chromium, `$S/web/measure/bench`, 200 000
+iterations, ns per operation):
+
+| | wasm kernel | Solid |
+|---|---:|---:|
+| empty export call (boundary only) | 11 | — |
+| tracked read of a clean binding | 64–88 | 4–6 |
+| write + re-evaluate + read | 430–510 | 5 |
+| `signal()` set + get | 172 | — |
+
+The boundary is cheap; **the graph's own per-read work is the cost**
+(≈ 55 ns a clean tracked read). That is `ljos_reactive`'s hot path,
+and it is the same cost natively, so the fix is in ljos-ui and pays
+twice (risk R2, milestone W8).
+
+### A5. Data flow
+
+1. `qmlc` compiles QML to Solid components; bindings are JS closures
+   (as today).
+2. Making an object: `defineType` makes `Slot`s; a bound slot asks
+   seam K for a `binding(owner, run)` → one node in the graph.
+3. Reading `a.width` inside a binding: `Slot.follow` → `read(cell)` →
+   the graph records the edge (and, if `a.width` is itself bound and
+   stale, calls `evaluate` for it first — pull).
+4. Writing `a.width = 3`: the slot stores 3 and `touch(cell)` → the
+   graph marks, then runs eager effects synchronously before returning
+   — the watches that bump Solid faces, and the change handlers
+   (`onWidthChanged`) — Qt's "before the write returns" (§6.2).
+5. Solid re-runs the DOM computations whose faces were bumped, in its
+   own flush; the DOM is patched.
+6. Moved semantics (later): a positioner's slot calls into the layout
+   export with child sizes (numbers, in a shared `Float64Array` view
+   of wasm memory — one crossing per layout pass, not per child) and
+   reads back positions the same way.
+
+### A6. What ljos-ui must change for this (general purpose, all of it)
+
+In addition to section 13:
+
+1. **`Instant::now()` panics on wasm32-unknown-unknown.** Every use
+   on a path the web takes goes behind `ljos_runtime::time::Clock`
+   (the `VirtualClock` already exists for tests), with the web's
+   clock fed from `performance.now()` through one import. No `cfg` in
+   the callers.
+2. **Threads and `std::fs`** in `ljos_quick`/`ljos_engine` paths
+   (image decode pools, file models) behind the `Platform` seam;
+   wasm gets the single-threaded implementations.
+3. **`ljos_quick`'s pure parts** (easing, smooth, spring,
+   `layouts/distribute.rs`, `flickable/physics.rs`, positioner
+   arithmetic) usable without `Engine`: a `ljos_quick_core` crate (no
+   engine, no `ljos_js`) that `ljos_quick` re-exports. The same cut as
+   section 13's `ljos_meta`, one level up.
+4. **Loop semantics** (A7's two divergences) settled in
+   `ljos_reactive`, scenario first.
+5. A `wasm32-unknown-unknown` build of `ljos_reactive`,
+   `ljos_ir`, `ljos_i18n` and the new core crates in ljos-ui's CI, so
+   wasm-cleanness is held, not hoped for.
+
+None of this names ljos-web, a site or an application; the native
+build gains a cleaner layering from every item.
+
+### A7. Testing: which features, which oracle
+
+- **Kernel parity now:** the runtime's own Playwright suite
+  (`packages/runtime/tests`, 111 specs, 734 tests, scenes compiled by
+  `qmlc` and rendered by Solid in headless Chromium) runs on both
+  kernels: `mise run test:kernel` (wasm) and the existing task
+  (Solid). Its expectations are Qt 6.11's answers; none is edited to
+  make the wasm kernel pass.
+- **Native kernel tests:** `cargo test -p ljos_web_kernel` drives the
+  `Kernel` through a stand-in `Host` (no browser), so seam W's
+  contract is tested where it is written.
+- **The ledger (section 11):** the `@web` backend runs ljos-ui's
+  `features/` scenarios in headless Playwright, qml6 the oracle, held
+  by `RATCHET`. **DECISION:** start with the areas ljos-web already
+  passes in its own suite — bindings, properties and signals,
+  completion order, positioners, Repeater/Loader, states — so the
+  first `RATCHET` is a baseline, not a backlog; then grow area by area
+  as semantics move (A3).
+- **Divergences found by the spike** that ljos-ui's `features/` does
+  not hold yet, so neither native Ljós nor ljos-web is gated on them:
+  - `lateloop`: a property bound again, from a handler, to what
+    depends on it "goes round once" — Qt leaves what changed first as
+    it was when it changed.
+  - `imageloop`: `sourceSize.width: height` on a picture whose height
+    follows its loaded size is loaded once more and no more — Qt ends
+    the loop at the *binding*; what a type works out for itself (the
+    picture's size) is recomputed whenever asked.
+  **DECISION:** both become scenarios in ljos-ui's `features/`
+  (behaviour first, rule 3), checked against qml6, and
+  `ljos_reactive` learns the rule there; ljos-web's JS glue does not
+  paper over them.
+
+### A8. Performance budget
+
+| Item | Budget | Measured (phase 1) |
+|---|---|---|
+| First useful page, gzip, JS + wasm | ≤ 250 kB | QtQuick + runtime: 150.8 kB JS (Solid kernel); 150.5 kB JS + 28.2 kB wasm = 178.7 kB (wasm kernel) |
+| Kernel wasm | ≤ 30 kB gzip until value kinds move; every later move must remove more JS than it adds wasm, or say why | 71,060 B raw / 28,180 B gzip (`opt-level=z`, LTO, one CGU, `panic=abort`, strip; no `wasm-opt` installed) |
+| Tracked clean read | ≤ 2× Solid's before the Solid kernel is deleted | 11–15× (A4) |
+| Write → DOM | one Solid flush per write batch, zero polling | holds (faces) |
+| Idle | 0 % CPU | holds (nothing ticks; graph is push on write) |
+
+The size is reported by the build (`mise run build:kernel` prints raw
+and gzip) and the page bundle by Vite; W8 makes both a gate.
+
+### A9. Live QML shell drop (opt-in)
+
+**What a shell is.** A QML file whose root composes the site's
+registered **blocks** by name. A block is a QML type the site
+registers (`registerBlock("Basket", Basket)`): it publishes state as
+properties and takes actions as invokable methods/signals. A shell
+may lay blocks out with QtQuick items, bind their properties to each
+other and wire their signals to their actions — nothing else.
+**DECISION:** the block model is ljos-studio's (ljos-ui's studio
+track) and its naming is taken when the Ljós lead relays it; until
+then `block` / `registerBlock` / `publishes` / `actions` are working
+names behind one module (`packages/runtime/shell/`).
+
+**Pipeline.**
+
+```text
+ build: vite qml({ liveShell: true })   (default false; or LJOS_LIVE_SHELL=1)
+   └▶ emits shell/compiler.wasm as a lazy chunk; the page bundle is unchanged
+ page:  <ljos-shell-drop> (drag-and-drop zone + file picker)
+   1. visitor drops Shell.qml
+   2. import("ljos-web/shell") → instantiate compiler.wasm  (first use only)
+   3. compile(text, blockTable) → { ir, diagnostics }      (in a worker)
+   4. errors → inline panel over the old shell; the page keeps running
+   5. ok → mount(ir) beside the old root; carry state; swap; dispose old
+   6. localStorage["ljos-shell:" + site] = text  (until "Reset" clears it)
+   7. site.publish?.(text, meta)  — only if the site gave a hook
+```
+
+- **The compiler** is `qml_syntax` + `qml_front` + the shell-mode
+  backend, built for wasm32. **DECISION:** a shell compiles to
+  `ljos_ir` (tier-1 bytecode, ARCHITECTURE.md §5), **not to JS**. A
+  tier-1 program can only do what its ops can: resolved reads and
+  writes, arithmetic and comparison with JS coercion, template
+  strings, pure builtins (`Math.*`, `qsTr`, `Qt.rgba/point/size/rect`),
+  calls of what it resolved. An expression outside that subset is a
+  compile error in shell mode, never a fallback to `eval`. This is the
+  same IR iOS runs changes as (goal 9), so the evaluator is shared,
+  not written for the web — which puts it behind the `ljos_meta` split
+  (section 13 item 2) too.
+- **Mounting IR**: a small tier-1 evaluator in the kernel wasm turns
+  each binding into a graph binding (seam K) and each object into a
+  `defineType` instance of a *registered* block or a QtQuick item from
+  an allow-list. Solid renders it like compiled QML.
+- **Carrying state.** Blocks are owned by the site, not the shell:
+  swapping a shell re-parents the same block instances where the new
+  shell names them, so their state survives by construction. Plain
+  items' state is carried by `objectName`/`id` match for writable
+  properties that are not bound in the new shell; anything else
+  starts fresh. **DECISION:** blocks are singletons per page by
+  default (a shell may name each at most once), which makes "keep
+  state where it can" exact for what matters.
+- **Errors inline.** Diagnostics carry the shell's line/column (the
+  compiler's own spans) and render in a panel the drop component
+  owns; a runtime error in a shell binding is warned and that binding
+  keeps its old value, as everywhere in QML.
+- **Publish hook.** The site may pass
+  `publish(text: string, meta: { blocks: string[], hash: string }) =>
+  Promise<{ url?: string }>`; ljos-web calls it when the visitor
+  presses Publish and shows its result or error. Endpoint, auth and
+  storage are the site's.
+
+**Security: a shell has no more power than the site's blocks.**
+
+1. *No code but IR.* The shell never becomes JavaScript: no `eval`,
+   no `Function`, no `import()`, no Blob URLs, no `<script>`. CSP
+   `script-src` needs no `unsafe-eval` for this feature.
+2. *Closed scope.* Names resolve at compile time against: the shell's
+   own ids and properties, the block table, the QtQuick allow-list,
+   and pure builtins. There is no global object, no `window`, no
+   `document`, no `Qt.openUrlExternally`, no `XMLHttpRequest`, no
+   `Qt.createQmlObject`, no `Loader.source` with a URL, no
+   `import` of anything but `QtQuick` and the site's block module.
+3. *No reflective escape.* Tier-1 has no computed member access on
+   host objects and no prototype chain: `x["constructor"]` does not
+   exist as an op.
+4. *Network only through blocks.* `Image.source` and the like accept
+   only URLs a block gives (a block property of url type), never
+   literals from the shell. A block that offers network does so with
+   its own checks.
+5. *Bounded work.* The evaluator has the engine's interrupt budget;
+   a shell binding that runs away is stopped and warned, never hangs
+   the page.
+6. *Storage scoped.* Only the shell text is stored, under a key
+   derived from the site's id; reset deletes it.
+
+**DECISION:** only the shell text is persisted and published — never
+compiled IR — so a stored shell is recompiled (and rechecked) by the
+compiler the page ships today.
+
+### A10. Where 3D plugs in
+
+`View3D` stays a Solid item whose DOM is a `<canvas>`: Solid owns the
+element, its size and its place in the tree; **the wasm side owns the
+canvas's contents** — the Quick3D track's one wgpu crate renders into
+it (WebGPU, WebGL2 fallback) from the scene nodes, whose properties
+are graph nodes like any other (seam K), so a QML binding on a
+`Model.position` is a graph edge, and a change bumps a scene-side
+watch that schedules a frame (no polling, A8). Input on the canvas is
+delivered by the runtime's pointer code and picked in wasm. ljos-web
+builds nothing 3D; it provides the canvas, the frame clock and the
+graph.
+
+### A11. Decisions taken in phase 1 (summary)
+
+Each is stated where it is argued; listed here for review:
+
+1. Build-time kernel choice via `#kernel` + `ljos-wasm-kernel` (A2).
+2. `ljos_web_kernel` moves to ljos-ui as `ljos_web`; one wasm per page (A2).
+3. Move by semantics, gated by `@web` scenarios on both kernels (A3).
+4. Values stay in JS; the graph holds versions; u32-only raw imports, no wasm-bindgen for the kernel (A4).
+5. JS throws are stashed and rethrown, never unwound through wasm (A4).
+6. Runtime Solid signals migrate to `#kernel` `signal()`/`version()` (A4).
+7. `@web` starts from what ljos-web already passes (A7).
+8. Loop divergences go into ljos-ui `features/` and `ljos_reactive`, not JS glue (A7).
+9. Block naming deferred to ljos-studio; working names behind one module (A9).
+10. Shells compile to tier-1 IR, never JS (A9).
+11. Blocks are per-page singletons; shells re-parent them (A9).
+12. Only shell text is stored/published (A9).
+13. A graph evaluation owns what it makes, ended after the next one (A4).
+
+## Part II — An application's own Rust types
 
 ## 1. The shape of a native type on the web
 
@@ -790,6 +1196,43 @@ by this spike; `ljos-ui-src` was read only.
   application, in a browser, from an unmodified checkout of
   its own repository.
 
+- **W7 — the kernel in wasm (phase 1, this branch).** `ljos_reactive`
+  as `ljos_web_kernel`, behind `#kernel`; three Solid-signal sites
+  moved. Exit: the kernel's own spec passing on both kernels except
+  the two A7 divergences; the whole runtime suite run on both; size
+  and crossing cost measured (A4, A8). Where it ended: the Solid
+  kernel passes 673 of 734, its 61 failures all environment (Quick3D
+  44, Particles3D 12, Multimedia 4, XR 1). The wasm kernel passes
+  544: the same 61 plus 129 of its own, every one traced so far to
+  R3 (a `createMemo`/`createEffect` site the graph cannot see —
+  Behavior, Animation, the spin box, containers, models), and the
+  two of A7. So the exit is met for the kernel and not yet for the
+  runtime; W8's first job is the 129.
+- **W8 — the kernel, finished.** Every `createSignal`/`createMemo`
+  site on `#kernel`; `ljos_reactive`'s clean-read path profiled and
+  brought to ≤ 2× Solid's (a native win too); the two A7 loop
+  scenarios in ljos-ui `features/` and passing natively; kernel size
+  and page budget enforced by the build. Exit: the runtime suite
+  equal on both kernels.
+- **W9 — `@web` ledger, first areas.** Section 11's backend over
+  bindings, properties/signals, completion, positioners,
+  Repeater/Loader, states; `RATCHET` holding what passes. Exit: the
+  ledger run from this repository's tasks with qml6 as the oracle.
+- **W10 — semantics move.** In A3's order, each gated by its
+  `@web` scenarios on the wasm kernel: value kinds and colour
+  (after `ljos_meta`), locale (`ljos_i18n`), easing/spring/smooth
+  and layout arithmetic (after `ljos_quick_core`), then positioners,
+  states and animation jobs. The JS copy of each is deleted when
+  it moves; the Solid kernel is deleted when the ledger is equal.
+  Exit: `object.js` keeps types and faces only.
+- **W11 — live shells.** A9 end to end behind `liveShell`: the
+  compiler chunk, the tier-1 evaluator shared with iOS, the drop
+  component, state carrying, localStorage, the publish hook, and a
+  security spec per item of A9's list (each one an attempted escape
+  that must fail to compile or to run). Exit: an example site with
+  three blocks whose shell a test replaces live, keeping a block's
+  state, and every escape spec green.
+
 ## 15. Open risks
 
 - **The `ljos_engine` split (item 2 of section 13) is the
@@ -825,3 +1268,32 @@ by this spike; `ljos-ui-src` was read only.
   Desktop Rust that blocks (a synchronous file read in a
   method) has nowhere to go on the web but the core worker,
   and the facade error for it must say that in so many words.
+
+- **R1 — two loop semantics.** The spike found `ringed` (ljos-web)
+  and `ljos_reactive` (ljos-ui) disagree where a loop closes late or
+  through a value a type works out for itself (A7). Qt's answers
+  favour `ringed`; ljos-ui's ledger does not hold either case yet.
+  Settling it changes `ljos_reactive`, whose callers are the whole
+  native stack.
+- **R2 — the graph's per-read cost.** 64–88 ns per clean tracked
+  read in wasm against Solid's 4–6 ns. Most of it is the graph, not
+  the boundary (an empty call is 11 ns). If `ljos_reactive` cannot
+  get within 2×, pages with tens of thousands of bindings feel it
+  first; the fallback is keeping clean reads JS-side behind a
+  version check (one crossing per change, none per read).
+- **R3 — the hybrid hole.** Until every runtime Solid signal is on
+  `#kernel`, a binding the graph runs misses what such a signal
+  says — silently stale, not an error. The wasm-kernel suite is the
+  detector (129 failures at the end of W7); W8 closes it. A second
+  symptom shows in the same run: Solid's HUGE_FAN_OUT warning on a
+  few specs (graphs3d, handlers, popup drawers, containers, popups),
+  a face signal with tens of thousands of subscribers, which is a
+  Solid computation still being made under a long-lived owner on
+  each graph evaluation somewhere W7 did not reach.
+- **R4 — the `ljos_engine`/`ljos_js` coupling** blocks value kinds,
+  `ljos_quick`, the tier-1 evaluator (and so live shells). Same risk
+  as section 13 item 2, now on three tracks' path.
+- **R5 — the size curve.** 28 kB gzip for the graph alone, without
+  `wasm-opt`. Each later move must pay for itself in JS removed;
+  ICU4X data for `ljos_i18n` is the one most likely not to (keep
+  `Intl` as its data source on the web if so).
