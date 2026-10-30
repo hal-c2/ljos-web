@@ -52,6 +52,12 @@
     "./Qt/labs/qmlmodels": "./Qt/labs/qmlmodels/index.js",
     "./vite": "./vite.js"
   },
+  "imports": {
+    "#kernel": {
+      "ljos-wasm-kernel": "./kernel/wasm.js",
+      "default": "./kernel/solid.js"
+    }
+  },
   "scripts": {
     "test": "playwright test -c tests"
   },

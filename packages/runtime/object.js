@@ -24,6 +24,9 @@ import {
   untrack,
 } from "solid-js";
 import { Color, color } from "./QtQuick/color.js";
+// Which graph is under the slots: Solid's signals, or Ljós's own graph in
+// wasm (`kernel/wasm.js`), as the build's `ljos-wasm-kernel` condition says.
+import { binding, cell, followed, read as follow, touch, version, WASM } from "#kernel";
 
 // Solid refuses a write from a component's body or a computation; an object
 // is assigned to from wherever its QML says.
@@ -58,7 +61,7 @@ let early = 0;
 // The object an `id` names, made before the type that fills it in runs.
 export function $object() {
   const self = Object.create(pending);
-  const [track, touch] = createSignal(0, WRITABLE);
+  const [track, touch] = WASM ? version(getOwner()) : createSignal(0, WRITABLE);
   hidden(self, "$track", track);
   hidden(self, "$touch", touch);
   return self;
@@ -494,7 +497,57 @@ export function bound(owner, compute, first) {
   return ringed(owner, compute, first, true);
 }
 
+// A binding on the wasm kernel's graph, which decides when it is out of
+// date and where a loop ends: one that asks for its own value while it is
+// computed gets what it had, as the graph gives any binding it is running.
+// What is read through the same interface as `ringed`'s.
+function graphed(owner, compute, first) {
+  let held = first;
+  let index;
+  let evaluating = false;
+  let done = false;
+  const run = () => {
+    const before = held;
+    evaluating = true;
+    try {
+      held = compute();
+    } finally {
+      evaluating = false;
+    }
+    done = true;
+    return !Object.is(before, held);
+  };
+  const get = () => {
+    follow(index, owner);
+    return held;
+  };
+  const read = () => {
+    if (evaluating) {
+      // As an object named by an id is not made yet, a value that is still
+      // being computed for the first time is not.
+      if (!done) early++;
+      // The graph is still told: the read closes a loop it has to end, and
+      // the reader is run again once the value is there.
+      follow(index, owner);
+      return held;
+    }
+    return read.start()();
+  };
+  // Made, and evaluated, as it is taken: as Solid's memo is.
+  read.start = () => {
+    if (index === undefined) {
+      index = binding(owner, run);
+      untrack(get);
+    }
+    return get;
+  };
+  read.begin = read.start;
+  read.busy = () => evaluating;
+  return read;
+}
+
 function ringed(owner, compute, first, binding) {
+  if (WASM) return graphed(owner, compute, first);
   let memo;
   let held = first;
   let evaluating = false;
@@ -706,6 +759,8 @@ class Slot {
     // properties are read once as an object is made, and never again.
     this.version = null;
     this.bump = null;
+    // The same on the wasm kernel: the number of its node.
+    this.cell = undefined;
     this.given$ = resolve ? () => this.own() : null;
     // A binding is evaluated as it is taken, and may read the property it
     // is for: the slot is there to be found before it is.
@@ -743,6 +798,14 @@ class Slot {
 
   // Has whoever is reading told when the property changes.
   follow() {
+    if (WASM) {
+      if (this.cell === undefined) {
+        if (!followed()) return;
+        this.cell = cell(this.self.$owner ?? null);
+      }
+      follow(this.cell, this.self.$owner ?? null);
+      return;
+    }
     if (!this.version) {
       if (!getObserver()) return;
       // The signal is the object's, not of the computation that happens to
@@ -802,6 +865,10 @@ class Slot {
   }
 
   changed() {
+    if (WASM) {
+      if (this.cell !== undefined) touch(this.cell);
+      return;
+    }
     this.bump?.(next);
   }
 
@@ -1814,7 +1881,7 @@ export function $define(self, members) {
 export function $signal(initial) {
   const binding = typeof initial === "function";
   const owner = getOwner();
-  const [version, bump] = createSignal(0, WRITABLE);
+  const [version, bump] = WASM ? version(owner) : createSignal(0, WRITABLE);
   let assigned = !binding;
   let value = binding ? undefined : initial;
   // Made when first read: by then what the binding names exists.

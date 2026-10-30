@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+#MISE description="The runtime's specs on the wasm kernel (Ljós's reactive graph) instead of Solid's signals"
+#MISE depends=["build:compiler", "build:kernel", "browser"]
+set -euo pipefail
+
+cargo test -p ljos_web_kernel
+LJOS_KERNEL=wasm pnpm --filter ljos-web test "$@"
