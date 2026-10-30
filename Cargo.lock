@@ -284,6 +284,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "ljos_reactive"
+version = "0.0.0"
+source = "git+ssh://git@github.com/hal-c2/ljos-ui.git?rev=b6c095671da1ae9066b26ef803a35944afa2158f#b6c095671da1ae9066b26ef803a35944afa2158f"
+dependencies = [
+ "slotmap",
+ "smallvec",
+ "thiserror",
+]
+
+[[package]]
 name = "ljos_web"
 version = "0.0.0"
 dependencies = [
@@ -301,6 +311,13 @@ dependencies = [
  "qml_syntax",
  "qt_types",
  "solidjs-compiler",
+]
+
+[[package]]
+name = "ljos_web_kernel"
+version = "0.0.0"
+dependencies = [
+ "ljos_reactive",
 ]
 
 [[package]]
@@ -938,6 +955,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "33f4fe9184a62d842c9ef383018f3306d8ba224fd9d836f56d7288308847c256"
 
 [[package]]
+name = "slotmap"
+version = "1.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bdd58c3c93c3d278ca835519292445cb4b0d4dc59ccfdf7ceadaab3f8aeb4038"
+dependencies = [
+ "version_check",
+]
+
+[[package]]
 name = "smallvec"
 version = "1.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1121,6 +1147,12 @@ name = "utf8_iter"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6c140620e7ffbb22c2dee59cafe6084a59b5ffc27a8859a5f0d494b5d52b6be"
+
+[[package]]
+name = "version_check"
+version = "0.9.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "vsimd"

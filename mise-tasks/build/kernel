@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+#MISE description="Build the wasm kernel (Ljós's reactive graph) beside the runtime that loads it"
+#MISE depends=["install"]
+set -euo pipefail
+
+cargo build -p ljos_web_kernel --profile wasm --target wasm32-unknown-unknown
+wasm="${CARGO_TARGET_DIR:-target}/wasm32-unknown-unknown/wasm/ljos_web_kernel.wasm"
+cp "$wasm" packages/runtime/kernel/ljos_web_kernel.wasm
+printf 'kernel wasm: %s B, %s B gzip\n' "$(wc -c <"$wasm")" "$(gzip -9c "$wasm" | wc -c)"
