@@ -1,0 +1,14 @@
+[package]
+name = "ljos_web_kernel"
+description = "Ljós's reactive graph (ljos_reactive) as the property and binding kernel of ljos-web, compiled to wasm"
+version = "0.0.0"
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+# The same graph the desktop runs, from the same source: not a port.
+[dependencies]
+ljos_reactive = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "b6c095671da1ae9066b26ef803a35944afa2158f" }

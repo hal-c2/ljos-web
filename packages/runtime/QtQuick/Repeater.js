@@ -1,12 +1,12 @@
 // Repeater: an item for every row of a model, as children of its own parent.
 // What it does is what Qt Quick 3D's Repeater3D does with nodes, so both are
 // made here.
-import { createSignal, untrack } from "solid-js";
+import { untrack } from "solid-js";
+import { signal } from "#kernel";
 import { defineType, effect, slot } from "../object.js";
 import { Item } from "./Item.js";
 import { delegateOf, modelOf, Rows, size } from "./model.js";
 
-const WRITABLE = { ownedWrite: true };
 const next = (version) => version + 1;
 
 // The items in the order of their rows: what `Item` puts in the parent's
@@ -42,7 +42,7 @@ export function repeating(name, base, { at, added, removed, own = false }) {
       }),
     },
     setup(self) {
-      const [version, bump] = createSignal(0, WRITABLE);
+      const [version, bump] = signal(0, self.$owner);
       const changed = () => {
         state.items = null;
         slot(self, "count").write(rows.count);

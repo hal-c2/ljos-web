@@ -1,6 +1,7 @@
 // What positioners and layouts share: what an item said about itself before
 // anything placed it, and whether it takes part at all.
 import { createSignal, getObserver, runWithOwner } from "solid-js";
+import { version, WASM } from "#kernel";
 import { looped, slot } from "../object.js";
 
 const WRITABLE = { ownedWrite: true };
@@ -32,6 +33,15 @@ export class Settling {
   // Whether what is reading now reads from inside the computation, as it
   // does every time once it has.
   early() {
+    // On the wasm kernel the graph's own reader is not Solid's observer:
+    // whoever reads while it runs follows the result, and is run again
+    // when there is a new one.
+    if (WASM) {
+      if (!this.running) return false;
+      if (!this.track) [this.track, this.bump] = version(this.self.$owner);
+      this.track();
+      return true;
+    }
     const reader = getObserver();
     if (!this.running && !(reader && this.readers?.has(reader))) return false;
     if (reader) {

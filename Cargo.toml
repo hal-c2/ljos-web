@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/ljos_web"]
+members = ["crates/ljos_web", "crates/ljos_web_kernel"]
 exclude = ["vendor"]
 
 [workspace.package]
@@ -12,3 +12,12 @@ license = "MIT"
 
 [profile.dev]
 debug = "line-tables-only"
+
+# The kernel's wasm, as small as it can be made: it is in every page.
+[profile.wasm]
+inherits = "release"
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
