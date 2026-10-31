@@ -327,6 +327,14 @@ Places come from qmlc, only when asked: `--inspect`, or the Vite plugin's
 `inspect: true` in a dev server's config. A build without it carries none of
 them and is the same size as before.
 
+`inspector.screenshot({ max_size: 1280 })` is a PNG of the root (or of the part
+an object covers, `target`), at the page's device pixel ratio: `{ png, width,
+height, scale, bytes, area }`. The browser draws a copy of the root's elements
+with their computed styles; what it cannot draw (an image from an origin that
+does not allow reading it, a WebGL canvas that does not keep its drawing, a
+frame) refuses the picture by name instead of leaving it out. Its code,
+`ljos-web/picture`, is loaded only when a picture is asked for (A17).
+
 ## What is supported
 
 Of the language: property declarations (with `required`, `readonly`,

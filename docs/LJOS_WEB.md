@@ -860,8 +860,67 @@ module in the tree.
 
 Where the web cannot answer as natively: bindings are lazy here, so a
 binding nothing reads is never evaluated and never warns, where qml6
-warns of it as the object is made; and nothing draws a picture of a
-mounted root (no screenshot).
+warns of it as the object is made. A picture of the root is A17.
+
+### A17. A picture of a mounted root
+
+`inspect(root).screenshot({ target, scale, max_size })` is
+`app_screenshot` of a window or an object: a PNG of what the page draws
+of the root, `{ png, width, height, scale, bytes, area }` (`png` the
+bytes, `width` and `height` its device pixels, `scale` device pixels to
+a logical pixel, `area` the part of the root as `[x, y, width, height]`
+in logical pixels). `target` (an id or an object) pictures the part of
+the root it covers; `scale` is the page's `devicePixelRatio` unless
+given; `max_size` makes the scale smaller when the longest side would
+be longer. It is `ljos-web/picture`, imported the first time a picture
+is asked for, so a page that takes none loads none of it
+(`mise run test:size` is the same to the byte).
+
+A browser gives a page no pixels of its own DOM, so the picture is
+drawn again: the root's elements are copied, each with every style the
+browser computed for it that a document with no style sheet would not
+give it, into an SVG `<foreignObject>`, drawn into a canvas, read back
+as a PNG. What the copy cannot carry is given to it as data: a
+canvas's drawing, a video's frame, each image and each font (a
+`FontLoader`'s file or a style sheet's `@font-face`), and a scrolled
+element's offset as a shift of what it holds. The root is put at the
+picture's origin, so where it is on the page (scrolled, moved, scaled,
+turned) changes nothing.
+
+- DECISION: the DOM, copied with its computed styles, not the runtime's
+  own description of what it draws. Solid draws with the browser's
+  engine (text shaping and wrapping, borders, gradients, clips, filters,
+  Shapes as SVG); a second drawing of the scene would be a second
+  renderer to keep alike, and would differ from the page where the page
+  is right. The copy is laid out and painted by the same engine. The
+  tests compare the picture with Playwright's screenshot of the page
+  pixel by pixel, at device pixel ratios 1 and 2, on both kernels.
+- DECISION: what a picture cannot show refuses it, `{ error:
+  "not_supported", message }`, naming the object (`` `Image#flag` shows
+  http://…, which is from another origin that does not let this page
+  read it ``), rather than leaving it out. Refused, when shown inside
+  the area: an image or font from an origin that does not let the page
+  read it; a WebGL canvas without `preserveDrawingBuffer`, a WebGPU
+  canvas; a frame (`iframe`, `object`, `embed`); a shadow root; a
+  scrolled text field; a `::before` or `::after` that is not text; a
+  font a script made from bytes (`new FontFace(name, bytes)`), whose
+  bytes the page does not keep. Safari will not read back a canvas that
+  had HTML drawn into it, so there every picture is refused.
+- DECISION: where the root draws nothing the picture is transparent,
+  as a picture of an object is; the page's own background behind the
+  root is not the root's.
+- DECISION: an animation or transition is pictured where it is now:
+  the copy carries the computed values and none of the animations,
+  which would start again from their beginning in the copy.
+- DECISION: nothing is kept between two pictures. A frame with no style
+  sheets, which says what a style is by default, is made for each
+  picture and removed after it; nothing waits or watches (0 % CPU when
+  idle, a test counts every timer and observer made).
+
+Unlike native: there is no `max_size` unless asked (native's is 1280
+pixels), and a picture is of what the page shows, so a field that hides
+its text is pictured as the page hides it, with no secrets painted over
+(`--mcp-redact`).
 
 ## Part II — An application's own Rust types
 
