@@ -261,6 +261,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "47d9d19d1d6efa0109d2f65ff4c85cddd50bd572e5a00127ab10987290bcefae"
 
 [[package]]
+name = "ljos_design"
+version = "0.0.0"
+source = "git+ssh://git@github.com/hal-c2/ljos-ui.git?rev=0cd3287c9817ef9a4b0f1615fbe97fb64911279a#0cd3287c9817ef9a4b0f1615fbe97fb64911279a"
+dependencies = [
+ "serde",
+ "thiserror",
+]
+
+[[package]]
 name = "ljos_oxc_parser"
 version = "0.144.0"
 source = "git+ssh://git@github.com/hal-c2/ljos-ui.git?rev=b6c095671da1ae9066b26ef803a35944afa2158f#b6c095671da1ae9066b26ef803a35944afa2158f"
@@ -297,6 +306,7 @@ dependencies = [
 name = "ljos_web"
 version = "0.0.0"
 dependencies = [
+ "ljos_design",
  "oxc_allocator",
  "oxc_ast",
  "oxc_ast_visit",
@@ -311,6 +321,15 @@ dependencies = [
  "qml_syntax",
  "qt_types",
  "solidjs-compiler",
+]
+
+[[package]]
+name = "ljos_web_compiler"
+version = "0.0.0"
+dependencies = [
+ "ljos_web",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

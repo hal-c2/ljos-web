@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="The site builder: bundles built into sites and opened in a browser, and every bundle it refuses"
+#MISE depends=["build:compiler", "browser"]
+set -euo pipefail
+pnpm --filter ljos-web test:site "$@"

@@ -148,6 +148,7 @@ pub(crate) fn declare<'a>(
     let mut project = project.clone();
     let mut options = options.clone();
     options.name = format!("{}{}", options.name, name(index));
+    options.inspect = None;
     project.insert_document(&options.name, &parsed.document);
     let program = super::lower_from(b, source, parsed.document, &project, &options, files, true)?;
 

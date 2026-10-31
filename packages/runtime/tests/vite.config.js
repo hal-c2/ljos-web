@@ -21,6 +21,8 @@ export default defineConfig({
             ? { Controls: { Style: "Oak" } }
             : undefined,
       standins: [join(import.meta.dirname, "standins")],
+      // The scenes an inspector reads say where their objects are written.
+      inspect: (file) => /\/scenes\/inspect/.test(file),
     }),
   ],
   resolve: {

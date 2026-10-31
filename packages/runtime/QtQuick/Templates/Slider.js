@@ -6,6 +6,7 @@ import { styleHints } from "../../QtQml/application.js";
 import { Key, LeftButton } from "../keycodes.js";
 import { Control, keeps, loose, put } from "./Control.js";
 import { untrack } from "#kernel";
+import { speaks } from "../Accessible.js";
 
 export const Horizontal = 1;
 export const Vertical = 2;
@@ -268,3 +269,5 @@ export const Slider = defineType("Slider", Control, {
     );
   },
 });
+
+speaks(Slider, "Slider");

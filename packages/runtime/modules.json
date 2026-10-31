@@ -1,0 +1,255 @@
+{
+  "format": "ljos-web-modules",
+  "version": 1,
+  "modules": [
+    {
+      "module": "Ljos.Design",
+      "from": "ljos",
+      "needs": [
+        "with"
+      ]
+    },
+    {
+      "module": "Qt.labs.folderlistmodel",
+      "from": "runtime",
+      "needs": []
+    },
+    {
+      "module": "Qt.labs.qmlmodels",
+      "from": "runtime",
+      "needs": []
+    },
+    {
+      "module": "Qt.labs.settings",
+      "from": "runtime",
+      "needs": []
+    },
+    {
+      "module": "Qt.labs.synchronizer",
+      "from": "runtime",
+      "needs": []
+    },
+    {
+      "module": "QtCharts",
+      "from": "runtime",
+      "needs": []
+    },
+    {
+      "module": "QtCore",
+      "from": "runtime",
+      "needs": []
+    },
+    {
+      "module": "QtGraphs",
+      "from": "runtime",
+      "needs": []
+    },
+    {
+      "module": "QtLocation",
+      "from": "runtime",
+      "needs": []
+    },
+    {
+      "module": "QtMultimedia",
+      "from": "runtime",
+      "needs": []
+    },
+    {
+      "module": "QtPositioning",
+      "from": "runtime",
+      "needs": []
+    },
+    {
+      "module": "QtQml",
+      "from": "runtime",
+      "needs": []
+    },
+    {
+      "module": "QtQml.Models",
+      "from": "runtime",
+      "needs": []
+    },
+    {
+      "module": "QtQml.XmlListModel",
+      "from": "runtime",
+      "needs": []
+    },
+    {
+      "module": "QtQuick",
+      "from": "runtime",
+      "needs": []
+    },
+    {
+      "module": "QtQuick.Controls",
+      "from": "qt",
+      "needs": [
+        "qt"
+      ]
+    },
+    {
+      "module": "QtQuick.Controls.Basic",
+      "from": "runtime",
+      "needs": [
+        "qt"
+      ]
+    },
+    {
+      "module": "QtQuick.Controls.Basic.impl",
+      "from": "runtime",
+      "needs": [
+        "qt"
+      ]
+    },
+    {
+      "module": "QtQuick.Controls.Fusion",
+      "from": "runtime",
+      "needs": [
+        "qt"
+      ]
+    },
+    {
+      "module": "QtQuick.Controls.Fusion.impl",
+      "from": "runtime",
+      "needs": [
+        "qt"
+      ]
+    },
+    {
+      "module": "QtQuick.Controls.Imagine",
+      "from": "runtime",
+      "needs": [
+        "qt"
+      ]
+    },
+    {
+      "module": "QtQuick.Controls.Material",
+      "from": "runtime",
+      "needs": [
+        "qt"
+      ]
+    },
+    {
+      "module": "QtQuick.Controls.Material.impl",
+      "from": "runtime",
+      "needs": [
+        "qt"
+      ]
+    },
+    {
+      "module": "QtQuick.Controls.Universal",
+      "from": "runtime",
+      "needs": [
+        "qt"
+      ]
+    },
+    {
+      "module": "QtQuick.Controls.Universal.impl",
+      "from": "runtime",
+      "needs": [
+        "qt"
+      ]
+    },
+    {
+      "module": "QtQuick.Controls.impl",
+      "from": "runtime",
+      "needs": [
+        "qt"
+      ]
+    },
+    {
+      "module": "QtQuick.Dialogs",
+      "from": "runtime",
+      "needs": []
+    },
+    {
+      "module": "QtQuick.Effects",
+      "from": "runtime",
+      "needs": []
+    },
+    {
+      "module": "QtQuick.Layouts",
+      "from": "runtime",
+      "needs": []
+    },
+    {
+      "module": "QtQuick.LocalStorage",
+      "from": "runtime",
+      "needs": []
+    },
+    {
+      "module": "QtQuick.Particles",
+      "from": "runtime",
+      "needs": []
+    },
+    {
+      "module": "QtQuick.Shapes",
+      "from": "runtime",
+      "needs": []
+    },
+    {
+      "module": "QtQuick.Templates",
+      "from": "runtime",
+      "needs": []
+    },
+    {
+      "module": "QtQuick.Timeline",
+      "from": "runtime",
+      "needs": []
+    },
+    {
+      "module": "QtQuick.VectorImage",
+      "from": "runtime",
+      "needs": []
+    },
+    {
+      "module": "QtQuick.Window",
+      "from": "runtime",
+      "needs": []
+    },
+    {
+      "module": "QtQuick3D",
+      "from": "runtime",
+      "needs": []
+    },
+    {
+      "module": "QtQuick3D.Effects",
+      "from": "runtime",
+      "needs": []
+    },
+    {
+      "module": "QtQuick3D.Helpers",
+      "from": "runtime",
+      "needs": []
+    },
+    {
+      "module": "QtQuick3D.Helpers.impl",
+      "from": "runtime",
+      "needs": []
+    },
+    {
+      "module": "QtQuick3D.Particles3D",
+      "from": "runtime",
+      "needs": []
+    },
+    {
+      "module": "QtQuick3D.Physics",
+      "from": "runtime",
+      "needs": []
+    },
+    {
+      "module": "QtQuick3D.Xr",
+      "from": "runtime",
+      "needs": []
+    },
+    {
+      "module": "QtSensors",
+      "from": "runtime",
+      "needs": []
+    },
+    {
+      "module": "QtWebSockets",
+      "from": "runtime",
+      "needs": []
+    }
+  ]
+}

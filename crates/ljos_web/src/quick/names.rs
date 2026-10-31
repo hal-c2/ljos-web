@@ -220,6 +220,25 @@ impl<'a> Resolver<'a, '_, '_> {
         read
     }
 
+    /// JavaScript's `console`, when the output says where things are
+    /// written: `$console([file, line, column])`, the console that says
+    /// where its lines come from, as qml6 does of each.
+    fn placed_console(&mut self, name: &str, span: Span) -> Option<Expression<'a>> {
+        let places = self.uses.places.as_ref().filter(|_| name == "console")?;
+        let names = qml_front::names::Names { tree: &self.tree.front, types: self.types.front() };
+        let global = names.lookup(name, span.start).is_some_and(|resolution| {
+            matches!(resolution.target, Some(qml_front::names::Target::Global(_)))
+                && resolution.roles.is_empty()
+                && resolution.aimed.is_none()
+        });
+        if !global {
+            return None;
+        }
+        let place = places.place(self.b, span.start);
+        self.uses.inspect.insert("$console");
+        Some(self.b.call(self.b.id("$console"), [place]))
+    }
+
     /// A capitalised name: a type, a namespace, or a global.
     fn type_name(&mut self, name: &str, span: Span) -> Option<Kind> {
         if let Some(global) = QML_GLOBALS.iter().find(|global| **global == name) {
@@ -543,7 +562,9 @@ impl<'a> VisitMut<'a> for Resolver<'a, '_, '_> {
         match expression {
             Expression::Identifier(identifier) if self.is_free(identifier) => {
                 let (name, span) = (identifier.name.as_str(), identifier.span);
-                if let Some(read) = self.bare(name, span, false) {
+                if let Some(console) = self.placed_console(name, span) {
+                    *expression = console;
+                } else if let Some(read) = self.bare(name, span, false) {
                     *expression = read;
                 }
             }

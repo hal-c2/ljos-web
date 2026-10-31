@@ -29,6 +29,7 @@ use oxc_span::Span;
 use super::{
     names,
     paths::{Paths, is_absolute, is_resolved},
+    places::Places,
     scope::{self, Tree},
     texts::Text,
     types::{self, Member, Origin, Property, Types},
@@ -54,6 +55,10 @@ pub(crate) struct Uses {
     pub paths: Paths,
     /// The QML something gives `Qt.createQmlObject` as a text.
     pub texts: Vec<Text>,
+    /// Where things are written, when the output is to say so.
+    pub places: Option<Places>,
+    /// What the output takes from the inspector: `$console`, `$bound`.
+    pub inspect: BTreeSet<&'static str>,
 }
 
 impl Uses {
@@ -282,6 +287,23 @@ impl<'a, 's> Lower<'a, 's> {
             made: Vec::new(),
         };
         built.attributes.push(b.attr("$self", b.id(handle)));
+        if let Some(places) = &self.uses.places {
+            // Where the type is named, as a picked item's place is told. The
+            // type is its own name, whichever name its module is imported as.
+            let type_name = tag.rsplit('.').next().unwrap_or(&tag);
+            built.attributes.push(b.attr("$at", places.object(b, object.type_name.span.start, type_name)));
+            if let Some(id) = info.id {
+                built.attributes.push(b.attr_string("$id", id));
+            }
+        }
+        if let (Some(_), Role::Root(_)) = (&self.uses.places, &role) {
+            // The ids an inspector finds by name, the file's own: what is
+            // inside a component is not its user's to name, nor what is
+            // inside a delegate.
+            let ids = tree.ids_of(index);
+            self.uses.handles.extend(ids.iter().map(|id| (*id).to_string()));
+            built.attributes.push(b.attr("$ids", b.arrow(&[], b.record(ids.iter().map(|id| ((*id).to_string(), b.id(id)))))));
+        }
         match &role {
             Role::Root(name) => {
                 built.attributes.push(b.attr("$given", b.id("$props")));
@@ -302,7 +324,9 @@ impl<'a, 's> Lower<'a, 's> {
         }
         if !matches!(role, Role::Root(_)) {
             self.uses.kernel.insert("$object");
-            let made = b.const_(handle, b.call(b.id("$object"), []));
+            // An object with an id is known by it across a reload.
+            let named = info.id.map(|id| b.string(id));
+            let made = b.const_(handle, b.call(b.id("$object"), named));
             self.frame().push(made);
         }
 
@@ -586,9 +610,10 @@ impl<'a, 's> Lower<'a, 's> {
                 if property.is_url && !self.assigned {
                     self.home = self.tree.home(self.types, index, path[0]).and_then(|file| self.towards(&file));
                 }
+                let placed = self.placed(&binding.value, property);
                 let value = self.value(binding.value, property);
                 self.home = None;
-                value
+                self.bound(value, placed.then_some(span.start))
             }
         };
         built.attributes.push(b.attr(&path.join("$"), value));
@@ -735,7 +760,10 @@ impl<'a, 's> Lower<'a, 's> {
             if self.makes(&value) {
                 built.made.push(name.to_string());
             }
-            let value = self.value(value, types::declared_property(&declared, type_name.is_list));
+            let declared = types::declared_property(&declared, type_name.is_list);
+            let placed = self.placed(&value, declared);
+            let value = self.value(value, declared);
+            let value = self.bound(value, placed.then_some(property.name.span.start));
             built.attributes.push(b.attr(name, value));
         }
     }
@@ -857,6 +885,33 @@ impl<'a, 's> Lower<'a, 's> {
             self.b.returning(last);
         }
         statements
+    }
+
+    /// Whether a value is evaluated as a binding that can fail, and so says
+    /// where it is written when the output says so: not a constant, a
+    /// script or an object.
+    fn placed(&self, value: &QmlBindingValue<'a>, property: Property) -> bool {
+        self.uses.places.is_some()
+            && !property.is_script
+            && !self.makes(value)
+            && match value {
+                QmlBindingValue::Expression(expression) => !expression.is_literal(),
+                QmlBindingValue::Statement(_) => true,
+                QmlBindingValue::Object(_) | QmlBindingValue::Objects(_) => false,
+            }
+    }
+
+    /// `$bound([file, line, column], () => value)`: what the binding throws
+    /// says where it is written, for the warning it is told in. The runtime
+    /// is not asked to know, so a page built for use pays nothing for it.
+    fn bound(&mut self, value: Expression<'a>, offset: Option<u32>) -> Expression<'a> {
+        let (Some(places), Some(offset)) = (&self.uses.places, offset) else {
+            return value;
+        };
+        let b = self.b;
+        let place = places.place(b, offset);
+        self.uses.inspect.insert("$bound");
+        b.call(b.id("$bound"), [place, b.arrow(&[], value)])
     }
 
     fn value(&mut self, value: QmlBindingValue<'a>, property: Property) -> Expression<'a> {

@@ -2,6 +2,7 @@
 // TabButton, of which one of a bar is checked.
 import { defineType } from "../../object.js";
 import { AbstractButton } from "./AbstractButton.js";
+import { speaks } from "../Accessible.js";
 
 export const Button = defineType("Button", AbstractButton, {
   properties: { highlighted: false, flat: false },
@@ -23,3 +24,5 @@ export const ToolButton = defineType("ToolButton", Button);
 export const TabButton = defineType("TabButton", AbstractButton, {
   properties: { checkable: true, autoExclusive: true },
 });
+
+speaks(TabButton, "PageTab", undefined, "selected");

@@ -18,6 +18,7 @@ import { house, reparent, repeat, shows, within } from "./Container.js";
 import { keeps } from "./Control.js";
 import { housed, overlayOf, Popup, PopupFocusReason, stacked } from "./Popup.js";
 import { signal, untrack } from "#kernel";
+import { speaks } from "../Accessible.js";
 
 // How long the mouse is over an item before its sub-menu opens.
 const SUBMENU_DELAY = 225;
@@ -645,3 +646,6 @@ Object.defineProperty(Menu.proto, "currentIndex", {
     untrack(() => setCurrent(this, Number(value), OtherFocusReason));
   },
 });
+
+speaks(MenuItem, "MenuItem");
+speaks(Menu, "PopupMenu");

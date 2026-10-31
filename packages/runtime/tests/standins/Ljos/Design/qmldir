@@ -1,0 +1,3 @@
+module Ljos.Design
+singleton Colors 1.0 Colors.qml
+singleton Spacing 1.0 Spacing.qml

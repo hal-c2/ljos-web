@@ -37,6 +37,8 @@ pub(crate) use qml_front::scope::is_group;
 pub struct Project {
     front: qml_front::project::Project,
     extras: HashMap<String, Extras>,
+    /// The modules the project has, whether or not any of their types is QML.
+    modules: HashSet<String>,
 }
 
 /// What one file asks of the components it uses, and what its own
@@ -174,6 +176,26 @@ impl Project {
     /// what a `qmldir` says, or the build that makes the module.
     pub fn add_type(&mut self, uri: &str, name: &str, file: &str) {
         self.front.add_type(uri, name, file);
+    }
+
+    /// The name a module gives the file `file` as one of its types
+    /// (`Ljos.Design.Colors`), when one does by the file's own name: what a
+    /// page that holds the module's singletons knows them by.
+    pub(crate) fn type_name(&self, file: &str) -> Option<String> {
+        let name = file.rsplit('/').next()?;
+        let uri = self.front.modules_of(file).iter().find(|uri| self.front.module_type(uri, name) == Some(file))?;
+        Some(format!("{uri}.{name}"))
+    }
+
+    /// Says the project has the module `uri`: a `qmldir` in its place, or a
+    /// build that makes it, whose types may all be C++.
+    pub fn add_module(&mut self, uri: &str) {
+        self.modules.insert(uri.to_string());
+    }
+
+    /// Whether the project has the module `uri`.
+    pub fn has_module(&self, uri: &str) -> bool {
+        self.modules.contains(uri) || self.front.has_module(uri)
     }
 
     /// Says the program keeps the file at `path` inside itself, and names it

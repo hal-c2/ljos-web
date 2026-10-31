@@ -3,10 +3,16 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "bin": {
+    "ljos-web": "./bin/ljos-web.js"
+  },
   "exports": {
     "./runtime": "./index.js",
     "./runtime.css": "./style.css",
     "./object": "./object.js",
+    "./reload": "./reload.js",
+    "./compiler": "./compiler/index.js",
+    "./inspect": "./inspect.js",
     "./QtQuick": "./QtQuick/index.js",
     "./QtQuick/Effects": "./QtQuick/Effects/index.js",
     "./QtQuick/Layouts": "./QtQuick/Layouts/index.js",
@@ -50,7 +56,10 @@
     "./Qt/labs/folderlistmodel": "./Qt/labs/folderlistmodel/index.js",
     "./Qt/labs/synchronizer": "./Qt/labs/synchronizer/index.js",
     "./Qt/labs/qmlmodels": "./Qt/labs/qmlmodels/index.js",
-    "./vite": "./vite.js"
+    "./vite": "./vite.js",
+    "./site": "./site.js",
+    "./theme": "./theme.js",
+    "./modules.json": "./modules.json"
   },
   "imports": {
     "#kernel": {
@@ -59,18 +68,19 @@
     }
   },
   "scripts": {
-    "test": "playwright test -c tests"
+    "test": "playwright test -c tests",
+    "test:site": "playwright test -c site-tests"
   },
   "peerDependencies": {
     "solid-js": "2.0.0-rc.13"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
-    "solid-js": "2.0.0-rc.13",
-    "vite": "^8.0.0"
+    "solid-js": "2.0.0-rc.13"
   },
   "dependencies": {
     "physx-js-webidl": "2.8.0",
-    "sql.js": "^1.14.2"
+    "sql.js": "^1.14.2",
+    "vite": "^8.0.0"
   }
 }

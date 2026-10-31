@@ -26,11 +26,13 @@ browser and compares it with the picture real Qt renders.
 ## Layout
 
 - `crates/ljos_web`: the compiler (`ljos_web::compile`, `compile_script`) and the `qmlc` binary.
+- `crates/ljos_web_compiler`: the same compiler as wasm, which `ljos-web/compiler` loads
+  the first time a page compiles QML.
 - The table of Qt's types is made by Ljós's `qmltypes` generator (`mise run types`),
   in the ljos-ui repository the front end comes from.
 - `packages/runtime`: what compiled output imports, one module per QML module
   (`ljos-web/QtQuick`, `ljos-web/QtQuick/Layouts`, `ljos-web/QtQml`, ...), the kernel they
-  are written on (`ljos-web/object`), and the Vite plugin (`ljos-web/vite`).
+  are written on (`ljos-web/object`), the Vite plugin (`ljos-web/vite`), and the site builder (`ljos-web/site`, `ljos-web build-site`).
 - `examples/gallery`: Qt's examples in the browser, and the report on how each does.
 - `examples/web`: QML rendered in the browser with the `import OpenTUI` dialect.
 - `examples/wasm-counter`: a type written in Rust, compiled to WebAssembly and
@@ -48,8 +50,13 @@ cargo run --bin qmlc -- logic.js                  # a script a QML file imports,
 cargo run --bin qmlc -- --emit lowered File.qml   # the tree given to Solid, printed
 cargo run --bin qmlc -- --out-dir out *.qml
 cargo run --bin qmlc -- --root DIR File.qml       # where the project's modules are looked for
+cargo run --bin qmlc -- -I mocks File.qml         # an import path looked in before the root
+cargo run --bin qmlc -- --qt DIR File.qml         # where the installed Qt's modules are
 cargo run --bin qmlc -- --alone File.qml          # without the files next to it
 cargo run --bin qmlc -- --types QtQuick.Layouts   # the types Qt has of a module in C++
+cargo run --bin qmlc -- --theme theme.json        # a theme file checked: its overrides as JSON, or its mistakes
+cargo run --bin qmlc -- --theme-for app/Main.qml --root .  # the same for the theme.json nearest an entry
+cargo run --bin qmlc -- --inspect src/Main.qml src/Main.qml  # saying where things are written, for ljos-web/inspect
 ```
 
 Everything else is a [mise](https://mise.jdx.dev) task, a script in
@@ -67,6 +74,8 @@ mise run corpus         # how much of Qt's examples compiles, and what stops the
 mise run reference      # take Qt's pictures again (needs Qt 6's `qml` tool; `sway` for shader effects)
 mise run assets ID...   # download what an example's build downloads (its pictures, meshes, fonts)
 mise run types          # the table of Qt's types, from the Qt installed here
+mise run site:build DIR # a static site from a directory with ljos-site.json
+mise run build:wasm-compiler # the compiler as wasm, for ljos-web/compiler
 ```
 
 `packages` (pnpm install) and `browser` (Playwright's Chromium) are tasks the
@@ -94,9 +103,42 @@ import Main from "./Main.qml";
 mount(Main, document.getElementById("app"));
 ```
 
+A page may also compile QML as it runs, from texts it has, with
+`ljos-web/compiler` (docs/LJOS_WEB.md A15). Nothing of the compiler is
+fetched until the first compile:
+
+```js
+import { compile } from "ljos-web/compiler";
+const made = await compile({ files: { "Main.qml": text }, entry: "Main.qml", aliases: [] });
+if (made.diagnostics) show(made.diagnostics); // [{ file, line, column, message }]
+else mount(made.component, document.getElementById("app"));
+```
+
 A root that is a `Window` is the size of the element it is mounted in. One that
 is an `Item` keeps its own, and its `parent` is an item of the element's size,
 as the root of a `QQuickView` is in the view: `anchors.fill: parent` fills it.
+
+A save in the dev server keeps the page's state, as `ljos run --watch` does:
+the root mounted from the saved file takes the new component, and each of its
+objects that is one of the old (by `id`, `objectName`, row of a view, else
+type and place) keeps what the program and the user gave it — typed text, a
+value a handler assigned, which item has the keyboard — unless the file now
+says something else of that property. Bindings are the new file's; an object
+whose type changed is made anew. A file that does not compile leaves the page
+as it was, beside Vite's error. A page that compiles QML itself does the same
+without Vite:
+
+```js
+import { mount } from "ljos-web/object";
+import { reload } from "ljos-web/reload";
+const root = mount(Main, element, {}, { reloadable: true });
+// later, with the component the new text compiled to
+reload(root, NewMain); // throws ReloadError, and changes nothing, if NewMain cannot be made
+```
+
+`reloadable` is on by itself in a dev server; elsewhere a root is not, and
+the page pays nothing for it. `docs/LJOS_WEB.md` (A13) says what is kept and
+where the web differs from desktop Ljós.
 
 Much of Qt is QML itself: a style of Qt Quick Controls is a directory of QML
 files over the types of `QtQuick.Templates`. Those are not rewritten here. The
@@ -145,6 +187,71 @@ plugin's `args` may give by the file compiled. QML that stands in for a type
 in C++ (`--with`) has a path as that type does: next to the file that makes
 the object.
 
+## A site from a directory
+
+`ljos-web build-site DIR [--out DIR] [--with DIR]... [--qt DIR]...` (the
+`bin` of `packages/runtime`, `mise run site:build DIR`, or
+`buildSite({ dir, out })` of `ljos-web/site`) builds a static site from a
+directory that holds `ljos-site.json`, the manifest of what it is:
+
+```json
+{
+  "format": "ljos-site", "version": 1, "target": "web",
+  "entry": "Shell.qml", "theme": "theme.json",
+  "files": [{ "path": "Shell.qml", "bytes": 209 }, ...],
+  "modules": [{ "module": "App.Media", "qmldir": "App/Media/qmldir" }],
+  "imports": ["Ljos.Design", "QtQuick"],
+  "blocks": [], "left_out": [], "ljos_web": "<the commit it was checked against>"
+}
+```
+
+Every file of the directory is listed with its size and nothing else is
+in it; anything the manifest does not say (a field, a file, a link, a
+module, an import ljos-web does not provide) is refused before anything
+is compiled. The entry is compiled with the directory as the root of the
+project, and the site goes to `DIR-site` unless `--out` says where: a
+site it built there is replaced, anything else is not. Qt is needed only
+for a site that imports `QtQuick.Controls`; `Ljos.Design` is Ljós's QML,
+given with `--with` (ljos-ui's `crates/ljos_design_qml/qml`). The theme
+is the manifest's `theme`, or the `theme.json` nearest the entry among the
+listed files; it is applied, and a theme that is refused refuses the site
+with each mistake as `file:line:column: message`.
+
+`ljos-web modules --json` prints `packages/runtime/modules.json`: the
+modules this commit provides, where each one's types come from and what
+building with it needs (`qt`: an installed Qt's QML; `with`: a directory
+of the module's QML). `mise run test:site` builds bundles into sites,
+opens one in headless Chromium and tries each refusal.
+
+## A theme
+
+A page reads a theme as ljos-ui's `docs/theme.md` says: other values for
+Ljos.Design's roles, in the `theme.json` nearest the entry (from its
+directory up to the project's), or in a file that is named. Whatever binds
+to a role follows, a colour's variants follow `Colors.dark` and
+`Colors.highContrast`, and nothing is made again: a field keeps its text.
+
+```js
+// vite.config.js: the nearest theme.json, or one named, or none.
+qml({ qmlc, root: "app", theme: "themes/dark.json" /* or false */, seedHue: 200 });
+```
+
+In the dev server a change of the file is applied without a remount; a
+refused one shows Vite's error and leaves the page's theme. A host that
+holds files in memory applies one itself:
+
+```js
+import { applyTheme, removeTheme, findTheme } from "ljos-web/theme";
+const file = findTheme(Object.keys(files), "app/Main.qml"); // "app/theme.json", or null
+const said = await applyTheme(files[file], { file, check }); // { ok: true } | { diagnostics }
+removeTheme(); // the module's own roles again
+```
+
+`check({ file, text })` answers as `qmlc --theme` does: the overrides it
+prints, or `{ diagnostics: [{ file, line, column, message }] }`. A refused
+theme is refused whole. Under it is `override(object, key, { value } |
+{ binding })` of `ljos-web/object`, for any property.
+
 ## Components
 
 QML lets an instance set any property of a component's root object, handle its
@@ -153,7 +260,9 @@ next to it and the modules it imports (`ljos_web::Project`; `qmlc` and the
 Vite plugin read the file's directory, its `qmldir` and the directories it
 imports): what a type is, what its properties are and which names are ids of
 an enclosing file are all known when the file is compiled. A name nothing
-declares is a compile error where it is used. `qmlc --alone` compiles a file by
+declares is a compile error where it is used, and so is the import of a
+module nobody has: the project, Qt's table, the runtime or the Qt that is
+installed (`--qt`). `qmlc --alone` compiles a file by
 itself: unknown types are taken to be components.
 
 A file the build keeps in the program is named by where it is in there:
@@ -194,6 +303,29 @@ compiled: `Qt.createComponent("Block.qml")`, `source: "Page.qml"` and
 once, with Qt's `status` and `createObject`. A path put together at run time
 (`"towers/" + name + ".qml"`) is looked up among the files of the directory
 that it could name.
+
+## Inspecting a mounted root
+
+`inspect(root)` of `ljos-web/inspect` reads and writes a mounted root's
+properties by `id`, clicks an object or a point, lists the object tree,
+says which object is drawn at a point and where it is written, and keeps
+the console's lines with their file and line. The answers are shaped as
+Ljós's own inspector gives them (docs/LJOS_WEB.md, A16).
+
+```js
+import { mount } from "ljos-web/object";
+import { inspect } from "ljos-web/inspect";
+
+const { object } = mount(Main, element);
+const inspector = inspect(object);
+inspector.write("root", "count", 4);
+inspector.click({ at: [10, 60] });
+inspector.pick(10, 60).source; // { file: "src/Main.qml", line: 22, column: 5 }
+```
+
+Places come from qmlc, only when asked: `--inspect`, or the Vite plugin's
+`inspect: true` in a dev server's config. A build without it carries none of
+them and is the same size as before.
 
 ## What is supported
 

@@ -4,6 +4,7 @@ import { contents, defineType, derived, effect, inside, slot, whenComplete } fro
 import { Item } from "../Item.js";
 import { Control, keeps } from "./Control.js";
 import { untrack } from "#kernel";
+import { speaks } from "../Accessible.js";
 
 // What the content would like to be: what the content item says, or with
 // one item in it and nothing said, that item.
@@ -112,3 +113,10 @@ Page.proto.$inside = function () {
   const under = band(this.footer, this.spacing);
   return [this.leftPadding, this.topPadding + over, this.availableWidth, Math.max(0, this.availableHeight - over - under)];
 };
+
+// A container is named by its title when it has one.
+speaks(Pane, "Pane");
+speaks(Frame, "Border");
+speaks(GroupBox, "Grouping", (self) => String(self.title ?? ""));
+speaks(ToolBar, "ToolBar");
+speaks(Page, "PageTab", (self) => String(self.title ?? ""));

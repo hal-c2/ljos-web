@@ -6,6 +6,7 @@ import { receive, wheels } from "../pointer.js";
 import { containerOf, Container, indexOf } from "./Container.js";
 import { drive } from "./driven.js";
 import { untrack } from "#kernel";
+import { speaks } from "../Accessible.js";
 
 const NOTCH = 120;
 
@@ -133,3 +134,5 @@ export const TabBar = defineType("TabBar", Container, {
     );
   },
 });
+
+speaks(TabBar, "PageTabList");

@@ -503,6 +503,19 @@ impl<'a> B<'a> {
         self.import(specifiers, source)
     }
 
+    /// `import "source";`
+    pub(crate) fn import_bare(&self, source: &str) -> Statement<'a> {
+        Statement::ImportDeclaration(ImportDeclaration::boxed(
+            SPAN,
+            None,
+            StringLiteral::new(SPAN, self.str(source), None, &self.ast()),
+            None,
+            None,
+            ImportOrExportKind::Value,
+            &self.ast(),
+        ))
+    }
+
     /// `import * as name from "source";`
     pub(crate) fn import_namespace(&self, name: &str, source: &str) -> Statement<'a> {
         let specifier = ImportDeclarationSpecifier::new_import_namespace_specifier(

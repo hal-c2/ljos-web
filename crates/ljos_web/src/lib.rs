@@ -13,6 +13,8 @@
 
 mod build;
 mod dialects;
+pub mod files;
+pub mod given;
 pub use qml_front::discover;
 mod lower;
 mod project;
@@ -20,6 +22,7 @@ mod quick;
 mod registry;
 mod resolve;
 mod scope;
+pub mod theme;
 
 use oxc_allocator::Allocator;
 use oxc_ast::ast::Program;
@@ -63,6 +66,21 @@ pub struct Options {
     /// `QML_COMPAT_RESOLVE_URLS_ON_ASSIGNMENT`. Otherwise one given to a
     /// property a component declares is taken from the component's file.
     pub urls_on_assignment: bool,
+    /// Where the Qt that is installed keeps its QML modules: a module whose
+    /// `qmldir` is in its place under one of them is Qt's, which the runtime
+    /// puts together from there (`Qt5Compat.GraphicalEffects`). A module
+    /// imported that is neither this, nor in Qt's table, nor the runtime's,
+    /// nor the project's, is not installed: an error, when the file is
+    /// compiled with its project.
+    pub qt_imports: Vec<std::path::PathBuf>,
+    /// The modules that are installed though no directory says so: those a
+    /// page that compiles was built with (`QtQuick.Controls.Basic`).
+    pub installed: Vec<String>,
+    /// Where each object, binding and `console` call is written, put in the
+    /// output for an inspector (`ljos-web/inspect`): the file is called
+    /// this there. None for a page that is not inspected, which pays
+    /// nothing for it.
+    pub inspect: Option<String>,
     pub solid: SolidOptions,
 }
 
@@ -78,6 +96,9 @@ impl Default for Options {
             files: None,
             pictures: None,
             urls_on_assignment: false,
+            qt_imports: Vec::new(),
+            installed: Vec::new(),
+            inspect: None,
             solid: SolidOptions::default(),
         }
     }

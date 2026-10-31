@@ -9,6 +9,7 @@ import { Control } from "./Control.js";
 import { drive, reads } from "./driven.js";
 import { assignables, follows, Horizontal, inside, properties, resolve, same, setPosition, setup } from "./scrolling.js";
 import { untrack } from "#kernel";
+import { speaks } from "../Accessible.js";
 
 const NoSnap = 0;
 const SnapAlways = 1;
@@ -250,3 +251,5 @@ export function interact(bar, interactive) {
 }
 
 export { AlwaysOff };
+
+speaks(ScrollBar, "ScrollBar");

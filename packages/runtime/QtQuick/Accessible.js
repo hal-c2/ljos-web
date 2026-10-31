@@ -1,7 +1,7 @@
 // Accessible: what an item is to someone who does not see it. A page says
 // that with ARIA attributes on the item's element, and so does this: what
 // reads the page aloud reads a QML program as it reads any other.
-import { defineType, effect, QtObject, slot } from "../object.js";
+import { defineType, derived, effect, QtObject, slot } from "../object.js";
 
 // prettier-ignore
 const Role = {
@@ -56,19 +56,103 @@ function announce(message, politeness) {
 let count = 0;
 const named = (item) => (item?.$node ? (item.$node.id ||= `qq-accessible-${++count}`) : null);
 
+// What a control is to a reader when its author says nothing: a role by
+// its type and a name from its text or title, as native Ljós has them. A
+// derived type says its own role over its base's, and keeps the base's
+// name unless it says one: a `TabButton` is a tab named as any button is.
+// `role` is a role's name, or what gives the number for an item; `name`
+// what gives the name; `state` how the control's own `checked` is said:
+// "checked" for one that checks, "selected" for a tab, which ARIA has
+// selected rather than checked.
+const spoken = new Map();
+export function speaks(Type, role, name, state) {
+  spoken.set(Type, { role: typeof role === "string" ? Role[role] : role, name, state });
+}
+
+function said(item, what) {
+  const chain = item?.$type?.chain;
+  for (let i = (chain?.length ?? 0) - 1; i >= 0; i--) {
+    const value = spoken.get(chain[i])?.[what];
+    if (value !== undefined) return typeof value === "function" ? value(item) : value;
+  }
+  return undefined;
+}
+
+// The role an object is given by its type, for a popup's item by its popup.
+export const roleOf = (object) => said(object, "role") ?? Role.NoRole;
+
+// A button's text, as it is said: `&` marks the next character as its
+// mnemonic and goes, `&&` is one `&`, and a last `&` stays.
+export const unmarked = (text) => String(text ?? "").replace(/&(.)/gs, "$1");
+
+// What a control that checks or is selected says when its author does
+// not: whether it can be, whether it is and, checked, whether it is partly.
+const OWN = {
+  checked: { checkable: "checkable", checked: "checked", checkStateMixed: "checkState" },
+  selected: { selectable: true, selected: "checked" },
+};
+function ofControl(item, name) {
+  const from = OWN[said(item, "state")]?.[name];
+  if (from === undefined) return false;
+  if (from === true) return true;
+  if (from === "checkState") return item.checkState === 1;
+  return Boolean(item[from]);
+}
+
 // An attribute a state has only when the item says it has that state.
 const states = [
-  ["checked", "aria-checked", (self) => self.checkable || self.checked],
-  ["pressed", "aria-pressed", (self) => self.pressed],
-  ["selected", "aria-selected", (self) => self.selectable || self.selected],
-  ["readOnly", "aria-readonly", (self) => self.readOnly],
-  ["multiLine", "aria-multiline", (self) => self.multiLine],
+  ["checked", "aria-checked", (own) => own("checkable") || own("checked")],
+  ["pressed", "aria-pressed", (own) => own("pressed")],
+  ["selected", "aria-selected", (own) => own("selectable") || own("selected")],
+  ["readOnly", "aria-readonly", (own) => own("readOnly")],
+  ["multiLine", "aria-multiline", (own) => own("multiLine")],
 ];
+
+// The attributes of an item's element, from its `Accessible` object when it
+// has one and from what its type says when it does not. A state the author
+// set is theirs; one they did not is the control's.
+function aria(self, item) {
+  const own = (name) => (self && slot(self, name).explicit() ? Boolean(self[name]) : ofControl(item, name));
+  const role = self ? self.role : roleOf(item);
+  return [
+    self?.searchEdit ? "searchbox" : (ARIA[role] ?? null),
+    self ? self.name : (said(item, "name") ?? ""),
+    self?.description ?? "",
+    self?.ignored ?? false,
+    named(self?.labelledBy),
+    ...states.map(([name, , has]) => (has(own) ? (name === "checked" && own("checkStateMixed") ? "mixed" : String(own(name))) : null)),
+  ];
+}
+
+function show(node, [role, name, description, ignored, labelledBy, ...told]) {
+  const set = (name, value) => (value === null || value === "" ? node.removeAttribute(name) : node.setAttribute(name, value));
+  set("role", role);
+  set("aria-label", name);
+  set("aria-description", description);
+  set("aria-hidden", ignored ? "true" : null);
+  set("aria-labelledby", labelledBy);
+  states.forEach(([, attribute], index) => set(attribute, told[index]));
+}
+
+// A control whose type says what it is says it on its element, before
+// anything asks for its `Accessible` object; once something has, that
+// object says it.
+export function described(item) {
+  const node = item.$node;
+  if (!node || !item.$type.chain.some((Type) => spoken.get(Type)?.role !== undefined)) return;
+  effect(
+    () => (item.$attached?.Accessible ? null : aria(null, item)),
+    (attributes) => {
+      if (attributes) show(node, attributes);
+    },
+  );
+}
 
 const AccessibleAttached = defineType("AccessibleAttached", QtObject, {
   properties: {
-    role: Role.NoRole,
-    name: "",
+    // Derived: what the author gives is the first assignment.
+    role: derived((self) => roleOf(self.$props.$attachee)),
+    name: derived((self) => said(self.$props.$attachee, "name") ?? ""),
     description: "",
     id: "",
     ignored: false,
@@ -121,24 +205,9 @@ const AccessibleAttached = defineType("AccessibleAttached", QtObject, {
   setup(self, props) {
     const node = props.$attachee?.$node;
     if (!node) return;
-    const set = (name, value) => (value === null || value === "" ? node.removeAttribute(name) : node.setAttribute(name, value));
     effect(
-      () => [
-        self.searchEdit ? "searchbox" : (ARIA[self.role] ?? null),
-        self.name,
-        self.description,
-        self.ignored,
-        named(self.labelledBy),
-        ...states.map(([name, , has]) => (has(self) ? (name === "checked" && self.checkStateMixed ? "mixed" : String(self[name])) : null)),
-      ],
-      ([role, name, description, ignored, labelledBy, ...said]) => {
-        set("role", role);
-        set("aria-label", name);
-        set("aria-description", description);
-        set("aria-hidden", ignored ? "true" : null);
-        set("aria-labelledby", labelledBy);
-        states.forEach(([, attribute], index) => set(attribute, said[index]));
-      },
+      () => aria(self, props.$attachee),
+      (attributes) => show(node, attributes),
     );
     // What an item is the label for is labelled by it.
     effect(

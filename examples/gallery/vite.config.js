@@ -62,6 +62,13 @@ function args(file) {
   return example?.qt.env?.QML_COMPAT_RESOLVE_URLS_ON_ASSIGNMENT === "1" ? ["--urls-on-assignment"] : [];
 }
 
+// Where the example a file is of looks for its modules before its own
+// directory, as its build or its main.cpp adds them to the import path.
+function importPaths(file) {
+  const example = readManifest().find(({ directory }) => file.startsWith(directory + sep));
+  return (example?.importPaths ?? []).map((path) => join(example.directory, path));
+}
+
 // The QML that stands in for the C++ of the example a file is of, or is
 // itself one of the files that do.
 function standins(file) {
@@ -130,7 +137,7 @@ function tolerant(plugin) {
 
 export default defineConfig({
   base: "./",
-  plugins: [examples(), assets(), tolerant(qml({ qmlc: process.env.QMLC ?? path("../../target/debug/qmlc"), args, style, controls, standins }))],
+  plugins: [examples(), assets(), tolerant(qml({ qmlc: process.env.QMLC ?? path("../../target/debug/qmlc"), args, style, controls, standins, importPaths }))],
   resolve: {
     // Qt's examples have no app behind them: nothing to find here.
     alias: { "ljos-web/host": path("./host.js") },

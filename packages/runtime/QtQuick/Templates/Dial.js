@@ -7,6 +7,7 @@ import { Key, LeftButton } from "../keycodes.js";
 import { Control, keeps, loose, put } from "./Control.js";
 import { bounded, clamp, close, fitted, keep, nothing, now, scaled, SnapMode, snapPosition, step } from "./Slider.js";
 import { untrack } from "#kernel";
+import { speaks } from "../Accessible.js";
 
 const InputMode = { Circular: 0, Horizontal: 1, Vertical: 2 };
 const WrapDirection = { Clockwise: 0, CounterClockwise: 1 };
@@ -320,3 +321,5 @@ export const Dial = defineType("Dial", Control, {
     );
   },
 });
+
+speaks(Dial, "Dial");

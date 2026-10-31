@@ -17,6 +17,7 @@ import { CancelGrabExclusive, drop, gone, hoverable, receive, UngrabExclusive, w
 import { font } from "./font.js";
 import { palette } from "./theme.js";
 import { untrack } from "#kernel";
+import { described } from "../Accessible.js";
 
 // Makes the items a control is given its children: `background`, `label`,
 // `header`. `read` is run with what is tracked and returns them; one that
@@ -249,6 +250,7 @@ export const Control = defineType("Control", Item, {
   methods: { ...methods, ...live },
   setup(self) {
     backed(self);
+    described(self);
     keeps(self, () => [self.contentItem]);
     effect(
       () => [self.contentItem, ...self.$inside()],

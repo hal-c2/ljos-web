@@ -147,6 +147,36 @@ no application in it) and it is what an application's own wasm links,
 so there is **one wasm per page** — the kernel and the application's
 types in one module, never two instances of `ljos_reactive`.
 
+**How `qmlc` finds a module.** `qmlc [--root DIR] [-I DIR]... [--with
+DIR]... [--qt DIR]... FILE.qml` compiles a file with its project: the
+modules under the import paths, which are those `-I` (`--import-path`)
+names in order and then `--root` (otherwise the nearest directory above
+the file whose `CMakeLists.txt` starts a project), and the stand-ins
+`--with` names. As Qt finds one, module `App.Media` is the `qmldir` at
+`App/Media/qmldir` under an import path, the first to have one: of
+`App/Media/qmldir` and `mocks/App/Media/qmldir`, both `module App.Media`,
+it is the first, unless `-I mocks` puts the second first. A `qmldir`
+under an import path (or the installed Qt's, below) out of its module's
+place is not that module, and when no other is, `qmlc` says so on stderr
+naming both. A stand-in's `qmldir` is at its module's place under its
+`--with` directory and adds to that module what the program has in C++.
+A `CMakeLists.txt` says what its modules are wherever it is. A Ljós
+`# block Name 1.0 File.qml ...` line of a `qmldir` (ADR 0003 of ljos-ui)
+declares a type of its module, as a plain `Name 1.0 File.qml` does; to
+Qt it is a comment. The Vite
+plugin takes the import paths as `importPaths` and the project's root as
+`root`, each a value or a function of the file compiled, so that every
+file of one project has one root. A module the file imports has to be installed, as it has to be for Qt: the
+project's, one of Qt's table (`qt_types`), one the runtime package
+exports (`packages/runtime/package.json`: `Qt.labs.settings`), or one of
+the Qt that is installed, a `qmldir` in its place under a directory
+`--qt` names (otherwise `QML_IMPORT_PATH` and `qtpaths`; the Vite plugin
+passes its `qt` roots). Any other is a compile error where it is
+imported, `Main.qml:2:1: module "No.Such.Module" is not installed`,
+where it used to compile to an import from `ljos-web/No/Such/Module`.
+A file compiled `--alone` has no project, and its imports are not
+checked.
+
 ### A3. What stays JS, what moves (the audit)
 
 From a classification of every `packages/runtime` module against
@@ -368,6 +398,7 @@ build gains a cleaner layering from every item.
 |---|---|---|
 | First useful page, gzip, JS + wasm | ≤ 250 kB | W8, every QtQuick type + runtime (`test:size`): 149.1 kB JS (Solid kernel); 149.1 kB JS + 26.9 kB wasm = 176.0 kB (wasm kernel) |
 | Kernel wasm | ≤ 30 kB gzip until value kinds move; every later move must remove more JS than it adds wasm, or say why | W8: 68,531 B raw / 26,916 B gzip (`opt-level=2`, LTO, one CGU, `panic=abort`, strip; no `wasm-opt` installed). At 2 the read path is inlined, which folds away more than it copies; "z" and "s" were larger |
+| Compiler in the page (A15), fetched on a page's first compile only | ≤ 1,200 kB gzip wasm, ≤ 5 kB gzip JS | W9.1: 3,717,395 B raw / 1,085,222 B gzip wasm (`opt-level="z"`); 4,061 B gzip JS as written. A page that does not compile: unchanged, byte for byte |
 | Tracked clean read | ≤ 2× Solid's before the Solid kernel is deleted | W8: 18 ns against Solid's 3.5 (9.5 against 1.5 warmed), from 40.5; not met (A4) |
 | Write → DOM | one Solid flush per write batch, zero polling | holds (faces) |
 | Idle | 0 % CPU | holds (nothing ticks; graph is push on write) |
@@ -375,7 +406,9 @@ build gains a cleaner layering from every item.
 `mise run test:size` is the gate: it bundles a page that imports the
 runtime and every QtQuick type (`packages/runtime/size/`) on both
 kernels and fails over 250 kB gzip of JS + wasm, or over 30 kB gzip of
-kernel wasm. It is part of `mise run test`.
+kernel wasm. It is part of `mise run test`. The compiler (A15) is a line
+of its own, against its own budget, and a page bundle with the compiler
+in it fails.
 
 ### A9. Live QML shell drop (opt-in)
 
@@ -496,6 +529,339 @@ Each is stated where it is argued; listed here for review:
 11. Blocks are per-page singletons; shells re-parent them (A9).
 12. Only shell text is stored/published (A9).
 13. A graph evaluation owns what it makes, ended after the next one (A4).
+14. The module list is a committed file kept equal to the package by a test, not derived where it is read (A12).
+15. A reload remakes the tree and carries state onto it; `Component.onCompleted` runs again (A13).
+16. Same text is the same compiled declaration; an edited one wins over a run-time value (A13).
+17. Only a root mounted `reloadable` records its tree; on by itself in a dev server (A13).
+18. `reload(root, Component)` knows no build tool; Vite and the live drop both call it (A13).
+19. The compiler in the page is `qmlc`'s, with the full type table; compiled files link as blob modules over stand-ins (A15).
+
+### A12. A site from a directory, and the modules a commit provides
+
+A program that writes a site's files (a designer's export, a script)
+need not know how ljos-web compiles or bundles them. It writes a
+directory and `ljos-site.json` (format `ljos-site`, version 1, target
+`web`: the entry, its theme, every file with its size, the project's
+modules with their qmldirs, the modules it imports), and
+`ljos-web build-site DIR` (`buildSite({ dir, out })` of
+`ljos-web/site`, `mise run site:build DIR`) writes `index.html` and
+its assets. The manifest is held to its words before anything is
+compiled: an unknown field, an unlisted file, a listed one missing or
+of another size, a path out of the directory, a link, a module
+without its qmldir and an import ljos-web does not provide are each
+refused with what was wrong. The entry is compiled with the directory
+as the project's root; Qt is needed only when the site imports the
+controls, and Ljos.Design's QML is given with `--with`. A site it
+built is replaced (it leaves a `.ljos-site-build` stamp); any other
+directory is not. The theme is checked, applied (A14) and carried
+into the site as it is.
+
+What a commit provides is `packages/runtime/modules.json`
+(`ljos-web modules --json`): each module, where its types come from
+(`runtime`, `qt`, `ljos`), and what building with it needs (`qt`,
+`with`). It is committed, so a program pinned to a commit reads it
+without running anything, and a test keeps it equal to the package's
+exports.
+
+### A13. A reload that keeps state
+
+`reload(root, Component)` (`ljos-web/reload`) gives a mounted root a
+new component and keeps its state where it can, by desktop Ljós's
+rule (ljos-ui ARCHITECTURE.md §12.1). Each object of the new tree that
+is an object of the old one is found by its key: its `id`, within the
+component it is written in, wherever it moved there; else its
+`objectName`; else its row, for a view's delegate; else its type and
+how many siblings of that type without an id or a name come before
+it. An `id` renamed is a new object. One whose type changed is made
+anew, and so is everything below it. Two old objects with one key
+(two Repeaters of one delegate type in one parent) give neither: the
+new ones start from the file. A matched object keeps what was
+assigned to it while the program ran — by a handler, by the user
+(typed text, with its selection), by a script — and the keyboard
+stays with it; a value that was an object of the old tree is that
+object's match, or `null`. Bindings and handlers are the new file's,
+so a binding the program replaced by a value stays replaced only
+while its text is unchanged.
+
+**DECISION:** what the file says of a property is the same when the
+compiled declaration is: the same literal, or a binding whose
+compiled function reads the same. An edited declaration wins over a
+run-time value, as on the desktop ("a declaration that was edited
+wins"). The compiled text names objects by handles (`$1`) that an
+edit elsewhere can renumber; such a binding counts as edited, and the
+file wins — never a value that should have gone.
+
+**DECISION:** the web makes the whole new tree and carries state onto
+it, then puts its root where the old one was and disposes the old
+one; the desktop keeps a matched object and rebinds it. So
+`Component.onCompleted` runs again for every object, where the
+desktop runs it only for new ones, and a running animation or timer
+starts again from what was carried. Keeping objects would need every
+type of the runtime to take a new set of props in place, which no
+type of it does today.
+
+**DECISION:** the tree is recorded (each object's creation parent,
+its `id`, its view row) only for a root mounted with
+`{ reloadable: true }`. A dev server turns that on for every root once
+a compiled QML module is loaded; a production page never imports
+`reload.js` and pays a few hundred bytes for the hook. The compiler
+gives an object its `id` as it makes it (`$object("field")`).
+
+**DECISION:** a component that throws as it is made is a
+`ReloadError` and changes nothing: the last good mount stays. A save
+that does not compile never reaches the runtime: Vite answers its
+500 with the compiler's message, and the plugin leaves the mount as
+it was.
+
+**DECISION:** `reload` knows no build tool. The Vite plugin's `.qml`
+modules accept their own update and call it for each root mounted
+from the old component (a file nothing mounted makes its importer
+run again); the live drop (A9) calls it with what the in-page
+compiler made of the shell. Not carried yet: objects a script made
+(`createObject`) and a Loader's item are made again by what makes
+them; a ListModel's rows are what its text says; a StackView's
+stack is its initial item.
+
+### A14. The theme on the web
+
+ljos-ui's `docs/theme.md` (at 0cd3287c) is the contract, and ljos-web
+reads a theme as it says. **Which file:** a named one wins (the Vite
+plugin's `theme` option, a site manifest's `theme`), and a named file
+that is not there is an error; otherwise the `theme.json` nearest the
+entry, from its directory up to the project's (the plugin's `root`, the
+`--root` it compiles with, else the entry's own directory) and no
+further. One file, never merged. **Checking:** `ljos_web::theme` is
+`ljos_design::theme` (git, rev 0cd3287c, beside the other ljos-ui crates
+at their own pin: the two revs coexist), with no filesystem, so it builds
+for wasm32; `qmlc --theme FILE`, `--theme-for ENTRY --root DIR` and
+`--seed-hue N` print the checked overrides as JSON (`null` for none), or
+each refusal as `file:line:column: message`. A refused theme is refused
+whole. **Applying:** `override(object, key, content)` in the runtime puts
+a value or a binding over any property, and taking it off gives the
+property what was under it, its binding included; `ljos-web/theme` puts
+a checked theme on Ljos.Design's singletons as such overrides. Nothing is
+made again, so a change keeps all state.
+
+- DECISION: singletons are found by their module's name
+  (`$singleton(…, "Ljos.Design.Colors")`, which the compiler now emits for
+  a file that is a module's type), so the runtime needs nothing of
+  Ljos.Design itself and a singleton made later takes the theme as it is made.
+- DECISION: a colour's variants are one binding on `Colors.dark` and
+  `Colors.highContrast`; a variant the theme does not give reads what is
+  under the override, the module's own.
+- DECISION: a write to an overridden property goes to the override, as in
+  Ljós; removing the override gives back what was under it.
+- DECISION: one theme per page, the last mounted entry's. The plugin gives
+  each entry (a QML file something other than QML imports) a theme module;
+  `mount` applies it, and in the dev server a change of the file reloads
+  only that module, which applies it again. A refused change shows Vite's
+  error and leaves the page's theme.
+- DECISION: the theme is checked when the entry loads too, so a host that
+  compiles through Vite (`transformRequest`) hears the refusal as the
+  entry failing, with the diagnostics.
+- DECISION: the site builder searches the manifest's listed files (the same
+  search, `findTheme`), checks with `qmlc --theme` before Vite runs, and
+  refuses the site on a refusal.
+- DECISION: a host holding files in memory calls `applyTheme(text, { file,
+  check })` → `{ ok: true }` or `{ diagnostics }`, and `removeTheme()`. The
+  check is the host's compiler (`qmlc --theme`, a server, or the compiler in
+  the page once it runs there); the runtime writes no second checker.
+  `findTheme(names, entry, { project })` is the search for such a host.
+- DECISION: contrast is held at the module's seed hue unless the theme or
+  the plugin's `seedHue` says another.
+### A15. The compiler in the page
+
+`ljos-web/compiler` compiles QML in the page and runs it on the modules
+the page already has: what a program that edits QML as it runs needs
+(an editor's preview, a reload, a file opened that was never built).
+
+```js
+import { compile, createCompiler, translate } from "ljos-web/compiler";
+const made = await compile({ files: { "Main.qml": text, "Panel.qml": other }, entry: "Main.qml", aliases: [] });
+// { component, module, warnings } or { diagnostics: [{ file, line, column, message }] }
+mount(made.component, element);
+```
+
+`files` maps a path of the project to its text; `entry` is the file to
+compile, with every file of the project it imports; `aliases`
+(`[{ module, dir }]`) make a module the directory of the project it
+names, as `ljos run --alias` does (a file directly in `dir` is the
+module's, and an error in it names it by the path it was given as).
+`createCompiler({ modules, base })` is the same with the page's modules
+(`{ "ljos-web/QtQuick": () => import("ljos-web/QtQuick"), ... }`;
+the default is every module the runtime package exports, and
+`solid-js`) and the address the files are at (default
+`document.baseURI`). `translate` answers each file's module as `qmlc`
+prints it, unlinked.
+
+**Pieces.**
+
+- `ljos_web::files`: a project's files through one interface
+  (`Files`), from the disk in `qmlc` and as texts (`Memory`) in a page.
+  Its discovery is `qmlc`'s, moved out of the binary: the root, import
+  paths, `qmldir` modules, `# block` lines, file selectors and the
+  "not installed" error.
+- `ljos_web::given`: compiles the entry and every file it reaches,
+  each as `qmlc --root DIR` compiles it, and says how they link: the
+  UTF-16 spans of each specifier and of each `import.meta`, and each
+  file's exports (`export *` of a sibling followed). A file that does
+  not parse is left out of the project, so what imports it is told the
+  type is unknown; when a compile fails, every syntax error of the
+  project's QML comes first, as that is why.
+- `crates/ljos_web_compiler`: that, as wasm. A JSON text each way
+  through memory the page asks for (`alloc`, `compile`, `answer_len`,
+  `free`), no wasm-bindgen: a compile is one call and its texts are
+  the bulk of what crosses. A panic aborts; the next compile starts a
+  new instance of the module fetched once.
+- `packages/runtime/compiler/`: `index.js` (what a page imports, 638 B
+  gzip), `modules.js` (the default modules, each a dynamic import, kept
+  equal to the package's exports by a test) and `link.js` (the loader
+  and linker, imported on the first compile with the wasm).
+
+**DECISION: the type table is `qt_types`.** The compiler is the one
+`qmlc` is, `qml_front` included, and `qml_front` reads Qt's types
+from `qt_types`: the same table is what makes the same output (property
+types, enums, defaults, which module has what), which the scenarios
+hold it to. `qt_signals` (ljos-ui main `0cd3287c`, 26.7 kB gzip
+measured there) has the signals only and is not on the revision
+ljos-web pins, so output from it would differ. In this wasm Qt's table
+is 614,411 B (110,751 B gzip) and Ljós's own (`ljos.txt`) 298,733 B
+(49,762 B gzip): about 160 kB of the 1,085 kB gzip. The rest is the
+compiler: oxc's parser (twice, the QML fork and crates.io's, each with
+its regular-expression parser), semantic and codegen, the Solid
+compiler and the `html5ever` it validates templates with. Those are
+where it gets smaller.
+
+**DECISION: the size.** The compiler's wasm is not part of the page
+budget (A8): a page that never compiles never fetches it (`index.js`
+imports `link.js`, which fetches the wasm, only inside `compile`), and
+`test:size` fails a page bundle that has it. It has its own line,
+1,200 kB gzip for the wasm and 5 kB for its JS: what it is, with room
+for Qt's table to grow, so that what would add to it (another parser,
+a table twice) is seen when it comes. `opt-level = "z"` (its own
+profile, `compiler`): 1,084 kB gzip against 1,251 kB at "s" and
+1,366 kB at 2; a compile runs once per edit, off any frame's path.
+
+**DECISION: how compiled modules link.** Each compiled file becomes a
+module at a blob URL with its specifiers rewritten.
+
+- An import map cannot be added to once a page has loaded a module,
+  and a registry the runtime gave would make compiled QML other code
+  than `qmlc`'s.
+- A project's files import each other in cycles, and a file may import
+  itself (a component that names its own file). A blob URL is made
+  from a finished text, so two files cannot name each other's. So each
+  file also has a **stand-in**: a module with no imports that exports
+  the file's names as bindings, set once the file has run. Files import
+  each other's stand-ins; the linker runs them in the order they import
+  each other (cycles aside) and sets each stand-in before the next
+  runs, so what a file does as it runs (`Object.setPrototypeOf(Panel,
+  Base)`) has the files before it.
+- A module of the page's (`ljos-web/QtQuick`, `solid-js`) is a
+  **bridge**: a module that re-exports what the page's own import of
+  it gave. Compiled QML and the page's QML share one instance of each:
+  one `Item`, one clock, one kernel (a `flush` of the page's runs what
+  the compiled bindings wait on).
+- `import.meta.url` is the file's address (`new URL(file, base)`), not
+  the blob's, so a path a file names (`images/logo.png`,
+  `../assets/boxes.ttf`) is taken from where the file is.
+
+A second compile is new modules: the old ones stay as long as
+something holds what they made.
+
+**DECISION: Qt Quick Controls.** A style of Qt Quick Controls is QML of
+Qt's own (README, "Use"), which a page has only when it was built with
+it (requests 13 and 36). A compile that imports a module the page did
+not give is refused at the import, as one nobody has:
+`Main.qml:2:1: module "QtQuick.Controls" is not in this page: the
+styles of Qt Quick Controls are QML of Qt's own, which a page has only
+when it was built with them (ljos-web requests 13 and 36)`. A page
+built with them gives them: `createCompiler({ modules: { ...modules,
+"ljos-web/QtQuick/Controls": () => import("ljos-web/QtQuick/Controls")
+} })`, and what it compiles uses the controls the page has. A module
+given under `ljos-web/Q…` is installed for the compile too, so the
+page's own build of a module of Qt's (`Qt5Compat.GraphicalEffects`)
+is imported as it is in the page.
+
+**And A9.** A9's live shell compiles to tier-1 IR, never to JS, so a
+dropped shell has no more power than the site's blocks. This compiler
+is the other one: a program that compiles its own QML (its author's,
+not a visitor's) and wants exactly what `qmlc` makes of it. It uses
+blob URLs, so a page with a CSP needs `script-src blob:` for it, and
+it is not the shell drop's security model. The drop can load the same
+wasm the same lazy way, with a tier-1 back end in place of the JS one.
+
+**Scenarios.** `packages/runtime/tests/compiler.spec.js` (both
+kernels): a compile in the page is what `qmlc` makes of the same files
+(four scenes with project imports and a singleton), it mounts on the
+page's modules, a singleton is one object for every file, a syntax
+error and an unknown module are diagnostics with file, line and column,
+Controls a page was not built with names requests 13 and 36, an
+aliased module is its directory, a page that never compiles fetches no
+compiler, and a second compile reuses the one the first loaded.
+`crates/ljos_web/tests/given.rs` holds `given` to `qmlc` from the
+disk on the module fixtures.
+
+### A16. A mounted root, inspected and driven
+
+`inspect(root)` of `ljos-web/inspect` answers what Ljós's own
+inspector answers of the same file, in the same shapes, so that a
+host (a test, a devtools panel, a designer's preview) maps one onto
+the other without translating:
+
+| `inspect(root)` | native |
+|---|---|
+| `read(id, names)` → `{ name: value }`, null for no such id | `app_get_property` |
+| `write(id, name, value)` → whether there was an object; the property's binding is gone, as an assignment's | `app_set_property` |
+| `click(id)`, `click({ at: [x, y] })` → `{ at }` or `{ error, message }` (`not_found`, `not_actionable`) | `app_click` (`target`, `at`); it answers with a snapshot delta, this with the point |
+| `outline()` → `{ objects: [{ depth, type, id, object_name, item, children }], text }` | `app_objects`, with objects for its `@handle`s and no bytes |
+| `pick(x, y)` → `{ object, type, id, source: { file, line, column } }` or null | `app_inspect`'s source location, of the object on top at the point |
+| `logs(since)` → `{ entries: [{ level, category, message, file, line }], next_since }` | `app_logs` |
+
+Where things are written comes from the compiler, and only when it is
+asked: `qmlc --inspect NAME` (the Vite plugin's `inspect`, true or a
+function of the file) puts `$at` (`[file, line, column, type]`), `$id`
+and, on a file's root, `$ids` among an object's props; it makes each
+free `console` `$console([file, line, column])`, and wraps each binding
+that can fail in `$bound([file, line, column], () => value)`. A file
+compiled so imports `ljos-web/inspect` before it makes anything. A file
+compiled without it has none of this, and the runtime has no code for
+it: `mise run test:size` is the same to the byte with and without this
+module in the tree.
+
+- DECISION: places are put in by the compiler, not looked up from a
+  source map. A source map says where generated code came from, not
+  which object or binding it is, and a page built for use has none.
+- DECISION: the runtime pays nothing. A binding's warning gets its
+  place from what the binding throws (`$bound` gives the error a
+  `toPrimitive` that says where it is, used when the runtime makes the
+  `key: error` line), not from a hook in the runtime. So `Unable to
+  assign …` and an alias's refusal, which nothing throws, are logged
+  with no file or line; so are `Qt.binding` and what a `.js` script
+  logs.
+- DECISION: a file is named by its path from the project's root (from
+  Vite's root for the plugin), not by a URL.
+- DECISION: ids are a file's own. `read`, `write`, `click` and `find`
+  name the root file's ids; a component's are reached through
+  `inspect(theObject)`. An object is listed with the id and type written
+  where it is used (the type without its import's qualifier), and a
+  delegate's objects where the delegate is written.
+- DECISION: the outline lists objects in the order of Qt's `data`
+  (what is not an item first, then the children, a Repeater's rows
+  before it, a Loader's item inside it), with the objects themselves
+  instead of the native handles and sizes.
+- DECISION: a point is in the root's logical pixels; its right and
+  bottom edges are outside it. A click is the pointer and mouse events
+  a real one makes, dispatched where the page draws on top at that
+  point (`isTrusted` is false: what checks it does not see them). An
+  object is clicked at its centre, so what covers that centre gets it.
+- DECISION: one log for the page, the last 1000 lines, kept from when
+  the module is first imported.
+
+Where the web cannot answer as natively: bindings are lazy here, so a
+binding nothing reads is never evaluated and never warns, where qml6
+warns of it as the object is made; and nothing draws a picture of a
+mounted root (no screenshot).
 
 ## Part II — An application's own Rust types
 
@@ -988,7 +1354,8 @@ WebAssembly download an Ljós application would otherwise ship,
 and against staying on the desktop only.
 
 **Hot reload.** The Vite plugin already recompiles a `.qml` file
-and its directory on save (`hotUpdate`). Two more cases:
+and its directory on save (`hotUpdate`), and the root mounted from
+it keeps its state (A13). Two more cases:
 
 - *A type's shape changes* (a property added): the dump changes,
   the application's test that checks it says so, `qmlc`

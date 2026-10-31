@@ -47,11 +47,13 @@ const pending = new Proxy(Object.create(null), {
 let early = 0;
 
 // The object an `id` names, made before the type that fills it in runs.
-export function $object() {
+// The id is kept for a reload, which knows an object by it (`reload.js`).
+export function $object(id) {
   const self = Object.create(pending);
   const [track, touch] = counted(0, getOwner());
   hidden(self, "$track", track);
   hidden(self, "$touch", touch);
+  if (id) hidden(self, "$id", id);
   return self;
 }
 
@@ -767,6 +769,10 @@ class Slot {
     this.over = false;
     // Set by a Behavior: what is shown while the value it follows moves.
     this.shown = null;
+    // What is put over all the property has of its own (a theme over a
+    // module's value), the last on top: taken off, what was under it is
+    // what the property has again.
+    this.layers = null;
     // A slot has no signal of its own until something follows it: most
     // properties are read once as an object is made, and never again.
     this.version = null;
@@ -851,6 +857,12 @@ class Slot {
       const placed = this.placed();
       if (placed !== undefined) return placed;
     }
+    if (this.layers) return this.layers.at(-1).read();
+    return this.base();
+  }
+
+  // What the property has of its own, under whatever is over it.
+  base() {
     const back = this.assigned && this.back();
     if (this.assigned && !back) return this.value;
     let value = back ? undefined : this.bound ? this.bound() : this.given;
@@ -872,6 +884,7 @@ class Slot {
   // when its width or colour was set.
   explicit() {
     this.follow();
+    if (this.layers) return true;
     if (this.assigned) return !this.back();
     return (this.bound ? this.bound() : this.given) !== undefined || this.bound?.busy?.() === true;
   }
@@ -906,6 +919,9 @@ class Slot {
     // back then, and this only those that are to be elsewhere.) How big it
     // is is not its own to say: a layout that sized it sizes it again.
     if (this.placed !== undefined && !this.over && (this.key === "x" || this.key === "y")) this.over = true;
+    // Over what is on top, as in Ljós: what was under it comes back as it
+    // was when it is taken off.
+    else if (this.layers) return this.layers.at(-1).put({ value }), true;
     else if (this.assigned && Object.is(this.value, value)) return false;
     this.assigned = true;
     this.value = value;
@@ -917,6 +933,10 @@ class Slot {
   // the object.
   rebind(compute) {
     const self = this.self;
+    if (this.layers) {
+      this.layers.at(-1).put({ binding: () => compute.call(self) });
+      return true;
+    }
     // What it reads of its own property, itself or through another's
     // binding, is what the property had.
     const had = untrack(() => this.own());
@@ -959,6 +979,85 @@ class Slot {
     this.value = undefined;
     this.changed();
   }
+}
+
+// One layer over a slot: a value, or a binding of its own that may read what
+// is under it.
+class Layer {
+  constructor(slot) {
+    this.slot = slot;
+    this.value = undefined;
+    this.bound = null;
+    this.end = null;
+  }
+
+  read() {
+    return this.bound ? this.bound() : this.value;
+  }
+
+  // What is under this layer, for a binding over it: a variant the theme
+  // does not give is the module's own.
+  below() {
+    const { layers } = this.slot;
+    const at = layers.indexOf(this);
+    return at > 0 ? layers[at - 1].read() : this.slot.base();
+  }
+
+  put({ value, binding }) {
+    this.drop();
+    const slot = this.slot;
+    if (binding) {
+      const below = () => this.below();
+      // Its own root: the layer may be taken off long before the object ends.
+      runWithOwner(null, () =>
+        createRoot((end) => {
+          this.end = end;
+          const guard = guarded(slot.key, () => binding(below));
+          this.bound = ringed(getOwner(), slot.kind ? converted(slot.key, slot.kind, guard) : guard, undefined, true);
+          this.bound.start();
+        }),
+      );
+    } else this.value = slot.made(value);
+    slot.changed();
+  }
+
+  drop() {
+    this.end?.();
+    this.end = null;
+    this.bound = null;
+    this.value = undefined;
+  }
+}
+
+// Puts `content` over what the property `key` of `self` has, whatever that
+// is: `{ value }`, or `{ binding: (below) => ... }`, which is followed as any
+// binding is and may read what is under it. Nothing is made again and the
+// object keeps its state; what reads the property follows. Gives what
+// changes the layer (`set(content)`) and what takes it off (`remove()`),
+// after which the property has what it had under it.
+export function override(self, key, content) {
+  const at = slot(self, key);
+  if (!at) throw new Error(`${self.$type?.typeName ?? "object"} has no property ${key.replaceAll("$", ".")}`);
+  const layer = new Layer(at);
+  (at.layers ??= []).push(layer);
+  layer.put(content);
+  settle();
+  return {
+    set(content) {
+      if (!at.layers?.includes(layer)) return;
+      layer.put(content);
+      settle();
+    },
+    remove() {
+      const index = at.layers?.indexOf(layer) ?? -1;
+      if (index < 0) return;
+      layer.drop();
+      at.layers.splice(index, 1);
+      if (at.layers.length === 0) at.layers = null;
+      at.changed();
+      settle();
+    },
+  };
 }
 
 // The slot of a property (`slot(item, "x")`, `slot(item, "anchors$fill")`):
@@ -1473,6 +1572,10 @@ function create(Type, props) {
     hidden(self, "$props", props);
     hidden(self, "$owner", getOwner());
     hidden(self, "$parent", parent);
+    // A root that may be reloaded knows what was made in what, so that a
+    // reload can tell which object of the new tree is which of the old.
+    const born = parent ? parent.$born : making;
+    if (born) record(self, born);
     hidden(self, "$slots", Object.create(null));
     hidden(self, "$groups", Object.create(null));
     hidden(self, "$signals", Object.create(null));
@@ -1533,6 +1636,16 @@ function create(Type, props) {
     if (props.$self) self.$touch(next);
     return self;
   });
+}
+
+// What a reloadable root has made, in the order it was made, under what it
+// was made in: what goes is taken out, so a view scrolled a long way holds
+// only the delegates it shows.
+let making = null;
+function record(self, born) {
+  hidden(self, "$born", []);
+  born.push(self);
+  if (getOwner()) onCleanup(() => born.splice(born.indexOf(self) >>> 0, 1));
 }
 
 // The objects declared inside one, created now: its `children` prop,
@@ -1760,7 +1873,7 @@ export const globals = Object.create(null);
 // `pragma Singleton`: the one object of a file, made the first time anything
 // asks for it and kept for as long as the page. It is nobody's child, and
 // nothing that ends takes it along. `keys` are the enums the file declares.
-export function $singleton(Component, keys) {
+export function $singleton(Component, keys, name) {
   let object;
   const get = () => {
     if (object) return object;
@@ -1769,9 +1882,25 @@ export function $singleton(Component, keys) {
     runWithOwner(null, () =>
       createRoot(() => untrack(() => complete(() => inside(null, () => Component({ $self: object }))))),
     );
+    if (name) {
+      singletons.set(name, object);
+      for (const listener of watchers) listener(name, object);
+    }
     return object;
   };
   return Object.assign(get, keys);
+}
+
+// The singletons whose module names them (`Ljos.Design.Colors`), once made:
+// what a page reaches from outside its QML. A file that is loaded again
+// makes its singleton again, and is told again.
+const singletons = new Map();
+const watchers = new Set();
+// Tells `listener(name, object)` of each made so far and each made later.
+export function watchSingletons(listener) {
+  watchers.add(listener);
+  for (const [name, object] of singletons) listener(name, object);
+  return () => watchers.delete(listener);
 }
 
 // `source: path`, where the path is not known until the program runs: taken
@@ -1856,22 +1985,63 @@ export function instantiate(component, data, item, owner = item?.$owner ?? getOw
   return runWithOwner(owner, () =>
     createRoot((dispose) => {
       const object = untrack(() => complete(() => inside(item ?? null, () => component(data))));
+      // A view's row is what a reload knows its delegate by.
+      if (object?.$born && typeof data?.$index === "number") hidden(object, "$row", data.$index);
       return { object, dispose };
     }),
   );
 }
 
+// The roots in the page that a reload may carry state across, and whether
+// a root is one unless `mount` is told: in a dev server, once a compiled
+// file has said it can be reloaded (`$hot`).
+export const mounted = new Set();
+let hot = false;
+export const $hot = () => void (hot = true);
+
+// A component's object, apart from the page: `reload.js` makes the new root
+// with it before the old one goes.
+export function made(Component, props, reloadable) {
+  // The theme the build found for the entry, or none: the page's theme is
+  // the last mounted entry's.
+  Component?.$theme?.apply();
+  return createRoot((dispose) => {
+    const outer = making;
+    making = reloadable ? [] : null;
+    try {
+      const object = untrack(() => complete(() => Component(props)));
+      // What is done with the object once it is in the page (a Window
+      // told where it is, the keyboard given back) is the root's too.
+      const owner = getOwner();
+      return { object, dispose, within: (act) => runWithOwner(owner, act) };
+    } catch (error) {
+      dispose();
+      throw error;
+    } finally {
+      making = outer;
+    }
+  });
+}
+
 // Puts a component's object in the page. A Window is told what it was put
 // in and with what `options`: it fills the element, or with
-// `{ fill: false }` gives it the size its QML says.
+// `{ fill: false }` gives it the size its QML says. With
+// `{ reloadable: true }` (the default in a dev server) `reload` can give it
+// a new component and keep its state.
 export function mount(Component, element, props = {}, options = {}) {
-  return createRoot((dispose) => {
-    const object = untrack(() => complete(() => Component(props)));
-    element.classList.add("q-scene");
-    if (object.$node) element.append(object.$node);
-    object.$mounted?.(element, options);
-    return { object, dispose };
-  });
+  const reloadable = options.reloadable ?? hot;
+  const root = made(Component, props, reloadable);
+  element.classList.add("q-scene");
+  if (root.object.$node) element.append(root.object.$node);
+  root.within(() => root.object.$mounted?.(element, options));
+  if (!reloadable) return root;
+  const handle = { object: root.object, Component, element, props, options, root };
+  handle.dispose = () => {
+    mounted.delete(handle);
+    handle.root.dispose();
+  };
+  mounted.add(handle);
+  return handle;
 }
 
 // What a component declares, put on its root object so that it can be
