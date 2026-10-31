@@ -335,6 +335,26 @@ does not allow reading it, a WebGL canvas that does not keep its drawing, a
 frame) refuses the picture by name instead of leaving it out. Its code,
 `ljos-web/picture`, is loaded only when a picture is asked for (A17).
 
+## Types written in Rust
+
+A program's Rust types, as its `ljostypes.json` describes them, stand in when
+QML is previewed without the program (docs/LJOS_WEB.md, A18): each is a type
+with the dump's properties, enums and signals, and methods that do nothing.
+
+```sh
+cargo run --bin qmlc -- --types ljostypes.json --root . Main.qml   # repeatable
+```
+
+```js
+qml({ qmlc, root: "app" });                         // every ljostypes.json under app
+qml({ qmlc, types: ["rust/ljostypes.json"] });       // or the ones named
+await compile({ files, entry: "Main.qml", aliases: [], types: ["native/ljostypes.json"] });
+```
+
+A dump that does not read stops the compile with the reason, and a member a
+described type does not have is an error where it is written. A mock of the
+same type (`-I mocks`) or the project's own QML wins. A site build takes none.
+
 ## What is supported
 
 Of the language: property declarations (with `required`, `readonly`,

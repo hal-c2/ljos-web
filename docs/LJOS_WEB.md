@@ -922,6 +922,48 @@ pixels), and a picture is of what the page shows, so a field that hides
 its text is pictured as the page hides it, with no secrets painted over
 (`--mcp-redact`).
 
+### A18. Types written in Rust, standing in
+
+A program that registers types from Rust describes them in
+`ljostypes.json` (format 2), which native `ljos types` writes. Natively,
+`ljos run --types` makes a stand-in of each: a QML type with the dump's
+properties at their defaults, its enums, its signals, and methods that
+do nothing, so the project's QML previews with no Rust behind it.
+`qmlc --types FILE.json` (repeatable) does the same, and so do the Vite
+plugin (`types`, a list or a function of the file) and `ljos-web/compiler`
+(`types` among `{ files, entry, aliases }`). Without one named, the
+plugin reads every `ljostypes.json` under the project's root (its
+`--root`), and the in-page compiler every one among its files; the dumps
+read run as one. A dump that does not read stops the compile with its
+`file:line:column` and the reason; nothing is drawn from the others.
+
+With the types known, a member a type does not have is a compile error
+where it is written, in native Ljós's words: `` `volum` is not a
+property of `Player` ``, `` `onEnded` handles the signal `ended`, which
+`Player` does not have ``, `` `font.weigth`: `font` has no property
+`weigth` ``. Types whose members are not all known (a module that is not
+described) are not checked.
+
+- DECISION: stand-ins are never written to disk. They live under a
+  virtual `.ljostypes` directory of the root, which qmlc and the plugin
+  resolve, so a project's tree is the one its author wrote.
+- DECISION: a project's own QML or a mock (`-I mocks`) of the same
+  module and type wins over a dump's, as natively in the mocked state.
+- DECISION: every `ljostypes.json` under the root, not only the root's
+  own (which is all native reads): a project made of crates has one per
+  crate. Dot, `+` and `node_modules` directories are not looked in.
+- DECISION: `--types` names a dump only when its argument ends in
+  `.json`; otherwise it is the old `--types MODULE` (Qt's C++ types of a
+  module).
+- DECISION: a site build (`buildSite`) takes no dumps and still refuses
+  `ljostypes.json`: stand-ins are for previewing, and a built site has
+  the real types or none.
+- DECISION: an edit to a dump is followed as the dev server follows any
+  file a compile read; the dumps are walked again on each compile, which
+  is a cost on a very large root.
+- DECISION: what is given a stand-in is ordinary state: it shows at
+  once, as any property's change does.
+
 ## Part II — An application's own Rust types
 
 ## 1. The shape of a native type on the web
