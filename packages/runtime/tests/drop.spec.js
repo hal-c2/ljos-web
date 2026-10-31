@@ -209,6 +209,87 @@ test.describe("A binding that runs away", () => {
   });
 });
 
+test.describe("Each use of a block is its own", () => {
+  test.beforeEach(({ page }) => page.addInitScript(() => localStorage.clear()));
+  const cards = (page) =>
+    page.evaluate(() => {
+      const found = new Set();
+      const walk = (from) => {
+        for (const child of from.children ?? []) {
+          if (child.objectName === "card") found.add(child);
+          walk(child);
+        }
+      };
+      walk(window.scene);
+      return [...found].map((card) => card.hits);
+    });
+
+  test("A site's unnamed uses and a Repeater's delegates stay apart", async ({ page }) => {
+    await opened(page);
+    expect(await cards(page)).toHaveLength(4);
+    const delegates = await page.evaluate(() => {
+      const repeater = window.named("cards").children.find((child) => child.itemAt);
+      const [first, second] = [repeater.itemAt(0), repeater.itemAt(1)];
+      return { apart: first !== second, named: first.objectName, shown: first.$node.isConnected, below: second.y > first.y };
+    });
+    expect(delegates).toEqual({ apart: true, named: "card", shown: true, below: true });
+  });
+
+  test("Unnamed uses in a dropped shell stay apart, and keep what each held", async ({ page }) => {
+    await opened(page);
+    const shell = `import QtQuick
+import Shop
+
+Column {
+    objectName: "mine"
+    Card { id: first }
+    Card { id: second }
+    Card {}
+    Card {}
+    MouseArea { objectName: "tap"; onClicked: { first.hit(); second.hit(); second.hit() } }
+}
+`;
+    await dropped(page, shell);
+    expect(await cards(page)).toHaveLength(4);
+    await page.evaluate(() => {
+      window.named("tap").clicked({ x: 0, y: 0 });
+      window.flush();
+    });
+    const hits = await cards(page);
+    expect(hits.toSorted()).toEqual([0, 0, 1, 2]);
+    await dropped(page, shell);
+    expect((await cards(page)).toSorted()).toEqual([0, 0, 1, 2]);
+  });
+});
+
+test.describe("A visitor's shell is kept", () => {
+  test("A reload of the page shows the shell the visitor dropped", async ({ page }) => {
+    await page.goto("/drop.html");
+    await page.evaluate(() => localStorage.clear());
+    await opened(page);
+    await dropped(page, MINE);
+    await page.reload();
+    await opened(page);
+    expect(await read(page, "mine", "objectName")).toBe("mine");
+    await expect(page.getByRole("status")).toHaveText("Your shell is shown");
+  });
+
+  test("Reset shows the site's shell and forgets the visitor's", async ({ page }) => {
+    await page.goto("/drop.html");
+    await page.evaluate(() => localStorage.clear());
+    await opened(page);
+    await page.evaluate(() => window.named("basket").add());
+    await dropped(page, MINE);
+    await page.getByRole("button", { name: "Reset" }).click();
+    await page.evaluate(() => window.live.idle());
+    expect(await read(page, "label", "text")).toBe("Default 1");
+    expect(await page.evaluate(() => localStorage.length)).toBe(0);
+    await page.reload();
+    await opened(page);
+    expect(await read(page, "label", "text")).toBe("Default 0");
+  });
+});
+
 test.describe("The compiler is fetched when it is needed", () => {
   test.beforeEach(({ page }) => page.addInitScript(() => localStorage.clear()));
 

@@ -1420,6 +1420,9 @@ function complete(make) {
   return made;
 }
 
+// The object what is being made now is made inside.
+export const currentParent = () => parent;
+
 // Creates objects as children of `item`: `parent` is theirs from the start.
 export function inside(item, make) {
   const outer = parent;
@@ -2018,7 +2021,10 @@ export function instantiate(component, data, item, owner = item?.$owner ?? getOw
   return runWithOwner(owner, () =>
     createRoot((dispose) => {
       try {
-        const object = untrack(() => complete(() => inside(item ?? null, () => component(data))));
+        const declared = untrack(() => complete(() => inside(item ?? null, () => component(data))));
+        // A held block is made apart: what asked for an object wants it, not
+        // the note of where it is placed.
+        const object = declared?.$block ?? declared;
         // A view's row is what a reload knows its delegate by.
         if (object?.$born && typeof data?.$index === "number") hidden(object, "$row", data.$index);
         return { object, dispose };
