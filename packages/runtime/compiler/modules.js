@@ -11,6 +11,7 @@ export const modules = {
   "ljos-web/object": () => import("ljos-web/object"),
   "ljos-web/inspect": () => import("ljos-web/inspect"),
   "ljos-web/picture": () => import("ljos-web/picture"),
+  "ljos-web/live": () => import("ljos-web/live"),
   "ljos-web/files": () => import("ljos-web/files"),
   "ljos-web/reload": () => import("ljos-web/reload"),
   "ljos-web/theme": () => import("ljos-web/theme"),
