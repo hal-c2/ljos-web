@@ -1,0 +1,22 @@
+[package]
+name = "wasm-gauge"
+version = "0.0.0"
+edition = "2024"
+license = "MIT"
+publish = false
+description = "Native visual types in the browser, from the same source as on the desktop (docs/LJOS_WEB.md A22)"
+
+[workspace]
+
+[features]
+web = ["ljos/web"]
+# The desktop's picture of the same QML, for the browser's to be compared with.
+picture = ["ljos/render", "ljos/dev-qml", "dep:anyhow"]
+
+[dependencies]
+ljos = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "f8e705d4e206e45e20f04c5645e9e8a62f68317f", default-features = false }
+anyhow = { version = "1", optional = true }
+
+[[bin]]
+name = "picture"
+required-features = ["picture"]
