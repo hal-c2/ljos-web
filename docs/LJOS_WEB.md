@@ -147,11 +147,23 @@ no application in it) and it is what an application's own wasm links,
 so there is **one wasm per page** — the kernel and the application's
 types in one module, never two instances of `ljos_reactive`.
 
-**How `qmlc` finds a module.** `qmlc [--root DIR] [--with DIR]...
-[--qt DIR]... FILE.qml` compiles a file with its project: the modules
-under `--root` (otherwise the nearest directory above the file whose
-`CMakeLists.txt` starts a project) and the stand-ins `--with` names. A
-module the file imports has to be installed, as it has to be for Qt: the
+**How `qmlc` finds a module.** `qmlc [--root DIR] [-I DIR]... [--with
+DIR]... [--qt DIR]... FILE.qml` compiles a file with its project: the
+modules under the import paths, which are those `-I` (`--import-path`)
+names in order and then `--root` (otherwise the nearest directory above
+the file whose `CMakeLists.txt` starts a project), and the stand-ins
+`--with` names. As Qt finds one, module `App.Media` is the `qmldir` at
+`App/Media/qmldir` under an import path, the first to have one: of
+`App/Media/qmldir` and `mocks/App/Media/qmldir`, both `module App.Media`,
+it is the first, unless `-I mocks` puts the second first. A `qmldir`
+under an import path (or the installed Qt's, below) out of its module's
+place is not that module, and when no other is, `qmlc` says so on stderr
+naming both. A stand-in's `qmldir` is at its module's place under its
+`--with` directory and adds to that module what the program has in C++.
+A `CMakeLists.txt` says what its modules are wherever it is. The Vite
+plugin takes the import paths as `importPaths` and the project's root as
+`root`, each a value or a function of the file compiled, so that every
+file of one project has one root. A module the file imports has to be installed, as it has to be for Qt: the
 project's, one of Qt's table (`qt_types`), one the runtime package
 exports (`packages/runtime/package.json`: `Qt.labs.settings`), or one of
 the Qt that is installed, a `qmldir` in its place under a directory

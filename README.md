@@ -48,6 +48,7 @@ cargo run --bin qmlc -- logic.js                  # a script a QML file imports,
 cargo run --bin qmlc -- --emit lowered File.qml   # the tree given to Solid, printed
 cargo run --bin qmlc -- --out-dir out *.qml
 cargo run --bin qmlc -- --root DIR File.qml       # where the project's modules are looked for
+cargo run --bin qmlc -- -I mocks File.qml         # an import path looked in before the root
 cargo run --bin qmlc -- --qt DIR File.qml         # where the installed Qt's modules are
 cargo run --bin qmlc -- --alone File.qml          # without the files next to it
 cargo run --bin qmlc -- --types QtQuick.Layouts   # the types Qt has of a module in C++

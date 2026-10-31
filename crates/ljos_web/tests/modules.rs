@@ -1,5 +1,6 @@
-//! Which modules a file may import: those of the project, of Qt, of the
-//! runtime and of the stand-ins. The fixtures are in `fixtures/modules`.
+//! Where `qmlc` finds the module a file imports: the `qmldir` at the
+//! module's place under an import path, the first to have one, as Qt finds
+//! it. The fixtures are in `fixtures/modules`.
 
 use std::{
     path::Path,
@@ -30,6 +31,43 @@ fn refused(args: &[&str]) -> String {
 #[track_caller]
 fn assert_contains(haystack: &str, needle: &str) {
     assert!(haystack.contains(needle), "expected to find\n  {needle}\nin\n{haystack}");
+}
+
+#[test]
+fn a_module_is_the_qmldir_at_its_place_under_the_root() {
+    // `mocks/App/Media/qmldir` says `module App.Media` too, but under the
+    // root it is in the place of `mocks.App.Media`.
+    let code = compiled(&["--root", "twice", "twice/Main.qml"]);
+    assert_contains(&code, r#"import Player from "./App/Media/Player.qml";"#);
+    // The root is where the file is when nothing says otherwise.
+    let code = compiled(&["twice/Main.qml"]);
+    assert_contains(&code, r#"import Player from "./App/Media/Player.qml";"#);
+}
+
+#[test]
+fn an_import_path_given_comes_before_the_root() {
+    let code = compiled(&["--root", "twice", "-I", "twice/mocks", "twice/Main.qml"]);
+    assert_contains(&code, r#"import Player from "./mocks/App/Media/Player.qml";"#);
+    let code = compiled(&["--root", "twice", "--import-path", "twice/mocks", "twice/Main.qml"]);
+    assert_contains(&code, r#"import Player from "./mocks/App/Media/Player.qml";"#);
+}
+
+#[test]
+fn of_the_import_paths_given_the_first_with_the_module_has_it() {
+    let code = compiled(&["--root", "twice", "-I", "twice/stubs", "-I", "twice/mocks", "twice/Main.qml"]);
+    assert_contains(&code, r#"import Player from "./stubs/App/Media/Player.qml";"#);
+    let code = compiled(&["--root", "twice", "-I", "twice/mocks", "-I", "twice/stubs", "twice/Main.qml"]);
+    assert_contains(&code, r#"import Player from "./mocks/App/Media/Player.qml";"#);
+}
+
+#[test]
+fn a_qmldir_out_of_its_modules_place_declares_nothing() {
+    // `Widgets/qmldir` says `module Gadgets`: Qt would look for it in
+    // `Gadgets/qmldir`, and finds none.
+    let messages = refused(&["--root", "misplaced", "misplaced/Main.qml"]);
+    assert_contains(&messages, "Widgets/qmldir");
+    assert_contains(&messages, "`Gadgets`");
+    assert_contains(&messages, "misplaced/Main.qml:2:1: module \"Gadgets\" is not installed");
 }
 
 #[test]

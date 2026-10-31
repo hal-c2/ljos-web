@@ -1,4 +1,4 @@
-//! `qmlc [--emit js|lowered] [--out-dir DIR] [--root DIR] [--with DIR]... [--qt DIR]... [--select NAME]... [--host MODULE] [--runtime MODULE] [--alone] FILE.qml...`
+//! `qmlc [--emit js|lowered] [--out-dir DIR] [--root DIR] [-I DIR]... [--with DIR]... [--qt DIR]... [--select NAME]... [--host MODULE] [--runtime MODULE] [--alone] FILE.qml...`
 //! `qmlc --types|--qml-types URI...`
 //!
 //! Compiles each QML file to a JavaScript module, and each `.js` file as the
@@ -7,7 +7,10 @@
 //! names are and where it is used, and with the modules of the project it
 //! is in: what the `qmldir` and `CMakeLists.txt` files under `--root` say
 //! they are. Without `--root` that is the nearest directory above the file
-//! whose `CMakeLists.txt` starts a project. `--with` names a directory with
+//! whose `CMakeLists.txt` starts a project. `-I` (`--import-path`) names a
+//! directory looked in for a module before the root, as Qt's import path:
+//! module `App.Media` is the `qmldir` at `App/Media` under the first that
+//! has one, so that `-I mocks` makes it `mocks/App/Media`. `--with` names a directory with
 //! more of the project's modules, described by `qmldir` files likewise: the
 //! QML that stands in for the types a program has in C++, where there is no
 //! C++. `--select` names a file selector, as Qt has them: the style of the
@@ -145,37 +148,92 @@ fn relative(from: &Path, to: &Path) -> String {
     parts.join("/")
 }
 
-/// Adds the modules of the project under `root`, their files by the path
-/// from `base`: the directory of the file being compiled. With `standing`
-/// they stand in for types the program has in C++.
-fn modules(project: &mut Project, root: &Path, base: &Path, standing: bool) {
-    let mut found = Vec::new();
-    descriptions(root, &mut found);
-    found.sort();
-    for description in found {
-        let Ok(text) = std::fs::read_to_string(&description) else { continue };
-        let directory = description.parent().unwrap_or(root);
-        let modules = if description.ends_with("qmldir") {
-            discover::qmldir(&text).into_iter().collect()
-        } else {
-            discover::cmake(&text)
-        };
-        for module in modules {
-            project.add_module(&module.uri);
-            for ty in module.types {
-                let Ok(file) = directory.join(&ty.path).canonicalize() else { continue };
-                let path = relative(base, &file);
-                let Some(key) = path.strip_suffix(".qml") else { continue };
-                if !project.has(key) {
-                    let Ok(source) = read(&file) else { continue };
-                    if project.add(key, &source).is_err() {
-                        continue;
-                    }
+/// Adds the modules of the project, their files by the path from `base`:
+/// the directory of the file being compiled. The modules are what the
+/// `qmldir` and `CMakeLists.txt` files under the import `paths` and the
+/// stand-ins' directories `with` say; a stand-in's types stand in for ones
+/// the program has in C++. A `qmldir` is its module's only at the module's
+/// place under one of those directories or the installed Qt's `qt`
+/// (`App/Media/qmldir` for `App.Media`), and of two under import paths the
+/// one under the earlier is, as Qt looks in its import path: the import
+/// paths in order, then Qt's. A stand-in's adds to the module what it has in
+/// C++, wherever the rest of it is. A build's file says what its modules are
+/// wherever it is.
+fn modules(project: &mut Project, paths: &[PathBuf], with: &[PathBuf], qt: &[PathBuf], base: &Path) {
+    let lots: Vec<(&Path, bool)> =
+        paths.iter().map(|path| (path.as_path(), false)).chain(with.iter().map(|path| (path.as_path(), true))).collect();
+    // Qt's are places but not looked through: a file of one of its modules
+    // is compiled with the module it is in, not with all of Qt.
+    let places: Vec<(&Path, bool)> = lots.iter().copied().chain(qt.iter().map(|path| (path.as_path(), false))).collect();
+    // Each module described, with the directory its files are named from,
+    // whether it stands in, and the rank of the place its `qmldir` is at.
+    let mut described = Vec::new();
+    let mut misplaced = Vec::new();
+    let mut read_qmldirs = HashSet::new();
+    for &(lot, standing) in &lots {
+        let mut found = Vec::new();
+        descriptions(lot, &mut found);
+        found.sort();
+        for description in found {
+            let directory = description.parent().unwrap_or(lot).to_path_buf();
+            if description.ends_with("CMakeLists.txt") {
+                let Ok(text) = std::fs::read_to_string(&description) else { continue };
+                described.extend(discover::cmake(&text).into_iter().map(|module| (module, directory.clone(), standing, None)));
+                continue;
+            }
+            // A directory under two import paths has one place.
+            if !read_qmldirs.insert(description.clone()) {
+                continue;
+            }
+            let Ok(text) = std::fs::read_to_string(&description) else { continue };
+            let Some(module) = discover::qmldir(&text) else { continue };
+            let place = module.uri.replace('.', "/");
+            match places.iter().position(|(place_root, _)| place_root.join(&place) == directory) {
+                Some(rank) => {
+                    let standing = places[rank].1;
+                    described.push((module, directory, standing, (!standing).then_some(rank)));
                 }
-                project.add_type(&module.uri, &ty.name, key);
-                if standing {
-                    project.stand_in(key);
+                None => misplaced.push((description, module.uri)),
+            }
+        }
+    }
+    let mut first = std::collections::HashMap::new();
+    for (module, _, _, rank) in &described {
+        if let Some(rank) = rank {
+            let best = first.entry(module.uri.clone()).or_insert(*rank);
+            *best = (*best).min(*rank);
+        }
+    }
+    // One out of its place whose module is found elsewhere is another
+    // import path's (`mocks/App/Media` when `mocks` is not one): only one
+    // whose module is nowhere is worth a word.
+    for (description, uri) in misplaced {
+        if !described.iter().any(|(module, ..)| module.uri == uri) {
+            let place = uri.replace('.', "/");
+            eprintln!(
+                "warning: {} says it is module `{uri}`, but is not `{place}/qmldir` under an import path, so it is not that module",
+                description.display()
+            );
+        }
+    }
+    for (module, directory, standing, rank) in described {
+        if rank.is_some_and(|rank| first.get(&module.uri) != Some(&rank)) {
+            continue;
+        }
+        project.add_module(&module.uri);
+        for ty in module.types {
+            let Ok(file) = directory.join(&ty.path).canonicalize() else { continue };
+            let path = relative(base, &file);
+            let Some(key) = path.strip_suffix(".qml") else { continue };
+            if !project.has(key) {
+                let Ok(source) = read(&file) else { continue };
+                if project.add(key, &source).is_err() {
+                    continue;
                 }
+            }
+            project.add_type(&module.uri, &ty.name, key);
+            if standing {
+                project.stand_in(key);
             }
         }
     }
@@ -204,7 +262,7 @@ fn kept(project: &mut Project, root: &Path, base: &Path) {
 /// where the components it names are and where it is used, and the ones in
 /// the directories any of them imports. One that does not parse is left out
 /// here and reported when it is compiled itself.
-fn project(path: &Path, project_root: Option<&Path>, with: &[PathBuf]) -> Project {
+fn project(path: &Path, project_root: Option<&Path>, imports: &[PathBuf], with: &[PathBuf], qt: &[PathBuf]) -> Project {
     let mut project = Project::new();
     let root = match path.parent() {
         Some(parent) if !parent.as_os_str().is_empty() => parent,
@@ -212,13 +270,16 @@ fn project(path: &Path, project_root: Option<&Path>, with: &[PathBuf]) -> Projec
     };
     if let (Ok(base), Ok(path)) = (root.canonicalize(), path.canonicalize()) {
         let project_root = project_root.map_or_else(|| self::project_root(&path), Path::to_path_buf);
-        if let Ok(project_root) = project_root.canonicalize() {
-            modules(&mut project, &project_root, &base, false);
+        // The import paths given come before the project's root.
+        let project_root = project_root.canonicalize().ok();
+        let paths: Vec<PathBuf> =
+            imports.iter().filter_map(|path| path.canonicalize().ok()).chain(project_root.clone()).collect();
+        let with: Vec<PathBuf> = with.iter().filter_map(|more| more.canonicalize().ok()).collect();
+        let qt: Vec<PathBuf> = qt.iter().filter_map(|path| path.canonicalize().ok()).collect();
+        modules(&mut project, &paths, &with, &qt, &base);
+        if let Some(project_root) = project_root {
             // A program's files are one lot, whichever part names one.
             kept(&mut project, program_root(&project_root), &base);
-        }
-        for more in with.iter().filter_map(|more| more.canonicalize().ok()) {
-            modules(&mut project, &more, &base, true);
         }
     }
     // A file's key is its path from the compiled file's directory, without
@@ -293,6 +354,7 @@ fn main() -> ExitCode {
     let mut types = None;
     let mut out_dir = None;
     let mut root = None;
+    let mut imports = Vec::new();
     let mut with = Vec::new();
     let mut qt = Vec::new();
     let mut selectors = Vec::new();
@@ -304,6 +366,7 @@ fn main() -> ExitCode {
             "--emit" => lowered = value("--emit") == "lowered",
             "--out-dir" => out_dir = Some(value("--out-dir")),
             "--root" => root = Some(PathBuf::from(value("--root"))),
+            "-I" | "--import-path" => imports.push(PathBuf::from(value(&arg))),
             "--with" => with.push(PathBuf::from(value("--with"))),
             "--qt" => qt.push(PathBuf::from(value("--qt"))),
             "--select" => selectors.push(value("--select")),
@@ -350,7 +413,7 @@ fn main() -> ExitCode {
         let stem = path.file_stem().and_then(|stem| stem.to_str()).unwrap_or("Component");
         let is_script = path.extension().is_some_and(|extension| extension == "js");
         options.name = stem.to_string();
-        options.project = (!alone && !is_script).then(|| project(path, root.as_deref(), &with));
+        options.project = (!alone && !is_script).then(|| project(path, root.as_deref(), &imports, &with, &options.qt_imports));
         let directory = match path.parent() {
             Some(parent) if !parent.as_os_str().is_empty() => parent,
             _ => Path::new("."),

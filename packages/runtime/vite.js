@@ -237,7 +237,14 @@ function exported(context, file, names = new Set(), seen = new Set()) {
 // - `standins`: directories of QML modules, each with its `qmldir`, that
 //   stand in for the types a program has in C++, where there is no C++: or
 //   a function of the file compiled that gives them.
-export default function qml({ qmlc = "qmlc", args = [], qt, style, controls, standins = [] } = {}) {
+// - `root`: the directory of the project, whose modules are the `qmldir`
+//   and `CMakeLists.txt` files under it: or a function of the file compiled
+//   that gives it. Otherwise each file's is the nearest directory above it
+//   whose `CMakeLists.txt` starts a project, or its own.
+// - `importPaths`: directories looked in for a module before the root, as
+//   Qt's `-I` (`mocks`, so that `App.Media` is `mocks/App/Media`), the first
+//   to have it deciding: or a function of the file compiled that gives them.
+export default function qml({ qmlc = "qmlc", args = [], qt, style, controls, standins = [], root, importPaths = [] } = {}) {
   let asked;
   const found = () => (asked ??= installed());
   const elsewhere = process.env.QML_IMPORT_PATH?.split(delimiter) ?? [];
@@ -256,6 +263,8 @@ export default function qml({ qmlc = "qmlc", args = [], qt, style, controls, sta
   const styled = (importer) =>
     (typeof style === "function" ? style(importer) : style) ?? set(importer)?.Controls?.Style?.replace(/^Default$/, "Basic");
   const stood = (file) => (typeof standins === "function" ? standins(file) : standins) ?? [];
+  const rooted = (file) => (typeof root === "function" ? root(file) : root);
+  const looked = (file) => (typeof importPaths === "function" ? importPaths(file) : importPaths) ?? [];
   const compiled = new Map();
   let cache = join(runtime, "node_modules/.vite/ljos-web");
   // The pictures of a module, by what its QML names them: next to the QML
@@ -531,8 +540,11 @@ export default function qml({ qmlc = "qmlc", args = [], qt, style, controls, sta
       if (own && compiled.has(file)) return { code: compiled.get(file), map: null };
       // Where Qt's modules are is told, so that a module of the installed
       // Qt's is one `qmlc` knows to be installed.
+      const project = rooted(file);
       const given = [
         ...(typeof args === "function" ? args(file) : args),
+        ...(project ? ["--root", project] : []),
+        ...looked(file).flatMap((directory) => ["-I", directory]),
         ...more.flatMap((directory) => ["--with", directory]),
         ...roots.flatMap((root) => ["--qt", root]),
         ...(selector ? ["--select", selector] : []),
