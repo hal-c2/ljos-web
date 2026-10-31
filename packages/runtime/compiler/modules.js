@@ -11,6 +11,7 @@ export const modules = {
   "ljos-web/object": () => import("ljos-web/object"),
   "ljos-web/inspect": () => import("ljos-web/inspect"),
   "ljos-web/picture": () => import("ljos-web/picture"),
+  "ljos-web/files": () => import("ljos-web/files"),
   "ljos-web/reload": () => import("ljos-web/reload"),
   "ljos-web/theme": () => import("ljos-web/theme"),
   "ljos-web/QtQuick": () => import("ljos-web/QtQuick"),
@@ -56,4 +57,5 @@ export const modules = {
   "ljos-web/Qt/labs/folderlistmodel": () => import("ljos-web/Qt/labs/folderlistmodel"),
   "ljos-web/Qt/labs/synchronizer": () => import("ljos-web/Qt/labs/synchronizer"),
   "ljos-web/Qt/labs/qmlmodels": () => import("ljos-web/Qt/labs/qmlmodels"),
+  "ljos-web/Ljos/Models": () => import("ljos-web/Ljos/Models"),
 };

@@ -10,6 +10,11 @@
       ]
     },
     {
+      "module": "Ljos.Models",
+      "from": "runtime",
+      "needs": []
+    },
+    {
       "module": "Qt.labs.folderlistmodel",
       "from": "runtime",
       "needs": []
