@@ -122,6 +122,19 @@ test.describe("A visitor drops a shell of their own", () => {
   });
 });
 
+test.describe("A block is its module's", () => {
+  test.beforeEach(({ page }) => page.addInitScript(() => localStorage.clear()));
+
+  // Shell.qml's Shop Basket and Later.qml's Cart Basket share a name and
+  // an id; each is held apart all the same.
+  test("A block of a name and id another module's block has is its own", async ({ page }) => {
+    await opened(page);
+    expect(await read(page, "later", "kind")).toBe("set aside");
+    expect(await read(page, "later", "count")).toBeUndefined();
+    expect(await read(page, "basket", "count")).toBe(0);
+  });
+});
+
 test.describe("A shell names only what is in its scope", () => {
   test.beforeEach(({ page }) => page.addInitScript(() => localStorage.clear()));
 

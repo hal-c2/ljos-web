@@ -9,6 +9,7 @@ Column {
         id: basket
         objectName: "basket"
     }
+    Later {}
     Text {
         objectName: "label"
         text: "Default " + basket.count

@@ -28,21 +28,26 @@ const isScript = (id) => {
 const runtime = import.meta.dirname;
 const natives = () => JSON.parse(readFileSync(join(runtime, "package.json"), "utf8")).exports;
 
-// Whether a QML file is a block: its qmldir has a `# block` line naming
-// it (ljos-ui ADR 0003).
+// The block a QML file is, as `Module/Name`, if its qmldir has a `# block`
+// line naming it (ljos-ui ADR 0003). The module tells apart two blocks of
+// one name.
 const blockOf = (file) => {
   const qmldir = join(dirname(file), "qmldir");
-  if (!existsSync(qmldir)) return false;
+  if (!existsSync(qmldir)) return null;
   const name = basename(file);
-  return readFileSync(qmldir, "utf8")
-    .split("\n")
-    .some((line) => /^#\s*block\s/.test(line) && line.trim().replace(/^#\s*block\s+/, "").split(/\s+/)[2] === name);
+  const lines = readFileSync(qmldir, "utf8").split("\n");
+  const block = lines
+    .map((line) => line.trim())
+    .find((line) => /^#\s*block\s/.test(line) && line.replace(/^#\s*block\s+/, "").split(/\s+/)[2] === name);
+  if (!block) return null;
+  const module = lines.map((line) => /^\s*module\s+(\S+)/.exec(line)?.[1]).find(Boolean) ?? "";
+  return `${module}/${block.replace(/^#\s*block\s+/, "").split(/\s+/)[0]}`;
 };
 
 // A block of a page with a live shell is held (`Ljos/Blocks/held.js`).
-const held = (code, component) =>
+const held = (code, component, block) =>
   code.replace(new RegExp(`^export default function ${component.replaceAll("$", "\\$")}\\(`, "m"), () => `function ${component}(`) +
-  `\nimport { $held as $$held } from ${JSON.stringify(join(runtime, "Ljos/Blocks/held.js"))};\nexport default $$held(${component});\n`;
+  `\nimport { $held as $$held } from ${JSON.stringify(join(runtime, "Ljos/Blocks/held.js"))};\nexport default $$held(${component}, ${JSON.stringify(block)});\n`;
 
 // `ljos-web/QtQuick/Controls`: a module of Qt's, not `ljos-web/object`.
 const MODULE = /^ljos-web\/(Qt[\w/]*)$/;
@@ -857,7 +862,8 @@ export default function qml({
       const component = !own && /^export default (?:function\s+|class\s+)?([A-Za-z_$][\w$]*)/m.exec(code)?.[1];
       if (!component) return { code, map: null };
       const live = typeof liveShell === "function" ? liveShell(file) : liveShell;
-      if (live && blockOf(file)) code = held(code, component);
+      const block = live && blockOf(file);
+      if (block) code = held(code, component, block);
       // What a dropped shell is compiled against: the blocks the entry
       // uses, as their qmldir says, and their components.
       if (live && entries.has(file)) {

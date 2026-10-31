@@ -42,10 +42,12 @@ const Placed = defineType("Placed", QtObject, {
 
 const instances = new Map();
 
-// What a block's compiled component is for a page with a live shell.
-export function $held(Block) {
+// What a block's compiled component is for a page with a live shell. `name`
+// is the block's `Module/Name`: its function's name is only its file's, which
+// a block of another module may share.
+export function $held(Block, name) {
   function Held(props) {
-    const key = `${Block.name}#${props.$self?.$id ?? props.objectName ?? ""}`;
+    const key = `${name}#${props.$self?.$id ?? props.objectName ?? ""}`;
     let block = instances.get(key);
     if (!block) instances.set(key, (block = instantiate(Block, {}, null, null).object));
     hide(block, "$held", Block);
