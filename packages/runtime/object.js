@@ -378,6 +378,12 @@ export function gather(work) {
   }
 }
 
+// A value an object holds that a program reads the members of, as a node's
+// `position`, is that object's still in the program's hands: `p.x` is what
+// the node has now. What a property is given of it, by an assignment or a
+// binding, is the value as it was then (`$copy`), as in Qt.
+const own = (value) => (value !== null && typeof value === "object" && typeof value.$copy === "function" ? value.$copy() : value);
+
 // A binding that cannot be evaluated, as `game.over` before there is a
 // game, is told of and leaves the property what it was: QML's rule, which
 // programs written for it lean on. Only what asking too much of a value
@@ -406,7 +412,7 @@ function guarded(key, compute, pure = true, self) {
     guard.failing = false;
     const before = early;
     try {
-      return (last = compute());
+      return (last = own(compute()));
     } catch (error) {
       if (!(error instanceof TypeError)) {
         // Under a boundary it is the boundary's; a binding's throw would
@@ -912,7 +918,7 @@ class Slot {
   // An assignment: it replaces the binding, as in QML, and what depends on
   // the property is up to date when it returns.
   set(value) {
-    if (this.write(value)) settle();
+    if (this.write(own(value))) settle();
   }
 
   // The same without settling what depends on it: for a type's own writes,
