@@ -103,7 +103,7 @@ mount(Main, document.getElementById("app"));
 ```
 
 A page may also compile QML as it runs, from texts it has, with
-`ljos-web/compiler` (docs/LJOS_WEB.md A13). Nothing of the compiler is
+`ljos-web/compiler` (docs/LJOS_WEB.md A15). Nothing of the compiler is
 fetched until the first compile:
 
 ```js
