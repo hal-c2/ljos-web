@@ -5,7 +5,7 @@
 // with the popup's `background` and `contentItem`: it is in the overlay while
 // the popup is open and nowhere otherwise. Most of what a popup is asked, its
 // size, its padding, its font, is that item's, and is kept there.
-import { createSignal, onCleanup, runWithOwner, untrack } from "solid-js";
+import { onCleanup, runWithOwner } from "solid-js";
 import { defineType, derived, effect, group, inside, instantiate, last, QtObject, settle, signal, slot, whenComplete } from "../../object.js";
 import { STOPPED } from "../animation/jobs.js";
 import { Property } from "../animation/property.js";
@@ -25,8 +25,8 @@ import { AllButtons, buttonOf, Key, RightButton, ShiftModifier } from "../keycod
 import { gone, hoverable, overhear, receive, wheels } from "../pointer.js";
 import { windowOf } from "../Window.js";
 import { Page } from "./Pane.js";
+import { signal as graphed, untrack } from "#kernel";
 
-const WRITABLE = { ownedWrite: true };
 const NONE = Object.freeze([]);
 
 // `Qt.PopupFocusReason`.
@@ -121,7 +121,7 @@ export function overlayOf(item) {
 // Qt's overlay is there to see while its window has one, and they are asked
 // of every press that is on nothing of the overlay's.
 const edged = new Set();
-const [edges, setEdges] = createSignal(0, WRITABLE);
+const [edges, setEdges] = graphed(0);
 
 export function edge(popup) {
   edged.add(popup);
@@ -1078,8 +1078,8 @@ export const Popup = defineType("Popup", QtObject, {
       scale: 1,
       opacity: 1,
     });
-    [self.$placing, self.$setPlacing] = createSignal(false, WRITABLE);
-    [self.$dimmer, self.$setDimmer] = createSignal(null, WRITABLE);
+    [self.$placing, self.$setPlacing] = graphed(false, self.$owner);
+    [self.$dimmer, self.$setDimmer] = graphed(null, self.$owner);
     // `opened` is the property; the signal of that name is kept apart.
     self.$opened = signal(() => untrack(() => props.onOpened));
     making = self;

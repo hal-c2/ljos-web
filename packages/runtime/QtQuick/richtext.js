@@ -2,11 +2,11 @@
 // string made at run time, often from data, so it is never given to the page
 // as it is: it is parsed apart from it, and the elements Qt knows are built
 // again with nothing in them that loads a script or leaves the page.
-import { createSignal } from "solid-js";
 import { css } from "./color.js";
 import { rules } from "./compute.js";
 import { dress, fonts, metrics, resized } from "./font.js";
 import { flush } from "../object.js";
+import { signal } from "#kernel";
 
 // Qt's line is its font's height rounded up, which CSS computes per element
 // from `--qq-line`. Headings and `<font size>` scale as Qt's do; paragraphs
@@ -241,7 +241,7 @@ export function clothe(element, look) {
 // Counted up when a picture inside some markup arrives: what was measured
 // around it is measured again. Once for each picture: measuring makes the
 // elements anew, and theirs load again, from the browser's cache.
-const [pictures, setPictures] = createSignal(0, { ownedWrite: true });
+const [pictures, setPictures] = signal(0);
 const arrived = new Set();
 
 function awaited(image) {

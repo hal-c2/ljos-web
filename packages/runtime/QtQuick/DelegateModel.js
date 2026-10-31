@@ -5,9 +5,10 @@
 // groups, by which rows are kept out of a view or put in another order
 // than the model's, are not done: every row is in `items`, in the model's
 // order, and in no other group.
-import { runWithOwner, untrack } from "solid-js";
+import { runWithOwner } from "solid-js";
 import { defineType, derived, QtObject } from "../object.js";
 import { modelIndex, modelOf, size } from "./model.js";
+import { untrack } from "#kernel";
 
 const count = (model) => (model && typeof model === "object" && !Array.isArray(model) && "count" in model ? Number(model.count) || 0 : size(model));
 

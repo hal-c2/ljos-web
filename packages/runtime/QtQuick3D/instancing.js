@@ -12,18 +12,17 @@
 //
 // Not here: the bounds a table gives its shadows, and the `.bin` file Qt
 // reads instead of an XML one that has one beside it, which says the same.
-import { createSignal } from "solid-js";
 import { defineType, derived, effect, located } from "../object.js";
 import { Quaternion, Vector3d, Vector4d } from "../QtQml/values.js";
 import { color, colorValue, rgba } from "../QtQuick/color.js";
 import * as math from "./math.js";
 import { kept, Object3D } from "./Node.js";
 import { file, linear } from "./scene.js";
+import { signal } from "#kernel";
 
 // How many numbers an entry is.
 export const ENTRY = 20;
 
-const WRITABLE = { ownedWrite: true };
 const NOTHING = new Float32Array(0);
 const ORIGIN = [0, 0, 0];
 
@@ -127,7 +126,7 @@ export const InstanceListEntry = defineType("InstanceListEntry", Object3D, {
     self.$instance = true;
     // An entry is turned by its angles, or by `rotation` where that was
     // what it was given last.
-    const [angled, setAngled] = createSignal(!("rotation" in props) || "eulerRotation" in props, WRITABLE);
+    const [angled, setAngled] = signal(!("rotation" in props) || "eulerRotation" in props, self.$owner);
     self.$angled = setAngled;
     self.$turn = () => {
       if (angled()) return math.fromEuler(...three(self.eulerRotation));

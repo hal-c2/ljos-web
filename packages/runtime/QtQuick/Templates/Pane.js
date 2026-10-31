@@ -1,9 +1,9 @@
 // Pane, and what is one with something added: Frame, GroupBox, Page and
 // ToolBar. What is declared in a pane is in its content item.
-import { untrack } from "solid-js";
 import { contents, defineType, derived, effect, inside, slot, whenComplete } from "../../object.js";
 import { Item } from "../Item.js";
 import { Control, keeps } from "./Control.js";
+import { untrack } from "#kernel";
 
 // What the content would like to be: what the content item says, or with
 // one item in it and nothing said, that item.

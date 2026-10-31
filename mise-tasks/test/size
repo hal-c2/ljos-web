@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+#MISE description="A QtQuick page's JS and wasm against the budget, on both kernels"
+#MISE depends=["build:kernel", "packages"]
+set -euo pipefail
+
+# Made absolute before the cd, as CARGO_TARGET_DIR may be either.
+out="$(realpath -m "${CARGO_TARGET_DIR:-target}/size")"
+cd packages/runtime
+LJOS_SIZE_OUT="$out/solid" pnpm exec vite build -c size/vite.config.js
+LJOS_KERNEL=wasm LJOS_SIZE_OUT="$out/wasm" pnpm exec vite build -c size/vite.config.js
+node size/check.js "$out/solid" "$out/wasm"

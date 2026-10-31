@@ -5,7 +5,7 @@
 // is comes from one layout, Qt's own: the legend takes a side, the axes
 // what their labels need of what is left, and the series the rest. An
 // effect each draws them again when something they are drawn from changes.
-import { runWithOwner, untrack } from "solid-js";
+import { runWithOwner } from "solid-js";
 import { defineType, derived, effect, group, onChange, QtObject, slot, whenComplete } from "../object.js";
 import { colorValue, css } from "../QtQuick/color.js";
 import { lazy, rules } from "../QtQuick/compute.js";
@@ -15,6 +15,7 @@ import { Rect } from "../QtQml/values.js";
 import { BarCategoryAxis, BOTTOM, HORIZONTAL, LEFT, RIGHT, scaled, TOP, ValueAxis, VERTICAL } from "./axes.js";
 import { box, draw, fontNamed, label, line, oval, svg, tall, truncated, wide, window } from "./plot.js";
 import { bar, plotted, themeBars, themeLine, XYSeries } from "./series.js";
+import { untrack } from "#kernel";
 
 // What is drawn outside a chart does not show.
 rules(`.qq-chart { overflow: hidden; }`);

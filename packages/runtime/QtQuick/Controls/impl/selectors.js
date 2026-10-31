@@ -12,12 +12,11 @@
 // Qt looks in a folder for the files there are. A page has no folders to
 // look in: a file is there if the build said so (`resources`), as it does of
 // the pictures a style of Qt's keeps in its plugin.
-import { createSignal, onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { defineType, derived, QtObject, resources, whenComplete } from "../../../object.js";
 import { lazy } from "../../compute.js";
 import { Property } from "../../animation/property.js";
-
-const WRITABLE = { ownedWrite: true };
+import { signal, untrack } from "#kernel";
 
 // `:/folder/file` is how Qt names a file of its resources, and
 // `qrc:/folder/file` what it is known by.
@@ -141,11 +140,11 @@ export const ImageSelector = defineType("ImageSelector", QtObject, {
   },
   setup(self, props) {
     self.$extensions = PICTURE;
-    const [given, give] = createSignal(null, WRITABLE);
+    const [given, give] = signal(null, self.$owner);
     // What the property was given, once the selector is on it.
     self.$given = () => given()?.target() ?? "";
     // Nothing is chosen before the object is complete, as in Qt.
-    const [selects, select] = createSignal(false, WRITABLE);
+    const [selects, select] = signal(false, self.$owner);
     self.$chosen = lazy(
       self,
       () => {

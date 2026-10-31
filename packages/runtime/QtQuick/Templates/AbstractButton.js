@@ -2,7 +2,7 @@
 // finger or a key, and says so: `pressed`, `released`, `clicked`. One that
 // is checkable is toggled by a click, and of those that exclude each other
 // one is checked at a time. A style gives it what it looks like.
-import { onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { defineType, derived, effect, group, settle, signal, slot } from "../../object.js";
 import { styleHints } from "../../QtQml/application.js";
 import { PauseJob } from "../animation/jobs.js";
@@ -12,6 +12,7 @@ import { Key, LeftButton } from "../keycodes.js";
 import { after, cancel } from "../pointer.js";
 import { check, ICON, trigger, uses } from "./Action.js";
 import { Control, keeps, loose, put, within } from "./Control.js";
+import { untrack } from "#kernel";
 
 // The keys that click the button with focus. Qt asks the platform: Space and
 // Select everywhere, Return and Enter too on the desktops, as in a browser.

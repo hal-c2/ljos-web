@@ -5,7 +5,7 @@
 // asked about a press before that item is. What each makes of a press, a
 // move and a release is what Qt's does (`qquicktaphandler.cpp` and its
 // neighbours); who they are sent to is decided in pointer.js.
-import { createSignal, onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { defineType, derived, effect, group, QtObject, settle, slot } from "../object.js";
 import { itemToScene, origin, sceneToItem } from "./geometry.js";
 import { KeyboardModifierMask, LeftButton, NoButton } from "./keycodes.js";
@@ -28,9 +28,9 @@ import {
   watch,
   wheels,
 } from "./pointer.js";
+import { signal, untrack } from "#kernel";
 
 const DBL_MAX = Number.MAX_VALUE;
-const WRITABLE = { ownedWrite: true };
 const next = (version) => version + 1;
 const bound = (low, value, high) => Math.max(low, Math.min(high, value));
 
@@ -70,7 +70,7 @@ const POINTERS = { mouse: PointerDevice.Generic, touch: PointerDevice.Finger, pe
 // what reads it is told when the point moves.
 class HandlerPoint {
   constructor(tracked) {
-    const [read, bump] = tracked ? createSignal(0, WRITABLE) : [null, null];
+    const [read, bump] = tracked ? signal(0) : [null, null];
     this.$read = read;
     this.$bump = bump;
     this.$reset();

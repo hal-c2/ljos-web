@@ -13,11 +13,12 @@
 // body pushed before it was given a mass is pushed as the engine's own, of
 // mass 1, which is what one pushed in `Component.onCompleted` is when it
 // goes by the world's density.
-import { onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { defineType, derived, effect, inside as within, QtObject, settle, slot } from "../../object.js";
 import { Vector3d } from "../../QtQml/values.js";
 import * as math from "../math.js";
 import { Node } from "../Node.js";
+import { untrack } from "#kernel";
 
 // Every body there is, in a world or waiting for one.
 export const bodies = new Set();

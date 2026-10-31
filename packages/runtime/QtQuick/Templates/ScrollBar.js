@@ -1,13 +1,14 @@
 // ScrollBar: a handle that shows where a Flickable is in its content, and
 // that moves the content when it is dragged. What it does with a press, a
 // move and a release is what Qt's does (`qquickscrollbar.cpp`).
-import { onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { defineType, effect, QtObject, settle, slot } from "../../object.js";
 import { LeftButton } from "../keycodes.js";
 import { CancelGrabExclusive, cursorOf, drop, gone, hoverable, receive, UngrabExclusive } from "../pointer.js";
 import { Control } from "./Control.js";
 import { drive, reads } from "./driven.js";
 import { assignables, follows, Horizontal, inside, properties, resolve, same, setPosition, setup } from "./scrolling.js";
+import { untrack } from "#kernel";
 
 const NoSnap = 0;
 const SnapAlways = 1;

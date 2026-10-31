@@ -5,10 +5,11 @@
 // long a play lasts is counted on the clock, not asked of the browser: a
 // page that may not make sound yet plays it silently, and is as far along
 // as it would have been when the sound comes on.
-import { onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { defineType, effect, onChange, QtObject, settle, slot } from "../object.js";
 import { clock } from "../QtQuick/animation/clock.js";
 import { audible, whenAudible } from "./audible.js";
+import { untrack } from "#kernel";
 
 const NULL = 0;
 const LOADING = 1;

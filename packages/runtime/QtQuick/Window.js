@@ -8,13 +8,14 @@
 //
 // A Window is not an item. Its items are the children of its `contentItem`,
 // which is what `parent` is for them (as in Qt).
-import { createSignal, onCleanup, runWithOwner, untrack } from "solid-js";
+import { onCleanup, runWithOwner } from "solid-js";
 import { $string, contents, defineType, derived, effect, flush, inside, onChange, QtObject, slot } from "../object.js";
 import { application, listen, singleton } from "../QtQml/application.js";
 import { enums } from "../QtQml/namespace.js";
 import { colorValue, css } from "./color.js";
 import { toScene } from "./geometry.js";
 import { Item } from "./Item.js";
+import { signal, untrack } from "#kernel";
 
 const sheet = new CSSStyleSheet();
 sheet.replaceSync(`
@@ -108,7 +109,6 @@ const Minimized = 3;
 const Maximized = 4;
 const FullScreen = 5;
 
-const WRITABLE = { ownedWrite: true };
 const UNBOUNDED = 16777215;
 const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
 
@@ -328,12 +328,12 @@ export const Window = defineType("Window", QtObject, {
     else top(self).$node?.append(element);
     onCleanup(() => element.remove());
 
-    [self.$state, self.$setState] = createSignal(undefined, WRITABLE);
-    [self.$fill, self.$setFill] = createSignal(root, WRITABLE);
-    [self.$heldBy, self.$setHeldBy] = createSignal(null, WRITABLE);
-    [self.$roomWidth, self.$setRoomWidth] = createSignal(undefined, WRITABLE);
-    [self.$roomHeight, self.$setRoomHeight] = createSignal(undefined, WRITABLE);
-    [self.$data, self.$setData] = createSignal([], WRITABLE);
+    [self.$state, self.$setState] = signal(undefined, self.$owner);
+    [self.$fill, self.$setFill] = signal(root, self.$owner);
+    [self.$heldBy, self.$setHeldBy] = signal(null, self.$owner);
+    [self.$roomWidth, self.$setRoomWidth] = signal(undefined, self.$owner);
+    [self.$roomHeight, self.$setRoomHeight] = signal(undefined, self.$owner);
+    [self.$data, self.$setData] = signal([], self.$owner);
 
     const content = inside(null, () =>
       Item({

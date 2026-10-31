@@ -3,7 +3,6 @@
 // menu is the one that is open: with a menu open, the menu of whichever item
 // comes to be current opens in its place. MenuBarItem is the button those
 // items are, and what the bar's delegate makes for each Menu declared in it.
-import { untrack } from "solid-js";
 import { defineType, effect, inside, instantiate, settle, slot } from "../../object.js";
 import { forceActiveFocus, OtherFocusReason, setFocus } from "../focus.js";
 import { Key, LeftButton } from "../keycodes.js";
@@ -11,6 +10,7 @@ import { Shortcut } from "../Keys.js";
 import { AbstractButton } from "./AbstractButton.js";
 import { Container } from "./Container.js";
 import { Menu, mnemonic } from "./Menu.js";
+import { untrack } from "#kernel";
 
 // CloseOnEscape with CloseOnPressOutsideParent and
 // CloseOnReleaseOutsideParent: a press of the item is the bar's to answer.

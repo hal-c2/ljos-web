@@ -13,10 +13,14 @@ license = "MIT"
 [profile.dev]
 debug = "line-tables-only"
 
-# The kernel's wasm, as small as it can be made: it is in every page.
+# The kernel's wasm: it is in every page, and a tracked read crosses into
+# it. `opt-level = 2` is both smaller and faster than "z" or "s" here: at
+# "z" nothing on the read path is inlined, so a read is five calls deep
+# (and a write ~3.5x slower), while the inlining folds away more code than
+# it copies. Measured with `mise run build:kernel` and the read bench.
 [profile.wasm]
 inherits = "release"
-opt-level = "z"
+opt-level = 2
 lto = true
 codegen-units = 1
 panic = "abort"

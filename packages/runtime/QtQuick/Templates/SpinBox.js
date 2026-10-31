@@ -3,7 +3,7 @@
 // editable. A style gives it the indicators (`up.indicator`) and the text,
 // which shows `displayText`; the box takes its value from what the text says
 // when Return is let go and when the keys go elsewhere.
-import { onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { defineType, derived, effect, onChange, QtObject, settle, slot } from "../../object.js";
 import { PauseJob } from "../animation/jobs.js";
 import { forceActiveFocus, MouseFocusReason, windowOf } from "../focus.js";
@@ -12,6 +12,7 @@ import { after, cancel } from "../pointer.js";
 import { TextInput } from "../TextInput.js";
 import { Control, keeps, loose, put } from "./Control.js";
 import { clamp, close, keep, nothing, now } from "./Slider.js";
+import { untrack } from "#kernel";
 
 // Qt's `QQuickIndicatorButton`: what `up` and `down` are.
 const IndicatorButton = defineType("IndicatorButton", QtObject, {

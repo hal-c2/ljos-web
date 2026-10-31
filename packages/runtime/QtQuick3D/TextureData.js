@@ -14,11 +14,9 @@
 //
 // Not here: the formats that are packed (`BC1` and after), `RGBE8` and
 // `R16`, of which nothing is drawn, and a picture with a depth.
-import { createSignal } from "solid-js";
 import { defineType, flush } from "../object.js";
 import { Object3D } from "./Node.js";
-
-const WRITABLE = { ownedWrite: true };
+import { signal } from "#kernel";
 
 const FORMATS = [
   "None",
@@ -128,7 +126,7 @@ export const TextureData = defineType("TextureData", Object3D, {
     },
   },
   setup(self) {
-    const [held, setHeld] = createSignal({ bytes: null, width: 0, height: 0, depth: 0, format: Format.RGBA8, sheer: false }, WRITABLE);
+    const [held, setHeld] = signal({ bytes: null, width: 0, height: 0, depth: 0, format: Format.RGBA8, sheer: false }, self.$owner);
     let made = null;
     self.$held = held;
     // Qt says a picture has changed when it next takes it up to draw it:

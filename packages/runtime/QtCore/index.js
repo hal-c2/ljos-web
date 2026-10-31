@@ -1,10 +1,11 @@
 // `import QtCore`: Settings, kept in the browser's `localStorage`,
 // StandardPaths, of which a page has none, and LocationPermission, which is
 // the browser's to give.
-import { onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { defineType, onChange, QtObject, settle, slot, whenComplete } from "../object.js";
 import { application } from "../QtQml/application.js";
 import { Color, color } from "../QtQuick/color.js";
+import { untrack } from "#kernel";
 
 // What was written since the page loaded, as it was written: Qt answers
 // `value()` with that, and with text for what it read from storage.

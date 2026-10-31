@@ -21,7 +21,7 @@
 // nothing; `numThreads`, which is kept, the engine having one thread. A
 // world that was stopped steps by `maximumTimestep` when it runs again,
 // however short the stop.
-import { onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { defineType, effect, QtObject, settle, slot } from "../../object.js";
 import { Vector3d } from "../../QtQml/values.js";
 import { clock } from "../../QtQuick/animation/clock.js";
@@ -29,6 +29,7 @@ import * as math from "../math.js";
 import { begin, end, sync } from "./backend.js";
 import { bodies, entered, left, list } from "./bodies.js";
 import { engine, flag, load, sdk, three, top, vec } from "./engine.js";
+import { untrack } from "#kernel";
 
 // The worlds there are.
 const worlds = new Set();

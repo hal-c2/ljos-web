@@ -5,11 +5,11 @@
 // sizes, Qt's `doPositioning`, which is run again when one of them changes:
 // its result is the positioner's implicit size, and a single effect gives
 // the children their places.
-import { untrack } from "solid-js";
 import { defineType, derived, effect, flush, QtObject, slot } from "../object.js";
 import { Item } from "./Item.js";
 import { mirrored } from "./LayoutMirroring.js";
 import { alike, cull, given, Settling, shown, sized } from "./placing.js";
+import { untrack } from "#kernel";
 
 const LeftToRight = 0;
 const RightToLeft = 1;

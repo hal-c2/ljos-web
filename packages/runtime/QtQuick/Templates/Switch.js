@@ -1,9 +1,9 @@
 // Switch: on or off, by a click or by dragging its handle across.
-import { untrack } from "solid-js";
 import { defineType, derived } from "../../object.js";
 import { styleHints } from "../../QtQml/application.js";
 import { AbstractButton } from "./AbstractButton.js";
 import { put } from "./Control.js";
+import { untrack } from "#kernel";
 
 function setPosition(self, position) {
   put(self, "position", Math.min(1, Math.max(0, position)));

@@ -186,11 +186,27 @@ value stays in the JS `Slot` (or the binding's closure). So:
 | Tracked read of a property | 1 JS→wasm (`ljos_read`) |
 | Write | 1 JS→wasm (`ljos_bump`), then the graph's own pushes |
 | Binding evaluation | 1 wasm→JS (`evaluate(node)`), returning "changed?" |
-| Solid follows a node | 1 JS→wasm once (`ljos_follow`), then 1 wasm→JS (`changed`) per change |
+| Solid follows a node | 1 JS→wasm once (`ljos_follow`), then 1 wasm→JS (`changed`) per change that may have reached it, and 1 JS→wasm (`ljos_pull`) when Solid asks again |
 
 - A Solid computation reads the graph through a **face**: a Solid
-  signal made the first time a Solid observer reads that node, bumped
-  by a graph `watch` through `changed`. Nodes nobody draws have none.
+  memo of the node's version, made the first time a Solid observer
+  reads that node. Nodes nobody draws have none.
+- **DECISION (W8):** a face is *told*, not evaluated. The graph's
+  `effect_told` says a change may have reached the node, without
+  working it out; the face's memo asks the graph (`ljos_pull`, which
+  gives the version) in Solid's own flush, and a version that did not
+  move stops there, as a Solid memo does. Evaluating at the write (a
+  `watch`) worked a delegate's binding out before the Repeater's
+  effect had dropped its row, and re-ran a layout whose input came
+  back the same.
+- **DECISION (W8):** the kernel holds what it tells until the page's
+  call into it returns, and tells it by height, a source first: the
+  graph tells in its own queue's order, and Qt runs a property's own
+  handler before what a binding of it gives is told. A face made
+  inside an evaluation (an object a binding makes, following that
+  binding or what reads it) is looked at again then too: the graph
+  tells what a binding's result reaches only through the mark that
+  made it out of date, which came before the face.
 - A Rust binding evaluates its JS under `untrack`: what it reads, it
   reads through seam K, so the graph sees every edge.
 - **A JS throw never unwinds through wasm frames** (it would leave a
@@ -219,6 +235,19 @@ value stays in the JS `Slot` (or the binding's closure). So:
   `Image` status) and each turned a failing scenario green. This is a
   mechanical pass; the `@web` run on the wasm kernel finds every
   site missed.
+- **DECISION (W8):** `untrack` is the kernel's too. Solid's own stops
+  only Solid's observer; a binding of the graph's went on recording
+  what was read under it, so a binding that makes objects (an Item's
+  `transitions`) came to depend on what its objects read as they were
+  made, and was re-run, making them again. `#kernel` exports an
+  `untrack` that stops both; under it the wasm kernel reads with
+  `ljos_pull` (up to date, no edge). The runtime imports `untrack`
+  from `#kernel`, never from `solid-js`.
+- **DECISION (W8):** a memo a *binding* reads is `memo()` from
+  `object.js`: Solid's `createMemo` on the Solid kernel, a graph node
+  on the wasm one. A memo that only feeds a Solid effect
+  (`follow(createMemo(...))` in states, Binding, the animations) stays
+  Solid's: an effect sees graph nodes through their faces already.
 
 **Measured** (headless Chromium, `$S/web/measure/bench`, 200 000
 iterations, ns per operation):
@@ -235,6 +264,18 @@ The boundary is cheap; **the graph's own per-read work is the cost**
 and it is the same cost natively, so the fix is in ljos-ui and pays
 twice (risk R2, milestone W8).
 
+**W8** (same bench, medians of 7; warmed in brackets): a clean
+tracked read 18 ns (9.5), write + read 117 (102), `signal()` set + get
+43 (40), empty export 8 (5); Solid's clean read 3.5 (1.5). Two
+changes: `ljos_reactive`'s `try_get` looks its node up once instead
+of three times (ljos-ui, branch `web-needs`; natively 3.0 → 2.0 ns a
+read), and the kernel is built at `opt-level=2`. What is left is the
+crossing and the kernel's number table, not the graph: warmed, 2×
+Solid is 3 ns, an empty crossing and one lookup. Two levers remain,
+both design changes: the page's number *is* the graph's slot (the
+table goes, ≈ 2–3 ns), and a clean bit per node in shared memory so
+an untracked read of a clean node does not cross at all.
+
 ### A5. Data flow
 
 1. `qmlc` compiles QML to Solid components; bindings are JS closures
@@ -246,10 +287,12 @@ twice (risk R2, milestone W8).
    stale, calls `evaluate` for it first — pull).
 4. Writing `a.width = 3`: the slot stores 3 and `touch(cell)` → the
    graph marks, then runs eager effects synchronously before returning
-   — the watches that bump Solid faces, and the change handlers
-   (`onWidthChanged`) — Qt's "before the write returns" (§6.2).
-5. Solid re-runs the DOM computations whose faces were bumped, in its
-   own flush; the DOM is patched.
+   — the change handlers (`onWidthChanged`), Qt's "before the write
+   returns" (§6.2) — and tells the faces the change may have reached,
+   a source first.
+5. Solid asks the faces it was told of again, in its own flush; a face
+   whose node gives the version it had stops there; the DOM is
+   patched.
 6. Moved semantics (later): a positioner's slot calls into the layout
    export with child sizes (numbers, in a shared `Float64Array` view
    of wasm memory — one crossing per layout pass, not per child) and
@@ -308,7 +351,13 @@ build gains a cleaner layering from every item.
     follows its loaded size is loaded once more and no more — Qt ends
     the loop at the *binding*; what a type works out for itself (the
     picture's size) is recomputed whenever asked.
-  **DECISION:** both become scenarios in ljos-ui's `features/`
+  - A `DialogButtonBox` whose `contentWidth` is bound to its list's
+    (`buttonbox.spec.js`, after step 20): the box places each
+    button's width at its share of `availableWidth`, a value the type
+    works out for itself, so this is `imageloop`'s rule again: Qt
+    ends at the binding and gives 66 a button, the graph at the
+    placed width and gives 58.9.
+  **DECISION:** all three become scenarios in ljos-ui's `features/`
   (behaviour first, rule 3), checked against qml6, and
   `ljos_reactive` learns the rule there; ljos-web's JS glue does not
   paper over them.
@@ -317,14 +366,16 @@ build gains a cleaner layering from every item.
 
 | Item | Budget | Measured (phase 1) |
 |---|---|---|
-| First useful page, gzip, JS + wasm | ≤ 250 kB | QtQuick + runtime: 150.8 kB JS (Solid kernel); 150.5 kB JS + 28.2 kB wasm = 178.7 kB (wasm kernel) |
-| Kernel wasm | ≤ 30 kB gzip until value kinds move; every later move must remove more JS than it adds wasm, or say why | 71,060 B raw / 28,180 B gzip (`opt-level=z`, LTO, one CGU, `panic=abort`, strip; no `wasm-opt` installed) |
-| Tracked clean read | ≤ 2× Solid's before the Solid kernel is deleted | 11–15× (A4) |
+| First useful page, gzip, JS + wasm | ≤ 250 kB | W8, every QtQuick type + runtime (`test:size`): 149.1 kB JS (Solid kernel); 149.1 kB JS + 26.9 kB wasm = 176.0 kB (wasm kernel) |
+| Kernel wasm | ≤ 30 kB gzip until value kinds move; every later move must remove more JS than it adds wasm, or say why | W8: 68,531 B raw / 26,916 B gzip (`opt-level=2`, LTO, one CGU, `panic=abort`, strip; no `wasm-opt` installed). At 2 the read path is inlined, which folds away more than it copies; "z" and "s" were larger |
+| Tracked clean read | ≤ 2× Solid's before the Solid kernel is deleted | W8: 18 ns against Solid's 3.5 (9.5 against 1.5 warmed), from 40.5; not met (A4) |
 | Write → DOM | one Solid flush per write batch, zero polling | holds (faces) |
 | Idle | 0 % CPU | holds (nothing ticks; graph is push on write) |
 
-The size is reported by the build (`mise run build:kernel` prints raw
-and gzip) and the page bundle by Vite; W8 makes both a gate.
+`mise run test:size` is the gate: it bundles a page that imports the
+runtime and every QtQuick type (`packages/runtime/size/`) on both
+kernels and fails over 250 kB gzip of JS + wasm, or over 30 kB gzip of
+kernel wasm. It is part of `mise run test`.
 
 ### A9. Live QML shell drop (opt-in)
 
@@ -1213,7 +1264,16 @@ by this spike; `ljos-ui-src` was read only.
   brought to ≤ 2× Solid's (a native win too); the two A7 loop
   scenarios in ljos-ui `features/` and passing natively; kernel size
   and page budget enforced by the build. Exit: the runtime suite
-  equal on both kernels.
+  equal on both kernels. Where it ended: every site moved (signals,
+  memos a binding reads, `untrack`), faces told rather than evaluated,
+  `mise run test:size` in `mise run test`. Solid kernel 671 of 735, the
+  wasm kernel 669: the same environment failures (Quick3D,
+  Particles3D, Multimedia, XR) and three of its own, all the loop
+  rule of A7 (`lateloop`, `imageloop`, the button box). The loop
+  scenarios are in ljos-ui's `features/` (branch `web-needs-loops`),
+  two of them held `@backlog` until `ljos_reactive` learns the rule;
+  the clean read is 18 ns, not ≤ 2× Solid (A4). So the exit waits on
+  ljos-ui: the loop rule, and a pin of `ljos_reactive` that has it.
 - **W9 — `@web` ledger, first areas.** Section 11's backend over
   bindings, properties/signals, completion, positioners,
   Repeater/Loader, states; `RATCHET` holding what passes. Exit: the

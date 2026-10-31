@@ -5,12 +5,13 @@
 // here runs per frame but the scroll event. `contentX` and `contentY` are
 // what that element is scrolled to, measured as Qt measures them: from the
 // content's origin, which margins and a view's header put before zero.
-import { onCleanup, runWithOwner, untrack } from "solid-js";
+import { onCleanup, runWithOwner } from "solid-js";
 import { contents, defineType, derived, effect, inside, QtObject, slot } from "../object.js";
 import { Item } from "./Item.js";
 import { LeftButton } from "./keycodes.js";
 import { CancelGrabExclusive, CancelGrabPassive, canTake, receive, takeExclusive } from "./pointer.js";
 import { settle } from "./settle.js";
+import { untrack } from "#kernel";
 
 const sheet = new CSSStyleSheet();
 sheet.replaceSync(`

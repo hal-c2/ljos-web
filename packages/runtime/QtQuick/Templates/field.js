@@ -2,7 +2,7 @@
 // Control in Qt, and both have a control's font and colours, a background
 // behind them, a placeholder for a style to show, the mouse over them and
 // the reason they have focus.
-import { createSignal, onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { derived, effect, settle } from "../../object.js";
 import { styleHints } from "../../QtQml/application.js";
 import { PauseJob } from "../animation/jobs.js";
@@ -13,6 +13,7 @@ import { buttonOf, LeftButton, modifiersOf } from "../keycodes.js";
 import { after, cancel, CancelGrabExclusive, gone, hoverable, receive } from "../pointer.js";
 import { backed, hovering, insets, methods as control, put } from "./Control.js";
 import { font } from "./font.js";
+import { signal, untrack } from "#kernel";
 
 export const properties = {
   font,
@@ -122,7 +123,7 @@ export const methods = {
 // `around` is what a field's background fills when that is not the field.
 export function setup(self, around) {
   backed(self, around);
-  const [hovers$, hover$] = createSignal(false, { ownedWrite: true });
+  const [hovers$, hover$] = signal(false, self.$owner);
   self.$field = {
     hovers: hovers$,
     x: 0,

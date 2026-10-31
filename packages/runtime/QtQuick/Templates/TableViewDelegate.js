@@ -1,11 +1,11 @@
 // The delegates a style has for the cells of a TableView and of its header
 // views: an ItemDelegate that knows the view it is in and what the view's
 // selection says of its cell.
-import { untrack } from "solid-js";
 import { defineType, derived, instantiate } from "../../object.js";
 import { making } from "../cells.js";
 import { TapHandler } from "../handlers.js";
 import { ItemDelegate } from "./ItemDelegate.js";
+import { untrack } from "#kernel";
 
 const NOTHING = Object.freeze(Object.create(null));
 const REQUIRED = ["row", "column", "model"];

@@ -3,7 +3,7 @@
 // What it does with a press, a move and a release is what Qt's does, in the
 // order Qt does it (`qquickmousearea.cpp`); who they are sent to is decided
 // in pointer.js.
-import { onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { defineType, derived, effect, gather, group, onChange, settle, signal, slot } from "../object.js";
 import { itemToScene, sceneToItem } from "./geometry.js";
 import { Item } from "./Item.js";
@@ -23,6 +23,7 @@ import {
   UngrabExclusive,
   wheels,
 } from "./pointer.js";
+import { untrack } from "#kernel";
 
 const FLT_MAX = 3.4028234663852886e38;
 const bound = (low, value, high) => Math.max(low, Math.min(high, value));

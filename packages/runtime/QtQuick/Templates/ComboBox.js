@@ -6,7 +6,7 @@
 //
 // What is current is said by an index or by a value, whichever was given
 // last: the other follows it.
-import { createSignal, onCleanup, runWithOwner, untrack } from "solid-js";
+import { onCleanup, runWithOwner } from "solid-js";
 import { $component, defineType, derived, effect, settle, slot } from "../../object.js";
 import { DelegateModel } from "../DelegateModel.js";
 import { BacktabFocusReason, forceActiveFocus, MouseFocusReason, setFocus, TabFocusReason, windowOf } from "../focus.js";
@@ -16,8 +16,8 @@ import { TextInput } from "../TextInput.js";
 import { AbstractButton } from "./AbstractButton.js";
 import { Control, keeps, loose, put, within } from "./Control.js";
 import { now } from "./Slider.js";
+import { signal, untrack } from "#kernel";
 
-const WRITABLE = { ownedWrite: true };
 const next = (version) => version + 1;
 
 // What says which row is current: nothing yet, an index, or a value.
@@ -589,7 +589,7 @@ export const ComboBox = defineType("ComboBox", Control, {
     },
   },
   setup(self) {
-    const [version, bump] = createSignal(0, WRITABLE);
+    const [version, bump] = signal(0, self.$owner);
     const index = slot(self, "currentIndex");
     const value = slot(self, "currentValue");
     const stated = (held) => held.bound !== null || held.given !== undefined;

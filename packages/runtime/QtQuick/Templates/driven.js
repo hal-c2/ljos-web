@@ -4,17 +4,16 @@
 // where it is, and the property is whichever of the two changed last. A
 // slot's assignment would end the binding, so the value is kept here and the
 // slot only says what the QML gives.
-import { createSignal } from "solid-js";
 import { effect, settle, slot } from "../../object.js";
+import { signal } from "#kernel";
 
-const WRITABLE = { ownedWrite: true };
 const next = (version) => version + 1;
 
 // Declares one, in `setup`: `initial` is what it is until either says. The
 // type declares the property with no default and `reads(name)` to resolve
 // it.
 export function driven(self, name, initial) {
-  const [version, bump] = createSignal(0, WRITABLE);
+  const [version, bump] = signal(0, self.$owner);
   const held = ((self.$driven ??= {})[name] = { value: initial, seen: undefined, version, bump });
   effect(
     () => {

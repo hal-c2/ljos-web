@@ -4,9 +4,10 @@
 // What Qt holds this way is most often a window of another toolkit, made in
 // C++. Here it is a Window of this runtime: its element goes inside the
 // item's.
-import { onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { defineType, effect, slot } from "../object.js";
 import { Item } from "./Item.js";
+import { untrack } from "#kernel";
 
 export const WindowContainer = defineType("WindowContainer", Item, {
   properties: {

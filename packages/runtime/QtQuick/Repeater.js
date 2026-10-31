@@ -1,8 +1,7 @@
 // Repeater: an item for every row of a model, as children of its own parent.
 // What it does is what Qt Quick 3D's Repeater3D does with nodes, so both are
 // made here.
-import { untrack } from "solid-js";
-import { signal } from "#kernel";
+import { signal, untrack } from "#kernel";
 import { defineType, effect, slot } from "../object.js";
 import { Item } from "./Item.js";
 import { delegateOf, modelOf, Rows, size } from "./model.js";

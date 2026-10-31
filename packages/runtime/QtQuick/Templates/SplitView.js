@@ -4,7 +4,7 @@
 //
 // The layout and what a drag does to it are Qt's `QQuickSplitView`, step by
 // step: where a handle stops is not something to work out anew.
-import { createSignal, onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { defineType, derived, effect, inside, instantiate, QtObject, slot } from "../../object.js";
 import { Item } from "../Item.js";
 import { LeftButton } from "../keycodes.js";
@@ -12,13 +12,13 @@ import { CancelGrabExclusive, cursorOf, gone, hoverable, receive, UngrabExclusiv
 import { settle } from "../settle.js";
 import { containerOf, Container } from "./Container.js";
 import { drive, driven, reads } from "./driven.js";
+import { signal, untrack } from "#kernel";
 
 const Horizontal = 1;
 const SplitVCursor = 11;
 const SplitHCursor = 12;
 
 const NOTHING = Object.freeze({});
-const WRITABLE = { ownedWrite: true };
 const next = (version) => version + 1;
 const bound = (low, value, high) => Math.max(low, Math.min(high, value));
 
@@ -501,7 +501,7 @@ export const SplitView = defineType("SplitView", Container, {
     },
   },
   setup(self, props) {
-    const [version, bump] = createSignal(0, WRITABLE);
+    const [version, bump] = signal(0, self.$owner);
     const state = (self.$split = {
       version,
       bump,

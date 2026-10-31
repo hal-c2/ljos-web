@@ -10,23 +10,11 @@
 // compiler emits `<Rectangle color="red"/>`, Solid turns that into
 // `createComponent(Rectangle, { color: "red" })`, and nothing here interprets
 // QML: names and scopes were settled when the file was compiled.
-import {
-  createEffect,
-  createMemo,
-  createRenderEffect,
-  createRoot,
-  createSignal,
-  flush as drain,
-  getObserver,
-  getOwner,
-  onCleanup,
-  runWithOwner,
-  untrack,
-} from "solid-js";
+import { createEffect, createMemo, createRenderEffect, createRoot, createSignal, flush as drain, getObserver, getOwner, onCleanup, runWithOwner } from "solid-js";
 import { Color, color } from "./QtQuick/color.js";
 // Which graph is under the slots: Solid's signals, or Ljós's own graph in
 // wasm (`kernel/wasm.js`), as the build's `ljos-wasm-kernel` condition says.
-import { binding, cell, followed, read as follow, signal as counted, touch, WASM } from "#kernel";
+import { WASM, binding, cell, followed, read as follow, signal as counted, touch, untrack } from "#kernel";
 
 // Solid refuses a write from a component's body or a computation; an object
 // is assigned to from wherever its QML says.
@@ -557,6 +545,16 @@ function graphed(owner, compute, first) {
   };
   read.begin = read.start;
   read.busy = () => evaluating;
+  return read;
+}
+
+// A value worked out from properties, for what keeps one outside a slot:
+// Solid's memo on the Solid kernel, a node of the graph on the wasm one,
+// where a binding reading a Solid memo would not see it change.
+export function memo(compute, options = SYNC) {
+  if (!WASM) return createMemo(compute, options);
+  const read = graphed(getOwner(), compute);
+  read.start();
   return read;
 }
 
@@ -1383,7 +1381,7 @@ function defineAlias(self, name, [target, ...path]) {
   // made. A binding read before that reads what was given, as in Qt, where
   // none is read until then.
   const given = path.length > 0 && name in self.$props;
-  const [early, setEarly] = given ? createSignal(true, { ownedWrite: true }) : [];
+  const [early, setEarly] = given ? counted(true, getOwner()) : [];
   // A binding like any other: one that cannot be evaluated yet is told of.
   const binding = given ? guarded(name, () => self.$props[name]) : null;
   Object.defineProperty(self, name, {

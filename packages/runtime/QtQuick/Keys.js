@@ -3,10 +3,11 @@
 // A key goes to the item with active focus, then to each item it is in until
 // one accepts it, as in Qt. What an item does with it is its `Keys` handlers,
 // its `KeyNavigation`, then Tab. A `Shortcut` is asked before any of them.
-import { onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { defineType, derived, effect, QtObject, slot, whenComplete } from "../object.js";
 import { activeItem, forceActiveFocus, keyWindow, tab, whenOpened, windowOf } from "./focus.js";
 import { AltModifier, chord, chordMatches, chordText, ControlModifier, Key, keyOf, modifiersOf, ShiftModifier, textOf } from "./keycodes.js";
+import { untrack } from "#kernel";
 
 // The one event there is at a time: Qt's `KeyEvent`.
 const event = {
