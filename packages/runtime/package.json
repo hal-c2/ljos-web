@@ -11,6 +11,7 @@
     "./runtime.css": "./style.css",
     "./object": "./object.js",
     "./reload": "./reload.js",
+    "./compiler": "./compiler/index.js",
     "./QtQuick": "./QtQuick/index.js",
     "./QtQuick/Effects": "./QtQuick/Effects/index.js",
     "./QtQuick/Layouts": "./QtQuick/Layouts/index.js",

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Test the runtime's QtQuick types in a browser, with Playwright"
-#MISE depends=["build:compiler", "browser"]
+#MISE depends=["build:compiler", "build:wasm-compiler", "browser"]
 set -euo pipefail
 
 pnpm --filter ljos-web test "$@"
