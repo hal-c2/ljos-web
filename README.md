@@ -56,6 +56,7 @@ cargo run --bin qmlc -- --alone File.qml          # without the files next to it
 cargo run --bin qmlc -- --types QtQuick.Layouts   # the types Qt has of a module in C++
 cargo run --bin qmlc -- --theme theme.json        # a theme file checked: its overrides as JSON, or its mistakes
 cargo run --bin qmlc -- --theme-for app/Main.qml --root .  # the same for the theme.json nearest an entry
+cargo run --bin qmlc -- --inspect src/Main.qml src/Main.qml  # saying where things are written, for ljos-web/inspect
 ```
 
 Everything else is a [mise](https://mise.jdx.dev) task, a script in
@@ -302,6 +303,29 @@ compiled: `Qt.createComponent("Block.qml")`, `source: "Page.qml"` and
 once, with Qt's `status` and `createObject`. A path put together at run time
 (`"towers/" + name + ".qml"`) is looked up among the files of the directory
 that it could name.
+
+## Inspecting a mounted root
+
+`inspect(root)` of `ljos-web/inspect` reads and writes a mounted root's
+properties by `id`, clicks an object or a point, lists the object tree,
+says which object is drawn at a point and where it is written, and keeps
+the console's lines with their file and line. The answers are shaped as
+Ljós's own inspector gives them (docs/LJOS_WEB.md, A16).
+
+```js
+import { mount } from "ljos-web/object";
+import { inspect } from "ljos-web/inspect";
+
+const { object } = mount(Main, element);
+const inspector = inspect(object);
+inspector.write("root", "count", 4);
+inspector.click({ at: [10, 60] });
+inspector.pick(10, 60).source; // { file: "src/Main.qml", line: 22, column: 5 }
+```
+
+Places come from qmlc, only when asked: `--inspect`, or the Vite plugin's
+`inspect: true` in a dev server's config. A build without it carries none of
+them and is the same size as before.
 
 ## What is supported
 

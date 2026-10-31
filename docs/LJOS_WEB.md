@@ -802,6 +802,67 @@ compiler, and a second compile reuses the one the first loaded.
 `crates/ljos_web/tests/given.rs` holds `given` to `qmlc` from the
 disk on the module fixtures.
 
+### A16. A mounted root, inspected and driven
+
+`inspect(root)` of `ljos-web/inspect` answers what Ljós's own
+inspector answers of the same file, in the same shapes, so that a
+host (a test, a devtools panel, a designer's preview) maps one onto
+the other without translating:
+
+| `inspect(root)` | native |
+|---|---|
+| `read(id, names)` → `{ name: value }`, null for no such id | `app_get_property` |
+| `write(id, name, value)` → whether there was an object; the property's binding is gone, as an assignment's | `app_set_property` |
+| `click(id)`, `click({ at: [x, y] })` → `{ at }` or `{ error, message }` (`not_found`, `not_actionable`) | `app_click` (`target`, `at`); it answers with a snapshot delta, this with the point |
+| `outline()` → `{ objects: [{ depth, type, id, object_name, item, children }], text }` | `app_objects`, with objects for its `@handle`s and no bytes |
+| `pick(x, y)` → `{ object, type, id, source: { file, line, column } }` or null | `app_inspect`'s source location, of the object on top at the point |
+| `logs(since)` → `{ entries: [{ level, category, message, file, line }], next_since }` | `app_logs` |
+
+Where things are written comes from the compiler, and only when it is
+asked: `qmlc --inspect NAME` (the Vite plugin's `inspect`, true or a
+function of the file) puts `$at` (`[file, line, column, type]`), `$id`
+and, on a file's root, `$ids` among an object's props; it makes each
+free `console` `$console([file, line, column])`, and wraps each binding
+that can fail in `$bound([file, line, column], () => value)`. A file
+compiled so imports `ljos-web/inspect` before it makes anything. A file
+compiled without it has none of this, and the runtime has no code for
+it: `mise run test:size` is the same to the byte with and without this
+module in the tree.
+
+- DECISION: places are put in by the compiler, not looked up from a
+  source map. A source map says where generated code came from, not
+  which object or binding it is, and a page built for use has none.
+- DECISION: the runtime pays nothing. A binding's warning gets its
+  place from what the binding throws (`$bound` gives the error a
+  `toPrimitive` that says where it is, used when the runtime makes the
+  `key: error` line), not from a hook in the runtime. So `Unable to
+  assign …` and an alias's refusal, which nothing throws, are logged
+  with no file or line; so are `Qt.binding` and what a `.js` script
+  logs.
+- DECISION: a file is named by its path from the project's root (from
+  Vite's root for the plugin), not by a URL.
+- DECISION: ids are a file's own. `read`, `write`, `click` and `find`
+  name the root file's ids; a component's are reached through
+  `inspect(theObject)`. An object is listed with the id and type written
+  where it is used (the type without its import's qualifier), and a
+  delegate's objects where the delegate is written.
+- DECISION: the outline lists objects in the order of Qt's `data`
+  (what is not an item first, then the children, a Repeater's rows
+  before it, a Loader's item inside it), with the objects themselves
+  instead of the native handles and sizes.
+- DECISION: a point is in the root's logical pixels; its right and
+  bottom edges are outside it. A click is the pointer and mouse events
+  a real one makes, dispatched where the page draws on top at that
+  point (`isTrusted` is false: what checks it does not see them). An
+  object is clicked at its centre, so what covers that centre gets it.
+- DECISION: one log for the page, the last 1000 lines, kept from when
+  the module is first imported.
+
+Where the web cannot answer as natively: bindings are lazy here, so a
+binding nothing reads is never evaluated and never warns, where qml6
+warns of it as the object is made; and nothing draws a picture of a
+mounted root (no screenshot).
+
 ## Part II — An application's own Rust types
 
 ## 1. The shape of a native type on the web
