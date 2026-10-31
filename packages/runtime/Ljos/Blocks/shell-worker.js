@@ -4,13 +4,19 @@
 // script may be served with a policy of its own that lets it
 // (`'wasm-unsafe-eval'`), and nothing it makes can reach the page but the
 // answer it posts.
-const wasm = WebAssembly.compileStreaming(fetch(new URL("../../compiler/ljos_web_compiler.wasm", import.meta.url)));
+let wasm;
+// A load that failed is not kept: the next drop fetches it again.
+const loaded = () =>
+  (wasm ??= WebAssembly.compileStreaming(fetch(new URL("../../compiler/ljos_web_compiler.wasm", import.meta.url))).catch((error) => {
+    wasm = undefined;
+    throw error;
+  }));
 let instance;
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
 async function ask(request) {
-  instance ??= await WebAssembly.instantiate(await wasm);
+  instance ??= await WebAssembly.instantiate(await loaded());
   const { memory, alloc, free, compile, answer_len } = instance.exports;
   const bytes = encoder.encode(JSON.stringify(request));
   try {

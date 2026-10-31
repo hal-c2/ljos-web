@@ -209,6 +209,22 @@ test.describe("A binding that runs away", () => {
   });
 });
 
+test.describe("The compiler is fetched when it is needed", () => {
+  test.beforeEach(({ page }) => page.addInitScript(() => localStorage.clear()));
+
+  test("A compiler that could not be fetched is fetched again by the next drop", async ({ page }) => {
+    let refused = 0;
+    await page.route(/ljos_web_compiler\.wasm/, (route) => (refused++ === 0 ? route.abort() : route.continue()));
+    await opened(page);
+    await dropped(page, MINE);
+    await expect(errors(page)).toContainText("the compiler could not be loaded");
+    await dropped(page, MINE);
+    await expect(errors(page)).toBeHidden();
+    expect(await read(page, "mine", "objectName")).toBe("mine");
+    expect(refused).toBe(2);
+  });
+});
+
 test.describe("A visitor publishes their shell", () => {
   test.beforeEach(({ page }) => page.addInitScript(() => localStorage.clear()));
 
