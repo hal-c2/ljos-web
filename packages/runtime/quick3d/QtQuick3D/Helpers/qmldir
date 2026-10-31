@@ -1,0 +1,9 @@
+# Ljós's own QML, not Qt's (packages/runtime/quick3d.js).
+module QtQuick3D.Helpers
+AxisHelper 6.0 AxisHelper.qml
+DebugView 6.0 DebugView.qml
+ExtendedSceneEnvironment 6.0 ExtendedSceneEnvironment.qml
+LodManager 6.0 LodManager.qml
+RenderStatistics 6.0 RenderStatistics.qml
+OrbitCameraController 6.0 OrbitCameraController.qml
+WasdController 6.0 WasdController.qml
