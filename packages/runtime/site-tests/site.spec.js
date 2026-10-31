@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
-import { basename, dirname, extname, join, normalize, resolve } from "node:path";
+import { basename, delimiter, dirname, extname, join, normalize, relative, resolve } from "node:path";
 import { expect, test } from "@playwright/test";
 import { buildSite, builtWith, replaceSite, STAMP } from "../site.js";
 import { bundle, design, qmlc } from "./bundle.js";
@@ -170,6 +170,30 @@ test("the only good copy of a site is kept when it cannot be put back", () => {
     expect(readFileSync(join(made.root, kept[0], "index.html"), "utf8")).toBe("the site there\n");
     expect(readdirSync(made.root).some((name) => name.includes(".new-"))).toBe(false);
   } finally {
+    made.remove();
+  }
+});
+
+// The fixture has a theme, so both the runs inside the bundle are of this path.
+test("a compiler named by a path from where the build was asked for is found", async () => {
+  const made = bundle("project");
+  try {
+    const given = relative(process.cwd(), resolve(qmlc));
+    expect(given).toContain("/");
+    await expect(buildSite({ dir: made.dir, out: made.out, qmlc: given, with: [design] })).resolves.toMatchObject({ out: made.out });
+  } finally {
+    made.remove();
+  }
+});
+
+test("a compiler named bare is looked for on the PATH by the build", async () => {
+  const made = bundle("project");
+  const path = process.env.PATH;
+  try {
+    process.env.PATH = `${dirname(resolve(qmlc))}${delimiter}${path}`;
+    await expect(buildSite({ dir: made.dir, out: made.out, qmlc: basename(qmlc), with: [design] })).resolves.toMatchObject({ out: made.out });
+  } finally {
+    process.env.PATH = path;
     made.remove();
   }
 });

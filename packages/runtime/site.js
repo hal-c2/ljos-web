@@ -13,7 +13,7 @@ import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, isAbsolute, join, posix, resolve } from "node:path";
+import { dirname, isAbsolute, join, posix, resolve, sep } from "node:path";
 import { build } from "vite";
 import { findTheme } from "./find-theme.js";
 import { provided } from "./modules.js";
@@ -115,6 +115,11 @@ function qmldir(text) {
   return { module, files };
 }
 
+// The compiler as what is run from anywhere: it is run from inside the bundle,
+// where a path the caller gave would mean something else. A bare name is left
+// for the PATH.
+const compilerAt = (qmlc) => (qmlc.includes("/") || qmlc.includes(sep) ? resolve(qmlc) : qmlc);
+
 // What each of `paths` imports, as the compiler reads it: a reading of ours
 // would differ from its parser somewhere, and what it lets past is then what
 // the compiler reads from outside the bundle.
@@ -141,6 +146,7 @@ const controls = (module) => module === "QtQuick.Controls" || module.startsWith(
 
 // Holds the bundle at `dir` to its manifest; what it says, when it does.
 export function check(dir, qmlc = process.env.QMLC ?? "qmlc") {
+  qmlc = compilerAt(qmlc);
   const at = join(dir, MANIFEST);
   if (!existsSync(at)) throw new SiteError(`${dir} holds no ${MANIFEST}: it is no site bundle`);
   let manifest;
@@ -304,6 +310,7 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
   if (!dir) throw new SiteError("which bundle? buildSite({ dir })");
   dir = resolve(dir);
   out = resolve(out ?? `${dir}-site`);
+  qmlc = compilerAt(qmlc);
   const { manifest, needs } = check(dir, qmlc);
   const theme = themeOf(dir, manifest, qmlc);
 
