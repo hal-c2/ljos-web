@@ -550,8 +550,9 @@ compiled: an unknown field, an unlisted file, a listed one missing or
 of another size, a path out of the directory, a link, a module
 without its qmldir and an import ljos-web does not provide are each
 refused with what was wrong. The entry is compiled with the directory
-as the project's root; Qt is needed only when the site imports the
-controls, and Ljos.Design's QML is given with `--with`. A site it
+as the project's root; a site's controls are Ljós's own style (A20),
+so Qt is needed only for a style Ljós has none of (Imagine) or with
+`--styles qt`, and Ljos.Design's QML is given with `--with`. A site it
 built is replaced (it leaves a `.ljos-site-build` stamp); any other
 directory is not. The theme is checked, applied (A14) and carried
 into the site as it is.
@@ -1022,6 +1023,61 @@ inspects itself with `inspect(root)` (A16).
   beside the component, as `Qt.resolvedUrl` would. Ljós resolves it at run
   time against the file that uses the component; qmlc resolves a url when
   it compiles, against the file it is written in.
+
+### A20. Controls without an installed Qt
+
+`import QtQuick.Controls` compiles on a machine with no Qt. The
+runtime has the C++ half of the controls (`QtQuick.Templates`, the
+painters of `QtQuick.Controls.impl`); the QML half, a style, is
+Ljós's own: ljos-ui's `crates/ljos_controls/qml` (Basic, Fusion,
+Material, Universal and their `impl` modules), copied into
+`packages/runtime/controls/` with a `qmldir` per module, which Ljós
+does not write. So a control on the web is what it is in a native
+Ljós application: a Button is 100×40 with padding 6, a CheckBox's
+indicator 28×28, a Slider and a TextField 200×40, a ComboBox 140×40,
+as ljos-ui's `features/controls` say of the same QML.
+
+- DECISION: the style is copied, not depended on.
+  `controls/LJOS_UI.json` names the repository, the path and the
+  commit (the one `ljos_design` is pinned at in
+  `crates/ljos_web/Cargo.toml`), and a sha256 of every file;
+  `mise run controls` copies it again from a ljos-ui checkout
+  (`LJOS_UI`, `../ljos-ui` by default) and a test holds the copy
+  to its hashes and its commit to the pin. A git dependency would
+  have the plugin fetch at build time; QML compiled ahead would
+  hide which commit it came from. A page that does not import the
+  controls carries none of it: a style is only ever compiled from
+  the importing file. `mise run test:size` moves 11 B gzip, the
+  runtime's hook for parts (below).
+- DECISION: a site's controls are Ljós's whether or not the machine
+  has a Qt, so a site draws as the native application does and builds
+  the same anywhere. `--styles qt` (`buildSite({ styles: "qt" })`)
+  takes the installed Qt's style instead. The Vite plugin takes Qt's
+  where an installed Qt 6 has Qt Quick Controls and Ljós's where none
+  does; its `styles` option, `"qt"` or `"ljos"`, says which. A style
+  Ljós has none of (`QtQuick.Controls.Imagine`) comes from the
+  installed Qt, and without one the site is refused with a message
+  that says so.
+- DECISION: only a Qt 6 is an installed Qt. The plugin and `qmlc` ask
+  each of `qtpaths6`, `qtpaths`, `qmake6` and `qmake` for
+  `QT_VERSION` first and skip one under 6, so Qt 5's tools on the
+  path neither break the build nor give it Qt 5's QML.
+- DECISION: a part a style gives as a `Component` (`background:
+  Component { Rectangle {} }`, as Ljós's styles write it) is made by
+  the control, once, as its own child; the property holds the item.
+  One the application gives in its place is all there is: the style's
+  is never made. The kind is `parts` of
+  `QtQuick/Templates/parts.js`, so `object.js` has only a hook a kind
+  may use to make its value inside the object.
+- DECISION: where the runtime has a type natively that Ljós's style
+  writes in QML because the native engine has none of it
+  (`BusyIndicatorImpl`), the runtime's wins: it is what the runtime's
+  painters draw.
+
+What a reader is told holds (A7's `speaks`): Ljós's Button says
+`button` and its text, CheckBox `checkbox` and `aria-checked`, Switch
+`switch`, Slider `slider`, ComboBox `combobox` and its current text.
+A TextField's text box is the input inside it, not the item.
 
 ## Part II — An application's own Rust types
 

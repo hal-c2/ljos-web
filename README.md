@@ -76,6 +76,7 @@ mise run assets ID...   # download what an example's build downloads (its pictur
 mise run types          # the table of Qt's types, from the Qt installed here
 mise run site:build DIR # a static site from a directory with ljos-site.json
 mise run build:wasm-compiler # the compiler as wasm, for ljos-web/compiler
+mise run controls       # copy Ljós's style of the controls again from a ljos-ui checkout (LJOS_UI)
 ```
 
 `packages` (pnpm install) and `browser` (Playwright's Chromium) are tasks the
@@ -141,7 +142,12 @@ the page pays nothing for it. `docs/LJOS_WEB.md` (A13) says what is kept and
 where the web differs from desktop Ljós.
 
 Much of Qt is QML itself: a style of Qt Quick Controls is a directory of QML
-files over the types of `QtQuick.Templates`. Those are not rewritten here. The
+files over the types of `QtQuick.Templates`. Where no Qt 6 is installed, the
+plugin compiles Ljós's own style instead (Basic, Fusion, Material, Universal),
+ljos-ui's `crates/ljos_controls/qml` copied into `packages/runtime/controls/`
+at the commit `ljos_design` is pinned at (`mise run controls` copies it again;
+the option `styles: "ljos"` or `"qt"` says which a build takes, and
+`docs/LJOS_WEB.md` A20 why). Qt's are not rewritten here. The
 plugin puts a module of Qt's together from what the runtime has of it (the
 types Qt has in C++) and the QML files of the Qt that is installed, which it
 compiles as it does the project's. `qt` is where that Qt keeps its QML modules,
@@ -210,8 +216,10 @@ in it; anything the manifest does not say (a field, a file, a link, a
 module, an import ljos-web does not provide) is refused before anything
 is compiled. The entry is compiled with the directory as the root of the
 project, and the site goes to `DIR-site` unless `--out` says where: a
-site it built there is replaced, anything else is not. Qt is needed only
-for a site that imports `QtQuick.Controls`; `Ljos.Design` is Ljós's QML,
+site it built there is replaced, anything else is not. Its controls are
+Ljós's own style, so no Qt is needed for `QtQuick.Controls`; `--styles qt`
+builds it with the installed Qt's style instead, and a style Ljós has none of
+(Imagine) needs that Qt. `Ljos.Design` is Ljós's QML,
 given with `--with` (ljos-ui's `crates/ljos_design_qml/qml`). The theme
 is the manifest's `theme`, or the `theme.json` nearest the entry among the
 listed files; it is applied, and a theme that is refused refuses the site
