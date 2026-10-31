@@ -58,6 +58,10 @@ const REFUSED = [
   ["a URL import is refused", (dir, m) => edit(dir, m, "Shell.qml", 'import "https://example.com/Module"\n'), /Shell.qml imports https:\/\/example.com\/Module, which is outside the bundle/],
   ["a path import of a file not listed is refused", (dir, m) => edit(dir, m, "Shell.qml", 'import "absent.js" as A\n'), /Shell.qml imports absent.js, which is not listed/],
   ["a path import of a directory with nothing listed is refused", (dir, m) => edit(dir, m, "Shell.qml", 'import "absent"\n'), /Shell.qml imports absent, which is not listed/],
+  ["a path import in single quotes is seen", (dir, m) => edit(dir, m, "Shell.qml", "import '../outside'\n"), /Shell.qml imports \.\.\/outside, which is outside the bundle/],
+  ["a path import after a comment is seen", (dir, m) => edit(dir, m, "Shell.qml", '/* c */ import "../outside"\n'), /Shell.qml imports \.\.\/outside, which is outside the bundle/],
+  ["a path import after another with no semicolon is seen", (dir, m) => edit(dir, m, "Shell.qml", 'import QtQuick import "../outside"\n'), /Shell.qml imports \.\.\/outside, which is outside the bundle/],
+  ["a document the parser cannot read is refused where it is wrong", (dir, m) => edit(dir, m, "Shell.qml", "import\n"), /Shell\.qml:\d+:\d+: /],
   ["a path import after another on its line is seen", (dir, m) => edit(dir, m, "Shell.qml", 'import QtQuick; import "../outside"\n'), /Shell.qml imports \.\.\/outside, which is outside the bundle/],
   ["a block whose file is outside the bundle is refused", (dir, m) => edit(dir, m, "App/Media/qmldir", "# block Secret 1.0 ../../../Secret.qml\n"), /App\/Media\/qmldir names \.\.\/\.\.\/\.\.\/Secret.qml, which is outside the bundle/],
   ["a block whose file is not listed is refused", (dir, m) => edit(dir, m, "App/Media/qmldir", "# block Absent 1.0 Absent.qml\n"), /App\/Media\/qmldir names App\/Media\/Absent.qml, which is not listed/],
@@ -98,6 +102,18 @@ test("a site is not built inside its own bundle", async () => {
   const made = bundle("project");
   try {
     await expect(buildSite({ dir: made.dir, out: join(made.dir, "site"), qmlc, with: [design] })).rejects.toThrow(/is inside the bundle/);
+  } finally {
+    made.remove();
+  }
+});
+
+test("what only looks like an import is not one, and a directory may end in a slash", async () => {
+  const made = bundle("project", (dir, m) => {
+    add(dir, m, "parts/Own.qml", 'import QtQuick\nItem { property string s: "done; import nothing" }\n');
+    edit(dir, m, "Shell.qml", '/*\nimport "../old"\nimport Gone\n*/\nimport "parts/"\n');
+  });
+  try {
+    await expect(buildSite({ dir: made.dir, out: made.out, qmlc, with: [design] })).resolves.toMatchObject({ out: made.out });
   } finally {
     made.remove();
   }

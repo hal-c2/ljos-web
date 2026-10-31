@@ -115,25 +115,32 @@ function qmldir(text) {
   return { module, files };
 }
 
-// The modules a document imports by name (`import QtQuick.Layouts`).
-const imported = (text) => [...text.matchAll(/(?:^|;)\s*import\s+([A-Za-z_][\w.]*)/gm)].map(([, uri]) => uri);
-
-// What it imports by path (`import "parts"`, `import "own.js" as Own`), and
-// what a script does (`.import "more.js" as More`).
-const importedPaths = (text) => [...text.matchAll(/(?:^|;)\s*\.?import\s+"([^"]*)"/gm)].map(([, path]) => path);
+// What each of `paths` imports, as the compiler reads it: a reading of ours
+// would differ from its parser somewhere, and what it lets past is then what
+// the compiler reads from outside the bundle.
+function importsOf(dir, paths, qmlc) {
+  const ran = spawnSync(qmlc, ["--imports", ...paths], { cwd: dir, encoding: "utf8", maxBuffer: 1 << 28 });
+  if (ran.error) throw new SiteError(`could not run ${qmlc}: ${ran.error.message}`);
+  if (ran.status !== 0) throw new SiteError(`${qmlc} could not read what the bundle imports:\n${ran.stderr.trim()}`);
+  const said = JSON.parse(ran.stdout);
+  const errors = said.flatMap((file) => file.errors ?? []);
+  if (errors.length) throw new SiteError(errors.join("\n"));
+  return said;
+}
 
 // Where `to`, written in the file `from`, lands among the bundle's paths;
 // null outside the bundle.
 function within(from, to) {
   if (to.startsWith("/") || /^[a-z][a-z0-9+.-]*:/i.test(to)) return null;
-  const path = posix.normalize(posix.join(posix.dirname(from), to));
+  // `parts/` is the directory `parts`, as the compiler reads it.
+  const path = posix.normalize(posix.join(posix.dirname(from), to)).replace(/\/+$/, "") || ".";
   return path === ".." || path.startsWith("../") ? null : path;
 }
 
 const controls = (module) => module === "QtQuick.Controls" || module.startsWith("QtQuick.Controls.");
 
 // Holds the bundle at `dir` to its manifest; what it says, when it does.
-export function check(dir) {
+export function check(dir, qmlc = process.env.QMLC ?? "qmlc") {
   const at = join(dir, MANIFEST);
   if (!existsSync(at)) throw new SiteError(`${dir} holds no ${MANIFEST}: it is no site bundle`);
   let manifest;
@@ -198,18 +205,17 @@ export function check(dir) {
   });
   // What the compiler would read for a path import is the bundle's too: the
   // manifest's promise holds only if it never reads past what is listed.
-  for (const path of listed) {
-    if (!path.endsWith(".qml") && !path.endsWith(".js")) continue;
-    for (const target of importedPaths(readFileSync(join(dir, path), "utf8"))) {
+  const read = importsOf(dir, [...listed].filter((path) => path.endsWith(".qml") || path.endsWith(".js")), qmlc);
+  for (const { file: path, paths } of read) {
+    for (const target of paths) {
       const at = within(path, target);
       if (at === null) throw new SiteError(`${path} imports ${target}, which is outside the bundle`);
       const directory = at === "." || [...listed].some((file) => file.startsWith(`${at}/`));
       if (!listed.has(at) && !directory) throw new SiteError(`${path} imports ${target}, which is not listed`);
     }
   }
-  for (const path of listed) {
-    if (!path.endsWith(".qml")) continue;
-    for (const module of imported(readFileSync(join(dir, path), "utf8"))) {
+  for (const { file: path, modules: taken } of read) {
+    for (const module of taken) {
       if (!own.has(module) && !imports.includes(module)) throw new SiteError(`${path} imports ${module}, which the manifest neither lists as a module nor imports`);
     }
   }
@@ -291,7 +297,7 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
   if (!dir) throw new SiteError("which bundle? buildSite({ dir })");
   dir = resolve(dir);
   out = resolve(out ?? `${dir}-site`);
-  const { manifest, needs } = check(dir);
+  const { manifest, needs } = check(dir, qmlc);
   const theme = themeOf(dir, manifest, qmlc);
 
   if (styles !== "ljos" && styles !== "qt") throw new SiteError(`styles is "ljos" or "qt", not ${JSON.stringify(styles)}`);

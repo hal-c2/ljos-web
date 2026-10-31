@@ -80,6 +80,21 @@ fn directives(source: &str) -> Directives {
     found
 }
 
+pub(crate) fn imports(source: &str) -> Result<crate::Imports, Vec<Error>> {
+    let Directives { imports, errors, .. } = directives(source);
+    if !errors.is_empty() {
+        return Err(errors);
+    }
+    let mut found = crate::Imports::default();
+    for (what, _) in imports {
+        match what {
+            Source::Module(module) => found.modules.push(module),
+            Source::Path(path) => found.paths.push(path),
+        }
+    }
+    Ok(found)
+}
+
 pub(crate) fn compile(source: &str, options: &Options) -> Result<String, Vec<Error>> {
     let allocator = Allocator::default();
     let Directives { text, library, imports, errors } = directives(source);

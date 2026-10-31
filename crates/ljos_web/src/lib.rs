@@ -166,6 +166,37 @@ pub fn compile_script(source: &str, options: &Options) -> Result<Output, Vec<Err
     quick::script::compile(source, options).map(|code| Output { code, map: None })
 }
 
+/// What a file imports, read as compiling it reads it: the modules it names
+/// and the paths it names, each as written.
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct Imports {
+    pub modules: Vec<String>,
+    pub paths: Vec<String>,
+}
+
+/// What a QML document imports, from the parser, so that whoever holds a
+/// project to a list sees what the compiler will read and nothing else.
+pub fn imports(source: &str) -> Result<Imports, Vec<Error>> {
+    let allocator = Allocator::default();
+    let parsed = qml_syntax::parse(&allocator, source);
+    if !parsed.diagnostics.is_empty() {
+        return Err(parsed.diagnostics.into_iter().map(Error::from).collect());
+    }
+    let mut found = Imports::default();
+    for import in &parsed.document.imports {
+        match &import.source {
+            qml_syntax::ast::QmlImportSource::Module(module) => found.modules.push(module.to_string()),
+            qml_syntax::ast::QmlImportSource::Path(path) => found.paths.push(path.to_string()),
+        }
+    }
+    Ok(found)
+}
+
+/// What a script imports (`.import "more.js" as More`).
+pub fn script_imports(source: &str) -> Result<Imports, Vec<Error>> {
+    quick::script::imports(source)
+}
+
 /// The tree handed to Solid's compiler, printed. Solid never sees this text;
 /// it is here to look at what the lowering built.
 pub fn lowered_source(source: &str, options: &Options) -> Result<String, Vec<Error>> {

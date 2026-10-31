@@ -232,3 +232,18 @@ fn syntax_errors() {
     // Nor is a method shorthand: braces are a block, and that is no script.
     assert!(!diagnostics("Item { property var x: { pick(item) { return item } } }").is_empty());
 }
+
+#[test]
+fn imports_are_what_the_parser_reads_and_not_what_looks_like_one() {
+    let source = "import QtQuick import '../single'\n/* import \"../commented\" */\n// import Hidden\nimport \"parts/\" as P; /* c */ import \"../after\"\nItem { property string s: \"done; import nothing\" }\n";
+    let found = ljos_web::imports(source).expect("it parses");
+    assert_eq!(found.modules, ["QtQuick"]);
+    assert_eq!(found.paths, ["../single", "parts/", "../after"]);
+}
+
+#[test]
+fn a_script_imports_what_its_directives_say() {
+    let found = ljos_web::script_imports(".pragma library\n.import 'more.js' as More\n.import QtQuick as QQ\nvar text = \".import nothing as N\";\n").expect("it reads");
+    assert_eq!(found.modules, ["QtQuick"]);
+    assert_eq!(found.paths, ["more.js"]);
+}

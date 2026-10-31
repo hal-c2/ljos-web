@@ -149,11 +149,43 @@ fn checked_theme(named: Option<PathBuf>, entry: Option<PathBuf>, root: Option<&P
     }
 }
 
+/// `--imports FILE…`: what each file imports, as JSON, with what stops it
+/// being read. Nothing is resolved: a file's imports are said as written.
+fn listed_imports(files: &[String]) -> ExitCode {
+    let mut said = Vec::new();
+    for file in files {
+        let text = match std::fs::read_to_string(file) {
+            Ok(text) => text,
+            Err(error) => {
+                eprintln!("{file}: {error}");
+                return ExitCode::FAILURE;
+            }
+        };
+        let read = if file.ends_with(".js") { ljos_web::script_imports(&text) } else { ljos_web::imports(&text) };
+        said.push(match read {
+            Ok(found) => serde_json::json!({ "file": file, "modules": found.modules, "paths": found.paths }),
+            Err(errors) => {
+                let errors: Vec<String> = errors
+                    .iter()
+                    .map(|error| {
+                        let (line, column) = error.position(&text);
+                        format!("{file}:{line}:{column}: {}", error.message)
+                    })
+                    .collect();
+                serde_json::json!({ "file": file, "errors": errors })
+            }
+        });
+    }
+    println!("{}", serde_json::Value::Array(said));
+    ExitCode::SUCCESS
+}
+
 fn main() -> ExitCode {
     let mut options = Options::default();
     let mut lowered = false;
     let mut alone = false;
     let mut types = None;
+    let mut listing = false;
     let mut out_dir = None;
     let mut root = None;
     let mut imports = Vec::new();
@@ -187,6 +219,7 @@ fn main() -> ExitCode {
             "--inspect" => options.inspect = Some(value("--inspect")),
             "--types" => types = Some(native_types as fn(&str) -> _),
             "--qml-types" => types = Some(written_types),
+            "--imports" => listing = true,
             "--component-extension" => options.component_extension = value("--component-extension"),
             "--theme" => theme = Some(PathBuf::from(value("--theme"))),
             "--theme-for" => theme_for = Some(PathBuf::from(value("--theme-for"))),
@@ -201,6 +234,10 @@ fn main() -> ExitCode {
 
     if theme.is_some() || theme_for.is_some() {
         return checked_theme(theme, theme_for, root.as_deref(), seed_hue);
+    }
+
+    if listing {
+        return listed_imports(&files);
     }
 
     if let Some(types) = types {
