@@ -41,7 +41,7 @@ const REFUSED = [
     rmSync(join(dir, "App/Media/Player.qml"));
     m.files = m.files.filter((entry) => entry.path !== "App/Media/Player.qml");
   }, /App\/Media\/qmldir names App\/Media\/Player.qml, which is not listed/],
-  ["an import ljos-web does not provide is refused", (_, m) => (m.imports = [...m.imports, "Ljos.Models"].sort()), /it imports Ljos.Models, which ljos-web does not provide/],
+  ["an import ljos-web does not provide is refused", (_, m) => (m.imports = [...m.imports, "QtWebEngine"].sort()), /it imports QtWebEngine, which ljos-web does not provide/],
   ["imports out of order are refused", (_, m) => m.imports.reverse(), /imports is not sorted, each once/],
   ["a document's import the manifest does not say is refused", (_, m) => (m.imports = m.imports.filter((module) => module !== "Ljos.Design")), /Shell.qml imports Ljos.Design, which the manifest neither lists as a module nor imports/],
 ];
