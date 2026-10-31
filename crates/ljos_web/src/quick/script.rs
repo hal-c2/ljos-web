@@ -32,6 +32,7 @@ use oxc_ast_visit::{VisitMut, walk_mut};
 use oxc_parser::Parser;
 use oxc_semantic::SemanticBuilder;
 use oxc_span::{GetSpan, SourceType, Span};
+use qml_front::{QtTypeOracle, TypeOracle};
 
 use super::{
     names::{JS_GLOBALS, QML_GLOBALS, namespace_source},
@@ -237,6 +238,20 @@ pub(crate) fn compile(source: &str, options: &Options) -> Result<String, Vec<Err
         head.push(b.import_named(globals.iter().copied(), &format!("{prefix}/QtQml")));
     }
     for (what, alias) in &imports {
+        // A script is compiled without its project, so a module of the
+        // project has no files here. Said now, not as a 500 for a package
+        // path that was never there.
+        if let Source::Module(uri) = what
+            && !QtTypeOracle.has_module(uri)
+            && !options.installed.iter().any(|module| module == uri)
+        {
+            return Err(vec![Error::new(
+                format!(
+                    "`{uri}` is not a Qt module or an installed one: a script can't import a module of its project yet; import its script by path"
+                ),
+                Span::default(),
+            )]);
+        }
         match namespace_source(what, prefix) {
             Some(module) => head.push(b.import_namespace(alias, &module)),
             None => {

@@ -257,12 +257,17 @@ fn lower_from<'a>(
         // A module of the project's own is files, not a module of the
         // package: its name is a table of them, read when it is used, since
         // a file of the module may be why another is being loaded.
-        if let Some(own) = types.namespace(name).and_then(|source| own_module(source, project, options)) {
+        if let Some(own) = types
+            .namespace(name)
+            .and_then(|source| own_module(source, project, options))
+        {
             let mut members = Vec::new();
             for (member, file) in own {
                 let local = format!("{name}${member}");
                 let path = types::relative(&options.name, file);
-                imports.push(b.import_default(&local, &format!("{path}{}", options.component_extension)));
+                imports.push(
+                    b.import_default(&local, &format!("{path}{}", options.component_extension)),
+                );
                 members.push((b.str(member).as_str(), b.arrow(&[], b.id(&local))));
             }
             imports.push(b.import_named(["$namespace"], &format!("{prefix}/object")));
