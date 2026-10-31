@@ -3,7 +3,10 @@
 use ljos_web::{Options, compile, lowered_source};
 
 fn options() -> Options {
-    Options { name: "Sample".to_string(), ..Options::default() }
+    Options {
+        name: "Sample".to_string(),
+        ..Options::default()
+    }
 }
 
 /// The types of a file come from what it imports.
@@ -17,7 +20,9 @@ fn lowered(source: &str) -> String {
 }
 
 fn js(source: &str) -> String {
-    compile(&tui(source), &options()).unwrap_or_else(|errors| panic!("{errors:?}")).code
+    compile(&tui(source), &options())
+        .unwrap_or_else(|errors| panic!("{errors:?}"))
+        .code
 }
 
 fn errors(source: &str) -> Vec<String> {
@@ -27,7 +32,10 @@ fn errors(source: &str) -> Vec<String> {
 
 #[track_caller]
 fn assert_contains(haystack: &str, needle: &str) {
-    assert!(haystack.contains(needle), "expected to find\n  {needle}\nin\n{haystack}");
+    assert!(
+        haystack.contains(needle),
+        "expected to find\n  {needle}\nin\n{haystack}"
+    );
 }
 
 #[test]
@@ -56,7 +64,10 @@ fn bindings_become_grouped_effects() {
     Text { text: Shell.state.title; color: Theme.colors.text }
 }"#);
     assert_contains(&code, r#"import { Shell, Theme } from "ljos-web/host";"#);
-    assert_contains(&code, "_$insert(_el$2, () => {\n\t\treturn Shell.state.title;\n\t});");
+    assert_contains(
+        &code,
+        "_$insert(_el$2, () => {\n\t\treturn Shell.state.title;\n\t});",
+    );
     assert_contains(&code, r#"_$setStyleProperty(_el$, "width", "#);
     assert_contains(&code, r#"_$setStyleProperty(_el$2, "color", "#);
     assert_eq!(code.matches("_$effect(").count(), 1, "{code}");
@@ -66,7 +77,8 @@ fn bindings_become_grouped_effects() {
 
 #[test]
 fn property_kinds() {
-    let code = lowered(r#"Item {
+    let code = lowered(
+        r#"Item {
     id: panel
     readonly property int padding: 2
     readonly property var entry: Shell.state.entry
@@ -75,7 +87,8 @@ fn property_kinds() {
     property string title: "Untitled"
     required property var item
     Text { text: label + padding + title + item.name; onMouseDown: count += 1 }
-}"#);
+}"#,
+    );
     // A literal is a constant, so it can still fold into the template.
     assert_contains(&code, "const panel$padding = 2;");
     // A plain read needs no cache.
@@ -91,10 +104,19 @@ fn property_kinds() {
         "const [panel$count, set$panel$count] = createSignal(() => props.count !== undefined ? props.count : 0);",
     );
     // The root's properties are the component's props.
-    assert_contains(&code, r#"const panel$title = () => props.title !== undefined ? props.title : "Untitled";"#);
+    assert_contains(
+        &code,
+        r#"const panel$title = () => props.title !== undefined ? props.title : "Untitled";"#,
+    );
     assert_contains(&code, "const panel$item = () => props.item;");
-    assert_contains(&code, "onMouseDown={() => set$panel$count(() => panel$count() + 1)}");
-    assert_contains(&code, "{panel$label() + panel$padding + panel$title() + panel$item().name}");
+    assert_contains(
+        &code,
+        "onMouseDown={() => set$panel$count(() => panel$count() + 1)}",
+    );
+    assert_contains(
+        &code,
+        "{panel$label() + panel$padding + panel$title() + panel$item().name}",
+    );
 }
 
 #[test]
@@ -123,35 +145,50 @@ fn names_resolve_as_qml_scopes_them() {
 
 #[test]
 fn script_locals_shadow_qml_names() {
-    let code = lowered(r#"Item {
+    let code = lowered(
+        r#"Item {
     readonly property var rows: Shell.state.rows
     readonly property int total: rows.reduce((total, rows) => total + rows.size, 0)
-}"#);
-    assert_contains(&code, "root$rows().reduce((total, rows) => total + rows.size, 0)");
+}"#,
+    );
+    assert_contains(
+        &code,
+        "root$rows().reduce((total, rows) => total + rows.size, 0)",
+    );
 }
 
 #[test]
 fn repeater_over_a_list() {
-    let code = lowered(r#"Item {
+    let code = lowered(
+        r#"Item {
     Repeater {
         model: Shell.state.rows
         Text { objectName: "row-" + index; text: modelData.label }
     }
-}"#);
-    assert_contains(&code, "<For each={$model(Shell.state.rows)}>{($modelData, $index) =>");
+}"#,
+    );
+    assert_contains(
+        &code,
+        "<For each={$model(Shell.state.rows)}>{($modelData, $index) =>",
+    );
     assert_contains(&code, r#"data-object-name={"row-" + $index()}"#);
     assert_contains(&code, "{$modelData.label}");
 }
 
 #[test]
 fn repeater_over_a_count() {
-    let code = lowered(r#"Item {
+    let code = lowered(
+        r#"Item {
     Repeater {
         model: 3
         Text { text: index + ":" + modelData }
     }
-}"#);
-    assert_contains(&code, r#"<Repeat count={3}>{($index) => <span class="q-text">{$index + ":" + $index}</span>}</Repeat>"#);
+}"#,
+    );
+    assert_contains(
+        &code,
+        r#"<Repeat count={3}>{($index) => <span class="q-text">{$index + ":" + $index}</span>}</Repeat>"#,
+    );
 }
 
 #[test]
@@ -167,13 +204,19 @@ fn delegates_have_their_own_properties() {
     }
 }"#);
     assert_contains(&code, "children: ($modelData, $index) => {");
-    assert_contains(&code, "const row$active = createMemo(() => $modelData.id === Shell.state.active");
+    assert_contains(
+        &code,
+        "const row$active = createMemo(() => $modelData.id === Shell.state.active",
+    );
 }
 
 #[test]
 fn visible_toggles_display() {
     let code = js("Item { visible: Shell.state.open }");
-    assert_contains(&code, r#"_$effect(() => Shell.state.open ? void 0 : "none""#);
+    assert_contains(
+        &code,
+        r#"_$effect(() => Shell.state.open ? void 0 : "none""#,
+    );
     assert_contains(&code, r#"_$setStyleProperty(_el$, "display", "#);
     assert_contains(&js("Item { visible: false }"), "style=display:none");
     assert!(!js("Item { visible: true }").contains("display"));
@@ -187,7 +230,10 @@ fn handlers_are_delegated() {
     Text { text: "c"; onMouseDown: (event) => Shell.dispatch("d", event) }
 }"#);
     assert_contains(&code, r#"._$$mousedown = () => Shell.dispatch("a");"#);
-    assert_contains(&code, r#"._$$mousedown = (event) => Shell.dispatch("d", event);"#);
+    assert_contains(
+        &code,
+        r#"._$$mousedown = (event) => Shell.dispatch("d", event);"#,
+    );
     assert_contains(&code, r#"_$delegateEvents(["mousedown"]);"#);
 }
 
@@ -223,7 +269,13 @@ fn errors_are_reported_where_they_are() {
 
 #[test]
 fn unsupported_qml_is_an_error_not_a_guess() {
-    assert_eq!(errors("Item { TextInput {} }"), ["`TextInput` is not supported by the web target yet"]);
-    assert_eq!(errors("Item { nope: 1 }"), ["`Item` has no property `nope` on the web target yet"]);
+    assert_eq!(
+        errors("Item { TextInput {} }"),
+        ["`TextInput` is not supported by the web target yet"]
+    );
+    assert_eq!(
+        errors("Item { nope: 1 }"),
+        ["`Item` has no property `nope` on the web target yet"]
+    );
     assert!(!errors("Item { width: }").is_empty());
 }

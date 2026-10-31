@@ -257,11 +257,22 @@ mod tests {
     fn a_shell_is_answered_with_data_or_where_it_is_refused() {
         let blocks = r#"[{"module":"Shop","name":"Basket","version":"1.0","file":"Shop/Basket.qml","base":"Rectangle","properties":[{"name":"count","ty":"int","readonly":true}],"actions":[],"events":[]}]"#;
         let ask = |text: &str| {
-            let request = format!(r#"{{"shell":{{"text":{},"blocks":{blocks}}}}}"#, serde_json::to_string(text).unwrap());
+            let request = format!(
+                r#"{{"shell":{{"text":{},"blocks":{blocks}}}}}"#,
+                serde_json::to_string(text).unwrap()
+            );
             serde_json::from_str::<serde_json::Value>(&super::compile(&request)).unwrap()
         };
-        let answer = ask("import QtQuick\nimport Shop\nColumn { Basket { id: b }\n Text { text: b.count } }\n");
-        assert_eq!(answer["shell"]["components"][0]["objects"].as_array().unwrap().len(), 3);
+        let answer = ask(
+            "import QtQuick\nimport Shop\nColumn { Basket { id: b }\n Text { text: b.count } }\n",
+        );
+        assert_eq!(
+            answer["shell"]["components"][0]["objects"]
+                .as_array()
+                .unwrap()
+                .len(),
+            3
+        );
         let answer = ask("import QtQuick\nColumn { Text { text: window.name } }\n");
         assert_eq!(answer["diagnostics"][0]["line"], 2);
     }

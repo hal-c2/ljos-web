@@ -33,6 +33,7 @@ use super::{
 };
 use crate::{Error, build::B, project::Source};
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn resolve<'a>(
     b: B<'a>,
     program: &mut Program<'a>,
@@ -44,9 +45,22 @@ pub(crate) fn resolve<'a>(
     errors: &mut Vec<Error>,
 ) {
     let free = free_references(program, own);
-    let mut resolver = Resolver { b, tree, types, own, dynamic, free, functions: 0, uses, errors };
+    let mut resolver = Resolver {
+        b,
+        tree,
+        types,
+        own,
+        dynamic,
+        free,
+        functions: 0,
+        uses,
+        errors,
+    };
     resolver.visit_program(program);
-    Pruner { used: &resolver.uses.handles }.visit_program(program);
+    Pruner {
+        used: &resolver.uses.handles,
+    }
+    .visit_program(program);
 }
 
 /// The authored identifiers no JavaScript binding resolves, by span start.
@@ -54,11 +68,16 @@ pub(crate) fn resolve<'a>(
 /// QML id or property cannot: whatever JavaScript does resolve is an id or a
 /// local of the script.
 fn free_references(program: &Program<'_>, own: &str) -> HashSet<u32> {
-    let semantic = SemanticBuilder::new().with_build_nodes(true).build(program).semantic;
+    let semantic = SemanticBuilder::new()
+        .with_build_nodes(true)
+        .build(program)
+        .semantic;
     let scoping = semantic.scoping();
     let mut free = HashSet::new();
     let mut add = |reference| {
-        let node = semantic.nodes().get_node(scoping.get_reference(reference).node_id());
+        let node = semantic
+            .nodes()
+            .get_node(scoping.get_reference(reference).node_id());
         let span = node.kind().span();
         if span.end > span.start {
             free.insert(span.start);
@@ -73,7 +92,11 @@ fn free_references(program: &Program<'_>, own: &str) -> HashSet<u32> {
     if !own.starts_with(|c: char| c.is_ascii_uppercase())
         && let Some(symbol) = scoping.get_root_binding(own.into())
     {
-        scoping.get_resolved_reference_ids(symbol).iter().copied().for_each(&mut add);
+        scoping
+            .get_resolved_reference_ids(symbol)
+            .iter()
+            .copied()
+            .for_each(&mut add);
     }
     free
 }
@@ -147,11 +170,17 @@ impl<'a> Resolver<'a, '_, '_> {
         if name.starts_with(|c: char| c.is_ascii_uppercase()) {
             // A singleton by itself is its object.
             let kind = self.type_name(name, span)?;
-            return self.types.is_singleton(&kind).then(|| b.call(b.id(name), []));
+            return self
+                .types
+                .is_singleton(&kind)
+                .then(|| b.call(b.id(name), []));
         }
 
         let inside = tree.object_at(span.start);
-        let names = qml_front::names::Names { tree: &tree.front, types: self.types.front() };
+        let names = qml_front::names::Names {
+            tree: &tree.front,
+            types: self.types.front(),
+        };
         let resolution = names.lookup(name, span.start);
         let (aimed, roles, target) = match resolution {
             Some(resolution) => {
@@ -163,7 +192,11 @@ impl<'a> Resolver<'a, '_, '_> {
                     }
                     return None;
                 }
-                (resolution.aimed.is_some(), resolution.roles, resolution.target)
+                (
+                    resolution.aimed.is_some(),
+                    resolution.roles,
+                    resolution.target,
+                )
             }
             None => (false, Vec::new(), None),
         };
@@ -176,14 +209,16 @@ impl<'a> Resolver<'a, '_, '_> {
         });
         let mut read = target.map(|target| match target {
             qml_front::names::Target::Id(object) => self.handle(object),
-            qml_front::names::Target::Property { object, name } => b.member(self.handle(object), &name),
+            qml_front::names::Target::Property { object, name } => {
+                b.member(self.handle(object), &name)
+            }
             qml_front::names::Target::Context { context, name } => {
                 b.member(b.id(tree.data(context).unwrap_or("$data")), &name)
             }
             // A lowercase name is none of these.
-            qml_front::names::Target::Type(_) | qml_front::names::Target::Namespace(_) | qml_front::names::Target::Global(_) => {
-                b.id(name)
-            }
+            qml_front::names::Target::Type(_)
+            | qml_front::names::Target::Namespace(_)
+            | qml_front::names::Target::Global(_) => b.id(name),
         });
         if written && read.is_some() && roles.is_empty() {
             return read;
@@ -193,7 +228,11 @@ impl<'a> Resolver<'a, '_, '_> {
             let given = tree.data(context).unwrap_or("$data");
             let own = b.member(b.id(given), name);
             read = Some(match read {
-                Some(outer) => b.conditional(b.binary(b.string(name), BinaryOperator::In, b.id(given)), own, outer),
+                Some(outer) => b.conditional(
+                    b.binary(b.string(name), BinaryOperator::In, b.id(given)),
+                    own,
+                    outer,
+                ),
                 None => own,
             });
         }
@@ -210,12 +249,17 @@ impl<'a> Resolver<'a, '_, '_> {
             // else has is the target's, or nothing.
             let own = b.member(b.id(TARGET), name);
             return Some(match read {
-                Some(outer) => b.conditional(b.binary(b.string(name), BinaryOperator::In, b.id(TARGET)), own, outer),
+                Some(outer) => b.conditional(
+                    b.binary(b.string(name), BinaryOperator::In, b.id(TARGET)),
+                    own,
+                    outer,
+                ),
                 None => own,
             });
         }
         if read.is_none() {
-            self.errors.push(Error::new(format!("`{name}` is not defined"), span));
+            self.errors
+                .push(Error::new(format!("`{name}` is not defined"), span));
         }
         read
     }
@@ -225,7 +269,10 @@ impl<'a> Resolver<'a, '_, '_> {
     /// where its lines come from, as qml6 does of each.
     fn placed_console(&mut self, name: &str, span: Span) -> Option<Expression<'a>> {
         let places = self.uses.places.as_ref().filter(|_| name == "console")?;
-        let names = qml_front::names::Names { tree: &self.tree.front, types: self.types.front() };
+        let names = qml_front::names::Names {
+            tree: &self.tree.front,
+            types: self.types.front(),
+        };
         let global = names.lookup(name, span.start).is_some_and(|resolution| {
             matches!(resolution.target, Some(qml_front::names::Target::Global(_)))
                 && resolution.roles.is_empty()
@@ -258,14 +305,17 @@ impl<'a> Resolver<'a, '_, '_> {
                 Some(found.kind)
             }
             None => {
-                self.errors.push(Error::new(format!("`{name}` is not defined"), span));
+                self.errors
+                    .push(Error::new(format!("`{name}` is not defined"), span));
                 None
             }
         }
     }
 
     fn access(&mut self, name: &str, member: &str, span: Span) -> Access {
-        let Some(kind) = self.type_name(name, span) else { return Access::Static };
+        let Some(kind) = self.type_name(name, span) else {
+            return Access::Static;
+        };
         self.member_of(&kind, member)
     }
 
@@ -279,29 +329,50 @@ impl<'a> Resolver<'a, '_, '_> {
         // The keys of the type a singleton is are on its name, as they are
         // on any component's; everything else of it is on the one object.
         let is_singleton = self.types.is_singleton(kind);
-        let rest = if is_singleton { Access::Singleton } else { Access::Static };
-        let Some(ty) = self.types.base(kind) else { return rest };
+        let rest = if is_singleton {
+            Access::Singleton
+        } else {
+            Access::Static
+        };
+        let Some(ty) = self.types.base(kind) else {
+            return rest;
+        };
         if ty.0.enum_value(member).is_some() {
             return Access::Static;
         }
-        if qml_front::TypeOracle::has_enum(&qml_front::QtTypeOracle, qml_front::QtType(ty.0), member) {
+        if qml_front::TypeOracle::has_enum(
+            &qml_front::QtTypeOracle,
+            qml_front::QtType(ty.0),
+            member,
+        ) {
             return Access::Enum;
         }
-        if ty.0.attaches(member) && !ty.0.is_singleton && !is_singleton { Access::Attached } else { rest }
+        if ty.0.attaches(member) && !ty.0.is_singleton && !is_singleton {
+            Access::Attached
+        } else {
+            rest
+        }
     }
 
     /// `Type.member`, when `expression` is exactly that.
     fn type_member(&mut self, expression: &mut Expression<'a>) -> bool {
         let b = self.b;
-        let Expression::StaticMemberExpression(member) = expression else { return false };
+        let Expression::StaticMemberExpression(member) = expression else {
+            return false;
+        };
         // `Namespace.Type.Enum`, of `Namespace.Type.Enum.Key`: the keys are
         // on the type by whatever name it is found.
         if let Expression::StaticMemberExpression(ty) = &member.object
             && let Expression::Identifier(namespace) = &ty.object
             && self.is_free(namespace)
             && self.types.namespace(namespace.name.as_str()).is_some()
-            && let Some(found) = self.types.find(&[namespace.name.as_str(), ty.property.name.as_str()])
-            && matches!(self.member_of(&found.kind, member.property.name.as_str()), Access::Enum)
+            && let Some(found) = self
+                .types
+                .find(&[namespace.name.as_str(), ty.property.name.as_str()])
+            && matches!(
+                self.member_of(&found.kind, member.property.name.as_str()),
+                Access::Enum
+            )
         {
             self.uses.namespaces.insert(namespace.name.to_string());
             *expression = member.object.take_in(&b.allocator());
@@ -320,7 +391,9 @@ impl<'a> Resolver<'a, '_, '_> {
     /// None when it is no member of a type.
     fn of_type(&mut self, member: &mut StaticMemberExpression<'a>) -> Option<Access> {
         let b = self.b;
-        let Expression::Identifier(object) = &member.object else { return None };
+        let Expression::Identifier(object) = &member.object else {
+            return None;
+        };
         let name = object.name.as_str();
         if !self.is_free(object) || !name.starts_with(|c: char| c.is_ascii_uppercase()) {
             return None;
@@ -358,8 +431,12 @@ impl<'a> Resolver<'a, '_, '_> {
     fn attached_member(&mut self, member: &mut StaticMemberExpression<'a>) -> bool {
         let span = member.span;
         let wanted = member.property.name.to_string();
-        let Expression::StaticMemberExpression(inner) = &mut member.object else { return false };
-        let Some(attached) = self.attachment(inner, Some(&wanted), span) else { return false };
+        let Expression::StaticMemberExpression(inner) = &mut member.object else {
+            return false;
+        };
+        let Some(attached) = self.attachment(inner, Some(&wanted), span) else {
+            return false;
+        };
         member.object = attached;
         true
     }
@@ -367,9 +444,13 @@ impl<'a> Resolver<'a, '_, '_> {
     /// `object.Type`, held as a value (`const said = item.SplitView`): what
     /// the type attaches to the object. `Namespace.Type` is the type.
     fn attached_object(&mut self, expression: &mut Expression<'a>) -> bool {
-        let Expression::StaticMemberExpression(member) = expression else { return false };
+        let Expression::StaticMemberExpression(member) = expression else {
+            return false;
+        };
         let span = member.span;
-        let Some(attached) = self.attachment(member, None, span) else { return false };
+        let Some(attached) = self.attachment(member, None, span) else {
+            return false;
+        };
         *expression = attached;
         true
     }
@@ -400,12 +481,17 @@ impl<'a> Resolver<'a, '_, '_> {
             return None;
         }
         let of = match &inner.object {
-            Expression::Identifier(object) if self.is_free(object) && object.name.starts_with(|c: char| c.is_ascii_uppercase()) => {
+            Expression::Identifier(object)
+                if self.is_free(object)
+                    && object.name.starts_with(|c: char| c.is_ascii_uppercase()) =>
+            {
                 // `Qt.Window`, `Text.Text`: a member of a type or a global.
                 self.types.namespace(object.name.as_str())?;
                 Attaching::Here(object.name.to_string())
             }
-            Expression::StaticMemberExpression(outer) if self.types.namespace(outer.property.name.as_str()).is_some() => {
+            Expression::StaticMemberExpression(outer)
+                if self.types.namespace(outer.property.name.as_str()).is_some() =>
+            {
                 Attaching::Through(outer.property.name.to_string())
             }
             _ => Attaching::Object,
@@ -435,7 +521,9 @@ impl<'a> Resolver<'a, '_, '_> {
             Attaching::Through(namespace) => {
                 let ty = b.member(b.id(&namespace), &name);
                 self.uses.namespaces.insert(namespace);
-                let Expression::StaticMemberExpression(outer) = &mut inner.object else { unreachable!() };
+                let Expression::StaticMemberExpression(outer) = &mut inner.object else {
+                    unreachable!()
+                };
                 let mut attachee = outer.object.take_in(&b.allocator());
                 self.visit_expression(&mut attachee);
                 b.call(b.member(ty, "attached"), [attachee])
@@ -452,43 +540,71 @@ impl<'a> Resolver<'a, '_, '_> {
     /// Whether `expression` is `Type.Enum` or `Namespace.Type.Enum`: an enum
     /// of a type, by the type's name.
     fn is_enum(&self, expression: &Expression<'a>) -> bool {
-        let Expression::StaticMemberExpression(member) = expression else { return false };
+        let Expression::StaticMemberExpression(member) = expression else {
+            return false;
+        };
         let found = match &member.object {
             Expression::Identifier(ty) if self.is_free(ty) => self.types.find(&[ty.name.as_str()]),
             Expression::StaticMemberExpression(ty) => match &ty.object {
                 Expression::Identifier(namespace) if self.is_free(namespace) => {
-                    self.types.namespace(namespace.name.as_str()).and_then(|_| self.types.find(&[namespace.name.as_str(), ty.property.name.as_str()]))
+                    self.types.namespace(namespace.name.as_str()).and_then(|_| {
+                        self.types
+                            .find(&[namespace.name.as_str(), ty.property.name.as_str()])
+                    })
                 }
                 _ => None,
             },
             _ => None,
         };
-        found.is_some_and(|found| matches!(self.member_of(&found.kind, member.property.name.as_str()), Access::Enum))
+        found.is_some_and(|found| {
+            matches!(
+                self.member_of(&found.kind, member.property.name.as_str()),
+                Access::Enum
+            )
+        })
     }
 
     /// `Qt.createQmlObject("import QtQuick; Item {}", parent)`: the object of
     /// the component the text is, which [`texts`] makes of it. True when
     /// `expression` became that.
     fn text_object(&mut self, expression: &mut Expression<'a>) -> bool {
-        let Expression::CallExpression(call) = expression else { return false };
-        let Some(first) = texts::given(call) else { return false };
-        let Some((source, holes)) = texts::written(first) else { return false };
+        let Expression::CallExpression(call) = expression else {
+            return false;
+        };
+        let Some(first) = texts::given(call) else {
+            return false;
+        };
+        let Some((source, holes)) = texts::written(first) else {
+            return false;
+        };
         let index = self.uses.texts.len();
         let span = first.span();
-        self.uses.texts.push(Text { source, span, holes });
+        self.uses.texts.push(Text {
+            source,
+            span,
+            holes,
+        });
         let b = self.b;
         let mut arguments = std::mem::replace(&mut call.arguments, b.vec()).into_iter();
         let mut put = Vec::new();
         if let Some(first) = arguments.next() {
             texts::put(first.into_expression(), &mut put);
         }
-        let made = if put.is_empty() { b.id(&texts::name(index)) } else { b.call(b.id(&texts::name(index)), put) };
+        let made = if put.is_empty() {
+            b.id(&texts::name(index))
+        } else {
+            b.call(b.id(&texts::name(index)), put)
+        };
         // Its object finds names where the text is written.
-        let scope = (!self.dynamic.is_empty()).then(|| self.tree.scope_of(self.tree.object_at(span.start)));
+        let scope =
+            (!self.dynamic.is_empty()).then(|| self.tree.scope_of(self.tree.object_at(span.start)));
         let context = scope.as_deref().map(|scope| b.id(scope));
         self.uses.handles.extend(scope);
         self.uses.kernel.insert("$file");
-        let create = b.member(b.call(b.id("$file"), std::iter::once(made).chain(context)), "createObject");
+        let create = b.member(
+            b.call(b.id("$file"), std::iter::once(made).chain(context)),
+            "createObject",
+        );
         *expression = b.call(create, arguments.next().map(Argument::into_expression));
         true
     }
@@ -496,11 +612,18 @@ impl<'a> Resolver<'a, '_, '_> {
     /// `Qt.createComponent("QtQuick3D", "TextureInput")`: a type of a module
     /// as a component. The module has it whether the file imports it or not.
     fn module_component(&mut self, expression: &Expression<'a>) -> Option<Expression<'a>> {
-        let Expression::CallExpression(call) = expression else { return None };
+        let Expression::CallExpression(call) = expression else {
+            return None;
+        };
         if paths::qt_method(call) != Some("createComponent") {
             return None;
         }
-        let [Argument::StringLiteral(uri), Argument::StringLiteral(name), ..] = call.arguments.as_slice() else {
+        let [
+            Argument::StringLiteral(uri),
+            Argument::StringLiteral(name),
+            ..,
+        ] = call.arguments.as_slice()
+        else {
             return None;
         };
         let (uri, name) = (uri.value.as_str(), name.value.as_str());
@@ -516,7 +639,6 @@ impl<'a> Resolver<'a, '_, '_> {
         Some(self.b.call(self.b.id("$file"), [self.b.id(name)]))
     }
 }
-
 
 impl<'a> VisitMut<'a> for Resolver<'a, '_, '_> {
     fn visit_expression(&mut self, expression: &mut Expression<'a>) {
@@ -535,8 +657,10 @@ impl<'a> VisitMut<'a> for Resolver<'a, '_, '_> {
 
         // What a file named by its path makes finds names where the path is
         // written, if the project finds any as it runs.
-        let scope = (!self.dynamic.is_empty() && !expression.span().is_empty())
-            .then(|| self.tree.scope_of(self.tree.object_at(expression.span().start)));
+        let scope = (!self.dynamic.is_empty() && !expression.span().is_empty()).then(|| {
+            self.tree
+                .scope_of(self.tree.object_at(expression.span().start))
+        });
         if let Some(component) = self.module_component(expression) {
             *expression = component;
             return;
@@ -545,7 +669,12 @@ impl<'a> VisitMut<'a> for Resolver<'a, '_, '_> {
             walk_mut::walk_expression(self, expression);
             return;
         }
-        let Uses { paths, kernel, handles, .. } = &mut *self.uses;
+        let Uses {
+            paths,
+            kernel,
+            handles,
+            ..
+        } = &mut *self.uses;
         if paths.rewrite(self.b, kernel, expression, scope.as_deref())
             && let Some(scope) = scope
         {
@@ -587,7 +716,9 @@ impl<'a> VisitMut<'a> for Resolver<'a, '_, '_> {
                 Some(Expression::StaticMemberExpression(member)) => {
                     *target = SimpleAssignmentTarget::StaticMemberExpression(member);
                 }
-                Some(_) => self.errors.push(Error::new(format!("`{name}` cannot be assigned to"), span)),
+                Some(_) => self
+                    .errors
+                    .push(Error::new(format!("`{name}` cannot be assigned to"), span)),
                 None => {}
             }
             return;
@@ -613,7 +744,9 @@ impl<'a> VisitMut<'a> for Resolver<'a, '_, '_> {
         walk_mut::walk_object_property(self, property);
         if property.shorthand {
             let same = match (&property.key, &property.value) {
-                (PropertyKey::StaticIdentifier(key), Expression::Identifier(value)) => key.name == value.name,
+                (PropertyKey::StaticIdentifier(key), Expression::Identifier(value)) => {
+                    key.name == value.name
+                }
                 _ => false,
             };
             property.shorthand = same;
@@ -667,9 +800,15 @@ impl Pruner<'_> {
 impl<'a> VisitMut<'a> for Pruner<'_> {
     fn visit_statements(&mut self, statements: &mut oxc_allocator::ArenaVec<'a, Statement<'a>>) {
         statements.retain(|statement| {
-            let Statement::VariableDeclaration(declaration) = statement else { return true };
-            let [declarator] = declaration.declarations.as_slice() else { return true };
-            let BindingPattern::BindingIdentifier(identifier) = &declarator.id else { return true };
+            let Statement::VariableDeclaration(declaration) = statement else {
+                return true;
+            };
+            let [declarator] = declaration.declarations.as_slice() else {
+                return true;
+            };
+            let BindingPattern::BindingIdentifier(identifier) = &declarator.id else {
+                return true;
+            };
             !(declarator.span.is_empty() && self.is_unused(identifier.name.as_str()))
         });
         walk_mut::walk_statements(self, statements);
@@ -677,13 +816,21 @@ impl<'a> VisitMut<'a> for Pruner<'_> {
 
     fn visit_jsx_opening_element(&mut self, element: &mut JSXOpeningElement<'a>) {
         element.attributes.retain(|attribute| {
-            let JSXAttributeItem::Attribute(attribute) = attribute else { return true };
-            let JSXAttributeName::Identifier(name) = &attribute.name else { return true };
+            let JSXAttributeItem::Attribute(attribute) = attribute else {
+                return true;
+            };
+            let JSXAttributeName::Identifier(name) = &attribute.name else {
+                return true;
+            };
             if name.name != "$self" {
                 return true;
             }
-            let Some(JSXAttributeValue::ExpressionContainer(container)) = &attribute.value else { return true };
-            let JSXExpression::Identifier(identifier) = &container.expression else { return true };
+            let Some(JSXAttributeValue::ExpressionContainer(container)) = &attribute.value else {
+                return true;
+            };
+            let JSXExpression::Identifier(identifier) = &container.expression else {
+                return true;
+            };
             !self.is_unused(identifier.name.as_str())
         });
         walk_mut::walk_jsx_opening_element(self, element);
@@ -697,13 +844,13 @@ pub(crate) use qml_front::names::{JS_GLOBALS, QML_GLOBALS};
 pub(crate) fn namespace_source(source: &Source, prefix: &str) -> Option<String> {
     match source {
         Source::Module(uri) => Some(format!("{prefix}/{}", uri.replace('.', "/"))),
-        Source::Path(path) if path.ends_with(".js") || path.ends_with(".mjs") => {
-            Some(if path.starts_with("./") || path.starts_with("../") || path.starts_with('/') {
+        Source::Path(path) if path.ends_with(".js") || path.ends_with(".mjs") => Some(
+            if path.starts_with("./") || path.starts_with("../") || path.starts_with('/') {
                 path.clone()
             } else {
                 format!("./{path}")
-            })
-        }
+            },
+        ),
         Source::Path(_) => None,
     }
 }

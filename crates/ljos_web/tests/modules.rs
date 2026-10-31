@@ -10,7 +10,11 @@ use std::{
 /// `qmlc` run with `args` from the fixtures' directory.
 fn qmlc(args: &[&str]) -> Output {
     let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/modules");
-    Command::new(env!("CARGO_BIN_EXE_qmlc")).args(args).current_dir(fixtures).output().expect("qmlc runs")
+    Command::new(env!("CARGO_BIN_EXE_qmlc"))
+        .args(args)
+        .current_dir(fixtures)
+        .output()
+        .expect("qmlc runs")
 }
 
 /// What `qmlc` printed for a file it compiled.
@@ -24,13 +28,19 @@ fn compiled(args: &[&str]) -> String {
 /// What `qmlc` said of a file it did not compile.
 fn refused(args: &[&str]) -> String {
     let output = qmlc(args);
-    assert!(!output.status.success(), "qmlc {args:?} compiled what it should not have");
+    assert!(
+        !output.status.success(),
+        "qmlc {args:?} compiled what it should not have"
+    );
     String::from_utf8(output.stderr).expect("UTF-8 messages")
 }
 
 #[track_caller]
 fn assert_contains(haystack: &str, needle: &str) {
-    assert!(haystack.contains(needle), "expected to find\n  {needle}\nin\n{haystack}");
+    assert!(
+        haystack.contains(needle),
+        "expected to find\n  {needle}\nin\n{haystack}"
+    );
 }
 
 #[test]
@@ -47,17 +57,51 @@ fn a_module_is_the_qmldir_at_its_place_under_the_root() {
 #[test]
 fn an_import_path_given_comes_before_the_root() {
     let code = compiled(&["--root", "twice", "-I", "twice/mocks", "twice/Main.qml"]);
-    assert_contains(&code, r#"import Player from "./mocks/App/Media/Player.qml";"#);
-    let code = compiled(&["--root", "twice", "--import-path", "twice/mocks", "twice/Main.qml"]);
-    assert_contains(&code, r#"import Player from "./mocks/App/Media/Player.qml";"#);
+    assert_contains(
+        &code,
+        r#"import Player from "./mocks/App/Media/Player.qml";"#,
+    );
+    let code = compiled(&[
+        "--root",
+        "twice",
+        "--import-path",
+        "twice/mocks",
+        "twice/Main.qml",
+    ]);
+    assert_contains(
+        &code,
+        r#"import Player from "./mocks/App/Media/Player.qml";"#,
+    );
 }
 
 #[test]
 fn of_the_import_paths_given_the_first_with_the_module_has_it() {
-    let code = compiled(&["--root", "twice", "-I", "twice/stubs", "-I", "twice/mocks", "twice/Main.qml"]);
-    assert_contains(&code, r#"import Player from "./stubs/App/Media/Player.qml";"#);
-    let code = compiled(&["--root", "twice", "-I", "twice/mocks", "-I", "twice/stubs", "twice/Main.qml"]);
-    assert_contains(&code, r#"import Player from "./mocks/App/Media/Player.qml";"#);
+    let code = compiled(&[
+        "--root",
+        "twice",
+        "-I",
+        "twice/stubs",
+        "-I",
+        "twice/mocks",
+        "twice/Main.qml",
+    ]);
+    assert_contains(
+        &code,
+        r#"import Player from "./stubs/App/Media/Player.qml";"#,
+    );
+    let code = compiled(&[
+        "--root",
+        "twice",
+        "-I",
+        "twice/mocks",
+        "-I",
+        "twice/stubs",
+        "twice/Main.qml",
+    ]);
+    assert_contains(
+        &code,
+        r#"import Player from "./mocks/App/Media/Player.qml";"#,
+    );
 }
 
 #[test]
@@ -67,7 +111,10 @@ fn a_qmldir_out_of_its_modules_place_declares_nothing() {
     let messages = refused(&["--root", "misplaced", "misplaced/Main.qml"]);
     assert_contains(&messages, "Widgets/qmldir");
     assert_contains(&messages, "`Gadgets`");
-    assert_contains(&messages, "misplaced/Main.qml:2:1: module \"Gadgets\" is not installed");
+    assert_contains(
+        &messages,
+        "misplaced/Main.qml:2:1: module \"Gadgets\" is not installed",
+    );
 }
 
 #[test]
@@ -81,16 +128,28 @@ fn a_block_line_of_a_qmldir_declares_its_type() {
 #[test]
 fn an_import_of_a_module_nobody_has_is_an_error_where_it_is_written() {
     let messages = refused(&["--root", "unknown", "unknown/Main.qml"]);
-    assert_contains(&messages, "unknown/Main.qml:2:1: module \"No.Such.Module\" is not installed");
+    assert_contains(
+        &messages,
+        "unknown/Main.qml:2:1: module \"No.Such.Module\" is not installed",
+    );
 }
 
 #[test]
 fn the_modules_of_qt_the_runtime_and_the_stand_ins_are_installed() {
     // A style of Qt's, a module the runtime has and Qt's table does not
     // (`Qt.labs.settings`), and a stand-in for C++.
-    let code = compiled(&["--root", "provided", "--with", "provided/standins", "provided/Main.qml"]);
+    let code = compiled(&[
+        "--root",
+        "provided",
+        "--with",
+        "provided/standins",
+        "provided/Main.qml",
+    ]);
     assert_contains(&code, r#"from "ljos-web/QtQuick/Controls/Basic""#);
-    assert_contains(&code, r#"import Backend from "./standins/Backend/Backend.qml";"#);
+    assert_contains(
+        &code,
+        r#"import Backend from "./standins/Backend/Backend.qml";"#,
+    );
 }
 
 /// `qmlc` on `unknown/Main.qml` with a `PATH` of only the tools written
@@ -103,7 +162,11 @@ fn with_tools(name: &str, tools: &[(&str, &str)]) -> Output {
     let _ = std::fs::remove_dir_all(&place);
     let module = place.join("qml/No/Such/Module");
     std::fs::create_dir_all(&module).expect("a module directory");
-    std::fs::write(module.join("qmldir"), "module No.Such.Module\nThing 1.0 Thing.qml\n").expect("a qmldir");
+    std::fs::write(
+        module.join("qmldir"),
+        "module No.Such.Module\nThing 1.0 Thing.qml\n",
+    )
+    .expect("a qmldir");
     std::fs::write(module.join("Thing.qml"), "import QtQuick\nItem { }\n").expect("a type");
     let bin = place.join("bin");
     std::fs::create_dir_all(&bin).expect("a bin directory");
@@ -115,7 +178,8 @@ fn with_tools(name: &str, tools: &[(&str, &str)]) -> Output {
             format!("#!/bin/sh\ncase \"$2\" in\n  QT_VERSION) echo {version} ;;\n  QT_INSTALL_QML) echo {} ;;\n  *) exit 1 ;;\nesac\n", qml.display()),
         )
         .expect("a tool");
-        std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).expect("an executable tool");
+        std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755))
+            .expect("an executable tool");
     }
     let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/modules");
     Command::new(env!("CARGO_BIN_EXE_qmlc"))
@@ -134,9 +198,15 @@ fn a_qt_5_on_the_path_is_not_taken_for_the_installed_qt() {
     // Qt 5's tools name a QML directory too, of QML a Qt 6 does not read.
     let output = with_tools("qt5", &[("qtpaths", "5.15.2"), ("qmake", "5.15.2")]);
     assert!(!output.status.success(), "qmlc took Qt 5's modules");
-    assert_contains(&String::from_utf8_lossy(&output.stderr), "module \"No.Such.Module\" is not installed");
+    assert_contains(
+        &String::from_utf8_lossy(&output.stderr),
+        "module \"No.Such.Module\" is not installed",
+    );
     // A Qt 6 is found past it, whichever of its tools there is.
     let output = with_tools("qt6", &[("qtpaths", "5.15.2"), ("qmake6", "6.11.2")]);
     let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(output.status.success(), "qmlc did not find Qt 6's modules:\n{stderr}");
+    assert!(
+        output.status.success(),
+        "qmlc did not find Qt 6's modules:\n{stderr}"
+    );
 }

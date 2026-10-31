@@ -183,7 +183,11 @@ impl Project {
     /// page that holds the module's singletons knows them by.
     pub(crate) fn type_name(&self, file: &str) -> Option<String> {
         let name = file.rsplit('/').next()?;
-        let uri = self.front.modules_of(file).iter().find(|uri| self.front.module_type(uri, name) == Some(file))?;
+        let uri = self
+            .front
+            .modules_of(file)
+            .iter()
+            .find(|uri| self.front.module_type(uri, name) == Some(file))?;
         Some(format!("{uri}.{name}"))
     }
 
@@ -238,10 +242,19 @@ impl Project {
         // by that name.
         let mut there: HashSet<&str> = HashSet::new();
         for file in self.extras.keys() {
-            let Some(summary) = self.front.summary(file) else { continue };
+            let Some(summary) = self.front.summary(file) else {
+                continue;
+            };
             for shape in &summary.shapes {
                 there.extend(shape.ids.iter().map(String::as_str));
-                there.extend(shape.properties.keys().chain(shape.signals.keys()).chain(&shape.functions).map(String::as_str));
+                there.extend(
+                    shape
+                        .properties
+                        .keys()
+                        .chain(shape.signals.keys())
+                        .chain(&shape.functions)
+                        .map(String::as_str),
+                );
             }
         }
         names.extend(
@@ -266,14 +279,22 @@ impl Project {
 
     /// The component a type name stands for in `file`.
     pub(crate) fn resolve(&self, file: &str, type_name: &str) -> Option<Key> {
-        let inline = self
-            .front
-            .summary(file)
-            .is_some_and(|summary| summary.shapes.iter().any(|shape| shape.inline.as_deref() == Some(type_name)));
+        let inline = self.front.summary(file).is_some_and(|summary| {
+            summary
+                .shapes
+                .iter()
+                .any(|shape| shape.inline.as_deref() == Some(type_name))
+        });
         if inline {
-            Some(Key { file: file.to_string(), inline: Some(type_name.to_string()) })
+            Some(Key {
+                file: file.to_string(),
+                inline: Some(type_name.to_string()),
+            })
         } else if self.front.has(type_name) {
-            Some(Key { file: type_name.to_string(), inline: None })
+            Some(Key {
+                file: type_name.to_string(),
+                inline: None,
+            })
         } else {
             None
         }
@@ -284,7 +305,11 @@ impl Project {
     }
 
     pub(crate) fn interface(&self, key: &Key) -> Option<&Interface> {
-        self.extras.get(&key.file)?.components.iter().find(|component| component.inline == key.inline)
+        self.extras
+            .get(&key.file)?
+            .components
+            .iter()
+            .find(|component| component.inline == key.inline)
     }
 
     /// What `name` is on an instance of the component: something it declares,
@@ -293,7 +318,9 @@ impl Project {
         let mut key = key.clone();
         // A component whose root is itself, by whatever detour, has no root.
         for _ in 0..64 {
-            let Some(interface) = self.interface(&key) else { return Lookup::Unknown };
+            let Some(interface) = self.interface(&key) else {
+                return Lookup::Unknown;
+            };
             match interface.declares(name) {
                 Some(Declared::Property) => return Lookup::Value,
                 Some(Declared::Signal(parameters)) => return Lookup::Handler(parameters.to_vec()),
@@ -324,7 +351,9 @@ impl Project {
         let mut usages: HashMap<Key, Usage> = HashMap::new();
         for (file, extras) in &self.extras {
             for instance in &extras.instances {
-                let Some(key) = self.resolve(file, &instance.type_name) else { continue };
+                let Some(key) = self.resolve(file, &instance.type_name) else {
+                    continue;
+                };
                 let usage = usages.entry(key).or_default();
                 usage.names.extend(instance.names.iter().cloned());
                 usage.children |= instance.children;
@@ -336,16 +365,27 @@ impl Project {
             let mut changed = false;
             for (file, extras) in &self.extras {
                 for instance in extras.instances.iter().filter(|instance| instance.is_root) {
-                    let owner = Key { file: file.clone(), inline: instance.owner.clone() };
-                    let Some(root) = self.resolve(file, &instance.type_name) else { continue };
-                    let (Some(interface), Some(asked)) = (self.interface(&owner), usages.get(&owner)) else {
+                    let owner = Key {
+                        file: file.clone(),
+                        inline: instance.owner.clone(),
+                    };
+                    let Some(root) = self.resolve(file, &instance.type_name) else {
+                        continue;
+                    };
+                    let (Some(interface), Some(asked)) =
+                        (self.interface(&owner), usages.get(&owner))
+                    else {
                         continue;
                     };
                     if root == owner {
                         continue;
                     }
-                    let names: Vec<String> =
-                        asked.names.iter().filter(|name| interface.declares(name).is_none()).cloned().collect();
+                    let names: Vec<String> = asked
+                        .names
+                        .iter()
+                        .filter(|name| interface.declares(name).is_none())
+                        .cloned()
+                        .collect();
                     let children = asked.children && interface.children_in_root;
                     let usage = usages.entry(root).or_default();
                     for name in names {
@@ -393,7 +433,9 @@ impl Sought {
                 QmlMember::Object(child) => self.object(child),
                 QmlMember::InlineComponent(inline) => self.object(&inline.object),
                 QmlMember::Binding(QmlBinding { value, .. })
-                | QmlMember::Property(QmlPropertyDeclaration { value: Some(value), .. }) => match value {
+                | QmlMember::Property(QmlPropertyDeclaration {
+                    value: Some(value), ..
+                }) => match value {
                     QmlBindingValue::Expression(expression) => self.visit_expression(expression),
                     QmlBindingValue::Statement(statement) => self.visit_statement(statement),
                     QmlBindingValue::Object(child) => self.object(child),
@@ -430,7 +472,6 @@ impl<'a> Visit<'a> for Sought {
     }
 }
 
-
 /// The aliases of the component being walked: they make its interface reach
 /// the objects they name.
 struct Aliases<'a> {
@@ -454,7 +495,11 @@ fn component<'a>(extras: &mut Extras, types: Types, inline: Option<&'a str>, roo
         signals: HashMap::new(),
         children_in_root: true,
     };
-    let mut aliases = Aliases { inline, properties: Vec::new(), children: None };
+    let mut aliases = Aliases {
+        inline,
+        properties: Vec::new(),
+        children: None,
+    };
     for member in &root.members {
         match member {
             QmlMember::Property(property) => {
@@ -475,7 +520,11 @@ fn component<'a>(extras: &mut Extras, types: Types, inline: Option<&'a str>, roo
             QmlMember::Signal(signal) => {
                 interface.signals.insert(
                     signal.name.name.to_string(),
-                    signal.params.iter().map(|param| param.name.name.to_string()).collect(),
+                    signal
+                        .params
+                        .iter()
+                        .map(|param| param.name.name.to_string())
+                        .collect(),
                 );
             }
             _ => {}
@@ -496,7 +545,9 @@ fn object<'a>(
         && types.lookup(type_name).is_none()
         && object.on.is_none()
     {
-        extras.instances.push(instance(aliases, type_name, object, is_root));
+        extras
+            .instances
+            .push(instance(aliases, type_name, object, is_root));
     }
     for member in &object.members {
         match member {
@@ -504,8 +555,12 @@ fn object<'a>(
                 self::object(extras, types, aliases, child, false);
             }
             QmlMember::Binding(QmlBinding { value, .. })
-            | QmlMember::Property(QmlPropertyDeclaration { value: Some(value), .. }) => match value {
-                QmlBindingValue::Object(child) => self::object(extras, types, aliases, child, false),
+            | QmlMember::Property(QmlPropertyDeclaration {
+                value: Some(value), ..
+            }) => match value {
+                QmlBindingValue::Object(child) => {
+                    self::object(extras, types, aliases, child, false)
+                }
                 QmlBindingValue::Objects(children) => {
                     for child in children {
                         self::object(extras, types, aliases, child, false);
@@ -514,7 +569,12 @@ fn object<'a>(
                 _ => {}
             },
             QmlMember::InlineComponent(inline) => {
-                component(extras, types, Some(inline.name.name.as_str()), &inline.object);
+                component(
+                    extras,
+                    types,
+                    Some(inline.name.name.as_str()),
+                    &inline.object,
+                );
             }
             _ => {}
         }
@@ -543,8 +603,12 @@ fn instance<'a>(
     }
     let passed = |name: &str| {
         name != "id"
-            && classify(name, |signal| signals.contains(signal), |property| properties.contains(property))
-                .is_none()
+            && classify(
+                name,
+                |signal| signals.contains(signal),
+                |property| properties.contains(property),
+            )
+            .is_none()
     };
 
     let mut names = BTreeSet::new();

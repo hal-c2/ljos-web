@@ -121,12 +121,33 @@ pub fn compile(request: &Request) -> Result<Compiled, Vec<Diagnostic>> {
     let (mut files, given) = aliased(&request.files, &request.aliases);
     let dumped = dumped(request, &mut files)?;
     let named = |file: &str| given.get(file).cloned().unwrap_or_else(|| file.to_string());
-    let memory = Memory::new(files.iter().map(|(path, text)| (path.as_str(), text.as_str())));
-    let imports = request.imports.iter().filter_map(|dir| normal(dir)).map(|dir| Path::new(ROOT).join(dir)).collect();
-    let load = Load { root: Some(PathBuf::from(ROOT)), imports, dumped, ..Load::new(&memory) };
-    let entry = normal(&request.entry).filter(|entry| files.contains_key(entry)).ok_or_else(|| {
-        vec![Diagnostic { file: Some(request.entry.clone()), line: None, column: None, message: "no such file".into() }]
-    })?;
+    let memory = Memory::new(
+        files
+            .iter()
+            .map(|(path, text)| (path.as_str(), text.as_str())),
+    );
+    let imports = request
+        .imports
+        .iter()
+        .filter_map(|dir| normal(dir))
+        .map(|dir| Path::new(ROOT).join(dir))
+        .collect();
+    let load = Load {
+        root: Some(PathBuf::from(ROOT)),
+        imports,
+        dumped,
+        ..Load::new(&memory)
+    };
+    let entry = normal(&request.entry)
+        .filter(|entry| files.contains_key(entry))
+        .ok_or_else(|| {
+            vec![Diagnostic {
+                file: Some(request.entry.clone()),
+                line: None,
+                column: None,
+                message: "no such file".into(),
+            }]
+        })?;
 
     let mut modules: Vec<Module> = Vec::new();
     let mut diagnostics = Vec::new();
@@ -143,7 +164,9 @@ pub fn compile(request: &Request) -> Result<Compiled, Vec<Diagnostic>> {
             ..Options::default()
         };
         let path = Path::new(ROOT).join(&file);
-        let Some(compiled) = load.compile(&path, &mut options, false, false) else { continue };
+        let Some(compiled) = load.compile(&path, &mut options, false, false) else {
+            continue;
+        };
         for warning in compiled.warnings {
             if !warnings.contains(&warning) {
                 warnings.push(warning);
@@ -154,7 +177,12 @@ pub fn compile(request: &Request) -> Result<Compiled, Vec<Diagnostic>> {
             Err(errors) => {
                 diagnostics.extend(errors.into_iter().map(|error| {
                     let (line, column) = error.position(&compiled.source);
-                    Diagnostic { file: Some(named(&file)), line: Some(line), column: Some(column), message: error.message }
+                    Diagnostic {
+                        file: Some(named(&file)),
+                        line: Some(line),
+                        column: Some(column),
+                        message: error.message,
+                    }
                 }));
                 continue;
             }
@@ -175,7 +203,11 @@ pub fn compile(request: &Request) -> Result<Compiled, Vec<Diagnostic>> {
                     }
                 }
                 Target::Module(specifier) => {
-                    if request.modules.as_ref().is_some_and(|modules| !modules.contains(specifier)) {
+                    if request
+                        .modules
+                        .as_ref()
+                        .is_some_and(|modules| !modules.contains(specifier))
+                    {
                         diagnostics.push(absent(&named(&file), &compiled.source, specifier));
                     }
                 }
@@ -198,14 +230,20 @@ pub fn compile(request: &Request) -> Result<Compiled, Vec<Diagnostic>> {
 /// Puts the stand-ins of the project's type dumps among its files, where
 /// `qmlc --types` shows them, and says where that is: None when the project
 /// has no dump. A dump that does not read is the whole answer.
-fn dumped(request: &Request, files: &mut BTreeMap<String, String>) -> Result<Option<PathBuf>, Vec<Diagnostic>> {
+fn dumped(
+    request: &Request,
+    files: &mut BTreeMap<String, String>,
+) -> Result<Option<PathBuf>, Vec<Diagnostic>> {
     let paths: Vec<String> = match &request.types {
         Some(paths) => paths.clone(),
         None => request
             .files
             .keys()
             .filter(|path| path.rsplit('/').next() == Some(DUMP_NAME))
-            .filter(|path| path.split('/').all(|part| !part.starts_with(['.', '+']) && part != "node_modules"))
+            .filter(|path| {
+                path.split('/')
+                    .all(|part| !part.starts_with(['.', '+']) && part != "node_modules")
+            })
             .cloned()
             .collect(),
     };
@@ -215,7 +253,12 @@ fn dumped(request: &Request, files: &mut BTreeMap<String, String>) -> Result<Opt
     let mut read = Vec::new();
     for path in paths {
         let Some(text) = request.files.get(&path) else {
-            return Err(vec![Diagnostic { file: Some(path), line: None, column: None, message: "no such file".into() }]);
+            return Err(vec![Diagnostic {
+                file: Some(path),
+                line: None,
+                column: None,
+                message: "no such file".into(),
+            }]);
         };
         match crate::dump::read(&path, text) {
             Ok(dump) => read.push((path, dump)),
@@ -230,17 +273,30 @@ fn dumped(request: &Request, files: &mut BTreeMap<String, String>) -> Result<Opt
 }
 
 fn dump_diagnostic(error: crate::dump::DumpError) -> Diagnostic {
-    Diagnostic { file: Some(error.file), line: Some(error.line), column: Some(error.column), message: error.message }
+    Diagnostic {
+        file: Some(error.file),
+        line: Some(error.line),
+        column: Some(error.column),
+        message: error.message,
+    }
 }
 
 /// What does not parse among the QML files of the project.
-fn syntax_errors(files: &BTreeMap<String, String>, named: &dyn Fn(&str) -> String) -> Vec<Diagnostic> {
+fn syntax_errors(
+    files: &BTreeMap<String, String>,
+    named: &dyn Fn(&str) -> String,
+) -> Vec<Diagnostic> {
     let mut found = Vec::new();
     for (file, source) in files.iter().filter(|(file, _)| file.ends_with(".qml")) {
         let allocator = Allocator::default();
         for error in qml_syntax::parse(&allocator, source).diagnostics {
             let (line, column) = error.position(source);
-            found.push(Diagnostic { file: Some(named(file)), line: Some(line), column: Some(column), message: error.message });
+            found.push(Diagnostic {
+                file: Some(named(file)),
+                line: Some(line),
+                column: Some(column),
+                message: error.message,
+            });
         }
     }
     found
@@ -249,16 +305,26 @@ fn syntax_errors(files: &BTreeMap<String, String>, named: &dyn Fn(&str) -> Strin
 /// The files as the compiler is to see them: an aliased module's own files
 /// are those of its directory, at the module's place. With them, the path
 /// each was given as, where that is another.
-fn aliased(files: &BTreeMap<String, String>, aliases: &[Alias]) -> (BTreeMap<String, String>, HashMap<String, String>) {
-    let mut shown: BTreeMap<String, String> =
-        files.iter().filter_map(|(path, text)| Some((normal(path)?, text.clone()))).collect();
+fn aliased(
+    files: &BTreeMap<String, String>,
+    aliases: &[Alias],
+) -> (BTreeMap<String, String>, HashMap<String, String>) {
+    let mut shown: BTreeMap<String, String> = files
+        .iter()
+        .filter_map(|(path, text)| Some((normal(path)?, text.clone())))
+        .collect();
     let mut given = HashMap::new();
     // Directly in `dir`, not in a directory under it: a module's own files.
     let direct = |path: &str, dir: &str| {
-        path.strip_prefix(dir).and_then(|rest| rest.strip_prefix('/')).filter(|rest| !rest.contains('/')).map(str::to_string)
+        path.strip_prefix(dir)
+            .and_then(|rest| rest.strip_prefix('/'))
+            .filter(|rest| !rest.contains('/'))
+            .map(str::to_string)
     };
     for alias in aliases {
-        let (Some(dir), place) = (normal(&alias.dir), alias.module.replace('.', "/")) else { continue };
+        let (Some(dir), place) = (normal(&alias.dir), alias.module.replace('.', "/")) else {
+            continue;
+        };
         shown.retain(|path, _| direct(path, &place).is_none());
         for (path, text) in files {
             let Some(path) = normal(path) else { continue };
@@ -297,7 +363,10 @@ fn linked(file: &str, code: String) -> Module {
     let directory = Path::new(file).parent().unwrap_or(Path::new(""));
     let target = |specifier: &str| {
         if specifier.starts_with("./") || specifier.starts_with("../") {
-            Target::File(normal(&directory.join(specifier).to_string_lossy()).unwrap_or_else(|| specifier.to_string()))
+            Target::File(
+                normal(&directory.join(specifier).to_string_lossy())
+                    .unwrap_or_else(|| specifier.to_string()),
+            )
         } else {
             Target::Module(specifier.to_string())
         }
@@ -316,8 +385,11 @@ fn linked(file: &str, code: String) -> Module {
     // `import("./Page.qml")`: only one written as a string is the project's
     // to link; one put together when it runs is the page's to resolve.
     for import in &record.dynamic_imports {
-        let written = &code[import.module_request.start as usize..import.module_request.end as usize];
-        let specifier = written.strip_prefix('"').and_then(|rest| rest.strip_suffix('"'));
+        let written =
+            &code[import.module_request.start as usize..import.module_request.end as usize];
+        let specifier = written
+            .strip_prefix('"')
+            .and_then(|rest| rest.strip_suffix('"'));
         if let Some(specifier) = specifier.filter(|specifier| !specifier.contains(['\\', '"'])) {
             links.push(Link {
                 start: units.at(import.module_request.start),
@@ -327,9 +399,17 @@ fn linked(file: &str, code: String) -> Module {
         }
     }
     links.sort_by_key(|link| link.start);
-    let metas = record.import_metas.iter().map(|span| (units.at(span.start), units.at(span.end))).collect();
+    let metas = record
+        .import_metas
+        .iter()
+        .map(|span| (units.at(span.start), units.at(span.end)))
+        .collect();
     let mut exports = BTreeSet::new();
-    for entry in record.local_export_entries.iter().chain(&record.indirect_export_entries) {
+    for entry in record
+        .local_export_entries
+        .iter()
+        .chain(&record.indirect_export_entries)
+    {
         match &entry.export_name {
             ExportExportName::Name(name) => {
                 exports.insert(name.name.to_string());
@@ -349,7 +429,13 @@ fn linked(file: &str, code: String) -> Module {
             exports.insert(format!("*{path}"));
         }
     }
-    Module { file: file.to_string(), code, links, metas, exports }
+    Module {
+        file: file.to_string(),
+        code,
+        links,
+        metas,
+        exports,
+    }
 }
 
 /// Puts in place of each `*file` of a module's exports what that file
@@ -358,13 +444,23 @@ fn starred(modules: &mut [Module]) {
     let mut changed = true;
     while changed {
         changed = false;
-        let known: HashMap<String, BTreeSet<String>> =
-            modules.iter().map(|module| (module.file.clone(), module.exports.clone())).collect();
+        let known: HashMap<String, BTreeSet<String>> = modules
+            .iter()
+            .map(|module| (module.file.clone(), module.exports.clone()))
+            .collect();
         for module in modules.iter_mut() {
-            let stars: Vec<String> = module.exports.iter().filter(|name| name.starts_with('*')).cloned().collect();
+            let stars: Vec<String> = module
+                .exports
+                .iter()
+                .filter(|name| name.starts_with('*'))
+                .cloned()
+                .collect();
             for star in stars {
                 for name in known.get(&star[1..]).into_iter().flatten() {
-                    if name != "default" && !name.starts_with('*') && module.exports.insert(name.clone()) {
+                    if name != "default"
+                        && !name.starts_with('*')
+                        && module.exports.insert(name.clone())
+                    {
                         changed = true;
                     }
                 }
@@ -379,7 +475,10 @@ fn starred(modules: &mut [Module]) {
 /// An import of a module the page cannot give: an error where the QML
 /// imports it, as that of a module nobody has.
 fn absent(file: &str, source: &str, specifier: &str) -> Diagnostic {
-    let uri = specifier.strip_prefix("ljos-web/").unwrap_or(specifier).replace('/', ".");
+    let uri = specifier
+        .strip_prefix("ljos-web/")
+        .unwrap_or(specifier)
+        .replace('/', ".");
     let allocator = Allocator::default();
     let parsed = qml_syntax::parse(&allocator, source);
     // The import of the module itself, else of the one nearest above it.
@@ -394,7 +493,9 @@ fn absent(file: &str, source: &str, specifier: &str) -> Diagnostic {
         .filter(|(imported, _)| *imported == uri || uri.starts_with(&format!("{imported}.")))
         .max_by_key(|(imported, _)| imported.len())
         .map(|(_, import)| import);
-    let (line, column) = import.map_or((1, 1), |import| crate::Error::new("", import.span).position(source));
+    let (line, column) = import.map_or((1, 1), |import| {
+        crate::Error::new("", import.span).position(source)
+    });
     let message = if uri == "QtQuick.Controls" || uri.starts_with("QtQuick.Controls.") {
         format!(
             "module \"{uri}\" is not in this page: the styles of Qt Quick Controls are QML of Qt's own, which a page has only when it was built with them (ljos-web requests 13 and 36)"
@@ -402,7 +503,12 @@ fn absent(file: &str, source: &str, specifier: &str) -> Diagnostic {
     } else {
         format!("module \"{uri}\" is not in this page")
     };
-    Diagnostic { file: Some(file.to_string()), line: Some(line), column: Some(column), message }
+    Diagnostic {
+        file: Some(file.to_string()),
+        line: Some(line),
+        column: Some(column),
+        message,
+    }
 }
 
 /// Byte offsets of a text as UTF-16 code units.

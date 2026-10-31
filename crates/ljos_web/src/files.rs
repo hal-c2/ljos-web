@@ -41,8 +41,12 @@ impl Memory {
         let mut memory = Self::default();
         memory.directories.insert(PathBuf::from("/"));
         for (path, text) in files {
-            let Some(path) = normalized(&Path::new("/").join(path.as_ref())) else { continue };
-            memory.directories.extend(path.ancestors().skip(1).map(Path::to_path_buf));
+            let Some(path) = normalized(&Path::new("/").join(path.as_ref())) else {
+                continue;
+            };
+            memory
+                .directories
+                .extend(path.ancestors().skip(1).map(Path::to_path_buf));
             memory.files.insert(path, text.into());
         }
         memory
@@ -55,13 +59,21 @@ impl Files for Memory {
     }
 
     fn entries(&self, directory: &Path) -> Vec<(String, bool)> {
-        let Some(directory) = normalized(directory) else { return Vec::new() };
+        let Some(directory) = normalized(directory) else {
+            return Vec::new();
+        };
         let mut found: BTreeMap<String, bool> = BTreeMap::new();
         for path in self.files.keys() {
-            let Ok(rest) = path.strip_prefix(&directory) else { continue };
+            let Ok(rest) = path.strip_prefix(&directory) else {
+                continue;
+            };
             let mut parts = rest.components();
-            let Some(Component::Normal(first)) = parts.next() else { continue };
-            *found.entry(first.to_string_lossy().into_owned()).or_default() |= parts.next().is_some();
+            let Some(Component::Normal(first)) = parts.next() else {
+                continue;
+            };
+            *found
+                .entry(first.to_string_lossy().into_owned())
+                .or_default() |= parts.next().is_some();
         }
         found.into_iter().collect()
     }
@@ -128,14 +140,24 @@ pub struct Compiled {
 
 impl<'f> Load<'f> {
     pub fn new(files: &'f dyn Files) -> Self {
-        Self { files, root: None, imports: Vec::new(), with: Vec::new(), selectors: Vec::new(), dumped: None }
+        Self {
+            files,
+            root: None,
+            imports: Vec::new(),
+            with: Vec::new(),
+            selectors: Vec::new(),
+            dumped: None,
+        }
     }
 
     /// What `file` says: what the one a selector puts in its place says,
     /// when there is one.
     pub fn read(&self, file: &Path) -> Option<String> {
         let chosen = self.selectors.iter().find_map(|selector| {
-            let chosen = file.parent()?.join(format!("+{selector}")).join(file.file_name()?);
+            let chosen = file
+                .parent()?
+                .join(format!("+{selector}"))
+                .join(file.file_name()?);
             self.files.is_file(&chosen).then_some(chosen)
         });
         self.files.read(chosen.as_deref().unwrap_or(file))
@@ -144,23 +166,43 @@ impl<'f> Load<'f> {
     /// Compiles `path` as `qmlc` does: a `.js` file as the script a QML file
     /// imports, a QML file with its project unless `alone`. `lowered` gives
     /// the tree handed to Solid instead of Solid's output.
-    pub fn compile(&self, path: &Path, options: &mut Options, alone: bool, lowered: bool) -> Option<Compiled> {
+    pub fn compile(
+        &self,
+        path: &Path,
+        options: &mut Options,
+        alone: bool,
+        lowered: bool,
+    ) -> Option<Compiled> {
         let source = self.read(path)?;
         let mut warnings = Vec::new();
-        let stem = path.file_stem().and_then(|stem| stem.to_str()).unwrap_or("Component");
+        let stem = path
+            .file_stem()
+            .and_then(|stem| stem.to_str())
+            .unwrap_or("Component");
         let is_script = path.extension().is_some_and(|extension| extension == "js");
         options.name = stem.to_string();
-        options.project = (!alone && !is_script).then(|| self.project(path, &options.qt_imports, &mut warnings));
+        options.project =
+            (!alone && !is_script).then(|| self.project(path, &options.qt_imports, &mut warnings));
         let directory = directory(path);
         options.files = (!alone).then(|| {
             let mut files = Vec::new();
-            self.walk(directory, directory, &|name| name.ends_with(".qml"), &mut files);
+            self.walk(
+                directory,
+                directory,
+                &|name| name.ends_with(".qml"),
+                &mut files,
+            );
             files.sort();
             files
         });
         options.pictures = (!alone).then(|| {
             let mut pictures = Vec::new();
-            self.walk(directory, directory, &|name| !name.ends_with(".qml"), &mut pictures);
+            self.walk(
+                directory,
+                directory,
+                &|name| !name.ends_with(".qml"),
+                &mut pictures,
+            );
             pictures
         });
         let result = if is_script {
@@ -170,7 +212,11 @@ impl<'f> Load<'f> {
         } else {
             compile(&source, options)
         };
-        Some(Compiled { result, source, warnings })
+        Some(Compiled {
+            result,
+            source,
+            warnings,
+        })
     }
 
     /// The directory the project `path` is in starts at.
@@ -181,7 +227,10 @@ impl<'f> Load<'f> {
             .find(|ancestor| {
                 self.files
                     .read(&ancestor.join("CMakeLists.txt"))
-                    .is_some_and(|text| text.lines().any(|line| line.trim_start().starts_with("project(")))
+                    .is_some_and(|text| {
+                        text.lines()
+                            .any(|line| line.trim_start().starts_with("project("))
+                    })
             })
             .unwrap_or(directory)
             .to_path_buf()
@@ -192,14 +241,24 @@ impl<'f> Load<'f> {
     /// (`add_subdirectory(QtExampleStyle)`).
     fn including<'p>(&self, root: &'p Path) -> Option<&'p Path> {
         root.ancestors().skip(1).find(|above| {
-            let Ok(part) = root.strip_prefix(above) else { return false };
+            let Ok(part) = root.strip_prefix(above) else {
+                return false;
+            };
             let part = part.to_string_lossy();
-            self.files.read(&above.join("CMakeLists.txt")).is_some_and(|text| {
-                text.lines().filter_map(|line| line.trim_start().strip_prefix("add_subdirectory(")).any(|rest| {
-                    let named = rest.split([')', ' ']).next().unwrap_or(rest).trim_matches('"');
-                    named.trim_end_matches('/') == part
+            self.files
+                .read(&above.join("CMakeLists.txt"))
+                .is_some_and(|text| {
+                    text.lines()
+                        .filter_map(|line| line.trim_start().strip_prefix("add_subdirectory("))
+                        .any(|rest| {
+                            let named = rest
+                                .split([')', ' '])
+                                .next()
+                                .unwrap_or(rest)
+                                .trim_matches('"');
+                            named.trim_end_matches('/') == part
+                        })
                 })
-            })
         })
     }
 
@@ -230,14 +289,29 @@ impl<'f> Load<'f> {
 
     /// The files in `directory` and under it that `wanted` takes the name
     /// of, by their path from `base`.
-    fn walk(&self, directory: &Path, base: &Path, wanted: &dyn Fn(&str) -> bool, found: &mut Vec<String>) {
-        let (Some(directory), Some(base)) = (self.files.canonicalize(directory), self.files.canonicalize(base)) else {
+    fn walk(
+        &self,
+        directory: &Path,
+        base: &Path,
+        wanted: &dyn Fn(&str) -> bool,
+        found: &mut Vec<String>,
+    ) {
+        let (Some(directory), Some(base)) = (
+            self.files.canonicalize(directory),
+            self.files.canonicalize(base),
+        ) else {
             return;
         };
         self.walk_in(&directory, &base, wanted, found);
     }
 
-    fn walk_in(&self, directory: &Path, base: &Path, wanted: &dyn Fn(&str) -> bool, found: &mut Vec<String>) {
+    fn walk_in(
+        &self,
+        directory: &Path,
+        base: &Path,
+        wanted: &dyn Fn(&str) -> bool,
+        found: &mut Vec<String>,
+    ) {
         for (name, is_directory) in self.files.entries(directory) {
             let path = directory.join(&name);
             if is_directory {
@@ -270,7 +344,10 @@ impl<'f> Load<'f> {
         base: &Path,
         warnings: &mut Vec<String>,
     ) {
-        let dumped = self.dumped.as_ref().and_then(|dumped| self.files.canonicalize(dumped));
+        let dumped = self
+            .dumped
+            .as_ref()
+            .and_then(|dumped| self.files.canonicalize(dumped));
         let lots: Vec<(&Path, bool)> = paths
             .iter()
             .map(|path| (path.as_path(), false))
@@ -279,8 +356,11 @@ impl<'f> Load<'f> {
             .collect();
         // Qt's are places but not looked through: a file of one of its
         // modules is compiled with the module it is in, not with all of Qt.
-        let places: Vec<(&Path, bool)> =
-            lots.iter().copied().chain(qt.iter().map(|path| (path.as_path(), false))).collect();
+        let places: Vec<(&Path, bool)> = lots
+            .iter()
+            .copied()
+            .chain(qt.iter().map(|path| (path.as_path(), false)))
+            .collect();
         // Each module described, with the directory its files are named
         // from, whether it stands in, and the rank of the place its `qmldir`
         // is at.
@@ -294,9 +374,13 @@ impl<'f> Load<'f> {
             for description in found {
                 let directory = description.parent().unwrap_or(lot).to_path_buf();
                 if description.ends_with("CMakeLists.txt") {
-                    let Some(text) = self.files.read(&description) else { continue };
+                    let Some(text) = self.files.read(&description) else {
+                        continue;
+                    };
                     described.extend(
-                        discover::cmake(&text).into_iter().map(|module| (module, directory.clone(), standing, None)),
+                        discover::cmake(&text)
+                            .into_iter()
+                            .map(|module| (module, directory.clone(), standing, None)),
                     );
                     continue;
                 }
@@ -304,10 +388,17 @@ impl<'f> Load<'f> {
                 if !read_qmldirs.insert(description.clone()) {
                     continue;
                 }
-                let Some(text) = self.files.read(&description) else { continue };
-                let Some(module) = qmldir(&text) else { continue };
+                let Some(text) = self.files.read(&description) else {
+                    continue;
+                };
+                let Some(module) = qmldir(&text) else {
+                    continue;
+                };
                 let place = module.uri.replace('.', "/");
-                match places.iter().position(|(place_root, _)| place_root.join(&place) == directory) {
+                match places
+                    .iter()
+                    .position(|(place_root, _)| place_root.join(&place) == directory)
+                {
                     Some(rank) => {
                         let standing = places[rank].1;
                         described.push((module, directory, standing, (!standing).then_some(rank)));
@@ -339,17 +430,25 @@ impl<'f> Load<'f> {
             if rank.is_some_and(|rank| first.get(&module.uri) != Some(&rank)) {
                 continue;
             }
-            let of_dump = dumped.as_ref().is_some_and(|dumped| directory.starts_with(dumped));
+            let of_dump = dumped
+                .as_ref()
+                .is_some_and(|dumped| directory.starts_with(dumped));
             project.add_module(&module.uri);
             for ty in module.types {
                 if of_dump && project.module_type(&module.uri, &ty.name).is_some() {
                     continue;
                 }
-                let Some(file) = self.files.canonicalize(&directory.join(&ty.path)) else { continue };
+                let Some(file) = self.files.canonicalize(&directory.join(&ty.path)) else {
+                    continue;
+                };
                 let path = relative(base, &file);
-                let Some(key) = path.strip_suffix(".qml") else { continue };
+                let Some(key) = path.strip_suffix(".qml") else {
+                    continue;
+                };
                 if !project.has(key) {
-                    let Some(source) = self.read(&file) else { continue };
+                    let Some(source) = self.read(&file) else {
+                        continue;
+                    };
                     if project.add(key, &source).is_err() {
                         continue;
                     }
@@ -368,16 +467,28 @@ impl<'f> Load<'f> {
     fn kept(&self, project: &mut Project, root: &Path, base: &Path) {
         let mut found = Vec::new();
         self.descriptions(root, &mut found);
-        for description in found.iter().filter(|description| description.ends_with("CMakeLists.txt")) {
-            let Some(text) = self.files.read(description) else { continue };
+        for description in found
+            .iter()
+            .filter(|description| description.ends_with("CMakeLists.txt"))
+        {
+            let Some(text) = self.files.read(description) else {
+                continue;
+            };
             let directory = description.parent().unwrap_or(root);
             let modules = discover::cmake(&text);
-            let with = modules
-                .iter()
-                .flat_map(|module| module.resources.iter().map(|resource| (module.address(resource), resource.clone())));
-            let alone = discover::kept(&text).into_iter().map(|resource| (resource.address, resource.path));
+            let with = modules.iter().flat_map(|module| {
+                module
+                    .resources
+                    .iter()
+                    .map(|resource| (module.address(resource), resource.clone()))
+            });
+            let alone = discover::kept(&text)
+                .into_iter()
+                .map(|resource| (resource.address, resource.path));
             for (address, path) in with.chain(alone) {
-                let Some(file) = self.files.canonicalize(&directory.join(&path)) else { continue };
+                let Some(file) = self.files.canonicalize(&directory.join(&path)) else {
+                    continue;
+                };
                 project.add_resource(&address, &relative(base, &file));
             }
         }
@@ -401,8 +512,15 @@ impl<'f> Load<'f> {
                 .filter_map(|path| self.files.canonicalize(path))
                 .chain(project_root.clone())
                 .collect();
-            let with: Vec<PathBuf> = self.with.iter().filter_map(|more| self.files.canonicalize(more)).collect();
-            let qt: Vec<PathBuf> = qt.iter().filter_map(|path| self.files.canonicalize(path)).collect();
+            let with: Vec<PathBuf> = self
+                .with
+                .iter()
+                .filter_map(|more| self.files.canonicalize(more))
+                .collect();
+            let qt: Vec<PathBuf> = qt
+                .iter()
+                .filter_map(|path| self.files.canonicalize(path))
+                .collect();
             self.modules(&mut project, &paths, &with, &qt, base, warnings);
             if let Some(project_root) = project_root {
                 // A program's files are one lot, whichever part names one.
@@ -417,11 +535,21 @@ impl<'f> Load<'f> {
             if !loaded.insert(directory.clone()) {
                 continue;
             }
-            let Some(here) = self.files.canonicalize(&root.join(&directory)) else { continue };
+            let Some(here) = self.files.canonicalize(&root.join(&directory)) else {
+                continue;
+            };
             for (name, is_directory) in self.files.entries(&here) {
-                let Some(stem) = name.strip_suffix(".qml").filter(|_| !is_directory) else { continue };
-                let Some(source) = self.read(&here.join(&name)) else { continue };
-                let key = if directory.is_empty() { stem.to_string() } else { format!("{directory}/{stem}") };
+                let Some(stem) = name.strip_suffix(".qml").filter(|_| !is_directory) else {
+                    continue;
+                };
+                let Some(source) = self.read(&here.join(&name)) else {
+                    continue;
+                };
+                let key = if directory.is_empty() {
+                    stem.to_string()
+                } else {
+                    format!("{directory}/{stem}")
+                };
                 if !project.has(&key) {
                     let _ = project.add(&key, &source);
                 }
@@ -432,12 +560,22 @@ impl<'f> Load<'f> {
         // its path, and finds in that one what it does not have itself: the
         // rest of the program is there for what it names.
         if let (Some(base), Some(path)) = canonical {
-            let project_root = self.root.clone().unwrap_or_else(|| self.project_root(&path));
+            let project_root = self
+                .root
+                .clone()
+                .unwrap_or_else(|| self.project_root(&path));
             let mut found = Vec::new();
-            self.walk(&project_root, &base, &|name| name.ends_with(".qml"), &mut found);
+            self.walk(
+                &project_root,
+                &base,
+                &|name| name.ends_with(".qml"),
+                &mut found,
+            );
             found.sort();
             for file in found {
-                let Some(key) = file.strip_suffix(".qml") else { continue };
+                let Some(key) = file.strip_suffix(".qml") else {
+                    continue;
+                };
                 if !project.has(key)
                     && let Some(source) = self.read(&base.join(&file))
                 {
@@ -461,7 +599,10 @@ fn directory(path: &Path) -> &Path {
 /// neither are the files a selector chooses from: each is another by its
 /// name.
 fn is_source(name: &str) -> bool {
-    !name.starts_with(['.', '+']) && !name.starts_with("build") && name != "node_modules" && name != "target"
+    !name.starts_with(['.', '+'])
+        && !name.starts_with("build")
+        && name != "node_modules"
+        && name != "target"
 }
 
 /// `to` from the directory `from`, both absolute: `../imports/Clock.qml`.
@@ -470,7 +611,11 @@ fn relative(from: &Path, to: &Path) -> String {
     let to: Vec<Component> = to.components().collect();
     let common = from.iter().zip(&to).take_while(|(a, b)| a == b).count();
     let mut parts: Vec<String> = vec!["..".to_string(); from.len() - common];
-    parts.extend(to[common..].iter().map(|part| part.as_os_str().to_string_lossy().into_owned()));
+    parts.extend(
+        to[common..]
+            .iter()
+            .map(|part| part.as_os_str().to_string_lossy().into_owned()),
+    );
     parts.join("/")
 }
 
@@ -484,17 +629,33 @@ fn relative(from: &Path, to: &Path) -> String {
 fn qmldir(text: &str) -> Option<discover::Module> {
     let mut module = discover::qmldir(text)?;
     for line in text.lines() {
-        let Some(rest) = line.trim_start().strip_prefix('#').map(str::trim_start) else { continue };
-        let Some(rest) = rest.strip_prefix("block").filter(|rest| rest.starts_with(char::is_whitespace)) else {
+        let Some(rest) = line.trim_start().strip_prefix('#').map(str::trim_start) else {
+            continue;
+        };
+        let Some(rest) = rest
+            .strip_prefix("block")
+            .filter(|rest| rest.starts_with(char::is_whitespace))
+        else {
             continue;
         };
         let mut words = rest.split_whitespace();
-        let (Some(name), Some(_version), Some(path)) = (words.next(), words.next(), words.next()) else { continue };
+        let (Some(name), Some(_version), Some(path)) = (words.next(), words.next(), words.next())
+        else {
+            continue;
+        };
         let is_type_name = name.starts_with(|first: char| first.is_ascii_uppercase());
         // A plain line may say so too, for Qt, and is the same type.
-        if is_type_name && path.ends_with(".qml") && !module.types.iter().any(|ty| ty.name == name && ty.path == path)
+        if is_type_name
+            && path.ends_with(".qml")
+            && !module
+                .types
+                .iter()
+                .any(|ty| ty.name == name && ty.path == path)
         {
-            module.types.push(discover::Type { name: name.to_string(), path: path.to_string() });
+            module.types.push(discover::Type {
+                name: name.to_string(),
+                path: path.to_string(),
+            });
         }
     }
     Some(module)

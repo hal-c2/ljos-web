@@ -26,11 +26,13 @@ use std::{
 use ljos_ir as ir;
 use oxc_allocator::Allocator;
 use oxc_ast::ast::{
-    Argument, ArrayExpressionElement, ArrowFunctionBody, AssignmentTarget, BindingPattern, Expression, ForStatementInit, SimpleAssignmentTarget, Statement,
-    VariableDeclaration,
+    Argument, ArrayExpressionElement, ArrowFunctionBody, AssignmentTarget, BindingPattern,
+    Expression, ForStatementInit, SimpleAssignmentTarget, Statement, VariableDeclaration,
 };
 use oxc_span::{GetSpan, Span};
-use oxc_syntax::operator::{AssignmentOperator, BinaryOperator, LogicalOperator, UnaryOperator, UpdateOperator};
+use oxc_syntax::operator::{
+    AssignmentOperator, BinaryOperator, LogicalOperator, UnaryOperator, UpdateOperator,
+};
 use qml_syntax::ast::{QmlBindingValue, QmlDocument, QmlImportSource, QmlMember, QmlObject};
 use serde::{Deserialize, Serialize};
 
@@ -43,7 +45,17 @@ const DECLARED: &[&str] = &["int", "real", "double", "bool", "string", "color"];
 /// something about them. Anything that loads, runs or reaches out (Loader,
 /// WebSocket, a XMLHttpRequest of a script, Qt.openUrlExternally) is not
 /// among them.
-pub const QUICK: &[&str] = &["Item", "Rectangle", "Text", "Row", "Column", "Grid", "Flow", "MouseArea", "Image"];
+pub const QUICK: &[&str] = &[
+    "Item",
+    "Rectangle",
+    "Text",
+    "Row",
+    "Column",
+    "Grid",
+    "Flow",
+    "MouseArea",
+    "Image",
+];
 
 /// What a shell gets of a block: its type, where it is, and what it
 /// publishes, takes and tells.
@@ -84,7 +96,9 @@ pub struct Callable {
 
 impl Contract {
     fn property(&self, name: &str) -> Option<&Property> {
-        self.properties.iter().find(|property| property.name == name)
+        self.properties
+            .iter()
+            .find(|property| property.name == name)
     }
 
     fn action(&self, name: &str) -> Option<&Callable> {
@@ -107,7 +121,11 @@ pub struct Diagnostic {
 impl Diagnostic {
     fn at(source: &str, span: Span, message: impl Into<String>) -> Self {
         let (line, column) = qml_syntax::position(source, span.start);
-        Self { line, column, message: message.into() }
+        Self {
+            line,
+            column,
+            message: message.into(),
+        }
     }
 }
 
@@ -115,26 +133,47 @@ impl Diagnostic {
 /// the project under `root`: the site's own shell, whose blocks a visitor's
 /// may use. A module is the `qmldir` at its place under `root`.
 pub fn contracts(files: &dyn Files, root: &Path, shell: &Path) -> Result<Vec<Contract>, String> {
-    let text = files.read(shell).ok_or_else(|| format!("cannot read {}", shell.display()))?;
+    let text = files
+        .read(shell)
+        .ok_or_else(|| format!("cannot read {}", shell.display()))?;
     let allocator = Allocator::default();
     let parsed = qml_syntax::parse(&allocator, &text);
     if !parsed.diagnostics.is_empty() {
-        return Err(format!("{}: {}", shell.display(), parsed.diagnostics[0].message));
+        return Err(format!(
+            "{}: {}",
+            shell.display(),
+            parsed.diagnostics[0].message
+        ));
     }
     let mut found = Vec::new();
     for import in &parsed.document.imports {
-        let QmlImportSource::Module(name) = &import.source else { continue };
+        let QmlImportSource::Module(name) = &import.source else {
+            continue;
+        };
         let module = name.to_string();
         if module == "QtQuick" || module.starts_with("QtQuick.") || module.starts_with("Qt") {
             continue;
         }
-        let directory: PathBuf = name.parts.iter().fold(root.to_path_buf(), |path, part| path.join(part));
-        let Some(qmldir) = files.read(&directory.join("qmldir")) else { continue };
+        let directory: PathBuf = name
+            .parts
+            .iter()
+            .fold(root.to_path_buf(), |path, part| path.join(part));
+        let Some(qmldir) = files.read(&directory.join("qmldir")) else {
+            continue;
+        };
         for line in qmldir.lines() {
-            let Some(block) = block_line(line) else { continue };
+            let Some(block) = block_line(line) else {
+                continue;
+            };
             let path = directory.join(&block.file);
-            let source = files.read(&path).ok_or_else(|| format!("cannot read {}", path.display()))?;
-            let file = path.strip_prefix(root).unwrap_or(&path).to_string_lossy().replace('\\', "/");
+            let source = files
+                .read(&path)
+                .ok_or_else(|| format!("cannot read {}", path.display()))?;
+            let file = path
+                .strip_prefix(root)
+                .unwrap_or(&path)
+                .to_string_lossy()
+                .replace('\\', "/");
             found.push(contract_of(&module, block, file, &source)?);
         }
     }
@@ -151,26 +190,42 @@ struct BlockLine {
 
 /// `# block Player 1.0 Player.qml Media "Plays one source"`.
 fn block_line(line: &str) -> Option<BlockLine> {
-    let rest = line.trim_start().strip_prefix('#')?.trim_start().strip_prefix("block")?;
+    let rest = line
+        .trim_start()
+        .strip_prefix('#')?
+        .trim_start()
+        .strip_prefix("block")?;
     if !rest.starts_with(char::is_whitespace) {
         return None;
     }
     let (words, summary) = match rest.split_once('"') {
-        Some((words, quoted)) => (words, quoted.rsplit_once('"').map(|(summary, _)| summary.to_string())),
+        Some((words, quoted)) => (
+            words,
+            quoted
+                .rsplit_once('"')
+                .map(|(summary, _)| summary.to_string()),
+        ),
         None => (rest, None),
     };
     let mut words = words.split_whitespace();
     let (name, version, file) = (words.next()?, words.next()?, words.next()?);
-    (name.starts_with(|first: char| first.is_ascii_uppercase()) && file.ends_with(".qml")).then(|| BlockLine {
-        name: name.to_string(),
-        version: version.to_string(),
-        file: file.to_string(),
-        category: words.next().map(str::to_string),
-        summary,
-    })
+    (name.starts_with(|first: char| first.is_ascii_uppercase()) && file.ends_with(".qml")).then(
+        || BlockLine {
+            name: name.to_string(),
+            version: version.to_string(),
+            file: file.to_string(),
+            category: words.next().map(str::to_string),
+            summary,
+        },
+    )
 }
 
-fn contract_of(module: &str, block: BlockLine, file: String, source: &str) -> Result<Contract, String> {
+fn contract_of(
+    module: &str,
+    block: BlockLine,
+    file: String,
+    source: &str,
+) -> Result<Contract, String> {
     let allocator = Allocator::default();
     let parsed = qml_syntax::parse(&allocator, source);
     if !parsed.diagnostics.is_empty() {
@@ -185,7 +240,11 @@ fn contract_of(module: &str, block: BlockLine, file: String, source: &str) -> Re
         file,
         category: block.category,
         summary: block.summary,
-        base: if QUICK.contains(&base) { base.to_string() } else { "Item".to_string() },
+        base: if QUICK.contains(&base) {
+            base.to_string()
+        } else {
+            "Item".to_string()
+        },
         properties: Vec::new(),
         actions: Vec::new(),
         events: Vec::new(),
@@ -194,19 +253,32 @@ fn contract_of(module: &str, block: BlockLine, file: String, source: &str) -> Re
         match member {
             QmlMember::Property(property) => contract.properties.push(Property {
                 name: property.name.name.to_string(),
-                ty: property.type_name.as_ref().map_or_else(|| "var".to_string(), |ty| ty.name.to_string()),
+                ty: property
+                    .type_name
+                    .as_ref()
+                    .map_or_else(|| "var".to_string(), |ty| ty.name.to_string()),
                 readonly: property.is_readonly,
             }),
             QmlMember::Function(function) => {
                 let Some(name) = &function.id else { continue };
                 contract.actions.push(Callable {
                     name: name.name.to_string(),
-                    params: function.params.items.iter().filter_map(|param| bound_name(&param.pattern)).collect(),
+                    params: function
+                        .params
+                        .items
+                        .iter()
+                        .filter_map(|param| bound_name(&param.pattern))
+                        .collect(),
                 });
             }
-            QmlMember::Signal(signal) => contract
-                .events
-                .push(Callable { name: signal.name.name.to_string(), params: signal.params.iter().map(|param| param.name.name.to_string()).collect() }),
+            QmlMember::Signal(signal) => contract.events.push(Callable {
+                name: signal.name.name.to_string(),
+                params: signal
+                    .params
+                    .iter()
+                    .map(|param| param.name.name.to_string())
+                    .collect(),
+            }),
             _ => {}
         }
     }
@@ -225,9 +297,20 @@ pub fn compile(source: &str, blocks: &[Contract]) -> Result<ir::CompiledFile, Ve
     let allocator = Allocator::default();
     let parsed = qml_syntax::parse(&allocator, source);
     if !parsed.diagnostics.is_empty() {
-        return Err(parsed.diagnostics.iter().map(|diagnostic| Diagnostic::at(source, diagnostic.span, diagnostic.message.clone())).collect());
+        return Err(parsed
+            .diagnostics
+            .iter()
+            .map(|diagnostic| Diagnostic::at(source, diagnostic.span, diagnostic.message.clone()))
+            .collect());
     }
-    let mut shell = Shell { source, blocks, imported: Vec::new(), objects: Vec::new(), ids: HashMap::new(), errors: Vec::new() };
+    let mut shell = Shell {
+        source,
+        blocks,
+        imported: Vec::new(),
+        objects: Vec::new(),
+        ids: HashMap::new(),
+        errors: Vec::new(),
+    };
     let imports = shell.imports(&parsed.document);
     shell.collect(&parsed.document.root, None);
     if !shell.errors.is_empty() {
@@ -246,9 +329,15 @@ pub fn compile(source: &str, blocks: &[Contract]) -> Result<ir::CompiledFile, Ve
 /// as a decimal string.
 pub fn to_json(file: &ir::CompiledFile) -> serde_json::Value {
     let mut value = serde_json::to_value(file).unwrap_or(serde_json::Value::Null);
-    if let Some(exprs) = value.get_mut("exprs").and_then(serde_json::Value::as_array_mut) {
+    if let Some(exprs) = value
+        .get_mut("exprs")
+        .and_then(serde_json::Value::as_array_mut)
+    {
         for expr in exprs {
-            let Some(consts) = expr.pointer_mut("/tier1/consts").and_then(serde_json::Value::as_array_mut) else {
+            let Some(consts) = expr
+                .pointer_mut("/tier1/consts")
+                .and_then(serde_json::Value::as_array_mut)
+            else {
                 continue;
             };
             for constant in consts {
@@ -288,20 +377,34 @@ struct Shell<'s> {
 
 /// What a name on an object is.
 enum Member {
-    Property { ty: String, readonly: bool, group: bool },
+    Property {
+        ty: String,
+        readonly: bool,
+        group: bool,
+    },
     Signal(Vec<String>),
     Action,
     Method,
 }
 
-const FORBIDDEN: &[&str] = &["constructor", "__proto__", "prototype", "caller", "callee", "arguments"];
+const FORBIDDEN: &[&str] = &[
+    "constructor",
+    "__proto__",
+    "prototype",
+    "caller",
+    "callee",
+    "arguments",
+];
 
 fn forbidden(name: &str) -> bool {
     FORBIDDEN.contains(&name) || name.starts_with('$') || name.starts_with("__")
 }
 
 fn quick(name: &str) -> Option<&'static qt_types::Type> {
-    QUICK.contains(&name).then(|| qt_types::module("QtQuick")?.type_named(name)).flatten()
+    QUICK
+        .contains(&name)
+        .then(|| qt_types::module("QtQuick")?.type_named(name))
+        .flatten()
 }
 
 impl<'s> Shell<'s> {
@@ -313,23 +416,47 @@ impl<'s> Shell<'s> {
         let mut imports = Vec::new();
         for import in &document.imports {
             let QmlImportSource::Module(name) = &import.source else {
-                self.refuse(import.span, "a shell imports only QtQuick and the site's block modules, not a path");
+                self.refuse(
+                    import.span,
+                    "a shell imports only QtQuick and the site's block modules, not a path",
+                );
                 continue;
             };
             let module = name.to_string();
             if import.alias.is_some() {
-                self.refuse(import.span, format!("a shell imports `{module}` without `as`: its blocks are named as they are"));
+                self.refuse(
+                    import.span,
+                    format!(
+                        "a shell imports `{module}` without `as`: its blocks are named as they are"
+                    ),
+                );
                 continue;
             }
             let is_blocks = self.blocks.iter().any(|block| block.module == module);
             if module != "QtQuick" && !is_blocks {
-                let modules: Vec<&str> = self.blocks.iter().map(|block| block.module.as_str()).collect();
+                let modules: Vec<&str> = self
+                    .blocks
+                    .iter()
+                    .map(|block| block.module.as_str())
+                    .collect();
                 let mut known = vec!["QtQuick"];
-                known.extend(modules.iter().copied().filter(|module| *module != "QtQuick"));
+                known.extend(
+                    modules
+                        .iter()
+                        .copied()
+                        .filter(|module| *module != "QtQuick"),
+                );
                 known.dedup();
                 self.refuse(
                     import.span,
-                    format!("a shell may import only {}, not `{module}`", known.iter().map(|m| format!("`{m}`")).collect::<Vec<_>>().join(", ")),
+                    format!(
+                        "a shell may import only {}, not `{module}`",
+                        known
+                            .iter()
+                            .map(|m| format!("`{m}`"))
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    ),
                 );
                 continue;
             }
@@ -348,7 +475,11 @@ impl<'s> Shell<'s> {
     }
 
     fn kind(&self, name: &str) -> Option<Kind<'s>> {
-        if let Some(block) = self.blocks.iter().find(|block| block.name == name && self.imported.contains(&block.module)) {
+        if let Some(block) = self
+            .blocks
+            .iter()
+            .find(|block| block.name == name && self.imported.contains(&block.module))
+        {
             return Some(Kind::Block(block));
         }
         quick(name).map(Kind::Quick)
@@ -362,21 +493,36 @@ impl<'s> Shell<'s> {
         let kind = match self.kind(&name) {
             Some(kind) => kind,
             None => {
-                let blocks: Vec<&str> = self.blocks.iter().filter(|block| self.imported.contains(&block.module)).map(|block| block.name.as_str()).collect();
+                let blocks: Vec<&str> = self
+                    .blocks
+                    .iter()
+                    .filter(|block| self.imported.contains(&block.module))
+                    .map(|block| block.name.as_str())
+                    .collect();
                 let mut allowed: Vec<&str> = QUICK.to_vec();
                 allowed.extend(blocks);
-                self.refuse(object.type_name.span, format!("`{name}` is not a type a shell may make: it makes {}", allowed.join(", ")));
+                self.refuse(
+                    object.type_name.span,
+                    format!(
+                        "`{name}` is not a type a shell may make: it makes {}",
+                        allowed.join(", ")
+                    ),
+                );
                 Kind::Quick(quick("Item").expect("QtQuick has Item"))
             }
         };
         if object.on.is_some() {
-            self.refuse(object.span, "a shell has no value sources: `on` is not in its scope");
+            self.refuse(
+                object.span,
+                "a shell has no value sources: `on` is not in its scope",
+            );
         }
         let mut declared = Vec::new();
         for member in &object.members {
             match member {
                 QmlMember::Binding(binding) if binding.name.as_simple() == Some("id") => {
-                    let QmlBindingValue::Expression(Expression::Identifier(id)) = &binding.value else {
+                    let QmlBindingValue::Expression(Expression::Identifier(id)) = &binding.value
+                    else {
                         self.refuse(binding.span, "an id is a name");
                         continue;
                     };
@@ -386,7 +532,10 @@ impl<'s> Shell<'s> {
                     }
                 }
                 QmlMember::Property(property) => {
-                    let ty = property.type_name.as_ref().map_or_else(|| "var".to_string(), |ty| ty.name.to_string());
+                    let ty = property
+                        .type_name
+                        .as_ref()
+                        .map_or_else(|| "var".to_string(), |ty| ty.name.to_string());
                     declared.push((property.name.name.to_string(), ty));
                 }
                 _ => {}
@@ -403,12 +552,20 @@ impl<'s> Shell<'s> {
     fn member(&self, object: usize, name: &str) -> Option<Member> {
         let at = &self.objects[object];
         if let Some((_, ty)) = at.declared.iter().find(|(declared, _)| declared == name) {
-            return Some(Member::Property { ty: ty.clone(), readonly: false, group: false });
+            return Some(Member::Property {
+                ty: ty.clone(),
+                readonly: false,
+                group: false,
+            });
         }
         let ty = match at.kind {
             Kind::Block(block) => {
                 if let Some(property) = block.property(name) {
-                    return Some(Member::Property { ty: property.ty.clone(), readonly: property.readonly, group: false });
+                    return Some(Member::Property {
+                        ty: property.ty.clone(),
+                        readonly: property.readonly,
+                        group: false,
+                    });
                 }
                 if block.action(name).is_some() {
                     return Some(Member::Action);
@@ -431,7 +588,11 @@ impl<'s> Shell<'s> {
     }
 
     fn lower(&mut self, root: &QmlObject, imports: Vec<ir::Import>) -> ir::CompiledFile {
-        let mut lowering = Lowering { objects: Vec::new(), exprs: Vec::new(), next: 0 };
+        let mut lowering = Lowering {
+            objects: Vec::new(),
+            exprs: Vec::new(),
+            next: 0,
+        };
         self.object(&mut lowering, root, None);
         let root_def = lowering.objects.first().cloned().unwrap_or_default();
         let component = ir::ComponentDef {
@@ -459,19 +620,40 @@ impl<'s> Shell<'s> {
 
     fn span(&self, span: Span) -> ir::SourceSpan {
         let (line, column) = qml_syntax::position(self.source, span.start);
-        ir::SourceSpan { start: span.start, end: span.end, line: line as u32, column: column as u32 }
+        ir::SourceSpan {
+            start: span.start,
+            end: span.end,
+            line: line as u32,
+            column: column as u32,
+        }
     }
 
-    fn object(&mut self, lowering: &mut Lowering, object: &QmlObject, parent: Option<ir::ObjIdx>) -> ir::ObjIdx {
+    fn object(
+        &mut self,
+        lowering: &mut Lowering,
+        object: &QmlObject,
+        parent: Option<ir::ObjIdx>,
+    ) -> ir::ObjIdx {
         let index = lowering.next;
         lowering.next += 1;
         let at = ir::ObjIdx(index as u32);
         let kind = self.objects[index].kind;
         let ty = match kind {
-            Kind::Block(block) => ir::TypeRef::Native { module: block.module.clone(), name: block.name.clone() },
-            Kind::Quick(ty) => ir::TypeRef::Native { module: "QtQuick".to_string(), name: ty.name.to_string() },
+            Kind::Block(block) => ir::TypeRef::Native {
+                module: block.module.clone(),
+                name: block.name.clone(),
+            },
+            Kind::Quick(ty) => ir::TypeRef::Native {
+                module: "QtQuick".to_string(),
+                name: ty.name.to_string(),
+            },
         };
-        let mut def = ir::ObjectDef { ty, parent, span: self.span(object.span), ..Default::default() };
+        let mut def = ir::ObjectDef {
+            ty,
+            parent,
+            span: self.span(object.span),
+            ..Default::default()
+        };
         lowering.objects.push(ir::ObjectDef::default());
         let mut named = None;
         let mut groups: Vec<ir::Group> = Vec::new();
@@ -484,38 +666,71 @@ impl<'s> Shell<'s> {
                 QmlMember::Binding(binding) => {
                     let parts: Vec<&str> = binding.name.parts.iter().copied().collect();
                     if parts == ["id"] {
-                        if let QmlBindingValue::Expression(Expression::Identifier(id)) = &binding.value {
+                        if let QmlBindingValue::Expression(Expression::Identifier(id)) =
+                            &binding.value
+                        {
                             def.id = Some(id.name.to_string());
                         }
                         continue;
                     }
-                    let (QmlBindingValue::Expression(_) | QmlBindingValue::Statement(_)) = &binding.value else {
-                        self.refuse(binding.span, format!("`{}` takes no object in a shell", binding.name));
+                    let (QmlBindingValue::Expression(_) | QmlBindingValue::Statement(_)) =
+                        &binding.value
+                    else {
+                        self.refuse(
+                            binding.span,
+                            format!("`{}` takes no object in a shell", binding.name),
+                        );
                         continue;
                     };
                     if parts.len() == 1 {
                         let name = parts[0];
                         if name == "objectName"
-                            && let QmlBindingValue::Expression(Expression::StringLiteral(literal)) = &binding.value
+                            && let QmlBindingValue::Expression(Expression::StringLiteral(literal)) =
+                                &binding.value
                         {
                             named = Some(literal.value.to_string());
                         }
-                        self.member_binding(lowering, index, &mut def.members, &[], name, &binding.value, binding.name.span);
-                    } else if parts.len() == 2 && parts[0].starts_with(|first: char| first.is_ascii_lowercase()) {
+                        self.member_binding(
+                            lowering,
+                            index,
+                            &mut def.members,
+                            &[],
+                            name,
+                            &binding.value,
+                            binding.name.span,
+                        );
+                    } else if parts.len() == 2
+                        && parts[0].starts_with(|first: char| first.is_ascii_lowercase())
+                    {
                         let group = parts[0];
-                        let Some(Member::Property { group: true, .. }) = self.member(index, group) else {
-                            self.refuse(binding.name.span, format!("{} has no group `{group}`", self.type_name(index)));
+                        let Some(Member::Property { group: true, .. }) = self.member(index, group)
+                        else {
+                            self.refuse(
+                                binding.name.span,
+                                format!("{} has no group `{group}`", self.type_name(index)),
+                            );
                             continue;
                         };
                         let at = match groups.iter().position(|existing| existing.path == [group]) {
                             Some(at) => at,
                             None => {
-                                groups.push(ir::Group { path: vec![group.to_string()], members: ir::Members::default() });
+                                groups.push(ir::Group {
+                                    path: vec![group.to_string()],
+                                    members: ir::Members::default(),
+                                });
                                 groups.len() - 1
                             }
                         };
                         let mut members = std::mem::take(&mut groups[at].members);
-                        self.member_binding(lowering, index, &mut members, &[group], parts[1], &binding.value, binding.name.span);
+                        self.member_binding(
+                            lowering,
+                            index,
+                            &mut members,
+                            &[group],
+                            parts[1],
+                            &binding.value,
+                            binding.name.span,
+                        );
                         groups[at].members = members;
                     } else {
                         self.refuse(
@@ -525,17 +740,35 @@ impl<'s> Shell<'s> {
                     }
                 }
                 QmlMember::Property(property) => {
-                    let ty = property.type_name.as_ref().map_or_else(|| "var".to_string(), |ty| ty.name.to_string());
+                    let ty = property
+                        .type_name
+                        .as_ref()
+                        .map_or_else(|| "var".to_string(), |ty| ty.name.to_string());
                     let name = property.name.name.to_string();
                     if ty == "url" {
-                        self.refuse(property.span, "a shell declares no url property: only a block gives a URL");
+                        self.refuse(
+                            property.span,
+                            "a shell declares no url property: only a block gives a URL",
+                        );
                         continue;
                     }
                     // What the page's evaluator holds: values, not objects of
                     // the page's, nor another object's property under a new name.
-                    if !DECLARED.contains(&ty.as_str()) || property.type_name.as_ref().is_some_and(|ty| ty.is_list) {
-                        let given = if ty == "alias" { "aliases".to_string() } else { format!("`{ty}` properties") };
-                        self.refuse(property.span, format!("a shell declares no {given}: it declares {}", DECLARED.join(", ")));
+                    if !DECLARED.contains(&ty.as_str())
+                        || property.type_name.as_ref().is_some_and(|ty| ty.is_list)
+                    {
+                        let given = if ty == "alias" {
+                            "aliases".to_string()
+                        } else {
+                            format!("`{ty}` properties")
+                        };
+                        self.refuse(
+                            property.span,
+                            format!(
+                                "a shell declares no {given}: it declares {}",
+                                DECLARED.join(", ")
+                            ),
+                        );
                         continue;
                     }
                     def.properties.push(ir::PropertyDecl {
@@ -549,17 +782,41 @@ impl<'s> Shell<'s> {
                         span: self.span(property.span),
                     });
                     match &property.value {
-                        Some(value @ (QmlBindingValue::Expression(_) | QmlBindingValue::Statement(_))) => {
-                            self.member_binding(lowering, index, &mut def.members, &[], &name, value, property.name.span);
+                        Some(
+                            value
+                            @ (QmlBindingValue::Expression(_) | QmlBindingValue::Statement(_)),
+                        ) => {
+                            self.member_binding(
+                                lowering,
+                                index,
+                                &mut def.members,
+                                &[],
+                                &name,
+                                value,
+                                property.name.span,
+                            );
                         }
-                        Some(_) => self.refuse(property.span, format!("`{name}` takes no object in a shell")),
+                        Some(_) => self.refuse(
+                            property.span,
+                            format!("`{name}` takes no object in a shell"),
+                        ),
                         None => {}
                     }
                 }
-                QmlMember::Signal(signal) => self.refuse(signal.span, "a shell declares no signals: what it tells is its blocks' events"),
-                QmlMember::Function(function) => self.refuse(function.span, "a shell declares no functions: what it does is its blocks' actions"),
-                QmlMember::InlineComponent(inline) => self.refuse(inline.span, "a shell declares no components"),
-                QmlMember::Enum(declared) => self.refuse(declared.span, "a shell declares no enums"),
+                QmlMember::Signal(signal) => self.refuse(
+                    signal.span,
+                    "a shell declares no signals: what it tells is its blocks' events",
+                ),
+                QmlMember::Function(function) => self.refuse(
+                    function.span,
+                    "a shell declares no functions: what it does is its blocks' actions",
+                ),
+                QmlMember::InlineComponent(inline) => {
+                    self.refuse(inline.span, "a shell declares no components")
+                }
+                QmlMember::Enum(declared) => {
+                    self.refuse(declared.span, "a shell declares no enums")
+                }
             }
         }
         def.grouped = groups;
@@ -613,9 +870,22 @@ impl<'s> Shell<'s> {
                     return;
                 }
             };
-            let Some(program) = self.program(index, value, Some(params.clone())) else { return };
-            let expr = lowering.push(self, index, ir::BindingKind::Handler, params, program, value_span(value));
-            members.handlers.push(ir::Handler { signal, expr, name_span: self.span(name_span) });
+            let Some(program) = self.program(index, value, Some(params.clone())) else {
+                return;
+            };
+            let expr = lowering.push(
+                self,
+                index,
+                ir::BindingKind::Handler,
+                params,
+                program,
+                value_span(value),
+            );
+            members.handlers.push(ir::Handler {
+                signal,
+                expr,
+                name_span: self.span(name_span),
+            });
             return;
         }
         let ty = if let [group] = group {
@@ -626,17 +896,25 @@ impl<'s> Shell<'s> {
                 };
                 ty.property(group)?.value_type()?.property(name)
             }) else {
-                self.refuse(name_span, format!("{type_name}'s `{group}` has no `{name}`"));
+                self.refuse(
+                    name_span,
+                    format!("{type_name}'s `{group}` has no `{name}`"),
+                );
                 return;
             };
             if member.is_readonly {
-                self.refuse(name_span, format!("{type_name}'s `{group}.{name}` is read-only"));
+                self.refuse(
+                    name_span,
+                    format!("{type_name}'s `{group}.{name}` is read-only"),
+                );
                 return;
             }
             qt_ty(member.type_name)
         } else {
             match self.member(index, name) {
-                Some(Member::Property { readonly: true, .. }) if self.objects[index].declared.iter().all(|(n, _)| n != name) => {
+                Some(Member::Property { readonly: true, .. })
+                    if self.objects[index].declared.iter().all(|(n, _)| n != name) =>
+                {
                     let message = if matches!(self.objects[index].kind, Kind::Block(_)) {
                         format!("`{name}` is a state of {type_name}: only the block writes it")
                     } else {
@@ -647,7 +925,10 @@ impl<'s> Shell<'s> {
                 }
                 Some(Member::Property { ty, .. }) => ty,
                 Some(_) => {
-                    self.refuse(name_span, format!("{type_name}'s `{name}` is not a property"));
+                    self.refuse(
+                        name_span,
+                        format!("{type_name}'s `{name}` is not a property"),
+                    );
                     return;
                 }
                 None => {
@@ -658,13 +939,19 @@ impl<'s> Shell<'s> {
         };
         if name == "textFormat" && group.is_empty() {
             // Rich text loads what its `<img>` names: a shell's text is plain.
-            self.refuse(name_span, "a shell's text is plain: `textFormat` is not in its scope");
+            self.refuse(
+                name_span,
+                "a shell's text is plain: `textFormat` is not in its scope",
+            );
             return;
         }
         let span = value_span(value);
         if ty == "url" {
             let QmlBindingValue::Expression(expression) = value else {
-                self.refuse(span, format!("{type_name}.{name} takes only a URL a block gives"));
+                self.refuse(
+                    span,
+                    format!("{type_name}.{name} takes only a URL a block gives"),
+                );
                 return;
             };
             if !self.is_block_url(expression) {
@@ -675,12 +962,29 @@ impl<'s> Shell<'s> {
         if let QmlBindingValue::Expression(expression) = value
             && let Some(literal) = literal(expression, &ty)
         {
-            members.assignments.push(ir::Assignment { name: name.to_string(), value: literal, span: self.span(span) });
+            members.assignments.push(ir::Assignment {
+                name: name.to_string(),
+                value: literal,
+                span: self.span(span),
+            });
             return;
         }
-        let Some(program) = self.program(index, value, None) else { return };
-        let expr = lowering.push(self, index, ir::BindingKind::Property, Vec::new(), program, span);
-        members.bindings.push(ir::PropertyBinding { name: name.to_string(), expr, name_span: self.span(name_span) });
+        let Some(program) = self.program(index, value, None) else {
+            return;
+        };
+        let expr = lowering.push(
+            self,
+            index,
+            ir::BindingKind::Property,
+            Vec::new(),
+            program,
+            span,
+        );
+        members.bindings.push(ir::PropertyBinding {
+            name: name.to_string(),
+            expr,
+            name_span: self.span(name_span),
+        });
     }
 
     fn signal_params(&self, index: usize, signal: &str) -> Option<Vec<String>> {
@@ -694,14 +998,29 @@ impl<'s> Shell<'s> {
 
     /// `basket.cover`: a URL a block publishes.
     fn is_block_url(&self, expression: &Expression) -> bool {
-        let Expression::StaticMemberExpression(member) = unparenthesized(expression) else { return false };
-        let Expression::Identifier(id) = &member.object else { return false };
-        let Some(&object) = self.ids.get(id.name.as_str()) else { return false };
-        let Kind::Block(block) = self.objects[object].kind else { return false };
-        block.property(member.property.name.as_str()).is_some_and(|property| property.ty == "url")
+        let Expression::StaticMemberExpression(member) = unparenthesized(expression) else {
+            return false;
+        };
+        let Expression::Identifier(id) = &member.object else {
+            return false;
+        };
+        let Some(&object) = self.ids.get(id.name.as_str()) else {
+            return false;
+        };
+        let Kind::Block(block) = self.objects[object].kind else {
+            return false;
+        };
+        block
+            .property(member.property.name.as_str())
+            .is_some_and(|property| property.ty == "url")
     }
 
-    fn program(&mut self, scope: usize, value: &QmlBindingValue, args: Option<Vec<String>>) -> Option<(ir::Tier1, Vec<ir::Param>)> {
+    fn program(
+        &mut self,
+        scope: usize,
+        value: &QmlBindingValue,
+        args: Option<Vec<String>>,
+    ) -> Option<(ir::Tier1, Vec<ir::Param>)> {
         let is_handler = args.is_some();
         let mut program = Program::new(self, scope, args.unwrap_or_default(), is_handler);
         let result = match value {
@@ -711,20 +1030,38 @@ impl<'s> Shell<'s> {
                 {
                     // `onAdded: (count) => ...`: its parameters are the
                     // signal's arguments, by position.
-                    program.rename(arrow.params.items.iter().map(|param| bound_name(&param.pattern)).collect());
+                    program.rename(
+                        arrow
+                            .params
+                            .items
+                            .iter()
+                            .map(|param| bound_name(&param.pattern))
+                            .collect(),
+                    );
                     match &arrow.body {
-                        ArrowFunctionBody::FunctionBody(body) => program.statements(&body.statements).and_then(|_| program.ret(None)),
+                        ArrowFunctionBody::FunctionBody(body) => program
+                            .statements(&body.statements)
+                            .and_then(|_| program.ret(None)),
                         body => match body.as_expression() {
-                            Some(expression) => program.expression(expression).and_then(|_| program.ret(None)),
+                            Some(expression) => program
+                                .expression(expression)
+                                .and_then(|_| program.ret(None)),
                             None => program.ret(None),
                         },
                     }
                 } else {
-                    program.expression(expression).and_then(|reg| program.ret(Some(reg)))
+                    program
+                        .expression(expression)
+                        .and_then(|reg| program.ret(Some(reg)))
                 }
             }
-            QmlBindingValue::Statement(statement) => program.statement(statement).and_then(|_| program.ret(None)),
-            _ => Err(Refusal(value_span(value), "an object is not an expression".to_string())),
+            QmlBindingValue::Statement(statement) => {
+                program.statement(statement).and_then(|_| program.ret(None))
+            }
+            _ => Err(Refusal(
+                value_span(value),
+                "an object is not an expression".to_string(),
+            )),
         };
         match result {
             Ok(()) => Some(program.finish()),
@@ -738,10 +1075,20 @@ impl<'s> Shell<'s> {
 
 fn quick_member(ty: &'static qt_types::Type, name: &str) -> Option<Member> {
     if let Some(property) = ty.property(name) {
-        return Some(Member::Property { ty: qt_ty(property.type_name), readonly: property.is_readonly, group: property.value_type().is_some() });
+        return Some(Member::Property {
+            ty: qt_ty(property.type_name),
+            readonly: property.is_readonly,
+            group: property.value_type().is_some(),
+        });
     }
     if let Some(signal) = ty.signal(name) {
-        return Some(Member::Signal(signal.parameters.iter().map(|param| param.to_string()).collect()));
+        return Some(Member::Signal(
+            signal
+                .parameters
+                .iter()
+                .map(|param| param.to_string())
+                .collect(),
+        ));
     }
     ty.has_method(name).then_some(Member::Method)
 }
@@ -761,7 +1108,9 @@ fn qt_ty(name: &str) -> String {
 fn handler_signal(name: &str) -> Option<String> {
     let rest = name.strip_prefix("on")?;
     let first = rest.chars().next()?;
-    first.is_ascii_uppercase().then(|| format!("{}{}", first.to_ascii_lowercase(), &rest[1..]))
+    first
+        .is_ascii_uppercase()
+        .then(|| format!("{}{}", first.to_ascii_lowercase(), &rest[1..]))
 }
 
 fn value_span(value: &QmlBindingValue) -> Span {
@@ -769,7 +1118,9 @@ fn value_span(value: &QmlBindingValue) -> Span {
         QmlBindingValue::Expression(expression) => expression.span(),
         QmlBindingValue::Statement(statement) => statement.span(),
         QmlBindingValue::Object(object) => object.span,
-        QmlBindingValue::Objects(objects) => objects.first().map_or_else(Span::default, |object| object.span),
+        QmlBindingValue::Objects(objects) => objects
+            .first()
+            .map_or_else(Span::default, |object| object.span),
     }
 }
 
@@ -785,10 +1136,14 @@ fn literal(expression: &Expression, ty: &str) -> Option<ir::Literal> {
     Some(match unparenthesized(expression) {
         Expression::NumericLiteral(number) => ir::Literal::Number(number.value),
         Expression::UnaryExpression(unary) if unary.operator == UnaryOperator::UnaryNegation => {
-            let Expression::NumericLiteral(number) = &unary.argument else { return None };
+            let Expression::NumericLiteral(number) = &unary.argument else {
+                return None;
+            };
             ir::Literal::Number(-number.value)
         }
-        Expression::StringLiteral(string) if ty == "color" => ir::Literal::Color(string.value.to_string()),
+        Expression::StringLiteral(string) if ty == "color" => {
+            ir::Literal::Color(string.value.to_string())
+        }
         Expression::StringLiteral(string) => ir::Literal::String(string.value.to_string()),
         Expression::BooleanLiteral(boolean) => ir::Literal::Bool(boolean.value),
         Expression::NullLiteral(_) => ir::Literal::Null,
@@ -817,7 +1172,10 @@ impl Lowering {
         let text = &shell.source[span.start as usize..(span.end as usize).min(shell.source.len())];
         self.exprs.push(ir::Binding {
             kind,
-            scope: ir::ObjRef { component: ir::CompIdx(0), object: ir::ObjIdx(scope as u32) },
+            scope: ir::ObjRef {
+                component: ir::CompIdx(0),
+                object: ir::ObjIdx(scope as u32),
+            },
             js_fn: ir::FnIndex(index),
             params,
             args,
@@ -833,7 +1191,9 @@ impl Lowering {
 /// FNV-1a: what two equal expressions are known by, the same on every
 /// machine.
 fn fnv(text: &str) -> u64 {
-    text.bytes().fold(0xcbf2_9ce4_8422_2325, |hash, byte| (hash ^ u64::from(byte)).wrapping_mul(0x0100_0000_01b3))
+    text.bytes().fold(0xcbf2_9ce4_8422_2325, |hash, byte| {
+        (hash ^ u64::from(byte)).wrapping_mul(0x0100_0000_01b3)
+    })
 }
 
 struct Refusal(Span, String);
@@ -986,7 +1346,9 @@ fn binary(operator: BinaryOperator) -> Option<ir::BinaryOp> {
 }
 
 fn not_in_scope(name: &str) -> String {
-    format!("`{name}` is not in a shell's scope: a shell names its own ids and properties, its blocks, QtQuick's types and pure builtins")
+    format!(
+        "`{name}` is not in a shell's scope: a shell names its own ids and properties, its blocks, QtQuick's types and pure builtins"
+    )
 }
 
 impl<'p, 's> Program<'p, 's> {
@@ -1023,7 +1385,16 @@ impl<'p, 's> Program<'p, 's> {
     }
 
     fn finish(self) -> (ir::Tier1, Vec<ir::Param>) {
-        (ir::Tier1 { registers: self.next, consts: self.consts, names: self.names, args: Vec::new(), code: self.code }, self.params)
+        (
+            ir::Tier1 {
+                registers: self.next,
+                consts: self.consts,
+                names: self.names,
+                args: Vec::new(),
+                code: self.code,
+            },
+            self.params,
+        )
     }
 
     fn reg(&mut self) -> ir::Reg {
@@ -1049,14 +1420,20 @@ impl<'p, 's> Program<'p, 's> {
 
     fn patch(&mut self, at: usize, to: u32) {
         match &mut self.code[at] {
-            ir::Op::Jump { to: target } | ir::Op::JumpIf { to: target, .. } | ir::Op::JumpIfNot { to: target, .. } => *target = to,
+            ir::Op::Jump { to: target }
+            | ir::Op::JumpIf { to: target, .. }
+            | ir::Op::JumpIfNot { to: target, .. } => *target = to,
             ir::Op::JumpIfNullish { to: target, .. } => *target = to,
             _ => {}
         }
     }
 
     fn constant(&mut self, constant: ir::Const) -> ir::Reg {
-        let k = match self.consts.iter().position(|existing| *existing == constant) {
+        let k = match self
+            .consts
+            .iter()
+            .position(|existing| *existing == constant)
+        {
             Some(k) => k,
             None => {
                 self.consts.push(constant);
@@ -1079,10 +1456,17 @@ impl<'p, 's> Program<'p, 's> {
     }
 
     fn param(&mut self, name: &str, arg: ir::Arg) -> ir::Reg {
-        let param = match self.params.iter().position(|existing| existing.name == name) {
+        let param = match self
+            .params
+            .iter()
+            .position(|existing| existing.name == name)
+        {
             Some(at) => at,
             None => {
-                self.params.push(ir::Param { name: name.to_string(), arg });
+                self.params.push(ir::Param {
+                    name: name.to_string(),
+                    arg,
+                });
                 self.params.len() - 1
             }
         } as u16;
@@ -1092,7 +1476,10 @@ impl<'p, 's> Program<'p, 's> {
     }
 
     fn object(&mut self, name: &str, object: usize) -> ir::Reg {
-        let arg = ir::Arg::Object(ir::ObjRef { component: ir::CompIdx(0), object: ir::ObjIdx(object as u32) });
+        let arg = ir::Arg::Object(ir::ObjRef {
+            component: ir::CompIdx(0),
+            object: ir::ObjIdx(object as u32),
+        });
         self.param(name, arg)
     }
 
@@ -1109,7 +1496,12 @@ impl<'p, 's> Program<'p, 's> {
             self.names.push((*name).to_string());
         }
         let dst = self.reg();
-        self.emit(ir::Op::Get { dst, obj, path: first, len: path.len() as u8 });
+        self.emit(ir::Op::Get {
+            dst,
+            obj,
+            path: first,
+            len: path.len() as u8,
+        });
         dst
     }
 
@@ -1123,7 +1515,11 @@ impl<'p, 's> Program<'p, 's> {
     }
 
     fn local(&self, name: &str) -> Option<ir::Reg> {
-        self.locals.iter().rev().find(|(local, _)| local == name).map(|(_, reg)| *reg)
+        self.locals
+            .iter()
+            .rev()
+            .find(|(local, _)| local == name)
+            .map(|(_, reg)| *reg)
     }
 
     /// Where a plain name is found, as QML looks: the body's own, the
@@ -1136,7 +1532,10 @@ impl<'p, 's> Program<'p, 's> {
         }
         if let Some(index) = self.args.iter().position(|arg| arg == name) {
             let dst = self.reg();
-            self.emit(ir::Op::Local { dst, index: index as u16 });
+            self.emit(ir::Op::Local {
+                dst,
+                index: index as u16,
+            });
             return Ok(dst);
         }
         if let Some(&object) = self.shell.ids.get(name) {
@@ -1167,16 +1566,28 @@ impl<'p, 's> Program<'p, 's> {
         let ty = self.shell.type_name(object);
         match member {
             Member::Property { .. } => Ok(()),
-            Member::Action => Err(Refusal(span, format!("`{name}` is an action of {ty}: a shell calls it"))),
-            Member::Signal(_) => Err(Refusal(span, format!("`{name}` is an event of {ty}: a shell handles it with `on…`"))),
-            Member::Method => Err(Refusal(span, format!("{ty}'s `{name}` is a method, which a shell does not call"))),
+            Member::Action => Err(Refusal(
+                span,
+                format!("`{name}` is an action of {ty}: a shell calls it"),
+            )),
+            Member::Signal(_) => Err(Refusal(
+                span,
+                format!("`{name}` is an event of {ty}: a shell handles it with `on…`"),
+            )),
+            Member::Method => Err(Refusal(
+                span,
+                format!("{ty}'s `{name}` is a method, which a shell does not call"),
+            )),
         }
     }
 
     /// The object an expression is, when the compiler knows: an id.
     fn known_object(&self, expression: &Expression) -> Option<usize> {
         match unparenthesized(expression) {
-            Expression::Identifier(id) if self.local(&id.name).is_none() && !self.args.iter().any(|arg| arg == id.name.as_str()) => {
+            Expression::Identifier(id)
+                if self.local(&id.name).is_none()
+                    && !self.args.iter().any(|arg| arg == id.name.as_str()) =>
+            {
                 self.shell.ids.get(id.name.as_str()).copied()
             }
             _ => None,
@@ -1186,9 +1597,15 @@ impl<'p, 's> Program<'p, 's> {
     fn expression(&mut self, expression: &Expression) -> Lowered<ir::Reg> {
         let span = expression.span();
         match expression {
-            Expression::NumericLiteral(number) => Ok(self.constant(ir::Const::number(number.value))),
-            Expression::StringLiteral(string) => Ok(self.constant(ir::Const::String(string.value.to_string()))),
-            Expression::BooleanLiteral(boolean) => Ok(self.constant(ir::Const::Bool(boolean.value))),
+            Expression::NumericLiteral(number) => {
+                Ok(self.constant(ir::Const::number(number.value)))
+            }
+            Expression::StringLiteral(string) => {
+                Ok(self.constant(ir::Const::String(string.value.to_string())))
+            }
+            Expression::BooleanLiteral(boolean) => {
+                Ok(self.constant(ir::Const::Bool(boolean.value)))
+            }
             Expression::NullLiteral(_) => Ok(self.constant(ir::Const::Null)),
             Expression::ParenthesizedExpression(inner) => self.expression(&inner.expression),
             Expression::Identifier(id) => self.identifier(&id.name, span),
@@ -1197,7 +1614,11 @@ impl<'p, 's> Program<'p, 's> {
                 let parts: Vec<ir::Reg> = {
                     let mut parts = Vec::new();
                     for (index, quasi) in template.quasis.iter().enumerate() {
-                        let text = quasi.value.cooked.as_ref().map_or_else(|| quasi.value.raw.to_string(), |c| c.to_string());
+                        let text = quasi
+                            .value
+                            .cooked
+                            .as_ref()
+                            .map_or_else(|| quasi.value.raw.to_string(), |c| c.to_string());
                         parts.push(self.constant(ir::Const::String(text)));
                         if let Some(expression) = template.expressions.get(index) {
                             parts.push(self.expression(expression)?);
@@ -1207,10 +1628,17 @@ impl<'p, 's> Program<'p, 's> {
                 };
                 let base = self.regs(count);
                 for (index, part) in parts.into_iter().enumerate() {
-                    self.emit(ir::Op::Move { dst: base + index as u16, src: part });
+                    self.emit(ir::Op::Move {
+                        dst: base + index as u16,
+                        src: part,
+                    });
                 }
                 let dst = self.reg();
-                self.emit(ir::Op::Concat { dst, base, count: count as u16 });
+                self.emit(ir::Op::Concat {
+                    dst,
+                    base,
+                    count: count as u16,
+                });
                 Ok(dst)
             }
             Expression::ArrayExpression(array) => {
@@ -1218,20 +1646,33 @@ impl<'p, 's> Program<'p, 's> {
                 for element in &array.elements {
                     match element {
                         ArrayExpressionElement::SpreadElement(spread) => {
-                            return Err(Refusal(spread.span, "a shell's arrays have no spread".to_string()));
+                            return Err(Refusal(
+                                spread.span,
+                                "a shell's arrays have no spread".to_string(),
+                            ));
                         }
                         ArrayExpressionElement::Elision(elision) => {
-                            return Err(Refusal(elision.span, "a shell's arrays have no holes".to_string()));
+                            return Err(Refusal(
+                                elision.span,
+                                "a shell's arrays have no holes".to_string(),
+                            ));
                         }
                         element => parts.push(self.expression(element.to_expression())?),
                     }
                 }
                 let base = self.regs(parts.len());
                 for (index, part) in parts.iter().enumerate() {
-                    self.emit(ir::Op::Move { dst: base + index as u16, src: *part });
+                    self.emit(ir::Op::Move {
+                        dst: base + index as u16,
+                        src: *part,
+                    });
                 }
                 let dst = self.reg();
-                self.emit(ir::Op::Array { dst, base, count: parts.len() as u16 });
+                self.emit(ir::Op::Array {
+                    dst,
+                    base,
+                    count: parts.len() as u16,
+                });
                 Ok(dst)
             }
             Expression::StaticMemberExpression(_) => self.member(expression),
@@ -1239,11 +1680,17 @@ impl<'p, 's> Program<'p, 's> {
                 if let Expression::StringLiteral(key) = unparenthesized(&member.expression) {
                     return Err(Refusal(
                         member.span,
-                        format!("a shell reads a member by its name, not by a string: `[\"{}\"]` is not in its scope", key.value),
+                        format!(
+                            "a shell reads a member by its name, not by a string: `[\"{}\"]` is not in its scope",
+                            key.value
+                        ),
                     ));
                 }
                 if let Expression::TemplateLiteral(_) = unparenthesized(&member.expression) {
-                    return Err(Refusal(member.span, "a shell reads a member by its name, not by a string".to_string()));
+                    return Err(Refusal(
+                        member.span,
+                        "a shell reads a member by its name, not by a string".to_string(),
+                    ));
                 }
                 let obj = self.expression(&member.object)?;
                 let index = self.expression(&member.expression)?;
@@ -1254,7 +1701,13 @@ impl<'p, 's> Program<'p, 's> {
             Expression::CallExpression(call) => self.call(call),
             Expression::BinaryExpression(binary_expression) => {
                 let Some(op) = binary(binary_expression.operator) else {
-                    return Err(Refusal(span, format!("`{}` is not in a shell's scope", binary_expression.operator.as_str())));
+                    return Err(Refusal(
+                        span,
+                        format!(
+                            "`{}` is not in a shell's scope",
+                            binary_expression.operator.as_str()
+                        ),
+                    ));
                 };
                 let a = self.expression(&binary_expression.left)?;
                 let b = self.expression(&binary_expression.right)?;
@@ -1292,12 +1745,18 @@ impl<'p, 's> Program<'p, 's> {
                 let test = self.expression(&conditional.test)?;
                 let otherwise = self.emit(ir::Op::JumpIfNot { cond: test, to: 0 });
                 let consequent = self.expression(&conditional.consequent)?;
-                self.emit(ir::Op::Move { dst, src: consequent });
+                self.emit(ir::Op::Move {
+                    dst,
+                    src: consequent,
+                });
                 let skip = self.emit(ir::Op::Jump { to: 0 });
                 let here = self.here();
                 self.patch(otherwise, here);
                 let alternate = self.expression(&conditional.alternate)?;
-                self.emit(ir::Op::Move { dst, src: alternate });
+                self.emit(ir::Op::Move {
+                    dst,
+                    src: alternate,
+                });
                 let end = self.here();
                 self.patch(skip, end);
                 Ok(dst)
@@ -1310,7 +1769,10 @@ impl<'p, 's> Program<'p, 's> {
                     UnaryOperator::BitwiseNot => ir::UnaryOp::BitNot,
                     UnaryOperator::Typeof => ir::UnaryOp::Typeof,
                     UnaryOperator::Void | UnaryOperator::Delete => {
-                        return Err(Refusal(span, format!("`{}` is not in a shell's scope", unary.operator.as_str())));
+                        return Err(Refusal(
+                            span,
+                            format!("`{}` is not in a shell's scope", unary.operator.as_str()),
+                        ));
                     }
                 };
                 let src = self.expression(&unary.argument)?;
@@ -1323,23 +1785,55 @@ impl<'p, 's> Program<'p, 's> {
                 let target = simple_target(&update.argument);
                 let old = self.read_target(&target, span)?;
                 let number = self.reg();
-                self.emit(ir::Op::Unary { op: ir::UnaryOp::Plus, dst: number, src: old });
+                self.emit(ir::Op::Unary {
+                    op: ir::UnaryOp::Plus,
+                    dst: number,
+                    src: old,
+                });
                 let one = self.constant(ir::Const::number(1.0));
                 let new = self.reg();
-                let op = if update.operator == UpdateOperator::Increment { ir::BinaryOp::Add } else { ir::BinaryOp::Sub };
-                self.emit(ir::Op::Binary { op, dst: new, a: number, b: one });
+                let op = if update.operator == UpdateOperator::Increment {
+                    ir::BinaryOp::Add
+                } else {
+                    ir::BinaryOp::Sub
+                };
+                self.emit(ir::Op::Binary {
+                    op,
+                    dst: new,
+                    a: number,
+                    b: one,
+                });
                 self.write_target(&target, new, span)?;
                 Ok(if update.prefix { new } else { number })
             }
             Expression::ArrowFunctionExpression(_) | Expression::FunctionExpression(_) => {
-                Err(Refusal(span, "a shell writes no functions: what it does is its blocks' actions".to_string()))
+                Err(Refusal(
+                    span,
+                    "a shell writes no functions: what it does is its blocks' actions".to_string(),
+                ))
             }
-            Expression::ObjectExpression(_) => Err(Refusal(span, "a shell writes no object literals".to_string())),
-            Expression::NewExpression(_) => Err(Refusal(span, "`new` is not in a shell's scope".to_string())),
-            Expression::ThisExpression(_) => Err(Refusal(span, "`this` is not in a shell's scope: name the object by its id".to_string())),
-            Expression::SequenceExpression(_) => Err(Refusal(span, "a shell writes one expression at a time".to_string())),
-            Expression::RegExpLiteral(_) => Err(Refusal(span, "a shell writes no regular expressions".to_string())),
-            Expression::ChainExpression(_) => Err(Refusal(span, "`?.` is not in a shell's scope".to_string())),
+            Expression::ObjectExpression(_) => Err(Refusal(
+                span,
+                "a shell writes no object literals".to_string(),
+            )),
+            Expression::NewExpression(_) => {
+                Err(Refusal(span, "`new` is not in a shell's scope".to_string()))
+            }
+            Expression::ThisExpression(_) => Err(Refusal(
+                span,
+                "`this` is not in a shell's scope: name the object by its id".to_string(),
+            )),
+            Expression::SequenceExpression(_) => Err(Refusal(
+                span,
+                "a shell writes one expression at a time".to_string(),
+            )),
+            Expression::RegExpLiteral(_) => Err(Refusal(
+                span,
+                "a shell writes no regular expressions".to_string(),
+            )),
+            Expression::ChainExpression(_) => {
+                Err(Refusal(span, "`?.` is not in a shell's scope".to_string()))
+            }
             _ => Err(Refusal(span, "this is not in a shell's scope".to_string())),
         }
     }
@@ -1355,7 +1849,10 @@ impl<'p, 's> Program<'p, 's> {
         path.reverse();
         for (name, span) in &path {
             if forbidden(name) {
-                return Err(Refusal(*span, format!("`{name}` is not in a shell's scope")));
+                return Err(Refusal(
+                    *span,
+                    format!("`{name}` is not in a shell's scope"),
+                ));
             }
         }
         let (first, first_span) = path[0];
@@ -1373,7 +1870,10 @@ impl<'p, 's> Program<'p, 's> {
                 };
             }
             if name == "Qt" {
-                if path.len() == 1 && first.starts_with(|c: char| c.is_ascii_uppercase()) && qt_enum(first) {
+                if path.len() == 1
+                    && first.starts_with(|c: char| c.is_ascii_uppercase())
+                    && qt_enum(first)
+                {
                     let key = self.name(first);
                     let dst = self.reg();
                     self.emit(ir::Op::QtKey { dst, key });
@@ -1383,21 +1883,30 @@ impl<'p, 's> Program<'p, 's> {
             }
             if let Some(ty) = quick(name) {
                 if path.len() == 1 && ty.enum_value(first).is_some() {
-                    let ty_ref = ir::TypeRef::Native { module: "QtQuick".to_string(), name: name.to_string() };
+                    let ty_ref = ir::TypeRef::Native {
+                        module: "QtQuick".to_string(),
+                        name: name.to_string(),
+                    };
                     let param = self.param_index(name, ir::Arg::Type(ty_ref));
                     let key = self.name(first);
                     let dst = self.reg();
                     self.emit(ir::Op::EnumKey { dst, param, key });
                     return Ok(dst);
                 }
-                return Err(Refusal(expression.span(), format!("{name} has no enum key `{first}`")));
+                return Err(Refusal(
+                    expression.span(),
+                    format!("{name} has no enum key `{first}`"),
+                ));
             }
         }
         if let Some(object) = self.known_object(base) {
             match self.shell.member(object, first) {
                 Some(member) => self.readable(&member, first, object, first_span)?,
                 None => {
-                    return Err(Refusal(first_span, format!("{} has no member `{first}`", self.shell.type_name(object))));
+                    return Err(Refusal(
+                        first_span,
+                        format!("{} has no member `{first}`", self.shell.type_name(object)),
+                    ));
                 }
             }
         }
@@ -1407,35 +1916,66 @@ impl<'p, 's> Program<'p, 's> {
     }
 
     fn param_index(&mut self, name: &str, arg: ir::Arg) -> u16 {
-        (match self.params.iter().position(|existing| existing.name == name) {
+        (match self
+            .params
+            .iter()
+            .position(|existing| existing.name == name)
+        {
             Some(at) => at,
             None => {
-                self.params.push(ir::Param { name: name.to_string(), arg });
+                self.params.push(ir::Param {
+                    name: name.to_string(),
+                    arg,
+                });
                 self.params.len() - 1
             }
         }) as u16
     }
 
-    fn arguments(&mut self, receiver: Option<ir::Reg>, arguments: &[Argument]) -> Lowered<(ir::Reg, usize)> {
+    fn arguments(
+        &mut self,
+        receiver: Option<ir::Reg>,
+        arguments: &[Argument],
+    ) -> Lowered<(ir::Reg, usize)> {
         let mut parts: Vec<ir::Reg> = receiver.into_iter().collect();
         for argument in arguments {
             let Some(expression) = argument.as_expression() else {
-                return Err(Refusal(argument.span(), "a shell's calls have no spread".to_string()));
+                return Err(Refusal(
+                    argument.span(),
+                    "a shell's calls have no spread".to_string(),
+                ));
             };
             parts.push(self.expression(expression)?);
         }
         let base = self.regs(parts.len());
         for (index, part) in parts.iter().enumerate() {
-            self.emit(ir::Op::Move { dst: base + index as u16, src: *part });
+            self.emit(ir::Op::Move {
+                dst: base + index as u16,
+                src: *part,
+            });
         }
         Ok((base, parts.len()))
     }
 
-    fn builtin(&mut self, f: ir::Builtin, receiver: Option<ir::Reg>, arguments: &[Argument]) -> Lowered<ir::Reg> {
-        let receiver = if f == ir::Builtin::QsTr { Some(self.constant(ir::Const::String("Shell".to_string()))) } else { receiver };
+    fn builtin(
+        &mut self,
+        f: ir::Builtin,
+        receiver: Option<ir::Reg>,
+        arguments: &[Argument],
+    ) -> Lowered<ir::Reg> {
+        let receiver = if f == ir::Builtin::QsTr {
+            Some(self.constant(ir::Const::String("Shell".to_string())))
+        } else {
+            receiver
+        };
         let (base, count) = self.arguments(receiver, arguments)?;
         let dst = self.reg();
-        self.emit(ir::Op::Call { dst, f, base, count: count as u8 });
+        self.emit(ir::Op::Call {
+            dst,
+            f,
+            base,
+            count: count as u8,
+        });
         Ok(dst)
     }
 
@@ -1454,17 +1994,26 @@ impl<'p, 's> Program<'p, 's> {
                     return self.builtin(f, None, &call.arguments);
                 }
                 if self.shell.ids.contains_key(name) || self.local(name).is_some() {
-                    return Err(Refusal(id.span, format!("`{name}` is not a function a shell may call")));
+                    return Err(Refusal(
+                        id.span,
+                        format!("`{name}` is not a function a shell may call"),
+                    ));
                 }
                 if let Some(Member::Action) = self.shell.member(self.scope, name) {
-                    return Err(Refusal(id.span, format!("a shell calls `{name}` on its block: `id.{name}()`")));
+                    return Err(Refusal(
+                        id.span,
+                        format!("a shell calls `{name}` on its block: `id.{name}()`"),
+                    ));
                 }
                 Err(Refusal(id.span, not_in_scope(name)))
             }
             Expression::StaticMemberExpression(member) => {
                 let name = member.property.name.as_str();
                 if forbidden(name) {
-                    return Err(Refusal(member.property.span, format!("`{name}` is not in a shell's scope")));
+                    return Err(Refusal(
+                        member.property.span,
+                        format!("`{name}` is not in a shell's scope"),
+                    ));
                 }
                 if let Expression::Identifier(id) = unparenthesized(&member.object)
                     && self.local(&id.name).is_none()
@@ -1474,7 +2023,10 @@ impl<'p, 's> Program<'p, 's> {
                     match id.name.as_str() {
                         "Math" => {
                             let Some(f) = math(name) else {
-                                return Err(Refusal(member.span, not_in_scope(&format!("Math.{name}"))));
+                                return Err(Refusal(
+                                    member.span,
+                                    not_in_scope(&format!("Math.{name}")),
+                                ));
                             };
                             return self.builtin(f, None, &call.arguments);
                         }
@@ -1482,7 +2034,9 @@ impl<'p, 's> Program<'p, 's> {
                             let Some(f) = qt_function(name) else {
                                 return Err(Refusal(
                                     member.span,
-                                    format!("`Qt.{name}` is not in a shell's scope: a shell calls only Qt's pure functions (Qt.rgba, Qt.point, Qt.lighter, …)"),
+                                    format!(
+                                        "`Qt.{name}` is not in a shell's scope: a shell calls only Qt's pure functions (Qt.rgba, Qt.point, Qt.lighter, …)"
+                                    ),
                                 ));
                             };
                             return self.builtin(f, None, &call.arguments);
@@ -1494,39 +2048,78 @@ impl<'p, 's> Program<'p, 's> {
                     let ty = self.shell.type_name(object).to_string();
                     return match self.shell.member(object, name) {
                         Some(Member::Action) => {
-                            let Kind::Block(_) = self.shell.objects[object].kind else { unreachable!() };
+                            let Kind::Block(_) = self.shell.objects[object].kind else {
+                                unreachable!()
+                            };
                             let obj = self.expression(&member.object)?;
                             let name = self.name(name);
                             let (base, count) = self.arguments(None, &call.arguments)?;
                             let dst = self.reg();
-                            self.emit(ir::Op::Invoke { dst, obj, name, base, count: count as u8 });
+                            self.emit(ir::Op::Invoke {
+                                dst,
+                                obj,
+                                name,
+                                base,
+                                count: count as u8,
+                            });
                             Ok(dst)
                         }
-                        Some(Member::Signal(_)) => Err(Refusal(member.property.span, format!("`{name}` is an event of {ty}: only the block tells it"))),
-                        Some(_) => Err(Refusal(member.property.span, format!("{ty}'s `{name}` is not an action: a shell calls only its blocks' actions"))),
-                        None => Err(Refusal(member.property.span, format!("{ty} has no action `{name}`"))),
+                        Some(Member::Signal(_)) => Err(Refusal(
+                            member.property.span,
+                            format!("`{name}` is an event of {ty}: only the block tells it"),
+                        )),
+                        Some(_) => Err(Refusal(
+                            member.property.span,
+                            format!(
+                                "{ty}'s `{name}` is not an action: a shell calls only its blocks' actions"
+                            ),
+                        )),
+                        None => Err(Refusal(
+                            member.property.span,
+                            format!("{ty} has no action `{name}`"),
+                        )),
                     };
                 }
                 let Some(f) = method(name) else {
-                    return Err(Refusal(member.property.span, format!("`{name}` is not a method a shell may call")));
+                    return Err(Refusal(
+                        member.property.span,
+                        format!("`{name}` is not a method a shell may call"),
+                    ));
                 };
                 let receiver = self.expression(&member.object)?;
                 self.emit(ir::Op::Check { src: receiver, f });
                 self.builtin(f, Some(receiver), &call.arguments)
             }
-            other => Err(Refusal(other.span(), "a shell calls only builtins and its blocks' actions".to_string())),
+            other => Err(Refusal(
+                other.span(),
+                "a shell calls only builtins and its blocks' actions".to_string(),
+            )),
         }
     }
 
     fn assignment(&mut self, assignment: &oxc_ast::ast::AssignmentExpression) -> Lowered<ir::Reg> {
         let span = assignment.span;
         let target = match &assignment.left {
-            AssignmentTarget::AssignmentTargetIdentifier(id) => Target::Name(id.name.as_str(), id.span),
-            AssignmentTarget::StaticMemberExpression(member) => Target::Member(&member.object, member.property.name.as_str(), member.property.span),
-            AssignmentTarget::ComputedMemberExpression(member) => {
-                return Err(Refusal(member.span, "a shell writes a member by its name".to_string()));
+            AssignmentTarget::AssignmentTargetIdentifier(id) => {
+                Target::Name(id.name.as_str(), id.span)
             }
-            other => return Err(Refusal(other.span(), "a shell assigns to a name or a property".to_string())),
+            AssignmentTarget::StaticMemberExpression(member) => Target::Member(
+                &member.object,
+                member.property.name.as_str(),
+                member.property.span,
+            ),
+            AssignmentTarget::ComputedMemberExpression(member) => {
+                return Err(Refusal(
+                    member.span,
+                    "a shell writes a member by its name".to_string(),
+                ));
+            }
+            other => {
+                return Err(Refusal(
+                    other.span(),
+                    "a shell assigns to a name or a property".to_string(),
+                ));
+            }
         };
         let value = match assignment.operator {
             AssignmentOperator::Assign => {
@@ -1535,13 +2128,24 @@ impl<'p, 's> Program<'p, 's> {
             }
             operator => {
                 if let Some(logical) = operator.to_logical_operator() {
-                    return Err(Refusal(span, format!("`{}` is not in a shell's scope", logical.as_str())));
+                    return Err(Refusal(
+                        span,
+                        format!("`{}` is not in a shell's scope", logical.as_str()),
+                    ));
                 }
-                let op = operator.to_binary_operator().and_then(binary).ok_or_else(|| Refusal(span, "not in a shell's scope".to_string()))?;
+                let op = operator
+                    .to_binary_operator()
+                    .and_then(binary)
+                    .ok_or_else(|| Refusal(span, "not in a shell's scope".to_string()))?;
                 let old = self.read_target(&target, span)?;
                 let right = self.expression(&assignment.right)?;
                 let dst = self.reg();
-                self.emit(ir::Op::Binary { op, dst, a: old, b: right });
+                self.emit(ir::Op::Binary {
+                    op,
+                    dst,
+                    a: old,
+                    b: right,
+                });
                 dst
             }
         };
@@ -1563,7 +2167,10 @@ impl<'p, 's> Program<'p, 's> {
         {
             return Err(Refusal(
                 span,
-                format!("{}.{name} takes only a URL a block gives (a block's url state): a shell may not name one", self.shell.type_name(object)),
+                format!(
+                    "{}.{name} takes only a URL a block gives (a block's url state): a shell may not name one",
+                    self.shell.type_name(object)
+                ),
             ));
         }
         Ok(())
@@ -1576,7 +2183,12 @@ impl<'p, 's> Program<'p, 's> {
                 if let Some(index) = self.known_object(object) {
                     match self.shell.member(index, name) {
                         Some(member) => self.readable(&member, name, index, *name_span)?,
-                        None => return Err(Refusal(*name_span, format!("{} has no member `{name}`", self.shell.type_name(index)))),
+                        None => {
+                            return Err(Refusal(
+                                *name_span,
+                                format!("{} has no member `{name}`", self.shell.type_name(index)),
+                            ));
+                        }
                     }
                 }
                 let obj = self.expression(object)?;
@@ -1589,16 +2201,25 @@ impl<'p, 's> Program<'p, 's> {
     fn writable(&self, object: usize, name: &str, span: Span) -> Lowered<()> {
         let ty = self.shell.type_name(object);
         match self.shell.member(object, name) {
-            Some(Member::Property { readonly: true, .. }) if self.shell.objects[object].declared.iter().all(|(n, _)| n != name) => {
+            Some(Member::Property { readonly: true, .. })
+                if self.shell.objects[object]
+                    .declared
+                    .iter()
+                    .all(|(n, _)| n != name) =>
+            {
                 if matches!(self.shell.objects[object].kind, Kind::Block(_)) {
-                    Err(Refusal(span, format!("`{name}` is a state of {ty}: only the block writes it")))
+                    Err(Refusal(
+                        span,
+                        format!("`{name}` is a state of {ty}: only the block writes it"),
+                    ))
                 } else {
                     Err(Refusal(span, format!("{ty}'s `{name}` is read-only")))
                 }
             }
-            Some(Member::Property { .. }) if name == "textFormat" => {
-                Err(Refusal(span, "a shell's text is plain: `textFormat` is not in its scope".to_string()))
-            }
+            Some(Member::Property { .. }) if name == "textFormat" => Err(Refusal(
+                span,
+                "a shell's text is plain: `textFormat` is not in its scope".to_string(),
+            )),
             Some(Member::Property { .. }) => Ok(()),
             Some(_) => Err(Refusal(span, format!("{ty}'s `{name}` is not a property"))),
             None => Err(Refusal(span, format!("{ty} has no property `{name}`"))),
@@ -1613,7 +2234,10 @@ impl<'p, 's> Program<'p, 's> {
                     return Ok(());
                 }
                 if self.shell.ids.contains_key(*name) || self.args.iter().any(|arg| arg == name) {
-                    return Err(Refusal(*name_span, format!("`{name}` is not something a shell assigns to")));
+                    return Err(Refusal(
+                        *name_span,
+                        format!("`{name}` is not something a shell assigns to"),
+                    ));
                 }
                 let (obj, object) = if self.shell.member(self.scope, name).is_some() {
                     (self.this(), self.scope)
@@ -1624,18 +2248,31 @@ impl<'p, 's> Program<'p, 's> {
                 };
                 self.writable(object, name, *name_span)?;
                 let name = self.name(name);
-                self.emit(ir::Op::Set { obj, name, val, group: None });
+                self.emit(ir::Op::Set {
+                    obj,
+                    name,
+                    val,
+                    group: None,
+                });
                 Ok(())
             }
             Target::Member(object, name, name_span) => {
                 if forbidden(name) {
-                    return Err(Refusal(*name_span, format!("`{name}` is not in a shell's scope")));
+                    return Err(Refusal(
+                        *name_span,
+                        format!("`{name}` is not in a shell's scope"),
+                    ));
                 }
                 if let Some(index) = self.known_object(object) {
                     self.writable(index, name, *name_span)?;
                     let obj = self.expression(object)?;
                     let name = self.name(name);
-                    self.emit(ir::Op::Set { obj, name, val, group: None });
+                    self.emit(ir::Op::Set {
+                        obj,
+                        name,
+                        val,
+                        group: None,
+                    });
                     return Ok(());
                 }
                 // `rect.border.width = 2`: the write is to the group.
@@ -1643,20 +2280,42 @@ impl<'p, 's> Program<'p, 's> {
                     && let Some(index) = self.known_object(&group.object)
                 {
                     let group_name = group.property.name.as_str();
-                    if !matches!(self.shell.member(index, group_name), Some(Member::Property { group: true, .. })) {
-                        return Err(Refusal(group.property.span, format!("{} has no group `{group_name}`", self.shell.type_name(index))));
+                    if !matches!(
+                        self.shell.member(index, group_name),
+                        Some(Member::Property { group: true, .. })
+                    ) {
+                        return Err(Refusal(
+                            group.property.span,
+                            format!(
+                                "{} has no group `{group_name}`",
+                                self.shell.type_name(index)
+                            ),
+                        ));
                     }
                     let owner = self.expression(&group.object)?;
                     let grouped = self.reg();
                     let dst = self.reg();
                     let group_at = self.name(group_name);
-                    self.emit(ir::Op::Target { dst, grouped, obj: owner, name: group_at });
+                    self.emit(ir::Op::Target {
+                        dst,
+                        grouped,
+                        obj: owner,
+                        name: group_at,
+                    });
                     let name = self.name(name);
-                    self.emit(ir::Op::Set { obj: dst, name, val, group: Some((grouped, group_at)) });
+                    self.emit(ir::Op::Set {
+                        obj: dst,
+                        name,
+                        val,
+                        group: Some((grouped, group_at)),
+                    });
                     return Ok(());
                 }
                 let _ = span;
-                Err(Refusal(*name_span, "a shell writes the properties of objects it names by id".to_string()))
+                Err(Refusal(
+                    *name_span,
+                    "a shell writes the properties of objects it names by id".to_string(),
+                ))
             }
         }
     }
@@ -1673,14 +2332,20 @@ impl<'p, 's> Program<'p, 's> {
     fn declaration(&mut self, declaration: &VariableDeclaration) -> Lowered<()> {
         for declarator in &declaration.declarations {
             let Some(name) = bound_name(&declarator.id) else {
-                return Err(Refusal(declarator.span, "a shell declares one name at a time".to_string()));
+                return Err(Refusal(
+                    declarator.span,
+                    "a shell declares one name at a time".to_string(),
+                ));
             };
             let reg = self.reg();
             let value = match &declarator.init {
                 Some(init) => self.expression(init)?,
                 None => self.constant(ir::Const::Undefined),
             };
-            self.emit(ir::Op::Move { dst: reg, src: value });
+            self.emit(ir::Op::Move {
+                dst: reg,
+                src: value,
+            });
             self.locals.push((name, reg));
         }
         Ok(())
@@ -1689,7 +2354,9 @@ impl<'p, 's> Program<'p, 's> {
     fn statement(&mut self, statement: &Statement) -> Lowered<()> {
         let span = statement.span();
         match statement {
-            Statement::ExpressionStatement(expression) => self.expression(&expression.expression).map(|_| ()),
+            Statement::ExpressionStatement(expression) => {
+                self.expression(&expression.expression).map(|_| ())
+            }
             Statement::BlockStatement(block) => self.statements(&block.body),
             Statement::EmptyStatement(_) => Ok(()),
             Statement::VariableDeclaration(declaration) => self.declaration(declaration),
@@ -1724,7 +2391,10 @@ impl<'p, 's> Program<'p, 's> {
                 let start = self.here();
                 let test = self.expression(&looped.test)?;
                 let exit = self.emit(ir::Op::JumpIfNot { cond: test, to: 0 });
-                self.loops.push(Loop { breaks: vec![exit], continues: Vec::new() });
+                self.loops.push(Loop {
+                    breaks: vec![exit],
+                    continues: Vec::new(),
+                });
                 self.scoped(&looped.body)?;
                 self.emit(ir::Op::Jump { to: start });
                 self.close_loop(start);
@@ -1732,18 +2402,26 @@ impl<'p, 's> Program<'p, 's> {
             }
             Statement::DoWhileStatement(looped) => {
                 let start = self.here();
-                self.loops.push(Loop { breaks: Vec::new(), continues: Vec::new() });
+                self.loops.push(Loop {
+                    breaks: Vec::new(),
+                    continues: Vec::new(),
+                });
                 self.scoped(&looped.body)?;
                 let next = self.here();
                 let test = self.expression(&looped.test)?;
-                self.emit(ir::Op::JumpIf { cond: test, to: start });
+                self.emit(ir::Op::JumpIf {
+                    cond: test,
+                    to: start,
+                });
                 self.close_loop(next);
                 Ok(())
             }
             Statement::ForStatement(looped) => {
                 let depth = self.locals.len();
                 match &looped.init {
-                    Some(ForStatementInit::VariableDeclaration(declaration)) => self.declaration(declaration)?,
+                    Some(ForStatementInit::VariableDeclaration(declaration)) => {
+                        self.declaration(declaration)?
+                    }
                     Some(init) => {
                         self.expression(init.to_expression())?;
                     }
@@ -1755,7 +2433,10 @@ impl<'p, 's> Program<'p, 's> {
                     let test = self.expression(test)?;
                     breaks.push(self.emit(ir::Op::JumpIfNot { cond: test, to: 0 }));
                 }
-                self.loops.push(Loop { breaks, continues: Vec::new() });
+                self.loops.push(Loop {
+                    breaks,
+                    continues: Vec::new(),
+                });
                 self.scoped(&looped.body)?;
                 let next = self.here();
                 if let Some(update) = &looped.update {
@@ -1782,8 +2463,14 @@ impl<'p, 's> Program<'p, 's> {
                 current.continues.push(jump);
                 Ok(())
             }
-            Statement::FunctionDeclaration(_) => Err(Refusal(span, "a shell writes no functions: what it does is its blocks' actions".to_string())),
-            _ => Err(Refusal(span, "this statement is not in a shell's scope".to_string())),
+            Statement::FunctionDeclaration(_) => Err(Refusal(
+                span,
+                "a shell writes no functions: what it does is its blocks' actions".to_string(),
+            )),
+            _ => Err(Refusal(
+                span,
+                "this statement is not in a shell's scope".to_string(),
+            )),
         }
     }
 
@@ -1813,14 +2500,32 @@ enum Target<'e, 'a> {
 
 fn simple_target<'e, 'a>(target: &'e SimpleAssignmentTarget<'a>) -> Target<'e, 'a> {
     match target {
-        SimpleAssignmentTarget::AssignmentTargetIdentifier(id) => Target::Name(id.name.as_str(), id.span),
-        SimpleAssignmentTarget::StaticMemberExpression(member) => Target::Member(&member.object, member.property.name.as_str(), member.property.span),
+        SimpleAssignmentTarget::AssignmentTargetIdentifier(id) => {
+            Target::Name(id.name.as_str(), id.span)
+        }
+        SimpleAssignmentTarget::StaticMemberExpression(member) => Target::Member(
+            &member.object,
+            member.property.name.as_str(),
+            member.property.span,
+        ),
         other => Target::Name("", other.span()),
     }
 }
 
 /// Whether `Qt.Key` is a key of an enum of Qt's namespace.
 fn qt_enum(key: &str) -> bool {
-    ["QtQml", "QtQuick"].iter().any(|module| qt_types::module(module).and_then(|module| module.type_named("Qt")).is_some_and(|qt| qt.enum_value(key).is_some()))
-        || matches!(key, "AlignLeft" | "AlignRight" | "AlignHCenter" | "AlignTop" | "AlignBottom" | "AlignVCenter" | "AlignCenter")
+    ["QtQml", "QtQuick"].iter().any(|module| {
+        qt_types::module(module)
+            .and_then(|module| module.type_named("Qt"))
+            .is_some_and(|qt| qt.enum_value(key).is_some())
+    }) || matches!(
+        key,
+        "AlignLeft"
+            | "AlignRight"
+            | "AlignHCenter"
+            | "AlignTop"
+            | "AlignBottom"
+            | "AlignVCenter"
+            | "AlignCenter"
+    )
 }

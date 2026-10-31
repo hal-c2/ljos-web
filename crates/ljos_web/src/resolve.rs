@@ -46,22 +46,37 @@ pub(crate) fn resolve<'a>(
     errors: &mut Vec<Error>,
 ) -> Resolved {
     let free = free_references(program);
-    let mut resolver =
-        Resolver { b, scopes, types, free, errors, host: BTreeSet::new(), runtime: BTreeSet::new() };
+    let mut resolver = Resolver {
+        b,
+        scopes,
+        types,
+        free,
+        errors,
+        host: BTreeSet::new(),
+        runtime: BTreeSet::new(),
+    };
     resolver.visit_program(program);
-    Resolved { host: resolver.host, runtime: resolver.runtime }
+    Resolved {
+        host: resolver.host,
+        runtime: resolver.runtime,
+    }
 }
 
 /// The authored identifiers no JavaScript binding resolves, by span start.
 /// Generated bindings all contain a `$`, which a QML id or property name
 /// cannot, so whatever JavaScript does resolve is a local of the script.
 fn free_references(program: &Program<'_>) -> HashSet<u32> {
-    let semantic = SemanticBuilder::new().with_build_nodes(true).build(program).semantic;
+    let semantic = SemanticBuilder::new()
+        .with_build_nodes(true)
+        .build(program)
+        .semantic;
     let scoping = semantic.scoping();
     let mut free = HashSet::new();
     for references in scoping.root_unresolved_references().values() {
         for &reference in references {
-            let node = semantic.nodes().get_node(scoping.get_reference(reference).node_id());
+            let node = semantic
+                .nodes()
+                .get_node(scoping.get_reference(reference).node_id());
             let span = node.kind().span();
             if span.end > span.start {
                 free.insert(span.start);
@@ -141,11 +156,15 @@ impl<'a> Resolver<'a, '_> {
             return Resolution::Global;
         }
         let type_name = scopes.objects[object].type_name;
-        let built_in =
-            self.types.element(type_name).is_some_and(|element| element.prop(name).is_some());
+        let built_in = self
+            .types
+            .element(type_name)
+            .is_some_and(|element| element.prop(name).is_some());
         if built_in {
             self.fail(
-                format!("reading the built-in property `{name}` of `{type_name}` is not supported yet"),
+                format!(
+                    "reading the built-in property `{name}` of `{type_name}` is not supported yet"
+                ),
                 span,
             )
         } else {
@@ -179,7 +198,8 @@ impl<'a> Resolver<'a, '_> {
             }
             Resolution::Member(Member::Signal { get, .. }) => Some(b.call(b.id(&get), [])),
             Resolution::Member(Member::Unsupported(what)) => {
-                self.errors.push(Error::new(format!("{what} are not supported yet"), span));
+                self.errors
+                    .push(Error::new(format!("{what} are not supported yet"), span));
                 None
             }
             Resolution::Provided(provided) => Some(if provided.accessor {
@@ -193,7 +213,9 @@ impl<'a> Resolver<'a, '_> {
 
     /// `id.property`, when `expression` is exactly that.
     fn id_member(&self, expression: &Expression<'a>) -> Option<(&'a str, &'a str, Span)> {
-        let Expression::StaticMemberExpression(member) = expression else { return None };
+        let Expression::StaticMemberExpression(member) = expression else {
+            return None;
+        };
         self.id_member_parts(member)
     }
 
@@ -201,19 +223,30 @@ impl<'a> Resolver<'a, '_> {
         &self,
         member: &StaticMemberExpression<'a>,
     ) -> Option<(&'a str, &'a str, Span)> {
-        let Expression::Identifier(object) = &member.object else { return None };
+        let Expression::Identifier(object) = &member.object else {
+            return None;
+        };
         let from = self.scopes.object_at(object.span.start);
         if !self.is_free(object) || self.scopes.id(from, object.name.as_str()).is_none() {
             return None;
         }
-        Some((object.name.as_str(), member.property.name.as_str(), member.span))
+        Some((
+            object.name.as_str(),
+            member.property.name.as_str(),
+            member.span,
+        ))
     }
 
     /// What an assignment writes to, if it is a QML member.
     fn assignment_target(&mut self, target: &AssignmentTarget<'a>) -> Option<(Resolution, Span)> {
         match target {
-            AssignmentTarget::AssignmentTargetIdentifier(identifier) if self.is_free(identifier) => {
-                Some((self.bare(identifier.name.as_str(), identifier.span), identifier.span))
+            AssignmentTarget::AssignmentTargetIdentifier(identifier)
+                if self.is_free(identifier) =>
+            {
+                Some((
+                    self.bare(identifier.name.as_str(), identifier.span),
+                    identifier.span,
+                ))
             }
             AssignmentTarget::StaticMemberExpression(member) => {
                 let (id, property, span) = self.id_member_parts(member)?;
@@ -228,7 +261,9 @@ impl<'a> Resolver<'a, '_> {
     /// value goes in as one: `set(() => value)`.
     fn assignment(&mut self, expression: &mut Expression<'a>) -> bool {
         let b = self.b;
-        let Expression::AssignmentExpression(assignment) = expression else { return false };
+        let Expression::AssignmentExpression(assignment) = expression else {
+            return false;
+        };
         let Some((resolution, span)) = self.assignment_target(&assignment.left) else {
             return false;
         };
@@ -236,11 +271,15 @@ impl<'a> Resolver<'a, '_> {
             Resolution::Member(Member::Signal { get, set }) => (get, set),
             Resolution::Failed => return true,
             Resolution::Member(Member::Unsupported(what)) => {
-                self.errors.push(Error::new(format!("{what} are not supported yet"), span));
+                self.errors
+                    .push(Error::new(format!("{what} are not supported yet"), span));
                 return true;
             }
             _ => {
-                self.errors.push(Error::new("cannot assign to a read-only name".to_string(), span));
+                self.errors.push(Error::new(
+                    "cannot assign to a read-only name".to_string(),
+                    span,
+                ));
                 return true;
             }
         };
@@ -257,7 +296,11 @@ impl<'a> Resolver<'a, '_> {
                 return true;
             }
         };
-        let argument = if is_plain_value(&value) { value } else { b.arrow(&[], value) };
+        let argument = if is_plain_value(&value) {
+            value
+        } else {
+            b.arrow(&[], value)
+        };
         *expression = b.call(b.id(&set), [argument]);
         true
     }

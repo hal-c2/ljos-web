@@ -17,10 +17,19 @@ fn refused(text: &str) -> Vec<String> {
 fn the_theme_nearest_the_entry_wins() {
     let files = ["theme.json", "app/theme.json", "app/pages/Main.qml"];
     let has = |name: &str| files.contains(&name);
-    assert_eq!(theme::nearest("app/pages", "", has).as_deref(), Some("app/theme.json"));
-    assert_eq!(theme::nearest("app", "", has).as_deref(), Some("app/theme.json"));
+    assert_eq!(
+        theme::nearest("app/pages", "", has).as_deref(),
+        Some("app/theme.json")
+    );
+    assert_eq!(
+        theme::nearest("app", "", has).as_deref(),
+        Some("app/theme.json")
+    );
     assert_eq!(theme::nearest("", "", has).as_deref(), Some("theme.json"));
-    assert_eq!(theme::nearest("other", "", has).as_deref(), Some("theme.json"));
+    assert_eq!(
+        theme::nearest("other", "", has).as_deref(),
+        Some("theme.json")
+    );
 }
 
 #[test]
@@ -30,7 +39,10 @@ fn nothing_above_the_project_is_read() {
     assert_eq!(theme::nearest("app/pages", "app", has), None);
     // An entry outside the project is looked for beside alone.
     assert_eq!(theme::nearest("lib", "app", has), None);
-    assert_eq!(theme::nearest("lib", "app", |name: &str| name == "lib/theme.json").as_deref(), Some("lib/theme.json"));
+    assert_eq!(
+        theme::nearest("lib", "app", |name: &str| name == "lib/theme.json").as_deref(),
+        Some("lib/theme.json")
+    );
 }
 
 #[test]
@@ -47,19 +59,33 @@ fn the_search_over_given_names_is_the_search_over_the_disk() {
         &["p/lib/theme.json", "p/app/pages/theme.json"],
     ];
     for files in layouts {
-        for file in ["theme.json", "p/theme.json", "p/app/theme.json", "p/lib/theme.json", "p/app/pages/theme.json"] {
+        for file in [
+            "theme.json",
+            "p/theme.json",
+            "p/app/theme.json",
+            "p/lib/theme.json",
+            "p/app/pages/theme.json",
+        ] {
             let _ = std::fs::remove_file(base.join(file));
         }
         for file in files {
             std::fs::write(base.join(file), "{}").unwrap();
         }
-        for (entry, project) in
-            [("p/app/pages", "p"), ("p/app/pages", "p/app"), ("p/lib", "p/app"), ("p", "p"), ("p/app", "p/app/pages")]
-        {
+        for (entry, project) in [
+            ("p/app/pages", "p"),
+            ("p/app/pages", "p/app"),
+            ("p/lib", "p/app"),
+            ("p", "p"),
+            ("p/app", "p/app/pages"),
+        ] {
             let on_disk = ljos_design::theme::find(&base.join(entry), &base.join(project));
             let given = theme::nearest(entry, project, |name: &str| files.contains(&name));
             assert_eq!(
-                on_disk.map(|path| path.strip_prefix(&base).unwrap().to_string_lossy().replace('\\', "/")),
+                on_disk.map(|path| path
+                    .strip_prefix(&base)
+                    .unwrap()
+                    .to_string_lossy()
+                    .replace('\\', "/")),
                 given,
                 "{entry} in {project} with {files:?}"
             );
@@ -95,7 +121,10 @@ fn a_checked_theme_is_its_overrides() {
 #[test]
 fn an_empty_theme_overrides_nothing() {
     let checked = theme::check("theme.json", "{}", None).unwrap();
-    assert_eq!(theme::json(&checked), r#"{"file":"theme.json","overrides":[]}"#);
+    assert_eq!(
+        theme::json(&checked),
+        r#"{"file":"theme.json","overrides":[]}"#
+    );
 }
 
 #[test]
@@ -131,8 +160,14 @@ fn a_role_the_module_does_not_have_is_refused() {
 fn a_value_of_the_wrong_kind_or_out_of_range_is_refused() {
     let told = refused("{\n  \"Colors\": { \"accent\": 3 },\n  \"Spacing\": { \"md\": -4 }\n}");
     assert_eq!(told.len(), 2, "{told:?}");
-    assert!(told[0].starts_with("theme.json:2:") && told[0].contains("Colors.accent is a colour"), "{told:?}");
-    assert!(told[1].starts_with("theme.json:3:") && told[1].contains("Spacing.md"), "{told:?}");
+    assert!(
+        told[0].starts_with("theme.json:2:") && told[0].contains("Colors.accent is a colour"),
+        "{told:?}"
+    );
+    assert!(
+        told[1].starts_with("theme.json:3:") && told[1].contains("Spacing.md"),
+        "{told:?}"
+    );
 }
 
 #[test]
@@ -141,14 +176,20 @@ fn the_users_settings_are_not_the_themes_to_set() {
         "{\n  \"Colors\": { \"dark\": true, \"highContrast\": true, \"table\": [], \"roles\": [] },\n  \"Motion\": { \"reduced\": true }\n}",
     );
     assert_eq!(told.len(), 5, "{told:?}");
-    assert!(told.iter().all(|line| line.starts_with("theme.json:")), "{told:?}");
+    assert!(
+        told.iter().all(|line| line.starts_with("theme.json:")),
+        "{told:?}"
+    );
 }
 
 #[test]
 fn a_colour_that_breaks_the_palettes_contrast_is_refused() {
     let told = refused("{\n  \"Colors\": {\n    \"text\": \"#bbbbbb\"\n  }\n}");
     assert!(!told.is_empty());
-    assert!(told.iter().all(|line| line.starts_with("theme.json:3:")), "{told:?}");
+    assert!(
+        told.iter().all(|line| line.starts_with("theme.json:3:")),
+        "{told:?}"
+    );
     assert!(told[0].contains("Colors.text on canvas is"), "{told:?}");
 }
 
@@ -156,7 +197,10 @@ fn a_colour_that_breaks_the_palettes_contrast_is_refused() {
 fn a_ground_must_be_opaque() {
     let told = refused("{\n  \"Colors\": { \"canvas\": \"#80ffffff\" }\n}");
     assert!(!told.is_empty());
-    assert!(told.iter().all(|line| line.starts_with("theme.json:2:")), "{told:?}");
+    assert!(
+        told.iter().all(|line| line.starts_with("theme.json:2:")),
+        "{told:?}"
+    );
 }
 
 #[test]
@@ -172,7 +216,10 @@ fn the_contrast_is_held_at_the_seed_hue_the_page_shows() {
     assert_eq!(with_own(240.0), with_own(0.0));
     // Where it is told differs, the colour now later on the line; what is not.
     let said = |lines: Vec<String>| {
-        lines.into_iter().map(|line| line.splitn(4, ':').nth(3).unwrap().to_owned()).collect::<Vec<_>>()
+        lines
+            .into_iter()
+            .map(|line| line.splitn(4, ':').nth(3).unwrap().to_owned())
+            .collect::<Vec<_>>()
     };
     assert_eq!(said(with_own(240.0)), said(at(0.0)));
 }
@@ -182,7 +229,8 @@ fn qmlc() -> Command {
 }
 
 fn scratch(name: &str) -> std::path::PathBuf {
-    let dir = std::env::temp_dir().join(format!("ljos-web-qmlc-theme-{name}-{}", std::process::id()));
+    let dir =
+        std::env::temp_dir().join(format!("ljos-web-qmlc-theme-{name}-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     std::fs::create_dir_all(dir.join("app/pages")).unwrap();
     dir
@@ -192,8 +240,16 @@ fn scratch(name: &str) -> std::path::PathBuf {
 fn qmlc_prints_a_named_themes_overrides() {
     let dir = scratch("named");
     std::fs::write(dir.join("mine.json"), r#"{ "Spacing": { "md": 20 } }"#).unwrap();
-    let out = qmlc().current_dir(&dir).args(["--theme", "mine.json"]).output().unwrap();
-    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    let out = qmlc()
+        .current_dir(&dir)
+        .args(["--theme", "mine.json"])
+        .output()
+        .unwrap();
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
     assert_eq!(
         String::from_utf8(out.stdout).unwrap().trim(),
         r#"{"file":"mine.json","overrides":[{"singleton":"Spacing","role":"md","value":20}]}"#
@@ -204,20 +260,39 @@ fn qmlc_prints_a_named_themes_overrides() {
 #[test]
 fn qmlc_refuses_a_named_theme_that_is_not_there() {
     let dir = scratch("missing");
-    let out = qmlc().current_dir(&dir).args(["--theme", "gone.json"]).output().unwrap();
+    let out = qmlc()
+        .current_dir(&dir)
+        .args(["--theme", "gone.json"])
+        .output()
+        .unwrap();
     assert!(!out.status.success());
-    assert!(String::from_utf8_lossy(&out.stderr).starts_with("gone.json:"), "{}", String::from_utf8_lossy(&out.stderr));
+    assert!(
+        String::from_utf8_lossy(&out.stderr).starts_with("gone.json:"),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
     std::fs::remove_dir_all(&dir).unwrap();
 }
 
 #[test]
 fn qmlc_tells_a_refused_theme_as_file_line_column() {
     let dir = scratch("refused");
-    std::fs::write(dir.join("theme.json"), "{\n  \"Colors\": { \"acent\": \"#6a1b9a\" }\n}").unwrap();
-    let out = qmlc().current_dir(&dir).args(["--theme", "theme.json"]).output().unwrap();
+    std::fs::write(
+        dir.join("theme.json"),
+        "{\n  \"Colors\": { \"acent\": \"#6a1b9a\" }\n}",
+    )
+    .unwrap();
+    let out = qmlc()
+        .current_dir(&dir)
+        .args(["--theme", "theme.json"])
+        .output()
+        .unwrap();
     assert!(!out.status.success());
     assert!(out.stdout.is_empty());
-    assert_eq!(String::from_utf8(out.stderr).unwrap().trim(), "theme.json:2:15: Colors has no role \"acent\"");
+    assert_eq!(
+        String::from_utf8(out.stderr).unwrap().trim(),
+        "theme.json:2:15: Colors has no role \"acent\""
+    );
     std::fs::remove_dir_all(&dir).unwrap();
 }
 
@@ -226,13 +301,29 @@ fn qmlc_finds_the_theme_nearest_an_entry_up_to_the_root() {
     let dir = scratch("found");
     std::fs::write(dir.join("theme.json"), r#"{ "Spacing": { "md": 24 } }"#).unwrap();
     std::fs::write(dir.join("app/pages/Main.qml"), "import QtQuick\nItem {}\n").unwrap();
-    let found = qmlc().current_dir(&dir).args(["--theme-for", "app/pages/Main.qml", "--root", "."]).output().unwrap();
-    assert!(found.status.success(), "{}", String::from_utf8_lossy(&found.stderr));
+    let found = qmlc()
+        .current_dir(&dir)
+        .args(["--theme-for", "app/pages/Main.qml", "--root", "."])
+        .output()
+        .unwrap();
+    assert!(
+        found.status.success(),
+        "{}",
+        String::from_utf8_lossy(&found.stderr)
+    );
     let stdout = String::from_utf8(found.stdout).unwrap();
     assert!(stdout.contains(r#""role":"md","value":24"#), "{stdout}");
     // The root is the project: nothing above it is read.
-    let none = qmlc().current_dir(&dir).args(["--theme-for", "app/pages/Main.qml", "--root", "app"]).output().unwrap();
-    assert!(none.status.success(), "{}", String::from_utf8_lossy(&none.stderr));
+    let none = qmlc()
+        .current_dir(&dir)
+        .args(["--theme-for", "app/pages/Main.qml", "--root", "app"])
+        .output()
+        .unwrap();
+    assert!(
+        none.status.success(),
+        "{}",
+        String::from_utf8_lossy(&none.stderr)
+    );
     assert_eq!(String::from_utf8(none.stdout).unwrap().trim(), "null");
     std::fs::remove_dir_all(&dir).unwrap();
 }
@@ -240,18 +331,33 @@ fn qmlc_finds_the_theme_nearest_an_entry_up_to_the_root() {
 #[test]
 fn qmlc_holds_a_theme_to_the_seed_hue_it_is_given() {
     let dir = scratch("hue");
-    std::fs::write(dir.join("theme.json"), r##"{ "Colors": { "textMuted": "#777777" } }"##).unwrap();
+    std::fs::write(
+        dir.join("theme.json"),
+        r##"{ "Colors": { "textMuted": "#777777" } }"##,
+    )
+    .unwrap();
     let told = |hue: &str| {
-        let out = qmlc().current_dir(&dir).args(["--theme", "theme.json", "--seed-hue", hue]).output().unwrap();
+        let out = qmlc()
+            .current_dir(&dir)
+            .args(["--theme", "theme.json", "--seed-hue", hue])
+            .output()
+            .unwrap();
         assert!(!out.status.success());
         String::from_utf8(out.stderr).unwrap()
     };
     assert_eq!(
         told("0"),
-        messages(&theme::check("theme.json", r##"{ "Colors": { "textMuted": "#777777" } }"##, Some(0.0)).unwrap_err())
-            .iter()
-            .map(|line| format!("{line}\n"))
-            .collect::<String>()
+        messages(
+            &theme::check(
+                "theme.json",
+                r##"{ "Colors": { "textMuted": "#777777" } }"##,
+                Some(0.0)
+            )
+            .unwrap_err()
+        )
+        .iter()
+        .map(|line| format!("{line}\n"))
+        .collect::<String>()
     );
     assert_ne!(told("0"), told("240"));
     std::fs::remove_dir_all(&dir).unwrap();
