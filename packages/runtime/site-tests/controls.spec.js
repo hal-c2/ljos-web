@@ -11,7 +11,7 @@ import { build } from "vite";
 import { buildSite } from "../site.js";
 import { check, source } from "../controls.js";
 import qml, { installed } from "../vite.js";
-import { bundle, fixtures, qmlc } from "./bundle.js";
+import { bundle, compilerFile as qmlc, fixtures } from "./bundle.js";
 
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css" };
 // A stand-in for an installed Qt with Qt Quick Controls (`qt-styles/README.md`).

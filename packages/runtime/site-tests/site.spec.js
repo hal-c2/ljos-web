@@ -6,7 +6,7 @@ import { expect, test } from "@playwright/test";
 import { build } from "vite";
 import { buildSite, builtWith, replaceSite, STAMP } from "../site.js";
 import qml from "../vite.js";
-import { bundle, design, qmlc } from "./bundle.js";
+import { bundle, compilerFile, design, qmlc } from "./bundle.js";
 import { runnable } from "./compiler-check.js";
 
 const port = Number(process.env.LJOS_SITE_PORT ?? 4480);
@@ -175,9 +175,6 @@ test("the only good copy of a site is kept when it cannot be put back", () => {
     made.remove();
   }
 });
-
-// Where the compiler is, whatever `QMLC` calls it.
-const compilerFile = qmlc.includes("/") ? resolve(qmlc) : spawnSync("sh", ["-c", 'command -v "$0"', qmlc], { encoding: "utf8" }).stdout.trim();
 
 // A relative path to the compiler, whatever `QMLC` is: a link beside the
 // bundle, so a bare name on the PATH gives one too.

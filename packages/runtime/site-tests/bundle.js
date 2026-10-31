@@ -4,12 +4,16 @@
 import { spawnSync } from "node:child_process";
 import { cpSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 
 export const fixtures = join(import.meta.dirname, "fixtures");
 // The stand-in for Ljós's own Ljos.Design (`--with`).
 export const design = join(fixtures, "design");
 export const qmlc = process.env.QMLC ?? join(import.meta.dirname, "../../../target/debug/qmlc");
+
+// Where the compiler is, whatever `QMLC` calls it: for a test that changes the
+// PATH or the directory it is looked for from.
+export const compilerFile = qmlc.includes("/") ? resolve(qmlc) : spawnSync("sh", ["-c", 'command -v "$0"', qmlc], { encoding: "utf8" }).stdout.trim();
 
 const head = spawnSync("git", ["-C", import.meta.dirname, "rev-parse", "HEAD"], { encoding: "utf8" });
 const commit = head.status === 0 ? head.stdout.trim() : "0".repeat(40);
