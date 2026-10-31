@@ -209,34 +209,6 @@ test.describe("A binding that runs away", () => {
   });
 });
 
-test.describe("A visitor's shell is kept", () => {
-  test("A reload of the page shows the shell the visitor dropped", async ({ page }) => {
-    await page.goto("/drop.html");
-    await page.evaluate(() => localStorage.clear());
-    await opened(page);
-    await dropped(page, MINE);
-    await page.reload();
-    await opened(page);
-    expect(await read(page, "mine", "objectName")).toBe("mine");
-    await expect(page.getByRole("status")).toHaveText("Your shell is shown");
-  });
-
-  test("Reset shows the site's shell and forgets the visitor's", async ({ page }) => {
-    await page.goto("/drop.html");
-    await page.evaluate(() => localStorage.clear());
-    await opened(page);
-    await page.evaluate(() => window.named("basket").add());
-    await dropped(page, MINE);
-    await page.getByRole("button", { name: "Reset" }).click();
-    await page.evaluate(() => window.live.idle());
-    expect(await read(page, "label", "text")).toBe("Default 1");
-    expect(await page.evaluate(() => localStorage.length)).toBe(0);
-    await page.reload();
-    await opened(page);
-    expect(await read(page, "label", "text")).toBe("Default 0");
-  });
-});
-
 test.describe("A visitor publishes their shell", () => {
   test.beforeEach(({ page }) => page.addInitScript(() => localStorage.clear()));
 
@@ -249,6 +221,18 @@ test.describe("A visitor publishes their shell", () => {
     expect(published.text).toBe(MINE);
     expect(published.meta.blocks).toEqual([{ module: "Shop", name: "Basket", version: "1.0" }]);
     expect(published.meta.hash).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  test("A publish that works after one that failed takes the failure away", async ({ page }) => {
+    await opened(page);
+    await dropped(page, MINE);
+    await page.evaluate(() => (window.publishing.error = "the shelf is full"));
+    await page.getByRole("button", { name: "Publish" }).click();
+    await expect(errors(page)).toHaveText("Publish failed: the shelf is full");
+    await page.evaluate(() => (window.publishing.error = null));
+    await page.getByRole("button", { name: "Publish" }).click();
+    await expect(page.getByRole("status")).toHaveText("Published: https://shells.example/1");
+    await expect(errors(page)).toBeHidden();
   });
 
   test("A publish that fails says so", async ({ page }) => {

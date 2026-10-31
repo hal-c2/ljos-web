@@ -1,3 +1,11 @@
 module Shop
 # block Basket 1.0 Basket.qml Shop "Holds what the visitor buys"
 Basket 1.0 Basket.qml
+# block Card 1.0 Card.qml Shop "One of many"
+Card 1.0 Card.qml
+# block Title 1.0 Title.qml Shop "A line of text a shell gives"
+Title 1.0 Title.qml
+# block Headline 1.0 Headline.qml Shop "A heading a shell gives the words of"
+Headline 1.0 Headline.qml
+# block Note 1.0 Note.qml Shop "Markup of the site's own"
+Note 1.0 Note.qml

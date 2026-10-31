@@ -10,6 +10,8 @@ Column {
         objectName: "basket"
     }
     Later {}
+    Cards {}
+    Note {}
     Text {
         objectName: "label"
         text: "Default " + basket.count

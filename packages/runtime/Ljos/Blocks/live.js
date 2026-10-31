@@ -102,6 +102,7 @@ export function liveShell(Entry, element_, options = {}) {
 
   const handle = mount(Entry, host, {}, { reloadable: true });
   let text = null;
+  let used = [];
   let pending = Promise.resolve();
 
   const said = (lines) => {
@@ -111,6 +112,12 @@ export function liveShell(Entry, element_, options = {}) {
 
   const contracts = blocks.map(({ component: _, ...contract }) => contract);
   const components = Object.fromEntries(blocks.map((block) => [`${block.module}/${block.name}`, block]));
+
+  // The site's blocks a compiled shell writes.
+  const blocksOf = (compiled) => {
+    const named = new Set(compiled.components[0].objects.map(({ ty }) => ty.Native && `${ty.Native.module}/${ty.Native.name}`));
+    return contracts.filter(({ module, name }) => named.has(`${module}/${name}`));
+  };
 
   // Shows the shell `given`, or says why it cannot be shown over the one
   // shown now. Answers whether it is shown.
@@ -129,6 +136,7 @@ export function liveShell(Entry, element_, options = {}) {
     }
     said([]);
     text = given;
+    used = blocksOf(answer.shell);
     settle();
     return true;
   }
@@ -157,7 +165,9 @@ export function liveShell(Entry, element_, options = {}) {
       }
       reload(handle, Entry);
       text = null;
+      used = [];
       said([]);
+      settle();
       status.textContent = "The site's shell is shown";
     });
   }
@@ -167,9 +177,10 @@ export function liveShell(Entry, element_, options = {}) {
       if (!options.publish || text == null) return;
       try {
         const answer = await options.publish(text, {
-          blocks: contracts.map(({ module, name, version }) => ({ module, name, version })),
+          blocks: used.map(({ module, name, version }) => ({ module, name, version })),
           hash: await sha256(text),
         });
+        said([]);
         status.textContent = answer?.url ? `Published: ${answer.url}` : "Published";
       } catch (error) {
         status.textContent = "";
