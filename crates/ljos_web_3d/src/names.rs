@@ -110,7 +110,10 @@ mod tests {
             Some(tiling::REPEAT)
         );
         assert_eq!(enumeration(Prop3d::AlphaMode, 1), Some(alpha::MASK));
-        assert_eq!(enumeration(Prop3d::BackgroundMode, 2), Some(background::COLOR));
+        assert_eq!(
+            enumeration(Prop3d::BackgroundMode, 2),
+            Some(background::COLOR)
+        );
         assert_eq!(
             enumeration(Prop3d::AntialiasingQuality, 8),
             Some(antialiasing::VERY_HIGH)

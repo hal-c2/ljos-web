@@ -15,7 +15,8 @@ use wasm_bindgen_futures::{JsFuture, spawn_local};
 use web_sys::HtmlCanvasElement;
 
 use crate::source::{
-    Asked, Host, Kept, PassBuffer, PassShaders, Passes, Picture, Shape, Snippets, Source, Table, Uniform,
+    Asked, Host, Kept, PassBuffer, PassShaders, Passes, Picture, Shape, Snippets, Source, Table,
+    Uniform,
 };
 
 #[wasm_bindgen]
@@ -130,7 +131,12 @@ fn uniforms(from: &JsValue, name: &str) -> Vec<Uniform> {
 fn textures(from: &JsValue) -> Vec<(String, u32)> {
     list(from, "textures")
         .iter()
-        .map(|t| (string(t, "name"), get(t, "texture").as_f64().map_or(u32::MAX, |h| h as u32)))
+        .map(|t| {
+            (
+                string(t, "name"),
+                get(t, "texture").as_f64().map_or(u32::MAX, |h| h as u32),
+            )
+        })
         .collect()
 }
 
@@ -268,16 +274,21 @@ impl Host for JsHost {
     }
     fn load(&self, url: &str, kept: &Rc<Kept>) {
         let (kept, host, owned) = (kept.clone(), self.clone(), url.to_owned());
-        ljos_3d::obj::load_any(&BrowserFetch(self.clone()), &(), url, move |_: &(), read| {
-            match read {
-                Ok(asset) => kept.arrive(&owned, Asked::Ready(Arc::new(asset))),
-                Err(error) => {
-                    host.report(&owned, &error.to_string());
-                    kept.arrive(&owned, Asked::Failed);
+        ljos_3d::obj::load_any(
+            &BrowserFetch(self.clone()),
+            &(),
+            url,
+            move |_: &(), read| {
+                match read {
+                    Ok(asset) => kept.arrive(&owned, Asked::Ready(Arc::new(asset))),
+                    Err(error) => {
+                        host.report(&owned, &error.to_string());
+                        kept.arrive(&owned, Asked::Failed);
+                    }
                 }
-            }
-            host.arrived();
-        });
+                host.arrived();
+            },
+        );
     }
 }
 
@@ -308,7 +319,10 @@ thread_local! {
 /// holds no list of its own and a read crosses as a number.
 #[wasm_bindgen(js_name = propNames)]
 pub fn prop_names() -> Vec<String> {
-    Prop3d::ALL.iter().map(|p| p.qml_name().to_owned()).collect()
+    Prop3d::ALL
+        .iter()
+        .map(|p| p.qml_name().to_owned())
+        .collect()
 }
 
 /// One View3D's canvas.

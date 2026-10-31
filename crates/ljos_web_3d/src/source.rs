@@ -9,13 +9,17 @@ use std::fmt;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use ljos_3d::custom::{Blend, BufferFormat, EffectBuffer, Pass, PassTexture, UniformKind, UniformValue};
+use ljos_3d::custom::{
+    Blend, BufferFormat, EffectBuffer, Pass, PassTexture, UniformKind, UniformValue,
+};
 use ljos_3d::geometry::{ComponentType, PrimitiveType, Semantic};
 use ljos_3d::gltf::Asset;
 use ljos_3d::math::{Mat4, Quat, Vec3};
 use ljos_3d::qml::enums::{cull, depth_draw};
 use ljos_3d::qml::{self, Loaded, Prop3d, SceneSource, Type3d};
-use ljos_3d::texture::{Filter, PixelEncoding, TextureImage, TexturePixels, Tiling, fresh_pixels_id};
+use ljos_3d::texture::{
+    Filter, PixelEncoding, TextureImage, TexturePixels, Tiling, fresh_pixels_id,
+};
 use ljos_3d::{CustomGeometry, CustomMaterial, Effect, Instance, InstanceTable, Instancing};
 
 use crate::names;
@@ -410,14 +414,23 @@ impl<H: Host> SceneSource for Source<'_, H> {
 
     fn object_slots(&self, o: u32, p: Prop3d) -> Vec<Option<u32>> {
         let slots = self.host.slots(o, p as u32);
-        slots.into_iter().map(|s| (s != NO_OBJECT).then_some(s)).collect()
+        slots
+            .into_iter()
+            .map(|s| (s != NO_OBJECT).then_some(s))
+            .collect()
     }
 
     fn matrices(&self, o: u32, p: Prop3d) -> Vec<Mat4> {
         let numbers = self.host.matrices(o, p as u32);
         numbers
-            .chunks_exact(16)
-            .map(|m| Mat4(std::array::from_fn(|c| std::array::from_fn(|r| m[c * 4 + r]))))
+            .as_chunks::<16>()
+            .0
+            .iter()
+            .map(|m| {
+                Mat4(std::array::from_fn(|c| {
+                    std::array::from_fn(|r| m[c * 4 + r])
+                }))
+            })
             .collect()
     }
 
@@ -452,7 +465,14 @@ impl<H: Host> SceneSource for Source<'_, H> {
         let t = self.host.table(table)?;
         let known = self.kept.tables.borrow().get(&id).cloned();
         let entries = known.unwrap_or_else(|| {
-            let made = Arc::new(InstanceTable::new(t.data.chunks_exact(ENTRY).map(entry).collect()));
+            let made = Arc::new(InstanceTable::new(
+                t.data
+                    .as_chunks::<ENTRY>()
+                    .0
+                    .iter()
+                    .map(|e| entry(e.as_slice()))
+                    .collect(),
+            ));
             self.kept.tables.borrow_mut().insert(id, made.clone());
             made
         });
@@ -467,7 +487,10 @@ impl<H: Host> SceneSource for Source<'_, H> {
         let s = self.host.snippets(material)?;
         let uniforms = declared(&s.uniforms);
         let samplers: Vec<String> = s.textures.iter().map(|(name, _)| name.clone()).collect();
-        let key = format!("m{}\0{}\0{}\0{uniforms:?}\0{samplers:?}", s.shaded, s.vertex, s.fragment);
+        let key = format!(
+            "m{}\0{}\0{}\0{uniforms:?}\0{samplers:?}",
+            s.shaded, s.vertex, s.fragment
+        );
         let vertex = (!s.vertex.is_empty()).then_some(s.vertex.as_str());
         let fragment = (!s.fragment.is_empty()).then_some(s.fragment.as_str());
         let program = self.program(key, || {
@@ -478,7 +501,11 @@ impl<H: Host> SceneSource for Source<'_, H> {
         made.textures = s
             .textures
             .iter()
-            .map(|(_, t)| (*t != NO_OBJECT).then(|| qml::texture(self, view, *t)).flatten())
+            .map(|(_, t)| {
+                (*t != NO_OBJECT)
+                    .then(|| qml::texture(self, view, *t))
+                    .flatten()
+            })
             .collect();
         made.source_blend = blend(s.source_blend);
         made.destination_blend = blend(s.destination_blend);
@@ -511,7 +538,11 @@ impl<H: Host> SceneSource for Source<'_, H> {
                         _ => BufferFormat::Rgba8,
                     },
                     size_multiplier: b.scale,
-                    filter: if b.filter == 1 { Filter::Nearest } else { Filter::Linear },
+                    filter: if b.filter == 1 {
+                        Filter::Nearest
+                    } else {
+                        Filter::Linear
+                    },
                     tiling: match b.wrap {
                         2 => Tiling::MirroredRepeat,
                         3 => Tiling::Repeat,
@@ -524,7 +555,10 @@ impl<H: Host> SceneSource for Source<'_, H> {
         for pass in &told.passes {
             let mut samplers: Vec<String> = told.textures.iter().map(|(n, _)| n.clone()).collect();
             samplers.extend(pass.reads.iter().map(|(n, _)| n.clone()));
-            let key = format!("e\0{}\0{}\0{uniforms:?}\0{samplers:?}", pass.vertex, pass.fragment);
+            let key = format!(
+                "e\0{}\0{}\0{uniforms:?}\0{samplers:?}",
+                pass.vertex, pass.fragment
+            );
             let vertex = (!pass.vertex.is_empty()).then_some(pass.vertex.as_str());
             let program = self.program(key, || {
                 ljos_3d::snippet::effect(vertex, &pass.fragment, &uniforms, &samplers)
@@ -539,7 +573,11 @@ impl<H: Host> SceneSource for Source<'_, H> {
                 .textures
                 .iter()
                 .map(|(_, t)| {
-                    PassTexture::Texture((*t != NO_OBJECT).then(|| qml::texture(self, view, *t)).flatten())
+                    PassTexture::Texture(
+                        (*t != NO_OBJECT)
+                            .then(|| qml::texture(self, view, *t))
+                            .flatten(),
+                    )
                 })
                 .collect();
             textures.extend(pass.reads.iter().map(|(_, b)| PassTexture::Buffer(*b)));
@@ -689,7 +727,10 @@ mod tests {
     fn a_build_maps_the_objects_and_asks_each_what_it_is_once() {
         let host = Fake::default();
         let kept = Rc::new(Kept::default());
-        let source = Source { host: &host, kept: &kept };
+        let source = Source {
+            host: &host,
+            kept: &kept,
+        };
         let first = qml::build(&source, VIEW);
         let asked = host.chains.get();
         assert!(matches!(
@@ -704,7 +745,10 @@ mod tests {
     fn an_unset_member_is_the_mappings_default_and_a_set_one_its_value() {
         let host = Fake::default();
         let kept = Rc::new(Kept::default());
-        let source = Source { host: &host, kept: &kept };
+        let source = Source {
+            host: &host,
+            kept: &kept,
+        };
         assert_eq!(cube_x(&qml::build(&source, VIEW)), 0.0);
         host.x.set(Some(7.0));
         assert_eq!(cube_x(&qml::build(&source, VIEW)), 7.0);
@@ -714,7 +758,10 @@ mod tests {
     fn the_same_objects_build_a_scene_that_draws_the_same() {
         let host = Fake::default();
         let kept = Rc::new(Kept::default());
-        let source = Source { host: &host, kept: &kept };
+        let source = Source {
+            host: &host,
+            kept: &kept,
+        };
         let a = qml::build(&source, VIEW);
         let b = qml::build(&source, VIEW);
         assert!(a.scene.same_as(&b.scene));
