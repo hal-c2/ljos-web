@@ -8,8 +8,8 @@
 // Where things are written is what qmlc puts in when asked (`--inspect`,
 // the Vite plugin's `inspect`): `$at`, `$id` and `$ids` among an object's
 // props, and `$console` and `$bound` around what logs and what binds. A page
-// built without it has none of them and never imports this module; an object of such a file is listed and clicked all
-// the same, with no place.
+// built without it has none of them and never imports this module; an
+// object of such a file is listed and clicked all the same, with no place.
 import { flush } from "./object.js";
 
 // What each of `console`'s calls is, as Qt's message types: qml6 says

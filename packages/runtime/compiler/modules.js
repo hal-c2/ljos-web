@@ -9,6 +9,7 @@ export const modules = {
   "solid-js": () => import("solid-js"),
   "ljos-web/runtime": () => import("ljos-web/runtime"),
   "ljos-web/object": () => import("ljos-web/object"),
+  "ljos-web/inspect": () => import("ljos-web/inspect"),
   "ljos-web/reload": () => import("ljos-web/reload"),
   "ljos-web/theme": () => import("ljos-web/theme"),
   "ljos-web/QtQuick": () => import("ljos-web/QtQuick"),
