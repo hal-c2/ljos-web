@@ -4,6 +4,7 @@ import { defineConfig } from "@playwright/test";
 // it built itself, on a port of its own so two checkouts can run at once.
 export default defineConfig({
   testDir: ".",
+  globalSetup: "./compiler-check.js",
   fullyParallel: true,
   reporter: "list",
   // A build compiles every file of the bundle and runs Vite.
