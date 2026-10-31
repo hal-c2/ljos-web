@@ -355,6 +355,20 @@ A dump that does not read stops the compile with the reason, and a member a
 described type does not have is an error where it is written. A mock of the
 same type (`-I mocks`) or the project's own QML wins. A site build takes none.
 
+## Ljós's own models
+`import Ljos.Models` gives `JsonListModel`, a list whose rows are the objects
+of a JSON array in `json` or in the file `source` names, as Ljós has it
+natively. A dev server reads the file again when it is saved, a built site
+when `reload()` is called, and a page that compiles QML reads it from the
+files given to `compile`. `Ljos.Observer` is refused by qmlc: a page inspects
+itself with `ljos-web/inspect` (docs/LJOS_WEB.md, A19).
+```qml
+import QtQuick
+import Ljos.Models
+ListView {
+    model: JsonListModel { id: people; source: "data/people.json" }
+    delegate: Text { required property string name; text: name }
+}
 ## What is supported
 
 Of the language: property declarations (with `required`, `readonly`,

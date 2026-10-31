@@ -964,6 +964,65 @@ described) are not checked.
 - DECISION: what is given a stand-in is ordinary state: it shows at
   once, as any property's change does.
 
+### A19. Ljós's own modules: `Ljos.Models`, and `Ljos.Observer` refused
+
+`import Ljos.Models` is `ljos-web/Ljos/Models`, a module of the runtime
+that only a page importing it carries. Its `JsonListModel` is the native
+one's, member for member (`json`, `source`, `count`, `roles`, `status`
+of `Null`, `Loading`, `Ready`, `Error`, `error`, `reload()`, `get(row)`):
+the rows are the objects of a JSON array, the roles their keys in the
+order first seen, and a change says only what differs, so the delegates
+of the rows that stayed are kept. Text it cannot use leaves the rows as
+they were, sets `error` to where and what (`3:7: …`) and warns
+`QML JsonListModel: …`. ljos-ui's `features/models/json-list-model.feature`
+is the specification; `tests/jsonlistmodel.spec.js` is it in Playwright,
+on both kernels.
+
+Where `source` is read from, and when it is read again:
+
+| Where the page runs | First read | Read again |
+|---|---|---|
+| Vite dev server | `fetch` | on a save of the file: the plugin sends `ljos-web:file` over HMR for a file no module imports; nothing polls |
+| a built site | `fetch`, once | on `reload()`, and only then |
+| `ljos-web/compiler` | the files given to `compile`, never fetched | when a compile gives the file another text |
+
+`ljos-web/files` is what the three share: `watch(url, read)` and
+`changed(url)`, and `provide(url, text)` for a text a host has without a
+server. A compile's files that are not code (QML, scripts, a `qmldir`) are
+provided at their address, so a page that compiles QML reads them as it
+was given them.
+
+`import Ljos.Observer` is refused by qmlc with why: its `InspectorClient`
+calls an inspector a token file on disk names. A page has neither; it
+inspects itself with `inspect(root)` (A16).
+
+- DECISION: `Ljos.Observer` is an error, not a type that fails at run
+  time. It is no module of Qt's type table, only of the `ljos observe`
+  window, and what it does (read a token file, call a process over the
+  network) is what a page cannot; an error at compile time names that,
+  where an empty type would fail later and say less.
+- DECISION: a move is said as the rows between its ends changing. Finding
+  moves pairs rows by a guess at what identifies one, which JSON does not
+  say.
+- DECISION: the dev server tells of a save again 60 ms later if the file
+  is not as it was when it was told of. Vite's watcher drops a second
+  change to a path within 50 ms of the first, and two quick saves (broken,
+  then whole) would leave the broken one shown.
+- DECISION: a dev server's answer of an HTML page for a file that is not
+  HTML is "not there": that is its fallback for a path it does not have.
+- DECISION: where broken JSON stops is found by the module's own scanner,
+  run only on text `JSON.parse` refused. Browsers say it each their own
+  way (an offset, a line and column, a piece of the text, or nothing), and
+  `error` is the same whichever browser said it.
+- DECISION: a site keeps a file a program reads as data (`.json`, `.txt`,
+  `.csv`, `.xml`) as a file however small, unless the site sets its own
+  `build.assetsInlineLimit`. Inlined as a `data:` address it could not be
+  fetched again, and `reload()` would read what was built.
+- DIVERGENCE: a relative `source` on the root of a component file is read
+  beside the component, as `Qt.resolvedUrl` would. Ljós resolves it at run
+  time against the file that uses the component; qmlc resolves a url when
+  it compiles, against the file it is written in.
+
 ## Part II — An application's own Rust types
 
 ## 1. The shape of a native type on the web
