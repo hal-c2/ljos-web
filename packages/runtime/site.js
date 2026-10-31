@@ -10,7 +10,8 @@
 // wrong, a path out of the directory, a link, a module without its qmldir,
 // an import ljos-web does not provide.
 import { spawnSync } from "node:child_process";
-import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, posix, resolve } from "node:path";
 import { build } from "vite";
@@ -103,6 +104,9 @@ function qmldir(text) {
   let module = null;
   const files = [];
   for (const line of text.split("\n")) {
+    // A comment to Qt, a type of the module to the compiler: its file counts.
+    const block = line.match(/^\s*#\s*block\s+[A-Z]\S*\s+\S+\s+(\S+\.qml)(\s|$)/);
+    if (block) files.push(block[1]);
     const words = line.split("#")[0].trim().split(/\s+/);
     if (words[0] === "module" && words[1]) module ??= words[1];
     if (words[0] === "singleton" || words[0] === "internal") words.shift();
@@ -111,9 +115,20 @@ function qmldir(text) {
   return { module, files };
 }
 
-// The modules a document imports by name (`import QtQuick.Layouts`), not
-// by path: a path import is of the bundle's own files.
-const imported = (text) => [...text.matchAll(/^\s*import\s+([A-Za-z_][\w.]*)/gm)].map(([, uri]) => uri);
+// The modules a document imports by name (`import QtQuick.Layouts`).
+const imported = (text) => [...text.matchAll(/(?:^|;)\s*import\s+([A-Za-z_][\w.]*)/gm)].map(([, uri]) => uri);
+
+// What it imports by path (`import "parts"`, `import "own.js" as Own`), and
+// what a script does (`.import "more.js" as More`).
+const importedPaths = (text) => [...text.matchAll(/(?:^|;)\s*\.?import\s+"([^"]*)"/gm)].map(([, path]) => path);
+
+// Where `to`, written in the file `from`, lands among the bundle's paths;
+// null outside the bundle.
+function within(from, to) {
+  if (to.startsWith("/") || /^[a-z][a-z0-9+.-]*:/i.test(to)) return null;
+  const path = posix.normalize(posix.join(posix.dirname(from), to));
+  return path === ".." || path.startsWith("../") ? null : path;
+}
 
 const controls = (module) => module === "QtQuick.Controls" || module.startsWith("QtQuick.Controls.");
 
@@ -158,7 +173,8 @@ export function check(dir) {
     const said = qmldir(readFileSync(join(dir, file), "utf8"));
     if (said.module !== module) throw new SiteError(`${file} declares ${said.module ?? "no module"}; the manifest says ${module}`);
     for (const type of said.files) {
-      const path = posix.join(posix.dirname(file), type);
+      const path = within(file, type);
+      if (path === null) throw new SiteError(`${file} names ${type}, which is outside the bundle`);
       if (!listed.has(path)) throw new SiteError(`${file} names ${path}, which is not listed`);
     }
     if (own.has(module)) throw new SiteError(`${module} is in modules twice: two directories would claim it`);
@@ -180,6 +196,17 @@ export function check(dir) {
     if (own.has(module)) throw new SiteError(`${module} is in imports and is the project's own`);
     if (!offered.has(module)) throw new SiteError(`it imports ${module}, which ljos-web does not provide (\`ljos-web modules\` lists what it does)`);
   });
+  // What the compiler would read for a path import is the bundle's too: the
+  // manifest's promise holds only if it never reads past what is listed.
+  for (const path of listed) {
+    if (!path.endsWith(".qml") && !path.endsWith(".js")) continue;
+    for (const target of importedPaths(readFileSync(join(dir, path), "utf8"))) {
+      const at = within(path, target);
+      if (at === null) throw new SiteError(`${path} imports ${target}, which is outside the bundle`);
+      const directory = at === "." || [...listed].some((file) => file.startsWith(`${at}/`));
+      if (!listed.has(at) && !directory) throw new SiteError(`${path} imports ${target}, which is not listed`);
+    }
+  }
   for (const path of listed) {
     if (!path.endsWith(".qml")) continue;
     for (const module of imported(readFileSync(join(dir, path), "utf8"))) {
@@ -209,6 +236,42 @@ function themeOf(dir, manifest, qmlc) {
   if (ran.error) throw new SiteError(`could not run ${qmlc}: ${ran.error.message}`);
   if (ran.status !== 0) throw new SiteError(`the theme ${file} is refused:\n${ran.stderr.trim()}`);
   return file;
+}
+
+// The commit of the ljos-web that `directory` is the runtime of, if it is a
+// checkout of ljos-web. Installed in a host's `node_modules`, the repository
+// git finds around it is the host's, whose commit says nothing of ljos-web.
+export function builtWith(directory = runtime) {
+  const git = (...args) => spawnSync("git", ["-C", directory, ...args], { encoding: "utf8" });
+  const top = git("rev-parse", "--show-toplevel");
+  if (top.status !== 0) return null;
+  const own = join(top.stdout.trim(), "packages/runtime");
+  if (!existsSync(own) || realpathSync(own) !== realpathSync(directory)) return null;
+  const head = git("rev-parse", "HEAD");
+  return head.status === 0 ? head.stdout.trim() : null;
+}
+
+// Puts the built site at `from` where `out` is, whole: copied beside it and
+// renamed, so that whatever serves `out`, or a copy that fails, never meets
+// half a site. A sibling, since a rename stays on one file system.
+export function replaceSite(from, out) {
+  mkdirSync(dirname(out), { recursive: true });
+  const fresh = `${out}.new-${randomUUID()}`;
+  const old = `${out}.old-${randomUUID()}`;
+  try {
+    cpSync(from, fresh, { recursive: true });
+    const there = existsSync(out);
+    if (there) renameSync(out, old);
+    try {
+      renameSync(fresh, out);
+    } catch (error) {
+      if (there) renameSync(old, out);
+      throw error;
+    }
+  } finally {
+    rmSync(fresh, { recursive: true, force: true });
+    rmSync(old, { recursive: true, force: true });
+  }
 }
 
 // Builds the site the bundle at `dir` describes into `out` (default: the
@@ -251,8 +314,7 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
   if (existsSync(out) && !existsSync(join(out, STAMP)) && readdirSync(out).length > 0) {
     throw new SiteError(`${out} holds something other than a site this built; choose another out`);
   }
-  const head = spawnSync("git", ["-C", runtime, "rev-parse", "HEAD"], { encoding: "utf8" });
-  const at = head.status === 0 ? head.stdout.trim() : null;
+  const at = builtWith();
   if (at && at !== manifest.ljos_web) console.warn(`note: the bundle was checked against ljos-web ${manifest.ljos_web}; building with ${at}`);
 
   // What Vite builds from: a page that mounts the entry, made apart from
@@ -285,9 +347,7 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
       cpSync(join(dir, theme), join(site, theme));
     }
     writeFileSync(join(site, STAMP), `${manifest.ljos_web}\n`);
-    rmSync(out, { recursive: true, force: true });
-    mkdirSync(dirname(out), { recursive: true });
-    cpSync(site, out, { recursive: true });
+    replaceSite(site, out);
   } finally {
     rmSync(stage, { recursive: true, force: true });
   }

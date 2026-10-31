@@ -1,6 +1,6 @@
 // What the site contract rules out, each refused before anything is
 // compiled or written.
-import { existsSync, mkdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
 import { buildSite } from "../site.js";
@@ -12,6 +12,13 @@ const add = (dir, manifest, path, text) => {
   writeFileSync(join(dir, path), text);
   manifest.files.push({ path, bytes: Buffer.byteLength(text) });
   manifest.files.sort((a, b) => (a.path < b.path ? -1 : 1));
+};
+
+// A line put at the top of a listed file, the manifest kept true of it.
+const edit = (dir, manifest, path, line) => {
+  const text = `${line}${readFileSync(join(dir, path), "utf8")}`;
+  writeFileSync(join(dir, path), text);
+  file(manifest, path).bytes = Buffer.byteLength(text);
 };
 
 const REFUSED = [
@@ -44,6 +51,16 @@ const REFUSED = [
   ["an import ljos-web does not provide is refused", (_, m) => (m.imports = [...m.imports, "QtWebEngine"].sort()), /it imports QtWebEngine, which ljos-web does not provide/],
   ["imports out of order are refused", (_, m) => m.imports.reverse(), /imports is not sorted, each once/],
   ["a document's import the manifest does not say is refused", (_, m) => (m.imports = m.imports.filter((module) => module !== "Ljos.Design")), /Shell.qml imports Ljos.Design, which the manifest neither lists as a module nor imports/],
+  ["a path import out of the bundle is refused", (dir, m) => edit(dir, m, "Shell.qml", 'import "../outside"\n'), /Shell.qml imports \.\.\/outside, which is outside the bundle/],
+  ["a script import out of the bundle is refused", (dir, m) => edit(dir, m, "Shell.qml", 'import "../secret.js" as S\n'), /Shell.qml imports \.\.\/secret.js, which is outside the bundle/],
+  ["a path import that climbs out from below is refused", (dir, m) => edit(dir, m, "App/Media/Player.qml", 'import "../../../outside"\n'), /App\/Media\/Player.qml imports \.\.\/\.\.\/\.\.\/outside, which is outside the bundle/],
+  ["an absolute path import is refused", (dir, m) => edit(dir, m, "Shell.qml", 'import "/etc/qml"\n'), /Shell.qml imports \/etc\/qml, which is outside the bundle/],
+  ["a URL import is refused", (dir, m) => edit(dir, m, "Shell.qml", 'import "https://example.com/Module"\n'), /Shell.qml imports https:\/\/example.com\/Module, which is outside the bundle/],
+  ["a path import of a file not listed is refused", (dir, m) => edit(dir, m, "Shell.qml", 'import "absent.js" as A\n'), /Shell.qml imports absent.js, which is not listed/],
+  ["a path import of a directory with nothing listed is refused", (dir, m) => edit(dir, m, "Shell.qml", 'import "absent"\n'), /Shell.qml imports absent, which is not listed/],
+  ["a path import after another on its line is seen", (dir, m) => edit(dir, m, "Shell.qml", 'import QtQuick; import "../outside"\n'), /Shell.qml imports \.\.\/outside, which is outside the bundle/],
+  ["a block whose file is outside the bundle is refused", (dir, m) => edit(dir, m, "App/Media/qmldir", "# block Secret 1.0 ../../../Secret.qml\n"), /App\/Media\/qmldir names \.\.\/\.\.\/\.\.\/Secret.qml, which is outside the bundle/],
+  ["a block whose file is not listed is refused", (dir, m) => edit(dir, m, "App/Media/qmldir", "# block Absent 1.0 Absent.qml\n"), /App\/Media\/qmldir names App\/Media\/Absent.qml, which is not listed/],
 ];
 
 for (const [name, change, refusal] of REFUSED) {
@@ -81,6 +98,19 @@ test("a site is not built inside its own bundle", async () => {
   const made = bundle("project");
   try {
     await expect(buildSite({ dir: made.dir, out: join(made.dir, "site"), qmlc, with: [design] })).rejects.toThrow(/is inside the bundle/);
+  } finally {
+    made.remove();
+  }
+});
+
+test("what a document imports by path from the bundle's own files is built", async () => {
+  const made = bundle("project", (dir, m) => {
+    add(dir, m, "parts/Own.qml", "import QtQuick\nItem {}\n");
+    add(dir, m, "parts/own.js", "function one() { return 1 }\n");
+    edit(dir, m, "Shell.qml", 'import "parts"\nimport "parts/own.js" as Own\n');
+  });
+  try {
+    await expect(buildSite({ dir: made.dir, out: made.out, qmlc, with: [design] })).resolves.toMatchObject({ out: made.out });
   } finally {
     made.remove();
   }

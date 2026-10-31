@@ -1,9 +1,9 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { extname, join, normalize } from "node:path";
 import { expect, test } from "@playwright/test";
-import { buildSite, STAMP } from "../site.js";
+import { buildSite, builtWith, replaceSite, STAMP } from "../site.js";
 import { bundle, design, qmlc } from "./bundle.js";
 
 const port = Number(process.env.LJOS_SITE_PORT ?? 4480);
@@ -124,6 +124,54 @@ test("`ljos-web build-site` says why a bundle is refused, and exits with an erro
     const ran = spawnSync(process.execPath, [join(import.meta.dirname, "../bin/ljos-web.js"), "build-site", made.dir, "--qmlc", qmlc], { encoding: "utf8" });
     expect(ran.status).toBe(1);
     expect(ran.stderr).toContain("stray.txt is in the bundle but not in its manifest");
+  } finally {
+    made.remove();
+  }
+});
+
+test("a site is put in place whole: a copy that fails leaves the one there, and nothing beside it", () => {
+  const made = bundle("project");
+  try {
+    mkdirSync(made.out);
+    writeFileSync(join(made.out, "index.html"), "the site there\n");
+    const before = readdirSync(made.root).sort();
+    expect(() => replaceSite(join(made.root, "no-such-build"), made.out)).toThrow(/ENOENT/);
+    expect(readFileSync(join(made.out, "index.html"), "utf8")).toBe("the site there\n");
+    expect(readdirSync(made.root).sort()).toEqual(before);
+    const built = join(made.root, "build");
+    mkdirSync(built);
+    writeFileSync(join(built, "index.html"), "the new site\n");
+    replaceSite(built, made.out);
+    expect(readFileSync(join(made.out, "index.html"), "utf8")).toBe("the new site\n");
+    expect(readdirSync(made.root).sort()).toEqual([...before, "build"].sort());
+  } finally {
+    made.remove();
+  }
+});
+
+test("the commit a site is said to be built with is ljos-web's checkout's, not that of a host it is installed in", () => {
+  const made = bundle("project");
+  const git = (cwd, ...args) => spawnSync("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...args], { cwd, encoding: "utf8" });
+  try {
+    const host = join(made.root, "host");
+    const installed = join(host, "node_modules/ljos-web");
+    mkdirSync(installed, { recursive: true });
+    writeFileSync(join(host, "file"), "host\n");
+    git(host, "init", "-q");
+    git(host, "add", "file");
+    git(host, "commit", "-qm", "host");
+    expect(builtWith(installed)).toBe(null);
+
+    const checkout = join(made.root, "ljos-web");
+    const runtime = join(checkout, "packages/runtime");
+    mkdirSync(runtime, { recursive: true });
+    writeFileSync(join(runtime, "file"), "ljos-web\n");
+    git(checkout, "init", "-q");
+    git(checkout, "add", ".");
+    git(checkout, "commit", "-qm", "ljos-web");
+    expect(builtWith(runtime)).toBe(git(checkout, "rev-parse", "HEAD").stdout.trim());
+
+    expect(builtWith(join(made.root, "bundle"))).toBe(null);
   } finally {
     made.remove();
   }
