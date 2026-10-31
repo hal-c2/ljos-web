@@ -358,7 +358,8 @@ test("the devices are the ones the browser tells of", async ({ page }) => {
     input: ["microphone", "", true, 1],
     cameras: 0,
   });
-  expect(await log(page)).toEqual(["outputs 2"]);
+  const told = () => page.evaluate(() => window.objects.deviceLog.splice(0));
+  expect(await told()).toEqual(["outputs 2"]);
   // One is unplugged: the browser says so.
   await page.evaluate(() => {
     window.devices = window.devices.slice(1);
@@ -366,7 +367,7 @@ test("the devices are the ones the browser tells of", async ({ page }) => {
   });
   await page.waitForFunction(() => window.objects.devices.audioOutputs.length === 1);
   expect((await read()).output).toEqual(["speakers", "Speakers", true, 2]);
-  expect(await log(page)).toEqual(["outputs 1"]);
+  expect(await told()).toEqual(["outputs 1"]);
   // The player's sound goes to the one its output names.
   const sink = await page.evaluate(async () => {
     const { audio, devices, player } = window.objects;
