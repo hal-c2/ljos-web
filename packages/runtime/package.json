@@ -41,6 +41,7 @@
     "./QtQuick/LocalStorage": "./QtQuick/LocalStorage/index.js",
     "./QtQuick/Dialogs": "./QtQuick/Dialogs/index.js",
     "./QtQuick3D": "./QtQuick3D/index.js",
+    "./QtQuick3D/AssetUtils": "./QtQuick3D/AssetUtils/index.js",
     "./QtQuick3D/Helpers": "./QtQuick3D/Helpers/index.js",
     "./QtQuick3D/Helpers/impl": "./QtQuick3D/Helpers/impl/index.js",
     "./QtQuick3D/Effects": "./QtQuick3D/Effects/index.js",

@@ -202,6 +202,11 @@
       "needs": []
     },
     {
+      "module": "QtQuick3D.AssetUtils",
+      "from": "runtime",
+      "needs": []
+    },
+    {
       "module": "QtQuick3D.Effects",
       "from": "runtime",
       "needs": []
