@@ -76,6 +76,11 @@ pub struct Options {
     /// The modules that are installed though no directory says so: those a
     /// page that compiles was built with (`QtQuick.Controls.Basic`).
     pub installed: Vec<String>,
+    /// Where each object, binding and `console` call is written, put in the
+    /// output for an inspector (`ljos-web/inspect`): the file is called
+    /// this there. None for a page that is not inspected, which pays
+    /// nothing for it.
+    pub inspect: Option<String>,
     pub solid: SolidOptions,
 }
 
@@ -93,6 +98,7 @@ impl Default for Options {
             urls_on_assignment: false,
             qt_imports: Vec::new(),
             installed: Vec::new(),
+            inspect: None,
             solid: SolidOptions::default(),
         }
     }

@@ -8,6 +8,7 @@
 mod lower;
 mod names;
 mod paths;
+mod places;
 mod resources;
 mod scope;
 pub(crate) mod script;
@@ -108,6 +109,10 @@ fn lower_from<'a>(
         lower.dynamic.extend(project.mentions(&options.name).cloned());
     }
     lower.assigned = options.urls_on_assignment;
+    // A text's places would be in the text, not in the file.
+    if let Some(file) = options.inspect.as_deref().filter(|_| !text) {
+        lower.uses.places = Some(places::Places::new(file, source));
+    }
     let root = document.root.type_name.to_string();
     let (component, enums) = lower.component(&name, document.root, !is_singleton);
     errors.append(&mut lower.errors);
@@ -159,6 +164,14 @@ fn lower_from<'a>(
     }
     if !uses.globals.is_empty() {
         imports.push(b.import_named(uses.globals.iter().copied(), &format!("{prefix}/QtQml")));
+    }
+    // A file with its places brings the inspector in before it makes
+    // anything, so that what its objects warn of while they are made is
+    // logged with where it is written, whoever imports the inspector later.
+    if !uses.inspect.is_empty() {
+        imports.push(b.import_named(uses.inspect.iter().copied(), &format!("{prefix}/inspect")));
+    } else if uses.places.is_some() {
+        imports.push(b.import_bare(&format!("{prefix}/inspect")));
     }
     for (uri, names) in &uses.modules {
         let module = format!("{prefix}/{}", uri.replace('.', "/"));

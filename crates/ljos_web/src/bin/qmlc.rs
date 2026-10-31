@@ -159,6 +159,9 @@ fn main() -> ExitCode {
             "--runtime" => options.runtime_module = value("--runtime"),
             "--alone" => alone = true,
             "--urls-on-assignment" => options.urls_on_assignment = true,
+            // What the file is called where an inspector says where things
+            // are written: its path from the project, as the page has it.
+            "--inspect" => options.inspect = Some(value("--inspect")),
             "--types" => types = Some(native_types as fn(&str) -> _),
             "--qml-types" => types = Some(written_types),
             "--component-extension" => options.component_extension = value("--component-extension"),
