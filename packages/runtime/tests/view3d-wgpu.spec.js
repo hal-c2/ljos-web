@@ -63,8 +63,8 @@ for (const backend of ["webgpu", "webgl2"]) {
         window.flush();
         await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
       });
-    const set = async (page, work) => {
-      await page.evaluate(work);
+    const set = async (page, work, argument) => {
+      await page.evaluate(work, argument);
       await still(page);
     };
     const at = async (page, x, y) => (await pixels(page, [[x, y]]))[0].split(" ").map(Number);
@@ -213,7 +213,7 @@ for (const backend of ["webgpu", "webgl2"]) {
       near(await at(page, 320, 150), CLEAR);
       await set(page, () => {
         window.objects.loader.visible = true;
-        window.objects.loader.source = "wgpu_models/checker.gltf";
+        window.objects.loader.source = "scenes/wgpu_models/checker.gltf";
       });
       // Red top left, green top right, blue bottom left, white bottom right.
       await expect.poll(() => at(page, 320 - 25, 150 - 25)).toEqual([255, 0, 0]);
@@ -236,13 +236,22 @@ for (const backend of ["webgpu", "webgl2"]) {
 
     test("a geometry the application commits is drawn, and again when it commits another", async ({ page }) => {
       await show(page, "wgpu_geometry");
+      // As a type of an application's would, which QML itself cannot.
+      const square = (half) =>
+        set(page, (half) => {
+          const { shape } = window.objects;
+          shape.clear();
+          shape.setVertexData(new Float32Array([-half, -half, 0, half, -half, 0, half, half, 0, -half, -half, 0, half, half, 0, -half, half, 0]).buffer);
+          shape.setStride(12);
+          shape.addAttribute(1, 0, 3);
+          shape.setBounds({ x: -half, y: -half, z: 0 }, { x: half, y: half, z: 0 });
+          shape.update();
+        }, half);
+      await square(50);
       near(await at(page, ...CENTRE), [0, 255, 255]);
       near(await at(page, 200 + 40, 150), [0, 255, 255]);
       near(await at(page, 200 + 80, 150), CLEAR);
-      await set(page, () => {
-        window.objects.shape.clear();
-        window.objects.shape.square(100);
-      });
+      await square(100);
       near(await at(page, 200 + 80, 150), [0, 255, 255]);
     });
 
@@ -303,7 +312,7 @@ for (const backend of ["webgpu", "webgl2"]) {
 test("a page with no View3D fetches none of the renderer", async ({ page }) => {
   const fetched = [];
   page.on("request", (request) => fetched.push(request.url()));
-  await page.goto("/?scene=shaded2d");
+  await page.goto("/?scene=rectangle");
   await page.waitForFunction(() => window.ready);
   expect(fetched.filter((url) => /ljos_web_3d|QtQuick3D/.test(url))).toEqual([]);
 });
