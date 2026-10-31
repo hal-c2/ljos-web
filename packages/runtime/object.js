@@ -1143,7 +1143,7 @@ function defineChange(object, name) {
 
 function changes(self, name) {
   const handler = handlerName(`${name}Changed`);
-  const emit = signal(handling(self, handler));
+  const emit = signal(handling(self, handler), self);
   const { connect } = emit;
   let watched = false;
   // Nothing watches a property nobody hears of. `first` is told what the
@@ -1216,23 +1216,39 @@ export function replace(self, handler, run) {
 
 // What a handler throws stops that handler and is told of, as Qt warns of
 // it: whoever emitted the signal goes on, and so do the handlers after it.
-function heard(handler, args = []) {
+function heard(handler, args = [], self) {
   try {
     handler(...args);
   } catch (error) {
-    reportError(error);
+    const boundary = self?.$fault;
+    if (boundary) boundary(error, self);
+    else reportError(error);
+  }
+}
+
+// What objects made now are under: whoever is told when a handler of one
+// throws, in place of the page (a ShellLoader, which shows its fallback).
+// Objects made under none report to the page, as before.
+let fault = null;
+export function bounded(boundary, make) {
+  const outer = fault;
+  fault = boundary;
+  try {
+    return make();
+  } finally {
+    fault = outer;
   }
 }
 
 // A signal is the function that emits it: `clicked(mouse)` runs the handler
 // the object was given (`onClicked`) and whatever was connected since.
-export function signal(given) {
+export function signal(given, self) {
   const listeners = new Set();
   const emit = (...args) =>
     soon(() => {
       const handler = given?.();
-      if (handler) heard(handler, args);
-      for (const listener of [...listeners]) heard(listener, args);
+      if (handler) heard(handler, args, self);
+      for (const listener of [...listeners]) heard(listener, args, self);
     });
   emit.connect = (listener) => void listeners.add(listener);
   emit.disconnect = (listener) => void listeners.delete(listener);
@@ -1243,7 +1259,7 @@ function defineSignal(proto, name) {
   const handler = handlerName(name);
   Object.defineProperty(proto, name, {
     get() {
-      return (this.$signals[name] ??= signal(handling(this, handler)));
+      return (this.$signals[name] ??= signal(handling(this, handler), this));
     },
     enumerable: true,
     configurable: true,
@@ -1575,6 +1591,10 @@ function create(Type, props) {
     hidden(self, "$props", props);
     hidden(self, "$owner", getOwner());
     hidden(self, "$parent", parent);
+    // What is made later inside an object bounded (a Repeater's delegate, a
+    // Loader's item) is bounded as it is.
+    const boundary = fault ?? parent?.$fault;
+    if (boundary) hidden(self, "$fault", boundary);
     // A root that may be reloaded knows what was made in what, so that a
     // reload can tell which object of the new tree is which of the old.
     const born = parent ? parent.$born : making;
@@ -1613,7 +1633,7 @@ function create(Type, props) {
       });
     }
     const completed = props.Component$onCompleted;
-    if (completed) completions.push(() => heard(() => untrack(completed)));
+    if (completed) completions.push(() => heard(() => untrack(completed), undefined, self));
     // An object a property holds is made with the rest, whoever reads it:
     // a state entered from the start may change what is in it.
     if (props.$made) {
@@ -1688,7 +1708,7 @@ export function onChange(self, name, handler, first) {
           // have changed and left it as it was.
           if (same(value, last)) return;
           last = value;
-          after(() => heard(handler));
+          after(() => heard(handler, undefined, self));
         },
       ),
     );
@@ -1800,6 +1820,8 @@ export function $file(File, context) {
   if (!component) {
     const make = context ? (properties) => File(within(properties, context)) : (properties) => File(properties);
     made.set(context ?? nowhere, (component = $component(make)));
+    // Whose file it is, for what says where a fault in it is.
+    component.$file = File;
   }
   return component;
 }

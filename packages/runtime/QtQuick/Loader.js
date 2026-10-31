@@ -30,18 +30,18 @@ function sized(self, key) {
   return key === "width" ? Boolean(anchors.left && anchors.right) : Boolean(anchors.top && anchors.bottom);
 }
 
-function implicit(self, key, implicitKey) {
+export function implicit(self, key, implicitKey) {
   const item = self.item;
   if (!item?.$node) return 0;
   return sized(self, key) ? item[implicitKey] : item[key];
 }
 
 // The size the Loader gives its item: none along a way it has none itself.
-function given(self) {
+export function given(self) {
   return [sized(self, "width") ? self.width : undefined, sized(self, "height") ? self.height : undefined];
 }
 
-function fit(item, width, height) {
+export function fit(item, width, height) {
   if (!item?.$node) return;
   slot(item, "width").place(width);
   slot(item, "height").place(height);

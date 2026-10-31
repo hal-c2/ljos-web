@@ -129,7 +129,9 @@ function below(object, into) {
 
 // Pairs the objects of the two trees and gives each new one what its old
 // one was given. Answers the new object that is to have the keyboard.
-function carry(oldRoot, Old, newRoot, New) {
+// Ljos.Blocks' ShellLoader carries a reloaded shell with it too: the shell
+// is not a mounted root, but its tree is recorded under the loader.
+export function carry(oldRoot, Old, newRoot, New) {
   const olds = new Map();
   const all = new Set();
   keyed(oldRoot, Old, (object, key) => {
