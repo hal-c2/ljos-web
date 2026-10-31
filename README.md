@@ -52,6 +52,8 @@ cargo run --bin qmlc -- -I mocks File.qml         # an import path looked in bef
 cargo run --bin qmlc -- --qt DIR File.qml         # where the installed Qt's modules are
 cargo run --bin qmlc -- --alone File.qml          # without the files next to it
 cargo run --bin qmlc -- --types QtQuick.Layouts   # the types Qt has of a module in C++
+cargo run --bin qmlc -- --theme theme.json        # a theme file checked: its overrides as JSON, or its mistakes
+cargo run --bin qmlc -- --theme-for app/Main.qml --root .  # the same for the theme.json nearest an entry
 ```
 
 Everything else is a [mise](https://mise.jdx.dev) task, a script in
@@ -196,13 +198,44 @@ project, and the site goes to `DIR-site` unless `--out` says where: a
 site it built there is replaced, anything else is not. Qt is needed only
 for a site that imports `QtQuick.Controls`; `Ljos.Design` is Ljós's QML,
 given with `--with` (ljos-ui's `crates/ljos_design_qml/qml`). The theme
-is carried into the site, not yet applied.
+is the manifest's `theme`, or the `theme.json` nearest the entry among the
+listed files; it is applied, and a theme that is refused refuses the site
+with each mistake as `file:line:column: message`.
 
 `ljos-web modules --json` prints `packages/runtime/modules.json`: the
 modules this commit provides, where each one's types come from and what
 building with it needs (`qt`: an installed Qt's QML; `with`: a directory
 of the module's QML). `mise run test:site` builds bundles into sites,
 opens one in headless Chromium and tries each refusal.
+
+## A theme
+
+A page reads a theme as ljos-ui's `docs/theme.md` says: other values for
+Ljos.Design's roles, in the `theme.json` nearest the entry (from its
+directory up to the project's), or in a file that is named. Whatever binds
+to a role follows, a colour's variants follow `Colors.dark` and
+`Colors.highContrast`, and nothing is made again: a field keeps its text.
+
+```js
+// vite.config.js: the nearest theme.json, or one named, or none.
+qml({ qmlc, root: "app", theme: "themes/dark.json" /* or false */, seedHue: 200 });
+```
+
+In the dev server a change of the file is applied without a remount; a
+refused one shows Vite's error and leaves the page's theme. A host that
+holds files in memory applies one itself:
+
+```js
+import { applyTheme, removeTheme, findTheme } from "ljos-web/theme";
+const file = findTheme(Object.keys(files), "app/Main.qml"); // "app/theme.json", or null
+const said = await applyTheme(files[file], { file, check }); // { ok: true } | { diagnostics }
+removeTheme(); // the module's own roles again
+```
+
+`check({ file, text })` answers as `qmlc --theme` does: the overrides it
+prints, or `{ diagnostics: [{ file, line, column, message }] }`. A refused
+theme is refused whole. Under it is `override(object, key, { value } |
+{ binding })` of `ljos-web/object`, for any property.
 
 ## Components
 

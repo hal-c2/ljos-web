@@ -549,8 +549,8 @@ refused with what was wrong. The entry is compiled with the directory
 as the project's root; Qt is needed only when the site imports the
 controls, and Ljos.Design's QML is given with `--with`. A site it
 built is replaced (it leaves a `.ljos-site-build` stamp); any other
-directory is not. The theme is carried into the site and not yet
-applied (`applyTheme` in `site.js` is where it will be).
+directory is not. The theme is checked, applied (A14) and carried
+into the site as it is.
 
 What a commit provides is `packages/runtime/modules.json`
 (`ljos-web modules --json`): each module, where its types come from
@@ -617,6 +617,54 @@ compiler made of the shell. Not carried yet: objects a script made
 (`createObject`) and a Loader's item are made again by what makes
 them; a ListModel's rows are what its text says; a StackView's
 stack is its initial item.
+
+### A14. The theme on the web
+
+ljos-ui's `docs/theme.md` (at 0cd3287c) is the contract, and ljos-web
+reads a theme as it says. **Which file:** a named one wins (the Vite
+plugin's `theme` option, a site manifest's `theme`), and a named file
+that is not there is an error; otherwise the `theme.json` nearest the
+entry, from its directory up to the project's (the plugin's `root`, the
+`--root` it compiles with, else the entry's own directory) and no
+further. One file, never merged. **Checking:** `ljos_web::theme` is
+`ljos_design::theme` (git, rev 0cd3287c, beside the other ljos-ui crates
+at their own pin: the two revs coexist), with no filesystem, so it builds
+for wasm32; `qmlc --theme FILE`, `--theme-for ENTRY --root DIR` and
+`--seed-hue N` print the checked overrides as JSON (`null` for none), or
+each refusal as `file:line:column: message`. A refused theme is refused
+whole. **Applying:** `override(object, key, content)` in the runtime puts
+a value or a binding over any property, and taking it off gives the
+property what was under it, its binding included; `ljos-web/theme` puts
+a checked theme on Ljos.Design's singletons as such overrides. Nothing is
+made again, so a change keeps all state.
+
+- DECISION: singletons are found by their module's name
+  (`$singleton(…, "Ljos.Design.Colors")`, which the compiler now emits for
+  a file that is a module's type), so the runtime needs nothing of
+  Ljos.Design itself and a singleton made later takes the theme as it is made.
+- DECISION: a colour's variants are one binding on `Colors.dark` and
+  `Colors.highContrast`; a variant the theme does not give reads what is
+  under the override, the module's own.
+- DECISION: a write to an overridden property goes to the override, as in
+  Ljós; removing the override gives back what was under it.
+- DECISION: one theme per page, the last mounted entry's. The plugin gives
+  each entry (a QML file something other than QML imports) a theme module;
+  `mount` applies it, and in the dev server a change of the file reloads
+  only that module, which applies it again. A refused change shows Vite's
+  error and leaves the page's theme.
+- DECISION: the theme is checked when the entry loads too, so a host that
+  compiles through Vite (`transformRequest`) hears the refusal as the
+  entry failing, with the diagnostics.
+- DECISION: the site builder searches the manifest's listed files (the same
+  search, `findTheme`), checks with `qmlc --theme` before Vite runs, and
+  refuses the site on a refusal.
+- DECISION: a host holding files in memory calls `applyTheme(text, { file,
+  check })` → `{ ok: true }` or `{ diagnostics }`, and `removeTheme()`. The
+  check is the host's compiler (`qmlc --theme`, a server, or the compiler in
+  the page once it runs there); the runtime writes no second checker.
+  `findTheme(names, entry, { project })` is the search for such a host.
+- DECISION: contrast is held at the module's seed hue unless the theme or
+  the plugin's `seedHue` says another.
 
 ## Part II — An application's own Rust types
 
