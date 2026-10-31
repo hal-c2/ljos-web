@@ -16,7 +16,7 @@ import { dirname, isAbsolute, join, posix, resolve } from "node:path";
 import { build } from "vite";
 import { findTheme } from "./find-theme.js";
 import { provided } from "./modules.js";
-import qml, { installed } from "./vite.js";
+import qml, { hasControls, installed } from "./vite.js";
 
 const runtime = import.meta.dirname;
 
@@ -216,18 +216,29 @@ function themeOf(dir, manifest, qmlc) {
 // `qmlc` on the path), `qt` where Qt's QML modules are when not where Qt
 // says, `with` the directories of QML modules that stand in for what ljos-web
 // compiles from elsewhere (Ljos.Design's, from ljos-ui's
-// `crates/ljos_design_qml/qml`). What it wrote, and its size.
-export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", qt, with: standins = [], logLevel = "warn" } = {}) {
+// `crates/ljos_design_qml/qml`), `styles` whose QML the controls are:
+// Ljós's (`"ljos"`) unless Qt's (`"qt"`) are asked for. What it wrote, and
+// its size.
+//
+// A site's controls are Ljós's whether or not the machine that builds it
+// has a Qt: the site is a Ljós application, which draws with Ljós's style
+// natively, and a bundle builds to the same site on any machine. A style
+// Ljós has none of (Imagine) is still the installed Qt's.
+export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", qt, styles = "ljos", with: standins = [], logLevel = "warn" } = {}) {
   if (!dir) throw new SiteError("which bundle? buildSite({ dir })");
   dir = resolve(dir);
   out = resolve(out ?? `${dir}-site`);
   const { manifest, needs } = check(dir);
   const theme = themeOf(dir, manifest, qmlc);
 
+  if (styles !== "ljos" && styles !== "qt") throw new SiteError(`styles is "ljos" or "qt", not ${JSON.stringify(styles)}`);
   for (const { module, needs: wanted } of needs) {
-    if (wanted.includes("qt") && !qtRoots(qt).some((root) => existsSync(join(root, "QtQuick/Controls/qmldir")))) {
+    const ofQt = wanted.includes("qt") || (styles === "qt" && (module === "QtQuick.Controls" || module.startsWith("QtQuick.Controls.")));
+    if (ofQt && !qtRoots(qt).some(hasControls)) {
       throw new SiteError(
-        `it imports ${module}, which is compiled from an installed Qt 6's own QML, and there is no Qt here: none found by qtpaths6, QT_INSTALL_QML or QML_IMPORT_PATH (give its qml directory with --qt)`,
+        wanted.includes("qt")
+          ? `it imports ${module}, which is compiled from an installed Qt 6's own QML (Ljós has no style of it), and there is no Qt 6 here: none found by qtpaths6, qtpaths, qmake6, QT_INSTALL_QML or QML_IMPORT_PATH (give its qml directory with --qt)`
+          : `it imports ${module} and asks for Qt's styles, and there is no Qt 6 here: none found by qtpaths6, qtpaths, qmake6, QT_INSTALL_QML or QML_IMPORT_PATH (give its qml directory with --qt)`,
       );
     }
     if (wanted.includes("with") && !standins.some((root) => existsSync(join(root, ...module.split("."), "qmldir")))) {
@@ -256,7 +267,7 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
       base: "./",
       logLevel,
       cacheDir: join(runtime, "node_modules/.vite/ljos-site"),
-      plugins: [qml({ qmlc, args: ["--root", dir], qt, standins, theme: theme ? join(dir, theme) : false })],
+      plugins: [qml({ qmlc, args: ["--root", dir], qt, styles, standins, theme: theme ? join(dir, theme) : false })],
       resolve: {
         alias: {
           "ljos-site:entry": join(dir, manifest.entry),

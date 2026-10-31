@@ -86,38 +86,28 @@
     },
     {
       "module": "QtQuick.Controls",
-      "from": "qt",
-      "needs": [
-        "qt"
-      ]
+      "from": "ljos",
+      "needs": []
     },
     {
       "module": "QtQuick.Controls.Basic",
       "from": "runtime",
-      "needs": [
-        "qt"
-      ]
+      "needs": []
     },
     {
       "module": "QtQuick.Controls.Basic.impl",
       "from": "runtime",
-      "needs": [
-        "qt"
-      ]
+      "needs": []
     },
     {
       "module": "QtQuick.Controls.Fusion",
       "from": "runtime",
-      "needs": [
-        "qt"
-      ]
+      "needs": []
     },
     {
       "module": "QtQuick.Controls.Fusion.impl",
       "from": "runtime",
-      "needs": [
-        "qt"
-      ]
+      "needs": []
     },
     {
       "module": "QtQuick.Controls.Imagine",
@@ -129,37 +119,27 @@
     {
       "module": "QtQuick.Controls.Material",
       "from": "runtime",
-      "needs": [
-        "qt"
-      ]
+      "needs": []
     },
     {
       "module": "QtQuick.Controls.Material.impl",
       "from": "runtime",
-      "needs": [
-        "qt"
-      ]
+      "needs": []
     },
     {
       "module": "QtQuick.Controls.Universal",
       "from": "runtime",
-      "needs": [
-        "qt"
-      ]
+      "needs": []
     },
     {
       "module": "QtQuick.Controls.Universal.impl",
       "from": "runtime",
-      "needs": [
-        "qt"
-      ]
+      "needs": []
     },
     {
       "module": "QtQuick.Controls.impl",
       "from": "runtime",
-      "needs": [
-        "qt"
-      ]
+      "needs": []
     },
     {
       "module": "QtQuick.Dialogs",

@@ -13,6 +13,7 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, delimiter, dirname, isAbsolute, join, relative, resolve as resolvePath, sep } from "node:path";
 import { searchForWorkspaceRoot } from "vite";
+import { CONTROLS } from "./controls.js";
 
 // What marks a `.js` file as the script a QML file imports
 // (`import "logic.js" as Logic`), which `qmlc` makes a module of.
@@ -60,18 +61,28 @@ const called = (style) => (bespoke(style) ? basename(style) : style);
 const FALLBACK = "Basic";
 
 // What the Qt installed here says of itself: where it keeps its QML modules
-// and its tools, and which Qt it is.
+// and its tools, and which Qt it is. Only a Qt 6 is one: Qt 5's `qtpaths`,
+// which a machine may have on its path beside or instead of Qt 6's, knows
+// no `--query`, and Qt 5's `qmake` answers of a Qt whose QML no runtime
+// here compiles. What a tool says on its way to failing is nobody's
+// business: the next one is asked.
 export function installed() {
-  for (const tool of ["qtpaths6", "qtpaths", "qmake6"]) {
+  for (const tool of ["qtpaths6", "qtpaths", "qmake6", "qmake"]) {
     const ask = (what) => {
       const asked = spawnSync(tool, [tool.startsWith("qmake") ? "-query" : "--query", what], { encoding: "utf8" });
       return asked.status === 0 ? asked.stdout.trim() : "";
     };
+    const version = ask("QT_VERSION");
+    if (!/^([6-9]|\d{2,})\./.test(version)) continue;
     const qml = ask("QT_INSTALL_QML");
-    if (qml) return { qml, bins: ask("QT_INSTALL_BINS"), version: ask("QT_VERSION") };
+    if (qml) return { qml, bins: ask("QT_INSTALL_BINS"), version };
   }
   return {};
 }
+
+// Whether a directory of QML modules has Qt's controls: a Qt 6's, or one
+// that stands in for it with them.
+export const hasControls = (root) => existsSync(join(root, "QtQuick/Controls/qmldir"));
 
 // `qrc:/qt-project.org/imports/QtQuick/Controls/Basic/images/check.png`:
 // where a module of Qt's keeps the pictures its QML names, inside the plugin
@@ -299,6 +310,12 @@ const DATA = /\.(?:json|txt|csv|xml)$/i;
 // - `qt`: where the QML modules of Qt are, when not where `qtpaths` says:
 //   a directory, or several, a module being of the first to have it. When
 //   not given, `QML_IMPORT_PATH` names more of them, as it does to Qt.
+// - `styles`: whose QML the styles of Qt Quick Controls are: "qt", the
+//   installed Qt's own, or "ljos", Ljós's (`controls/`, with Ljós's
+//   metrics), which need no Qt. Otherwise Qt's where there is a Qt with
+//   them (`qt`, or what `qtpaths` says) and Ljós's where there is none. With
+//   Ljós's, a module of Qt's that Ljós has no style of (Imagine) is still
+//   the installed Qt's.
 // - `style`: what `import QtQuick.Controls` is, "Material" or "Fusion": a
 //   name, or a function of the file that imports it when the files of one
 //   build are not all of one style. Otherwise the one the settings name,
@@ -346,6 +363,7 @@ export default function qml({
   qmlc = "qmlc",
   args = [],
   qt,
+  styles,
   style,
   controls,
   standins = [],
@@ -359,7 +377,11 @@ export default function qml({
   let asked;
   const found = () => (asked ??= installed());
   const elsewhere = process.env.QML_IMPORT_PATH?.split(delimiter) ?? [];
-  const roots = [qt ?? [...elsewhere, process.env.QT_INSTALL_QML ?? found().qml]].flat().filter(Boolean);
+  const qts = [qt ?? [...elsewhere, process.env.QT_INSTALL_QML ?? found().qml]].flat().filter(Boolean);
+  // Ljós's controls are looked in first, so that each module of them is
+  // theirs and none of the installed Qt's QML comes in with them.
+  const ljos = (styles ?? (qts.some(hasControls) ? "qt" : "ljos")) === "ljos";
+  const roots = ljos ? [CONTROLS, ...qts] : qts;
   // Where a module of Qt's is: null when Qt has none of that name here.
   const home = (module) => {
     const root = roots.find((root) => existsSync(join(root, module, "qmldir")));
@@ -712,7 +734,13 @@ export default function qml({
           this.addWatchFile(about.file);
           // Its QML files, which come before a type of the same name the
           // runtime has: a named export hides one that `export *` brings.
+          // Not so in Ljós's controls, whose QML stands in for what Qt has
+          // in C++ where Ljós's native engine has none of it
+          // (`BusyIndicatorImpl`): what the runtime has of that is it.
+          const ours = home(module).startsWith(CONTROLS + sep);
+          const own = ours && native ? exported(this, join(runtime, native)) : new Set();
           for (const [name, file] of about.types) {
+            if (own.has(name)) continue;
             lines.push(`export { default as ${name} } from ${JSON.stringify(join(home(module), file) + carry)};`);
           }
           const pictures = [...kept(module, about, "images"), ...kept(module, about, "shaders").filter(([, file]) => file.endsWith(BAKED)), ...lodged(module, about)];

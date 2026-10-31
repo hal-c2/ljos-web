@@ -85,12 +85,19 @@ fn qt_imports() -> Vec<PathBuf> {
         .map(|paths| std::env::split_paths(&paths).collect())
         .unwrap_or_default();
     let own = std::env::var_os("QT_INSTALL_QML").map(PathBuf::from).or_else(|| {
-        ["qtpaths6", "qtpaths", "qmake6"].into_iter().find_map(|tool| {
+        // Only a Qt 6 is one: Qt 5's `qtpaths` and `qmake`, which a machine
+        // may have on its path beside Qt 6's tools, name a QML directory of
+        // Qt 5's, which this compiler does not read.
+        ["qtpaths6", "qtpaths", "qmake6", "qmake"].into_iter().find_map(|tool| {
             let query = if tool.starts_with("qmake") { "-query" } else { "--query" };
-            let asked = std::process::Command::new(tool).args([query, "QT_INSTALL_QML"]).output().ok()?;
-            let answer = String::from_utf8(asked.stdout).ok()?;
-            let answer = answer.trim();
-            (asked.status.success() && !answer.is_empty()).then(|| PathBuf::from(answer))
+            let ask = |what: &str| {
+                let asked = std::process::Command::new(tool).args([query, what]).output().ok()?;
+                let answer = String::from_utf8(asked.stdout).ok()?;
+                let answer = answer.trim();
+                (asked.status.success() && !answer.is_empty()).then(|| answer.to_owned())
+            };
+            let major: u32 = ask("QT_VERSION")?.split('.').next()?.parse().ok()?;
+            (major >= 6).then(|| ask("QT_INSTALL_QML")).flatten().map(PathBuf::from)
         })
     });
     found.extend(own);
