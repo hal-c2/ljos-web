@@ -24,13 +24,13 @@ const address = (url) => {
 };
 
 // `text` is what the file at `url` reads as from now on: told to its readers
-// when it differs from what it was.
+// when it differs from what it was, the first time too, since one may have
+// fetched the file or failed to.
 export function provide(url, text) {
   const at = address(url);
   if (files.given.get(at) === text) return;
-  const known = files.given.has(at);
   files.given.set(at, text);
-  if (known) changed(at);
+  changed(at);
 }
 
 // The file at `url` is not given any more: it is fetched again.

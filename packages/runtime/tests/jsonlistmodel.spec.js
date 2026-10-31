@@ -177,6 +177,15 @@ test.describe("a source is read in the background", () => {
     expect(await read(page, ["bothFirst"])).toEqual({ bothFirst: "file" });
   });
 
+  test("a file given after the model read it is read again", async ({ page }) => {
+    let asked;
+    page.on("request", (request) => request.url().endsWith("given-later.json") && (asked = request.url()));
+    await open(page, "jsonprovided&files");
+    await expect.poll(() => model(page, "model", ["status"])).toEqual({ status: 3 });
+    await page.evaluate((url) => window.files.provide(url, '[{"name":"a"}]'), asked);
+    await expect.poll(() => model(page, "model", ["status", "count"])).toEqual({ status: 1, count: 1 });
+  });
+
   test("a file that is not there is an error that names it", async ({ page }) => {
     const warned = [];
     page.on("console", (message) => message.type() === "warning" && warned.push(message.text()));

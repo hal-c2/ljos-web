@@ -189,3 +189,23 @@ test.describe("on a save in the dev server", () => {
     }
   });
 });
+
+for (const [scene, said] of [
+  ["reloadbadmount", /mounted badly/],
+  ["reloadbadcarry", /carried badly/],
+]) {
+  test(`a new root that fails after it was made (${scene}) is ended, and the old one is as it was`, async ({ page }) => {
+    await open(page, "reloadbind&theme");
+    const theme = { file: "old.json", overrides: [] };
+    await page.evaluate((theme) => window.themes.setTheme(theme), theme);
+    const message = await reload(page, scene);
+    expect(message).toMatch(/^ReloadError: the reload was not applied/);
+    expect(message).toMatch(said);
+    expect(await read(page, () => window.gone)).toBe(1);
+    expect(await read(page, () => document.getElementById("scene").children.length)).toBe(1);
+    expect(await read(page, () => window.objects.box.width)).toBe(20);
+    expect(await read(page, () => window.themes.currentTheme().file)).toBe("old.json");
+    await page.evaluate(() => (window.scene.base = 4));
+    expect(await read(page, () => window.objects.box.width)).toBe(40);
+  });
+}

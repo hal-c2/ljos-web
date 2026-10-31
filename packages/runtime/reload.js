@@ -22,6 +22,7 @@
 // Nothing here knows of a build tool: the Vite plugin calls `$reloaded` on a
 // save, and a page that compiles QML itself calls `reload`.
 import { $hot, flush, made, mounted, slot } from "./object.js";
+import { keepTheme } from "./theme.js";
 
 // What `reload` gave up on: the new component, made, threw.
 export class ReloadError extends Error {
@@ -33,18 +34,28 @@ export class ReloadError extends Error {
 export function reload(handle, Component) {
   if (!mounted.has(handle)) throw new ReloadError("only a root mounted with { reloadable: true } can be reloaded");
   const old = handle.object;
-  let root;
+  const { element, options } = handle;
+  const theme = keepTheme();
+  let root = null;
+  let object = null;
+  let focused;
+  let swapped = false;
   try {
     root = made(Component, handle.props, true);
+    object = root.object;
+    focused = root.within(() => carry(old, handle.Component, object, Component));
+    swapped = !!old.$node && !!object.$node && old.$node.parentNode === element;
+    if (swapped) element.replaceChild(object.$node, old.$node);
+    else if (object.$node) element.append(object.$node);
+    root.within(() => object.$mounted?.(element, options));
   } catch (error) {
+    // Whichever step it was, the old root is put back as if none was taken.
+    if (swapped) element.replaceChild(old.$node, object.$node);
+    else object?.$node?.remove();
+    root?.dispose();
+    theme();
     throw new ReloadError(`the reload was not applied: ${error?.message ?? error}`, { cause: error });
   }
-  const object = root.object;
-  const focused = root.within(() => carry(old, handle.Component, object, Component));
-  const { element, options } = handle;
-  if (old.$node && object.$node && old.$node.parentNode === element) element.replaceChild(object.$node, old.$node);
-  else if (object.$node) element.append(object.$node);
-  root.within(() => object.$mounted?.(element, options));
   handle.root.dispose();
   old.$node?.remove();
   handle.root = root;

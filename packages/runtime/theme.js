@@ -113,6 +113,17 @@ export function rethemed(key, checked) {
   if (mounted === key) setTheme(checked);
 }
 
+// What puts back the page's theme as it is now, after a root that was made
+// with its own theme did not take the page's place.
+export function keepTheme() {
+  const had = theme;
+  const key = mounted;
+  return () => {
+    mounted = key;
+    if (theme !== had) setTheme(had);
+  };
+}
+
 // The theme file an entry reads when none is named, among the files a host
 // holds: the same search `ljos_web::theme::nearest` makes.
 export { findTheme } from "./find-theme.js";

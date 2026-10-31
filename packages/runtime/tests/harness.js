@@ -35,5 +35,8 @@ if (asked.has("inspect")) {
   window.inspect = inspect;
   window.inspector = inspect(handle.object);
 }
+// `&files`: what says a file changed, and the page's theme (`ljos-web/files`, `ljos-web/theme`).
+if (asked.has("files")) window.files = await import("ljos-web/files");
+if (asked.has("theme")) window.themes = await import("ljos-web/theme");
 window.clock = clock;
 window.ready = true;
