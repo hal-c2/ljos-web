@@ -1353,8 +1353,8 @@ connection does in Qt.
   made when it returns, in one call to the face's one listener:
   `[key, value, …]` (section 5), property changes before signals, a
   property changed twice told once with where it ended. A key is the
-  property's number (its place in the type), or a string for a signal or a
-  group's member. No listener, no array.
+  property's number (its place in the type), which a group has too and is
+  told whole under, or a string, which is a signal. No listener, no array.
 - DECISION: what a hook reads. Inside a paint item's `read`, `item::prop`
   and `engine.get` read the face's slot (`self[name]`), so the runtime's
   tracking sees them, and a base's property (`Item::WIDTH`) is a slot in
@@ -1364,14 +1364,17 @@ connection does in Qt.
 **Metadata** goes to the build in the binary, not by parsing Rust. The
 derive and `#[qml_impl]` each write a JSON line into a custom section of
 the wasm (`ljos_web_types`). The tool reads the section from the linked
-`.wasm` before wasm-bindgen does, runs nothing of the application's, and
-writes:
+`.wasm` before wasm-bindgen does and writes what follows. It runs nothing of
+the application's, with one exception: a type with `#[qml(enums = …)]` has its
+keys in a function, so Node loads the wasm and asks, for those types only.
 
 - `faces/<Module>/index.js`, items 8–11 and 12: `await init()`, then one
   `defineType` per type through `ljos-web/web/face`;
 - `faces/<Module>/<Type>.js`, what a compiled import resolves to;
 - `ljostypes.json` (format 2), so that `qmlc` learns the types as A18 has it
-  and no stand-in file is written by hand.
+  and no stand-in file is written by hand. A type with no module (an attached
+  type) is under `+unnamed`, as on the desktop QML cannot name it; a type QML
+  names needs `#[qml(module)]`. A group's type has no face of its own.
 
 The Vite plugin's `faces` option says where those are: a dump's stand-in
 that a generated face exists for resolves to that face instead of the
@@ -1415,8 +1418,9 @@ to the size or the ratio, or `item::repaint`, reaches the effect.
   `$keyPressed`, `$keyReleased`), registered only for a type that has that
   hook, so stacking, grabs and focus are the ones everything else obeys.
 - DECISION: `item::load_image` on the web decodes with the browser
-  (`createImageBitmap`), reads straight pixels back and gives a real
-  `ImageHandle`, so the hook's reply is what the desktop's is.
+  (`Image`, `decode`, then `getImageData`, as `createImageBitmap` cannot
+  give straight pixels everywhere), and gives a real `ImageHandle`, so the
+  hook's reply is what the desktop's is.
 - DECISION: the hooks live behind function pointers stored by
   `register_paint_item` and its kin, called through one exported
   dispatcher. An application with no visual type never calls those, so
@@ -1437,11 +1441,51 @@ the type, on the web only, rather than a face that misbehaves:
   web prelude; the error is rustc's "not found", on the use. Those are
   sections 7 and 8, not this.
 
+**As built, what differs from the desktop.** None of these needs a line of the
+application changed unless it says so:
+
+- A value Rust gives wins over QML's assignment, and a binding stands: a face
+  writes a slot already assigned rather than providing under it. A `write` hook
+  runs inside the slot's write (`slot.kind`), so a read straight after sees it.
+- The wrapper class goes by the Rust name, inside a hidden module, because
+  wasm-bindgen's struct derive names a bare `wasm_bindgen` whatever path it is
+  given. So `#[qml_impl]` has to see `__LjosWeb_X`: the same module as the
+  derive, or a glob import of it.
+- DECISION: an uncreatable type that has `Default` is made, as an attached one
+  must be; one without it is refused when made.
+- DECISION: an engine-scoped and a window-scoped singleton are one object of the
+  page: a page is one window.
+- Not honoured on the web, and no error: `#[qml(reset)]`, a group member's
+  `write` hook, and the reason `forceActiveFocus` is given, which the runtime
+  has nowhere to keep. Objects made by `hand_off` have no face.
+- A `QmlValue` an application implements by hand has to give its wire form on
+  wasm32 too, so that impl does need a `cfg`. The derive's don't.
+- `ljos` on wasm32 without `web` is an empty crate: the error is rustc's on the
+  first `use`, which names what is missing.
+- Reading an attaching type's property from QML (`Shelf.weight`,
+  `other.Shelf.weight`) is not yet recognised by this compiler for a dumped type
+  (`crates/ljos_web/src/quick/names.rs` asks Qt's table only); writes and
+  handlers (`Shelf.weight: 3`, `Shelf.onTallied:`) work.
+
 **Sizes**, measured by `mise run test:faces-size` (`size/faces.js`):
-an application with no native types imports no face module and links no
-wasm of its own, so it pays nothing and `size/check.js` stays as it was.
-What one that has them pays is in the table the check writes, with its
-budget: FACE_SIZES.
+an application with no native types imports no face module and links no wasm of
+its own, so it pays nothing: the check fails if its bundle names any of the
+faces. FACE_SIZES, gzip:
+
+| | now | budget |
+|---|---|---|
+| A page with no native types, over itself | 0 B | 0 B |
+| Face and visual runtime, once, over that page | 1,852 B | 2,500 B |
+| One non-visual type (`wasm-counter`): wasm | 20,988 B | 25,000 B |
+| ...its wasm-bindgen JavaScript | 3,659 B | 5,000 B |
+| Six types, visual ones painting all of replay (`wasm-gauge`): wasm | 71,777 B | 85,000 B |
+| ...its wasm-bindgen JavaScript | 7,444 B | 9,000 B |
+
+DECISION: A8's 250 kB is the runtime's budget and an application's own wasm is
+outside it, as its QML and assets are. It has to be: the gauge page is about
+231 kB on the Solid kernel but about 260 kB on the wasm kernel (179 kB page, 2 kB
+faces, 72 kB wasm, 7 kB JavaScript). The counter's is about 176 kB and 205 kB.
+
 
 ## Part II — An application's own Rust types
 
