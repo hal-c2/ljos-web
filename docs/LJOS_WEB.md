@@ -511,7 +511,11 @@ it.
    concatenation or added to, is refused, and a shell declares no `url`
    property, nor anything over a member its object's type already has.
    Rich text would load what its `<img>` names, so a shell's `Text` is
-   plain: `textFormat` is refused and forced to `PlainText`.
+   plain: `textFormat` is refused and forced to `PlainText`. A block may
+   pass what a shell gives it on to a text of its own, by a way nothing
+   can follow, so while a dropped shell is shown no markup on the page
+   loads a picture or links anywhere, the site's own blocks' included.
+   They have them again at Reset.
 5. *Bounded work.* Each run has a budget of 100,000 steps. A runaway
    binding is stopped and warned of, and the page keeps running.
 6. *Storage scoped.* Only the shell text is stored, under

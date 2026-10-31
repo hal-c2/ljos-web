@@ -6,7 +6,7 @@ import { css } from "./color.js";
 import { rules } from "./compute.js";
 import { dress, fonts, metrics, resized } from "./font.js";
 import { flush } from "../object.js";
-import { signal } from "#kernel";
+import { signal, untrack } from "#kernel";
 
 // Qt's line is its font's height rounded up, which CSS computes per element
 // from `--qq-line`. Headings and `<font size>` scale as Qt's do; paragraphs
@@ -130,7 +130,7 @@ const SIZES = [0.7, 0.8, 1, 1.2, 1.5, 2, 2.4];
 
 const pixels = (value) => (/^\d+$/.test(value) ? `${value}px` : /^\d+%$/.test(value) ? value : "");
 
-function copy(from, to, name) {
+function copy(from, to, name, inert) {
   const style = to.style;
   const read = (attribute) => from.getAttribute(attribute);
   for (const property of STYLES) {
@@ -153,9 +153,9 @@ function copy(from, to, name) {
   } else if (name === "center") style.textAlign = "center";
   else if (name === "nobr") style.whiteSpace = "nowrap";
   else if (name === "a") {
-    if (from.hasAttribute("href")) to.dataset.link = read("href");
+    if (!inert && from.hasAttribute("href")) to.dataset.link = read("href");
   } else if (name === "img") {
-    if (read("src")) to.src = read("src");
+    if (!inert && read("src")) to.src = read("src");
     if (read("alt")) to.alt = read("alt");
     if (pixels(read("width") ?? "")) style.width = pixels(read("width"));
     if (pixels(read("height") ?? "")) style.height = pixels(read("height"));
@@ -177,19 +177,19 @@ function copy(from, to, name) {
   }
 }
 
-function rebuild(from, to) {
+function rebuild(from, to, inert) {
   for (const node of from.childNodes) {
     if (node.nodeType === 3) to.append(node.data);
     if (node.nodeType !== 1) continue;
     const name = node.localName;
     if (DROPPED.has(name)) continue;
     if (!KEPT.has(name)) {
-      rebuild(node, to);
+      rebuild(node, to, inert);
       continue;
     }
     const made = document.createElement(AS[name] ?? name);
-    copy(node, made, name);
-    rebuild(node, made);
+    copy(node, made, name, inert);
+    rebuild(node, made, inert);
     to.append(made);
   }
 }
@@ -197,14 +197,23 @@ function rebuild(from, to) {
 const parser = new DOMParser();
 const built = new Map();
 
+// While a visitor's shell is shown (docs/LJOS_WEB.md A9) markup loads nothing
+// and links nowhere: a block may pass what a shell gives it on to a text of its
+// own, by a way nothing can follow, so no markup can be told to be the site's.
+const [markupInert, setMarkupInert] = signal(false);
+export { markupInert, setMarkupInert };
+
 // The elements a string of markup stands for: a copy to put in the page.
 export function elements(markup) {
-  let fragment = built.get(markup);
+  // A caller that sets markup is asked again by what it surveyed, which reads it.
+  const inert = untrack(markupInert);
+  const key = `${inert}|${markup}`;
+  let fragment = built.get(key);
   if (!fragment) {
     fragment = document.createDocumentFragment();
-    rebuild(parser.parseFromString(markup, "text/html").body, fragment);
+    rebuild(parser.parseFromString(markup, "text/html").body, fragment, inert);
     if (built.size > 256) built.clear();
-    built.set(markup, fragment);
+    built.set(key, fragment);
   }
   return fragment.cloneNode(true);
 }
@@ -267,7 +276,8 @@ const surveys = new Map();
 // An element is the only thing that can tell: the browser sets rich text.
 export function survey(markup, look) {
   const { kind, font, line, limit, mode, most, elide } = look;
-  const key = [fonts(), pictures(), kind, font.face, line, limit, mode, most, elide, markup].join("|");
+  const inert = markupInert();
+  const key = [inert, fonts(), pictures(), kind, font.face, line, limit, mode, most, elide, markup].join("|");
   let found = surveys.get(key);
   if (found) return found;
   if (!bench) {
@@ -331,6 +341,7 @@ export function survey(markup, look) {
   const cut = box.style.overflow === "hidden";
   // Qt counts no lines in rich text, and does not say when it is cut.
   found = {
+    inert,
     width: look.limit === Infinity ? frame.width : right - frame.left,
     height: frame.height,
     count: look.kind === 2 ? 1 : Math.max(count, 1),

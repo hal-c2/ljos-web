@@ -12,7 +12,7 @@ import { Point } from "../QtQml/values.js";
 import { colorValue, css } from "../QtQuick/color.js";
 import { lazy, rules } from "../QtQuick/compute.js";
 import { Item } from "../QtQuick/Item.js";
-import { elements } from "../QtQuick/richtext.js";
+import { elements, markupInert } from "../QtQuick/richtext.js";
 import { NO_MAP, sourceOf } from "./Plugin.js";
 import { untrack } from "#kernel";
 
@@ -374,6 +374,9 @@ export const Map = defineType("Map", Item, {
     bound(() => deepest(self), false);
     // Whose the map is, in a corner of it, over every item on it.
     let noticed = null;
+    effect(markupInert, () => {
+      if (noticed) notice.replaceChildren(elements(sourceOf(noticed)?.copyright ?? ""));
+    });
     effect(
       () => (ready(self) ? self.activeMapType : null),
       (type) => {

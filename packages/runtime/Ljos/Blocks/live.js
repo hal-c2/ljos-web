@@ -15,6 +15,7 @@
 // shell and what it uses: where it goes is the site's to say.
 import { mount, settle } from "../../object.js";
 import { reload } from "../../reload.js";
+import { setMarkupInert } from "../../QtQuick/richtext.js";
 
 let worker;
 let asked = 0;
@@ -129,8 +130,11 @@ export function liveShell(Entry, element_, options = {}) {
     }
     try {
       const { shellOf } = await import("./shell.js");
+      // Before the shell is made, so nothing of it is ever live.
+      setMarkupInert(true);
       reload(handle, shellOf(answer.shell, components, file));
     } catch (error) {
+      setMarkupInert(text != null);
       said([`${file}: ${error?.message ?? error}`]);
       return false;
     }
@@ -164,6 +168,7 @@ export function liveShell(Entry, element_, options = {}) {
         // Nothing was kept.
       }
       reload(handle, Entry);
+      setMarkupInert(false);
       text = null;
       used = [];
       said([]);
