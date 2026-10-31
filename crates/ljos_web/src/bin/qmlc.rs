@@ -372,6 +372,51 @@ fn qt_imports() -> Vec<PathBuf> {
     found
 }
 
+/// `--theme FILE` or `--theme-for ENTRY [--root DIR]`: the theme's overrides
+/// as JSON on stdout (`null` when the entry has none), or its mistakes on
+/// stderr. A named file wins; otherwise the nearest `theme.json` from the
+/// entry's directory up to the root, the entry's directory when none is given.
+fn checked_theme(named: Option<PathBuf>, entry: Option<PathBuf>, root: Option<&Path>, seed_hue: Option<f64>) -> ExitCode {
+    let file = match (named, entry) {
+        (Some(named), _) => named,
+        (None, Some(entry)) => {
+            let absolute = |path: &Path| std::path::absolute(path).unwrap_or_else(|_| path.to_path_buf());
+            let entry = absolute(&entry);
+            let dir = entry.parent().unwrap_or(Path::new("/")).to_path_buf();
+            let project = root.map_or_else(|| dir.clone(), absolute);
+            let Some(found) = ljos_design::theme::find(&dir, &project) else {
+                println!("null");
+                return ExitCode::SUCCESS;
+            };
+            // Told as the caller names it, so a mistake points at a path it
+            // knows.
+            let here = std::env::current_dir().ok().map(|dir| absolute(&dir));
+            here.and_then(|here| found.strip_prefix(here).ok().map(Path::to_path_buf)).unwrap_or(found)
+        }
+        (None, None) => unreachable!("asked only with one of the two"),
+    };
+    let name = file.to_string_lossy().replace('\\', "/");
+    let text = match std::fs::read_to_string(&file) {
+        Ok(text) => text,
+        Err(error) => {
+            eprintln!("{name}:1:1: {error}");
+            return ExitCode::FAILURE;
+        }
+    };
+    match ljos_web::theme::check(&name, &text, seed_hue) {
+        Ok(theme) => {
+            println!("{}", ljos_web::theme::json(&theme));
+            ExitCode::SUCCESS
+        }
+        Err(errors) => {
+            for error in errors {
+                eprintln!("{error}");
+            }
+            ExitCode::FAILURE
+        }
+    }
+}
+
 fn main() -> ExitCode {
     let mut options = Options::default();
     let mut lowered = false;
@@ -384,6 +429,7 @@ fn main() -> ExitCode {
     let mut qt = Vec::new();
     let mut selectors = Vec::new();
     let mut files = Vec::new();
+    let (mut theme, mut theme_for, mut seed_hue) = (None, None, None);
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
         let mut value = |flag: &str| args.next().unwrap_or_else(|| panic!("{flag} needs a value"));
@@ -402,11 +448,21 @@ fn main() -> ExitCode {
             "--types" => types = Some(native_types as fn(&str) -> _),
             "--qml-types" => types = Some(written_types),
             "--component-extension" => options.component_extension = value("--component-extension"),
+            "--theme" => theme = Some(PathBuf::from(value("--theme"))),
+            "--theme-for" => theme_for = Some(PathBuf::from(value("--theme-for"))),
+            "--seed-hue" => {
+                let hue = value("--seed-hue");
+                seed_hue = Some(hue.parse::<f64>().unwrap_or_else(|_| panic!("--seed-hue takes a number, not {hue}")));
+            }
             _ => files.push(arg),
         }
     }
 
     SELECTORS.get_or_init(|| selectors);
+
+    if theme.is_some() || theme_for.is_some() {
+        return checked_theme(theme, theme_for, root.as_deref(), seed_hue);
+    }
 
     if let Some(types) = types {
         for uri in &files {

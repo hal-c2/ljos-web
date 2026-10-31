@@ -9,6 +9,9 @@ publish = false
 qml_front = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "b6c095671da1ae9066b26ef803a35944afa2158f" }
 qt_types = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "b6c095671da1ae9066b26ef803a35944afa2158f" }
 qml_syntax = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "b6c095671da1ae9066b26ef803a35944afa2158f" }
+# The theme file's reader and checker, at the commit that made `docs/theme.md`
+# the contract; the rest of ljos-ui stays at its own pin.
+ljos_design = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "0cd3287c9817ef9a4b0f1615fbe97fb64911279a" }
 oxc_allocator = "0.144"
 oxc_ast = "0.144"
 oxc_ast_visit = "0.144"

@@ -20,6 +20,7 @@ mod quick;
 mod registry;
 mod resolve;
 mod scope;
+pub mod theme;
 
 use oxc_allocator::Allocator;
 use oxc_ast::ast::Program;
