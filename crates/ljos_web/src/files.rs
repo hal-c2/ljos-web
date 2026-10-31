@@ -111,6 +111,11 @@ pub struct Load<'f> {
     pub with: Vec<PathBuf>,
     /// File selectors, the first to have a file deciding (`--select`).
     pub selectors: Vec<String>,
+    /// The stand-ins made of the project's type dumps (`--types`), as
+    /// [`Layered`](crate::dump::Layered) shows them: a type of one is the
+    /// dump's only where nothing else of the project has it, so a mock of
+    /// the module, or its QML, is what is run.
+    pub dumped: Option<PathBuf>,
 }
 
 /// What compiling one file gave, and what was found wrong on the way that
@@ -123,7 +128,7 @@ pub struct Compiled {
 
 impl<'f> Load<'f> {
     pub fn new(files: &'f dyn Files) -> Self {
-        Self { files, root: None, imports: Vec::new(), with: Vec::new(), selectors: Vec::new() }
+        Self { files, root: None, imports: Vec::new(), with: Vec::new(), selectors: Vec::new(), dumped: None }
     }
 
     /// What `file` says: what the one a selector puts in its place says,
@@ -265,10 +270,12 @@ impl<'f> Load<'f> {
         base: &Path,
         warnings: &mut Vec<String>,
     ) {
+        let dumped = self.dumped.as_ref().and_then(|dumped| self.files.canonicalize(dumped));
         let lots: Vec<(&Path, bool)> = paths
             .iter()
             .map(|path| (path.as_path(), false))
             .chain(with.iter().map(|path| (path.as_path(), true)))
+            .chain(dumped.iter().map(|path| (path.as_path(), true)))
             .collect();
         // Qt's are places but not looked through: a file of one of its
         // modules is compiled with the module it is in, not with all of Qt.
@@ -332,8 +339,12 @@ impl<'f> Load<'f> {
             if rank.is_some_and(|rank| first.get(&module.uri) != Some(&rank)) {
                 continue;
             }
+            let of_dump = dumped.as_ref().is_some_and(|dumped| directory.starts_with(dumped));
             project.add_module(&module.uri);
             for ty in module.types {
+                if of_dump && project.module_type(&module.uri, &ty.name).is_some() {
+                    continue;
+                }
                 let Some(file) = self.files.canonicalize(&directory.join(&ty.path)) else { continue };
                 let path = relative(base, &file);
                 let Some(key) = path.strip_suffix(".qml") else { continue };

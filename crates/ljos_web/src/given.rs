@@ -50,7 +50,15 @@ pub struct Request {
     /// The QML modules the page has besides those of Qt's table and the
     /// runtime's: one of Qt's own QML that it was built with.
     pub installed: Vec<String>,
+    /// The type dumps of the project (`ljostypes.json`), by their paths
+    /// among `files`, whose types stand in as `qmlc --types` makes them.
+    /// None for every file of the project named `ljostypes.json`, as native
+    /// Ljós finds them.
+    pub types: Option<Vec<String>>,
 }
+
+/// The name a type dump has, wherever in the project it is.
+pub const DUMP_NAME: &str = "ljostypes.json";
 
 /// Where a file's import is to.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -108,11 +116,12 @@ const ROOT: &str = "/";
 /// `qmlc --root` compiles it. Nothing is compiled for the page that it
 /// cannot link: all of it, or what was wrong.
 pub fn compile(request: &Request) -> Result<Compiled, Vec<Diagnostic>> {
-    let (files, given) = aliased(&request.files, &request.aliases);
+    let (mut files, given) = aliased(&request.files, &request.aliases);
+    let dumped = dumped(request, &mut files)?;
     let named = |file: &str| given.get(file).cloned().unwrap_or_else(|| file.to_string());
     let memory = Memory::new(files.iter().map(|(path, text)| (path.as_str(), text.as_str())));
     let imports = request.imports.iter().filter_map(|dir| normal(dir)).map(|dir| Path::new(ROOT).join(dir)).collect();
-    let load = Load { root: Some(PathBuf::from(ROOT)), imports, ..Load::new(&memory) };
+    let load = Load { root: Some(PathBuf::from(ROOT)), imports, dumped, ..Load::new(&memory) };
     let entry = normal(&request.entry).filter(|entry| files.contains_key(entry)).ok_or_else(|| {
         vec![Diagnostic { file: Some(request.entry.clone()), line: None, column: None, message: "no such file".into() }]
     })?;
@@ -178,6 +187,44 @@ pub fn compile(request: &Request) -> Result<Compiled, Vec<Diagnostic>> {
     }
     starred(&mut modules);
     Ok(Compiled { modules, warnings })
+}
+
+/// Puts the stand-ins of the project's type dumps among its files, where
+/// `qmlc --types` shows them, and says where that is: None when the project
+/// has no dump. A dump that does not read is the whole answer.
+fn dumped(request: &Request, files: &mut BTreeMap<String, String>) -> Result<Option<PathBuf>, Vec<Diagnostic>> {
+    let paths: Vec<String> = match &request.types {
+        Some(paths) => paths.clone(),
+        None => request
+            .files
+            .keys()
+            .filter(|path| path.rsplit('/').next() == Some(DUMP_NAME))
+            .filter(|path| path.split('/').all(|part| !part.starts_with(['.', '+']) && part != "node_modules"))
+            .cloned()
+            .collect(),
+    };
+    if paths.is_empty() {
+        return Ok(None);
+    }
+    let mut read = Vec::new();
+    for path in paths {
+        let Some(text) = request.files.get(&path) else {
+            return Err(vec![Diagnostic { file: Some(path), line: None, column: None, message: "no such file".into() }]);
+        };
+        match crate::dump::read(&path, text) {
+            Ok(dump) => read.push((path, dump)),
+            Err(error) => return Err(vec![dump_diagnostic(error)]),
+        }
+    }
+    let stand_ins = crate::dump::stand_ins(&read).map_err(|error| vec![dump_diagnostic(error)])?;
+    for (path, text) in stand_ins {
+        files.insert(format!("{}/{path}", crate::dump::DIRECTORY), text);
+    }
+    Ok(Some(Path::new(ROOT).join(crate::dump::DIRECTORY)))
+}
+
+fn dump_diagnostic(error: crate::dump::DumpError) -> Diagnostic {
+    Diagnostic { file: Some(error.file), line: Some(error.line), column: Some(error.column), message: error.message }
 }
 
 /// What does not parse among the QML files of the project.

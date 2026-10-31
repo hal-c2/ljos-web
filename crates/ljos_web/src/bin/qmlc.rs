@@ -1,4 +1,5 @@
 //! `qmlc [--emit js|lowered] [--out-dir DIR] [--root DIR] [-I DIR]... [--with DIR]... [--qt DIR]... [--select NAME]... [--host MODULE] [--runtime MODULE] [--alone] FILE.qml...`
+//! `qmlc [--types FILE.json]... FILE.qml...`
 //! `qmlc --types|--qml-types URI...`
 //!
 //! Compiles each QML file to a JavaScript module, and each `.js` file as the
@@ -19,13 +20,22 @@
 //! `--alone` it is compiled by itself: it takes only what it declares, and a
 //! type it does not know is taken to be a component.
 //!
+//! `--types FILE.json` names a type dump (`ljostypes.json`, as `ljos types`
+//! writes it) of the types the program registers from Rust: each type it
+//! describes stands in, with the properties, signals, methods and enums it
+//! says, where the project has no QML of its own for it, as `ljos run
+//! --types` makes them. Several are read as one. A dump that does not read
+//! is an error naming it, and nothing is compiled. The stand-ins are shown
+//! to the compile in `.ljostypes` under `--root` (else the first dump's
+//! directory), where the output imports them from.
+//!
 //! A module a file imports has to be installed: one of the project's, of
 //! Qt's table, of the runtime package, or of the Qt that is installed, whose
 //! modules are where `--qt` says (otherwise where `QML_IMPORT_PATH` and
 //! `qtpaths` say). One that is none of these is an error where it is
 //! imported, as it is to Qt.
 //!
-//! `--types` prints, for each module of Qt's, the types Qt has of it in C++:
+//! `--types` followed by no `.json` file prints, for each module of Qt's, the types Qt has of it in C++:
 //! a line of the URI and its names. That is what a runtime has to have of
 //! the module, the rest of which is QML. `--qml-types` prints that rest
 //! likewise: the types Qt has of the module as QML files, which are there
@@ -38,6 +48,7 @@ use std::{
 
 use ljos_web::{
     Options,
+    dump::Layered,
     files::{Files, Load},
     native_types, written_types,
 };
@@ -144,8 +155,13 @@ fn main() -> ExitCode {
     let mut selectors = Vec::new();
     let mut files = Vec::new();
     let (mut theme, mut theme_for, mut seed_hue) = (None, None, None);
-    let mut args = std::env::args().skip(1);
+    let mut dumps = Vec::new();
+    let mut args = std::env::args().skip(1).peekable();
     while let Some(arg) = args.next() {
+        if arg == "--types" && args.peek().is_some_and(|next| next.ends_with(".json")) {
+            dumps.extend(args.next());
+            continue;
+        }
         let mut value = |flag: &str| args.next().unwrap_or_else(|| panic!("{flag} needs a value"));
         match arg.as_str() {
             "--emit" => lowered = value("--emit") == "lowered",
@@ -196,12 +212,48 @@ fn main() -> ExitCode {
         options.qt_imports = if qt.is_empty() { qt_imports() } else { qt };
     }
 
-    let load = Load { files: &Disk, root, imports, with, selectors };
+    let mut read = Vec::new();
+    for dump in &dumps {
+        let text = match std::fs::read_to_string(dump) {
+            Ok(text) => text,
+            Err(error) => {
+                eprintln!("{dump}:1:1: {error}");
+                return ExitCode::FAILURE;
+            }
+        };
+        match ljos_web::dump::read(dump, &text) {
+            Ok(types) => read.push((dump.clone(), types)),
+            Err(error) => {
+                eprintln!("{error}");
+                return ExitCode::FAILURE;
+            }
+        }
+    }
+    let stand_ins = match ljos_web::dump::stand_ins(&read) {
+        Ok(stand_ins) => stand_ins,
+        Err(error) => {
+            eprintln!("{error}");
+            return ExitCode::FAILURE;
+        }
+    };
+    // Where the stand-ins are shown: the project's directory, which a tool
+    // that compiles each file on its own names every time.
+    let shown = root.clone().or_else(|| dumps.first().and_then(|dump| Path::new(dump).parent().map(Path::to_path_buf)));
+    let shown = shown.map(|shown| if shown.as_os_str().is_empty() { PathBuf::from(".") } else { shown });
+    let shown = shown.and_then(|shown| Disk.canonicalize(&shown));
+    let layered = shown.filter(|_| !read.is_empty()).map(|shown| Layered::new(&Disk, &shown, stand_ins));
+    let dumped = layered.as_ref().map(|layered| layered.directory().to_path_buf());
+    let files_of: &dyn Files = match &layered {
+        Some(layered) => layered,
+        None => &Disk,
+    };
+    let load = Load { files: files_of, root, imports, with, selectors, dumped };
     let (mut compiled, mut failed) = (0, 0);
     for file in &files {
         let path = Path::new(file);
         let Some(done) = load.compile(path, &mut options, alone, lowered) else {
-            let error = std::fs::read_to_string(path).err().map_or_else(|| "could not be read".to_string(), |error| error.to_string());
+            let error = std::fs::read_to_string(path)
+                .err().map_or_else(|| "could not be read".to_string(), |error| error.to_string());
             eprintln!("{file}: {error}");
             failed += 1;
             continue;

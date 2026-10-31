@@ -22,6 +22,9 @@ struct Request {
     modules: Option<BTreeSet<String>>,
     #[serde(default)]
     installed: Vec<String>,
+    /// The project's type dumps among `files`; every `ljostypes.json` of
+    /// them when not given.
+    types: Option<Vec<String>>,
 }
 
 #[derive(Deserialize)]
@@ -103,6 +106,7 @@ fn answer(request: Request) -> Response {
         imports: request.imports,
         modules: request.modules,
         installed: request.installed,
+        types: request.types,
     };
     match given::compile(&request) {
         Ok(compiled) => Response::Compiled {

@@ -320,7 +320,10 @@ dependencies = [
  "qml_front",
  "qml_syntax",
  "qt_types",
+ "serde",
+ "serde_json",
  "solidjs-compiler",
+ "thiserror",
 ]
 
 [[package]]
