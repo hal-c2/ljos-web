@@ -10,7 +10,7 @@
 // control, and a program that uses three of them needs those three.
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, delimiter, dirname, isAbsolute, join, relative, resolve as resolvePath, sep } from "node:path";
 import { searchForWorkspaceRoot } from "vite";
 
@@ -261,6 +261,36 @@ function exported(context, file, names = new Set(), seen = new Set()) {
   }
   return names;
 }
+
+// Vite's watcher says nothing of a second change of a file within 50 ms of
+// the first, then or after (chokidar's throttle): a save right after a save
+// would go unseen. So a change is told, and the file is looked at once more
+// after that window and told again if it is not what it was. Nothing is
+// looked at while nothing changes.
+const AFTER_THROTTLE_MS = 60;
+const trailing = new Map();
+const stamp = (file) => {
+  try {
+    const { mtimeMs, size, ino } = statSync(file);
+    return `${mtimeMs}:${size}:${ino}`;
+  } catch {
+    return "gone";
+  }
+};
+function told(file, send) {
+  clearTimeout(trailing.get(file));
+  const seen = stamp(file);
+  send();
+  const timer = setTimeout(() => {
+    trailing.delete(file);
+    if (stamp(file) !== seen) told(file, send);
+  }, AFTER_THROTTLE_MS);
+  timer.unref?.();
+  trailing.set(file, timer);
+}
+
+/** What a program reads as data rather than shows. */
+const DATA = /\.(?:json|txt|csv|xml)$/i;
 
 // - `qmlc`, `args`: the compiler and what it is run with, or a function of
 //   the file compiled that gives that: `--urls-on-assignment` for a program
@@ -576,11 +606,19 @@ export default function qml({
     // Qt's own QML is outside the project. What the runtime itself is built
     // on that is no module (SQLite, for QtQuick.LocalStorage) is bundled
     // for the browser before a page asks for it.
+    //
+    // A file a program reads as data (a `JsonListModel`'s `source`) stays a
+    // file of the site, however small: inlined as a `data:` address it could
+    // not be fetched again, and `reload()` would read what was built.
     config(config) {
       const optimizeDeps = { include: ["ljos-web > sql.js"] };
-      if (roots.length === 0) return { optimizeDeps };
+      const build =
+        config.build?.assetsInlineLimit === undefined
+          ? { assetsInlineLimit: (file) => (DATA.test(file) ? false : undefined) }
+          : undefined;
+      if (roots.length === 0) return { optimizeDeps, build };
       const allowed = config.server?.fs?.allow ? [] : [searchForWorkspaceRoot(config.root ?? process.cwd())];
-      return { optimizeDeps, server: { fs: { allow: [...allowed, ...roots] } } };
+      return { optimizeDeps, build, server: { fs: { allow: [...allowed, ...roots] } } };
     },
     async resolveId(source, importer, options) {
       if (source.startsWith(VIRTUAL) || source.startsWith(THEME)) return source;
@@ -797,6 +835,19 @@ export default function qml({
       // A theme file: its theme module is taken again, and nothing else.
       const reading = [...themes].filter(([, watched]) => watched.includes(file)).map(([id]) => this.environment.moduleGraph.getModuleById(id));
       if (reading.length > 0) return reading.filter(Boolean);
+      // A file no module imports, saved, made or removed: what the page reads
+      // of it at run time (a JsonListModel's `source`) is read again
+      // (`ljos-web/files`), where it is served from. Nothing is reloaded.
+      if (modules.length === 0 && !/\.(qml|html)$/.test(file) && this.environment.name === "client") {
+        const paths = [`${server.config.base}@fs${file.startsWith("/") ? "" : "/"}${file.split(sep).join("/")}`];
+        for (const root of [base, server.config.publicDir].filter(Boolean)) {
+          const inside = relative(root, file);
+          if (!inside.startsWith("..") && !isAbsolute(inside)) paths.unshift(`${server.config.base}${inside.split(sep).join("/")}`);
+        }
+        const hot = this.environment.hot;
+        told(file, () => hot.send({ type: "custom", event: "ljos-web:file", data: { paths } }));
+        return;
+      }
       if (!file.endsWith(".qml")) return;
       const graph = this.environment.moduleGraph;
       const directory = dirname(file);
