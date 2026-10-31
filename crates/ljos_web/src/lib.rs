@@ -13,6 +13,7 @@
 
 mod build;
 mod dialects;
+pub mod files;
 pub use qml_front::discover;
 mod lower;
 mod project;
