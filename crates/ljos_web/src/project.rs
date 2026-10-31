@@ -178,6 +178,15 @@ impl Project {
         self.front.add_type(uri, name, file);
     }
 
+    /// The name a module gives the file `file` as one of its types
+    /// (`Ljos.Design.Colors`), when one does by the file's own name: what a
+    /// page that holds the module's singletons knows them by.
+    pub(crate) fn type_name(&self, file: &str) -> Option<String> {
+        let name = file.rsplit('/').next()?;
+        let uri = self.front.modules_of(file).iter().find(|uri| self.front.module_type(uri, name) == Some(file))?;
+        Some(format!("{uri}.{name}"))
+    }
+
     /// Says the project has the module `uri`: a `qmldir` in its place, or a
     /// build that makes it, whose types may all be C++.
     pub fn add_module(&mut self, uri: &str) {

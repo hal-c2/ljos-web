@@ -120,7 +120,13 @@ fn lower_from<'a>(
         // QtObject) leaves the name to the type, as QML does: an import
         // comes before the file's own directory.
         let one = if shadows { format!("{stem}$singleton") } else { stem.to_string() };
-        body.push(b.const_(&one, b.call(b.id("$singleton"), [b.id(&name), b.record(enums)])));
+        let mut arguments = vec![b.id(&name), b.record(enums)];
+        // Known by its module's name, a singleton is one a page can reach
+        // from outside the QML: a theme overrides `Ljos.Design.Colors`.
+        if let Some(known) = project.type_name(&options.name) {
+            arguments.push(b.string(&known));
+        }
+        body.push(b.const_(&one, b.call(b.id("$singleton"), arguments)));
         // `Calendar.December`, of a `Calendar` that is the one `T.Calendar`.
         body.push(lower.extends(&one, &root));
         body.push(b.export_default(b.id(&one)));
