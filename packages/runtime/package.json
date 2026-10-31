@@ -10,6 +10,7 @@
     "./runtime": "./index.js",
     "./runtime.css": "./style.css",
     "./object": "./object.js",
+    "./reload": "./reload.js",
     "./QtQuick": "./QtQuick/index.js",
     "./QtQuick/Effects": "./QtQuick/Effects/index.js",
     "./QtQuick/Layouts": "./QtQuick/Layouts/index.js",

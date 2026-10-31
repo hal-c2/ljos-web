@@ -47,11 +47,13 @@ const pending = new Proxy(Object.create(null), {
 let early = 0;
 
 // The object an `id` names, made before the type that fills it in runs.
-export function $object() {
+// The id is kept for a reload, which knows an object by it (`reload.js`).
+export function $object(id) {
   const self = Object.create(pending);
   const [track, touch] = counted(0, getOwner());
   hidden(self, "$track", track);
   hidden(self, "$touch", touch);
+  if (id) hidden(self, "$id", id);
   return self;
 }
 
@@ -1473,6 +1475,10 @@ function create(Type, props) {
     hidden(self, "$props", props);
     hidden(self, "$owner", getOwner());
     hidden(self, "$parent", parent);
+    // A root that may be reloaded knows what was made in what, so that a
+    // reload can tell which object of the new tree is which of the old.
+    const born = parent ? parent.$born : making;
+    if (born) record(self, born);
     hidden(self, "$slots", Object.create(null));
     hidden(self, "$groups", Object.create(null));
     hidden(self, "$signals", Object.create(null));
@@ -1533,6 +1539,16 @@ function create(Type, props) {
     if (props.$self) self.$touch(next);
     return self;
   });
+}
+
+// What a reloadable root has made, in the order it was made, under what it
+// was made in: what goes is taken out, so a view scrolled a long way holds
+// only the delegates it shows.
+let making = null;
+function record(self, born) {
+  hidden(self, "$born", []);
+  born.push(self);
+  if (getOwner()) onCleanup(() => born.splice(born.indexOf(self) >>> 0, 1));
 }
 
 // The objects declared inside one, created now: its `children` prop,
@@ -1856,22 +1872,60 @@ export function instantiate(component, data, item, owner = item?.$owner ?? getOw
   return runWithOwner(owner, () =>
     createRoot((dispose) => {
       const object = untrack(() => complete(() => inside(item ?? null, () => component(data))));
+      // A view's row is what a reload knows its delegate by.
+      if (object?.$born && typeof data?.$index === "number") hidden(object, "$row", data.$index);
       return { object, dispose };
     }),
   );
 }
 
+// The roots in the page that a reload may carry state across, and whether
+// a root is one unless `mount` is told: in a dev server, once a compiled
+// file has said it can be reloaded (`$hot`).
+export const mounted = new Set();
+let hot = false;
+export const $hot = () => void (hot = true);
+
+// A component's object, apart from the page: `reload.js` makes the new root
+// with it before the old one goes.
+export function made(Component, props, reloadable) {
+  return createRoot((dispose) => {
+    const outer = making;
+    making = reloadable ? [] : null;
+    try {
+      const object = untrack(() => complete(() => Component(props)));
+      // What is done with the object once it is in the page (a Window
+      // told where it is, the keyboard given back) is the root's too.
+      const owner = getOwner();
+      return { object, dispose, within: (act) => runWithOwner(owner, act) };
+    } catch (error) {
+      dispose();
+      throw error;
+    } finally {
+      making = outer;
+    }
+  });
+}
+
 // Puts a component's object in the page. A Window is told what it was put
 // in and with what `options`: it fills the element, or with
-// `{ fill: false }` gives it the size its QML says.
+// `{ fill: false }` gives it the size its QML says. With
+// `{ reloadable: true }` (the default in a dev server) `reload` can give it
+// a new component and keep its state.
 export function mount(Component, element, props = {}, options = {}) {
-  return createRoot((dispose) => {
-    const object = untrack(() => complete(() => Component(props)));
-    element.classList.add("q-scene");
-    if (object.$node) element.append(object.$node);
-    object.$mounted?.(element, options);
-    return { object, dispose };
-  });
+  const reloadable = options.reloadable ?? hot;
+  const root = made(Component, props, reloadable);
+  element.classList.add("q-scene");
+  if (root.object.$node) element.append(root.object.$node);
+  root.within(() => root.object.$mounted?.(element, options));
+  if (!reloadable) return root;
+  const handle = { object: root.object, Component, element, props, options, root };
+  handle.dispose = () => {
+    mounted.delete(handle);
+    handle.root.dispose();
+  };
+  mounted.add(handle);
+  return handle;
 }
 
 // What a component declares, put on its root object so that it can be
