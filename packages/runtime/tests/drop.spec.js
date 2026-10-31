@@ -1,0 +1,234 @@
+// A live shell (docs/LJOS_WEB.md A9): a visitor drops a shell of their own
+// over a site's blocks. The page is tests/drop.html, a site built with
+// `liveShell` whose own shell is scenes/drop/Shell.qml.
+import { expect, test } from "./open.js";
+
+async function opened(page) {
+  await page.goto("/drop.html");
+  await page.waitForFunction(() => window.ready);
+  await page.evaluate(() => {
+    const search = (from, name) => {
+      const queue = [...(from.children ?? [])];
+      while (queue.length) {
+        const at = queue.shift();
+        if (at.objectName === name) return at;
+        queue.push(...(at.children ?? []));
+      }
+      return null;
+    };
+    window.named = (name) => (window.scene.objectName === name ? window.scene : search(window.scene, name));
+  });
+}
+
+const read = (page, name, property) => page.evaluate(([name, property]) => window.named(name)?.[property], [name, property]);
+
+async function dropped(page, text) {
+  await page.evaluate((text) => window.live.drop(text), text);
+  await page.evaluate(() => window.flush());
+}
+
+const errors = (page) => page.getByRole("alert");
+
+// A shell of the visitor's over the site's one block. Its root is of the
+// site's root's type: one of another type is a new tree (reload.js), whose
+// plain items start anew while the blocks keep theirs.
+const MINE = `import QtQuick
+import Shop
+
+Column {
+    objectName: "mine"
+    Rectangle { id: swatch; objectName: "swatch"; width: 40; height: 20; color: "red" }
+    Basket { id: basket; objectName: "basket"; onAdded: (count) => label.said = count }
+    Text { id: label; objectName: "label"; property int said: 0; text: "Mine " + basket.count + " " + said }
+}
+`;
+
+const over = (body) => `import QtQuick
+import Shop
+
+Column {
+    Basket { id: basket; objectName: "basket" }
+${body}
+}
+`;
+
+test.describe("A visitor drops a shell of their own", () => {
+  test.beforeEach(({ page }) => page.addInitScript(() => localStorage.clear()));
+
+  test("A dropped shell is shown and keeps the blocks' state", async ({ page }) => {
+    await opened(page);
+    expect(await read(page, "label", "text")).toBe("Default 0");
+    await page.evaluate(() => {
+      window.before = window.named("basket");
+      window.before.add();
+      window.before.add();
+      window.named("swatch").color = "blue";
+      window.blue = String(window.named("swatch").color);
+    });
+    await dropped(page, MINE);
+    await expect(errors(page)).toBeHidden();
+    expect(await read(page, "mine", "objectName")).toBe("mine");
+    // The block is the one the site's shell showed, with what was bought.
+    expect(await page.evaluate(() => window.named("basket") === window.before)).toBe(true);
+    expect(await read(page, "label", "text")).toBe("Mine 2 0");
+    // A plain item by the same id keeps what the visitor gave it.
+    expect(await page.evaluate(() => String(window.named("swatch").color) === window.blue)).toBe(true);
+    // The shell's handler hears the block's event.
+    await page.evaluate(() => window.named("basket").add());
+    await page.evaluate(() => window.flush());
+    expect(await read(page, "label", "text")).toBe("Mine 3 3");
+    expect(await page.locator("#scene").textContent()).toContain("Mine 3 3");
+  });
+
+  test("A shell is opened from a file with the keyboard", async ({ page }) => {
+    await opened(page);
+    const open = page.getByRole("button", { name: "Open a shell…" });
+    await open.focus();
+    const chooser = page.waitForEvent("filechooser");
+    await page.keyboard.press("Enter");
+    await (await chooser).setFiles({ name: "Mine.qml", mimeType: "text/plain", buffer: Buffer.from(MINE) });
+    await expect(page.getByRole("status")).toHaveText("Your shell is shown");
+    expect(await read(page, "mine", "objectName")).toBe("mine");
+  });
+
+  test("A shell is dropped on the page", async ({ page }) => {
+    await opened(page);
+    const transfer = await page.evaluateHandle((text) => {
+      const transfer = new DataTransfer();
+      transfer.items.add(new File([text], "Mine.qml", { type: "text/plain" }));
+      return transfer;
+    }, MINE);
+    const region = page.getByRole("region", { name: "Shell" });
+    await region.dispatchEvent("dragover", { dataTransfer: transfer });
+    await region.dispatchEvent("drop", { dataTransfer: transfer });
+    await expect(page.getByRole("status")).toHaveText("Your shell is shown");
+    expect(await read(page, "mine", "objectName")).toBe("mine");
+  });
+
+  test("A broken shell says where it is broken and the page keeps running", async ({ page }) => {
+    await opened(page);
+    await page.evaluate(() => window.named("basket").add());
+    await dropped(page, "import QtQuick\n\nColumn {\n    Text { text: ( }\n}\n");
+    await expect(errors(page)).toBeVisible();
+    await expect(errors(page)).toHaveText(/^Shell\.qml:4:\d+: /);
+    // The site's shell is still shown, and still runs.
+    expect(await read(page, "label", "text")).toBe("Default 1");
+    await page.evaluate(() => window.named("basket").add());
+    await page.evaluate(() => window.flush());
+    expect(await read(page, "label", "text")).toBe("Default 2");
+    // A shell that compiles takes the error away.
+    await dropped(page, MINE);
+    await expect(errors(page)).toBeHidden();
+  });
+});
+
+test.describe("A shell names only what is in its scope", () => {
+  test.beforeEach(({ page }) => page.addInitScript(() => localStorage.clear()));
+
+  const refusals = [
+    ["a page global", over(`    Text { text: window.location.href }`), /^Shell\.qml:6:\d+: `window` is not in a shell's scope/],
+    ["eval", over(`    Text { text: eval("1") }`), /^Shell\.qml:6:\d+: `eval` is not in a shell's scope/],
+    [
+      "a Qt function that reaches out",
+      over(`    MouseArea { onClicked: Qt.openUrlExternally("https://example.com") }`),
+      /^Shell\.qml:6:\d+: `Qt\.openUrlExternally` is not in a shell's scope/,
+    ],
+    ["a member by a string", over(`    Text { text: basket["constructor"] }`), /^Shell\.qml:6:\d+: .*not by a string/],
+    [
+      "a URL the shell names for an image",
+      over(`    Image { source: "https://tracker.example/pixel.png" }`),
+      /^Shell\.qml:6:\d+: Image\.source takes only a URL a block gives/,
+    ],
+    [
+      "an import beyond QtQuick and the blocks",
+      "import QtQuick\nimport QtQuick.Controls\nimport Shop\n\nColumn {}\n",
+      /^Shell\.qml:2:\d+: a shell may import only `QtQuick`, `Shop`, not `QtQuick\.Controls`/,
+    ],
+  ];
+  for (const [what, text, said] of refusals) {
+    test(`A shell that names ${what} is refused where it does`, async ({ page }) => {
+      await opened(page);
+      await dropped(page, text);
+      await expect(errors(page)).toHaveText(said);
+      expect(await read(page, "label", "text")).toBe("Default 0");
+      expect(await page.evaluate(() => localStorage.length)).toBe(0);
+    });
+  }
+
+  test("A URL a block gives is one a shell may show", async ({ page }) => {
+    await opened(page);
+    await dropped(page, over(`    Image { objectName: "cover"; source: basket.cover }`));
+    await expect(errors(page)).toBeHidden();
+    expect(await page.evaluate(() => String(window.named("cover").source) === String(window.named("basket").cover))).toBe(true);
+  });
+});
+
+test.describe("A binding that runs away", () => {
+  test.use({ told: [/Shell\.qml:6:\d+: the binding of text ran past its budget of 100000 steps and was stopped/] });
+  test.beforeEach(({ page }) => page.addInitScript(() => localStorage.clear()));
+
+  test("A runaway binding is stopped and warned of", async ({ page }) => {
+    const warned = [];
+    page.on("console", (message) => message.type() === "warning" && warned.push(message.text()));
+    await opened(page);
+    await dropped(page, over(`    Text { objectName: "label"; text: { var n = 0; while (true) { n = n + 1 } return n } }`));
+    await expect(errors(page)).toBeHidden();
+    expect(warned.some((line) => /Shell\.qml:6:\d+: the binding of text ran past its budget/.test(line))).toBe(true);
+    // The page still runs.
+    await page.evaluate(() => window.named("basket").add());
+    await page.evaluate(() => window.flush());
+    expect(await read(page, "basket", "count")).toBe(1);
+  });
+});
+
+test.describe("A visitor's shell is kept", () => {
+  test("A reload of the page shows the shell the visitor dropped", async ({ page }) => {
+    await page.goto("/drop.html");
+    await page.evaluate(() => localStorage.clear());
+    await opened(page);
+    await dropped(page, MINE);
+    await page.reload();
+    await opened(page);
+    expect(await read(page, "mine", "objectName")).toBe("mine");
+    await expect(page.getByRole("status")).toHaveText("Your shell is shown");
+  });
+
+  test("Reset shows the site's shell and forgets the visitor's", async ({ page }) => {
+    await page.goto("/drop.html");
+    await page.evaluate(() => localStorage.clear());
+    await opened(page);
+    await page.evaluate(() => window.named("basket").add());
+    await dropped(page, MINE);
+    await page.getByRole("button", { name: "Reset" }).click();
+    await page.evaluate(() => window.live.idle());
+    expect(await read(page, "label", "text")).toBe("Default 1");
+    expect(await page.evaluate(() => localStorage.length)).toBe(0);
+    await page.reload();
+    await opened(page);
+    expect(await read(page, "label", "text")).toBe("Default 0");
+  });
+});
+
+test.describe("A visitor publishes their shell", () => {
+  test.beforeEach(({ page }) => page.addInitScript(() => localStorage.clear()));
+
+  test("Publish gives the site's hook the shell and what it uses, and shows its answer", async ({ page }) => {
+    await opened(page);
+    await dropped(page, MINE);
+    await page.getByRole("button", { name: "Publish" }).click();
+    await expect(page.getByRole("status")).toHaveText("Published: https://shells.example/1");
+    const published = await page.evaluate(() => window.published);
+    expect(published.text).toBe(MINE);
+    expect(published.meta.blocks).toEqual([{ module: "Shop", name: "Basket", version: "1.0" }]);
+    expect(published.meta.hash).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  test("A publish that fails says so", async ({ page }) => {
+    await opened(page);
+    await dropped(page, MINE);
+    await page.evaluate(() => (window.publishing.error = "the shelf is full"));
+    await page.getByRole("button", { name: "Publish" }).click();
+    await expect(errors(page)).toHaveText("Publish failed: the shelf is full");
+    expect(await read(page, "mine", "objectName")).toBe("mine");
+  });
+});
