@@ -141,9 +141,16 @@ test.describe("on a save in the dev server", () => {
   const file = join(import.meta.dirname, "scenes/saved/Saved.qml");
   // As an editor saves: the watcher sees the whole new text at once, never
   // the empty file a write in place starts with.
-  const save = (text) => {
+  // Vite's watcher drops a change to a file within 50 ms of the last one
+  // (chokidar's throttle), and an editor never saves that fast: the saves
+  // here are kept apart so that each is heard, however fast the page is.
+  let saved = 0;
+  const save = async (text) => {
+    const early = saved + 100 - Date.now();
+    if (early > 0) await new Promise((resolve) => setTimeout(resolve, early));
     writeFileSync(`${file}.next`, text);
     renameSync(`${file}.next`, file);
+    saved = Date.now();
   };
 
   test("the dev server keeps the state, and keeps the last good mount over a file that does not compile", async ({ page }) => {
@@ -162,23 +169,23 @@ test.describe("on a save in the dev server", () => {
       });
       await page.keyboard.type("typed");
       let said = heard(/\[vite\] hot updated: \/scenes\/saved\/Saved\.qml/, "the save of a new colour");
-      save(text.replace('color: "black"', 'color: "red"'));
+      await save(text.replace('color: "black"', 'color: "red"'));
       await said;
       expect(await read(page, () => [window.scene !== window.first, String(window.objects.field.color)])).toEqual([true, "#ff0000"]);
       expect(await read(page, () => [window.objects.field.text, window.objects.field.activeFocus])).toEqual(["typed", true]);
 
       await page.evaluate(() => (window.second = window.scene));
       said = heard(/\[vite\] Failed to reload \/scenes\/saved\/Saved\.qml/, "the save that does not compile");
-      save(text.replace('color: "black"', 'color: "red"\n        width:'));
+      await save(text.replace('color: "black"', 'color: "red"\n        width:'));
       await said;
       expect(await read(page, () => [window.scene === window.second, window.scene.$node.isConnected, window.objects.field.text])).toEqual([true, true, "typed"]);
 
       said = heard(/\[vite\] hot updated: \/scenes\/saved\/Saved\.qml/, "the save that compiles again");
-      save(text.replace('color: "black"', 'color: "blue"'));
+      await save(text.replace('color: "black"', 'color: "blue"'));
       await said;
       expect(await read(page, () => [String(window.objects.field.color), window.objects.field.text])).toEqual(["#0000ff", "typed"]);
     } finally {
-      save(text);
+      await save(text);
     }
   });
 });
