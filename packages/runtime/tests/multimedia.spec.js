@@ -45,6 +45,15 @@ const element = (page, name = "player") =>
     };
   }, name);
 
+// What the machine has plugged in is not the scene's: its first answer would
+// be told as `outputs 1` beside what a test expects to hear. A test about the
+// devices says which there are, after this.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    if (navigator.mediaDevices) navigator.mediaDevices.enumerateDevices = async () => [];
+  });
+});
+
 test("a player with nothing to play is as Qt's", async ({ page }) => {
   await open(page, "mediaplayer");
   const read = await page.evaluate(() => {
