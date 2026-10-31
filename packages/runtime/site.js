@@ -260,23 +260,30 @@ export function builtWith(directory = runtime) {
 // Puts the built site at `from` where `out` is, whole: copied beside it and
 // renamed, so that whatever serves `out`, or a copy that fails, never meets
 // half a site. A sibling, since a rename stays on one file system.
-export function replaceSite(from, out) {
+export function replaceSite(from, out, rename = renameSync) {
   mkdirSync(dirname(out), { recursive: true });
   const fresh = `${out}.new-${randomUUID()}`;
   const old = `${out}.old-${randomUUID()}`;
   try {
     cpSync(from, fresh, { recursive: true });
     const there = existsSync(out);
-    if (there) renameSync(out, old);
+    if (there) rename(out, old);
     try {
-      renameSync(fresh, out);
+      rename(fresh, out);
     } catch (error) {
-      if (there) renameSync(old, out);
+      if (there) {
+        try {
+          rename(old, out);
+        } catch {
+          // It is the only copy of the last good site, so it stays, and is said.
+          throw new SiteError(`${out} could not be replaced (${error.message}) or put back: the last good site is at ${old}`);
+        }
+      }
       throw error;
     }
+    rmSync(old, { recursive: true, force: true });
   } finally {
     rmSync(fresh, { recursive: true, force: true });
-    rmSync(old, { recursive: true, force: true });
   }
 }
 

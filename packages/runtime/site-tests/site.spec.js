@@ -1,10 +1,11 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
-import { extname, join, normalize } from "node:path";
+import { basename, dirname, extname, join, normalize, resolve } from "node:path";
 import { expect, test } from "@playwright/test";
 import { buildSite, builtWith, replaceSite, STAMP } from "../site.js";
 import { bundle, design, qmlc } from "./bundle.js";
+import { runnable } from "./compiler-check.js";
 
 const port = Number(process.env.LJOS_SITE_PORT ?? 4480);
 // Below a path of its own, as a site is put on a host among others.
@@ -147,6 +148,37 @@ test("a site is put in place whole: a copy that fails leaves the one there, and 
   } finally {
     made.remove();
   }
+});
+
+test("the only good copy of a site is kept when it cannot be put back", () => {
+  const made = bundle("project");
+  try {
+    mkdirSync(made.out, { recursive: true });
+    writeFileSync(join(made.out, "index.html"), "the site there\n");
+    const built = join(made.root, "build");
+    mkdirSync(built);
+    writeFileSync(join(built, "index.html"), "the new site\n");
+    // The first rename, of what is there aside, works; nothing after it does.
+    let renames = 0;
+    const failing = (from, to) => {
+      if (++renames > 1) throw new Error("the disk says no");
+      renameSync(from, to);
+    };
+    expect(() => replaceSite(built, made.out, failing)).toThrow(/the last good site is at /);
+    const kept = readdirSync(made.root).filter((name) => name.includes(".old-"));
+    expect(kept).toHaveLength(1);
+    expect(readFileSync(join(made.root, kept[0], "index.html"), "utf8")).toBe("the site there\n");
+    expect(readdirSync(made.root).some((name) => name.includes(".new-"))).toBe(false);
+  } finally {
+    made.remove();
+  }
+});
+
+test("a compiler named bare is found on the PATH, as it is run", () => {
+  const env = { PATH: dirname(resolve(qmlc)) };
+  expect(runnable(basename(qmlc), env)).toBe(true);
+  expect(runnable(basename(qmlc), { PATH: join(dirname(resolve(qmlc)), "no-such") })).toBe(false);
+  expect(runnable(join(dirname(resolve(qmlc)), "no-such-compiler"))).toBe(false);
 });
 
 test("the commit a site is said to be built with is ljos-web's checkout's, not that of a host it is installed in", () => {
