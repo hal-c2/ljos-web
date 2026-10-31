@@ -13,11 +13,11 @@ import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, isAbsolute, join, posix, resolve, sep } from "node:path";
+import { dirname, isAbsolute, join, posix, resolve } from "node:path";
 import { build } from "vite";
 import { findTheme } from "./find-theme.js";
 import { provided } from "./modules.js";
-import qml, { hasControls, installed } from "./vite.js";
+import qml, { compilerAt, hasControls, installed } from "./vite.js";
 
 const runtime = import.meta.dirname;
 
@@ -114,11 +114,6 @@ function qmldir(text) {
   }
   return { module, files };
 }
-
-// The compiler as what is run from anywhere: it is run from inside the bundle,
-// where a path the caller gave would mean something else. A bare name is left
-// for the PATH.
-const compilerAt = (qmlc) => (qmlc.includes("/") || qmlc.includes(sep) ? resolve(qmlc) : qmlc);
 
 // What each of `paths` imports, as the compiler reads it: a reading of ours
 // would differ from its parser somewhere, and what it lets past is then what

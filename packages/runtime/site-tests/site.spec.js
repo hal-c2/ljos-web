@@ -1,9 +1,11 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { basename, delimiter, dirname, extname, join, normalize, relative, resolve } from "node:path";
 import { expect, test } from "@playwright/test";
+import { build } from "vite";
 import { buildSite, builtWith, replaceSite, STAMP } from "../site.js";
+import qml from "../vite.js";
 import { bundle, design, qmlc } from "./bundle.js";
 import { runnable } from "./compiler-check.js";
 
@@ -174,13 +176,41 @@ test("the only good copy of a site is kept when it cannot be put back", () => {
   }
 });
 
+// Where the compiler is, whatever `QMLC` calls it.
+const compilerFile = qmlc.includes("/") ? resolve(qmlc) : spawnSync("sh", ["-c", 'command -v "$0"', qmlc], { encoding: "utf8" }).stdout.trim();
+
+// A relative path to the compiler, whatever `QMLC` is: a link beside the
+// bundle, so a bare name on the PATH gives one too.
+function relativeCompiler(made) {
+  const link = join(made.root, "linked-compiler");
+  symlinkSync(compilerFile, link);
+  const given = relative(process.cwd(), link);
+  expect(given).toContain("/");
+  return given;
+}
+
 // The fixture has a theme, so both the runs inside the bundle are of this path.
 test("a compiler named by a path from where the build was asked for is found", async () => {
   const made = bundle("project");
   try {
-    const given = relative(process.cwd(), resolve(qmlc));
-    expect(given).toContain("/");
-    await expect(buildSite({ dir: made.dir, out: made.out, qmlc: given, with: [design] })).resolves.toMatchObject({ out: made.out });
+    await expect(buildSite({ dir: made.dir, out: made.out, qmlc: relativeCompiler(made), with: [design] })).resolves.toMatchObject({ out: made.out });
+  } finally {
+    made.remove();
+  }
+});
+
+// The plugin reads an entry's theme from the project's directory.
+test("the Vite plugin finds a compiler named by a path from where it was given", async () => {
+  const made = bundle("project");
+  try {
+    await build({
+      configFile: false,
+      root: made.dir,
+      logLevel: "silent",
+      plugins: [qml({ qmlc: relativeCompiler(made), args: ["--root", made.dir], standins: [design] })],
+      build: { outDir: made.out, emptyOutDir: true, target: "esnext", lib: { entry: join(made.dir, "Shell.qml"), formats: ["es"], fileName: "page" } },
+    });
+    expect(readdirSync(made.out).length).toBeGreaterThan(0);
   } finally {
     made.remove();
   }
@@ -190,7 +220,7 @@ test("a compiler named bare is looked for on the PATH by the build", async () =>
   const made = bundle("project");
   const path = process.env.PATH;
   try {
-    process.env.PATH = `${dirname(resolve(qmlc))}${delimiter}${path}`;
+    process.env.PATH = `${dirname(compilerFile)}${delimiter}${path}`;
     await expect(buildSite({ dir: made.dir, out: made.out, qmlc: basename(qmlc), with: [design] })).resolves.toMatchObject({ out: made.out });
   } finally {
     process.env.PATH = path;
@@ -199,10 +229,10 @@ test("a compiler named bare is looked for on the PATH by the build", async () =>
 });
 
 test("a compiler named bare is found on the PATH, as it is run", () => {
-  const env = { PATH: dirname(resolve(qmlc)) };
+  const env = { PATH: dirname(compilerFile) };
   expect(runnable(basename(qmlc), env)).toBe(true);
-  expect(runnable(basename(qmlc), { PATH: join(dirname(resolve(qmlc)), "no-such") })).toBe(false);
-  expect(runnable(join(dirname(resolve(qmlc)), "no-such-compiler"))).toBe(false);
+  expect(runnable(basename(qmlc), { PATH: join(dirname(compilerFile), "no-such") })).toBe(false);
+  expect(runnable(join(dirname(compilerFile), "no-such-compiler"))).toBe(false);
 });
 
 test("the commit a site is said to be built with is ljos-web's checkout's, not that of a host it is installed in", () => {

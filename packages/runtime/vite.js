@@ -303,6 +303,11 @@ function told(file, send) {
 /** What a program reads as data rather than shows. */
 const DATA = /\.(?:json|txt|csv|xml)$/i;
 
+// The compiler as what is run from anywhere: it is run from other directories,
+// where a path the caller gave would mean something else. A bare name is left
+// for the PATH.
+export const compilerAt = (qmlc) => (qmlc.includes("/") || qmlc.includes(sep) ? resolvePath(qmlc) : qmlc);
+
 // - `qmlc`, `args`: the compiler and what it is run with, or a function of
 //   the file compiled that gives that: `--urls-on-assignment` for a program
 //   that sets `QML_COMPAT_RESOLVE_URLS_ON_ASSIGNMENT`, whose paths are taken
@@ -397,6 +402,7 @@ export default function qml({
     (typeof style === "function" ? style(importer) : style) ?? set(importer)?.Controls?.Style?.replace(/^Default$/, "Basic");
   const stood = (file) => (typeof standins === "function" ? standins(file) : standins) ?? [];
   const rooted = (file) => (typeof root === "function" ? root(file) : root);
+  qmlc = compilerAt(qmlc);
   const looked = (file) => (typeof importPaths === "function" ? importPaths(file) : importPaths) ?? [];
   const compiled = new Map();
   let serving = false;
