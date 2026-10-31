@@ -1079,6 +1079,55 @@ What a reader is told holds (A7's `speaks`): Ljós's Button says
 `switch`, Slider `slider`, ComboBox `combobox` and its current text.
 A TextField's text box is the input inside it, not the item.
 
+### A21. Ljos.Blocks: slots, contributions, a user's shell
+
+`import Ljos.Blocks` is `ljos-web/Ljos/Blocks`, Ljós's own module as
+ljos_quick builds it natively (ljos-ui ADR 0003), held to the same
+scenarios: ljos-ui's `features/blocks/slots.feature` and
+`shell-loader.feature` at 0cd3287c, ported scenario for scenario to
+`packages/runtime/tests/blocks.spec.js` on both kernels.
+
+- **`Contribution`** (`slot`, `mode`: `Append`/`Replace`/`Prepend`,
+  `delegate`, `order`) joins a registry of the page's by its slot's
+  name while it lives. A Slot it is given in a list (`contributions`)
+  shows it too, whatever its name.
+- **`Slot`** (`name`, `contributions`, `delegate`, `count`) makes one
+  item of each contribution's delegate beside itself in its parent, as
+  a Repeater does, so a Row or a layout around it lays them out:
+  prepended ones by `order` then the order they were made, its own
+  delegate, then the rest the same way; a `Replace` takes the place of
+  all before it. An item is kept while what it was made of is still
+  shown. A handler of a contribution's item that throws is warned of
+  (`Contribution: …`) and takes that contribution out of every Slot;
+  the page goes on.
+- **`ShellLoader`** (`source`, `fallback`; `error`, `item`, `status`:
+  `Null`/`Ready`/`Fallback`/`Error`; `reload()`) shows `source`, or
+  `fallback` when it does not work, and says why in `error` as
+  `file:line: message`, as natively. A source that is a file of the
+  build is compiled QML like any other. One that is not (a URL, a
+  user's own `Shell.qml`) is fetched and compiled in the page with
+  `ljos-web/compiler`, which is imported only then; its objects are
+  placed (`$at`), so what a handler of it throws is said at the line of
+  the object it is written in. A fault while it is made, or in one of
+  its handlers later, drops it and shows the fallback; a fallback that
+  fails too gives `why\nfallback: …` and status `Error`; a fault in a
+  fallback is the page's, as natively. `reload()` fetches and compiles
+  the source again and answers why it failed or `""`: one that fails
+  leaves the shell that runs; one that works takes its place and keeps
+  the state of what is in both (`reload.js`'s `carry`, by id, name,
+  row, or type and place, A13).
+
+DECISION: where a throw in a shell compiled in the page is said is the
+line of the object whose handler threw, not of the `throw`: compiled
+QML has no map back to its statements, and the compiler places objects.
+
+DECISION: a handler's throw goes to the boundary of the object it is
+an object of (`$fault`, set by `bounded(boundary, make)` in
+`object.js` and inherited by what is made inside it), else the page's
+`reportError` as before. The boundary costs a page that never imports
+Ljos.Blocks 53 B gzip (+103 B before gzip): it has to be where handlers
+run.
+
 ## Part II — An application's own Rust types
 
 ## 1. The shape of a native type on the web

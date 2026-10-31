@@ -377,6 +377,22 @@ ListView {
     model: JsonListModel { id: people; source: "data/people.json" }
     delegate: Text { required property string name; text: name }
 }
+## Blocks and a user's shell
+`import Ljos.Blocks` gives a page Ljós's `Contribution`, `Slot` and
+`ShellLoader` (docs/LJOS_WEB.md A21). A `ShellLoader` whose `source` is a
+file of the build shows it as any compiled QML; one whose `source` is not
+(a user's own `Shell.qml` at a URL) fetches and compiles it in the page
+with `ljos-web/compiler`, loaded only then, and shows `fallback` with
+`error` saying `file:line: message` when it does not work. `reload()`
+compiles it again and keeps the state of what is in both.
+import Ljos.Blocks
+Item {
+    Contribution { slot: "toolbar"; Rectangle { width: 20; height: 20 } }
+    ShellLoader {
+        anchors.fill: parent
+        source: "user/Shell.qml"      // not in the build: compiled in the page
+        fallback: "Default.qml"       // in the build
+    }
 ## What is supported
 
 Of the language: property declarations (with `required`, `readonly`,
