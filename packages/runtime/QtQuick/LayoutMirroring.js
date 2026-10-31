@@ -3,14 +3,14 @@
 // Its left anchors become right ones, a positioner or layout runs the other
 // way, and text asked to the left is set to the right. `childrenInherit`
 // says the same of everything inside the item that does not say otherwise.
-import { createSignal } from "solid-js";
 import { defineType, QtObject, slot } from "../object.js";
 import { lazy } from "./compute.js";
+import { signal } from "#kernel";
 
 // Nearly no program mirrors anything, and then no item has to ask what it
 // is in: this says whether an attached object was ever made. Every item
 // that can be mirrored reads it, so it changes once and never again.
-const [made, setMade] = createSignal(false, { ownedWrite: true });
+const [made, setMade] = signal(false);
 
 const next = (version) => version + 1;
 

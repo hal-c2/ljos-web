@@ -1,6 +1,5 @@
 // TextArea: lines of text to edit, as a style dresses them, and what a
 // Flickable scrolls when there are more of them than it has room for.
-import { createSignal, untrack } from "solid-js";
 import { defineType, derived, effect, QtObject, slot } from "../../object.js";
 import { Rect } from "../../QtQml/values.js";
 import { lazy, sized } from "../compute.js";
@@ -8,6 +7,7 @@ import { advance, describe, metrics } from "../font.js";
 import { TextEdit } from "../TextInput.js";
 import { methods, properties, resolve, setup, signals } from "./field.js";
 import { ScrollView } from "./ScrollView.js";
+import { signal, untrack } from "#kernel";
 
 // The font Qt makes a text in before it is told of any: an area is as tall
 // as a line of it until its style says how tall it is.
@@ -122,7 +122,7 @@ export const TextArea = defineType("TextArea", TextEdit, {
     },
   },
   setup(self) {
-    const [attached, attach] = createSignal(null, { ownedWrite: true });
+    const [attached, attach] = signal(null, self.$owner);
     const flickable = lazy(self, () => attached() ?? viewed(self));
     setup(self, flickable);
     const mine = self.$field;

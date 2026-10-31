@@ -1,9 +1,9 @@
 // CheckBox: checked, unchecked or, with `tristate`, partially checked.
 // RadioButton: one of its siblings is checked.
-import { untrack } from "solid-js";
 import { defineType, effect } from "../../object.js";
 import { AbstractButton } from "./AbstractButton.js";
 import { loose, put } from "./Control.js";
+import { untrack } from "#kernel";
 
 // Qt's `setCheckState`: `checked` is whether the state is Checked.
 function setCheckState(self, state) {

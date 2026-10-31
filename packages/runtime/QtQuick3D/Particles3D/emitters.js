@@ -24,13 +24,13 @@
 //
 // Not here: `emitMode` and `depthBias` are kept and do nothing: a particle
 // sets off as `velocity` says whatever surface it starts on.
-import { untrack } from "solid-js";
 import { defineType, derived, group, QtObject } from "../../object.js";
 import { color } from "../../QtQuick/color.js";
 import * as math from "../math.js";
 import { Node } from "../Node.js";
 import { AMOUNT, COLOR, END_SCALE, enrol, LIFE, list, random, SCALE, seenFrom, SPIN, spread, three, TURN, vectors, within } from "./core.js";
 import { looking } from "./particles.js";
+import { untrack } from "#kernel";
 
 const HERE = Object.freeze([0, 0, 0]);
 

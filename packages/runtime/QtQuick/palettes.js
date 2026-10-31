@@ -3,10 +3,11 @@
 // A role somebody set is the item's and that of every item inside it. What
 // nobody set is answered by what the item is: Qt's own colours for an item,
 // a style's for a control (`$colours`).
-import { runWithOwner, untrack } from "solid-js";
+import { runWithOwner } from "solid-js";
 import { Item } from "./Item.js";
 import { Palette } from "./Palette.js";
 import { Window } from "./Window.js";
+import { untrack } from "#kernel";
 
 const PREFIX = "palette$";
 

@@ -1,11 +1,11 @@
 // Slider: a value between `from` and `to`, chosen by dragging a handle
 // along a groove, by the arrow keys or by the wheel. `position` is where the
 // handle is, from 0 to 1: a style puts the handle there.
-import { untrack } from "solid-js";
 import { defineType, derived, effect, settle, slot } from "../../object.js";
 import { styleHints } from "../../QtQml/application.js";
 import { Key, LeftButton } from "../keycodes.js";
 import { Control, keeps, loose, put } from "./Control.js";
+import { untrack } from "#kernel";
 
 export const Horizontal = 1;
 export const Vertical = 2;

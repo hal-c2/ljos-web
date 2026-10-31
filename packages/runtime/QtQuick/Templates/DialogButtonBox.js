@@ -2,12 +2,12 @@
 // them. It makes one from its `delegate` for each of its `standardButtons`,
 // shares its width among them, and says what a click on one means by the
 // role of the button: `accepted`, `rejected`, `applied` and so on.
-import { untrack } from "solid-js";
 import { defineType, derived, effect, instantiate, last, onChange, QtObject, settle, slot, whenComplete } from "../../object.js";
 import { setFocus } from "../focus.js";
 import { AbstractButton } from "./AbstractButton.js";
 import { Button } from "./Button.js";
 import { containerOf, Container } from "./Container.js";
+import { untrack } from "#kernel";
 
 const InvalidRole = -1;
 const AcceptRole = 0;

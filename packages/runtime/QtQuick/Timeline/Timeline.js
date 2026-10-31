@@ -26,7 +26,7 @@
 // - The property's type is not known, only its value: see between.js.
 // - `Timeline.keyframeGroups` and `animations` are what was written in the
 //   timeline; nothing can be added to them afterwards.
-import { createSignal, onCleanup, runWithOwner, untrack } from "solid-js";
+import { onCleanup, runWithOwner } from "solid-js";
 import { Quaternion, Vector2d, Vector3d, Vector4d } from "../../QtQml/values.js";
 import { contents, defineType, derived, effect, flush, gather, group, inside, located, QtObject, whenComplete } from "../../object.js";
 import { curve } from "../animation/easing.js";
@@ -34,8 +34,8 @@ import { Property } from "../animation/property.js";
 import { lazy } from "../compute.js";
 import { kindOf, NOTHING } from "./between.js";
 import { keyframes as stored, sort } from "./keyframes.js";
+import { signal, untrack } from "#kernel";
 
-const WRITABLE = { ownedWrite: true };
 const NONE = Object.freeze([]);
 const f = Math.fround;
 // The values Qt keeps in single precision.
@@ -211,8 +211,8 @@ export const KeyframeGroup = defineType("KeyframeGroup", QtObject, {
     }),
   },
   setup(self) {
-    const [loaded, setLoaded] = createSignal(NONE, WRITABLE);
-    const [arrived, setArrived] = createSignal("", WRITABLE);
+    const [loaded, setLoaded] = signal(NONE, self.$owner);
+    const [arrived, setArrived] = signal("", self.$owner);
     const state = (self.$keyframes = {
       declared: NONE,
       loaded,

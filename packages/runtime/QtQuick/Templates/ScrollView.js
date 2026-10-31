@@ -1,12 +1,12 @@
 // ScrollView: a pane whose content item is a Flickable, the one declared in
 // it or one of its own, with the scroll bars its style attaches to it.
-import { untrack } from "solid-js";
 import { contents, defineType, derived, effect, inside, settle, slot, whenComplete } from "../../object.js";
 import { Flickable } from "../Flickable.js";
 import { Key } from "../keycodes.js";
 import { receive, wheels } from "../pointer.js";
 import { Pane } from "./Pane.js";
 import { AlwaysOff, interact, ScrollBar } from "./ScrollBar.js";
+import { untrack } from "#kernel";
 
 // The Flickable the view makes when its QML gives it none.
 function own(self) {

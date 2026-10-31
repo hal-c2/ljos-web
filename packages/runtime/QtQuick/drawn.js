@@ -1,10 +1,9 @@
+import { signal } from "#kernel";
 // What is drawn of an object while an animator has it. Qt's animators move
 // an item where the scene is drawn and tell the property where it got to
 // only when they end, so whatever draws one of these properties asks here
 // first: an item's place, scale, turn and opacity, a shader's uniforms.
-import { createSignal } from "solid-js";
 
-const WRITABLE = { ownedWrite: true };
 const next = (version) => version + 1;
 
 // All that is drawn otherwise than the properties say, or nothing.
@@ -27,7 +26,7 @@ export function draw(self, key, value) {
   let drawn = self.$drawn;
   if (!drawn) {
     if (value === undefined) return;
-    const [track, touch] = createSignal(0, WRITABLE);
+    const [track, touch] = signal(0, self.$owner);
     drawn = self.$drawn = { values: null, track, touch };
     self.$touch(next);
   }

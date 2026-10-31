@@ -4,11 +4,11 @@
 // A DialogButtonBox that is its header or its footer is the dialog's: it
 // has the dialog's standard buttons, and a click on one of them accepts the
 // dialog, rejects it, or says what else is wanted of it.
-import { untrack } from "solid-js";
 import { defineType, effect, last, onChange, settle, slot, whenComplete } from "../../object.js";
 import { OtherFocusReason, setFocus } from "../focus.js";
 import { DialogButtonBox, roleOf, standardButtons } from "./DialogButtonBox.js";
 import { forward, forwarded, Popup } from "./Popup.js";
+import { untrack } from "#kernel";
 
 const Rejected = 0;
 const Accepted = 1;

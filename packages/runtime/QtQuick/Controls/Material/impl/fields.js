@@ -3,13 +3,13 @@
 // the way when the field has the focus or a text. What is painted and when
 // things move are Qt's (`qquickmaterialtextcontainer.cpp`,
 // `qquickmaterialplaceholdertext.cpp`).
-import { untrack } from "solid-js";
 import { defineType, derived, effect, slot } from "../../../../object.js";
 import { curve } from "../../../animation/easing.js";
 import { colorValue, css } from "../../../color.js";
 import { Item } from "../../../Item.js";
 import { PlaceholderText } from "../../impl/texts.js";
 import { arc, given, pictured, timed } from "../../painting.js";
+import { untrack } from "#kernel";
 
 const MOVE = 300;
 const CORNER = 4;

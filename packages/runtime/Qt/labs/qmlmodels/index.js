@@ -4,12 +4,11 @@
 // As in Qt (qqmltablemodel.cpp, qqmlabstractcolumnmodel.cpp): the roles a
 // column has, and the type of what each holds, are learnt from the first row
 // the model is given, and a row given later has to be like it.
-import { createSignal, untrack } from "solid-js";
 import { contents, defineType, effect, QtObject, slot, whenComplete } from "../../../object.js";
 import { modelIndex } from "../../../QtQuick/model.js";
 import { settle } from "../../../QtQuick/settle.js";
+import { signal, untrack } from "#kernel";
 
-const WRITABLE = { ownedWrite: true };
 const next = (version) => version + 1;
 const NOWHERE = modelIndex(null, -1);
 
@@ -409,7 +408,7 @@ export const TableModel = defineType("TableModel", QtObject, {
     },
   },
   setup(self) {
-    const [version, bump] = createSignal(0, WRITABLE);
+    const [version, bump] = signal(0, self.$owner);
     const m = (self.$model = {
       rows: [],
       columns: [],

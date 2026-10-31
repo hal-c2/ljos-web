@@ -7,7 +7,7 @@
 // What is under the row is made when it is first shown. It is not pressed
 // itself: the row is, as in Qt, and passes the press on to what is under the
 // pointer once it is open.
-import { onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { defineType, effect, group, instantiate, onChange, QtObject, settle, signal, slot } from "../../object.js";
 import { styleHints } from "../../QtQml/application.js";
 import { Property } from "../animation/property.js";
@@ -16,6 +16,7 @@ import { AbstractButton, setPressed, stopPressAndHold, stopPressRepeat } from ".
 import { put } from "./Control.js";
 import { ItemDelegate } from "./ItemDelegate.js";
 import { clamp, close, nothing } from "./Slider.js";
+import { untrack } from "#kernel";
 
 const NOTHING = Object.freeze({});
 

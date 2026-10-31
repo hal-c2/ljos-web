@@ -2,14 +2,13 @@
 // content item is, or has in it, the view that turns: a PathView for a
 // tumbler that wraps, a ListView for one that does not. The tumbler says
 // how big the rows are and which is current, and the view says where it is.
-import { createSignal, untrack } from "solid-js";
 import { defineType, derived, effect, QtObject, settle, slot } from "../../object.js";
 import { Key } from "../keycodes.js";
 import { ListView } from "../ListView.js";
 import { PathView } from "../PathView.js";
 import { Control, loose } from "./Control.js";
+import { signal, untrack } from "#kernel";
 
-const WRITABLE = { ownedWrite: true };
 const NONE = [];
 
 const isTumbler = (item) => item.$type.chain.includes(Tumbler);
@@ -191,8 +190,8 @@ export const Tumbler = defineType("Tumbler", Control, {
     },
   },
   setup(self) {
-    const [wraps, wrap] = createSignal(true, WRITABLE);
-    const [current, turn] = createSignal(-1, WRITABLE);
+    const [wraps, wrap] = signal(true, self.$owner);
+    const [current, turn] = signal(-1, self.$owner);
     const mine = (self.$tumbler = {
       wraps,
       wrap,

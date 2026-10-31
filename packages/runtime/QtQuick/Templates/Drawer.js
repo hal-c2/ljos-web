@@ -1,11 +1,11 @@
 // Drawer: a popup that slides in from an edge of its window, and that the
 // mouse or a finger drags in and out. `position` says how far in it is, and
 // its `enter` and `exit` are what move it.
-import { untrack } from "solid-js";
 import { defineType, effect, settle, slot } from "../../object.js";
 import { Property } from "../animation/property.js";
 import { canTake, takeExclusive, watch } from "../pointer.js";
 import { contains, edge, itemOf, overlayOf, Popup } from "./Popup.js";
+import { untrack } from "#kernel";
 
 const TopEdge = 1;
 const LeftEdge = 2;

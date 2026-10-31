@@ -4,18 +4,17 @@
 // the browser. What QML reads of it is computed as Qt computes it: the size
 // of the frame, which is the item's implicit size, and the rectangle the
 // frame is painted in.
-import { createSignal, untrack } from "solid-js";
 import { defineType, derived, effect, settle } from "../object.js";
 import { Rect } from "../QtQml/values.js";
 import { lazy, rules } from "../QtQuick/compute.js";
 import { Item } from "../QtQuick/Item.js";
+import { signal, untrack } from "#kernel";
 
 // What is inside the item is over the picture, and gets its presses.
 rules(`
 .qq-video { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }
 `);
 
-const WRITABLE = { ownedWrite: true };
 const STRETCH = 0;
 const FIT = 1;
 const CROP = 2;
@@ -128,8 +127,8 @@ export const VideoOutput = defineType("VideoOutput", Item, {
     },
   },
   setup(self) {
-    const [player, show] = createSignal(null, WRITABLE);
-    const [cleared, clear] = createSignal(false, WRITABLE);
+    const [player, show] = signal(null, self.$owner);
+    const [cleared, clear] = signal(false, self.$owner);
     self.$video = {
       player,
       show,

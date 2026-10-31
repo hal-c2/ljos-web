@@ -1,12 +1,12 @@
 // Dial: a value between `from` and `to`, chosen by turning a handle round.
 // `angle` is where the handle is, in degrees clockwise from twelve o'clock,
 // between `startAngle` and `endAngle`.
-import { untrack } from "solid-js";
 import { defineType, effect, settle, slot } from "../../object.js";
 import { styleHints } from "../../QtQml/application.js";
 import { Key, LeftButton } from "../keycodes.js";
 import { Control, keeps, loose, put } from "./Control.js";
 import { bounded, clamp, close, fitted, keep, nothing, now, scaled, SnapMode, snapPosition, step } from "./Slider.js";
+import { untrack } from "#kernel";
 
 const InputMode = { Circular: 0, Horizontal: 1, Vertical: 2 };
 const WrapDirection = { Clockwise: 0, CounterClockwise: 1 };

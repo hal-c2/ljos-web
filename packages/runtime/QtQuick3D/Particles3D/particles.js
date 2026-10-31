@@ -10,13 +10,14 @@
 // Not here: a sprite's `lights`, `castsReflections` and a particle's
 // `hasTransparency` are kept and do nothing, and so is all of
 // ModelBlendParticle3D, which draws nothing.
-import { onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { defineType, derived, effect, group, inside, instantiate, QtObject } from "../../object.js";
 import { Quaternion, Vector3d, Vector4d } from "../../QtQml/values.js";
 import { rgba } from "../../QtQuick/color.js";
 import * as math from "../math.js";
 import { kept, Object3D } from "../Node.js";
 import { enrol, enrolled, three, vectors, within } from "./core.js";
+import { untrack } from "#kernel";
 
 const NOTHING = Object.freeze({});
 

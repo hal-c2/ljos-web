@@ -10,12 +10,13 @@
 // Not here: a session in a headset (WebXR), an XrItem's content, hands,
 // anchors, passthrough, and `rayPick`, which finds what View3D's `pick`
 // finds: nothing.
-import { onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { defineType, derived, effect, flush, inside as within, QtObject, slot } from "../../object.js";
 import * as math from "../math.js";
 import { inside, Node } from "../Node.js";
 import { Camera, Model } from "../scene.js";
 import { View3D } from "../View3D.js";
+import { untrack } from "#kernel";
 
 // How high the eyes of someone standing are, a unit being a centimetre,
 // and how much they see up and down, in degrees.

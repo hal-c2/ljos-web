@@ -1,10 +1,11 @@
 // DelayButton: checked by being held for long enough. `progress` goes from
 // 0 to 1 while it is held, as the `transition` a style gives it says.
-import { onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { defineType, settle } from "../../object.js";
 import { Property } from "../animation/property.js";
 import { AbstractButton } from "./AbstractButton.js";
 import { put } from "./Control.js";
+import { untrack } from "#kernel";
 
 const full = (self) => Math.abs(untrack(() => self.progress) - 1) < 1e-12;
 

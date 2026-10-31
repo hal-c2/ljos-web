@@ -1,11 +1,11 @@
 // PageIndicator: a dot for every page and which of them is the current one.
 // The dots are the style's: a Repeater of `delegate` over `count`, in the
 // content item. When `interactive`, a press of a dot makes its page current.
-import { untrack } from "solid-js";
 import { $component, defineType, settle } from "../../object.js";
 import { LeftButton } from "../keycodes.js";
 import { touch, track } from "../model.js";
 import { Control, put, within } from "./Control.js";
+import { untrack } from "#kernel";
 
 // The dots: the children of the content item, less what repeats them.
 const dots = (self) => untrack(() => (self.contentItem?.children ?? []).filter((child) => !child.$repeat));

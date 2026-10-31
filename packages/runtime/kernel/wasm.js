@@ -6,7 +6,7 @@
 // crosses. Solid still renders: what a Solid computation reads of the graph
 // it follows through a signal of its own (a face), which the graph tells
 // when the node changes.
-import { createSignal, getObserver, onCleanup, runWithOwner, untrack } from "solid-js";
+import { createMemo, createSignal, getObserver, onCleanup, runWithOwner, untrack as unfollowed } from "solid-js";
 
 export const WASM = true;
 
@@ -38,21 +38,23 @@ function number(of) {
 // computing for ever): it is kept, the graph finishes, and it is thrown
 // again on this side once the call into the graph returns.
 let thrown = null;
-// How many bindings of the graph's are being evaluated: a read then is the
-// graph's to track.
-let evaluating = 0;
+// Whether a binding of the graph's is being evaluated and has not since
+// said `untrack`: a read then is the graph's to record. A Solid computation
+// run inside the evaluation follows through its face instead.
+let tracking = false;
 
 const imports = {
   ljos: {
     evaluate(index) {
-      evaluating++;
+      const was = tracking;
+      tracking = true;
       try {
         return runs[index]() ? 1 : 0;
       } catch (error) {
         thrown ??= { error };
         return 0;
       } finally {
-        evaluating--;
+        tracking = was;
       }
     },
     changed(index) {
@@ -74,7 +76,21 @@ function rethrow() {
 
 // Whether a read now is followed by anything: a binding of the graph's or
 // a Solid computation.
-export const followed = () => evaluating > 0 || getObserver() !== null;
+export const followed = () => tracking || getObserver() !== null;
+
+// Solid's `untrack` for both: what is read inside is followed neither by a
+// Solid computation nor by the binding of the graph's being evaluated, as
+// an object a binding makes reads what it is made of without the binding
+// coming to depend on it.
+export function untrack(work) {
+  if (!tracking) return unfollowed(work);
+  tracking = false;
+  try {
+    return unfollowed(work);
+  } finally {
+    tracking = true;
+  }
+}
 
 function dispose(of) {
   const index = number(of);
@@ -107,7 +123,7 @@ export const cell = (owner) => made(k.ljos_cell(), owner);
 // A binding: `run` evaluates it and says whether it gave something new.
 export function binding(owner, run) {
   const index = k.ljos_binding();
-  runs[index] = () => untrack(run);
+  runs[index] = () => unfollowed(run);
   return made(index, owner);
 }
 
@@ -118,14 +134,28 @@ export function read(of, owner) {
   if (index === undefined) return;
   if (getObserver()) {
     let face = faces[index];
-    if (!face) {
-      face = faces[index] = runWithOwner(owner ?? null, () => createSignal(0, WRITABLE));
-      watchers[index] = k.ljos_follow(index);
-    }
+    if (!face) face = faces[index] = runWithOwner(owner ?? null, () => faced(index));
     face[0]();
+    return;
   }
-  k.ljos_read(index);
+  if (tracking) k.ljos_read(index);
+  else k.ljos_pull(index);
   rethrow();
+}
+
+// What a Solid computation follows a node through: told when a change may
+// have reached the node, it asks the graph in Solid's own flush, and what
+// gives the version it had stops there, as a memo of Solid's does.
+function faced(index) {
+  const [told, tell] = createSignal(0, WRITABLE);
+  const seen = createMemo(() => {
+    told();
+    const version = k.ljos_pull(index);
+    rethrow();
+    return version;
+  });
+  watchers[index] = k.ljos_follow(index);
+  return [seen, tell];
 }
 
 // The value kept for the node changed: what depends on it is told now.
@@ -145,15 +175,17 @@ export function version(owner) {
 
 // Solid's `createSignal` on the graph: a value kept here, as a cell the
 // graph's bindings and Solid's computations both follow.
-export function signal(value, owner = null) {
+// `equals: false` tells of every write, the same value or not.
+export function signal(value, owner = null, { equals } = {}) {
   const index = cell(owner);
+  const same = equals === false ? () => false : Object.is;
   const get = () => {
     read(index, owner);
     return value;
   };
   const set = (next) => {
     if (typeof next === "function") next = next(value);
-    if (Object.is(next, value)) return value;
+    if (same(next, value)) return value;
     value = next;
     touch(index);
     return value;

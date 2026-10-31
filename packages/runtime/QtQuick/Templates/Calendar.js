@@ -1,9 +1,9 @@
 // Calendar: the months by name, `Calendar.January` being 0 as a month of a
 // JavaScript date is. And CalendarModel: a row for every month between two
 // dates, each with the `month` and the `year` it is.
-import { untrack } from "solid-js";
 import { defineType, effect, QtObject, slot } from "../../object.js";
 import { AbstractListModel, reset } from "../model.js";
+import { untrack } from "#kernel";
 
 const Month = {
   January: 0,

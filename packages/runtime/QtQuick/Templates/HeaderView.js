@@ -6,11 +6,11 @@
 // table model it is given, or of the followed view's model when it is given
 // none; and a model that is no table (a list, an array, a number) as it is,
 // laid out along the header.
-import { untrack } from "solid-js";
 import { defineType, derived } from "../../object.js";
 import { indexed, tabular } from "../cells.js";
 import { columnsOf, modelIndex, rowsOf } from "../model.js";
 import { TableView } from "../TableView.js";
+import { untrack } from "#kernel";
 
 const Horizontal = 1;
 const Vertical = 2;

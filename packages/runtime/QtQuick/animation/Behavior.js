@@ -2,12 +2,11 @@
 // value it was given at once; what it reads as moves there, by the
 // animation. So the Behavior owns what the property shows (the slot's
 // `shown`), and follows the value under it.
-import { createMemo, createRenderEffect, onCleanup, untrack } from "solid-js";
-import { contents, defineType, group, QtObject, slot, whenComplete } from "../../object.js";
+import { createRenderEffect, onCleanup } from "solid-js";
+import { contents, defineType, group, memo, QtObject, slot, whenComplete } from "../../object.js";
 import { RUNNING, STOPPED } from "./jobs.js";
 import { display, Property } from "./property.js";
-
-const SYNC = { sync: true };
+import { untrack } from "#kernel";
 
 function stop(behavior) {
   const job = behavior.job;
@@ -99,7 +98,7 @@ export const Behavior = defineType("Behavior", QtObject, {
       });
       slot(self, "targetProperty$object").provide(object);
       slot(self, "targetProperty$name").provide(name.replaceAll("$", "."));
-      const target = createMemo(() => property.target(), SYNC);
+      const target = memo(() => property.target());
       // From now on the property reads as what is shown. It is where it is
       // to begin with: nothing moves until it is given another value.
       behavior.to = untrack(target);

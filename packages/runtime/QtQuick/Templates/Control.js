@@ -5,7 +5,7 @@
 // The control says how big its two items are, and they say how big it would
 // like to be (`implicitContentWidth`, `implicitBackgroundWidth`): a style
 // computes `implicitWidth` from those.
-import { onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { defineType, derived, effect, settle, slot } from "../../object.js";
 import { locale } from "../../QtQml/locale.js";
 import { styleHints } from "../../QtQml/application.js";
@@ -16,6 +16,7 @@ import { mirrored } from "../LayoutMirroring.js";
 import { CancelGrabExclusive, drop, gone, hoverable, receive, UngrabExclusive, wheels } from "../pointer.js";
 import { font } from "./font.js";
 import { palette } from "./theme.js";
+import { untrack } from "#kernel";
 
 // Makes the items a control is given its children: `background`, `label`,
 // `header`. `read` is run with what is tracked and returns them; one that

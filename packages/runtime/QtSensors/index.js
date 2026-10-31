@@ -11,8 +11,9 @@
 // Not here: the other sensors Qt has (light, pressure, compass, tilt...),
 // which are named and say so when used; `axesOrientationMode`, the buffers
 // and the output ranges, which are kept and do nothing.
-import { onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { defineType, derived, QtObject, settle, slot, whenComplete } from "../object.js";
+import { untrack } from "#kernel";
 
 const MOTION = "devicemotion";
 const backend = () => typeof DeviceMotionEvent !== "undefined";

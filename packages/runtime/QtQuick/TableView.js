@@ -11,8 +11,8 @@
 //
 // Views that follow another through `syncView` are updated after it, from
 // the one none of them follows: its columns and their widths are theirs.
-import { createMemo, createSignal, onCleanup, untrack } from "solid-js";
-import { defineType, derived, effect, flush, flushing, instantiate, QtObject, settle, slot } from "../object.js";
+import { onCleanup } from "solid-js";
+import { defineType, derived, effect, flush, flushing, instantiate, memo, QtObject, settle, slot } from "../object.js";
 import { Point } from "../QtQml/values.js";
 import { changed, depend, make, resized, SAME, Table } from "./cells.js";
 import { Flickable } from "./Flickable.js";
@@ -21,8 +21,8 @@ import { TapHandler } from "./handlers.js";
 import { ControlModifier } from "./keycodes.js";
 import { modelIndex, touch, track } from "./model.js";
 import { cull } from "./placing.js";
+import { signal, untrack } from "#kernel";
 
-const WRITABLE = { ownedWrite: true };
 const next = (version) => version + 1;
 
 // What a rebuild is to do: Qt's RebuildOptions.
@@ -1570,7 +1570,7 @@ export const TableView = defineType("TableView", Flickable, {
     },
   },
   setup(self) {
-    const [version, bump] = createSignal(0, WRITABLE);
+    const [version, bump] = signal(0, self.$owner);
     const schedule = (options) => {
       t.options |= options;
       bump(next);
@@ -1648,11 +1648,11 @@ export const TableView = defineType("TableView", Flickable, {
         },
       },
       // The cells that are selected, by where they are in the model.
-      picked: createMemo(() => {
+      picked: memo(() => {
         const cells = new Set();
         for (const index of self.selectionModel?.selectedIndexes ?? []) cells.add(key(index.column, index.row));
         return cells;
-      }),
+      }, {}),
       // The column and the row a cell of the model is laid out at.
       cellOf(index) {
         if (!index?.valid || index.model !== t.source) return [-1, -1];

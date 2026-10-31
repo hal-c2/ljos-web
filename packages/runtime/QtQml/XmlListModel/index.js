@@ -1,8 +1,9 @@
 // `import QtQml.XmlListModel`: a model whose rows are elements of an XML
 // document, fetched from where `source` says.
-import { onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { contents, defineType, effect, QtObject, settle, slot } from "../../object.js";
 import { AbstractListModel, reset } from "../../QtQuick/model.js";
+import { untrack } from "#kernel";
 
 const NULL = 0;
 const READY = 1;

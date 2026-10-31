@@ -2,11 +2,12 @@
 // view the tumbler turns, and makes another when the tumbler wraps or stops
 // wrapping: a PathView along `path` for one that does, a ListView for one
 // that does not.
-import { onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { defineType, effect, instantiate, slot } from "../../../object.js";
 import { Item } from "../../Item.js";
 import { ListView } from "../../ListView.js";
 import { PathView } from "../../PathView.js";
+import { untrack } from "#kernel";
 
 // A row is as big as the tumbler has it from when it is made: the view lays
 // it out as that, as Qt's does, and the tumbler sees to it after.

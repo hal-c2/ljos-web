@@ -13,12 +13,13 @@
 // Not here: an item that is neither a picture, a Canvas nor another effect
 // as a texture (a page cannot draw its own elements into one), `blending:
 // false`, and a texture that follows a Canvas as it is painted.
-import { createSignal, onCleanup } from "solid-js";
+import { onCleanup } from "solid-js";
 import { defineType, effect, flush, located, QtObject, slot } from "../object.js";
 import { Size } from "../QtQml/values.js";
 import { Color, color } from "./color.js";
 import { drawn as shown } from "./drawn.js";
 import { Item } from "./Item.js";
+import { signal } from "#kernel";
 
 const sheet = new CSSStyleSheet();
 sheet.replaceSync(`.qq-shader { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }`);
@@ -29,8 +30,6 @@ const Uncompiled = 1;
 const Failed = 2;
 const NoCulling = 0;
 const BackFaceCulling = 1;
-
-const WRITABLE = { ownedWrite: true };
 
 // The shaders Qt uses for the stage an effect says nothing of. They have no
 // uniforms: Qt bakes a block of uniforms to a structure, and one of the same
@@ -89,7 +88,7 @@ const texts = new Map();
 function text(url) {
   let record = texts.get(url);
   if (record) return record;
-  const [state, setState] = createSignal(null, WRITABLE);
+  const [state, setState] = signal(null);
   texts.set(url, (record = { state }));
   const took = (source) => {
     if (/^\s*(#version|precision|\/\/|\/\*|void|uniform|attribute|in |varying)/.test(source)) return setState({ source });
@@ -231,7 +230,7 @@ function taken(item) {
   if (!url) return null;
   let record = pictures.get(url);
   if (!record) {
-    const [ready, setReady] = createSignal(false, WRITABLE);
+    const [ready, setReady] = signal(false);
     const element = new Image();
     record = { element, ready };
     pictures.set(url, record);
@@ -394,8 +393,8 @@ export const ShaderEffect = defineType("ShaderEffect", Item, {
     canvas.className = "qq-shader";
     canvas.width = canvas.height = 0;
     self.$node.append(canvas);
-    const [drawn, setDrawn] = createSignal(0, WRITABLE);
-    const [asked, setAsked] = createSignal(false, WRITABLE);
+    const [drawn, setDrawn] = signal(0, self.$owner);
+    const [asked, setAsked] = signal(false, self.$owner);
     const shader = (self.$shader = { canvas, drawn, kept: null, keep: () => setAsked(true) });
     onCleanup(() => shader.kept && gl.deleteTexture(shader.kept));
     const paper = canvas.getContext("bitmaprenderer");

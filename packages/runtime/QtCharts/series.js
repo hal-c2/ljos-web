@@ -1,11 +1,12 @@
 // What a chart shows: bars in sets, and lines through points. A series
 // keeps its numbers and says what is drawn of them between its two axes;
 // the chart gives it the axes, the colours of its theme and a place.
-import { runWithOwner, untrack } from "solid-js";
+import { runWithOwner } from "solid-js";
 import { contents, defineType, derived, QtObject, settle, slot, whenComplete } from "../object.js";
 import { color, colorValue, css, equal, hsva, rgba } from "../QtQuick/color.js";
 import { Point } from "../QtQml/values.js";
 import { apart, box, curved, stroke } from "./plot.js";
+import { untrack } from "#kernel";
 
 const next = (version) => version + 1;
 const NONE = Object.freeze([]);

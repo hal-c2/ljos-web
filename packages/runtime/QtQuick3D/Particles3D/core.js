@@ -1,15 +1,16 @@
 // What the types of the module share: the list of everything a particle
 // system may own, vectors a program binds member by member, and chance.
-import { createSignal, onCleanup } from "solid-js";
+import { onCleanup } from "solid-js";
 import { slot } from "../../object.js";
 import { Vector3d } from "../../QtQml/values.js";
 import * as math from "../math.js";
+import { signal } from "#kernel";
 
 // Every emitter, affector and particle there is. A system finds its own
 // among them: what is declared inside it, and what names it as `system`
 // wherever it was declared.
 const all = new Set();
-const [version, touch] = createSignal(0, { ownedWrite: true });
+const [version, touch] = signal(0);
 
 export function enrol(self) {
   all.add(self);

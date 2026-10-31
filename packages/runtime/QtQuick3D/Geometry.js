@@ -13,13 +13,11 @@
 // Not here: what a morph target moves (the `Target` attributes are taken
 // and not drawn), and a row in which a part does not start at a multiple of
 // what its numbers are long, which OpenGL does not read.
-import { createSignal } from "solid-js";
 import { defineType, flush } from "../object.js";
 import * as math from "./math.js";
 import { Triangles } from "./mesh.js";
 import { Object3D } from "./Node.js";
-
-const WRITABLE = { ownedWrite: true };
+import { signal } from "#kernel";
 
 const PRIMITIVES = { Points: 0, LineStrip: 1, Lines: 2, TriangleStrip: 3, TriangleFan: 4, Triangles: 5 };
 const SEMANTICS = {
@@ -172,7 +170,7 @@ export const Geometry = defineType("Geometry", Object3D, {
     update() {},
   },
   setup(self) {
-    const [held, setHeld] = createSignal(EMPTY, WRITABLE);
+    const [held, setHeld] = signal(EMPTY, self.$owner);
     let made = null;
     self.$held = held;
     // Qt says a shape has changed when it next takes it up to draw it:

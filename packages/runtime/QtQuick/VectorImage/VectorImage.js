@@ -25,12 +25,12 @@
 //   are kept and nothing more: the browser draws as it draws.
 // - Qt reads the file at once; here it is fetched, and until it is there the
 //   VectorImage is what it was before.
-import { untrack } from "solid-js";
 import { defineType, derived, effect, group, inside, located } from "../../object.js";
 import { lazy, rules } from "../compute.js";
 import { measured, picture, shared } from "../Image.js";
 import { Item } from "../Item.js";
 import { Scale } from "../transforms.js";
+import { untrack } from "#kernel";
 
 rules(`
 .qq-vector { position: absolute; left: 0; top: 0; max-width: none; pointer-events: none; }

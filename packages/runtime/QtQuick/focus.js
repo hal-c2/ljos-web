@@ -4,8 +4,9 @@
 // at most one item has `focus`, and the one that has `activeFocus` is found
 // by going from the window down through the scopes that have it. A window
 // here is one tree of items, whatever it was mounted in.
-import { createEffect, onCleanup, runWithOwner, untrack } from "solid-js";
+import { createEffect, onCleanup, runWithOwner } from "solid-js";
 import { settle, slot, whenComplete } from "../object.js";
+import { untrack } from "#kernel";
 
 const parentOf = (item) => {
   const parent = untrack(() => item.parent);
