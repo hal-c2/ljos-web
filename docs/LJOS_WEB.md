@@ -1559,7 +1559,7 @@ JavaScript objects, which a renderer that loads and draws
 asynchronously cannot do, and the answer does not depend on who draws.
 
 DECISION: the 3D wasm's budget is 1,400 kB gzip and its glue's 30 kB,
-against 1,309 kB and 21 kB measured. A page without a View3D on wgpu
+against 1,313 kB and 21 kB measured. A page without a View3D on wgpu
 fetches neither.
 
 DECISION: `QtQuick3D.AssetUtils`' `RuntimeLoader` is a type on both

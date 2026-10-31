@@ -19,7 +19,7 @@ const COMPILER_JS = 5_000;
 const COMPILER = /ljos_web_compiler/;
 // DECISION: View3D's renderer within 1,400 kB gzip of wasm and 30 kB of its
 // glue. Only a page that makes a View3D on it fetches them, once, and that is
-// measured here: 1,309 kB and 21 kB at wgpu 30 with glTF and the snippets. The
+// measured here: 1,313 kB and 21 kB at wgpu 30 with glTF and the snippets. The
 // room is for the features the mapping has yet to reach, not another backend.
 const VIEW3D_WASM = 1_400_000;
 const VIEW3D_JS = 30_000;
