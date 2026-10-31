@@ -77,22 +77,6 @@ test("a site that imports Ljos.Design is refused without the directory of its QM
   }
 });
 
-test("a site that imports the controls is refused where there is no Qt, and the error says Qt is missing", async () => {
-  const made = bundle("project", (dir, m) => {
-    add(dir, m, "Pages/Page.qml", "import QtQuick\nimport QtQuick.Controls\n\nButton { text: \"Go\" }\n");
-    m.imports = [...m.imports, "QtQuick.Controls"].sort();
-  });
-  try {
-    const nowhere = join(made.root, "no-qt");
-    mkdirSync(nowhere);
-    await expect(buildSite({ dir: made.dir, out: made.out, qmlc, qt: [nowhere], with: [design] })).rejects.toThrow(
-      /it imports QtQuick.Controls, which is compiled from an installed Qt 6's own QML, and there is no Qt here/,
-    );
-  } finally {
-    made.remove();
-  }
-});
-
 test("a site is not built inside its own bundle", async () => {
   const made = bundle("project");
   try {

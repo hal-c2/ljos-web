@@ -13,11 +13,14 @@ test("modules.json is what the package exports, with what is compiled from Qt an
     .filter((key) => /^\.\/[A-Z]/.test(key))
     .map((key) => key.slice(2).replaceAll("/", "."));
   for (const module of exported) expect(list.modules).toContainEqual(expect.objectContaining({ module, from: "runtime" }));
-  expect(list.modules).toContainEqual({ module: "QtQuick.Controls", from: "qt", needs: ["qt"] });
+  // The controls are Ljós's own style's QML, which ljos-web holds.
+  expect(list.modules).toContainEqual({ module: "QtQuick.Controls", from: "ljos", needs: [] });
   expect(list.modules).toContainEqual({ module: "Ljos.Design", from: "ljos", needs: ["with"] });
   expect(list.modules).toContainEqual({ module: "QtQuick", from: "runtime", needs: [] });
-  // What the runtime has of a style is its C++ types; its controls are Qt's QML.
-  expect(list.modules).toContainEqual({ module: "QtQuick.Controls.Material", from: "runtime", needs: ["qt"] });
+  // What the runtime has of a style is its C++ types; its controls are
+  // Ljós's QML, and an installed Qt's for a style Ljós has none of.
+  expect(list.modules).toContainEqual({ module: "QtQuick.Controls.Material", from: "runtime", needs: [] });
+  expect(list.modules).toContainEqual({ module: "QtQuick.Controls.Imagine", from: "runtime", needs: ["qt"] });
   // Nothing that is no module: the kernel, the plugin, the builder.
   for (const name of ["runtime", "object", "vite", "site"]) expect(list.modules.map(({ module }) => module)).not.toContain(name);
 });
