@@ -51,6 +51,7 @@ fn uninstalled(document: &QmlDocument<'_>, project: &Project, options: &Options)
             || QtTypeOracle.has_module(uri)
             || RUNTIME.contains(&format!("\"./{path}\""))
             || options.qt_imports.iter().any(|root| root.join(&path).join("qmldir").is_file())
+            || options.installed.iter().any(|module| module == uri)
     };
     document
         .imports

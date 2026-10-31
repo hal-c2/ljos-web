@@ -14,6 +14,7 @@
 mod build;
 mod dialects;
 pub mod files;
+pub mod given;
 pub use qml_front::discover;
 mod lower;
 mod project;
@@ -72,6 +73,9 @@ pub struct Options {
     /// nor the project's, is not installed: an error, when the file is
     /// compiled with its project.
     pub qt_imports: Vec<std::path::PathBuf>,
+    /// The modules that are installed though no directory says so: those a
+    /// page that compiles was built with (`QtQuick.Controls.Basic`).
+    pub installed: Vec<String>,
     pub solid: SolidOptions,
 }
 
@@ -88,6 +92,7 @@ impl Default for Options {
             pictures: None,
             urls_on_assignment: false,
             qt_imports: Vec::new(),
+            installed: Vec::new(),
             solid: SolidOptions::default(),
         }
     }
