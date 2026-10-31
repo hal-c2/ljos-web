@@ -529,7 +529,15 @@ export default function qml({ qmlc = "qmlc", args = [], qt, style, controls, sta
       // Qt's own is compiled once, whichever programs come to it.
       const own = roots.some((root) => file.startsWith(root + sep));
       if (own && compiled.has(file)) return { code: compiled.get(file), map: null };
-      const result = spawnSync(qmlc, [...(typeof args === "function" ? args(file) : args), ...more.flatMap((directory) => ["--with", directory]), ...(selector ? ["--select", selector] : []), file], {
+      // Where Qt's modules are is told, so that a module of the installed
+      // Qt's is one `qmlc` knows to be installed.
+      const given = [
+        ...(typeof args === "function" ? args(file) : args),
+        ...more.flatMap((directory) => ["--with", directory]),
+        ...roots.flatMap((root) => ["--qt", root]),
+        ...(selector ? ["--select", selector] : []),
+      ];
+      const result = spawnSync(qmlc, [...given, file], {
         encoding: "utf8",
       });
       if (result.error) this.error(`could not run ${qmlc}: ${result.error.message}`);

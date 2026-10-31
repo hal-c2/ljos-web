@@ -15,7 +15,8 @@ pub(crate) mod texts;
 mod types;
 
 use oxc_ast::ast::Program;
-use qml_syntax::ast::QmlDocument;
+use qml_front::{QtTypeOracle, TypeOracle};
+use qml_syntax::ast::{QmlDocument, QmlImportSource};
 
 use self::{lower::Lower, scope::Tree, types::Types};
 use crate::{Error, Options, build::B, project::Project};
@@ -27,7 +28,39 @@ pub(crate) fn lower<'a>(
     project: &Project,
     options: &Options,
 ) -> Result<Program<'a>, Vec<Error>> {
+    // A file compiled by itself knows nothing of its project's modules.
+    if options.project.is_some() {
+        let errors = uninstalled(&document, project, options);
+        if !errors.is_empty() {
+            return Err(errors);
+        }
+    }
     lower_from(b, source, document, project, options, &mut 0, false)
+}
+
+/// What the runtime package exports: `"./Qt/labs/settings"` is the module
+/// `Qt.labs.settings`, which Qt's table may not have.
+const RUNTIME: &str = include_str!("../../../../packages/runtime/package.json");
+
+/// The modules `document` imports that nobody has, as Qt says of one: the
+/// project, Qt's table, the runtime and the Qt that is installed.
+fn uninstalled(document: &QmlDocument<'_>, project: &Project, options: &Options) -> Vec<Error> {
+    let installed = |uri: &str| {
+        let path = uri.replace('.', "/");
+        project.has_module(uri)
+            || QtTypeOracle.has_module(uri)
+            || RUNTIME.contains(&format!("\"./{path}\""))
+            || options.qt_imports.iter().any(|root| root.join(&path).join("qmldir").is_file())
+    };
+    document
+        .imports
+        .iter()
+        .filter_map(|import| {
+            let QmlImportSource::Module(uri) = &import.source else { return None };
+            let uri = uri.to_string();
+            (!installed(&uri)).then(|| Error::new(format!("module \"{uri}\" is not installed"), import.span))
+        })
+        .collect()
 }
 
 /// The same, of a document the module of another takes in: `files` is how

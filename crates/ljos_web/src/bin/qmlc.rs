@@ -1,4 +1,4 @@
-//! `qmlc [--emit js|lowered] [--out-dir DIR] [--root DIR] [--with DIR]... [--select NAME]... [--host MODULE] [--runtime MODULE] [--alone] FILE.qml...`
+//! `qmlc [--emit js|lowered] [--out-dir DIR] [--root DIR] [--with DIR]... [--qt DIR]... [--select NAME]... [--host MODULE] [--runtime MODULE] [--alone] FILE.qml...`
 //! `qmlc --types|--qml-types URI...`
 //!
 //! Compiles each QML file to a JavaScript module, and each `.js` file as the
@@ -15,6 +15,12 @@
 //! next to it is read from there instead, and is still the file it was. With
 //! `--alone` it is compiled by itself: it takes only what it declares, and a
 //! type it does not know is taken to be a component.
+//!
+//! A module a file imports has to be installed: one of the project's, of
+//! Qt's table, of the runtime package, or of the Qt that is installed, whose
+//! modules are where `--qt` says (otherwise where `QML_IMPORT_PATH` and
+//! `qtpaths` say). One that is none of these is an error where it is
+//! imported, as it is to Qt.
 //!
 //! `--types` prints, for each module of Qt's, the types Qt has of it in C++:
 //! a line of the URI and its names. That is what a runtime has to have of
@@ -155,6 +161,7 @@ fn modules(project: &mut Project, root: &Path, base: &Path, standing: bool) {
             discover::cmake(&text)
         };
         for module in modules {
+            project.add_module(&module.uri);
             for ty in module.types {
                 let Ok(file) = directory.join(&ty.path).canonicalize() else { continue };
                 let path = relative(base, &file);
@@ -260,6 +267,25 @@ fn project(path: &Path, project_root: Option<&Path>, with: &[PathBuf]) -> Projec
     project
 }
 
+/// Where the Qt that is installed keeps its QML modules, when `--qt` does not
+/// say: what `QML_IMPORT_PATH` names and Qt's own directory, as Qt looks.
+fn qt_imports() -> Vec<PathBuf> {
+    let mut found: Vec<PathBuf> = std::env::var_os("QML_IMPORT_PATH")
+        .map(|paths| std::env::split_paths(&paths).collect())
+        .unwrap_or_default();
+    let own = std::env::var_os("QT_INSTALL_QML").map(PathBuf::from).or_else(|| {
+        ["qtpaths6", "qtpaths", "qmake6"].into_iter().find_map(|tool| {
+            let query = if tool.starts_with("qmake") { "-query" } else { "--query" };
+            let asked = std::process::Command::new(tool).args([query, "QT_INSTALL_QML"]).output().ok()?;
+            let answer = String::from_utf8(asked.stdout).ok()?;
+            let answer = answer.trim();
+            (asked.status.success() && !answer.is_empty()).then(|| PathBuf::from(answer))
+        })
+    });
+    found.extend(own);
+    found
+}
+
 fn main() -> ExitCode {
     let mut options = Options::default();
     let mut lowered = false;
@@ -268,6 +294,7 @@ fn main() -> ExitCode {
     let mut out_dir = None;
     let mut root = None;
     let mut with = Vec::new();
+    let mut qt = Vec::new();
     let mut selectors = Vec::new();
     let mut files = Vec::new();
     let mut args = std::env::args().skip(1);
@@ -278,6 +305,7 @@ fn main() -> ExitCode {
             "--out-dir" => out_dir = Some(value("--out-dir")),
             "--root" => root = Some(PathBuf::from(value("--root"))),
             "--with" => with.push(PathBuf::from(value("--with"))),
+            "--qt" => qt.push(PathBuf::from(value("--qt"))),
             "--select" => selectors.push(value("--select")),
             "--host" => options.host_module = value("--host"),
             "--runtime" => options.runtime_module = value("--runtime"),
@@ -300,6 +328,12 @@ fn main() -> ExitCode {
             }
         }
         return ExitCode::SUCCESS;
+    }
+
+    // Asked only of a file compiled with its project, which is the one whose
+    // imports have to be installed.
+    if !alone {
+        options.qt_imports = if qt.is_empty() { qt_imports() } else { qt };
     }
 
     let (mut compiled, mut failed) = (0, 0);

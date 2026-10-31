@@ -63,6 +63,13 @@ pub struct Options {
     /// `QML_COMPAT_RESOLVE_URLS_ON_ASSIGNMENT`. Otherwise one given to a
     /// property a component declares is taken from the component's file.
     pub urls_on_assignment: bool,
+    /// Where the Qt that is installed keeps its QML modules: a module whose
+    /// `qmldir` is in its place under one of them is Qt's, which the runtime
+    /// puts together from there (`Qt5Compat.GraphicalEffects`). A module
+    /// imported that is neither this, nor in Qt's table, nor the runtime's,
+    /// nor the project's, is not installed: an error, when the file is
+    /// compiled with its project.
+    pub qt_imports: Vec<std::path::PathBuf>,
     pub solid: SolidOptions,
 }
 
@@ -78,6 +85,7 @@ impl Default for Options {
             files: None,
             pictures: None,
             urls_on_assignment: false,
+            qt_imports: Vec::new(),
             solid: SolidOptions::default(),
         }
     }

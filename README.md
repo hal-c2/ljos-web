@@ -48,6 +48,7 @@ cargo run --bin qmlc -- logic.js                  # a script a QML file imports,
 cargo run --bin qmlc -- --emit lowered File.qml   # the tree given to Solid, printed
 cargo run --bin qmlc -- --out-dir out *.qml
 cargo run --bin qmlc -- --root DIR File.qml       # where the project's modules are looked for
+cargo run --bin qmlc -- --qt DIR File.qml         # where the installed Qt's modules are
 cargo run --bin qmlc -- --alone File.qml          # without the files next to it
 cargo run --bin qmlc -- --types QtQuick.Layouts   # the types Qt has of a module in C++
 ```
@@ -153,7 +154,9 @@ next to it and the modules it imports (`ljos_web::Project`; `qmlc` and the
 Vite plugin read the file's directory, its `qmldir` and the directories it
 imports): what a type is, what its properties are and which names are ids of
 an enclosing file are all known when the file is compiled. A name nothing
-declares is a compile error where it is used. `qmlc --alone` compiles a file by
+declares is a compile error where it is used, and so is the import of a
+module nobody has: the project, Qt's table, the runtime or the Qt that is
+installed (`--qt`). `qmlc --alone` compiles a file by
 itself: unknown types are taken to be components.
 
 A file the build keeps in the program is named by where it is in there:

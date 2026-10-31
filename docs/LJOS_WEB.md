@@ -147,6 +147,21 @@ no application in it) and it is what an application's own wasm links,
 so there is **one wasm per page** — the kernel and the application's
 types in one module, never two instances of `ljos_reactive`.
 
+**How `qmlc` finds a module.** `qmlc [--root DIR] [--with DIR]...
+[--qt DIR]... FILE.qml` compiles a file with its project: the modules
+under `--root` (otherwise the nearest directory above the file whose
+`CMakeLists.txt` starts a project) and the stand-ins `--with` names. A
+module the file imports has to be installed, as it has to be for Qt: the
+project's, one of Qt's table (`qt_types`), one the runtime package
+exports (`packages/runtime/package.json`: `Qt.labs.settings`), or one of
+the Qt that is installed, a `qmldir` in its place under a directory
+`--qt` names (otherwise `QML_IMPORT_PATH` and `qtpaths`; the Vite plugin
+passes its `qt` roots). Any other is a compile error where it is
+imported, `Main.qml:2:1: module "No.Such.Module" is not installed`,
+where it used to compile to an import from `ljos-web/No/Such/Module`.
+A file compiled `--alone` has no project, and its imports are not
+checked.
+
 ### A3. What stays JS, what moves (the audit)
 
 From a classification of every `packages/runtime` module against
