@@ -302,7 +302,9 @@ impl<'a, 's> Lower<'a, 's> {
         }
         if !matches!(role, Role::Root(_)) {
             self.uses.kernel.insert("$object");
-            let made = b.const_(handle, b.call(b.id("$object"), []));
+            // An object with an id is known by it across a reload.
+            let named = info.id.map(|id| b.string(id));
+            let made = b.const_(handle, b.call(b.id("$object"), named));
             self.frame().push(made);
         }
 
