@@ -15,6 +15,7 @@ export const modules = {
   "ljos-web/reload": () => import("ljos-web/reload"),
   "ljos-web/theme": () => import("ljos-web/theme"),
   "ljos-web/QtQuick": () => import("ljos-web/QtQuick"),
+  "ljos-web/Ljos/Blocks": () => import("ljos-web/Ljos/Blocks"),
   "ljos-web/QtQuick/Effects": () => import("ljos-web/QtQuick/Effects"),
   "ljos-web/QtQuick/Layouts": () => import("ljos-web/QtQuick/Layouts"),
   "ljos-web/QtQuick/Shapes": () => import("ljos-web/QtQuick/Shapes"),

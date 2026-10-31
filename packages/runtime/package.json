@@ -59,6 +59,7 @@
     "./Qt/labs/synchronizer": "./Qt/labs/synchronizer/index.js",
     "./Qt/labs/qmlmodels": "./Qt/labs/qmlmodels/index.js",
     "./Ljos/Models": "./Ljos/Models/index.js",
+    "./Ljos/Blocks": "./Ljos/Blocks/index.js",
     "./vite": "./vite.js",
     "./site": "./site.js",
     "./theme": "./theme.js",

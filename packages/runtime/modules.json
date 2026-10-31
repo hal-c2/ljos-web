@@ -3,6 +3,11 @@
   "version": 1,
   "modules": [
     {
+      "module": "Ljos.Blocks",
+      "from": "runtime",
+      "needs": []
+    },
+    {
       "module": "Ljos.Design",
       "from": "ljos",
       "needs": [
