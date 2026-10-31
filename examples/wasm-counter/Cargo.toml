@@ -4,23 +4,15 @@ version = "0.0.0"
 edition = "2024"
 license = "MIT"
 publish = false
-description = "Spike: a Rust Counter as a QML type in the browser (docs/LJOS_WEB.md)"
+description = "A Rust Counter as a QML type in the browser, from the same source as on the desktop (docs/LJOS_WEB.md A22)"
 
 # Its own workspace: an application crate, as an Ljós application's native
 # module is, not a part of the compiler's.
 [workspace]
 
-[lib]
-crate-type = ["cdylib", "rlib"]
+[features]
+# All an application's manifest says for the web: `ljos-web faces` builds with it.
+web = ["ljos/web"]
 
 [dependencies]
-# The CLI that reads what this writes into the .wasm must be the same
-# version; the mise task fetches 0.2.114 (see mise-tasks/wasm-counter).
-wasm-bindgen = "=0.2.114"
-js-sys = "0.3"
-
-[profile.release]
-opt-level = "z"
-lto = true
-codegen-units = 1
-panic = "abort"
+ljos = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "f8e705d4e206e45e20f04c5645e9e8a62f68317f", default-features = false }
