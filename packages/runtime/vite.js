@@ -135,6 +135,48 @@ function extract(tool, uri, folder, directory) {
 // what the runtime is given.
 const BAKED = ".qsb";
 
+// A project's type dumps (`ljostypes.json`, as `ljos types` writes them),
+// and where `qmlc --types` shows the stand-ins it makes of them: files that
+// are on no disk, which `qmlc` compiles from the dumps.
+const DUMP = "ljostypes.json";
+const DUMPED = ".ljostypes";
+
+// Every dump under `directory`, as a project keeps them beside the code that
+// writes each. What is no source of the project's is not looked in: a
+// directory starting with a dot (the stand-ins' own), a file selector's
+// (`+Material`), or `node_modules`.
+function dumpsUnder(directory, found = []) {
+  let entries;
+  try {
+    entries = readdirSync(directory, { withFileTypes: true });
+  } catch {
+    return found;
+  }
+  for (const entry of entries.sort((a, b) => (a.name < b.name ? -1 : 1))) {
+    if (entry.isDirectory()) {
+      if (!/^[.+]/.test(entry.name) && entry.name !== "node_modules") dumpsUnder(join(directory, entry.name), found);
+    } else if (entry.name === DUMP) {
+      found.push(join(directory, entry.name));
+    }
+  }
+  return found;
+}
+
+// The stand-in `source` is, from `importer`: a file in a `.ljostypes`
+// directory, which is not there to be found. A stand-in imports another by
+// a path that need not name the directory.
+function standIn(source, importer, root) {
+  const [path] = source.split("?");
+  if (!path.endsWith(".qml")) return null;
+  let file = null;
+  if (/^\.\.?\//.test(path)) file = importer ? join(dirname(importer.split("?")[0]), path) : null;
+  // An address the page asks for: of a file outside the root, from the
+  // root, or a path already.
+  else if (path.startsWith("/@fs/")) file = path.slice("/@fs".length);
+  else if (path.startsWith("/")) file = path.startsWith(root + sep) ? path : join(root, path);
+  return file?.includes(`${sep}${DUMPED}${sep}`) ? file : null;
+}
+
 function baked(context, tool, file, directory) {
   let read = file;
   const run = (args) => {
@@ -262,6 +304,14 @@ function exported(context, file, names = new Set(), seen = new Set()) {
 //   its path from Vite's root: or a function of the file compiled that says.
 //   For a dev server; a page built for people to use leaves it out and
 //   carries none of it.
+// - `types`: the type dumps (`ljostypes.json`) of the types a program
+//   registers from Rust, whose types stand in as `ljos run --types` makes
+//   them: paths (from Vite's root), or a function of the file compiled that
+//   gives them; `[]` for none. Otherwise every `ljostypes.json` in the
+//   project (`root`, or the `--root` its `args` give), or, with none named,
+//   the one in the file's own directory, as native Ljós reads the one in
+//   its project's directory. Several are read as one, and a dump that does
+//   not read fails the compile, naming it.
 export default function qml({
   qmlc = "qmlc",
   args = [],
@@ -274,6 +324,7 @@ export default function qml({
   theme,
   seedHue,
   inspect = false,
+  types,
 } = {}) {
   let asked;
   const found = () => (asked ??= installed());
@@ -317,11 +368,26 @@ export default function qml({
   const given = (file) => (typeof args === "function" ? args(file) : args) ?? [];
   // The project an entry's theme is looked for up to: the root it is
   // compiled with, as qmlc takes it, or its own directory.
-  const projectOf = (file) => {
+  const named = (file) => {
     const list = given(file);
     const at = list.lastIndexOf("--root");
-    const named = rooted(file) ?? (at >= 0 ? list[at + 1] : undefined);
-    return named ? resolvePath(named) : dirname(file);
+    return rooted(file) ?? (at >= 0 ? list[at + 1] : undefined);
+  };
+  const projectOf = (file) => {
+    const project = named(file);
+    return project ? resolvePath(project) : dirname(file);
+  };
+  // The dumps `file` is compiled with. A stand-in's file is in its
+  // project's `.ljostypes`, which `qmlc` puts beside the first dump when no
+  // project is named.
+  const dumpsOf = (file) => {
+    const listed = typeof types === "function" ? types(file) : types;
+    if (listed) return [listed].flat().map((dump) => resolvePath(base, dump));
+    const project = named(file);
+    if (project) return dumpsUnder(resolvePath(project));
+    const at = file.lastIndexOf(`${sep}${DUMPED}${sep}`);
+    const dump = join(at >= 0 ? file.slice(0, at) : dirname(file), DUMP);
+    return existsSync(dump) ? [dump] : [];
   };
   const themeOf = (file) => {
     const named = typeof theme === "function" ? theme(file) : theme;
@@ -518,6 +584,8 @@ export default function qml({
     },
     async resolveId(source, importer, options) {
       if (source.startsWith(VIRTUAL) || source.startsWith(THEME)) return source;
+      const dumped = standIn(source, importer, base);
+      if (dumped) return dumped;
       // An entry: the page's QML, which reads the page's theme.
       const fromQml = importer && (importer.split("?")[0].endsWith(".qml") || isScript(importer));
       if (!fromQml && !source.startsWith("\0") && source.split("?")[0].endsWith(".qml")) {
@@ -643,7 +711,8 @@ export default function qml({
       // its instances decides what it takes. A build that watches rebuilds
       // it when any of them changes.
       const directory = dirname(file);
-      for (const sibling of readdirSync(directory)) {
+      // A stand-in a dump makes has no directory on the disk.
+      for (const sibling of existsSync(directory) ? readdirSync(directory) : []) {
         if (sibling.endsWith(".qml")) this.addWatchFile(join(directory, sibling));
       }
       // The style of the controls is a file selector, as it is in Qt: a
@@ -669,9 +738,13 @@ export default function qml({
       // Where Qt's modules are is told, so that a module of the installed
       // Qt's is one `qmlc` knows to be installed.
       const project = rooted(file);
+      // Qt's own QML is no project's, and takes none of its types.
+      const dumps = own ? [] : dumpsOf(file);
+      for (const dump of dumps) if (existsSync(dump)) this.addWatchFile(dump);
       const given = [
         ...(typeof args === "function" ? args(file) : args),
         ...(project ? ["--root", project] : []),
+        ...dumps.flatMap((dump) => ["--types", dump]),
         ...looked(file).flatMap((directory) => ["-I", directory]),
         ...more.flatMap((directory) => ["--with", directory]),
         ...roots.flatMap((root) => ["--qt", root]),

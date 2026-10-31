@@ -149,3 +149,48 @@ test("a second compile reuses the compiler the first loaded", async ({ page }) =
   expect(seen.filter((url) => url.endsWith(".wasm"))).toHaveLength(1);
   expect(seen.filter((url) => url.endsWith("link.js"))).toHaveLength(1);
 });
+
+// A project whose types are written in Rust, as its `ljostypes.json`
+// files describe them (`scenes/dumped`).
+const dumped = (more = {}) => {
+  const files = Object.fromEntries(
+    Object.entries(project())
+      .filter(([path]) => path.startsWith("dumped/"))
+      .map(([path, text]) => [path.slice("dumped/".length), text]),
+  );
+  return { ...files, ...more };
+};
+
+test("a type the project's dump describes stands in, compiled in the page", async ({ page }) => {
+  await opened(page);
+  expect(await show(page, { files: dumped(), entry: "Main.qml" })).toMatchObject({ mounted: true });
+  expect(await page.evaluate(() => window.scene.read())).toEqual(["Volume 3", 3, "", 1, undefined, []]);
+  await page.evaluate(() => {
+    window.scene.give(7);
+    window.flush();
+  });
+  expect(await page.evaluate(() => window.scene.read()[0])).toBe("Volume 7");
+});
+
+test("the dumps of a project run as one, compiled in the page", async ({ page }) => {
+  await opened(page);
+  expect(await show(page, { files: dumped(), entry: "Both.qml" })).toMatchObject({ mounted: true });
+  expect(await page.evaluate(() => window.scene.read())).toBe("Volume 4, level 9, its volume 2");
+});
+
+test("a dump that does not read is a diagnostic naming it", async ({ page }) => {
+  await opened(page);
+  const made = await show(page, { files: dumped({ "native/ljostypes.json": '{"format": 2, "modules": [\n' }), entry: "Main.qml" });
+  expect(made.diagnostics).toEqual([{ file: "native/ljostypes.json", line: 2, column: 1, message: "EOF while parsing a list" }]);
+});
+
+test("the dumps a compile is given are the ones it reads", async ({ page }) => {
+  await opened(page);
+  const files = dumped();
+  const one = { ...files, "rust/player.json": files["native/ljostypes.json"] };
+  delete one["native/ljostypes.json"];
+  delete one["sensors/ljostypes.json"];
+  expect(await show(page, { files: one, entry: "Main.qml", types: ["rust/player.json"] })).toMatchObject({ mounted: true });
+  const none = await show(page, { files, entry: "Main.qml", types: [] });
+  expect(none.diagnostics).toEqual([{ file: "Main.qml", line: 2, column: 1, message: 'module "App.Media" is not installed' }]);
+});

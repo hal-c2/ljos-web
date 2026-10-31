@@ -45,10 +45,13 @@ const installed = (modules) =>
     .filter((specifier) => specifier.startsWith("ljos-web/Q"))
     .map((specifier) => specifier.slice("ljos-web/".length).replaceAll("/", "."));
 
-const asked = ({ files, entry, aliases = [] }, modules) => ({
+// `types`: the project's type dumps among `files`, by path; every
+// `ljostypes.json` of them when not given.
+const asked = ({ files, entry, aliases = [], types }, modules) => ({
   files: files instanceof Map ? Object.fromEntries(files) : files,
   entry,
   aliases,
+  ...(types ? { types } : {}),
   modules: Object.keys(modules),
   installed: installed(modules),
 });

@@ -15,8 +15,10 @@ const compiler = () => (loading ??= import("./link.js"));
 // file names (`images/logo.png`) is taken.
 export function createCompiler({ modules = runtime, base } = {}) {
   return {
-    // `{ files, entry, aliases }` to `{ component, module, warnings }`, or
-    // `{ diagnostics: [{ file, line, column, message }] }`.
+    // `{ files, entry, aliases, types }` to `{ component, module, warnings }`,
+    // or `{ diagnostics: [{ file, line, column, message }] }`. `types` names
+    // the project's type dumps among `files`, whose types stand in as
+    // `ljos run --types` makes them; otherwise every `ljostypes.json` there.
     compile: async (request) => (await compiler()).compile(request, { modules, base }),
     // The same, unlinked: each file's module as `qmlc` prints it.
     translate: async (request) => (await compiler()).translate(request, { modules }),

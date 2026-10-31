@@ -21,6 +21,9 @@ export default defineConfig({
             ? { Controls: { Style: "Oak" } }
             : undefined,
       standins: [join(import.meta.dirname, "standins")],
+      // A project of its own, whose dumps (`ljostypes.json`) are anywhere
+      // in it, as a preview of one is compiled.
+      root: (file) => (file.includes("/scenes/dumped/") ? join(import.meta.dirname, "scenes/dumped") : undefined),
       // The scenes an inspector reads say where their objects are written.
       inspect: (file) => /\/scenes\/inspect/.test(file),
     }),
