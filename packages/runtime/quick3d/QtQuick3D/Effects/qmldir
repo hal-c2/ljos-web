@@ -1,0 +1,5 @@
+# Ljós's own QML, not Qt's (packages/runtime/quick3d.js).
+module QtQuick3D.Effects
+ColorMaster 6.0 ColorMaster.qml
+HDRBloomTonemap 6.0 HDRBloomTonemap.qml
+Vignette 6.0 Vignette.qml
