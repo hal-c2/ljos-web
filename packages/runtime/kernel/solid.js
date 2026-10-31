@@ -10,6 +10,7 @@ const absent = () => {
 };
 export const cell = absent;
 export const binding = absent;
+export const placed = absent;
 export const read = absent;
 export const touch = absent;
 export const version = absent;

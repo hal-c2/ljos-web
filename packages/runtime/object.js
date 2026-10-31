@@ -14,7 +14,7 @@ import { createEffect, createMemo, createRenderEffect, createRoot, createSignal,
 import { Color, color } from "./QtQuick/color.js";
 // Which graph is under the slots: Solid's signals, or Ljós's own graph in
 // wasm (`kernel/wasm.js`), as the build's `ljos-wasm-kernel` condition says.
-import { WASM, binding, cell, followed, read as follow, signal as counted, touch, untrack } from "#kernel";
+import { WASM, binding, cell, followed, read as follow, placed as typeOwn, signal as counted, touch, untrack } from "#kernel";
 
 // Solid refuses a write from a component's body or a computation; an object
 // is assigned to from wherever its QML says.
@@ -499,7 +499,7 @@ export function bound(owner, compute, first) {
 // date and where a loop ends: one that asks for its own value while it is
 // computed gets what it had, as the graph gives any binding it is running.
 // What is read through the same interface as `ringed`'s.
-function graphed(owner, compute, first) {
+function graphed(owner, compute, first, own = false) {
   let held = first;
   let index;
   let evaluating = false;
@@ -549,6 +549,7 @@ function graphed(owner, compute, first) {
     if (index === undefined) {
       if (owner) runWithOwner(owner, () => onCleanup(() => made?.()));
       index = binding(owner, run);
+      if (own) typeOwn(index);
       untrack(get);
     }
     return get;
@@ -569,7 +570,7 @@ export function memo(compute, options = SYNC) {
 }
 
 function ringed(owner, compute, first, binding) {
-  if (WASM) return graphed(owner, compute, first);
+  if (WASM) return graphed(owner, compute, first, !binding);
   let memo;
   let held = first;
   let evaluating = false;
@@ -2176,3 +2177,11 @@ export const QtObject = defineType("QtObject", null, {
     },
   },
 });
+
+// What `import LocalModule as X` names: a table of the module's files, each
+// read when it is used, as a file of the module may be loading this one.
+export function $namespace(members) {
+  const table = {};
+  for (const [name, member] of Object.entries(members)) Object.defineProperty(table, name, { get: member, enumerable: true });
+  return table;
+}

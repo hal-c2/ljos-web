@@ -127,6 +127,13 @@ export function binding(owner, run) {
   return made(index, owner);
 }
 
+// A binding that is a value a type works out for itself, not the author's:
+// a loop through it goes on to the next binding and ends there.
+export function placed(of) {
+  const index = number(of);
+  if (index !== undefined) k.ljos_placed(index);
+}
+
 // Brings the node up to date and has whoever is reading follow it. A node
 // that is gone reads as nothing and is followed by no one.
 export function read(of, owner) {
