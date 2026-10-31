@@ -388,13 +388,21 @@ async function reloaded(self) {
     return made.error;
   }
   if (old && !old.fallback && old.object && made.shown.object) {
-    const { carry } = await import("../../reload.js");
-    if (turn !== state.turn) {
-      // A later turn is at work: what this one made is never put.
+    try {
+      const { carry } = await import("../../reload.js");
+      if (turn !== state.turn) {
+        // A later turn is at work: what this one made is never put.
+        discard(made.shown);
+        return "";
+      }
+      carry(old.object, old.Component, made.shown.object, made.shown.Component);
+    } catch (error) {
+      // The old shell was only read from: it stays, and the new one goes.
       discard(made.shown);
-      return "";
+      const why = describe(error, null, resolved.file);
+      console.warn(`ShellLoader: reload: ${why}`);
+      return why;
     }
-    carry(old.object, old.Component, made.shown.object, made.shown.Component);
   }
   drop(self, state);
   put(self, state, made.shown);
