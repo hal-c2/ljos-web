@@ -209,6 +209,13 @@ function standIn(source, importer, root) {
   return file?.includes(`${sep}${DUMPED}${sep}`) ? file : null;
 }
 
+// The generated face of a dump's stand-in, if the application has one.
+function faceOf(faces, file) {
+  const at = file.lastIndexOf(`${sep}${DUMPED}${sep}`);
+  const face = join(faces, file.slice(at + DUMPED.length + 2).replace(/\.qml$/, ".js"));
+  return existsSync(face) ? face : null;
+}
+
 function baked(context, tool, file, directory) {
   let read = file;
   const run = (args) => {
@@ -393,6 +400,7 @@ export const compilerAt = (qmlc) => (qmlc.includes("/") || qmlc.includes(sep) ? 
 //   and an entry carries what it is compiled against. Off, a page has none
 //   of it.
 export default function qml({
+  faces,
   qmlc = "qmlc",
   args = [],
   qt,
@@ -467,7 +475,11 @@ export default function qml({
   // The dumps `file` is compiled with. A stand-in's file is in its
   // project's `.ljostypes`, which `qmlc` puts beside the first dump when no
   // project is named.
+  // The directory `ljos-web faces` wrote: its `ljostypes.json` tells the
+  // compiler of the types, and what compiled QML imports for one is the face.
+  const facesAt = faces ? resolvePath(base, faces) : null;
   const dumpsOf = (file) => {
+    if (facesAt) return [join(facesAt, DUMP)];
     const listed = typeof types === "function" ? types(file) : types;
     if (listed) return [listed].flat().map((dump) => resolvePath(base, dump));
     const project = named(file);
@@ -680,7 +692,10 @@ export default function qml({
     async resolveId(source, importer, options) {
       if (source.startsWith(VIRTUAL) || source.startsWith(THEME)) return source;
       const dumped = standIn(source, importer, base);
-      if (dumped) return dumped;
+      if (dumped) {
+        const face = facesAt && faceOf(facesAt, dumped);
+        return face ?? dumped;
+      }
       // An entry: the page's QML, which reads the page's theme.
       const fromQml = importer && (importer.split("?")[0].endsWith(".qml") || isScript(importer));
       if (!fromQml && !source.startsWith("\0") && source.split("?")[0].endsWith(".qml")) {
