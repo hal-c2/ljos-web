@@ -250,14 +250,17 @@ import QtQuick.Window as W
 Item {
     id: cell
     Text {
+        // Text has no `flags`: one of its own, so `Qt.Window` is still the
+        // value, not what `W.Window` attaches.
+        property int flags: Qt.Window
         visible: cell.ListView.isCurrentItem && W.Window.active
-        flags: Qt.Window
         Keys.onPressed: cell.parent.ListView.delayRemove = true
     }
 }"#,
     );
     assert_contains(&code, "visible={ListView.attached(cell).isCurrentItem && W.Window.attached($1).active}");
-    assert_contains(&code, "flags={Qt.Window}");
+    assert_contains(&code, "const Qt$Window = Qt.Window;");
+    assert_contains(&code, "flags={Qt$Window}");
     assert_contains(&code, "ListView.attached(cell.parent).delayRemove = true");
     assert_contains(&code, r#"import { Item, Keys, ListView, Text } from "ljos-web/QtQuick";"#);
 }

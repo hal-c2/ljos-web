@@ -25,6 +25,7 @@ use oxc_ast::ast::*;
 use oxc_ast_visit::Visit;
 use qml_syntax::ast::*;
 use oxc_span::Span;
+use qml_front::{TypeOracle, types::Lookup};
 
 use super::{
     names,
@@ -548,6 +549,11 @@ impl<'a, 's> Lower<'a, 's> {
         }
         let span = binding.name.span;
         let changes = self.is_class(index, "QQuickPropertyChanges") && !scope::CHANGES.contains(&path[0]);
+        // Qt loads a state that changes what its target lacks, and warns
+        // only as it is entered: no error for it here.
+        if !changes {
+            self.check_member(index, &path, span);
+        }
         if path[0].starts_with(|c: char| c.is_ascii_uppercase()) && !(changes && path[0] != "Component") {
             return self.attached(&path, binding.value, built, span);
         }
@@ -814,6 +820,89 @@ impl<'a, 's> Lower<'a, 's> {
             built.attributes.push(self.b.attr(&name, expression));
         } else {
             built.functions.push((name, expression));
+        }
+    }
+
+    /// A binding of a member the object's type does not have, where the
+    /// type lists all it has: an error where it is written, as Qt fails to
+    /// make such an object and native Ljós refuses the file, in their words.
+    fn check_member(&mut self, index: usize, path: &[&str], span: Span) {
+        let [name] = path else {
+            return self.check_path_member(index, path, span);
+        };
+        let front = self.types.front();
+        let object = &self.tree.objects[index];
+        let Some(ty) = object.kind.as_ref().and_then(|kind| front.base(kind)) else { return };
+        if !front.oracle.members_checked(ty) || !matches!(self.tree.front.lookup(front, index, name), Lookup::Missing) {
+            return;
+        }
+        let message = match types::handled(name) {
+            Some(signal) => {
+                // `onContainsMouseChanged` is the change of `containsMouse`,
+                // whatever its notifying signal is called.
+                let changed = signal.strip_suffix("Changed").is_some_and(|property| {
+                    matches!(self.tree.front.lookup(front, index, property), Lookup::Found(Member::Property(_)))
+                });
+                if changed || !matches!(self.tree.front.lookup_signal(front, index, &signal), Lookup::Missing) {
+                    return;
+                }
+                format!("`{name}` handles the signal `{signal}`, which `{}` does not have", object.name)
+            }
+            None => format!("`{name}` is not a property of `{}`", object.name),
+        };
+        self.errors.push(Error::new(message, span));
+    }
+
+    /// [`check_member`](Self::check_member) for a member of a group
+    /// (`border.width`) or of what a type attaches (`Layout.fillWidth`):
+    /// each step is looked up on the type the step before it gives.
+    fn check_path_member(&mut self, index: usize, path: &[&str], span: Span) {
+        let front = self.types.front();
+        let Some(first) = path.first() else { return };
+        let (mut ty, mut at) = if first.starts_with(|c: char| c.is_ascii_uppercase()) {
+            let of = if path.len() > 2 && front.find(&path[..2]).is_some() { 2 } else { 1 };
+            let Some(attached) =
+                front.find(&path[..of]).and_then(|found| front.base(&found.kind)).and_then(|ty| front.oracle.attached(ty))
+            else {
+                return;
+            };
+            (attached, of)
+        } else {
+            match self.tree.front.lookup(front, index, first) {
+                Lookup::Found(Member::Property(Property { value: Some(ty), .. })) => (ty, 1),
+                _ => return,
+            }
+        };
+        while let Some(name) = path.get(at) {
+            let last = at + 1 == path.len();
+            let kind = types::Kind::Builtin(ty);
+            match front.lookup(&kind, name) {
+                Lookup::Found(Member::Property(property)) if !last => match property.value {
+                    Some(next) => ty = next,
+                    None => return,
+                },
+                Lookup::Missing if front.oracle.members_checked(ty) => {
+                    let signal = types::handled(name).filter(|_| last);
+                    if let Some(signal) = &signal {
+                        let changed = signal.strip_suffix("Changed").is_some_and(|property| {
+                            matches!(front.lookup(&kind, property), Lookup::Found(Member::Property(_)))
+                        });
+                        if changed || !matches!(front.lookup_signal(&kind, signal), Lookup::Missing) {
+                            return;
+                        }
+                    }
+                    let written = path.join(".");
+                    let of = path[..at].join(".");
+                    let message = match signal {
+                        Some(signal) => format!("`{written}`: `{of}` has no signal `{signal}`"),
+                        None => format!("`{written}`: `{of}` has no property `{name}`"),
+                    };
+                    self.errors.push(Error::new(message, span));
+                    return;
+                }
+                _ => return,
+            }
+            at += 1;
         }
     }
 
