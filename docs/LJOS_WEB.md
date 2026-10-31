@@ -1487,6 +1487,53 @@ outside it, as its QML and assets are. It has to be: the gauge page is about
 faces, 72 kB wasm, 7 kB JavaScript). The counter's is about 176 kB and 205 kB.
 
 
+### A24. 3D without an installed Qt
+
+Qt writes part of QtQuick3D.Helpers and QtQuick3D.Effects in QML, so a page
+using those needed Qt's QML modules on an import path. `packages/runtime/quick3d/`
+now holds Ljós's own, a module root like `controls/` (A20). `vite.js` puts it
+**last** among the roots: a Qt that has those modules has all of them, and wins.
+
+| Module | Type | From |
+|---|---|---|
+| Helpers | AxisHelper, DebugView | ljos-ui at the pin in `quick3d/LJOS_UI.json`, verbatim |
+| Helpers | OrbitCameraController, WasdController | the same, then changed (see below) |
+| Helpers | ExtendedSceneEnvironment, LodManager, RenderStatistics | written from Qt's documentation |
+| Effects | ColorMaster, Vignette, HDRBloomTonemap | written from Qt's documentation, own shaders |
+
+`check()` in `quick3d.js` holds every file to its hash: `files` for what is as
+the pin has it, `changed` for what is not, with the hash at the pin and why.
+
+The two controllers changed because they did not do what Qt's does when run. The
+pin's pitch goes the opposite way, its turn is about 1.4 times too slow, its zoom
+and clip planes follow another law, and its Wasd moves at 300 units a second where
+Qt's moves 500. The numbers come from driving Qt's module in a browser, not from
+reading it. ljos-ui has the same differences at the pin.
+
+The rate is one measured constant (`turnRate`), and Qt's pan across the view is
+not matched exactly. The wheel keeps a floor, so a very large wheel step cannot
+take the camera through its origin.
+
+`DragHandler` gained `minimumPointCount`. Without it the controller's two-finger
+handler took a single mouse drag. A handler of several points only watches and
+takes no exclusive grab, so a pinch on the same item still works.
+
+ExtendedSceneEnvironment holds all its documented properties. Glow, depth of
+field, LUT, lens flare, SSR and SSGI are held and not drawn, which is also what the
+runtime does with Qt's module. HDRBloomTonemap's `channelThreshold` is our own
+design, because the documentation says little about it.
+
+The remaining QML types of QtQuick3D.Effects are not written, as the corpus uses
+none of them: AdditiveColorGradient, Blur, BrushStrokes, ChromaticAberration,
+Desaturate, DepthOfFieldHQBlur, DistortionRipple, DistortionSphere,
+DistortionSpiral, EdgeDetect, Emboss, Flip, Fxaa, GaussianBlur, MotionBlur,
+SCurveTonemap, Scatter, TiltShift. Using one is an error naming the type and its
+module, as before.
+
+`tests/qtless.spec.js` runs on a second server with no Qt on any path, and
+`site-tests/quick3d.spec.js` does the same for a built site. A page that imports
+no 3D carries none of this.
+
 ## Part II — An application's own Rust types
 
 ## 1. The shape of a native type on the web
