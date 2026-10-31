@@ -2082,7 +2082,9 @@ export function made(Component, props, reloadable) {
 
 // Puts a component's object in the page. A Window is told what it was put
 // in and with what `options`: it fills the element, or with
-// `{ fill: false }` gives it the size its QML says. With
+// `{ fill: false }` gives it the size its QML says. Any other root keeps the
+// size its QML says unless `{ fill: true }` lays it out at the element's,
+// following the element from then on. With
 // `{ reloadable: true }` (the default in a dev server) `reload` can give it
 // a new component and keep its state.
 export function mount(Component, element, props = {}, options = {}) {
