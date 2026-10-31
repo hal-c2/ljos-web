@@ -168,3 +168,36 @@ fn links_are_where_the_specifiers_are_in_utf16_units() {
         assert!(module.exports.contains("default"), "{}", module.file);
     }
 }
+
+#[test]
+fn an_import_of_ljos_models_is_the_runtime_module() {
+    let files = BTreeMap::from([(
+        "Main.qml".to_string(),
+        "import QtQuick\nimport Ljos.Models\nItem { JsonListModel { source: \"rows.json\" } }\n".to_string(),
+    )]);
+    let compiled = compile(&request(files, "Main.qml")).expect("compiles");
+    assert!(compiled.modules[0].code.contains(r#"from "ljos-web/Ljos/Models""#), "{}", compiled.modules[0].code);
+}
+
+#[test]
+fn a_type_ljos_models_lacks_is_not_a_type_of_anything_the_file_imports() {
+    let files = BTreeMap::from([(
+        "Main.qml".to_string(),
+        "import QtQuick\nimport Ljos.Models\nItem { JsonTableModel { } }\n".to_string(),
+    )]);
+    let diagnostics = compile(&request(files, "Main.qml")).expect_err("refused");
+    assert!(
+        diagnostics.iter().any(|d| d.message == "`JsonTableModel` is not a type of anything the file imports"),
+        "{diagnostics:?}"
+    );
+}
+
+#[test]
+fn an_import_of_ljos_observer_says_it_is_not_on_the_web_and_why() {
+    let files = BTreeMap::from([("Main.qml".to_string(), "import QtQuick\nimport Ljos.Observer\nItem { }\n".to_string())]);
+    let diagnostics = compile(&request(files, "Main.qml")).expect_err("refused");
+    assert_eq!(diagnostics.len(), 1, "{diagnostics:?}");
+    assert_eq!((diagnostics[0].line, diagnostics[0].column), (Some(2), Some(1)));
+    assert!(diagnostics[0].message.starts_with("module \"Ljos.Observer\" is not on the web: "), "{diagnostics:?}");
+    assert!(diagnostics[0].message.contains("ljos-web/inspect"), "{diagnostics:?}");
+}

@@ -272,7 +272,7 @@ dependencies = [
 [[package]]
 name = "ljos_oxc_parser"
 version = "0.144.0"
-source = "git+ssh://git@github.com/hal-c2/ljos-ui.git?rev=b6c095671da1ae9066b26ef803a35944afa2158f#b6c095671da1ae9066b26ef803a35944afa2158f"
+source = "git+ssh://git@github.com/hal-c2/ljos-ui.git?rev=0cd3287c9817ef9a4b0f1615fbe97fb64911279a#0cd3287c9817ef9a4b0f1615fbe97fb64911279a"
 dependencies = [
  "bitflags",
  "cow-utils",
@@ -853,7 +853,7 @@ dependencies = [
 [[package]]
 name = "qml_front"
 version = "0.0.0"
-source = "git+ssh://git@github.com/hal-c2/ljos-ui.git?rev=b6c095671da1ae9066b26ef803a35944afa2158f#b6c095671da1ae9066b26ef803a35944afa2158f"
+source = "git+ssh://git@github.com/hal-c2/ljos-ui.git?rev=0cd3287c9817ef9a4b0f1615fbe97fb64911279a#0cd3287c9817ef9a4b0f1615fbe97fb64911279a"
 dependencies = [
  "oxc_ast_visit",
  "oxc_syntax",
@@ -865,7 +865,7 @@ dependencies = [
 [[package]]
 name = "qml_syntax"
 version = "0.0.0"
-source = "git+ssh://git@github.com/hal-c2/ljos-ui.git?rev=b6c095671da1ae9066b26ef803a35944afa2158f#b6c095671da1ae9066b26ef803a35944afa2158f"
+source = "git+ssh://git@github.com/hal-c2/ljos-ui.git?rev=0cd3287c9817ef9a4b0f1615fbe97fb64911279a#0cd3287c9817ef9a4b0f1615fbe97fb64911279a"
 dependencies = [
  "ljos_oxc_parser",
  "oxc_allocator",
@@ -877,7 +877,7 @@ dependencies = [
 [[package]]
 name = "qt_types"
 version = "0.0.0"
-source = "git+ssh://git@github.com/hal-c2/ljos-ui.git?rev=b6c095671da1ae9066b26ef803a35944afa2158f#b6c095671da1ae9066b26ef803a35944afa2158f"
+source = "git+ssh://git@github.com/hal-c2/ljos-ui.git?rev=0cd3287c9817ef9a4b0f1615fbe97fb64911279a#0cd3287c9817ef9a4b0f1615fbe97fb64911279a"
 
 [[package]]
 name = "quote"
