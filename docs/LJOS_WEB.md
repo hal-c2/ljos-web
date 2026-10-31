@@ -160,7 +160,10 @@ under an import path (or the installed Qt's, below) out of its module's
 place is not that module, and when no other is, `qmlc` says so on stderr
 naming both. A stand-in's `qmldir` is at its module's place under its
 `--with` directory and adds to that module what the program has in C++.
-A `CMakeLists.txt` says what its modules are wherever it is. The Vite
+A `CMakeLists.txt` says what its modules are wherever it is. A Ljós
+`# block Name 1.0 File.qml ...` line of a `qmldir` (ADR 0003 of ljos-ui)
+declares a type of its module, as a plain `Name 1.0 File.qml` does; to
+Qt it is a comment. The Vite
 plugin takes the import paths as `importPaths` and the project's root as
 `root`, each a value or a function of the file compiled, so that every
 file of one project has one root. A module the file imports has to be installed, as it has to be for Qt: the

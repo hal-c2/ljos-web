@@ -71,6 +71,14 @@ fn a_qmldir_out_of_its_modules_place_declares_nothing() {
 }
 
 #[test]
+fn a_block_line_of_a_qmldir_declares_its_type() {
+    // Ljós's `# block Name Version File` is a comment to Qt and a type of
+    // the module to Ljós (ADR 0003).
+    let code = compiled(&["--root", "blocks", "blocks/Main.qml"]);
+    assert_contains(&code, r#"import Player from "./App/Media/Player.qml";"#);
+}
+
+#[test]
 fn an_import_of_a_module_nobody_has_is_an_error_where_it_is_written() {
     let messages = refused(&["--root", "unknown", "unknown/Main.qml"]);
     assert_contains(&messages, "unknown/Main.qml:2:1: module \"No.Such.Module\" is not installed");

@@ -186,7 +186,7 @@ fn modules(project: &mut Project, paths: &[PathBuf], with: &[PathBuf], qt: &[Pat
                 continue;
             }
             let Ok(text) = std::fs::read_to_string(&description) else { continue };
-            let Some(module) = discover::qmldir(&text) else { continue };
+            let Some(module) = qmldir(&text) else { continue };
             let place = module.uri.replace('.', "/");
             match places.iter().position(|(place_root, _)| place_root.join(&place) == directory) {
                 Some(rank) => {
@@ -237,6 +237,31 @@ fn modules(project: &mut Project, paths: &[PathBuf], with: &[PathBuf], qt: &[Pat
             }
         }
     }
+}
+
+/// What a `qmldir` says its module is, with the types its Ljós `# block Name
+/// 1.0 File.qml ...` comments declare (ADR 0003): a comment to Qt, which
+/// fails an import on a line it does not know, and a type of the module to
+/// Ljós. The `qml_front` pinned here reads past them as Qt does; ljos-ui's
+/// commit acab2643 ("qml_front: a # block qmldir comment declares its
+/// type") reads them in `discover::qmldir` itself, and with `qml_front`,
+/// `qml_syntax` and `qt_types` at a rev that has it this goes.
+fn qmldir(text: &str) -> Option<discover::Module> {
+    let mut module = discover::qmldir(text)?;
+    for line in text.lines() {
+        let Some(rest) = line.trim_start().strip_prefix('#').map(str::trim_start) else { continue };
+        let Some(rest) = rest.strip_prefix("block").filter(|rest| rest.starts_with(char::is_whitespace)) else {
+            continue;
+        };
+        let mut words = rest.split_whitespace();
+        let (Some(name), Some(_version), Some(path)) = (words.next(), words.next(), words.next()) else { continue };
+        let is_type_name = name.starts_with(|first: char| first.is_ascii_uppercase());
+        // A plain line may say so too, for Qt, and is the same type.
+        if is_type_name && path.ends_with(".qml") && !module.types.iter().any(|ty| ty.name == name && ty.path == path) {
+            module.types.push(discover::Type { name: name.to_string(), path: path.to_string() });
+        }
+    }
+    Some(module)
 }
 
 /// Adds the files the builds under `root` keep in the program, each by the
