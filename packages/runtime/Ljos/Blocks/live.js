@@ -169,10 +169,18 @@ export function liveShell(Entry, element_, options = {}) {
       } catch {
         // Nothing was kept.
       }
-      reload(handle, Entry);
-      zoneHides(zone);
       text = null;
       used = [];
+      // The site's shell is made with the guard off, or what it loads as it
+      // is made stays refused; and only once nothing of the shell that was
+      // shown is live, or that would be let through too.
+      try {
+        reload(handle, Entry, { whenGone: () => zoneHides(zone) });
+      } catch (error) {
+        status.textContent = "";
+        said([`The site's shell could not be shown: ${error?.message ?? error}`]);
+        return;
+      }
       said([]);
       settle();
       status.textContent = "The site's shell is shown";

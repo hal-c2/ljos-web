@@ -9,6 +9,10 @@ RowLayout {
         id: panel
         objectName: "panel"
         Layout.preferredWidth: 77
+        Layout.preferredHeight: 44
+        focus: true
+        property string key: ""
+        Keys.onPressed: key = key + "a"
         property int extra: 3
         property alias said: words.text
         property string heard: ""
@@ -23,5 +27,10 @@ RowLayout {
             objectName: "words"
             text: "extra " + panel.extra + " in " + parent.objectName
         }
+    }
+    Rectangle {
+        objectName: "beside"
+        height: 10
+        implicitWidth: 10
     }
 }

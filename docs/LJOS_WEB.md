@@ -534,7 +534,12 @@ it.
    page loads a picture or links anywhere at all, the hosts allowed
    included. When the last dropped shell goes (Reset, or `dispose`),
    markup and `Image` have what they were refused; anything else asks
-   again when next told to load it.
+   again when next told to load it. Reset takes the shell off before it
+   makes the site's and lifts the guard between the two, so what the
+   site's shell loads as it is made is loaded, once, and no string of the
+   shell that went is let through with it. A refused `XMLHttpRequest`
+   tells a program what one that failed on the network tells: `DONE` with
+   status 0, then `error` and `loadend`.
 5. *Bounded work.* Each run has a budget of 100,000 steps. A runaway
    binding is stopped and warned of, and the page keeps running.
 6. *Storage scoped.* Only the shell text is stored, under

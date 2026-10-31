@@ -407,6 +407,96 @@ Column {
     expect(await read(page, "shell", "objectName")).toBe("shell");
   });
 
+  // A reload makes the new root before the old one goes: what the old use
+  // takes off as it goes must be its own.
+  const KEYED = (more) => over(`    Panel { id: panel; objectName: "panel"; focus: true; property string key: ""; ${more} }`);
+  const pressed = async (page) => {
+    // The Reset button a test clicked has the browser's focus, as it would.
+    await page.evaluate(() => {
+      document.activeElement?.blur();
+      window.named("panel").forceActiveFocus();
+    });
+    await page.keyboard.press("a");
+    return read(page, "panel", "key");
+  };
+  const reset = async (page) => {
+    await page.getByRole("button", { name: "Reset" }).click();
+    await page.evaluate(() => window.live.idle());
+  };
+  const laidAgain = (page) =>
+    page.evaluate(() => {
+      window.named("beside").implicitWidth += 1;
+      window.flush();
+      const panel = window.named("panel");
+      return [panel.width, panel.height];
+    });
+
+  test("The site's own Keys handler runs, once, whenever its shell is shown again", async ({ page }) => {
+    await opened(page);
+    expect(await pressed(page)).toBe("a");
+    // A reload carries what the use's own property was assigned; one press
+    // adds one, however many shells have been shown.
+    await reset(page);
+    expect(await read(page, "panel", "key")).toBe("a");
+    expect(await pressed(page)).toBe("aa");
+    // Over a shell with no such use there is nothing to carry it through.
+    await dropped(page, over(""));
+    await reset(page);
+    expect(await read(page, "panel", "key")).toBe("");
+    expect(await pressed(page)).toBe("a");
+  });
+
+  test("A shell that says nothing of Keys has none of the site's", async ({ page }) => {
+    await opened(page);
+    expect(await pressed(page)).toBe("a");
+    await dropped(page, KEYED(""));
+    await page.evaluate(() => (window.named("panel").key = "mine"));
+    expect(await pressed(page)).toBe("mine");
+  });
+
+  test("The site's own shell shown again keeps its use's attached properties", async ({ page }) => {
+    await opened(page);
+    expect(await laidAgain(page)).toEqual([77, 44]);
+    await reset(page);
+    expect(await laidAgain(page)).toEqual([77, 44]);
+    await dropped(page, over(""));
+    await reset(page);
+    expect(await laidAgain(page)).toEqual([77, 44]);
+  });
+
+  test("A save of the site's shell, made before the old one goes, keeps what its use attached", async ({ page }) => {
+    await opened(page);
+    expect(await pressed(page)).toBe("a");
+    await page.evaluate(() => window.saved());
+    expect(await laidAgain(page)).toEqual([77, 44]);
+    expect(await pressed(page)).toBe("aa");
+  });
+
+  test("A save that says less of a use takes off what it no longer says", async ({ page }) => {
+    await opened(page);
+    expect(await laidAgain(page)).toEqual([77, 44]);
+    await page.evaluate(() => window.saved(true));
+    // 33 is what the block's own file says.
+    expect(await laidAgain(page)).toEqual([88, 33]);
+  });
+
+  test("What a use attached is taken off for what the block's own file says", async ({ page }) => {
+    await opened(page);
+    const said = () => page.evaluate(() => window.named("panel").$props.Layout$preferredHeight);
+    expect(await said()).toBe(44);
+    await dropped(page, over('    Panel { id: panel; objectName: "panel" }'));
+    expect(await said()).toBe(33);
+  });
+
+  test("A shell whose root is the block the last one's root was shows it", async ({ page }) => {
+    await opened(page);
+    const shell = 'import QtQuick\nimport Shop\n\nPanel { objectName: "panel" }\n';
+    await dropped(page, shell);
+    await dropped(page, shell);
+    await expect(errors(page)).toBeHidden();
+    expect(await page.evaluate(() => window.scene.$node.isConnected)).toBe(true);
+  });
+
   test("A plain item written inside a use is carried as any other is", async ({ page }) => {
     await opened(page);
     const shell = `import QtQuick
@@ -584,6 +674,118 @@ test.describe("While a dropped shell is shown, nothing fetches from another site
     expect(asked).toEqual([]);
     expect(opens).toEqual([]);
     expect(left).toBe(false);
+  });
+
+  // What a site's shell that reaches another site is answered.
+  const reached = async (page) => {
+    const sockets = [];
+    await page.routeWebSocket(/evil\.example/, (socket) => sockets.push(socket.url()));
+    await page.route(/list\.xml/, (route) => route.fulfill({ body: "<items><item/></items>", contentType: "text/xml", headers: { "Access-Control-Allow-Origin": "*" } }));
+    return sockets;
+  };
+
+  test("What the site's shell fetches as it is made, after a Reset, it fetches", async ({ page }) => {
+    const asked = await fetched(page);
+    const sockets = await reached(page);
+    await opened(page);
+    const reaching = () => page.evaluate(() => {
+      const reaches = window.reaching.object;
+      return { model: reaches.loaded, xhr: reaches.answer, socket: reaches.socketStatus };
+    });
+    await page.evaluate(() => {
+      const element = document.createElement("div");
+      document.body.append(element);
+      window.reaching = window.liveShell(window.Reaches, element, { site: "reaches" });
+    });
+    await expect.poll(() => asked.length).toBe(2);
+    await expect.poll(() => sockets.length).toBe(1);
+    await page.evaluate((text) => window.reaching.drop(text), over(""));
+    await page.waitForTimeout(100);
+    expect(asked.length).toBe(2);
+    expect(sockets.length).toBe(1);
+    await page.evaluate(() => window.reaching.reset());
+    await expect.poll(() => asked.length).toBe(4);
+    await expect.poll(() => sockets.length).toBe(2);
+    // Once each, and answered: nothing was refused on the way and asked again.
+    await expect.poll(reaching).toEqual({ model: 1, xhr: "done 200", socket: 1 });
+    await page.waitForTimeout(100);
+    expect(asked.length).toBe(4);
+    expect(sockets.length).toBe(2);
+  });
+
+  test("Reset runs what the site's shell does as it is made once", async ({ page }) => {
+    let made = 0;
+    page.on("console", (message) => message.text().includes("reaches made") && made++);
+    await fetched(page);
+    await reached(page);
+    await opened(page);
+    await page.evaluate(() => {
+      const element = document.createElement("div");
+      document.body.append(element);
+      window.reaching = window.liveShell(window.Reaches, element, { site: "reaches" });
+    });
+    await expect.poll(() => made).toBe(1);
+    await page.evaluate((text) => window.reaching.drop(text), over(""));
+    await page.evaluate(() => window.reaching.reset());
+    await page.waitForTimeout(50);
+    expect(made).toBe(2);
+  });
+
+  test("A Reset whose shell cannot be made says so, and the next drop shows", async ({ page }) => {
+    await opened(page);
+    await page.evaluate(() => {
+      const element = document.createElement("div");
+      document.body.append(element);
+      window.flaky = window.liveShell(window.Flaky, element, { site: "flaky" });
+    });
+    await page.evaluate((text) => window.flaky.drop(text), over(""));
+    await page.evaluate(() => (window.breaking = true));
+    await page.evaluate(() => window.flaky.reset());
+    await expect(errors(page)).toContainText("Broken on purpose");
+    await page.evaluate(() => (window.breaking = false));
+    await page.evaluate((text) => window.flaky.drop(text), over('    Text { objectName: "after"; text: "shown" }'));
+    await expect(errors(page)).toBeHidden();
+    expect(await page.evaluate(() => window.flaky.object.children.find((child) => child.objectName === "after")?.$node.isConnected)).toBe(true);
+  });
+
+  test.describe("A refused request", () => {
+    test.use({ told: [/Failed to load resource|ERR_FAILED|CORS|net::|not fetched while/] });
+    const told = (page) => page.evaluate(() => new Promise((resolve) => window.named("sinks").asked(resolve)));
+
+    test("Tells a program what a request that failed on the network tells", async ({ page }) => {
+      await page.route(/evil\.example/, (route) => route.abort());
+      await opened(page);
+      await dropped(page, over(`    Sinks { objectName: "sinks"; address: "${EVIL}" }`));
+      await expect(errors(page)).toBeHidden();
+      const refused = await told(page);
+      expect(refused).toContainEqual(["readystatechange", 4, 0]);
+      expect(refused.at(-1)).toEqual(["loadend", 4, 0]);
+      // The same, shown with a host the site allows, so that it does go out.
+      await page.addInitScript(() => (window.allowedHosts = ["evil.example"]));
+      await opened(page);
+      await dropped(page, over(`    Sinks { objectName: "sinks"; address: "${EVIL}" }`));
+      expect(await told(page)).toEqual(refused);
+    });
+
+    test("Is one a program can abort and open again", async ({ page }) => {
+      await page.route(/evil\.example/, (route) => route.fulfill({ body: "x", headers: { "Access-Control-Allow-Origin": "*" } }));
+      await opened(page);
+      await dropped(page, over(`    Sinks { objectName: "sinks"; address: "${EVIL}" }`));
+      const after = await page.evaluate(async () => {
+        const request = window.named("sinks").ask();
+        let quiet = true;
+        request.addEventListener("error", () => (quiet = false));
+        request.abort();
+        const aborted = request.readyState;
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        const failed = window.named("sinks").ask();
+        await new Promise((resolve) => setTimeout(resolve, 20));
+        const done = failed.readyState;
+        failed.abort();
+        return { quiet, aborted, done, gone: failed.readyState };
+      });
+      expect(after).toEqual({ quiet: true, aborted: 0, done: 4, gone: 0 });
+    });
   });
 
   test("Every sink in the runtime goes through the guard", async () => {

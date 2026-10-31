@@ -16,13 +16,41 @@ export class XMLHttpRequest extends Base {
   open(method, url, ...rest) {
     const at = located(String(url));
     this.$refused = !mayFetch(at);
+    this.$waits = rest[0] !== false;
+    this.$state = undefined;
+    this.$failing = false;
     return super.open(method, at, ...rest);
   }
 
-  // Refused as a network failure is: a program handles that already.
+  get readyState() {
+    return this.$state ?? super.readyState;
+  }
+
+  // Refused as a network failure is, step by step: a program waits for DONE,
+  // or for `error`, and is to be told as it would be of any other failure.
   send(body) {
     if (!this.$refused) return super.send(body);
-    queueMicrotask(() => this.dispatchEvent(new Event("error")));
+    if (!this.$waits) throw new DOMException(`Failed to load: not fetched while a dropped shell is shown`, "NetworkError");
+    this.$failing = true;
+    this.dispatchEvent(new ProgressEvent("loadstart"));
+    queueMicrotask(() => {
+      if (!this.$failing) return;
+      this.ended("error");
+    });
+  }
+
+  ended(how) {
+    this.$failing = false;
+    this.$state = XMLHttpRequest.DONE;
+    this.dispatchEvent(new Event("readystatechange"));
+    this.dispatchEvent(new ProgressEvent(how));
+    this.dispatchEvent(new ProgressEvent("loadend"));
+  }
+
+  abort() {
+    if (this.$failing) this.ended("abort");
+    if (this.$state !== undefined) this.$state = XMLHttpRequest.UNSENT;
+    return super.abort();
   }
 
   setRequestHeader(name, value) {

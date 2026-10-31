@@ -73,9 +73,10 @@ export const Keys = defineType("Keys", QtObject, {
   attached: KeysAttached,
 });
 
-// An item's `Keys`, if it was given any: looked for once.
+// An item's `Keys`, if it was given any: looked for once, and again if what is
+// attached to it has changed, as what a use of a block attaches does.
 function keysOf(item) {
-  if (item.$keys !== undefined) return item.$keys;
+  if (item.$keys !== undefined && (item.$keys ?? undefined) === item.$attached?.Keys) return item.$keys;
   let has = Boolean(item.$attached?.Keys);
   if (!has) for (const name in item.$props) if ((has = name.startsWith("Keys$"))) break;
   return (item.$keys = has ? Keys.attached(item) : null);

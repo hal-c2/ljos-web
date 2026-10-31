@@ -211,6 +211,15 @@ export function arrived(item) {
 // the keys go to.
 export function forceActiveFocus(item, reason) {
   setFocus(item, true, reason);
+  // One that kept its `focus` when it left the scope it was in, as a block
+  // does between shells, is no scope's focus item here until it is given.
+  const held = windowOf(item);
+  const inScope = scopeOf(item, held);
+  if (inScope.$subFocus !== item) {
+    const changed = [];
+    give(held, inScope, item, changed);
+    tell(held, changed, reason);
+  }
   for (let parent = parentOf(item); parent; parent = parentOf(parent)) {
     if (parent.$focusScope) setFocus(parent, true, reason);
   }

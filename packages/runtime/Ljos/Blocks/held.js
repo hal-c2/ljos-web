@@ -53,6 +53,7 @@ const instances = new Map();
 const blocks = new WeakSet();
 const taken = new WeakMap();
 const places = new WeakMap();
+const said = new WeakMap();
 let making = 0;
 // The shell whose uses are being made inside a use of a block: they are that
 // shell's, though the block they are put in has no parent to find it by.
@@ -179,15 +180,28 @@ function declared(block, self, given) {
 }
 
 // `Layout.fillWidth`: said of the instance, by whichever attached type is
-// asked of it for as long as the use lasts.
+// asked of it for as long as the use lasts. The use that comes next says its
+// own before this one goes, so this one takes off only what is still its own,
+// and what is under it is what the block's file said.
 function attached(block, props, types, owner) {
-  const keys = [];
+  if (!said.has(block)) said.set(block, new Map());
+  const saying = said.get(block);
+  const use = {};
+  const mine = [];
+  const release = (key, entry) => {
+    if (entry.under) Object.defineProperty(block.$props, key, entry.under);
+    else delete block.$props[key];
+    saying.delete(key);
+  };
   for (const type of types) {
     const prefix = `${type.typeName}$`;
+    // What the last use said and this one does not is not said any longer.
+    for (const [key, entry] of saying) if (key.startsWith(prefix) && !(key in props)) release(key, entry);
     for (const key of Object.keys(props)) {
       if (!key.startsWith(prefix)) continue;
+      const under = saying.has(key) ? saying.get(key).under : Object.getOwnPropertyDescriptor(block.$props, key);
       Object.defineProperty(block.$props, key, { ...Object.getOwnPropertyDescriptor(props, key), configurable: true });
-      keys.push(key);
+      saying.set(key, { use, under });
     }
     if (block.$attached) delete block.$attached[type.typeName];
     const home = block.$owner;
@@ -197,10 +211,11 @@ function attached(block, props, types, owner) {
     } finally {
       hide(block, "$owner", home);
     }
+    mine.push([type.typeName, block.$attached?.[type.typeName]]);
   }
   onCleanup(() => {
-    for (const key of keys) delete block.$props[key];
-    for (const type of types) if (block.$attached) delete block.$attached[type.typeName];
+    for (const [key, entry] of saying) if (entry.use === use) release(key, entry);
+    for (const [name, object] of mine) if (block.$attached?.[name] === object) delete block.$attached[name];
   });
 }
 
