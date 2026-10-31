@@ -6,3 +6,5 @@ playwright-report/
 packages/runtime/kernel/*.wasm
 packages/runtime/compiler/*.wasm
 packages/runtime/tests/scenes/saved/
+packages/runtime/QtQuick3D/wgpu/
+.tools/
