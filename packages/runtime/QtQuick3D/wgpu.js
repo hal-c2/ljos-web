@@ -10,7 +10,7 @@
 // one that draws differently asks for one. Nothing here runs otherwise.
 import { located, slot, effect } from "../object.js";
 import { color } from "../QtQuick/color.js";
-import { signal } from "#kernel";
+import { signal, untrack } from "#kernel";
 import { CustomMaterial } from "./CustomMaterial.js";
 import { handed, text } from "./effects.js";
 import { inside } from "./Node.js";
@@ -310,8 +310,8 @@ export function drawOn(self, canvas, told) {
       })),
   );
 
-  const size = () => [Math.max(1, Math.round(self.width * devicePixelRatio)), Math.max(1, Math.round(self.height * devicePixelRatio))];
-  [canvas.width, canvas.height] = size();
+  const size = (width, height) => [Math.max(1, Math.round(width * devicePixelRatio)), Math.max(1, Math.round(height * devicePixelRatio))];
+  [canvas.width, canvas.height] = untrack(() => size(self.width, self.height));
   queue = queue
     .then(async () => {
       if (gone) return;
@@ -329,8 +329,8 @@ export function drawOn(self, canvas, told) {
   // The item's own size says when, without watching the element.
   effect(
     () => ({ view: made(), width: self.width, height: self.height }),
-    ({ view }) => {
-      if (view) view.resize(...size());
+    ({ view, width, height }) => {
+      if (view) view.resize(...size(width, height));
     },
   );
   effect(
