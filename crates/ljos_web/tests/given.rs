@@ -72,6 +72,19 @@ fn a_project_given_as_texts_compiles_as_qmlc_compiles_it_from_its_directory() {
     }
 }
 
+/// Inspected, each object says where it is written, as `qmlc --inspect`
+/// says it: what tells of a fault in a shell compiled in the page names
+/// the line.
+#[test]
+fn an_inspected_project_says_where_each_object_is_as_qmlc_inspect_does() {
+    let dir = fixtures().join("twice");
+    let compiled = compile(&Request { inspect: true, ..request(read(&dir), "Main.qml") }).expect("compiles");
+    for module in &compiled.modules {
+        assert!(module.code.contains("$at"), "{}: no places", module.file);
+        assert_eq!(module.code, qmlc(&dir, &["--inspect", &module.file], &module.file), "{}", module.file);
+    }
+}
+
 #[test]
 fn a_module_nobody_has_is_an_error_at_its_import() {
     let files = read(&fixtures().join("unknown"));

@@ -25,6 +25,8 @@ struct Request {
     /// The project's type dumps among `files`; every `ljostypes.json` of
     /// them when not given.
     types: Option<Vec<String>>,
+    #[serde(default)]
+    inspect: bool,
 }
 
 #[derive(Deserialize)]
@@ -107,6 +109,7 @@ fn answer(request: Request) -> Response {
         modules: request.modules,
         installed: request.installed,
         types: request.types,
+        inspect: request.inspect,
     };
     match given::compile(&request) {
         Ok(compiled) => Response::Compiled {

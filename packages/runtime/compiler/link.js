@@ -48,12 +48,15 @@ const installed = (modules) =>
     .map((specifier) => specifier.slice("ljos-web/".length).replaceAll("/", "."));
 
 // `types`: the project's type dumps among `files`, by path; every
-// `ljostypes.json` of them when not given.
-const asked = ({ files, entry, aliases = [], types }, modules) => ({
+// `ljostypes.json` of them when not given. `inspect`: each object says where
+// it is written (`$at`), as `qmlc --inspect` does, so what tells of a fault
+// in it can say the line.
+const asked = ({ files, entry, aliases = [], types, inspect = false }, modules) => ({
   files: files instanceof Map ? Object.fromEntries(files) : files,
   entry,
   aliases,
   ...(types ? { types } : {}),
+  inspect,
   modules: Object.keys(modules),
   installed: installed(modules),
 });

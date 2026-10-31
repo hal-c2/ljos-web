@@ -55,6 +55,8 @@ pub struct Request {
     /// None for every file of the project named `ljostypes.json`, as native
     /// Ljós finds them.
     pub types: Option<Vec<String>>,
+    /// Whether each object says where it is written, as `qmlc --inspect`.
+    pub inspect: bool,
 }
 
 /// The name a type dump has, wherever in the project it is.
@@ -135,7 +137,11 @@ pub fn compile(request: &Request) -> Result<Compiled, Vec<Diagnostic>> {
     while index < pending.len() {
         let file = pending[index].clone();
         index += 1;
-        let mut options = Options { installed: request.installed.clone(), ..Options::default() };
+        let mut options = Options {
+            installed: request.installed.clone(),
+            inspect: request.inspect.then(|| file.clone()),
+            ..Options::default()
+        };
         let path = Path::new(ROOT).join(&file);
         let Some(compiled) = load.compile(&path, &mut options, false, false) else { continue };
         for warning in compiled.warnings {
