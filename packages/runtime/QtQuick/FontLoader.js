@@ -115,6 +115,10 @@ const stem = (url) =>
 
 const loads = new Map();
 
+// What a picture of the page (`ljos-web/picture`) gives its copy of the
+// page's text: a page that takes none never imports them.
+export { described, loads, stem };
+
 function load(url) {
   let record = loads.get(url);
   if (record) return record;

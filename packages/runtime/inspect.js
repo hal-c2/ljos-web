@@ -1,9 +1,10 @@
 // A mounted root, inspected and driven by what its QML says: a property read
 // and written by `id`, a click on an object or at a point, the object tree,
-// the object at a point with where it is written, and the lines logged with
-// their file and line. The answers are the ones Ljós's own inspector gives
-// of the same file, in the same shapes (its `app_inspect`, `app_click`,
-// `app_objects` and `app_logs`), so that a host maps one onto the other.
+// the object at a point with where it is written, the lines logged with
+// their file and line, and a picture of it. The answers are the ones Ljós's
+// own inspector gives of the same file, in the same shapes (its
+// `app_inspect`, `app_click`, `app_objects`, `app_logs` and
+// `app_screenshot`), so that a host maps one onto the other.
 //
 // Where things are written is what qmlc puts in when asked (`--inspect`,
 // the Vite plugin's `inspect`): `$at`, `$id` and `$ids` among an object's
@@ -279,6 +280,38 @@ export function inspect(root) {
         return { object, type: typeOf(object), id: idOf(object), source: source(object) };
       }
       return null;
+    },
+
+    // A PNG of the root, or of the part of it an object covers (`target`,
+    // an id or an object): `{ png, width, height, scale, bytes, area }`,
+    // as `ljos-web/picture` takes it, which is loaded the first time one
+    // is asked for. At the page's `devicePixelRatio`, or `scale`, and
+    // smaller where `max_size` says.
+    async screenshot({ target, scale, max_size } = {}) {
+      const shape = frame();
+      let area = [0, 0, shape.width, shape.height];
+      if (target !== undefined && target !== null) {
+        const object = find(target);
+        if (!object) return failed("not_found", `no object is \`${target}\``);
+        if (!object.$node || !object.visible) return failed("not_actionable", `\`${target}\` is not shown, so there is nothing to picture`);
+        const box = object.$node.getBoundingClientRect();
+        const x0 = Math.max((box.left - shape.box.left) / shape.scale, 0);
+        const y0 = Math.max((box.top - shape.box.top) / shape.scale, 0);
+        const x1 = Math.min((box.right - shape.box.left) / shape.scale, shape.width);
+        const y1 = Math.min((box.bottom - shape.box.top) / shape.scale, shape.height);
+        if (x1 - x0 < 1 || y1 - y0 < 1) return failed("not_actionable", `\`${target}\` has nothing to picture inside the root`);
+        area = [x0, y0, x1 - x0, y1 - y0];
+      }
+      const items = drawn();
+      const name = (element) => {
+        while (element && !items.has(element)) element = element.parentElement;
+        const object = element && items.get(element);
+        if (!object) return "an element";
+        const id = idOf(object);
+        return `\`${typeOf(object)}${id ? `#${id}` : ""}\``;
+      };
+      const { picture } = await import("./picture.js");
+      return picture(root, { area, scale, max_size, name });
     },
 
     // The lines logged since `since` (an answer's `next_since`), oldest
