@@ -432,7 +432,7 @@ in-page compiler (`crates/ljos_web/src/shell.rs`), and its evaluator
    ├▶ each block (a `# block` line names its file) is held: one instance a page
    └▶ the entry carries Entry.$live = { site, blocks: [contract + component] }
         (`qmlc --shell` reads the contracts from the qmldir lines)
- page:  liveShell(Entry, element, { site, publish, storage, file })
+ page:  liveShell(Entry, element, { site, publish, storage, file, allowedHosts })
         a region with "Open a shell…" (a file picker), Reset, Publish
         (only with a hook), a status line, and the drop zone over the page
    1. the visitor drops or picks Shell.qml
@@ -469,14 +469,22 @@ in-page compiler (`crates/ljos_web/src/shell.rs`), and its evaluator
   in JS on the page's graph, not in the kernel wasm. Bindings become
   getters that Solid tracks, as compiled QML's are. One evaluator for
   every platform is left for when tier-1 runs natively as well.
-- **Carrying state.** Blocks are the site's: a block compiled with
-  `liveShell` is held (`held.js`), so there is one instance per page
-  for each name a shell gives it (`Basket#basket`). Every shell that
-  names it shows that same instance. What a shell sets on a block is a
-  layer over it, and what it handles is connected; both are taken off
-  when the shell goes. The block's state is the block's. A plain item
-  is carried by `reload` (A13): it is matched by `id` or `objectName`
-  and keeps what the program gave it while it ran.
+- **Carrying state.** Blocks are the site's: a use of a block written in
+  a shell, with `liveShell`, is held (`held.js`), so there is one instance
+  per page for each name a shell gives it and each use of that name
+  (`Basket#basket`), which every shell that names it shows. A page with
+  two live shells shares them too. All else a use says lasts as long as
+  the use: what it sets is a layer over the block, what it handles is
+  connected, what it writes inside it is put where the block's file puts
+  children, what it declares (properties, signals, aliases, functions)
+  is kept on an object of its own and reached through the instance, and
+  what it attaches is the instance's until the shell goes. A use that
+  says what the block has no member for is warned of. The block's state
+  is the block's. What comes and goes while the page runs (a Repeater's
+  rows, a Loader's item, `createObject`) is not held: it is made anew
+  and goes when it goes, and survives a new shell only as a plain item
+  does. A plain item is carried by `reload` (A13): it is matched by
+  `id` or `objectName` and keeps what the program gave it while it ran.
 - **Errors inline.** Compile errors keep the old shell and say
   `Shell.qml:line:column: message`. When a program throws or runs out
   of budget at run time, the evaluator warns
@@ -506,16 +514,27 @@ it.
    function, the page or a DOM node; names starting with `$` or `__`
    and `constructor`/`prototype` are refused; an index is only into an
    array or a string.
-4. *Network only through blocks.* `Image.source` takes only a URL that
-   a block gives (a block's `url` state). A literal, or a URL built by
-   concatenation or added to, is refused, and a shell declares no `url`
-   property, nor anything over a member its object's type already has.
-   Rich text would load what its `<img>` names, so a shell's `Text` is
-   plain: `textFormat` is refused and forced to `PlainText`. A block may
-   pass what a shell gives it on to a text of its own, by a way nothing
-   can follow, so while a dropped shell is shown no markup on the page
-   loads a picture or links anywhere, the site's own blocks' included.
-   They have them again at Reset.
+4. *Nothing leaves for another site.* A shell cannot write an address:
+   `Image.source` takes only a URL that a block gives (a block's `url`
+   state). A literal, or a URL built by concatenation or added to, is
+   refused, and a shell declares no `url` property, nor anything over a
+   member its object's type already has. Rich text would load what its
+   `<img>` names, so a shell's `Text` is plain: `textFormat` is refused
+   and forced to `PlainText`. But a shell can give a block any string,
+   and a block can pass it on by a way nothing can follow, so the page
+   enforces this where an address is loaded (`guard.js`). While a dropped
+   shell is shown in any live shell on the page, an `Image`, and every
+   other thing that loads an address (pictures, fonts, shaders, models,
+   media, map tiles, `XMLHttpRequest`, sockets, `Qt.openUrlExternally`),
+   fetches only from the page's own origin, the runtime's, `data:` and
+   `blob:`, or a host every shown shell's `allowedHosts` names. Anything
+   else is not asked for: it fails as a failed load does, and is warned
+   of once. The site's own blocks are under the same rule while the shell
+   is shown, as a block cannot tell whose string it has. No markup on the
+   page loads a picture or links anywhere at all, the hosts allowed
+   included. When the last dropped shell goes (Reset, or `dispose`),
+   markup and `Image` have what they were refused; anything else asks
+   again when next told to load it.
 5. *Bounded work.* Each run has a budget of 100,000 steps. A runaway
    binding is stopped and warned of, and the page keeps running.
 6. *Storage scoped.* Only the shell text is stored, under

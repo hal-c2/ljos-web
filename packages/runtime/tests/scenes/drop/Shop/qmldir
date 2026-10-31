@@ -11,3 +11,7 @@ Headline 1.0 Headline.qml
 Note 1.0 Note.qml
 # block Panel 1.0 Panel.qml Shop "Holds what a shell writes inside it"
 Panel 1.0 Panel.qml
+# block Pic 1.0 Pic.qml Shop "A picture a shell names"
+Pic 1.0 Pic.qml
+# block Sinks 1.0 Sinks.qml Shop "Fetches what a shell names"
+Sinks 1.0 Sinks.qml

@@ -21,6 +21,7 @@
 //   there, and is left out here.
 // - The effect of an item's layer (`layer.effect: MultiEffect {}`) is what
 //   Qt draws of the item, where the item is: all of it is done to the item.
+import { allowedUrl } from "../../guard.js";
 import { onCleanup } from "solid-js";
 import { Rect } from "../../QtQml/values.js";
 import { defineType, derived, effect, slot } from "../../object.js";
@@ -334,7 +335,7 @@ export const MultiEffect = defineType("MultiEffect", Item, {
       let picture = null;
       if (shape.url) {
         picture = svg("image");
-        picture.setAttribute("href", shape.url);
+        picture.setAttribute("href", allowedUrl(shape.url));
         picture.setAttribute("preserveAspectRatio", "none");
       } else if (shape.alpha !== undefined) {
         picture = svg("rect");

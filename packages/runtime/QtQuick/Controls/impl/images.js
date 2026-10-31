@@ -1,5 +1,6 @@
 // ColorImage, IconImage: a picture painted in one colour, as a style's
 // indicators and a button's icon are.
+import { allowedUrl } from "../../../guard.js";
 import { defineType, derived, effect } from "../../../object.js";
 import { colorValue, equal } from "../../color.js";
 import { rules } from "../../compute.js";
@@ -31,7 +32,7 @@ function tinted(self, tint) {
       face.classList.toggle("qq-tinted", Boolean(next));
       if (!next) return void (style.maskImage = style.backgroundColor = "");
       const [x, y, wide, tall] = next.inner;
-      style.maskImage = `url(${JSON.stringify(next.url)})`;
+      style.maskImage = `url(${JSON.stringify(allowedUrl(next.url))})`;
       style.maskSize = `${wide}px ${tall}px`;
       style.maskPosition = `${x}px ${y}px`;
       style.maskRepeat = next.repeat;

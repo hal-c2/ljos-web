@@ -3,6 +3,7 @@
 // The browser loads and paints it. What QML reads of it is computed here as
 // Qt computes it: the size it would have been loaded at, which is the item's
 // implicit size, and the rectangle it is painted in.
+import { guardedFetch, mayFetch, shellShown, sourced } from "../guard.js";
 import { signal } from "#kernel";
 import { defineType, derived, effect, flush, group, located } from "../object.js";
 import { given, lazy, rules, sized } from "./compute.js";
@@ -39,7 +40,7 @@ export function picture(url) {
 const PACKED = /\.svgz(?:[?#]|$)/i;
 
 async function opened(url) {
-  const response = await fetch(url);
+  const response = await guardedFetch(url);
   if (!response.ok) throw new Error(`${url}: ${response.status}`);
   const bytes = new Uint8Array(await response.arrayBuffer());
   // Already opened by the browser, where the server did say.
@@ -52,7 +53,7 @@ async function opened(url) {
 // a browser goes by what the file is served as, which goes by its name. It
 // is handed to the browser again as nothing in particular, to look into.
 async function unnamed(url) {
-  const response = await fetch(url);
+  const response = await guardedFetch(url);
   if (!response.ok) throw new Error(`${url}: ${response.status}`);
   return URL.createObjectURL(new Blob([await response.arrayBuffer()]));
 }
@@ -95,7 +96,7 @@ export function measured(root) {
 
 // That size of the drawing at `url`, where it can be read.
 async function drawing(url) {
-  const parsed = new DOMParser().parseFromString(await (await fetch(url)).text(), "image/svg+xml");
+  const parsed = new DOMParser().parseFromString(await (await guardedFetch(url)).text(), "image/svg+xml");
   const root = parsed.documentElement;
   if (root.localName !== "svg" || parsed.querySelector("parsererror")) return null;
   const size = measured(root);
@@ -117,7 +118,7 @@ function fetched(url) {
   // It is read before the browser is given it: what shows the picture is
   // told of it as the browser has it, and paints it without waiting again.
   const show = (address) => {
-    const shown = () => (element.src = address);
+    const shown = () => sourced(element, address);
     if (record.scalable) drawing(address).then((found) => (size = found), () => {}).then(shown);
     else shown();
   };
@@ -128,7 +129,7 @@ function fetched(url) {
       element.onerror = failed;
       // No drawing, so nothing that is made at any size asked for.
       record.scalable = false;
-      unnamed(url).then((address) => (element.src = record.url = address), failed);
+      unnamed(url).then((address) => sourced(element, (record.url = address)), failed);
     };
   }
   if (!PACKED.test(url)) show(url);
@@ -255,6 +256,9 @@ export const ImageBase = defineType("ImageBase", Item, {
       record: lazy(self, () => {
         const url = located(String(self.source ?? ""));
         if (!url) return null;
+        // What was refused while a dropped shell was shown is asked for
+        // again when it has gone, by whichever block still names it.
+        if (!mayFetch(url)) shellShown();
         // `cache: false`: a load of its own, whatever the others have.
         return self.cache ? shared(self.$pictures, url, self.$load) : self.$load(url);
       }),

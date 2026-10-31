@@ -7,7 +7,10 @@ import { flush } from "ljos-web/object";
 import Shell from "./scenes/drop/Shell.qml";
 
 window.publishing = { answer: { url: "https://shells.example/1" } };
+window.liveShell = liveShell;
+window.Shell = Shell;
 const live = liveShell(Shell, document.getElementById("scene"), {
+  allowedHosts: window.allowedHosts,
   publish: async (text, meta) => {
     window.published = { text, meta };
     if (window.publishing.error) throw new Error(window.publishing.error);

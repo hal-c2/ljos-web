@@ -2,6 +2,7 @@
 //
 // The file says what it is called; the browser is told that name, and the
 // weight and slant of the face, so that `font.bold` finds the bold file.
+import { guardedFetch, kept } from "../guard.js";
 import { defineType, derived, effect, flush, located, QtObject } from "../object.js";
 import { lazy } from "./compute.js";
 import { fontsChanged } from "./font.js";
@@ -124,7 +125,8 @@ function load(url) {
   if (record) return record;
   const [status, setStatus] = signal(LOADING);
   loads.set(url, (record = { status, name: "", weight: 400, italic: false }));
-  fetch(url)
+  kept(loads, url, url);
+  guardedFetch(url)
     .then((response) => (response.ok ? response.arrayBuffer() : Promise.reject(new Error(response.statusText))))
     .then((buffer) => {
       const found = described(buffer, stem(url));

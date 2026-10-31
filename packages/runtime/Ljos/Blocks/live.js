@@ -15,7 +15,7 @@
 // shell and what it uses: where it goes is the site's to say.
 import { mount, settle } from "../../object.js";
 import { reload } from "../../reload.js";
-import { setMarkupInert } from "../../QtQuick/richtext.js";
+import { zoneHides, zoneShows } from "../../guard.js";
 
 let worker;
 let asked = 0;
@@ -59,7 +59,8 @@ function element(tag, attributes = {}, text) {
 // kept under (the build's, else the page's path); `publish(text, meta)`, a
 // function that answers `{ url }` or throws; `storage`, where the shell is
 // kept (`localStorage`); `file`, what a shell is called where its errors
-// are said. Answers `{ object, drop(text), reset(), publish(), idle() }`.
+// are said; `allowedHosts`, the hosts things may be fetched from while a
+// dropped shell is shown, besides the site's own (`guard.js`). Answers `{ object, drop(text), reset(), publish(), idle() }`.
 export function liveShell(Entry, element_, options = {}) {
   const live = Entry.$live ?? { site: undefined, blocks: [] };
   const site = options.site ?? live.site ?? location.pathname;
@@ -102,6 +103,7 @@ export function liveShell(Entry, element_, options = {}) {
   });
 
   const handle = mount(Entry, host, {}, { reloadable: true });
+  const zone = {};
   let text = null;
   let used = [];
   let pending = Promise.resolve();
@@ -131,10 +133,10 @@ export function liveShell(Entry, element_, options = {}) {
     try {
       const { shellOf } = await import("./shell.js");
       // Before the shell is made, so nothing of it is ever live.
-      setMarkupInert(true);
+      zoneShows(zone, options.allowedHosts);
       reload(handle, shellOf(answer.shell, components, file));
     } catch (error) {
-      setMarkupInert(text != null);
+      if (text == null) zoneHides(zone);
       said([`${file}: ${error?.message ?? error}`]);
       return false;
     }
@@ -168,7 +170,7 @@ export function liveShell(Entry, element_, options = {}) {
         // Nothing was kept.
       }
       reload(handle, Entry);
-      setMarkupInert(false);
+      zoneHides(zone);
       text = null;
       used = [];
       said([]);
@@ -233,6 +235,7 @@ export function liveShell(Entry, element_, options = {}) {
     idle: () => pending,
     dispose: () => {
       handle.dispose?.();
+      zoneHides(zone);
       region.remove();
     },
   };

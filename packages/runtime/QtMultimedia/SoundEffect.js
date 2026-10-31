@@ -5,6 +5,7 @@
 // long a play lasts is counted on the clock, not asked of the browser: a
 // page that may not make sound yet plays it silently, and is as far along
 // as it would have been when the sound comes on.
+import { guardedFetch, kept } from "../guard.js";
 import { onCleanup } from "solid-js";
 import { defineType, effect, onChange, QtObject, settle, slot } from "../object.js";
 import { clock } from "../QtQuick/animation/clock.js";
@@ -41,13 +42,14 @@ const sounds = new Map();
 function fetched(url) {
   let sound = sounds.get(url);
   if (!sound) {
-    sound = fetch(url)
+    sound = guardedFetch(url)
       .then((response) => {
         if (!response.ok) throw new Error(response.statusText);
         return response.arrayBuffer();
       })
       .then((bytes) => decoder().decodeAudioData(bytes));
     sounds.set(url, sound);
+    kept(sounds, url, url);
     // Not kept when it failed: the next effect to ask tries again.
     sound.catch(() => sounds.delete(url));
   }

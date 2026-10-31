@@ -509,6 +509,140 @@ test.describe("A block's uses that come and go are made anew", () => {
   });
 });
 
+test.describe("While a dropped shell is shown, nothing fetches from another site", () => {
+  test.beforeEach(({ page }) => page.addInitScript(() => localStorage.clear()));
+  // Each refusal is told of, once.
+  test.use({ told: [/^not fetched while a dropped shell is shown/] });
+  const EVIL = "https://evil.example/x.png";
+  const GOOD = "https://cdn.example/x.png";
+  const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=", "base64");
+  const fetched = async (page) => {
+    const asked = [];
+    page.on("request", (request) => /(evil|cdn)\.example/.test(request.url()) && asked.push(request.url()));
+    await page.route(/(evil|cdn)\.example/, (route) => route.fulfill({ body: PNG, contentType: "image/png", headers: { "Access-Control-Allow-Origin": "*" } }));
+    return asked;
+  };
+  const pic = (url) => over(`    Pic { objectName: "pic"; picture: "${url}" }`);
+  const statusOf = (page) => page.evaluate(() => window.named("pic").status);
+  const [READY, ERROR] = [1, 3];
+
+  test("A shell's string given to a block's Image fetches nothing, and the Image says so", async ({ page }) => {
+    const asked = await fetched(page);
+    await opened(page);
+    await dropped(page, pic(EVIL));
+    await expect(errors(page)).toBeHidden();
+    await expect.poll(() => statusOf(page)).toBe(ERROR);
+    expect(asked).toEqual([]);
+  });
+
+  test("A picture of the site's own still comes", async ({ page }) => {
+    await opened(page);
+    const own = new URL("scenes/drop/Shop/cover.svg", page.url() === "about:blank" ? "http://localhost:" + (process.env.LJOS_WEB_PORT ?? "4301") + "/" : page.url()).href;
+    await dropped(page, pic(own));
+    await expect.poll(() => statusOf(page)).toBe(READY);
+  });
+
+  test("A host the site allows is fetched", async ({ page }) => {
+    await page.addInitScript(() => (window.allowedHosts = ["cdn.example"]));
+    const asked = await fetched(page);
+    await opened(page);
+    await dropped(page, pic(GOOD));
+    await expect.poll(() => statusOf(page)).toBe(READY);
+    expect(asked).toEqual([GOOD]);
+    await page.evaluate((url) => (window.named("pic").picture = url), EVIL);
+    await expect.poll(() => statusOf(page)).toBe(ERROR);
+    expect(asked).toEqual([GOOD]);
+  });
+
+  test("Reset gives a block's Image what it was refused", async ({ page }) => {
+    const asked = await fetched(page);
+    await opened(page);
+    await dropped(page, over('    Pic { objectName: "pic" }'));
+    const block = await page.evaluateHandle(() => window.named("pic"));
+    await block.evaluate((pic, url) => (pic.picture = url), EVIL);
+    await expect.poll(() => block.evaluate((pic) => pic.status)).toBe(ERROR);
+    expect(asked).toEqual([]);
+    await page.getByRole("button", { name: "Reset" }).click();
+    await page.evaluate(() => window.live.idle());
+    await expect.poll(() => block.evaluate((pic) => pic.status)).toBe(READY);
+    expect(asked).toEqual([EVIL]);
+  });
+
+  test("No other sink fetches what a shell names", async ({ page }) => {
+    const asked = await fetched(page);
+    const opens = [];
+    page.on("popup", (popup) => opens.push(popup.url()));
+    await opened(page);
+    await dropped(page, over(`    Sinks { id: sinks; objectName: "sinks"; address: "${EVIL}" }`));
+    await expect(errors(page)).toBeHidden();
+    const left = await page.evaluate(() => {
+      const sinks = window.named("sinks");
+      sinks.ask();
+      return sinks.leave();
+    });
+    await page.waitForTimeout(200);
+    expect(asked).toEqual([]);
+    expect(opens).toEqual([]);
+    expect(left).toBe(false);
+  });
+
+  test("Every sink in the runtime goes through the guard", async () => {
+    const { readdirSync, readFileSync } = await import("node:fs");
+    const { join, relative } = await import("node:path");
+    const root = join(import.meta.dirname, "..");
+    // Fetched by the runtime for itself, at addresses of its own, or (the
+    // inspector's picture) never while a page is showing anybody's shell.
+    const own = new Set(["guard.js", "picture.js", "vite.js", "site.js", "kernel/wasm.js", "Ljos/Blocks/shell-worker.js", "QtMultimedia/audible.js"]);
+    const SINK = /\bfetch\(|\.src\s*=[^=]|\.href\s*=[^=]|setAttribute\("(src|href)"|window\.open\(|new window\.WebSocket|new EventSource|sendBeacon|(backgroundImage|maskImage|borderImageSource)\s*=\s*`?[^"`]*url\(/;
+    const found = [];
+    const walk = (directory) => {
+      for (const entry of readdirSync(directory, { withFileTypes: true })) {
+        const path = join(directory, entry.name);
+        if (entry.isDirectory()) {
+          if (!["node_modules", "tests", "site-tests", "compiler", "dist"].includes(entry.name)) walk(path);
+        } else if (entry.name.endsWith(".js") && !own.has(relative(root, path))) {
+          readFileSync(path, "utf8")
+            .split("\n")
+            .forEach((line, at) => {
+              if (SINK.test(line) && !/allowedUrl\(|\/\/ guarded/.test(line) && !line.trim().startsWith("//")) found.push(`${relative(root, path)}:${at + 1}: ${line.trim()}`);
+            });
+        }
+      }
+    };
+    walk(root);
+    expect(found).toEqual([]);
+  });
+
+  test("Each zone is counted: a Reset in one leaves the other guarded, and dispose lets go", async ({ page }) => {
+    const asked = await fetched(page);
+    await opened(page);
+    await page.evaluate(() => {
+      const element = document.createElement("div");
+      document.body.append(element);
+      window.other = window.liveShell(window.Shell, element, { site: "other" });
+    });
+    await dropped(page, over(`    Pic { objectName: "pic"; picture: "${EVIL}" }\n    Note { objectName: "noted" }`));
+    await page.evaluate((text) => window.other.drop(text), pic(EVIL + "?other"));
+    await page.evaluate(() => window.other.reset());
+    await page.evaluate((url) => (window.named("pic").picture = url), EVIL + "?after-reset");
+    await expect.poll(() => statusOf(page)).toBe(ERROR);
+    expect(asked).toEqual([]);
+    // Nor does this zone's markup load anything for the other's Reset.
+    expect(await page.evaluate(() => [...window.named("noted").$node.querySelectorAll("img")].filter((image) => image.getAttribute("src")).length)).toBe(0);
+
+    await page.evaluate((text) => window.other.drop(text), pic(EVIL + "?other"));
+    await page.evaluate(() => window.other.dispose());
+    await page.evaluate((url) => (window.named("pic").picture = url), EVIL + "?after-dispose");
+    await expect.poll(() => statusOf(page)).toBe(ERROR);
+    expect(asked).toEqual([]);
+
+    const block = await page.evaluateHandle(() => window.named("pic"));
+    await page.evaluate(() => window.live.dispose());
+    await block.evaluate((pic, url) => (pic.picture = url), EVIL + "?free");
+    await expect.poll(() => asked).toEqual([EVIL + "?free"]);
+  });
+});
+
 test.describe("A visitor's shell is kept", () => {
   test("A reload of the page shows the shell the visitor dropped", async ({ page }) => {
     await page.goto("/drop.html");

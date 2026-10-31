@@ -1,4 +1,5 @@
 // QML's XMLHttpRequest: the browser's, asked as a QML program asks it.
+import { mayFetch } from "../guard.js";
 import { located } from "../object.js";
 
 // Headers a program may not set, which Qt drops without a word. A browser
@@ -13,7 +14,15 @@ const Base = globalThis.XMLHttpRequest ?? class {};
 export class XMLHttpRequest extends Base {
   // A file of the program's own is where its resources were put.
   open(method, url, ...rest) {
-    return super.open(method, located(String(url)), ...rest);
+    const at = located(String(url));
+    this.$refused = !mayFetch(at);
+    return super.open(method, at, ...rest);
+  }
+
+  // Refused as a network failure is: a program handles that already.
+  send(body) {
+    if (!this.$refused) return super.send(body);
+    queueMicrotask(() => this.dispatchEvent(new Event("error")));
   }
 
   setRequestHeader(name, value) {

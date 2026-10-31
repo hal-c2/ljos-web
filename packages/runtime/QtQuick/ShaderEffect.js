@@ -13,6 +13,7 @@
 // Not here: an item that is neither a picture, a Canvas nor another effect
 // as a texture (a page cannot draw its own elements into one), `blending:
 // false`, and a texture that follows a Canvas as it is painted.
+import { guardedFetch, kept, sourced } from "../guard.js";
 import { onCleanup } from "solid-js";
 import { defineType, effect, flush, located, QtObject, slot } from "../object.js";
 import { Size } from "../QtQml/values.js";
@@ -90,6 +91,7 @@ function text(url) {
   if (record) return record;
   const [state, setState] = signal(null);
   texts.set(url, (record = { state }));
+  kept(texts, url, url);
   const took = (source) => {
     if (/^\s*(#version|precision|\/\/|\/\*|void|uniform|attribute|in |varying)/.test(source)) return setState({ source });
     // What Qt bakes is not text; what a server answers with for a file it
@@ -99,7 +101,7 @@ function text(url) {
   };
   if (url.startsWith("data:")) took(decodeURIComponent(url.slice(url.indexOf(",") + 1)));
   else {
-    fetch(url)
+    guardedFetch(url)
       .then((answer) => (answer.ok ? answer.arrayBuffer() : Promise.reject(new Error(`${answer.status}`))))
       .then(async (data) => {
         const bytes = new Uint8Array(data);
@@ -234,12 +236,13 @@ function taken(item) {
     const element = new Image();
     record = { element, ready };
     pictures.set(url, record);
+    kept(pictures, url, url);
     element.crossOrigin = "anonymous";
     element.onload = () => {
       setReady(true);
       flush();
     };
-    element.src = url;
+    sourced(element, url);
   }
   return record.ready() ? record.element : null;
 }

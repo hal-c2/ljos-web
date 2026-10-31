@@ -2,6 +2,7 @@
 // string made at run time, often from data, so it is never given to the page
 // as it is: it is parsed apart from it, and the elements Qt knows are built
 // again with nothing in them that loads a script or leaves the page.
+import { shellShown } from "../guard.js";
 import { css } from "./color.js";
 import { rules } from "./compute.js";
 import { dress, fonts, metrics, resized } from "./font.js";
@@ -155,7 +156,7 @@ function copy(from, to, name, inert) {
   else if (name === "a") {
     if (!inert && from.hasAttribute("href")) to.dataset.link = read("href");
   } else if (name === "img") {
-    if (!inert && read("src")) to.src = read("src");
+    if (!inert && read("src")) to.src = read("src"); // guarded
     if (read("alt")) to.alt = read("alt");
     if (pixels(read("width") ?? "")) style.width = pixels(read("width"));
     if (pixels(read("height") ?? "")) style.height = pixels(read("height"));
@@ -200,8 +201,8 @@ const built = new Map();
 // While a visitor's shell is shown (docs/LJOS_WEB.md A9) markup loads nothing
 // and links nowhere: a block may pass what a shell gives it on to a text of its
 // own, by a way nothing can follow, so no markup can be told to be the site's.
-const [markupInert, setMarkupInert] = signal(false);
-export { markupInert, setMarkupInert };
+const markupInert = shellShown;
+export { markupInert };
 
 // The elements a string of markup stands for: a copy to put in the page.
 export function elements(markup) {

@@ -13,6 +13,7 @@
 // are not read, a picture is read whole where Qt can read one channel of it
 // (`baseColorSingleChannelEnabled` and the like), and the colours of a
 // mesh's corners mask nothing.
+import { guardedFetch, kept, sourced } from "../guard.js";
 import { awaited, defineType, derived, effect, flush, group, located } from "../object.js";
 import { Vector3d } from "../QtQml/values.js";
 import { color } from "../QtQuick/color.js";
@@ -42,8 +43,9 @@ export function file(url, kind, took) {
   if (record) return record;
   const [state, setState] = signal(null);
   files.set(key, (record = { state }));
+  kept(files, key, url);
   awaited(
-    fetch(url)
+    guardedFetch(url)
       .then((answer) => (answer.ok ? answer.arrayBuffer() : Promise.reject(new Error(`${answer.status}`))))
       .then((buffer) => setState(took(buffer)))
       .catch((error) => setState({ error: `could not be read: ${error.message}` }))
@@ -81,6 +83,7 @@ function picture(url) {
     const [ready, setReady] = signal(false);
     const element = new Image();
     pictures.set(url, (record = { element, ready, sheer: false }));
+    kept(pictures, url, url);
     element.crossOrigin = "anonymous";
     awaited(
       new Promise((resolve, reject) => {
@@ -95,7 +98,7 @@ function picture(url) {
         () => console.warn(`Texture: ${url} could not be read`),
       ),
     );
-    element.src = url;
+    sourced(element, url);
   }
   return record.ready() ? record : null;
 }

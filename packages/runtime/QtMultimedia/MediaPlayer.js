@@ -3,6 +3,7 @@
 // The element loads, decodes and keeps time. What is here is Qt's account of
 // it: the states a player goes through, and the order it tells of them in,
 // which is the order Qt 6.11 does.
+import { sourced } from "../guard.js";
 import { onCleanup } from "solid-js";
 import { defineType, effect, QtObject, settle, slot } from "../object.js";
 import { Size } from "../QtQml/values.js";
@@ -382,7 +383,7 @@ function load(self, url) {
   if (url) {
     // What was known of the last file stays until this one is.
     tell(self, "mediaStatus", LOADING);
-    element.src = url;
+    sourced(element, url);
     if (untrack(() => self.autoPlay)) {
       media.wish = PLAYING;
       attempt(self);

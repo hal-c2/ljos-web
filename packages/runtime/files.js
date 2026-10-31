@@ -1,3 +1,4 @@
+import { guardedFetch } from "./guard.js";
 // `ljos-web/files`: the files a page reads by address (a JsonListModel's
 // `source`), and who is told when one changes. Nothing polls: a file is
 // read again only when something says it changed.
@@ -63,7 +64,7 @@ export async function read(url, { signal } = {}) {
   const at = address(url);
   if (files.given.has(at)) return files.given.get(at);
   // A save is read as saved, not as a cache kept it.
-  const response = await fetch(at, { signal, cache: "no-cache" });
+  const response = await guardedFetch(at, { signal, cache: "no-cache" });
   if (!response.ok) throw new Error(`${response.status} ${response.statusText || "the server would not give it"}`.trim());
   // A server that serves an app answers an address it has no file for with
   // the app's page: that is the file not being there, not broken JSON.
