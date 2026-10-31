@@ -28,6 +28,22 @@ const isScript = (id) => {
 const runtime = import.meta.dirname;
 const natives = () => JSON.parse(readFileSync(join(runtime, "package.json"), "utf8")).exports;
 
+// Whether a QML file is a block: its qmldir has a `# block` line naming
+// it (ljos-ui ADR 0003).
+const blockOf = (file) => {
+  const qmldir = join(dirname(file), "qmldir");
+  if (!existsSync(qmldir)) return false;
+  const name = basename(file);
+  return readFileSync(qmldir, "utf8")
+    .split("\n")
+    .some((line) => /^#\s*block\s/.test(line) && line.trim().replace(/^#\s*block\s+/, "").split(/\s+/)[2] === name);
+};
+
+// A block of a page with a live shell is held (`Ljos/Blocks/held.js`).
+const held = (code, component) =>
+  code.replace(new RegExp(`^export default function ${component.replaceAll("$", "\\$")}\\(`, "m"), () => `function ${component}(`) +
+  `\nimport { $held as $$held } from ${JSON.stringify(join(runtime, "Ljos/Blocks/held.js"))};\nexport default $$held(${component});\n`;
+
 // `ljos-web/QtQuick/Controls`: a module of Qt's, not `ljos-web/object`.
 const MODULE = /^ljos-web\/(Qt[\w/]*)$/;
 const VIRTUAL = "\0ljos-web:";
@@ -364,6 +380,13 @@ export const compilerAt = (qmlc) => (qmlc.includes("/") || qmlc.includes(sep) ? 
 //   the one in the file's own directory, as native Ljós reads the one in
 //   its project's directory. Several are read as one, and a dump that does
 //   not read fails the compile, naming it.
+// - `liveShell`: true for a page whose visitors may drop a shell of their
+//   own over its blocks (`ljos-web/live`, docs/LJOS_WEB.md A9),
+//   `{ site }` to name what the shell is kept under (the project's
+//   directory's name otherwise), or a function of the file compiled that
+//   says. A block of such a page is one instance whichever shell shows it,
+//   and an entry carries what it is compiled against. Off, a page has none
+//   of it.
 export default function qml({
   qmlc = "qmlc",
   args = [],
@@ -378,6 +401,7 @@ export default function qml({
   seedHue,
   inspect = false,
   types,
+  liveShell = false,
 } = {}) {
   let asked;
   const found = () => (asked ??= installed());
@@ -832,6 +856,21 @@ export default function qml({
       let code = result.stdout;
       const component = !own && /^export default (?:function\s+|class\s+)?([A-Za-z_$][\w$]*)/m.exec(code)?.[1];
       if (!component) return { code, map: null };
+      const live = typeof liveShell === "function" ? liveShell(file) : liveShell;
+      if (live && blockOf(file)) code = held(code, component);
+      // What a dropped shell is compiled against: the blocks the entry
+      // uses, as their qmldir says, and their components.
+      if (live && entries.has(file)) {
+        const home = projectOf(file);
+        const asked = spawnSync(qmlc, ["--shell", "--root", home, file], { encoding: "utf8" });
+        if (asked.error) this.error(`could not run ${qmlc}: ${asked.error.message}`);
+        if (asked.status !== 0) this.error(asked.stderr.trim());
+        const contracts = JSON.parse(asked.stdout);
+        const site = (typeof live === "object" && live.site) || basename(home);
+        const imports = contracts.map((contract, at) => `import $$block${at} from ${JSON.stringify(join(home, contract.file))};`);
+        const blocks = contracts.map((contract, at) => `{ ...${JSON.stringify(contract)}, component: $$block${at} }`);
+        code += `\n${imports.join("\n")}\n${component}.$live = { site: ${JSON.stringify(site)}, blocks: [${blocks.join(", ")}] };\n`;
+      }
       // An entry's theme is put on the page as it is mounted. Checked here
       // too, so a theme that is refused is told as the entry fails, where
       // whoever asked for the entry hears it.

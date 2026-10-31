@@ -26,6 +26,10 @@ export default defineConfig({
       root: (file) => (file.includes("/scenes/dumped/") ? join(import.meta.dirname, "scenes/dumped") : undefined),
       // The scenes an inspector reads say where their objects are written.
       inspect: (file) => /\/scenes\/inspect/.test(file),
+      // The page a visitor drops a shell on: its blocks are the Shop module
+      // of its own project.
+      liveShell: (file) => file.includes("/scenes/drop/"),
+      root: (file) => (file.includes("/scenes/drop/") ? join(import.meta.dirname, "scenes/drop") : undefined),
     }),
   ],
   resolve: {
