@@ -4,3 +4,4 @@ dist/
 test-results/
 playwright-report/
 packages/runtime/kernel/*.wasm
+packages/runtime/compiler/*.wasm

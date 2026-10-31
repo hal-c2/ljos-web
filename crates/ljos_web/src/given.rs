@@ -242,22 +242,34 @@ fn linked(file: &str, code: String) -> Module {
     let record = &parsed.module_record;
     let units = Units::of(&code);
     let directory = Path::new(file).parent().unwrap_or(Path::new(""));
-    let mut links = Vec::new();
-    for (specifier, requests) in &record.requested_modules {
-        let specifier = specifier.as_str();
-        let target = if specifier.starts_with("./") || specifier.starts_with("../") {
-            match normal(&directory.join(specifier).to_string_lossy()) {
-                Some(path) => Target::File(path),
-                None => Target::File(specifier.to_string()),
-            }
+    let target = |specifier: &str| {
+        if specifier.starts_with("./") || specifier.starts_with("../") {
+            Target::File(normal(&directory.join(specifier).to_string_lossy()).unwrap_or_else(|| specifier.to_string()))
         } else {
             Target::Module(specifier.to_string())
-        };
+        }
+    };
+    let mut links = Vec::new();
+    for (specifier, requests) in &record.requested_modules {
+        let target = target(specifier.as_str());
         for request in requests {
             links.push(Link {
                 start: units.at(request.span.start),
                 end: units.at(request.span.end),
                 target: target.clone(),
+            });
+        }
+    }
+    // `import("./Page.qml")`: only one written as a string is the project's
+    // to link; one put together when it runs is the page's to resolve.
+    for import in &record.dynamic_imports {
+        let written = &code[import.module_request.start as usize..import.module_request.end as usize];
+        let specifier = written.strip_prefix('"').and_then(|rest| rest.strip_suffix('"'));
+        if let Some(specifier) = specifier.filter(|specifier| !specifier.contains(['\\', '"'])) {
+            links.push(Link {
+                start: units.at(import.module_request.start),
+                end: units.at(import.module_request.end),
+                target: target(specifier),
             });
         }
     }

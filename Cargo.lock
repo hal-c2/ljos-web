@@ -324,6 +324,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ljos_web_compiler"
+version = "0.0.0"
+dependencies = [
+ "ljos_web",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "ljos_web_kernel"
 version = "0.0.0"
 dependencies = [

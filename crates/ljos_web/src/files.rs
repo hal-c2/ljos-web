@@ -79,7 +79,9 @@ impl Files for Memory {
 /// An absolute path with `.` and `..` taken out; none for one that leaves
 /// the root.
 fn normalized(path: &Path) -> Option<PathBuf> {
-    if !path.is_absolute() {
+    // Not `is_absolute`: on a target with no OS (wasm32-unknown-unknown) no
+    // path is, as there `/` alone is no prefix.
+    if !path.has_root() {
         return None;
     }
     let mut parts: Vec<&std::ffi::OsStr> = Vec::new();
