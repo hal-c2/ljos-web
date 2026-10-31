@@ -22,6 +22,6 @@ export const SwitchDelegate = defineType("SwitchDelegate", ItemDelegate, switchi
 // A delegate that checks is named by its text as it is.
 const text = (self) => String(self.text ?? "");
 speaks(ItemDelegate, "ListItem");
-speaks(CheckDelegate, "CheckBox", text, true);
-speaks(RadioDelegate, "RadioButton", text, true);
-speaks(SwitchDelegate, "Switch", text, true);
+speaks(CheckDelegate, "CheckBox", text, "checked");
+speaks(RadioDelegate, "RadioButton", text, "checked");
+speaks(SwitchDelegate, "Switch", text, "checked");

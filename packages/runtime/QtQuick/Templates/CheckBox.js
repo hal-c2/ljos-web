@@ -66,5 +66,5 @@ export const RadioButton = defineType("RadioButton", AbstractButton, {
   properties: { checkable: true, autoExclusive: true },
 });
 
-speaks(CheckBox, "CheckBox", undefined, true);
-speaks(RadioButton, "RadioButton", undefined, true);
+speaks(CheckBox, "CheckBox", undefined, "checked");
+speaks(RadioButton, "RadioButton", undefined, "checked");

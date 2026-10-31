@@ -69,4 +69,4 @@ export const switching = {
 
 export const Switch = defineType("Switch", AbstractButton, switching);
 
-speaks(Switch, "Switch", undefined, true);
+speaks(Switch, "Switch", undefined, "checked");

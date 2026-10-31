@@ -61,10 +61,12 @@ const named = (item) => (item?.$node ? (item.$node.id ||= `qq-accessible-${++cou
 // derived type says its own role over its base's, and keeps the base's
 // name unless it says one: a `TabButton` is a tab named as any button is.
 // `role` is a role's name, or what gives the number for an item; `name`
-// what gives the name; `checks` that the control's own `checked` is said.
+// what gives the name; `state` how the control's own `checked` is said:
+// "checked" for one that checks, "selected" for a tab, which ARIA has
+// selected rather than checked.
 const spoken = new Map();
-export function speaks(Type, role, name, checks) {
-  spoken.set(Type, { role: typeof role === "string" ? Role[role] : role, name, checks });
+export function speaks(Type, role, name, state) {
+  spoken.set(Type, { role: typeof role === "string" ? Role[role] : role, name, state });
 }
 
 function said(item, what) {
@@ -83,13 +85,18 @@ export const roleOf = (object) => said(object, "role") ?? Role.NoRole;
 // mnemonic and goes, `&&` is one `&`, and a last `&` stays.
 export const unmarked = (text) => String(text ?? "").replace(/&(.)/gs, "$1");
 
-// What a control that checks says when its author does not: whether it can
-// be checked, whether it is and whether it is partly.
-const checks = new Set(["checkable", "checked", "checkStateMixed"]);
+// What a control that checks or is selected says when its author does
+// not: whether it can be, whether it is and, checked, whether it is partly.
+const OWN = {
+  checked: { checkable: "checkable", checked: "checked", checkStateMixed: "checkState" },
+  selected: { selectable: true, selected: "checked" },
+};
 function ofControl(item, name) {
-  if (!checks.has(name) || !said(item, "checks")) return false;
-  if (name === "checkStateMixed") return item.checkState === 1;
-  return Boolean(item[name]);
+  const from = OWN[said(item, "state")]?.[name];
+  if (from === undefined) return false;
+  if (from === true) return true;
+  if (from === "checkState") return item.checkState === 1;
+  return Boolean(item[from]);
 }
 
 // An attribute a state has only when the item says it has that state.

@@ -25,4 +25,4 @@ export const TabButton = defineType("TabButton", AbstractButton, {
   properties: { checkable: true, autoExclusive: true },
 });
 
-speaks(TabButton, "PageTab");
+speaks(TabButton, "PageTab", undefined, "selected");

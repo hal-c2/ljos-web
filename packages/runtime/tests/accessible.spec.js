@@ -46,7 +46,8 @@ test("a control says what it is and what it is called when its author says nothi
   // Static text has no role of its own in ARIA: it is read as it is.
   expect(said.label).toEqual({});
   expect(said.tabs).toEqual({ role: "tablist" });
-  expect(said.tab).toEqual({ role: "tab", "aria-label": "First" });
+  expect(said.tab).toEqual({ role: "tab", "aria-label": "First", "aria-selected": "true" });
+  expect(said.second).toEqual({ role: "tab", "aria-label": "Second", "aria-selected": "false" });
   expect(said.mine).toEqual({ role: "button", "aria-label": "Remove the row" });
   expect(said.told).toEqual({ role: "checkbox", "aria-label": "Told", "aria-checked": "true" });
   expect(said.other).toEqual({ role: "link", "aria-label": "Odd" });

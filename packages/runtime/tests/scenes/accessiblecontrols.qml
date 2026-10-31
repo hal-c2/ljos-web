@@ -19,7 +19,7 @@ Item {
         T.Slider { id: slider }
         T.GroupBox { id: group; title: "Options" }
         T.Label { id: label; text: "Plain" }
-        T.TabBar { id: tabs; T.TabButton { id: tab; text: "&First" } }
+        T.TabBar { id: tabs; T.TabButton { id: tab; text: "&First" } T.TabButton { id: second; text: "Second" } }
         T.Button { id: mine; text: "Delete"; Accessible.name: "Remove the row" }
         T.CheckBox { id: told; text: "Told"; Accessible.checked: true }
         T.Button { id: other; text: "Odd"; Accessible.role: Accessible.Link }
@@ -32,7 +32,7 @@ Item {
     }
 
     function items() {
-        return { go, check, toggle, slider, group, label, tabs, tab, mine, told, other }
+        return { go, check, toggle, slider, group, label, tabs, tab, second, mine, told, other }
     }
 
     function step() {
