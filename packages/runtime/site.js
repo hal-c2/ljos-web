@@ -14,6 +14,7 @@ import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, rea
 import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, posix, resolve } from "node:path";
 import { build } from "vite";
+import { findTheme } from "./find-theme.js";
 import { provided } from "./modules.js";
 import qml, { installed } from "./vite.js";
 
@@ -195,12 +196,20 @@ function qtRoots(qt) {
   return [...elsewhere, process.env.QT_INSTALL_QML ?? installed().qml].filter(Boolean);
 }
 
-// The theme a bundle carries (`theme.json` beside its entry) is not applied
-// to Ljos.Design yet: that waits on a way for Ljos.Design to take a theme
-// without Rust. When there is one, this is the one place it is applied,
-// given the bundle's theme file and the site as built; until then the file
-// is carried into the site as it is and nothing reads it.
-function applyTheme(_theme, _site) {}
+// The theme the site reads, as ljos-ui's `docs/theme.md` has it: the
+// manifest's `theme` is the named file; without one, the `theme.json`
+// nearest the entry among the listed files, up to the bundle's top. Checked
+// before anything is built: a refused theme refuses the site, with each of
+// its mistakes as `file:line:column: message`.
+function themeOf(dir, manifest, qmlc) {
+  const listed = new Set(manifest.files.map(({ path }) => path));
+  const file = manifest.theme ?? findTheme(listed, manifest.entry);
+  if (!file) return null;
+  const ran = spawnSync(qmlc, ["--theme", file], { cwd: dir, encoding: "utf8" });
+  if (ran.error) throw new SiteError(`could not run ${qmlc}: ${ran.error.message}`);
+  if (ran.status !== 0) throw new SiteError(`the theme ${file} is refused:\n${ran.stderr.trim()}`);
+  return file;
+}
 
 // Builds the site the bundle at `dir` describes into `out` (default: the
 // bundle's path with `-site`). `qmlc` is the compiler (default `$QMLC`, then
@@ -213,6 +222,7 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
   dir = resolve(dir);
   out = resolve(out ?? `${dir}-site`);
   const { manifest, needs } = check(dir);
+  const theme = themeOf(dir, manifest, qmlc);
 
   for (const { module, needs: wanted } of needs) {
     if (wanted.includes("qt") && !qtRoots(qt).some((root) => existsSync(join(root, "QtQuick/Controls/qmldir")))) {
@@ -246,7 +256,7 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
       base: "./",
       logLevel,
       cacheDir: join(runtime, "node_modules/.vite/ljos-site"),
-      plugins: [qml({ qmlc, args: ["--root", dir], qt, standins })],
+      plugins: [qml({ qmlc, args: ["--root", dir], qt, standins, theme: theme ? join(dir, theme) : false })],
       resolve: {
         alias: {
           "ljos-site:entry": join(dir, manifest.entry),
@@ -258,10 +268,10 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
       build: { outDir: join(stage, "dist"), emptyOutDir: true, target: "esnext", chunkSizeWarningLimit: 4000 },
     });
     const site = join(stage, "dist");
-    if (manifest.theme !== undefined) {
-      mkdirSync(dirname(join(site, manifest.theme)), { recursive: true });
-      cpSync(join(dir, manifest.theme), join(site, manifest.theme));
-      applyTheme(manifest.theme, site);
+    // Carried as it is too, for whatever reads it beside the page.
+    if (theme) {
+      mkdirSync(dirname(join(site, theme)), { recursive: true });
+      cpSync(join(dir, theme), join(site, theme));
     }
     writeFileSync(join(site, STAMP), `${manifest.ljos_web}\n`);
     rmSync(out, { recursive: true, force: true });

@@ -11,7 +11,7 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { basename, delimiter, dirname, isAbsolute, join, sep } from "node:path";
+import { basename, delimiter, dirname, isAbsolute, join, relative, resolve as resolvePath, sep } from "node:path";
 import { searchForWorkspaceRoot } from "vite";
 
 // What marks a `.js` file as the script a QML file imports
@@ -30,6 +30,9 @@ const natives = () => JSON.parse(readFileSync(join(runtime, "package.json"), "ut
 // `ljos-web/QtQuick/Controls`: a module of Qt's, not `ljos-web/object`.
 const MODULE = /^ljos-web\/(Qt[\w/]*)$/;
 const VIRTUAL = "\0ljos-web:";
+// The theme an entry reads (ljos-ui's `docs/theme.md`): a module of its own,
+// so that a change of the file is taken without the page being made again.
+const THEME = "\0ljos-web-theme:";
 // Qt's own QML is of no program, and takes the style of the one that came
 // to it: its address says which (`DebugView.qml?for=Material`), and so does
 // that of each module on the way.
@@ -244,7 +247,28 @@ function exported(context, file, names = new Set(), seen = new Set()) {
 // - `importPaths`: directories looked in for a module before the root, as
 //   Qt's `-I` (`mocks`, so that `App.Media` is `mocks/App/Media`), the first
 //   to have it deciding: or a function of the file compiled that gives them.
-export default function qml({ qmlc = "qmlc", args = [], qt, style, controls, standins = [], root, importPaths = [] } = {}) {
+// - `theme`: the theme file an entry reads (a path from Vite's root), in place
+//   of the `theme.json` nearest it from its directory up to the project's
+//   (`root`, or the `--root` its `args` give, or its own directory); `false`
+//   for none. Or a function of the entry that gives one of those. A theme
+//   with a mistake in it fails the build, and in the dev server keeps the
+//   page's theme as it was. An entry is a QML file imported by anything but
+//   QML.
+// - `seedHue`: the hue the page's palette is made from, which a theme's
+//   colours are held to unless the theme sets its own: or a function of the
+//   entry. Otherwise the module's.
+export default function qml({
+  qmlc = "qmlc",
+  args = [],
+  qt,
+  style,
+  controls,
+  standins = [],
+  root,
+  importPaths = [],
+  theme,
+  seedHue,
+} = {}) {
   let asked;
   const found = () => (asked ??= installed());
   const elsewhere = process.env.QML_IMPORT_PATH?.split(delimiter) ?? [];
@@ -268,6 +292,71 @@ export default function qml({ qmlc = "qmlc", args = [], qt, style, controls, sta
   const compiled = new Map();
   let serving = false;
   let cache = join(runtime, "node_modules/.vite/ljos-web");
+  let base = process.cwd();
+  // The QML files something other than QML imports, and what each theme
+  // module looks at.
+  const entries = new Set();
+  const themes = new Map();
+  const numbered = new Map();
+  let server = null;
+  // A file a theme would be read from: one that is there is a file of the
+  // module, one that is not yet is only looked out for (Vite would take a
+  // watched file that is not there for an import that cannot be resolved).
+  const look = (context, files) => {
+    for (const file of files) {
+      if (existsSync(file)) context.addWatchFile(file);
+      else server?.watcher.add(file);
+    }
+  };
+  const given = (file) => (typeof args === "function" ? args(file) : args) ?? [];
+  // The project an entry's theme is looked for up to: the root it is
+  // compiled with, as qmlc takes it, or its own directory.
+  const projectOf = (file) => {
+    const list = given(file);
+    const at = list.lastIndexOf("--root");
+    const named = rooted(file) ?? (at >= 0 ? list[at + 1] : undefined);
+    return named ? resolvePath(named) : dirname(file);
+  };
+  const themeOf = (file) => {
+    const named = typeof theme === "function" ? theme(file) : theme;
+    const hue = typeof seedHue === "function" ? seedHue(file) : seedHue;
+    const query = new URLSearchParams();
+    if (named === false || named === null) query.set("none", "");
+    else if (named) query.set("file", resolvePath(base, named));
+    else query.set("entry", file), query.set("project", projectOf(file));
+    if (hue !== undefined) query.set("hue", String(hue));
+    // By number: an id with the theme's path in it would be taken for JSON.
+    const asked = String(query);
+    if (!numbered.has(asked)) numbered.set(asked, `${THEME}${numbered.size}`);
+    return numbered.get(asked);
+  };
+  // What `qmlc --theme` says of the theme a theme module is: its overrides
+  // as JSON (`null` for none), or its mistakes, and the files that would
+  // change it: the named one, or each `theme.json` the search looks at.
+  const check = (id) => {
+    const asked = new URLSearchParams([...numbered].find(([, named]) => named === id)?.[0] ?? "none");
+    if (asked.has("none")) return { json: "null", watched: [] };
+    const hue = asked.has("hue") ? ["--seed-hue", asked.get("hue")] : [];
+    let argv, cwd, watched;
+    if (asked.has("file")) {
+      const file = asked.get("file");
+      // Told as a path from the root, as it was named.
+      [argv, cwd, watched] = [["--theme", relative(base, file) || file], base, [file]];
+    } else {
+      const entry = asked.get("entry");
+      const project = asked.get("project");
+      watched = [];
+      for (let dir = dirname(entry); ; dir = dirname(dir)) {
+        watched.push(join(dir, "theme.json"));
+        if (dir === project || !dir.startsWith(project + sep) || dirname(dir) === dir) break;
+      }
+      [argv, cwd] = [["--theme-for", relative(project, entry), "--root", "."], project];
+    }
+    const ran = spawnSync(qmlc, [...argv, ...hue], { cwd, encoding: "utf8" });
+    if (ran.error) return { error: `could not run ${qmlc}: ${ran.error.message}`, watched };
+    if (ran.status !== 0) return { error: ran.stderr.trim(), watched };
+    return { json: ran.stdout.trim(), watched };
+  };
   // The pictures of a module, by what its QML names them: next to the QML
   // when the installation has them there, otherwise read out of the plugin
   // when the QML names any, or what the runtime has of the module does: the
@@ -404,9 +493,13 @@ export default function qml({ qmlc = "qmlc", args = [], qt, style, controls, sta
     // Before Vite's own: a script is told from any other `.js` file by who
     // imports it, and only here is that known.
     enforce: "pre",
+    configureServer(dev) {
+      server = dev;
+    },
     configResolved(config) {
       cache = join(config.cacheDir, "ljos-web");
       serving = config.command === "serve";
+      base = config.root;
     },
     // Qt's own QML is outside the project. What the runtime itself is built
     // on that is no module (SQLite, for QtQuick.LocalStorage) is bundled
@@ -418,7 +511,14 @@ export default function qml({ qmlc = "qmlc", args = [], qt, style, controls, sta
       return { optimizeDeps, server: { fs: { allow: [...allowed, ...roots] } } };
     },
     async resolveId(source, importer, options) {
-      if (source.startsWith(VIRTUAL)) return source;
+      if (source.startsWith(VIRTUAL) || source.startsWith(THEME)) return source;
+      // An entry: the page's QML, which reads the page's theme.
+      const fromQml = importer && (importer.split("?")[0].endsWith(".qml") || isScript(importer));
+      if (!fromQml && !source.startsWith("\0") && source.split("?")[0].endsWith(".qml")) {
+        const resolved = await this.resolve(source, importer, { ...options, skipSelf: true });
+        if (resolved && !resolved.external) entries.add(resolved.id.split("?")[0]);
+        return resolved;
+      }
       const module = source.match(MODULE)?.[1];
       const carry = styled(importer) ?? carried(importer);
       if (module && has(module)) {
@@ -455,6 +555,26 @@ export default function qml({ qmlc = "qmlc", args = [], qt, style, controls, sta
       return { ...resolved, id: `${resolved.id}?${SCRIPT}` };
     },
     load(id) {
+      if (id.startsWith(THEME)) {
+        const { json, error, watched } = check(id);
+        themes.set(id, watched);
+        look(this, watched);
+        if (error) this.error(error);
+        const key = JSON.stringify(id);
+        // Taken again when the file changes, while the page keeps all it has.
+        return {
+          code: [
+            `import { themed as $themed, rethemed as $rethemed } from "ljos-web/theme";`,
+            `const checked = ${json};`,
+            `export default $themed(${key}, checked);`,
+            `if (import.meta.hot) {`,
+            `  import.meta.hot.accept();`,
+            `  $rethemed(${key}, checked);`,
+            `}`,
+          ].join("\n") + "\n",
+          map: null,
+        };
+      }
       if (id.startsWith(VIRTUAL)) {
         const [module, query] = id.slice(VIRTUAL.length).split("?");
         const asked = new URLSearchParams(query);
@@ -557,21 +677,35 @@ export default function qml({ qmlc = "qmlc", args = [], qt, style, controls, sta
       if (result.error) this.error(`could not run ${qmlc}: ${result.error.message}`);
       if (result.status !== 0) this.error(result.stderr.trim());
       if (own) compiled.set(file, result.stdout);
+      let code = result.stdout;
+      const component = !own && /^export default (?:function\s+|class\s+)?([A-Za-z_$][\w$]*)/m.exec(code)?.[1];
+      if (!component) return { code, map: null };
+      // An entry's theme is put on the page as it is mounted. Checked here
+      // too, so a theme that is refused is told as the entry fails, where
+      // whoever asked for the entry hears it.
+      if (entries.has(file)) {
+        const themeId = themeOf(file);
+        const checked = check(themeId);
+        look(this, checked.watched);
+        if (checked.error) this.error(checked.error);
+        code += `import $theme from ${JSON.stringify(themeId)};\n${component}.$theme = $theme;\n`;
+      }
       // A dev server keeps a page's state on a save: what is mounted from
       // the file takes the new component (`reload.js`). With nothing mounted
       // from it, what imported it runs again. A file that does not compile
       // comes as no module: what is mounted stays, beside Vite's error.
-      const component = !own && serving && /^export default function ([\w$]+)\(/m.exec(result.stdout)?.[1];
-      if (!component) return { code: result.stdout, map: null };
-      const reloading = JSON.stringify(join(runtime, "reload.js"));
-      const accept = [
-        `import { $hot as $$hot, $reloaded as $$reloaded } from ${reloading};`,
-        "if (import.meta.hot) {",
-        "  $$hot();",
-        `  import.meta.hot.accept((next) => { if (next && !$$reloaded(${component}, next.default)) import.meta.hot.invalidate(); });`,
-        "}",
-      ];
-      return { code: `${result.stdout}\n${accept.join("\n")}\n`, map: null };
+      if (serving) {
+        const reloading = JSON.stringify(join(runtime, "reload.js"));
+        const accept = [
+          `import { $hot as $$hot, $reloaded as $$reloaded } from ${reloading};`,
+          "if (import.meta.hot) {",
+          "  $$hot();",
+          `  import.meta.hot.accept((next) => { if (next && !$$reloaded(${component}, next.default)) import.meta.hot.invalidate(); });`,
+          "}",
+        ];
+        code += `\n${accept.join("\n")}\n`;
+      }
+      return { code, map: null };
     },
     // The same for the dev server: a changed file takes the compiled output
     // of its whole directory with it, and of every QML file that imports
@@ -580,6 +714,9 @@ export default function qml({ qmlc = "qmlc", args = [], qt, style, controls, sta
     // one imports the others anew, so a root mounted from it is made again
     // with all of them, once.
     hotUpdate({ file, modules, timestamp }) {
+      // A theme file: its theme module is taken again, and nothing else.
+      const reading = [...themes].filter(([, watched]) => watched.includes(file)).map(([id]) => this.environment.moduleGraph.getModuleById(id));
+      if (reading.length > 0) return reading.filter(Boolean);
       if (!file.endsWith(".qml")) return;
       const graph = this.environment.moduleGraph;
       const directory = dirname(file);
