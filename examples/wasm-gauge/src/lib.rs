@@ -139,7 +139,10 @@ fn read_dial(engine: &Engine, dial: ObjectId) -> Rc<dyn ItemPaint> {
     Rc::new(Face {
         turns: item::prop(engine, dial, Dial::TURNS),
         label: item::prop(engine, dial, Dial::LABEL),
-        picture: engine.with(dial, |this: &Dial| this.picture.clone()).ok().flatten(),
+        picture: engine
+            .with(dial, |this: &Dial| this.picture.clone())
+            .ok()
+            .flatten(),
     })
 }
 
