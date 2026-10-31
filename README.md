@@ -30,7 +30,7 @@ browser and compares it with the picture real Qt renders.
   in the ljos-ui repository the front end comes from.
 - `packages/runtime`: what compiled output imports, one module per QML module
   (`ljos-web/QtQuick`, `ljos-web/QtQuick/Layouts`, `ljos-web/QtQml`, ...), the kernel they
-  are written on (`ljos-web/object`), and the Vite plugin (`ljos-web/vite`).
+  are written on (`ljos-web/object`), the Vite plugin (`ljos-web/vite`), and the site builder (`ljos-web/site`, `ljos-web build-site`).
 - `examples/gallery`: Qt's examples in the browser, and the report on how each does.
 - `examples/web`: QML rendered in the browser with the `import OpenTUI` dialect.
 - `examples/wasm-counter`: a type written in Rust, compiled to WebAssembly and
@@ -69,6 +69,7 @@ mise run corpus         # how much of Qt's examples compiles, and what stops the
 mise run reference      # take Qt's pictures again (needs Qt 6's `qml` tool; `sway` for shader effects)
 mise run assets ID...   # download what an example's build downloads (its pictures, meshes, fonts)
 mise run types          # the table of Qt's types, from the Qt installed here
+mise run site:build DIR # a static site from a directory with ljos-site.json
 ```
 
 `packages` (pnpm install) and `browser` (Playwright's Chromium) are tasks the
@@ -146,6 +147,40 @@ to the file they are written in: `qmlc --urls-on-assignment`, which the
 plugin's `args` may give by the file compiled. QML that stands in for a type
 in C++ (`--with`) has a path as that type does: next to the file that makes
 the object.
+
+## A site from a directory
+
+`ljos-web build-site DIR [--out DIR] [--with DIR]... [--qt DIR]...` (the
+`bin` of `packages/runtime`, `mise run site:build DIR`, or
+`buildSite({ dir, out })` of `ljos-web/site`) builds a static site from a
+directory that holds `ljos-site.json`, the manifest of what it is:
+
+```json
+{
+  "format": "ljos-site", "version": 1, "target": "web",
+  "entry": "Shell.qml", "theme": "theme.json",
+  "files": [{ "path": "Shell.qml", "bytes": 209 }, ...],
+  "modules": [{ "module": "App.Media", "qmldir": "App/Media/qmldir" }],
+  "imports": ["Ljos.Design", "QtQuick"],
+  "blocks": [], "left_out": [], "ljos_web": "<the commit it was checked against>"
+}
+```
+
+Every file of the directory is listed with its size and nothing else is
+in it; anything the manifest does not say (a field, a file, a link, a
+module, an import ljos-web does not provide) is refused before anything
+is compiled. The entry is compiled with the directory as the root of the
+project, and the site goes to `DIR-site` unless `--out` says where: a
+site it built there is replaced, anything else is not. Qt is needed only
+for a site that imports `QtQuick.Controls`; `Ljos.Design` is Ljós's QML,
+given with `--with` (ljos-ui's `crates/ljos_design_qml/qml`). The theme
+is carried into the site, not yet applied.
+
+`ljos-web modules --json` prints `packages/runtime/modules.json`: the
+modules this commit provides, where each one's types come from and what
+building with it needs (`qt`: an installed Qt's QML; `with`: a directory
+of the module's QML). `mise run test:site` builds bundles into sites,
+opens one in headless Chromium and tries each refusal.
 
 ## Components
 

@@ -526,6 +526,34 @@ Each is stated where it is argued; listed here for review:
 11. Blocks are per-page singletons; shells re-parent them (A9).
 12. Only shell text is stored/published (A9).
 13. A graph evaluation owns what it makes, ended after the next one (A4).
+14. The module list is a committed file kept equal to the package by a test, not derived where it is read (A12).
+
+### A12. A site from a directory, and the modules a commit provides
+
+A program that writes a site's files (a designer's export, a script)
+need not know how ljos-web compiles or bundles them. It writes a
+directory and `ljos-site.json` (format `ljos-site`, version 1, target
+`web`: the entry, its theme, every file with its size, the project's
+modules with their qmldirs, the modules it imports), and
+`ljos-web build-site DIR` (`buildSite({ dir, out })` of
+`ljos-web/site`, `mise run site:build DIR`) writes `index.html` and
+its assets. The manifest is held to its words before anything is
+compiled: an unknown field, an unlisted file, a listed one missing or
+of another size, a path out of the directory, a link, a module
+without its qmldir and an import ljos-web does not provide are each
+refused with what was wrong. The entry is compiled with the directory
+as the project's root; Qt is needed only when the site imports the
+controls, and Ljos.Design's QML is given with `--with`. A site it
+built is replaced (it leaves a `.ljos-site-build` stamp); any other
+directory is not. The theme is carried into the site and not yet
+applied (`applyTheme` in `site.js` is where it will be).
+
+What a commit provides is `packages/runtime/modules.json`
+(`ljos-web modules --json`): each module, where its types come from
+(`runtime`, `qt`, `ljos`), and what building with it needs (`qt`,
+`with`). It is committed, so a program pinned to a commit reads it
+without running anything, and a test keeps it equal to the package's
+exports.
 
 ## Part II — An application's own Rust types
 

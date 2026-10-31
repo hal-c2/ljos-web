@@ -58,7 +58,7 @@ const FALLBACK = "Basic";
 
 // What the Qt installed here says of itself: where it keeps its QML modules
 // and its tools, and which Qt it is.
-function installed() {
+export function installed() {
   for (const tool of ["qtpaths6", "qtpaths", "qmake6"]) {
     const ask = (what) => {
       const asked = spawnSync(tool, [tool.startsWith("qmake") ? "-query" : "--query", what], { encoding: "utf8" });

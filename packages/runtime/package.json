@@ -54,6 +54,7 @@
     "./Qt/labs/synchronizer": "./Qt/labs/synchronizer/index.js",
     "./Qt/labs/qmlmodels": "./Qt/labs/qmlmodels/index.js",
     "./vite": "./vite.js",
+    "./site": "./site.js",
     "./modules.json": "./modules.json"
   },
   "imports": {
@@ -71,11 +72,11 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
-    "solid-js": "2.0.0-rc.13",
-    "vite": "^8.0.0"
+    "solid-js": "2.0.0-rc.13"
   },
   "dependencies": {
     "physx-js-webidl": "2.8.0",
-    "sql.js": "^1.14.2"
+    "sql.js": "^1.14.2",
+    "vite": "^8.0.0"
   }
 }
