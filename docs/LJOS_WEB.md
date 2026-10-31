@@ -527,6 +527,10 @@ Each is stated where it is argued; listed here for review:
 12. Only shell text is stored/published (A9).
 13. A graph evaluation owns what it makes, ended after the next one (A4).
 14. The module list is a committed file kept equal to the package by a test, not derived where it is read (A12).
+15. A reload remakes the tree and carries state onto it; `Component.onCompleted` runs again (A13).
+16. Same text is the same compiled declaration; an edited one wins over a run-time value (A13).
+17. Only a root mounted `reloadable` records its tree; on by itself in a dev server (A13).
+18. `reload(root, Component)` knows no build tool; Vite and the live drop both call it (A13).
 
 ### A12. A site from a directory, and the modules a commit provides
 
@@ -554,6 +558,65 @@ What a commit provides is `packages/runtime/modules.json`
 `with`). It is committed, so a program pinned to a commit reads it
 without running anything, and a test keeps it equal to the package's
 exports.
+
+### A13. A reload that keeps state
+
+`reload(root, Component)` (`ljos-web/reload`) gives a mounted root a
+new component and keeps its state where it can, by desktop Ljós's
+rule (ljos-ui ARCHITECTURE.md §12.1). Each object of the new tree that
+is an object of the old one is found by its key: its `id`, within the
+component it is written in, wherever it moved there; else its
+`objectName`; else its row, for a view's delegate; else its type and
+how many siblings of that type without an id or a name come before
+it. An `id` renamed is a new object. One whose type changed is made
+anew, and so is everything below it. Two old objects with one key
+(two Repeaters of one delegate type in one parent) give neither: the
+new ones start from the file. A matched object keeps what was
+assigned to it while the program ran — by a handler, by the user
+(typed text, with its selection), by a script — and the keyboard
+stays with it; a value that was an object of the old tree is that
+object's match, or `null`. Bindings and handlers are the new file's,
+so a binding the program replaced by a value stays replaced only
+while its text is unchanged.
+
+**DECISION:** what the file says of a property is the same when the
+compiled declaration is: the same literal, or a binding whose
+compiled function reads the same. An edited declaration wins over a
+run-time value, as on the desktop ("a declaration that was edited
+wins"). The compiled text names objects by handles (`$1`) that an
+edit elsewhere can renumber; such a binding counts as edited, and the
+file wins — never a value that should have gone.
+
+**DECISION:** the web makes the whole new tree and carries state onto
+it, then puts its root where the old one was and disposes the old
+one; the desktop keeps a matched object and rebinds it. So
+`Component.onCompleted` runs again for every object, where the
+desktop runs it only for new ones, and a running animation or timer
+starts again from what was carried. Keeping objects would need every
+type of the runtime to take a new set of props in place, which no
+type of it does today.
+
+**DECISION:** the tree is recorded (each object's creation parent,
+its `id`, its view row) only for a root mounted with
+`{ reloadable: true }`. A dev server turns that on for every root once
+a compiled QML module is loaded; a production page never imports
+`reload.js` and pays a few hundred bytes for the hook. The compiler
+gives an object its `id` as it makes it (`$object("field")`).
+
+**DECISION:** a component that throws as it is made is a
+`ReloadError` and changes nothing: the last good mount stays. A save
+that does not compile never reaches the runtime: Vite answers its
+500 with the compiler's message, and the plugin leaves the mount as
+it was.
+
+**DECISION:** `reload` knows no build tool. The Vite plugin's `.qml`
+modules accept their own update and call it for each root mounted
+from the old component (a file nothing mounted makes its importer
+run again); the live drop (A9) calls it with what the in-page
+compiler made of the shell. Not carried yet: objects a script made
+(`createObject`) and a Loader's item are made again by what makes
+them; a ListModel's rows are what its text says; a StackView's
+stack is its initial item.
 
 ## Part II — An application's own Rust types
 
@@ -1046,7 +1109,8 @@ WebAssembly download an Ljós application would otherwise ship,
 and against staying on the desktop only.
 
 **Hot reload.** The Vite plugin already recompiles a `.qml` file
-and its directory on save (`hotUpdate`). Two more cases:
+and its directory on save (`hotUpdate`), and the root mounted from
+it keeps its state (A13). Two more cases:
 
 - *A type's shape changes* (a property added): the dump changes,
   the application's test that checks it says so, `qmlc`

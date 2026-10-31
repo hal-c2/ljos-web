@@ -101,6 +101,28 @@ A root that is a `Window` is the size of the element it is mounted in. One that
 is an `Item` keeps its own, and its `parent` is an item of the element's size,
 as the root of a `QQuickView` is in the view: `anchors.fill: parent` fills it.
 
+A save in the dev server keeps the page's state, as `ljos run --watch` does:
+the root mounted from the saved file takes the new component, and each of its
+objects that is one of the old (by `id`, `objectName`, row of a view, else
+type and place) keeps what the program and the user gave it — typed text, a
+value a handler assigned, which item has the keyboard — unless the file now
+says something else of that property. Bindings are the new file's; an object
+whose type changed is made anew. A file that does not compile leaves the page
+as it was, beside Vite's error. A page that compiles QML itself does the same
+without Vite:
+
+```js
+import { mount } from "ljos-web/object";
+import { reload } from "ljos-web/reload";
+const root = mount(Main, element, {}, { reloadable: true });
+// later, with the component the new text compiled to
+reload(root, NewMain); // throws ReloadError, and changes nothing, if NewMain cannot be made
+```
+
+`reloadable` is on by itself in a dev server; elsewhere a root is not, and
+the page pays nothing for it. `docs/LJOS_WEB.md` (A13) says what is kept and
+where the web differs from desktop Ljós.
+
 Much of Qt is QML itself: a style of Qt Quick Controls is a directory of QML
 files over the types of `QtQuick.Templates`. Those are not rewritten here. The
 plugin puts a module of Qt's together from what the runtime has of it (the
