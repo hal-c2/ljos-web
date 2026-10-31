@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { basename, delimiter, dirname, extname, join, normalize, relative, resolve } from "node:path";
 import { expect, test } from "@playwright/test";
@@ -176,21 +176,24 @@ test("the only good copy of a site is kept when it cannot be put back", () => {
   }
 });
 
-// A relative path to the compiler, whatever `QMLC` is: a link beside the
-// bundle, so a bare name on the PATH gives one too.
-function relativeCompiler(made) {
-  const link = join(made.root, "linked-compiler");
-  symlinkSync(compilerFile, link);
-  const given = relative(process.cwd(), link);
-  expect(given).toContain("/");
-  return given;
+// `use`, given a path to the compiler that means it only from this directory:
+// a link below it, so from anywhere else the same path names nothing.
+async function withRelativeCompiler(use) {
+  const here = mkdtempSync(join(process.cwd(), ".compiler-link-"));
+  try {
+    const link = join(here, "qmlc");
+    symlinkSync(compilerFile, link);
+    return await use(relative(process.cwd(), link));
+  } finally {
+    rmSync(here, { recursive: true, force: true });
+  }
 }
 
 // The fixture has a theme, so both the runs inside the bundle are of this path.
 test("a compiler named by a path from where the build was asked for is found", async () => {
   const made = bundle("project");
   try {
-    await expect(buildSite({ dir: made.dir, out: made.out, qmlc: relativeCompiler(made), with: [design] })).resolves.toMatchObject({ out: made.out });
+    await withRelativeCompiler((given) => expect(buildSite({ dir: made.dir, out: made.out, qmlc: given, with: [design] })).resolves.toMatchObject({ out: made.out }));
   } finally {
     made.remove();
   }
@@ -200,13 +203,15 @@ test("a compiler named by a path from where the build was asked for is found", a
 test("the Vite plugin finds a compiler named by a path from where it was given", async () => {
   const made = bundle("project");
   try {
-    await build({
-      configFile: false,
-      root: made.dir,
-      logLevel: "silent",
-      plugins: [qml({ qmlc: relativeCompiler(made), args: ["--root", made.dir], standins: [design] })],
-      build: { outDir: made.out, emptyOutDir: true, target: "esnext", lib: { entry: join(made.dir, "Shell.qml"), formats: ["es"], fileName: "page" } },
-    });
+    await withRelativeCompiler((given) =>
+      build({
+        configFile: false,
+        root: made.dir,
+        logLevel: "silent",
+        plugins: [qml({ qmlc: given, args: ["--root", made.dir], standins: [design] })],
+        build: { outDir: made.out, emptyOutDir: true, target: "esnext", lib: { entry: join(made.dir, "Shell.qml"), formats: ["es"], fileName: "page" } },
+      }),
+    );
     expect(readdirSync(made.out).length).toBeGreaterThan(0);
   } finally {
     made.remove();
