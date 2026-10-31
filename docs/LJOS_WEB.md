@@ -1274,6 +1274,33 @@ an object of (`$fault`, set by `bounded(boundary, make)` in
 Ljos.Blocks 53 B gzip (+103 B before gzip): it has to be where handlers
 run.
 
+### A22. The kernel at ljos-ui's graph, and what an editor asks of a page
+
+The kernel's `ljos_reactive` follows ljos-ui (rev f8e705d4), whose graph takes a
+mark for a value a type places: a loop through such a value goes on to the next
+binding instead of ending there. `placed` in both kernels is that mark; Solid's
+has nothing to mark.
+
+`import App.Media as M` of a module the project has is its files: each member a
+default import, the name a `$namespace` of lazy getters, because the files may
+import each other. A script is compiled without its project, so
+`.import App.Media as M` in a `.js` is refused with that reason rather than
+compiled to a package path that answers 500.
+
+`inspect(root).placed(ids, types)` answers where objects are: each copy when a
+delegate has the id, those of a type only when they have no id, in the parent's
+coordinates and the root's, where written, and the type's lineage. The place is
+worked out from the object's numbers, so a hidden object keeps one; the box
+around the corners when it is rotated. An editor's host puts this behind its own
+interface.
+
+`mount(Component, element, props, { fill: true })` sizes a root that is not a
+Window to the element and follows it through a ResizeObserver, assigning the
+root's `width` and `height` as QQuickView's SizeRootObjectToView does: what the
+file bound them to is gone. Without the option a root keeps its size. A Window
+already fills, and takes `{ fill: false }` to do otherwise, so one word means
+one thing for both.
+
 ## Part II — An application's own Rust types
 
 ## 1. The shape of a native type on the web
