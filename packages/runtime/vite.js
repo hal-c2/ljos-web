@@ -14,6 +14,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, wri
 import { basename, delimiter, dirname, isAbsolute, join, relative, resolve as resolvePath, sep } from "node:path";
 import { searchForWorkspaceRoot } from "vite";
 import { CONTROLS } from "./controls.js";
+import { QUICK3D } from "./quick3d.js";
 
 // What marks a `.js` file as the script a QML file imports
 // (`import "logic.js" as Logic`), which `qmlc` makes a module of.
@@ -113,6 +114,7 @@ const KEPT = "qrc:/qt-project.org/imports";
 // `qrc:/qtquick3deffects/shaders/blur.frag`: what else the QML of a module
 // names that its plugin keeps, under a name of the plugin's own: the shaders
 // of an effect of QtQuick3D.Effects, and the pictures they read.
+const OWN = "ljos-quick3d/";
 const LODGED = /qrc:\/((?!qt-project\.org\/)[\w-]+(?:\/[\w-]+)*)\/[\w.-]+/g;
 
 const EXTRACT = (uri, folder) => `import QtQml
@@ -423,7 +425,9 @@ export default function qml({
   // Ljós's controls are looked in first, so that each module of them is
   // theirs and none of the installed Qt's QML comes in with them.
   const ljos = (styles ?? (qts.some(hasControls) ? "qt" : "ljos")) === "ljos";
-  const roots = ljos ? [CONTROLS, ...qts] : qts;
+  // Ljós's 3D is last: what there is where no Qt has those modules. A Qt that
+  // has them has all of them, with what Ljós has not written.
+  const roots = [...(ljos ? [CONTROLS] : []), ...qts, QUICK3D];
   // Where a module of Qt's is: null when Qt has none of that name here.
   const home = (module) => {
     const root = roots.find((root) => existsSync(join(root, module, "qmldir")));
@@ -567,8 +571,13 @@ export default function qml({
   const lodged = (module, about) => {
     const texts = [...about.types.values()].map((file) => readFileSync(join(home(module), file), "utf8"));
     const folders = new Set(texts.flatMap((text) => [...text.matchAll(LODGED)].map(([, folder]) => folder)));
-    const { bins, version } = found();
     return [...folders].sort().flatMap((folder) => {
+      // `qrc:/ljos-quick3d/shaders/…`: Ljós's own, beside the module's QML.
+      if (folder.startsWith(OWN)) {
+        const directory = join(home(module), folder.slice(OWN.length));
+        return readdirSync(directory).map((name) => [`qrc:/${folder}/${name}`, `${join(directory, name)}?url`]);
+      }
+      const { bins, version } = found();
       const directory = join(cache, version || "qt", module, ...folder.split("/"));
       if (!existsSync(directory)) {
         const failed = extract(join(bins || "", "qml"), module.replaceAll("/", "."), `qrc:/${folder}`, directory);
@@ -598,7 +607,8 @@ export default function qml({
   const needed = (module) => listed("--types", module);
   // The types Qt has of it as QML files, which are of Qt's installation and
   // not of the runtime: what there is none of where Qt has no such module.
-  const written = (module) => (home(module) ? null : listed("--qml-types", module));
+  // Ljós's own 3D has only some of them: the others are still Qt's.
+  const written = (module) => (home(module) && !home(module).startsWith(QUICK3D + sep) ? null : listed("--qml-types", module));
   // What Qt's installation says of a module, when it is worth reading: one
   // with QML files or a style, or one that only brings others.
   const composed = (module, seen = []) => {
