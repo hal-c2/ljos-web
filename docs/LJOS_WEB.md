@@ -398,6 +398,7 @@ build gains a cleaner layering from every item.
 |---|---|---|
 | First useful page, gzip, JS + wasm | ≤ 250 kB | W8, every QtQuick type + runtime (`test:size`): 149.1 kB JS (Solid kernel); 149.1 kB JS + 26.9 kB wasm = 176.0 kB (wasm kernel) |
 | Kernel wasm | ≤ 30 kB gzip until value kinds move; every later move must remove more JS than it adds wasm, or say why | W8: 68,531 B raw / 26,916 B gzip (`opt-level=2`, LTO, one CGU, `panic=abort`, strip; no `wasm-opt` installed). At 2 the read path is inlined, which folds away more than it copies; "z" and "s" were larger |
+| Compiler in the page (A15), fetched on a page's first compile only | ≤ 1,200 kB gzip wasm, ≤ 5 kB gzip JS | W9.1: 3,717,395 B raw / 1,085,222 B gzip wasm (`opt-level="z"`); 4,061 B gzip JS as written. A page that does not compile: unchanged, byte for byte |
 | Tracked clean read | ≤ 2× Solid's before the Solid kernel is deleted | W8: 18 ns against Solid's 3.5 (9.5 against 1.5 warmed), from 40.5; not met (A4) |
 | Write → DOM | one Solid flush per write batch, zero polling | holds (faces) |
 | Idle | 0 % CPU | holds (nothing ticks; graph is push on write) |
@@ -405,7 +406,9 @@ build gains a cleaner layering from every item.
 `mise run test:size` is the gate: it bundles a page that imports the
 runtime and every QtQuick type (`packages/runtime/size/`) on both
 kernels and fails over 250 kB gzip of JS + wasm, or over 30 kB gzip of
-kernel wasm. It is part of `mise run test`.
+kernel wasm. It is part of `mise run test`. The compiler (A15) is a line
+of its own, against its own budget, and a page bundle with the compiler
+in it fails.
 
 ### A9. Live QML shell drop (opt-in)
 
@@ -531,6 +534,7 @@ Each is stated where it is argued; listed here for review:
 16. Same text is the same compiled declaration; an edited one wins over a run-time value (A13).
 17. Only a root mounted `reloadable` records its tree; on by itself in a dev server (A13).
 18. `reload(root, Component)` knows no build tool; Vite and the live drop both call it (A13).
+19. The compiler in the page is `qmlc`'s, with the full type table; compiled files link as blob modules over stand-ins (A15).
 
 ### A12. A site from a directory, and the modules a commit provides
 
@@ -665,6 +669,138 @@ made again, so a change keeps all state.
   `findTheme(names, entry, { project })` is the search for such a host.
 - DECISION: contrast is held at the module's seed hue unless the theme or
   the plugin's `seedHue` says another.
+### A15. The compiler in the page
+
+`ljos-web/compiler` compiles QML in the page and runs it on the modules
+the page already has: what a program that edits QML as it runs needs
+(an editor's preview, a reload, a file opened that was never built).
+
+```js
+import { compile, createCompiler, translate } from "ljos-web/compiler";
+const made = await compile({ files: { "Main.qml": text, "Panel.qml": other }, entry: "Main.qml", aliases: [] });
+// { component, module, warnings } or { diagnostics: [{ file, line, column, message }] }
+mount(made.component, element);
+```
+
+`files` maps a path of the project to its text; `entry` is the file to
+compile, with every file of the project it imports; `aliases`
+(`[{ module, dir }]`) make a module the directory of the project it
+names, as `ljos run --alias` does (a file directly in `dir` is the
+module's, and an error in it names it by the path it was given as).
+`createCompiler({ modules, base })` is the same with the page's modules
+(`{ "ljos-web/QtQuick": () => import("ljos-web/QtQuick"), ... }`;
+the default is every module the runtime package exports, and
+`solid-js`) and the address the files are at (default
+`document.baseURI`). `translate` answers each file's module as `qmlc`
+prints it, unlinked.
+
+**Pieces.**
+
+- `ljos_web::files`: a project's files through one interface
+  (`Files`), from the disk in `qmlc` and as texts (`Memory`) in a page.
+  Its discovery is `qmlc`'s, moved out of the binary: the root, import
+  paths, `qmldir` modules, `# block` lines, file selectors and the
+  "not installed" error.
+- `ljos_web::given`: compiles the entry and every file it reaches,
+  each as `qmlc --root DIR` compiles it, and says how they link: the
+  UTF-16 spans of each specifier and of each `import.meta`, and each
+  file's exports (`export *` of a sibling followed). A file that does
+  not parse is left out of the project, so what imports it is told the
+  type is unknown; when a compile fails, every syntax error of the
+  project's QML comes first, as that is why.
+- `crates/ljos_web_compiler`: that, as wasm. A JSON text each way
+  through memory the page asks for (`alloc`, `compile`, `answer_len`,
+  `free`), no wasm-bindgen: a compile is one call and its texts are
+  the bulk of what crosses. A panic aborts; the next compile starts a
+  new instance of the module fetched once.
+- `packages/runtime/compiler/`: `index.js` (what a page imports, 638 B
+  gzip), `modules.js` (the default modules, each a dynamic import, kept
+  equal to the package's exports by a test) and `link.js` (the loader
+  and linker, imported on the first compile with the wasm).
+
+**DECISION: the type table is `qt_types`.** The compiler is the one
+`qmlc` is, `qml_front` included, and `qml_front` reads Qt's types
+from `qt_types`: the same table is what makes the same output (property
+types, enums, defaults, which module has what), which the scenarios
+hold it to. `qt_signals` (ljos-ui main `0cd3287c`, 26.7 kB gzip
+measured there) has the signals only and is not on the revision
+ljos-web pins, so output from it would differ. In this wasm Qt's table
+is 614,411 B (110,751 B gzip) and Ljós's own (`ljos.txt`) 298,733 B
+(49,762 B gzip): about 160 kB of the 1,085 kB gzip. The rest is the
+compiler: oxc's parser (twice, the QML fork and crates.io's, each with
+its regular-expression parser), semantic and codegen, the Solid
+compiler and the `html5ever` it validates templates with. Those are
+where it gets smaller.
+
+**DECISION: the size.** The compiler's wasm is not part of the page
+budget (A8): a page that never compiles never fetches it (`index.js`
+imports `link.js`, which fetches the wasm, only inside `compile`), and
+`test:size` fails a page bundle that has it. It has its own line,
+1,200 kB gzip for the wasm and 5 kB for its JS: what it is, with room
+for Qt's table to grow, so that what would add to it (another parser,
+a table twice) is seen when it comes. `opt-level = "z"` (its own
+profile, `compiler`): 1,084 kB gzip against 1,251 kB at "s" and
+1,366 kB at 2; a compile runs once per edit, off any frame's path.
+
+**DECISION: how compiled modules link.** Each compiled file becomes a
+module at a blob URL with its specifiers rewritten.
+
+- An import map cannot be added to once a page has loaded a module,
+  and a registry the runtime gave would make compiled QML other code
+  than `qmlc`'s.
+- A project's files import each other in cycles, and a file may import
+  itself (a component that names its own file). A blob URL is made
+  from a finished text, so two files cannot name each other's. So each
+  file also has a **stand-in**: a module with no imports that exports
+  the file's names as bindings, set once the file has run. Files import
+  each other's stand-ins; the linker runs them in the order they import
+  each other (cycles aside) and sets each stand-in before the next
+  runs, so what a file does as it runs (`Object.setPrototypeOf(Panel,
+  Base)`) has the files before it.
+- A module of the page's (`ljos-web/QtQuick`, `solid-js`) is a
+  **bridge**: a module that re-exports what the page's own import of
+  it gave. Compiled QML and the page's QML share one instance of each:
+  one `Item`, one clock, one kernel (a `flush` of the page's runs what
+  the compiled bindings wait on).
+- `import.meta.url` is the file's address (`new URL(file, base)`), not
+  the blob's, so a path a file names (`images/logo.png`,
+  `../assets/boxes.ttf`) is taken from where the file is.
+
+A second compile is new modules: the old ones stay as long as
+something holds what they made.
+
+**DECISION: Qt Quick Controls.** A style of Qt Quick Controls is QML of
+Qt's own (README, "Use"), which a page has only when it was built with
+it (requests 13 and 36). A compile that imports a module the page did
+not give is refused at the import, as one nobody has:
+`Main.qml:2:1: module "QtQuick.Controls" is not in this page: the
+styles of Qt Quick Controls are QML of Qt's own, which a page has only
+when it was built with them (ljos-web requests 13 and 36)`. A page
+built with them gives them: `createCompiler({ modules: { ...modules,
+"ljos-web/QtQuick/Controls": () => import("ljos-web/QtQuick/Controls")
+} })`, and what it compiles uses the controls the page has. A module
+given under `ljos-web/Q…` is installed for the compile too, so the
+page's own build of a module of Qt's (`Qt5Compat.GraphicalEffects`)
+is imported as it is in the page.
+
+**And A9.** A9's live shell compiles to tier-1 IR, never to JS, so a
+dropped shell has no more power than the site's blocks. This compiler
+is the other one: a program that compiles its own QML (its author's,
+not a visitor's) and wants exactly what `qmlc` makes of it. It uses
+blob URLs, so a page with a CSP needs `script-src blob:` for it, and
+it is not the shell drop's security model. The drop can load the same
+wasm the same lazy way, with a tier-1 back end in place of the JS one.
+
+**Scenarios.** `packages/runtime/tests/compiler.spec.js` (both
+kernels): a compile in the page is what `qmlc` makes of the same files
+(four scenes with project imports and a singleton), it mounts on the
+page's modules, a singleton is one object for every file, a syntax
+error and an unknown module are diagnostics with file, line and column,
+Controls a page was not built with names requests 13 and 36, an
+aliased module is its directory, a page that never compiles fetches no
+compiler, and a second compile reuses the one the first loaded.
+`crates/ljos_web/tests/given.rs` holds `given` to `qmlc` from the
+disk on the module fixtures.
 
 ## Part II — An application's own Rust types
 

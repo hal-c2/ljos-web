@@ -26,6 +26,8 @@ browser and compares it with the picture real Qt renders.
 ## Layout
 
 - `crates/ljos_web`: the compiler (`ljos_web::compile`, `compile_script`) and the `qmlc` binary.
+- `crates/ljos_web_compiler`: the same compiler as wasm, which `ljos-web/compiler` loads
+  the first time a page compiles QML.
 - The table of Qt's types is made by Ljós's `qmltypes` generator (`mise run types`),
   in the ljos-ui repository the front end comes from.
 - `packages/runtime`: what compiled output imports, one module per QML module
@@ -72,6 +74,7 @@ mise run reference      # take Qt's pictures again (needs Qt 6's `qml` tool; `sw
 mise run assets ID...   # download what an example's build downloads (its pictures, meshes, fonts)
 mise run types          # the table of Qt's types, from the Qt installed here
 mise run site:build DIR # a static site from a directory with ljos-site.json
+mise run build:wasm-compiler # the compiler as wasm, for ljos-web/compiler
 ```
 
 `packages` (pnpm install) and `browser` (Playwright's Chromium) are tasks the
@@ -97,6 +100,17 @@ export default { plugins: [qml({ qmlc: "path/to/qmlc" })] };
 import { mount } from "ljos-web/object";
 import Main from "./Main.qml";
 mount(Main, document.getElementById("app"));
+```
+
+A page may also compile QML as it runs, from texts it has, with
+`ljos-web/compiler` (docs/LJOS_WEB.md A13). Nothing of the compiler is
+fetched until the first compile:
+
+```js
+import { compile } from "ljos-web/compiler";
+const made = await compile({ files: { "Main.qml": text }, entry: "Main.qml", aliases: [] });
+if (made.diagnostics) show(made.diagnostics); // [{ file, line, column, message }]
+else mount(made.component, document.getElementById("app"));
 ```
 
 A root that is a `Window` is the size of the element it is mounted in. One that
