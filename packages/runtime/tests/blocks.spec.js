@@ -143,6 +143,37 @@ test.describe("A Slot shows what the application contributes to it", () => {
     });
   });
 
+  test.describe("A contribution that does not work takes nothing with it", () => {
+    test.use({ told: [/^Contribution: /] });
+
+    // Thrown by a binding as the delegate is made, which natively is a plugin's panic.
+    test("A contribution whose binding throws as it is made goes, and the page runs", async ({ page }) => {
+      const thrown = [];
+      page.on("pageerror", (error) => thrown.push(error.message));
+      await opened(page, "slotsbad");
+      await expect.poll(() => named(page, "made-badly")).toBe(false);
+      expect(await named(page, "good")).toBe(true);
+      expect(await named(page, "later")).toBe(true);
+      expect(await read(page, "slot", "count")).toBe(2);
+      expect(thrown).toEqual([]);
+    });
+
+    test("A contribution whose binding throws later goes, and the page runs", async ({ page }) => {
+      const thrown = [];
+      page.on("pageerror", (error) => thrown.push(error.message));
+      await opened(page, "slotsbad");
+      await expect.poll(() => named(page, "made-badly")).toBe(false);
+      await page.evaluate(() => {
+        window.named("root").broken = true;
+        window.flush();
+      });
+      await expect.poll(() => named(page, "later")).toBe(false);
+      expect(await named(page, "good")).toBe(true);
+      expect(await read(page, "slot", "count")).toBe(1);
+      expect(thrown).toEqual([]);
+    });
+  });
+
   test.describe("Every Slot of a name shows its contributions", () => {
     test("Two Slots of one name both show a contribution", async ({ page }) => {
       await opened(page, "slotstwo");
@@ -276,6 +307,66 @@ test.describe("A ShellLoader shows a user's shell, or the application's own when
       expect(await read(page, "loader", "item")).toBe(null);
     });
 
+    test("A source whose module does not load falls back and says why", async ({ page }) => {
+      const thrown = [];
+      page.on("pageerror", (error) => thrown.push(error.message));
+      await opened(page, "shellsshown");
+      await page.evaluate(() => {
+        window.named("loader").source = () => Promise.reject(new Error("module failed"));
+        window.flush();
+      });
+      await expect.poll(() => named(page, "loader/default-shell")).toBe(true);
+      expect(await read(page, "loader", "error")).toMatch(/module failed/);
+      expect(await read(page, "loader", "status")).toBe(2);
+      expect(thrown).toEqual([]);
+    });
+
+    test("A module that gives no component falls back and says so", async ({ page }) => {
+      await opened(page, "shellsshown");
+      await page.evaluate(() => {
+        window.named("loader").source = () => Promise.resolve({});
+        window.flush();
+      });
+      await expect.poll(() => named(page, "loader/default-shell")).toBe(true);
+      expect(await read(page, "loader", "error")).toMatch(/no component/);
+    });
+
+    test("A fallback whose module does not load leaves nothing shown and says why", async ({ page }) => {
+      await opened(page, "shellsshown");
+      await page.evaluate(() => {
+        const loader = window.named("loader");
+        loader.fallback = () => Promise.reject(new Error("fallback failed"));
+        window.flush();
+      });
+      await page.waitForFunction(() => window.named("loader")?.item !== null);
+      await page.evaluate(() => {
+        window.named("loader").source = () => Promise.reject(new Error("module failed"));
+        window.flush();
+      });
+      await expect.poll(() => read(page, "loader", "status")).toBe(3);
+      expect(await read(page, "loader", "error")).toMatch(/module failed[^]*fallback failed/);
+    });
+
+    test.describe(() => {
+      test.use({ told: [[/^ShellLoader: /, /Failed to load resource/, /net::ERR_FAILED/], { option: true }] });
+
+      test("A shell whose compiler does not load falls back and says why", async ({ page }) => {
+        const thrown = [];
+        page.on("pageerror", (error) => thrown.push(error.message));
+        await serve(page, { "Shell.qml": "import QtQuick\nRectangle { }\n" });
+        await page.route(/compiler\/index\.js/, (route) => route.abort());
+        await opened(page, "shellsshown");
+        await page.evaluate(() => {
+          window.named("loader").source = "user/Shell.qml";
+          window.flush();
+        });
+        await expect.poll(() => read(page, "loader", "error")).toMatch(/^Shell\.qml: cannot compile/);
+        await expect.poll(() => named(page, "loader/default-shell")).toBe(true);
+        expect(await read(page, "loader", "status")).toBe(2);
+        expect(thrown).toEqual([]);
+      });
+    });
+
     test("A new source is tried and clears the error when it works", async ({ page }) => {
       await serve(page, {
         "Shell.qml": "import QtQuick\nRectangle { NoSuchThing { } }\n",
@@ -309,6 +400,42 @@ test.describe("A ShellLoader shows a user's shell, or the application's own when
       expect(await named(page, "loader/user-shell")).toBe(true);
       expect(await named(page, "default-shell")).toBe(false);
       expect(await read(page, "loader", "error")).toBe("");
+    });
+
+    // The reload that made it is no longer wanted when it comes to take the
+    // old one's place: what it made goes, and is not left in the loader.
+    test("A shell a later reload overtook is ended", async ({ page }) => {
+      const ended = [];
+      page.on("console", (message) => message.text() === "ended" && ended.push(message.text()));
+      await opened(page, "shellsended");
+      await settled(page);
+      // A source that asks for a reload as it is made: between what the first
+      // reload made and its putting it in place.
+      const said = await page.evaluate(async () => {
+        const loader = window.named("loader");
+        const source = loader.source;
+        const Shell = source.$component ? source : (await source()).default;
+        let armed = false;
+        let inner;
+        loader.source = () =>
+          Promise.resolve({
+            default: (data) => {
+              if (armed && !inner) inner = loader.reload();
+              return Shell(data);
+            },
+          });
+        window.flush();
+        await new Promise((done) => setTimeout(done, 50));
+        armed = true;
+        const outer = await loader.reload();
+        return [outer, await inner];
+      });
+      expect(said).toEqual(["", ""]);
+      // The first shell, the one the second reload replaced, the one overtaken.
+      await expect.poll(() => ended.length).toBe(3);
+      expect(await page.evaluate(() => window.named("loader").$node.children.length)).toBe(1);
+      expect(await page.evaluate(() => window.named("loader").children.length)).toBe(1);
+      expect(await read(page, "loader", "status")).toBe(1);
     });
 
     test("A shell that an edit breaks stays as it was, and the reload says why", async ({ page }) => {

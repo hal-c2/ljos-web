@@ -394,7 +394,7 @@ export function gather(work) {
 // evaluated by then, as `stack.currentItem.title` can once the stack has its
 // first item. So it is asked again then (unless it is not `pure`: what makes
 // objects would make them twice).
-function guarded(key, compute, pure = true) {
+function guarded(key, compute, pure = true, self) {
   let last;
   let failed = null;
   const guard = () => {
@@ -408,7 +408,15 @@ function guarded(key, compute, pure = true) {
     try {
       return (last = compute());
     } catch (error) {
-      if (!(error instanceof TypeError)) throw error;
+      if (!(error instanceof TypeError)) {
+        // Under a boundary it is the boundary's; a binding's throw would
+        // otherwise stop the page's whole reactive graph.
+        const boundary = self?.$fault;
+        if (!boundary) throw error;
+        boundary(error, self);
+        guard.failing = true;
+        return last;
+      }
       guard.failing = true;
       // Nothing to tell of what met an object that is not made yet: Qt
       // evaluates no binding until all of them are, and this one is
@@ -802,7 +810,7 @@ class Slot {
     const given = kind?.made ? () => kind.made(props[key]) : () => props[key];
     const make = () => complete(() => inside(self.$contentItem ?? (self.$node ? self : null), given));
     const made = props.$made?.includes(key);
-    const compute = descriptor?.get ? guarded(key, made ? apart(make) : make, !made) : null;
+    const compute = descriptor?.get ? guarded(key, made ? apart(make) : make, !made, self) : null;
     this.bound = compute ? ringed(self.$owner, kind ? converted(key, kind, compute, this.given) : compute, undefined, true) : null;
     this.given = descriptor && !descriptor.get ? this.made(descriptor.value) : undefined;
     this.bound?.start();
@@ -943,7 +951,7 @@ class Slot {
     // What it reads of its own property, itself or through another's
     // binding, is what the property had.
     const had = untrack(() => this.own());
-    const guard = guarded(this.key, () => compute.call(self));
+    const guard = guarded(this.key, () => compute.call(self), true, self);
     this.bound = ringed(self.$owner, this.kind ? converted(this.key, this.kind, guard) : guard, had, true);
     this.bound.begin();
     this.assigned = false;
@@ -1015,7 +1023,7 @@ class Layer {
       runWithOwner(null, () =>
         createRoot((end) => {
           this.end = end;
-          const guard = guarded(slot.key, () => binding(below));
+          const guard = guarded(slot.key, () => binding(below), true, slot.self);
           this.bound = ringed(getOwner(), slot.kind ? converted(slot.key, slot.kind, guard) : guard, undefined, true);
           this.bound.start();
         }),
@@ -2009,10 +2017,16 @@ export function awaited(promise) {
 export function instantiate(component, data, item, owner = item?.$owner ?? getOwner()) {
   return runWithOwner(owner, () =>
     createRoot((dispose) => {
-      const object = untrack(() => complete(() => inside(item ?? null, () => component(data))));
-      // A view's row is what a reload knows its delegate by.
-      if (object?.$born && typeof data?.$index === "number") hidden(object, "$row", data.$index);
-      return { object, dispose };
+      try {
+        const object = untrack(() => complete(() => inside(item ?? null, () => component(data))));
+        // A view's row is what a reload knows its delegate by.
+        if (object?.$born && typeof data?.$index === "number") hidden(object, "$row", data.$index);
+        return { object, dispose };
+      } catch (error) {
+        // What was made before it threw has no one else to end it.
+        dispose();
+        throw error;
+      }
     }),
   );
 }

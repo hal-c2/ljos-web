@@ -127,15 +127,24 @@ export const Slot = defineType("Slot", Item, {
           for (const entry of [...state.made.values()]) {
             if (!wanted.has(entry.key) || sequence.find(({ key }) => key === entry.key).delegate !== entry.delegate) unmake(entry);
           }
-          state.items = sequence.map(({ key, delegate }) => {
+          const items = [];
+          for (const { key, delegate } of sequence) {
             let entry = state.made.get(key);
             if (!entry) {
               const make = () => instantiate(delegate, {}, self.$parent, self.$owner);
-              const { object, dispose } = key === OWN ? make() : bounded((error) => withdraw(key, error), make);
-              state.made.set(key, (entry = { key, delegate, object, dispose }));
+              try {
+                const { object, dispose } = key === OWN ? make() : bounded((error) => withdraw(key, error), make);
+                state.made.set(key, (entry = { key, delegate, object, dispose }));
+              } catch (error) {
+                // The Slot's own delegate is the application's, as natively.
+                if (key === OWN) throw error;
+                withdraw(key, error);
+                continue;
+              }
             }
-            return entry.object;
-          });
+            items.push(entry.object);
+          }
+          state.items = items;
           write(self, "count", state.items.length);
           bump(next);
         }),
@@ -176,8 +185,13 @@ async function compiled(url) {
   } catch (error) {
     return { error: `${file}: cannot load ${address.href}: ${error.message}` };
   }
-  const { createCompiler } = await import("../../compiler/index.js");
-  const made = await createCompiler({ base: new URL(".", address).href }).compile({ files: { [file]: text }, entry: file, inspect: true });
+  let made;
+  try {
+    const { createCompiler } = await import("../../compiler/index.js");
+    made = await createCompiler({ base: new URL(".", address).href }).compile({ files: { [file]: text }, entry: file, inspect: true });
+  } catch (error) {
+    return { error: `${file}: cannot compile: ${error?.message ?? error}` };
+  }
   if (made.diagnostics) {
     const said = made.diagnostics.map(({ file: where = file, line, column, message }) =>
       line ? `${where}:${line}:${column ?? 1}: ${message}` : `${where}: ${message}`,
@@ -194,8 +208,14 @@ async function resolve(value) {
   if (value == null || value === "") return null;
   if (typeof value === "function" && value.$component === true) return { component: value, file: fileOf(value) };
   if (typeof value === "function") {
-    const component = (await value())?.default;
-    return { component, file: fileOf(component) };
+    const name = value.name || "<shell>";
+    let component;
+    try {
+      component = (await value())?.default;
+    } catch (error) {
+      return { error: `${name}: cannot load: ${error?.message ?? error}` };
+    }
+    return component ? { component, file: fileOf(component) } : { error: `${name}: its module has no component` };
   }
   return compiled(String(value));
 }
@@ -369,7 +389,11 @@ async function reloaded(self) {
   }
   if (old && !old.fallback && old.object && made.shown.object) {
     const { carry } = await import("../../reload.js");
-    if (turn !== state.turn) return "";
+    if (turn !== state.turn) {
+      // A later turn is at work: what this one made is never put.
+      discard(made.shown);
+      return "";
+    }
     carry(old.object, old.Component, made.shown.object, made.shown.Component);
   }
   drop(self, state);
