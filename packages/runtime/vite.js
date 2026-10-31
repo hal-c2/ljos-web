@@ -257,6 +257,11 @@ function exported(context, file, names = new Set(), seen = new Set()) {
 // - `seedHue`: the hue the page's palette is made from, which a theme's
 //   colours are held to unless the theme sets its own: or a function of the
 //   entry. Otherwise the module's.
+// - `inspect`: true for a build `ljos-web/inspect` reads, whose objects,
+//   bindings and `console` lines say where they are written, each file by
+//   its path from Vite's root: or a function of the file compiled that says.
+//   For a dev server; a page built for people to use leaves it out and
+//   carries none of it.
 export default function qml({
   qmlc = "qmlc",
   args = [],
@@ -268,6 +273,7 @@ export default function qml({
   importPaths = [],
   theme,
   seedHue,
+  inspect = false,
 } = {}) {
   let asked;
   const found = () => (asked ??= installed());
@@ -670,6 +676,7 @@ export default function qml({
         ...more.flatMap((directory) => ["--with", directory]),
         ...roots.flatMap((root) => ["--qt", root]),
         ...(selector ? ["--select", selector] : []),
+        ...((typeof inspect === "function" ? inspect(file) : inspect) ? ["--inspect", relative(base, file).split(sep).join("/")] : []),
       ];
       const result = spawnSync(qmlc, [...given, file], {
         encoding: "utf8",

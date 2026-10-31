@@ -12,6 +12,7 @@
     "./object": "./object.js",
     "./reload": "./reload.js",
     "./compiler": "./compiler/index.js",
+    "./inspect": "./inspect.js",
     "./QtQuick": "./QtQuick/index.js",
     "./QtQuick/Effects": "./QtQuick/Effects/index.js",
     "./QtQuick/Layouts": "./QtQuick/Layouts/index.js",

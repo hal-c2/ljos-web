@@ -5,6 +5,7 @@
 // With `&still` time stands still from the start, for `window.clock` to move.
 // `window.reload(name)` reloads the mounted root with another scene's
 // component, as a save does: it answers the error's message if there was one.
+// With `&inspect` the root is `window.inspector`.
 import { flush, mount } from "ljos-web/object";
 import { reload } from "ljos-web/reload";
 import { clock } from "ljos-web/QtQuick";
@@ -28,5 +29,11 @@ window.reload = async (other) => {
   }
 };
 window.flush = flush;
+// `&inspect`: the scene's root, inspected (`ljos-web/inspect`).
+if (asked.has("inspect")) {
+  const { inspect } = await import("ljos-web/inspect");
+  window.inspect = inspect;
+  window.inspector = inspect(handle.object);
+}
 window.clock = clock;
 window.ready = true;
