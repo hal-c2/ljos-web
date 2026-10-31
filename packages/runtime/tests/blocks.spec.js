@@ -172,6 +172,27 @@ test.describe("A Slot shows what the application contributes to it", () => {
       expect(await read(page, "slot", "count")).toBe(1);
       expect(thrown).toEqual([]);
     });
+
+    // Not a binding, which its object's boundary takes: the delegate itself,
+    // as a plugin's component that throws before it has an object.
+    test("A contribution whose delegate itself throws goes, and the page runs", async ({ page }) => {
+      const thrown = [];
+      page.on("pageerror", (error) => thrown.push(error.message));
+      await opened(page, "slotsbad");
+      await expect.poll(() => named(page, "made-badly")).toBe(false);
+      await page.evaluate(() => {
+        const contribution = window.named("root").spare;
+        contribution.delegate = () => {
+          throw new Error("delegate threw");
+        };
+        contribution.slot = "tools";
+        window.flush();
+      });
+      await expect.poll(() => page.evaluate(() => window.named("root").spare.$out[0]())).toBe(true);
+      expect(await named(page, "good")).toBe(true);
+      expect(await read(page, "slot", "count")).toBe(2);
+      expect(thrown).toEqual([]);
+    });
   });
 
   test.describe("Every Slot of a name shows its contributions", () => {
@@ -292,6 +313,45 @@ test.describe("A ShellLoader shows a user's shell, or the application's own when
       await expect.poll(() => named(page, "loader/default-shell")).toBe(true);
       expect(await named(page, "user-shell")).toBe(false);
       expect(await read(page, "loader", "status")).toBe(2);
+      expect(thrown).toEqual([]);
+    });
+
+    // A binding, which unlike a handler is left in the middle of being
+    // evaluated when the shell gives way.
+    test("A shell whose binding throws while it is made falls back", async ({ page }) => {
+      const thrown = [];
+      page.on("pageerror", (error) => thrown.push(error.message));
+      await serve(page, {
+        "Shell.qml": 'import QtQuick\nRectangle {\n  objectName: "user-shell"\n  width: { throw new Error("no width today") }\n}\n',
+      });
+      await opened(page, "shellsfetched");
+      await settled(page);
+      expect(await named(page, "loader/default-shell")).toBe(true);
+      expect(await named(page, "user-shell")).toBe(false);
+      expect(await read(page, "loader", "status")).toBe(2);
+      expect(await read(page, "loader", "error")).toMatch(/Shell\.qml:2: .*no width today/);
+      expect(thrown).toEqual([]);
+    });
+
+    test("A shell whose binding throws later falls back, and the page runs", async ({ page }) => {
+      const thrown = [];
+      page.on("pageerror", (error) => thrown.push(error.message));
+      await serve(page, {
+        "Shell.qml":
+          'import QtQuick\nRectangle {\n  objectName: "user-shell"\n  property bool broken: false\n  width: { if (broken) throw new Error("broke later"); return 10 }\n}\n',
+      });
+      await opened(page, "shellsfetched");
+      await settled(page);
+      expect(await named(page, "loader/user-shell")).toBe(true);
+      await page.evaluate(() => {
+        window.named("user-shell").broken = true;
+        window.flush();
+      });
+      await expect.poll(() => named(page, "loader/default-shell")).toBe(true);
+      expect(await named(page, "user-shell")).toBe(false);
+      expect(await read(page, "loader", "status")).toBe(2);
+      expect(await read(page, "loader", "error")).toMatch(/broke later/);
+      expect(await page.evaluate(() => window.named("loader").$node.children.length)).toBe(1);
       expect(thrown).toEqual([]);
     });
 
@@ -436,6 +496,52 @@ test.describe("A ShellLoader shows a user's shell, or the application's own when
       expect(await page.evaluate(() => window.named("loader").$node.children.length)).toBe(1);
       expect(await page.evaluate(() => window.named("loader").children.length)).toBe(1);
       expect(await read(page, "loader", "status")).toBe(1);
+    });
+
+    // As in reload.spec.js's reloadbadcarry, which is a root's and not a loader's.
+    test("A shell whose state cannot be carried is ended, and the old one stays", async ({ page }) => {
+      const thrown = [];
+      page.on("pageerror", (error) => thrown.push(error.message));
+      const ended = [];
+      page.on("console", (message) => message.text() === "ended" && ended.push(message.text()));
+      await opened(page, "shellsended");
+      await settled(page);
+      const said = await page.evaluate(async () => {
+        const loader = window.named("loader");
+        const old = loader.item;
+        const source = loader.source;
+        const Shell = source.$component ? source : (await source()).default;
+        loader.source = () =>
+          Promise.resolve({
+            default: (data) => {
+              const object = Shell(data);
+              // Only once it is made: the carrying is what is to fail.
+              let armed = false;
+              queueMicrotask(() => (armed = true));
+              const born = object.$born;
+              Object.defineProperty(object, "$born", {
+                configurable: true,
+                get() {
+                  if (armed) throw new Error("carried badly");
+                  return born;
+                },
+              });
+              return object;
+            },
+          });
+        window.flush();
+        await new Promise((done) => setTimeout(done, 50));
+        const kept = loader.item;
+        const message = await loader.reload();
+        return { message, same: loader.item === kept, old: old !== kept };
+      });
+      expect(said.message).toMatch(/carried badly/);
+      expect(said.same).toBe(true);
+      await expect.poll(() => ended.length).toBeGreaterThan(0);
+      expect(await page.evaluate(() => window.named("loader").$node.children.length)).toBe(1);
+      expect(await page.evaluate(() => window.named("loader").children.length)).toBe(1);
+      expect(await read(page, "loader", "status")).toBe(1);
+      expect(thrown).toEqual([]);
     });
 
     test("A shell that an edit breaks stays as it was, and the reload says why", async ({ page }) => {

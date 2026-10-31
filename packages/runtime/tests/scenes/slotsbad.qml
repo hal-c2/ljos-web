@@ -9,6 +9,9 @@ Item {
   Row {
     Slot { objectName: "slot"; name: "tools" }
   }
+  // Given a delegate that throws by a test.
+  property var spare: spareOne
+  Contribution { id: spareOne; slot: ""; order: 3 }
   Contribution { slot: "tools"; order: 0
     Rectangle { objectName: "good"; width: 10; height: 10 } }
   Contribution { slot: "tools"; order: 1
