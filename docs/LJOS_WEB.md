@@ -1301,6 +1301,148 @@ file bound them to is gone. Without the option a root keeps its size. A Window
 already fills, and takes `{ fill: false }` to do otherwise, so one word means
 one thing for both.
 
+### A23. The generated face: the seam an application's Rust crosses
+
+An application's `#[derive(QmlObject)]` type runs on the web from its own
+source, unchanged. The engine does not run there (R4), so what the source
+names has to mean something else on wasm32, and the seam is where that
+happens. It is the smallest one that keeps the source as it is:
+
+**The seam is the `ljos` facade on wasm32.** `use ljos::prelude::*`,
+`ljos::item` and `ljos::module!` resolve to a crate of ljos-ui's,
+`ljos_web` (no relation to this repository's compiler crate of that name,
+which no application links): an `Engine` that is a handle, an `ObjectId`
+that indexes a store of structs, a `Cx`, `Prop<T>`, `QmlValue`, an `Item`
+whose properties are names of the runtime's slots, and the hooks of
+`ljos::item`. Natively nothing changes. No crate's API forks, no
+application line has a `cfg`.
+
+- DECISION: `ljos_render` is the display list on both. It builds for
+  wasm32 without B0 as it is; a hook paints into the same
+  `DisplayListBuilder`, and the raster code nothing calls is gone by link
+  time. egui stays out: B0 is off and `ljos_web` names no egui.
+- DECISION: the web's `TextEngine` is the browser's text. It measures with
+  a canvas (`measureText`), breaks lines at spaces, and gives the shape
+  `ljos_text` gives (`lines[].runs[]` with `glyphs`, `advance`,
+  `content_height`), so a hook that lays text out compiles unchanged and
+  linking `ljos_text` (a shaper and fonts, megabytes) never happens. Fonts
+  are not embedded, which section 10 already says of the web. What is
+  different: a `GlyphRun` here has no real glyph ids. Its `font` carries
+  the CSS font and the string, which replay hands to `fillText`, and only
+  replay reads it. A hook that reads glyph ids itself cannot work unchanged
+  on the web, and none in the tree does.
+- DECISION: `ljos_macros` gets a `web` cargo feature, on through the
+  application's `web = ["ljos/web"]`. Off, the macro's output is what it
+  was, token for token, and the desktop tree has no wasm-bindgen. On, it
+  gives both, each behind `cfg(target_arch)`, since a proc macro runs on
+  the host and cannot ask about the target.
+- DECISION: `ljos_web` has wasm-bindgen and js-sys under a wasm32 target
+  table, so even a workspace build on the desktop does not compile them.
+
+**The application's manifest** changes by one line, as a `dev` or `render`
+feature would: `[features] web = ["ljos/web"]`. Its Rust does not.
+
+**The struct owns; a read is lent.** The store (a table of
+`Rc<RefCell<T>>`) lends the struct for the length of a closure, and no
+borrow is held across a telling. This drops what the spike needed
+(section 4's hold on a telling and its microtask): a handler that writes
+back in the middle of a telling just runs, re-entrantly, as a direct
+connection does in Qt.
+
+- DECISION: tellings are collected by the outermost call into Rust and
+  made when it returns, in one call to the face's one listener:
+  `[key, value, …]` (section 5), property changes before signals, a
+  property changed twice told once with where it ended. A key is the
+  property's number (its place in the type), or a string for a signal or a
+  group's member. No listener, no array.
+- DECISION: what a hook reads. Inside a paint item's `read`, `item::prop`
+  and `engine.get` read the face's slot (`self[name]`), so the runtime's
+  tracking sees them, and a base's property (`Item::WIDTH`) is a slot in
+  any case. Everywhere else an own property reads the struct, which is
+  what holds it.
+
+**Metadata** goes to the build in the binary, not by parsing Rust. The
+derive and `#[qml_impl]` each write a JSON line into a custom section of
+the wasm (`ljos_web_types`). The tool reads the section from the linked
+`.wasm` before wasm-bindgen does, runs nothing of the application's, and
+writes:
+
+- `faces/<Module>/index.js`, items 8–11 and 12: `await init()`, then one
+  `defineType` per type through `ljos-web/web/face`;
+- `faces/<Module>/<Type>.js`, what a compiled import resolves to;
+- `ljostypes.json` (format 2), so that `qmlc` learns the types as A18 has it
+  and no stand-in file is written by hand.
+
+The Vite plugin's `faces` option says where those are: a dump's stand-in
+that a generated face exists for resolves to that face instead of the
+stand-in that does nothing. Everything else A18 said stands.
+
+- DECISION: a kind comes from how a field's type is spelled: `i32`, `f64`,
+  `bool`, `String` and the like get the kernel's kind (item 9), anything
+  else is `var` and is converted by `QmlValue` when it crosses. A macro
+  sees no type aliases; a field whose alias hides an `i32` is a `var`
+  property, which still works, without Qt's wording for a refused write.
+
+**`register` is the entry, unwritten by the application.** The hooks are
+registered by `pub fn register(engine: &Engine)`, the function a desktop
+host already calls, so a type's hooks must reach the web without anyone
+writing `#[wasm_bindgen]`. `ljos-web faces` generates a small crate that
+depends on the application with `features = ["web"]` and exports one
+function calling `app::register`. It names no `ljos`: the argument is
+`&Default::default()`, so its type comes from `register`'s own signature
+and the crate cannot disagree with the application over which `ljos`.
+
+- DECISION: an application's crate needs a `pub fn register(engine: &Engine)`.
+  Every host needs one (MIGRATION.md §6), so that is not a web change;
+  `--register path` names another. It also has to be buildable as an rlib,
+  the default.
+
+**Paint.** A visual type (`extends = Item`) has a `<canvas>` in its node, as
+`Canvas` does, sized by the item and the device pixel ratio. An `effect`'s
+compute calls the type's `read`, tracked, with the size and a `repaint`
+version it also reads; its apply paints the returned `ItemPaint` into a
+`DisplayListBuilder` and replays the ops on the canvas's 2D context.
+Nothing polls and nothing runs per frame: only a change to what `read` read,
+to the size or the ratio, or `item::repaint`, reaches the effect.
+
+- DECISION: replay does `Rect` (radii, border, gradient), `Shadow`,
+  `Image`, `Glyphs`, `Text`, `Path`, `Shape` (linear, radial and conical
+  brushes where the context has them). `NinePatch` and tiling are left out
+  and warn once by name, as do `Shader`, `View3d` and `Embed`, which
+  need a device or a host this path does not have.
+- DECISION: pointer, key and wheel go through the runtime's delivery
+  (`receive`, `$press`, `$move`, `$release`, `$hover`, `$wheel`,
+  `$keyPressed`, `$keyReleased`), registered only for a type that has that
+  hook, so stacking, grabs and focus are the ones everything else obeys.
+- DECISION: `item::load_image` on the web decodes with the browser
+  (`createImageBitmap`), reads straight pixels back and gives a real
+  `ImageHandle`, so the hook's reply is what the desktop's is.
+- DECISION: the hooks live behind function pointers stored by
+  `register_paint_item` and its kin, called through one exported
+  dispatcher. An application with no visual type never calls those, so
+  link-time optimisation removes replay and the text engine from its wasm.
+
+**What cannot be unchanged.** Each is a compile error naming the field or
+the type, on the web only, rather than a face that misbehaves:
+
+- DECISION: `#[qml(list)]` with its `QmlList`, `append`, `insert` and `remove`,
+  because a list of objects has a meaning in the engine's ownership that has no
+  web counterpart yet. The application's alternative is a `Vec<T>` property,
+  which crosses as an array.
+- DECISION: a native type as the `#[qml(base)]` of another: only `Item` and
+  `QtObject` can be bases. A face would have to be two wrappers over one
+  struct, and nothing in the tree needs it yet.
+- DECISION: what is named in the prelude but is the desktop's only (a
+  model's `QmlListModel`, `Platform`, `Timer`, `task`) does not exist in the
+  web prelude; the error is rustc's "not found", on the use. Those are
+  sections 7 and 8, not this.
+
+**Sizes**, measured by `mise run test:faces-size` (`size/faces.js`):
+an application with no native types imports no face module and links no
+wasm of its own, so it pays nothing and `size/check.js` stays as it was.
+What one that has them pays is in the table the check writes, with its
+budget: FACE_SIZES.
+
 ## Part II — An application's own Rust types
 
 ## 1. The shape of a native type on the web
