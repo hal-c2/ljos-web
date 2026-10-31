@@ -508,7 +508,8 @@ it.
    array or a string.
 4. *Network only through blocks.* `Image.source` takes only a URL that
    a block gives (a block's `url` state). A literal, or a URL built by
-   concatenation, is refused, and a shell declares no `url` property.
+   concatenation or added to, is refused, and a shell declares no `url`
+   property, nor anything over a member its object's type already has.
    Rich text would load what its `<img>` names, so a shell's `Text` is
    plain: `textFormat` is refused and forced to `PlainText`.
 5. *Bounded work.* Each run has a budget of 100,000 steps. A runaway

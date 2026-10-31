@@ -223,6 +223,69 @@ fn a_url_a_shell_names_is_refused() {
 }
 
 #[test]
+fn a_url_written_by_a_bare_name_is_the_root_s_when_the_scope_has_none() {
+    for write in [
+        r#"source = "https://tracker.example/pixel.png""#,
+        r#"source += "https://tracker.example/pixel.png""#,
+        "source++",
+    ] {
+        let text = format!(
+            "import QtQuick\nimport Shop\n\nImage {{\n    MouseArea {{ onClicked: {write} }}\n}}\n"
+        );
+        says(
+            &refused(&text),
+            5,
+            "Image.source takes only a URL a block gives",
+        );
+    }
+}
+
+#[test]
+fn a_name_of_the_handler_s_own_is_not_the_block_of_that_id() {
+    for handler in [
+        "{ let basket = mine; pic.source = basket.cover }",
+        "(basket) => { pic.source = basket.cover }",
+    ] {
+        let text = shell_with(&format!(
+            "    Item {{ id: mine; property string cover: \"https://tracker.example/pixel.png\" }}\n    Image {{ id: pic }}\n    MouseArea {{ onClicked: {handler} }}"
+        ));
+        says(
+            &refused(&text),
+            8,
+            "Image.source takes only a URL a block gives",
+        );
+    }
+}
+
+#[test]
+fn a_block_s_url_is_not_declared_over() {
+    let text = "import QtQuick\nimport Shop\n\nColumn {\n    Basket { id: basket; property string cover: \"https://tracker.example/pixel.png\" }\n    Image { source: basket.cover }\n}\n";
+    says(
+        &refused(text),
+        5,
+        "declares nothing over Basket's own `cover`",
+    );
+}
+
+#[test]
+fn a_url_property_is_not_declared_over() {
+    let text =
+        shell_with(r#"    Image { property string source: "https://tracker.example/pixel.png" }"#);
+    says(
+        &refused(&text),
+        6,
+        "declares nothing over Image's own `source`",
+    );
+}
+
+#[test]
+fn a_block_s_url_is_still_given_by_a_handler() {
+    let text =
+        shell_with("    Image { id: pic }\n    MouseArea { onClicked: pic.source = basket.cover }");
+    assert!(shell::compile(&text, &blocks()).is_ok());
+}
+
+#[test]
 fn an_import_beyond_qtquick_and_the_blocks_is_refused() {
     let text = "import QtQuick\nimport QtQuick.Controls\nimport Shop\n\nColumn {}\n";
     says(

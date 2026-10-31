@@ -558,7 +558,12 @@ impl<'s> Shell<'s> {
                 group: false,
             });
         }
-        let ty = match at.kind {
+        self.own_member(object, name)
+    }
+
+    /// A member its type has, whatever the shell declares on the object.
+    fn own_member(&self, object: usize, name: &str) -> Option<Member> {
+        let ty = match self.objects[object].kind {
             Kind::Block(block) => {
                 if let Some(property) = block.property(name) {
                     return Some(Member::Property {
@@ -749,6 +754,18 @@ impl<'s> Shell<'s> {
                         self.refuse(
                             property.span,
                             "a shell declares no url property: only a block gives a URL",
+                        );
+                        continue;
+                    }
+                    // Declared over, a block's state would be the shell's to
+                    // write, and an Image's `source` no url to check.
+                    if self.own_member(index, &name).is_some() {
+                        self.refuse(
+                            property.span,
+                            format!(
+                                "a shell declares nothing over {}'s own `{name}`",
+                                self.type_name(index)
+                            ),
                         );
                         continue;
                     }
@@ -996,7 +1013,8 @@ impl<'s> Shell<'s> {
         matches!(self.member(index, property), Some(Member::Property { .. })).then(Vec::new)
     }
 
-    /// `basket.cover`: a URL a block publishes.
+    /// `basket.cover`: a URL a block publishes. A binding has no names of
+    /// its own, so an id is the object it says.
     fn is_block_url(&self, expression: &Expression) -> bool {
         let Expression::StaticMemberExpression(member) = unparenthesized(expression) else {
             return false;
@@ -1004,14 +1022,17 @@ impl<'s> Shell<'s> {
         let Expression::Identifier(id) = &member.object else {
             return false;
         };
-        let Some(&object) = self.ids.get(id.name.as_str()) else {
-            return false;
-        };
+        self.ids
+            .get(id.name.as_str())
+            .is_some_and(|&object| self.block_url(object, member.property.name.as_str()))
+    }
+
+    fn block_url(&self, object: usize, name: &str) -> bool {
         let Kind::Block(block) = self.objects[object].kind else {
             return false;
         };
         block
-            .property(member.property.name.as_str())
+            .property(name)
             .is_some_and(|property| property.ty == "url")
     }
 
@@ -2158,11 +2179,21 @@ impl<'p, 's> Program<'p, 's> {
     /// A URL is given only by a block.
     fn check_url(&self, target: &Target, value: &Expression, span: Span) -> Lowered<()> {
         match self.url_property(target) {
-            Some(object) if !self.shell.is_block_url(value) => {
+            Some(object) if !self.gives_block_url(value) => {
                 Err(self.url_refused(object, target, span))
             }
             _ => Ok(()),
         }
+    }
+
+    /// A handler's locals and arguments may be named as a block's id is, and
+    /// are not that block.
+    fn gives_block_url(&self, value: &Expression) -> bool {
+        let Expression::StaticMemberExpression(member) = unparenthesized(value) else {
+            return false;
+        };
+        self.known_object(&member.object)
+            .is_some_and(|object| self.shell.block_url(object, member.property.name.as_str()))
     }
 
     /// Added to or counted on, even a URL a block gave is one the shell
@@ -2177,7 +2208,7 @@ impl<'p, 's> Program<'p, 's> {
     /// The object whose `url` property `target` is, if it is one.
     fn url_property(&self, target: &Target) -> Option<usize> {
         let (object, name) = match target {
-            Target::Name(name, _) if self.local(name).is_none() => (Some(self.scope), *name),
+            Target::Name(name, _) if self.local(name).is_none() => (self.named_object(name), *name),
             Target::Member(object, name, _) => (self.known_object(object), *name),
             _ => return None,
         };
@@ -2186,6 +2217,13 @@ impl<'p, 's> Program<'p, 's> {
             Some(Member::Property { ty, .. }) if ty == "url" => Some(object),
             _ => None,
         }
+    }
+
+    /// The object a plain name is written to: the scope's, or else the root's.
+    fn named_object(&self, name: &str) -> Option<usize> {
+        [self.scope, 0]
+            .into_iter()
+            .find(|&object| self.shell.member(object, name).is_some())
     }
 
     fn url_refused(&self, object: usize, target: &Target, span: Span) -> Refusal {
@@ -2264,12 +2302,13 @@ impl<'p, 's> Program<'p, 's> {
                         format!("`{name}` is not something a shell assigns to"),
                     ));
                 }
-                let (obj, object) = if self.shell.member(self.scope, name).is_some() {
-                    (self.this(), self.scope)
-                } else if self.shell.member(0, name).is_some() {
-                    (self.object("$root", 0), 0)
-                } else {
+                let Some(object) = self.named_object(name) else {
                     return Err(Refusal(*name_span, not_in_scope(name)));
+                };
+                let obj = if object == self.scope {
+                    self.this()
+                } else {
+                    self.object("$root", 0)
                 };
                 self.writable(object, name, *name_span)?;
                 let name = self.name(name);

@@ -153,6 +153,16 @@ test.describe("A shell names only what is in its scope", () => {
       /^Shell\.qml:6:\d+: Image\.source takes only a URL a block gives/,
     ],
     [
+      "a URL through a local named as a block is",
+      over(`    Item { id: mine; property string cover: "https://tracker.example/pixel.png" }\n    Image { id: pic }\n    MouseArea { onClicked: { let basket = mine; pic.source = basket.cover } }`),
+      /^Shell\.qml:8:\d+: Image\.source takes only a URL a block gives/,
+    ],
+    [
+      "a member of its own over an image's source",
+      over(`    Image { property string source: "https://tracker.example/pixel.png" }`),
+      /^Shell\.qml:6:\d+: a shell declares nothing over Image's own `source`/,
+    ],
+    [
       "a URL the shell adds to an image's",
       over(`    Image { id: pic }\n    MouseArea { onClicked: pic.source += "https://tracker.example/pixel.png" }`),
       /^Shell\.qml:7:\d+: Image\.source takes only a URL a block gives/,
