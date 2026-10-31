@@ -140,6 +140,11 @@ test.describe("A shell names only what is in its scope", () => {
       /^Shell\.qml:6:\d+: Image\.source takes only a URL a block gives/,
     ],
     [
+      "a URL the shell adds to an image's",
+      over(`    Image { id: pic }\n    MouseArea { onClicked: pic.source += "https://tracker.example/pixel.png" }`),
+      /^Shell\.qml:7:\d+: Image\.source takes only a URL a block gives/,
+    ],
+    [
       "an import beyond QtQuick and the blocks",
       "import QtQuick\nimport QtQuick.Controls\nimport Shop\n\nColumn {}\n",
       /^Shell\.qml:2:\d+: a shell may import only `QtQuick`, `Shop`, not `QtQuick\.Controls`/,

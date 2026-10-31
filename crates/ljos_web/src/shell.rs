@@ -1783,6 +1783,7 @@ impl<'p, 's> Program<'p, 's> {
             Expression::AssignmentExpression(assignment) => self.assignment(assignment),
             Expression::UpdateExpression(update) => {
                 let target = simple_target(&update.argument);
+                self.check_url_whole(&target, span)?;
                 let old = self.read_target(&target, span)?;
                 let number = self.reg();
                 self.emit(ir::Op::Unary {
@@ -2137,6 +2138,7 @@ impl<'p, 's> Program<'p, 's> {
                     .to_binary_operator()
                     .and_then(binary)
                     .ok_or_else(|| Refusal(span, "not in a shell's scope".to_string()))?;
+                self.check_url_whole(&target, span)?;
                 let old = self.read_target(&target, span)?;
                 let right = self.expression(&assignment.right)?;
                 let dst = self.reg();
@@ -2155,25 +2157,48 @@ impl<'p, 's> Program<'p, 's> {
 
     /// A URL is given only by a block.
     fn check_url(&self, target: &Target, value: &Expression, span: Span) -> Lowered<()> {
+        match self.url_property(target) {
+            Some(object) if !self.shell.is_block_url(value) => {
+                Err(self.url_refused(object, target, span))
+            }
+            _ => Ok(()),
+        }
+    }
+
+    /// Added to or counted on, even a URL a block gave is one the shell
+    /// names, so a `url` is written only whole.
+    fn check_url_whole(&self, target: &Target, span: Span) -> Lowered<()> {
+        match self.url_property(target) {
+            Some(object) => Err(self.url_refused(object, target, span)),
+            None => Ok(()),
+        }
+    }
+
+    /// The object whose `url` property `target` is, if it is one.
+    fn url_property(&self, target: &Target) -> Option<usize> {
         let (object, name) = match target {
             Target::Name(name, _) if self.local(name).is_none() => (Some(self.scope), *name),
             Target::Member(object, name, _) => (self.known_object(object), *name),
-            _ => return Ok(()),
+            _ => return None,
         };
-        let Some(object) = object else { return Ok(()) };
-        if let Some(Member::Property { ty, .. }) = self.shell.member(object, name)
-            && ty == "url"
-            && !self.shell.is_block_url(value)
-        {
-            return Err(Refusal(
-                span,
-                format!(
-                    "{}.{name} takes only a URL a block gives (a block's url state): a shell may not name one",
-                    self.shell.type_name(object)
-                ),
-            ));
+        let object = object?;
+        match self.shell.member(object, name) {
+            Some(Member::Property { ty, .. }) if ty == "url" => Some(object),
+            _ => None,
         }
-        Ok(())
+    }
+
+    fn url_refused(&self, object: usize, target: &Target, span: Span) -> Refusal {
+        let name = match target {
+            Target::Name(name, _) | Target::Member(_, name, _) => *name,
+        };
+        Refusal(
+            span,
+            format!(
+                "{}.{name} takes only a URL a block gives (a block's url state): a shell may not name one",
+                self.shell.type_name(object)
+            ),
+        )
     }
 
     fn read_target(&mut self, target: &Target, span: Span) -> Lowered<ir::Reg> {

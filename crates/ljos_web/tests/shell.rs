@@ -205,6 +205,21 @@ fn a_url_a_shell_names_is_refused() {
         6,
         "Image.source takes only a URL a block gives",
     );
+    // Added to, even one a block gave is a URL the shell names.
+    for handler in [
+        r#"pic.source += "https://tracker.example/pixel.png""#,
+        r#"{ pic.source = basket.cover; pic.source += "x" }"#,
+        "pic.source++",
+    ] {
+        let text = shell_with(&format!(
+            "    Image {{ id: pic }}\n    MouseArea {{ onClicked: {handler} }}"
+        ));
+        says(
+            &refused(&text),
+            7,
+            "Image.source takes only a URL a block gives",
+        );
+    }
 }
 
 #[test]
