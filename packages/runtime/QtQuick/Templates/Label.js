@@ -3,6 +3,7 @@ import { defineType, derived } from "../../object.js";
 import { Text } from "../Text.js";
 import { backed, insets, methods } from "./Control.js";
 import { font } from "./font.js";
+import { described, speaks } from "../Accessible.js";
 
 export const Label = defineType("Label", Text, {
   properties: {
@@ -15,5 +16,10 @@ export const Label = defineType("Label", Text, {
   methods,
   // A type's setup is given its properties too, which are not what a
   // background fills.
-  setup: (self) => backed(self),
+  setup(self) {
+    backed(self);
+    described(self);
+  },
 });
+
+speaks(Label, "StaticText");

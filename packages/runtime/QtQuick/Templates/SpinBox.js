@@ -13,6 +13,7 @@ import { TextInput } from "../TextInput.js";
 import { Control, keeps, loose, put } from "./Control.js";
 import { clamp, close, keep, nothing, now } from "./Slider.js";
 import { untrack } from "#kernel";
+import { speaks } from "../Accessible.js";
 
 // Qt's `QQuickIndicatorButton`: what `up` and `down` are.
 const IndicatorButton = defineType("IndicatorButton", QtObject, {
@@ -457,3 +458,6 @@ function box(name, kind, more) {
 
 export const SpinBox = box("SpinBox", whole, { live: false });
 export const DoubleSpinBox = box("DoubleSpinBox", real, { decimals: 2 });
+
+speaks(SpinBox, "SpinBox");
+speaks(DoubleSpinBox, "SpinBox");

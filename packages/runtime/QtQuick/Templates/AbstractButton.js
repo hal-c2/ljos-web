@@ -13,6 +13,7 @@ import { after, cancel } from "../pointer.js";
 import { check, ICON, trigger, uses } from "./Action.js";
 import { Control, keeps, loose, put, within } from "./Control.js";
 import { untrack } from "#kernel";
+import { speaks, unmarked } from "../Accessible.js";
 
 // The keys that click the button with focus. Qt asks the platform: Space and
 // Select everywhere, Return and Enter too on the desktops, as in a browser.
@@ -422,3 +423,8 @@ export const AbstractButton = defineType("AbstractButton", Control, {
     });
   },
 });
+
+// A button is named by its text, without the marker of its mnemonic. A bare
+// one is whatever its author builds of it; a button is the closest to say.
+const buttonText = (self) => unmarked(self.text);
+speaks(AbstractButton, "Button", buttonText);

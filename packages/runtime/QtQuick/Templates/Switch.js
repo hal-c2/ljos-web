@@ -4,6 +4,7 @@ import { styleHints } from "../../QtQml/application.js";
 import { AbstractButton } from "./AbstractButton.js";
 import { put } from "./Control.js";
 import { untrack } from "#kernel";
+import { speaks } from "../Accessible.js";
 
 function setPosition(self, position) {
   put(self, "position", Math.min(1, Math.max(0, position)));
@@ -67,3 +68,5 @@ export const switching = {
 };
 
 export const Switch = defineType("Switch", AbstractButton, switching);
+
+speaks(Switch, "Switch", undefined, true);

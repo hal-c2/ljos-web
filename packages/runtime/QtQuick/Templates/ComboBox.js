@@ -17,6 +17,7 @@ import { AbstractButton } from "./AbstractButton.js";
 import { Control, keeps, loose, put, within } from "./Control.js";
 import { now } from "./Slider.js";
 import { signal, untrack } from "#kernel";
+import { speaks } from "../Accessible.js";
 
 const next = (version) => version + 1;
 
@@ -781,3 +782,5 @@ function says(name, criteria) {
 }
 says("currentIndex", INDEX);
 says("currentValue", VALUE);
+
+speaks(ComboBox, "ComboBox", (self) => String(self.displayText ?? ""));

@@ -7,6 +7,7 @@ import { Key, LeftButton } from "../keycodes.js";
 import { Control, keeps, loose, put } from "./Control.js";
 import { along, clamp, close, dragged, Horizontal, keep, nothing, now, round, scaled, SnapMode, snapPosition, step, Vertical } from "./Slider.js";
 import { untrack } from "#kernel";
+import { speaks } from "../Accessible.js";
 
 const other = (node) => (node.$range.first ? node.$range.slider.$slider.second : node.$range.slider.$slider.first);
 
@@ -324,3 +325,5 @@ export const RangeSlider = defineType("RangeSlider", Control, {
     );
   },
 });
+
+speaks(RangeSlider, "Slider");

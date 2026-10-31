@@ -9,6 +9,7 @@ import { defineType, effect, instantiate, last, onChange, QtObject, slot, whenCo
 import { after, cancel } from "../pointer.js";
 import { itemOf, Popup } from "./Popup.js";
 import { untrack } from "#kernel";
+import { speaks } from "../Accessible.js";
 
 const never = () => false;
 
@@ -187,3 +188,5 @@ ToolTip.attached = function (self) {
     asking = before;
   }
 };
+
+speaks(ToolTip, "ToolTip");

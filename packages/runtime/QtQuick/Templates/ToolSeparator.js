@@ -3,6 +3,7 @@
 import { defineType, derived } from "../../object.js";
 import { Control } from "./Control.js";
 import { Horizontal, Vertical } from "./Slider.js";
+import { speaks } from "../Accessible.js";
 
 export const ToolSeparator = defineType("ToolSeparator", Control, {
   properties: {
@@ -13,3 +14,6 @@ export const ToolSeparator = defineType("ToolSeparator", Control, {
 });
 
 export const MenuSeparator = defineType("MenuSeparator", Control, {});
+
+speaks(ToolSeparator, "Separator");
+speaks(MenuSeparator, "Separator");

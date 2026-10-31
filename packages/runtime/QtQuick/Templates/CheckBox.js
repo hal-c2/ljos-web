@@ -4,6 +4,7 @@ import { defineType, effect } from "../../object.js";
 import { AbstractButton } from "./AbstractButton.js";
 import { loose, put } from "./Control.js";
 import { untrack } from "#kernel";
+import { speaks } from "../Accessible.js";
 
 // Qt's `setCheckState`: `checked` is whether the state is Checked.
 function setCheckState(self, state) {
@@ -64,3 +65,6 @@ export const CheckBox = defineType("CheckBox", AbstractButton, checking);
 export const RadioButton = defineType("RadioButton", AbstractButton, {
   properties: { checkable: true, autoExclusive: true },
 });
+
+speaks(CheckBox, "CheckBox", undefined, true);
+speaks(RadioButton, "RadioButton", undefined, true);
