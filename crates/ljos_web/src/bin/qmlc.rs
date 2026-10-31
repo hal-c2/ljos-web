@@ -184,6 +184,7 @@ fn main() -> ExitCode {
     let mut options = Options::default();
     let mut lowered = false;
     let mut alone = false;
+    let mut shell = false;
     let mut types = None;
     let mut listing = false;
     let mut out_dir = None;
@@ -213,6 +214,7 @@ fn main() -> ExitCode {
             "--host" => options.host_module = value("--host"),
             "--runtime" => options.runtime_module = value("--runtime"),
             "--alone" => alone = true,
+            "--shell" => shell = true,
             "--urls-on-assignment" => options.urls_on_assignment = true,
             // What the file is called where an inspector says where things
             // are written: its path from the project, as the page has it.
@@ -238,6 +240,25 @@ fn main() -> ExitCode {
 
     if listing {
         return listed_imports(&files);
+    }
+
+    // The contracts of the blocks a shell uses: what a page with a live
+    // shell compiles a dropped one against.
+    if shell {
+        let mut failed = false;
+        for file in &files {
+            let path = std::fs::canonicalize(file).unwrap_or_else(|_| PathBuf::from(file));
+            let project = root.as_deref().map(|root| std::fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf()));
+            let project = project.unwrap_or_else(|| path.parent().map(Path::to_path_buf).unwrap_or_default());
+            match ljos_web::shell::contracts(&Disk, &project, &path) {
+                Ok(contracts) => println!("{}", serde_json::to_string(&contracts).expect("contracts are JSON")),
+                Err(error) => {
+                    eprintln!("{file}: {error}");
+                    failed = true;
+                }
+            }
+        }
+        return if failed { ExitCode::FAILURE } else { ExitCode::SUCCESS };
     }
 
     if let Some(types) = types {

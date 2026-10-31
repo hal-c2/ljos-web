@@ -77,8 +77,29 @@ struct Diagnostic {
     message: String,
 }
 
+/// A shell a visitor dropped, and the contracts of the blocks it may use.
+#[derive(Deserialize)]
+struct ShellRequest {
+    shell: Shell,
+}
+
+#[derive(Deserialize)]
+struct Shell {
+    text: String,
+    blocks: Vec<ljos_web::shell::Contract>,
+}
+
 /// Compiles the request in `json`, answering in JSON.
 pub fn compile(json: &str) -> String {
+    // A shell is answered with data, its objects and programs, which the
+    // page runs without making code of them.
+    if let Ok(ShellRequest { shell }) = serde_json::from_str::<ShellRequest>(json) {
+        let answer = match ljos_web::shell::compile(&shell.text, &shell.blocks) {
+            Ok(file) => serde_json::json!({ "shell": ljos_web::shell::to_json(&file) }),
+            Err(diagnostics) => serde_json::json!({ "diagnostics": diagnostics }),
+        };
+        return answer.to_string();
+    }
     let response = match serde_json::from_str::<Request>(json) {
         Err(error) => Response::Refused {
             diagnostics: vec![Diagnostic {
@@ -230,6 +251,19 @@ mod tests {
                 .iter()
                 .any(|link| link["module"] == "ljos-web/QtQuick")
         );
+    }
+
+    #[test]
+    fn a_shell_is_answered_with_data_or_where_it_is_refused() {
+        let blocks = r#"[{"module":"Shop","name":"Basket","version":"1.0","file":"Shop/Basket.qml","base":"Rectangle","properties":[{"name":"count","ty":"int","readonly":true}],"actions":[],"events":[]}]"#;
+        let ask = |text: &str| {
+            let request = format!(r#"{{"shell":{{"text":{},"blocks":{blocks}}}}}"#, serde_json::to_string(text).unwrap());
+            serde_json::from_str::<serde_json::Value>(&super::compile(&request)).unwrap()
+        };
+        let answer = ask("import QtQuick\nimport Shop\nColumn { Basket { id: b }\n Text { text: b.count } }\n");
+        assert_eq!(answer["shell"]["components"][0]["objects"].as_array().unwrap().len(), 3);
+        let answer = ask("import QtQuick\nColumn { Text { text: window.name } }\n");
+        assert_eq!(answer["diagnostics"][0]["line"], 2);
     }
 
     #[test]

@@ -15,6 +15,9 @@ ljos_design = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "0cd3287c
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
+# What a dropped shell compiles to: data the page runs, not code.
+ljos_ir = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "0cd3287c9817ef9a4b0f1615fbe97fb64911279a" }
+blake3 = "1"
 oxc_allocator = "0.144"
 oxc_ast = "0.144"
 oxc_ast_visit = "0.144"

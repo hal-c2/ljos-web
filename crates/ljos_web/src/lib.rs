@@ -23,6 +23,7 @@ mod quick;
 mod registry;
 mod resolve;
 mod scope;
+pub mod shell;
 pub mod theme;
 
 use oxc_allocator::Allocator;
