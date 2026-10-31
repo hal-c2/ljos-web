@@ -266,6 +266,7 @@ export default function qml({ qmlc = "qmlc", args = [], qt, style, controls, sta
   const rooted = (file) => (typeof root === "function" ? root(file) : root);
   const looked = (file) => (typeof importPaths === "function" ? importPaths(file) : importPaths) ?? [];
   const compiled = new Map();
+  let serving = false;
   let cache = join(runtime, "node_modules/.vite/ljos-web");
   // The pictures of a module, by what its QML names them: next to the QML
   // when the installation has them there, otherwise read out of the plugin
@@ -405,6 +406,7 @@ export default function qml({ qmlc = "qmlc", args = [], qt, style, controls, sta
     enforce: "pre",
     configResolved(config) {
       cache = join(config.cacheDir, "ljos-web");
+      serving = config.command === "serve";
     },
     // Qt's own QML is outside the project. What the runtime itself is built
     // on that is no module (SQLite, for QtQuick.LocalStorage) is bundled
@@ -555,18 +557,46 @@ export default function qml({ qmlc = "qmlc", args = [], qt, style, controls, sta
       if (result.error) this.error(`could not run ${qmlc}: ${result.error.message}`);
       if (result.status !== 0) this.error(result.stderr.trim());
       if (own) compiled.set(file, result.stdout);
-      return { code: result.stdout, map: null };
+      // A dev server keeps a page's state on a save: what is mounted from
+      // the file takes the new component (`reload.js`). With nothing mounted
+      // from it, what imported it runs again. A file that does not compile
+      // comes as no module: what is mounted stays, beside Vite's error.
+      const component = !own && serving && /^export default function ([\w$]+)\(/m.exec(result.stdout)?.[1];
+      if (!component) return { code: result.stdout, map: null };
+      const reloading = JSON.stringify(join(runtime, "reload.js"));
+      const accept = [
+        `import { $hot as $$hot, $reloaded as $$reloaded } from ${reloading};`,
+        "if (import.meta.hot) {",
+        "  $$hot();",
+        `  import.meta.hot.accept((next) => { if (next && !$$reloaded(${component}, next.default)) import.meta.hot.invalidate(); });`,
+        "}",
+      ];
+      return { code: `${result.stdout}\n${accept.join("\n")}\n`, map: null };
     },
     // The same for the dev server: a changed file takes the compiled output
-    // of its whole directory with it.
-    hotUpdate({ file, modules }) {
+    // of its whole directory with it, and of every QML file that imports
+    // one of those, as each is compiled against the types of the others.
+    // Only the files something else than QML imports are reloaded: the new
+    // one imports the others anew, so a root mounted from it is made again
+    // with all of them, once.
+    hotUpdate({ file, modules, timestamp }) {
       if (!file.endsWith(".qml")) return;
+      const graph = this.environment.moduleGraph;
       const directory = dirname(file);
+      const isQml = (module) => module.file?.endsWith(".qml");
       const affected = new Set(modules);
-      for (const module of this.environment.moduleGraph.idToModuleMap.values()) {
-        if (module.file?.endsWith(".qml") && dirname(module.file) === directory) affected.add(module);
+      for (const module of graph.idToModuleMap.values()) {
+        if (isQml(module) && dirname(module.file) === directory) affected.add(module);
       }
-      return [...affected];
+      const around = [...affected];
+      while (around.length > 0) {
+        for (const importer of around.pop().importers) {
+          if (isQml(importer) && !affected.has(importer)) around.push(affected.add(importer) && importer);
+        }
+      }
+      const seen = new Set();
+      for (const module of affected) graph.invalidateModule(module, seen, timestamp, true);
+      return [...affected].filter((module) => [...module.importers].some((importer) => !isQml(importer)));
     },
   };
 }
