@@ -326,6 +326,189 @@ Column {
   });
 });
 
+test.describe("A use of a block says more than what it sets", () => {
+  test.beforeEach(({ page }) => page.addInitScript(() => localStorage.clear()));
+
+  const USE = `import QtQuick
+import Shop
+
+Column {
+    objectName: "mine"
+    Panel {
+        id: panel
+        objectName: "panel"
+        property int extra: 5
+        property string heard: ""
+        onExtraChanged: heard = "extra " + extra
+        Text { id: words; objectName: "words"; text: "dropped " + panel.extra }
+    }
+    MouseArea { objectName: "tap"; onClicked: panel.extra = panel.extra + 1 }
+}
+`;
+
+  test("The site's own use has its children, properties, signals, aliases, functions and attached ones", async ({ page }) => {
+    await opened(page);
+    const seen = await page.evaluate(() => {
+      const panel = window.named("panel");
+      const words = window.named("words");
+      panel.pinged("hello");
+      window.flush();
+      return {
+        words: words?.text,
+        shown: words?.$node.isConnected,
+        within: panel.$node.contains(words?.$node),
+        extra: panel.extra,
+        twice: panel.twice?.(),
+        said: panel.said,
+        heard: panel.heard,
+        wide: panel.width,
+      };
+    });
+    expect(seen).toEqual({ words: "extra 4 in inner", shown: true, within: true, extra: 4, twice: 8, said: "extra 4 in inner", heard: "hello", wide: 77 });
+  });
+
+  test("A dropped shell's use has its children and properties, gone with the shell", async ({ page }) => {
+    await opened(page);
+    await dropped(page, USE);
+    await expect(errors(page)).toBeHidden();
+    expect(await read(page, "words", "text")).toBe("dropped 5");
+    await page.evaluate(() => {
+      window.named("tap").clicked({ x: 0, y: 0 });
+      window.flush();
+    });
+    expect(await read(page, "words", "text")).toBe("dropped 6");
+    expect(await read(page, "panel", "heard")).toBe("extra 6");
+    expect(await page.evaluate(() => window.named("panel").$node.contains(window.named("words").$node))).toBe(true);
+    await dropped(page, over('    Panel { id: panel; objectName: "panel" }'));
+    expect(await page.evaluate(() => ({ words: window.named("words"), extra: window.named("panel").extra, text: window.named("panel").$node.textContent }))).toEqual({
+      words: null,
+      text: "",
+    });
+  });
+
+  test("The block keeps its state under the uses that come and go", async ({ page }) => {
+    await opened(page);
+    await dropped(page, USE);
+    await page.evaluate(() => (window.named("panel").opened = 7));
+    await dropped(page, USE.replace("dropped ", "again "));
+    expect(await read(page, "panel", "opened")).toBe(7);
+    expect(await read(page, "words", "text")).toBe("again 5");
+  });
+
+  test("Uses inside a use that is the shell's root stay apart", async ({ page }) => {
+    await opened(page);
+    await dropped(page, 'import QtQuick\nimport Shop\n\nPanel {\n    objectName: "panel"\n    Card { objectName: "one" }\n    Card { objectName: "one" }\n    Card { objectName: "two" }\n}\n');
+    await expect(errors(page)).toBeHidden();
+    expect(await page.evaluate(() => ({ shown: window.scene.$node.isConnected, uses: new Set(window.named("inner").children).size }))).toEqual({ shown: true, uses: 3 });
+    const block = await page.evaluateHandle(() => window.scene);
+    await page.getByRole("button", { name: "Reset" }).click();
+    await page.evaluate(() => window.live.idle());
+    expect(await block.evaluate((panel) => panel.$node.isConnected)).toBe(false);
+    expect(await read(page, "shell", "objectName")).toBe("shell");
+  });
+
+  test("A plain item written inside a use is carried as any other is", async ({ page }) => {
+    await opened(page);
+    const shell = `import QtQuick
+import Shop
+
+Column {
+    Panel { objectName: "panel"; Rectangle { objectName: "kid"; width: 5; height: 5; color: "red" } }
+}
+`;
+    await dropped(page, shell);
+    await page.evaluate(() => (window.named("kid").width = 9));
+    await dropped(page, shell);
+    expect(await read(page, "kid", "width")).toBe(9);
+  });
+
+  test("What the instance declares for one use is gone for the next", async ({ page }) => {
+    await opened(page);
+    await dropped(page, USE);
+    expect(await read(page, "panel", "extra")).toBe(5);
+    await dropped(page, over('    Panel { id: panel; objectName: "panel"; property int other: 2 }'));
+    expect(await read(page, "panel", "extra")).toBeUndefined();
+    expect(await read(page, "panel", "other")).toBe(2);
+  });
+
+  test("A block's use inside another's children is the shell's, and keeps its state", async ({ page }) => {
+    await opened(page);
+    const inside = `import QtQuick
+import Shop
+
+Column {
+    Panel { objectName: "panel"; Card { objectName: "nested" } }
+}
+`;
+    await dropped(page, inside);
+    await page.evaluate(() => {
+      window.nested = window.named("nested");
+      window.nested.hit();
+    });
+    await dropped(page, inside);
+    expect(await read(page, "nested", "hits")).toBe(1);
+    expect(await page.evaluate(() => window.named("nested") === window.nested)).toBe(true);
+  });
+});
+
+test.describe("A block's uses that come and go are made anew", () => {
+  test.beforeEach(({ page }) => page.addInitScript(() => localStorage.clear()));
+
+  test("A row that comes back starts anew", async ({ page }) => {
+    await opened(page);
+    const seen = await page.evaluate(() => {
+      const rows = window.named("rows");
+      const repeater = rows.children.find((child) => child.itemAt);
+      const before = [repeater.itemAt(0), repeater.itemAt(1)];
+      before[0].hit();
+      const completed = rows.completed;
+      rows.many = 0;
+      window.flush();
+      const gone = repeater.count;
+      const left = before[0].$node.isConnected;
+      rows.many = 2;
+      window.flush();
+      const again = repeater.itemAt(0);
+      return { completed, gone, left, fresh: again !== before[0], hits: again.hits, more: rows.completed };
+    });
+    expect(seen).toEqual({ completed: 2, gone: 0, left: false, fresh: true, hits: 0, more: 4 });
+  });
+
+  test("What a program makes is its own, and is gone when destroyed", async ({ page }) => {
+    await opened(page);
+    const seen = await page.evaluate(() => {
+      const rows = window.named("rows");
+      const first = rows.make(rows);
+      first.hit();
+      const hits = first.hits;
+      const shown = first.$node.isConnected;
+      const known = rows.children.includes(first);
+      window.first = first;
+      first.destroy();
+      return { hits, shown, known };
+    });
+    expect(seen).toEqual({ hits: 1, shown: true, known: true });
+    // `destroy` ends an object once what asked for it has returned.
+    await page.waitForFunction(() => !window.first.$node.isConnected && !window.named("rows").children.includes(window.first));
+    const next = await page.evaluate(() => {
+      const made = window.named("rows").make(window.named("rows"));
+      return { fresh: made !== window.first, hits: made.hits };
+    });
+    expect(next).toEqual({ fresh: true, hits: 0 });
+  });
+
+  test("Objects made with no parent do not share an instance", async ({ page }) => {
+    await opened(page);
+    const seen = await page.evaluate(() => {
+      const rows = window.named("rows");
+      const [one, two] = [rows.make(null), rows.make(null)];
+      one.hit();
+      return { apart: one !== two, one: one.hits, two: two.hits };
+    });
+    expect(seen).toEqual({ apart: true, one: 1, two: 0 });
+  });
+});
+
 test.describe("A visitor's shell is kept", () => {
   test("A reload of the page shows the shell the visitor dropped", async ({ page }) => {
     await page.goto("/drop.html");

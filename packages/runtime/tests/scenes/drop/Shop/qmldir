@@ -9,3 +9,5 @@ Title 1.0 Title.qml
 Headline 1.0 Headline.qml
 # block Note 1.0 Note.qml Shop "Markup of the site's own"
 Note 1.0 Note.qml
+# block Panel 1.0 Panel.qml Shop "Holds what a shell writes inside it"
+Panel 1.0 Panel.qml

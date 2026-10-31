@@ -11,6 +11,8 @@ Column {
     }
     Later {}
     Cards {}
+    Uses {}
+    Rows {}
     Note {}
     Text {
         objectName: "label"

@@ -22,6 +22,10 @@ import { Qt, qsTr, qsTrId, qsTranslate } from "../../QtQml/Qt.js";
 export const BUDGET = 100_000;
 
 const FORBIDDEN = new Set(["constructor", "__proto__", "prototype", "caller", "callee", "arguments"]);
+// What a shell may write on an object: a property of its type, or one the
+// object's use of a block declares (`held.js`).
+const written = (target, key) => slot(target, key) || [...(target.$uses ?? [])].some((use) => slot(use, key));
+
 const forbidden = (name) => typeof name !== "string" || FORBIDDEN.has(name) || name[0] === "$" || name.startsWith("__");
 
 class Refused extends Error {}
@@ -296,7 +300,7 @@ function run(program, scope, params, args, shell) {
         const name = names[at.name];
         const group = at.group && regs[at.group[0]] ? names[at.group[1]] : null;
         const key = group ? `${group}$${name}` : name;
-        if (forbidden(name) || (group && forbidden(group)) || !shell.objects.has(target) || !slot(target, key)) {
+        if (forbidden(name) || (group && forbidden(group)) || !shell.objects.has(target) || !written(target, key)) {
           throw new Refused(`\`${key.replaceAll("$", ".")}\` is not a property a shell writes`);
         }
         if (group) target[group][name] = regs[at.val];

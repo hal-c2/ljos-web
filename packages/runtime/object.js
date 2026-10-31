@@ -1438,7 +1438,7 @@ export function inside(item, make) {
 // and the instance somebody wrote (`Clock { city: "Oslo" }`). `own` is what
 // the file binds, `given` what the instance does, which wins; a handler both
 // have is run for both, the file's first.
-function inherit(own, given) {
+export function inherit(own, given) {
   if (given.$given) given = inherit(given, given.$given);
   const props = {};
   for (const key of Object.keys(own)) {
@@ -1468,7 +1468,7 @@ function inherit(own, given) {
   }
   // `default property list<QtObject> things`: what is written inside an
   // instance is the value of the property, not children of the object.
-  if (own.$default && "children" in given) {
+  if (own.$default && "children" in given && !given.$holding) {
     const [name, list] = own.$default;
     const get = () => {
       const made = untrack(() => flatten(given.children, []));
@@ -2015,16 +2015,24 @@ export function awaited(promise) {
   return promise;
 }
 
+// Whether what is being made was asked for while the page runs, not written
+// in the tree: a delegate, a loaded item, what `createObject` makes.
+let instantiating = 0;
+export const madeOnDemand = () => instantiating > 0;
+
 // Creates a component's object apart from the tree that asked for it: a
 // delegate, a loaded item. `dispose` destroys it; so does the end of `owner`.
 export function instantiate(component, data, item, owner = item?.$owner ?? getOwner()) {
   return runWithOwner(owner, () =>
     createRoot((dispose) => {
       try {
-        const declared = untrack(() => complete(() => inside(item ?? null, () => component(data))));
-        // A held block is made apart: what asked for an object wants it, not
-        // the note of where it is placed.
-        const object = declared?.$block ?? declared;
+        instantiating++;
+        let object;
+        try {
+          object = untrack(() => complete(() => inside(item ?? null, () => component(data))));
+        } finally {
+          instantiating--;
+        }
         // A view's row is what a reload knows its delegate by.
         if (object?.$born && typeof data?.$index === "number") hidden(object, "$row", data.$index);
         return { object, dispose };
@@ -2054,7 +2062,10 @@ export function made(Component, props, reloadable) {
     const outer = making;
     making = reloadable ? [] : null;
     try {
-      const object = untrack(() => complete(() => Component(props)));
+      const declared = untrack(() => complete(() => Component(props)));
+      // A shell whose root is a held block shows the block, not the note of
+      // where it is placed.
+      const object = declared?.$block ?? declared;
       // What is done with the object once it is in the page (a Window
       // told where it is, the keyboard given back) is the root's too.
       const owner = getOwner();
