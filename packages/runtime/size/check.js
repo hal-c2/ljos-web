@@ -79,7 +79,7 @@ const wasm = measured("ljos_web_compiler.wasm");
 console.log(`compiler ${wasm.name}: ${wasm.raw} B, ${wasm.gzip} B gzip`);
 over("compiler wasm", wasm.gzip, COMPILER_WASM);
 // As written, not minified: what a page's build makes of them is less.
-const scripts = ["index.js", "modules.js", "link.js"].map(measured);
+const scripts = ["index.js", "modules.js", "link.js"].map((name) => measured(name));
 for (const script of scripts) console.log(`compiler ${script.name}: ${script.raw} B, ${script.gzip} B gzip`);
 over("compiler js", scripts.reduce((sum, script) => sum + script.gzip, 0), COMPILER_JS);
 const view3d = join(import.meta.dirname, "../QtQuick3D/wgpu");
