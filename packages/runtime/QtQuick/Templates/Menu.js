@@ -6,6 +6,7 @@
 // declared in it.
 import { onCleanup } from "solid-js";
 import { contents, defineType, derived, effect, group, instantiate, last, settle, slot } from "../../object.js";
+import { parts } from "./parts.js";
 import { colorValue } from "../color.js";
 import { BacktabFocusReason, departing, forceActiveFocus, OtherFocusReason, setFocus, TabFocusReason } from "../focus.js";
 import { globalToScene, itemToScene, sceneToItem } from "../geometry.js";
@@ -47,7 +48,7 @@ function padding(menu) {
 export const MenuItem = defineType("MenuItem", AbstractButton, {
   properties: {
     highlighted: false,
-    arrow: null,
+    arrow: parts,
     menu: null,
     subMenu: null,
     implicitTextPadding: 0,

@@ -2,6 +2,7 @@
 // along a groove, by the arrow keys or by the wheel. `position` is where the
 // handle is, from 0 to 1: a style puts the handle there.
 import { defineType, derived, effect, settle, slot } from "../../object.js";
+import { parts } from "./parts.js";
 import { styleHints } from "../../QtQml/application.js";
 import { Key, LeftButton } from "../keycodes.js";
 import { Control, keeps, loose, put } from "./Control.js";
@@ -155,7 +156,7 @@ export const Slider = defineType("Slider", Control, {
     orientation: Horizontal,
     horizontal: derived((self) => self.orientation === Horizontal),
     vertical: derived((self) => self.orientation === Vertical),
-    handle: null,
+    handle: parts,
     implicitHandleWidth: derived((self) => self.handle?.implicitWidth ?? 0),
     implicitHandleHeight: derived((self) => self.handle?.implicitHeight ?? 0),
     live: true,

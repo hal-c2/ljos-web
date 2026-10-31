@@ -2,6 +2,7 @@
 // `angle` is where the handle is, in degrees clockwise from twelve o'clock,
 // between `startAngle` and `endAngle`.
 import { defineType, effect, settle, slot } from "../../object.js";
+import { parts } from "./parts.js";
 import { styleHints } from "../../QtQml/application.js";
 import { Key, LeftButton } from "../keycodes.js";
 import { Control, keeps, loose, put } from "./Control.js";
@@ -161,7 +162,7 @@ export const Dial = defineType("Dial", Control, {
     inputMode: InputMode.Circular,
     wrap: false,
     pressed: false,
-    handle: null,
+    handle: parts,
     live: true,
     // Tab stops at a dial, though a click does not give it focus.
     focusPolicy: 1,

@@ -5,6 +5,7 @@
 // when Return is let go and when the keys go elsewhere.
 import { onCleanup } from "solid-js";
 import { defineType, derived, effect, onChange, QtObject, settle, slot } from "../../object.js";
+import { parts } from "./parts.js";
 import { PauseJob } from "../animation/jobs.js";
 import { forceActiveFocus, MouseFocusReason, windowOf } from "../focus.js";
 import { Key, LeftButton } from "../keycodes.js";
@@ -19,7 +20,7 @@ import { speaks } from "../Accessible.js";
 const IndicatorButton = defineType("IndicatorButton", QtObject, {
   properties: {
     pressed: false,
-    indicator: null,
+    indicator: parts,
     hovered: false,
     implicitIndicatorWidth: derived((self) => self.indicator?.implicitWidth ?? 0),
     implicitIndicatorHeight: derived((self) => self.indicator?.implicitHeight ?? 0),

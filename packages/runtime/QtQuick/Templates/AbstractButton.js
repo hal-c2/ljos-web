@@ -4,6 +4,7 @@
 // one is checked at a time. A style gives it what it looks like.
 import { onCleanup } from "solid-js";
 import { defineType, derived, effect, group, settle, signal, slot } from "../../object.js";
+import { parts } from "./parts.js";
 import { styleHints } from "../../QtQml/application.js";
 import { PauseJob } from "../animation/jobs.js";
 import { colorValue } from "../color.js";
@@ -136,7 +137,7 @@ export const AbstractButton = defineType("AbstractButton", Control, {
     autoRepeatDelay: 300,
     autoRepeatInterval: 100,
     action: null,
-    indicator: null,
+    indicator: parts,
     implicitIndicatorWidth: derived((self) => self.indicator?.implicitWidth ?? 0),
     implicitIndicatorHeight: derived((self) => self.indicator?.implicitHeight ?? 0),
     pressX: 0,

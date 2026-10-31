@@ -8,6 +8,7 @@
 // last: the other follows it.
 import { onCleanup, runWithOwner } from "solid-js";
 import { $component, defineType, derived, effect, settle, slot } from "../../object.js";
+import { parts } from "./parts.js";
 import { DelegateModel } from "../DelegateModel.js";
 import { BacktabFocusReason, forceActiveFocus, MouseFocusReason, setFocus, TabFocusReason, windowOf } from "../focus.js";
 import { Key, LeftButton } from "../keycodes.js";
@@ -413,8 +414,8 @@ export const ComboBox = defineType("ComboBox", Control, {
     pressed: false,
     down: undefined,
     flat: false,
-    indicator: null,
-    popup: null,
+    indicator: parts,
+    popup: parts,
     editable: false,
     editText: "",
     validator: null,

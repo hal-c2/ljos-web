@@ -7,6 +7,7 @@
 // computes `implicitWidth` from those.
 import { onCleanup } from "solid-js";
 import { defineType, derived, effect, settle, slot } from "../../object.js";
+import { parts } from "./parts.js";
 import { locale } from "../../QtQml/locale.js";
 import { styleHints } from "../../QtQml/application.js";
 import { sized } from "../compute.js";
@@ -239,8 +240,8 @@ export const Control = defineType("Control", Item, {
     hovered: false,
     hoverEnabled: derived(hovering),
     wheelEnabled: false,
-    background: null,
-    contentItem: null,
+    background: parts,
+    contentItem: parts,
     implicitContentWidth: derived((self) => self.contentItem?.implicitWidth ?? 0),
     implicitContentHeight: derived((self) => self.contentItem?.implicitHeight ?? 0),
     implicitBackgroundWidth: derived((self) => self.background?.implicitWidth ?? 0),

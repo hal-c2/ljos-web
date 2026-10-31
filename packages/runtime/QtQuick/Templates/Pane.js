@@ -1,6 +1,7 @@
 // Pane, and what is one with something added: Frame, GroupBox, Page and
 // ToolBar. What is declared in a pane is in its content item.
 import { contents, defineType, derived, effect, inside, slot, whenComplete } from "../../object.js";
+import { parts } from "./parts.js";
 import { Item } from "../Item.js";
 import { Control, keeps } from "./Control.js";
 import { untrack } from "#kernel";
@@ -53,7 +54,7 @@ export const Frame = defineType("Frame", Pane);
 export const GroupBox = defineType("GroupBox", Frame, {
   properties: {
     title: "",
-    label: null,
+    label: parts,
     implicitLabelWidth: derived((self) => self.label?.implicitWidth ?? 0),
     implicitLabelHeight: derived((self) => self.label?.implicitHeight ?? 0),
   },
@@ -96,8 +97,8 @@ export const band = (item, spacing = 0) => (tall(item) > 0 ? tall(item) + spacin
 export const Page = defineType("Page", Pane, {
   properties: {
     title: "",
-    header: null,
-    footer: null,
+    header: parts,
+    footer: parts,
     implicitHeaderWidth: derived((self) => (self.header?.visible ? self.header.implicitWidth : 0)),
     implicitHeaderHeight: derived((self) => (self.header?.visible ? self.header.implicitHeight : 0)),
     implicitFooterWidth: derived((self) => (self.footer?.visible ? self.footer.implicitWidth : 0)),

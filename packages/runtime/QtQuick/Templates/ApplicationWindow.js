@@ -2,6 +2,7 @@
 // over what is in it and a footer under, and the font and colours of the
 // style for the controls in it.
 import { contents, defineType, derived, effect, inside, QtObject, slot } from "../../object.js";
+import { parts } from "./parts.js";
 import { locale } from "../../QtQml/locale.js";
 import { Item } from "../Item.js";
 import { Window, windowOf } from "../Window.js";
@@ -30,10 +31,10 @@ export const ApplicationWindow = defineType("ApplicationWindow", Window, {
   properties: {
     font,
     locale: derived(() => locale()),
-    background: null,
-    header: null,
-    footer: null,
-    menuBar: null,
+    background: parts,
+    header: parts,
+    footer: parts,
+    menuBar: parts,
     topPadding: 0,
     leftPadding: 0,
     rightPadding: 0,

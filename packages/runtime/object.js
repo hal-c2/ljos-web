@@ -447,7 +447,7 @@ function guarded(key, compute, pure = true) {
 // whatever computation that happens under is run again by the flush that
 // carries them. So they are made under an owner of their own, which is no
 // computation, and end when the binding does.
-function apart(make) {
+export function apart(make) {
   return () => {
     const owner = getOwner();
     return runWithOwner(null, () =>
@@ -797,7 +797,10 @@ class Slot {
     // What it reads of its own property, itself or through another's
     // binding, is what the property had.
     const kind = this.kind;
-    const make = () => complete(() => inside(self.$contentItem ?? (self.$node ? self : null), () => props[key]));
+    // A kind may make what it is given into its value inside the object
+    // (`QtQuick/Templates/parts.js`).
+    const given = kind?.made ? () => kind.made(props[key]) : () => props[key];
+    const make = () => complete(() => inside(self.$contentItem ?? (self.$node ? self : null), given));
     const made = props.$made?.includes(key);
     const compute = descriptor?.get ? guarded(key, made ? apart(make) : make, !made) : null;
     this.bound = compute ? ringed(self.$owner, kind ? converted(key, kind, compute, this.given) : compute, undefined, true) : null;

@@ -2,6 +2,7 @@
 // the same groove. `first` and `second` are objects with what a slider has
 // for its one handle; the first never passes the second.
 import { defineType, derived, effect, QtObject, settle, slot } from "../../object.js";
+import { parts } from "./parts.js";
 import { forceActiveFocus, MouseFocusReason, windowOf } from "../focus.js";
 import { Key, LeftButton } from "../keycodes.js";
 import { Control, keeps, loose, put } from "./Control.js";
@@ -58,7 +59,7 @@ const RangeSliderNode = defineType("RangeSliderNode", QtObject, {
       const slider = self.$range.slider;
       return slider.orientation === Vertical || slider.mirrored ? 1 - self.position : self.position;
     }),
-    handle: null,
+    handle: parts,
     pressed: false,
     hovered: false,
     implicitHandleWidth: derived((self) => self.handle?.implicitWidth ?? 0),
