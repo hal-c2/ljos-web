@@ -10,6 +10,7 @@ export const modules = {
   "ljos-web/runtime": () => import("ljos-web/runtime"),
   "ljos-web/object": () => import("ljos-web/object"),
   "ljos-web/inspect": () => import("ljos-web/inspect"),
+  "ljos-web/picture": () => import("ljos-web/picture"),
   "ljos-web/reload": () => import("ljos-web/reload"),
   "ljos-web/theme": () => import("ljos-web/theme"),
   "ljos-web/QtQuick": () => import("ljos-web/QtQuick"),
