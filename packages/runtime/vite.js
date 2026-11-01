@@ -872,6 +872,7 @@ export default function qml({
         const asked = spawnSync(qmlc, ["--shell", ...given, file], { encoding: "utf8" });
         if (asked.error) this.error(`could not run ${qmlc}: ${asked.error.message}`);
         if (asked.status !== 0) this.error(asked.stderr.trim());
+        for (const line of asked.stderr.split("\n")) if (line.trim()) this.warn(line.replace(/^warning: /, ""));
         const { root: home, blocks: contracts } = JSON.parse(asked.stdout);
         const site = (typeof live === "object" && live.site) || basename(named(file) ? resolvePath(named(file)) : home);
         const imports = contracts.map((contract, at) => `import $$block${at} from ${JSON.stringify(resolvePath(home, contract.file))};`);
