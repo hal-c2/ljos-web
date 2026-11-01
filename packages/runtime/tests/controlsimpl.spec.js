@@ -61,6 +61,12 @@ test("the letter a mnemonic marks is underlined", async ({ page }) => {
   expect(await pixels(page, [[30, 150]])).toEqual(["0 0 255"]);
 });
 
+test("a padding stays clear with a child under the rectangle", async ({ page }) => {
+  await open(page, "paddedlowered");
+  await expect.poll(async () => (await pixels(page, [[50, 10]]))[0]).toBe("0 255 0");
+  expect((await pixels(page, [[5, 65], [50, 75]]))).toEqual(["255 0 0", "255 0 0"]);
+});
+
 test("a tint and a padding follow what they are of", async ({ page }) => {
   await ready(page);
   await page.evaluate(() => window.scene.change(1));
