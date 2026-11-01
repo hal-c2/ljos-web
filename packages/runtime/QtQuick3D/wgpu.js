@@ -58,17 +58,32 @@ function serialOf(thing) {
   return number;
 }
 
+// An element's pixels as they are now.
+function readPixels(element) {
+  const width = element.naturalWidth ?? element.videoWidth ?? element.width;
+  const height = element.naturalHeight ?? element.videoHeight ?? element.height;
+  const context = new OffscreenCanvas(width, height).getContext("2d", { willReadFrequently: true });
+  context.drawImage(element, 0, 0);
+  return { width, height, pixels: new Uint8Array(context.getImageData(0, 0, width, height).data.buffer) };
+}
+
 // A decoded picture's pixels, once.
 const decoded = new WeakMap();
 function pixelsOf(element) {
   let made = decoded.get(element);
+  if (!made) decoded.set(element, (made = readPixels(element)));
+  return made;
+}
+
+// The same pixels with the last row first, once.
+const upsideDown = new WeakMap();
+function flipped(shot) {
+  let made = upsideDown.get(shot);
   if (!made) {
-    const width = element.naturalWidth ?? element.videoWidth ?? element.width;
-    const height = element.naturalHeight ?? element.videoHeight ?? element.height;
-    const context = new OffscreenCanvas(width, height).getContext("2d", { willReadFrequently: true });
-    context.drawImage(element, 0, 0);
-    made = { width, height, pixels: new Uint8Array(context.getImageData(0, 0, width, height).data.buffer) };
-    decoded.set(element, made);
+    const { width, height, pixels } = shot;
+    const rows = new Uint8Array(pixels.length);
+    for (let row = 0; row < height; row++) rows.set(pixels.subarray(row * width * 4, (row + 1) * width * 4), (height - 1 - row) * width * 4);
+    upsideDown.set(shot, (made = { width, height, pixels: rows }));
   }
   return made;
 }
@@ -101,6 +116,8 @@ class Host {
     this.ask = ask;
     this.handles = new Map([[view, 0]]);
     this.objectsBy = new Map([[0, view]]);
+    this.reads = new WeakMap();
+    this.reading = 0;
     this.next = 1;
     this.touched = new Set();
   }
@@ -227,15 +244,27 @@ class Host {
     const all = listed(slot(this.objectsBy.get(o), NAMES[p])?.get());
     return Float32Array.from(all.flatMap((m) => (m ? [m.m11, m.m21, m.m31, m.m41, m.m12, m.m22, m.m32, m.m42, m.m13, m.m23, m.m33, m.m43, m.m14, m.m24, m.m34, m.m44] : [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1])));
   }
-  // What a Texture shows, where that is pixels: a live item's is not yet.
+  // What a Texture shows, where that is pixels: what a view last drew is here
+  // once it has drawn.
   shown(o) {
     const texture = this.objectsBy.get(o).$texture?.();
-    if (!texture || texture.live || texture.view) return null;
+    if (!texture || (texture.view && !texture.element.$view3d?.drawn)) return null;
     return texture.data || texture.element ? texture : null;
   }
+  // Each way up of what a view drew is a picture, and so is what an item has
+  // on it each time this scene is read, as it says nothing of being drawn on.
   pictureId(o) {
     const texture = this.shown(o);
-    return texture ? serialOf(texture.data ?? texture.element) : undefined;
+    if (!texture) return undefined;
+    if (texture.view) return serialOf(texture.down ? flipped(texture.element.$view3d.drawn) : texture.element.$view3d.drawn);
+    return texture.live ? serialOf(this.liveRead(texture.element)) : serialOf(texture.data ?? texture.element);
+  }
+  liveRead(element) {
+    const read = this.reads.get(element);
+    if (read?.reading === this.reading) return read;
+    const made = { ...readPixels(element), reading: this.reading };
+    this.reads.set(element, made);
+    return made;
   }
   picture(o) {
     const texture = this.shown(o);
@@ -248,6 +277,8 @@ class Host {
       const baked = data.baked && data.sides === 6 ? data.levels?.map(joined) : undefined;
       return { width, height, pixels: new Uint8Array(pixels.buffer, pixels.byteOffset, pixels.byteLength), format: Format[format], opaque: !texture.sheer, baked };
     }
+    if (texture.view) return { ...(texture.down ? flipped(texture.element.$view3d.drawn) : texture.element.$view3d.drawn), opaque: !texture.sheer };
+    if (texture.live) return { ...this.liveRead(texture.element), opaque: !texture.sheer };
     return { ...pixelsOf(texture.element), opaque: !texture.sheer };
   }
   geometryId(o) {
@@ -348,23 +379,35 @@ class Host {
 export function drawOn(self, canvas, told) {
   const [made, setMade] = signal(null, self.$owner);
   const [arrivals, setArrivals] = signal(0, self.$owner);
+  const [draws, setDraws] = signal(0, self.$owner);
   let frame = 0;
   let gone = false;
-  const state = (canvas.$view3d = { backend: null, frames: 0, builds: 0, error: null });
-  const host = new Host(
-    self,
-    setArrivals,
-    arrivals,
-    () =>
-      (frame ||= requestAnimationFrame(() => {
-        frame = 0;
-        const from = performance.now();
-        if (made()?.frame()) {
-          state.frames++;
-          told(from, performance.now());
+  let wanted = false;
+  let own = false;
+  const state = (canvas.$view3d = { backend: null, frames: 0, builds: 0, error: null, drawn: null });
+  // A view that reads itself reads what it drew before and is not drawn again
+  // for that.
+  self.$view = () => {
+    wanted = true;
+    if (!state.drawn) request();
+    return own ? 0 : draws();
+  };
+  const request = () =>
+    (frame ||= requestAnimationFrame(() => {
+      frame = 0;
+      const from = performance.now();
+      if (made()?.frame()) {
+        state.frames++;
+        told(from, performance.now());
+        // The picture leaves the surface for the page once drawn: what
+        // takes this view as a texture is handed a copy made before it does.
+        if (wanted) {
+          state.drawn = readPixels(canvas);
+          setDraws((times) => times + 1);
         }
-      })),
-  );
+      }
+    }));
+  const host = new Host(self, setArrivals, arrivals, request);
 
   const size = (width, height) => [Math.max(1, Math.round(width * devicePixelRatio)), Math.max(1, Math.round(height * devicePixelRatio))];
   [canvas.width, canvas.height] = untrack(() => size(self.width, self.height));
@@ -393,7 +436,13 @@ export function drawOn(self, canvas, told) {
     () => {
       const view = made();
       if (!view) return;
-      view.build();
+      host.reading++;
+      own = true;
+      try {
+        view.build();
+      } finally {
+        own = false;
+      }
       state.builds++;
       const dropped = host.sweep();
       if (dropped.length > 0) view.forget(Uint32Array.from(dropped));

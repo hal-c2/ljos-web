@@ -184,6 +184,7 @@ pub struct Kept {
     pictures: RefCell<HashMap<u32, TextureImage>>,
     shapes: RefCell<HashMap<u32, Arc<CustomGeometry>>>,
     tables: RefCell<HashMap<u32, Arc<InstanceTable>>>,
+    showing: RefCell<HashMap<u32, u32>>,
     // Those that could not be made as well, so as to say so once.
     programs: RefCell<HashMap<String, Option<Arc<ljos_3d::custom::Program>>>>,
     files: RefCell<HashMap<String, Asked<Asset>>>,
@@ -515,6 +516,13 @@ impl<H: Host> SceneSource for Source<'_, H> {
             return Some(image.clone());
         }
         let p = self.host.picture(texture)?;
+        // What is drawn on has a new number each time it is read: the last
+        // one's pixels are no use to anybody any more.
+        if let Some(old) = self.kept.showing.borrow_mut().insert(texture, id)
+            && old != id
+        {
+            self.kept.pictures.borrow_mut().remove(&old);
+        }
         let image = match p.format {
             Some(format) => TextureData {
                 width: p.width,
