@@ -14,11 +14,18 @@ const SCENE: &str = concat!(
     "/../../packages/runtime/tests/scenes/drop"
 );
 
+// The runtime's specs add blocks to the scene's own qmldir for what they drive
+// in a page. These tests compile against one block, whichever those are.
+const QMLDIR: &str = "module Shop
+# block Basket 1.0 Basket.qml Shop \"Holds what the visitor buys\"
+Basket 1.0 Basket.qml
+";
+
 fn scene() -> Memory {
     let read = |name: &str| std::fs::read_to_string(format!("{SCENE}/{name}")).unwrap();
     Memory::new([
         ("Shell.qml", read("Shell.qml")),
-        ("Shop/qmldir", read("Shop/qmldir")),
+        ("Shop/qmldir", QMLDIR.to_string()),
         ("Shop/Basket.qml", read("Shop/Basket.qml")),
     ])
 }
