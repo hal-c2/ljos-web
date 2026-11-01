@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+#MISE description="Build View3D's renderer as wasm, for QtQuick3D/wgpu.js to load when a page first makes a View3D"
+#MISE depends=["install"]
+set -euo pipefail
+
+bindgen="$(mise-tasks/tool/wasm-bindgen)"
+
+cargo build -p ljos_web_3d --profile view3d --target wasm32-unknown-unknown
+wasm="${CARGO_TARGET_DIR:-target}/wasm32-unknown-unknown/view3d/ljos_web_3d.wasm"
+"$bindgen" --target web --no-typescript --out-dir packages/runtime/QtQuick3D/wgpu "$wasm"
+bound=packages/runtime/QtQuick3D/wgpu/ljos_web_3d_bg.wasm
+printf '3D wasm: %s B, %s B gzip\n' "$(wc -c <"$bound")" "$(gzip -9c "$bound" | wc -c)"

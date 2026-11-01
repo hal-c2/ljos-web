@@ -40,6 +40,7 @@ export const modules = {
   "ljos-web/QtQuick/LocalStorage": () => import("ljos-web/QtQuick/LocalStorage"),
   "ljos-web/QtQuick/Dialogs": () => import("ljos-web/QtQuick/Dialogs"),
   "ljos-web/QtQuick3D": () => import("ljos-web/QtQuick3D"),
+  "ljos-web/QtQuick3D/AssetUtils": () => import("ljos-web/QtQuick3D/AssetUtils"),
   "ljos-web/QtQuick3D/Helpers": () => import("ljos-web/QtQuick3D/Helpers"),
   "ljos-web/QtQuick3D/Helpers/impl": () => import("ljos-web/QtQuick3D/Helpers/impl"),
   "ljos-web/QtQuick3D/Effects": () => import("ljos-web/QtQuick3D/Effects"),

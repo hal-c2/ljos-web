@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+#MISE description="Say whether the ljos a crate pins has the web feature, as a step output"
+set -euo pipefail
+
+cd "$1"
+if said="$(cargo metadata --format-version 1 2>&1 >/dev/null)"; then
+  echo "present=true"
+elif grep -q "with feature \`\?web\`\? but \`\?ljos\`\? does not have that feature" <<<"$said"; then
+  # On stderr, as stdout is the step's output file.
+  echo "::notice::$1: the pinned ljos has no web feature yet: test:wasm-counter not run" >&2
+  echo "present=false"
+else
+  echo "$said" >&2
+  exit 1
+fi

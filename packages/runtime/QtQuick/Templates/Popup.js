@@ -21,6 +21,7 @@ import {
 } from "../focus.js";
 import { frameOf, itemToScene, sceneToItem } from "../geometry.js";
 import { Item } from "../Item.js";
+import { Rectangle } from "../Rectangle.js";
 import { AllButtons, buttonOf, Key, RightButton, ShiftModifier } from "../keycodes.js";
 import { gone, hoverable, overhear, receive, wheels } from "../pointer.js";
 import { windowOf } from "../Window.js";
@@ -522,9 +523,13 @@ function placed(self, where) {
   }
 }
 
+// As Ljós's own runtime has them (ljos_controls, popup/overlay.rs).
+const MODAL_SHADE = "#7f28282a";
+const MODELESS_SHADE = "#1e28282a";
+
 // What is behind a popup that dims: the component its `Overlay.modal` or
-// `Overlay.modeless` names, else the overlay's own. A modal popup with
-// neither has an item nobody sees, which the mouse does not get through.
+// `Overlay.modeless` names, else the overlay's own, else a plain shade: Ljós's
+// styles name none, and what is behind a dimming popup is shaded in any style.
 function dimmed(self) {
   const pop = self.$pop;
   if (pop.dimmer || pop.dimKind) return;
@@ -533,8 +538,9 @@ function dimmed(self) {
   pop.dimKind = modal ? 2 : 1;
   const own = self.$attached?.Overlay;
   const component = (own ? (modal ? own.modal : own.modeless) : null) ?? (modal ? overlay.modal : overlay.modeless);
-  const made = component ? instantiate(component, {}, overlay, self.$owner) : modal ? instantiate(Item, {}, overlay, self.$owner) : null;
-  if (!made) return;
+  const made = component
+    ? instantiate(component, {}, overlay, self.$owner)
+    : instantiate(Rectangle, { color: modal ? MODAL_SHADE : MODELESS_SHADE }, overlay, self.$owner);
   const dimmer = made.object;
   if (!dimmer?.$node) return made.dispose();
   overlay.$under(dimmer, self.$item);

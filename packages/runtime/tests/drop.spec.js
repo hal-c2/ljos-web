@@ -974,7 +974,7 @@ Column {
     const { join, relative } = await import("node:path");
     const root = join(import.meta.dirname, "..");
     // Fetched by the runtime for itself, at addresses of its own.
-    const own = new Set(["guard.js", "vite.js", "site.js", "kernel/wasm.js", "Ljos/Blocks/shell-worker.js", "QtMultimedia/audible.js"]);
+    const own = new Set(["guard.js", "vite.js", "site.js", "kernel/wasm.js", "QtQuick3D/wgpu/ljos_web_3d.js", "Ljos/Blocks/shell-worker.js", "QtMultimedia/audible.js"]);
     const SINK = /\bfetch\(|\.src\s*=[^=]|\.href\s*=[^=]|setAttribute\("(src|href)"|window\.open\(|new window\.WebSocket|new EventSource|sendBeacon|(backgroundImage|maskImage|borderImageSource)\s*=\s*`?[^"`]*url\(|style\.(background|filter|clipPath|mask)\s*=\s*[^"\s]/;
     const found = [];
     const walk = (directory) => {

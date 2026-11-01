@@ -658,6 +658,11 @@ delivered by the runtime's pointer code and picked in wasm. ljos-web
 builds nothing 3D; it provides the canvas, the frame clock and the
 graph.
 
+As built so far (A25): the wgpu crate is reached through
+`crates/ljos_web_3d` and is opt-in per page, `?view3d=wgpu` or
+`VITE_LJOS_VIEW3D=wgpu`; the default is still `QtQuick3D/render.js`.
+Picking stays in JavaScript (`pick.js`), not wasm.
+
 ### A11. Decisions taken in phase 1 (summary)
 
 Each is stated where it is argued; listed here for review:
@@ -1539,6 +1544,55 @@ module, as before.
 `tests/qtless.spec.js` runs on a second server with no Qt on any path, and
 `site-tests/quick3d.spec.js` does the same for a built site. A page that imports
 no 3D carries none of this.
+
+### A25. View3D drawn by the wgpu crate: where it stands
+
+Partial. `crates/ljos_web_3d` implements `ljos_3d`'s `SceneSource` over
+the page's objects, through a `Host` that `QtQuick3D/wgpu.js` provides.
+`mise run build:wasm-3d` binds it into `QtQuick3D/wgpu/`, which is not
+committed. Without that directory the switch has nothing to load.
+`size/check.js` holds the budgets below, and fails a page with no
+View3D that has either renderer in it.
+
+DECISION: the default stays `"js"`. The mapping does not yet reach
+`pickable`, pivot, `depthBias`, scope, morph targets, fog, reflection
+probes, clearcoat, subsets, `DefaultMaterial`'s emissive and opacity, or
+mesh-file sources, and `render.js` goes only once `tests/quick3d.spec.js`
+passes on wgpu.
+
+DECISION: `pick.js` keeps picking. QML's `pick` answers at once with
+JavaScript objects, which a renderer that loads and draws
+asynchronously cannot do, and the answer does not depend on who draws.
+
+DECISION: the 3D wasm's budget is 1,400 kB gzip and its glue's 30 kB,
+against 1,313 kB and 21 kB measured. A page without a View3D on wgpu
+fetches neither.
+
+DECISION: `QtQuick3D.AssetUtils`' `RuntimeLoader` is a type on both
+renderers, but only wgpu reads the file: the JavaScript renderer draws
+what is declared and has no glTF reader.
+
+Known gaps: a live `sourceItem` texture and a `TextureData` that is not
+RGBA8 give no picture. A `Geometry` with an `I32Type` attribute is not
+drawn, and the console says so once: the renderer reads no signed integers.
+A shader that does not translate leaves its model without that material,
+and the console says why once. `RuntimeLoader` says `status` and
+`errorString` only on wgpu, and only of a loader the build reached: one
+inside something invisible says them when it is next shown. While its file
+is on its way it says `Empty`. A file that failed is read again when a
+loader comes to name it again, not on its own.
+
+What a view keeps is one revision of each shape, picture and table, the one
+it draws. A `Geometry` committed every frame stays level
+(`tests/view3d-wgpu.spec.js`, "is let go"); on the build before that, a
+hundred revisions took wasm from 27 to 97 MB and live GPU objects from 102
+to 402. Programs are kept by their text until the view goes.
+
+What it reaches today: a lit scene of built-in shapes is the native renderer's
+picture on WebGPU and on WebGL2 (`tests/references3d`). `tests/quick3d.spec.js`
+passes 11 of 49 on wgpu, none failing by timing: what fails is the picture. Real
+applications do not draw yet: dice and robotarm show no 3D, car-configurator
+shows its mesh files as white boxes.
 
 ## Part II — An application's own Rust types
 
