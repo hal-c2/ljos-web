@@ -20,7 +20,7 @@
 
 use std::{
     collections::{HashMap, HashSet},
-    path::{Path, PathBuf},
+    path::{Component, Path, PathBuf},
 };
 
 use ljos_ir as ir;
@@ -222,7 +222,8 @@ pub fn contracts(
                     .read(&path)
                     .ok_or_else(|| format!("cannot read {}", path.display()))?;
                 let file = from_root(&root, &path).to_string_lossy().replace('\\', "/");
-                blocks.push(contract_of(&module, block, file, &source)?);
+                let named = as_written(load, shell, &path);
+                blocks.push(contract_of(&module, block, file, &named, &source)?);
             }
         }
         // `Ljos.Design` is Ljós's own though a project gives its stand-in, as
@@ -246,6 +247,24 @@ pub fn contracts(
 fn said_at(file: &str, source: &str, error: &Error) -> String {
     let (line, column) = error.position(source);
     format!("{file}:{line}:{column}: {}", error.message)
+}
+
+/// `path`, which is canonical, as the build writes it: from where `shell` is
+/// written, so that it is the name a compile of that file goes by.
+fn as_written(load: &Load, shell: &Path, path: &Path) -> PathBuf {
+    let directory = shell.parent().unwrap_or(Path::new(""));
+    let Some(canonical) = load.files.canonicalize(directory) else {
+        return path.to_path_buf();
+    };
+    let mut named = directory.to_path_buf();
+    for part in from_root(&canonical, path).components() {
+        if part == Component::ParentDir && named.file_name().is_some() {
+            named.pop();
+        } else {
+            named.push(part);
+        }
+    }
+    named
 }
 
 /// `path` as it is from `root`, going above it when it has to: a contract
@@ -308,13 +327,14 @@ fn contract_of(
     module: &str,
     block: BlockLine,
     file: String,
+    named: &Path,
     source: &str,
 ) -> Result<Contract, String> {
     let allocator = Allocator::default();
     let parsed = qml_syntax::parse(&allocator, source);
     if !parsed.diagnostics.is_empty() {
         let error = Error::from(parsed.diagnostics[0].clone());
-        return Err(said_at(&file, source, &error));
+        return Err(said_at(&named.display().to_string(), source, &error));
     }
     let root = &parsed.document.root;
     let base = root.type_name.last();
