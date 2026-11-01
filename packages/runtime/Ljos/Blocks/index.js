@@ -378,6 +378,12 @@ async function reloaded(self) {
     if (why) console.warn(`ShellLoader: reload: ${why}`);
     // A user's shell shown stays; a fallback stays too, and says the new why.
     if (old && !old.fallback) return why;
+    // Nothing shown yet: the first load had this source's turn, and now
+    // nothing else will show the fallback.
+    if (!old) {
+      await showFallback(self, state, why, turn);
+      return why;
+    }
     if (why) write(self, "error", why);
     settle();
     return why;
@@ -386,6 +392,7 @@ async function reloaded(self) {
   if (made.error) {
     console.warn(`ShellLoader: reload: ${made.error}`);
     if (old?.fallback) write(self, "error", made.error);
+    if (!old) await showFallback(self, state, made.error, turn);
     return made.error;
   }
   if (old && !old.fallback && old.object && made.shown.object) {

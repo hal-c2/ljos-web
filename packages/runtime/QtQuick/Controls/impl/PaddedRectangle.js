@@ -2,6 +2,7 @@
 // padding is negative: a style rounds two corners of four by letting the
 // other two fall outside what is clipped.
 import { defineType, derived, effect, slot } from "../../../object.js";
+import { allowedStyle } from "../../../guard.js";
 import { css } from "../../color.js";
 import { rules } from "../../compute.js";
 import { Rectangle } from "../../Rectangle.js";
@@ -51,7 +52,7 @@ export const PaddedRectangle = defineType("PaddedRectangle", Rectangle, {
         style.top = `${next.top}px`;
         style.width = `${next.width}px`;
         style.height = `${next.height}px`;
-        style.background = next.background;
+        style.background = allowedStyle(next.background);
         style.borderRadius = next.radius;
         style.boxShadow = next.shadow;
       },

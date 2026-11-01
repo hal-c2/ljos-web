@@ -258,3 +258,23 @@ test("a node's number handed out again is not followed through what held it befo
   // the new node's change, and not of a touch through the old handle.
   expect(reuse).toEqual({ reused: true, distinct: true, seen: [1, 2, 2] });
 });
+
+test("what nobody can reach any more holds no node of the graph", async ({ page }) => {
+  await open(page, "kernellive");
+  const collect = async () => {
+    const session = await page.context().newCDPSession(page);
+    await session.send("HeapProfiler.collectGarbage");
+    await session.detach();
+    return page.evaluate(async () => {
+      await new Promise((settled) => setTimeout(settled, 50));
+      return window.objects.live();
+    });
+  };
+  // The first time round makes what is kept for good, as a model's own nodes.
+  await page.evaluate(() => window.objects.churn());
+  const before = await collect();
+  await page.evaluate(() => {
+    for (let round = 0; round < 5; round++) window.objects.churn();
+  });
+  await expect.poll(collect).toBeLessThanOrEqual(before);
+});
