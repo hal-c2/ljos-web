@@ -72,8 +72,7 @@ jobs:
           LJOS_KERNEL: wasm
         run: pnpm --filter ljos-web exec playwright test -c tests drop live.spec
 
-  # Its own job, as what it needs of ljos-ui is not what the others need: until
-  # the pin reaches a revision with `ljos/web`, this fails at cargo saying so.
+  # Its own job, as what it needs of ljos-ui is not what the others need.
   examples:
     runs-on: ubuntu-24.04
     steps:
@@ -83,7 +82,13 @@ jobs:
           version: 2026.9.9
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
       - run: git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
-      - run: |
+      # Skips on this one refusal only, so anything else that stops cargo still
+      # fails. Once the pin has `ljos/web` this step and the condition can go.
+      - id: pin
+        run: mise-tasks/tool/ljos-web-at-pin examples/wasm-counter >> "$GITHUB_OUTPUT"
+      - if: steps.pin.outputs.present == 'true'
+        run: |
           pnpm install --frozen-lockfile
           pnpm --filter ljos-web exec playwright install --with-deps chromium
-      - run: mise run test:wasm-counter
+      - if: steps.pin.outputs.present == 'true'
+        run: mise run test:wasm-counter
