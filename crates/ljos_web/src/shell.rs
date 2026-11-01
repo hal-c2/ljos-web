@@ -218,11 +218,11 @@ pub fn contracts(
                     continue;
                 };
                 let path = found.directory.join(&block.file);
+                let named = as_written(load, shell, &path);
                 let source = load
                     .read(&path)
-                    .ok_or_else(|| format!("cannot read {}", path.display()))?;
+                    .ok_or_else(|| format!("cannot read {}", named.display()))?;
                 let file = from_root(&root, &path).to_string_lossy().replace('\\', "/");
-                let named = as_written(load, shell, &path);
                 blocks.push(contract_of(&module, block, file, &named, &source)?);
             }
         }
@@ -252,19 +252,30 @@ fn said_at(file: &str, source: &str, error: &Error) -> String {
 /// `path`, which is canonical, as the build writes it: from where `shell` is
 /// written, so that it is the name a compile of that file goes by.
 fn as_written(load: &Load, shell: &Path, path: &Path) -> PathBuf {
-    let directory = shell.parent().unwrap_or(Path::new(""));
+    let written = shell.parent().unwrap_or(Path::new(""));
+    let directory = if written.as_os_str().is_empty() {
+        Path::new(".")
+    } else {
+        written
+    };
     let Some(canonical) = load.files.canonicalize(directory) else {
         return path.to_path_buf();
     };
-    let mut named = directory.to_path_buf();
-    for part in from_root(&canonical, path).components() {
+    let relative = from_root(&canonical, path);
+    let mut named = written.to_path_buf();
+    for part in relative.components() {
         if part == Component::ParentDir && named.file_name().is_some() {
             named.pop();
         } else {
             named.push(part);
         }
     }
-    named
+    // Through a symlink, what is above in the name is not what `..` reaches.
+    if load.files.canonicalize(&named) == load.files.canonicalize(path) {
+        named
+    } else {
+        written.join(relative)
+    }
 }
 
 /// `path` as it is from `root`, going above it when it has to: a contract
