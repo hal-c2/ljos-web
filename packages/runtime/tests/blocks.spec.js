@@ -451,6 +451,30 @@ test.describe("A ShellLoader shows a user's shell, or the application's own when
     test.use({ told: [/^ShellLoader: /] });
     const reload = (page) => page.evaluate(() => window.named("loader").reload());
 
+    // A reload that overtakes the first load takes on what that load would have
+    // finished: no one else is left to show the fallback.
+    for (const [what, source] of [
+      ["cannot be had", "() => Promise.reject(new Error('gone'))"],
+      ["cannot be made", "() => Promise.resolve({ default: () => { throw new Error('broken'); } })"],
+    ]) {
+      test(`A reload before the first load is done shows the fallback when the source ${what}`, async ({ page }) => {
+        await opened(page, "shellsfetched");
+        await settled(page);
+        const said = await page.evaluate(async (source) => {
+          const loader = window.named("loader");
+          loader.source = eval(source);
+          window.flush();
+          await loader.reload();
+          window.flush();
+          return loader.status;
+        }, source);
+        const FALLBACK = 2;
+        expect(said).toBe(FALLBACK);
+        expect(await named(page, "default-shell")).toBe(true);
+        expect(await read(page, "loader", "error")).not.toBe("");
+      });
+    }
+
     test("Mending the shell's file replaces the fallback", async ({ page }) => {
       await serve(page, { "Shell.qml": "import QtQuick\nRectangle { NoSuchThing { } }\n" });
       await opened(page, "shellsfetched");

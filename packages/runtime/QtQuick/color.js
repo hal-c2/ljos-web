@@ -10,6 +10,8 @@
 // was made in (`Qt.hsla` keeps its hue), converted with Qt's arithmetic in
 // Qt's single precision, so that `Qt.lighter(c).r` is the number Qt gives.
 
+import { allowedColour } from "../guard.js";
+
 const INVALID = 0;
 const RGB = 1;
 const HSV = 2;
@@ -304,10 +306,15 @@ export class Color {
     return { r, g, b, a, hsvHue, hsvSaturation, hsvValue, hslHue, hslSaturation, hslLightness, valid };
   }
 
-  // The CSS colour: the string it came from if it came from one.
+  // The CSS colour: the string it came from if it came from one. What this
+  // worked out before a shell was shown is asked about as well, once one is.
   css() {
+    return allowedColour(this.written());
+  }
+
+  written() {
     if (this.painted === undefined) {
-      if (this.source !== null) this.painted = css(this.source);
+      if (this.source !== null) this.painted = written(this.source);
       else {
         const argb = packed(this);
         const opaque = argb >>> 24 === 255;
@@ -392,10 +399,13 @@ export function color(value) {
 // property read as a colour value, whatever it was given.
 export const colorValue = (self, own) => color(own());
 
-// A QML colour as a CSS one.
-export function css(value) {
+// A QML colour as a CSS one. Most of what a shell can write ends up here, and
+// `background` takes a picture as readily as a colour (docs/LJOS_WEB.md A9).
+export const css = (value) => allowedColour(written(value));
+
+function written(value) {
   if (value == null || value === "") return "transparent";
-  if (typeof value !== "string") return value instanceof Color ? value.css() : String(value);
+  if (typeof value !== "string") return value instanceof Color ? value.written() : String(value);
   if (value.charCodeAt(0) !== 35) return value;
   // `#AARRGGBB` is CSS's `#RRGGBBAA`.
   if (value.length === 9) return `#${value.slice(3)}${value.slice(1, 3)}`;

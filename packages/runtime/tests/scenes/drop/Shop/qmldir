@@ -17,3 +17,5 @@ Pic 1.0 Pic.qml
 Sinks 1.0 Sinks.qml
 # block Keeps 1.0 Keeps.qml Shop "Keeps what it is handed"
 Keeps 1.0 Keeps.qml
+# block Hostile 1.0 Hostile.qml Shop "Hands what a shell gives it to one sink"
+Hostile 1.0 Hostile.qml

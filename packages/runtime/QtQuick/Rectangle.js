@@ -1,5 +1,6 @@
 // Rectangle: a colour, rounded corners, a border, a gradient.
 import { contents, defineType, effect, group, QtObject, slot } from "../object.js";
+import { allowedStyle } from "../guard.js";
 import { colorValue, css } from "./color.js";
 import { Item } from "./Item.js";
 
@@ -45,7 +46,7 @@ export const Rectangle = defineType("Rectangle", Item, {
     const style = self.$node.style;
     effect(
       () => self.gradient?.$css() ?? css(self.color),
-      (background) => void (style.background = background),
+      (background) => void (style.background = allowedStyle(background)),
     );
     effect(
       () => {

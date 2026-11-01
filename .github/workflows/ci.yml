@@ -65,9 +65,9 @@ jobs:
         run: pnpm --filter ljos-web test:site
       - name: drop, on the Solid kernel
         if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
-        run: pnpm --filter ljos-web exec playwright test -c tests drop
+        run: pnpm --filter ljos-web exec playwright test -c tests drop live.spec
       - name: drop, on the wasm kernel
         if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
         env:
           LJOS_KERNEL: wasm
-        run: pnpm --filter ljos-web exec playwright test -c tests drop
+        run: pnpm --filter ljos-web exec playwright test -c tests drop live.spec

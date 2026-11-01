@@ -536,8 +536,11 @@ it.
    fetches only from the page's own origin, the runtime's, `data:` and
    `blob:`, or a host every shown shell's `allowedHosts` names. Anything
    else is not asked for: it fails as a failed load does, and is warned
-   of once. The site's own blocks are under the same rule while the shell
-   is shown, as a block cannot tell whose string it has. No markup on the
+   of once. A style is an address too: `background` takes a picture as
+   readily as a colour, so a colour must be all colour and a style made up
+   of colours may call only what is known to load nothing; anything else is
+   not used, and is warned of once. The site's own blocks are under the same
+   rule while the shell is shown, as a block cannot tell whose string it has. No markup on the
    page loads a picture or links anywhere at all, the hosts allowed
    included. The guard is not lifted while the page lasts, by a
    `dispose` either: a block keeps what a shell hands it, in its state, a

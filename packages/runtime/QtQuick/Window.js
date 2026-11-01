@@ -12,6 +12,7 @@ import { onCleanup, runWithOwner } from "solid-js";
 import { $string, contents, defineType, derived, effect, flush, inside, onChange, QtObject, slot } from "../object.js";
 import { application, listen, singleton } from "../QtQml/application.js";
 import { enums } from "../QtQml/namespace.js";
+import { allowedStyle } from "../guard.js";
 import { colorValue, css } from "./color.js";
 import { toScene } from "./geometry.js";
 import { Item } from "./Item.js";
@@ -388,7 +389,7 @@ export const Window = defineType("Window", QtObject, {
         // Said outright for a floating window: it shows over a hidden one.
         style.visibility = shown ? (root || held ? "" : "visible") : "hidden";
         element.classList.toggle("qq-layer", !root && !held);
-        style.background = background;
+        style.background = allowedStyle(background);
         style.opacity = opacity === 1 ? "" : opacity;
       },
     );
