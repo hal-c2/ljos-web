@@ -32,8 +32,8 @@ let toldUnkept = false;
 // Whether what is written now may be kept for the next page, which has no guard
 // until it shows a shell. Anything of a dropped shell may be on this page, and
 // nothing says whose a string is, so a site's own writes go too: a visitor who
-// keeps a shell keeps nothing else until Reset, which they and the site's author
-// are to be able to find out.
+// keeps a shell keeps nothing else until Reset. The page shows them nothing of
+// this: the one sign is this warning in the console, for the site's author.
 export function mayKeep() {
   if (zones.size === 0) return true;
   if (!toldUnkept) {

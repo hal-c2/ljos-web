@@ -75,7 +75,7 @@ let saving = Promise.resolve(true);
 function save(record) {
   if (!changed.size) {
     saving = saving
-      .then(() => {
+      .then((before) => {
         // It may hold a dropped shell's strings, which the next page would
         // act on with no guard up: it lasts as long as this page.
         if (!mayKeep()) {
@@ -90,7 +90,7 @@ function save(record) {
           data: database.export(),
         }));
         changed.clear();
-        return kept("readwrite", (store) => rows.forEach((row) => store.put(row))).then(() => true);
+        return kept("readwrite", (store) => rows.forEach((row) => store.put(row))).then(() => before);
       })
       .catch((error) => {
         unkept(error);

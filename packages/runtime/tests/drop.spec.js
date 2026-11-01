@@ -90,6 +90,8 @@ test.describe("A visitor drops a shell of their own", () => {
     await opened(page);
     const open = page.getByRole("button", { name: "Open a shell…" });
     await open.focus();
+    // This test waits out its 30 s now and then, cause unknown: if the page took the focus back, Enter clicks nothing.
+    await expect(open).toBeFocused();
     const chooser = page.waitForEvent("filechooser");
     await page.keyboard.press("Enter");
     await (await chooser).setFiles({ name: "Mine.qml", mimeType: "text/plain", buffer: Buffer.from(MINE) });
