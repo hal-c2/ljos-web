@@ -612,6 +612,7 @@ fn a_syntax_error_in_a_block_is_said_as_its_compile_says_it() {
     let _ = std::fs::remove_dir_all(&place);
     std::fs::create_dir_all(place.join("app/Shop")).unwrap();
     std::fs::create_dir_all(place.join("app/src")).unwrap();
+    let place = place.canonicalize().unwrap();
     let shell = "import QtQuick\nimport Shop\nItem { }\n";
     std::fs::write(place.join("app/Main.qml"), shell).unwrap();
     std::fs::write(place.join("app/src/Main.qml"), shell).unwrap();
@@ -625,21 +626,75 @@ fn a_syntax_error_in_a_block_is_said_as_its_compile_says_it() {
         "import QtQuick\nItem {\n    width: 1\n}}\n",
     )
     .unwrap();
-    let run = |words: &[&str]| {
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(place.join("app/src"), place.join("link")).unwrap();
+    let run = |from: &str, root: &str, words: &[&str]| {
         let output = std::process::Command::new(env!("CARGO_BIN_EXE_qmlc"))
-            .args(["--root", "app"])
+            .args(["--root", root])
             .args(words)
+            .current_dir(place.join(from))
+            .output()
+            .unwrap();
+        assert!(!output.status.success(), "{words:?}");
+        String::from_utf8_lossy(&output.stderr).into_owned()
+    };
+    let absolute = |path: &str| place.join(path).display().to_string();
+    let (shell_at, block_at) = (absolute("app/Main.qml"), absolute("app/Shop/Bad.qml"));
+    let cases: Vec<(&str, &str, &str, &str)> = vec![
+        (".", "app", "app/Main.qml", "app/Shop/Bad.qml"),
+        (".", "app", "./app/Main.qml", "./app/Shop/Bad.qml"),
+        (".", "app", "app/src/Main.qml", "app/Shop/Bad.qml"),
+        (".", "app", &shell_at, &block_at),
+        ("app", ".", "Main.qml", "Shop/Bad.qml"),
+        ("app", ".", "./Main.qml", "./Shop/Bad.qml"),
+        ("app", ".", "src/Main.qml", "Shop/Bad.qml"),
+        // From beside the block's directory, up is not a directory the name has.
+        ("app/src", "..", "Main.qml", "../Shop/Bad.qml"),
+        ("app/src", "..", "../Main.qml", "../Shop/Bad.qml"),
+        ("app/src", "..", "./Main.qml", "./../Shop/Bad.qml"),
+        // Through a symlink, `..` is not what is above in the name.
+        #[cfg(unix)]
+        (".", "app", "link/Main.qml", "link/../Shop/Bad.qml"),
+    ];
+    for (from, root, shell, block) in cases {
+        let compiled = run(from, root, &[block]);
+        assert!(compiled.starts_with(&format!("{block}:4:")), "{compiled}");
+        assert_eq!(run(from, root, &["--shell", shell]), compiled, "{shell}");
+    }
+}
+
+#[test]
+fn a_block_that_cannot_be_read_is_said_as_the_build_writes_it() {
+    let place = Path::new(env!("CARGO_TARGET_TMPDIR")).join("shell-gone-block");
+    let _ = std::fs::remove_dir_all(&place);
+    std::fs::create_dir_all(place.join("app/Shop")).unwrap();
+    std::fs::create_dir_all(place.join("app/src")).unwrap();
+    let shell = "import QtQuick\nimport Shop\nItem { }\n";
+    std::fs::write(place.join("app/Main.qml"), shell).unwrap();
+    std::fs::write(place.join("app/src/Main.qml"), shell).unwrap();
+    std::fs::write(
+        place.join("app/Shop/qmldir"),
+        "module Shop\n# block Gone 1.0 Gone.qml Shop \"A basket\"\n",
+    )
+    .unwrap();
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(place.join("app/src"), place.join("link")).unwrap();
+    let asked = |shell: &str| {
+        let output = std::process::Command::new(env!("CARGO_BIN_EXE_qmlc"))
+            .args(["--shell", "--root", "app", shell])
             .current_dir(&place)
             .output()
             .unwrap();
         assert!(!output.status.success());
         String::from_utf8_lossy(&output.stderr).into_owned()
     };
-    let compiled = run(&["app/Shop/Bad.qml"]);
-    assert!(compiled.starts_with("app/Shop/Bad.qml:4:"), "{compiled}");
-    assert_eq!(run(&["--shell", "app/Main.qml"]), compiled);
-    // From further down, the name is the same one and not `app/src/../Shop`.
-    assert_eq!(run(&["--shell", "app/src/Main.qml"]), compiled);
+    assert_eq!(asked("app/Main.qml"), "cannot read app/Shop/Gone.qml\n");
+    assert_eq!(asked("app/src/Main.qml"), "cannot read app/Shop/Gone.qml\n");
+    #[cfg(unix)]
+    assert_eq!(
+        asked("link/Main.qml"),
+        "cannot read link/../Shop/Gone.qml\n"
+    );
 }
 
 #[test]
