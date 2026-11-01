@@ -390,7 +390,9 @@ fn claim(path: &mut Expression<'_>) {
 
 /// `scheme:...` or `/...`: a URL that is not relative to the file.
 pub(crate) fn is_absolute(url: &str) -> bool {
-    if url.starts_with('/') {
+    // `#Cube` names a part of no file: a Model's own shape. It is no path
+    // beside the module, and a bundler takes it for a package's own import.
+    if url.starts_with('/') || url.starts_with('#') {
         return true;
     }
     let Some((scheme, _)) = url.split_once(':') else {
