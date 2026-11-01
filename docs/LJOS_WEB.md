@@ -1569,6 +1569,12 @@ what is declared and has no glTF reader.
 Known gaps: a live `sourceItem` texture and a `TextureData` that is not
 RGBA8 give no picture.
 
+What it reaches today: a lit scene of built-in shapes is the native renderer's
+picture on WebGPU and on WebGL2 (`tests/references3d`). `tests/quick3d.spec.js`
+passes 10 of 48 on wgpu, none failing by timing: what fails is the picture. Real
+applications do not draw yet: dice and robotarm show no 3D, car-configurator
+shows its mesh files as white boxes.
+
 ## Part II — An application's own Rust types
 
 ## 1. The shape of a native type on the web
