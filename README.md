@@ -436,7 +436,10 @@ its scope (`window`, `eval`, `x["constructor"]`, a URL of its own, an import
 beyond QtQuick and the block modules) is an error at its line and column,
 shown over the shell that keeps running. The blocks keep their state across
 shells. The visitor's shell is kept in `localStorage` for the site until
-Reset. Under a CSP of `script-src 'self'`, serve `shell-worker-*.js` with
+Reset. Until then, on every visit, what blocks write to `Settings` and
+`QtQuick.LocalStorage` lasts only as long as the page, and the first such write
+warns (`docs/LJOS_WEB.md`, *What a kept shell costs a site*). Under a CSP of
+`script-src 'self'`, serve `shell-worker-*.js` with
 `script-src 'self' 'wasm-unsafe-eval'`. A site without `liveShell` has none
 of it and is the same size.
 

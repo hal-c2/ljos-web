@@ -27,9 +27,21 @@ export function zoneShows(zone, hosts) {
   setShellShown(true);
 }
 
-// Whether anything of a dropped shell may be on the page: what is written now
-// is not to be kept for the next page, which has no guard until it shows one.
-export const guarded = () => zones.size > 0;
+let toldUnkept = false;
+
+// Whether what is written now may be kept for the next page, which has no guard
+// until it shows a shell. Anything of a dropped shell may be on this page, and
+// nothing says whose a string is, so a site's own writes go too: a visitor who
+// keeps a shell keeps nothing else until Reset, which they and the site's author
+// are to be able to find out.
+export function mayKeep() {
+  if (zones.size === 0) return true;
+  if (!toldUnkept) {
+    toldUnkept = true;
+    console.warn("not kept while a dropped shell is shown: Settings and LocalStorage last as long as this page, until the shell is Reset");
+  }
+  return false;
+}
 
 // Whether `url` may be fetched now.
 export function mayFetch(url) {

@@ -424,6 +424,10 @@ calls their actions. It can do nothing else. Built: `ljos-web/live`
 in-page compiler (`crates/ljos_web/src/shell.rs`), and its evaluator
 (`Ljos/Blocks/shell.js`).
 
+A site that turns this on takes on what is under *What a kept shell
+costs a site* below: for a visitor who keeps a shell, Settings and
+`QtQuick.LocalStorage` are kept by no write until Reset.
+
 **Pipeline, as built.**
 
 ```text
@@ -541,8 +545,10 @@ it.
    dropped shell and the next the blocks keep everything; the guard is up
    all that time. Settings and `QtQuick.LocalStorage` written while the
    guard is up last as long as the page, so the next page, which has no
-   guard until it shows a shell, has none of the shell's strings. What
-   this does not reach: storage or a server of the site's own that its
+   guard until it shows a shell, has none of the shell's strings; the
+   first such write warns once, and `LocalStorage`'s `saved()` answers
+   `false`. A kept shell is shown again on each visit, so see *What a
+   kept shell costs a site* below. What this does not reach: storage or a server of the site's own that its
    scripts write without those types (`localStorage`, `indexedDB`, a
    request to its own origin). A string a block sends there comes back
    unguarded when the site reads it back and fetches it: a site whose
@@ -561,6 +567,17 @@ A block's state is written only by the block: when a shell assigns or
 binds `count`, it is told "`count` is a state of Basket: only the block
 writes it". A shell calls only its blocks' actions: `basket.destroy()`
 is refused.
+
+**What a kept shell costs a site.** A kept shell is shown again on every
+load, so the guard is up on every page that visitor opens, from just after
+the page starts. Until they press Reset, what any block writes to `Settings`
+or `QtQuick.LocalStorage`, the site's own blocks included, reads back on
+that page and is gone on the next, where the last value kept comes back.
+The first such write on a page warns once (`console.warn`), and
+`LocalStorage`'s `saved()` answers `false`. A site whose data must outlive
+the page sends it to its own server while a shell is shown (rule 4 says what
+that leaves it to treat with care). Shells are kept even so: not keeping them
+would take the feature away.
 
 **CSP.** The page runs under `script-src 'self'`. WebAssembly cannot be
 compiled under that policy, so the compiler runs in a dedicated module

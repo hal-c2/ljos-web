@@ -9,12 +9,14 @@ import Shell from "./scenes/drop/Shell.qml";
 import Reaches from "./scenes/drop/Reaches.qml";
 import UsesLess from "./scenes/drop/UsesLess.qml";
 import Keeping from "./scenes/drop/Keeping.qml";
+import { saved as databasesSaved } from "ljos-web/QtQuick/LocalStorage";
 
 window.publishing = { answer: { url: "https://shells.example/1" } };
 window.liveShell = liveShell;
 window.Shell = Shell;
 window.Reaches = Reaches;
 window.Keeping = Keeping;
+window.databasesSaved = databasesSaved;
 // As a dev server does on a save: the new root is made before the old one goes.
 window.saved = (less) => $reloaded(Shell, less ? UsesLess : Shell);
 const live = liveShell(Shell, document.getElementById("scene"), {

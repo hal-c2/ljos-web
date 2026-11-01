@@ -182,8 +182,9 @@ export function liveShell(Entry, element_, options = {}) {
         said(["The shell could not be forgotten: this browser keeps it"]);
         return;
       }
-      if (shown) location.reload();
-      else status.textContent = "The site's shell is shown";
+      if (shown) return location.reload();
+      said([]);
+      status.textContent = "The site's shell is shown";
     });
   }
 

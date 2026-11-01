@@ -42,7 +42,7 @@ Item {
     Component.onCompleted: {
         database().readTransaction((tx) => {
             const rows = tx.executeSql("SELECT address FROM said").rows
-            if (rows.length > 0) fromDatabase = rows.item(0).address
+            if (rows.length > 0) fromDatabase = rows.item(rows.length - 1).address
         })
         picture = fromDatabase || settings.address
     }

@@ -7,7 +7,7 @@
 // it loads neither.
 import initSqlJs from "sql.js";
 import wasm from "sql.js/dist/sql-wasm-browser.wasm?url";
-import { guarded } from "../../guard.js";
+import { mayKeep } from "../../guard.js";
 
 // What an error's `code` says, as Qt numbers them.
 const UNKNOWN_ERR = 1;
@@ -69,7 +69,7 @@ const [SQL, records] = await Promise.all([
 const databases = new Map(records.map((record) => [record.name, { ...record, database: null, depth: 0 }]));
 
 const changed = new Set();
-let saving = Promise.resolve();
+let saving = Promise.resolve(true);
 
 // Writes the databases that changed, once what changed them has returned.
 function save(record) {
@@ -78,7 +78,10 @@ function save(record) {
       .then(() => {
         // It may hold a dropped shell's strings, which the next page would
         // act on with no guard up: it lasts as long as this page.
-        if (guarded()) return changed.clear();
+        if (!mayKeep()) {
+          changed.clear();
+          return false;
+        }
         const rows = [...changed].map(({ name, version, description, size, database }) => ({
           name,
           version,
@@ -87,15 +90,18 @@ function save(record) {
           data: database.export(),
         }));
         changed.clear();
-        return kept("readwrite", (store) => rows.forEach((row) => store.put(row)));
+        return kept("readwrite", (store) => rows.forEach((row) => store.put(row))).then(() => true);
       })
-      .catch(unkept);
+      .catch((error) => {
+        unkept(error);
+        return false;
+      });
   }
   changed.add(record);
 }
 
-// Resolves when every change so far is kept: for a page to wait for before
-// it goes, and for tests.
+// Resolves when every change so far is dealt with, to whether it is kept: for
+// a page to wait for before it goes, and for tests.
 export const saved = () => saving;
 
 // ---------------------------------------------------------------------- SQL

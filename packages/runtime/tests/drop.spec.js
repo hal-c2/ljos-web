@@ -600,7 +600,7 @@ test.describe("While a dropped shell is shown, nothing fetches from another site
     }),
   );
   // Each refusal is told of, once.
-  test.use({ told: [/^not fetched while a dropped shell is shown/] });
+  test.use({ told: [/^not (fetched|kept) while a dropped shell is shown/] });
   const EVIL = "https://evil.example/x.png";
   const GOOD = "https://cdn.example/x.png";
   const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=", "base64");
@@ -753,6 +753,62 @@ Column {
     });
   });
 
+  test("A kept shell keeps a block's writes off the next page, and says so once, until Reset", async ({ page }) => {
+    const warned = [];
+    page.on("console", (message) => message.text().startsWith("not kept") && warned.push(message.text()));
+    await fetched(page);
+    await page.route("**/slow-answer", (route) => route.fulfill({ body: "" }));
+    await page.goto("/drop.html");
+    await page.evaluate(() => void indexedDB.deleteDatabase("ljos-web.LocalStorage"));
+    const site = async () => {
+      await opened(page);
+      await page.evaluate(() => {
+        const element = document.createElement("div");
+        document.body.append(element);
+        window.keeping = window.liveShell(window.Keeping, element, { site: "keeping" });
+        return window.keeping.idle();
+      });
+    };
+    const keeps = () => page.evaluateHandle(() => window.keeping.object.children.find((child) => child.objectName === "keeps"));
+    const write = async (text) => {
+      await (await keeps()).evaluate((block, text) => block.keep(text), text);
+      await page.waitForTimeout(100);
+      return page.evaluate(() => window.databasesSaved());
+    };
+    const found = async () => (await keeps()).evaluate((block) => [block.fromSettings, block.fromDatabase]);
+    const shell = `import QtQuick\nimport Shop\n\nColumn {\n    Keeps { objectName: "keeps" }\n}\n`;
+
+    await site();
+    expect(await write("first.svg")).toBe(true);
+    expect(warned).toEqual([]);
+    await page.evaluate((text) => window.keeping.drop(text), shell);
+
+    // The next visit: the shell is shown again, with no one dropping it.
+    await page.reload();
+    await site();
+    expect(await page.evaluate(() => window.keeping.text)).toBe(shell);
+    await expect.poll(found).toEqual(["first.svg", "first.svg"]);
+    expect(await write("second.svg")).toBe(false);
+    expect(await write("third.svg")).toBe(false);
+    expect(warned.length).toBe(1);
+    // This page still reads what it wrote.
+    expect((await found())[0]).toBe("third.svg");
+
+    await page.reload();
+    await site();
+    await expect.poll(found).toEqual(["first.svg", "first.svg"]);
+    expect(await write("fourth.svg")).toBe(false);
+
+    await Promise.all([page.waitForEvent("load"), page.evaluate(() => void window.keeping.reset())]);
+    await site();
+    expect(await page.evaluate(() => window.keeping.text)).toBe(null);
+    await expect.poll(found).toEqual(["first.svg", "first.svg"]);
+    expect(await write("fifth.svg")).toBe(true);
+    await page.reload();
+    await site();
+    expect((await found())[0]).toBe("fifth.svg");
+  });
+
   test("No other sink fetches what a shell names", async ({ page }) => {
     const asked = await fetched(page);
     const opens = [];
@@ -820,6 +876,18 @@ Column {
     await page.evaluate(() => window.live.idle());
     expect(await page.evaluate(() => window.stillHere)).toBe(true);
     await expect(page.getByRole("status")).toHaveText("The site's shell is shown");
+  });
+
+  test("A Reset after a shell that could not be shown takes its error away", async ({ page }) => {
+    await opened(page);
+    await page.evaluate(() => (window.stillHere = true));
+    await page.evaluate(() => window.live.drop("import QtQuick\nItem {"));
+    await expect(errors(page)).toBeVisible();
+    await page.getByRole("button", { name: "Reset" }).click();
+    await page.evaluate(() => window.live.idle());
+    await expect(errors(page)).toBeHidden();
+    await expect(page.getByRole("status")).toHaveText("The site's shell is shown");
+    expect(await page.evaluate(() => window.stillHere)).toBe(true);
   });
 
   test("A shell the browser cannot forget is said so, and the page stays", async ({ page }) => {
