@@ -892,13 +892,13 @@ export default function qml({
       // What a dropped shell is compiled against: the blocks the entry
       // uses, as their qmldir says, and their components.
       if (live && entries.has(file)) {
-        const home = projectOf(file);
-        // Asked as the file is compiled, so its blocks are the modules its compile finds.
-        const asked = spawnSync(qmlc, ["--shell", ...given, "--root", home, file], { encoding: "utf8" });
+        // Asked with what the file is compiled with, and told which directory
+        // the files are from: the one lookup says both.
+        const asked = spawnSync(qmlc, ["--shell", ...given, file], { encoding: "utf8" });
         if (asked.error) this.error(`could not run ${qmlc}: ${asked.error.message}`);
         if (asked.status !== 0) this.error(asked.stderr.trim());
-        const contracts = JSON.parse(asked.stdout);
-        const site = (typeof live === "object" && live.site) || basename(home);
+        const { root: home, blocks: contracts } = JSON.parse(asked.stdout);
+        const site = (typeof live === "object" && live.site) || basename(named(file) ? resolvePath(named(file)) : home);
         const imports = contracts.map((contract, at) => `import $$block${at} from ${JSON.stringify(resolvePath(home, contract.file))};`);
         const blocks = contracts.map((contract, at) => `{ ...${JSON.stringify(contract)}, component: $$block${at} }`);
         code += `\n${imports.join("\n")}\n${component}.$live = { site: ${JSON.stringify(site)}, blocks: [${blocks.join(", ")}] };\n`;

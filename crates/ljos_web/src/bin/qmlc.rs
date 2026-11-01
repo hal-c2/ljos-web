@@ -281,39 +281,6 @@ fn main() -> ExitCode {
         return listed_imports(&files);
     }
 
-    // The contracts of the blocks a shell uses: what a page with a live
-    // shell compiles a dropped one against.
-    if shell {
-        let mut failed = false;
-        for file in &files {
-            let path = std::fs::canonicalize(file).unwrap_or_else(|_| PathBuf::from(file));
-            let project = root
-                .as_deref()
-                .map(|root| std::fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf()));
-            let project =
-                project.unwrap_or_else(|| path.parent().map(Path::to_path_buf).unwrap_or_default());
-            let looked: Vec<PathBuf> = imports
-                .iter()
-                .map(|path| std::fs::canonicalize(path).unwrap_or_else(|_| path.clone()))
-                .collect();
-            match ljos_web::shell::contracts(&Disk, &project, &looked, &path) {
-                Ok(contracts) => println!(
-                    "{}",
-                    serde_json::to_string(&contracts).expect("contracts are JSON")
-                ),
-                Err(error) => {
-                    eprintln!("{file}: {error}");
-                    failed = true;
-                }
-            }
-        }
-        return if failed {
-            ExitCode::FAILURE
-        } else {
-            ExitCode::SUCCESS
-        };
-    }
-
     if let Some(types) = types {
         for uri in &files {
             // A module the table does not have is one with no line.
@@ -387,6 +354,40 @@ fn main() -> ExitCode {
         selectors,
         dumped,
     };
+    // The contracts of the blocks a shell uses: what a page with a live
+    // shell compiles a dropped one against. With the `Load` its compile has,
+    // so the modules are the ones that compile finds.
+    if shell {
+        let mut failed = false;
+        for file in &files {
+            let mut warnings = Vec::new();
+            let asked = ljos_web::shell::contracts(
+                &load,
+                &options.qt_imports,
+                Path::new(file),
+                &mut warnings,
+            );
+            for warning in &warnings {
+                eprintln!("warning: {warning}");
+            }
+            match asked {
+                Ok(blocks) => println!(
+                    "{}",
+                    serde_json::to_string(&blocks).expect("contracts are JSON")
+                ),
+                Err(error) => {
+                    eprintln!("{file}: {error}");
+                    failed = true;
+                }
+            }
+        }
+        return if failed {
+            ExitCode::FAILURE
+        } else {
+            ExitCode::SUCCESS
+        };
+    }
+
     let (mut compiled, mut failed) = (0, 0);
     for file in &files {
         let path = Path::new(file);

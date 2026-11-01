@@ -5,7 +5,7 @@ use std::path::Path;
 
 use ljos_ir as ir;
 use ljos_web::{
-    files::Memory,
+    files::{Load, Memory},
     shell::{self, Contract, Diagnostic},
 };
 
@@ -31,7 +31,14 @@ fn scene() -> Memory {
 }
 
 fn blocks() -> Vec<Contract> {
-    shell::contracts(&scene(), Path::new("/"), &[], Path::new("/Shell.qml")).unwrap()
+    let scene = scene();
+    let load = Load {
+        root: Some("/".into()),
+        ..Load::new(&scene)
+    };
+    shell::contracts(&load, &[], Path::new("/Shell.qml"), &mut Vec::new())
+        .unwrap()
+        .blocks
 }
 
 fn refused(text: &str) -> Vec<Diagnostic> {
@@ -395,7 +402,75 @@ fn asked_of(name: &str, own: bool, first: &[&str]) -> Vec<serde_json::Value> {
         "{}",
         String::from_utf8_lossy(&output.stderr)
     );
-    serde_json::from_slice(&output.stdout).unwrap()
+    let told: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    told["blocks"].as_array().unwrap().clone()
+}
+
+/// A project a `CMakeLists.txt` starts, with module Shop in it and the shell
+/// in `src`, and whatever `load` makes of it.
+fn in_a_build(qmldir: &str) -> Result<shell::Blocks, String> {
+    let files = Memory::new([
+        ("p/CMakeLists.txt", "project(p)\n"),
+        ("p/Shop/qmldir", qmldir),
+        ("p/Shop/Basket.qml", "import QtQuick\nItem { }\n"),
+        (
+            "p/src/Main.qml",
+            "import QtQuick\nimport Shop\nBasket { }\n",
+        ),
+    ]);
+    shell::contracts(
+        &Load::new(&files),
+        &[],
+        Path::new("/p/src/Main.qml"),
+        &mut Vec::new(),
+    )
+}
+
+#[test]
+fn with_no_root_given_a_block_is_of_the_project_a_build_starts() {
+    let found =
+        in_a_build("module Shop\n# block Basket 1.0 Basket.qml Shop \"A basket\"\n").unwrap();
+    assert_eq!(found.root, Path::new("/p"));
+    assert_eq!(found.blocks[0].file, "Shop/Basket.qml");
+}
+
+#[test]
+fn a_block_imported_by_its_directory_is_told() {
+    // A shell names a block's module, and a directory import has none: left
+    // out, this block would just not be offered.
+    let files = Memory::new([
+        (
+            "Shop/qmldir",
+            "module Shop\n# block Basket 1.0 Basket.qml Shop \"A basket\"\n",
+        ),
+        ("Shop/Basket.qml", "import QtQuick\nItem { }\n"),
+        ("Main.qml", "import QtQuick\nimport \"Shop\"\nBasket { }\n"),
+    ]);
+    let error = shell::contracts(
+        &Load::new(&files),
+        &[],
+        Path::new("/Main.qml"),
+        &mut Vec::new(),
+    )
+    .unwrap_err();
+    assert!(error.contains("import Shop"), "{error}");
+}
+
+#[test]
+fn modules_that_give_no_block_are_told() {
+    let error = in_a_build("module Shop\nBasket 1.0 Basket.qml\n").unwrap_err();
+    assert!(
+        error.contains("imports Shop") && error.contains("no block"),
+        "{error}"
+    );
+}
+
+#[test]
+fn a_qmldir_that_is_not_its_module_s_is_not_where_its_blocks_are() {
+    // A compile takes the `qmldir` at its module's place only.
+    let error = in_a_build("module Elsewhere\n# block Basket 1.0 Basket.qml Shop \"A basket\"\n")
+        .unwrap_err();
+    assert!(error.contains("no block"), "{error}");
 }
 
 #[test]
