@@ -396,8 +396,9 @@ export const Item = defineType("Item", QtObject, {
       },
     );
     effect(
-      () => [self.visible, drawn(self, "opacity"), self.z, self.clip],
-      ([visible, opacity, z, clip]) => {
+      () => [self.visible, drawn(self, "opacity"), self.z, self.clip, self.z < 0 ? self.parent : null],
+      ([visible, opacity, z, clip, above]) => {
+        above?.$lower?.();
         node.style.display = visible ? "" : "none";
         node.style.opacity = opacity === 1 ? "" : opacity;
         node.style.zIndex = z === 0 ? "" : z;

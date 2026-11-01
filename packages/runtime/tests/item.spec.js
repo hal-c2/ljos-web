@@ -1,4 +1,5 @@
 import { expect, open, rect, test } from "./open.js";
+import { pixels } from "./pixels.js";
 
 // What `qml6` answers for the scene: x, y, width and height of each item.
 test("the middle an item is centred on is a whole pixel", async ({ page }) => {
@@ -176,4 +177,9 @@ test("childrenRect is the rectangle an item's children take together", async ({ 
     await page.evaluate((index) => window.scene.step(index), index);
     expect(await answers()).toEqual(expected);
   }
+});
+
+test("a child of negative z is under what its parent draws", async ({ page }) => {
+  await open(page, "belowparent");
+  expect(await pixels(page, [[15, 15], [50, 50], [70, 70]])).toEqual(["255 0 0", "0 255 0", "0 0 255"]);
 });
