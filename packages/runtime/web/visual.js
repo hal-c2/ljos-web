@@ -4,6 +4,7 @@
 // page with a type on `Item` loads this.
 import { getOwner, onCleanup } from "solid-js";
 import { signal as counted, untrack } from "#kernel";
+import { sourced } from "../guard.js";
 import { effect, settle } from "../object.js";
 import { rules } from "../QtQuick/compute.js";
 import { Item } from "../QtQuick/Item.js";
@@ -51,7 +52,8 @@ function ratio() {
 function loadImage(url, done) {
   const image = new Image();
   image.crossOrigin = "anonymous";
-  image.src = url;
+  // Refused, it has no source to decode, and `done` is told so as of any failure.
+  sourced(image, url);
   image.decode().then(
     () => {
       const canvas = document.createElement("canvas");
