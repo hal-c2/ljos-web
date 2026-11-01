@@ -5,6 +5,7 @@ use std::path::Path;
 
 use ljos_ir as ir;
 use ljos_web::{
+    Options,
     files::{Load, Memory},
     shell::{self, Contract, Diagnostic},
 };
@@ -36,9 +37,14 @@ fn blocks() -> Vec<Contract> {
         root: Some("/".into()),
         ..Load::new(&scene)
     };
-    shell::contracts(&load, &[], Path::new("/Shell.qml"), &mut Vec::new())
-        .unwrap()
-        .blocks
+    shell::contracts(
+        &load,
+        &Options::default(),
+        Path::new("/Shell.qml"),
+        &mut Vec::new(),
+    )
+    .unwrap()
+    .blocks
 }
 
 fn refused(text: &str) -> Vec<Diagnostic> {
@@ -432,7 +438,7 @@ fn in_a_build(qmldir: &str, imports: &str) -> (Result<shell::Blocks, String>, Ve
     let mut warnings = Vec::new();
     let found = shell::contracts(
         &Load::new(&files),
-        &[],
+        &Options::default(),
         Path::new("/p/src/Main.qml"),
         &mut warnings,
     );
@@ -484,14 +490,40 @@ fn ljos_s_own_modules_are_no_library_of_the_site_s() {
 }
 
 #[test]
+fn ljos_s_stand_in_given_with_with_is_no_library_of_the_site_s() {
+    let files = Memory::new([
+        (
+            "design/Ljos/Design/qmldir",
+            "module Ljos.Design\nTheme 1.0 Theme.qml\n",
+        ),
+        ("design/Ljos/Design/Theme.qml", "import QtQuick\nItem { }\n"),
+        (
+            "app/Main.qml",
+            "import QtQuick\nimport Ljos.Design\nItem { }\n",
+        ),
+    ]);
+    let load = Load {
+        root: Some("/app".into()),
+        with: vec!["/design".into()],
+        ..Load::new(&files)
+    };
+    let mut warnings = Vec::new();
+    let found = shell::contracts(
+        &load,
+        &Options::default(),
+        Path::new("/app/Main.qml"),
+        &mut warnings,
+    );
+    assert!(found.unwrap().blocks.is_empty());
+    assert!(warnings.is_empty(), "{warnings:?}");
+}
+
+#[test]
 fn a_module_that_is_not_found_is_refused_by_its_name() {
     let error = in_a_build(SHOP, "import Shop\nimport Missing")
         .0
         .unwrap_err();
-    assert!(
-        error.contains("Missing") && error.contains("not found"),
-        "{error}"
-    );
+    assert!(error.contains("\"Missing\" is not installed"), "{error}");
 }
 
 #[test]
@@ -500,10 +532,7 @@ fn a_qmldir_away_from_its_module_s_place_is_not_the_module() {
     let error = in_a_build("module Elsewhere\n", "import Shop")
         .0
         .unwrap_err();
-    assert!(
-        error.contains("Shop") && error.contains("not found"),
-        "{error}"
-    );
+    assert!(error.contains("\"Shop\" is not installed"), "{error}");
 }
 
 /// `qmlc --shell` in the `types` fixtures, whose module is a dump's stand-in.
@@ -514,6 +543,66 @@ fn asked_with(args: &[&str]) -> std::process::Output {
         .current_dir(Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/types"))
         .output()
         .unwrap()
+}
+
+/// `qmlc --shell --qt qt app/Main.qml` for a shell that imports `import`,
+/// and `qmlc` itself, with `qt` as `lay_out` leaves it: their words and codes.
+fn asked_and_compiled(
+    name: &str,
+    import: &str,
+    lay_out: &[&str],
+) -> ((bool, String), (bool, String)) {
+    let place = Path::new(env!("CARGO_TARGET_TMPDIR")).join(name);
+    let _ = std::fs::remove_dir_all(&place);
+    std::fs::create_dir_all(place.join("qt")).unwrap();
+    std::fs::create_dir_all(place.join("app")).unwrap();
+    std::fs::write(
+        place.join("app/Main.qml"),
+        format!("import QtQuick\nimport {import}\nItem {{ }}\n"),
+    )
+    .unwrap();
+    for directory in lay_out {
+        let directory = place.join("qt").join(directory);
+        std::fs::create_dir_all(&directory).unwrap();
+        std::fs::write(directory.join("qmldir"), format!("module {import}\n")).unwrap();
+    }
+    let run = |first: &[&str]| {
+        let output = std::process::Command::new(env!("CARGO_BIN_EXE_qmlc"))
+            .args(first)
+            .args(["--root", "app", "--qt", "qt", "app/Main.qml"])
+            .current_dir(&place)
+            .output()
+            .unwrap();
+        (
+            output.status.success(),
+            String::from_utf8_lossy(&output.stderr).into_owned(),
+        )
+    };
+    (run(&["--shell"]), run(&[]))
+}
+
+#[test]
+fn a_module_of_qt_s_table_is_no_library_with_no_qt_installed() {
+    let (asked, compiled) = asked_and_compiled("shell-table", "QML", &[]);
+    assert!(compiled.0, "{}", compiled.1);
+    assert_eq!(asked, (true, String::new()));
+}
+
+#[test]
+fn a_module_of_the_installed_qt_is_no_library() {
+    let (asked, compiled) = asked_and_compiled("shell-installed", "QML", &["QML"]);
+    assert!(compiled.0, "{}", compiled.1);
+    assert_eq!(asked, (true, String::new()));
+}
+
+#[test]
+fn a_module_nobody_has_is_refused_as_its_compile_refuses_it() {
+    let (asked, compiled) = asked_and_compiled("shell-nobody", "Nobody.Has", &[]);
+    assert!(!compiled.0);
+    assert!(!asked.0);
+    let word = "module \"Nobody.Has\" is not installed";
+    assert!(compiled.1.contains(word), "{}", compiled.1);
+    assert!(asked.1.contains(word), "{}", asked.1);
 }
 
 #[test]

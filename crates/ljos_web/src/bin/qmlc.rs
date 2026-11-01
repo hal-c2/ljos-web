@@ -361,12 +361,7 @@ fn main() -> ExitCode {
         let mut failed = false;
         for file in &files {
             let mut warnings = Vec::new();
-            let asked = ljos_web::shell::contracts(
-                &load,
-                &options.qt_imports,
-                Path::new(file),
-                &mut warnings,
-            );
+            let asked = ljos_web::shell::contracts(&load, &options, Path::new(file), &mut warnings);
             for warning in &warnings {
                 eprintln!("warning: {warning}");
             }

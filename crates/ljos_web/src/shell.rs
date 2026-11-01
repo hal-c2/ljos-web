@@ -36,7 +36,11 @@ use oxc_syntax::operator::{
 use qml_syntax::ast::{QmlBindingValue, QmlDocument, QmlImportSource, QmlMember, QmlObject};
 use serde::{Deserialize, Serialize};
 
-use crate::files::Load;
+use crate::{
+    Options,
+    files::Load,
+    quick::{provided, uninstalled},
+};
 
 /// The types of the properties a shell may declare.
 const DECLARED: &[&str] = &["int", "real", "double", "bool", "string", "color"];
@@ -142,13 +146,14 @@ pub struct Blocks {
 /// visitor's may use. A module is what the compile of `shell` takes, by the
 /// same lookup, so there is no second answer to what a module is.
 ///
-/// A module that is not found is refused, as the lookup or the module is
-/// wrong. One that is found and has no block is an ordinary library: a word in
-/// `warnings`, naming them, only when the whole shell offers no block. Qt's
-/// and Ljós's own modules are no library of the site's, and get no word.
+/// A module nobody has is refused, by the compile's own test
+/// ([`uninstalled`]), so the two cannot differ. One the project has and with no
+/// block is an ordinary library: a word in `warnings`, naming them, only when
+/// the whole shell offers no block. What Qt or the runtime provides is not the
+/// site's, and gets no word.
 pub fn contracts(
     load: &Load,
-    qt: &[PathBuf],
+    options: &Options,
     shell: &Path,
     warnings: &mut Vec<String>,
 ) -> Result<Blocks, String> {
@@ -164,8 +169,12 @@ pub fn contracts(
             parsed.diagnostics[0].message
         ));
     }
+    let project = load.project(shell, &options.qt_imports, warnings);
+    if let Some(error) = uninstalled(&parsed.document, &project, options).first() {
+        return Err(format!("{}: {}", shell.display(), error.message));
+    }
     let (root, modules) = load
-        .found_modules(shell, qt, warnings)
+        .found_modules(shell, &options.qt_imports, &mut Vec::new())
         .ok_or_else(|| format!("cannot read {}", shell.display()))?;
     let mut blocks = Vec::new();
     let mut looked = HashSet::new();
@@ -197,33 +206,12 @@ pub fn contracts(
             }
         };
         let module = name.to_string();
-        if module == "QtQuick" || module.starts_with("QtQuick.") || module.starts_with("Qt") {
-            continue;
-        }
         // Imported twice, as `import Shop` and `import Shop as S`, a module
         // still has each block once.
         if !looked.insert(module.clone()) {
             continue;
         }
-        let own = module == "Ljos" || module.starts_with("Ljos.");
-        let place = name
-            .parts
-            .iter()
-            .fold(PathBuf::new(), |path, part| path.join(part));
-        let installed = qt
-            .iter()
-            .any(|root| load.files.read(&root.join(&place).join("qmldir")).is_some());
-        let of_module: Vec<_> = modules
-            .iter()
-            .filter(|found| found.module.uri == module)
-            .collect();
-        if of_module.is_empty() && !own && !installed {
-            return Err(format!(
-                "{} imports {module}, which is not found: it is looked for under {} and the import paths",
-                shell.display(),
-                root.display(),
-            ));
-        }
+        let of_module = modules.iter().filter(|found| found.module.uri == module);
         for found in of_module {
             let Some(qmldir) = found.qmldir.as_ref().and_then(|at| load.files.read(at)) else {
                 continue;
@@ -240,7 +228,10 @@ pub fn contracts(
                 blocks.push(contract_of(&module, block, file, &source)?);
             }
         }
-        if !own {
+        // `Ljos.Design` is Ljós's own though a project gives its stand-in, as
+        // `--with`: no export of the runtime says so.
+        let own = module == "Ljos" || module.starts_with("Ljos.");
+        if !own && !provided(&module, options) {
             libraries.push(module);
         }
     }
