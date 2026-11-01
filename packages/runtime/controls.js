@@ -69,6 +69,9 @@ export function qmldirs(files) {
     for (const name of names.sort()) lines.push(`${name.slice(0, -4)} 6.0 ${name}`);
     const style = dirname(directory) === STYLES ? directory.split("/").at(-1) : null;
     if (styles.includes(style) && style !== DEFAULT) lines.push(`import ${uri(STYLES)}.${DEFAULT} auto`);
+    // What no style draws (`Action`, `AbstractButton`) is Templates', and is
+    // still a name of `QtQuick.Controls`, as Qt documents it.
+    if (style === DEFAULT) lines.push("import QtQuick.Templates auto");
     written.set(directory, lines);
   }
   return new Map([...written].map(([directory, lines]) => [`${directory}/qmldir`, lines.join("\n") + "\n"]));
