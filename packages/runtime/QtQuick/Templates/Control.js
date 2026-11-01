@@ -5,8 +5,9 @@
 // The control says how big its two items are, and they say how big it would
 // like to be (`implicitContentWidth`, `implicitBackgroundWidth`): a style
 // computes `implicitWidth` from those.
-import { onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { defineType, derived, effect, settle, slot } from "../../object.js";
+import { parts } from "./parts.js";
 import { locale } from "../../QtQml/locale.js";
 import { styleHints } from "../../QtQml/application.js";
 import { sized } from "../compute.js";
@@ -16,6 +17,8 @@ import { mirrored } from "../LayoutMirroring.js";
 import { CancelGrabExclusive, drop, gone, hoverable, receive, UngrabExclusive, wheels } from "../pointer.js";
 import { font } from "./font.js";
 import { palette } from "./theme.js";
+import { untrack } from "#kernel";
+import { described } from "../Accessible.js";
 
 // Makes the items a control is given its children: `background`, `label`,
 // `header`. `read` is run with what is tracked and returns them; one that
@@ -237,8 +240,8 @@ export const Control = defineType("Control", Item, {
     hovered: false,
     hoverEnabled: derived(hovering),
     wheelEnabled: false,
-    background: null,
-    contentItem: null,
+    background: parts,
+    contentItem: parts,
     implicitContentWidth: derived((self) => self.contentItem?.implicitWidth ?? 0),
     implicitContentHeight: derived((self) => self.contentItem?.implicitHeight ?? 0),
     implicitBackgroundWidth: derived((self) => self.background?.implicitWidth ?? 0),
@@ -248,6 +251,7 @@ export const Control = defineType("Control", Item, {
   methods: { ...methods, ...live },
   setup(self) {
     backed(self);
+    described(self);
     keeps(self, () => [self.contentItem]);
     effect(
       () => [self.contentItem, ...self.$inside()],

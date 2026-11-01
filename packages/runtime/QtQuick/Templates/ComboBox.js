@@ -6,8 +6,9 @@
 //
 // What is current is said by an index or by a value, whichever was given
 // last: the other follows it.
-import { createSignal, onCleanup, runWithOwner, untrack } from "solid-js";
+import { onCleanup, runWithOwner } from "solid-js";
 import { $component, defineType, derived, effect, settle, slot } from "../../object.js";
+import { parts } from "./parts.js";
 import { DelegateModel } from "../DelegateModel.js";
 import { BacktabFocusReason, forceActiveFocus, MouseFocusReason, setFocus, TabFocusReason, windowOf } from "../focus.js";
 import { Key, LeftButton } from "../keycodes.js";
@@ -16,8 +17,9 @@ import { TextInput } from "../TextInput.js";
 import { AbstractButton } from "./AbstractButton.js";
 import { Control, keeps, loose, put, within } from "./Control.js";
 import { now } from "./Slider.js";
+import { signal, untrack } from "#kernel";
+import { speaks } from "../Accessible.js";
 
-const WRITABLE = { ownedWrite: true };
 const next = (version) => version + 1;
 
 // What says which row is current: nothing yet, an index, or a value.
@@ -412,8 +414,8 @@ export const ComboBox = defineType("ComboBox", Control, {
     pressed: false,
     down: undefined,
     flat: false,
-    indicator: null,
-    popup: null,
+    indicator: parts,
+    popup: parts,
     editable: false,
     editText: "",
     validator: null,
@@ -589,7 +591,7 @@ export const ComboBox = defineType("ComboBox", Control, {
     },
   },
   setup(self) {
-    const [version, bump] = createSignal(0, WRITABLE);
+    const [version, bump] = signal(0, self.$owner);
     const index = slot(self, "currentIndex");
     const value = slot(self, "currentValue");
     const stated = (held) => held.bound !== null || held.given !== undefined;
@@ -781,3 +783,5 @@ function says(name, criteria) {
 }
 says("currentIndex", INDEX);
 says("currentValue", VALUE);
+
+speaks(ComboBox, "ComboBox", (self) => String(self.displayText ?? ""));

@@ -18,13 +18,14 @@
 // asked for a burst right after the time was set starts from the new time
 // here, and from the old one in Qt. And `time` reads as what it was
 // declared to be until it is changed, where Qt's reads as nought.
-import { createSignal, onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { defineType, derived, effect, inside, last, QtObject, settle, slot } from "../../object.js";
 import { clock } from "../../QtQuick/animation/clock.js";
 import { kept, Node } from "../Node.js";
 import { enrolled } from "./core.js";
 import { fresh, trail } from "./emitters.js";
 import { painted } from "./paint.js";
+import { signal, untrack } from "#kernel";
 
 // What a system says of itself while it is `logging`: how many times it
 // was brought up to date in the last `loggingInterval`, how long that took,
@@ -159,7 +160,7 @@ export const ParticleSystem3D = defineType("ParticleSystem3D", Node, {
     // particle is of the colour its kind is given where the system is used
     // (`Sparks { kind.color: "red" }`), as it is in Qt, whose systems begin
     // with the first frame.
-    const [made, setMade] = createSignal(false, { ownedWrite: true });
+    const [made, setMade] = signal(false, self.$owner);
     self.$made = made;
     last(() => {
       self.$declared = self.time;

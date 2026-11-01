@@ -1,7 +1,7 @@
 // What a TableView shows: a model of rows and columns, whatever it was
 // given as, and what a delegate is told of its cell.
-import { untrack } from "solid-js";
 import { columnsOf, modelIndex, moved, rowsOf, touch, track } from "./model.js";
+import { untrack } from "#kernel";
 
 const NONE = 0;
 const NUMBER = 1;

@@ -13,7 +13,7 @@
 // are not read, a picture is read whole where Qt can read one channel of it
 // (`baseColorSingleChannelEnabled` and the like), and the colours of a
 // mesh's corners mask nothing.
-import { createSignal, untrack } from "solid-js";
+import { guardedFetch, sourced } from "../guard.js";
 import { awaited, defineType, derived, effect, flush, group, located } from "../object.js";
 import { Vector3d } from "../QtQml/values.js";
 import { color } from "../QtQuick/color.js";
@@ -24,8 +24,7 @@ import { Node, Object3D } from "./Node.js";
 import { primitive } from "./primitives.js";
 import { radiance } from "./TextureData.js";
 import { vectors } from "./vectors.js";
-
-const WRITABLE = { ownedWrite: true };
+import { signal, untrack } from "#kernel";
 
 // A colour as Qt lights with it: its channels in linear light, by Qt's own
 // sum, and its alpha as it is.
@@ -42,10 +41,10 @@ export function file(url, kind, took) {
   const key = `${kind} ${url}`;
   let record = files.get(key);
   if (record) return record;
-  const [state, setState] = createSignal(null, WRITABLE);
+  const [state, setState] = signal(null);
   files.set(key, (record = { state }));
   awaited(
-    fetch(url)
+    guardedFetch(url)
       .then((answer) => (answer.ok ? answer.arrayBuffer() : Promise.reject(new Error(`${answer.status}`))))
       .then((buffer) => setState(took(buffer)))
       .catch((error) => setState({ error: `could not be read: ${error.message}` }))
@@ -80,7 +79,7 @@ const pictures = new Map();
 function picture(url) {
   let record = pictures.get(url);
   if (!record) {
-    const [ready, setReady] = createSignal(false, WRITABLE);
+    const [ready, setReady] = signal(false);
     const element = new Image();
     pictures.set(url, (record = { element, ready, sheer: false }));
     element.crossOrigin = "anonymous";
@@ -97,7 +96,7 @@ function picture(url) {
         () => console.warn(`Texture: ${url} could not be read`),
       ),
     );
-    element.src = url;
+    sourced(element, url);
   }
   return record.ready() ? record : null;
 }
@@ -850,7 +849,7 @@ export const ReflectionProbe = defineType("ReflectionProbe", Node, {
     },
   },
   setup(self) {
-    self.$asked = createSignal(0, WRITABLE);
+    self.$asked = signal(0, self.$owner);
     // What the renderer looks from and for which models: where the probe
     // is, the corners of its box, the colour of what nothing is seen of
     // (which is put in the cube as it is, and not as a colour of the

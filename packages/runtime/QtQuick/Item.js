@@ -4,7 +4,7 @@
 // layout: `x`, `y`, `width` and `height` are properties other bindings read,
 // so they are computed here, anchors included, and the element is only told
 // the result.
-import { createSignal, onCleanup, runWithOwner } from "solid-js";
+import { onCleanup, runWithOwner } from "solid-js";
 import { contents, defineType, derived, effect, flush, group, inside, kinds, parental, parented, QtObject, settle, typed } from "../object.js";
 import { Rect } from "../QtQml/values.js";
 import { drawing, drawn } from "./drawn.js";
@@ -15,10 +15,9 @@ import { layer, layered } from "./layer.js";
 import { mirrored } from "./LayoutMirroring.js";
 import { stateful } from "./states.js";
 import "./style.js";
+import { signal } from "#kernel";
 
 const EMPTY = Object.freeze([]);
-const WRITABLE = { ownedWrite: true };
-
 // `item.left`: one of an item's seven lines, for another item to anchor to.
 const LINES = ["left", "right", "top", "bottom", "horizontalCenter", "verticalCenter", "baseline"];
 
@@ -232,8 +231,8 @@ function arranged(self) {
 // view's content item: an item as large as the element, which is the root's
 // `parent`. A root that says `anchors.fill: parent` fills the element.
 function viewed(self, host) {
-  const [width, setWidth] = createSignal(host.clientWidth, WRITABLE);
-  const [height, setHeight] = createSignal(host.clientHeight, WRITABLE);
+  const [width, setWidth] = signal(host.clientWidth, self.$owner);
+  const [height, setHeight] = signal(host.clientHeight, self.$owner);
   const view = inside(null, () =>
     Item({
       get width() {

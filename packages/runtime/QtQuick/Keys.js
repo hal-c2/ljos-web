@@ -3,10 +3,11 @@
 // A key goes to the item with active focus, then to each item it is in until
 // one accepts it, as in Qt. What an item does with it is its `Keys` handlers,
 // its `KeyNavigation`, then Tab. A `Shortcut` is asked before any of them.
-import { onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { defineType, derived, effect, QtObject, slot, whenComplete } from "../object.js";
 import { activeItem, forceActiveFocus, keyWindow, tab, whenOpened, windowOf } from "./focus.js";
 import { AltModifier, chord, chordMatches, chordText, ControlModifier, Key, keyOf, modifiersOf, ShiftModifier, textOf } from "./keycodes.js";
+import { untrack } from "#kernel";
 
 // The one event there is at a time: Qt's `KeyEvent`.
 const event = {
@@ -72,9 +73,10 @@ export const Keys = defineType("Keys", QtObject, {
   attached: KeysAttached,
 });
 
-// An item's `Keys`, if it was given any: looked for once.
+// An item's `Keys`, if it was given any: looked for once, and again if what is
+// attached to it has changed, as what a use of a block attaches does.
 function keysOf(item) {
-  if (item.$keys !== undefined) return item.$keys;
+  if (item.$keys !== undefined && (item.$keys ?? undefined) === item.$attached?.Keys) return item.$keys;
   let has = Boolean(item.$attached?.Keys);
   if (!has) for (const name in item.$props) if ((has = name.startsWith("Keys$"))) break;
   return (item.$keys = has ? Keys.attached(item) : null);

@@ -6,14 +6,14 @@
 // runs the type's `$arrange`, which says which rows are needed and where
 // they go. A row keeps its delegate for as long as it is needed: scrolling
 // makes the rows that come into view and nothing else.
-import { createSignal, onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { defineType, derived, effect, instantiate, slot } from "../object.js";
 import { Flickable } from "./Flickable.js";
 import { Item } from "./Item.js";
 import { delegateOf, modelOf, moved, Rows, size } from "./model.js";
 import { settle } from "./settle.js";
+import { signal, untrack } from "#kernel";
 
-const WRITABLE = { ownedWrite: true };
 const next = (version) => version + 1;
 
 const Beginning = 0;
@@ -428,8 +428,8 @@ export const ItemView = defineType("ItemView", Flickable, {
     },
   },
   setup(self, props) {
-    const [version, bump] = createSignal(0, WRITABLE);
-    const [loosely, loose] = createSignal(Boolean(props.$lax), WRITABLE);
+    const [version, bump] = signal(0, self.$owner);
+    const [loosely, loose] = signal(Boolean(props.$lax), self.$owner);
     const content = self.$contentItem;
     const changed = () => {
       slot(self, "count").write(rows.count);

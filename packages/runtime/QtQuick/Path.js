@@ -3,13 +3,12 @@
 // A path is not drawn by itself: a ShapePath draws one, a PathView puts its
 // items along one. What it gives either is its outline (`$outline()`), made
 // again when an element changes.
-import { createSignal } from "solid-js";
 import { Point, Size } from "../QtQml/values.js";
 import { contents, defineType, derived, effect, QtObject, settle, slot } from "../object.js";
 import { lazy } from "./compute.js";
 import { Outline, svgPath } from "./outline.js";
+import { signal } from "#kernel";
 
-const WRITABLE = { ownedWrite: true };
 const next = (version) => version + 1;
 
 // Where an element ends: what it is given from the point before it
@@ -409,7 +408,7 @@ export const Path = defineType("Path", QtObject, {
     },
   },
   setup(self) {
-    const [version, bump] = createSignal(0, WRITABLE);
+    const [version, bump] = signal(0, self.$owner);
     const list = (elements) =>
       listed(elements, () => {
         bump(next);

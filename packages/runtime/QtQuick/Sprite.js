@@ -1,10 +1,9 @@
 // Sprite: one animation in a sheet of frames, and which may follow it.
 // What plays it is another type's business: an ImageParticle gives each
 // particle one.
-import { createSignal } from "solid-js";
+import { sourced } from "../guard.js";
 import { defineType, effect, flush, QtObject } from "../object.js";
-
-const WRITABLE = { ownedWrite: true };
+import { signal } from "#kernel";
 
 export const Sprite = defineType("Sprite", QtObject, {
   properties: {
@@ -78,7 +77,7 @@ export const Sprite = defineType("Sprite", QtObject, {
     // Whoever plays it is told when the sheet is there, and what reads
     // `$loaded()` is asked again.
     self.$shown = null;
-    const [loaded, load] = createSignal(null, WRITABLE);
+    const [loaded, load] = signal(null, self.$owner);
     self.$loaded = loaded;
     self.$sheet = [1, 0, 0, 0, 0];
     self.$reverse = false;
@@ -99,7 +98,7 @@ export const Sprite = defineType("Sprite", QtObject, {
           flush();
           self.$shown?.();
         };
-        image.src = String(source);
+        sourced(image, String(source));
       },
     );
     effect(

@@ -6,11 +6,11 @@
 // given for one (`index`, `modelData`, `model` and a property per role), and
 // what happened to them. A view is told of rows inserted, removed and moved,
 // never to start again: the delegate of a row lives as long as the row does.
-import { createSignal, getObserver, runWithOwner, untrack } from "solid-js";
+import { runWithOwner } from "solid-js";
 import { contents, defineType, derived, inside, instantiate, QtObject, slot } from "../object.js";
 import { settle } from "./settle.js";
+import { followed, signal, untrack } from "#kernel";
 
-const WRITABLE = { ownedWrite: true };
 const next = (version) => version + 1;
 
 // What can change under a reader, by name: a row's index, an element's
@@ -19,9 +19,9 @@ const next = (version) => version + 1;
 const SIGNALS = Symbol("signals");
 
 export function track(holder, name) {
-  if (!getObserver()) return;
+  if (!followed()) return;
   const signals = (holder[SIGNALS] ??= Object.create(null));
-  (signals[name] ??= createSignal(0, WRITABLE))[0]();
+  (signals[name] ??= signal(0))[0]();
 }
 
 export function touch(holder, name) {
@@ -366,7 +366,7 @@ export const ObjectModel = defineType("ObjectModel", QtObject, {
   setup(self) {
     self.$objects = [];
     self.$listeners = new Set();
-    [self.$ordered, self.$reorder] = createSignal(0, WRITABLE);
+    [self.$ordered, self.$reorder] = signal(0, self.$owner);
   },
   adopt(self, props) {
     // They are children of whatever view shows them, not of where the

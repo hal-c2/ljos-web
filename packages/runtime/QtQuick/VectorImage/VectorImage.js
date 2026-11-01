@@ -25,12 +25,13 @@
 //   are kept and nothing more: the browser draws as it draws.
 // - Qt reads the file at once; here it is fetched, and until it is there the
 //   VectorImage is what it was before.
-import { untrack } from "solid-js";
+import { guardedFetch, sourced } from "../../guard.js";
 import { defineType, derived, effect, group, inside, located } from "../../object.js";
 import { lazy, rules } from "../compute.js";
 import { measured, picture, shared } from "../Image.js";
 import { Item } from "../Item.js";
 import { Scale } from "../transforms.js";
+import { untrack } from "#kernel";
 
 rules(`
 .qq-vector { position: absolute; left: 0; top: 0; max-width: none; pointer-events: none; }
@@ -68,7 +69,7 @@ async function read(response) {
 async function drawing(url) {
   let response;
   try {
-    response = await fetch(url);
+    response = await guardedFetch(url);
   } catch {
     response = null;
   }
@@ -191,7 +192,7 @@ export const VectorImage = defineType("VectorImage", Item, {
         if (!url) return void image.removeAttribute("src");
         image.style.width = `${width}px`;
         image.style.height = `${height}px`;
-        image.src = url;
+        sourced(image, url);
       },
     );
   },

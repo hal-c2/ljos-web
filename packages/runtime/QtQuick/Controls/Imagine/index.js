@@ -3,13 +3,13 @@
 // are, for an object and everything in it. The colours are what Qt 6.11
 // answers with the style, read from `qml6` (`qquickimaginetheme.cpp` sets
 // some of them over Qt's own).
-import { createSignal } from "solid-js";
 import { defineType, derived, QtObject } from "../../../object.js";
 import { lazy } from "../../compute.js";
 import { colours } from "../../Palette.js";
 import { themed } from "../../Templates/theme.js";
 import { around, preferred, said } from "../attached.js";
 import { configured } from "../settings.js";
+import { signal } from "#kernel";
 
 // The font is Qt's own: Open Sans is the style's only where it is installed,
 // which a page cannot ask.
@@ -57,7 +57,7 @@ const slashed = (path) => (path.endsWith("/") ? path : `${path}/`);
 
 // What an object that nothing gave a path has: Qt's own, or what the
 // application's settings say (the `Imagine` group of its conf file).
-const [all, configure] = createSignal(OWN, { ownedWrite: true });
+const [all, configure] = signal(OWN);
 
 const ImagineStyle = defineType("ImagineStyle", QtObject, {
   properties: {

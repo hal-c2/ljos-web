@@ -8,12 +8,13 @@
 // effect shares the size the layout has among them and gives each its place.
 // The first step reads no size the second one set, so a layout that is only
 // resized only shares again.
-import { onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { defineType, derived, effect, looped, QtObject, slot } from "../../object.js";
 import { Item } from "../Item.js";
 import { mirrored } from "../LayoutMirroring.js";
 import { given, Settling, shown } from "../placing.js";
 import { arrange, FLT_MAX, itemBox, measure } from "./engine.js";
+import { untrack } from "#kernel";
 
 const next = (version) => version + 1;
 

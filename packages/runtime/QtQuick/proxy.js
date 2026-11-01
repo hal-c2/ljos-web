@@ -6,12 +6,12 @@
 // what order, is worked out again when the source's rows change, when a
 // role a filter or a sorter read changes, and when a filter or a sorter is
 // set another way; what views are told is the difference.
-import { createSignal, onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { defineType, effect, QtObject, slot } from "../object.js";
 import { AbstractListModel, modelIndex } from "./model.js";
 import { settle } from "./settle.js";
+import { signal, untrack } from "#kernel";
 
-const WRITABLE = { ownedWrite: true };
 const next = (version) => version + 1;
 
 const ASCENDING = 0;
@@ -25,7 +25,7 @@ const LAST = 2147483647;
 // again: `$version` is read with the rest of how it is set.
 const versioned = {
   setup(self) {
-    [self.$version, self.$bump] = createSignal(0, WRITABLE);
+    [self.$version, self.$bump] = signal(0, self.$owner);
   },
   methods: {
     invalidate() {
@@ -287,8 +287,8 @@ export const SortFilterProxyModel = defineType("SortFilterProxyModel", AbstractL
     self.$source = null;
     self.$primary = null;
     Object.defineProperty(self, "$roles", { get: () => self.$source?.$roles ?? [], configurable: true });
-    const [changed, change] = createSignal(0, WRITABLE);
-    [self.$resorted, self.$resort] = createSignal(0, WRITABLE);
+    const [changed, change] = signal(0, self.$owner);
+    [self.$resorted, self.$resort] = signal(0, self.$owner);
     // What the source says of its rows: the proxy looks at them again. A new
     // role is one of the proxy's rows' too.
     const rows = () => change(next);

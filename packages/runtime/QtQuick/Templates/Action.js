@@ -1,9 +1,10 @@
 // Action: something a program does, whatever is used to do it: a button, a
 // menu item, a key. ActionGroup: actions of which one is checked at a time.
-import { onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { contents, defineType, effect, group, inside, QtObject, settle, slot, whenComplete } from "../../object.js";
 import { colorValue } from "../color.js";
 import { Shortcut } from "../Keys.js";
+import { untrack } from "#kernel";
 
 // What an action and a button are drawn with: Qt's `QQuickIcon`.
 export const ICON = { name: "", source: "", width: 0, height: 0, color: "transparent", cache: true };

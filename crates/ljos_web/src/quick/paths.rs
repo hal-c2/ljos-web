@@ -55,13 +55,15 @@ const QT: &str = "Qt";
 /// The formats Qt reads a picture in, in the order it tries them for a
 /// source with no suffix.
 const FORMATS: [&str; 24] = [
-    "bmp", "cur", "gif", "icns", "ico", "jfif", "jp2", "jpeg", "jpg", "mng", "pbm", "pdf", "pgm", "png", "ppm", "svg",
-    "svgz", "tga", "tif", "tiff", "wbmp", "webp", "xbm", "xpm",
+    "bmp", "cur", "gif", "icns", "ico", "jfif", "jp2", "jpeg", "jpg", "mng", "pbm", "pdf", "pgm",
+    "png", "ppm", "svg", "svgz", "tga", "tif", "tiff", "wbmp", "webp", "xbm", "xpm",
 ];
 
 impl Paths {
     fn exists(&self, path: &str) -> bool {
-        self.known.as_ref().is_some_and(|known| known.iter().any(|file| file == path))
+        self.known
+            .as_ref()
+            .is_some_and(|known| known.iter().any(|file| file == path))
     }
 
     /// `images/logo` where there is no such file but `images/logo.png`: the
@@ -74,15 +76,22 @@ impl Paths {
         if plain.starts_with("../") || plain.rsplit('/').next()?.contains('.') || has(plain) {
             return None;
         }
-        FORMATS.iter().find(|format| has(&format!("{plain}.{format}"))).map(|format| format!("{path}.{format}"))
+        FORMATS
+            .iter()
+            .find(|format| has(&format!("{plain}.{format}")))
+            .map(|format| format!("{path}.{format}"))
     }
 
     /// `$file1`: the default export of the file at `path`.
     fn import(&mut self, path: &str) -> String {
-        let index = self.named.iter().position(|named| named == path).unwrap_or_else(|| {
-            self.named.push(path.to_string());
-            self.named.len() - 1
-        });
+        let index = self
+            .named
+            .iter()
+            .position(|named| named == path)
+            .unwrap_or_else(|| {
+                self.named.push(path.to_string());
+                self.named.len() - 1
+            });
         format!("$file{}", self.first + index + 1)
     }
 
@@ -101,7 +110,10 @@ impl Paths {
     ) -> Expression<'a> {
         kernel.insert("$file");
         let name = self.import(path);
-        b.call(b.id("$file"), std::iter::once(b.id(&name)).chain(scope.map(|scope| b.id(scope))))
+        b.call(
+            b.id("$file"),
+            std::iter::once(b.id(&name)).chain(scope.map(|scope| b.id(scope))),
+        )
     }
 
     /// The files that start with `prefix` and end with `suffix`.
@@ -114,10 +126,14 @@ impl Paths {
     /// `$files1`: where a path is looked up among `paths`.
     fn table(&mut self, kernel: &mut BTreeSet<&'static str>, paths: Vec<String>) -> String {
         kernel.insert("$files");
-        let index = self.tables.iter().position(|table| *table == paths).unwrap_or_else(|| {
-            self.tables.push(paths);
-            self.tables.len() - 1
-        });
+        let index = self
+            .tables
+            .iter()
+            .position(|table| *table == paths)
+            .unwrap_or_else(|| {
+                self.tables.push(paths);
+                self.tables.len() - 1
+            });
         format!("$files{}", index + 1)
     }
 
@@ -152,14 +168,18 @@ impl Paths {
         let replacement = match expression {
             // Only what was written: a path the compiler built is not one.
             Expression::StringLiteral(literal) if !literal.span.is_empty() => {
-                let Some(path) = relative(literal.value.as_str()) else { return false };
+                let Some(path) = relative(literal.value.as_str()) else {
+                    return false;
+                };
                 if !self.exists(path) {
                     return false;
                 }
                 self.component(b, kernel, path, scope)
             }
             Expression::CallExpression(call) => {
-                let Some(method) = qt_method(call) else { return false };
+                let Some(method) = qt_method(call) else {
+                    return false;
+                };
                 let first = call.arguments.first().and_then(Argument::as_expression);
                 match (method, first) {
                     ("createComponent", Some(first)) => {
@@ -183,7 +203,10 @@ impl Paths {
                                 claim(&mut path);
                                 // Whatever it turns out to be, a component:
                                 // one that says the file is not there.
-                                b.call(b.id(&table), [path, b.boolean(true)].into_iter().chain(context()))
+                                b.call(
+                                    b.id(&table),
+                                    [path, b.boolean(true)].into_iter().chain(context()),
+                                )
                             }
                         }
                     }
@@ -201,9 +224,15 @@ impl Paths {
                                     // back without the slash it ends with.
                                     if value.ends_with('/') {
                                         kernel.insert("$url");
-                                        return b.call(b.id("$url"), [b.string(value), b.import_meta_url()]);
+                                        return b.call(
+                                            b.id("$url"),
+                                            [b.string(value), b.import_meta_url()],
+                                        );
                                     }
-                                    b.member(b.new_(b.id("URL"), [b.string(value), b.import_meta_url()]), "href")
+                                    b.member(
+                                        b.new_(b.id("URL"), [b.string(value), b.import_meta_url()]),
+                                        "href",
+                                    )
                                 }))
                             }
                             _ => None,
@@ -223,7 +252,9 @@ impl Paths {
             }
             // `view + ".qml"`: the component, if there is such a file, and
             // the path as it is if there is not.
-            Expression::BinaryExpression(_) | Expression::TemplateLiteral(_) if !expression.span().is_empty() => {
+            Expression::BinaryExpression(_) | Expression::TemplateLiteral(_)
+                if !expression.span().is_empty() =>
+            {
                 let (prefix, suffix) = ends(expression);
                 if !suffix.ends_with(".qml") {
                     return false;
@@ -249,7 +280,11 @@ impl Paths {
     /// What the module imports and declares for the paths it names: the
     /// imports, then the tables. `extension` is what a QML file is imported
     /// with.
-    pub(crate) fn statements<'a>(&mut self, b: B<'a>, extension: &str) -> (Vec<Statement<'a>>, Vec<Statement<'a>>) {
+    pub(crate) fn statements<'a>(
+        &mut self,
+        b: B<'a>,
+        extension: &str,
+    ) -> (Vec<Statement<'a>>, Vec<Statement<'a>>) {
         let tables: Vec<Statement<'a>> = std::mem::take(&mut self.tables)
             .into_iter()
             .enumerate()
@@ -273,8 +308,15 @@ impl Paths {
             .enumerate()
             .map(|(index, path)| {
                 let stem = path.strip_suffix(".qml").unwrap_or(path);
-                let source = if stem.starts_with("../") { stem.to_string() } else { format!("./{stem}") };
-                b.import_default(&format!("$file{}", self.first + index + 1), &format!("{source}{extension}"))
+                let source = if stem.starts_with("../") {
+                    stem.to_string()
+                } else {
+                    format!("./{stem}")
+                };
+                b.import_default(
+                    &format!("$file{}", self.first + index + 1),
+                    &format!("{source}{extension}"),
+                )
             })
             .collect();
         (imports, tables)
@@ -288,8 +330,12 @@ pub(crate) fn is_resolved(expression: &Expression<'_>) -> bool {
 
 /// `Qt.name(...)`: the name.
 pub(crate) fn qt_method<'a>(call: &CallExpression<'a>) -> Option<&'a str> {
-    let Expression::StaticMemberExpression(member) = &call.callee else { return None };
-    let Expression::Identifier(object) = &member.object else { return None };
+    let Expression::StaticMemberExpression(member) = &call.callee else {
+        return None;
+    };
+    let Expression::Identifier(object) = &member.object else {
+        return None;
+    };
     // Written, and not something of the script's own called `Qt`: the
     // resolver has not been here, but a script does not declare one.
     (object.name == QT && !object.span.is_empty()).then(|| member.property.name.as_str())
@@ -312,14 +358,19 @@ fn relative(value: &str) -> Option<&str> {
 /// `"towers/" + name + ".qml"` starts with `towers/` and ends with `.qml`.
 fn ends(expression: &Expression<'_>) -> (String, String) {
     match expression {
-        Expression::StringLiteral(literal) => (literal.value.to_string(), literal.value.to_string()),
+        Expression::StringLiteral(literal) => {
+            (literal.value.to_string(), literal.value.to_string())
+        }
         Expression::BinaryExpression(binary) if binary.operator == BinaryOperator::Addition => {
             (ends(&binary.left).0, ends(&binary.right).1)
         }
         Expression::ParenthesizedExpression(inner) => ends(&inner.expression),
         Expression::TemplateLiteral(template) => {
             let text = |quasi: Option<&TemplateElement<'_>>| {
-                quasi.and_then(|quasi| quasi.value.cooked.as_ref()).map(ToString::to_string).unwrap_or_default()
+                quasi
+                    .and_then(|quasi| quasi.value.cooked.as_ref())
+                    .map(ToString::to_string)
+                    .unwrap_or_default()
             };
             (text(template.quasis.first()), text(template.quasis.last()))
         }
@@ -339,10 +390,16 @@ fn claim(path: &mut Expression<'_>) {
 
 /// `scheme:...` or `/...`: a URL that is not relative to the file.
 pub(crate) fn is_absolute(url: &str) -> bool {
-    if url.starts_with('/') {
+    // `#Cube` names a part of no file: a Model's own shape. It is no path
+    // beside the module, and a bundler takes it for a package's own import.
+    if url.starts_with('/') || url.starts_with('#') {
         return true;
     }
-    let Some((scheme, _)) = url.split_once(':') else { return false };
+    let Some((scheme, _)) = url.split_once(':') else {
+        return false;
+    };
     scheme.starts_with(|c: char| c.is_ascii_alphabetic())
-        && scheme.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '+' | '.' | '-'))
+        && scheme
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '+' | '.' | '-'))
 }

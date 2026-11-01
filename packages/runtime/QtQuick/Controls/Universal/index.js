@@ -2,13 +2,13 @@
 // The fonts of its controls, and `Universal`: the theme and the colours an
 // object has, its own or those of what it is in. The numbers are Qt's
 // (`qquickuniversalstyle.cpp`).
-import { createSignal } from "solid-js";
 import { chosen, defineType, derived, QtObject } from "../../../object.js";
 import { color as colour } from "../../color.js";
 import { lazy } from "../../compute.js";
 import { themed } from "../../Templates/theme.js";
 import { around, chosenColour, fromArgb, preferred, said, Theme, themeOf } from "../attached.js";
 import { configured } from "../settings.js";
+import { signal } from "#kernel";
 
 const header = { pixelSize: 24, weight: 300 };
 
@@ -82,7 +82,7 @@ const OWN = {
   foreground: { value: SYSTEM.baseHighColor[0], has: false },
   background: { value: SYSTEM.altHighColor[0], has: false },
 };
-const [settings, configure] = createSignal(OWN, { ownedWrite: true });
+const [settings, configure] = signal(OWN);
 
 // One of the accents by its number or its name, or any colour.
 function argb(given) {

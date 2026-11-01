@@ -4,6 +4,7 @@ import { defineType } from "../../object.js";
 import { AbstractButton } from "./AbstractButton.js";
 import { checking } from "./CheckBox.js";
 import { switching } from "./Switch.js";
+import { speaks } from "../Accessible.js";
 
 // A row does not take focus: the view it is in has it.
 export const ItemDelegate = defineType("ItemDelegate", AbstractButton, {
@@ -17,3 +18,10 @@ export const RadioDelegate = defineType("RadioDelegate", ItemDelegate, {
 });
 
 export const SwitchDelegate = defineType("SwitchDelegate", ItemDelegate, switching);
+
+// A delegate that checks is named by its text as it is.
+const text = (self) => String(self.text ?? "");
+speaks(ItemDelegate, "ListItem");
+speaks(CheckDelegate, "CheckBox", text, "checked");
+speaks(RadioDelegate, "RadioButton", text, "checked");
+speaks(SwitchDelegate, "Switch", text, "checked");

@@ -6,10 +6,11 @@
 // file. A function that is not one imports the component's module, which
 // comes later. Anything else is the URL it was given, for which there is
 // nothing to load: QML is not interpreted here.
-import { createEffect, createSignal, runWithOwner, untrack } from "solid-js";
+import { createEffect, runWithOwner } from "solid-js";
 import { defineType, derived, effect, instantiate, last, slot, whenComplete, whenMade } from "../object.js";
 import { Item } from "./Item.js";
 import { settle } from "./settle.js";
+import { signal, untrack } from "#kernel";
 
 const Null = 0;
 const Ready = 1;
@@ -17,7 +18,6 @@ const Loading = 2;
 const Failed = 3;
 
 const NOTHING = Object.freeze({});
-const WRITABLE = { ownedWrite: true };
 const next = (version) => version + 1;
 
 // Whether the Loader was given a size along `key`: then the item takes the
@@ -30,18 +30,18 @@ function sized(self, key) {
   return key === "width" ? Boolean(anchors.left && anchors.right) : Boolean(anchors.top && anchors.bottom);
 }
 
-function implicit(self, key, implicitKey) {
+export function implicit(self, key, implicitKey) {
   const item = self.item;
   if (!item?.$node) return 0;
   return sized(self, key) ? item[implicitKey] : item[key];
 }
 
 // The size the Loader gives its item: none along a way it has none itself.
-function given(self) {
+export function given(self) {
   return [sized(self, "width") ? self.width : undefined, sized(self, "height") ? self.height : undefined];
 }
 
-function fit(item, width, height) {
+export function fit(item, width, height) {
   if (!item?.$node) return;
   slot(item, "width").place(width);
   slot(item, "height").place(height);
@@ -157,8 +157,8 @@ export const Loader = defineType("Loader", Item, {
     },
   },
   setup(self) {
-    const [asked, again] = createSignal(0, WRITABLE);
-    const [made, done] = createSignal(0, WRITABLE);
+    const [asked, again] = signal(0, self.$owner);
+    const [made, done] = signal(0, self.$owner);
     const state = (self.$loader = {
       turn: 0,
       dispose: null,

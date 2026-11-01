@@ -1,10 +1,10 @@
 // The axes of a graph: what a GraphsView measures its bars against. An axis
 // says what it has; where its lines and labels are is the view's to work
 // out.
-import { untrack } from "solid-js";
 import { defineType, derived, QtObject, settle, slot } from "../object.js";
 import { distinct } from "../QtCharts/axes.js";
 import { colorValue } from "../QtQuick/color.js";
+import { untrack } from "#kernel";
 
 export const AbstractAxis = defineType("AbstractAxis", QtObject, {
   properties: {

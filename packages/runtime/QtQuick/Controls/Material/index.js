@@ -2,13 +2,13 @@
 // fonts of its controls, and `Material`: the theme and the colours an object
 // has, its own or those of what it is in, and every colour and measure the
 // style's QML asks for. The numbers are Qt's (`qquickmaterialstyle.cpp`).
-import { createSignal } from "solid-js";
 import { defineType, derived, QtObject } from "../../../object.js";
 import { color as colour, hsla, rgba } from "../../color.js";
 import { lazy } from "../../compute.js";
 import { themed } from "../../Templates/theme.js";
 import { around, chosenColour, fromArgb, preferred, said, Theme, themeOf } from "../attached.js";
 import { configured } from "../settings.js";
+import { signal } from "#kernel";
 
 const Variant = { Normal: 0, Dense: 1 };
 const COLOURS = [
@@ -177,7 +177,7 @@ const OWN = {
   foreground: { value: 0xdd000000, custom: false, has: false, explicit: false },
   background: { value: 0xfffafafa, custom: false, has: false, explicit: false },
 };
-const [settings, configure] = createSignal(OWN, { ownedWrite: true });
+const [settings, configure] = signal(OWN);
 
 function fonts(dense) {
   const medium = { weight: 500 };

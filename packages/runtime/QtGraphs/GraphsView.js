@@ -6,7 +6,6 @@
 // the axis' `labelDelegate` and the series' `barDelegate` make. Where each
 // is comes from Qt's own arithmetic, and an effect each puts them there
 // again when something they are placed by changes.
-import { untrack } from "solid-js";
 import { defineType, derived, effect, instantiate, slot } from "../object.js";
 import { box, draw, svg } from "../QtCharts/plot.js";
 import { color, css, equal } from "../QtQuick/color.js";
@@ -18,6 +17,7 @@ import { Rect } from "../QtQml/values.js";
 import { BarCategoryAxis, ValueAxis } from "./axes.js";
 import { bars } from "./series.js";
 import { GraphsTheme } from "./theme.js";
+import { untrack } from "#kernel";
 
 rules(`
 .qq-graph-names { position: absolute; left: 0; top: 0; }

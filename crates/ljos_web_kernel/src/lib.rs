@@ -13,7 +13,7 @@
 
 use std::cell::{Cell, RefCell};
 
-use ljos_reactive::{Graph, NodeId, ScopeId};
+use ljos_reactive::{Graph, NodeId, NodeState, ScopeId};
 
 #[cfg(target_arch = "wasm32")]
 #[link(wasm_import_module = "ljos")]
@@ -55,6 +55,30 @@ pub struct Kernel {
     nodes: RefCell<Vec<Option<NodeId>>>,
     free: RefCell<Vec<u32>>,
     host: Box<dyn Host>,
+    /// What Solid follows that a change reached, with the node's height,
+    /// held until the page's call into the graph returns.
+    heard: RefCell<Vec<(u32, u32)>>,
+    /// What Solid started to follow inside an evaluation, with the version
+    /// it read.
+    early: RefCell<Vec<(u32, NodeId, Option<u32>)>>,
+    /// How deep the page's calls into the graph are nested (a binding the
+    /// graph evaluates calls in again).
+    depth: Cell<u32>,
+}
+
+/// Ends a call of the page's into the graph: the outermost one tells the
+/// page what it heard.
+struct Call<'k>(&'k Kernel);
+
+impl Drop for Call<'_> {
+    fn drop(&mut self) {
+        let kernel = self.0;
+        let depth = kernel.depth.get() - 1;
+        kernel.depth.set(depth);
+        if depth == 0 {
+            kernel.deliver();
+        }
+    }
 }
 
 impl Kernel {
@@ -67,6 +91,49 @@ impl Kernel {
             nodes: RefCell::new(Vec::new()),
             free: RefCell::new(Vec::new()),
             host,
+            heard: RefCell::new(Vec::new()),
+            early: RefCell::new(Vec::new()),
+            depth: Cell::new(0),
+        }
+    }
+
+    fn call(&self) -> Call<'_> {
+        self.depth.set(self.depth.get() + 1);
+        Call(self)
+    }
+
+    // Kept in height order as it comes: a few at a time, so a place found
+    // from the end costs less than a sort, and less code.
+    fn hear(&self, index: u32, node: NodeId) {
+        let height = self.graph.height(node).unwrap_or(0);
+        let mut heard = self.heard.borrow_mut();
+        let at = heard
+            .iter()
+            .rposition(|&(_, h)| h <= height)
+            .map_or(0, |at| at + 1);
+        heard.insert(at, (index, height));
+    }
+
+    // The graph tells in the order of its own queue, not the order the
+    // change spread in; Qt runs a property's handlers before what a
+    // binding of it gives is told, so a source is told before what
+    // depends on it, and what is as high is told in the order it heard.
+    fn deliver(&self) {
+        let early = std::mem::take(&mut *self.early.borrow_mut());
+        for (index, node, read) in early {
+            let behind = self.graph.state(node) != Some(NodeState::Clean);
+            if behind || self.graph.peek(node) != read {
+                self.hear(index, node);
+            }
+        }
+        loop {
+            let heard = std::mem::take(&mut *self.heard.borrow_mut());
+            if heard.is_empty() {
+                return;
+            }
+            for (index, _) in heard {
+                self.host.changed(index);
+            }
         }
     }
 
@@ -116,21 +183,25 @@ impl Kernel {
 
     /// Brings `index` up to date and, inside a binding, records the read.
     pub fn read(&self, index: u32) {
+        let _call = self.call();
         if let Some(node) = self.node(index) {
             self.graph.try_get(node);
         }
     }
 
-    /// Brings `index` up to date without recording a read.
-    pub fn pull(&self, index: u32) {
-        if let Some(node) = self.node(index) {
-            self.graph.untrack(|| self.graph.try_get(node));
-        }
+    /// Brings `index` up to date without recording a read, and gives its
+    /// version: what moves only when the page's value did.
+    pub fn pull(&self, index: u32) -> u32 {
+        let _call = self.call();
+        self.node(index)
+            .and_then(|node| self.graph.untrack(|| self.graph.try_get(node)))
+            .unwrap_or(0)
     }
 
     /// The page's value of `index` changed: what depends on it is told,
     /// and what follows it runs, before this returns.
     pub fn bump(&self, index: u32) {
+        let _call = self.call();
         if let Some(node) = self.node(index) {
             // A cell is always written, never bound, so the write breaks
             // nothing; a binding is re-run in place.
@@ -142,15 +213,43 @@ impl Kernel {
         }
     }
 
-    /// Has the page told whenever `index` changes: what Solid follows.
+    /// Has the page told whenever `index` may have changed: what Solid
+    /// follows. Nothing is evaluated for the telling; Solid reads the node
+    /// in its own flush, in the order its computations were made, so an
+    /// item a change removes is gone before what it showed is asked again,
+    /// as on Solid's own signals.
     pub fn follow(&'static self, index: u32) -> u32 {
         let Some(node) = self.node(index) else {
             return u32::MAX;
         };
         let watcher = self.number();
+        let _call = self.call();
+        // Followed inside an evaluation (an object a binding makes), the
+        // node may hang on what that binding is working out: the graph
+        // tells what a binding's result reaches only through the mark that
+        // made it out of date, which came before this follow. So the node
+        // is looked at again once the page's call returns.
+        if self.depth.get() > 1 {
+            let read = self.graph.peek(node);
+            self.early.borrow_mut().push((index, node, read));
+        }
+        // The first run links the node, and may be queued behind a change
+        // that reached the node after the page read it: that is told. A
+        // later run is the graph's own catching up (a scope thawed, a mark
+        // while it ran) and is told as a change is.
+        let read = Cell::new(Some(self.graph.peek(node)));
         let effect = self
             .graph
-            .watch(self.root, node, move |_, _| self.host.changed(index))
+            .effect_told(
+                self.root,
+                move |graph| {
+                    let now = graph.try_get(node);
+                    if read.take().is_none_or(|read| read != now) {
+                        self.hear(index, node);
+                    }
+                },
+                move || self.hear(index, node),
+            )
             .expect("the root scope lives");
         self.nodes.borrow_mut()[watcher as usize] = Some(effect);
         watcher
@@ -162,6 +261,7 @@ impl Kernel {
             .borrow_mut()
             .get_mut(index as usize)
             .and_then(Option::take);
+        let _call = self.call();
         if let Some(node) = node {
             let _ = self.graph.dispose(node);
             self.free.borrow_mut().push(index);
@@ -170,6 +270,7 @@ impl Kernel {
 
     /// Defers telling until the outermost batch ends.
     pub fn batch<R>(&self, work: impl FnOnce() -> R) -> R {
+        let _call = self.call();
         self.graph.batch(work)
     }
 
@@ -210,8 +311,8 @@ mod exports {
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn ljos_pull(index: u32) {
-        kernel().pull(index);
+    pub extern "C" fn ljos_pull(index: u32) -> u32 {
+        kernel().pull(index)
     }
 
     #[unsafe(no_mangle)]

@@ -10,9 +10,10 @@
 // control, and a program that uses three of them needs those three.
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { basename, delimiter, dirname, isAbsolute, join, sep } from "node:path";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { basename, delimiter, dirname, isAbsolute, join, relative, resolve as resolvePath, sep } from "node:path";
 import { searchForWorkspaceRoot } from "vite";
+import { CONTROLS } from "./controls.js";
 
 // What marks a `.js` file as the script a QML file imports
 // (`import "logic.js" as Logic`), which `qmlc` makes a module of.
@@ -27,9 +28,33 @@ const isScript = (id) => {
 const runtime = import.meta.dirname;
 const natives = () => JSON.parse(readFileSync(join(runtime, "package.json"), "utf8")).exports;
 
+// The block a QML file is, as `Module/Name`, if its qmldir has a `# block`
+// line naming it (ljos-ui ADR 0003). The module tells apart two blocks of
+// one name.
+const blockOf = (file) => {
+  const qmldir = join(dirname(file), "qmldir");
+  if (!existsSync(qmldir)) return null;
+  const name = basename(file);
+  const lines = readFileSync(qmldir, "utf8").split("\n");
+  const block = lines
+    .map((line) => line.trim())
+    .find((line) => /^#\s*block\s/.test(line) && line.replace(/^#\s*block\s+/, "").split(/\s+/)[2] === name);
+  if (!block) return null;
+  const module = lines.map((line) => /^\s*module\s+(\S+)/.exec(line)?.[1]).find(Boolean) ?? "";
+  return `${module}/${block.replace(/^#\s*block\s+/, "").split(/\s+/)[0]}`;
+};
+
+// A block of a page with a live shell is held (`Ljos/Blocks/held.js`).
+const held = (code, component, block) =>
+  code.replace(new RegExp(`^export default function ${component.replaceAll("$", "\\$")}\\(`, "m"), () => `function ${component}(`) +
+  `\nimport { $held as $$held } from ${JSON.stringify(join(runtime, "Ljos/Blocks/held.js"))};\nexport default $$held(${component}, ${JSON.stringify(block)});\n`;
+
 // `ljos-web/QtQuick/Controls`: a module of Qt's, not `ljos-web/object`.
 const MODULE = /^ljos-web\/(Qt[\w/]*)$/;
 const VIRTUAL = "\0ljos-web:";
+// The theme an entry reads (ljos-ui's `docs/theme.md`): a module of its own,
+// so that a change of the file is taken without the page being made again.
+const THEME = "\0ljos-web-theme:";
 // Qt's own QML is of no program, and takes the style of the one that came
 // to it: its address says which (`DebugView.qml?for=Material`), and so does
 // that of each module on the way.
@@ -57,18 +82,28 @@ const called = (style) => (bespoke(style) ? basename(style) : style);
 const FALLBACK = "Basic";
 
 // What the Qt installed here says of itself: where it keeps its QML modules
-// and its tools, and which Qt it is.
-function installed() {
-  for (const tool of ["qtpaths6", "qtpaths", "qmake6"]) {
+// and its tools, and which Qt it is. Only a Qt 6 is one: Qt 5's `qtpaths`,
+// which a machine may have on its path beside or instead of Qt 6's, knows
+// no `--query`, and Qt 5's `qmake` answers of a Qt whose QML no runtime
+// here compiles. What a tool says on its way to failing is nobody's
+// business: the next one is asked.
+export function installed() {
+  for (const tool of ["qtpaths6", "qtpaths", "qmake6", "qmake"]) {
     const ask = (what) => {
       const asked = spawnSync(tool, [tool.startsWith("qmake") ? "-query" : "--query", what], { encoding: "utf8" });
       return asked.status === 0 ? asked.stdout.trim() : "";
     };
+    const version = ask("QT_VERSION");
+    if (!/^([6-9]|\d{2,})\./.test(version)) continue;
     const qml = ask("QT_INSTALL_QML");
-    if (qml) return { qml, bins: ask("QT_INSTALL_BINS"), version: ask("QT_VERSION") };
+    if (qml) return { qml, bins: ask("QT_INSTALL_BINS"), version };
   }
   return {};
 }
+
+// Whether a directory of QML modules has Qt's controls: a Qt 6's, or one
+// that stands in for it with them.
+export const hasControls = (root) => existsSync(join(root, "QtQuick/Controls/qmldir"));
 
 // `qrc:/qt-project.org/imports/QtQuick/Controls/Basic/images/check.png`:
 // where a module of Qt's keeps the pictures its QML names, inside the plugin
@@ -131,6 +166,48 @@ function extract(tool, uri, folder, directory) {
 // each way of drawing Qt knows: a browser's is OpenGL ES, and that text is
 // what the runtime is given.
 const BAKED = ".qsb";
+
+// A project's type dumps (`ljostypes.json`, as `ljos types` writes them),
+// and where `qmlc --types` shows the stand-ins it makes of them: files that
+// are on no disk, which `qmlc` compiles from the dumps.
+const DUMP = "ljostypes.json";
+const DUMPED = ".ljostypes";
+
+// Every dump under `directory`, as a project keeps them beside the code that
+// writes each. What is no source of the project's is not looked in: a
+// directory starting with a dot (the stand-ins' own), a file selector's
+// (`+Material`), or `node_modules`.
+function dumpsUnder(directory, found = []) {
+  let entries;
+  try {
+    entries = readdirSync(directory, { withFileTypes: true });
+  } catch {
+    return found;
+  }
+  for (const entry of entries.sort((a, b) => (a.name < b.name ? -1 : 1))) {
+    if (entry.isDirectory()) {
+      if (!/^[.+]/.test(entry.name) && entry.name !== "node_modules") dumpsUnder(join(directory, entry.name), found);
+    } else if (entry.name === DUMP) {
+      found.push(join(directory, entry.name));
+    }
+  }
+  return found;
+}
+
+// The stand-in `source` is, from `importer`: a file in a `.ljostypes`
+// directory, which is not there to be found. A stand-in imports another by
+// a path that need not name the directory.
+function standIn(source, importer, root) {
+  const [path] = source.split("?");
+  if (!path.endsWith(".qml")) return null;
+  let file = null;
+  if (/^\.\.?\//.test(path)) file = importer ? join(dirname(importer.split("?")[0]), path) : null;
+  // An address the page asks for: of a file outside the root, from the
+  // root, or a path already.
+  else if (path.startsWith("/@fs/")) file = path.slice("/@fs".length);
+  else if (path.startsWith("/")) file = path.startsWith(root + sep) ? path : join(root, path);
+  return file?.includes(`${sep}${DUMPED}${sep}`) ? file : null;
+}
 
 function baked(context, tool, file, directory) {
   let read = file;
@@ -217,6 +294,41 @@ function exported(context, file, names = new Set(), seen = new Set()) {
   return names;
 }
 
+// Vite's watcher says nothing of a second change of a file within 50 ms of
+// the first, then or after (chokidar's throttle): a save right after a save
+// would go unseen. So a change is told, and the file is looked at once more
+// after that window and told again if it is not what it was. Nothing is
+// looked at while nothing changes.
+const AFTER_THROTTLE_MS = 60;
+const trailing = new Map();
+const stamp = (file) => {
+  try {
+    const { mtimeMs, size, ino } = statSync(file);
+    return `${mtimeMs}:${size}:${ino}`;
+  } catch {
+    return "gone";
+  }
+};
+function told(file, send) {
+  clearTimeout(trailing.get(file));
+  const seen = stamp(file);
+  send();
+  const timer = setTimeout(() => {
+    trailing.delete(file);
+    if (stamp(file) !== seen) told(file, send);
+  }, AFTER_THROTTLE_MS);
+  timer.unref?.();
+  trailing.set(file, timer);
+}
+
+/** What a program reads as data rather than shows. */
+const DATA = /\.(?:json|txt|csv|xml)$/i;
+
+// The compiler as what is run from anywhere: it is run from other directories,
+// where a path the caller gave would mean something else. A bare name is left
+// for the PATH.
+export const compilerAt = (qmlc) => (qmlc.includes("/") || qmlc.includes(sep) ? resolvePath(qmlc) : qmlc);
+
 // - `qmlc`, `args`: the compiler and what it is run with, or a function of
 //   the file compiled that gives that: `--urls-on-assignment` for a program
 //   that sets `QML_COMPAT_RESOLVE_URLS_ON_ASSIGNMENT`, whose paths are taken
@@ -224,6 +336,12 @@ function exported(context, file, names = new Set(), seen = new Set()) {
 // - `qt`: where the QML modules of Qt are, when not where `qtpaths` says:
 //   a directory, or several, a module being of the first to have it. When
 //   not given, `QML_IMPORT_PATH` names more of them, as it does to Qt.
+// - `styles`: whose QML the styles of Qt Quick Controls are: "qt", the
+//   installed Qt's own, or "ljos", Ljós's (`controls/`, with Ljós's
+//   metrics), which need no Qt. Otherwise Qt's where there is a Qt with
+//   them (`qt`, or what `qtpaths` says) and Ljós's where there is none. With
+//   Ljós's, a module of Qt's that Ljós has no style of (Imagine) is still
+//   the installed Qt's.
 // - `style`: what `import QtQuick.Controls` is, "Material" or "Fusion": a
 //   name, or a function of the file that imports it when the files of one
 //   build are not all of one style. Otherwise the one the settings name,
@@ -237,11 +355,67 @@ function exported(context, file, names = new Set(), seen = new Set()) {
 // - `standins`: directories of QML modules, each with its `qmldir`, that
 //   stand in for the types a program has in C++, where there is no C++: or
 //   a function of the file compiled that gives them.
-export default function qml({ qmlc = "qmlc", args = [], qt, style, controls, standins = [] } = {}) {
+// - `root`: the directory of the project, whose modules are the `qmldir`
+//   and `CMakeLists.txt` files under it: or a function of the file compiled
+//   that gives it. Otherwise each file's is the nearest directory above it
+//   whose `CMakeLists.txt` starts a project, or its own.
+// - `importPaths`: directories looked in for a module before the root, as
+//   Qt's `-I` (`mocks`, so that `App.Media` is `mocks/App/Media`), the first
+//   to have it deciding: or a function of the file compiled that gives them.
+// - `theme`: the theme file an entry reads (a path from Vite's root), in place
+//   of the `theme.json` nearest it from its directory up to the project's
+//   (`root`, or the `--root` its `args` give, or its own directory); `false`
+//   for none. Or a function of the entry that gives one of those. A theme
+//   with a mistake in it fails the build, and in the dev server keeps the
+//   page's theme as it was. An entry is a QML file imported by anything but
+//   QML.
+// - `seedHue`: the hue the page's palette is made from, which a theme's
+//   colours are held to unless the theme sets its own: or a function of the
+//   entry. Otherwise the module's.
+// - `inspect`: true for a build `ljos-web/inspect` reads, whose objects,
+//   bindings and `console` lines say where they are written, each file by
+//   its path from Vite's root: or a function of the file compiled that says.
+//   For a dev server; a page built for people to use leaves it out and
+//   carries none of it.
+// - `types`: the type dumps (`ljostypes.json`) of the types a program
+//   registers from Rust, whose types stand in as `ljos run --types` makes
+//   them: paths (from Vite's root), or a function of the file compiled that
+//   gives them; `[]` for none. Otherwise every `ljostypes.json` in the
+//   project (`root`, or the `--root` its `args` give), or, with none named,
+//   the one in the file's own directory, as native Ljós reads the one in
+//   its project's directory. Several are read as one, and a dump that does
+//   not read fails the compile, naming it.
+// - `liveShell`: true for a page whose visitors may drop a shell of their
+//   own over its blocks (`ljos-web/live`, docs/LJOS_WEB.md A9),
+//   `{ site }` to name what the shell is kept under (the project's
+//   directory's name otherwise), or a function of the file compiled that
+//   says. A block of such a page is one instance whichever shell shows it,
+//   and an entry carries what it is compiled against. Off, a page has none
+//   of it.
+export default function qml({
+  qmlc = "qmlc",
+  args = [],
+  qt,
+  styles,
+  style,
+  controls,
+  standins = [],
+  root,
+  importPaths = [],
+  theme,
+  seedHue,
+  inspect = false,
+  types,
+  liveShell = false,
+} = {}) {
   let asked;
   const found = () => (asked ??= installed());
   const elsewhere = process.env.QML_IMPORT_PATH?.split(delimiter) ?? [];
-  const roots = [qt ?? [...elsewhere, process.env.QT_INSTALL_QML ?? found().qml]].flat().filter(Boolean);
+  const qts = [qt ?? [...elsewhere, process.env.QT_INSTALL_QML ?? found().qml]].flat().filter(Boolean);
+  // Ljós's controls are looked in first, so that each module of them is
+  // theirs and none of the installed Qt's QML comes in with them.
+  const ljos = (styles ?? (qts.some(hasControls) ? "qt" : "ljos")) === "ljos";
+  const roots = ljos ? [CONTROLS, ...qts] : qts;
   // Where a module of Qt's is: null when Qt has none of that name here.
   const home = (module) => {
     const root = roots.find((root) => existsSync(join(root, module, "qmldir")));
@@ -256,8 +430,92 @@ export default function qml({ qmlc = "qmlc", args = [], qt, style, controls, sta
   const styled = (importer) =>
     (typeof style === "function" ? style(importer) : style) ?? set(importer)?.Controls?.Style?.replace(/^Default$/, "Basic");
   const stood = (file) => (typeof standins === "function" ? standins(file) : standins) ?? [];
+  const rooted = (file) => (typeof root === "function" ? root(file) : root);
+  qmlc = compilerAt(qmlc);
+  const looked = (file) => (typeof importPaths === "function" ? importPaths(file) : importPaths) ?? [];
   const compiled = new Map();
+  let serving = false;
   let cache = join(runtime, "node_modules/.vite/ljos-web");
+  let base = process.cwd();
+  // The QML files something other than QML imports, and what each theme
+  // module looks at.
+  const entries = new Set();
+  const themes = new Map();
+  const numbered = new Map();
+  let server = null;
+  // A file a theme would be read from: one that is there is a file of the
+  // module, one that is not yet is only looked out for (Vite would take a
+  // watched file that is not there for an import that cannot be resolved).
+  const look = (context, files) => {
+    for (const file of files) {
+      if (existsSync(file)) context.addWatchFile(file);
+      else server?.watcher.add(file);
+    }
+  };
+  const given = (file) => (typeof args === "function" ? args(file) : args) ?? [];
+  // The project an entry's theme is looked for up to: the root it is
+  // compiled with, as qmlc takes it, or its own directory.
+  const named = (file) => {
+    const list = given(file);
+    const at = list.lastIndexOf("--root");
+    return rooted(file) ?? (at >= 0 ? list[at + 1] : undefined);
+  };
+  const projectOf = (file) => {
+    const project = named(file);
+    return project ? resolvePath(project) : dirname(file);
+  };
+  // The dumps `file` is compiled with. A stand-in's file is in its
+  // project's `.ljostypes`, which `qmlc` puts beside the first dump when no
+  // project is named.
+  const dumpsOf = (file) => {
+    const listed = typeof types === "function" ? types(file) : types;
+    if (listed) return [listed].flat().map((dump) => resolvePath(base, dump));
+    const project = named(file);
+    if (project) return dumpsUnder(resolvePath(project));
+    const at = file.lastIndexOf(`${sep}${DUMPED}${sep}`);
+    const dump = join(at >= 0 ? file.slice(0, at) : dirname(file), DUMP);
+    return existsSync(dump) ? [dump] : [];
+  };
+  const themeOf = (file) => {
+    const named = typeof theme === "function" ? theme(file) : theme;
+    const hue = typeof seedHue === "function" ? seedHue(file) : seedHue;
+    const query = new URLSearchParams();
+    if (named === false || named === null) query.set("none", "");
+    else if (named) query.set("file", resolvePath(base, named));
+    else query.set("entry", file), query.set("project", projectOf(file));
+    if (hue !== undefined) query.set("hue", String(hue));
+    // By number: an id with the theme's path in it would be taken for JSON.
+    const asked = String(query);
+    if (!numbered.has(asked)) numbered.set(asked, `${THEME}${numbered.size}`);
+    return numbered.get(asked);
+  };
+  // What `qmlc --theme` says of the theme a theme module is: its overrides
+  // as JSON (`null` for none), or its mistakes, and the files that would
+  // change it: the named one, or each `theme.json` the search looks at.
+  const check = (id) => {
+    const asked = new URLSearchParams([...numbered].find(([, named]) => named === id)?.[0] ?? "none");
+    if (asked.has("none")) return { json: "null", watched: [] };
+    const hue = asked.has("hue") ? ["--seed-hue", asked.get("hue")] : [];
+    let argv, cwd, watched;
+    if (asked.has("file")) {
+      const file = asked.get("file");
+      // Told as a path from the root, as it was named.
+      [argv, cwd, watched] = [["--theme", relative(base, file) || file], base, [file]];
+    } else {
+      const entry = asked.get("entry");
+      const project = asked.get("project");
+      watched = [];
+      for (let dir = dirname(entry); ; dir = dirname(dir)) {
+        watched.push(join(dir, "theme.json"));
+        if (dir === project || !dir.startsWith(project + sep) || dirname(dir) === dir) break;
+      }
+      [argv, cwd] = [["--theme-for", relative(project, entry), "--root", "."], project];
+    }
+    const ran = spawnSync(qmlc, [...argv, ...hue], { cwd, encoding: "utf8" });
+    if (ran.error) return { error: `could not run ${qmlc}: ${ran.error.message}`, watched };
+    if (ran.status !== 0) return { error: ran.stderr.trim(), watched };
+    return { json: ran.stdout.trim(), watched };
+  };
   // The pictures of a module, by what its QML names them: next to the QML
   // when the installation has them there, otherwise read out of the plugin
   // when the QML names any, or what the runtime has of the module does: the
@@ -394,20 +652,42 @@ export default function qml({ qmlc = "qmlc", args = [], qt, style, controls, sta
     // Before Vite's own: a script is told from any other `.js` file by who
     // imports it, and only here is that known.
     enforce: "pre",
+    configureServer(dev) {
+      server = dev;
+    },
     configResolved(config) {
       cache = join(config.cacheDir, "ljos-web");
+      serving = config.command === "serve";
+      base = config.root;
     },
     // Qt's own QML is outside the project. What the runtime itself is built
     // on that is no module (SQLite, for QtQuick.LocalStorage) is bundled
     // for the browser before a page asks for it.
+    //
+    // A file a program reads as data (a `JsonListModel`'s `source`) stays a
+    // file of the site, however small: inlined as a `data:` address it could
+    // not be fetched again, and `reload()` would read what was built.
     config(config) {
       const optimizeDeps = { include: ["ljos-web > sql.js"] };
-      if (roots.length === 0) return { optimizeDeps };
+      const build =
+        config.build?.assetsInlineLimit === undefined
+          ? { assetsInlineLimit: (file) => (DATA.test(file) ? false : undefined) }
+          : undefined;
+      if (roots.length === 0) return { optimizeDeps, build };
       const allowed = config.server?.fs?.allow ? [] : [searchForWorkspaceRoot(config.root ?? process.cwd())];
-      return { optimizeDeps, server: { fs: { allow: [...allowed, ...roots] } } };
+      return { optimizeDeps, build, server: { fs: { allow: [...allowed, ...roots] } } };
     },
     async resolveId(source, importer, options) {
-      if (source.startsWith(VIRTUAL)) return source;
+      if (source.startsWith(VIRTUAL) || source.startsWith(THEME)) return source;
+      const dumped = standIn(source, importer, base);
+      if (dumped) return dumped;
+      // An entry: the page's QML, which reads the page's theme.
+      const fromQml = importer && (importer.split("?")[0].endsWith(".qml") || isScript(importer));
+      if (!fromQml && !source.startsWith("\0") && source.split("?")[0].endsWith(".qml")) {
+        const resolved = await this.resolve(source, importer, { ...options, skipSelf: true });
+        if (resolved && !resolved.external) entries.add(resolved.id.split("?")[0]);
+        return resolved;
+      }
       const module = source.match(MODULE)?.[1];
       const carry = styled(importer) ?? carried(importer);
       if (module && has(module)) {
@@ -444,6 +724,26 @@ export default function qml({ qmlc = "qmlc", args = [], qt, style, controls, sta
       return { ...resolved, id: `${resolved.id}?${SCRIPT}` };
     },
     load(id) {
+      if (id.startsWith(THEME)) {
+        const { json, error, watched } = check(id);
+        themes.set(id, watched);
+        look(this, watched);
+        if (error) this.error(error);
+        const key = JSON.stringify(id);
+        // Taken again when the file changes, while the page keeps all it has.
+        return {
+          code: [
+            `import { themed as $themed, rethemed as $rethemed } from "ljos-web/theme";`,
+            `const checked = ${json};`,
+            `export default $themed(${key}, checked);`,
+            `if (import.meta.hot) {`,
+            `  import.meta.hot.accept();`,
+            `  $rethemed(${key}, checked);`,
+            `}`,
+          ].join("\n") + "\n",
+          map: null,
+        };
+      }
       if (id.startsWith(VIRTUAL)) {
         const [module, query] = id.slice(VIRTUAL.length).split("?");
         const asked = new URLSearchParams(query);
@@ -469,7 +769,13 @@ export default function qml({ qmlc = "qmlc", args = [], qt, style, controls, sta
           this.addWatchFile(about.file);
           // Its QML files, which come before a type of the same name the
           // runtime has: a named export hides one that `export *` brings.
+          // Not so in Ljós's controls, whose QML stands in for what Qt has
+          // in C++ where Ljós's native engine has none of it
+          // (`BusyIndicatorImpl`): what the runtime has of that is it.
+          const ours = home(module).startsWith(CONTROLS + sep);
+          const own = ours && native ? exported(this, join(runtime, native)) : new Set();
           for (const [name, file] of about.types) {
+            if (own.has(name)) continue;
             lines.push(`export { default as ${name} } from ${JSON.stringify(join(home(module), file) + carry)};`);
           }
           const pictures = [...kept(module, about, "images"), ...kept(module, about, "shaders").filter(([, file]) => file.endsWith(BAKED)), ...lodged(module, about)];
@@ -506,7 +812,8 @@ export default function qml({ qmlc = "qmlc", args = [], qt, style, controls, sta
       // its instances decides what it takes. A build that watches rebuilds
       // it when any of them changes.
       const directory = dirname(file);
-      for (const sibling of readdirSync(directory)) {
+      // A stand-in a dump makes has no directory on the disk.
+      for (const sibling of existsSync(directory) ? readdirSync(directory) : []) {
         if (sibling.endsWith(".qml")) this.addWatchFile(join(directory, sibling));
       }
       // The style of the controls is a file selector, as it is in Qt: a
@@ -529,24 +836,116 @@ export default function qml({ qmlc = "qmlc", args = [], qt, style, controls, sta
       // Qt's own is compiled once, whichever programs come to it.
       const own = roots.some((root) => file.startsWith(root + sep));
       if (own && compiled.has(file)) return { code: compiled.get(file), map: null };
-      const result = spawnSync(qmlc, [...(typeof args === "function" ? args(file) : args), ...more.flatMap((directory) => ["--with", directory]), ...(selector ? ["--select", selector] : []), file], {
+      // Where Qt's modules are is told, so that a module of the installed
+      // Qt's is one `qmlc` knows to be installed.
+      const project = rooted(file);
+      // Qt's own QML is no project's, and takes none of its types.
+      const dumps = own ? [] : dumpsOf(file);
+      for (const dump of dumps) if (existsSync(dump)) this.addWatchFile(dump);
+      const given = [
+        ...(typeof args === "function" ? args(file) : args),
+        ...(project ? ["--root", project] : []),
+        ...dumps.flatMap((dump) => ["--types", dump]),
+        ...looked(file).flatMap((directory) => ["-I", directory]),
+        ...more.flatMap((directory) => ["--with", directory]),
+        ...roots.flatMap((root) => ["--qt", root]),
+        ...(selector ? ["--select", selector] : []),
+        ...((typeof inspect === "function" ? inspect(file) : inspect) ? ["--inspect", relative(base, file).split(sep).join("/")] : []),
+      ];
+      const result = spawnSync(qmlc, [...given, file], {
         encoding: "utf8",
       });
       if (result.error) this.error(`could not run ${qmlc}: ${result.error.message}`);
       if (result.status !== 0) this.error(result.stderr.trim());
       if (own) compiled.set(file, result.stdout);
-      return { code: result.stdout, map: null };
+      let code = result.stdout;
+      const component = !own && /^export default (?:function\s+|class\s+)?([A-Za-z_$][\w$]*)/m.exec(code)?.[1];
+      if (!component) return { code, map: null };
+      const live = typeof liveShell === "function" ? liveShell(file) : liveShell;
+      const block = live && blockOf(file);
+      if (block) code = held(code, component, block);
+      // What a dropped shell is compiled against: the blocks the entry
+      // uses, as their qmldir says, and their components.
+      if (live && entries.has(file)) {
+        // Asked with what the file is compiled with, and told which directory
+        // the files are from: the one lookup says both.
+        const asked = spawnSync(qmlc, ["--shell", ...given, file], { encoding: "utf8" });
+        if (asked.error) this.error(`could not run ${qmlc}: ${asked.error.message}`);
+        if (asked.status !== 0) this.error(asked.stderr.trim());
+        for (const line of asked.stderr.split("\n")) if (line.trim()) this.warn(line.replace(/^warning: /, ""));
+        const { root: home, blocks: contracts } = JSON.parse(asked.stdout);
+        const site = (typeof live === "object" && live.site) || basename(named(file) ? resolvePath(named(file)) : home);
+        const imports = contracts.map((contract, at) => `import $$block${at} from ${JSON.stringify(resolvePath(home, contract.file))};`);
+        const blocks = contracts.map((contract, at) => `{ ...${JSON.stringify(contract)}, component: $$block${at} }`);
+        code += `\n${imports.join("\n")}\n${component}.$live = { site: ${JSON.stringify(site)}, blocks: [${blocks.join(", ")}] };\n`;
+      }
+      // An entry's theme is put on the page as it is mounted. Checked here
+      // too, so a theme that is refused is told as the entry fails, where
+      // whoever asked for the entry hears it.
+      if (entries.has(file)) {
+        const themeId = themeOf(file);
+        const checked = check(themeId);
+        look(this, checked.watched);
+        if (checked.error) this.error(checked.error);
+        code += `import $theme from ${JSON.stringify(themeId)};\n${component}.$theme = $theme;\n`;
+      }
+      // A dev server keeps a page's state on a save: what is mounted from
+      // the file takes the new component (`reload.js`). With nothing mounted
+      // from it, what imported it runs again. A file that does not compile
+      // comes as no module: what is mounted stays, beside Vite's error.
+      if (serving) {
+        const reloading = JSON.stringify(join(runtime, "reload.js"));
+        const accept = [
+          `import { $hot as $$hot, $reloaded as $$reloaded } from ${reloading};`,
+          "if (import.meta.hot) {",
+          "  $$hot();",
+          `  import.meta.hot.accept((next) => { if (next && !$$reloaded(${component}, next.default)) import.meta.hot.invalidate(); });`,
+          "}",
+        ];
+        code += `\n${accept.join("\n")}\n`;
+      }
+      return { code, map: null };
     },
     // The same for the dev server: a changed file takes the compiled output
-    // of its whole directory with it.
-    hotUpdate({ file, modules }) {
-      if (!file.endsWith(".qml")) return;
-      const directory = dirname(file);
-      const affected = new Set(modules);
-      for (const module of this.environment.moduleGraph.idToModuleMap.values()) {
-        if (module.file?.endsWith(".qml") && dirname(module.file) === directory) affected.add(module);
+    // of its whole directory with it, and of every QML file that imports
+    // one of those, as each is compiled against the types of the others.
+    // Only the files something else than QML imports are reloaded: the new
+    // one imports the others anew, so a root mounted from it is made again
+    // with all of them, once.
+    hotUpdate({ file, modules, timestamp }) {
+      // A theme file: its theme module is taken again, and nothing else.
+      const reading = [...themes].filter(([, watched]) => watched.includes(file)).map(([id]) => this.environment.moduleGraph.getModuleById(id));
+      if (reading.length > 0) return reading.filter(Boolean);
+      // A file no module imports, saved, made or removed: what the page reads
+      // of it at run time (a JsonListModel's `source`) is read again
+      // (`ljos-web/files`), where it is served from. Nothing is reloaded.
+      if (modules.length === 0 && !/\.(qml|html)$/.test(file) && this.environment.name === "client") {
+        const paths = [`${server.config.base}@fs${file.startsWith("/") ? "" : "/"}${file.split(sep).join("/")}`];
+        for (const root of [base, server.config.publicDir].filter(Boolean)) {
+          const inside = relative(root, file);
+          if (!inside.startsWith("..") && !isAbsolute(inside)) paths.unshift(`${server.config.base}${inside.split(sep).join("/")}`);
+        }
+        const hot = this.environment.hot;
+        told(file, () => hot.send({ type: "custom", event: "ljos-web:file", data: { paths } }));
+        return;
       }
-      return [...affected];
+      if (!file.endsWith(".qml")) return;
+      const graph = this.environment.moduleGraph;
+      const directory = dirname(file);
+      const isQml = (module) => module.file?.endsWith(".qml");
+      const affected = new Set(modules);
+      for (const module of graph.idToModuleMap.values()) {
+        if (isQml(module) && dirname(module.file) === directory) affected.add(module);
+      }
+      const around = [...affected];
+      while (around.length > 0) {
+        for (const importer of around.pop().importers) {
+          if (isQml(importer) && !affected.has(importer)) around.push(affected.add(importer) && importer);
+        }
+      }
+      const seen = new Set();
+      for (const module of affected) graph.invalidateModule(module, seen, timestamp, true);
+      return [...affected].filter((module) => [...module.importers].some((importer) => !isQml(importer)));
     },
   };
 }

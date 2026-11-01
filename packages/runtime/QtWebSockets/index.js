@@ -4,8 +4,10 @@
 // in `status` how far along that is, every step of the way as Qt does. Two
 // things a browser keeps to itself: why a connection failed, and pings,
 // which it answers and never sends.
-import { onCleanup, untrack } from "solid-js";
+import { mayFetch } from "../guard.js";
+import { onCleanup } from "solid-js";
 import { defineType, QtObject, settle, slot, whenComplete } from "../object.js";
+import { untrack } from "#kernel";
 
 const CONNECTING = 0;
 const OPEN = 1;
@@ -38,7 +40,8 @@ function open(self, url) {
   write(self, "negotiatedSubprotocol", "");
   let socket;
   try {
-    socket = new window.WebSocket(url, untrack(() => self.requestedSubprotocols) ?? []);
+    if (!mayFetch(url)) throw new Error(`${url} is not opened while a dropped shell is shown`);
+    socket = new window.WebSocket(url, untrack(() => self.requestedSubprotocols) ?? []); // guarded
   } catch (error) {
     write(self, "status", CLOSED);
     return fail(self, String(error?.message ?? error));

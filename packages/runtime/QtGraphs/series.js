@@ -1,9 +1,10 @@
 // What a graph shows: bars in sets, and the mapper that makes sets of a
 // model's cells. A series keeps its sets; the GraphsView it is in works out
 // where their bars are and what colours they have.
-import { onCleanup, runWithOwner, untrack } from "solid-js";
+import { onCleanup, runWithOwner } from "solid-js";
 import { contents, defineType, derived, effect, QtObject, settle, slot } from "../object.js";
 import { color, colorValue } from "../QtQuick/color.js";
+import { untrack } from "#kernel";
 
 const next = (version) => version + 1;
 const NONE = Object.freeze([]);

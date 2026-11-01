@@ -1,0 +1,3 @@
+module Shop
+# block Basket 1.0 Basket.qml Shop "Holds what the visitor buys"
+Basket 1.0 Basket.qml

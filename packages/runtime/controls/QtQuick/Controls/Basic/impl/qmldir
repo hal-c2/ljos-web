@@ -1,0 +1,3 @@
+# Written by ljos-web (packages/runtime/controls.js) for Ljós's own QML: not Qt's.
+module QtQuick.Controls.Basic.impl
+BusyIndicatorImpl 6.0 BusyIndicatorImpl.qml

@@ -6,7 +6,6 @@
 //
 // This follows Qt's `QQuickStackView` step by step, down to the order its
 // signals come in: QML written for it leans on that.
-import { untrack } from "solid-js";
 import { defineType, derived, effect, instantiate, QtObject, slot, whenComplete } from "../../object.js";
 import { Property } from "../animation/property.js";
 import { STOPPED } from "../animation/jobs.js";
@@ -14,6 +13,7 @@ import { sized } from "../compute.js";
 import { arrived, departing, setFocus } from "../focus.js";
 import { settle } from "../settle.js";
 import { Control } from "./Control.js";
+import { untrack } from "#kernel";
 
 const Inactive = 0;
 const Deactivating = 1;

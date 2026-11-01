@@ -4,9 +4,10 @@
 // whether the page may know. A browser tells of a place when it has one:
 // `updateInterval` is how old the one it gives may be. What it knows nothing
 // of (how fast the device climbs, where the compass points) is never valid.
-import { onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { defineType, derived, QtObject, settle, slot, whenComplete } from "../object.js";
 import { coordinate, INVALID } from "./coordinate.js";
+import { untrack } from "#kernel";
 
 const SATELLITE = 0xff;
 const ALL = -1;

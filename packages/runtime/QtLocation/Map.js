@@ -6,15 +6,16 @@
 // as elements of one layer which is moved, enlarged and turned as a whole:
 // a tile is an element for as long as it is in view, and the element of one
 // that left is the next one's.
-import { untrack } from "solid-js";
+import { allowedStyle, sourced } from "../guard.js";
 import { defineType, derived, effect, slot } from "../object.js";
 import { coordinate, fromMercator, INVALID, latitudeAt, mercatorX, mercatorY } from "../QtPositioning/coordinate.js";
 import { Point } from "../QtQml/values.js";
 import { colorValue, css } from "../QtQuick/color.js";
 import { lazy, rules } from "../QtQuick/compute.js";
 import { Item } from "../QtQuick/Item.js";
-import { elements } from "../QtQuick/richtext.js";
+import { elements, markupInert } from "../QtQuick/richtext.js";
 import { NO_MAP, sourceOf } from "./Plugin.js";
+import { untrack } from "#kernel";
 
 rules(`
 .qq-tiles { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; pointer-events: none; user-select: none; }
@@ -188,10 +189,13 @@ function lay(tiles, pattern, level, left, top, right, bottom) {
         image = spare.pop() ?? tile(layer);
         image.$x = x;
         image.$y = y;
-        image.src = pattern
-          .replace("%z", level)
-          .replace("%x", ((x % count) + count) % count)
-          .replace("%y", y);
+        sourced(
+          image,
+          pattern
+            .replace("%z", level)
+            .replace("%x", ((x % count) + count) % count)
+            .replace("%y", y),
+        );
         shown.push(image);
       }
       image.style.transform = `translate(${(x - left) * TILE}px,${(y - top) * TILE}px)`;
@@ -340,7 +344,7 @@ export const Map = defineType("Map", Item, {
     );
     effect(
       () => css(self.color),
-      (background) => void (node.style.background = background),
+      (background) => void (node.style.background = allowedStyle(background)),
     );
     effect(
       () => (self.activeMapType, self.$view()),
@@ -374,6 +378,9 @@ export const Map = defineType("Map", Item, {
     bound(() => deepest(self), false);
     // Whose the map is, in a corner of it, over every item on it.
     let noticed = null;
+    effect(markupInert, () => {
+      if (noticed) notice.replaceChildren(elements(sourceOf(noticed)?.copyright ?? ""));
+    });
     effect(
       () => (ready(self) ? self.activeMapType : null),
       (type) => {

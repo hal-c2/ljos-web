@@ -7,7 +7,6 @@
 // What a RandomInstancing makes up from a seed it makes up as Qt does: the
 // numbers are those of Qt's own generator, drawn in Qt's order, so a table
 // with a seed is the same table here.
-import { untrack } from "solid-js";
 import { defineType, effect, inside as within, slot } from "../../object.js";
 import { Vector3d } from "../../QtQml/values.js";
 import { color, hsla, hsva, rgba } from "../../QtQuick/color.js";
@@ -16,6 +15,7 @@ import { ENTRY, enter, Instancing } from "../instancing.js";
 import * as math from "../math.js";
 import { Object3D } from "../Node.js";
 import { Repeater3D } from "../Repeater3D.js";
+import { untrack } from "#kernel";
 
 const RGB = 0;
 const HSV = 1;

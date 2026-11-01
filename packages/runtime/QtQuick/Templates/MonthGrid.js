@@ -3,7 +3,7 @@
 // and AbstractWeekNumberColumn, the numbers of those weeks. Each has a
 // `source`, the model the style's Repeater makes the `delegate` for, and
 // makes the cells as big as there is room for.
-import { createSignal, onCleanup, runWithOwner, untrack } from "solid-js";
+import { onCleanup, runWithOwner } from "solid-js";
 import { defineType, derived, effect, last, settle, slot } from "../../object.js";
 import { styleHints } from "../../QtQml/application.js";
 import { Locale } from "../../QtQml/locale.js";
@@ -13,8 +13,9 @@ import { after, cancel } from "../pointer.js";
 import { day } from "./Calendar.js";
 import { Control } from "./Control.js";
 import { close } from "./Slider.js";
+import { signal, untrack } from "#kernel";
+import { speaks } from "../Accessible.js";
 
-const WRITABLE = { ownedWrite: true };
 const WEEKS = 6;
 const DAYS = 7;
 
@@ -132,7 +133,7 @@ function share(self, across, down) {
 // looks, so that is done here at once; what the layout makes of the control
 // meanwhile is looked at when it has settled.
 function shares(self, across, down) {
-  const [seen, see] = createSignal(null, WRITABLE);
+  const [seen, see] = signal(null, self.$owner);
   let found = [];
   let settled = true;
   let again = false;
@@ -312,3 +313,7 @@ export const AbstractMonthGrid = defineType("AbstractMonthGrid", Control, {
     onCleanup(() => cancel(mine.hold));
   },
 });
+
+speaks(AbstractMonthGrid, "Table");
+speaks(AbstractDayOfWeekRow, "Row");
+speaks(AbstractWeekNumberColumn, "Column");

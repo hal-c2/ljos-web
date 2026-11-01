@@ -7,8 +7,8 @@
 // parent's. A View3D reads those of the nodes inside it to draw them.
 //
 // Not here: `layers` and `staticFlags` do nothing.
-import { createMemo, runWithOwner } from "solid-js";
-import { contents, defineType, derived, group, parental, parented, QtObject, settle, slot } from "../object.js";
+import { runWithOwner } from "solid-js";
+import { contents, defineType, derived, group, memo, parental, parented, QtObject, settle, slot } from "../object.js";
 import { Vector3d } from "../QtQml/values.js";
 import { stateful } from "../QtQuick/states.js";
 import * as math from "./math.js";
@@ -22,8 +22,8 @@ const AXES = ["x", "y", "z"];
 // A value worked out when it is first asked for and again when what it was
 // worked out from changed: a node nothing draws works nothing out.
 export function kept(self, compute) {
-  let memo;
-  return () => (memo ??= runWithOwner(self.$owner, () => createMemo(compute)))();
+  let read;
+  return () => (read ??= runWithOwner(self.$owner, () => memo(compute, {})))();
 }
 
 // What is declared inside an object in space is in it: its children are

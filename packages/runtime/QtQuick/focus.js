@@ -4,8 +4,9 @@
 // at most one item has `focus`, and the one that has `activeFocus` is found
 // by going from the window down through the scopes that have it. A window
 // here is one tree of items, whatever it was mounted in.
-import { createEffect, onCleanup, runWithOwner, untrack } from "solid-js";
+import { createEffect, onCleanup, runWithOwner } from "solid-js";
 import { settle, slot, whenComplete } from "../object.js";
+import { untrack } from "#kernel";
 
 const parentOf = (item) => {
   const parent = untrack(() => item.parent);
@@ -210,6 +211,15 @@ export function arrived(item) {
 // the keys go to.
 export function forceActiveFocus(item, reason) {
   setFocus(item, true, reason);
+  // One that kept its `focus` when it left the scope it was in, as a block
+  // does between shells, is no scope's focus item here until it is given.
+  const held = windowOf(item);
+  const inScope = scopeOf(item, held);
+  if (inScope.$subFocus !== item) {
+    const changed = [];
+    give(held, inScope, item, changed);
+    tell(held, changed, reason);
+  }
   for (let parent = parentOf(item); parent; parent = parentOf(parent)) {
     if (parent.$focusScope) setFocus(parent, true, reason);
   }

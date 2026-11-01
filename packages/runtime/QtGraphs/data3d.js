@@ -9,12 +9,13 @@
 // Not here: `useModelCategories`, the patterns a role's text is searched
 // with, and `multiMatchBehavior`: of two rows that say the same cell the
 // last one is it, which is what Qt does until told otherwise.
-import { onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { contents, defineType, derived, effect, inside, QtObject, settle, slot } from "../object.js";
 import { Point } from "../QtQml/values.js";
 import { color, colorValue } from "../QtQuick/color.js";
 import { columnsOf, rowsOf } from "../QtQuick/model.js";
 import { kept } from "../QtQuick3D/Node.js";
+import { untrack } from "#kernel";
 
 const next = (version) => version + 1;
 const NONE = Object.freeze([]);

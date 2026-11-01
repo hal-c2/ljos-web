@@ -1,9 +1,9 @@
 // Fonts: QML's `font` group as CSS, and how wide and how tall text set in
 // one is. Text is measured here, on a canvas, and not by laying out
 // elements: a binding reads `implicitWidth` before anything is in the page.
-import { createSignal } from "solid-js";
 import { derived, flush, group, kinds, typed } from "../object.js";
 import { given } from "./compute.js";
+import { signal } from "#kernel";
 
 // `Font.Bold`, `Font.AllUppercase`: the enums of the `font` value type.
 export const Font = Object.freeze({
@@ -190,7 +190,7 @@ export function capitalized(text, mode) {
 
 // Read by whatever measures: it is measured again when a web font arrives,
 // since until then the text was set in the fallback.
-const [version, setVersion] = createSignal(0, { ownedWrite: true });
+const [version, setVersion] = signal(0);
 export const fonts = version;
 
 const widths = new Map();

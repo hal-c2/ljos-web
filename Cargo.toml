@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/ljos_web", "crates/ljos_web_kernel"]
+members = ["crates/ljos_web", "crates/ljos_web_compiler", "crates/ljos_web_kernel"]
 exclude = ["vendor"]
 
 [workspace.package]
@@ -13,11 +13,22 @@ license = "MIT"
 [profile.dev]
 debug = "line-tables-only"
 
-# The kernel's wasm, as small as it can be made: it is in every page.
+# The kernel's wasm: it is in every page, and a tracked read crosses into
+# it. `opt-level = 2` is both smaller and faster than "z" or "s" here: at
+# "z" nothing on the read path is inlined, so a read is five calls deep
+# (and a write ~3.5x slower), while the inlining folds away more code than
+# it copies. Measured with `mise run build:kernel` and the read bench.
 [profile.wasm]
 inherits = "release"
-opt-level = "z"
+opt-level = 2
 lto = true
 codegen-units = 1
 panic = "abort"
 strip = true
+
+# The compiler a page loads the first time it compiles QML: once per page,
+# off any path a frame waits on, so the smallest. "z" is 1,084 kB gzip
+# against 1,251 kB at "s" and 1,366 kB at 2.
+[profile.compiler]
+inherits = "wasm"
+opt-level = "z"

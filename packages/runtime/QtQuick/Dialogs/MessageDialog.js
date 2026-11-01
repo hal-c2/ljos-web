@@ -2,10 +2,11 @@
 // for. It looks as the browser draws a dialog and its buttons, and is modal
 // as the browser makes one: the page behind it takes no press, Escape
 // rejects it.
-import { onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { defineType, effect } from "../../object.js";
 import { rules } from "../compute.js";
 import { Dialog } from "./Dialog.js";
+import { untrack } from "#kernel";
 
 rules(`
 .qq-message { box-sizing: border-box; min-width: 18em; max-width: min(32em, calc(100vw - 2em)); padding: 1.25em; border: 1px solid ButtonBorder; border-radius: 8px; font: 14px/1.4 system-ui, sans-serif; }

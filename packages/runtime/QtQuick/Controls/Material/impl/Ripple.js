@@ -3,13 +3,14 @@
 // and a wave that spreads from where it was pressed and fades away when it
 // is let go. The times and the order of things are Qt's
 // (`qquickmaterialripple.cpp`), its oddities with them.
-import { onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { defineType, effect } from "../../../../object.js";
 import { clock } from "../../../animation/clock.js";
 import { colorValue, css } from "../../../color.js";
 import { rules } from "../../../compute.js";
 import { Item } from "../../../Item.js";
 import { part } from "../../painting.js";
+import { untrack } from "#kernel";
 
 rules(`
 .qq-ripple-wave { border-radius: 50%; }

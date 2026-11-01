@@ -4,10 +4,12 @@
 // An item needs none of its own: `ToolTip.text` and `ToolTip.visible` show
 // the one tool tip all the items share, made from the style's ToolTip the
 // first time it is wanted.
-import { onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { defineType, effect, instantiate, last, onChange, QtObject, slot, whenComplete } from "../../object.js";
 import { after, cancel } from "../pointer.js";
 import { itemOf, Popup } from "./Popup.js";
+import { untrack } from "#kernel";
+import { speaks } from "../Accessible.js";
 
 const never = () => false;
 
@@ -186,3 +188,5 @@ ToolTip.attached = function (self) {
     asking = before;
   }
 };
+
+speaks(ToolTip, "ToolTip");

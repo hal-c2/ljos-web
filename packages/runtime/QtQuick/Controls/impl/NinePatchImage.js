@@ -8,10 +8,11 @@
 // The marks are read as Qt reads them (`qquickninepatchimage.cpp`), and
 // the picture is painted on a canvas, piece by piece. Any other picture is
 // an Image's.
-import { createSignal } from "solid-js";
+import { sourced } from "../../../guard.js";
 import { defineType, derived, effect } from "../../../object.js";
 import { lazy, rules } from "../../compute.js";
 import { Image, picture } from "../../Image.js";
+import { signal } from "#kernel";
 
 // The picture is on the canvas: with its frame it is no background.
 rules(`
@@ -136,7 +137,7 @@ function patched(url) {
     record.settle(READY);
   };
   element.onerror = () => record.settle(ERROR);
-  element.src = url;
+  sourced(element, url);
   return record;
 }
 
@@ -236,7 +237,7 @@ export const NinePatchImage = defineType("NinePatchImage", Image, {
     const context = canvas.getContext("2d");
     // What a shader that is given the item draws with: the canvas, as it
     // was last painted, and only while it is what the item shows.
-    const [painted, paint] = createSignal(null, { ownedWrite: true, equals: false });
+    const [painted, paint] = signal(null, self.$owner, { equals: false });
     self.$canvas = {
       get element() {
         return painted();

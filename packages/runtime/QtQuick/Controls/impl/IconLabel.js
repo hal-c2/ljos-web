@@ -1,6 +1,5 @@
 // IconLabel: an icon and a text, beside or under one another: what a button
 // has inside it. Its implicit size is what makes the button's.
-import { untrack } from "solid-js";
 import { defineType, derived, effect, group, inside, slot } from "../../../object.js";
 import { color, colorValue } from "../../color.js";
 import { lazy } from "../../compute.js";
@@ -8,6 +7,7 @@ import { font } from "../../font.js";
 import { Item } from "../../Item.js";
 import { IconImage } from "./images.js";
 import { MnemonicLabel } from "./texts.js";
+import { untrack } from "#kernel";
 
 const ICON_ONLY = 0;
 const TEXT_ONLY = 1;

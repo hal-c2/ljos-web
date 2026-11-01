@@ -1,10 +1,11 @@
 // ContextMenu: the menu an item shows when it is asked for one, with the
 // right button or the menu key. It is attached to the item, and its menu is
 // made when first asked for: a style gives every field one.
-import { onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { defineType, QtObject, settle } from "../../object.js";
 import { Point } from "../../QtQml/values.js";
 import { globalToScene, sceneToItem } from "../geometry.js";
+import { untrack } from "#kernel";
 
 // Qt's `qRound`.
 const round = (value) => (value >= 0 ? Math.floor(value + 0.5) : Math.ceil(value - 0.5));

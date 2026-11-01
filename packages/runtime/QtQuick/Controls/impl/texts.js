@@ -86,7 +86,7 @@ export const ClippedText = defineType("ClippedText", Text, {
         node.classList.toggle("qq-clipped", Boolean(clip));
         if (!clip) return void (node.style.clipPath = "");
         const [x, y, width, height] = clip;
-        node.style.clipPath = `polygon(${x}px ${y}px, ${x + width}px ${y}px, ${x + width}px ${y + height}px, ${x}px ${y + height}px)`;
+        node.style.clipPath = `polygon(${x}px ${y}px, ${x + width}px ${y}px, ${x + width}px ${y + height}px, ${x}px ${y + height}px)`; // guarded: numbers
       },
     );
   },

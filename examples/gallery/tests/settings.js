@@ -4,11 +4,14 @@
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { compilerAt } from "ljos-web/vite";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repository = resolve(here, "../../..");
 
-export const qmlc = resolve(process.env.QMLC ?? join(repository, "target/debug/qmlc"));
+export const qmlc = compilerAt(process.env.QMLC ?? join(repository, "target/debug/qmlc"));
+// Vite's server runs from the gallery, not from where it was named from.
+if (process.env.QMLC) process.env.QMLC = qmlc;
 export const port = Number(process.env.GALLERY_PORT ?? 4174);
 // What says which modules of Qt the runtime has.
 export const runtimePackage = join(repository, "packages/runtime/package.json");

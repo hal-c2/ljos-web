@@ -6,13 +6,11 @@
 // spot is told as it comes, moves, leaves and is dropped. What is dragged
 // into the page from outside it, and out of it, is the browser's and is not
 // done here.
-import { createSignal, untrack } from "solid-js";
 import { defineType, effect, group, QtObject, settle, slot } from "../object.js";
 import { later } from "./animation/clock.js";
 import { itemToScene, sceneToGlobal, sceneToItem, topOf } from "./geometry.js";
 import { Item } from "./Item.js";
-
-const WRITABLE = { ownedWrite: true };
+import { signal, untrack } from "#kernel";
 
 const IgnoreAction = 0;
 const MoveAction = 2;
@@ -174,7 +172,7 @@ function deliver(self, mine) {
 // those that would not.
 function state(self) {
   if (self.$drag) return self.$drag;
-  const [on, setOn] = createSignal(false, WRITABLE);
+  const [on, setOn] = signal(false, self.$owner);
   const item = self.$props.$attachee;
   return (self.$drag = { item, on, setOn, wanted: false, target: null, inside: false, refused: new Set(), at: null });
 }

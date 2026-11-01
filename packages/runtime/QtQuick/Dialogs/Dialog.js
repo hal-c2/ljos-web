@@ -5,10 +5,10 @@
 // `visible` and `result` are told, not kept in slots: Qt says in a fixed
 // order that a dialog closed and how it ended, and a handler finds the
 // dialog as it is at that point.
-import { createSignal, onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { contents, defineType, effect, QtObject, settle } from "../../object.js";
+import { signal, untrack } from "#kernel";
 
-const WRITABLE = { ownedWrite: true };
 const REJECTED = 0;
 const ACCEPTED = 1;
 const WINDOW_MODAL = 1;
@@ -103,8 +103,8 @@ export const Dialog = defineType("Dialog", QtObject, {
     self.$dialog.data = contents(props);
   },
   setup(self, props) {
-    const [visible, setVisible] = createSignal(false, WRITABLE);
-    const [result, setResult] = createSignal(REJECTED, WRITABLE);
+    const [visible, setVisible] = signal(false, self.$owner);
+    const [result, setResult] = signal(REJECTED, self.$owner);
     self.$dialog = { shown: false, visible, setVisible, result, setResult, data: [] };
     // `visible: true`, or bound: the same as `open()` and `close()`.
     effect(

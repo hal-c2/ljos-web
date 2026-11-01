@@ -1,7 +1,7 @@
 // `import Qt.labs.synchronizer`: two properties kept at one value, whichever
 // of them changes.
-import { untrack } from "solid-js";
 import { defineType, effect, QtObject } from "../../../object.js";
+import { untrack } from "#kernel";
 
 // A property by the name the compiler gives it: `value`, or `anchors$margins`
 // for one of a group.

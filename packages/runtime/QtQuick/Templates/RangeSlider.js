@@ -1,12 +1,14 @@
 // RangeSlider: two values between `from` and `to`, each with a handle on
 // the same groove. `first` and `second` are objects with what a slider has
 // for its one handle; the first never passes the second.
-import { untrack } from "solid-js";
 import { defineType, derived, effect, QtObject, settle, slot } from "../../object.js";
+import { parts } from "./parts.js";
 import { forceActiveFocus, MouseFocusReason, windowOf } from "../focus.js";
 import { Key, LeftButton } from "../keycodes.js";
 import { Control, keeps, loose, put } from "./Control.js";
 import { along, clamp, close, dragged, Horizontal, keep, nothing, now, round, scaled, SnapMode, snapPosition, step, Vertical } from "./Slider.js";
+import { untrack } from "#kernel";
+import { speaks } from "../Accessible.js";
 
 const other = (node) => (node.$range.first ? node.$range.slider.$slider.second : node.$range.slider.$slider.first);
 
@@ -57,7 +59,7 @@ const RangeSliderNode = defineType("RangeSliderNode", QtObject, {
       const slider = self.$range.slider;
       return slider.orientation === Vertical || slider.mirrored ? 1 - self.position : self.position;
     }),
-    handle: null,
+    handle: parts,
     pressed: false,
     hovered: false,
     implicitHandleWidth: derived((self) => self.handle?.implicitWidth ?? 0),
@@ -324,3 +326,5 @@ export const RangeSlider = defineType("RangeSlider", Control, {
     );
   },
 });
+
+speaks(RangeSlider, "Slider");

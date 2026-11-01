@@ -8,6 +8,7 @@
 //
 // The picture is as large as the item, one pixel for one: it is not made
 // finer for a screen that has more of them.
+import { allowedStyle, sourced } from "../guard.js";
 import { onCleanup } from "solid-js";
 import { Rect, Size } from "../QtQml/values.js";
 import { defineType, derived, effect, settle, slot } from "../object.js";
@@ -115,6 +116,9 @@ function wrap(self, native) {
     },
     set shadowColor(value) {
       native.shadowColor = css(value);
+    },
+    set filter(value) {
+      native.filter = allowedStyle(value);
     },
     fill() {
       native.fill(fills());
@@ -341,7 +345,7 @@ export const Canvas = defineType("Canvas", Item, {
           };
           image.onload = arrived("loaded");
           image.onerror = arrived("error");
-          image.src = url;
+          sourced(image, url);
         }
         return entry?.state === "loaded" ? entry.image : null;
       },

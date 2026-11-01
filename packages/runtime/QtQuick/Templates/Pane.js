@@ -1,9 +1,11 @@
 // Pane, and what is one with something added: Frame, GroupBox, Page and
 // ToolBar. What is declared in a pane is in its content item.
-import { untrack } from "solid-js";
 import { contents, defineType, derived, effect, inside, slot, whenComplete } from "../../object.js";
+import { parts } from "./parts.js";
 import { Item } from "../Item.js";
 import { Control, keeps } from "./Control.js";
+import { untrack } from "#kernel";
+import { speaks } from "../Accessible.js";
 
 // What the content would like to be: what the content item says, or with
 // one item in it and nothing said, that item.
@@ -52,7 +54,7 @@ export const Frame = defineType("Frame", Pane);
 export const GroupBox = defineType("GroupBox", Frame, {
   properties: {
     title: "",
-    label: null,
+    label: parts,
     implicitLabelWidth: derived((self) => self.label?.implicitWidth ?? 0),
     implicitLabelHeight: derived((self) => self.label?.implicitHeight ?? 0),
   },
@@ -95,8 +97,8 @@ export const band = (item, spacing = 0) => (tall(item) > 0 ? tall(item) + spacin
 export const Page = defineType("Page", Pane, {
   properties: {
     title: "",
-    header: null,
-    footer: null,
+    header: parts,
+    footer: parts,
     implicitHeaderWidth: derived((self) => (self.header?.visible ? self.header.implicitWidth : 0)),
     implicitHeaderHeight: derived((self) => (self.header?.visible ? self.header.implicitHeight : 0)),
     implicitFooterWidth: derived((self) => (self.footer?.visible ? self.footer.implicitWidth : 0)),
@@ -112,3 +114,10 @@ Page.proto.$inside = function () {
   const under = band(this.footer, this.spacing);
   return [this.leftPadding, this.topPadding + over, this.availableWidth, Math.max(0, this.availableHeight - over - under)];
 };
+
+// A container is named by its title when it has one.
+speaks(Pane, "Pane");
+speaks(Frame, "Border");
+speaks(GroupBox, "Grouping", (self) => String(self.title ?? ""));
+speaks(ToolBar, "ToolBar");
+speaks(Page, "PageTab", (self) => String(self.title ?? ""));

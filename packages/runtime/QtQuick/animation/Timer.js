@@ -2,13 +2,13 @@
 // do every frame. Both are on the clock the animations are on, so a timer
 // and an animation of the same length end in the same frame, and a test
 // moves them with the same hand.
-import { createEffect, createMemo, createRenderEffect, createSignal, onCleanup, untrack } from "solid-js";
+import { createEffect, createMemo, createRenderEffect, onCleanup } from "solid-js";
 import { defineType, flush, QtObject, slot, whenComplete } from "../../object.js";
 import { follow } from "./Animation.js";
 import { clock, drain } from "./clock.js";
 import { PauseJob } from "./jobs.js";
+import { signal, untrack } from "#kernel";
 
-const WRITABLE = { ownedWrite: true };
 const SYNC = { sync: true };
 const next = (version) => version + 1;
 
@@ -92,7 +92,7 @@ export const Timer = defineType("Timer", QtObject, {
     },
   },
   setup(self) {
-    const [version, bump] = createSignal(0, WRITABLE);
+    const [version, bump] = signal(0, self.$owner);
     const timer = (self.$timer = {
       running: false,
       first: true,

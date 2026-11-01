@@ -1,12 +1,13 @@
 // The `Qt` object every QML file can see, and the functions that are there
 // beside it: `qsTr`, `print`, `"%1".arg()`.
-import { createSignal } from "solid-js";
+import { mayFetch } from "../guard.js";
 import { failed } from "../object.js";
 import { color, equal, hsla, hsva, rgba } from "../QtQuick/color.js";
 import { application, font, inputMethod, styleHints } from "./application.js";
 import { formatDate, formatDateTimeOf, formatTime, locale } from "./locale.js";
 import { enums } from "./namespace.js";
 import { general, Matrix4x4, Point, Quaternion, Rect, Size, Vector2d, Vector3d, Vector4d } from "./values.js";
+import { signal } from "#kernel";
 
 // What marks the function `Qt.binding` returns: a slot assigned one takes it
 // as a binding. A registered symbol, so the kernel needs nothing from here.
@@ -75,7 +76,7 @@ function callLater(callback, ...args) {
   later.set(callback, args);
 }
 
-const [uiLanguage, setUiLanguage] = createSignal(globalThis.navigator?.language ?? "en", { ownedWrite: true });
+const [uiLanguage, setUiLanguage] = signal(globalThis.navigator?.language ?? "en");
 
 const methods = {
   rgba(...args) {
@@ -158,7 +159,8 @@ const methods = {
     }
   },
   openUrlExternally(url) {
-    window.open(String(url), "_blank", "noopener");
+    if (!mayFetch(url)) return false;
+    window.open(String(url), "_blank", "noopener"); // guarded
     return true;
   },
 

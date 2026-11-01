@@ -13,7 +13,6 @@
 // nearest a place, and the items in a scene, of which none is picked; the
 // picture is drawn in the item whatever `renderMode` says, and of the ways
 // of smoothing edges there is one.
-import { createSignal, untrack } from "solid-js";
 import { defineType, effect, inside as within, QtObject, settle, slot } from "../object.js";
 import { Vector2d, Vector3d } from "../QtQml/values.js";
 import { lazy } from "../QtQuick/compute.js";
@@ -23,6 +22,7 @@ import { inside, Node } from "./Node.js";
 import { met } from "./pick.js";
 import { draw } from "./render.js";
 import { SceneEnvironment } from "./scene.js";
+import { signal, untrack } from "#kernel";
 
 const sheet = new CSSStyleSheet();
 sheet.replaceSync(`.qq-view3d { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }`);
@@ -306,7 +306,7 @@ export const View3D = defineType("View3D", Item, {
     // each picture over its last, is not drawn again for having been
     // drawn. A picture first asked for after the view was drawn is drawn
     // again to be kept.
-    const [times, setTimes] = createSignal(0);
+    const [times, setTimes] = signal(0, self.$owner);
     let own = false;
     let ways = 0;
     let last = null;

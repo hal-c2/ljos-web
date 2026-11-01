@@ -6,12 +6,12 @@
 // Transition or a Behavior uses it for a change of theirs. `$transition` makes
 // it, from the changes there are to animate (`actions`); what the animation
 // takes of them it adds to `modified`, and the rest is not its business.
-import { createEffect, createMemo, createSignal, onCleanup, untrack } from "solid-js";
+import { createEffect, createMemo, onCleanup } from "solid-js";
 import { contents, defineType, flush, QtObject, slot, whenComplete } from "../../object.js";
 import { drain, later } from "./clock.js";
 import { ActionJob, ParallelJob, PauseJob, RUNNING, SequentialJob } from "./jobs.js";
+import { signal, untrack } from "#kernel";
 
-const WRITABLE = { ownedWrite: true };
 const SYNC = { sync: true };
 const DEFER = { defer: true };
 const NONE = Object.freeze([]);
@@ -207,7 +207,7 @@ export const Animation = defineType("Animation", QtObject, {
     },
   },
   setup(self, props) {
-    const [version, bump] = createSignal(0, WRITABLE);
+    const [version, bump] = signal(0, self.$owner);
     const anim = (self.$anim = {
       running: false,
       paused: false,

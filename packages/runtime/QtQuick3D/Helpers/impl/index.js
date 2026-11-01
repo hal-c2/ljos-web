@@ -15,12 +15,10 @@
 // effects before it: depth of field, and the light and the reflections
 // worked out from the picture (DepthOfFieldEffect, SsgiEnvEffect,
 // SsrEnvEffect), which are held and do nothing.
-import { createSignal } from "solid-js";
 import { defineType, effect } from "../../../object.js";
 import { Effect } from "../../effects.js";
 import { linear, SceneEnvironment } from "../../scene.js";
-
-const WRITABLE = { ownedWrite: true };
+import { signal } from "#kernel";
 
 // An effect says whose it is, and the environment takes it as the one it
 // has of that kind.
@@ -65,7 +63,7 @@ const number = (value, otherwise) => (typeof value === "number" && Number.isFini
 
 export const SceneEffectEnvironment = defineType("SceneEffectEnvironment", SceneEnvironment, {
   setup(self) {
-    const [main, setMain] = createSignal(null, WRITABLE);
+    const [main, setMain] = signal(null, self.$owner);
     self.$effect = (kind, made) => {
       if (kind === "main") setMain(made);
     };

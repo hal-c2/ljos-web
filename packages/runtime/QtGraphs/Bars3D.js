@@ -7,7 +7,6 @@
 // Not here: the other shapes a bar can be drawn as (`mesh`: Qt's own has
 // its edges cut, and this one has not), turning each (`meshAngle`), and
 // what is selected.
-import { untrack } from "solid-js";
 import { defineType, group, inside, settle, slot } from "../object.js";
 import { kept } from "../QtQuick3D/Node.js";
 import { linear } from "../QtQuick3D/scene.js";
@@ -15,6 +14,7 @@ import { Category3DAxis, Value3DAxis } from "./axes3d.js";
 import { Bar3DSeries } from "./data3d.js";
 import { axes, GraphsItem3D, measured, named } from "./graph3d.js";
 import { box, shaping } from "./shapes3d.js";
+import { untrack } from "#kernel";
 
 const is = (object, Type) => object?.$type?.chain.includes(Type) === true;
 const NONE = Object.freeze([]);

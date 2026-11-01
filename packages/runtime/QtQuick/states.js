@@ -6,13 +6,13 @@
 // entered. With a transition the property has its new value at once, as with
 // a Behavior, and reads as what the transition's animations show until they
 // are done.
-import { createEffect, createMemo, createRoot, createSignal, runWithOwner, untrack } from "solid-js";
+import { createEffect, createMemo, createRoot, runWithOwner } from "solid-js";
 import { bound, contents, defineType, flush, group, QtObject, replace, slot, whenComplete } from "../object.js";
 import { follow, parallel } from "./animation/Animation.js";
 import { drain, later } from "./animation/clock.js";
 import { display, Property } from "./animation/property.js";
+import { signal, untrack } from "#kernel";
 
-const WRITABLE = { ownedWrite: true };
 const SYNC = { sync: true };
 const DEFER = { defer: true };
 const NONE = Object.freeze([]);
@@ -475,7 +475,7 @@ function auto(self, current = self.$states.current) {
 }
 
 function machine(self) {
-  const [version, bump] = createSignal(0, WRITABLE);
+  const [version, bump] = signal(0, self.$owner);
   return (self.$states = {
     self,
     current: "",
@@ -720,7 +720,7 @@ export const Transition = defineType("Transition", QtObject, {
     },
   },
   setup(self) {
-    const [version, bump] = createSignal(0, WRITABLE);
+    const [version, bump] = signal(0, self.$owner);
     self.$run = { count: 0, version, bump };
     self.$animations = NONE;
     self.$source = null;

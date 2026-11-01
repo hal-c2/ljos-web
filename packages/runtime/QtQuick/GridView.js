@@ -2,9 +2,9 @@
 //
 // Where a row is follows from its index alone, so nothing is estimated: the
 // rows with delegates are those of the lines near what is shown.
-import { untrack } from "solid-js";
 import { defineType, derived, QtObject, slot } from "../object.js";
 import { attachedProperties, clamp, ItemView, length, place } from "./ItemView.js";
+import { untrack } from "#kernel";
 
 const FlowLeftToRight = 0;
 const FlowTopToBottom = 2;

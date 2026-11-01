@@ -5,8 +5,8 @@
 // It is Qt's (qquickselectionrectangle.cpp): it shows nothing itself, it
 // puts a TapHandler and a DragHandler in the view's content, and the view
 // is asked which cells a place is at. The handles are the style's.
-import { createMemo, onCleanup, untrack } from "solid-js";
-import { defineType, effect, instantiate, QtObject, settle, slot } from "../../object.js";
+import { onCleanup } from "solid-js";
+import { defineType, effect, instantiate, memo, QtObject, settle, slot } from "../../object.js";
 import { clock } from "../animation/clock.js";
 import { Flickable } from "../Flickable.js";
 import { DragHandler, HoverHandler, PointerDevice, TapHandler } from "../handlers.js";
@@ -23,6 +23,7 @@ import {
 } from "../TableView.js";
 import { Control } from "./Control.js";
 import { ScrollView } from "./ScrollView.js";
+import { untrack } from "#kernel";
 
 const NOTHING = Object.freeze(Object.create(null));
 
@@ -368,7 +369,7 @@ export const SelectionRectangle = defineType("SelectionRectangle", Control, {
     const mine = (self.$selection = {
       target: null,
       unfollow: null,
-      how: createMemo(() => effective(self)),
+      how: memo(() => effective(self), {}),
       active: false,
       dragging: false,
       // The handles, what made them, and the one a drag is on.

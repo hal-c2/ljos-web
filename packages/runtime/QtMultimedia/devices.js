@@ -1,10 +1,9 @@
 // MediaDevices: what there is to play sound on and to record with, as far
 // as the browser tells a page that has not asked for a microphone or a
 // camera: often one device of each kind, without a name.
-import { createSignal } from "solid-js";
 import { defineType, derived, flush, QtObject } from "../object.js";
+import { signal } from "#kernel";
 
-const WRITABLE = { ownedWrite: true };
 const NULL = 0;
 const INPUT = 1;
 const OUTPUT = 2;
@@ -33,7 +32,7 @@ const NO_CAMERA = Object.freeze(new CameraDevice());
 const NONE = Object.freeze([]);
 const KINDS = ["audioinput", "audiooutput", "videoinput"];
 
-const [known, setKnown] = createSignal({ audioinput: NONE, audiooutput: NONE, videoinput: NONE }, WRITABLE);
+const [known, setKnown] = signal({ audioinput: NONE, audiooutput: NONE, videoinput: NONE });
 let watching = false;
 
 const same = (a, b) =>

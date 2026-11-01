@@ -11,7 +11,6 @@
 // `cacheItemCount` (a row off the path has no delegate), and what Qt does
 // with the highlight when the range is not enforced, where it moves it by
 // its own clock: here it is where the current row is.
-import { createSignal, untrack } from "solid-js";
 import { defineType, derived, effect, instantiate, QtObject, settle, slot } from "../object.js";
 import { clock } from "./animation/clock.js";
 import { Item } from "./Item.js";
@@ -19,8 +18,8 @@ import { LeftButton } from "./keycodes.js";
 import { delegateOf, modelOf, Rows, size } from "./model.js";
 import { cull } from "./placing.js";
 import { canTake, CancelGrabExclusive, CancelGrabPassive, receive, takeExclusive } from "./pointer.js";
+import { signal, untrack } from "#kernel";
 
-const WRITABLE = { ownedWrite: true };
 const NONE = Object.freeze([]);
 const next = (version) => version + 1;
 
@@ -536,7 +535,7 @@ const PathViewAttached = defineType("PathViewAttached", QtObject, {
   },
   setup(self, props) {
     self.$of = props.$attachee;
-    const [moved, setMoved] = createSignal(0, WRITABLE);
+    const [moved, setMoved] = signal(0, self.$owner);
     self.$moved = moved;
     self.$move = () => setMoved(next);
     name(self, viewOf(self.$of)?.$pv?.names ?? NONE);
@@ -756,8 +755,8 @@ export const PathView = defineType("PathView", Item, {
     },
   },
   setup(self) {
-    const [version, bump] = createSignal(0, WRITABLE);
-    const [items, setItems] = createSignal(0, WRITABLE);
+    const [version, bump] = signal(0, self.$owner);
+    const [items, setItems] = signal(0, self.$owner);
     const changed = () => {
       slot(self, "count").write(rows.count);
       st.touched = true;

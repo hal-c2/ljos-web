@@ -2,12 +2,12 @@
 //
 // The file says what it is called; the browser is told that name, and the
 // weight and slant of the face, so that `font.bold` finds the bold file.
-import { createSignal } from "solid-js";
+import { guardedFetch } from "../guard.js";
 import { defineType, derived, effect, flush, located, QtObject } from "../object.js";
 import { lazy } from "./compute.js";
 import { fontsChanged } from "./font.js";
+import { signal } from "#kernel";
 
-const WRITABLE = { ownedWrite: true };
 const NULL = 0;
 const READY = 1;
 const LOADING = 2;
@@ -116,12 +116,16 @@ const stem = (url) =>
 
 const loads = new Map();
 
+// What a picture of the page (`ljos-web/picture`) gives its copy of the
+// page's text: a page that takes none never imports them.
+export { described, loads, stem };
+
 function load(url) {
   let record = loads.get(url);
   if (record) return record;
-  const [status, setStatus] = createSignal(LOADING, WRITABLE);
+  const [status, setStatus] = signal(LOADING);
   loads.set(url, (record = { status, name: "", weight: 400, italic: false }));
-  fetch(url)
+  guardedFetch(url)
     .then((response) => (response.ok ? response.arrayBuffer() : Promise.reject(new Error(response.statusText))))
     .then((buffer) => {
       const found = described(buffer, stem(url));

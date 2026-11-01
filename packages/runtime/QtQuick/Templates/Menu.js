@@ -4,8 +4,9 @@
 // itself, or in the menu's place where menus do not cascade. MenuItem is the
 // button its items are, and what its delegate makes for an Action or a Menu
 // declared in it.
-import { createSignal, onCleanup, untrack } from "solid-js";
+import { onCleanup } from "solid-js";
 import { contents, defineType, derived, effect, group, instantiate, last, settle, slot } from "../../object.js";
+import { parts } from "./parts.js";
 import { colorValue } from "../color.js";
 import { BacktabFocusReason, departing, forceActiveFocus, OtherFocusReason, setFocus, TabFocusReason } from "../focus.js";
 import { globalToScene, itemToScene, sceneToItem } from "../geometry.js";
@@ -17,8 +18,8 @@ import { Action, ICON } from "./Action.js";
 import { house, reparent, repeat, shows, within } from "./Container.js";
 import { keeps } from "./Control.js";
 import { housed, overlayOf, Popup, PopupFocusReason, stacked } from "./Popup.js";
-
-const WRITABLE = { ownedWrite: true };
+import { signal, untrack } from "#kernel";
+import { speaks } from "../Accessible.js";
 
 // How long the mouse is over an item before its sub-menu opens.
 const SUBMENU_DELAY = 225;
@@ -47,7 +48,7 @@ function padding(menu) {
 export const MenuItem = defineType("MenuItem", AbstractButton, {
   properties: {
     highlighted: false,
-    arrow: null,
+    arrow: parts,
     menu: null,
     subMenu: null,
     implicitTextPadding: 0,
@@ -531,7 +532,7 @@ export const Menu = defineType("Menu", Popup, {
       hover: null,
       policy: POLICY,
     });
-    [self.$parentMenu, self.$setParentMenu] = createSignal(null, WRITABLE);
+    [self.$parentMenu, self.$setParentMenu] = signal(null, self.$owner);
     // The items are children of the content item, as a container's are.
     effect(
       () => {
@@ -646,3 +647,6 @@ Object.defineProperty(Menu.proto, "currentIndex", {
     untrack(() => setCurrent(this, Number(value), OtherFocusReason));
   },
 });
+
+speaks(MenuItem, "MenuItem");
+speaks(Menu, "PopupMenu");

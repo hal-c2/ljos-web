@@ -21,6 +21,17 @@ export default defineConfig({
             ? { Controls: { Style: "Oak" } }
             : undefined,
       standins: [join(import.meta.dirname, "standins")],
+      // The scenes an inspector reads say where their objects are written.
+      inspect: (file) => /\/scenes\/inspect/.test(file),
+      // The page a visitor drops a shell on: its blocks are the Shop module
+      // of its own project.
+      liveShell: (file) => file.includes("/scenes/drop/"),
+      // Projects of their own: one whose dumps (`ljostypes.json`) are
+      // anywhere in it, as a preview of one is compiled, and the drop page's.
+      root: (file) => {
+        for (const project of ["dumped", "drop"]) if (file.includes(`/scenes/${project}/`)) return join(import.meta.dirname, "scenes", project);
+        return undefined;
+      },
     }),
   ],
   resolve: {

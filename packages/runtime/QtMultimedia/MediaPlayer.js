@@ -3,14 +3,15 @@
 // The element loads, decodes and keeps time. What is here is Qt's account of
 // it: the states a player goes through, and the order it tells of them in,
 // which is the order Qt 6.11 does.
-import { createSignal, onCleanup, untrack } from "solid-js";
+import { sourced } from "../guard.js";
+import { onCleanup } from "solid-js";
 import { defineType, effect, QtObject, settle, slot } from "../object.js";
 import { Size } from "../QtQml/values.js";
 import { clock } from "../QtQuick/animation/clock.js";
 import { audible, whenAudible } from "./audible.js";
 import { MediaMetaData, MetaData } from "./metadata.js";
+import { signal, untrack } from "#kernel";
 
-const WRITABLE = { ownedWrite: true };
 const next = (version) => version + 1;
 const NONE = Object.freeze([]);
 
@@ -382,7 +383,7 @@ function load(self, url) {
   if (url) {
     // What was known of the last file stays until this one is.
     tell(self, "mediaStatus", LOADING);
-    element.src = url;
+    sourced(element, url);
     if (untrack(() => self.autoPlay)) {
       media.wish = PLAYING;
       attempt(self);
@@ -627,7 +628,7 @@ export const MediaPlayer = defineType("MediaPlayer", QtObject, {
     const media = (self.$media = {
       element,
       values,
-      versions: Object.fromEntries(Object.keys(values).map((name) => [name, createSignal(0, WRITABLE)])),
+      versions: Object.fromEntries(Object.keys(values).map((name) => [name, signal(0, self.$owner)])),
       queue: [],
       url: "",
       loaded: false,

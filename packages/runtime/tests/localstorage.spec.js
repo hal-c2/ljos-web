@@ -310,3 +310,28 @@ test("a database is there again when the page is opened again", async ({ page })
     other: 3,
   });
 });
+
+test.describe("What could not be kept", () => {
+  test.use({ told: [/^LocalStorage: databases are not kept/] });
+
+  test("saved() answers false though a later change was kept", async ({ page }) => {
+    await open(page, "localstorage");
+    const answers = await page.evaluate(async () => {
+      const { LocalStorage, saved } = window.objects;
+      const change = async (name) => {
+        LocalStorage.openDatabaseSync(name, "", "", 0, (fresh) => fresh.changeVersion("", "0.1"));
+        return saved();
+      };
+      const before = await change("Before");
+      const put = IDBObjectStore.prototype.put;
+      IDBObjectStore.prototype.put = () => {
+        throw new Error("full");
+      };
+      const failed = await change("Failed");
+      IDBObjectStore.prototype.put = put;
+      const after = await change("After");
+      return { before, failed, after, still: await saved() };
+    });
+    expect(answers).toEqual({ before: true, failed: false, after: false, still: false });
+  });
+});

@@ -10,7 +10,7 @@
 // Not here: shadows, turning and zooming with the mouse, selecting by it and
 // the label of what is selected, `polar`, custom items, the camera's target,
 // gradients and slicing.
-import { runWithOwner, untrack } from "solid-js";
+import { runWithOwner } from "solid-js";
 import { defineType, derived, effect, inside, settle, slot } from "../object.js";
 import { Point, Vector3d } from "../QtQml/values.js";
 import { colorValue, css, rgba } from "../QtQuick/color.js";
@@ -21,6 +21,7 @@ import { View3D } from "../QtQuick3D/View3D.js";
 import { series3d } from "./data3d.js";
 import { facing, lines, shaping, sign } from "./shapes3d.js";
 import { GraphsTheme } from "./theme.js";
+import { untrack } from "#kernel";
 
 const next = (version) => version + 1;
 const NONE = Object.freeze([]);

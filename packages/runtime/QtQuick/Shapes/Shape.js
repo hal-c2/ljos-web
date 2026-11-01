@@ -5,6 +5,7 @@
 // is left to SVG is the painting.
 import { Rect } from "../../QtQml/values.js";
 import { defineType, derived, effect } from "../../object.js";
+import { allowedStyle } from "../../guard.js";
 import { color, colorValue, css } from "../color.js";
 import { rules } from "../compute.js";
 import { Item } from "../Item.js";
@@ -178,7 +179,7 @@ export const ShapePath = defineType("ShapePath", Path, {
         cone.box.setAttribute("y", next.box.y);
         cone.box.setAttribute("width", Math.max(0, next.box.width));
         cone.box.setAttribute("height", Math.max(0, next.box.height));
-        cone.fill.style.background = next.conic;
+        cone.fill.style.background = allowedStyle(next.conic);
         if (cone.box.parentNode !== group) group.insertBefore(cone.box, path);
       },
     );
