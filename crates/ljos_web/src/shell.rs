@@ -19,7 +19,7 @@
 //! an import beyond QtQuick and the block modules.
 
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     path::{Path, PathBuf},
 };
 
@@ -140,9 +140,12 @@ pub struct Blocks {
 /// The contracts of the blocks of the modules `shell` imports, a shell of
 /// the project `load` looks through: the site's own shell, whose blocks a
 /// visitor's may use. A module is what the compile of `shell` takes, by the
-/// same lookup, so there is no second answer to what a module is. A shell that
-/// imports modules and gets no block from them is refused: a site that offers
-/// nothing with no word about it is a site with a lookup or a `qmldir` wrong.
+/// same lookup, so there is no second answer to what a module is.
+///
+/// A module that is not found is refused, as the lookup or the module is
+/// wrong. One that is found and has no block is an ordinary library: a word in
+/// `warnings`, naming them, only when the whole shell offers no block. Qt's
+/// and Ljós's own modules are no library of the site's, and get no word.
 pub fn contracts(
     load: &Load,
     qt: &[PathBuf],
@@ -165,7 +168,8 @@ pub fn contracts(
         .found_modules(shell, qt, warnings)
         .ok_or_else(|| format!("cannot read {}", shell.display()))?;
     let mut blocks = Vec::new();
-    let mut imported = Vec::new();
+    let mut looked = HashSet::new();
+    let mut libraries = Vec::new();
     for import in &parsed.document.imports {
         let name = match &import.source {
             QmlImportSource::Module(name) => name,
@@ -175,8 +179,7 @@ pub fn contracts(
                     .unwrap_or(Path::new("/"))
                     .join(path)
                     .join("qmldir");
-                // A shell names a block's module, and this import has none:
-                // left out, its blocks would just not be offered.
+                // A shell names a block's module, and this import has none.
                 if let Some(text) = load.files.read(&qmldir)
                     && text.lines().any(|line| block_line(line).is_some())
                 {
@@ -184,8 +187,8 @@ pub fn contracts(
                         .lines()
                         .find_map(|line| line.trim().strip_prefix("module "))
                         .unwrap_or("its module");
-                    return Err(format!(
-                        "{} imports the blocks of \"{path}\" by their directory: write `import {}`",
+                    warnings.push(format!(
+                        "{} imports the blocks of \"{path}\" by their directory, so they are not offered: write `import {}`",
                         shell.display(),
                         name.trim(),
                     ));
@@ -197,7 +200,31 @@ pub fn contracts(
         if module == "QtQuick" || module.starts_with("QtQuick.") || module.starts_with("Qt") {
             continue;
         }
-        for found in modules.iter().filter(|found| found.module.uri == module) {
+        // Imported twice, as `import Shop` and `import Shop as S`, a module
+        // still has each block once.
+        if !looked.insert(module.clone()) {
+            continue;
+        }
+        let own = module == "Ljos" || module.starts_with("Ljos.");
+        let place = name
+            .parts
+            .iter()
+            .fold(PathBuf::new(), |path, part| path.join(part));
+        let installed = qt
+            .iter()
+            .any(|root| load.files.read(&root.join(&place).join("qmldir")).is_some());
+        let of_module: Vec<_> = modules
+            .iter()
+            .filter(|found| found.module.uri == module)
+            .collect();
+        if of_module.is_empty() && !own && !installed {
+            return Err(format!(
+                "{} imports {module}, which is not found: it is looked for under {} and the import paths",
+                shell.display(),
+                root.display(),
+            ));
+        }
+        for found in of_module {
             let Some(qmldir) = found.qmldir.as_ref().and_then(|at| load.files.read(at)) else {
                 continue;
             };
@@ -213,14 +240,15 @@ pub fn contracts(
                 blocks.push(contract_of(&module, block, file, &source)?);
             }
         }
-        imported.push(module);
+        if !own {
+            libraries.push(module);
+        }
     }
-    if blocks.is_empty() && !imported.is_empty() {
-        return Err(format!(
-            "{} imports {}, which gives no block: a block is a `# block` line in the `qmldir` of a module this file's compile finds (under {} or an import path)",
+    if blocks.is_empty() && !libraries.is_empty() {
+        warnings.push(format!(
+            "{} offers no block to a live shell: {} has no `# block` line in its `qmldir`",
             shell.display(),
-            imported.join(", "),
-            root.display(),
+            libraries.join(", "),
         ));
     }
     Ok(Blocks { root, blocks })
