@@ -417,6 +417,37 @@ function head(own, more) {
   return made;
 }
 
+// Every max and min as the ordered ones, but where OpenGL ES wants a constant,
+// which a call of a function of ours never is: outside any function (`braces`
+// is how deep it starts), in a `const` and in a size. A subscript is left with
+// a size, being whole numbers, which have no NaN.
+function ordered(code, braces) {
+  const all = words(code);
+  let parens = 0;
+  let squares = 0;
+  let constant = false;
+  return all
+    .map(({ kind, text }, at) => {
+      if (text === "{") braces++;
+      else if (text === "}") braces--;
+      else if (text === "(") parens++;
+      else if (text === ")") parens--;
+      else if (text === "[") squares++;
+      else if (text === "]") squares--;
+      // `const` among a function's parameters says nothing of its body.
+      else if (text === "const" && parens === 0) constant = true;
+      else if (text === ";") constant = false;
+      if (kind !== "name" || (text !== "max" && text !== "min") || braces === 0 || squares > 0 || constant) return text;
+      const near = (step) => {
+        let other = at + step;
+        while (all[other]?.kind === "space" || all[other]?.kind === "line") other += step;
+        return all[other]?.text;
+      };
+      return near(1) === "(" && near(-1) !== "." ? `qt_${text}` : text;
+    })
+    .join("");
+}
+
 // One of the two shaders: the head, what the material hands the piece, the
 // piece fitted for a browser, and the `main` that calls it.
 function whole({ text, reader }, declared, extra, piece, main) {
@@ -424,8 +455,7 @@ function whole({ text, reader }, declared, extra, piece, main) {
   reading.declare(`${declared}\n${extra}`);
   const fitted = reading.fitted(piece);
   // After it is fitted: the reader knows what max and min give.
-  const ordered = (code) => code.replace(/(?<![\w.])(max|min)(?=\s*\()/g, "qt_$1");
-  return `${text}\n${declared}\n${extra}\n${ORDERED}\n${ordered(fitted.text)}\nvoid qt_customGlobals() {\n${ordered(fitted.begun.join("\n"))}\n}\n${prefixed(main)}`;
+  return `${text}\n${declared}\n${extra}\n${ORDERED}\n${ordered(fitted.text, 0)}\nvoid qt_customGlobals() {\n${ordered(fitted.begun.join("\n"), 1)}\n}\n${prefixed(main)}`;
 }
 
 // The two shaders a CustomMaterial draws with. `own` is the renderer's
