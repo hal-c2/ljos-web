@@ -31,7 +31,7 @@ fn scene() -> Memory {
 }
 
 fn blocks() -> Vec<Contract> {
-    shell::contracts(&scene(), Path::new("/"), Path::new("/Shell.qml")).unwrap()
+    shell::contracts(&scene(), Path::new("/"), &[], Path::new("/Shell.qml")).unwrap()
 }
 
 fn refused(text: &str) -> Vec<Diagnostic> {
@@ -361,4 +361,58 @@ fn a_shell_declares_only_values() {
         &blocks(),
     )
     .unwrap();
+}
+
+/// `qmlc --shell --root app -I vendor app/Main.qml` in a project of `name`,
+/// with module Shop in `vendor` and, when `own`, another Shop in `app`.
+fn asked_of(name: &str, own: bool, first: &[&str]) -> Vec<serde_json::Value> {
+    let place = Path::new(env!("CARGO_TARGET_TMPDIR")).join(name);
+    let _ = std::fs::remove_dir_all(&place);
+    let write = |path: &str, text: &str| {
+        let path = place.join(path);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, text).unwrap();
+    };
+    write("app/Main.qml", "import QtQuick\nimport Shop\nBasket { }\n");
+    let module =
+        |line: &str| format!("module Shop\n# block Basket 1.0 Basket.qml Shop \"{line}\"\n");
+    let basket = "import QtQuick\nItem { }\n";
+    write("vendor/Shop/qmldir", &module("From the vendor"));
+    write("vendor/Shop/Basket.qml", basket);
+    if own {
+        write("app/Shop/qmldir", &module("From the app"));
+        write("app/Shop/Basket.qml", basket);
+    }
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_qmlc"))
+        .args(["--shell", "--root", "app"])
+        .args(first)
+        .arg("app/Main.qml")
+        .current_dir(&place)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    serde_json::from_slice(&output.stdout).unwrap()
+}
+
+#[test]
+fn a_block_on_an_import_path_has_a_contract() {
+    let blocks = asked_of("shell-import-path", false, &["-I", "vendor"]);
+    assert_eq!(blocks.len(), 1);
+    assert_eq!(blocks[0]["summary"], "From the vendor");
+    // Said from the root, whichever directory the compiler is run in: what is
+    // above the root on the machine that builds does not go to the page.
+    assert_eq!(blocks[0]["file"], "../vendor/Shop/Basket.qml");
+}
+
+#[test]
+fn a_module_is_the_first_an_import_path_has_as_a_compile_finds_it() {
+    let path = asked_of("shell-import-first", true, &["-I", "vendor"]);
+    assert_eq!(path[0]["summary"], "From the vendor");
+    let own = asked_of("shell-import-none", true, &[]);
+    assert_eq!(own[0]["summary"], "From the app");
+    assert_eq!(own[0]["file"], "Shop/Basket.qml");
 }

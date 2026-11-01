@@ -92,7 +92,9 @@ fn directives(source: &str) -> Directives {
 }
 
 pub(crate) fn imports(source: &str) -> Result<crate::Imports, Vec<Error>> {
-    let Directives { imports, errors, .. } = directives(source);
+    let Directives {
+        imports, errors, ..
+    } = directives(source);
     if !errors.is_empty() {
         return Err(errors);
     }
