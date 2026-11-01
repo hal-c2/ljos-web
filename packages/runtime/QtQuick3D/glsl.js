@@ -114,11 +114,80 @@ function reckoned(text) {
   return sum(1);
 }
 
-// A shader with what is under `#if` kept where it holds and dropped where
-// it does not, and with a name that `#define` gives a value put for that
-// value. A `#define` that takes arguments is left for the browser, which
-// has those. What is written about a shader in it says nothing: a `#define`
-// in a comment of several lines is of the comment.
+// What is passed to a macro, where a `(` comes next in what is still to be
+// read (last word first): each argument's words, and how much is left after.
+function passed(stack) {
+  let at = stack.length - 1;
+  while (at >= 0 && stack[at].kind === "space") at--;
+  if (stack[at]?.text !== "(") return null;
+  const parts = [[]];
+  for (let depth = 1, next = at - 1; next >= 0; next--) {
+    const { text } = stack[next];
+    if (text === "(") depth++;
+    else if (text === ")" && --depth === 0) return { parts, left: next };
+    if (text === "," && depth === 1) parts.push([]);
+    else parts.at(-1).push(stack[next]);
+  }
+  return null;
+}
+
+// A macro's body with its parameters put for what they were passed. Words are
+// joined where it says `##`, as OpenGL 4.4 has that and OpenGL ES does not.
+function filled(body, given) {
+  return body
+    .split(/\s*##\s*/)
+    .map((part) => words(part).map((word) => (word.kind === "name" ? given.get(word.text) : null) ?? word.text).join(""))
+    .join("");
+}
+
+// A shader with each macro put for what it says, from where it is said to
+// where it stops being so. Nothing that `ordered` or `Reader` does to code is
+// then out of its reach in a macro. A macro is not put for itself, as the
+// words it comes to are not read again for it; one passed the wrong number of
+// arguments is left, for the browser to report.
+function expanded(stack, macros) {
+  let text = "";
+  while (stack.length) {
+    const word = stack.pop();
+    if (word.kind === "line") {
+      const said = /^#\s*(define|undef)\s+(\w+)(\(?)(.*)$/.exec(word.text.replace(/\/\/.*/, ""));
+      if (!said) text += word.text;
+      else if (said[1] === "undef") macros.delete(said[2]);
+      else if (!said[3]) macros.set(said[2], { body: said[4].trim() });
+      else {
+        const close = said[4].indexOf(")");
+        const params = said[4].slice(0, close).split(",").map((param) => param.trim()).filter(Boolean);
+        macros.set(said[2], { params, body: said[4].slice(close + 1).trim() });
+      }
+      continue;
+    }
+    const macro = word.kind === "name" && !word.from?.has(word.text) ? macros.get(word.text) : null;
+    if (!macro) {
+      text += word.text;
+      continue;
+    }
+    let given = new Map();
+    if (macro.params) {
+      const call = passed(stack);
+      const empty = macro.params.length === 0 && call?.parts.length === 1 && call.parts[0].every((part) => part.kind === "space");
+      if (!call || (call.parts.length !== macro.params.length && !empty)) {
+        text += word.text;
+        continue;
+      }
+      stack.length = call.left;
+      given = new Map(macro.params.map((param, index) => [param, expanded([...call.parts[index]].reverse(), macros).trim()]));
+    }
+    // Spaces around it, as `1 -NEGATIVE` is not to come to `1 --1`.
+    const from = new Set(word.from).add(word.text);
+    stack.push(...words(` ${filled(macro.body, given)} `).map((one) => ({ ...one, from })).reverse());
+  }
+  return text;
+}
+
+// A shader with what is under `#if` kept where it holds and dropped where it
+// does not, and with what `#define` says put for each macro. What is written
+// about a shader in it says nothing: a `#define` in a comment of several lines
+// is of the comment.
 export function conditioned(source, given = {}) {
   const values = new Map(Object.entries(given).map(([name, value]) => [name, String(value)]));
   const holds = (text) => {
@@ -154,16 +223,17 @@ export function conditioned(source, given = {}) {
     else if (!kept()) out = "";
     else if (word === "define") {
       const [, name, takes, value] = /^(\w+)(\(?)\s*(.*)$/.exec(rest) ?? [];
-      if (name && !takes) values.set(name, value.replace(/\/\/.*|\/\*.*?\*\//g, "").trim());
-      else out = line;
-    } else if (word === "undef") values.delete(rest);
+      // Whatever takes arguments has no value for an `#if` to read, and is defined.
+      if (name) values.set(name, takes ? "0" : value.replace(/\/\/.*|\/\*.*?\*\//g, "").trim());
+      out = line.trim();
+    } else if (word === "undef") {
+      values.delete(rest);
+      out = line.trim();
+    }
     lines.push(out);
   }
-  const put = (text, depth) =>
-    words(text)
-      .map((word) => (word.kind === "name" && values.has(word.text) && depth < 8 ? put(values.get(word.text), depth + 1) : word.text))
-      .join("");
-  return values.size ? put(lines.join("\n"), 0) : lines.join("\n");
+  const macros = new Map(Object.entries(given).map(([name, value]) => [name, { body: String(value) }]));
+  return expanded(words(lines.join("\n")).reverse(), macros);
 }
 
 // A shader's own names, each with `qt_` before it: what the language has
