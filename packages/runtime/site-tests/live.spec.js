@@ -137,14 +137,19 @@ test.describe("a site's blocks are found as its compile finds them", () => {
     }
     return place;
   };
-  const built = (place, app, options) =>
+  const built = (place, app, options, words = []) =>
     build({
       configFile: false,
       root: app,
       base: "./",
       logLevel: "silent",
       plugins: [qml({ qmlc, liveShell: true, ...options })],
-      build: { outDir: join(place, "out"), target: "esnext", chunkSizeWarningLimit: 4000 },
+      build: {
+        outDir: join(place, "out"),
+        target: "esnext",
+        chunkSizeWarningLimit: 4000,
+        rolldownOptions: { onLog: (level, log) => words.push(log.message) },
+      },
       worker: { format: "es" },
     });
   const offered = async (page, place, at) => {
@@ -190,16 +195,73 @@ test.describe("a site's blocks are found as its compile finds them", () => {
     }
   });
 
-  test("An entry whose imports give no block is told, not built to offer nothing", async () => {
+  test("A module that is not found stops the build, by its name", async () => {
+    const place = made({ ...PAGE, "Main.qml": "import QtQuick\nimport Missing\nItem { }\n" });
+    try {
+      await expect(built(place, place, {})).rejects.toThrow(/Main\.qml.*Missing/s);
+    } finally {
+      rmSync(place, { recursive: true, force: true });
+    }
+  });
+
+  test("Modules that are there and give no block offer none, with a word that names them", async ({ page }) => {
     const place = made({
       ...PAGE,
-      "CMakeLists.txt": "project(p)\n",
       "Plain/qmldir": "module Plain\nThing 1.0 Thing.qml\n",
       "Plain/Thing.qml": "import QtQuick\nItem { }\n",
       "Main.qml": "import QtQuick\nimport Plain\nThing { }\n",
     });
+    const words = [];
     try {
-      await expect(built(place, place, {})).rejects.toThrow(/Main\.qml.*Plain.*no block/s);
+      await built(place, place, {}, words);
+      expect(words.join("\n")).toMatch(/Main\.qml.*no block.*Plain/s);
+      expect(await offered(page, place, port + 6)).toEqual([]);
+    } finally {
+      rmSync(place, { recursive: true, force: true });
+    }
+  });
+
+  test("Blocks beside a module that gives none are offered, with no word", async ({ page }) => {
+    const place = made({
+      ...PAGE,
+      ...SHOP,
+      "Plain/qmldir": "module Plain\nThing 1.0 Thing.qml\n",
+      "Plain/Thing.qml": "import QtQuick\nItem { }\n",
+      "Main.qml": "import QtQuick\nimport Shop\nimport Shop as Again\nimport Plain\nColumn { Basket { } Thing { } }\n",
+    });
+    const words = [];
+    try {
+      await built(place, place, {}, words);
+      expect(words.filter((word) => /block/.test(word))).toEqual([]);
+      expect(await offered(page, place, port + 8)).toEqual([["Basket", "Shop/Basket.qml", "function"]]);
+    } finally {
+      rmSync(place, { recursive: true, force: true });
+    }
+  });
+
+  test("A site of pages that import only Ljos's own modules builds with a live shell", async () => {
+    const site = bundle("models");
+    try {
+      await buildSite({ dir: site.dir, out: site.out, qmlc, liveShell: true });
+      expect(existsSync(join(site.out, "index.html"))).toBe(true);
+    } finally {
+      site.remove();
+    }
+  });
+
+  test("A build with no live shell says nothing of blocks", async () => {
+    const place = made({
+      ...PAGE,
+      "main.js": 'import Main from "./Main.qml";\nwindow.Main = Main;\n',
+      "Plain/qmldir": "module Plain\nThing 1.0 Thing.qml\n",
+      "Plain/Thing.qml": "import QtQuick\nItem { }\n",
+      "Main.qml": "import QtQuick\nimport Plain\nThing { }\n",
+    });
+    const words = [];
+    try {
+      await built(place, place, { liveShell: false }, words);
+      expect(words.filter((word) => /block/.test(word))).toEqual([]);
+      expect(existsSync(join(place, "out", "index.html"))).toBe(true);
     } finally {
       rmSync(place, { recursive: true, force: true });
     }
