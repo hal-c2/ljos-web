@@ -3,17 +3,7 @@
 #MISE depends=["install"]
 set -euo pipefail
 
-# The tool must be the version the crate pins wasm-bindgen to.
-version=0.2.129
-bindgen=wasm-bindgen
-if [ "$(wasm-bindgen --version 2>/dev/null)" != "wasm-bindgen $version" ]; then
-  name="wasm-bindgen-$version-x86_64-unknown-linux-musl"
-  bindgen="$PWD/.tools/$name/wasm-bindgen"
-  if [ ! -x "$bindgen" ]; then
-    mkdir -p .tools
-    curl -fsSL "https://github.com/wasm-bindgen/wasm-bindgen/releases/download/$version/$name.tar.gz" | tar xz -C .tools
-  fi
-fi
+bindgen="$(mise-tasks/tool/wasm-bindgen)"
 
 cargo build -p ljos_web_3d --profile view3d --target wasm32-unknown-unknown
 wasm="${CARGO_TARGET_DIR:-target}/wasm32-unknown-unknown/view3d/ljos_web_3d.wasm"
