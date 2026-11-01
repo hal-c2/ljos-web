@@ -19,7 +19,7 @@
 //! an import beyond QtQuick and the block modules.
 
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     path::{Path, PathBuf},
 };
 
@@ -36,7 +36,11 @@ use oxc_syntax::operator::{
 use qml_syntax::ast::{QmlBindingValue, QmlDocument, QmlImportSource, QmlMember, QmlObject};
 use serde::{Deserialize, Serialize};
 
-use crate::files::Files;
+use crate::{
+    Error, Options,
+    files::Load,
+    quick::{provided, uninstalled},
+};
 
 /// The types of the properties a shell may declare.
 const DECLARED: &[&str] = &["int", "real", "double", "bool", "string", "color"];
@@ -129,65 +133,119 @@ impl Diagnostic {
     }
 }
 
+/// The blocks a shell is compiled against, and the project's directory their
+/// files are said from.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct Blocks {
+    pub root: PathBuf,
+    pub blocks: Vec<Contract>,
+}
+
 /// The contracts of the blocks of the modules `shell` imports, a shell of
-/// the project under `root`: the site's own shell, whose blocks a visitor's
-/// may use. A module is found as a compile finds it: the `qmldir` at its place
-/// under the first of `imports`, then `root`, to have one.
+/// the project `load` looks through: the site's own shell, whose blocks a
+/// visitor's may use. A module is what the compile of `shell` takes, by the
+/// same lookup, so there is no second answer to what a module is.
+///
+/// A module nobody has is refused, by the compile's own test
+/// ([`uninstalled`]), so the two cannot differ. One the project has and with no
+/// block is an ordinary library: a word in `warnings`, naming them, only when
+/// the whole shell offers no block. What Qt or the runtime provides is not the
+/// site's, and gets no word.
 pub fn contracts(
-    files: &dyn Files,
-    root: &Path,
-    imports: &[PathBuf],
+    load: &Load,
+    options: &Options,
     shell: &Path,
-) -> Result<Vec<Contract>, String> {
-    let text = files
+    warnings: &mut Vec<String>,
+) -> Result<Blocks, String> {
+    let text = load
         .read(shell)
         .ok_or_else(|| format!("cannot read {}", shell.display()))?;
     let allocator = Allocator::default();
     let parsed = qml_syntax::parse(&allocator, &text);
     if !parsed.diagnostics.is_empty() {
-        return Err(format!(
-            "{}: {}",
-            shell.display(),
-            parsed.diagnostics[0].message
-        ));
+        let error = Error::from(parsed.diagnostics[0].clone());
+        return Err(said_at(&shell.display().to_string(), &text, &error));
     }
-    let mut found = Vec::new();
+    let project = load.project(shell, &options.qt_imports, warnings);
+    if let Some(error) = uninstalled(&parsed.document, &project, options).first() {
+        return Err(said_at(&shell.display().to_string(), &text, error));
+    }
+    let (root, modules) = load
+        .found_modules(shell, &options.qt_imports, &mut Vec::new())
+        .ok_or_else(|| format!("cannot read {}", shell.display()))?;
+    let mut blocks = Vec::new();
+    let mut looked = HashSet::new();
+    let mut libraries = Vec::new();
     for import in &parsed.document.imports {
-        let QmlImportSource::Module(name) = &import.source else {
-            continue;
+        let name = match &import.source {
+            QmlImportSource::Module(name) => name,
+            QmlImportSource::Path(path) => {
+                let qmldir = shell
+                    .parent()
+                    .unwrap_or(Path::new("/"))
+                    .join(path)
+                    .join("qmldir");
+                // A shell names a block's module, and this import has none.
+                if let Some(text) = load.files.read(&qmldir)
+                    && text.lines().any(|line| block_line(line).is_some())
+                {
+                    let name = text
+                        .lines()
+                        .find_map(|line| line.trim().strip_prefix("module "))
+                        .unwrap_or("its module");
+                    warnings.push(format!(
+                        "{} imports the blocks of \"{path}\" by their directory, so they are not offered: write `import {}`",
+                        shell.display(),
+                        name.trim(),
+                    ));
+                }
+                continue;
+            }
         };
         let module = name.to_string();
-        if module == "QtQuick" || module.starts_with("QtQuick.") || module.starts_with("Qt") {
+        // Imported twice, as `import Shop` and `import Shop as S`, a module
+        // still has each block once.
+        if !looked.insert(module.clone()) {
             continue;
         }
-        let found_at = imports
-            .iter()
-            .map(PathBuf::as_path)
-            .chain([root])
-            .find_map(|path| {
-                let directory = name
-                    .parts
-                    .iter()
-                    .fold(path.to_path_buf(), |path, part| path.join(part));
-                let qmldir = files.read(&directory.join("qmldir"))?;
-                Some((directory, qmldir))
-            });
-        let Some((directory, qmldir)) = found_at else {
-            continue;
-        };
-        for line in qmldir.lines() {
-            let Some(block) = block_line(line) else {
+        let of_module = modules.iter().filter(|found| found.module.uri == module);
+        for found in of_module {
+            let Some(qmldir) = found.qmldir.as_ref().and_then(|at| load.files.read(at)) else {
                 continue;
             };
-            let path = directory.join(&block.file);
-            let source = files
-                .read(&path)
-                .ok_or_else(|| format!("cannot read {}", path.display()))?;
-            let file = from_root(root, &path).to_string_lossy().replace('\\', "/");
-            found.push(contract_of(&module, block, file, &source)?);
+            for line in qmldir.lines() {
+                let Some(block) = block_line(line) else {
+                    continue;
+                };
+                let path = found.directory.join(&block.file);
+                let source = load
+                    .read(&path)
+                    .ok_or_else(|| format!("cannot read {}", path.display()))?;
+                let file = from_root(&root, &path).to_string_lossy().replace('\\', "/");
+                blocks.push(contract_of(&module, block, file, &source)?);
+            }
+        }
+        // `Ljos.Design` is Ljós's own though a project gives its stand-in, as
+        // `--with`: no export of the runtime says so.
+        let own = module == "Ljos" || module.starts_with("Ljos.");
+        if !own && !provided(&module, options) {
+            libraries.push(module);
         }
     }
-    Ok(found)
+    if blocks.is_empty() && !libraries.is_empty() {
+        warnings.push(format!(
+            "{} offers no block to a live shell: {} has no `# block` line in its `qmldir`",
+            shell.display(),
+            libraries.join(", "),
+        ));
+    }
+    Ok(Blocks { root, blocks })
+}
+
+/// An error as a compile says it, so that a build's log reads the same whichever asked.
+fn said_at(file: &str, source: &str, error: &Error) -> String {
+    let (line, column) = error.position(source);
+    format!("{file}:{line}:{column}: {}", error.message)
 }
 
 /// `path` as it is from `root`, going above it when it has to: a contract
@@ -255,7 +313,8 @@ fn contract_of(
     let allocator = Allocator::default();
     let parsed = qml_syntax::parse(&allocator, source);
     if !parsed.diagnostics.is_empty() {
-        return Err(format!("{file}: {}", parsed.diagnostics[0].message));
+        let error = Error::from(parsed.diagnostics[0].clone());
+        return Err(said_at(&file, source, &error));
     }
     let root = &parsed.document.root;
     let base = root.type_name.last();

@@ -92,7 +92,23 @@ test.describe("A visitor drops a shell of their own", () => {
     await open.focus();
     // This test waits out its 30 s now and then, cause unknown: if the page took the focus back, Enter clicks nothing.
     await expect(open).toBeFocused();
-    const chooser = page.waitForEvent("filechooser");
+    await page.evaluate(() => {
+      window.seen = [];
+      for (const kind of ["keydown", "keyup", "click"])
+        document.addEventListener(
+          kind,
+          (event) =>
+            window.seen.push(
+              `${kind} on ${event.target.tagName} ${event.target.type ?? ""}, active ${navigator.userActivation.isActive}`,
+            ),
+          true,
+        );
+    });
+    // Shorter than the test's own limit, so that the next time it says what the page saw.
+    const chooser = page.waitForEvent("filechooser", { timeout: 20000 }).catch(async (error) => {
+      const seen = await page.evaluate(() => [window.seen, document.activeElement?.tagName, document.hasFocus()]);
+      throw new Error(`${error.message}; the page saw ${JSON.stringify(seen)}`);
+    });
     await page.keyboard.press("Enter");
     await (await chooser).setFiles({ name: "Mine.qml", mimeType: "text/plain", buffer: Buffer.from(MINE) });
     await expect(page.getByRole("status")).toHaveText("Your shell is shown");

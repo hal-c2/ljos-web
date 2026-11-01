@@ -436,7 +436,9 @@ costs a site* below: for a visitor who keeps a shell, Settings and
    ├▶ each block (a `# block` line names its file) is held: one instance a page
    └▶ the entry carries Entry.$live = { site, blocks: [contract + component] }
         (`qmlc --shell` reads the contracts from the qmldir lines, of the
-        modules the entry's compile finds: `-I`/`importPaths`, then the root)
+        modules the entry's compile finds, by the compile's own lookup; a
+        module with no block is a library, and an entry that offers none is
+        told so in a warning)
  page:  liveShell(Entry, element, { site, publish, storage, file, allowedHosts })
         a region with "Open a shell…" (a file picker), Reset, Publish
         (only with a hook), a status line, and the drop zone over the page

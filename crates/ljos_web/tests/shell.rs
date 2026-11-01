@@ -5,7 +5,8 @@ use std::path::Path;
 
 use ljos_ir as ir;
 use ljos_web::{
-    files::Memory,
+    Options,
+    files::{Load, Memory},
     shell::{self, Contract, Diagnostic},
 };
 
@@ -31,7 +32,19 @@ fn scene() -> Memory {
 }
 
 fn blocks() -> Vec<Contract> {
-    shell::contracts(&scene(), Path::new("/"), &[], Path::new("/Shell.qml")).unwrap()
+    let scene = scene();
+    let load = Load {
+        root: Some("/".into()),
+        ..Load::new(&scene)
+    };
+    shell::contracts(
+        &load,
+        &Options::default(),
+        Path::new("/Shell.qml"),
+        &mut Vec::new(),
+    )
+    .unwrap()
+    .blocks
 }
 
 fn refused(text: &str) -> Vec<Diagnostic> {
@@ -395,7 +408,248 @@ fn asked_of(name: &str, own: bool, first: &[&str]) -> Vec<serde_json::Value> {
         "{}",
         String::from_utf8_lossy(&output.stderr)
     );
-    serde_json::from_slice(&output.stdout).unwrap()
+    let told: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    told["blocks"].as_array().unwrap().clone()
+}
+
+/// What a project a `CMakeLists.txt` starts offers: module Shop as `qmldir`
+/// says, and a shell in `src` that says `imports`.
+fn in_a_build(qmldir: &str, imports: &str) -> (Result<shell::Blocks, String>, Vec<String>) {
+    let files = Memory::new([
+        ("p/CMakeLists.txt", "project(p)\n".to_string()),
+        ("p/Shop/qmldir", qmldir.to_string()),
+        (
+            "p/Shop/Basket.qml",
+            "import QtQuick\nItem { }\n".to_string(),
+        ),
+        (
+            "p/Plain/qmldir",
+            "module Plain\nThing 1.0 Thing.qml\n".to_string(),
+        ),
+        (
+            "p/Plain/Thing.qml",
+            "import QtQuick\nItem { }\n".to_string(),
+        ),
+        (
+            "p/src/Main.qml",
+            format!("import QtQuick\n{imports}\nItem {{ }}\n"),
+        ),
+    ]);
+    let mut warnings = Vec::new();
+    let found = shell::contracts(
+        &Load::new(&files),
+        &Options::default(),
+        Path::new("/p/src/Main.qml"),
+        &mut warnings,
+    );
+    (found, warnings)
+}
+
+const SHOP: &str = "module Shop\n# block Basket 1.0 Basket.qml Shop \"A basket\"\n";
+
+#[test]
+fn with_no_root_given_a_block_is_of_the_project_a_build_starts() {
+    let found = in_a_build(SHOP, "import Shop").0.unwrap();
+    assert_eq!(found.root, Path::new("/p"));
+    assert_eq!(found.blocks[0].file, "Shop/Basket.qml");
+}
+
+#[test]
+fn a_block_imported_by_its_directory_is_told_and_stops_nothing() {
+    let (found, warnings) = in_a_build(SHOP, "import \"../Shop\"");
+    assert!(found.unwrap().blocks.is_empty());
+    assert!(warnings[0].contains("import Shop"), "{warnings:?}");
+}
+
+#[test]
+fn a_module_with_no_block_offers_none_with_a_word_that_names_it() {
+    let (found, warnings) = in_a_build(SHOP, "import Plain");
+    assert!(found.unwrap().blocks.is_empty());
+    assert_eq!(warnings.len(), 1, "{warnings:?}");
+    assert!(warnings[0].contains("Plain"), "{warnings:?}");
+}
+
+#[test]
+fn blocks_beside_a_module_with_none_are_offered_with_no_word() {
+    let (found, warnings) = in_a_build(SHOP, "import Shop\nimport Plain");
+    assert_eq!(found.unwrap().blocks.len(), 1);
+    assert!(warnings.is_empty(), "{warnings:?}");
+}
+
+#[test]
+fn a_module_imported_twice_has_each_block_once() {
+    let (found, _) = in_a_build(SHOP, "import Shop\nimport Shop as Again");
+    assert_eq!(found.unwrap().blocks.len(), 1);
+}
+
+#[test]
+fn ljos_s_own_modules_are_no_library_of_the_site_s() {
+    let (found, warnings) = in_a_build(SHOP, "import Ljos.Models\nimport Ljos.Blocks");
+    assert!(found.unwrap().blocks.is_empty());
+    assert!(warnings.is_empty(), "{warnings:?}");
+}
+
+#[test]
+fn ljos_s_stand_in_given_with_with_is_no_library_of_the_site_s() {
+    let files = Memory::new([
+        (
+            "design/Ljos/Design/qmldir",
+            "module Ljos.Design\nTheme 1.0 Theme.qml\n",
+        ),
+        ("design/Ljos/Design/Theme.qml", "import QtQuick\nItem { }\n"),
+        (
+            "app/Main.qml",
+            "import QtQuick\nimport Ljos.Design\nItem { }\n",
+        ),
+    ]);
+    let load = Load {
+        root: Some("/app".into()),
+        with: vec!["/design".into()],
+        ..Load::new(&files)
+    };
+    let mut warnings = Vec::new();
+    let found = shell::contracts(
+        &load,
+        &Options::default(),
+        Path::new("/app/Main.qml"),
+        &mut warnings,
+    );
+    assert!(found.unwrap().blocks.is_empty());
+    assert!(warnings.is_empty(), "{warnings:?}");
+}
+
+#[test]
+fn a_module_that_is_not_found_is_refused_by_its_name() {
+    let error = in_a_build(SHOP, "import Shop\nimport Missing")
+        .0
+        .unwrap_err();
+    assert!(error.contains("\"Missing\" is not installed"), "{error}");
+}
+
+#[test]
+fn a_qmldir_away_from_its_module_s_place_is_not_the_module() {
+    // A compile takes the `qmldir` at its module's place only.
+    let error = in_a_build("module Elsewhere\n", "import Shop")
+        .0
+        .unwrap_err();
+    assert!(error.contains("\"Shop\" is not installed"), "{error}");
+}
+
+/// `qmlc --shell` in the `types` fixtures, whose module is a dump's stand-in.
+fn asked_with(args: &[&str]) -> std::process::Output {
+    std::process::Command::new(env!("CARGO_BIN_EXE_qmlc"))
+        .arg("--shell")
+        .args(args)
+        .current_dir(Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/types"))
+        .output()
+        .unwrap()
+}
+
+/// `qmlc --shell --qt qt app/Main.qml` for a shell that imports `import`,
+/// and `qmlc` itself, with `qt` as `lay_out` leaves it: their words and codes.
+fn asked_and_compiled(
+    name: &str,
+    import: &str,
+    lay_out: &[&str],
+) -> ((bool, String), (bool, String)) {
+    let place = Path::new(env!("CARGO_TARGET_TMPDIR")).join(name);
+    let _ = std::fs::remove_dir_all(&place);
+    std::fs::create_dir_all(place.join("qt")).unwrap();
+    std::fs::create_dir_all(place.join("app")).unwrap();
+    std::fs::write(
+        place.join("app/Main.qml"),
+        format!("import QtQuick\nimport {import}\nItem {{ }}\n"),
+    )
+    .unwrap();
+    for directory in lay_out {
+        let directory = place.join("qt").join(directory);
+        std::fs::create_dir_all(&directory).unwrap();
+        std::fs::write(directory.join("qmldir"), format!("module {import}\n")).unwrap();
+    }
+    let run = |first: &[&str]| {
+        let output = std::process::Command::new(env!("CARGO_BIN_EXE_qmlc"))
+            .args(first)
+            .args(["--root", "app", "--qt", "qt", "app/Main.qml"])
+            .current_dir(&place)
+            .output()
+            .unwrap();
+        (
+            output.status.success(),
+            String::from_utf8_lossy(&output.stderr).into_owned(),
+        )
+    };
+    (run(&["--shell"]), run(&[]))
+}
+
+#[test]
+fn a_module_of_qt_s_table_is_no_library_with_no_qt_installed() {
+    let (asked, compiled) = asked_and_compiled("shell-table", "QML", &[]);
+    assert!(compiled.0, "{}", compiled.1);
+    assert_eq!(asked, (true, String::new()));
+}
+
+#[test]
+fn a_module_of_the_installed_qt_is_no_library() {
+    let (asked, compiled) =
+        asked_and_compiled("shell-installed", "Vendor.Thing", &["Vendor/Thing"]);
+    assert!(compiled.0, "{}", compiled.1);
+    assert_eq!(asked, (true, String::new()));
+}
+
+#[test]
+fn a_module_nobody_has_is_refused_as_its_compile_refuses_it() {
+    let (asked, compiled) = asked_and_compiled("shell-nobody", "Nobody.Has", &[]);
+    assert!(!compiled.0);
+    assert!(!asked.0);
+    let word = "app/Main.qml:2:1: module \"Nobody.Has\" is not installed\n";
+    assert!(compiled.1.contains(word), "{}", compiled.1);
+    assert_eq!(asked.1, word);
+}
+
+#[test]
+fn a_module_a_dump_stands_in_for_is_found() {
+    let output = asked_with(&[
+        "--root",
+        "app",
+        "--types",
+        "app/native/ljostypes.json",
+        "app/Main.qml",
+    ]);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(output.status.success(), "{stderr}");
+    assert!(stderr.contains("App.Media"), "{stderr}");
+    let told: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(told["blocks"], serde_json::json!([]));
+}
+
+#[test]
+fn a_module_given_with_with_is_found() {
+    let place = Path::new(env!("CARGO_TARGET_TMPDIR")).join("shell-with");
+    let _ = std::fs::remove_dir_all(&place);
+    for (path, text) in [
+        ("helpers/Help/qmldir", "module Help\nAid 1.0 Aid.qml\n"),
+        ("helpers/Help/Aid.qml", "import QtQuick\nItem { }\n"),
+        ("app/Main.qml", "import QtQuick\nimport Help\nAid { }\n"),
+    ] {
+        let path = place.join(path);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, text).unwrap();
+    }
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_qmlc"))
+        .args([
+            "--shell",
+            "--root",
+            "app",
+            "--with",
+            "helpers",
+            "app/Main.qml",
+        ])
+        .current_dir(&place)
+        .output()
+        .unwrap();
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(output.status.success(), "{stderr}");
+    assert!(stderr.contains("Help"), "{stderr}");
 }
 
 #[test]

@@ -130,6 +130,29 @@ pub struct Load<'f> {
     pub dumped: Option<PathBuf>,
 }
 
+/// Where a compile of a file looks for its modules: one answer, whichever
+/// asks, the compile or what lists a file's blocks.
+struct Places {
+    /// The file's directory, which a file of the project is named from.
+    base: PathBuf,
+    /// The project's directory: `--root`, or the one a build starts.
+    root: Option<PathBuf>,
+    /// The import paths in order, then the project's directory.
+    paths: Vec<PathBuf>,
+    with: Vec<PathBuf>,
+    qt: Vec<PathBuf>,
+}
+
+/// A module a compile takes, and what says so.
+pub(crate) struct Found {
+    pub(crate) module: discover::Module,
+    pub(crate) directory: PathBuf,
+    standing: bool,
+    /// Its `qmldir`, which a `# block` line is in; none when it is a build's
+    /// file that says what the module is.
+    pub(crate) qmldir: Option<PathBuf>,
+}
+
 /// What compiling one file gave, and what was found wrong on the way that
 /// did not stop it.
 pub struct Compiled {
@@ -324,8 +347,49 @@ impl<'f> Load<'f> {
         }
     }
 
-    /// Adds the modules of the project, their files by the path from
-    /// `base`: the directory of the file being compiled. The modules are
+    /// Where `path` looks for its modules; none when it is not there.
+    fn places(&self, path: &Path, qt: &[PathBuf]) -> Option<Places> {
+        let base = self.files.canonicalize(directory(path))?;
+        let path = self.files.canonicalize(path)?;
+        let root = self
+            .root
+            .clone()
+            .unwrap_or_else(|| self.project_root(&path));
+        let root = self.files.canonicalize(&root);
+        let canonical = |paths: &[PathBuf]| -> Vec<PathBuf> {
+            paths
+                .iter()
+                .filter_map(|path| self.files.canonicalize(path))
+                .collect()
+        };
+        // The import paths given come before the project's root.
+        let paths = canonical(&self.imports)
+            .into_iter()
+            .chain(root.clone())
+            .collect();
+        Some(Places {
+            base,
+            root,
+            paths,
+            with: canonical(&self.with),
+            qt: canonical(qt),
+        })
+    }
+
+    /// The project's directory `path` is compiled in, and the modules its
+    /// compile takes; none when it is not there.
+    pub(crate) fn found_modules(
+        &self,
+        path: &Path,
+        qt: &[PathBuf],
+        warnings: &mut Vec<String>,
+    ) -> Option<(PathBuf, Vec<Found>)> {
+        let places = self.places(path, qt)?;
+        let found = self.found(&places.paths, &places.with, &places.qt, warnings);
+        Some((places.root.unwrap_or(places.base), found))
+    }
+
+    /// The modules a compile takes. The modules are
     /// what the `qmldir` and `CMakeLists.txt` files under the import `paths`
     /// and the stand-ins' directories `with` say; a stand-in's types stand
     /// in for ones the program has in C++. A `qmldir` is its module's only
@@ -335,15 +399,13 @@ impl<'f> Load<'f> {
     /// path: the import paths in order, then Qt's. A stand-in's adds to the
     /// module what it has in C++, wherever the rest of it is. A build's file
     /// says what its modules are wherever it is.
-    fn modules(
+    fn found(
         &self,
-        project: &mut Project,
         paths: &[PathBuf],
         with: &[PathBuf],
         qt: &[PathBuf],
-        base: &Path,
         warnings: &mut Vec<String>,
-    ) {
+    ) -> Vec<Found> {
         let dumped = self
             .dumped
             .as_ref()
@@ -380,7 +442,7 @@ impl<'f> Load<'f> {
                     described.extend(
                         discover::cmake(&text)
                             .into_iter()
-                            .map(|module| (module, directory.clone(), standing, None)),
+                            .map(|module| (module, directory.clone(), standing, None, None)),
                     );
                     continue;
                 }
@@ -401,14 +463,20 @@ impl<'f> Load<'f> {
                 {
                     Some(rank) => {
                         let standing = places[rank].1;
-                        described.push((module, directory, standing, (!standing).then_some(rank)));
+                        described.push((
+                            module,
+                            directory,
+                            standing,
+                            (!standing).then_some(rank),
+                            Some(description),
+                        ));
                     }
                     None => misplaced.push((description, module.uri)),
                 }
             }
         }
         let mut first = HashMap::new();
-        for (module, _, _, rank) in &described {
+        for (module, _, _, rank, _) in &described {
             if let Some(rank) = rank {
                 let best = first.entry(module.uri.clone()).or_insert(*rank);
                 *best = (*best).min(*rank);
@@ -426,10 +494,34 @@ impl<'f> Load<'f> {
                 ));
             }
         }
-        for (module, directory, standing, rank) in described {
-            if rank.is_some_and(|rank| first.get(&module.uri) != Some(&rank)) {
-                continue;
-            }
+        described
+            .into_iter()
+            .filter(|(module, _, _, rank, _)| {
+                rank.is_none_or(|rank| first.get(&module.uri) == Some(&rank))
+            })
+            .map(|(module, directory, standing, _, qmldir)| Found {
+                module,
+                directory,
+                standing,
+                qmldir,
+            })
+            .collect()
+    }
+
+    /// Adds the modules `found`, their files by the path from `base`: the
+    /// directory of the file being compiled.
+    fn modules(&self, project: &mut Project, found: Vec<Found>, base: &Path) {
+        let dumped = self
+            .dumped
+            .as_ref()
+            .and_then(|dumped| self.files.canonicalize(dumped));
+        for Found {
+            module,
+            directory,
+            standing,
+            ..
+        } in found
+        {
             let of_dump = dumped
                 .as_ref()
                 .is_some_and(|dumped| directory.starts_with(dumped));
@@ -502,29 +594,12 @@ impl<'f> Load<'f> {
         let mut project = Project::new();
         let root = directory(path);
         let canonical = (self.files.canonicalize(root), self.files.canonicalize(path));
-        if let (Some(base), Some(path)) = &canonical {
-            let project_root = self.root.clone().unwrap_or_else(|| self.project_root(path));
-            // The import paths given come before the project's root.
-            let project_root = self.files.canonicalize(&project_root);
-            let paths: Vec<PathBuf> = self
-                .imports
-                .iter()
-                .filter_map(|path| self.files.canonicalize(path))
-                .chain(project_root.clone())
-                .collect();
-            let with: Vec<PathBuf> = self
-                .with
-                .iter()
-                .filter_map(|more| self.files.canonicalize(more))
-                .collect();
-            let qt: Vec<PathBuf> = qt
-                .iter()
-                .filter_map(|path| self.files.canonicalize(path))
-                .collect();
-            self.modules(&mut project, &paths, &with, &qt, base, warnings);
-            if let Some(project_root) = project_root {
+        if let Some(places) = self.places(path, qt) {
+            let found = self.found(&places.paths, &places.with, &places.qt, warnings);
+            self.modules(&mut project, found, &places.base);
+            if let Some(project_root) = &places.root {
                 // A program's files are one lot, whichever part names one.
-                self.kept(&mut project, self.program_root(&project_root), base);
+                self.kept(&mut project, self.program_root(project_root), &places.base);
             }
         }
         // A file's key is its path from the compiled file's directory,
