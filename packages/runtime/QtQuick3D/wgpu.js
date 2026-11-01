@@ -15,6 +15,7 @@ import { signal, untrack } from "#kernel";
 import { CustomMaterial } from "./CustomMaterial.js";
 import { handed, text } from "./effects.js";
 import { inside } from "./Node.js";
+import { drawnModels } from "./Particles3D/drawn.js";
 import { Format } from "./TextureData.js";
 
 const asked = new URLSearchParams(globalThis.location?.search ?? "").get("view3d");
@@ -199,9 +200,21 @@ class Host {
     const name = NAMES[p];
     let all;
     if (name === "data" && object === this.view) all = inside(object.$scene);
+    else if (name === "data" && object.$particles) all = [...inside(object), ...drawnModels(object, () => this.view.environment?.tonemapMode ?? 1, () => this.eye())];
     else if (name === "data" && object.$spatial !== undefined) all = inside(object);
     else all = listed(slot(object, name)?.get());
     return Uint32Array.from(all.filter((each) => each?.$type).map((each) => this.handle(each)));
+  }
+  // Where the eye is: the view's camera, else the first in its scene.
+  eye() {
+    const first = (nodes) => {
+      for (const node of nodes) {
+        const camera = node.$projection ? node : first(inside(node));
+        if (camera) return camera;
+      }
+      return null;
+    };
+    return (this.view.camera ?? first(inside(this.view.$scene)))?.$world() ?? null;
   }
   slots(o, p) {
     const all = listed(slot(this.objectsBy.get(o), NAMES[p])?.get());
@@ -275,6 +288,8 @@ class Host {
       uniforms: plain(uniforms),
       textures: this.samplers(material, uniforms),
       sourceBlend: material.sourceBlend,
+      sourceAlphaBlend: material.sourceAlphaBlend,
+      destinationAlphaBlend: material.destinationAlphaBlend,
       destinationBlend: material.destinationBlend,
       depthDraw: material.depthDrawMode,
       cullMode: material.cullMode,

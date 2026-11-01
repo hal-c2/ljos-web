@@ -265,6 +265,8 @@ impl Host for JsHost {
             textures: textures(&s),
             source_blend: int(&s, "sourceBlend"),
             destination_blend: int(&s, "destinationBlend"),
+            source_alpha_blend: int(&s, "sourceAlphaBlend"),
+            destination_alpha_blend: int(&s, "destinationAlphaBlend"),
             depth_draw: int(&s, "depthDraw"),
             cull_mode: int(&s, "cullMode"),
         })

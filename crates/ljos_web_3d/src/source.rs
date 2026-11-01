@@ -83,6 +83,8 @@ pub struct Snippets {
     pub textures: Vec<(String, u32)>,
     pub source_blend: i32,
     pub destination_blend: i32,
+    pub source_alpha_blend: i32,
+    pub destination_alpha_blend: i32,
     pub depth_draw: i32,
     pub cull_mode: i32,
 }
@@ -620,6 +622,8 @@ impl<H: Host> SceneSource for Source<'_, H> {
             .collect();
         made.source_blend = blend(s.source_blend);
         made.destination_blend = blend(s.destination_blend);
+        made.source_alpha_blend = blend(s.source_alpha_blend);
+        made.destination_alpha_blend = blend(s.destination_alpha_blend);
         made.depth_draw = match s.depth_draw {
             depth_draw::ALWAYS => ljos_3d::DepthDraw::Always,
             depth_draw::NEVER => ljos_3d::DepthDraw::Never,
