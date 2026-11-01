@@ -443,7 +443,7 @@ in-page compiler (`crates/ljos_web/src/shell.rs`), and its evaluator
       → { shell: ljos_ir CompiledFile }  objects + tier-1 programs, no JS
    4. import("./shell.js") → shellOf(ir, blocks) → reload(handle, Shell) (A13)
    5. localStorage["ljos-shell:" + site] = text; a page load shows it again
-   6. Reset forgets it and reloads the site's own shell
+   6. Reset forgets it and reloads the page
    7. Publish → publish(text, { blocks: [{ module, name, version }], hash })
       (hash: the text's SHA-256, hex); its { url } or its error is shown
 ```
@@ -532,12 +532,22 @@ it.
    of once. The site's own blocks are under the same rule while the shell
    is shown, as a block cannot tell whose string it has. No markup on the
    page loads a picture or links anywhere at all, the hosts allowed
-   included. When the last dropped shell goes (Reset, or `dispose`),
-   markup and `Image` have what they were refused; anything else asks
-   again when next told to load it. Reset takes the shell off before it
-   makes the site's and lifts the guard between the two, so what the
-   site's shell loads as it is made is loaded, once, and no string of the
-   shell that went is let through with it. A refused `XMLHttpRequest`
+   included. The guard is not lifted while the page lasts, by a
+   `dispose` either: a block keeps what a shell hands it, in its state, a
+   model, a closure or a timer, and no string says whose it is. Reset
+   forgets the shell and reloads the page, which is what takes all of it
+   away: the site's shell comes back as on a first visit, and block state
+   that only the page held comes back as the block starts. Between one
+   dropped shell and the next the blocks keep everything; the guard is up
+   all that time. Settings and `QtQuick.LocalStorage` written while the
+   guard is up last as long as the page, so the next page, which has no
+   guard until it shows a shell, has none of the shell's strings. What
+   this does not reach: storage or a server of the site's own that its
+   scripts write without those types (`localStorage`, `indexedDB`, a
+   request to its own origin). A string a block sends there comes back
+   unguarded when the site reads it back and fetches it: a site whose
+   blocks do that treats it as anything a visitor typed.
+   A refused `XMLHttpRequest`
    tells a program what one that failed on the network tells: `DONE` with
    status 0, then `error` and `loadend`.
 5. *Bounded work.* Each run has a budget of 100,000 steps. A runaway

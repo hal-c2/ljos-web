@@ -29,6 +29,12 @@ async function dropped(page, text) {
 
 const errors = (page) => page.getByRole("alert");
 
+// Reset reloads the page: what is asked of it after that is of the next one.
+async function resetting(page) {
+  await Promise.all([page.waitForEvent("load"), page.getByRole("button", { name: "Reset" }).first().click()]);
+  await opened(page);
+}
+
 // A shell of the visitor's over the site's one block. Its root is of the
 // site's root's type: one of another type is a new tree (reload.js), whose
 // plain items start anew while the blocks keep theirs.
@@ -260,8 +266,7 @@ test.describe("A shell's text names no URL, however it reaches a text", () => {
     expect(await pictures(page, "note")).toBe(1);
     await dropped(page, over('    Note { objectName: "note" }'));
     await expect.poll(() => pictures(page, "note")).toBe(0);
-    await page.getByRole("button", { name: "Reset" }).click();
-    await page.evaluate(() => window.live.idle());
+    await resetting(page);
     await expect.poll(() => pictures(page, "note")).toBe(1);
   });
 
@@ -400,10 +405,7 @@ Column {
     await dropped(page, 'import QtQuick\nimport Shop\n\nPanel {\n    objectName: "panel"\n    Card { objectName: "one" }\n    Card { objectName: "one" }\n    Card { objectName: "two" }\n}\n');
     await expect(errors(page)).toBeHidden();
     expect(await page.evaluate(() => ({ shown: window.scene.$node.isConnected, uses: new Set(window.named("inner").children).size }))).toEqual({ shown: true, uses: 3 });
-    const block = await page.evaluateHandle(() => window.scene);
-    await page.getByRole("button", { name: "Reset" }).click();
-    await page.evaluate(() => window.live.idle());
-    expect(await block.evaluate((panel) => panel.$node.isConnected)).toBe(false);
+    await resetting(page);
     expect(await read(page, "shell", "objectName")).toBe("shell");
   });
 
@@ -419,10 +421,6 @@ Column {
     await page.keyboard.press("a");
     return read(page, "panel", "key");
   };
-  const reset = async (page) => {
-    await page.getByRole("button", { name: "Reset" }).click();
-    await page.evaluate(() => window.live.idle());
-  };
   const laidAgain = (page) =>
     page.evaluate(() => {
       window.named("beside").implicitWidth += 1;
@@ -434,14 +432,9 @@ Column {
   test("The site's own Keys handler runs, once, whenever its shell is shown again", async ({ page }) => {
     await opened(page);
     expect(await pressed(page)).toBe("a");
-    // A reload carries what the use's own property was assigned; one press
-    // adds one, however many shells have been shown.
-    await reset(page);
-    expect(await read(page, "panel", "key")).toBe("a");
-    expect(await pressed(page)).toBe("aa");
-    // Over a shell with no such use there is nothing to carry it through.
+    // One press adds one, however many shells have been shown.
     await dropped(page, over(""));
-    await reset(page);
+    await resetting(page);
     expect(await read(page, "panel", "key")).toBe("");
     expect(await pressed(page)).toBe("a");
   });
@@ -457,10 +450,8 @@ Column {
   test("The site's own shell shown again keeps its use's attached properties", async ({ page }) => {
     await opened(page);
     expect(await laidAgain(page)).toEqual([77, 44]);
-    await reset(page);
-    expect(await laidAgain(page)).toEqual([77, 44]);
     await dropped(page, over(""));
-    await reset(page);
+    await resetting(page);
     expect(await laidAgain(page)).toEqual([77, 44]);
   });
 
@@ -600,7 +591,14 @@ test.describe("A block's uses that come and go are made anew", () => {
 });
 
 test.describe("While a dropped shell is shown, nothing fetches from another site", () => {
-  test.beforeEach(({ page }) => page.addInitScript(() => localStorage.clear()));
+  // Once a test: what a page leaves for the next is what some of them are of.
+  test.beforeEach(({ page }) =>
+    page.addInitScript(() => {
+      if (sessionStorage.cleared) return;
+      sessionStorage.cleared = "1";
+      localStorage.clear();
+    }),
+  );
   // Each refusal is told of, once.
   test.use({ told: [/^not fetched while a dropped shell is shown/] });
   const EVIL = "https://evil.example/x.png";
@@ -644,18 +642,115 @@ test.describe("While a dropped shell is shown, nothing fetches from another site
     expect(asked).toEqual([GOOD]);
   });
 
-  test("Reset gives a block's Image what it was refused", async ({ page }) => {
+  test("What a shell's handler wrote on a block is not fetched after Reset", async ({ page }) => {
     const asked = await fetched(page);
     await opened(page);
-    await dropped(page, over('    Pic { objectName: "pic" }'));
-    const block = await page.evaluateHandle(() => window.named("pic"));
-    await block.evaluate((pic, url) => (pic.picture = url), EVIL);
-    await expect.poll(() => block.evaluate((pic) => pic.status)).toBe(ERROR);
+    await dropped(
+      page,
+      `import QtQuick
+import Shop
+
+Column {
+    Basket { id: basket; objectName: "basket"; onAdded: (count) => pic.picture = "${EVIL}?leak=" + count }
+    Pic { id: pic; objectName: "pic" }
+}
+`,
+    );
+    await expect(errors(page)).toBeHidden();
+    await page.evaluate(() => window.named("basket").add());
+    await expect.poll(() => statusOf(page)).toBe(ERROR);
     expect(asked).toEqual([]);
-    await page.getByRole("button", { name: "Reset" }).click();
-    await page.evaluate(() => window.live.idle());
-    await expect.poll(() => block.evaluate((pic) => pic.status)).toBe(READY);
-    expect(asked).toEqual([EVIL]);
+    await resetting(page);
+    await page.waitForTimeout(100);
+    expect(asked).toEqual([]);
+  });
+
+  test.describe("What a block keeps of a shell's string", () => {
+    const KEPT = `import QtQuick
+import Shop
+
+Column {
+    Basket { id: basket; objectName: "basket"; onAdded: (count) => keeps.keep("${EVIL}?leak=" + count) }
+    Keeps { id: keeps; objectName: "keeps" }
+}
+`;
+    const site = (page) =>
+      page.evaluate(() => {
+        const element = document.createElement("div");
+        document.body.append(element);
+        window.keeping = window.liveShell(window.Keeping, element, { site: "keeping" });
+        return window.keeping.idle();
+      });
+    const part = (page, name) => page.evaluateHandle((name) => window.keeping.object.children.find((child) => child.objectName === name), name);
+    const kept = async (page) => {
+      await page.evaluate((text) => window.keeping.drop(text), KEPT);
+      await (await part(page, "basket")).evaluate((basket) => basket.add());
+    };
+    const answer = (page, wait) => page.route("**/slow-answer", async (route) => (await new Promise((done) => setTimeout(done, wait)), route.fulfill({ body: "" })));
+
+    test("Is in its state, its model, a nested object and a closure, and is refused while the shell is shown", async ({ page }) => {
+      const asked = await fetched(page);
+      await answer(page, 0);
+      await opened(page);
+      await site(page);
+      await kept(page);
+      const keeps = await part(page, "keeps");
+      const state = () => keeps.evaluate((block) => [block.nestedAddress, block.rows, block.script[0], block.picture]);
+      const leaked = `${EVIL}?leak=1`;
+      await expect.poll(state).toEqual([leaked, 1, leaked, leaked]);
+      await page.waitForTimeout(250);
+      expect(asked).toEqual([]);
+    });
+
+    test("Is not fetched when a timer or an answer comes after Reset", async ({ page }) => {
+      const asked = await fetched(page);
+      await answer(page, 300);
+      await opened(page);
+      await site(page);
+      await kept(page);
+      await Promise.all([page.waitForEvent("load"), page.evaluate(() => void window.keeping.reset())]);
+      await opened(page);
+      await page.waitForTimeout(500);
+      expect(asked).toEqual([]);
+    });
+
+    test("Is on no later page, in Settings or LocalStorage", async ({ page }) => {
+      const asked = await fetched(page);
+      await answer(page, 0);
+      await page.goto("/drop.html");
+      await page.evaluate(() => void indexedDB.deleteDatabase("ljos-web.LocalStorage"));
+      await opened(page);
+      await site(page);
+      await kept(page);
+      const keeps = await part(page, "keeps");
+      // This page still reads what it was told.
+      await expect.poll(() => keeps.evaluate((block) => block.fromSettings)).toContain("leak=1");
+      await page.waitForTimeout(100);
+      await Promise.all([page.waitForEvent("load"), page.evaluate(() => void window.keeping.reset())]);
+      await opened(page);
+      expect(await page.evaluate(() => JSON.stringify({ ...localStorage }))).not.toContain("evil");
+      await site(page);
+      await page.waitForTimeout(100);
+      const next = await part(page, "keeps");
+      expect(await next.evaluate((block) => [block.fromSettings, block.fromDatabase, block.rows, block.picture])).toEqual(["", "", 0, ""]);
+      expect(asked).toEqual([]);
+    });
+
+    test("What the site's own shell keeps is still kept", async ({ page }) => {
+      await fetched(page);
+      await answer(page, 0);
+      await page.goto("/drop.html");
+      await page.evaluate(() => void indexedDB.deleteDatabase("ljos-web.LocalStorage"));
+      await opened(page);
+      await site(page);
+      await (await part(page, "keeps")).evaluate((block) => block.keep("cover.svg"));
+      await page.waitForTimeout(100);
+      await page.reload();
+      await opened(page);
+      await site(page);
+      const next = await part(page, "keeps");
+      await expect.poll(() => next.evaluate((block) => [block.fromSettings, block.fromDatabase])).toEqual(["cover.svg", "cover.svg"]);
+    });
   });
 
   test("No other sink fetches what a shell names", async ({ page }) => {
@@ -684,6 +779,13 @@ test.describe("While a dropped shell is shown, nothing fetches from another site
     return sockets;
   };
 
+  const reachingSite = (page) =>
+    page.evaluate(() => {
+      const element = document.createElement("div");
+      document.body.append(element);
+      window.reaching = window.liveShell(window.Reaches, element, { site: "reaches" });
+    });
+
   test("What the site's shell fetches as it is made, after a Reset, it fetches", async ({ page }) => {
     const asked = await fetched(page);
     const sockets = await reached(page);
@@ -692,18 +794,16 @@ test.describe("While a dropped shell is shown, nothing fetches from another site
       const reaches = window.reaching.object;
       return { model: reaches.loaded, xhr: reaches.answer, socket: reaches.socketStatus };
     });
-    await page.evaluate(() => {
-      const element = document.createElement("div");
-      document.body.append(element);
-      window.reaching = window.liveShell(window.Reaches, element, { site: "reaches" });
-    });
+    await reachingSite(page);
     await expect.poll(() => asked.length).toBe(2);
     await expect.poll(() => sockets.length).toBe(1);
     await page.evaluate((text) => window.reaching.drop(text), over(""));
     await page.waitForTimeout(100);
     expect(asked.length).toBe(2);
     expect(sockets.length).toBe(1);
-    await page.evaluate(() => window.reaching.reset());
+    await Promise.all([page.waitForEvent("load"), page.evaluate(() => void window.reaching.reset())]);
+    await opened(page);
+    await reachingSite(page);
     await expect.poll(() => asked.length).toBe(4);
     await expect.poll(() => sockets.length).toBe(2);
     // Once each, and answered: nothing was refused on the way and asked again.
@@ -713,39 +813,29 @@ test.describe("While a dropped shell is shown, nothing fetches from another site
     expect(sockets.length).toBe(2);
   });
 
-  test("Reset runs what the site's shell does as it is made once", async ({ page }) => {
-    let made = 0;
-    page.on("console", (message) => message.text().includes("reaches made") && made++);
-    await fetched(page);
-    await reached(page);
+  test("A Reset with no shell shown leaves the page as it is", async ({ page }) => {
     await opened(page);
-    await page.evaluate(() => {
-      const element = document.createElement("div");
-      document.body.append(element);
-      window.reaching = window.liveShell(window.Reaches, element, { site: "reaches" });
-    });
-    await expect.poll(() => made).toBe(1);
-    await page.evaluate((text) => window.reaching.drop(text), over(""));
-    await page.evaluate(() => window.reaching.reset());
-    await page.waitForTimeout(50);
-    expect(made).toBe(2);
+    await page.evaluate(() => (window.stillHere = true));
+    await page.getByRole("button", { name: "Reset" }).click();
+    await page.evaluate(() => window.live.idle());
+    expect(await page.evaluate(() => window.stillHere)).toBe(true);
+    await expect(page.getByRole("status")).toHaveText("The site's shell is shown");
   });
 
-  test("A Reset whose shell cannot be made says so, and the next drop shows", async ({ page }) => {
+  test("A shell the browser cannot forget is said so, and the page stays", async ({ page }) => {
     await opened(page);
-    await page.evaluate(() => {
+    await page.evaluate(async (text) => {
       const element = document.createElement("div");
       document.body.append(element);
-      window.flaky = window.liveShell(window.Flaky, element, { site: "flaky" });
-    });
-    await page.evaluate((text) => window.flaky.drop(text), over(""));
-    await page.evaluate(() => (window.breaking = true));
-    await page.evaluate(() => window.flaky.reset());
-    await expect(errors(page)).toContainText("Broken on purpose");
-    await page.evaluate(() => (window.breaking = false));
-    await page.evaluate((text) => window.flaky.drop(text), over('    Text { objectName: "after"; text: "shown" }'));
-    await expect(errors(page)).toBeHidden();
-    expect(await page.evaluate(() => window.flaky.object.children.find((child) => child.objectName === "after")?.$node.isConnected)).toBe(true);
+      const stuck = new Map();
+      const storage = { getItem: (key) => stuck.get(key) ?? null, setItem: (key, value) => stuck.set(key, value), removeItem() {} };
+      window.other = window.liveShell(window.Shell, element, { site: "stuck", storage });
+      window.stillHere = true;
+      await window.other.drop(text);
+      await window.other.reset();
+    }, over(""));
+    expect(await page.evaluate(() => window.stillHere)).toBe(true);
+    await expect(errors(page).last()).toContainText("could not be forgotten");
   });
 
   test.describe("A refused request", () => {
@@ -815,7 +905,7 @@ test.describe("While a dropped shell is shown, nothing fetches from another site
     expect(found).toEqual([]);
   });
 
-  test("Each zone is counted: a Reset in one leaves the other guarded, and dispose lets go", async ({ page }) => {
+  test("Dispose lifts nothing: what either zone was handed stays refused", async ({ page }) => {
     const asked = await fetched(page);
     await opened(page);
     await page.evaluate(() => {
@@ -825,23 +915,14 @@ test.describe("While a dropped shell is shown, nothing fetches from another site
     });
     await dropped(page, over(`    Pic { objectName: "pic"; picture: "${EVIL}" }\n    Note { objectName: "noted" }`));
     await page.evaluate((text) => window.other.drop(text), pic(EVIL + "?other"));
-    await page.evaluate(() => window.other.reset());
-    await page.evaluate((url) => (window.named("pic").picture = url), EVIL + "?after-reset");
-    await expect.poll(() => statusOf(page)).toBe(ERROR);
-    expect(asked).toEqual([]);
-    // Nor does this zone's markup load anything for the other's Reset.
-    expect(await page.evaluate(() => [...window.named("noted").$node.querySelectorAll("img")].filter((image) => image.getAttribute("src")).length)).toBe(0);
-
-    await page.evaluate((text) => window.other.drop(text), pic(EVIL + "?other"));
     await page.evaluate(() => window.other.dispose());
     await page.evaluate((url) => (window.named("pic").picture = url), EVIL + "?after-dispose");
     await expect.poll(() => statusOf(page)).toBe(ERROR);
-    expect(asked).toEqual([]);
-
     const block = await page.evaluateHandle(() => window.named("pic"));
     await page.evaluate(() => window.live.dispose());
-    await block.evaluate((pic, url) => (pic.picture = url), EVIL + "?free");
-    await expect.poll(() => asked).toEqual([EVIL + "?free"]);
+    await block.evaluate((pic, url) => (pic.picture = url), EVIL + "?after-both");
+    await page.waitForTimeout(100);
+    expect(asked).toEqual([]);
   });
 });
 
@@ -863,13 +944,10 @@ test.describe("A visitor's shell is kept", () => {
     await opened(page);
     await page.evaluate(() => window.named("basket").add());
     await dropped(page, MINE);
-    await page.getByRole("button", { name: "Reset" }).click();
-    await page.evaluate(() => window.live.idle());
-    expect(await read(page, "label", "text")).toBe("Default 1");
-    expect(await page.evaluate(() => localStorage.length)).toBe(0);
-    await page.reload();
-    await opened(page);
+    await resetting(page);
+    // What only the page held went with it, as anything the shell handed it may be in it.
     expect(await read(page, "label", "text")).toBe("Default 0");
+    expect(await page.evaluate(() => localStorage.length)).toBe(0);
   });
 });
 

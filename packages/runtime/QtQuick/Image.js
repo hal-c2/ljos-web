@@ -3,7 +3,7 @@
 // The browser loads and paints it. What QML reads of it is computed here as
 // Qt computes it: the size it would have been loaded at, which is the item's
 // implicit size, and the rectangle it is painted in.
-import { guardedFetch, mayFetch, shellShown, sourced } from "../guard.js";
+import { guardedFetch, sourced } from "../guard.js";
 import { signal } from "#kernel";
 import { defineType, derived, effect, flush, group, located } from "../object.js";
 import { given, lazy, rules, sized } from "./compute.js";
@@ -256,9 +256,6 @@ export const ImageBase = defineType("ImageBase", Item, {
       record: lazy(self, () => {
         const url = located(String(self.source ?? ""));
         if (!url) return null;
-        // What was refused while a dropped shell was shown is asked for
-        // again when it has gone, by whichever block still names it.
-        if (!mayFetch(url)) shellShown();
         // `cache: false`: a load of its own, whatever the others have.
         return self.cache ? shared(self.$pictures, url, self.$load) : self.$load(url);
       }),

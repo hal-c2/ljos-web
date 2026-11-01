@@ -31,22 +31,12 @@ export class ReloadError extends Error {
 
 // Reloads `handle` (what `mount` returned) with `Component`. The handle is
 // the same one afterwards, with the new root in `object`.
-//
-// `whenGone`: the old root goes before the new one is made, and this is called
-// between the two. It is for a new root that must not be made while anything
-// of the old one is live; what the old one was given is kept for it. There is
-// no old root to go back to if the new one cannot be made: none is shown.
-export function reload(handle, Component, { whenGone } = {}) {
+export function reload(handle, Component) {
   if (!mounted.has(handle)) throw new ReloadError("only a root mounted with { reloadable: true } can be reloaded");
   const old = handle.object;
   const { element, options } = handle;
   const theme = keepTheme();
   const known = kept(old, handle.Component);
-  if (whenGone) {
-    handle.root.dispose();
-    handle.root = { dispose() {} };
-    whenGone();
-  }
   let root = null;
   let object = null;
   let focused;
@@ -61,9 +51,8 @@ export function reload(handle, Component, { whenGone } = {}) {
     root.within(() => object.$mounted?.(element, options));
   } catch (error) {
     // Whichever step it was, the old root is put back as if none was taken.
-    if (swapped && !whenGone) element.replaceChild(old.$node, object.$node);
+    if (swapped) element.replaceChild(old.$node, object.$node);
     else object?.$node?.remove();
-    if (whenGone) old.$node?.remove();
     root?.dispose();
     theme();
     throw new ReloadError(`the reload was not applied: ${error?.message ?? error}`, { cause: error });

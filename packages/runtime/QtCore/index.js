@@ -2,6 +2,7 @@
 // StandardPaths, of which a page has none, and LocationPermission, which is
 // the browser's to give.
 import { onCleanup } from "solid-js";
+import { guarded } from "../guard.js";
 import { defineType, onChange, QtObject, settle, slot, whenComplete } from "../object.js";
 import { application } from "../QtQml/application.js";
 import { Color, color } from "../QtQuick/color.js";
@@ -51,6 +52,9 @@ function read(key) {
 
 function write(key, value) {
   written.set(key, value);
+  // It may be a dropped shell's string, which the next page would act on with
+  // no guard up: it lasts as long as this page.
+  if (guarded()) return;
   try {
     localStorage.setItem(key, JSON.stringify(text(value) ?? null));
   } catch {

@@ -7,6 +7,7 @@
 // it loads neither.
 import initSqlJs from "sql.js";
 import wasm from "sql.js/dist/sql-wasm-browser.wasm?url";
+import { guarded } from "../../guard.js";
 
 // What an error's `code` says, as Qt numbers them.
 const UNKNOWN_ERR = 1;
@@ -75,6 +76,9 @@ function save(record) {
   if (!changed.size) {
     saving = saving
       .then(() => {
+        // It may hold a dropped shell's strings, which the next page would
+        // act on with no guard up: it lasts as long as this page.
+        if (guarded()) return changed.clear();
         const rows = [...changed].map(({ name, version, description, size, database }) => ({
           name,
           version,

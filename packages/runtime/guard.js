@@ -1,9 +1,14 @@
 // What may be fetched while a shell a visitor dropped is shown (docs/LJOS_WEB.md
 // A9). A shell can hand a block any string, and a block can hand that string
 // to whatever loads an address, so an address is checked where it is loaded:
-// nothing leaves for another site, and markup loads nothing at all, until the
-// last dropped shell on the page has gone, unless the site says it trusts a
-// host. A page with no dropped shell is not touched by any of this.
+// nothing leaves for another site, and markup loads nothing at all, unless the
+// site says it trusts a host. A page with no dropped shell is not touched by
+// any of this.
+//
+// It is never lifted while the page lasts. What a shell handed a block may by
+// then be anywhere (a model, a closure, a timer, what a block worked out from
+// it), and no string says whose it is, so nothing short of the page going can
+// say it has gone: Reset reloads the page.
 import { signal } from "#kernel";
 
 // What each live shell showing a dropped shell lets through. A page may have
@@ -17,31 +22,14 @@ const here = () => new URL(document.baseURI).origin;
 // The runtime's own files may be served from elsewhere than the page.
 const runtime = new URL(import.meta.url).origin;
 
-// One load for everything that names a file is kept for the page's life; one
-// that was refused is not what the file is. Asked again once nothing refuses.
-const refusals = new Set();
-
-function changed() {
-  setShellShown(zones.size > 0);
-  if (zones.size > 0) return;
-  for (const forget of refusals) forget();
-  refusals.clear();
-}
-
-// Says that `cache` has just kept what it knows of `url` under `key`.
-export function kept(cache, key, url) {
-  if (!mayFetch(url)) refusals.add(() => cache.delete(key));
-}
-
 export function zoneShows(zone, hosts) {
   zones.set(zone, new Set(hosts ?? []));
-  changed();
+  setShellShown(true);
 }
 
-export function zoneHides(zone) {
-  zones.delete(zone);
-  changed();
-}
+// Whether anything of a dropped shell may be on the page: what is written now
+// is not to be kept for the next page, which has no guard until it shows one.
+export const guarded = () => zones.size > 0;
 
 // Whether `url` may be fetched now.
 export function mayFetch(url) {

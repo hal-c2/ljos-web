@@ -8,18 +8,15 @@ import { $reloaded } from "ljos-web/reload";
 import Shell from "./scenes/drop/Shell.qml";
 import Reaches from "./scenes/drop/Reaches.qml";
 import UsesLess from "./scenes/drop/UsesLess.qml";
+import Keeping from "./scenes/drop/Keeping.qml";
 
 window.publishing = { answer: { url: "https://shells.example/1" } };
 window.liveShell = liveShell;
 window.Shell = Shell;
 window.Reaches = Reaches;
+window.Keeping = Keeping;
 // As a dev server does on a save: the new root is made before the old one goes.
 window.saved = (less) => $reloaded(Shell, less ? UsesLess : Shell);
-// A site's shell that, when a test says so, cannot be made.
-window.Flaky = Object.assign((props) => {
-  if (window.breaking) throw new Error("Broken on purpose");
-  return Shell(props);
-}, { $live: Shell.$live });
 const live = liveShell(Shell, document.getElementById("scene"), {
   allowedHosts: window.allowedHosts,
   publish: async (text, meta) => {

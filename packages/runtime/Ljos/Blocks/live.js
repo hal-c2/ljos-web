@@ -11,11 +11,12 @@
 // the same id or objectName (`reload.js`).
 //
 // The shell is kept for this visitor, in their browser, under the site's
-// name; Reset forgets it. `publish`, when the site gives one, is told the
+// name; Reset forgets it and reloads the page, as nothing less takes all the
+// shell handed the blocks off the page (`guard.js`). `publish`, when the site gives one, is told the
 // shell and what it uses: where it goes is the site's to say.
 import { mount, settle } from "../../object.js";
 import { reload } from "../../reload.js";
-import { zoneHides, zoneShows } from "../../guard.js";
+import { zoneShows } from "../../guard.js";
 
 let worker;
 let asked = 0;
@@ -107,6 +108,7 @@ export function liveShell(Entry, element_, options = {}) {
   let text = null;
   let used = [];
   let pending = Promise.resolve();
+  let shown = false;
 
   const said = (lines) => {
     errors.textContent = lines.join("\n");
@@ -133,10 +135,10 @@ export function liveShell(Entry, element_, options = {}) {
     try {
       const { shellOf } = await import("./shell.js");
       // Before the shell is made, so nothing of it is ever live.
+      shown = true;
       zoneShows(zone, options.allowedHosts);
       reload(handle, shellOf(answer.shell, components, file));
     } catch (error) {
-      if (text == null) zoneHides(zone);
       said([`${file}: ${error?.message ?? error}`]);
       return false;
     }
@@ -169,21 +171,19 @@ export function liveShell(Entry, element_, options = {}) {
       } catch {
         // Nothing was kept.
       }
-      text = null;
-      used = [];
-      // The site's shell is made with the guard off, or what it loads as it
-      // is made stays refused; and only once nothing of the shell that was
-      // shown is live, or that would be let through too.
+      let still = false;
       try {
-        reload(handle, Entry, { whenGone: () => zoneHides(zone) });
-      } catch (error) {
+        still = storage?.getItem(key) != null;
+      } catch {
+        // Nothing can be read back, nor shown from there.
+      }
+      if (still) {
         status.textContent = "";
-        said([`The site's shell could not be shown: ${error?.message ?? error}`]);
+        said(["The shell could not be forgotten: this browser keeps it"]);
         return;
       }
-      said([]);
-      settle();
-      status.textContent = "The site's shell is shown";
+      if (shown) location.reload();
+      else status.textContent = "The site's shell is shown";
     });
   }
 
@@ -243,7 +243,6 @@ export function liveShell(Entry, element_, options = {}) {
     idle: () => pending,
     dispose: () => {
       handle.dispose?.();
-      zoneHides(zone);
       region.remove();
     },
   };

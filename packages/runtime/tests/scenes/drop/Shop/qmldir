@@ -15,3 +15,5 @@ Panel 1.0 Panel.qml
 Pic 1.0 Pic.qml
 # block Sinks 1.0 Sinks.qml Shop "Fetches what a shell names"
 Sinks 1.0 Sinks.qml
+# block Keeps 1.0 Keeps.qml Shop "Keeps what it is handed"
+Keeps 1.0 Keeps.qml
