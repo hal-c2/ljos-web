@@ -12,14 +12,14 @@ use std::sync::Arc;
 use ljos_3d::custom::{
     Blend, BufferFormat, EffectBuffer, Pass, PassTexture, UniformKind, UniformValue,
 };
-use ljos_3d::geometry::{ComponentType, PrimitiveType, Semantic};
+use ljos_3d::geometry::{ComponentType, PrimitiveType, Semantic, Subset};
 use ljos_3d::gltf::Asset;
 use ljos_3d::math::{Mat4, Quat, Vec3};
 use ljos_3d::mesh_file::MeshFile;
 use ljos_3d::qml::enums::{cull, depth_draw};
 use ljos_3d::qml::{self, Loaded, Prop3d, SceneSource, Type3d};
 use ljos_3d::texture::{
-    Filter, PixelEncoding, TextureImage, TexturePixels, Tiling, fresh_pixels_id,
+    BakedCube, Filter, PixelEncoding, TextureImage, TexturePixels, Tiling, fresh_pixels_id,
 };
 use ljos_3d::texture_data::TextureData;
 use ljos_3d::{CustomGeometry, CustomMaterial, Effect, Instance, InstanceTable, Instancing};
@@ -39,6 +39,9 @@ pub struct Picture {
     pub opaque: bool,
     pub format: Option<i32>,
     pub pixels: Vec<u8>,
+    /// Where the picture is a cube with its levels baked: its levels, each
+    /// its six sides.
+    pub baked: Option<Vec<Vec<u8>>>,
 }
 
 /// What a `Geometry` last committed, in `Geometry`'s own numbers.
@@ -50,6 +53,8 @@ pub struct Shape {
     pub attributes: Vec<[u32; 3]>,
     pub primitive: u32,
     pub bounds: Option<([f32; 3], [f32; 3])>,
+    /// What materials of their own draw, if it was said.
+    pub subsets: Vec<Subset>,
 }
 
 /// An `Instancing`'s table, as `instancing.js` keeps it: twenty numbers an
@@ -84,10 +89,23 @@ pub struct Snippets {
 
 /// A buffer an effect's passes draw into.
 pub struct PassBuffer {
+    pub name: String,
     pub format: i32,
     pub scale: f32,
     pub filter: i32,
     pub wrap: i32,
+}
+
+fn format(told: i32) -> BufferFormat {
+    match told {
+        2 => BufferFormat::Rgba16F,
+        3 => BufferFormat::Rgba32F,
+        4 => BufferFormat::R8,
+        5 => BufferFormat::R16,
+        6 => BufferFormat::R16F,
+        7 => BufferFormat::R32F,
+        _ => BufferFormat::Rgba8,
+    }
 }
 
 /// One pass of an `Effect`.
@@ -99,6 +117,8 @@ pub struct PassShaders {
     pub reads: Vec<(String, usize)>,
     pub input: Option<usize>,
     pub output: Option<usize>,
+    /// The kind of picture the effect leaves, where the pass says one.
+    pub leaves: i32,
 }
 
 /// An `Effect`'s passes.
@@ -162,7 +182,8 @@ pub struct Kept {
     pictures: RefCell<HashMap<u32, TextureImage>>,
     shapes: RefCell<HashMap<u32, Arc<CustomGeometry>>>,
     tables: RefCell<HashMap<u32, Arc<InstanceTable>>>,
-    programs: RefCell<HashMap<String, Arc<ljos_3d::custom::Program>>>,
+    // Those that could not be made as well, so as to say so once.
+    programs: RefCell<HashMap<String, Option<Arc<ljos_3d::custom::Program>>>>,
     files: RefCell<HashMap<String, Asked<Asset>>>,
     meshes: RefCell<HashMap<String, Asked<MeshFile>>>,
 }
@@ -214,6 +235,35 @@ impl TexturePixels for Pixels {
     }
 }
 
+/// A picture that is a cube with its levels baked, for a light probe; as a
+/// material's picture it is what `first` holds.
+#[derive(Debug)]
+struct Baked {
+    first: TextureImage,
+    cube: BakedCube,
+}
+
+impl TexturePixels for Baked {
+    fn id(&self) -> u64 {
+        self.first.0.id()
+    }
+    fn size(&self) -> [u32; 2] {
+        self.first.0.size()
+    }
+    fn encoding(&self) -> PixelEncoding {
+        self.first.0.encoding()
+    }
+    fn opaque(&self) -> bool {
+        self.first.0.opaque()
+    }
+    fn with_pixels(&self, read: &mut dyn FnMut(&[u8])) {
+        self.first.0.with_pixels(read);
+    }
+    fn baked(&self) -> Option<&BakedCube> {
+        Some(&self.cube)
+    }
+}
+
 /// The graph one build reads.
 pub struct Source<'a, H> {
     pub host: &'a H,
@@ -233,18 +283,18 @@ impl<H: Host> Source<'_, H> {
         make: impl FnOnce() -> Result<ljos_3d::custom::Program, ljos_3d::snippet::SnippetError>,
     ) -> Option<Arc<ljos_3d::custom::Program>> {
         if let Some(made) = self.kept.programs.borrow().get(&key) {
-            return Some(made.clone());
+            return made.clone();
         }
         let made = match make() {
-            Ok(made) => Arc::new(made),
+            Ok(made) => Some(Arc::new(made)),
             // Nothing is drawn with it, so what is wrong has to be said.
             Err(error) => {
                 self.host.warn(&format!("a shader cannot be used: {error}"));
-                return None;
+                None
             }
         };
         self.kept.programs.borrow_mut().insert(key, made.clone());
-        Some(made)
+        made
     }
 }
 
@@ -354,6 +404,9 @@ fn shape(s: Shape) -> Option<CustomGeometry> {
             Vec3::new(min[0], min[1], min[2]),
             Vec3::new(max[0], max[1], max[2]),
         );
+    }
+    for subset in s.subsets {
+        g.add_subset(subset);
     }
     g.update();
     Some(g)
@@ -478,6 +531,16 @@ impl<H: Host> SceneSource for Source<'_, H> {
                 pixels: p.pixels,
             }),
         };
+        let image = match p.baked {
+            Some(levels) => TextureImage::new(Baked {
+                first: image,
+                cube: BakedCube {
+                    across: p.width,
+                    levels,
+                },
+            }),
+            None => image,
+        };
         self.kept.pictures.borrow_mut().insert(id, image.clone());
         Some(image)
     }
@@ -580,11 +643,8 @@ impl<H: Host> SceneSource for Source<'_, H> {
                 .buffers
                 .iter()
                 .map(|b| EffectBuffer {
-                    format: match b.format {
-                        2 => BufferFormat::Rgba16F,
-                        3 => BufferFormat::Rgba32F,
-                        _ => BufferFormat::Rgba8,
-                    },
+                    name: b.name.clone(),
+                    format: format(b.format),
                     size_multiplier: b.scale,
                     filter: if b.filter == 1 {
                         Filter::Nearest
@@ -650,6 +710,7 @@ impl<H: Host> SceneSource for Source<'_, H> {
                 textures,
                 input: pass.input,
                 output: pass.output,
+                leaves: (pass.leaves != 0).then(|| format(pass.leaves)),
             });
         }
         Some(made)

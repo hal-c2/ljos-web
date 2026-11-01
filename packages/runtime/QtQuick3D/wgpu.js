@@ -82,6 +82,16 @@ const plain = (uniforms) => uniforms.filter(({ type }) => type !== "sampler2D").
 // what it holds is what counts, said or not.
 const written = (object) => object.$type.chain.some((type) => type.typeName === "SceneEffectEnvironment");
 
+function joined(sides) {
+  const all = new Uint8Array(sides.reduce((sum, side) => sum + side.byteLength, 0));
+  let at = 0;
+  for (const side of sides) {
+    all.set(new Uint8Array(side.buffer, side.byteOffset, side.byteLength), at);
+    at += side.byteLength;
+  }
+  return all;
+}
+
 class Host {
   constructor(view, setArrivals, arrivals, ask) {
     this.view = view;
@@ -221,7 +231,9 @@ class Host {
     if (data) {
       // Its own numbers: the wasm reads them as what the format says they are.
       const { width, height, pixels, format } = data;
-      return { width, height, pixels: new Uint8Array(pixels.buffer, pixels.byteOffset, pixels.byteLength), format: Format[format], opaque: !texture.sheer };
+      // Surroundings baked into a file: each level's sides, one after another.
+      const baked = data.baked && data.sides === 6 ? data.levels?.map(joined) : undefined;
+      return { width, height, pixels: new Uint8Array(pixels.buffer, pixels.byteOffset, pixels.byteLength), format: Format[format], opaque: !texture.sheer, baked };
     }
     return { ...pixelsOf(texture.element), opaque: !texture.sheer };
   }
@@ -291,6 +303,7 @@ class Host {
           reads: named.filter(({ sampler }) => sampler).map(({ buffer, sampler }) => ({ sampler, buffer: at(buffer) })),
           input: given ? at(given.buffer) : undefined,
           output: pass.output ? at(pass.output) : undefined,
+          leaves: pass.format,
         };
       }),
       buffers,

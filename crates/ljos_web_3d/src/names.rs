@@ -1,6 +1,6 @@
 //! What the page's objects call things, in `ljos_3d`'s terms.
 
-use ljos_3d::qml::enums::{alpha, antialiasing, background, cull, tiling};
+use ljos_3d::qml::enums::{alpha, antialiasing, background, cull, depth_draw, tiling};
 use ljos_3d::qml::{Prop3d, Type3d};
 
 /// `Type3d` has no list of its own; a type's place here is its bit in what
@@ -66,6 +66,11 @@ pub fn enumeration(p: Prop3d, qt: i32) -> Option<i32> {
         (P::TilingModeHorizontal | P::TilingModeVertical, 2) => tiling::MIRRORED_REPEAT,
         (P::TilingModeHorizontal | P::TilingModeVertical, 3) => tiling::REPEAT,
         (P::TilingModeHorizontal | P::TilingModeVertical, _) => return None,
+        (P::DepthDrawMode, 0) => depth_draw::OPAQUE_ONLY,
+        (P::DepthDrawMode, 1) => depth_draw::ALWAYS,
+        (P::DepthDrawMode, 2) => depth_draw::NEVER,
+        (P::DepthDrawMode, 3) => depth_draw::OPAQUE_PRE_PASS,
+        (P::DepthDrawMode, _) => return None,
         (P::AlphaMode, 0) => alpha::DEFAULT,
         (P::AlphaMode, 1) => alpha::MASK,
         (P::AlphaMode, 2) => alpha::BLEND,
