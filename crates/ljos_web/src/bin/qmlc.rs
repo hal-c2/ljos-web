@@ -29,7 +29,10 @@ use std::{
     sync::OnceLock,
 };
 
-use ljos_web::{Options, Project, compile, compile_script, discover, lowered_source, native_types, written_types};
+use ljos_web::{
+    Options, Project, compile, compile_script, discover, lowered_source, native_types,
+    written_types,
+};
 
 /// The file selectors given, the first to have a file deciding.
 static SELECTORS: OnceLock<Vec<String>> = OnceLock::new();
@@ -38,7 +41,10 @@ static SELECTORS: OnceLock<Vec<String>> = OnceLock::new();
 /// there is one.
 fn read(file: &Path) -> std::io::Result<String> {
     let chosen = SELECTORS.get().into_iter().flatten().find_map(|selector| {
-        let chosen = file.parent()?.join(format!("+{selector}")).join(file.file_name()?);
+        let chosen = file
+            .parent()?
+            .join(format!("+{selector}"))
+            .join(file.file_name()?);
         chosen.is_file().then_some(chosen)
     });
     std::fs::read_to_string(chosen.as_deref().unwrap_or(file))
@@ -50,8 +56,10 @@ fn project_root(path: &Path) -> PathBuf {
     directory
         .ancestors()
         .find(|ancestor| {
-            std::fs::read_to_string(ancestor.join("CMakeLists.txt"))
-                .is_ok_and(|text| text.lines().any(|line| line.trim_start().starts_with("project(")))
+            std::fs::read_to_string(ancestor.join("CMakeLists.txt")).is_ok_and(|text| {
+                text.lines()
+                    .any(|line| line.trim_start().starts_with("project("))
+            })
         })
         .unwrap_or(directory)
         .to_path_buf()
@@ -61,13 +69,21 @@ fn project_root(path: &Path) -> PathBuf {
 /// directory above whose build takes it in (`add_subdirectory(QtExampleStyle)`).
 fn including(root: &Path) -> Option<&Path> {
     root.ancestors().skip(1).find(|above| {
-        let Ok(part) = root.strip_prefix(above) else { return false };
+        let Ok(part) = root.strip_prefix(above) else {
+            return false;
+        };
         let part = part.to_string_lossy();
         std::fs::read_to_string(above.join("CMakeLists.txt")).is_ok_and(|text| {
-            text.lines().filter_map(|line| line.trim_start().strip_prefix("add_subdirectory(")).any(|rest| {
-                let named = rest.split([')', ' ']).next().unwrap_or(rest).trim_matches('"');
-                named.trim_end_matches('/') == part
-            })
+            text.lines()
+                .filter_map(|line| line.trim_start().strip_prefix("add_subdirectory("))
+                .any(|rest| {
+                    let named = rest
+                        .split([')', ' '])
+                        .next()
+                        .unwrap_or(rest)
+                        .trim_matches('"');
+                    named.trim_end_matches('/') == part
+                })
         })
     })
 }
@@ -84,7 +100,9 @@ fn program_root(root: &Path) -> &Path {
 
 /// The files under `root` that say what a module is.
 fn descriptions(root: &Path, found: &mut Vec<PathBuf>) {
-    let Ok(entries) = std::fs::read_dir(root) else { return };
+    let Ok(entries) = std::fs::read_dir(root) else {
+        return;
+    };
     for entry in entries.flatten() {
         let path = entry.path();
         let name = entry.file_name();
@@ -103,7 +121,10 @@ fn descriptions(root: &Path, found: &mut Vec<PathBuf>) {
 /// neither are the files a selector chooses from: each is another by its
 /// name.
 fn is_source(name: &str) -> bool {
-    !name.starts_with(['.', '+']) && !name.starts_with("build") && name != "node_modules" && name != "target"
+    !name.starts_with(['.', '+'])
+        && !name.starts_with("build")
+        && name != "node_modules"
+        && name != "target"
 }
 
 /// The QML files in `directory` and under it, by their path from `base`:
@@ -114,7 +135,9 @@ fn qml_files(directory: &Path, base: &Path, found: &mut Vec<String>) {
 
 /// The files in `directory` and under it that `wanted` takes the name of.
 fn walk(directory: &Path, base: &Path, wanted: &dyn Fn(&str) -> bool, found: &mut Vec<String>) {
-    let Ok(entries) = std::fs::read_dir(directory) else { return };
+    let Ok(entries) = std::fs::read_dir(directory) else {
+        return;
+    };
     for entry in entries.flatten() {
         let path = entry.path();
         let name = entry.file_name();
@@ -135,7 +158,11 @@ fn relative(from: &Path, to: &Path) -> String {
     let to: Vec<Component> = to.components().collect();
     let common = from.iter().zip(&to).take_while(|(a, b)| a == b).count();
     let mut parts: Vec<String> = vec!["..".to_string(); from.len() - common];
-    parts.extend(to[common..].iter().map(|part| part.as_os_str().to_string_lossy().into_owned()));
+    parts.extend(
+        to[common..]
+            .iter()
+            .map(|part| part.as_os_str().to_string_lossy().into_owned()),
+    );
     parts.join("/")
 }
 
@@ -147,7 +174,9 @@ fn modules(project: &mut Project, root: &Path, base: &Path, standing: bool) {
     descriptions(root, &mut found);
     found.sort();
     for description in found {
-        let Ok(text) = std::fs::read_to_string(&description) else { continue };
+        let Ok(text) = std::fs::read_to_string(&description) else {
+            continue;
+        };
         let directory = description.parent().unwrap_or(root);
         let modules = if description.ends_with("qmldir") {
             discover::qmldir(&text).into_iter().collect()
@@ -156,9 +185,13 @@ fn modules(project: &mut Project, root: &Path, base: &Path, standing: bool) {
         };
         for module in modules {
             for ty in module.types {
-                let Ok(file) = directory.join(&ty.path).canonicalize() else { continue };
+                let Ok(file) = directory.join(&ty.path).canonicalize() else {
+                    continue;
+                };
                 let path = relative(base, &file);
-                let Some(key) = path.strip_suffix(".qml") else { continue };
+                let Some(key) = path.strip_suffix(".qml") else {
+                    continue;
+                };
                 if !project.has(key) {
                     let Ok(source) = read(&file) else { continue };
                     if project.add(key, &source).is_err() {
@@ -180,14 +213,28 @@ fn modules(project: &mut Project, root: &Path, base: &Path, standing: bool) {
 fn kept(project: &mut Project, root: &Path, base: &Path) {
     let mut found = Vec::new();
     descriptions(root, &mut found);
-    for description in found.iter().filter(|description| description.ends_with("CMakeLists.txt")) {
-        let Ok(text) = std::fs::read_to_string(description) else { continue };
+    for description in found
+        .iter()
+        .filter(|description| description.ends_with("CMakeLists.txt"))
+    {
+        let Ok(text) = std::fs::read_to_string(description) else {
+            continue;
+        };
         let directory = description.parent().unwrap_or(root);
         let modules = discover::cmake(&text);
-        let with = modules.iter().flat_map(|module| module.resources.iter().map(|resource| (module.address(resource), resource.clone())));
-        let alone = discover::kept(&text).into_iter().map(|resource| (resource.address, resource.path));
+        let with = modules.iter().flat_map(|module| {
+            module
+                .resources
+                .iter()
+                .map(|resource| (module.address(resource), resource.clone()))
+        });
+        let alone = discover::kept(&text)
+            .into_iter()
+            .map(|resource| (resource.address, resource.path));
         for (address, path) in with.chain(alone) {
-            let Ok(file) = directory.join(&path).canonicalize() else { continue };
+            let Ok(file) = directory.join(&path).canonicalize() else {
+                continue;
+            };
             project.add_resource(&address, &relative(base, &file));
         }
     }
@@ -204,7 +251,8 @@ fn project(path: &Path, project_root: Option<&Path>, with: &[PathBuf]) -> Projec
         _ => Path::new("."),
     };
     if let (Ok(base), Ok(path)) = (root.canonicalize(), path.canonicalize()) {
-        let project_root = project_root.map_or_else(|| self::project_root(&path), Path::to_path_buf);
+        let project_root =
+            project_root.map_or_else(|| self::project_root(&path), Path::to_path_buf);
         if let Ok(project_root) = project_root.canonicalize() {
             modules(&mut project, &project_root, &base, false);
             // A program's files are one lot, whichever part names one.
@@ -222,7 +270,9 @@ fn project(path: &Path, project_root: Option<&Path>, with: &[PathBuf]) -> Projec
         if !loaded.insert(directory.clone()) {
             continue;
         }
-        let Ok(entries) = std::fs::read_dir(root.join(&directory)) else { continue };
+        let Ok(entries) = std::fs::read_dir(root.join(&directory)) else {
+            continue;
+        };
         for entry in entries.flatten() {
             let file = entry.path();
             if file.extension().is_none_or(|extension| extension != "qml") {
@@ -233,7 +283,11 @@ fn project(path: &Path, project_root: Option<&Path>, with: &[PathBuf]) -> Projec
             else {
                 continue;
             };
-            let key = if directory.is_empty() { stem.to_string() } else { format!("{directory}/{stem}") };
+            let key = if directory.is_empty() {
+                stem.to_string()
+            } else {
+                format!("{directory}/{stem}")
+            };
             if !project.has(&key) {
                 let _ = project.add(&key, &source);
             }
@@ -244,12 +298,15 @@ fn project(path: &Path, project_root: Option<&Path>, with: &[PathBuf]) -> Projec
     // path, and finds in that one what it does not have itself: the rest of
     // the program is there for what it names.
     if let (Ok(base), Ok(path)) = (root.canonicalize(), path.canonicalize()) {
-        let project_root = project_root.map_or_else(|| self::project_root(&path), Path::to_path_buf);
+        let project_root =
+            project_root.map_or_else(|| self::project_root(&path), Path::to_path_buf);
         let mut found = Vec::new();
         qml_files(&project_root, &base, &mut found);
         found.sort();
         for file in found {
-            let Some(key) = file.strip_suffix(".qml") else { continue };
+            let Some(key) = file.strip_suffix(".qml") else {
+                continue;
+            };
             if !project.has(key) {
                 if let Ok(source) = read(&base.join(&file)) {
                     let _ = project.add(key, &source);
@@ -272,7 +329,10 @@ fn main() -> ExitCode {
     let mut files = Vec::new();
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
-        let mut value = |flag: &str| args.next().unwrap_or_else(|| panic!("{flag} needs a value"));
+        let mut value = |flag: &str| {
+            args.next()
+                .unwrap_or_else(|| panic!("{flag} needs a value"))
+        };
         match arg.as_str() {
             "--emit" => lowered = value("--emit") == "lowered",
             "--out-dir" => out_dir = Some(value("--out-dir")),
@@ -313,7 +373,10 @@ fn main() -> ExitCode {
                 continue;
             }
         };
-        let stem = path.file_stem().and_then(|stem| stem.to_str()).unwrap_or("Component");
+        let stem = path
+            .file_stem()
+            .and_then(|stem| stem.to_str())
+            .unwrap_or("Component");
         let is_script = path.extension().is_some_and(|extension| extension == "js");
         options.name = stem.to_string();
         options.project = (!alone && !is_script).then(|| project(path, root.as_deref(), &with));
@@ -329,7 +392,12 @@ fn main() -> ExitCode {
         });
         options.pictures = (!alone).then(|| {
             let mut pictures = Vec::new();
-            walk(directory, directory, &|name| !name.ends_with(".qml"), &mut pictures);
+            walk(
+                directory,
+                directory,
+                &|name| !name.ends_with(".qml"),
+                &mut pictures,
+            );
             pictures
         });
         let result = if is_script {
@@ -344,7 +412,11 @@ fn main() -> ExitCode {
                 compiled += 1;
                 match &out_dir {
                     Some(dir) => {
-                        let name = if is_script { format!("{stem}.js") } else { format!("{stem}.qml.js") };
+                        let name = if is_script {
+                            format!("{stem}.js")
+                        } else {
+                            format!("{stem}.qml.js")
+                        };
                         let target = Path::new(dir).join(name);
                         std::fs::create_dir_all(dir).expect("output directory");
                         std::fs::write(&target, code).expect("writable output");
@@ -364,5 +436,9 @@ fn main() -> ExitCode {
     if files.len() > 1 {
         eprintln!("{compiled} compiled, {failed} failed");
     }
-    if failed == 0 { ExitCode::SUCCESS } else { ExitCode::FAILURE }
+    if failed == 0 {
+        ExitCode::SUCCESS
+    } else {
+        ExitCode::FAILURE
+    }
 }

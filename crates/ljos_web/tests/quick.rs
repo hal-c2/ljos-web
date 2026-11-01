@@ -7,10 +7,20 @@ use ljos_web::{Options, Project, compile, lowered_source};
 fn lowered_in(files: &[(&str, &str)], name: &str) -> Result<String, Vec<String>> {
     let mut project = Project::new();
     for (file, source) in files {
-        project.add(file, source).unwrap_or_else(|errors| panic!("{file}: {errors:?}"));
+        project
+            .add(file, source)
+            .unwrap_or_else(|errors| panic!("{file}: {errors:?}"));
     }
-    let options = Options { name: name.to_string(), project: Some(project), ..Options::default() };
-    let source = files.iter().find(|(file, _)| *file == name).expect("a file of the project").1;
+    let options = Options {
+        name: name.to_string(),
+        project: Some(project),
+        ..Options::default()
+    };
+    let source = files
+        .iter()
+        .find(|(file, _)| *file == name)
+        .expect("a file of the project")
+        .1;
     // What does not lower would not compile either; what lowers, Solid takes.
     lowered_source(source, &options)
         .and_then(|lowered| compile(source, &options).map(|_| lowered))
@@ -27,12 +37,18 @@ fn errors(source: &str) -> Vec<String> {
 
 #[track_caller]
 fn assert_contains(haystack: &str, needle: &str) {
-    assert!(haystack.contains(needle), "expected to find\n  {needle}\nin\n{haystack}");
+    assert!(
+        haystack.contains(needle),
+        "expected to find\n  {needle}\nin\n{haystack}"
+    );
 }
 
 #[track_caller]
 fn assert_lacks(haystack: &str, needle: &str) {
-    assert!(!haystack.contains(needle), "expected not to find\n  {needle}\nin\n{haystack}");
+    assert!(
+        !haystack.contains(needle),
+        "expected not to find\n  {needle}\nin\n{haystack}"
+    );
 }
 
 #[test]
@@ -47,7 +63,10 @@ Rectangle {
 }"#,
     );
     assert_contains(&code, r#"import { $object } from "ljos-web/object";"#);
-    assert_contains(&code, r#"import { Rectangle, Text } from "ljos-web/QtQuick";"#);
+    assert_contains(
+        &code,
+        r#"import { Rectangle, Text } from "ljos-web/QtQuick";"#,
+    );
     assert_contains(&code, "export default function Sample($props) {");
     // An instance that has an id made the object already.
     assert_contains(&code, "const root = $props.$self ?? $object();");
@@ -57,14 +76,18 @@ Rectangle {
     );
     // `parent` is the Text's: an object nothing else names gets a name of ours.
     assert_contains(&code, "const $1 = $object();");
-    assert_contains(&code, "<Text $self={$1} text={root.width} font$bold={true} anchors$fill={$1.parent}>");
+    assert_contains(
+        &code,
+        "<Text $self={$1} text={root.width} font$bold={true} anchors$fill={$1.parent}>",
+    );
     // An instance's children go where the root's own do.
     assert_contains(&code, "</Text>{$props.children}</Rectangle>");
 }
 
 #[test]
 fn only_an_object_something_names_has_a_binding() {
-    let code = lowered("import QtQuick\nItem { Rectangle { width: 10 } Rectangle { width: height } }");
+    let code =
+        lowered("import QtQuick\nItem { Rectangle { width: 10 } Rectangle { width: height } }");
     assert_contains(&code, "<Rectangle width={10}></Rectangle>");
     assert_contains(&code, "<Rectangle $self={$3} width={$3.height}>");
     assert_lacks(&code, "const $2");
@@ -90,7 +113,14 @@ Item {
     );
     assert_contains(&code, "const Sample$ = {");
     // A property of a type says which, for what it is given to be made one.
-    for property in ["hours: $int", "city: $string", "anything: void 0", "face: null", "hands: []", "night: $bool"] {
+    for property in [
+        "hours: $int",
+        "city: $string",
+        "anything: void 0",
+        "face: null",
+        "hands: []",
+        "night: $bool",
+    ] {
         assert_contains(&code, property);
     }
     assert_contains(&code, r#"signals: ["ticked"]"#);
@@ -99,7 +129,10 @@ Item {
     // A function's names are the object's, and so is what it assigns to.
     assert_contains(&code, "clock.hours = clock.hours + 1;");
     assert_contains(&code, "clock.ticked(clock.hours);");
-    assert_contains(&code, "onTicked={(count) => console.log(count, clock.city)}");
+    assert_contains(
+        &code,
+        "onTicked={(count) => console.log(count, clock.city)}",
+    );
     assert_contains(&code, "onHoursChanged={() => clock.tick()}");
 }
 
@@ -124,10 +157,19 @@ MouseArea {
     assert_contains(&code, "onWheel={(wheel) => wheel.accepted = true}");
     assert_contains(&code, "onReleased={function(event) {");
     assert_contains(&code, "Keys$onPressed={(event) => event.accepted = true}");
-    assert_contains(&code, "Keys$onReturnPressed={(event) => console.log(event.key)}");
-    assert_contains(&code, r#"Component$onCompleted={() => console.log("made")}"#);
+    assert_contains(
+        &code,
+        "Keys$onReturnPressed={(event) => console.log(event.key)}",
+    );
+    assert_contains(
+        &code,
+        r#"Component$onCompleted={() => console.log("made")}"#,
+    );
     assert_contains(&code, "$attach={[Keys]}");
-    assert_contains(&code, r#"import { Keys, MouseArea } from "ljos-web/QtQuick";"#);
+    assert_contains(
+        &code,
+        r#"import { Keys, MouseArea } from "ljos-web/QtQuick";"#,
+    );
 }
 
 #[test]
@@ -160,13 +202,25 @@ Item {
     // `focusChanged(bool)`, `stateChanged(string)`, `textChanged(string)`:
     // Qt's signal carries what the property now is. The runtime tells of a
     // change and of nothing more, so that is what the argument is then.
-    assert_contains(&code, "onFocusChanged={(focus = root.focus) => console.log(focus)}");
+    assert_contains(
+        &code,
+        "onFocusChanged={(focus = root.focus) => console.log(focus)}",
+    );
     assert_contains(&code, "onStateChanged={function(state = root.state) {");
-    assert_contains(&code, "onTextChanged={(text = $1.text) => console.log(text)}");
+    assert_contains(
+        &code,
+        "onTextChanged={(text = $1.text) => console.log(text)}",
+    );
     // Of the object a property holds, too.
-    assert_contains(&code, "action$onTextChanged={(text = button.action.text) => console.log(text)}");
+    assert_contains(
+        &code,
+        "action$onTextChanged={(text = button.action.text) => console.log(text)}",
+    );
     // And a Connections of a target it names by its id.
-    assert_contains(&code, "onFocusChanged={function onFocusChanged(focus = button.focus) {");
+    assert_contains(
+        &code,
+        "onFocusChanged={function onFocusChanged(focus = button.focus) {",
+    );
     // `widthChanged()` carries nothing, nor does the change of a property
     // QML declares: an argument the handler names is undefined, as in Qt.
     assert_contains(&code, "onCountChanged={(value) => console.log(value)}");
@@ -175,7 +229,10 @@ Item {
     // A script that does not name the argument is given none, and one that
     // says what it is without it keeps what it says.
     assert_contains(&code, r#"onFontChanged={(font) => console.log("changed")}"#);
-    assert_contains(&code, "onLineHeightChanged={(height = 1) => console.log(height)}");
+    assert_contains(
+        &code,
+        "onLineHeightChanged={(height = 1) => console.log(height)}",
+    );
     // What Qt carries there is not the property: the event, by how much.
     assert_contains(&code, "onMouseXChanged={(mouse) => console.log(mouse.x)}");
     assert_contains(&code, "onScaleChanged={(delta) => console.log(delta)}");
@@ -196,10 +253,22 @@ Item {
     );
     assert_contains(&code, "Layout$fillWidth={true}");
     assert_contains(&code, "$attach={[Layout]}");
-    assert_contains(&code, r#"import { Layout } from "ljos-web/QtQuick/Layouts";"#);
-    assert_contains(&code, "width={ListView.attached(cell).view ? ListView.attached(cell).view.width : 0}");
-    assert_contains(&code, "style={Text$Raised} horizontalAlignment={Text$AlignHCenter} elide={Qt$ElideRight}");
-    assert_contains(&code, "orientation={ListView$Horizontal} snapMode={ListView$SnapOneItem}");
+    assert_contains(
+        &code,
+        r#"import { Layout } from "ljos-web/QtQuick/Layouts";"#,
+    );
+    assert_contains(
+        &code,
+        "width={ListView.attached(cell).view ? ListView.attached(cell).view.width : 0}",
+    );
+    assert_contains(
+        &code,
+        "style={Text$Raised} horizontalAlignment={Text$AlignHCenter} elide={Qt$ElideRight}",
+    );
+    assert_contains(
+        &code,
+        "orientation={ListView$Horizontal} snapMode={ListView$SnapOneItem}",
+    );
     assert_contains(&code, "const ListView$SnapOneItem = ListView.SnapOneItem;");
     assert_contains(&code, r#"import { Qt } from "ljos-web/QtQml";"#);
 }
@@ -256,10 +325,16 @@ Item {
     }
 }"#,
     );
-    assert_contains(&code, "visible={ListView.attached(cell).isCurrentItem && W.Window.attached($1).active}");
+    assert_contains(
+        &code,
+        "visible={ListView.attached(cell).isCurrentItem && W.Window.attached($1).active}",
+    );
     assert_contains(&code, "flags={Qt.Window}");
     assert_contains(&code, "ListView.attached(cell.parent).delayRemove = true");
-    assert_contains(&code, r#"import { Item, Keys, ListView, Text } from "ljos-web/QtQuick";"#);
+    assert_contains(
+        &code,
+        r#"import { Item, Keys, ListView, Text } from "ljos-web/QtQuick";"#,
+    );
 }
 
 #[test]
@@ -302,23 +377,39 @@ Item {
     );
     // A `Component` with an id is a binding of the component it is in.
     assert_contains(&code, "const dot = $component(($data) => {");
-    assert_contains(&code, r#"radius={"spacing" in $data ? $data.spacing : root.spacing}"#);
+    assert_contains(
+        &code,
+        r#"radius={"spacing" in $data ? $data.spacing : root.spacing}"#,
+    );
     // What is written in a Repeater is its delegate.
-    assert_contains(&code, "<Repeater model={3} delegate={$component(($data) => {");
+    assert_contains(
+        &code,
+        "<Repeater model={3} delegate={$component(($data) => {",
+    );
     // A required property is what the delegate is given; another name is the
     // object's if it has it, a role of the model's if not.
     assert_contains(&code, "index={$data.index}");
     assert_contains(&code, "x={$3.index * root.spacing}");
-    assert_contains(&code, r#"y={$data.modelData + ("spacing" in $data ? $data.spacing : root.spacing)}"#);
+    assert_contains(
+        &code,
+        r#"y={$data.modelData + ("spacing" in $data ? $data.spacing : root.spacing)}"#,
+    );
     assert_contains(&code, "z={$data.model.index}");
     // A delegate in a delegate is given its own, and sees the other's.
     assert_contains(&code, "delegate={$component(($data1) => {");
-    assert_contains(&code, r#"text={$data1.index + ("name" in $data1 ? $data1.name : $data.name)}"#);
-    assert_contains(&code, "<ListView delegate={dot} highlight={$component(($data) => {");
+    assert_contains(
+        &code,
+        r#"text={$data1.index + ("name" in $data1 ? $data1.name : $data.name)}"#,
+    );
+    assert_contains(
+        &code,
+        "<ListView delegate={dot} highlight={$component(($data) => {",
+    );
     assert_contains(&code, "<Loader sourceComponent={dot}>");
 
     // A component a type attaches is one too: what a view edits a cell with.
-    let code = lowered("import QtQuick\nItem {\n    TableView.editDelegate: Text { text: column }\n}");
+    let code =
+        lowered("import QtQuick\nItem {\n    TableView.editDelegate: Text { text: column }\n}");
     assert_contains(&code, "TableView$editDelegate={$component(($data) => {");
     assert_contains(&code, "text={$data.column}");
 }
@@ -348,14 +439,18 @@ Item {
         "<T.TableViewDelegate selected={false} row={$data.row} tableView={$data.tableView} current={$data.current} \
          editing={$data.editing}",
     );
-    assert_contains(&code, "<T.HeaderViewDelegate headerView={$data.headerView} model={$data.model} tableView={$data.tableView}");
+    assert_contains(
+        &code,
+        "<T.HeaderViewDelegate headerView={$data.headerView} model={$data.model} tableView={$data.tableView}",
+    );
     // One that is not a delegate is given nothing.
     assert_contains(&code, "<TableViewDelegate></TableViewDelegate>");
 
     // A component has what the type of its root requires, with its own.
     let app = "import QtQuick\nTableView { delegate: Cell { } }";
     let cell = "import QtQuick.Templates as T\nT.TableViewDelegate { required property var model }";
-    let code = lowered_in(&[("App", app), ("Cell", cell)], "App").unwrap_or_else(|errors| panic!("{errors:?}"));
+    let code = lowered_in(&[("App", app), ("Cell", cell)], "App")
+        .unwrap_or_else(|errors| panic!("{errors:?}"));
     assert_contains(
         &code,
         "<Cell model={$data.model} tableView={$data.tableView} current={$data.current} selected={$data.selected} \
@@ -388,8 +483,14 @@ Item {
     Image { source: "d.png" }
 }"#,
         ),
-        ("parts/Picture", "import QtQuick\nItem { property alias source: image.source; property alias sourceSize: image.sourceSize; Image { id: image } }"),
-        ("parts/Held", "import QtQuick\nItem { id: root; property url shown; Image { source: root.shown } }"),
+        (
+            "parts/Picture",
+            "import QtQuick\nItem { property alias source: image.source; property alias sourceSize: image.sourceSize; Image { id: image } }",
+        ),
+        (
+            "parts/Held",
+            "import QtQuick\nItem { id: root; property url shown; Image { source: root.shown } }",
+        ),
         ("parts/Shot", "import QtQuick\nImage {}"),
     ];
     // An alias is what it is an alias of, a path or a group; the path is
@@ -407,8 +508,12 @@ Item {
     for (file, source) in files {
         project.add(file, source).unwrap();
     }
-    let options =
-        Options { name: "Sample".to_string(), project: Some(project), urls_on_assignment: true, ..Options::default() };
+    let options = Options {
+        name: "Sample".to_string(),
+        project: Some(project),
+        urls_on_assignment: true,
+        ..Options::default()
+    };
     let code = lowered_source(files[0].1, &options).unwrap();
     assert_contains(&code, r#"new URL("a.png", import.meta.url)"#);
     assert_contains(&code, r#"new URL("b.png", import.meta.url)"#);
@@ -420,7 +525,11 @@ Item {
         project.add(file, source).unwrap();
     }
     project.stand_in("parts/Held");
-    let options = Options { name: "Sample".to_string(), project: Some(project), ..Options::default() };
+    let options = Options {
+        name: "Sample".to_string(),
+        project: Some(project),
+        ..Options::default()
+    };
     let code = lowered_source(files[0].1, &options).unwrap();
     assert_contains(&code, r#"new URL("parts/a.png", import.meta.url)"#);
     assert_contains(&code, r#"new URL("b.png", import.meta.url)"#);
@@ -440,14 +549,20 @@ Rectangle {
 }"#,
     );
     assert_contains(&code, r#"text: [label, "text"]"#);
-    assert_contains(&code, r#"bold: [
+    assert_contains(
+        &code,
+        r#"bold: [
 			label,
 			"font",
 			"bold"
-		]"#);
+		]"#,
+    );
     assert_contains(&code, "label: [label]");
     // What an instance has inside it goes in the object the default alias names.
-    assert_contains(&code, "<Item $self={body}>{$props.children}</Item></Rectangle>");
+    assert_contains(
+        &code,
+        "<Item $self={body}>{$props.children}</Item></Rectangle>",
+    );
     assert_eq!(
         errors("import QtQuick\nItem { property alias text: nobody.text }"),
         [
@@ -476,7 +591,10 @@ Item {
 }"#,
     );
     // A list property is a list, however many objects are written.
-    assert_contains(&code, "transform={[<Rotation angle={45} origin$x={10}></Rotation>]}");
+    assert_contains(
+        &code,
+        "transform={[<Rotation angle={45} origin$x={10}></Rotation>]}",
+    );
     assert_contains(
         &code,
         r#"<PropertyChanges target={item} $changes={[["x", () => 10], ["anchors.margins", () => item.width]]}>"#,
@@ -485,9 +603,18 @@ Item {
     assert_contains(&code, "() => item");
     assert_contains(&code, "transitions={[<Transition>");
     assert_contains(&code, r#"<Behavior $target={item} $property="x">"#);
-    assert_contains(&code, r#"<NumberAnimation $target={item} $property="anchors$margins" to={4}>"#);
-    assert_contains(&code, "<Connections target={item} onXChanged={function onXChanged() {");
-    assert_contains(&code, r#"<ListModel><ListElement name={"a"} cost={2}></ListElement></ListModel>"#);
+    assert_contains(
+        &code,
+        r#"<NumberAnimation $target={item} $property="anchors$margins" to={4}>"#,
+    );
+    assert_contains(
+        &code,
+        "<Connections target={item} onXChanged={function onXChanged() {",
+    );
+    assert_contains(
+        &code,
+        r#"<ListModel><ListElement name={"a"} cost={2}></ListElement></ListModel>"#,
+    );
 }
 
 #[test]
@@ -502,9 +629,15 @@ Item {
     );
     assert_contains(&code, r#"import $url1 from "./shaders/wave.frag.qsb";"#);
     assert_contains(&code, r#"import $url2 from "../wave.vert.qsb";"#);
-    assert_contains(&code, "<ShaderEffect fragmentShader={$url1} vertexShader={$url2}>");
+    assert_contains(
+        &code,
+        "<ShaderEffect fragmentShader={$url1} vertexShader={$url2}>",
+    );
     assert_contains(&code, "<ShaderEffect fragmentShader={$url1}>");
-    assert_contains(&code, r#"<ShaderEffect fragmentShader={"qrc:/shaders/wave.frag.qsb"}>"#);
+    assert_contains(
+        &code,
+        r#"<ShaderEffect fragmentShader={"qrc:/shaders/wave.frag.qsb"}>"#,
+    );
 }
 
 #[test]
@@ -525,11 +658,20 @@ Item {
     // A directory is not for a bundler to take for a file.
     assert_contains(&code, r#"const $url3 = $url("icons/", import.meta.url);"#);
     assert_contains(&code, r#"other={$url("images/", import.meta.url)}"#);
-    assert_contains(&code, r#"const $url1 = new URL("icons/a.png", import.meta.url).href;"#);
-    assert_contains(&code, r#"const $url2 = new URL("images/clock.png", import.meta.url).href;"#);
+    assert_contains(
+        &code,
+        r#"const $url1 = new URL("icons/a.png", import.meta.url).href;"#,
+    );
+    assert_contains(
+        &code,
+        r#"const $url2 = new URL("images/clock.png", import.meta.url).href;"#,
+    );
     assert_lacks(&code, "$url4");
     assert_contains(&code, "icon={$url1}");
-    assert_contains(&code, "<Image source={$url2}></Image><Image source={$url2}></Image>");
+    assert_contains(
+        &code,
+        "<Image source={$url2}></Image><Image source={$url2}></Image>",
+    );
     assert_contains(&code, r#"<Image source={"https://example.org/a.png"}>"#);
     assert_contains(&code, "<Image source={$url($1.icon, import.meta.url)}>");
     // A QML file is the component it was compiled to.
@@ -562,8 +704,14 @@ Item {
     )
     .unwrap();
     // What the text imports is imported with what the file does, once.
-    assert_contains(&code, r#"import { Item, Rectangle, Text } from "ljos-web/QtQuick";"#);
-    assert_contains(&code, r#"import { Button } from "ljos-web/QtQuick/Controls";"#);
+    assert_contains(
+        &code,
+        r#"import { Item, Rectangle, Text } from "ljos-web/QtQuick";"#,
+    );
+    assert_contains(
+        &code,
+        r#"import { Button } from "ljos-web/QtQuick/Controls";"#,
+    );
     assert_contains(&code, r#"import Tile from "./Tile.qml";"#);
     assert_lacks(&code, r#"from "./Sample.qml""#);
     assert_contains(
@@ -580,10 +728,19 @@ Item {
     // A text put together is one of what was put into it; a name it does
     // not declare is found where the file giving it finds its own.
     assert_contains(&code, "const $text2 = ($hole1) => {");
-    assert_contains(&code, r#"text={"it is " + $hole1} color={$lookup($scope, "root").shade}"#);
-    assert_contains(&code, "<Button></Button><Sample $context={$scope}></Sample>");
+    assert_contains(
+        &code,
+        r#"text={"it is " + $hole1} color={$lookup($scope, "root").shade}"#,
+    );
+    assert_contains(
+        &code,
+        "<Button></Button><Sample $context={$scope}></Sample>",
+    );
     assert_contains(&code, "const a = $file($text1, $scope).createObject(root);");
-    assert_contains(&code, "const b = $file($text2(name), $scope).createObject(a);");
+    assert_contains(
+        &code,
+        "const b = $file($text2(name), $scope).createObject(a);",
+    );
     assert_contains(&code, "const c = $file($text3, $scope).createObject(b);");
     // A text nothing of which is written is left to the runtime to refuse.
     assert_contains(&code, "return Qt.createQmlObject(name, root);");
@@ -592,12 +749,19 @@ Item {
 #[test]
 fn a_text_of_qml_that_cannot_be_compiled_is_an_error_where_it_is_written() {
     let within = |text: &str| {
-        errors(&format!("import QtQuick\nimport QtQuick.Controls.Material\nItem {{\n    id: root\n    Button {{ }}\n    function make(n) {{ return Qt.createQmlObject({text}, root) }}\n}}"))
+        errors(&format!(
+            "import QtQuick\nimport QtQuick.Controls.Material\nItem {{\n    id: root\n    Button {{ }}\n    function make(n) {{ return Qt.createQmlObject({text}, root) }}\n}}"
+        ))
     };
-    assert_eq!(within("'import QtQuick; Rectangle { width: ; }'"), ["Unexpected token"]);
+    assert_eq!(
+        within("'import QtQuick; Rectangle { width: ; }'"),
+        ["Unexpected token"]
+    );
     assert_eq!(
         within("'import QtQuick; Rectangle { width: ' + n + ' }'"),
-        ["what is put into a text given to `Qt.createQmlObject` can only be put into a string of it yet"]
+        [
+            "what is put into a text given to `Qt.createQmlObject` can only be put into a string of it yet"
+        ]
     );
     assert_eq!(
         within("'import QtQuick.Controls.Fusion; Button { }'"),
@@ -607,13 +771,18 @@ fn a_text_of_qml_that_cannot_be_compiled_is_an_error_where_it_is_written() {
         within("'pragma Singleton; import QtQuick; Item { }'"),
         ["a text given to `Qt.createQmlObject` is no singleton"]
     );
-    assert_eq!(within("'import QtQuick; Nothing { }'"), ["`Nothing` is not a type of anything the file imports"]);
+    assert_eq!(
+        within("'import QtQuick; Nothing { }'"),
+        ["`Nothing` is not a type of anything the file imports"]
+    );
 }
 
 /// The lowering of `source`, with `files` in its directory and under it.
 fn lowered_among(source: &str, files: &[&str]) -> String {
     let mut project = Project::new();
-    project.add("Sample", source).unwrap_or_else(|errors| panic!("{errors:?}"));
+    project
+        .add("Sample", source)
+        .unwrap_or_else(|errors| panic!("{errors:?}"));
     let options = Options {
         name: "Sample".to_string(),
         project: Some(project),
@@ -645,18 +814,32 @@ Item {
         return Qt.createComponent(name)
     }
 }"#,
-        &["Sample.qml", "pages/About.qml", "pages/Home.qml", "parts/Dial.qml"],
+        &[
+            "Sample.qml",
+            "pages/About.qml",
+            "pages/Home.qml",
+            "parts/Dial.qml",
+        ],
     );
-    assert_contains(&code, r#"import { $file, $files, $object, $string, $url } from "ljos-web/object";"#);
+    assert_contains(
+        &code,
+        r#"import { $file, $files, $object, $string, $url } from "ljos-web/object";"#,
+    );
     // Nothing is left for `Qt` to make as the program runs.
     assert_lacks(&code, r#"from "ljos-web/QtQml""#);
     assert_contains(&code, r#"import $file1 from "./parts/Dial.qml";"#);
     assert_contains(&code, r#"import $file2 from "./pages/Home.qml";"#);
     assert_contains(&code, "$file($file1)");
     // A type of a module, by their names, is the component the module has.
-    assert_contains(&code, r#"import { Item, Loader, Rectangle, Text } from "ljos-web/QtQuick";"#);
+    assert_contains(
+        &code,
+        r#"import { Item, Loader, Rectangle, Text } from "ljos-web/QtQuick";"#,
+    );
     assert_contains(&code, "other={$file(Rectangle)}");
-    assert_contains(&code, r#"icon={new URL("icons/a.png", import.meta.url).href}"#);
+    assert_contains(
+        &code,
+        r#"icon={new URL("icons/a.png", import.meta.url).href}"#,
+    );
     assert_contains(&code, "where={$url(root.page, import.meta.url)}");
     // A path put together is one of the files it could be.
     assert_contains(
@@ -666,14 +849,20 @@ Item {
 	"pages/Home.qml": () => $file2
 }, import.meta.url);"#,
     );
-    assert_contains(&code, r#"source={$url($files1("pages/" + root.page + ".qml"), import.meta.url)}"#);
+    assert_contains(
+        &code,
+        r#"source={$url($files1("pages/" + root.page + ".qml"), import.meta.url)}"#,
+    );
     assert_contains(&code, "loader.source = $file($file2);");
     assert_contains(&code, "loader.source = $files1(`pages/${name}.qml`);");
     // So is the text of a string, which holds the name and not the file.
     assert_contains(&code, r#"first={"pages/Home.qml"}"#);
     assert_contains(&code, r#"<Text text={"pages/About.qml"}>"#);
     // What names no file is what was written.
-    assert_contains(&code, r#"console.log("Nowhere.qml", name + ".txt", "themes/" + name + ".qml", { "pages/Home.qml": 1 });"#);
+    assert_contains(
+        &code,
+        r#"console.log("Nowhere.qml", name + ".txt", "themes/" + name + ".qml", { "pages/Home.qml": 1 });"#,
+    );
     // Asked of Qt, it is a component whatever it names: all of them could be.
     assert_contains(&code, "return $files2(name, true);");
     assert_contains(&code, r#""Sample.qml": () => $file4"#);
@@ -682,7 +871,10 @@ Item {
 #[test]
 fn a_script_is_the_module_its_import_is() {
     let options = Options {
-        files: Some(vec!["Block.qml".to_string(), "towers/Melee.qml".to_string()]),
+        files: Some(vec![
+            "Block.qml".to_string(),
+            "towers/Melee.qml".to_string(),
+        ]),
         ..Options::default()
     };
     let code = ljos_web::compile_script(
@@ -709,18 +901,33 @@ board[0] = tower("Melee");
     assert_contains(&code, r#"import * as QQ from "ljos-web/QtQuick";"#);
     assert_contains(&code, r#"import * as Other from "./other.js";"#);
     assert_contains(&code, r#"import $file1 from "./Block.qml";"#);
-    assert_contains(&code, "const $files1 = $files({ \"towers/Melee.qml\": () => $file2 }, import.meta.url);");
+    assert_contains(
+        &code,
+        "const $files1 = $files({ \"towers/Melee.qml\": () => $file2 }, import.meta.url);",
+    );
     assert_contains(&code, "export var board = new Array(10);\nvar board;");
     assert_contains(&code, "export let block = $file($file1);");
     assert_contains(&code, "export function tower(name) {");
-    assert_contains(&code, r#"var made = $files1("towers/" + name + ".qml", true);"#);
+    assert_contains(
+        &code,
+        r#"var made = $files1("towers/" + name + ".qml", true);"#,
+    );
     assert_lacks(&code, ".pragma library\n");
 
     let failed = |source: &str| {
-        ljos_web::compile_script(source, &Options::default()).unwrap_err().remove(0).message
+        ljos_web::compile_script(source, &Options::default())
+            .unwrap_err()
+            .remove(0)
+            .message
     };
-    assert_eq!(failed(".pragma library\nfunction area() { return width * height; }"), "`width` is not defined");
-    assert_contains(&failed("function area() { return width; }"), "a script that is not a library takes it from the object");
+    assert_eq!(
+        failed(".pragma library\nfunction area() { return width * height; }"),
+        "`width` is not defined"
+    );
+    assert_contains(
+        &failed("function area() { return width; }"),
+        "a script that is not a library takes it from the object",
+    );
     assert_contains(&failed(".pragma strict\n"), "the only pragma");
 }
 
@@ -753,10 +960,16 @@ Item {
     assert_contains(&code, "function Dot($props) {");
     assert_contains(&code, "<Dot size={8}></Dot>");
     // The signal's arguments and the properties are the component's.
-    assert_contains(&code, r#"<Clock $self={one} city={"Oslo"} shift={1} onStruck={(hour) => console.log(hour, one.city)}>"#);
+    assert_contains(
+        &code,
+        r#"<Clock $self={one} city={"Oslo"} shift={1} onStruck={(hour) => console.log(hour, one.city)}>"#,
+    );
     assert_contains(&code, "<Hand length={one.shift}></Hand>");
     // What a component requires is what its delegate is given.
-    assert_contains(&code, "<Clock city={$data.city} shift={$data.shift}></Clock>");
+    assert_contains(
+        &code,
+        "<Clock city={$data.city} shift={$data.shift}></Clock>",
+    );
 
     // A file in a directory names the files around it by their path from it.
     let hand = "import QtQuick\nimport \"..\"\nClock { }";
@@ -778,8 +991,14 @@ fn a_module_may_be_imported_as_a_name() {
 
 #[test]
 fn a_name_nothing_has_is_an_error() {
-    assert_eq!(errors("import QtQuick\nItem { width: nope }"), ["`nope` is not defined"]);
-    assert_eq!(errors("import QtQuick\nItem { width: Nope.size }"), ["`Nope` is not defined"]);
+    assert_eq!(
+        errors("import QtQuick\nItem { width: nope }"),
+        ["`nope` is not defined"]
+    );
+    assert_eq!(
+        errors("import QtQuick\nItem { width: Nope.size }"),
+        ["`Nope` is not defined"]
+    );
     assert_eq!(
         errors("import QtQuick\nItem { Nope { } }"),
         ["`Nope` is not a type of anything the file imports"]
@@ -800,11 +1019,20 @@ Item {
     Row { id: row; Tile { } }
 }"#,
         ),
-        ("Tile", "import QtQuick\nItem {\n    width: row.spacing\n    Mark { }\n}"),
-        ("Mark", "import QtQuick\nItem { id: mark; width: board.width }"),
+        (
+            "Tile",
+            "import QtQuick\nItem {\n    width: row.spacing\n    Mark { }\n}",
+        ),
+        (
+            "Mark",
+            "import QtQuick\nItem { id: mark; width: board.width }",
+        ),
     ];
     let code = lowered_in(&files, "Sample").unwrap_or_else(|errors| panic!("{errors:?}"));
-    assert_contains(&code, r#"import { $context, $int, $lookup, $object } from "ljos-web/object";"#);
+    assert_contains(
+        &code,
+        r#"import { $context, $int, $lookup, $object } from "ljos-web/object";"#,
+    );
     // An inline component is a component of its own: the file's ids are
     // those of whatever makes it, which is not always the file.
     assert_contains(&code, "const $scope1 = $context($props.$context, $1);");
@@ -812,7 +1040,10 @@ Item {
     assert_contains(&code, r#"height={$lookup($scope1, "__cell")}"#);
     // What the file has to be found: the ids something else names, and its
     // root for what that declares.
-    assert_contains(&code, "const $scope = $context($props.$context, board, () => ({\n\t\tboard,\n\t\trow\n\t}));");
+    assert_contains(
+        &code,
+        "const $scope = $context($props.$context, board, () => ({\n\t\tboard,\n\t\trow\n\t}));",
+    );
     assert_contains(&code, "<Dot $context={$scope}></Dot>");
     assert_contains(&code, "<Tile $context={$scope}></Tile>");
 
@@ -829,7 +1060,10 @@ Item {
 
     // A project that does none of this pays nothing for it.
     let code = lowered_in(
-        &[("Sample", "import QtQuick\nItem { id: board\n Tile { } }"), ("Tile", "import QtQuick\nItem { width: 2 }")],
+        &[
+            ("Sample", "import QtQuick\nItem { id: board\n Tile { } }"),
+            ("Tile", "import QtQuick\nItem { width: 2 }"),
+        ],
         "Sample",
     )
     .unwrap_or_else(|errors| panic!("{errors:?}"));
@@ -837,21 +1071,39 @@ Item {
     assert_lacks(&code, "$scope");
     // And a name no component has is still an error.
     assert_eq!(
-        lowered_in(&[("Sample", "import QtQuick\nItem { component Dot: Item { width: board.width } }")], "Sample")
-            .unwrap_err(),
+        lowered_in(
+            &[(
+                "Sample",
+                "import QtQuick\nItem { component Dot: Item { width: board.width } }"
+            )],
+            "Sample"
+        )
+        .unwrap_err(),
         ["`board` is not defined"]
     );
 }
 
 #[test]
 fn solid_makes_the_objects() {
-    let options = Options { name: "Sample".to_string(), ..Options::default() };
-    let code = compile("import QtQuick\nItem { id: root\n Rectangle { width: root.width; height: 4 } }", &options)
-        .unwrap_or_else(|errors| panic!("{errors:?}"))
-        .code;
-    assert_contains(&code, r#"import { createComponent as _$createComponent } from "solid-js";"#);
+    let options = Options {
+        name: "Sample".to_string(),
+        ..Options::default()
+    };
+    let code = compile(
+        "import QtQuick\nItem { id: root\n Rectangle { width: root.width; height: 4 } }",
+        &options,
+    )
+    .unwrap_or_else(|errors| panic!("{errors:?}"))
+    .code;
+    assert_contains(
+        &code,
+        r#"import { createComponent as _$createComponent } from "solid-js";"#,
+    );
     // A binding is a getter, a value a value: the object decides when to read.
-    assert_contains(&code, "get width() {\n\t\t\t\t\treturn root.width;\n\t\t\t\t},\n\t\t\t\theight: 4");
+    assert_contains(
+        &code,
+        "get width() {\n\t\t\t\t\treturn root.width;\n\t\t\t\t},\n\t\t\t\theight: 4",
+    );
     assert_lacks(&code, "_$memo");
 }
 
@@ -869,7 +1121,10 @@ Item {
     Swatch { tone: Swatch.Light }
 }"#,
         ),
-        ("Swatch", "import QtQuick\nItem {\n    property int tone\n    enum Theme { Light, Dark }\n}"),
+        (
+            "Swatch",
+            "import QtQuick\nItem {\n    property int tone\n    enum Theme { Light, Dark }\n}",
+        ),
     ];
     let code = lowered_in(&files, "Sample").unwrap_or_else(|errors| panic!("{errors:?}"));
     // `Type.Enum.Key` and `Type.Key` are the same key, as they are in Qt's types.
@@ -880,12 +1135,21 @@ Item {
     assert_contains(&code, "const Sample$Narrow = Sample.Narrow;");
     assert_contains(&code, "mine={Sample$Narrow}");
     assert_lacks(&code, "import Sample");
-    assert_contains(&code, "Object.assign(Sample, {\n\tWide: 0,\n\tNarrow: 4\n});");
-    assert_contains(&code, "Object.assign(Chip, {\n\tRound: 0,\n\tSquare: 1\n});");
+    assert_contains(
+        &code,
+        "Object.assign(Sample, {\n\tWide: 0,\n\tNarrow: 4\n});",
+    );
+    assert_contains(
+        &code,
+        "Object.assign(Chip, {\n\tRound: 0,\n\tSquare: 1\n});",
+    );
 
     let code = lowered_in(&files, "Swatch").unwrap_or_else(|errors| panic!("{errors:?}"));
     assert_contains(&code, "export default function Swatch($props) {");
-    assert_contains(&code, "Object.assign(Swatch, {\n\tLight: 0,\n\tDark: 1\n});");
+    assert_contains(
+        &code,
+        "Object.assign(Swatch, {\n\tLight: 0,\n\tDark: 1\n});",
+    );
 }
 
 #[test]
@@ -905,10 +1169,16 @@ View3D {
     }
 }"#,
         ),
-        ("Swatch", "import QtQuick\nItem {\n    enum Blend { Additive, Screen }\n}"),
+        (
+            "Swatch",
+            "import QtQuick\nItem {\n    enum Blend { Additive, Screen }\n}",
+        ),
     ];
     let code = lowered_in(&files, "Sample").unwrap_or_else(|errors| panic!("{errors:?}"));
-    assert_contains(&code, "level={ExtendedSceneEnvironment.One | Helpers.ExtendedSceneEnvironment.Two}");
+    assert_contains(
+        &code,
+        "level={ExtendedSceneEnvironment.One | Helpers.ExtendedSceneEnvironment.Two}",
+    );
     // A key with the name of a type that attaches is a key all the same.
     assert_contains(&code, "glowBlendMode={ExtendedSceneEnvironment.Screen}");
     assert_contains(&code, "const Swatch$Screen = Swatch.Screen;");
@@ -993,7 +1263,10 @@ T.Calendar {
     assert_contains(&code, "first={Almanac().firstYear}");
 
     let code = lowered_in(&files, "Almanac").unwrap_or_else(|errors| panic!("{errors:?}"));
-    assert_contains(&code, "const Almanac = $singleton(Almanac$component, {\n\tBefore: 0,\n\tAfter: 7\n});");
+    assert_contains(
+        &code,
+        "const Almanac = $singleton(Almanac$component, {\n\tBefore: 0,\n\tAfter: 7\n});",
+    );
     assert_contains(&code, "Object.setPrototypeOf(Almanac, T.Calendar);");
     let code = lowered_in(&files, "Solo").unwrap_or_else(|errors| panic!("{errors:?}"));
     assert_contains(&code, "Object.setPrototypeOf(Solo, Base);");
@@ -1033,44 +1306,81 @@ QtObject {
     assert_contains(&code, "height={Units.Small}");
 
     let code = lowered_in(&files, "Units").unwrap_or_else(|errors| panic!("{errors:?}"));
-    assert_contains(&code, r#"import { $int, $object, $singleton } from "ljos-web/object";"#);
+    assert_contains(
+        &code,
+        r#"import { $int, $object, $singleton } from "ljos-web/object";"#,
+    );
     assert_contains(&code, "function Units$component($props) {");
     assert_lacks(&code, "export default function");
     assert_contains(&code, "twice={Units().grid * 2}");
-    assert_contains(&code, "const Units = $singleton(Units$component, {\n\tSmall: 0,\n\tLarge: 1\n});");
+    assert_contains(
+        &code,
+        "const Units = $singleton(Units$component, {\n\tSmall: 0,\n\tLarge: 1\n});",
+    );
     assert_contains(&code, "export default Units;");
 
     // One named like the type it is one of leaves the name to the type.
-    let files = [("QtObject", "pragma Singleton\nimport QtQuick\nQtObject { property int grid: 8 }")];
+    let files = [(
+        "QtObject",
+        "pragma Singleton\nimport QtQuick\nQtObject { property int grid: 8 }",
+    )];
     let code = lowered_in(&files, "QtObject").unwrap_or_else(|errors| panic!("{errors:?}"));
     assert_contains(&code, r#"import { QtObject } from "ljos-web/QtQuick";"#);
-    assert_contains(&code, "const QtObject$singleton = $singleton(QtObject$component, {});");
-    assert_contains(&code, "Object.setPrototypeOf(QtObject$singleton, QtObject);");
+    assert_contains(
+        &code,
+        "const QtObject$singleton = $singleton(QtObject$component, {});",
+    );
+    assert_contains(
+        &code,
+        "Object.setPrototypeOf(QtObject$singleton, QtObject);",
+    );
     assert_contains(&code, "export default QtObject$singleton;");
 }
 
 #[test]
 fn a_module_of_the_project_is_the_files_it_is_said_to_be() {
     let files = [
-        ("Main", "import QtQuick\nimport Parts\nItem {\n    Dial { value: Theme.accent }\n    Gauge { }\n}"),
-        ("parts/Dial", "import QtQuick\nItem {\n    property int value\n    Needle { }\n}"),
+        (
+            "Main",
+            "import QtQuick\nimport Parts\nItem {\n    Dial { value: Theme.accent }\n    Gauge { }\n}",
+        ),
+        (
+            "parts/Dial",
+            "import QtQuick\nItem {\n    property int value\n    Needle { }\n}",
+        ),
         ("parts/gauges/Needle", "import QtQuick\nItem { }"),
-        ("parts/Theme", "pragma Singleton\nimport QtQuick\nQtObject { property int accent: 3 }"),
+        (
+            "parts/Theme",
+            "pragma Singleton\nimport QtQuick\nQtObject { property int accent: 3 }",
+        ),
         // Qt Design Studio's files are types by the name before `.ui`.
         ("parts/Gauge.ui", "import QtQuick\nItem { }"),
     ];
     let mut project = Project::new();
     for (file, source) in &files {
-        project.add(file, source).unwrap_or_else(|errors| panic!("{file}: {errors:?}"));
+        project
+            .add(file, source)
+            .unwrap_or_else(|errors| panic!("{file}: {errors:?}"));
     }
-    for (name, file) in
-        [("Dial", "parts/Dial"), ("Needle", "parts/gauges/Needle"), ("Theme", "parts/Theme"), ("Gauge", "parts/Gauge.ui")]
-    {
+    for (name, file) in [
+        ("Dial", "parts/Dial"),
+        ("Needle", "parts/gauges/Needle"),
+        ("Theme", "parts/Theme"),
+        ("Gauge", "parts/Gauge.ui"),
+    ] {
         project.add_type("Parts", name, file);
     }
     let lowered = |name: &str| {
-        let options = Options { name: name.to_string(), project: Some(project.clone()), ..Options::default() };
-        let source = files.iter().find(|(file, _)| *file == name).expect("a file of the project").1;
+        let options = Options {
+            name: name.to_string(),
+            project: Some(project.clone()),
+            ..Options::default()
+        };
+        let source = files
+            .iter()
+            .find(|(file, _)| *file == name)
+            .expect("a file of the project")
+            .1;
         lowered_source(source, &options).unwrap_or_else(|errors| panic!("{name}: {errors:?}"))
     };
 
@@ -1139,7 +1449,9 @@ fn a_string_goes_on_over_the_end_of_a_line() {
     let code = lowered("import QtQuick\nText {\n    text: \"one \\\ntwo\nthree\" + 'a\\\\b\nc'\n}");
     // The end of a line is in the string; one after a `\` is not.
     assert_contains(&code, r#"text={"one two\nthree" + "a\\b\nc"}"#);
-    let unended = Project::new().add("Sample", "import QtQuick\nText { text: \"one\ntwo }").unwrap_err();
+    let unended = Project::new()
+        .add("Sample", "import QtQuick\nText { text: \"one\ntwo }")
+        .unwrap_err();
     assert_eq!(unended[0].message, "Unterminated string");
 }
 
@@ -1161,7 +1473,9 @@ Item {
     ];
     let mut project = Project::new();
     for (file, source) in files {
-        project.add(file, source).unwrap_or_else(|errors| panic!("{file}: {errors:?}"));
+        project
+            .add(file, source)
+            .unwrap_or_else(|errors| panic!("{file}: {errors:?}"));
     }
     let options = Options {
         name: "Home".to_string(),
@@ -1170,7 +1484,10 @@ Item {
         ..Options::default()
     };
     let code = lowered_source(files[0].1, &options).unwrap_or_else(|errors| panic!("{errors:?}"));
-    assert_contains(&code, "const $scope = $context($props.$context, list, () => ({ list }));");
+    assert_contains(
+        &code,
+        "const $scope = $context($props.$context, list, () => ({ list }));",
+    );
     assert_contains(&code, "row={$file($file1, $scope)}");
     assert_contains(&code, "<Loader source={$file($file1, $scope)}");
 }
@@ -1189,28 +1506,64 @@ Item {
     Image { source: "qrc:/qt/qml/Palette/icons/nothing.png" }
 }"#;
     let mut project = Project::new();
-    project.add("views/Main", source).unwrap_or_else(|errors| panic!("{errors:?}"));
+    project
+        .add("views/Main", source)
+        .unwrap_or_else(|errors| panic!("{errors:?}"));
     for (address, path) in [
         ("qrc:/qt/qml/Palette/icons/qt.png", "icons/qt.png"),
-        ("qrc:/qt/qml/Palette/icons/qt.png.license", "icons/qt.png.license"),
-        ("qrc:/qt/qml/Palette/icons/dark/close.svg", "icons/dark/close.svg"),
-        ("qrc:/qt/qml/Palette/icons/dark/user.svg", "icons/dark/user.svg"),
-        ("qrc:/qt/qml/Palette/icons/dark/shade.png", "icons/dark/shade.png"),
-        ("qrc:/qt/qml/Palette/icons/light/close.svg", "icons/light/close.svg"),
+        (
+            "qrc:/qt/qml/Palette/icons/qt.png.license",
+            "icons/qt.png.license",
+        ),
+        (
+            "qrc:/qt/qml/Palette/icons/dark/close.svg",
+            "icons/dark/close.svg",
+        ),
+        (
+            "qrc:/qt/qml/Palette/icons/dark/user.svg",
+            "icons/dark/user.svg",
+        ),
+        (
+            "qrc:/qt/qml/Palette/icons/dark/shade.png",
+            "icons/dark/shade.png",
+        ),
+        (
+            "qrc:/qt/qml/Palette/icons/light/close.svg",
+            "icons/light/close.svg",
+        ),
         ("qrc:/data/medals.csv", "../data/medals.csv"),
     ] {
         project.add_resource(address, path);
     }
-    let options = Options { name: "views/Main".to_string(), project: Some(project), ..Options::default() };
+    let options = Options {
+        name: "views/Main".to_string(),
+        project: Some(project),
+        ..Options::default()
+    };
     let code = lowered_source(source, &options).unwrap_or_else(|errors| panic!("{errors:?}"));
-    assert_contains(&code, r#"import { $object, $resource, $string, $url } from "ljos-web/object";"#);
+    assert_contains(
+        &code,
+        r#"import { $object, $resource, $string, $url } from "ljos-web/object";"#,
+    );
     // By where it is from the file.
-    assert_contains(&code, r#"$resource("qrc:/qt/qml/Palette/icons/qt.png", new URL("../icons/qt.png", import.meta.url).href);"#);
-    assert_contains(&code, r#"$resource("qrc:/data/medals.csv", new URL("../../data/medals.csv", import.meta.url).href);"#);
+    assert_contains(
+        &code,
+        r#"$resource("qrc:/qt/qml/Palette/icons/qt.png", new URL("../icons/qt.png", import.meta.url).href);"#,
+    );
+    assert_contains(
+        &code,
+        r#"$resource("qrc:/data/medals.csv", new URL("../../data/medals.csv", import.meta.url).href);"#,
+    );
     // A name put together as the program runs may be any that starts and
     // ends so.
-    assert_contains(&code, r#"$resource("qrc:/qt/qml/Palette/icons/dark/close.svg", new URL("../icons/dark/close.svg", import.meta.url).href);"#);
-    assert_contains(&code, r#"$resource("qrc:/qt/qml/Palette/icons/dark/user.svg", "#);
+    assert_contains(
+        &code,
+        r#"$resource("qrc:/qt/qml/Palette/icons/dark/close.svg", new URL("../icons/dark/close.svg", import.meta.url).href);"#,
+    );
+    assert_contains(
+        &code,
+        r#"$resource("qrc:/qt/qml/Palette/icons/dark/user.svg", "#,
+    );
     // Only what is named: not what is next to it, nor what starts as a
     // whole name does.
     assert_lacks(&code, "light/close.svg");
@@ -1219,7 +1572,10 @@ Item {
     // The program still names them as it did, and one the build does not
     // keep is nowhere.
     assert_contains(&code, r#"source={"qrc:/qt/qml/Palette/icons/qt.png"}"#);
-    assert_lacks(&code, r#"$resource("qrc:/qt/qml/Palette/icons/nothing.png""#);
+    assert_lacks(
+        &code,
+        r#"$resource("qrc:/qt/qml/Palette/icons/nothing.png""#,
+    );
 }
 
 #[test]
@@ -1228,15 +1584,29 @@ fn a_file_of_a_module_of_qt_has_the_types_of_that_module() {
     // module has that is not a file, the file has without an import.
     let source = "import QtQuick\nItem { visible: parent === Overlay.overlay }";
     let mut project = Project::new();
-    project.add("Dialog", source).unwrap_or_else(|errors| panic!("{errors:?}"));
+    project
+        .add("Dialog", source)
+        .unwrap_or_else(|errors| panic!("{errors:?}"));
     project.add_type("QtQuick.Controls.Basic", "Dialog", "Dialog");
-    let options = Options { name: "Dialog".to_string(), project: Some(project), ..Options::default() };
+    let options = Options {
+        name: "Dialog".to_string(),
+        project: Some(project),
+        ..Options::default()
+    };
     let code = lowered_source(source, &options).unwrap_or_else(|errors| panic!("{errors:?}"));
-    assert_contains(&code, r#"import { Overlay } from "ljos-web/QtQuick/Controls/Basic";"#);
+    assert_contains(
+        &code,
+        r#"import { Overlay } from "ljos-web/QtQuick/Controls/Basic";"#,
+    );
 
     // A file of no module has to import it.
     let errors = errors(source);
-    assert!(errors.iter().any(|error| error.contains("`Overlay` is not defined")), "{errors:?}");
+    assert!(
+        errors
+            .iter()
+            .any(|error| error.contains("`Overlay` is not defined")),
+        "{errors:?}"
+    );
 }
 
 #[test]
@@ -1288,7 +1658,10 @@ MouseArea {
     bar.opacity: 0.5
 }"#,
     );
-    assert_contains(&code, "drag$onActiveChanged={() => console.log(area.drag.active)}");
+    assert_contains(
+        &code,
+        "drag$onActiveChanged={() => console.log(area.drag.active)}",
+    );
     assert_contains(&code, "bar$onWidthChanged={() => {");
     assert_contains(&code, "bar$onClicked={(mouse) => console.log(mouse.x)}");
     assert_contains(&code, "bar$opacity={.5}");
@@ -1379,7 +1752,10 @@ Text {
     // Only for an enum or an `int`, and only a key by itself, as in Qt.
     assert_contains(&code, "held={Text.AlignRight}");
     assert_contains(&code, "number={Text.AlignRight}");
-    assert_contains(&code, "verticalAlignment={text.named ? Text.AlignTop : Text.AlignBottom}");
+    assert_contains(
+        &code,
+        "verticalAlignment={text.named ? Text.AlignTop : Text.AlignBottom}",
+    );
     assert_contains(&code, "elide={text.elide}");
 }
 
@@ -1448,9 +1824,18 @@ Item {
     }
 }"#,
     );
-    assert_contains(&code, "\"preferredWidth\",\n\t\t() => item.width / 2,\n\t\tnull,\n\t\tLayout\n");
-    assert_contains(&code, "\"delay\",\n\t\t() => 5,\n\t\tnull,\n\t\tT.ToolTip\n");
-    assert_contains(&code, "\"topMargin\",\n\t\t() => 3,\n\t\t() => item,\n\t\tLayout\n");
+    assert_contains(
+        &code,
+        "\"preferredWidth\",\n\t\t() => item.width / 2,\n\t\tnull,\n\t\tLayout\n",
+    );
+    assert_contains(
+        &code,
+        "\"delay\",\n\t\t() => 5,\n\t\tnull,\n\t\tT.ToolTip\n",
+    );
+    assert_contains(
+        &code,
+        "\"topMargin\",\n\t\t() => 3,\n\t\t() => item,\n\t\tLayout\n",
+    );
     assert_lacks(&code, "$attach");
 }
 
@@ -1481,8 +1866,14 @@ Item {
     assert_contains(&code, "() => root.parent.height");
     // A target only the running program knows is given to the binding: a
     // name is the target's if it has it, and the root's if not.
-    assert_contains(&code, "($target) => (\"parent\" in $target ? $target.parent : root.parent).z");
-    assert_contains(&code, "($target) => \"size\" in $target ? $target.size : root.size");
+    assert_contains(
+        &code,
+        "($target) => (\"parent\" in $target ? $target.parent : root.parent).z",
+    );
+    assert_contains(
+        &code,
+        "($target) => \"size\" in $target ? $target.size : root.size",
+    );
     // A name nothing else has is the target's, and a global is itself.
     assert_contains(&code, "($target) => Math.round($target.text.length)");
     // A ParentChange has a `parent` of its own.
@@ -1504,9 +1895,16 @@ Item {
     let options = Options {
         name: "Sample".to_string(),
         pictures: Some(
-            ["images/logo.svg", "images/logo.png", "images/mark.webp", "images/whole", "images/whole.png", "logo.png"]
-                .map(String::from)
-                .to_vec(),
+            [
+                "images/logo.svg",
+                "images/logo.png",
+                "images/mark.webp",
+                "images/whole",
+                "images/whole.png",
+                "logo.png",
+            ]
+            .map(String::from)
+            .to_vec(),
         ),
         ..Options::default()
     };

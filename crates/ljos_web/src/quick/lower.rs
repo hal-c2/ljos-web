@@ -23,8 +23,8 @@ use std::collections::{BTreeMap, BTreeSet, HashSet};
 use oxc_allocator::{ArenaBox, ArenaVec};
 use oxc_ast::ast::*;
 use oxc_ast_visit::Visit;
-use qml_syntax::ast::*;
 use oxc_span::Span;
+use qml_syntax::ast::*;
 
 use super::{
     names,
@@ -62,7 +62,10 @@ impl Uses {
         let first = name.split('.').next().unwrap_or(name);
         match origin {
             Origin::Module(uri) => {
-                self.modules.entry(uri.clone()).or_default().insert(first.to_string());
+                self.modules
+                    .entry(uri.clone())
+                    .or_default()
+                    .insert(first.to_string());
             }
             Origin::File(file) => {
                 self.files.insert(first.to_string(), file.clone());
@@ -86,7 +89,10 @@ enum Role<'r> {
     Template(&'r str),
     Plain,
     /// `Animation on x { }`: a value source or interceptor of a property.
-    Source { target: &'r str, property: String },
+    Source {
+        target: &'r str,
+        property: String,
+    },
 }
 
 /// What an object's members come to.
@@ -208,12 +214,22 @@ impl<'a, 's> Lower<'a, 's> {
         // What made it is where the search goes on.
         if !self.dynamic.is_empty() {
             let mut arguments = vec![b.member(b.id("$props"), "$context"), b.id(&handle)];
-            let ids: Vec<_> =
-                self.tree.ids_of(index).into_iter().filter(|id| self.dynamic.contains(*id)).collect();
+            let ids: Vec<_> = self
+                .tree
+                .ids_of(index)
+                .into_iter()
+                .filter(|id| self.dynamic.contains(*id))
+                .collect();
             if !ids.is_empty() {
-                arguments.push(b.arrow(&[], b.record(ids.iter().map(|id| ((*id).to_string(), b.id(id))))));
+                arguments.push(b.arrow(
+                    &[],
+                    b.record(ids.iter().map(|id| ((*id).to_string(), b.id(id)))),
+                ));
             }
-            statements.push(b.const_(&self.tree.scope_of(index), b.call(b.id("$context"), arguments)));
+            statements.push(b.const_(
+                &self.tree.scope_of(index),
+                b.call(b.id("$context"), arguments),
+            ));
         }
         statements.push(b.return_(element));
         let function = if export {
@@ -228,7 +244,10 @@ impl<'a, 's> Lower<'a, 's> {
     /// the component, as it is off a type of Qt's.
     pub(crate) fn keys(&self, name: &str, enums: Vec<(String, Expression<'a>)>) -> Statement<'a> {
         let b = self.b;
-        b.statement(b.call(b.member(b.id("Object"), "assign"), [b.id(name), b.record(enums)]))
+        b.statement(b.call(
+            b.member(b.id("Object"), "assign"),
+            [b.id(name), b.record(enums)],
+        ))
     }
 
     /// `Object.setPrototypeOf(Name, Root)`: what is read off the type its
@@ -241,11 +260,16 @@ impl<'a, 's> Lower<'a, 's> {
         for part in parts {
             base = b.member(base, part);
         }
-        b.statement(b.call(b.member(b.id("Object"), "setPrototypeOf"), [b.id(name), base]))
+        b.statement(b.call(
+            b.member(b.id("Object"), "setPrototypeOf"),
+            [b.id(name), base],
+        ))
     }
 
     fn frame(&mut self) -> &mut Vec<Statement<'a>> {
-        self.frames.last_mut().expect("an object is lowered inside a component")
+        self.frames
+            .last_mut()
+            .expect("an object is lowered inside a component")
     }
 
     fn open(&mut self) {
@@ -295,7 +319,8 @@ impl<'a, 's> Lower<'a, 's> {
             Role::Template(_) | Role::Plain => {}
         }
         // A component of the project may look for a name in what made it.
-        if !self.dynamic.is_empty() && matches!(info.origin, Some(Origin::File(_) | Origin::Inline)) {
+        if !self.dynamic.is_empty() && matches!(info.origin, Some(Origin::File(_) | Origin::Inline))
+        {
             let scope = tree.scope_of(index);
             built.attributes.push(b.attr("$context", b.id(&scope)));
             self.uses.handles.insert(scope);
@@ -311,7 +336,9 @@ impl<'a, 's> Lower<'a, 's> {
             .iter()
             .filter_map(|member| match member {
                 QmlMember::Binding(binding) => binding.name.as_simple(),
-                QmlMember::Property(property) if property.value.is_some() => Some(property.name.name.as_str()),
+                QmlMember::Property(property) if property.value.is_some() => {
+                    Some(property.name.name.as_str())
+                }
                 _ => None,
             })
             .collect();
@@ -329,7 +356,9 @@ impl<'a, 's> Lower<'a, 's> {
             }
             for name in required {
                 if !bound.contains(name.as_str()) {
-                    built.attributes.push(b.attr(&name, b.member(b.id(data), &name)));
+                    built
+                        .attributes
+                        .push(b.attr(&name, b.member(b.id(data), &name)));
                 }
             }
         }
@@ -349,10 +378,14 @@ impl<'a, 's> Lower<'a, 's> {
             built.attributes.push(b.attr("$declare", b.id(&spec)));
         }
         if !built.functions.is_empty() {
-            built.attributes.push(b.attr("$functions", b.record(built.functions)));
+            built
+                .attributes
+                .push(b.attr("$functions", b.record(built.functions)));
         }
         if !built.aliases.is_empty() {
-            built.attributes.push(b.attr("$aliases", b.record(built.aliases)));
+            built
+                .attributes
+                .push(b.attr("$aliases", b.record(built.aliases)));
         }
         if !built.attach.is_empty() {
             let types = built.attach.iter().map(|name| match name.split_once('.') {
@@ -362,7 +395,9 @@ impl<'a, 's> Lower<'a, 's> {
             built.attributes.push(b.attr("$attach", b.array(types)));
         }
         if !built.changes.is_empty() {
-            built.attributes.push(b.attr("$changes", b.array(built.changes)));
+            built
+                .attributes
+                .push(b.attr("$changes", b.array(built.changes)));
         }
         if !built.made.is_empty() {
             let names = built.made.iter().map(|name| b.string(name));
@@ -371,9 +406,13 @@ impl<'a, 's> Lower<'a, 's> {
         if self.frames.len() == 1 && self.children.as_deref() == Some(handle) {
             match self.default.take() {
                 Some((name, is_list)) => {
-                    built.attributes.push(b.attr("$default", b.array([b.string(&name), b.boolean(is_list)])));
+                    built
+                        .attributes
+                        .push(b.attr("$default", b.array([b.string(&name), b.boolean(is_list)])));
                 }
-                None => built.children.push(b.child(b.member(b.id("$props"), "children"))),
+                None => built
+                    .children
+                    .push(b.child(b.member(b.id("$props"), "children"))),
             }
         }
         b.element(&tag, built.attributes, built.children)
@@ -435,7 +474,10 @@ impl<'a, 's> Lower<'a, 's> {
             return;
         }
         let is_template = tree.objects[tree.index_of(&child)].is_template;
-        let default = tree.objects[index].kind.as_ref().and_then(|kind| self.types.default_component(kind));
+        let default = tree.objects[index]
+            .kind
+            .as_ref()
+            .and_then(|kind| self.types.default_component(kind));
         let value = self.object_value(child);
         match default {
             Some(name) => built.attributes.push(b.attr(&name, value)),
@@ -482,13 +524,17 @@ impl<'a, 's> Lower<'a, 's> {
             match member {
                 QmlMember::Object(child) if content.is_none() => content = Some(child),
                 QmlMember::Binding(binding) if binding.name.as_simple() == Some("id") => {}
-                _ => self.errors.push(Error::new("a Component holds one object and nothing else", span)),
+                _ => self.errors.push(Error::new(
+                    "a Component holds one object and nothing else",
+                    span,
+                )),
             }
         }
         let component = match content {
             Some(child) => self.object_value(child),
             None => {
-                self.errors.push(Error::new("a Component with no object in it", span));
+                self.errors
+                    .push(Error::new("a Component with no object in it", span));
                 b.void_0()
             }
         };
@@ -515,7 +561,13 @@ impl<'a, 's> Lower<'a, 's> {
         b.call(b.id("$component"), [b.arrow_block(&[data], statements)])
     }
 
-    fn binding(&mut self, binding: QmlBinding<'a>, index: usize, group: &[&'a str], built: &mut Built<'a>) {
+    fn binding(
+        &mut self,
+        binding: QmlBinding<'a>,
+        index: usize,
+        group: &[&'a str],
+        built: &mut Built<'a>,
+    ) {
         let b = self.b;
         let mut path = group.to_vec();
         path.extend(binding.name.parts.iter().copied());
@@ -523,8 +575,11 @@ impl<'a, 's> Lower<'a, 's> {
             return;
         }
         let span = binding.name.span;
-        let changes = self.is_class(index, "QQuickPropertyChanges") && !scope::CHANGES.contains(&path[0]);
-        if path[0].starts_with(|c: char| c.is_ascii_uppercase()) && !(changes && path[0] != "Component") {
+        let changes =
+            self.is_class(index, "QQuickPropertyChanges") && !scope::CHANGES.contains(&path[0]);
+        if path[0].starts_with(|c: char| c.is_ascii_uppercase())
+            && !(changes && path[0] != "Component")
+        {
             return self.attached(&path, binding.value, built, span);
         }
         if changes {
@@ -534,24 +589,40 @@ impl<'a, 's> Lower<'a, 's> {
         // `drag.onActiveChanged`, `toolbar.onBackClicked`: a handler of what
         // the property holds, whose signals are known when its type is Qt's.
         let held = match path.as_slice() {
-            [group @ .., _] if !group.is_empty() => {
-                self.tree.property(self.types, index, group).and_then(|property| property.value)
-            }
+            [group @ .., _] if !group.is_empty() => self
+                .tree
+                .property(self.types, index, group)
+                .and_then(|property| property.value),
             _ => None,
         };
         let handler = match path.as_slice() {
-            [name] => types::handled(name)
-                .filter(|_| !matches!(self.tree.member(self.types, index, name), Some(Member::Property(_)))),
-            [.., name] => types::handled(name).filter(|_| held.is_none_or(|held| held.0.property(name).is_none())),
+            [name] => types::handled(name).filter(|_| {
+                !matches!(
+                    self.tree.member(self.types, index, name),
+                    Some(Member::Property(_))
+                )
+            }),
+            [.., name] => types::handled(name)
+                .filter(|_| held.is_none_or(|held| held.0.property(name).is_none())),
             [] => None,
         };
         let value = match handler {
             Some(signal) => {
                 let parameters = match (path.len(), held) {
-                    (1, _) => self.tree.signal(self.types, index, &signal).unwrap_or_default(),
-                    (_, Some(held)) => held.0
+                    (1, _) => self
+                        .tree
+                        .signal(self.types, index, &signal)
+                        .unwrap_or_default(),
+                    (_, Some(held)) => held
+                        .0
                         .signal(&signal)
-                        .map(|signal| signal.parameters.iter().map(|name| (*name).to_string()).collect())
+                        .map(|signal| {
+                            signal
+                                .parameters
+                                .iter()
+                                .map(|name| (*name).to_string())
+                                .collect()
+                        })
                         .unwrap_or_default(),
                     (_, None) => Vec::new(),
                 };
@@ -579,12 +650,18 @@ impl<'a, 's> Lower<'a, 's> {
                 handler
             }
             None => {
-                let property = self.tree.property(self.types, index, &path).unwrap_or_else(types::no_property);
+                let property = self
+                    .tree
+                    .property(self.types, index, &path)
+                    .unwrap_or_else(types::no_property);
                 if self.makes(&binding.value) {
                     built.made.push(path.join("$"));
                 }
                 if property.is_url && !self.assigned {
-                    self.home = self.tree.home(self.types, index, path[0]).and_then(|file| self.towards(&file));
+                    self.home = self
+                        .tree
+                        .home(self.types, index, path[0])
+                        .and_then(|file| self.towards(&file));
                 }
                 let value = self.value(binding.value, property);
                 self.home = None;
@@ -596,7 +673,13 @@ impl<'a, 's> Lower<'a, 's> {
 
     /// `Layout.fillWidth: true`, `Keys.onPressed: ...`: a property or a
     /// handler of the object a type attaches to this one.
-    fn attached(&mut self, path: &[&'a str], value: QmlBindingValue<'a>, built: &mut Built<'a>, span: Span) {
+    fn attached(
+        &mut self,
+        path: &[&'a str],
+        value: QmlBindingValue<'a>,
+        built: &mut Built<'a>,
+        span: Span,
+    ) {
         let b = self.b;
         // `T.Overlay.modal`: the type is the namespace's.
         let qualified = path.len() > 2 && self.types.namespace(path[0]).is_some();
@@ -631,12 +714,20 @@ impl<'a, 's> Lower<'a, 's> {
             Some(signal) => {
                 let parameters: Vec<String> = attached
                     .and_then(|attached| attached.signal(&signal))
-                    .map(|signal| signal.parameters.iter().map(|name| (*name).to_string()).collect())
+                    .map(|signal| {
+                        signal
+                            .parameters
+                            .iter()
+                            .map(|name| (*name).to_string())
+                            .collect()
+                    })
                     .unwrap_or_default();
                 self.handler(value, &parameters, span)
             }
             None => {
-                let property = attached.and_then(|attached| qt_property(attached, rest)).unwrap_or_else(types::no_property);
+                let property = attached
+                    .and_then(|attached| qt_property(attached, rest))
+                    .unwrap_or_else(types::no_property);
                 self.value(value, property)
             }
         };
@@ -645,11 +736,19 @@ impl<'a, 's> Lower<'a, 's> {
 
     /// `width: 10` in a `PropertyChanges`: a binding of its target's while
     /// the state is the current one.
-    fn change(&mut self, path: &[&'a str], value: QmlBindingValue<'a>, built: &mut Built<'a>, span: Span) {
+    fn change(
+        &mut self,
+        path: &[&'a str],
+        value: QmlBindingValue<'a>,
+        built: &mut Built<'a>,
+        span: Span,
+    ) {
         let b = self.b;
         // `rect.width: 10` names the object too.
         let (target, path) = match path {
-            [target, rest @ ..] if !rest.is_empty() && self.tree.is_id(target) => (Some(*target), rest),
+            [target, rest @ ..] if !rest.is_empty() && self.tree.is_id(target) => {
+                (Some(*target), rest)
+            }
             path => (None, path),
         };
         // `Layout.preferredWidth: 10`: of the object the type attaches to
@@ -676,7 +775,11 @@ impl<'a, 's> Lower<'a, 's> {
         };
         // A target only the running program knows is given to what is
         // changed of it, for the names that are its own.
-        let given: &[&str] = if self.tree.aimed(span.start) { &[names::TARGET] } else { &[] };
+        let given: &[&str] = if self.tree.aimed(span.start) {
+            &[names::TARGET]
+        } else {
+            &[]
+        };
         let value = match value {
             QmlBindingValue::Expression(expression) => b.arrow(given, expression),
             QmlBindingValue::Statement(statement) => b.arrow_block(given, self.worth(statement)),
@@ -735,7 +838,10 @@ impl<'a, 's> Lower<'a, 's> {
             if self.makes(&value) {
                 built.made.push(name.to_string());
             }
-            let value = self.value(value, types::declared_property(&declared, type_name.is_list));
+            let value = self.value(
+                value,
+                types::declared_property(&declared, type_name.is_list),
+            );
             built.attributes.push(b.attr(name, value));
         }
     }
@@ -767,8 +873,15 @@ impl<'a, 's> Lower<'a, 's> {
         Some(b.array(path))
     }
 
-    fn function(&mut self, mut function: ArenaBox<'a, Function<'a>>, index: usize, built: &mut Built<'a>) {
-        let Some(name) = function.id.as_ref().map(|id| id.name.to_string()) else { return };
+    fn function(
+        &mut self,
+        mut function: ArenaBox<'a, Function<'a>>,
+        index: usize,
+        built: &mut Built<'a>,
+    ) {
+        let Some(name) = function.id.as_ref().map(|id| id.name.to_string()) else {
+            return;
+        };
         function.r#type = FunctionType::FunctionExpression;
         let mut expression = Expression::FunctionExpression(function);
         // In a `Connections`, `function onClicked() { }` is a handler of its
@@ -799,24 +912,41 @@ impl<'a, 's> Lower<'a, 's> {
 
     /// What a handler is: a function of the signal's arguments, by the names
     /// the signal gives them.
-    fn handler(&mut self, value: QmlBindingValue<'a>, parameters: &[String], span: Span) -> Expression<'a> {
+    fn handler(
+        &mut self,
+        value: QmlBindingValue<'a>,
+        parameters: &[String],
+        span: Span,
+    ) -> Expression<'a> {
         let b = self.b;
         // An argument Qt gives no name still has its place.
-        let unnamed: Vec<String> = (0..parameters.len()).map(|index| format!("$argument{index}")).collect();
+        let unnamed: Vec<String> = (0..parameters.len())
+            .map(|index| format!("$argument{index}"))
+            .collect();
         let parameters: Vec<&str> = parameters
             .iter()
             .zip(&unnamed)
-            .map(|(name, unnamed)| if name.is_empty() { unnamed.as_str() } else { name.as_str() })
+            .map(|(name, unnamed)| {
+                if name.is_empty() {
+                    unnamed.as_str()
+                } else {
+                    name.as_str()
+                }
+            })
             .collect();
         match value {
             // `onClicked: (mouse) => ...` says what its arguments are itself.
             QmlBindingValue::Expression(
-                expression @ (Expression::FunctionExpression(_) | Expression::ArrowFunctionExpression(_)),
+                expression @ (Expression::FunctionExpression(_)
+                | Expression::ArrowFunctionExpression(_)),
             ) => expression,
             QmlBindingValue::Expression(expression) => b.arrow(&parameters, expression),
-            QmlBindingValue::Statement(statement) => b.arrow_block(&parameters, self.statements(statement)),
+            QmlBindingValue::Statement(statement) => {
+                b.arrow_block(&parameters, self.statements(statement))
+            }
             QmlBindingValue::Object(_) | QmlBindingValue::Objects(_) => {
-                self.errors.push(Error::new("a handler is a script, not an object", span));
+                self.errors
+                    .push(Error::new("a handler is a script, not an object", span));
                 b.void_0()
             }
         }
@@ -833,13 +963,21 @@ impl<'a, 's> Lower<'a, 's> {
             Expression::FunctionExpression(function) => &mut function.params,
             _ => return,
         };
-        let Some(parameter) = parameters.items.first_mut() else { return };
-        if parameter.initializer.is_some() || !matches!(parameter.pattern, BindingPattern::BindingIdentifier(_)) {
+        let Some(parameter) = parameters.items.first_mut() else {
+            return;
+        };
+        if parameter.initializer.is_some()
+            || !matches!(parameter.pattern, BindingPattern::BindingIdentifier(_))
+        {
             return;
         }
-        let Some((object, rest)) = path.split_first() else { return };
+        let Some((object, rest)) = path.split_first() else {
+            return;
+        };
         self.uses.handles.insert((*object).to_string());
-        let value = rest.iter().fold(b.id(object), |value, name| b.member(value, name));
+        let value = rest
+            .iter()
+            .fold(b.id(object), |value, name| b.member(value, name));
         parameter.initializer = Some(ArenaBox::new_in(value, &b.allocator()));
     }
 
@@ -863,7 +1001,9 @@ impl<'a, 's> Lower<'a, 's> {
         let b = self.b;
         match value {
             // A script is a function of nothing, run when its time comes.
-            QmlBindingValue::Expression(expression) if property.is_script => b.arrow(&[], expression),
+            QmlBindingValue::Expression(expression) if property.is_script => {
+                b.arrow(&[], expression)
+            }
             QmlBindingValue::Statement(statement) if property.is_script => {
                 b.arrow_block(&[], self.statements(statement))
             }
@@ -877,7 +1017,9 @@ impl<'a, 's> Lower<'a, 's> {
             QmlBindingValue::Expression(expression) if property.takes_key => self.key(expression),
             // The name of a QML file is that file to whatever loads one; a
             // string holds the name. As what was not written, it stays one.
-            QmlBindingValue::Expression(Expression::StringLiteral(mut literal)) if property.is_text => {
+            QmlBindingValue::Expression(Expression::StringLiteral(mut literal))
+                if property.is_text =>
+            {
                 literal.span = Span::default();
                 Expression::StringLiteral(literal)
             }
@@ -885,10 +1027,15 @@ impl<'a, 's> Lower<'a, 's> {
             // A block is the body of a function whose result is the value.
             QmlBindingValue::Statement(statement) => b.iife(self.worth(statement)),
             // `transitions: Transition { }` is a list of one.
-            QmlBindingValue::Object(object) if property.is_list => b.array([self.object_value(object)]),
+            QmlBindingValue::Object(object) if property.is_list => {
+                b.array([self.object_value(object)])
+            }
             QmlBindingValue::Object(object) => self.object_value(object),
             QmlBindingValue::Objects(objects) => {
-                let objects: Vec<_> = objects.into_iter().map(|object| self.object_value(object)).collect();
+                let objects: Vec<_> = objects
+                    .into_iter()
+                    .map(|object| self.object_value(object))
+                    .collect();
                 b.array(objects)
             }
         }
@@ -901,7 +1048,9 @@ impl<'a, 's> Lower<'a, 's> {
     /// have in an object nothing makes.
     fn key(&mut self, expression: Expression<'a>) -> Expression<'a> {
         let b = self.b;
-        let Expression::StaticMemberExpression(member) = &expression else { return expression };
+        let Expression::StaticMemberExpression(member) = &expression else {
+            return expression;
+        };
         let key = member.property.name.as_str();
         let mut path = Vec::new();
         let mut object = &member.object;
@@ -942,7 +1091,10 @@ impl<'a, 's> Lower<'a, 's> {
         let constant = format!("{name}${key}");
         if !self.keys.iter().any(|keys| keys.contains(&constant)) {
             self.frame().push(b.const_(&constant, expression));
-            self.keys.last_mut().expect("a frame is open").insert(constant.clone());
+            self.keys
+                .last_mut()
+                .expect("a frame is open")
+                .insert(constant.clone());
         }
         b.id(&constant)
     }
@@ -953,7 +1105,8 @@ impl<'a, 's> Lower<'a, 's> {
         let path = types::relative(self.types.file, file);
         // A file of Qt's own is not beside this one, wherever it is served.
         let (directory, _) = path.rsplit_once('/').filter(|_| !path.starts_with('/'))?;
-        (directory != ".").then(|| format!("{}/", directory.strip_prefix("./").unwrap_or(directory)))
+        (directory != ".")
+            .then(|| format!("{}/", directory.strip_prefix("./").unwrap_or(directory)))
     }
 
     /// A URL is relative to the file it is written in, which only the
@@ -967,7 +1120,10 @@ impl<'a, 's> Lower<'a, 's> {
             }
             self.uses.kernel.insert("$url");
             let base = match &self.home {
-                Some(home) => b.member(b.new_(b.id("URL"), [b.string(home), b.import_meta_url()]), "href"),
+                Some(home) => b.member(
+                    b.new_(b.id("URL"), [b.string(home), b.import_meta_url()]),
+                    "href",
+                ),
                 None => b.import_meta_url(),
             };
             return b.call(b.id("$url"), [expression, base]);
@@ -982,9 +1138,14 @@ impl<'a, 's> Lower<'a, 's> {
         let value = picture.as_deref().unwrap_or(value);
         // A QML file is the component it was compiled to, and what that
         // makes finds names where the path is written.
-        let scope =
-            (!self.dynamic.is_empty()).then(|| self.tree.scope_of(self.tree.object_at(literal.span.start)));
-        let Uses { paths, kernel, handles, .. } = &mut self.uses;
+        let scope = (!self.dynamic.is_empty())
+            .then(|| self.tree.scope_of(self.tree.object_at(literal.span.start)));
+        let Uses {
+            paths,
+            kernel,
+            handles,
+            ..
+        } = &mut self.uses;
         if let Some(component) = paths.literal(b, kernel, value, scope.as_deref()) {
             handles.extend(scope);
             return component;
@@ -998,7 +1159,11 @@ impl<'a, 's> Lower<'a, 's> {
         // Qt's build does: the build has it, and no file need be there.
         if value.ends_with(".qsb") {
             let relative = value.starts_with("./") || value.starts_with("../");
-            let source = if relative { value.to_string() } else { format!("./{value}") };
+            let source = if relative {
+                value.to_string()
+            } else {
+                format!("./{value}")
+            };
             self.module.push(b.import_default(&name, &source));
             return b.id(&name);
         }
@@ -1008,7 +1173,10 @@ impl<'a, 's> Lower<'a, 's> {
             self.uses.kernel.insert("$url");
             b.call(b.id("$url"), [b.string(value), b.import_meta_url()])
         } else {
-            b.member(b.new_(b.id("URL"), [b.string(value), b.import_meta_url()]), "href")
+            b.member(
+                b.new_(b.id("URL"), [b.string(value), b.import_meta_url()]),
+                "href",
+            )
         };
         self.module.push(b.const_(&name, url));
         b.id(&name)
@@ -1059,7 +1227,9 @@ fn default_of<'a>(b: B<'a>, type_name: &str, is_list: bool) -> Expression<'a> {
 /// they go instead.
 fn default_property(root: &QmlObject<'_>) -> Option<(String, bool)> {
     root.members.iter().find_map(|member| {
-        let QmlMember::Property(property) = member else { return None };
+        let QmlMember::Property(property) = member else {
+            return None;
+        };
         let type_name = property.type_name.as_ref()?;
         (property.is_default && type_name.name.to_string() != "alias")
             .then(|| (property.name.name.to_string(), type_name.is_list))
@@ -1070,7 +1240,9 @@ fn default_property(root: &QmlObject<'_>) -> Option<(String, bool)> {
 /// children of an instance are children of.
 fn children_target(root: &QmlObject<'_>) -> Option<String> {
     root.members.iter().find_map(|member| {
-        let QmlMember::Property(property) = member else { return None };
+        let QmlMember::Property(property) = member else {
+            return None;
+        };
         if !property.is_default {
             return None;
         }

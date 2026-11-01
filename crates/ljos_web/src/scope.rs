@@ -8,8 +8,8 @@ use std::collections::{HashMap, HashSet};
 
 use oxc_ast::ast::*;
 use oxc_ast_visit::{Visit, walk};
-use qml_syntax::ast::*;
 use oxc_span::Span;
+use qml_syntax::ast::*;
 
 use crate::Error;
 
@@ -23,7 +23,10 @@ pub(crate) enum Member {
     /// `const name = createMemo(() => value)`.
     Memo(String),
     /// A property something assigns to: `const [get, set] = createSignal(...)`.
-    Signal { get: String, set: String },
+    Signal {
+        get: String,
+        set: String,
+    },
     /// A function, or a signal: the function that emits it.
     Function(String),
     Unsupported(&'static str),
@@ -53,14 +56,26 @@ pub(crate) struct Delegate {
 impl Delegate {
     /// `<For>`: the item itself and an index accessor.
     const EACH: Delegate = Delegate {
-        model_data: Provided { js: "$modelData", accessor: false },
-        index: Provided { js: "$index", accessor: true },
+        model_data: Provided {
+            js: "$modelData",
+            accessor: false,
+        },
+        index: Provided {
+            js: "$index",
+            accessor: true,
+        },
         count: false,
     };
     /// `<Repeat>`: a plain index, which is also the model data.
     const COUNT: Delegate = Delegate {
-        model_data: Provided { js: "$index", accessor: false },
-        index: Provided { js: "$index", accessor: false },
+        model_data: Provided {
+            js: "$index",
+            accessor: false,
+        },
+        index: Provided {
+            js: "$index",
+            accessor: false,
+        },
         count: true,
     };
 }
@@ -210,7 +225,8 @@ impl<'a> Analysis<'a, '_> {
         let id = object_id(object);
         if let Some(id) = id {
             if self.scopes.ids.insert((self.document, id), index).is_some() {
-                self.errors.push(Error::new(format!("id `{id}` is not unique"), object.span));
+                self.errors
+                    .push(Error::new(format!("id `{id}` is not unique"), object.span));
             }
         }
         self.scopes.by_start.insert(object.span.start, index);
@@ -220,7 +236,11 @@ impl<'a> Analysis<'a, '_> {
             members: HashMap::new(),
             signals: HashMap::new(),
             delegate,
-            component_root: if is_component_root { index } else { component.unwrap_or(index) },
+            component_root: if is_component_root {
+                index
+            } else {
+                component.unwrap_or(index)
+            },
             outer: if is_component_root { component } else { None },
             document: self.document,
         });
@@ -247,7 +267,11 @@ impl<'a> Analysis<'a, '_> {
                     members.insert(name, Member::Function(format!("{prefix}${name}")));
                     signals.insert(
                         name,
-                        signal.params.iter().map(|param| param.name.name.as_str()).collect(),
+                        signal
+                            .params
+                            .iter()
+                            .map(|param| param.name.name.as_str())
+                            .collect(),
                     );
                 }
                 _ => {}
@@ -365,7 +389,9 @@ impl<'a> Analysis<'a, '_> {
         let expression = match &property.value {
             None => None,
             Some(QmlBindingValue::Expression(expression)) => Some(expression),
-            Some(QmlBindingValue::Statement(_)) => return self.writable_or(property, id, js, Member::Memo),
+            Some(QmlBindingValue::Statement(_)) => {
+                return self.writable_or(property, id, js, Member::Memo);
+            }
             Some(_) => return Member::Unsupported("objects as property values"),
         };
         if property.is_required {
@@ -380,7 +406,11 @@ impl<'a> Analysis<'a, '_> {
         let overridable = is_root && !property.is_readonly;
         self.writable_or(property, id, js, |js| {
             if overridable {
-                if cheap { Member::Getter(js) } else { Member::Memo(js) }
+                if cheap {
+                    Member::Getter(js)
+                } else {
+                    Member::Memo(js)
+                }
             } else if literal {
                 Member::Const(js)
             } else if cheap {
@@ -414,8 +444,9 @@ impl<'a> Analysis<'a, '_> {
     /// Settles the aliases of the component rooted at `owner`, now that every
     /// id in it is known.
     fn aliases(&mut self, owner: usize) {
-        let (own, pending): (Vec<_>, Vec<_>) =
-            std::mem::take(&mut self.pending).into_iter().partition(|alias| alias.owner == owner);
+        let (own, pending): (Vec<_>, Vec<_>) = std::mem::take(&mut self.pending)
+            .into_iter()
+            .partition(|alias| alias.owner == owner);
         self.pending = pending;
         for alias in own {
             let Some(&target) = self.scopes.ids.get(&(owner, alias.id)) else {
@@ -433,27 +464,42 @@ impl<'a> Analysis<'a, '_> {
             } else {
                 self.alias(target, &alias)
             };
-            self.scopes.objects[owner].members.insert(alias.name, member);
+            self.scopes.objects[owner]
+                .members
+                .insert(alias.name, member);
         }
     }
 
     fn alias(&mut self, target: usize, alias: &Pending<'a>) -> Member {
-        let writable = |js: String| Member::Signal { set: format!("set${js}"), get: js };
+        let writable = |js: String| Member::Signal {
+            set: format!("set${js}"),
+            get: js,
+        };
         let members = &mut self.scopes.objects[target].members;
         let Some((&name, declared)) = members.get_key_value(alias.property.as_str()) else {
             // A built-in property: the alias is the binding and the target
             // reads it.
             let js = alias.js.clone();
-            let member = if alias.assigned { writable(js) } else { Member::Getter(js) };
-            self.scopes
-                .aliases
-                .insert((target, alias.property.clone()), Alias { name: alias.name, member: member.clone() });
+            let member = if alias.assigned {
+                writable(js)
+            } else {
+                Member::Getter(js)
+            };
+            self.scopes.aliases.insert(
+                (target, alias.property.clone()),
+                Alias {
+                    name: alias.name,
+                    member: member.clone(),
+                },
+            );
             return member;
         };
         // A declared property: the alias is another name for its binding,
         // which the outside can now set, so it is no longer a constant.
         let member = match declared.clone() {
-            Member::Const(js) | Member::Getter(js) | Member::Memo(js) if alias.assigned => writable(js),
+            Member::Const(js) | Member::Getter(js) | Member::Memo(js) if alias.assigned => {
+                writable(js)
+            }
             Member::Const(js) => Member::Getter(js),
             Member::Function(_) => return Member::Unsupported("aliases of functions and signals"),
             member => member,
@@ -481,7 +527,9 @@ fn collect_ids(object: &QmlObject<'_>, ids: &mut HashSet<String>) {
         match member {
             QmlMember::Object(child) => collect_ids(child, ids),
             QmlMember::Binding(QmlBinding { value, .. })
-            | QmlMember::Property(QmlPropertyDeclaration { value: Some(value), .. }) => match value {
+            | QmlMember::Property(QmlPropertyDeclaration {
+                value: Some(value), ..
+            }) => match value {
                 QmlBindingValue::Object(child) => collect_ids(child, ids),
                 QmlBindingValue::Objects(children) => {
                     for child in children {
@@ -496,7 +544,6 @@ fn collect_ids(object: &QmlObject<'_>, ids: &mut HashSet<String>) {
     }
 }
 
-
 /// What a `Repeater` hands its delegate, decided by the shape of its model.
 fn repeater_delegate(repeater: &QmlObject<'_>) -> Delegate {
     let count = repeater.members.iter().any(|member| {
@@ -509,9 +556,12 @@ fn repeater_delegate(repeater: &QmlObject<'_>) -> Delegate {
             }) if name.as_simple() == Some("model")
         )
     });
-    if count { Delegate::COUNT } else { Delegate::EACH }
+    if count {
+        Delegate::COUNT
+    } else {
+        Delegate::EACH
+    }
 }
-
 
 /// `a`, `a.b`, `a.b.c`: a read with no work in it.
 fn is_member_chain(expression: &Expression<'_>) -> bool {
@@ -538,7 +588,8 @@ struct Assigned<'a> {
 impl<'a> Assigned<'a> {
     fn member(&mut self, member: &StaticMemberExpression<'a>) {
         if let Expression::Identifier(object) = &member.object {
-            self.members.insert((object.name.as_str(), member.property.name.as_str()));
+            self.members
+                .insert((object.name.as_str(), member.property.name.as_str()));
         }
     }
 }
@@ -566,5 +617,3 @@ impl<'a> Visit<'a> for Assigned<'a> {
         walk::walk_update_expression(self, it);
     }
 }
-
-

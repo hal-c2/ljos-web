@@ -98,7 +98,10 @@ pub struct Error {
 
 impl Error {
     pub(crate) fn new(message: impl Into<String>, span: Span) -> Self {
-        Self { message: message.into(), span }
+        Self {
+            message: message.into(),
+            span,
+        }
     }
 
     /// One-based line and column of the error in `source`.
@@ -134,7 +137,10 @@ pub fn compile(source: &str, options: &Options) -> Result<Output, Vec<Error>> {
         }
     }
     solidjs_compiler::compile_program(&allocator, program, source, &solid)
-        .map(|output| Output { code: output.code, map: output.source_map })
+        .map(|output| Output {
+            code: output.code,
+            map: output.source_map,
+        })
         .map_err(|error| vec![Error::new(error.to_string(), Span::default())])
 }
 
@@ -156,10 +162,13 @@ pub(crate) fn parse_errors(diagnostics: Diagnostics) -> Vec<Error> {
     diagnostics
         .into_iter()
         .map(|diagnostic| {
-            let span = diagnostic.labels.first().map_or_else(Span::default, |label| {
-                let start = label.offset() as u32;
-                Span::new(start, start + label.len() as u32)
-            });
+            let span = diagnostic
+                .labels
+                .first()
+                .map_or_else(Span::default, |label| {
+                    let start = label.offset() as u32;
+                    Span::new(start, start + label.len() as u32)
+                });
             Error::new(diagnostic.message.to_string(), span)
         })
         .collect()
@@ -202,7 +211,9 @@ fn lower<'a>(
     let mut lower = Lower::new(b, &scopes, types, &project, &usages, &options.name, open);
     let component = lower.component(&options.name, parsed.document.root);
     errors.append(&mut lower.errors);
-    let Some(component) = component else { return Err(errors) };
+    let Some(component) = component else {
+        return Err(errors);
+    };
 
     let mut body = b.vec();
     body.extend(std::mem::take(&mut lower.inline));
@@ -223,7 +234,10 @@ fn lower<'a>(
         imports.push(b.import_named(runtime.iter().copied(), &options.runtime_module));
     }
     if !resolved.host.is_empty() {
-        imports.push(b.import_named(resolved.host.iter().map(String::as_str), &options.host_module));
+        imports.push(b.import_named(
+            resolved.host.iter().map(String::as_str),
+            &options.host_module,
+        ));
     }
     for component in &lower.components {
         let source = format!("./{component}{}", options.component_extension);

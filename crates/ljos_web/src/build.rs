@@ -94,7 +94,11 @@ impl<'a> B<'a> {
     }
 
     /// `callee?.(...rest)`
-    pub(crate) fn optional_call_spread(&self, callee: Expression<'a>, rest: &str) -> Expression<'a> {
+    pub(crate) fn optional_call_spread(
+        &self,
+        callee: Expression<'a>,
+        rest: &str,
+    ) -> Expression<'a> {
         let call = CallExpression::boxed(SPAN, callee, None, self.spread(rest), true, &self.ast());
         Expression::new_chain_expression(SPAN, ChainElement::CallExpression(call), &self.ast())
     }
@@ -105,7 +109,11 @@ impl<'a> B<'a> {
     }
 
     fn spread(&self, rest: &str) -> ArenaVec<'a, Argument<'a>> {
-        self.vec1(Argument::new_spread_element(SPAN, self.id(rest), &self.ast()))
+        self.vec1(Argument::new_spread_element(
+            SPAN,
+            self.id(rest),
+            &self.ast(),
+        ))
     }
 
     pub(crate) fn binary(
@@ -128,7 +136,13 @@ impl<'a> B<'a> {
 
     /// `left ?? right`
     pub(crate) fn coalesce(&self, left: Expression<'a>, right: Expression<'a>) -> Expression<'a> {
-        Expression::new_logical_expression(SPAN, left, LogicalOperator::Coalesce, right, &self.ast())
+        Expression::new_logical_expression(
+            SPAN,
+            left,
+            LogicalOperator::Coalesce,
+            right,
+            &self.ast(),
+        )
     }
 
     /// `new callee(arguments)`
@@ -149,7 +163,10 @@ impl<'a> B<'a> {
     }
 
     /// `[elements]`
-    pub(crate) fn array(&self, elements: impl IntoIterator<Item = Expression<'a>>) -> Expression<'a> {
+    pub(crate) fn array(
+        &self,
+        elements: impl IntoIterator<Item = Expression<'a>>,
+    ) -> Expression<'a> {
         let elements = ArenaVec::from_iter_in(
             elements.into_iter().map(ArrayExpressionElement::from),
             &self.ast(),
@@ -348,7 +365,11 @@ impl<'a> B<'a> {
                 if let Some(last) = tried.block.body.last_mut() {
                     self.returning(last);
                 }
-                if let Some(last) = tried.handler.as_mut().and_then(|handler| handler.body.body.last_mut()) {
+                if let Some(last) = tried
+                    .handler
+                    .as_mut()
+                    .and_then(|handler| handler.body.body.last_mut())
+                {
                     self.returning(last);
                 }
             }
@@ -370,7 +391,8 @@ impl<'a> B<'a> {
     }
 
     fn const_pattern(&self, pattern: BindingPattern<'a>, init: Expression<'a>) -> Statement<'a> {
-        let declarator = VariableDeclarator::new(SPAN, pattern, None, Some(init), false, &self.ast());
+        let declarator =
+            VariableDeclarator::new(SPAN, pattern, None, Some(init), false, &self.ast());
         Statement::VariableDeclaration(VariableDeclaration::boxed(
             SPAN,
             VariableDeclarationKind::Const,
@@ -397,11 +419,18 @@ impl<'a> B<'a> {
     ) -> Statement<'a> {
         let elements = ArenaVec::from_iter_in(
             [first, second].into_iter().map(|name| {
-                Some(BindingPattern::new_binding_identifier(SPAN, self.ident(name), &self.ast()))
+                Some(BindingPattern::new_binding_identifier(
+                    SPAN,
+                    self.ident(name),
+                    &self.ast(),
+                ))
             }),
             &self.ast(),
         );
-        self.const_pattern(BindingPattern::new_array_pattern(SPAN, elements, None, &self.ast()), init)
+        self.const_pattern(
+            BindingPattern::new_array_pattern(SPAN, elements, None, &self.ast()),
+            init,
+        )
     }
 
     fn function(
@@ -423,7 +452,12 @@ impl<'a> B<'a> {
             None,
             params,
             None,
-            Some(FunctionBody::boxed(SPAN, self.vec(), statements, &self.ast())),
+            Some(FunctionBody::boxed(
+                SPAN,
+                self.vec(),
+                statements,
+                &self.ast(),
+            )),
             &self.ast(),
         )
     }
@@ -447,7 +481,9 @@ impl<'a> B<'a> {
     ) -> Statement<'a> {
         Statement::ExportDefaultDeclaration(ExportDefaultDeclaration::boxed(
             SPAN,
-            ExportDefaultDeclarationKind::FunctionDeclaration(self.function(name, params, statements)),
+            ExportDefaultDeclarationKind::FunctionDeclaration(
+                self.function(name, params, statements),
+            ),
             &self.ast(),
         ))
     }
@@ -551,11 +587,9 @@ impl<'a> B<'a> {
         JSXAttributeItem::Attribute(JSXAttribute::boxed(
             SPAN,
             self.jsx_name(name),
-            Some(JSXAttributeValue::ExpressionContainer(JSXExpressionContainer::boxed(
-                SPAN,
-                expression.into(),
-                &self.ast(),
-            ))),
+            Some(JSXAttributeValue::ExpressionContainer(
+                JSXExpressionContainer::boxed(SPAN, expression.into(), &self.ast()),
+            )),
             &self.ast(),
         ))
     }

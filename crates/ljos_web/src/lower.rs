@@ -10,9 +10,9 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use oxc_allocator::{ArenaVec, CloneIn};
 use oxc_ast::ast::*;
-use qml_syntax::ast::*;
 use oxc_span::Span;
 use oxc_syntax::operator::BinaryOperator;
+use qml_syntax::ast::*;
 
 use crate::{
     Error,
@@ -61,7 +61,10 @@ enum Kind<'a> {
     Element(&'static Element),
     /// A component. Without a key it is one nothing is known about, which is
     /// taken at its word.
-    Instance { type_name: &'a str, key: Option<Key> },
+    Instance {
+        type_name: &'a str,
+        key: Option<Key>,
+    },
 }
 
 /// The pieces of an element or instance, gathered while walking its members.
@@ -75,7 +78,12 @@ struct Parts<'a> {
 
 /// A member of an object, with property groups flattened into bindings.
 enum Entry<'a> {
-    Binding { name: String, name_span: Span, span: Span, value: QmlBindingValue<'a> },
+    Binding {
+        name: String,
+        name_span: Span,
+        span: Span,
+        value: QmlBindingValue<'a>,
+    },
     Member(QmlMember<'a>),
 }
 
@@ -133,7 +141,10 @@ impl<'a, 's> Lower<'a, 's> {
             project,
             usages,
             open,
-            component: Key { file: file.to_string(), inline: None },
+            component: Key {
+                file: file.to_string(),
+                inline: None,
+            },
             errors: Vec::new(),
             components: BTreeSet::new(),
             solid: BTreeSet::new(),
@@ -158,12 +169,16 @@ impl<'a, 's> Lower<'a, 's> {
     /// module: `function Name(props) { ... }`.
     fn inline_component(&mut self, inline: QmlInlineComponent<'a>) -> bool {
         let name = inline.name.name.as_str();
-        let key = Key { file: self.component.file.clone(), inline: Some(name.to_string()) };
+        let key = Key {
+            file: self.component.file.clone(),
+            inline: Some(name.to_string()),
+        };
         let enclosing = std::mem::replace(&mut self.component, key);
         let body = self.body(inline.object);
         self.component = enclosing;
         let Some(body) = body else { return false };
-        self.inline.push(self.b.function_declaration(name, &["props"], body));
+        self.inline
+            .push(self.b.function_declaration(name, &["props"], body));
         true
     }
 
@@ -177,7 +192,10 @@ impl<'a, 's> Lower<'a, 's> {
         declarations: &mut Declarations<'a>,
     ) -> Option<Expression<'a>> {
         if object.on.is_some() {
-            self.error("`Type on property` value sources are not supported yet", object.span);
+            self.error(
+                "`Type on property` value sources are not supported yet",
+                object.span,
+            );
             return None;
         }
         let Some(type_name) = object.type_name.as_simple() else {
@@ -212,7 +230,10 @@ impl<'a, 's> Lower<'a, 's> {
                 self.item(Kind::Instance { type_name, key }, object, declarations)
             }
             None => {
-                self.error(format!("`{type_name}` is not a type"), object.type_name.span);
+                self.error(
+                    format!("`{type_name}` is not a type"),
+                    object.type_name.span,
+                );
                 None
             }
         }
@@ -237,7 +258,10 @@ impl<'a, 's> Lower<'a, 's> {
             text: None,
             children: b.vec(),
         };
-        if let Kind::Element(Element { class: Some(class), .. }) = kind {
+        if let Kind::Element(Element {
+            class: Some(class), ..
+        }) = kind
+        {
             parts.attributes.push(b.attr_string("class", class));
         }
 
@@ -280,9 +304,20 @@ impl<'a, 's> Lower<'a, 's> {
         for entry in entries {
             match entry {
                 Entry::Binding { name, .. } if name == "id" => {}
-                Entry::Binding { name, name_span, span, value } => {
+                Entry::Binding {
+                    name,
+                    name_span,
+                    span,
+                    value,
+                } => {
                     let outer = outer.remove(&name);
-                    let binding = Binding { name: &name, name_span, span, value: Some(value), outer };
+                    let binding = Binding {
+                        name: &name,
+                        name_span,
+                        span,
+                        value: Some(value),
+                        outer,
+                    };
                     ok &= self.binding(&kind, type_name, binding, &mut parts, declarations);
                 }
                 Entry::Member(QmlMember::Object(child)) => match self.object(child, declarations) {
@@ -293,12 +328,18 @@ impl<'a, 's> Lower<'a, 's> {
                     ok &= self.property(property, index, declarations);
                 }
                 Entry::Member(QmlMember::Function(mut function)) => {
-                    let name = function.id.as_ref().map(|id| id.name.as_str()).unwrap_or_default();
+                    let name = function
+                        .id
+                        .as_ref()
+                        .map(|id| id.name.as_str())
+                        .unwrap_or_default();
                     if let Some(Member::Function(js)) = self.scopes.member(index, name) {
                         if let Some(id) = &mut function.id {
                             id.name = b.ident(js);
                         }
-                        declarations.constants.push(Statement::FunctionDeclaration(function));
+                        declarations
+                            .constants
+                            .push(Statement::FunctionDeclaration(function));
                     }
                 }
                 Entry::Member(QmlMember::Signal(signal)) => {
@@ -310,7 +351,10 @@ impl<'a, 's> Lower<'a, 's> {
                     ok &= self.inline_component(inline);
                 }
                 Entry::Member(QmlMember::Enum(declaration)) => {
-                    self.errors.push(Error::new("an `enum` is QtQuick's: this dialect has none", declaration.span));
+                    self.errors.push(Error::new(
+                        "an `enum` is QtQuick's: this dialect has none",
+                        declaration.span,
+                    ));
                     ok = false;
                 }
                 Entry::Member(QmlMember::Binding(_)) => unreachable!("bindings are entries"),
@@ -318,19 +362,32 @@ impl<'a, 's> Lower<'a, 's> {
         }
         // What the outside sets and the object does not bind itself.
         for (name, outer) in outer {
-            let binding =
-                Binding { name: &name, name_span: span, span, value: None, outer: Some(outer) };
+            let binding = Binding {
+                name: &name,
+                name_span: span,
+                span,
+                value: None,
+                outer: Some(outer),
+            };
             ok &= self.binding(&kind, type_name, binding, &mut parts, declarations);
         }
         self.changed(index, handlers.changed, declarations);
         if self.takes_children(index) {
-            parts.children.push(b.child(b.member(b.id("props"), "children")));
+            parts
+                .children
+                .push(b.child(b.member(b.id("props"), "children")));
         }
         if !ok {
             return None;
         }
 
-        let Parts { mut attributes, style, events, text, children } = parts;
+        let Parts {
+            mut attributes,
+            style,
+            events,
+            text,
+            children,
+        } = parts;
         match kind {
             Kind::Element(element) => {
                 if !style.is_empty() {
@@ -347,8 +404,8 @@ impl<'a, 's> Lower<'a, 's> {
             Kind::Instance { type_name, key } => {
                 // An inline component is a function of this module, and so is
                 // the file's own component; any other is a file to import.
-                let is_local = key
-                    .is_some_and(|key| key.inline.is_some() || key.file == self.component.file);
+                let is_local =
+                    key.is_some_and(|key| key.inline.is_some() || key.file == self.component.file);
                 if !is_local {
                     self.components.insert(type_name);
                 }
@@ -369,7 +426,9 @@ impl<'a, 's> Lower<'a, 's> {
     ) -> bool {
         let b = self.b;
         let scopes = self.scopes;
-        let Entry::Binding { name, span, .. } = &entry else { unreachable!("called on a binding") };
+        let Entry::Binding { name, span, .. } = &entry else {
+            unreachable!("called on a binding")
+        };
         let (span, own) = (*span, scopes.objects[index].own(name));
         let value = |entry| match entry {
             Entry::Binding { value, .. } => value,
@@ -394,9 +453,15 @@ impl<'a, 's> Lower<'a, 's> {
                 let Some(handler) = self.handler(value(entry), &[], span, true) else {
                     return false;
                 };
-                let hook = if lifecycle == Own::Completed { "onSettled" } else { "onCleanup" };
+                let hook = if lifecycle == Own::Completed {
+                    "onSettled"
+                } else {
+                    "onCleanup"
+                };
                 self.solid.insert(hook);
-                declarations.effects.push(b.statement(b.call(b.id(hook), [handler])));
+                declarations
+                    .effects
+                    .push(b.statement(b.call(b.id(hook), [handler])));
             }
         }
         true
@@ -416,9 +481,9 @@ impl<'a, 's> Lower<'a, 's> {
                 // What the root cannot take is reported where an instance
                 // sets it, not here.
                 let takes = match kind {
-                    Kind::Element(element) => {
-                        element.prop(name).is_some_and(|prop| !matches!(prop, Prop::Keyword(_)))
-                    }
+                    Kind::Element(element) => element
+                        .prop(name)
+                        .is_some_and(|prop| !matches!(prop, Prop::Keyword(_))),
                     Kind::Instance { .. } => true,
                 };
                 if takes {
@@ -428,7 +493,10 @@ impl<'a, 's> Lower<'a, 's> {
         }
         for ((target, property), alias) in &self.scopes.aliases {
             if *target == index {
-                outer.insert(property.clone(), Outer::Alias(alias.name, alias.member.clone()));
+                outer.insert(
+                    property.clone(),
+                    Outer::Alias(alias.name, alias.member.clone()),
+                );
             }
         }
         outer
@@ -438,7 +506,11 @@ impl<'a, 's> Lower<'a, 's> {
     fn takes_children(&self, index: usize) -> bool {
         let root = self.scopes.objects[index].document;
         let target = self.scopes.children.get(&root).copied().unwrap_or(root);
-        target == index && self.usages.get(&self.component).is_some_and(|usage| usage.children)
+        target == index
+            && self
+                .usages
+                .get(&self.component)
+                .is_some_and(|usage| usage.children)
     }
 
     /// `props.key`, or the component's own value when no instance sets it.
@@ -514,7 +586,13 @@ impl<'a, 's> Lower<'a, 's> {
         declarations: &mut Declarations<'a>,
     ) -> bool {
         let b = self.b;
-        let Binding { name, name_span, span, value, outer } = binding;
+        let Binding {
+            name,
+            name_span,
+            span,
+            value,
+            outer,
+        } = binding;
         // A prop is an identifier, a QML name may be dotted.
         let key = name.replace('.', "$");
         let element = match kind {
@@ -556,7 +634,9 @@ impl<'a, 's> Lower<'a, 's> {
                             None => None,
                         };
                         match outer {
-                            None => own.expect("a binding has a value unless the outside gives it one"),
+                            None => {
+                                own.expect("a binding has a value unless the outside gives it one")
+                            }
                             Some(Outer::Override) if own.is_none() => b.member(b.id("props"), &key),
                             Some(Outer::Override) => self.both(own, &key),
                             Some(Outer::Alias(..)) => {
@@ -635,11 +715,19 @@ impl<'a, 's> Lower<'a, 's> {
                 self.spread(css.iter().copied(), value, &mut parts.style);
             }
             Prop::Toggle { on, off } => match as_boolean(&value) {
-                Some(true) => parts.style.extend(on.iter().map(|(k, v)| (*k, b.string(v)))),
-                Some(false) => parts.style.extend(off.iter().map(|(k, v)| (*k, b.string(v)))),
+                Some(true) => parts
+                    .style
+                    .extend(on.iter().map(|(k, v)| (*k, b.string(v)))),
+                Some(false) => parts
+                    .style
+                    .extend(off.iter().map(|(k, v)| (*k, b.string(v)))),
                 None => {
                     let mut names: Vec<&'static str> = on.iter().map(|(k, _)| *k).collect();
-                    names.extend(off.iter().map(|(k, _)| *k).filter(|k| !on.iter().any(|o| o.0 == *k)));
+                    names.extend(
+                        off.iter()
+                            .map(|(k, _)| *k)
+                            .filter(|k| !on.iter().any(|o| o.0 == *k)),
+                    );
                     let declared = |table: &'static [(&'static str, &'static str)], key| {
                         table
                             .iter()
@@ -652,7 +740,9 @@ impl<'a, 's> Lower<'a, 's> {
                         let test = if position == last {
                             test.take().expect("one test per declaration")
                         } else {
-                            test.as_ref().expect("test kept until the last").clone_in(b.allocator())
+                            test.as_ref()
+                                .expect("test kept until the last")
+                                .clone_in(b.allocator())
                         };
                         parts.style.push((
                             key,
@@ -671,13 +761,20 @@ impl<'a, 's> Lower<'a, 's> {
                 };
                 let keyword = literal.value.as_str();
                 let Some((_, declarations)) = table.iter().find(|(k, _)| *k == keyword) else {
-                    self.error(format!("`{keyword}` is not a known value for `{name}`"), span);
+                    self.error(
+                        format!("`{keyword}` is not a known value for `{name}`"),
+                        span,
+                    );
                     return false;
                 };
-                parts.style.extend(declarations.iter().map(|(k, v)| (*k, b.string(v))));
+                parts
+                    .style
+                    .extend(declarations.iter().map(|(k, v)| (*k, b.string(v))));
             }
             Prop::Attribute(attribute) => parts.attributes.push(match &value {
-                Expression::StringLiteral(literal) => b.attr_string(attribute, literal.value.as_str()),
+                Expression::StringLiteral(literal) => {
+                    b.attr_string(attribute, literal.value.as_str())
+                }
                 _ => b.attr(attribute, value),
             }),
             Prop::Text => parts.text = Some(value),
@@ -696,7 +793,9 @@ impl<'a, 's> Lower<'a, 's> {
         declarations: &mut Declarations<'a>,
     ) {
         let b = self.b;
-        let Some(Member::Function(js)) = self.scopes.member(index, name) else { return };
+        let Some(Member::Function(js)) = self.scopes.member(index, name) else {
+            return;
+        };
         let emit = if self.scopes.is_interface(index) {
             self.both(own, &handler_name(name))
         } else {
@@ -761,7 +860,10 @@ impl<'a, 's> Lower<'a, 's> {
             let value = if position == last {
                 value.take().expect("one value per property")
             } else {
-                value.as_ref().expect("value kept until the last").clone_in(self.b.allocator())
+                value
+                    .as_ref()
+                    .expect("value kept until the last")
+                    .clone_in(self.b.allocator())
             };
             style.push((name, value));
         }
@@ -812,7 +914,10 @@ impl<'a, 's> Lower<'a, 's> {
                 Some(b.call(b.arrow_block(&[], self.statements(statement)), []))
             }
             QmlBindingValue::Object(_) | QmlBindingValue::Objects(_) => {
-                self.error("an object is not supported as this property's value yet", span);
+                self.error(
+                    "an object is not supported as this property's value yet",
+                    span,
+                );
                 None
             }
         }
@@ -862,7 +967,9 @@ impl<'a, 's> Lower<'a, 's> {
     ) -> bool {
         let b = self.b;
         let name = property.name.name.as_str();
-        let Some(member) = self.scopes.member(object, name).cloned() else { return false };
+        let Some(member) = self.scopes.member(object, name).cloned() else {
+            return false;
+        };
         let is_alias = property
             .type_name
             .as_ref()
@@ -881,8 +988,12 @@ impl<'a, 's> Lower<'a, 's> {
         // A root property is the component's interface, and so is a property
         // a root alias stands for: the instance's value wins over the default.
         let is_interface = self.scopes.is_interface(object) && !property.is_readonly;
-        let outside =
-            self.scopes.aliased.get(&(object, name)).copied().or(is_interface.then_some(name));
+        let outside = self
+            .scopes
+            .aliased
+            .get(&(object, name))
+            .copied()
+            .or(is_interface.then_some(name));
         let from_props = outside.is_some();
         let literal = match &property.value {
             None => true,
@@ -895,7 +1006,10 @@ impl<'a, 's> Lower<'a, 's> {
             Some(QmlBindingValue::Expression(expression)) => Value::Expression(expression),
             Some(QmlBindingValue::Statement(statement)) => Value::Block(self.statements(statement)),
             Some(_) => {
-                self.error("an object is not supported as a property value yet", property.span);
+                self.error(
+                    "an object is not supported as a property value yet",
+                    property.span,
+                );
                 return false;
             }
         };
@@ -909,9 +1023,13 @@ impl<'a, 's> Lower<'a, 's> {
 
         match member {
             Member::Const(js) => {
-                declarations.constants.push(b.const_(&js, value.into_expression(b)));
+                declarations
+                    .constants
+                    .push(b.const_(&js, value.into_expression(b)));
             }
-            Member::Getter(js) => declarations.constants.push(b.const_(&js, value.into_thunk(b))),
+            Member::Getter(js) => declarations
+                .constants
+                .push(b.const_(&js, value.into_thunk(b))),
             Member::Memo(js) => {
                 self.solid.insert("createMemo");
                 // Lazy: a binding is computed when something first reads it,
@@ -1006,7 +1124,11 @@ impl<'a, 's> Lower<'a, 's> {
         } else {
             b.arrow_block(parameters, declarations.finish(b, element))
         };
-        Some(b.element(tag, b.vec1(b.attr(source, model)), b.vec1(b.child(callback))))
+        Some(b.element(
+            tag,
+            b.vec1(b.attr(source, model)),
+            b.vec1(b.child(callback)),
+        ))
     }
 }
 
@@ -1051,7 +1173,8 @@ fn handler_name(signal: &str) -> String {
 
 /// `onClicked`, `onMouseDown`: `on` followed by a capital.
 fn is_handler_name(name: &str) -> bool {
-    name.strip_prefix("on").is_some_and(|rest| rest.starts_with(|c: char| c.is_ascii_uppercase()))
+    name.strip_prefix("on")
+        .is_some_and(|rest| rest.starts_with(|c: char| c.is_ascii_uppercase()))
 }
 
 fn unparenthesized<'e, 'a>(expression: &'e Expression<'a>) -> &'e Expression<'a> {

@@ -42,7 +42,10 @@ fn lower_from<'a>(
     files: &mut usize,
     text: bool,
 ) -> Result<Program<'a>, Vec<Error>> {
-    let types = Types { project, file: &options.name };
+    let types = Types {
+        project,
+        file: &options.name,
+    };
     let mut errors = Vec::new();
     let tree = Tree::analyze(&document, types, &mut errors);
 
@@ -58,11 +61,20 @@ fn lower_from<'a>(
         Some(types::Origin::File(file)) => *file != options.name,
         _ => true,
     };
-    let shadows = tree.objects.iter().any(|object| object.name == stem && is_other(&object.origin));
+    let shadows = tree
+        .objects
+        .iter()
+        .any(|object| object.name == stem && is_other(&object.origin));
     // `pragma Singleton`: what the file exports is the one object, and the
     // function that makes it has to be called something else.
-    let is_singleton = project.summary(&options.name).is_some_and(|summary| summary.is_singleton);
-    let name = if shadows || is_singleton { format!("{stem}$component") } else { stem.to_string() };
+    let is_singleton = project
+        .summary(&options.name)
+        .is_some_and(|summary| summary.is_singleton);
+    let name = if shadows || is_singleton {
+        format!("{stem}$component")
+    } else {
+        stem.to_string()
+    };
 
     let mut lower = Lower::new(b, &tree, types, stem);
     lower.uses.paths.known.clone_from(&options.files);
@@ -71,7 +83,9 @@ fn lower_from<'a>(
     if text {
         // What a text names and does not have is looked for where it is
         // written, whatever it is.
-        lower.dynamic.extend(project.mentions(&options.name).cloned());
+        lower
+            .dynamic
+            .extend(project.mentions(&options.name).cloned());
     }
     lower.assigned = options.urls_on_assignment;
     let root = document.root.type_name.to_string();
@@ -86,8 +100,15 @@ fn lower_from<'a>(
         // A singleton named like the type it is one of (`QtObject.qml`, a
         // QtObject) leaves the name to the type, as QML does: an import
         // comes before the file's own directory.
-        let one = if shadows { format!("{stem}$singleton") } else { stem.to_string() };
-        body.push(b.const_(&one, b.call(b.id("$singleton"), [b.id(&name), b.record(enums)])));
+        let one = if shadows {
+            format!("{stem}$singleton")
+        } else {
+            stem.to_string()
+        };
+        body.push(b.const_(
+            &one,
+            b.call(b.id("$singleton"), [b.id(&name), b.record(enums)]),
+        ));
         // `Calendar.December`, of a `Calendar` that is the one `T.Calendar`.
         body.push(lower.extends(&one, &root));
         body.push(b.export_default(b.id(&one)));
@@ -99,8 +120,21 @@ fn lower_from<'a>(
     }
     let mut program = b.program(source, body);
     let mut uses = lower.uses;
-    names::resolve(b, &mut program, &tree, types, stem, &lower.dynamic, &mut uses, &mut errors);
-    if uses.handles.iter().any(|handle| handle.starts_with("$scope")) {
+    names::resolve(
+        b,
+        &mut program,
+        &tree,
+        types,
+        stem,
+        &lower.dynamic,
+        &mut uses,
+        &mut errors,
+    );
+    if uses
+        .handles
+        .iter()
+        .any(|handle| handle.starts_with("$scope"))
+    {
         uses.kernel.insert("$context");
     }
     // The files of the program the module names, it says where they are.
@@ -160,7 +194,10 @@ fn lower_from<'a>(
     imports.extend(tables);
     for (address, path) in &kept {
         let path = types::relative(&options.name, path);
-        let url = b.member(b.new_(b.id("URL"), [b.string(&path), b.import_meta_url()]), "href");
+        let url = b.member(
+            b.new_(b.id("URL"), [b.string(&path), b.import_meta_url()]),
+            "href",
+        );
         imports.push(b.statement(b.call(b.id("$resource"), [b.string(address), url])));
     }
     imports.extend(made);

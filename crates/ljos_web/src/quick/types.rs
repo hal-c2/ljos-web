@@ -8,10 +8,7 @@
 //! empty `Item` here, because the web runtime has the modules Ljós does
 //! not build (QtQuick3D, Graphs, …) and a name it lacks is an error.
 
-use qml_front::{
-    QtType, QtTypeOracle, TypeOracle,
-    oracle::Special,
-};
+use qml_front::{QtType, QtTypeOracle, TypeOracle, oracle::Special};
 
 use crate::project::Project;
 
@@ -52,9 +49,10 @@ impl<'p> Types<'p> {
     /// of Qt's own is not: the runtime module exports the object itself.
     pub(crate) fn is_singleton(&self, kind: &Kind) -> bool {
         match kind {
-            Kind::Component(qml_front::project::Key { file, inline: None }) => {
-                self.project.summary(file).is_some_and(|summary| summary.is_singleton)
-            }
+            Kind::Component(qml_front::project::Key { file, inline: None }) => self
+                .project
+                .summary(file)
+                .is_some_and(|summary| summary.is_singleton),
             _ => false,
         }
     }
@@ -111,7 +109,13 @@ pub(crate) fn qt_property(property: &'static qt_types::Property) -> Property {
         is_script: property.type_name == "QQmlScriptString" && property.name == "script",
         takes_key: !property.is_list
             && (property.type_name == "int"
-                || qt_types::is_enum_name(property.type_name.rsplit("::").next().unwrap_or(property.type_name))),
+                || qt_types::is_enum_name(
+                    property
+                        .type_name
+                        .rsplit("::")
+                        .next()
+                        .unwrap_or(property.type_name),
+                )),
         is_list: property.is_list,
         is_readonly: property.is_readonly,
         value: property.value_type().map(QtType),
@@ -143,7 +147,9 @@ pub(crate) fn declared_property(type_name: &str, is_list: bool) -> Property {
 /// nothing: `widthChanged()`, and the change of any property QML declares.
 pub(crate) fn carried<'n>(ty: Qt, name: &'n str) -> Option<&'n str> {
     let property = name.strip_suffix("Changed")?;
-    let [parameter] = ty.0.signal(name)?.parameters.as_slice() else { return None };
+    let [parameter] = ty.0.signal(name)?.parameters.as_slice() else {
+        return None;
+    };
     // Not the value, by the name Qt gives it: by how much a handler moved
     // (`scaleChanged(delta)`), the event (`mouseXChanged(mouse)`).
     if matches!(*parameter, "delta" | "mouse") {

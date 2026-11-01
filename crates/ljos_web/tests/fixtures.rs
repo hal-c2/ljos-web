@@ -22,7 +22,10 @@ fn tui_bricks() {
     for path in paths {
         let name = path.file_stem().unwrap().to_str().unwrap().to_string();
         let source = fs::read_to_string(&path).unwrap();
-        let options = Options { name: name.clone(), ..Options::default() };
+        let options = Options {
+            name: name.clone(),
+            ..Options::default()
+        };
         let code = match compile(&source, &options) {
             Ok(output) => output.code,
             Err(errors) => panic!("{name}.qml: {errors:?}"),
@@ -35,5 +38,8 @@ fn tui_bricks() {
             stale.push(name);
         }
     }
-    assert!(stale.is_empty(), "output changed for {stale:?}; see the header of this file");
+    assert!(
+        stale.is_empty(),
+        "output changed for {stale:?}; see the header of this file"
+    );
 }
