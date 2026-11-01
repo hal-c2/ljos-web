@@ -53,20 +53,27 @@ const NOT_ON_THE_WEB: &[(&str, &str)] = &[(
     "its InspectorClient calls an inspector that a token file on disk names, which a page cannot read; a page inspects itself with `inspect(root)` from `ljos-web/inspect`",
 )];
 
+/// Whether `uri` is had by other than the project: Qt's table, the runtime or
+/// the Qt that is installed.
+pub(crate) fn provided(uri: &str, options: &Options) -> bool {
+    let path = uri.replace('.', "/");
+    QtTypeOracle.has_module(uri)
+        || RUNTIME.contains(&format!("\"./{path}\""))
+        || options
+            .qt_imports
+            .iter()
+            .any(|root| root.join(&path).join("qmldir").is_file())
+        || options.installed.iter().any(|module| module == uri)
+}
+
 /// The modules `document` imports that nobody has, as Qt says of one: the
-/// project, Qt's table, the runtime and the Qt that is installed.
-fn uninstalled(document: &QmlDocument<'_>, project: &Project, options: &Options) -> Vec<Error> {
-    let installed = |uri: &str| {
-        let path = uri.replace('.', "/");
-        project.has_module(uri)
-            || QtTypeOracle.has_module(uri)
-            || RUNTIME.contains(&format!("\"./{path}\""))
-            || options
-                .qt_imports
-                .iter()
-                .any(|root| root.join(&path).join("qmldir").is_file())
-            || options.installed.iter().any(|module| module == uri)
-    };
+/// project and whatever else [`provided`] them.
+pub(crate) fn uninstalled(
+    document: &QmlDocument<'_>,
+    project: &Project,
+    options: &Options,
+) -> Vec<Error> {
+    let installed = |uri: &str| project.has_module(uri) || provided(uri, options);
     document
         .imports
         .iter()
