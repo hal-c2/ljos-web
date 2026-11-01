@@ -9,11 +9,13 @@
 // yet is there all the same, to say so when it is used: a style names every
 // control, and a program that uses three of them needs those three.
 import { spawnSync } from "node:child_process";
-import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, delimiter, dirname, isAbsolute, join, relative, resolve as resolvePath, sep } from "node:path";
+import { inflateSync } from "node:zlib";
 import { searchForWorkspaceRoot } from "vite";
 import { CONTROLS } from "./controls.js";
+import { heldShader } from "./QtQuick/baked.js";
+import { forBrowser } from "./QtQuick/qsb.js";
 import { QUICK3D } from "./quick3d.js";
 
 // What marks a `.js` file as the script a QML file imports
@@ -163,10 +165,10 @@ function extract(tool, uri, folder, directory) {
 }
 
 // `wave.frag.qsb`: a shader as Qt draws with it, baked by Qt's `qsb` tool
-// from its source, `wave.frag`, when a program is built. It is baked here
-// likewise when it is not there. In what is baked is the same shader for
-// each way of drawing Qt knows: a browser's is OpenGL ES, and that text is
-// what the runtime is given.
+// from its source, `wave.frag`, when a program is built. What a browser wants
+// of it is the text for OpenGL ES: from the file when it is there and has one,
+// otherwise made from the source with no tool of Qt's, which a machine that
+// builds for the web need not have.
 const BAKED = ".qsb";
 
 // A project's type dumps (`ljostypes.json`, as `ljos types` writes them),
@@ -218,30 +220,20 @@ function faceOf(faces, file) {
   return existsSync(face) ? face : null;
 }
 
-function baked(context, tool, file, directory) {
-  let read = file;
-  const run = (args) => {
-    const ran = spawnSync(tool, args, { encoding: "utf8", maxBuffer: 1 << 26 });
-    if (ran.error) context.error(`could not run ${tool}: ${ran.error.message}`);
-    if (ran.status !== 0) context.error(ran.stderr.trim() || `${tool} could not read ${file}`);
-    return ran.stdout;
-  };
-  if (existsSync(file)) context.addWatchFile(file);
-  else {
-    const source = file.slice(0, -BAKED.length);
-    if (!existsSync(source)) context.error(`${file} is not there, nor is ${source} to bake it from`);
+function baked(context, file) {
+  const source = file.slice(0, -BAKED.length);
+  const there = existsSync(file);
+  let text = null;
+  if (there) {
+    context.addWatchFile(file);
+    const bytes = readFileSync(file);
+    text = heldShader(bytes[4] === 0x78 ? inflateSync(bytes.subarray(4)) : bytes);
+  }
+  if (!text) {
+    if (!existsSync(source)) context.error(there ? `${file} has no shader for OpenGL ES in it` : `${file} is not there, nor is ${source} to bake it from`);
     context.addWatchFile(source);
-    mkdirSync(directory, { recursive: true });
-    read = join(directory, `${createHash("sha1").update(file).digest("hex")}${BAKED}`);
-    run(["--glsl", "300 es", "-o", read, source]);
+    text = forBrowser(readFileSync(source, "utf8"), source.endsWith(".vert") ? "vertex" : "fragment");
   }
-  const shaders = new Map();
-  for (const part of run(["-d", read]).split(/^\*{8,}$/m)) {
-    const [, level, text] = part.match(/^Shader \d+: GLSL (\d+ es) \[Standard\]\nEntry point: \w+\nContents:\n([^]*)$/m) ?? [];
-    if (level) shaders.set(level, text.trim() + "\n");
-  }
-  const text = shaders.get("300 es") ?? shaders.get("100 es");
-  if (!text) context.error(`${file} has no shader for OpenGL ES in it`);
   return `data:text/plain;charset=utf-8,${encodeURIComponent(text)}`;
 }
 
@@ -829,7 +821,7 @@ export default function qml({
       }
       const [file] = id.split("?");
       if (file.endsWith(BAKED)) {
-        const text = baked(this, join(found().bins || "", "qsb"), file, join(cache, "shaders"));
+        const text = baked(this, file);
         return { code: `export default ${JSON.stringify(text)};\n`, map: null };
       }
       if (!file.endsWith(".qml") && !isScript(id)) return null;

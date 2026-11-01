@@ -177,3 +177,14 @@ test("a type of Qt's QML that Ljós has not written says so and names the module
   const said = await page.evaluate(() => window.objects.tried());
   expect(said).toBe("QtQuick3D.Effects: Blur is QML of Qt's own, and Qt's QtQuick3D.Effects is not installed here");
 });
+
+test("a shader named as what Qt's tool bakes needs no tool of Qt's", async ({ page }) => {
+  await open(page, "qtlessshader");
+  const Compiled = 0;
+  await expect.poll(() => page.evaluate(() => JSON.parse(JSON.stringify(window.scene.statuses()))), {
+    message: JSON.stringify(await page.evaluate(() => window.scene.logs())),
+  }).toEqual([Compiled, Compiled, Compiled]);
+  await settled(page, [50, 50], [0, 255, 0], 0, "what OpenGL ES does not say as OpenGL 4.4 does");
+  await settled(page, [150, 50], [255, 0, 0], 0, "a block with a name");
+  await settled(page, [250, 50], [0, 255, 0], 0, "a baked file with no source beside it");
+});

@@ -18,7 +18,7 @@
 // the language: what is not understood is left as it is, for the browser to
 // say what it makes of it.
 
-const TYPES = new Set(
+export const TYPES = new Set(
   (
     "void bool int uint float vec2 vec3 vec4 ivec2 ivec3 ivec4 uvec2 uvec3 uvec4 bvec2 bvec3 bvec4 " +
     "mat2 mat3 mat4 mat2x2 mat2x3 mat2x4 mat3x2 mat3x3 mat3x4 mat4x2 mat4x3 mat4x4 " +
@@ -32,7 +32,7 @@ const QUALIFIERS = new Set("const in out inout uniform highp mediump lowp flat s
 const WORDS = new Set("struct precision if else for while do return break continue discard switch case default true false location main".split(" "));
 
 // The functions the language has of its own.
-const FUNCTIONS = new Set(
+export const FUNCTIONS = new Set(
   (
     "radians degrees sin cos tan asin acos atan sinh cosh tanh asinh acosh atanh pow exp log exp2 log2 sqrt inversesqrt " +
     "abs sign floor trunc round roundEven ceil fract mod modf min max clamp mix step smoothstep isnan isinf " +
