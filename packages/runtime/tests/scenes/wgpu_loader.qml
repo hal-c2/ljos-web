@@ -7,6 +7,8 @@ Rectangle {
     height: 300
     color: "#000000"
     property alias loader: loader
+    readonly property bool succeeded: loader.status === RuntimeLoader.Success
+    readonly property bool failed: loader.status === RuntimeLoader.Error
     View3D {
         id: view
         anchors.fill: parent

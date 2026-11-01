@@ -4,7 +4,7 @@
 //! objects makes a scene that compares the same and costs the GPU nothing.
 
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -48,10 +48,10 @@ pub struct Shape {
     pub bounds: Option<([f32; 3], [f32; 3])>,
 }
 
-/// An `Instancing`'s table, as `instancing.js` keeps it: twenty numbers an
-/// entry.
+/// What of an `Instancing`'s table each build reads. Its numbers, twenty an
+/// entry as `instancing.js` keeps them, are [`Host::table_data`]: they cross
+/// only when they are new.
 pub struct Table {
-    pub data: Vec<f32>,
     pub count: Option<usize>,
     pub transparent: bool,
     pub sorted: bool,
@@ -133,36 +133,112 @@ pub trait Host {
     fn geometry(&self, o: u32) -> Option<Shape>;
     fn table_id(&self, o: u32) -> Option<u32>;
     fn table(&self, o: u32) -> Option<Table>;
+    fn table_data(&self, o: u32) -> Vec<f32>;
     fn snippets(&self, o: u32) -> Option<Snippets>;
     fn passes(&self, o: u32) -> Option<Passes>;
     /// A tracked read of "another file arrived".
     fn arrivals(&self);
     /// Starts reading the file at `url`; [`Kept::arrive`] follows.
     fn load(&self, url: &str, kept: &Rc<Kept>);
+    /// What an author should see of what could not be drawn.
+    fn report(&self, about: &str, error: &str);
+    /// A loader's `status` and `errorString`.
+    fn loader_status(&self, loader: u32, status: LoaderStatus, error: &str);
+}
+
+/// `RuntimeLoader.Status`, in its order. A file on its way is `Empty`: Qt has
+/// no word for that, as its loader reads before it returns.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(u32)]
+pub enum LoaderStatus {
+    Empty = 0,
+    Success = 1,
+    Error = 2,
 }
 
 /// A file a loader names.
 pub enum Asked {
     Loading,
-    Failed,
+    Failed(String),
     Ready(Arc<Asset>),
 }
 
+/// What was made of each object's current revision. An object's new revision
+/// lets go of its old one, so a shape committed every frame holds one copy,
+/// while two objects showing the same picture share what was made of it.
+struct Revisions<T> {
+    current: HashMap<u32, u32>,
+    made: HashMap<u32, (T, usize)>,
+}
+
+impl<T> Default for Revisions<T> {
+    fn default() -> Self {
+        Self {
+            current: HashMap::new(),
+            made: HashMap::new(),
+        }
+    }
+}
+
+impl<T: Clone> Revisions<T> {
+    /// What `object` at revision `id` was made into, if that was made.
+    fn take_up(&mut self, object: u32, id: u32) -> Option<T> {
+        if self.current.get(&object) != Some(&id) {
+            let (made, holders) = self.made.get_mut(&id)?;
+            let made = made.clone();
+            *holders += 1;
+            self.let_go(object);
+            self.current.insert(object, id);
+            return Some(made);
+        }
+        self.made.get(&id).map(|(made, _)| made.clone())
+    }
+
+    fn put(&mut self, object: u32, id: u32, made: T) {
+        self.let_go(object);
+        self.current.insert(object, id);
+        self.made.insert(id, (made, 1));
+    }
+
+    fn let_go(&mut self, object: u32) {
+        let Some(id) = self.current.remove(&object) else {
+            return;
+        };
+        if let Some((_, holders)) = self.made.get_mut(&id) {
+            *holders -= 1;
+            if *holders == 0 {
+                self.made.remove(&id);
+            }
+        }
+    }
+}
+
 /// What is kept between builds, by what the page says identifies it.
+///
+/// Programs alone stay until the view goes: they are kept by their text, and
+/// a page has as many as the shaders it wrote.
 #[derive(Default)]
 pub struct Kept {
     types: RefCell<HashMap<u32, u32>>,
-    pictures: RefCell<HashMap<u32, TextureImage>>,
-    shapes: RefCell<HashMap<u32, Arc<CustomGeometry>>>,
-    tables: RefCell<HashMap<u32, Arc<InstanceTable>>>,
-    programs: RefCell<HashMap<String, Arc<ljos_3d::custom::Program>>>,
+    pictures: RefCell<Revisions<TextureImage>>,
+    /// `None` where a revision could not be made: it was said why, once.
+    shapes: RefCell<Revisions<Option<Arc<CustomGeometry>>>>,
+    tables: RefCell<Revisions<Arc<InstanceTable>>>,
+    programs: RefCell<HashMap<String, Option<Arc<ljos_3d::custom::Program>>>>,
     files: RefCell<HashMap<String, Asked>>,
+    /// Which file each loader names: a file is held as long as one does, so
+    /// one that failed is read again when a loader comes to name it again.
+    named: RefCell<HashMap<u32, String>>,
+    said: RefCell<HashSet<String>>,
 }
 
 impl Kept {
-    /// A file's outcome; the host then tells the reactive graph.
+    /// A file's outcome; the host then tells the reactive graph. No loader
+    /// names it any more, if it has no entry: then it is not kept.
     pub fn arrive(&self, url: &str, asked: Asked) {
-        self.files.borrow_mut().insert(url.to_owned(), asked);
+        if let Some(file) = self.files.borrow_mut().get_mut(url) {
+            *file = asked;
+        }
     }
 
     /// Forgets objects the page dropped. Handles are never used again.
@@ -170,6 +246,27 @@ impl Kept {
         let mut types = self.types.borrow_mut();
         for handle in handles {
             types.remove(handle);
+            self.pictures.borrow_mut().let_go(*handle);
+            self.shapes.borrow_mut().let_go(*handle);
+            self.tables.borrow_mut().let_go(*handle);
+            self.name(*handle, None);
+        }
+    }
+
+    /// `loader` now names `url`.
+    fn name(&self, loader: u32, url: Option<&str>) {
+        let mut named = self.named.borrow_mut();
+        if named.get(&loader).map(String::as_str) == url {
+            return;
+        }
+        let was = match url {
+            Some(url) => named.insert(loader, url.to_owned()),
+            None => named.remove(&loader),
+        };
+        if let Some(was) = was
+            && !named.values().any(|other| *other == was)
+        {
+            self.files.borrow_mut().remove(&was);
         }
     }
 }
@@ -216,15 +313,34 @@ impl<H: Host> fmt::Debug for Source<'_, H> {
 impl<H: Host> Source<'_, H> {
     fn program(
         &self,
+        about: &str,
         key: String,
         make: impl FnOnce() -> Result<ljos_3d::custom::Program, ljos_3d::snippet::SnippetError>,
     ) -> Option<Arc<ljos_3d::custom::Program>> {
         if let Some(made) = self.kept.programs.borrow().get(&key) {
-            return Some(made.clone());
+            return made.clone();
         }
-        let made = Arc::new(make().ok()?);
+        let made = match make() {
+            Ok(made) => Some(Arc::new(made)),
+            Err(error) => {
+                self.host.report(about, &error.to_string());
+                None
+            }
+        };
         self.kept.programs.borrow_mut().insert(key, made.clone());
-        Some(made)
+        made
+    }
+
+    /// What a page rewrites says the same each time: once is enough.
+    fn say_once(&self, about: &str, error: &str) {
+        if self
+            .kept
+            .said
+            .borrow_mut()
+            .insert(format!("{about}\0{error}"))
+        {
+            self.host.report(about, error);
+        }
     }
 }
 
@@ -318,14 +434,17 @@ fn primitive(n: u32) -> PrimitiveType {
     }
 }
 
-fn shape(s: Shape) -> Option<CustomGeometry> {
+fn shape(s: Shape) -> Result<CustomGeometry, String> {
     let mut g = CustomGeometry::new();
     g.set_vertex_data(s.vertices);
     g.set_index_data(s.indices);
     g.set_stride(s.stride as usize);
     for [sem, offset, comp] in s.attributes {
         if let Some(sem) = semantic(sem) {
-            g.add_attribute(sem, offset as usize, component(comp)?);
+            // The renderer reads no signed integers: Geometry.js's I32Type.
+            let comp = component(comp)
+                .ok_or_else(|| format!("an attribute's component type {comp} is not drawn"))?;
+            g.add_attribute(sem, offset as usize, comp);
         }
     }
     g.set_primitive_type(primitive(s.primitive));
@@ -336,7 +455,7 @@ fn shape(s: Shape) -> Option<CustomGeometry> {
         );
     }
     g.update();
-    Some(g)
+    Ok(g)
 }
 
 const ENTRY: usize = 20;
@@ -435,9 +554,13 @@ impl<H: Host> SceneSource for Source<'_, H> {
     }
 
     fn texture_image(&self, _view: u32, texture: u32) -> Option<TextureImage> {
-        let id = self.host.picture_id(texture)?;
-        if let Some(image) = self.kept.pictures.borrow().get(&id) {
-            return Some(image.clone());
+        let Some(id) = self.host.picture_id(texture) else {
+            self.kept.pictures.borrow_mut().let_go(texture);
+            return None;
+        };
+        let known = self.kept.pictures.borrow_mut().take_up(texture, id);
+        if known.is_some() {
+            return known;
         }
         let p = self.host.picture(texture)?;
         let image = TextureImage::new(Pixels {
@@ -446,34 +569,53 @@ impl<H: Host> SceneSource for Source<'_, H> {
             opaque: p.opaque,
             pixels: p.pixels,
         });
-        self.kept.pictures.borrow_mut().insert(id, image.clone());
+        self.kept
+            .pictures
+            .borrow_mut()
+            .put(texture, id, image.clone());
         Some(image)
     }
 
     fn geometry(&self, geometry: u32) -> Option<Arc<CustomGeometry>> {
-        let id = self.host.geometry_id(geometry)?;
-        if let Some(made) = self.kept.shapes.borrow().get(&id) {
-            return Some(made.clone());
+        let Some(id) = self.host.geometry_id(geometry) else {
+            self.kept.shapes.borrow_mut().let_go(geometry);
+            return None;
+        };
+        let known = self.kept.shapes.borrow_mut().take_up(geometry, id);
+        if let Some(known) = known {
+            return known;
         }
-        let made = Arc::new(shape(self.host.geometry(geometry)?)?);
-        self.kept.shapes.borrow_mut().insert(id, made.clone());
-        Some(made)
+        let made = match shape(self.host.geometry(geometry)?) {
+            Ok(made) => Some(Arc::new(made)),
+            Err(error) => {
+                self.say_once("Geometry", &error);
+                None
+            }
+        };
+        self.kept
+            .shapes
+            .borrow_mut()
+            .put(geometry, id, made.clone());
+        made
     }
 
     fn instancing(&self, table: u32) -> Option<Instancing> {
-        let id = self.host.table_id(table)?;
+        let Some(id) = self.host.table_id(table) else {
+            self.kept.tables.borrow_mut().let_go(table);
+            return None;
+        };
         let t = self.host.table(table)?;
-        let known = self.kept.tables.borrow().get(&id).cloned();
+        let known = self.kept.tables.borrow_mut().take_up(table, id);
         let entries = known.unwrap_or_else(|| {
+            let data = self.host.table_data(table);
             let made = Arc::new(InstanceTable::new(
-                t.data
-                    .as_chunks::<ENTRY>()
+                data.as_chunks::<ENTRY>()
                     .0
                     .iter()
                     .map(|e| entry(e.as_slice()))
                     .collect(),
             ));
-            self.kept.tables.borrow_mut().insert(id, made.clone());
+            self.kept.tables.borrow_mut().put(table, id, made.clone());
             made
         });
         let mut instancing = Instancing::new(entries);
@@ -493,7 +635,7 @@ impl<H: Host> SceneSource for Source<'_, H> {
         );
         let vertex = (!s.vertex.is_empty()).then_some(s.vertex.as_str());
         let fragment = (!s.fragment.is_empty()).then_some(s.fragment.as_str());
-        let program = self.program(key, || {
+        let program = self.program("CustomMaterial", key, || {
             ljos_3d::snippet::material(vertex, fragment, s.shaded, &uniforms, &samplers)
         })?;
         let mut made = CustomMaterial::new(program);
@@ -560,7 +702,7 @@ impl<H: Host> SceneSource for Source<'_, H> {
                 pass.vertex, pass.fragment
             );
             let vertex = (!pass.vertex.is_empty()).then_some(pass.vertex.as_str());
-            let program = self.program(key, || {
+            let program = self.program("Effect", key, || {
                 ljos_3d::snippet::effect(vertex, &pass.fragment, &uniforms, &samplers)
             })?;
             let values = told
@@ -597,20 +739,37 @@ impl<H: Host> SceneSource for Source<'_, H> {
             return None;
         }
         self.host.arrivals();
-        let url = self.url(loader, Prop3d::Source)?;
-        if url.is_empty() {
+        let url = self
+            .url(loader, Prop3d::Source)
+            .filter(|url| !url.is_empty());
+        self.kept.name(loader, url.as_deref());
+        let Some(url) = url else {
+            self.host.loader_status(loader, LoaderStatus::Empty, "");
+            return None;
+        };
+        let (asset, failed) = match self.kept.files.borrow().get(&url) {
+            Some(Asked::Ready(asset)) => (Some(asset.clone()), None),
+            Some(Asked::Failed(error)) => (None, Some(error.clone())),
+            Some(Asked::Loading) | None => (None, None),
+        };
+        if let Some(error) = failed {
+            self.host.loader_status(loader, LoaderStatus::Error, &error);
             return None;
         }
-        let ready = match self.kept.files.borrow().get(&url) {
-            Some(Asked::Ready(asset)) => Some(asset.clone()),
-            Some(_) => return None,
-            None => None,
-        };
-        let Some(asset) = ready else {
-            self.kept.arrive(&url, Asked::Loading);
-            self.host.load(&url, self.kept);
+        let Some(asset) = asset else {
+            self.host.loader_status(loader, LoaderStatus::Empty, "");
+            let asked = self
+                .kept
+                .files
+                .borrow_mut()
+                .insert(url.clone(), Asked::Loading)
+                .is_none();
+            if asked {
+                self.host.load(&url, self.kept);
+            }
             return None;
         };
+        self.host.loader_status(loader, LoaderStatus::Success, "");
         Some(Loaded {
             asset,
             models: Vec::new(),
@@ -629,12 +788,25 @@ mod tests {
     const CUBE: u32 = 1;
     const CAMERA: u32 = 2;
     const MATERIAL: u32 = 3;
+    const LOADER: u32 = 4;
+    const OTHER_LOADER: u32 = 5;
+    /// Enough revisions that a count of 1 says the older ones were let go.
+    const COMMITTED: u32 = 50;
 
     /// A view with a model and a camera, counting what is asked.
     #[derive(Default)]
     struct Fake {
         chains: Cell<u32>,
         x: Cell<Option<f64>>,
+        /// Revision of the object's shape, picture and table, if it has one.
+        revision: Cell<Option<u32>>,
+        component: Cell<u32>,
+        table_reads: Cell<u32>,
+        fragment: RefCell<String>,
+        source: RefCell<String>,
+        loads: RefCell<Vec<String>>,
+        reports: RefCell<Vec<String>>,
+        status: RefCell<Option<(LoaderStatus, String)>>,
     }
 
     impl Host for Fake {
@@ -645,6 +817,7 @@ mod tests {
                 CUBE => &["Object3D", "Node", "Model"],
                 CAMERA => &["Object3D", "Node", "Camera", "OrthographicCamera"],
                 MATERIAL => &["Object3D", "Material", "PrincipledMaterial"],
+                LOADER => &["Object3D", "Node", "RuntimeLoader"],
                 _ => &[],
             };
             names.iter().map(|n| (*n).to_owned()).collect()
@@ -669,7 +842,14 @@ mod tests {
             None
         }
         fn url(&self, o: u32, p: u32) -> Option<String> {
-            (o == CUBE && Prop3d::ALL[p as usize] == Prop3d::Source).then(|| "#Cube".to_owned())
+            if Prop3d::ALL[p as usize] != Prop3d::Source {
+                return None;
+            }
+            match o {
+                CUBE => Some("#Cube".to_owned()),
+                LOADER => Some(self.source.borrow().clone()),
+                _ => None,
+            }
         }
         fn object(&self, _: u32, _: u32) -> Option<u32> {
             None
@@ -691,31 +871,69 @@ mod tests {
             Vec::new()
         }
         fn picture_id(&self, _: u32) -> Option<u32> {
-            None
+            self.revision.get()
         }
         fn picture(&self, _: u32) -> Option<Picture> {
-            None
+            Some(Picture {
+                width: 1,
+                height: 1,
+                opaque: true,
+                pixels: vec![0; 4],
+            })
         }
         fn geometry_id(&self, _: u32) -> Option<u32> {
-            None
+            self.revision.get()
         }
         fn geometry(&self, _: u32) -> Option<Shape> {
-            None
+            Some(Shape {
+                vertices: vec![0; 36],
+                indices: Vec::new(),
+                stride: 12,
+                attributes: vec![[1, 0, self.component.get()]],
+                primitive: 5,
+                bounds: None,
+            })
         }
         fn table_id(&self, _: u32) -> Option<u32> {
-            None
+            self.revision.get()
         }
         fn table(&self, _: u32) -> Option<Table> {
-            None
+            Some(Table {
+                count: Some(1),
+                transparent: false,
+                sorted: false,
+            })
+        }
+        fn table_data(&self, _: u32) -> Vec<f32> {
+            self.table_reads.set(self.table_reads.get() + 1);
+            vec![0.0; ENTRY]
         }
         fn snippets(&self, _: u32) -> Option<Snippets> {
-            None
+            Some(Snippets {
+                vertex: String::new(),
+                fragment: self.fragment.borrow().clone(),
+                shaded: true,
+                uniforms: Vec::new(),
+                textures: Vec::new(),
+                source_blend: 0,
+                destination_blend: 0,
+                depth_draw: 0,
+                cull_mode: 0,
+            })
         }
         fn passes(&self, _: u32) -> Option<Passes> {
             None
         }
         fn arrivals(&self) {}
-        fn load(&self, _: &str, _: &Rc<Kept>) {}
+        fn load(&self, url: &str, _: &Rc<Kept>) {
+            self.loads.borrow_mut().push(url.to_owned());
+        }
+        fn report(&self, about: &str, error: &str) {
+            self.reports.borrow_mut().push(format!("{about}: {error}"));
+        }
+        fn loader_status(&self, _: u32, status: LoaderStatus, error: &str) {
+            *self.status.borrow_mut() = Some((status, error.to_owned()));
+        }
     }
 
     fn cube_x(built: &qml::Built<u32>) -> f32 {
@@ -777,5 +995,158 @@ mod tests {
         let got = entry(&e);
         assert_eq!(got.transform.0[3][0], 5.0);
         assert_eq!(got.color[0], 0.5);
+    }
+
+    #[test]
+    fn a_new_revision_lets_go_of_the_old_and_forgetting_of_the_last() {
+        let host = Fake::default();
+        let kept = Rc::new(Kept::default());
+        let source = Source {
+            host: &host,
+            kept: &kept,
+        };
+        let mut oldest = None;
+        for revision in 1..=COMMITTED {
+            host.revision.set(Some(revision));
+            let shape = source.geometry(CUBE).unwrap();
+            oldest.get_or_insert_with(|| Arc::downgrade(&shape));
+            source.instancing(CUBE).unwrap();
+            source.texture_image(VIEW, CUBE).unwrap();
+            assert_eq!(kept.shapes.borrow().made.len(), 1);
+            assert_eq!(kept.tables.borrow().made.len(), 1);
+            assert_eq!(kept.pictures.borrow().made.len(), 1);
+        }
+        assert_eq!(oldest.unwrap().strong_count(), 0);
+        kept.forget(&[CUBE]);
+        assert_eq!(kept.shapes.borrow().made.len(), 0);
+        assert_eq!(kept.tables.borrow().made.len(), 0);
+        assert_eq!(kept.pictures.borrow().made.len(), 0);
+    }
+
+    #[test]
+    fn two_objects_on_one_revision_share_it_until_both_have_left() {
+        let host = Fake::default();
+        let kept = Rc::new(Kept::default());
+        let source = Source {
+            host: &host,
+            kept: &kept,
+        };
+        host.revision.set(Some(1));
+        let a = source.geometry(CUBE).unwrap();
+        let b = source.geometry(CAMERA).unwrap();
+        assert!(Arc::ptr_eq(&a, &b));
+        host.revision.set(Some(2));
+        source.geometry(CUBE).unwrap();
+        assert_eq!(kept.shapes.borrow().made.len(), 2);
+        source.geometry(CAMERA).unwrap();
+        assert_eq!(kept.shapes.borrow().made.len(), 1);
+    }
+
+    #[test]
+    fn a_tables_numbers_cross_only_when_they_are_new() {
+        let host = Fake::default();
+        let kept = Rc::new(Kept::default());
+        let source = Source {
+            host: &host,
+            kept: &kept,
+        };
+        host.revision.set(Some(1));
+        for _ in 0..3 {
+            assert_eq!(source.instancing(CUBE).unwrap().count, Some(1));
+        }
+        assert_eq!(host.table_reads.get(), 1);
+        host.revision.set(Some(2));
+        source.instancing(CUBE).unwrap();
+        assert_eq!(host.table_reads.get(), 2);
+    }
+
+    #[test]
+    fn a_shader_that_does_not_translate_is_said_once_and_translated_once() {
+        let host = Fake::default();
+        let kept = Rc::new(Kept::default());
+        let source = Source {
+            host: &host,
+            kept: &kept,
+        };
+        *host.fragment.borrow_mut() = "void MAIN() { no such thing here; }".to_owned();
+        assert!(source.custom_material(VIEW, MATERIAL).is_none());
+        assert!(source.custom_material(VIEW, MATERIAL).is_none());
+        let reports = host.reports.borrow();
+        assert_eq!(reports.len(), 1, "{reports:?}");
+        assert!(reports[0].starts_with("CustomMaterial: fragment shader"));
+    }
+
+    #[test]
+    fn a_component_type_the_renderer_cannot_read_is_said_for_all_its_revisions_once() {
+        let host = Fake::default();
+        let kept = Rc::new(Kept::default());
+        let source = Source {
+            host: &host,
+            kept: &kept,
+        };
+        host.component.set(3);
+        host.revision.set(Some(1));
+        assert!(source.geometry(CUBE).is_some());
+        assert!(host.reports.borrow().is_empty());
+        host.component.set(2);
+        for revision in 2..5 {
+            host.revision.set(Some(revision));
+            assert!(source.geometry(CUBE).is_none());
+            assert!(source.geometry(CUBE).is_none());
+        }
+        assert_eq!(
+            *host.reports.borrow(),
+            ["Geometry: an attribute's component type 2 is not drawn"]
+        );
+    }
+
+    #[test]
+    fn a_file_that_failed_is_read_again_only_when_named_again() {
+        let host = Fake::default();
+        let kept = Rc::new(Kept::default());
+        let source = Source {
+            host: &host,
+            kept: &kept,
+        };
+        let names = |url: &str| *host.source.borrow_mut() = url.to_owned();
+        let status = || host.status.borrow().clone().unwrap();
+        names("bad.gltf");
+        assert!(source.loaded(LOADER).is_none());
+        assert_eq!(status().0, LoaderStatus::Empty);
+        kept.arrive("bad.gltf", Asked::Failed("404".to_owned()));
+        // The arrival builds again, and that must not ask again.
+        assert!(source.loaded(LOADER).is_none());
+        assert_eq!(status(), (LoaderStatus::Error, "404".to_owned()));
+        assert_eq!(host.loads.borrow().len(), 1);
+        // Another loader gets the same answer while the first still names it.
+        assert!(source.loaded(OTHER_LOADER).is_none());
+        assert_eq!(status(), (LoaderStatus::Error, "404".to_owned()));
+        assert_eq!(host.loads.borrow().len(), 1);
+        names("");
+        assert!(source.loaded(LOADER).is_none());
+        assert!(source.loaded(OTHER_LOADER).is_none());
+        assert_eq!(status(), (LoaderStatus::Empty, String::new()));
+        names("bad.gltf");
+        assert!(source.loaded(LOADER).is_none());
+        assert_eq!(*host.loads.borrow(), ["bad.gltf", "bad.gltf"]);
+        // What arrives after no one names it is not kept.
+        names("");
+        assert!(source.loaded(LOADER).is_none());
+        kept.arrive("bad.gltf", Asked::Failed("late".to_owned()));
+        assert!(kept.files.borrow().is_empty());
+    }
+
+    #[test]
+    fn forgetting_a_loader_lets_go_of_its_file() {
+        let host = Fake::default();
+        let kept = Rc::new(Kept::default());
+        let source = Source {
+            host: &host,
+            kept: &kept,
+        };
+        *host.source.borrow_mut() = "a.gltf".to_owned();
+        source.loaded(LOADER);
+        kept.forget(&[LOADER]);
+        assert!(kept.files.borrow().is_empty());
     }
 }

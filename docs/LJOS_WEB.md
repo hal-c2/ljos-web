@@ -1573,11 +1573,24 @@ renderers, but only wgpu reads the file: the JavaScript renderer draws
 what is declared and has no glTF reader.
 
 Known gaps: a live `sourceItem` texture and a `TextureData` that is not
-RGBA8 give no picture.
+RGBA8 give no picture. A `Geometry` with an `I32Type` attribute is not
+drawn, and the console says so once: the renderer reads no signed integers.
+A shader that does not translate leaves its model without that material,
+and the console says why once. `RuntimeLoader` says `status` and
+`errorString` only on wgpu, and only of a loader the build reached: one
+inside something invisible says them when it is next shown. While its file
+is on its way it says `Empty`. A file that failed is read again when a
+loader comes to name it again, not on its own.
+
+What a view keeps is one revision of each shape, picture and table, the one
+it draws. A `Geometry` committed every frame stays level
+(`tests/view3d-wgpu.spec.js`, "is let go"); on the build before that, a
+hundred revisions took wasm from 27 to 97 MB and live GPU objects from 102
+to 402. Programs are kept by their text until the view goes.
 
 What it reaches today: a lit scene of built-in shapes is the native renderer's
 picture on WebGPU and on WebGL2 (`tests/references3d`). `tests/quick3d.spec.js`
-passes 10 of 48 on wgpu, none failing by timing: what fails is the picture. Real
+passes 11 of 49 on wgpu, none failing by timing: what fails is the picture. Real
 applications do not draw yet: dice and robotarm show no 3D, car-configurator
 shows its mesh files as white boxes.
 

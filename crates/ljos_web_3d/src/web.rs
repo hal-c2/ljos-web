@@ -15,8 +15,8 @@ use wasm_bindgen_futures::{JsFuture, spawn_local};
 use web_sys::HtmlCanvasElement;
 
 use crate::source::{
-    Asked, Host, Kept, PassBuffer, PassShaders, Passes, Picture, Shape, Snippets, Source, Table,
-    Uniform,
+    Asked, Host, Kept, LoaderStatus, PassBuffer, PassShaders, Passes, Picture, Shape, Snippets,
+    Source, Table, Uniform,
 };
 
 #[wasm_bindgen]
@@ -72,6 +72,8 @@ extern "C" {
     fn fetched(this: &JsHost, url: &str) -> js_sys::Promise;
     #[wasm_bindgen(method)]
     fn report(this: &JsHost, url: &str, error: &str);
+    #[wasm_bindgen(method, js_name = loaderStatus)]
+    fn loader_status(this: &JsHost, o: u32, status: u32, error: &str);
     /// Asks for one frame; many asks in one frame are one frame.
     #[wasm_bindgen(method)]
     fn request(this: &JsHost);
@@ -219,11 +221,16 @@ impl Host for JsHost {
     fn table(&self, o: u32) -> Option<Table> {
         let t = given(JsHost::table(self, o))?;
         Some(Table {
-            data: reals(&t, "data"),
             count: index(&t, "count"),
             transparent: yes(&t, "sheer"),
             sorted: yes(&t, "sorted"),
         })
+    }
+    fn table_data(&self, o: u32) -> Vec<f32> {
+        // `data` is a Float32Array: a copy into wasm's memory is all it takes.
+        get(&JsHost::table(self, o), "data")
+            .unchecked_into::<Float32Array>()
+            .to_vec()
     }
     fn snippets(&self, o: u32) -> Option<Snippets> {
         let s = given(JsHost::snippets(self, o))?;
@@ -282,14 +289,29 @@ impl Host for JsHost {
                 match read {
                     Ok(asset) => kept.arrive(&owned, Asked::Ready(Arc::new(asset))),
                     Err(error) => {
-                        host.report(&owned, &error.to_string());
-                        kept.arrive(&owned, Asked::Failed);
+                        let error = error.to_string();
+                        JsHost::report(&host, &owned, &error);
+                        kept.arrive(&owned, Asked::Failed(error));
                     }
                 }
                 host.arrived();
             },
         );
     }
+    fn report(&self, about: &str, error: &str) {
+        JsHost::report(self, about, error);
+    }
+    fn loader_status(&self, loader: u32, status: LoaderStatus, error: &str) {
+        JsHost::loader_status(self, loader, status as u32, error);
+    }
+}
+
+/// What a rejection says: a guard's refusal and a network's failure are
+/// `Error`s, an HTTP error is its status line.
+fn rejection(e: &JsValue) -> String {
+    e.as_string()
+        .or_else(|| get(e, "message").as_string())
+        .unwrap_or_else(|| "cannot be read".to_owned())
 }
 
 /// `ljos_3d`'s fetch over the browser's.
@@ -304,7 +326,7 @@ impl Fetch for BrowserFetch {
             let got = JsFuture::from(asked)
                 .await
                 .map(|v| Uint8Array::new(&v).to_vec())
-                .map_err(|e| e.as_string().unwrap_or_else(|| "cannot be read".to_owned()));
+                .map_err(|e| rejection(&e));
             reply(&(), got);
         });
     }

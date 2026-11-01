@@ -11,7 +11,7 @@ import { pixels } from "./pixels.js";
 // A headless Chromium has a real adapter with these (RADV here); without them
 // `navigator.gpu` has none and the WebGPU half could not be told from WebGL2.
 test.use({
-  launchOptions: { args: ["--enable-unsafe-webgpu", "--enable-features=Vulkan", "--use-angle=vulkan", "--ignore-gpu-blocklist"] },
+  launchOptions: { args: ["--enable-unsafe-webgpu", "--enable-features=Vulkan", "--use-angle=vulkan", "--ignore-gpu-blocklist", "--js-flags=--expose-gc"] },
   viewport: { width: 400, height: 300 },
   deviceScaleFactor: 1,
 });
@@ -38,6 +38,35 @@ const COUNTED = `
      "clear", "clearBufferfv", "clearBufferfi", "clearBufferiv", "clearBufferuiv",
      "blitFramebuffer", "bufferData", "bufferSubData", "texImage2D", "texSubImage2D"]);
 `;
+// What of the GPU's memory the page still holds: what was made, and is not
+// let go nor out of reach. wgpu lets a WebGPU object go by dropping it, for the
+// collector to find, so only collecting says which are gone.
+const LIVE = `
+  const made = [];
+  const gone = new WeakSet();
+  const live = (proto, up, down, target) => {
+    if (!proto) return;
+    for (const name of up) {
+      const called = proto[name];
+      proto[name] = function (...args) { const object = called.apply(this, args); made.push(new WeakRef(object)); return object; };
+    }
+    for (const name of down) {
+      const called = proto[name];
+      proto[name] = function (...args) { gone.add(target(this, args)); return called.apply(this, args); };
+    }
+  };
+  live(self.GPUDevice && GPUDevice.prototype, ["createBuffer", "createTexture"], []);
+  live(self.GPUBuffer && GPUBuffer.prototype, [], ["destroy"], (object) => object);
+  live(self.GPUTexture && GPUTexture.prototype, [], ["destroy"], (object) => object);
+  live(self.WebGL2RenderingContext && WebGL2RenderingContext.prototype, ["createBuffer", "createTexture"], ["deleteBuffer", "deleteTexture"], (_, [object]) => object);
+  window.gpuLive = async () => {
+    // A WeakRef read in a task holds its target until the task ends.
+    await new Promise((done) => setTimeout(done));
+    gc();
+    await new Promise((done) => setTimeout(done));
+    return made.filter((each) => { const object = each.deref(); return object && !gone.has(object); }).length;
+  };
+`;
 const CENTRE = [200, 150];
 const CLEAR = [0x20, 0x20, 0x20];
 
@@ -46,6 +75,7 @@ for (const backend of ["webgpu", "webgl2"]) {
     async function show(page, scene) {
       if (backend === "webgl2") await page.addInitScript(HIDDEN);
       await page.addInitScript(COUNTED);
+      await page.addInitScript(LIVE);
       await page.goto(`/?scene=${scene}&view3d=wgpu`);
       await page.waitForFunction(() => window.ready);
       await page.waitForFunction(() => {
@@ -67,6 +97,12 @@ for (const backend of ["webgpu", "webgl2"]) {
       await page.evaluate(work, argument);
       await still(page);
     };
+    const loaderSays = (page) =>
+      page.evaluate(() => {
+        const { status, errorString } = window.objects.loader;
+        const { succeeded, failed } = window.objects;
+        return { status, errorString, succeeded, failed };
+      });
     const at = async (page, x, y) => (await pixels(page, [[x, y]]))[0].split(" ").map(Number);
     const near = (got, want, within = 3) => got.forEach((value, index) => expect(Math.abs(value - want[index]), `${got} for ${want}`).toBeLessThanOrEqual(within));
 
@@ -209,6 +245,7 @@ for (const backend of ["webgpu", "webgl2"]) {
       await set(page, () => (window.objects.loader.x = 120));
       near(await at(page, 320, 150), [255, 0, 0]);
       near(await at(page, ...CENTRE), CLEAR);
+      await expect.poll(() => loaderSays(page)).toEqual({ status: 1, succeeded: true, failed: false, errorString: "" });
       await set(page, () => (window.objects.loader.visible = false));
       near(await at(page, 320, 150), CLEAR);
       await set(page, () => {
@@ -222,8 +259,56 @@ for (const backend of ["webgpu", "webgl2"]) {
       near(await at(page, 320 + 25, 150 + 25), [255, 255, 255]);
     });
 
+    test.describe("a file that cannot be read", () => {
+      test.use({ told: [/gone\.gltf|404/] });
+      test("says why on the loader, and is read again when the loader names it again", async ({ page }) => {
+        let refusals = 1;
+        await page.route(/gone\.gltf/, (route) => (refusals-- > 0 ? route.fulfill({ status: 404 }) : route.fulfill({ path: join(import.meta.dirname, "scenes/wgpu_models/square.gltf") })));
+        await show(page, "wgpu_loader");
+        await set(page, () => (window.objects.loader.source = "scenes/wgpu_models/gone.gltf"));
+        await expect.poll(() => loaderSays(page)).toMatchObject({ status: 2, failed: true, errorString: expect.stringMatching(/404/) });
+        // Another build asks nothing: a loader reads when its source changes.
+        await set(page, () => (window.objects.loader.x = 1));
+        near(await at(page, ...CENTRE), CLEAR);
+        await set(page, () => (window.objects.loader.source = "scenes/wgpu_models/square.gltf"));
+        await expect.poll(() => loaderSays(page)).toMatchObject({ status: 1, errorString: "" });
+        await set(page, () => (window.objects.loader.source = "scenes/wgpu_models/gone.gltf"));
+        await expect.poll(() => loaderSays(page)).toMatchObject({ status: 1, errorString: "" });
+        expect(refusals).toBe(-1);
+      });
+    });
+
+    test.describe("a shader that does not translate", () => {
+      test.use({ told: [/View3D: CustomMaterial: /] });
+      test("is said once, with why, however many builds read it", async ({ page }) => {
+        const said = [];
+        page.on("console", (message) => /CustomMaterial/.test(message.text()) && said.push(message.text()));
+        await show(page, "wgpu_badshader");
+        await set(page, () => (window.objects.other.x = 10));
+        await set(page, () => (window.objects.other.x = 20));
+        expect(said.length, said.join("\n")).toBe(1);
+        expect(said[0]).toMatch(/fragment shader/);
+      });
+    });
+
+    test.describe("a chunk that did not arrive", () => {
+      test.use({ told: [/View3D: |net::ERR_FAILED/] });
+      test("is asked for again by the next view, which draws", async ({ page }) => {
+        let refusals = 1;
+        await page.route(/ljos_web_3d_bg/, (route) => (refusals-- > 0 ? route.abort() : route.fallback()));
+        if (backend === "webgl2") await page.addInitScript(HIDDEN);
+        await page.goto("/?scene=wgpu_two&view3d=wgpu");
+        await page.waitForFunction(() => window.ready);
+        const states = () => page.evaluate(() => [...document.querySelectorAll(".qq-view3d")].map(({ $view3d: { error, frames } }) => ({ error, drew: frames > 0 })));
+        await expect.poll(async () => (await states()).filter(({ drew }) => drew).length).toBe(1);
+        const failed = (await states()).filter(({ error }) => error);
+        expect(failed.length).toBe(1);
+        expect(failed[0].error).not.toMatch(/undefined|not a function|Cannot read/);
+      });
+    });
+
     test.describe("while a dropped shell is shown", () => {
-      test.use({ told: [/not fetched while a dropped shell|model\.gltf: cannot be read/] });
+      test.use({ told: [/not fetched while a dropped shell/] });
       test("a loader's file from another host is not fetched", async ({ page }) => {
         let asked = 0;
         await page.route(/evil\.example/, (route) => (asked++, route.abort()));
@@ -237,6 +322,8 @@ for (const backend of ["webgpu", "webgl2"]) {
         await still(page);
         await still(page);
         expect(asked).toBe(0);
+        // The guard's own reason, not "the file is broken".
+        await expect.poll(() => loaderSays(page)).toMatchObject({ status: 2, errorString: expect.stringMatching(/not fetched while a dropped shell/) });
       });
     });
 
@@ -271,6 +358,46 @@ for (const backend of ["webgpu", "webgl2"]) {
       near(await at(page, 200 + 80, 150), CLEAR);
       await square(100);
       near(await at(page, 200 + 80, 150), [0, 255, 255]);
+    });
+
+    test.describe("what is committed over and over", () => {
+      // A table of two thousand entries reads each of them: that is its size.
+      test.use({ told: [/HUGE_FAN_IN/] });
+      test("is let go: the page's memory and the GPU's stay level", async ({ page }) => {
+        test.setTimeout(120000);
+        await show(page, "wgpu_revisions");
+        const commit = (times) =>
+          page.evaluate(async (times) => {
+            const { shape, picture, table } = window.objects;
+            const entries = Array.from(table.instances);
+            // A quarter of a megabyte each of shape and picture, each time.
+            const corners = new Float32Array(21843 * 3);
+            corners.set([-50, -50, 0, 50, -50, 0, 50, 50, 0]);
+            shape.setStride(12);
+            shape.addAttribute(1, 0, 3);
+            shape.setBounds({ x: -50, y: -50, z: 0 }, { x: 50, y: 50, z: 0 });
+            picture.setSize({ width: 256, height: 256 });
+            picture.setFormat(1);
+            for (let time = 0; time < times; time++) {
+              const shade = (window.shade = ((window.shade ?? 0) + 1) % 255);
+              shape.setVertexData(corners.slice().buffer);
+              shape.update();
+              picture.setTextureData(new Uint8Array(256 * 256 * 4).fill(shade).map((value, at) => (at % 4 === 3 ? 255 : value)).buffer);
+              entries[0].position = { x: time % 100, y: 0, z: 0 };
+              window.flush();
+              await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+            }
+            return { memory: document.querySelector(".qq-view3d").$view3d.memory(), live: await window.gpuLive(), builds: document.querySelector(".qq-view3d").$view3d.builds };
+          }, times);
+        const settled = await commit(30);
+        const later = await commit(100);
+        // Kept, a hundred revisions of these are over 75 MB.
+        const MB = 1024 * 1024;
+        console.log(`${backend}: wasm ${settled.memory / MB} -> ${later.memory / MB} MB, GPU objects ${settled.live} -> ${later.live}, builds ${settled.builds} -> ${later.builds}`);
+        expect(later.builds - settled.builds).toBeGreaterThanOrEqual(100);
+        expect((later.memory - settled.memory) / MB).toBeLessThan(16);
+        expect(later.live - settled.live).toBeLessThan(10);
+      });
     });
 
     test("two views each draw their own scene, and one taken away is let go", async ({ page }) => {
