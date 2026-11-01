@@ -22,7 +22,9 @@ function examples() {
       const pictures = [];
       const entries = readManifest().map((example, index) => {
         const { id, dir, entry, window, root, rootType, imports, cpp, qt, notes } = example;
-        const data = JSON.stringify({ id, dir, entry, window, root, rootType, imports, cpp, qt, notes });
+        const served = example.served.map(([address, , local]) => [address, local]);
+        const unfetched = Boolean(example.assets) && example.fetched.length + example.served.length === 0;
+        const data = JSON.stringify({ id, dir, entry, window, root, rootType, imports, cpp, qt, notes, served, unfetched });
         if (example.reference) pictures.push(`import reference${index} from ${JSON.stringify(example.reference + "?url")};`);
         const reference = example.reference ? `reference${index}` : "null";
         const main = example.main ? `() => import(${JSON.stringify(example.main)})` : "null";

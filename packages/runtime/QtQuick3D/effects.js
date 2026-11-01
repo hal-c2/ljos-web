@@ -13,8 +13,8 @@
 // are one, in whichever effects of a view they are, and one without a name
 // is none, but says what kind of picture the effect leaves.
 //
-// The effects of QtQuick3D.Effects are such effects, written in QML: they
-// are Qt's own files, and their shaders Qt's own, where Qt is installed.
+// The effects of QtQuick3D.Effects are such effects, written in QML: Ljós's
+// own (`quick3d/`), or Qt's files and shaders where Qt is installed.
 //
 // Not here: a Buffer is kept from one picture to the next whether it says
 // so or not (`bufferFlags`), and of an ExtendedSceneEnvironment's effects

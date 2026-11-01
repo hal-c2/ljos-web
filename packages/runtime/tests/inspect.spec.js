@@ -172,3 +172,53 @@ test.describe("a runtime warning", () => {
     expect(entry.message).toMatch(/^wide: TypeError: /);
   });
 });
+
+// `placed`: what an editor draws its guides from. The numbers are the ones
+// the scene file writes, added up along its parents.
+test("an object is placed by its id: in its parent, in the window, where it is written", async ({ page }) => {
+  await opened(page, "inspected");
+  const [dot] = await ask(page, () => window.inspector.placed(["dot"]));
+  expect(dot.local).toEqual({ x: 0, y: 0, width: 4, height: 4 });
+  expect(dot.window).toEqual({ x: 0, y: 0, width: 4, height: 4 });
+  expect(dot.declared.file).toMatch(/inspected\.qml$/);
+  expect(dot.declared.line).toBe(19);
+  expect(dot.types).toEqual(["Rectangle", "Item", "QtObject"]);
+  const [button] = await ask(page, () => window.inspector.placed(["button"]));
+  expect(button.window).toEqual({ x: 0, y: 120, width: 80, height: 40 });
+});
+
+test("a place inside a component is in the window's coordinates, its parent's in its own", async ({ page }) => {
+  await opened(page, "inspected");
+  await ask(page, () => window.inspector.write("card", "y", 10));
+  const places = await ask(page, () => window.inspector.placed(["label"]));
+  const inner = places.find((place) => place.types[0] === "Rectangle");
+  expect(inner.local).toEqual({ x: 0, y: 0, width: 50, height: 50 });
+  expect(inner.window).toEqual({ x: 300, y: 10, width: 50, height: 50 });
+  expect(inner.declared.file).toMatch(/Card\.qml$/);
+});
+
+test("an id a delegate has is placed once for each copy, an object hidden keeps its place", async ({ page }) => {
+  await opened(page, "inspectplaced");
+  const copies = await ask(page, () => window.inspector.placed(["cell"]));
+  expect(copies.map((copy) => copy.window)).toEqual([
+    { x: 0, y: 30, width: 10, height: 10 },
+    { x: 20, y: 30, width: 10, height: 10 },
+  ]);
+  const [hidden] = await ask(page, () => window.inspector.placed(["hidden"]));
+  expect(hidden.window).toEqual({ x: 5, y: 7, width: 20, height: 30 });
+});
+
+test("an object with no id is placed by its type, one with an id only by that id", async ({ page }) => {
+  await opened(page, "inspected");
+  const rows = await ask(page, () => window.inspector.placed([], ["Rectangle"]));
+  const delegates = rows.filter((row) => row.window.y === 200);
+  expect(delegates.map((row) => row.window.x)).toEqual([0, 20]);
+  // `root`, `dot` and `tapped` are Rectangles with ids: asked for by id.
+  expect(rows.some((row) => row.window.width === 400)).toBe(false);
+});
+
+test("what no object has is no place, and what is not an item has none", async ({ page }) => {
+  await opened(page, "inspected");
+  expect(await ask(page, () => window.inspector.placed(["nobody"]))).toEqual([]);
+  expect(await ask(page, () => window.inspector.placed(["timer"]))).toEqual([]);
+});

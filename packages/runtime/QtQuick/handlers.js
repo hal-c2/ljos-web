@@ -525,8 +525,40 @@ const untouched = (self) => {
   if (node) node.style.touchAction = "none";
 };
 
+// A drag of several fingers: where their middle has gone since the last of
+// them came down. Fingers that mean to drag may mean to pinch as well, so
+// this only watches them and takes them from no one.
+function gatherDrag(self) {
+  const mine = self.$mine;
+  const count = mine.points.length;
+  const middle = (axis) => mine.points.reduce((sum, point) => sum + point[axis], 0) / count;
+  const at = { x: middle("x"), y: middle("y"), pressX: mine.fromX, pressY: mine.fromY };
+  const centroid = self.$point;
+  centroid.$move(self.$parent, at.x, at.y, mine.points[0]);
+  settle();
+  self.centroidChanged();
+  const dx = self.xAxis.enabled ? at.x - at.pressX : 0;
+  const dy = self.yAxis.enabled ? at.y - at.pressY : 0;
+  if (mine.active) {
+    if (dx !== mine.x || dy !== mine.y) {
+      shift(self, dx, dy);
+      settle();
+      shifted(self);
+    }
+  } else {
+    const threshold = self.dragThreshold;
+    if (Math.abs(dx) <= threshold && Math.abs(dy) <= threshold) return;
+    centroid.$grabbed();
+    mine.active = true;
+    slot(self, "active").write(true);
+    settle();
+  }
+  follow(self, at);
+}
+
 export const DragHandler = defineType("DragHandler", PointerHandler, {
   properties: {
+    minimumPointCount: 1,
     xAxis: axis(-DBL_MAX, DBL_MAX, 0),
     yAxis: axis(-DBL_MAX, DBL_MAX, 0),
     activeTranslation: derived(translation),
@@ -545,6 +577,20 @@ export const DragHandler = defineType("DragHandler", PointerHandler, {
     $press(point) {
       const mine = this.$mine;
       const item = this.$parent;
+      const needs = this.minimumPointCount;
+      if (needs > 1) {
+        if (point.type !== "touch" || mine.points.length >= needs || !wants(this, point) || !inside(item, point)) return false;
+        mine.points.push(point);
+        watch(point, this);
+        if (mine.points.length === needs) {
+          mine.fromX = mine.points.reduce((sum, each) => sum + each.x, 0) / needs;
+          mine.fromY = mine.points.reduce((sum, each) => sum + each.y, 0) / needs;
+          this.$point.$press(item, mine.fromX, mine.fromY, point);
+          settle();
+          this.centroidChanged();
+        }
+        return false;
+      }
       if (mine.point || !wants(this, point) || !inside(item, point)) return false;
       mine.point = point;
       watch(point, this);
@@ -560,6 +606,10 @@ export const DragHandler = defineType("DragHandler", PointerHandler, {
     },
     $move(point) {
       const mine = this.$mine;
+      if (mine.points.includes(point)) {
+        if (mine.points.length === this.minimumPointCount) gatherDrag(this);
+        return;
+      }
       // Whoever has the point may not let go of it.
       if (mine.point !== point || !canTake(point, this)) return;
       const centroid = this.$point;
@@ -585,20 +635,30 @@ export const DragHandler = defineType("DragHandler", PointerHandler, {
       follow(this, point);
     },
     $release(point) {
-      if (this.$mine.point !== point) return;
+      const mine = this.$mine;
+      if (mine.points.includes(point)) {
+        mine.points.splice(mine.points.indexOf(point), 1);
+        return endDrag(this);
+      }
+      if (mine.point !== point) return;
       // Where it was let go, in the item as it is now.
       this.$point.$move(this.$parent, point.x, point.y, point);
       endDrag(this);
     },
     $grab(transition, point) {
-      if (cancelled(transition) && this.$mine.point === point) endDrag(this);
+      const mine = this.$mine;
+      if (cancelled(transition) && mine.points.includes(point)) {
+        mine.points.splice(mine.points.indexOf(point), 1);
+        endDrag(this);
+      } else if (cancelled(transition) && mine.point === point) endDrag(this);
       told(this, transition, point);
     },
   },
   setup(self) {
     // `x`, `y`: the translation of this drag. `pressX`, `pressY`: where in
-    // the target the press was.
-    self.$mine = { point: null, active: false, x: 0, y: 0, dx: 0, dy: 0, pressX: 0, pressY: 0 };
+    // the target the press was. `points`: the fingers of a drag of several,
+    // and `fromX`, `fromY` their middle when the last came down.
+    self.$mine = { point: null, points: [], fromX: 0, fromY: 0, active: false, x: 0, y: 0, dx: 0, dy: 0, pressX: 0, pressY: 0 };
     untouched(self);
   },
 });

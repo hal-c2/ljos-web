@@ -421,7 +421,7 @@ dependencies = [
 [[package]]
 name = "ljos_reactive"
 version = "0.0.0"
-source = "git+ssh://git@github.com/hal-c2/ljos-ui.git?rev=b6c095671da1ae9066b26ef803a35944afa2158f#b6c095671da1ae9066b26ef803a35944afa2158f"
+source = "git+ssh://git@github.com/hal-c2/ljos-ui.git?rev=f8e705d4e206e45e20f04c5645e9e8a62f68317f#f8e705d4e206e45e20f04c5645e9e8a62f68317f"
 dependencies = [
  "slotmap",
  "smallvec",

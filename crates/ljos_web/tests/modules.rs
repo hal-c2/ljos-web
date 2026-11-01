@@ -118,6 +118,17 @@ fn a_qmldir_out_of_its_modules_place_declares_nothing() {
 }
 
 #[test]
+fn a_module_of_the_project_imported_as_a_name_is_its_files() {
+    let code = compiled(&["--root", "qualified", "qualified/Main.qml"]);
+    assert_contains(&code, "/Media/Player.qml\"");
+    assert_contains(&code, "$namespace");
+    assert!(
+        !code.contains("ljos-web/App/Media"),
+        "no such module of the package:\n{code}"
+    );
+}
+
+#[test]
 fn a_block_line_of_a_qmldir_declares_its_type() {
     // Ljós's `# block Name Version File` is a comment to Qt and a type of
     // the module to Ljós (ADR 0003).

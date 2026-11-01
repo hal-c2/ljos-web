@@ -1,0 +1,21 @@
+{
+  "repository": "https://github.com/hal-c2/ljos-ui",
+  "path": "crates/ljos_quick3d/qml",
+  "rev": "f8e705d4e206e45e20f04c5645e9e8a62f68317f",
+  "files": {
+    "QtQuick3D/Helpers/AxisHelper.qml": "d5223db9910a36bb5426bdd610c5ef91a80faee30720405eecf5e28e7245716c",
+    "QtQuick3D/Helpers/DebugView.qml": "e8098f108d143135ab3033883fb82621054276cb1f9d3b9436e736ffcb4c2b01"
+  },
+  "changed": {
+    "QtQuick3D/Helpers/OrbitCameraController.qml": {
+      "at_rev": "570d960ae4003cf64adf69301f49428dfc89da82b5af479b74daa501916c0e72",
+      "sha256": "734494ad14e1cc45b87dda9b6653cacd6a80db6604093f397878918c386cb6d8",
+      "why": "Pitch the way Qt's goes, the rates and depth Qt's shows when run: the pin has the pitch reversed."
+    },
+    "QtQuick3D/Helpers/WasdController.qml": {
+      "at_rev": "11ce069ace399f41f9d83418f69351914a3797a79b8e5618034bc6281820e69b",
+      "sha256": "b004fe3fe256434d4a978cb38890b31aae8abdbd84a6ab90b89c79347c627bcc",
+      "why": "Look pitch the way Qt's goes, the rates Qt's shows when run: the pin has the pitch reversed and moves at 300 a second, not 500."
+    }
+  }
+}
