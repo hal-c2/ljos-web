@@ -15,6 +15,7 @@ import { signal, untrack } from "#kernel";
 import { CustomMaterial } from "./CustomMaterial.js";
 import { handed, text } from "./effects.js";
 import { inside } from "./Node.js";
+import { Format } from "./TextureData.js";
 
 const asked = new URLSearchParams(globalThis.location?.search ?? "").get("view3d");
 
@@ -76,6 +77,11 @@ const numbers = (value) => (typeof value === "number" ? [value] : value);
 const toUniform = ({ name, type, value }) => ({ name, type, value: Float32Array.from(numbers(value)) });
 const plain = (uniforms) => uniforms.filter(({ type }) => type !== "sampler2D").map(toUniform);
 
+// An ExtendedSceneEnvironment is Qt's own QML here. Its properties are
+// declared in that file with its defaults and aliased to its effect, so
+// what it holds is what counts, said or not.
+const written = (object) => object.$type.chain.some((type) => type.typeName === "SceneEffectEnvironment");
+
 class Host {
   constructor(view, setArrivals, arrivals, ask) {
     this.view = view;
@@ -112,8 +118,15 @@ class Host {
     return gone;
   }
   chain(o) {
-    return this.objectsBy.get(o).$type.chain.map((type) => type.typeName);
+    const names = this.objectsBy.get(o).$type.chain.map((type) => type.typeName);
+    // Qt's own QML of an ExtendedSceneEnvironment is what is run here, an
+    // object of the type it is written on, whatever name it is imported by.
+    return names.includes("SceneEffectEnvironment") ? [...names, "ExtendedSceneEnvironment"] : names;
   }
+  warn(message) {
+    console.warn(message);
+  }
+
   number(o, p) {
     const object = this.objectsBy.get(o);
     const name = NAMES[p];
@@ -122,17 +135,27 @@ class Host {
       if (!slot(object, name)?.explicit() && !said(object, "position")) return undefined;
       return Number(object[name]);
     }
+    if (name === "refreshTurn") return object.$asked?.[0]() ?? 0;
+    if (written(object)) return name in object ? Number(object[name]) : undefined;
     const own = slot(object, name);
     if (!own?.explicit()) return undefined;
     const value = Number(own.get());
     return Number.isNaN(value) ? undefined : value;
   }
   boolean(o, p) {
-    const own = slot(this.objectsBy.get(o), NAMES[p]);
+    const object = this.objectsBy.get(o);
+    if (written(object)) return NAMES[p] in object ? Boolean(object[NAMES[p]]) : undefined;
+    const own = slot(object, NAMES[p]);
     return own?.explicit() ? Boolean(own.get()) : undefined;
   }
   color(o, p) {
-    const own = slot(this.objectsBy.get(o), NAMES[p]);
+    const object = this.objectsBy.get(o);
+    if (written(object)) {
+      if (!(NAMES[p] in object)) return undefined;
+      const { r, g, b, a } = color(object[NAMES[p]]);
+      return Float32Array.of(r, g, b, a);
+    }
+    const own = slot(object, NAMES[p]);
     if (!own?.explicit()) return undefined;
     const { r, g, b, a } = color(own.get());
     return Float32Array.of(r, g, b, a);
@@ -185,8 +208,7 @@ class Host {
   shown(o) {
     const texture = this.objectsBy.get(o).$texture?.();
     if (!texture || texture.live || texture.view) return null;
-    if (texture.data) return texture.data.format === "RGBA8" ? texture : null;
-    return texture.element ? texture : null;
+    return texture.data || texture.element ? texture : null;
   }
   pictureId(o) {
     const texture = this.shown(o);
@@ -195,8 +217,13 @@ class Host {
   picture(o) {
     const texture = this.shown(o);
     if (!texture) return undefined;
-    const { width, height, pixels } = texture.data ?? pixelsOf(texture.element);
-    return { width, height, pixels, opaque: !texture.sheer };
+    const { data } = texture;
+    if (data) {
+      // Its own numbers: the wasm reads them as what the format says they are.
+      const { width, height, pixels, format } = data;
+      return { width, height, pixels: new Uint8Array(pixels.buffer, pixels.byteOffset, pixels.byteLength), format: Format[format], opaque: !texture.sheer };
+    }
+    return { ...pixelsOf(texture.element), opaque: !texture.sheer };
   }
   geometryId(o) {
     const held = this.objectsBy.get(o).$held?.();

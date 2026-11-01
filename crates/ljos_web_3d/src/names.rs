@@ -5,7 +5,8 @@ use ljos_3d::qml::{Prop3d, Type3d};
 
 /// `Type3d` has no list of its own; a type's place here is its bit in what
 /// an object is.
-pub const TYPES: [Type3d; 26] = [
+pub const TYPES: [Type3d; 29] = [
+    Type3d::ReflectionProbe,
     Type3d::View3D,
     Type3d::Object3D,
     Type3d::Node,
@@ -32,6 +33,8 @@ pub const TYPES: [Type3d; 26] = [
     Type3d::Joint,
     Type3d::RuntimeLoader,
     Type3d::InfiniteGrid,
+    Type3d::Fog,
+    Type3d::MorphTarget,
 ];
 
 /// The bit of `ty` in [`bits`].

@@ -8,6 +8,7 @@ use std::sync::Arc;
 
 use js_sys::{Array, Float32Array, Reflect, Uint8Array};
 use ljos_3d::fetch::{Fetch, Reply};
+use ljos_3d::mesh_file::MeshFile;
 use ljos_3d::qml::{self, Prop3d};
 use ljos_3d::{Gpu, SceneSlot, SurfaceView};
 use wasm_bindgen::prelude::*;
@@ -52,6 +53,8 @@ extern "C" {
     fn picture_id(this: &JsHost, o: u32) -> Option<u32>;
     #[wasm_bindgen(method)]
     fn picture(this: &JsHost, o: u32) -> JsValue;
+    #[wasm_bindgen(method)]
+    fn warn(this: &JsHost, message: &str);
     #[wasm_bindgen(method, js_name = geometryId)]
     fn geometry_id(this: &JsHost, o: u32) -> Option<u32>;
     #[wasm_bindgen(method)]
@@ -186,8 +189,12 @@ impl Host for JsHost {
             width: int(&p, "width") as u32,
             height: int(&p, "height") as u32,
             opaque: yes(&p, "opaque"),
+            format: get(&p, "format").as_f64().map(|f| f as i32),
             pixels: bytes(&p, "pixels"),
         })
+    }
+    fn warn(&self, message: &str) {
+        JsHost::warn(self, message);
     }
     fn geometry_id(&self, o: u32) -> Option<u32> {
         JsHost::geometry_id(self, o)
@@ -288,6 +295,24 @@ impl Host for JsHost {
                 }
                 host.arrived();
             },
+        );
+    }
+    fn load_mesh(&self, url: &str, kept: &Rc<Kept>) {
+        let (kept, host, owned) = (kept.clone(), self.clone(), url.to_owned());
+        BrowserFetch(self.clone()).fetch(
+            &(),
+            url,
+            Box::new(move |_: &(), got| {
+                let read = got.and_then(|bytes| MeshFile::read(&bytes).map_err(|e| e.to_string()));
+                match read {
+                    Ok(file) => kept.arrive_mesh(&owned, Asked::Ready(Arc::new(file))),
+                    Err(error) => {
+                        host.report(&owned, &error);
+                        kept.arrive_mesh(&owned, Asked::Failed);
+                    }
+                }
+                host.arrived();
+            }),
         );
     }
 }
