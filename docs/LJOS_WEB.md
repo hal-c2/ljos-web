@@ -1573,13 +1573,23 @@ renderers, but only wgpu reads the file: the JavaScript renderer draws
 what is declared and has no glTF reader.
 
 Known gaps: a live `sourceItem` texture and a `TextureData` that is not
-RGBA8 give no picture.
+RGBA8 give no picture; a `.tga` is a picture on both renderers, a `.ktx` only
+on the JavaScript one, since `ljos_3d` has no KTX reader.
 
-What it reaches today: a lit scene of built-in shapes is the native renderer's
-picture on WebGPU and on WebGL2 (`tests/references3d`). `tests/quick3d.spec.js`
-passes 10 of 48 on wgpu, none failing by timing: what fails is the picture. Real
-applications do not draw yet: dice and robotarm show no 3D, car-configurator
-shows its mesh files as white boxes.
+What it reaches today, built with the `ljos_3d` that has the corpus's fixes (the
+pin in `crates/ljos_web_3d/Cargo.toml` has to reach them; this crate does not
+compile on an older one): a lit scene of built-in shapes is the native renderer's
+picture to the pixel on WebGPU and on WebGL2 (`tests/references3d`). Dice,
+robotarm, toycustomizer, car-configurator and FX_Material_Showroom draw on both,
+on both kernels. `tests/quick3d.spec.js` passes 39 of 51 on wgpu and
+`tests/particles3d.spec.js` 15 of 16, none failing by timing. What fails: morph
+targets in a CustomMaterial, KTX pictures, what a probe mirrors, a blurred sky, a
+skin, Mask and Opaque with an opacity, a picture given as numbers by fractions,
+affectors, and a view of very many nodes.
+
+DECISION: JavaScript stays the default renderer of View3D until those specs pass,
+and until a scene's rebuild and a view read back as a texture cost less than they
+do: a View3D drawn into another's scene reads back every frame.
 
 ## Part II — An application's own Rust types
 
