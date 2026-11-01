@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+#MISE description="Copy Ljós's styles of Qt Quick Controls into packages/runtime/controls from ljos-ui (LJOS_UI: a checkout; REV: default the commit Ljos.Design is pinned at)"
+#MISE depends=["packages"]
+set -euo pipefail
+# One commit of ljos-ui for all of Ljós's QML the web takes: the one
+# crates/ljos_web/Cargo.toml pins ljos_design at, unless named.
+rev=${1:-$(grep -E '^ljos_design = ' crates/ljos_web/Cargo.toml | grep -oE 'rev = "[0-9a-f]{40}"' | cut -d'"' -f2)}
+ljos_ui=${LJOS_UI:-../ljos-ui}
+[ -d "$ljos_ui/.git" ] || [ -f "$ljos_ui/.git" ] || { echo "LJOS_UI=$ljos_ui is not a checkout of ljos-ui" >&2; exit 1; }
+rev=$(git -C "$ljos_ui" rev-parse --verify "$rev^{commit}")
+scratch=$(mktemp -d)
+trap 'rm -rf "$scratch"' EXIT
+git -C "$ljos_ui" archive "$rev" crates/ljos_controls/qml | tar x -C "$scratch"
+node packages/runtime/controls.js write "$scratch/crates/ljos_controls/qml" "$rev"

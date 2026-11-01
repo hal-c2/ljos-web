@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-#MISE description="A QtQuick page's JS and wasm against the budget, on both kernels"
-#MISE depends=["build:kernel", "packages"]
+#MISE description="A QtQuick page's JS and wasm against the budget, on both kernels, and the compiler a page loads when it compiles"
+#MISE depends=["build:kernel", "build:wasm-compiler", "packages"]
 set -euo pipefail
 
 # Made absolute before the cd, as CARGO_TARGET_DIR may be either.

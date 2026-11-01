@@ -8,6 +8,7 @@ import { ListView } from "../ListView.js";
 import { PathView } from "../PathView.js";
 import { Control, loose } from "./Control.js";
 import { signal, untrack } from "#kernel";
+import { speaks } from "../Accessible.js";
 
 const NONE = [];
 
@@ -246,3 +247,5 @@ export const Tumbler = defineType("Tumbler", Control, {
     );
   },
 });
+
+speaks(Tumbler, "SpinBox");

@@ -7,10 +7,20 @@ use ljos_web::{Options, Project, compile, lowered_source};
 fn lowered_in(files: &[(&str, &str)], name: &str) -> Result<String, Vec<String>> {
     let mut project = Project::new();
     for (file, source) in files {
-        project.add(file, source).unwrap_or_else(|errors| panic!("{file}: {errors:?}"));
+        project
+            .add(file, source)
+            .unwrap_or_else(|errors| panic!("{file}: {errors:?}"));
     }
-    let options = Options { name: name.to_string(), project: Some(project), ..Options::default() };
-    let source = files.iter().find(|(file, _)| *file == name).expect("a file of the project").1;
+    let options = Options {
+        name: name.to_string(),
+        project: Some(project),
+        ..Options::default()
+    };
+    let source = files
+        .iter()
+        .find(|(file, _)| *file == name)
+        .expect("a file of the project")
+        .1;
     // What does not lower would not compile either; what lowers, Solid takes.
     lowered_source(source, &options)
         .and_then(|lowered| compile(source, &options).map(|_| lowered))
@@ -23,7 +33,10 @@ fn lowered(files: &[(&str, &str)], name: &str) -> String {
 
 #[track_caller]
 fn assert_contains(haystack: &str, needle: &str) {
-    assert!(haystack.contains(needle), "expected to find\n  {needle}\nin\n{haystack}");
+    assert!(
+        haystack.contains(needle),
+        "expected to find\n  {needle}\nin\n{haystack}"
+    );
 }
 
 const BADGE: &str = r#"import OpenTUI
@@ -43,17 +56,32 @@ Item {
     let files = [("App", app), ("Badge", BADGE)];
     let badge = lowered(&files, "Badge");
     // A property of the root object: the instance's value, or the component's own.
-    assert_contains(&badge, r#""color": props.color !== undefined ? props.color : "gray""#);
+    assert_contains(
+        &badge,
+        r#""color": props.color !== undefined ? props.color : "gray""#,
+    );
     // One the component does not bind.
-    assert_contains(&badge, r#""font-weight": props.font$bold ? "bold" : void 0"#);
+    assert_contains(
+        &badge,
+        r#""font-weight": props.font$bold ? "bold" : void 0"#,
+    );
     assert_contains(&badge, "onMouseDown={props.onMouseDown}");
     let app = lowered(&files, "App");
-    assert_contains(&app, r#"<Badge label={"a"} color={Shell.state.color} font$bold={true}></Badge>"#);
-    assert_contains(&app, r#"<Badge onMouseDown={() => Shell.dispatch("b")}></Badge>"#);
+    assert_contains(
+        &app,
+        r#"<Badge label={"a"} color={Shell.state.color} font$bold={true}></Badge>"#,
+    );
+    assert_contains(
+        &app,
+        r#"<Badge onMouseDown={() => Shell.dispatch("b")}></Badge>"#,
+    );
 
     // Used by nothing, it takes nothing but what it declares.
     let alone = lowered(&[("Badge", BADGE)], "Badge");
-    assert_contains(&alone, r#"<span class="q-text" style={{ "color": "gray" }}>{root$label()}</span>"#);
+    assert_contains(
+        &alone,
+        r#"<span class="q-text" style={{ "color": "gray" }}>{root$label()}</span>"#,
+    );
 }
 
 #[test]
@@ -69,7 +97,9 @@ fn what_an_instance_sets_must_exist() {
     );
     assert_eq!(
         errors("import OpenTUI\nItem { Bagde {} }"),
-        ["`Bagde` is not a type: no imported module the web target knows has it, and no `Bagde.qml` is next to this file"]
+        [
+            "`Bagde` is not a type: no imported module the web target knows has it, and no `Bagde.qml` is next to this file"
+        ]
     );
     // The types are the imports', not the compiler's.
     assert_eq!(
@@ -94,7 +124,10 @@ Item { Loud { shout: true; color: "blue"; marginTop: 1 } }"#;
         r#"<Badge label={root$shout() ? "!" : "."} color={props.color !== undefined ? props.color : "red"} marginTop={props.marginTop}></Badge>"#,
     );
     // Asked of `Loud`, taken by the root of `Badge`.
-    assert_contains(&lowered(&files, "Badge"), r#""margin-top": $lh(props.marginTop)"#);
+    assert_contains(
+        &lowered(&files, "Badge"),
+        r#""margin-top": $lh(props.marginTop)"#,
+    );
 }
 
 #[test]
@@ -113,9 +146,18 @@ Item {
     Slotted { Text { text: "b" } }
 }"#;
     let files = [("App", app), ("Frame", frame), ("Slotted", slotted)];
-    assert_contains(&lowered(&files, "Frame"), r#"<span class="q-text">{"top"}</span>{props.children}</div>"#);
-    assert_contains(&lowered(&files, "Slotted"), r#"<div class="q-item">{props.children}</div><span"#);
-    assert_contains(&lowered(&files, "App"), r#"<Frame><span class="q-text">{"a"}</span></Frame>"#);
+    assert_contains(
+        &lowered(&files, "Frame"),
+        r#"<span class="q-text">{"top"}</span>{props.children}</div>"#,
+    );
+    assert_contains(
+        &lowered(&files, "Slotted"),
+        r#"<div class="q-item">{props.children}</div><span"#,
+    );
+    assert_contains(
+        &lowered(&files, "App"),
+        r#"<Frame><span class="q-text">{"a"}</span></Frame>"#,
+    );
     // No instance has children: no slot.
     assert!(!lowered(&[("Frame", frame)], "Frame").contains("children"));
 }
@@ -143,11 +185,20 @@ Item {
     let files = [("App", app), ("List", list)];
     let list = lowered(&files, "List");
     // Emitting is calling: the instance's handler, after the component's own.
-    assert_contains(&list, "const list$picked = (...$args) => {\n\t\tprops.onPicked?.(...$args);\n\t};");
-    assert_contains(&list, "(() => Shell.dispatch(\"closed\"))(...$args);\n\t\tprops.onClosed?.(...$args);");
+    assert_contains(
+        &list,
+        "const list$picked = (...$args) => {\n\t\tprops.onPicked?.(...$args);\n\t};",
+    );
+    assert_contains(
+        &list,
+        "(() => Shell.dispatch(\"closed\"))(...$args);\n\t\tprops.onClosed?.(...$args);",
+    );
     assert_contains(&list, r#"onMouseDown={() => list$picked(1, "one")}"#);
     // A signal that is not the component's has only the handler next to it.
-    assert_contains(&list, r#"const inner$poked = (how) => Shell.dispatch("poked", how);"#);
+    assert_contains(
+        &list,
+        r#"const inner$poked = (how) => Shell.dispatch("poked", how);"#,
+    );
     // The handler's arguments have the names the signal gave them.
     assert_contains(
         &lowered(&files, "App"),
@@ -178,15 +229,24 @@ Item { Field { label: "Name"; tone: "bright" } }"#;
     let field = lowered(&files, "Field");
     // Of a built-in property: the alias is the binding, the property reads it.
     assert_contains(&field, "const field$label = () => props.label;");
-    assert_contains(&field, r#"{ "color": field$label() === "" ? "gray" : "white" }}>{field$label()}</span>"#);
+    assert_contains(
+        &field,
+        r#"{ "color": field$label() === "" ? "gray" : "white" }}>{field$label()}</span>"#,
+    );
     // Assigned to: a signal that starts from the instance's value or the default.
     assert_contains(
         &field,
         r#"const [field$hint, set$field$hint] = createSignal(() => props.hint !== undefined ? props.hint : "none");"#,
     );
-    assert_contains(&field, r#"onMouseDown={() => set$field$hint("clicked")}>{field$hint()}</span>"#);
+    assert_contains(
+        &field,
+        r#"onMouseDown={() => set$field$hint("clicked")}>{field$hint()}</span>"#,
+    );
     // Of a declared property: another name for it, which the instance may set.
-    assert_contains(&field, r#"const note$shade = () => props.tone !== undefined ? props.tone : "dim";"#);
+    assert_contains(
+        &field,
+        r#"const note$shade = () => props.tone !== undefined ? props.tone : "dim";"#,
+    );
 
     let errors = |source: &str| lowered_in(&[("Field", source)], "Field").unwrap_err();
     assert_eq!(
@@ -216,15 +276,27 @@ Item {
     let code = lowered(&[("App", app)], "App");
     // A function of the module, taking what this file's instances set.
     assert_contains(&code, "function Pill(props) {");
-    assert_contains(&code, r#"style={{ "color": props.color }}>{"[" + pill$label() + "]"}</span>"#);
-    assert_contains(&code, r#"<Pill label={"a"} color={app$tone}></Pill><Pill></Pill>"#);
+    assert_contains(
+        &code,
+        r#"style={{ "color": props.color }}>{"[" + pill$label() + "]"}</span>"#,
+    );
+    assert_contains(
+        &code,
+        r#"<Pill label={"a"} color={app$tone}></Pill><Pill></Pill>"#,
+    );
     assert!(!code.contains("import Pill"), "{code}");
 
     // Nothing around it is in its scope.
     let leaky = app.replace(r#""[" + label + "]""#, "tone");
-    assert_eq!(lowered_in(&[("App", &leaky)], "App").unwrap_err(), ["`tone` is not defined"]);
+    assert_eq!(
+        lowered_in(&[("App", &leaky)], "App").unwrap_err(),
+        ["`tone` is not defined"]
+    );
     let leaky = app.replace(r#""[" + label + "]""#, "app.tone");
-    assert_eq!(lowered_in(&[("App", &leaky)], "App").unwrap_err(), ["`app` is not defined"]);
+    assert_eq!(
+        lowered_in(&[("App", &leaky)], "App").unwrap_err(),
+        ["`app` is not defined"]
+    );
 }
 
 #[test]
@@ -246,20 +318,41 @@ Item { Counter { onCountChanged: Shell.dispatch("outside") } }"#;
     let code = lowered(&files, "Counter");
     // When it changes, not when it is first set; the instance's handler too.
     assert_contains(&code, "createEffect(counter$count, (...$args) => {");
-    assert_contains(&code, "props.onCountChanged?.(...$args);\n\t}, { \"defer\": true });");
+    assert_contains(
+        &code,
+        "props.onCountChanged?.(...$args);\n\t}, { \"defer\": true });",
+    );
     // A constant never changes.
     assert!(!code.contains("never"), "{code}");
-    assert_contains(&code, "onSettled(() => {\n\t\tShell.dispatch(\"ready\");\n\t});");
-    assert_contains(&code, "onCleanup(() => {\n\t\tShell.dispatch(\"gone\");\n\t});");
-    assert_contains(&code, r#"import { createEffect, createSignal, onCleanup, onSettled } from "solid-js";"#);
+    assert_contains(
+        &code,
+        "onSettled(() => {\n\t\tShell.dispatch(\"ready\");\n\t});",
+    );
+    assert_contains(
+        &code,
+        "onCleanup(() => {\n\t\tShell.dispatch(\"gone\");\n\t});",
+    );
+    assert_contains(
+        &code,
+        r#"import { createEffect, createSignal, onCleanup, onSettled } from "solid-js";"#,
+    );
 }
 
 #[test]
 fn a_file_alone_takes_unknown_types_for_components() {
-    let options = Options { name: "App".to_string(), ..Options::default() };
-    let code = lowered_source("import OpenTUI\nItem { Badge { label: qsTr(\"a\"); onPicked: Shell.pick() } }", &options)
-        .unwrap();
+    let options = Options {
+        name: "App".to_string(),
+        ..Options::default()
+    };
+    let code = lowered_source(
+        "import OpenTUI\nItem { Badge { label: qsTr(\"a\"); onPicked: Shell.pick() } }",
+        &options,
+    )
+    .unwrap();
     assert_contains(&code, r#"import Badge from "./Badge.qml";"#);
     assert_contains(&code, r#"import { qsTr } from "ljos-web/runtime";"#);
-    assert_contains(&code, r#"<Badge label={qsTr("a")} onPicked={() => Shell.pick()}></Badge>"#);
+    assert_contains(
+        &code,
+        r#"<Badge label={qsTr("a")} onPicked={() => Shell.pick()}></Badge>"#,
+    );
 }

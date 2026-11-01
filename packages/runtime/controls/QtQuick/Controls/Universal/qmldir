@@ -1,0 +1,14 @@
+# Written by ljos-web (packages/runtime/controls.js) for Ljós's own QML: not Qt's.
+module QtQuick.Controls.Universal
+ApplicationWindow 6.0 ApplicationWindow.qml
+Button 6.0 Button.qml
+CheckBox 6.0 CheckBox.qml
+Dialog 6.0 Dialog.qml
+Label 6.0 Label.qml
+Pane 6.0 Pane.qml
+Popup 6.0 Popup.qml
+RoundButton 6.0 RoundButton.qml
+Slider 6.0 Slider.qml
+Switch 6.0 Switch.qml
+TextField 6.0 TextField.qml
+import QtQuick.Controls.Basic auto

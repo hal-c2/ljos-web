@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/ljos_web", "crates/ljos_web_kernel"]
+members = ["crates/ljos_web", "crates/ljos_web_compiler", "crates/ljos_web_kernel"]
 exclude = ["vendor"]
 
 [workspace.package]
@@ -25,3 +25,10 @@ lto = true
 codegen-units = 1
 panic = "abort"
 strip = true
+
+# The compiler a page loads the first time it compiles QML: once per page,
+# off any path a frame waits on, so the smallest. "z" is 1,084 kB gzip
+# against 1,251 kB at "s" and 1,366 kB at 2.
+[profile.compiler]
+inherits = "wasm"
+opt-level = "z"

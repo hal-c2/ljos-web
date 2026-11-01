@@ -47,11 +47,13 @@ const pending = new Proxy(Object.create(null), {
 let early = 0;
 
 // The object an `id` names, made before the type that fills it in runs.
-export function $object() {
+// The id is kept for a reload, which knows an object by it (`reload.js`).
+export function $object(id) {
   const self = Object.create(pending);
   const [track, touch] = counted(0, getOwner());
   hidden(self, "$track", track);
   hidden(self, "$touch", touch);
+  if (id) hidden(self, "$id", id);
   return self;
 }
 
@@ -392,7 +394,7 @@ export function gather(work) {
 // evaluated by then, as `stack.currentItem.title` can once the stack has its
 // first item. So it is asked again then (unless it is not `pure`: what makes
 // objects would make them twice).
-function guarded(key, compute, pure = true) {
+function guarded(key, compute, pure = true, self) {
   let last;
   let failed = null;
   const guard = () => {
@@ -406,7 +408,15 @@ function guarded(key, compute, pure = true) {
     try {
       return (last = compute());
     } catch (error) {
-      if (!(error instanceof TypeError)) throw error;
+      if (!(error instanceof TypeError)) {
+        // Under a boundary it is the boundary's; a binding's throw would
+        // otherwise stop the page's whole reactive graph.
+        const boundary = self?.$fault;
+        if (!boundary) throw error;
+        boundary(error, self);
+        guard.failing = true;
+        return last;
+      }
       guard.failing = true;
       // Nothing to tell of what met an object that is not made yet: Qt
       // evaluates no binding until all of them are, and this one is
@@ -445,7 +455,7 @@ function guarded(key, compute, pure = true) {
 // whatever computation that happens under is run again by the flush that
 // carries them. So they are made under an owner of their own, which is no
 // computation, and end when the binding does.
-function apart(make) {
+export function apart(make) {
   return () => {
     const owner = getOwner();
     return runWithOwner(null, () =>
@@ -767,6 +777,10 @@ class Slot {
     this.over = false;
     // Set by a Behavior: what is shown while the value it follows moves.
     this.shown = null;
+    // What is put over all the property has of its own (a theme over a
+    // module's value), the last on top: taken off, what was under it is
+    // what the property has again.
+    this.layers = null;
     // A slot has no signal of its own until something follows it: most
     // properties are read once as an object is made, and never again.
     this.version = null;
@@ -791,9 +805,12 @@ class Slot {
     // What it reads of its own property, itself or through another's
     // binding, is what the property had.
     const kind = this.kind;
-    const make = () => complete(() => inside(self.$contentItem ?? (self.$node ? self : null), () => props[key]));
+    // A kind may make what it is given into its value inside the object
+    // (`QtQuick/Templates/parts.js`).
+    const given = kind?.made ? () => kind.made(props[key]) : () => props[key];
+    const make = () => complete(() => inside(self.$contentItem ?? (self.$node ? self : null), given));
     const made = props.$made?.includes(key);
-    const compute = descriptor?.get ? guarded(key, made ? apart(make) : make, !made) : null;
+    const compute = descriptor?.get ? guarded(key, made ? apart(make) : make, !made, self) : null;
     this.bound = compute ? ringed(self.$owner, kind ? converted(key, kind, compute, this.given) : compute, undefined, true) : null;
     this.given = descriptor && !descriptor.get ? this.made(descriptor.value) : undefined;
     this.bound?.start();
@@ -851,6 +868,12 @@ class Slot {
       const placed = this.placed();
       if (placed !== undefined) return placed;
     }
+    if (this.layers) return this.layers.at(-1).read();
+    return this.base();
+  }
+
+  // What the property has of its own, under whatever is over it.
+  base() {
     const back = this.assigned && this.back();
     if (this.assigned && !back) return this.value;
     let value = back ? undefined : this.bound ? this.bound() : this.given;
@@ -872,6 +895,7 @@ class Slot {
   // when its width or colour was set.
   explicit() {
     this.follow();
+    if (this.layers) return true;
     if (this.assigned) return !this.back();
     return (this.bound ? this.bound() : this.given) !== undefined || this.bound?.busy?.() === true;
   }
@@ -906,6 +930,9 @@ class Slot {
     // back then, and this only those that are to be elsewhere.) How big it
     // is is not its own to say: a layout that sized it sizes it again.
     if (this.placed !== undefined && !this.over && (this.key === "x" || this.key === "y")) this.over = true;
+    // Over what is on top, as in Ljós: what was under it comes back as it
+    // was when it is taken off.
+    else if (this.layers) return this.layers.at(-1).put({ value }), true;
     else if (this.assigned && Object.is(this.value, value)) return false;
     this.assigned = true;
     this.value = value;
@@ -917,10 +944,14 @@ class Slot {
   // the object.
   rebind(compute) {
     const self = this.self;
+    if (this.layers) {
+      this.layers.at(-1).put({ binding: () => compute.call(self) });
+      return true;
+    }
     // What it reads of its own property, itself or through another's
     // binding, is what the property had.
     const had = untrack(() => this.own());
-    const guard = guarded(this.key, () => compute.call(self));
+    const guard = guarded(this.key, () => compute.call(self), true, self);
     this.bound = ringed(self.$owner, this.kind ? converted(this.key, this.kind, guard) : guard, had, true);
     this.bound.begin();
     this.assigned = false;
@@ -959,6 +990,85 @@ class Slot {
     this.value = undefined;
     this.changed();
   }
+}
+
+// One layer over a slot: a value, or a binding of its own that may read what
+// is under it.
+class Layer {
+  constructor(slot) {
+    this.slot = slot;
+    this.value = undefined;
+    this.bound = null;
+    this.end = null;
+  }
+
+  read() {
+    return this.bound ? this.bound() : this.value;
+  }
+
+  // What is under this layer, for a binding over it: a variant the theme
+  // does not give is the module's own.
+  below() {
+    const { layers } = this.slot;
+    const at = layers.indexOf(this);
+    return at > 0 ? layers[at - 1].read() : this.slot.base();
+  }
+
+  put({ value, binding }) {
+    this.drop();
+    const slot = this.slot;
+    if (binding) {
+      const below = () => this.below();
+      // Its own root: the layer may be taken off long before the object ends.
+      runWithOwner(null, () =>
+        createRoot((end) => {
+          this.end = end;
+          const guard = guarded(slot.key, () => binding(below), true, slot.self);
+          this.bound = ringed(getOwner(), slot.kind ? converted(slot.key, slot.kind, guard) : guard, undefined, true);
+          this.bound.start();
+        }),
+      );
+    } else this.value = slot.made(value);
+    slot.changed();
+  }
+
+  drop() {
+    this.end?.();
+    this.end = null;
+    this.bound = null;
+    this.value = undefined;
+  }
+}
+
+// Puts `content` over what the property `key` of `self` has, whatever that
+// is: `{ value }`, or `{ binding: (below) => ... }`, which is followed as any
+// binding is and may read what is under it. Nothing is made again and the
+// object keeps its state; what reads the property follows. Gives what
+// changes the layer (`set(content)`) and what takes it off (`remove()`),
+// after which the property has what it had under it.
+export function override(self, key, content) {
+  const at = slot(self, key);
+  if (!at) throw new Error(`${self.$type?.typeName ?? "object"} has no property ${key.replaceAll("$", ".")}`);
+  const layer = new Layer(at);
+  (at.layers ??= []).push(layer);
+  layer.put(content);
+  settle();
+  return {
+    set(content) {
+      if (!at.layers?.includes(layer)) return;
+      layer.put(content);
+      settle();
+    },
+    remove() {
+      const index = at.layers?.indexOf(layer) ?? -1;
+      if (index < 0) return;
+      layer.drop();
+      at.layers.splice(index, 1);
+      if (at.layers.length === 0) at.layers = null;
+      at.changed();
+      settle();
+    },
+  };
 }
 
 // The slot of a property (`slot(item, "x")`, `slot(item, "anchors$fill")`):
@@ -1041,7 +1151,7 @@ function defineChange(object, name) {
 
 function changes(self, name) {
   const handler = handlerName(`${name}Changed`);
-  const emit = signal(handling(self, handler));
+  const emit = signal(handling(self, handler), self);
   const { connect } = emit;
   let watched = false;
   // Nothing watches a property nobody hears of. `first` is told what the
@@ -1114,23 +1224,39 @@ export function replace(self, handler, run) {
 
 // What a handler throws stops that handler and is told of, as Qt warns of
 // it: whoever emitted the signal goes on, and so do the handlers after it.
-function heard(handler, args = []) {
+function heard(handler, args = [], self) {
   try {
     handler(...args);
   } catch (error) {
-    reportError(error);
+    const boundary = self?.$fault;
+    if (boundary) boundary(error, self);
+    else reportError(error);
+  }
+}
+
+// What objects made now are under: whoever is told when a handler of one
+// throws, in place of the page (a ShellLoader, which shows its fallback).
+// Objects made under none report to the page, as before.
+let fault = null;
+export function bounded(boundary, make) {
+  const outer = fault;
+  fault = boundary;
+  try {
+    return make();
+  } finally {
+    fault = outer;
   }
 }
 
 // A signal is the function that emits it: `clicked(mouse)` runs the handler
 // the object was given (`onClicked`) and whatever was connected since.
-export function signal(given) {
+export function signal(given, self) {
   const listeners = new Set();
   const emit = (...args) =>
     soon(() => {
       const handler = given?.();
-      if (handler) heard(handler, args);
-      for (const listener of [...listeners]) heard(listener, args);
+      if (handler) heard(handler, args, self);
+      for (const listener of [...listeners]) heard(listener, args, self);
     });
   emit.connect = (listener) => void listeners.add(listener);
   emit.disconnect = (listener) => void listeners.delete(listener);
@@ -1141,7 +1267,7 @@ function defineSignal(proto, name) {
   const handler = handlerName(name);
   Object.defineProperty(proto, name, {
     get() {
-      return (this.$signals[name] ??= signal(handling(this, handler)));
+      return (this.$signals[name] ??= signal(handling(this, handler), this));
     },
     enumerable: true,
     configurable: true,
@@ -1294,6 +1420,9 @@ function complete(make) {
   return made;
 }
 
+// The object what is being made now is made inside.
+export const currentParent = () => parent;
+
 // Creates objects as children of `item`: `parent` is theirs from the start.
 export function inside(item, make) {
   const outer = parent;
@@ -1309,7 +1438,7 @@ export function inside(item, make) {
 // and the instance somebody wrote (`Clock { city: "Oslo" }`). `own` is what
 // the file binds, `given` what the instance does, which wins; a handler both
 // have is run for both, the file's first.
-function inherit(own, given) {
+export function inherit(own, given) {
   if (given.$given) given = inherit(given, given.$given);
   const props = {};
   for (const key of Object.keys(own)) {
@@ -1339,7 +1468,7 @@ function inherit(own, given) {
   }
   // `default property list<QtObject> things`: what is written inside an
   // instance is the value of the property, not children of the object.
-  if (own.$default && "children" in given) {
+  if (own.$default && "children" in given && !given.$holding) {
     const [name, list] = own.$default;
     const get = () => {
       const made = untrack(() => flatten(given.children, []));
@@ -1473,6 +1602,14 @@ function create(Type, props) {
     hidden(self, "$props", props);
     hidden(self, "$owner", getOwner());
     hidden(self, "$parent", parent);
+    // What is made later inside an object bounded (a Repeater's delegate, a
+    // Loader's item) is bounded as it is.
+    const boundary = fault ?? parent?.$fault;
+    if (boundary) hidden(self, "$fault", boundary);
+    // A root that may be reloaded knows what was made in what, so that a
+    // reload can tell which object of the new tree is which of the old.
+    const born = parent ? parent.$born : making;
+    if (born) record(self, born);
     hidden(self, "$slots", Object.create(null));
     hidden(self, "$groups", Object.create(null));
     hidden(self, "$signals", Object.create(null));
@@ -1507,7 +1644,7 @@ function create(Type, props) {
       });
     }
     const completed = props.Component$onCompleted;
-    if (completed) completions.push(() => heard(() => untrack(completed)));
+    if (completed) completions.push(() => heard(() => untrack(completed), undefined, self));
     // An object a property holds is made with the rest, whoever reads it:
     // a state entered from the start may change what is in it.
     if (props.$made) {
@@ -1533,6 +1670,16 @@ function create(Type, props) {
     if (props.$self) self.$touch(next);
     return self;
   });
+}
+
+// What a reloadable root has made, in the order it was made, under what it
+// was made in: what goes is taken out, so a view scrolled a long way holds
+// only the delegates it shows.
+let making = null;
+function record(self, born) {
+  hidden(self, "$born", []);
+  born.push(self);
+  if (getOwner()) onCleanup(() => born.splice(born.indexOf(self) >>> 0, 1));
 }
 
 // The objects declared inside one, created now: its `children` prop,
@@ -1572,7 +1719,7 @@ export function onChange(self, name, handler, first) {
           // have changed and left it as it was.
           if (same(value, last)) return;
           last = value;
-          after(() => heard(handler));
+          after(() => heard(handler, undefined, self));
         },
       ),
     );
@@ -1684,6 +1831,8 @@ export function $file(File, context) {
   if (!component) {
     const make = context ? (properties) => File(within(properties, context)) : (properties) => File(properties);
     made.set(context ?? nowhere, (component = $component(make)));
+    // Whose file it is, for what says where a fault in it is.
+    component.$file = File;
   }
   return component;
 }
@@ -1760,7 +1909,7 @@ export const globals = Object.create(null);
 // `pragma Singleton`: the one object of a file, made the first time anything
 // asks for it and kept for as long as the page. It is nobody's child, and
 // nothing that ends takes it along. `keys` are the enums the file declares.
-export function $singleton(Component, keys) {
+export function $singleton(Component, keys, name) {
   let object;
   const get = () => {
     if (object) return object;
@@ -1769,9 +1918,25 @@ export function $singleton(Component, keys) {
     runWithOwner(null, () =>
       createRoot(() => untrack(() => complete(() => inside(null, () => Component({ $self: object }))))),
     );
+    if (name) {
+      singletons.set(name, object);
+      for (const listener of watchers) listener(name, object);
+    }
     return object;
   };
   return Object.assign(get, keys);
+}
+
+// The singletons whose module names them (`Ljos.Design.Colors`), once made:
+// what a page reaches from outside its QML. A file that is loaded again
+// makes its singleton again, and is told again.
+const singletons = new Map();
+const watchers = new Set();
+// Tells `listener(name, object)` of each made so far and each made later.
+export function watchSingletons(listener) {
+  watchers.add(listener);
+  for (const [name, object] of singletons) listener(name, object);
+  return () => watchers.delete(listener);
 }
 
 // `source: path`, where the path is not known until the program runs: taken
@@ -1850,28 +2015,89 @@ export function awaited(promise) {
   return promise;
 }
 
+// Whether what is being made was asked for while the page runs, not written
+// in the tree: a delegate, a loaded item, what `createObject` makes.
+let instantiating = 0;
+export const madeOnDemand = () => instantiating > 0;
+
 // Creates a component's object apart from the tree that asked for it: a
 // delegate, a loaded item. `dispose` destroys it; so does the end of `owner`.
 export function instantiate(component, data, item, owner = item?.$owner ?? getOwner()) {
   return runWithOwner(owner, () =>
     createRoot((dispose) => {
-      const object = untrack(() => complete(() => inside(item ?? null, () => component(data))));
-      return { object, dispose };
+      try {
+        instantiating++;
+        let object;
+        try {
+          object = untrack(() => complete(() => inside(item ?? null, () => component(data))));
+        } finally {
+          instantiating--;
+        }
+        // A view's row is what a reload knows its delegate by.
+        if (object?.$born && typeof data?.$index === "number") hidden(object, "$row", data.$index);
+        return { object, dispose };
+      } catch (error) {
+        // What was made before it threw has no one else to end it.
+        dispose();
+        throw error;
+      }
     }),
   );
 }
 
+// The roots in the page that a reload may carry state across, and whether
+// a root is one unless `mount` is told: in a dev server, once a compiled
+// file has said it can be reloaded (`$hot`).
+export const mounted = new Set();
+let hot = false;
+export const $hot = () => void (hot = true);
+
+// A component's object, apart from the page: `reload.js` makes the new root
+// with it before the old one goes.
+export function made(Component, props, reloadable) {
+  // The theme the build found for the entry, or none: the page's theme is
+  // the last mounted entry's.
+  Component?.$theme?.apply();
+  return createRoot((dispose) => {
+    const outer = making;
+    making = reloadable ? [] : null;
+    try {
+      const declared = untrack(() => complete(() => Component(props)));
+      // A shell whose root is a held block shows the block, not the note of
+      // where it is placed.
+      const object = declared?.$block ?? declared;
+      // What is done with the object once it is in the page (a Window
+      // told where it is, the keyboard given back) is the root's too.
+      const owner = getOwner();
+      return { object, dispose, within: (act) => runWithOwner(owner, act) };
+    } catch (error) {
+      dispose();
+      throw error;
+    } finally {
+      making = outer;
+    }
+  });
+}
+
 // Puts a component's object in the page. A Window is told what it was put
 // in and with what `options`: it fills the element, or with
-// `{ fill: false }` gives it the size its QML says.
+// `{ fill: false }` gives it the size its QML says. With
+// `{ reloadable: true }` (the default in a dev server) `reload` can give it
+// a new component and keep its state.
 export function mount(Component, element, props = {}, options = {}) {
-  return createRoot((dispose) => {
-    const object = untrack(() => complete(() => Component(props)));
-    element.classList.add("q-scene");
-    if (object.$node) element.append(object.$node);
-    object.$mounted?.(element, options);
-    return { object, dispose };
-  });
+  const reloadable = options.reloadable ?? hot;
+  const root = made(Component, props, reloadable);
+  element.classList.add("q-scene");
+  if (root.object.$node) element.append(root.object.$node);
+  root.within(() => root.object.$mounted?.(element, options));
+  if (!reloadable) return root;
+  const handle = { object: root.object, Component, element, props, options, root };
+  handle.dispose = () => {
+    mounted.delete(handle);
+    handle.root.dispose();
+  };
+  mounted.add(handle);
+  return handle;
 }
 
 // What a component declares, put on its root object so that it can be

@@ -1,0 +1,11 @@
+{"format": 2, "modules": [{"uri": "App.Media", "versions": ["1.0"], "types": [
+  {"name": "Player", "since": "1.0", "base": "QtObject", "baseModule": "QtQml",
+   "creatable": true, "defaultProperty": null, "attached": null,
+   "enums": [{"name": "State", "keys": [["Stopped", 0], ["Playing", 1]]}],
+   "properties": [
+     {"name": "volume", "type": "int", "kind": "value", "readonly": false, "final": true,
+      "required": false, "constant": false, "group": false, "notify": "volumeChanged"},
+     {"name": "title", "type": "QString", "kind": "value", "readonly": true, "final": true,
+      "required": false, "constant": false, "group": false, "notify": "titleChanged"}],
+   "signals": [{"name": "finished", "parameters": [{"name": "position", "type": "double"}]}],
+   "methods": [{"name": "seek", "parameters": [{"name": "position", "type": "double"}], "returnType": "void"}]}]}]}

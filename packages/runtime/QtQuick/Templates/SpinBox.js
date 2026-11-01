@@ -5,6 +5,7 @@
 // when Return is let go and when the keys go elsewhere.
 import { onCleanup } from "solid-js";
 import { defineType, derived, effect, onChange, QtObject, settle, slot } from "../../object.js";
+import { parts } from "./parts.js";
 import { PauseJob } from "../animation/jobs.js";
 import { forceActiveFocus, MouseFocusReason, windowOf } from "../focus.js";
 import { Key, LeftButton } from "../keycodes.js";
@@ -13,12 +14,13 @@ import { TextInput } from "../TextInput.js";
 import { Control, keeps, loose, put } from "./Control.js";
 import { clamp, close, keep, nothing, now } from "./Slider.js";
 import { untrack } from "#kernel";
+import { speaks } from "../Accessible.js";
 
 // Qt's `QQuickIndicatorButton`: what `up` and `down` are.
 const IndicatorButton = defineType("IndicatorButton", QtObject, {
   properties: {
     pressed: false,
-    indicator: null,
+    indicator: parts,
     hovered: false,
     implicitIndicatorWidth: derived((self) => self.indicator?.implicitWidth ?? 0),
     implicitIndicatorHeight: derived((self) => self.indicator?.implicitHeight ?? 0),
@@ -457,3 +459,6 @@ function box(name, kind, more) {
 
 export const SpinBox = box("SpinBox", whole, { live: false });
 export const DoubleSpinBox = box("DoubleSpinBox", real, { decimals: 2 });
+
+speaks(SpinBox, "SpinBox");
+speaks(DoubleSpinBox, "SpinBox");

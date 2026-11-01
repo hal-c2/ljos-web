@@ -4,6 +4,7 @@ import { defineType, derived, effect, QtObject, slot } from "../../object.js";
 import { reachable } from "../focus.js";
 import { containerOf, Container, indexOf } from "./Container.js";
 import { untrack } from "#kernel";
+import { speaks } from "../Accessible.js";
 
 const Horizontal = 1;
 const Vertical = 2;
@@ -84,3 +85,5 @@ export const SwipeView = defineType("SwipeView", Container, {
     );
   },
 });
+
+speaks(SwipeView, "PageTabList");

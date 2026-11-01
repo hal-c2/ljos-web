@@ -5,6 +5,7 @@ import { defineType, derived, effect } from "../../object.js";
 import { Control, loose } from "./Control.js";
 import { bounded, close, fitted, keep } from "./Slider.js";
 import { untrack } from "#kernel";
+import { speaks } from "../Accessible.js";
 
 export const ProgressBar = defineType("ProgressBar", Control, {
   properties: {
@@ -38,3 +39,6 @@ export const ProgressBar = defineType("ProgressBar", Control, {
 export const BusyIndicator = defineType("BusyIndicator", Control, {
   properties: { running: true },
 });
+
+speaks(ProgressBar, "ProgressBar");
+speaks(BusyIndicator, "Indicator");

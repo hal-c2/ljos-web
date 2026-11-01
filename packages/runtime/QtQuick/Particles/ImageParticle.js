@@ -10,6 +10,7 @@
 // the particle's alpha is the copy's. That is Qt's picture as long as no
 // colour is brighter than its alpha; particles that may be are drawn as Qt
 // draws them (see glow.js), where the browser can.
+import { sourced } from "../../guard.js";
 import { defineType, effect, settle, slot } from "../../object.js";
 import { colorValue } from "../color.js";
 import { rules } from "../compute.js";
@@ -559,7 +560,7 @@ export const ImageParticle = defineType("ImageParticle", ParticlePainter, {
           status.write(ERROR);
           settle();
         };
-        image.src = source;
+        sourced(image, source);
         refresh();
       },
     );

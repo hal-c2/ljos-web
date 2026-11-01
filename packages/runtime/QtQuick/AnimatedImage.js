@@ -3,6 +3,7 @@
 // The browser plays an animated picture by itself and tells nobody which
 // frame it is on, so the frames are decoded here and painted on a canvas,
 // where the fill mode puts the picture.
+import { guardedFetch } from "../guard.js";
 import { onCleanup } from "solid-js";
 import { defineType, derived, effect, slot } from "../object.js";
 import { clock } from "./animation/clock.js";
@@ -31,7 +32,7 @@ async function decoded(response) {
 
 function film(url) {
   const record = picture(url);
-  fetch(url)
+  guardedFetch(url)
     .then(decoded)
     .then(
       (all) => {

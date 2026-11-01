@@ -4,6 +4,7 @@
 // the reason they have focus.
 import { onCleanup } from "solid-js";
 import { derived, effect, settle } from "../../object.js";
+import { parts } from "./parts.js";
 import { styleHints } from "../../QtQml/application.js";
 import { PauseJob } from "../animation/jobs.js";
 import { colorValue } from "../color.js";
@@ -23,7 +24,7 @@ export const properties = {
   implicitWidth: 0,
   implicitHeight: 0,
   activeFocusOnTab: true,
-  background: null,
+  background: parts,
   ...insets,
   implicitBackgroundWidth: derived((self) => self.background?.implicitWidth ?? 0),
   implicitBackgroundHeight: derived((self) => self.background?.implicitHeight ?? 0),

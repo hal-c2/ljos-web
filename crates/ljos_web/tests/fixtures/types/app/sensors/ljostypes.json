@@ -1,0 +1,6 @@
+{"format": 2, "modules": [{"uri": "App.Sensors", "versions": ["1.0"], "types": [
+  {"name": "Meter", "since": "1.0", "base": "Player", "baseModule": "App.Media",
+   "creatable": true, "defaultProperty": null, "attached": null,
+   "properties": [{"name": "level", "type": "int", "kind": "value", "readonly": false, "final": true,
+     "required": false, "constant": false, "group": false, "notify": "levelChanged"}],
+   "signals": [], "methods": []}]}]}

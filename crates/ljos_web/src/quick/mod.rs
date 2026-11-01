@@ -8,6 +8,7 @@
 mod lower;
 mod names;
 mod paths;
+mod places;
 mod resources;
 mod scope;
 pub(crate) mod script;
@@ -15,7 +16,8 @@ pub(crate) mod texts;
 mod types;
 
 use oxc_ast::ast::Program;
-use qml_syntax::ast::QmlDocument;
+use qml_front::{QtTypeOracle, TypeOracle};
+use qml_syntax::ast::{QmlDocument, QmlImportSource};
 
 use self::{lower::Lower, scope::Tree, types::Types};
 use crate::{Error, Options, build::B, project::Project};
@@ -27,7 +29,69 @@ pub(crate) fn lower<'a>(
     project: &Project,
     options: &Options,
 ) -> Result<Program<'a>, Vec<Error>> {
+    // A file compiled by itself knows nothing of its project's modules.
+    if options.project.is_some() {
+        let errors = uninstalled(&document, project, options);
+        if !errors.is_empty() {
+            return Err(errors);
+        }
+    }
     lower_from(b, source, document, project, options, &mut 0, false)
+}
+
+/// What the runtime package exports: `"./Qt/labs/settings"` is the module
+/// `Qt.labs.settings`, which Qt's table may not have.
+const RUNTIME: &str = include_str!("../../../../packages/runtime/package.json");
+
+/// Ljós's own modules that a page cannot have, and why: said instead of
+/// "not installed", which would send whoever reads it looking for one.
+/// `Ljos.Observer` is the `ljos observe` window's: its `InspectorClient`
+/// reads a token file from disk and calls an inspector over the network. A
+/// page has its own objects, bindings and log through `ljos-web/inspect`.
+const NOT_ON_THE_WEB: &[(&str, &str)] = &[(
+    "Ljos.Observer",
+    "its InspectorClient calls an inspector that a token file on disk names, which a page cannot read; a page inspects itself with `inspect(root)` from `ljos-web/inspect`",
+)];
+
+/// Whether `uri` is had by other than the project: Qt's table, the runtime or
+/// the Qt that is installed.
+pub(crate) fn provided(uri: &str, options: &Options) -> bool {
+    let path = uri.replace('.', "/");
+    QtTypeOracle.has_module(uri)
+        || RUNTIME.contains(&format!("\"./{path}\""))
+        || options
+            .qt_imports
+            .iter()
+            .any(|root| root.join(&path).join("qmldir").is_file())
+        || options.installed.iter().any(|module| module == uri)
+}
+
+/// The modules `document` imports that nobody has, as Qt says of one: the
+/// project and whatever else [`provided`] them.
+pub(crate) fn uninstalled(
+    document: &QmlDocument<'_>,
+    project: &Project,
+    options: &Options,
+) -> Vec<Error> {
+    let installed = |uri: &str| project.has_module(uri) || provided(uri, options);
+    document
+        .imports
+        .iter()
+        .filter_map(|import| {
+            let QmlImportSource::Module(uri) = &import.source else {
+                return None;
+            };
+            let uri = uri.to_string();
+            if let Some((_, why)) = NOT_ON_THE_WEB.iter().find(|(module, _)| *module == uri) {
+                return Some(Error::new(
+                    format!("module \"{uri}\" is not on the web: {why}"),
+                    import.span,
+                ));
+            }
+            (!installed(&uri))
+                .then(|| Error::new(format!("module \"{uri}\" is not installed"), import.span))
+        })
+        .collect()
 }
 
 /// The same, of a document the module of another takes in: `files` is how
@@ -42,7 +106,10 @@ fn lower_from<'a>(
     files: &mut usize,
     text: bool,
 ) -> Result<Program<'a>, Vec<Error>> {
-    let types = Types { project, file: &options.name };
+    let types = Types {
+        project,
+        file: &options.name,
+    };
     let mut errors = Vec::new();
     let tree = Tree::analyze(&document, types, &mut errors);
 
@@ -58,11 +125,20 @@ fn lower_from<'a>(
         Some(types::Origin::File(file)) => *file != options.name,
         _ => true,
     };
-    let shadows = tree.objects.iter().any(|object| object.name == stem && is_other(&object.origin));
+    let shadows = tree
+        .objects
+        .iter()
+        .any(|object| object.name == stem && is_other(&object.origin));
     // `pragma Singleton`: what the file exports is the one object, and the
     // function that makes it has to be called something else.
-    let is_singleton = project.summary(&options.name).is_some_and(|summary| summary.is_singleton);
-    let name = if shadows || is_singleton { format!("{stem}$component") } else { stem.to_string() };
+    let is_singleton = project
+        .summary(&options.name)
+        .is_some_and(|summary| summary.is_singleton);
+    let name = if shadows || is_singleton {
+        format!("{stem}$component")
+    } else {
+        stem.to_string()
+    };
 
     let mut lower = Lower::new(b, &tree, types, stem);
     lower.uses.paths.known.clone_from(&options.files);
@@ -71,9 +147,15 @@ fn lower_from<'a>(
     if text {
         // What a text names and does not have is looked for where it is
         // written, whatever it is.
-        lower.dynamic.extend(project.mentions(&options.name).cloned());
+        lower
+            .dynamic
+            .extend(project.mentions(&options.name).cloned());
     }
     lower.assigned = options.urls_on_assignment;
+    // A text's places would be in the text, not in the file.
+    if let Some(file) = options.inspect.as_deref().filter(|_| !text) {
+        lower.uses.places = Some(places::Places::new(file, source));
+    }
     let root = document.root.type_name.to_string();
     let (component, enums) = lower.component(&name, document.root, !is_singleton);
     errors.append(&mut lower.errors);
@@ -86,8 +168,18 @@ fn lower_from<'a>(
         // A singleton named like the type it is one of (`QtObject.qml`, a
         // QtObject) leaves the name to the type, as QML does: an import
         // comes before the file's own directory.
-        let one = if shadows { format!("{stem}$singleton") } else { stem.to_string() };
-        body.push(b.const_(&one, b.call(b.id("$singleton"), [b.id(&name), b.record(enums)])));
+        let one = if shadows {
+            format!("{stem}$singleton")
+        } else {
+            stem.to_string()
+        };
+        let mut arguments = vec![b.id(&name), b.record(enums)];
+        // Known by its module's name, a singleton is one a page can reach
+        // from outside the QML: a theme overrides `Ljos.Design.Colors`.
+        if let Some(known) = project.type_name(&options.name) {
+            arguments.push(b.string(&known));
+        }
+        body.push(b.const_(&one, b.call(b.id("$singleton"), arguments)));
         // `Calendar.December`, of a `Calendar` that is the one `T.Calendar`.
         body.push(lower.extends(&one, &root));
         body.push(b.export_default(b.id(&one)));
@@ -99,8 +191,21 @@ fn lower_from<'a>(
     }
     let mut program = b.program(source, body);
     let mut uses = lower.uses;
-    names::resolve(b, &mut program, &tree, types, stem, &lower.dynamic, &mut uses, &mut errors);
-    if uses.handles.iter().any(|handle| handle.starts_with("$scope")) {
+    names::resolve(
+        b,
+        &mut program,
+        &tree,
+        types,
+        stem,
+        &lower.dynamic,
+        &mut uses,
+        &mut errors,
+    );
+    if uses
+        .handles
+        .iter()
+        .any(|handle| handle.starts_with("$scope"))
+    {
         uses.kernel.insert("$context");
     }
     // The files of the program the module names, it says where they are.
@@ -119,6 +224,14 @@ fn lower_from<'a>(
     }
     if !uses.globals.is_empty() {
         imports.push(b.import_named(uses.globals.iter().copied(), &format!("{prefix}/QtQml")));
+    }
+    // A file with its places brings the inspector in before it makes
+    // anything, so that what its objects warn of while they are made is
+    // logged with where it is written, whoever imports the inspector later.
+    if !uses.inspect.is_empty() {
+        imports.push(b.import_named(uses.inspect.iter().copied(), &format!("{prefix}/inspect")));
+    } else if uses.places.is_some() {
+        imports.push(b.import_bare(&format!("{prefix}/inspect")));
     }
     for (uri, names) in &uses.modules {
         let module = format!("{prefix}/{}", uri.replace('.', "/"));
@@ -160,7 +273,10 @@ fn lower_from<'a>(
     imports.extend(tables);
     for (address, path) in &kept {
         let path = types::relative(&options.name, path);
-        let url = b.member(b.new_(b.id("URL"), [b.string(&path), b.import_meta_url()]), "href");
+        let url = b.member(
+            b.new_(b.id("URL"), [b.string(&path), b.import_meta_url()]),
+            "href",
+        );
         imports.push(b.statement(b.call(b.id("$resource"), [b.string(address), url])));
     }
     imports.extend(made);

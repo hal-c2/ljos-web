@@ -11,6 +11,7 @@ import { AbstractButton } from "./AbstractButton.js";
 import { Container } from "./Container.js";
 import { Menu, mnemonic } from "./Menu.js";
 import { untrack } from "#kernel";
+import { speaks } from "../Accessible.js";
 
 // CloseOnEscape with CloseOnPressOutsideParent and
 // CloseOnReleaseOutsideParent: a press of the item is the bar's to answer.
@@ -424,3 +425,6 @@ Object.defineProperty(MenuBar.proto, "delegate", {
     settle();
   },
 });
+
+speaks(MenuBarItem, "MenuItem");
+speaks(MenuBar, "MenuBar");

@@ -26,6 +26,7 @@
 // - The property's type is not known, only its value: see between.js.
 // - `Timeline.keyframeGroups` and `animations` are what was written in the
 //   timeline; nothing can be added to them afterwards.
+import { guardedFetch } from "../../guard.js";
 import { onCleanup, runWithOwner } from "solid-js";
 import { Quaternion, Vector2d, Vector3d, Vector4d } from "../../QtQml/values.js";
 import { contents, defineType, derived, effect, flush, gather, group, inside, located, QtObject, whenComplete } from "../../object.js";
@@ -180,7 +181,7 @@ function load(self, url) {
     if (untrack(state.loaded).length) state.setLoaded(NONE);
     return;
   }
-  fetch(url)
+  guardedFetch(url)
     .then((response) => (response.ok ? response.arrayBuffer() : Promise.reject(new Error(response.statusText))))
     .then(
       (buffer) => {

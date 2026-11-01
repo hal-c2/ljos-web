@@ -2,12 +2,16 @@
 
 use oxc_allocator::Allocator;
 use oxc_ast::ast::{Expression, Statement};
-use qml_syntax::ast::{QmlBindingValue, QmlDocument, QmlImportSource, QmlMember, QmlObject};
 use oxc_span::{GetSpan, Span};
+use qml_syntax::ast::{QmlBindingValue, QmlDocument, QmlImportSource, QmlMember, QmlObject};
 
 fn parse<'a>(allocator: &'a Allocator, source: &'a str) -> QmlDocument<'a> {
     let parsed = qml_syntax::parse(allocator, source);
-    let messages: Vec<_> = parsed.diagnostics.iter().map(|d| d.message.clone()).collect();
+    let messages: Vec<_> = parsed
+        .diagnostics
+        .iter()
+        .map(|d| d.message.clone())
+        .collect();
     assert!(messages.is_empty(), "{messages:?}");
     assert!(!parsed.panicked);
     parsed.document
@@ -16,7 +20,11 @@ fn parse<'a>(allocator: &'a Allocator, source: &'a str) -> QmlDocument<'a> {
 fn diagnostics(source: &str) -> Vec<String> {
     let allocator = Allocator::default();
     let parsed = qml_syntax::parse(&allocator, source);
-    parsed.diagnostics.iter().map(|d| d.message.clone()).collect()
+    parsed
+        .diagnostics
+        .iter()
+        .map(|d| d.message.clone())
+        .collect()
 }
 
 fn text(source: &str, span: Span) -> &str {
@@ -34,12 +42,18 @@ fn members(object: &QmlObject<'_>) -> Vec<String> {
             QmlMember::Property(property) => format!("property {}", property.name.name),
             QmlMember::Signal(signal) => format!("signal {}", signal.name.name),
             QmlMember::Function(function) => {
-                format!("function {}", function.id.as_ref().map_or("", |id| id.name.as_str()))
+                format!(
+                    "function {}",
+                    function.id.as_ref().map_or("", |id| id.name.as_str())
+                )
             }
             QmlMember::InlineComponent(inline) => format!("component {}", inline.name.name),
             QmlMember::Enum(declaration) => {
-                let keys: Vec<_> =
-                    declaration.members.iter().map(|member| format!("{}={}", member.name.name, member.value)).collect();
+                let keys: Vec<_> = declaration
+                    .members
+                    .iter()
+                    .map(|member| format!("{}={}", member.name.name, member.value))
+                    .collect();
                 format!("enum {} {}", declaration.name.name, keys.join(" "))
             }
         })
@@ -54,7 +68,10 @@ fn header() {
         "pragma Singleton\npragma ComponentBehavior: Bound\nimport QtQuick 2.15\nimport QtQuick.Controls as Controls\nimport \"../parts\"\nItem {}\n",
     );
     let pragmas: Vec<_> = document.pragmas.iter().map(|p| (p.name, p.value)).collect();
-    assert_eq!(pragmas, [("Singleton", None), ("ComponentBehavior", Some("Bound"))]);
+    assert_eq!(
+        pragmas,
+        [("Singleton", None), ("ComponentBehavior", Some("Bound"))]
+    );
 
     let imports: Vec<_> = document
         .imports
@@ -64,7 +81,11 @@ fn header() {
                 QmlImportSource::Module(name) => name.to_string(),
                 QmlImportSource::Path(path) => format!("path {path}"),
             };
-            (source, import.version, import.alias.as_ref().map(|alias| alias.name.as_str()))
+            (
+                source,
+                import.version,
+                import.alias.as_ref().map(|alias| alias.name.as_str()),
+            )
         })
         .collect();
     assert_eq!(
@@ -133,11 +154,15 @@ fn members_of_an_object() {
     let rows = property("rows").type_name.as_ref().unwrap();
     assert!(rows.is_list && rows.name.as_simple() == Some("Item"));
 
-    let QmlMember::Signal(signal) = &document.root.members[6] else { panic!() };
+    let QmlMember::Signal(signal) = &document.root.members[6] else {
+        panic!()
+    };
     let parameters: Vec<_> = signal.params.iter().map(|p| p.name.name.as_str()).collect();
     assert_eq!(parameters, ["index", "name"]);
 
-    let QmlMember::Object(behavior) = &document.root.members[12] else { panic!() };
+    let QmlMember::Object(behavior) = &document.root.members[12] else {
+        panic!()
+    };
     assert_eq!(behavior.on.as_ref().unwrap().to_string(), "width");
 }
 
@@ -150,9 +175,16 @@ fn an_enum_counts_from_where_it_is_told() {
     );
     assert_eq!(
         members(&document.root),
-        ["enum Theme Light=0 Dark=1", "enum Flag None=-1 Bold=16 Italic=17", "property enum"]
+        [
+            "enum Theme Light=0 Dark=1",
+            "enum Flag None=-1 Bold=16 Italic=17",
+            "property enum"
+        ]
     );
-    assert_eq!(diagnostics("Item { enum Theme { Light = 1.5 } }"), ["An enum's value is a whole number"]);
+    assert_eq!(
+        diagnostics("Item { enum Theme { Light = 1.5 } }"),
+        ["An enum's value is a whole number"]
+    );
 }
 
 #[test]
@@ -178,45 +210,98 @@ fn binding_values() {
 }"#;
     let document = parse(&allocator, source);
     let value = |index: usize| {
-        let QmlMember::Binding(binding) = &document.root.members[index] else { panic!() };
+        let QmlMember::Binding(binding) = &document.root.members[index] else {
+            panic!()
+        };
         &binding.value
     };
 
     // Values are Oxc's own nodes, with spans into the QML file.
-    let QmlBindingValue::Expression(width) = value(0) else { panic!() };
+    let QmlBindingValue::Expression(width) = value(0) else {
+        panic!()
+    };
     assert!(matches!(width, Expression::BinaryExpression(_)));
     assert_eq!(text(source, width.span()), "parent.width - 2 * margin");
-    let Expression::BinaryExpression(binary) = width else { panic!() };
+    let Expression::BinaryExpression(binary) = width else {
+        panic!()
+    };
     assert_eq!(text(source, binary.left.span()), "parent.width");
 
-    assert!(matches!(value(1), QmlBindingValue::Expression(Expression::TemplateLiteral(_))));
-    assert!(matches!(value(2), QmlBindingValue::Expression(Expression::StaticMemberExpression(_))));
-    assert!(matches!(value(3), QmlBindingValue::Expression(Expression::AssignmentExpression(_))));
-    assert!(matches!(value(4), QmlBindingValue::Statement(Statement::BlockStatement(_))));
-    assert!(matches!(value(5), QmlBindingValue::Statement(Statement::IfStatement(_))));
-    assert!(matches!(value(6), QmlBindingValue::Expression(Expression::ArrowFunctionExpression(_))));
-    let QmlBindingValue::Object(delegate) = value(7) else { panic!() };
+    assert!(matches!(
+        value(1),
+        QmlBindingValue::Expression(Expression::TemplateLiteral(_))
+    ));
+    assert!(matches!(
+        value(2),
+        QmlBindingValue::Expression(Expression::StaticMemberExpression(_))
+    ));
+    assert!(matches!(
+        value(3),
+        QmlBindingValue::Expression(Expression::AssignmentExpression(_))
+    ));
+    assert!(matches!(
+        value(4),
+        QmlBindingValue::Statement(Statement::BlockStatement(_))
+    ));
+    assert!(matches!(
+        value(5),
+        QmlBindingValue::Statement(Statement::IfStatement(_))
+    ));
+    assert!(matches!(
+        value(6),
+        QmlBindingValue::Expression(Expression::ArrowFunctionExpression(_))
+    ));
+    let QmlBindingValue::Object(delegate) = value(7) else {
+        panic!()
+    };
     assert_eq!(members(delegate), ["binding text"]);
-    let QmlBindingValue::Objects(states) = value(8) else { panic!() };
+    let QmlBindingValue::Objects(states) = value(8) else {
+        panic!()
+    };
     assert_eq!(states.len(), 2);
-    assert!(matches!(value(9), QmlBindingValue::Expression(Expression::ArrayExpression(_))));
-    assert!(matches!(value(10), QmlBindingValue::Expression(Expression::ParenthesizedExpression(_))));
+    assert!(matches!(
+        value(9),
+        QmlBindingValue::Expression(Expression::ArrayExpression(_))
+    ));
+    assert!(matches!(
+        value(10),
+        QmlBindingValue::Expression(Expression::ParenthesizedExpression(_))
+    ));
     // Braces are an object only when they start as JSON does: a string or
     // number key, and then every key is one (as Qt reads them).
-    assert!(matches!(value(11), QmlBindingValue::Expression(Expression::ObjectExpression(_))));
-    assert!(matches!(value(12), QmlBindingValue::Statement(Statement::BlockStatement(_))));
-    assert!(matches!(value(13), QmlBindingValue::Statement(Statement::BlockStatement(_))));
+    assert!(matches!(
+        value(11),
+        QmlBindingValue::Expression(Expression::ObjectExpression(_))
+    ));
+    assert!(matches!(
+        value(12),
+        QmlBindingValue::Statement(Statement::BlockStatement(_))
+    ));
+    assert!(matches!(
+        value(13),
+        QmlBindingValue::Statement(Statement::BlockStatement(_))
+    ));
     // A statement written as a call and a block is no method of that name.
-    assert!(matches!(value(14), QmlBindingValue::Statement(Statement::BlockStatement(_))));
-    assert!(matches!(value(15), QmlBindingValue::Statement(Statement::BlockStatement(_))));
+    assert!(matches!(
+        value(14),
+        QmlBindingValue::Statement(Statement::BlockStatement(_))
+    ));
+    assert!(matches!(
+        value(15),
+        QmlBindingValue::Statement(Statement::BlockStatement(_))
+    ));
 }
 
 #[test]
 fn separators_and_comments() {
     let allocator = Allocator::default();
-    let source = "Item { width: 1; height: 2 // trailing\n /* block */ Text { text: \"a\"; color: \"b\" } }";
+    let source =
+        "Item { width: 1; height: 2 // trailing\n /* block */ Text { text: \"a\"; color: \"b\" } }";
     let document = parse(&allocator, source);
-    assert_eq!(members(&document.root), ["binding width", "binding height", "object Text"]);
+    assert_eq!(
+        members(&document.root),
+        ["binding width", "binding height", "object Text"]
+    );
     assert_eq!(text(source, document.root.span), source);
 }
 
@@ -231,4 +316,19 @@ fn syntax_errors() {
     assert!(!diagnostics("Item { property var x: { \"a\": 1, b: 2 } }").is_empty());
     // Nor is a method shorthand: braces are a block, and that is no script.
     assert!(!diagnostics("Item { property var x: { pick(item) { return item } } }").is_empty());
+}
+
+#[test]
+fn imports_are_what_the_parser_reads_and_not_what_looks_like_one() {
+    let source = "import QtQuick import '../single'\n/* import \"../commented\" */\n// import Hidden\nimport \"parts/\" as P; /* c */ import \"../after\"\nItem { property string s: \"done; import nothing\" }\n";
+    let found = ljos_web::imports(source).expect("it parses");
+    assert_eq!(found.modules, ["QtQuick"]);
+    assert_eq!(found.paths, ["../single", "parts/", "../after"]);
+}
+
+#[test]
+fn a_script_imports_what_its_directives_say() {
+    let found = ljos_web::script_imports(".pragma library\n.import 'more.js' as More\n.import QtQuick as QQ\nvar text = \".import nothing as N\";\n").expect("it reads");
+    assert_eq!(found.modules, ["QtQuick"]);
+    assert_eq!(found.paths, ["more.js"]);
 }

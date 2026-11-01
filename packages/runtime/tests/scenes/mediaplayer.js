@@ -1,6 +1,6 @@
 // Item {
 //     id: root; width: 200; height: 100
-//     MediaDevices { id: devices; onAudioOutputsChanged: log.push("outputs " + audioOutputs.length) }
+//     MediaDevices { id: devices; onAudioOutputsChanged: deviceLog.push("outputs " + audioOutputs.length) }
 //     MediaPlayer {
 //         id: player
 //         videoOutput: output
@@ -29,16 +29,18 @@ import { AudioOutput, MediaDevices, MediaMetaData, MediaPlayer, Video, VideoOutp
 import { make } from "../scene.js";
 
 const names = ["root", "devices", "player", "audio", "output", "video"];
-export const objects = { log: [], MediaPlayer, MediaMetaData, VideoOutput };
+// The device lists come when the browser answers, at no moment a test of the
+// player could wait for: what they tell is not among what the player tells.
+export const objects = { log: [], deviceLog: [], MediaPlayer, MediaMetaData, VideoOutput };
 
 export default function Player() {
   for (const name of names) objects[name] = $object();
-  const { log, root, devices, player, audio, output, video } = objects;
+  const { log, deviceLog, root, devices, player, audio, output, video } = objects;
   const active = () => [player.activeAudioTrack, player.activeVideoTrack, player.activeSubtitleTrack];
   return make(Item, { $self: root, width: 200, height: 100 }, () => [
     make(MediaDevices, {
       $self: devices,
-      onAudioOutputsChanged: () => log.push(`outputs ${devices.audioOutputs.length}`),
+      onAudioOutputsChanged: () => deviceLog.push(`outputs ${devices.audioOutputs.length}`),
     }),
     make(MediaPlayer, {
       $self: player,

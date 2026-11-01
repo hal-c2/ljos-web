@@ -29,8 +29,8 @@ use std::collections::{BTreeSet, HashSet};
 use oxc_allocator::Allocator;
 use oxc_ast::ast::*;
 use oxc_ast_visit::{VisitMut, walk_mut};
-use oxc_semantic::SemanticBuilder;
 use oxc_parser::Parser;
+use oxc_semantic::SemanticBuilder;
 use oxc_span::{GetSpan, SourceType, Span};
 
 use super::{
@@ -50,7 +50,12 @@ struct Directives {
 }
 
 fn directives(source: &str) -> Directives {
-    let mut found = Directives { text: source.to_string(), library: false, imports: Vec::new(), errors: Vec::new() };
+    let mut found = Directives {
+        text: source.to_string(),
+        library: false,
+        imports: Vec::new(),
+        errors: Vec::new(),
+    };
     let mut offset = 0;
     for line in source.split_inclusive('\n') {
         let start = offset + (line.len() - line.trim_start().len());
@@ -60,7 +65,10 @@ fn directives(source: &str) -> Directives {
         let span = Span::new(start as u32, (start + code.trim_end().len()) as u32);
         match words.as_slice() {
             [".pragma", "library"] => found.library = true,
-            [".pragma", ..] => found.errors.push(Error::new("`.pragma library` is the only pragma a script has", span)),
+            [".pragma", ..] => found.errors.push(Error::new(
+                "`.pragma library` is the only pragma a script has",
+                span,
+            )),
             [".import", what, "as", name] | [".import", what, _, "as", name] => {
                 let quoted = what.trim_matches(|c| c == '"' || c == '\'');
                 let what = if quoted.len() < what.len() {
@@ -71,7 +79,10 @@ fn directives(source: &str) -> Directives {
                 found.imports.push((what, (*name).to_string()));
             }
             [".import", ..] => {
-                found.errors.push(Error::new("an import of a script is `.import Module as Name`", span));
+                found.errors.push(Error::new(
+                    "an import of a script is `.import Module as Name`",
+                    span,
+                ));
             }
             _ => continue,
         }
@@ -80,9 +91,31 @@ fn directives(source: &str) -> Directives {
     found
 }
 
+pub(crate) fn imports(source: &str) -> Result<crate::Imports, Vec<Error>> {
+    let Directives {
+        imports, errors, ..
+    } = directives(source);
+    if !errors.is_empty() {
+        return Err(errors);
+    }
+    let mut found = crate::Imports::default();
+    for (what, _) in imports {
+        match what {
+            Source::Module(module) => found.modules.push(module),
+            Source::Path(path) => found.paths.push(path),
+        }
+    }
+    Ok(found)
+}
+
 pub(crate) fn compile(source: &str, options: &Options) -> Result<String, Vec<Error>> {
     let allocator = Allocator::default();
-    let Directives { text, library, imports, errors } = directives(source);
+    let Directives {
+        text,
+        library,
+        imports,
+        errors,
+    } = directives(source);
     if !errors.is_empty() {
         return Err(errors);
     }
@@ -99,18 +132,26 @@ pub(crate) fn compile(source: &str, options: &Options) -> Result<String, Vec<Err
     let mut errors = Vec::new();
     let mut free = HashSet::new();
     {
-        let semantic = SemanticBuilder::new().with_build_nodes(true).build(&program).semantic;
+        let semantic = SemanticBuilder::new()
+            .with_build_nodes(true)
+            .build(&program)
+            .semantic;
         let scoping = semantic.scoping();
         let mut unresolved: Vec<_> = scoping.root_unresolved_references().iter().collect();
         unresolved.sort_by_key(|(name, _)| name.as_str());
         for (name, references) in unresolved {
             let name = name.as_str();
-            let spans = references
-                .iter()
-                .map(|reference| semantic.nodes().get_node(scoping.get_reference(*reference).node_id()).kind().span());
+            let spans = references.iter().map(|reference| {
+                semantic
+                    .nodes()
+                    .get_node(scoping.get_reference(*reference).node_id())
+                    .kind()
+                    .span()
+            });
             if QML_GLOBALS.contains(&name) {
                 free.extend(spans.map(|span| span.start));
-            } else if !JS_GLOBALS.contains(&name) && !imports.iter().any(|(_, alias)| alias == name) {
+            } else if !JS_GLOBALS.contains(&name) && !imports.iter().any(|(_, alias)| alias == name)
+            {
                 let message = if library {
                     format!("`{name}` is not defined")
                 } else {
@@ -118,7 +159,11 @@ pub(crate) fn compile(source: &str, options: &Options) -> Result<String, Vec<Err
                         "`{name}` is not defined: a script that is not a library takes it from the object that imports it, which is not done yet"
                     )
                 };
-                errors.extend(spans.min_by_key(|span| span.start).map(|span| Error::new(message, span)));
+                errors.extend(
+                    spans
+                        .min_by_key(|span| span.start)
+                        .map(|span| Error::new(message, span)),
+                );
             }
         }
     }
@@ -131,8 +176,14 @@ pub(crate) fn compile(source: &str, options: &Options) -> Result<String, Vec<Err
     paths.known.clone_from(&options.files);
     let mut kernel = BTreeSet::new();
     let mut globals = BTreeSet::new();
-    Script { b, paths: &mut paths, kernel: &mut kernel, free: &free, globals: &mut globals }
-        .visit_program(&mut program);
+    Script {
+        b,
+        paths: &mut paths,
+        kernel: &mut kernel,
+        free: &free,
+        globals: &mut globals,
+    }
+    .visit_program(&mut program);
 
     // What is declared at the top is what the script is to whoever imports
     // it. A name declared twice is exported once.
@@ -142,11 +193,21 @@ pub(crate) fn compile(source: &str, options: &Options) -> Result<String, Vec<Err
     for statement in authored {
         let mut names = Vec::new();
         match &statement {
-            Statement::FunctionDeclaration(function) => names.extend(function.id.as_ref().map(|id| id.name.as_str())),
-            Statement::ClassDeclaration(class) => names.extend(class.id.as_ref().map(|id| id.name.as_str())),
+            Statement::FunctionDeclaration(function) => {
+                names.extend(function.id.as_ref().map(|id| id.name.as_str()))
+            }
+            Statement::ClassDeclaration(class) => {
+                names.extend(class.id.as_ref().map(|id| id.name.as_str()))
+            }
             Statement::VariableDeclaration(declaration) => {
                 for declarator in &declaration.declarations {
-                    names.extend(declarator.id.get_binding_identifiers().iter().map(|id| id.name.as_str()));
+                    names.extend(
+                        declarator
+                            .id
+                            .get_binding_identifiers()
+                            .iter()
+                            .map(|id| id.name.as_str()),
+                    );
                 }
             }
             _ => {}
@@ -157,9 +218,13 @@ pub(crate) fn compile(source: &str, options: &Options) -> Result<String, Vec<Err
         }
         exported.extend(names.into_iter().map(str::to_string));
         body.push(match statement {
-            Statement::FunctionDeclaration(function) => b.export(Declaration::FunctionDeclaration(function)),
+            Statement::FunctionDeclaration(function) => {
+                b.export(Declaration::FunctionDeclaration(function))
+            }
             Statement::ClassDeclaration(class) => b.export(Declaration::ClassDeclaration(class)),
-            Statement::VariableDeclaration(declaration) => b.export(Declaration::VariableDeclaration(declaration)),
+            Statement::VariableDeclaration(declaration) => {
+                b.export(Declaration::VariableDeclaration(declaration))
+            }
             other => other,
         });
     }
@@ -178,7 +243,9 @@ pub(crate) fn compile(source: &str, options: &Options) -> Result<String, Vec<Err
             Some(module) => head.push(b.import_namespace(alias, &module)),
             None => {
                 return Err(vec![Error::new(
-                    format!("`{alias}` is a directory: a script imports a module or another script"),
+                    format!(
+                        "`{alias}` is a directory: a script imports a module or another script"
+                    ),
                     Span::default(),
                 )]);
             }
@@ -211,7 +278,9 @@ impl<'a> VisitMut<'a> for Script<'a, '_> {
     fn visit_identifier_reference(&mut self, identifier: &mut IdentifierReference<'a>) {
         if !identifier.span.is_empty()
             && self.free.contains(&identifier.span.start)
-            && let Some(global) = QML_GLOBALS.iter().find(|global| **global == identifier.name.as_str())
+            && let Some(global) = QML_GLOBALS
+                .iter()
+                .find(|global| **global == identifier.name.as_str())
         {
             self.globals.insert(global);
         }

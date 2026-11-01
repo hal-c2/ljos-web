@@ -1,5 +1,6 @@
 // `import QtQml.XmlListModel`: a model whose rows are elements of an XML
 // document, fetched from where `source` says.
+import { guardedFetch } from "../../guard.js";
 import { onCleanup } from "solid-js";
 import { contents, defineType, effect, QtObject, settle, slot } from "../../object.js";
 import { AbstractListModel, reset } from "../../QtQuick/model.js";
@@ -101,7 +102,7 @@ function load(self, { source, names, roles }) {
   // What it shows stays until what replaces it is here.
   status(self, LOADING, 0);
   const current = () => self.$request === request;
-  fetch(source, { signal: request.signal })
+  guardedFetch(source, { signal: request.signal })
     .then((response) => {
       if (!response.ok) throw new Error(`Error transferring ${source} - server replied: ${response.statusText || response.status}`);
       return response.text();

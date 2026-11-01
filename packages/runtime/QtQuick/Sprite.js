@@ -1,6 +1,7 @@
 // Sprite: one animation in a sheet of frames, and which may follow it.
 // What plays it is another type's business: an ImageParticle gives each
 // particle one.
+import { sourced } from "../guard.js";
 import { defineType, effect, flush, QtObject } from "../object.js";
 import { signal } from "#kernel";
 
@@ -97,7 +98,7 @@ export const Sprite = defineType("Sprite", QtObject, {
           flush();
           self.$shown?.();
         };
-        image.src = String(source);
+        sourced(image, String(source));
       },
     );
     effect(

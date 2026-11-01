@@ -26,6 +26,7 @@ import { gone, hoverable, overhear, receive, wheels } from "../pointer.js";
 import { windowOf } from "../Window.js";
 import { Page } from "./Pane.js";
 import { signal as graphed, untrack } from "#kernel";
+import { roleOf, speaks } from "../Accessible.js";
 
 const NONE = Object.freeze([]);
 
@@ -1170,3 +1171,8 @@ Object.defineProperty(Popup.proto, "visible", {
     this.$show(Boolean(value));
   },
 });
+
+// A popup is a dialog unless its type says what else; what it shows is
+// what the popup is.
+speaks(Popup, "Dialog");
+speaks(PopupItem, (self) => roleOf(self.$popup));

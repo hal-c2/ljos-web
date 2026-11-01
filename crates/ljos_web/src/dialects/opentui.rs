@@ -4,8 +4,11 @@
 
 use crate::registry::{Dialect, Element, Prop, Type, Unit};
 
-pub(crate) static DIALECT: Dialect =
-    Dialect { module: "OpenTUI", lookup, is_known_unsupported };
+pub(crate) static DIALECT: Dialect = Dialect {
+    module: "OpenTUI",
+    lookup,
+    is_known_unsupported,
+};
 
 fn lookup(name: &str) -> Option<Type> {
     Some(match name {
@@ -40,11 +43,31 @@ fn is_known_unsupported(name: &str) -> bool {
     )
 }
 
-static ITEM: Element = Element { tag: "div", class: Some("q-item"), props: item };
-static RECTANGLE: Element = Element { tag: "div", class: Some("q-item"), props: rectangle };
-static TEXT: Element = Element { tag: "span", class: Some("q-text"), props: text };
-static SPAN: Element = Element { tag: "span", class: None, props: span };
-static BOLD: Element = Element { tag: "b", class: None, props: span };
+static ITEM: Element = Element {
+    tag: "div",
+    class: Some("q-item"),
+    props: item,
+};
+static RECTANGLE: Element = Element {
+    tag: "div",
+    class: Some("q-item"),
+    props: rectangle,
+};
+static TEXT: Element = Element {
+    tag: "span",
+    class: Some("q-text"),
+    props: text,
+};
+static SPAN: Element = Element {
+    tag: "span",
+    class: None,
+    props: span,
+};
+static BOLD: Element = Element {
+    tag: "b",
+    class: None,
+    props: span,
+};
 
 fn style(css: &'static [&'static str], unit: Unit) -> Option<Prop> {
     Some(Prop::Style { css, unit })
@@ -53,7 +76,10 @@ fn style(css: &'static [&'static str], unit: Unit) -> Option<Prop> {
 fn item(name: &str) -> Option<Prop> {
     match name {
         "objectName" => Some(Prop::Attribute("data-object-name")),
-        "visible" => Some(Prop::Toggle { on: &[], off: &[("display", "none")] }),
+        "visible" => Some(Prop::Toggle {
+            on: &[],
+            off: &[("display", "none")],
+        }),
 
         "flexDirection" => style(&["flex-direction"], Unit::None),
         "flexGrow" => style(&["flex-grow"], Unit::None),
@@ -97,7 +123,10 @@ fn item(name: &str) -> Option<Prop> {
         "border.color" => style(&["border-color"], Unit::None),
         "border.style" => Some(Prop::Keyword(&[
             ("single", &[("border-style", "solid")]),
-            ("rounded", &[("border-style", "solid"), ("border-radius", "0.5ch")]),
+            (
+                "rounded",
+                &[("border-style", "solid"), ("border-radius", "0.5ch")],
+            ),
             ("double", &[("border-style", "double")]),
             ("heavy", &[("border-style", "solid")]),
         ])),
@@ -123,11 +152,18 @@ fn span(name: &str) -> Option<Prop> {
     match name {
         "text" => Some(Prop::Text),
         "color" => style(&["color"], Unit::None),
-        "font.bold" => Some(Prop::Toggle { on: &[("font-weight", "bold")], off: &[] }),
-        "font.italic" => Some(Prop::Toggle { on: &[("font-style", "italic")], off: &[] }),
-        "font.underline" => {
-            Some(Prop::Toggle { on: &[("text-decoration", "underline")], off: &[] })
-        }
+        "font.bold" => Some(Prop::Toggle {
+            on: &[("font-weight", "bold")],
+            off: &[],
+        }),
+        "font.italic" => Some(Prop::Toggle {
+            on: &[("font-style", "italic")],
+            off: &[],
+        }),
+        "font.underline" => Some(Prop::Toggle {
+            on: &[("text-decoration", "underline")],
+            off: &[],
+        }),
         _ => None,
     }
 }
@@ -137,10 +173,17 @@ fn text(name: &str) -> Option<Prop> {
         "wrapMode" => Some(Prop::Keyword(&[
             ("none", &[("white-space", "pre")]),
             ("word", &[("white-space", "pre-wrap")]),
-            ("char", &[("white-space", "pre-wrap"), ("word-break", "break-all")]),
+            (
+                "char",
+                &[("white-space", "pre-wrap"), ("word-break", "break-all")],
+            ),
         ])),
         "truncate" => Some(Prop::Toggle {
-            on: &[("overflow", "hidden"), ("text-overflow", "ellipsis"), ("white-space", "pre")],
+            on: &[
+                ("overflow", "hidden"),
+                ("text-overflow", "ellipsis"),
+                ("white-space", "pre"),
+            ],
             off: &[],
         }),
         _ => span(name).or_else(|| item(name)),

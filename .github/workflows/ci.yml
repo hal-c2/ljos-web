@@ -1,0 +1,73 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# ljos-ui is public, but Cargo.lock names it by ssh, and a runner has no key.
+env:
+  CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+  # The workspace's test binaries each hold a whole compiler; a panic still names its line.
+  CARGO_PROFILE_DEV_DEBUG: "0"
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
+        with:
+          version: 2026.9.9
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+      - run: git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+      - run: cargo fmt --all --check
+      # Each whatever came before it, so one run shows every failure there is.
+      - if: ${{ !cancelled() }}
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - if: ${{ !cancelled() }}
+        run: cargo test --workspace --no-fail-fast --locked
+
+  browser:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
+        with:
+          version: 2026.9.9
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+      - run: git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+      # This file starts low in a stack of pull requests, below the live shell
+      # and the site builder. It says so rather than passing quietly; once they
+      # have landed this step and its conditions can go.
+      - id: stack
+        run: |
+          if [ -e packages/runtime/tests/drop.spec.js ] && [ -e packages/runtime/site-tests ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::site-tests and drop.spec.js are not on this branch yet: nothing run in this job"
+          fi
+      - id: setup
+        if: steps.stack.outputs.present == 'true'
+        run: |
+          pnpm install --frozen-lockfile
+          cargo build --bin qmlc --locked
+          mise run build:wasm-compiler
+          mise run build:kernel
+          pnpm --filter ljos-web exec playwright install --with-deps chromium
+      # Each whatever came before it, so one run shows which kernel a failure is on.
+      - if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
+        run: pnpm --filter ljos-web test:site
+      - name: drop, on the Solid kernel
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
+        run: pnpm --filter ljos-web exec playwright test -c tests drop
+      - name: drop, on the wasm kernel
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
+        env:
+          LJOS_KERNEL: wasm
+        run: pnpm --filter ljos-web exec playwright test -c tests drop

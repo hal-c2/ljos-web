@@ -6,6 +6,7 @@
 // declared in it.
 import { onCleanup } from "solid-js";
 import { contents, defineType, derived, effect, group, instantiate, last, settle, slot } from "../../object.js";
+import { parts } from "./parts.js";
 import { colorValue } from "../color.js";
 import { BacktabFocusReason, departing, forceActiveFocus, OtherFocusReason, setFocus, TabFocusReason } from "../focus.js";
 import { globalToScene, itemToScene, sceneToItem } from "../geometry.js";
@@ -18,6 +19,7 @@ import { house, reparent, repeat, shows, within } from "./Container.js";
 import { keeps } from "./Control.js";
 import { housed, overlayOf, Popup, PopupFocusReason, stacked } from "./Popup.js";
 import { signal, untrack } from "#kernel";
+import { speaks } from "../Accessible.js";
 
 // How long the mouse is over an item before its sub-menu opens.
 const SUBMENU_DELAY = 225;
@@ -46,7 +48,7 @@ function padding(menu) {
 export const MenuItem = defineType("MenuItem", AbstractButton, {
   properties: {
     highlighted: false,
-    arrow: null,
+    arrow: parts,
     menu: null,
     subMenu: null,
     implicitTextPadding: 0,
@@ -645,3 +647,6 @@ Object.defineProperty(Menu.proto, "currentIndex", {
     untrack(() => setCurrent(this, Number(value), OtherFocusReason));
   },
 });
+
+speaks(MenuItem, "MenuItem");
+speaks(Menu, "PopupMenu");

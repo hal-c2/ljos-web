@@ -4,6 +4,7 @@ import { defineType, QtObject } from "../../object.js";
 import { Control } from "./Control.js";
 import { drive } from "./driven.js";
 import { assignables, follows, inside, properties, resolve, setup } from "./scrolling.js";
+import { speaks } from "../Accessible.js";
 
 // It shows while the Flickable moves.
 const moves = (indicator, moving) => drive(indicator, "active", moving);
@@ -34,3 +35,5 @@ export const ScrollIndicator = defineType("ScrollIndicator", Control, {
 });
 
 assignables(ScrollIndicator);
+
+speaks(ScrollIndicator, "Indicator");

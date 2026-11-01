@@ -14,6 +14,7 @@ import { day } from "./Calendar.js";
 import { Control } from "./Control.js";
 import { close } from "./Slider.js";
 import { signal, untrack } from "#kernel";
+import { speaks } from "../Accessible.js";
 
 const WEEKS = 6;
 const DAYS = 7;
@@ -312,3 +313,7 @@ export const AbstractMonthGrid = defineType("AbstractMonthGrid", Control, {
     onCleanup(() => cancel(mine.hold));
   },
 });
+
+speaks(AbstractMonthGrid, "Table");
+speaks(AbstractDayOfWeekRow, "Row");
+speaks(AbstractWeekNumberColumn, "Column");

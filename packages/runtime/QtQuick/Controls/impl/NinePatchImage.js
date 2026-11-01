@@ -8,6 +8,7 @@
 // The marks are read as Qt reads them (`qquickninepatchimage.cpp`), and
 // the picture is painted on a canvas, piece by piece. Any other picture is
 // an Image's.
+import { sourced } from "../../../guard.js";
 import { defineType, derived, effect } from "../../../object.js";
 import { lazy, rules } from "../../compute.js";
 import { Image, picture } from "../../Image.js";
@@ -136,7 +137,7 @@ function patched(url) {
     record.settle(READY);
   };
   element.onerror = () => record.settle(ERROR);
-  element.src = url;
+  sourced(element, url);
   return record;
 }
 

@@ -52,7 +52,11 @@ fn is_hole(character: char) -> bool {
 /// given a parent too: nothing else is a call this is about.
 pub(crate) fn given<'c, 'a>(call: &'c CallExpression<'a>) -> Option<&'c Expression<'a>> {
     if super::paths::qt_method(call) != Some("createQmlObject")
-        || call.arguments.iter().take(2).any(|argument| argument.as_expression().is_none())
+        || call
+            .arguments
+            .iter()
+            .take(2)
+            .any(|argument| argument.as_expression().is_none())
     {
         return None;
     }
@@ -116,6 +120,7 @@ pub(crate) fn name(index: usize) -> String {
 /// The statement that declares what makes the component `text` is, the
 /// `index`th of the file `options` is of, whose component is `own`. What its
 /// module would import is added to `imports`, which are the file's.
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn declare<'a>(
     b: B<'a>,
     text: &Text,
@@ -129,25 +134,41 @@ pub(crate) fn declare<'a>(
     // Read from where it is written, so that what is said of it is said of
     // that place in the file.
     let from = text.span.start as usize + 1;
-    let source: &'a str = b.allocator().alloc_str(&format!("{}{}", " ".repeat(from), text.source));
+    let source: &'a str = b
+        .allocator()
+        .alloc_str(&format!("{}{}", " ".repeat(from), text.source));
     let parsed = qml_syntax::parse(b.allocator(), source);
     if !parsed.diagnostics.is_empty() {
         // What was put into the text where QML is read is not there to read.
-        let put = |error: &Error| source[error.span.start as usize..].chars().next().is_some_and(is_hole);
+        let put = |error: &Error| {
+            source[error.span.start as usize..]
+                .chars()
+                .next()
+                .is_some_and(is_hole)
+        };
         let mut errors: Vec<Error> = parsed.diagnostics.into_iter().map(Error::from).collect();
         for error in errors.iter_mut().filter(|error| put(error)) {
             error.message = UNREAD.to_string();
         }
         return Err(errors);
     }
-    if parsed.document.pragmas.iter().any(|pragma| pragma.name == "Singleton") {
-        return Err(vec![Error::new("a text given to `Qt.createQmlObject` is no singleton", text.span)]);
+    if parsed
+        .document
+        .pragmas
+        .iter()
+        .any(|pragma| pragma.name == "Singleton")
+    {
+        return Err(vec![Error::new(
+            "a text given to `Qt.createQmlObject` is no singleton",
+            text.span,
+        )]);
     }
     // A document of its own, next to the file: it imports what it says, and
     // the directory.
     let mut project = project.clone();
     let mut options = options.clone();
     options.name = format!("{}{}", options.name, name(index));
+    options.inspect = None;
     project.insert_document(&options.name, &parsed.document);
     let program = super::lower_from(b, source, parsed.document, &project, &options, files, true)?;
 
@@ -157,7 +178,9 @@ pub(crate) fn declare<'a>(
         match statement {
             Statement::ImportDeclaration(_) => import(statement, imports, own, text.span)?,
             Statement::ExportDefaultDeclaration(export) => {
-                if let ExportDefaultDeclarationKind::FunctionDeclaration(function) = export.unbox().declaration {
+                if let ExportDefaultDeclarationKind::FunctionDeclaration(function) =
+                    export.unbox().declaration
+                {
                     component = function.id.as_ref().map(|id| id.name.to_string());
                     body.push(Statement::FunctionDeclaration(function));
                 }
@@ -166,9 +189,15 @@ pub(crate) fn declare<'a>(
         }
     }
     let Some(component) = component else {
-        return Err(vec![Error::new("a text given to `Qt.createQmlObject` has to be an object", text.span)]);
+        return Err(vec![Error::new(
+            "a text given to `Qt.createQmlObject` has to be an object",
+            text.span,
+        )]);
     };
-    let mut holes = Holes { b, found: HashSet::new() };
+    let mut holes = Holes {
+        b,
+        found: HashSet::new(),
+    };
     for statement in &mut body {
         holes.visit_statement(statement);
     }
@@ -178,11 +207,16 @@ pub(crate) fn declare<'a>(
     body.push(b.return_(b.id(&component)));
     let given: Vec<String> = (0..text.holes).map(taken).collect();
     let given: Vec<&str> = given.iter().map(String::as_str).collect();
-    let made = if given.is_empty() { b.iife(body) } else { b.arrow_block(&given, body) };
+    let made = if given.is_empty() {
+        b.iife(body)
+    } else {
+        b.arrow_block(&given, body)
+    };
     Ok(b.const_(&name(index), made))
 }
 
-const UNREAD: &str = "what is put into a text given to `Qt.createQmlObject` can only be put into a string of it yet";
+const UNREAD: &str =
+    "what is put into a text given to `Qt.createQmlObject` can only be put into a string of it yet";
 
 /// `$hole1`: what the `index`th thing put into a text is given as.
 fn taken(index: usize) -> String {
@@ -198,12 +232,19 @@ fn import<'a>(
     own: &str,
     span: Span,
 ) -> Result<(), Vec<Error>> {
-    let Statement::ImportDeclaration(mut declaration) = statement else { return Ok(()) };
+    let Statement::ImportDeclaration(mut declaration) = statement else {
+        return Ok(());
+    };
     let mut there = HashMap::new();
     for import in imports.iter() {
-        let Statement::ImportDeclaration(import) = import else { continue };
+        let Statement::ImportDeclaration(import) = import else {
+            continue;
+        };
         for specifier in import.specifiers.iter().flatten() {
-            there.insert(specifier.local().name.to_string(), (import.source.value.to_string(), imported(specifier)));
+            there.insert(
+                specifier.local().name.to_string(),
+                (import.source.value.to_string(), imported(specifier)),
+            );
         }
     }
     let source = declaration.source.value.to_string();
@@ -215,7 +256,9 @@ fn import<'a>(
                 Some(same) if *same == (source.clone(), imported(specifier)) => false,
                 None if name != own => true,
                 // The file's own component, which the text is declared after.
-                None if imported(specifier) == "default" && source == format!("./{own}.qml") => false,
+                None if imported(specifier) == "default" && source == format!("./{own}.qml") => {
+                    false
+                }
                 _ => {
                     clash = Some(name.to_string());
                     false
@@ -234,7 +277,10 @@ fn import<'a>(
         };
         let same = imports.iter_mut().find_map(|import| match import {
             Statement::ImportDeclaration(import) if import.source.value == source.as_str() => {
-                import.specifiers.as_mut().filter(|specifiers| specifiers.iter().all(is_named))
+                import
+                    .specifiers
+                    .as_mut()
+                    .filter(|specifiers| specifiers.iter().all(is_named))
             }
             _ => None,
         });
@@ -251,7 +297,9 @@ fn import<'a>(
 
 fn clashing(name: &str, span: Span) -> Vec<Error> {
     vec![Error::new(
-        format!("`{name}` is one thing to the file and another to the text given to `Qt.createQmlObject`"),
+        format!(
+            "`{name}` is one thing to the file and another to the text given to `Qt.createQmlObject`"
+        ),
         span,
     )]
 }
@@ -259,7 +307,9 @@ fn clashing(name: &str, span: Span) -> Vec<Error> {
 /// What of a module a specifier imports: a name, the default, or all of it.
 fn imported(specifier: &ImportDeclarationSpecifier<'_>) -> String {
     match specifier {
-        ImportDeclarationSpecifier::ImportSpecifier(specifier) => specifier.imported.name().to_string(),
+        ImportDeclarationSpecifier::ImportSpecifier(specifier) => {
+            specifier.imported.name().to_string()
+        }
         ImportDeclarationSpecifier::ImportDefaultSpecifier(_) => "default".to_string(),
         ImportDeclarationSpecifier::ImportNamespaceSpecifier(_) => "*".to_string(),
     }

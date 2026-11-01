@@ -8,6 +8,7 @@
 // last: the other follows it.
 import { onCleanup, runWithOwner } from "solid-js";
 import { $component, defineType, derived, effect, settle, slot } from "../../object.js";
+import { parts } from "./parts.js";
 import { DelegateModel } from "../DelegateModel.js";
 import { BacktabFocusReason, forceActiveFocus, MouseFocusReason, setFocus, TabFocusReason, windowOf } from "../focus.js";
 import { Key, LeftButton } from "../keycodes.js";
@@ -17,6 +18,7 @@ import { AbstractButton } from "./AbstractButton.js";
 import { Control, keeps, loose, put, within } from "./Control.js";
 import { now } from "./Slider.js";
 import { signal, untrack } from "#kernel";
+import { speaks } from "../Accessible.js";
 
 const next = (version) => version + 1;
 
@@ -412,8 +414,8 @@ export const ComboBox = defineType("ComboBox", Control, {
     pressed: false,
     down: undefined,
     flat: false,
-    indicator: null,
-    popup: null,
+    indicator: parts,
+    popup: parts,
     editable: false,
     editText: "",
     validator: null,
@@ -781,3 +783,5 @@ function says(name, criteria) {
 }
 says("currentIndex", INDEX);
 says("currentValue", VALUE);
+
+speaks(ComboBox, "ComboBox", (self) => String(self.displayText ?? ""));

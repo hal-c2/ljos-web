@@ -1,4 +1,8 @@
 import { defineConfig } from "@playwright/test";
+import { compilerAt } from "../vite.js";
+
+// The server and the tests run from elsewhere than where it was named from.
+if (process.env.QMLC) process.env.QMLC = compilerAt(process.env.QMLC);
 
 // Two checkouts can run their tests at once if each is given its own port.
 const port = Number(process.env.LJOS_WEB_PORT ?? 4174);

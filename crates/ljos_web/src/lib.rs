@@ -13,6 +13,9 @@
 
 mod build;
 mod dialects;
+pub mod dump;
+pub mod files;
+pub mod given;
 pub use qml_front::discover;
 mod lower;
 mod project;
@@ -20,6 +23,8 @@ mod quick;
 mod registry;
 mod resolve;
 mod scope;
+pub mod shell;
+pub mod theme;
 
 use oxc_allocator::Allocator;
 use oxc_ast::ast::Program;
@@ -63,6 +68,21 @@ pub struct Options {
     /// `QML_COMPAT_RESOLVE_URLS_ON_ASSIGNMENT`. Otherwise one given to a
     /// property a component declares is taken from the component's file.
     pub urls_on_assignment: bool,
+    /// Where the Qt that is installed keeps its QML modules: a module whose
+    /// `qmldir` is in its place under one of them is Qt's, which the runtime
+    /// puts together from there (`Qt5Compat.GraphicalEffects`). A module
+    /// imported that is neither this, nor in Qt's table, nor the runtime's,
+    /// nor the project's, is not installed: an error, when the file is
+    /// compiled with its project.
+    pub qt_imports: Vec<std::path::PathBuf>,
+    /// The modules that are installed though no directory says so: those a
+    /// page that compiles was built with (`QtQuick.Controls.Basic`).
+    pub installed: Vec<String>,
+    /// Where each object, binding and `console` call is written, put in the
+    /// output for an inspector (`ljos-web/inspect`): the file is called
+    /// this there. None for a page that is not inspected, which pays
+    /// nothing for it.
+    pub inspect: Option<String>,
     pub solid: SolidOptions,
 }
 
@@ -78,6 +98,9 @@ impl Default for Options {
             files: None,
             pictures: None,
             urls_on_assignment: false,
+            qt_imports: Vec::new(),
+            installed: Vec::new(),
+            inspect: None,
             solid: SolidOptions::default(),
         }
     }
@@ -98,7 +121,10 @@ pub struct Error {
 
 impl Error {
     pub(crate) fn new(message: impl Into<String>, span: Span) -> Self {
-        Self { message: message.into(), span }
+        Self {
+            message: message.into(),
+            span,
+        }
     }
 
     /// One-based line and column of the error in `source`.
@@ -134,7 +160,10 @@ pub fn compile(source: &str, options: &Options) -> Result<Output, Vec<Error>> {
         }
     }
     solidjs_compiler::compile_program(&allocator, program, source, &solid)
-        .map(|output| Output { code: output.code, map: output.source_map })
+        .map(|output| Output {
+            code: output.code,
+            map: output.source_map,
+        })
         .map_err(|error| vec![Error::new(error.to_string(), Span::default())])
 }
 
@@ -142,6 +171,39 @@ pub fn compile(source: &str, options: &Options) -> Result<Output, Vec<Error>> {
 /// the module that import is: what the script declares, exported.
 pub fn compile_script(source: &str, options: &Options) -> Result<Output, Vec<Error>> {
     quick::script::compile(source, options).map(|code| Output { code, map: None })
+}
+
+/// What a file imports, read as compiling it reads it: the modules it names
+/// and the paths it names, each as written.
+#[derive(Debug, Default, PartialEq, Eq)]
+pub struct Imports {
+    pub modules: Vec<String>,
+    pub paths: Vec<String>,
+}
+
+/// What a QML document imports, from the parser, so that whoever holds a
+/// project to a list sees what the compiler will read and nothing else.
+pub fn imports(source: &str) -> Result<Imports, Vec<Error>> {
+    let allocator = Allocator::default();
+    let parsed = qml_syntax::parse(&allocator, source);
+    if !parsed.diagnostics.is_empty() {
+        return Err(parsed.diagnostics.into_iter().map(Error::from).collect());
+    }
+    let mut found = Imports::default();
+    for import in &parsed.document.imports {
+        match &import.source {
+            qml_syntax::ast::QmlImportSource::Module(module) => {
+                found.modules.push(module.to_string())
+            }
+            qml_syntax::ast::QmlImportSource::Path(path) => found.paths.push(path.to_string()),
+        }
+    }
+    Ok(found)
+}
+
+/// What a script imports (`.import "more.js" as More`).
+pub fn script_imports(source: &str) -> Result<Imports, Vec<Error>> {
+    quick::script::imports(source)
 }
 
 /// The tree handed to Solid's compiler, printed. Solid never sees this text;
@@ -156,10 +218,13 @@ pub(crate) fn parse_errors(diagnostics: Diagnostics) -> Vec<Error> {
     diagnostics
         .into_iter()
         .map(|diagnostic| {
-            let span = diagnostic.labels.first().map_or_else(Span::default, |label| {
-                let start = label.offset() as u32;
-                Span::new(start, start + label.len() as u32)
-            });
+            let span = diagnostic
+                .labels
+                .first()
+                .map_or_else(Span::default, |label| {
+                    let start = label.offset();
+                    Span::new(start, start + label.len())
+                });
             Error::new(diagnostic.message.to_string(), span)
         })
         .collect()
@@ -202,7 +267,9 @@ fn lower<'a>(
     let mut lower = Lower::new(b, &scopes, types, &project, &usages, &options.name, open);
     let component = lower.component(&options.name, parsed.document.root);
     errors.append(&mut lower.errors);
-    let Some(component) = component else { return Err(errors) };
+    let Some(component) = component else {
+        return Err(errors);
+    };
 
     let mut body = b.vec();
     body.extend(std::mem::take(&mut lower.inline));
@@ -223,7 +290,10 @@ fn lower<'a>(
         imports.push(b.import_named(runtime.iter().copied(), &options.runtime_module));
     }
     if !resolved.host.is_empty() {
-        imports.push(b.import_named(resolved.host.iter().map(String::as_str), &options.host_module));
+        imports.push(b.import_named(
+            resolved.host.iter().map(String::as_str),
+            &options.host_module,
+        ));
     }
     for component in &lower.components {
         let source = format!("./{component}{}", options.component_extension);

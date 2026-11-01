@@ -6,6 +6,7 @@ import { LeftButton } from "../keycodes.js";
 import { touch, track } from "../model.js";
 import { Control, put, within } from "./Control.js";
 import { untrack } from "#kernel";
+import { speaks } from "../Accessible.js";
 
 // The dots: the children of the content item, less what repeats them.
 const dots = (self) => untrack(() => (self.contentItem?.children ?? []).filter((child) => !child.$repeat));
@@ -97,3 +98,5 @@ export const PageIndicator = defineType("PageIndicator", Control, {
     self.$pages = { pressed: null, given: null, delegate: null };
   },
 });
+
+speaks(PageIndicator, "Indicator");

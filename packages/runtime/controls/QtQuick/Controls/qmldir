@@ -1,0 +1,6 @@
+# Written by ljos-web (packages/runtime/controls.js) for Ljós's own QML: not Qt's.
+module QtQuick.Controls
+optional import QtQuick.Controls.Fusion auto
+optional import QtQuick.Controls.Material auto
+optional import QtQuick.Controls.Universal auto
+default import QtQuick.Controls.Basic

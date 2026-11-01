@@ -43,10 +43,18 @@ impl<'a> std::ops::Deref for Tree<'a> {
 }
 
 impl<'a> Tree<'a> {
-    pub(crate) fn analyze(document: &QmlDocument<'a>, types: Types<'_>, errors: &mut Vec<Error>) -> Self {
+    pub(crate) fn analyze(
+        document: &QmlDocument<'a>,
+        types: Types<'_>,
+        errors: &mut Vec<Error>,
+    ) -> Self {
         let mut front_errors = Vec::new();
         let front = Front::analyze(document, types.front(), &mut front_errors);
-        errors.extend(front_errors.into_iter().map(|error| Error::new(error.message, error.span)));
+        errors.extend(
+            front_errors
+                .into_iter()
+                .map(|error| Error::new(error.message, error.span)),
+        );
 
         let mut handles = Vec::with_capacity(front.objects.len());
         let mut ids = HashSet::new();
@@ -76,15 +84,26 @@ impl<'a> Tree<'a> {
                         depth += usize::from(front.contexts[index].is_delegate);
                         around = front.contexts[index].outer;
                     }
-                    if depth == 0 { "$data".to_string() } else { format!("$data{depth}") }
+                    if depth == 0 {
+                        "$data".to_string()
+                    } else {
+                        format!("$data{depth}")
+                    }
                 })
             })
             .collect();
-        Self { front, handles, datas, ids }
+        Self {
+            front,
+            handles,
+            datas,
+            ids,
+        }
     }
 
     pub(crate) fn index_of(&self, object: &QmlObject<'a>) -> usize {
-        self.front.index_of(object).expect("an object of the file analysed")
+        self.front
+            .index_of(object)
+            .expect("an object of the file analysed")
     }
 
     /// Whether what a state changes at `offset` is of a target only the
@@ -110,7 +129,11 @@ impl<'a> Tree<'a> {
         while let Some(outer) = self.contexts[context].outer {
             context = outer;
         }
-        if context == 0 { "$scope".to_string() } else { format!("$scope{context}") }
+        if context == 0 {
+            "$scope".to_string()
+        } else {
+            format!("$scope{context}")
+        }
     }
 
     /// The ids of the component whose root is `root` that its scripts reach
@@ -153,7 +176,12 @@ impl<'a> Tree<'a> {
 
     /// The property whose value the object's signal `name` carries to its
     /// handlers: [`types::carried`].
-    pub(crate) fn carried<'n>(&self, types: Types<'_>, index: usize, name: &'n str) -> Option<&'n str> {
+    pub(crate) fn carried<'n>(
+        &self,
+        types: Types<'_>,
+        index: usize,
+        name: &'n str,
+    ) -> Option<&'n str> {
         let object = &self.objects[index];
         let property = name.strip_suffix("Changed")?;
         if object.declared.contains_key(name) || object.declared.contains_key(property) {
@@ -164,7 +192,12 @@ impl<'a> Tree<'a> {
 
     /// What the property a binding names is, through the groups on the way:
     /// `border.width` is the `width` of what `border` is.
-    pub(crate) fn property(&self, types: Types<'_>, index: usize, path: &[&str]) -> Option<Property> {
+    pub(crate) fn property(
+        &self,
+        types: Types<'_>,
+        index: usize,
+        path: &[&str],
+    ) -> Option<Property> {
         self.front.property(types.front(), index, path)
     }
 }
