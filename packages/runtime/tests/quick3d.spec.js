@@ -976,6 +976,15 @@ test("a Targa file is a picture, by the rows it says it begins with and by runs"
   near(await painted(page, at.map((point) => [point])), wanted, "", 3);
 });
 
+test("a material's gl_FragCoord is where its fragment is, on the view and in depth", async ({ page }) => {
+  await open(page, "fragcoord3d");
+  const points = [
+    [[200, 120], [255, 255, 0]],
+    [[200, 180], [0, 255, 0]],
+  ];
+  near(await painted(page, points), points.map(([, colour]) => colour), "", 3);
+});
+
 test("the shapes QtQuick3D.Helpers works out are the ones Qt works out", async ({ page }) => {
   await open(page, "geometry3d");
   // The box each fits in. A grid's is not the one it fills, and a shape
