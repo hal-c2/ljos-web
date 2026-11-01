@@ -371,7 +371,7 @@ fn main() -> ExitCode {
                     serde_json::to_string(&blocks).expect("contracts are JSON")
                 ),
                 Err(error) => {
-                    eprintln!("{file}: {error}");
+                    eprintln!("{error}");
                     failed = true;
                 }
             }

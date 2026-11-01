@@ -37,7 +37,7 @@ use qml_syntax::ast::{QmlBindingValue, QmlDocument, QmlImportSource, QmlMember, 
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    Options,
+    Error, Options,
     files::Load,
     quick::{provided, uninstalled},
 };
@@ -163,15 +163,12 @@ pub fn contracts(
     let allocator = Allocator::default();
     let parsed = qml_syntax::parse(&allocator, &text);
     if !parsed.diagnostics.is_empty() {
-        return Err(format!(
-            "{}: {}",
-            shell.display(),
-            parsed.diagnostics[0].message
-        ));
+        let error = Error::from(parsed.diagnostics[0].clone());
+        return Err(said_at(&shell.display().to_string(), &text, &error));
     }
     let project = load.project(shell, &options.qt_imports, warnings);
     if let Some(error) = uninstalled(&parsed.document, &project, options).first() {
-        return Err(format!("{}: {}", shell.display(), error.message));
+        return Err(said_at(&shell.display().to_string(), &text, error));
     }
     let (root, modules) = load
         .found_modules(shell, &options.qt_imports, &mut Vec::new())
@@ -245,6 +242,12 @@ pub fn contracts(
     Ok(Blocks { root, blocks })
 }
 
+/// An error as a compile says it, so that a build's log reads the same whichever asked.
+fn said_at(file: &str, source: &str, error: &Error) -> String {
+    let (line, column) = error.position(source);
+    format!("{file}:{line}:{column}: {}", error.message)
+}
+
 /// `path` as it is from `root`, going above it when it has to: a contract
 /// goes to the page, and where the site was built is not the page's to know.
 fn from_root(root: &Path, path: &Path) -> PathBuf {
@@ -310,7 +313,8 @@ fn contract_of(
     let allocator = Allocator::default();
     let parsed = qml_syntax::parse(&allocator, source);
     if !parsed.diagnostics.is_empty() {
-        return Err(format!("{file}: {}", parsed.diagnostics[0].message));
+        let error = Error::from(parsed.diagnostics[0].clone());
+        return Err(said_at(&file, source, &error));
     }
     let root = &parsed.document.root;
     let base = root.type_name.last();

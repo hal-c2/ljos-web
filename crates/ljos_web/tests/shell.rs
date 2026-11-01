@@ -590,7 +590,8 @@ fn a_module_of_qt_s_table_is_no_library_with_no_qt_installed() {
 
 #[test]
 fn a_module_of_the_installed_qt_is_no_library() {
-    let (asked, compiled) = asked_and_compiled("shell-installed", "QML", &["QML"]);
+    let (asked, compiled) =
+        asked_and_compiled("shell-installed", "Vendor.Thing", &["Vendor/Thing"]);
     assert!(compiled.0, "{}", compiled.1);
     assert_eq!(asked, (true, String::new()));
 }
@@ -600,9 +601,9 @@ fn a_module_nobody_has_is_refused_as_its_compile_refuses_it() {
     let (asked, compiled) = asked_and_compiled("shell-nobody", "Nobody.Has", &[]);
     assert!(!compiled.0);
     assert!(!asked.0);
-    let word = "module \"Nobody.Has\" is not installed";
+    let word = "app/Main.qml:2:1: module \"Nobody.Has\" is not installed\n";
     assert!(compiled.1.contains(word), "{}", compiled.1);
-    assert!(asked.1.contains(word), "{}", asked.1);
+    assert_eq!(asked.1, word);
 }
 
 #[test]
