@@ -18,6 +18,7 @@ import { awaited, defineType, derived, effect, flush, group, located } from "../
 import { Vector3d } from "../QtQml/values.js";
 import { color } from "../QtQuick/color.js";
 import { ktx } from "./ktx.js";
+import { tga } from "./tga.js";
 import * as math from "./math.js";
 import { read } from "./mesh.js";
 import { Node, Object3D } from "./Node.js";
@@ -103,10 +104,12 @@ function picture(url) {
 
 // A picture whose numbers are not held to what a screen can show, which a
 // browser does not read: the numbers themselves, once they are here. A
-// Radiance picture is one, and what Qt baked of one into a KTX file.
-const BRIGHT = /\.(hdr|ktx)$/i;
+// Radiance picture is one, and what Qt baked of one into a KTX file. A Targa
+// file is held to a screen's, but a browser does not read that either.
+const BRIGHT = /\.(hdr|ktx|tga)$/i;
 function bright(url) {
-  const read = /\.ktx$/i.test(url) ? file(url, "ktx", ktx).state() : file(url, "hdr", radiance).state();
+  const [kind, took] = /\.ktx$/i.test(url) ? ["ktx", ktx] : /\.tga$/i.test(url) ? ["tga", tga] : ["hdr", radiance];
+  const read = file(url, kind, took).state();
   if (read?.error) {
     if (!warned.has(url)) console.warn(`Texture: ${url}: ${read.error}`);
     warned.add(url);

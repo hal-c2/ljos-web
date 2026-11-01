@@ -958,6 +958,24 @@ test("a KTX file is a material's picture by its first side", async ({ page }) =>
   near(await painted(page, points), points.map(([, colour]) => colour), "", 3);
 });
 
+test("a Targa file is a picture, by the rows it says it begins with and by runs", async ({ page }) => {
+  await open(page, "tga3d");
+  const quarters = (x) => [
+    [x - 25, 125],
+    [x + 25, 125],
+    [x - 25, 175],
+    [x + 25, 175],
+  ];
+  const red = [255, 0, 0];
+  const green = [0, 255, 0];
+  const blue = [0, 0, 255];
+  const grey = [128, 128, 128];
+  const dark = [60, 60, 60];
+  const at = [...quarters(80), ...quarters(200), ...quarters(320)];
+  const wanted = [red, green, blue, grey, red, green, blue, grey, dark, dark, blue, grey];
+  near(await painted(page, at.map((point) => [point])), wanted, "", 3);
+});
+
 test("the shapes QtQuick3D.Helpers works out are the ones Qt works out", async ({ page }) => {
   await open(page, "geometry3d");
   // The box each fits in. A grid's is not the one it fills, and a shape
