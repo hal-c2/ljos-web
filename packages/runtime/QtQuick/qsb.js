@@ -206,8 +206,9 @@ function members(code) {
 // names. So the two give the same uniforms to the runtime. Blocks between
 // stages and values begun with braces are done from what GLSL says of them, not
 // from a run of `qsb`: its corpus has neither. A struct's member begun with
-// braces of its own, and a block between stages with a size, are not done. What
-// is not understood is left, for the browser to report.
+// braces of its own, a whole number handed to a struct's constructor, and a
+// block between stages with a size, are not done. What is not understood is
+// left, for the browser to report.
 export function forBrowser(source, stage) {
   const all = unconstant(unbraced(words(conditioned(source, { QSHADER_VIEW_COUNT: 1 }))));
   const flattened = [];
@@ -221,8 +222,7 @@ export function forBrowser(source, stage) {
     text += outside(all.slice(at, end), stage, flattened);
     at = end;
   }
-  for (const { instance, member, name } of flattened) text = text.replace(new RegExp(`(?<![\\w.])${instance}\\s*\\.\\s*${member}\\b`, "g"), name);
-  const read = new Reader().fitted(text);
+  const read = new Reader().fitted(linked(text, flattened));
   let body = read.text;
   if (read.begun.length) {
     // What is begun with something worked out is done when the shader starts.
@@ -238,8 +238,11 @@ function outside(words, stage, flattened) {
   const close = code[0].text === "layout" ? code.findIndex((word) => word.text === ")") : -1;
   const rest = code.slice(close + 1);
   const open = rest.findIndex((word) => word.text === "{");
-  if (open >= 0 && rest.slice(0, open).some((word) => word.text === "uniform")) return blockOf(rest, open);
-  if (open >= 0 && rest.slice(0, open).some((word) => word.text === "in" || word.text === "out")) return between(rest, open, flattened) ?? plain(words);
+  // A block's `{` follows its name. A function's follows the `)` of its
+  // parameters, which say `in` and `out` too.
+  const block = open > 0 && rest[open - 1].kind === "name";
+  if (block && rest.slice(0, open).some((word) => word.text === "uniform")) return blockOf(rest, open);
+  if (block && rest.slice(0, open).some((word) => word.text === "in" || word.text === "out")) return between(rest, open, flattened) ?? plain(words);
   if (close < 0) return plain(words);
   // `layout(std140) uniform;`, `layout(early_fragment_tests) in;`.
   if (rest.length <= 2) return "";
@@ -260,7 +263,8 @@ function blockOf(code, open) {
 }
 
 // A block between stages is variables to OpenGL ES, of a name made from the
-// block's and not its instance's, for that is what the two stages share.
+// block's alone: that is what the two stages share, and one may name an
+// instance where the other does not.
 function between(code, open, flattened) {
   const block = code[open - 1].text;
   const close = closing(code, open);
@@ -278,10 +282,50 @@ function between(code, open, flattened) {
     const type = kept.filter((word) => !INTERPOLATIONS.has(word)).join(" ");
     for (const declarator of [parts.slice(at).join(" "), ...others]) {
       const [member, ...size] = declarator.split(" ");
-      const name = named.length ? `qt_${block}_${member}` : member;
-      if (named.length) flattened.push({ instance: named[0].text, member, name });
+      const name = `qt_${block}_${member}`;
+      flattened.push({ instance: named[0]?.text, member, name });
       text += `${[...interpolation, ...qualifiers, type, name, ...size].join(" ")};\n`;
     }
   }
   return text;
+}
+
+// The code with what it says of the blocks between stages put as the names
+// they have now: `got.moved`, or just `moved` of a block with no instance. A
+// parameter or a local of that name is renamed with the rest and means the
+// same; what is after a dot, and a struct's own member, is something else.
+function linked(text, flattened) {
+  if (!flattened.length) return text;
+  const all = words(text);
+  const nextCode = (at) => {
+    let next = at + 1;
+    while (all[next] && !isCode(all[next])) next++;
+    return next;
+  };
+  let out = "";
+  let last = "";
+  let inStruct = false;
+  for (let at = 0; at < all.length; at++) {
+    const { kind, text: said } = all[at];
+    if (!isCode(all[at])) {
+      out += said;
+      continue;
+    }
+    if (said === "struct") inStruct = true;
+    else if (said === "}") inStruct = false;
+    const own = kind === "name" && last !== ".";
+    const dot = own ? nextCode(at) : -1;
+    const member = own && all[dot]?.text === "." ? nextCode(dot) : -1;
+    const ofInstance = member >= 0 && flattened.find((one) => one.instance === said && one.member === all[member].text);
+    if (ofInstance) {
+      out += ofInstance.name;
+      last = ofInstance.name;
+      at = member;
+      continue;
+    }
+    const bare = own && !inStruct && flattened.find((one) => !one.instance && one.member === said);
+    out += bare ? bare.name : said;
+    last = said;
+  }
+  return out;
 }
