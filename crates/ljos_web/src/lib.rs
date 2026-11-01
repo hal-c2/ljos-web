@@ -192,7 +192,9 @@ pub fn imports(source: &str) -> Result<Imports, Vec<Error>> {
     let mut found = Imports::default();
     for import in &parsed.document.imports {
         match &import.source {
-            qml_syntax::ast::QmlImportSource::Module(module) => found.modules.push(module.to_string()),
+            qml_syntax::ast::QmlImportSource::Module(module) => {
+                found.modules.push(module.to_string())
+            }
             qml_syntax::ast::QmlImportSource::Path(path) => found.paths.push(path.to_string()),
         }
     }
