@@ -307,10 +307,10 @@ fn project(path: &Path, project_root: Option<&Path>, with: &[PathBuf]) -> Projec
             let Some(key) = file.strip_suffix(".qml") else {
                 continue;
             };
-            if !project.has(key) {
-                if let Ok(source) = read(&base.join(&file)) {
-                    let _ = project.add(key, &source);
-                }
+            if !project.has(key)
+                && let Ok(source) = read(&base.join(&file))
+            {
+                let _ = project.add(key, &source);
             }
         }
     }

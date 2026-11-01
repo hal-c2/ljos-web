@@ -1,6 +1,6 @@
 # The tooling. `mise run install` (or `mise install`) installs it; the tasks
 # are the scripts in mise-tasks/.
 [tools]
-rust = { version = "1.98.1", targets = "wasm32-unknown-unknown" }
+rust = { version = "1.98.1", targets = "wasm32-unknown-unknown", components = "rustfmt,clippy" }
 node = "24.21.0"
 pnpm = "12.8.1"

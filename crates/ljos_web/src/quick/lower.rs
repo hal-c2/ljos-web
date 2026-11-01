@@ -701,7 +701,7 @@ impl<'a, 's> Lower<'a, 's> {
             return;
         };
         self.uses.origin(&type_name, &found.origin);
-        if !built.attach.iter().any(|attached| *attached == type_name) {
+        if !built.attach.contains(&type_name) {
             built.attach.push(type_name);
         }
         let attached = self.types.base(&found.kind).and_then(|ty| ty.0.attached());

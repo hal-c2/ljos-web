@@ -145,7 +145,7 @@ pub(crate) fn declared_property(type_name: &str, is_list: bool) -> Property {
 /// The property whose new value Qt's signal `name` carries: `text`, of the
 /// `textChanged(text)` of a Text. Qt says it signal by signal, and most carry
 /// nothing: `widthChanged()`, and the change of any property QML declares.
-pub(crate) fn carried<'n>(ty: Qt, name: &'n str) -> Option<&'n str> {
+pub(crate) fn carried(ty: Qt, name: &str) -> Option<&str> {
     let property = name.strip_suffix("Changed")?;
     let [parameter] = ty.0.signal(name)?.parameters.as_slice() else {
         return None;

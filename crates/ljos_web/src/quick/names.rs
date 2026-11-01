@@ -33,6 +33,7 @@ use super::{
 };
 use crate::{Error, build::B, project::Source};
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn resolve<'a>(
     b: B<'a>,
     program: &mut Program<'a>,

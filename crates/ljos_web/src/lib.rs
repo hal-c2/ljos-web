@@ -166,8 +166,8 @@ pub(crate) fn parse_errors(diagnostics: Diagnostics) -> Vec<Error> {
                 .labels
                 .first()
                 .map_or_else(Span::default, |label| {
-                    let start = label.offset() as u32;
-                    Span::new(start, start + label.len() as u32)
+                    let start = label.offset();
+                    Span::new(start, start + label.len())
                 });
             Error::new(diagnostic.message.to_string(), span)
         })

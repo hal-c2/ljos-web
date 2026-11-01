@@ -120,6 +120,7 @@ pub(crate) fn name(index: usize) -> String {
 /// The statement that declares what makes the component `text` is, the
 /// `index`th of the file `options` is of, whose component is `own`. What its
 /// module would import is added to `imports`, which are the file's.
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn declare<'a>(
     b: B<'a>,
     text: &Text,

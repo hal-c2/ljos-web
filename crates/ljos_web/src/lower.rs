@@ -705,7 +705,7 @@ impl<'a, 's> Lower<'a, 's> {
         // What the property is when nothing sets it. Off needs no saying:
         // nothing is not on.
         let own = own.or_else(|| match prop {
-            Prop::Toggle { on, .. } if on.is_empty() => Some(b.boolean(true)),
+            Prop::Toggle { on: [], .. } => Some(b.boolean(true)),
             _ => None,
         });
         let value = self.outside(&key, outer, own, declarations);

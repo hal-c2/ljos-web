@@ -223,11 +223,11 @@ impl<'a> Analysis<'a, '_> {
         }
         let is_component_root = is_interface || delegate.is_some();
         let id = object_id(object);
-        if let Some(id) = id {
-            if self.scopes.ids.insert((self.document, id), index).is_some() {
-                self.errors
-                    .push(Error::new(format!("id `{id}` is not unique"), object.span));
-            }
+        if let Some(id) = id
+            && self.scopes.ids.insert((self.document, id), index).is_some()
+        {
+            self.errors
+                .push(Error::new(format!("id `{id}` is not unique"), object.span));
         }
         self.scopes.by_start.insert(object.span.start, index);
         self.scopes.objects.push(Object {

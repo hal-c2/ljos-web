@@ -52,20 +52,22 @@ jobs:
           else
             echo "::notice::site-tests and drop.spec.js are not on this branch yet: nothing run in this job"
           fi
-      - if: steps.stack.outputs.present == 'true'
+      - id: setup
+        if: steps.stack.outputs.present == 'true'
         run: |
           pnpm install --frozen-lockfile
           cargo build --bin qmlc --locked
           mise run build:wasm-compiler
           mise run build:kernel
           pnpm --filter ljos-web exec playwright install --with-deps chromium
-      - if: steps.stack.outputs.present == 'true'
+      # Each whatever came before it, so one run shows which kernel a failure is on.
+      - if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
         run: pnpm --filter ljos-web test:site
       - name: drop, on the Solid kernel
-        if: steps.stack.outputs.present == 'true'
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
         run: pnpm --filter ljos-web exec playwright test -c tests drop
       - name: drop, on the wasm kernel
-        if: steps.stack.outputs.present == 'true'
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
         env:
           LJOS_KERNEL: wasm
         run: pnpm --filter ljos-web exec playwright test -c tests drop
