@@ -294,14 +294,17 @@ export function replaceSite(from, out, rename = renameSync) {
 // says, `with` the directories of QML modules that stand in for what ljos-web
 // compiles from elsewhere (Ljos.Design's, from ljos-ui's
 // `crates/ljos_design_qml/qml`), `styles` whose QML the controls are:
-// Ljós's (`"ljos"`) unless Qt's (`"qt"`) are asked for. What it wrote, and
-// its size.
+// Ljós's (`"ljos"`) unless Qt's (`"qt"`) are asked for. `liveShell`: true
+// (or `{ site }`, the name a visitor's shell is kept under) for a site whose
+// visitors may drop a shell of their own over its blocks (docs/LJOS_WEB.md
+// A9); its compiler is written beside the page and fetched only on a drop.
+// What it wrote, and its size.
 //
 // A site's controls are Ljós's whether or not the machine that builds it
 // has a Qt: the site is a Ljós application, which draws with Ljós's style
 // natively, and a bundle builds to the same site on any machine. A style
 // Ljós has none of (Imagine) is still the installed Qt's.
-export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", qt, styles = "ljos", with: standins = [], logLevel = "warn" } = {}) {
+export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", qt, styles = "ljos", with: standins = [], liveShell = false, logLevel = "warn" } = {}) {
   if (!dir) throw new SiteError("which bundle? buildSite({ dir })");
   dir = resolve(dir);
   out = resolve(out ?? `${dir}-site`);
@@ -337,23 +340,26 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
   const stage = mkdtempSync(join(tmpdir(), "ljos-site-"));
   try {
     writeFileSync(join(stage, "index.html"), PAGE);
-    writeFileSync(join(stage, "main.js"), MAIN);
+    writeFileSync(join(stage, "main.js"), liveShell ? LIVE : MAIN);
     await build({
       configFile: false,
       root: stage,
       base: "./",
       logLevel,
       cacheDir: join(runtime, "node_modules/.vite/ljos-site"),
-      plugins: [qml({ qmlc, args: ["--root", dir], qt, styles, standins, theme: theme ? join(dir, theme) : false })],
+      plugins: [qml({ qmlc, args: ["--root", dir], qt, styles, standins, theme: theme ? join(dir, theme) : false, liveShell })],
       resolve: {
         alias: {
           "ljos-site:entry": join(dir, manifest.entry),
           "ljos-site:object": join(runtime, "object.js"),
           "ljos-site:css": join(runtime, "style.css"),
+          "ljos-site:live": join(runtime, "Ljos/Blocks/live.js"),
         },
         dedupe: ["solid-js", "@solidjs/web", "@solidjs/signals"],
       },
       build: { outDir: join(stage, "dist"), emptyOutDir: true, target: "esnext", chunkSizeWarningLimit: 4000 },
+      // The live shell's compiler runs in a module worker.
+      worker: { format: "es" },
     });
     const site = join(stage, "dist");
     // Carried as it is too, for whatever reads it beside the page.
@@ -394,4 +400,13 @@ import { mount } from "ljos-site:object";
 import Entry from "ljos-site:entry";
 
 mount(Entry, document.getElementById("app"));
+`;
+
+// The page of a site with a live shell: the entry, under what lets a visitor
+// drop another.
+const LIVE = `import "ljos-site:css";
+import { liveShell } from "ljos-site:live";
+import Entry from "ljos-site:entry";
+
+liveShell(Entry, document.getElementById("app"));
 `;

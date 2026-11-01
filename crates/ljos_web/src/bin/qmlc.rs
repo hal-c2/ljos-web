@@ -62,10 +62,17 @@ impl Files for Disk {
     }
 
     fn entries(&self, directory: &Path) -> Vec<(String, bool)> {
-        let Ok(entries) = std::fs::read_dir(directory) else { return Vec::new() };
+        let Ok(entries) = std::fs::read_dir(directory) else {
+            return Vec::new();
+        };
         entries
             .flatten()
-            .map(|entry| (entry.file_name().to_string_lossy().into_owned(), entry.path().is_dir()))
+            .map(|entry| {
+                (
+                    entry.file_name().to_string_lossy().into_owned(),
+                    entry.path().is_dir(),
+                )
+            })
             .collect()
     }
 
@@ -84,22 +91,36 @@ fn qt_imports() -> Vec<PathBuf> {
     let mut found: Vec<PathBuf> = std::env::var_os("QML_IMPORT_PATH")
         .map(|paths| std::env::split_paths(&paths).collect())
         .unwrap_or_default();
-    let own = std::env::var_os("QT_INSTALL_QML").map(PathBuf::from).or_else(|| {
-        // Only a Qt 6 is one: Qt 5's `qtpaths` and `qmake`, which a machine
-        // may have on its path beside Qt 6's tools, name a QML directory of
-        // Qt 5's, which this compiler does not read.
-        ["qtpaths6", "qtpaths", "qmake6", "qmake"].into_iter().find_map(|tool| {
-            let query = if tool.starts_with("qmake") { "-query" } else { "--query" };
-            let ask = |what: &str| {
-                let asked = std::process::Command::new(tool).args([query, what]).output().ok()?;
-                let answer = String::from_utf8(asked.stdout).ok()?;
-                let answer = answer.trim();
-                (asked.status.success() && !answer.is_empty()).then(|| answer.to_owned())
-            };
-            let major: u32 = ask("QT_VERSION")?.split('.').next()?.parse().ok()?;
-            (major >= 6).then(|| ask("QT_INSTALL_QML")).flatten().map(PathBuf::from)
-        })
-    });
+    let own = std::env::var_os("QT_INSTALL_QML")
+        .map(PathBuf::from)
+        .or_else(|| {
+            // Only a Qt 6 is one: Qt 5's `qtpaths` and `qmake`, which a machine
+            // may have on its path beside Qt 6's tools, name a QML directory of
+            // Qt 5's, which this compiler does not read.
+            ["qtpaths6", "qtpaths", "qmake6", "qmake"]
+                .into_iter()
+                .find_map(|tool| {
+                    let query = if tool.starts_with("qmake") {
+                        "-query"
+                    } else {
+                        "--query"
+                    };
+                    let ask = |what: &str| {
+                        let asked = std::process::Command::new(tool)
+                            .args([query, what])
+                            .output()
+                            .ok()?;
+                        let answer = String::from_utf8(asked.stdout).ok()?;
+                        let answer = answer.trim();
+                        (asked.status.success() && !answer.is_empty()).then(|| answer.to_owned())
+                    };
+                    let major: u32 = ask("QT_VERSION")?.split('.').next()?.parse().ok()?;
+                    (major >= 6)
+                        .then(|| ask("QT_INSTALL_QML"))
+                        .flatten()
+                        .map(PathBuf::from)
+                })
+        });
     found.extend(own);
     found
 }
@@ -108,11 +129,17 @@ fn qt_imports() -> Vec<PathBuf> {
 /// as JSON on stdout (`null` when the entry has none), or its mistakes on
 /// stderr. A named file wins; otherwise the nearest `theme.json` from the
 /// entry's directory up to the root, the entry's directory when none is given.
-fn checked_theme(named: Option<PathBuf>, entry: Option<PathBuf>, root: Option<&Path>, seed_hue: Option<f64>) -> ExitCode {
+fn checked_theme(
+    named: Option<PathBuf>,
+    entry: Option<PathBuf>,
+    root: Option<&Path>,
+    seed_hue: Option<f64>,
+) -> ExitCode {
     let file = match (named, entry) {
         (Some(named), _) => named,
         (None, Some(entry)) => {
-            let absolute = |path: &Path| std::path::absolute(path).unwrap_or_else(|_| path.to_path_buf());
+            let absolute =
+                |path: &Path| std::path::absolute(path).unwrap_or_else(|_| path.to_path_buf());
             let entry = absolute(&entry);
             let dir = entry.parent().unwrap_or(Path::new("/")).to_path_buf();
             let project = root.map_or_else(|| dir.clone(), absolute);
@@ -123,7 +150,8 @@ fn checked_theme(named: Option<PathBuf>, entry: Option<PathBuf>, root: Option<&P
             // Told as the caller names it, so a mistake points at a path it
             // knows.
             let here = std::env::current_dir().ok().map(|dir| absolute(&dir));
-            here.and_then(|here| found.strip_prefix(here).ok().map(Path::to_path_buf)).unwrap_or(found)
+            here.and_then(|here| found.strip_prefix(here).ok().map(Path::to_path_buf))
+                .unwrap_or(found)
         }
         (None, None) => unreachable!("asked only with one of the two"),
     };
@@ -184,6 +212,7 @@ fn main() -> ExitCode {
     let mut options = Options::default();
     let mut lowered = false;
     let mut alone = false;
+    let mut shell = false;
     let mut types = None;
     let mut listing = false;
     let mut out_dir = None;
@@ -201,7 +230,10 @@ fn main() -> ExitCode {
             dumps.extend(args.next());
             continue;
         }
-        let mut value = |flag: &str| args.next().unwrap_or_else(|| panic!("{flag} needs a value"));
+        let mut value = |flag: &str| {
+            args.next()
+                .unwrap_or_else(|| panic!("{flag} needs a value"))
+        };
         match arg.as_str() {
             "--emit" => lowered = value("--emit") == "lowered",
             "--out-dir" => out_dir = Some(value("--out-dir")),
@@ -213,6 +245,7 @@ fn main() -> ExitCode {
             "--host" => options.host_module = value("--host"),
             "--runtime" => options.runtime_module = value("--runtime"),
             "--alone" => alone = true,
+            "--shell" => shell = true,
             "--urls-on-assignment" => options.urls_on_assignment = true,
             // What the file is called where an inspector says where things
             // are written: its path from the project, as the page has it.
@@ -225,12 +258,14 @@ fn main() -> ExitCode {
             "--theme-for" => theme_for = Some(PathBuf::from(value("--theme-for"))),
             "--seed-hue" => {
                 let hue = value("--seed-hue");
-                seed_hue = Some(hue.parse::<f64>().unwrap_or_else(|_| panic!("--seed-hue takes a number, not {hue}")));
+                seed_hue = Some(
+                    hue.parse::<f64>()
+                        .unwrap_or_else(|_| panic!("--seed-hue takes a number, not {hue}")),
+                );
             }
             _ => files.push(arg),
         }
     }
-
 
     if theme.is_some() || theme_for.is_some() {
         return checked_theme(theme, theme_for, root.as_deref(), seed_hue);
@@ -238,6 +273,35 @@ fn main() -> ExitCode {
 
     if listing {
         return listed_imports(&files);
+    }
+
+    // The contracts of the blocks a shell uses: what a page with a live
+    // shell compiles a dropped one against.
+    if shell {
+        let mut failed = false;
+        for file in &files {
+            let path = std::fs::canonicalize(file).unwrap_or_else(|_| PathBuf::from(file));
+            let project = root
+                .as_deref()
+                .map(|root| std::fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf()));
+            let project =
+                project.unwrap_or_else(|| path.parent().map(Path::to_path_buf).unwrap_or_default());
+            match ljos_web::shell::contracts(&Disk, &project, &path) {
+                Ok(contracts) => println!(
+                    "{}",
+                    serde_json::to_string(&contracts).expect("contracts are JSON")
+                ),
+                Err(error) => {
+                    eprintln!("{file}: {error}");
+                    failed = true;
+                }
+            }
+        }
+        return if failed {
+            ExitCode::FAILURE
+        } else {
+            ExitCode::SUCCESS
+        };
     }
 
     if let Some(types) = types {
@@ -282,22 +346,45 @@ fn main() -> ExitCode {
     };
     // Where the stand-ins are shown: the project's directory, which a tool
     // that compiles each file on its own names every time.
-    let shown = root.clone().or_else(|| dumps.first().and_then(|dump| Path::new(dump).parent().map(Path::to_path_buf)));
-    let shown = shown.map(|shown| if shown.as_os_str().is_empty() { PathBuf::from(".") } else { shown });
+    let shown = root.clone().or_else(|| {
+        dumps
+            .first()
+            .and_then(|dump| Path::new(dump).parent().map(Path::to_path_buf))
+    });
+    let shown = shown.map(|shown| {
+        if shown.as_os_str().is_empty() {
+            PathBuf::from(".")
+        } else {
+            shown
+        }
+    });
     let shown = shown.and_then(|shown| Disk.canonicalize(&shown));
-    let layered = shown.filter(|_| !read.is_empty()).map(|shown| Layered::new(&Disk, &shown, stand_ins));
-    let dumped = layered.as_ref().map(|layered| layered.directory().to_path_buf());
+    let layered = shown
+        .filter(|_| !read.is_empty())
+        .map(|shown| Layered::new(&Disk, &shown, stand_ins));
+    let dumped = layered
+        .as_ref()
+        .map(|layered| layered.directory().to_path_buf());
     let files_of: &dyn Files = match &layered {
         Some(layered) => layered,
         None => &Disk,
     };
-    let load = Load { files: files_of, root, imports, with, selectors, dumped };
+    let load = Load {
+        files: files_of,
+        root,
+        imports,
+        with,
+        selectors,
+        dumped,
+    };
     let (mut compiled, mut failed) = (0, 0);
     for file in &files {
         let path = Path::new(file);
         let Some(done) = load.compile(path, &mut options, alone, lowered) else {
-            let error = std::fs::read_to_string(path)
-                .err().map_or_else(|| "could not be read".to_string(), |error| error.to_string());
+            let error = std::fs::read_to_string(path).err().map_or_else(
+                || "could not be read".to_string(),
+                |error| error.to_string(),
+            );
             eprintln!("{file}: {error}");
             failed += 1;
             continue;
@@ -305,14 +392,21 @@ fn main() -> ExitCode {
         for warning in &done.warnings {
             eprintln!("warning: {warning}");
         }
-        let stem = path.file_stem().and_then(|stem| stem.to_str()).unwrap_or("Component");
+        let stem = path
+            .file_stem()
+            .and_then(|stem| stem.to_str())
+            .unwrap_or("Component");
         let is_script = path.extension().is_some_and(|extension| extension == "js");
         match done.result {
             Ok(output) => {
                 compiled += 1;
                 match &out_dir {
                     Some(dir) => {
-                        let name = if is_script { format!("{stem}.js") } else { format!("{stem}.qml.js") };
+                        let name = if is_script {
+                            format!("{stem}.js")
+                        } else {
+                            format!("{stem}.qml.js")
+                        };
                         let target = Path::new(dir).join(name);
                         std::fs::create_dir_all(dir).expect("output directory");
                         std::fs::write(&target, output.code).expect("writable output");
@@ -332,5 +426,9 @@ fn main() -> ExitCode {
     if files.len() > 1 {
         eprintln!("{compiled} compiled, {failed} failed");
     }
-    if failed == 0 { ExitCode::SUCCESS } else { ExitCode::FAILURE }
+    if failed == 0 {
+        ExitCode::SUCCESS
+    } else {
+        ExitCode::FAILURE
+    }
 }

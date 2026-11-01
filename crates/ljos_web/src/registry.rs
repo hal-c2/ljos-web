@@ -37,7 +37,10 @@ pub(crate) type Declarations = &'static [(&'static str, &'static str)];
 #[derive(Clone, Copy, Debug)]
 pub(crate) enum Prop {
     /// The value becomes one or more CSS properties.
-    Style { css: &'static [&'static str], unit: Unit },
+    Style {
+        css: &'static [&'static str],
+        unit: Unit,
+    },
     /// A boolean that switches CSS declarations on or off. The property is
     /// on by default when being on declares nothing.
     Toggle { on: Declarations, off: Declarations },
@@ -96,9 +99,14 @@ pub(crate) struct Types {
 impl Types {
     pub(crate) fn of(imports: &[QmlImport<'_>]) -> Self {
         let dialect = imports.iter().find_map(|import| {
-            let QmlImportSource::Module(module) = &import.source else { return None };
+            let QmlImportSource::Module(module) = &import.source else {
+                return None;
+            };
             let module = module.to_string();
-            DIALECTS.iter().copied().find(|dialect| dialect.module == module)
+            DIALECTS
+                .iter()
+                .copied()
+                .find(|dialect| dialect.module == module)
         });
         Self { dialect }
     }
@@ -120,6 +128,7 @@ impl Types {
     }
 
     pub(crate) fn is_known_unsupported(&self, name: &str) -> bool {
-        self.dialect.is_some_and(|dialect| (dialect.is_known_unsupported)(name))
+        self.dialect
+            .is_some_and(|dialect| (dialect.is_known_unsupported)(name))
     }
 }

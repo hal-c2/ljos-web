@@ -4,6 +4,7 @@
 // The first is Qt's sprite engine, for the one thing these items show: a
 // sprite ends when its time is up and the next is one of those it names, by
 // their weights, or the one on the shortest way to a goal.
+import { allowedUrl } from "../guard.js";
 import { rules } from "./compute.js";
 
 rules(
@@ -150,7 +151,7 @@ export function painted(self) {
     if (drawn[which] === key) return;
     drawn[which] = key;
     const style = layers[which].style;
-    style.backgroundImage = `url(${JSON.stringify(sheet.src)})`;
+    style.backgroundImage = `url(${JSON.stringify(allowedUrl(sheet.src))})`;
     style.backgroundSize = `${sheet.naturalWidth * across}px ${sheet.naturalHeight * down}px`;
     style.backgroundPosition = `${-FRAME.x * across}px ${-FRAME.y * down}px`;
   };

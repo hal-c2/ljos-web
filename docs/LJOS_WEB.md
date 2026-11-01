@@ -413,91 +413,231 @@ in it fails.
 ### A9. Live QML shell drop (opt-in)
 
 **What a shell is.** A QML file whose root composes the site's
-registered **blocks** by name. A block is a QML type the site
-registers (`registerBlock("Basket", Basket)`): it publishes state as
-properties and takes actions as invokable methods/signals. A shell
-may lay blocks out with QtQuick items, bind their properties to each
-other and wire their signals to their actions — nothing else.
-**DECISION:** the block model is ljos-studio's (ljos-ui's studio
-track) and its naming is taken when the Ljós lead relays it; until
-then `block` / `registerBlock` / `publishes` / `actions` are working
-names behind one module (`packages/runtime/shell/`).
+**blocks** (ljos-ui ADR 0003, the terms of `Ljos.Blocks`). A block is a
+QML type that its module's `qmldir` marks with
+`# block <Name> <version> <File.qml> [Category] ["summary"]`. Its
+**state** is its read-only properties, its **actions** are its
+functions and its **events** are its signals. A shell lays blocks out
+with QtQuick items, binds to their state, handles their events and
+calls their actions. It can do nothing else. Built: `ljos-web/live`
+(`packages/runtime/Ljos/Blocks/live.js`), the shell mode of the
+in-page compiler (`crates/ljos_web/src/shell.rs`), and its evaluator
+(`Ljos/Blocks/shell.js`).
 
-**Pipeline.**
+A site that turns this on takes on what is under *What a kept shell
+costs a site* below: for a visitor who keeps a shell, Settings and
+`QtQuick.LocalStorage` are kept by no write until Reset.
+
+**Pipeline, as built.**
 
 ```text
- build: vite qml({ liveShell: true })   (default false; or LJOS_LIVE_SHELL=1)
-   └▶ emits shell/compiler.wasm as a lazy chunk; the page bundle is unchanged
- page:  <ljos-shell-drop> (drag-and-drop zone + file picker)
-   1. visitor drops Shell.qml
-   2. import("ljos-web/shell") → instantiate compiler.wasm  (first use only)
-   3. compile(text, blockTable) → { ir, diagnostics }      (in a worker)
-   4. errors → inline panel over the old shell; the page keeps running
-   5. ok → mount(ir) beside the old root; carry state; swap; dispose old
-   6. localStorage["ljos-shell:" + site] = text  (until "Reset" clears it)
-   7. site.publish?.(text, meta)  — only if the site gave a hook
+ build: vite qml({ liveShell: true | { site } | (file) => … })   (default off)
+        buildSite({ dir, liveShell: true })                       (A12)
+   ├▶ each block (a `# block` line names its file) is held: one instance a page
+   └▶ the entry carries Entry.$live = { site, blocks: [contract + component] }
+        (`qmlc --shell` reads the contracts from the qmldir lines)
+ page:  liveShell(Entry, element, { site, publish, storage, file, allowedHosts })
+        a region with "Open a shell…" (a file picker), Reset, Publish
+        (only with a hook), a status line, and the drop zone over the page
+   1. the visitor drops or picks Shell.qml
+   2. a module Worker (shell-worker.js) fetches ljos_web_compiler.wasm
+      (first drop only) and compiles { shell: { text, blocks } }
+   3. → { diagnostics: [{ line, column, message }] }  shown in a role=alert
+        panel over the old shell as `Shell.qml:L:C: message`; it keeps running
+      → { shell: ljos_ir CompiledFile }  objects + tier-1 programs, no JS
+   4. import("./shell.js") → shellOf(ir, blocks) → reload(handle, Shell) (A13)
+   5. localStorage["ljos-shell:" + site] = text; a page load shows it again
+   6. Reset forgets it and reloads the page
+   7. Publish → publish(text, { blocks: [{ module, name, version }], hash })
+      (hash: the text's SHA-256, hex); its { url } or its error is shown
 ```
 
-- **The compiler** is `qml_syntax` + `qml_front` + the shell-mode
-  backend, built for wasm32. **DECISION:** a shell compiles to
-  `ljos_ir` (tier-1 bytecode, ARCHITECTURE.md §5), **not to JS**. A
-  tier-1 program can only do what its ops can: resolved reads and
-  writes, arithmetic and comparison with JS coercion, template
-  strings, pure builtins (`Math.*`, `qsTr`, `Qt.rgba/point/size/rect`),
-  calls of what it resolved. An expression outside that subset is a
-  compile error in shell mode, never a fallback to `eval`. This is the
-  same IR iOS runs changes as (goal 9), so the evaluator is shared,
-  not written for the web — which puts it behind the `ljos_meta` split
-  (section 13 item 2) too.
-- **Mounting IR**: a small tier-1 evaluator in the kernel wasm turns
-  each binding into a graph binding (seam K) and each object into a
-  `defineType` instance of a *registered* block or a QtQuick item from
-  an allow-list. Solid renders it like compiled QML.
-- **Carrying state.** Blocks are owned by the site, not the shell:
-  swapping a shell re-parents the same block instances where the new
-  shell names them, so their state survives by construction. Plain
-  items' state is carried by `objectName`/`id` match for writable
-  properties that are not bound in the new shell; anything else
-  starts fresh. **DECISION:** blocks are singletons per page by
-  default (a shell may name each at most once), which makes "keep
-  state where it can" exact for what matters.
-- **Errors inline.** Diagnostics carry the shell's line/column (the
-  compiler's own spans) and render in a panel the drop component
-  owns; a runtime error in a shell binding is warned and that binding
-  keeps its old value, as everywhere in QML.
-- **Publish hook.** The site may pass
-  `publish(text: string, meta: { blocks: string[], hash: string }) =>
-  Promise<{ url?: string }>`; ljos-web calls it when the visitor
-  presses Publish and shows its result or error. Endpoint, auth and
-  storage are the site's.
+- **The compiler** is the page's own (A15), `ljos_web_compiler.wasm`,
+  answering a second kind of request. In shell mode the front end
+  resolves every name at compile time against a closed scope:
+  - the shell's ids and its declared properties;
+  - its blocks' contracts;
+  - the QtQuick types `Item`, `Rectangle`, `Text`, `Row`, `Column`,
+    `Grid`, `Flow`, `MouseArea` and `Image`;
+  - pure builtins: `Math.*`, `qsTr*`, Qt's value functions
+    (`Qt.rgba`, `Qt.point`, `Qt.lighter`, …) and a primitive's own
+    methods.
 
-**Security: a shell has no more power than the site's blocks.**
+  Anything else is refused, with a diagnostic at its line and column.
+  What comes out is `ljos_ir` (at ljos-ui 0cd3287c, built for wasm32
+  without `ljos_engine`): the object tree, plus a tier-1 program for
+  every binding and handler. A program's numbers travel as the decimal
+  string of their bits, so a double survives JSON.
+- **The evaluator** (`shell.js`) is a switch over tier-1 ops in JS. It
+  has a budget of 100,000 steps per run. **DECISION** (lead): it runs
+  in JS on the page's graph, not in the kernel wasm. Bindings become
+  getters that Solid tracks, as compiled QML's are. One evaluator for
+  every platform is left for when tier-1 runs natively as well.
+- **Carrying state.** Blocks are the site's: a use of a block written in
+  a shell, with `liveShell`, is held (`held.js`), so there is one instance
+  per page for each name a shell gives it and each use of that name
+  (`Basket#basket`), which every shell that names it shows. A page with
+  two live shells shares them too. All else a use says lasts as long as
+  the use: what it sets is a layer over the block, what it handles is
+  connected, what it writes inside it is put where the block's file puts
+  children, what it declares (properties, signals, aliases, functions)
+  is kept on an object of its own and reached through the instance, and
+  what it attaches is the instance's until the shell goes. A use that
+  says what the block has no member for is warned of. The block's state
+  is the block's. What comes and goes while the page runs (a Repeater's
+  rows, a Loader's item, `createObject`) is not held: it is made anew
+  and goes when it goes, and survives a new shell only as a plain item
+  does. A plain item is carried by `reload` (A13): it is matched by
+  `id` or `objectName` and keeps what the program gave it while it ran.
+- **Errors inline.** Compile errors keep the old shell and say
+  `Shell.qml:line:column: message`. When a program throws or runs out
+  of budget at run time, the evaluator warns
+  `Shell.qml:L:C: the binding of text ran past its budget of 100000
+  steps and was stopped`, and the binding keeps its last value.
+- **Publish hook.** It is an interface only:
+  `publish(text, { blocks, hash }) => Promise<{ url? }>`. ljos-web
+  calls it when the visitor presses Publish, and shows the url or the
+  error. Endpoint, auth and storage are the site's.
 
-1. *No code but IR.* The shell never becomes JavaScript: no `eval`,
-   no `Function`, no `import()`, no Blob URLs, no `<script>`. CSP
-   `script-src` needs no `unsafe-eval` for this feature.
-2. *Closed scope.* Names resolve at compile time against: the shell's
-   own ids and properties, the block table, the QtQuick allow-list,
-   and pure builtins. There is no global object, no `window`, no
-   `document`, no `Qt.openUrlExternally`, no `XMLHttpRequest`, no
-   `Qt.createQmlObject`, no `Loader.source` with a URL, no
-   `import` of anything but `QtQuick` and the site's block module.
-3. *No reflective escape.* Tier-1 has no computed member access on
-   host objects and no prototype chain: `x["constructor"]` does not
-   exist as an op.
-4. *Network only through blocks.* `Image.source` and the like accept
-   only URLs a block gives (a block property of url type), never
-   literals from the shell. A block that offers network does so with
-   its own checks.
-5. *Bounded work.* The evaluator has the engine's interrupt budget;
-   a shell binding that runs away is stopped and warned, never hangs
-   the page.
-6. *Storage scoped.* Only the shell text is stored, under a key
-   derived from the site's id; reset deletes it.
+**Security: a shell has no more power than the site's blocks.** Each
+item holds by construction in the compiler. The evaluator checks it
+again at run time, in case a program says more than the compiler let
+it.
 
-**DECISION:** only the shell text is persisted and published — never
-compiled IR — so a stored shell is recompiled (and rechecked) by the
-compiler the page ships today.
+1. *No code but IR.* A shell never becomes JavaScript: there is no
+   `eval`, no `Function`, no `import()` of its text, no Blob URL and
+   no `<script>`. The page's CSP `script-src` needs neither
+   `unsafe-eval` nor `blob:`.
+2. *Closed scope.* There is no global object: `window`, `document`,
+   `eval`, `fetch`, `XMLHttpRequest`, `Qt.openUrlExternally` and
+   `Qt.createQmlObject` are all refused, and so are `this`, `new`,
+   functions, arrow calls and object literals. A shell may import only
+   `QtQuick` and the block modules the entry uses, without `as`.
+3. *No reflective escape.* A member is read by its name only;
+   `x["constructor"]` is refused. At run time, a read never yields a
+   function, the page or a DOM node; names starting with `$` or `__`
+   and `constructor`/`prototype` are refused; an index is only into an
+   array or a string.
+4. *Nothing leaves for another site.* A shell cannot write an address:
+   `Image.source` takes only a URL that a block gives (a block's `url`
+   state). A literal, or a URL built by concatenation or added to, is
+   refused, and a shell declares no `url` property, nor anything over a
+   member its object's type already has. Rich text would load what its
+   `<img>` names, so a shell's `Text` is plain: `textFormat` is refused
+   and forced to `PlainText`. But a shell can give a block any string,
+   and a block can pass it on by a way nothing can follow, so the page
+   enforces this where an address is loaded (`guard.js`). While a dropped
+   shell is shown in any live shell on the page, an `Image`, and every
+   other thing that loads an address (pictures, fonts, shaders, models,
+   media, map tiles, `XMLHttpRequest`, sockets, `Qt.openUrlExternally`),
+   fetches only from the page's own origin, the runtime's, `data:` and
+   `blob:`, or a host every shown shell's `allowedHosts` names. Anything
+   else is not asked for: it fails as a failed load does, and is warned
+   of once. The site's own blocks are under the same rule while the shell
+   is shown, as a block cannot tell whose string it has. No markup on the
+   page loads a picture or links anywhere at all, the hosts allowed
+   included. The guard is not lifted while the page lasts, by a
+   `dispose` either: a block keeps what a shell hands it, in its state, a
+   model, a closure or a timer, and no string says whose it is. Reset
+   forgets the shell and reloads the page, which is what takes all of it
+   away: the site's shell comes back as on a first visit, and block state
+   that only the page held comes back as the block starts. Between one
+   dropped shell and the next the blocks keep everything; the guard is up
+   all that time. Settings and `QtQuick.LocalStorage` written while the
+   guard is up last as long as the page, so the next page, which has no
+   guard until it shows a shell, has none of the shell's strings; the
+   first such write warns once, and `LocalStorage`'s `saved()` answers
+   `false`. A kept shell is shown again on each visit, so see *What a
+   kept shell costs a site* below. What this does not reach: storage or a server of the site's own that its
+   scripts write without those types (`localStorage`, `indexedDB`, a
+   request to its own origin). A string a block sends there comes back
+   unguarded when the site reads it back and fetches it: a site whose
+   blocks do that treats it as anything a visitor typed.
+   A refused `XMLHttpRequest`
+   tells a program what one that failed on the network tells: `DONE` with
+   status 0, then `error` and `loadend`.
+5. *Bounded work.* Each run has a budget of 100,000 steps. A runaway
+   binding is stopped and warned of, and the page keeps running.
+6. *Storage scoped.* Only the shell text is stored, under
+   `ljos-shell:<site>`, and Reset deletes it. A stored shell is
+   compiled and checked again on every load, by the compiler the page
+   ships that day.
+
+A block's state is written only by the block: when a shell assigns or
+binds `count`, it is told "`count` is a state of Basket: only the block
+writes it". A shell calls only its blocks' actions: `basket.destroy()`
+is refused.
+
+**What a kept shell costs a site.** A kept shell is shown again on every
+load, so the guard is up on every page that visitor opens, from just after
+the page starts. Until they press Reset, what any block writes to `Settings`
+or `QtQuick.LocalStorage`, the site's own blocks included, reads back on
+that page and is gone on the next, where the last value kept comes back.
+The first such write on a page warns once (`console.warn`), and
+`LocalStorage`'s `saved()` answers `false`. A site whose data must outlive
+the page sends it to its own server while a shell is shown (rule 4 says what
+that leaves it to treat with care). Shells are kept even so: not keeping them
+would take the feature away.
+
+**CSP.** The page runs under `script-src 'self'`. WebAssembly cannot be
+compiled under that policy, so the compiler runs in a dedicated module
+worker. A worker gets the policy of its own response, so the host
+serves `shell-worker-*.js` with `script-src 'self' 'wasm-unsafe-eval'`
+(or with no CSP header). Nothing the worker makes reaches the page but
+the JSON it posts. `site-tests/live.spec.js` serves a built site that
+way. The same test with the worker under the page's policy fails, so
+the header is what lets the drop work.
+
+**Size.** A page built without `liveShell` does not move: 149,629 B
+gzip, as before. A site built with it carries 4,935 B gzip more
+(`live.js`, `held.js`). The first drop also fetches `shell.js`
+(3,033 B gzip), the worker (458 B) and the compiler (1,142,198 B gzip,
+the same file as A15).
+
+**DECISIONs as built.**
+
+- The ADR 0003 terms replace the working names. There is no
+  `registerBlock`: the `qmldir` line is the registration, and
+  `packages/runtime/shell/` became `Ljos/Blocks/{live,held,shell,shell-worker}.js`.
+- The module is exported as `ljos-web/live`, lowercase like
+  `ljos-web/object`. It is no QML module, so it is not in
+  `modules.json`.
+- A shell declares only `int`, `real`, `double`, `bool`, `string` and
+  `color` properties. Aliases, `var`, lists, `url`, signals,
+  functions, inline components, enums and value sources (`on`) are
+  refused.
+- Blocks are held per name, not as page-wide singletons. Two shells
+  that give a block the same id show one instance; a new id is a new
+  one.
+- A shell whose root is of another type than the shown one is a new
+  tree, as any reload is (A13). Its plain items start anew, while its
+  blocks keep their state.
+- `buildSite` gives no publish hook, since a bundle has no code of its
+  own. A page that mounts itself passes `publish` to `liveShell`.
+- Only shell text is stored and published, never IR.
+
+**Scenarios.**
+
+- `packages/runtime/tests/drop.spec.js` (both kernels, 16):
+  - a dropped shell is shown and keeps the block and a plain item's
+    state;
+  - opened from a file with the keyboard;
+  - dropped as a file;
+  - a broken shell says `Shell.qml:4:…` and the page runs on;
+  - six refusals, one each: `window`, `eval`, `Qt.openUrlExternally`,
+    `x["constructor"]`, a URL literal for `Image.source`, an import of
+    `QtQuick.Controls`;
+  - a block's URL is one a shell may show;
+  - a runaway binding;
+  - a reload of the page restores the shell;
+  - Reset;
+  - publish, and a publish that fails.
+- `site-tests/live.spec.js`:
+  - a site built without `liveShell` has no drop and fetches nothing
+    of it;
+  - a site under `script-src 'self'` runs a dropped shell.
+- `crates/ljos_web/tests/shell.rs`: contracts, the IR, and every
+  refusal.
 
 ### A10. Where 3D plugs in
 
@@ -524,9 +664,9 @@ Each is stated where it is argued; listed here for review:
 6. Runtime Solid signals migrate to `#kernel` `signal()`/`version()` (A4).
 7. `@web` starts from what ljos-web already passes (A7).
 8. Loop divergences go into ljos-ui `features/` and `ljos_reactive`, not JS glue (A7).
-9. Block naming deferred to ljos-studio; working names behind one module (A9).
+9. Blocks take ADR 0003's terms: a `# block` qmldir line, state = read-only properties, actions = functions, events = signals (A9).
 10. Shells compile to tier-1 IR, never JS (A9).
-11. Blocks are per-page singletons; shells re-parent them (A9).
+11. A block is held per page, one instance per name a shell gives it; shells show that instance (A9).
 12. Only shell text is stored/published (A9).
 13. A graph evaluation owns what it makes, ended after the next one (A4).
 14. The module list is a committed file kept equal to the package by a test, not derived where it is read (A12).
@@ -535,6 +675,10 @@ Each is stated where it is argued; listed here for review:
 17. Only a root mounted `reloadable` records its tree; on by itself in a dev server (A13).
 18. `reload(root, Component)` knows no build tool; Vite and the live drop both call it (A13).
 19. The compiler in the page is `qmlc`'s, with the full type table; compiled files link as blob modules over stand-ins (A15).
+20. Shell mode is part of the in-page compiler's front end: names resolved against a closed scope, `ljos_ir` out, a JS evaluator with a step budget (A9).
+21. The shell compiler runs in a module worker served with its own CSP (`'wasm-unsafe-eval'`); the page keeps `script-src 'self'` (A9).
+22. `liveShell` is opt-in; a page without it does not move and fetches nothing of it (A9).
+23. A shell declares only value properties; its text is plain; `Image.source` takes only a block's URL (A9).
 
 ### A12. A site from a directory, and the modules a commit provides
 
@@ -784,13 +928,15 @@ given under `ljos-web/Q…` is installed for the compile too, so the
 page's own build of a module of Qt's (`Qt5Compat.GraphicalEffects`)
 is imported as it is in the page.
 
-**And A9.** A9's live shell compiles to tier-1 IR, never to JS, so a
-dropped shell has no more power than the site's blocks. This compiler
-is the other one: a program that compiles its own QML (its author's,
-not a visitor's) and wants exactly what `qmlc` makes of it. It uses
-blob URLs, so a page with a CSP needs `script-src blob:` for it, and
-it is not the shell drop's security model. The drop can load the same
-wasm the same lazy way, with a tier-1 back end in place of the JS one.
+**And A9.** The same wasm answers A9's live shell, in another mode. A
+`{ shell: { text, blocks } }` request resolves every name against a
+closed scope and answers `ljos_ir`, never JS, so a dropped shell has no
+more power than the site's blocks. The mode in this section is for a
+program that compiles its own QML (its author's, not a visitor's) and
+wants exactly what `qmlc` makes of it. It links blob URLs, so a page
+with a CSP needs `script-src blob:` for it. The shell drop needs
+neither `blob:` nor `unsafe-eval`: it runs the wasm in a worker served
+with `'wasm-unsafe-eval'`, and the page runs only data.
 
 **Scenarios.** `packages/runtime/tests/compiler.spec.js` (both
 kernels): a compile in the page is what `qmlc` makes of the same files

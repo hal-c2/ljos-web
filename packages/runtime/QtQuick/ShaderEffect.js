@@ -13,6 +13,7 @@
 // Not here: an item that is neither a picture, a Canvas nor another effect
 // as a texture (a page cannot draw its own elements into one), `blending:
 // false`, and a texture that follows a Canvas as it is painted.
+import { guardedFetch, sourced } from "../guard.js";
 import { onCleanup } from "solid-js";
 import { defineType, effect, flush, located, QtObject, slot } from "../object.js";
 import { Size } from "../QtQml/values.js";
@@ -99,7 +100,7 @@ function text(url) {
   };
   if (url.startsWith("data:")) took(decodeURIComponent(url.slice(url.indexOf(",") + 1)));
   else {
-    fetch(url)
+    guardedFetch(url)
       .then((answer) => (answer.ok ? answer.arrayBuffer() : Promise.reject(new Error(`${answer.status}`))))
       .then(async (data) => {
         const bytes = new Uint8Array(data);
@@ -239,7 +240,7 @@ function taken(item) {
       setReady(true);
       flush();
     };
-    element.src = url;
+    sourced(element, url);
   }
   return record.ready() ? record.element : null;
 }

@@ -11,6 +11,7 @@
     "./runtime.css": "./style.css",
     "./object": "./object.js",
     "./reload": "./reload.js",
+    "./live": "./Ljos/Blocks/live.js",
     "./compiler": "./compiler/index.js",
     "./inspect": "./inspect.js",
     "./picture": "./picture.js",

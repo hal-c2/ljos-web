@@ -36,6 +36,7 @@ export function reload(handle, Component) {
   const old = handle.object;
   const { element, options } = handle;
   const theme = keepTheme();
+  const known = kept(old, handle.Component);
   let root = null;
   let object = null;
   let focused;
@@ -43,7 +44,7 @@ export function reload(handle, Component) {
   try {
     root = made(Component, handle.props, true);
     object = root.object;
-    focused = root.within(() => carry(old, handle.Component, object, Component));
+    focused = root.within(() => pairedWith(known, object, Component));
     swapped = !!old.$node && !!object.$node && old.$node.parentNode === element;
     if (swapped) element.replaceChild(object.$node, old.$node);
     else if (object.$node) element.append(object.$node);
@@ -57,7 +58,8 @@ export function reload(handle, Component) {
     throw new ReloadError(`the reload was not applied: ${error?.message ?? error}`, { cause: error });
   }
   handle.root.dispose();
-  old.$node?.remove();
+  // A shell's root that is the block the last one's was is the same object.
+  if (old !== object) old.$node?.remove();
   handle.root = root;
   handle.object = object;
   handle.Component = Component;
@@ -138,17 +140,36 @@ function below(object, into) {
   return into;
 }
 
+// What the tree under `root` is keyed by and was given, apart from it: all a
+// new tree needs of it, whether the old one is still there or not.
+function kept(root, Old) {
+  const olds = new Map();
+  const all = new Set();
+  const records = new Map();
+  keyed(root, Old, (object, key) => {
+    all.add(object);
+    olds.set(key, olds.has(key) ? AMBIGUOUS : object);
+    records.set(object, {
+      type: typeOf(object, Old),
+      props: object.$props,
+      assigned: Object.entries(object.$slots ?? {}).flatMap(([key, held]) => (held.assigned ? [[key, held.value, held.kind?.type]] : [])),
+      focused: object.activeFocus === true && !object.$born?.some((child) => child.activeFocus === true),
+      selection: typeof object.selectionStart === "number" && object.selectionStart !== object.selectionEnd ? [object.selectionStart, object.selectionEnd] : null,
+      below: [...below(object, new Set())],
+    });
+  });
+  return { olds, all, records };
+}
+
 // Pairs the objects of the two trees and gives each new one what its old
 // one was given. Answers the new object that is to have the keyboard.
 // Ljos.Blocks' ShellLoader carries a reloaded shell with it too: the shell
 // is not a mounted root, but its tree is recorded under the loader.
 export function carry(oldRoot, Old, newRoot, New) {
-  const olds = new Map();
-  const all = new Set();
-  keyed(oldRoot, Old, (object, key) => {
-    all.add(object);
-    olds.set(key, olds.has(key) ? AMBIGUOUS : object);
-  });
+  return pairedWith(kept(oldRoot, Old), newRoot, New);
+}
+
+function pairedWith({ olds, all, records }, newRoot, New) {
   const pairs = new Map();
   const spent = new Set();
   // An object made anew, and those below it, are new whatever their keys.
@@ -160,17 +181,17 @@ export function carry(oldRoot, Old, newRoot, New) {
     }
     const old = olds.get(key);
     if (!old || old === AMBIGUOUS || spent.has(old) || pairs.has(old)) return;
-    if (typeOf(old, Old) !== typeOf(object, New)) {
+    if (records.get(old).type !== typeOf(object, New)) {
       anew.add(object);
-      below(old, spent);
+      for (const under of records.get(old).below) spent.add(under);
       return;
     }
     pairs.set(old, object);
   });
   let focused = null;
   for (const [old, object] of pairs) {
-    given(old, object, (value) => moved(value, all, pairs));
-    if (old.activeFocus === true && !old.$born?.some((child) => child.activeFocus === true)) focused = object;
+    given(records.get(old), object, (value) => moved(value, all, pairs));
+    if (records.get(old).focused) focused = object;
   }
   return focused;
 }
@@ -193,19 +214,17 @@ function same(before, after, key) {
 }
 
 function given(old, object, map) {
-  for (const [key, held] of Object.entries(old.$slots ?? {})) {
-    if (!held.assigned || !same(old.$props, object.$props, key)) continue;
+  for (const [key, value, type] of old.assigned) {
+    if (!same(old.props, object.$props, key)) continue;
     const into = slot(object, key);
     // A property whose type changed starts from what the file says.
-    if (!into || into.kind?.type !== held.kind?.type) continue;
+    if (!into || into.kind?.type !== type) continue;
     try {
-      into.write(map(held.value));
+      into.write(map(value));
     } catch (error) {
       if (!error.refused) throw error;
     }
   }
   // The text the user typed is kept with where the cursor was in it.
-  if (typeof object.select === "function" && typeof old.selectionStart === "number" && old.selectionStart !== old.selectionEnd) {
-    object.select(old.selectionStart, old.selectionEnd);
-  }
+  if (typeof object.select === "function" && old.selection) object.select(...old.selection);
 }

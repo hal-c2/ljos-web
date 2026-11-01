@@ -18,7 +18,10 @@ use crate::project::Project;
 /// The files `program` names, by their names: where each is, from the
 /// directory the project's files are known from.
 pub(crate) fn named(program: &Program<'_>, project: &Project) -> BTreeMap<String, String> {
-    let mut named = Named { project, found: BTreeMap::new() };
+    let mut named = Named {
+        project,
+        found: BTreeMap::new(),
+    };
     named.visit_program(program);
     named.found
 }
@@ -35,7 +38,12 @@ impl Named<'_> {
     /// the files that start so. `end` is how it ends, where that is known.
     fn name(&mut self, written: &str, end: &str) {
         // `:/images/icon.png` and `qrc:///images/icon.png` are the same.
-        let Some(rest) = written.strip_prefix("qrc:").or_else(|| written.strip_prefix(':')) else { return };
+        let Some(rest) = written
+            .strip_prefix("qrc:")
+            .or_else(|| written.strip_prefix(':'))
+        else {
+            return;
+        };
         if !rest.starts_with('/') {
             return;
         }

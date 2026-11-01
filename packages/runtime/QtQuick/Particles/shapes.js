@@ -3,6 +3,7 @@
 // `$contains(x, y, width, height, px, py)` says whether a point is in it.
 // Without a shape it is the whole rectangle, which `extrude` and `contains`
 // here answer for.
+import { sourced } from "../../guard.js";
 import { defineType, effect, QtObject } from "../../object.js";
 
 // QRectF's: the edges are inside, and a rectangle of no size has no inside.
@@ -153,7 +154,7 @@ export const MaskShape = defineType("MaskShape", QtObject, {
           // Unless the shape was given another source meanwhile.
           if (self.$loading === image) self.$image = image;
         };
-        image.src = String(source);
+        sourced(image, String(source));
       },
     );
   },

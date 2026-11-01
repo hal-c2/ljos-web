@@ -29,7 +29,12 @@ pub fn nearest(entry_dir: &str, project: &str, has: impl Fn(&str) -> bool) -> Op
     let project: Vec<&str> = parts(project).collect();
     let mut dir: Vec<&str> = parts(entry_dir).collect();
     loop {
-        let file = dir.iter().copied().chain([FILE]).collect::<Vec<_>>().join("/");
+        let file = dir
+            .iter()
+            .copied()
+            .chain([FILE])
+            .collect::<Vec<_>>()
+            .join("/");
         if has(&file) {
             return Some(file);
         }
@@ -41,7 +46,8 @@ pub fn nearest(entry_dir: &str, project: &str, has: impl Fn(&str) -> bool) -> Op
 }
 
 fn parts(dir: &str) -> impl Iterator<Item = &str> {
-    dir.split('/').filter(|part| !part.is_empty() && *part != ".")
+    dir.split('/')
+        .filter(|part| !part.is_empty() && *part != ".")
 }
 
 /// The theme as the runtime takes it: each role it sets, in the file's order,
@@ -58,7 +64,11 @@ pub fn json(theme: &Theme) -> String {
         if at > 0 {
             out.push(',');
         }
-        out += &format!("{{\"singleton\":{},\"role\":{},", string(entry.singleton), string(&entry.name));
+        out += &format!(
+            "{{\"singleton\":{},\"role\":{},",
+            string(entry.singleton),
+            string(&entry.name)
+        );
         match &entry.value {
             Setting::Color(variants) => {
                 let given = [
@@ -69,7 +79,9 @@ pub fn json(theme: &Theme) -> String {
                 ];
                 let fields: Vec<String> = given
                     .iter()
-                    .filter_map(|(name, colour)| Some(format!("\"{name}\":{}", string(colour.as_deref()?))))
+                    .filter_map(|(name, colour)| {
+                        Some(format!("\"{name}\":{}", string(colour.as_deref()?)))
+                    })
                     .collect();
                 out += &format!("\"variants\":{{{}}}", fields.join(","));
             }

@@ -41,7 +41,12 @@ pub struct DumpError {
 
 impl DumpError {
     fn whole(file: &str, message: String) -> Self {
-        Self { file: file.to_string(), line: 1, column: 1, message }
+        Self {
+            file: file.to_string(),
+            line: 1,
+            column: 1,
+            message,
+        }
     }
 }
 
@@ -153,7 +158,10 @@ pub fn read(file: &str, text: &str) -> Result<TypeDump, DumpError> {
     })?;
     if dump.format != FORMAT {
         // Native Ljós's words.
-        let message = format!("type dump format {} where {FORMAT} is read; write it again", dump.format);
+        let message = format!(
+            "type dump format {} where {FORMAT} is read; write it again",
+            dump.format
+        );
         return Err(DumpError::whole(file, message));
     }
     Ok(dump)
@@ -185,13 +193,21 @@ pub fn stand_ins(dumps: &[(String, TypeDump)]) -> Result<BTreeMap<String, String
         for module in &dump.modules {
             for entry in &module.types {
                 if seen.insert((module.uri.as_str(), entry.name.as_str())) {
-                    named.push(Planned { uri: Some(&module.uri), entry, file });
+                    named.push(Planned {
+                        uri: Some(&module.uri),
+                        entry,
+                        file,
+                    });
                 }
             }
         }
         for entry in &dump.unnamed {
             if seen.insert(("", entry.name.as_str())) {
-                unnamed.push(Planned { uri: None, entry, file });
+                unnamed.push(Planned {
+                    uri: None,
+                    entry,
+                    file,
+                });
             }
         }
     }
@@ -203,9 +219,20 @@ pub fn stand_ins(dumps: &[(String, TypeDump)]) -> Result<BTreeMap<String, String
         let place = place(planned.uri);
         files.insert(format!("{place}/{}.qml", planned.entry.name), text);
         if let Some(uri) = planned.uri {
-            let qmldir = qmldirs.entry(uri).or_insert_with(|| format!("module {uri}\n"));
-            let singleton = if planned.entry.singleton { "singleton " } else { "" };
-            let _ = writeln!(qmldir, "{singleton}{0} {1} {0}.qml", planned.entry.name, version(&planned.entry.since));
+            let qmldir = qmldirs
+                .entry(uri)
+                .or_insert_with(|| format!("module {uri}\n"));
+            let singleton = if planned.entry.singleton {
+                "singleton "
+            } else {
+                ""
+            };
+            let _ = writeln!(
+                qmldir,
+                "{singleton}{0} {1} {0}.qml",
+                planned.entry.name,
+                version(&planned.entry.since)
+            );
         }
     }
     for (uri, qmldir) in qmldirs {
@@ -226,7 +253,8 @@ fn place(uri: Option<&str>) -> String {
 /// `1.0` of a `since` that is a version, else `1.0`: the import names no
 /// version, so any is taken.
 fn version(since: &str) -> &str {
-    let is_version = since.split('.').count() == 2 && since.split('.').all(|part| part.parse::<u32>().is_ok());
+    let is_version =
+        since.split('.').count() == 2 && since.split('.').all(|part| part.parse::<u32>().is_ok());
     if is_version { since } else { "1.0" }
 }
 
@@ -239,7 +267,12 @@ fn dumped_base<'p, 'd>(
     let base = entry.base.as_deref()?;
     named
         .iter()
-        .filter(|planned| entry.base_module.as_deref().is_none_or(|module| Some(module) == planned.uri))
+        .filter(|planned| {
+            entry
+                .base_module
+                .as_deref()
+                .is_none_or(|module| Some(module) == planned.uri)
+        })
         .find(|planned| planned.entry.name == base)
         .or_else(|| unnamed.iter().find(|planned| planned.entry.name == base))
 }
@@ -247,7 +280,8 @@ fn dumped_base<'p, 'd>(
 /// The module of the toolkit's that has the type `name`: `module` when the
 /// dump says which, otherwise the first that has it, QML's own first.
 fn toolkit_module(name: &str, module: Option<&str>) -> Option<String> {
-    let has = |uri: &str| qt_types::module(uri).is_some_and(|found| found.type_named(name).is_some());
+    let has =
+        |uri: &str| qt_types::module(uri).is_some_and(|found| found.type_named(name).is_some());
     if let Some(module) = module {
         return has(module).then(|| module.to_string());
     }
@@ -264,7 +298,10 @@ fn check_bases(planned: &Planned, named: &[Planned], unnamed: &[Planned]) -> Res
     while let Some(base) = dumped_base(entry, named, unnamed) {
         steps += 1;
         if std::ptr::eq(base.entry, planned.entry) || steps > named.len() + unnamed.len() {
-            return Err(DumpError::whole(planned.file, format!("the bases of {} loop", planned.entry.name)));
+            return Err(DumpError::whole(
+                planned.file,
+                format!("the bases of {} loop", planned.entry.name),
+            ));
         }
         entry = base.entry;
     }
@@ -301,7 +338,8 @@ fn file_of(planned: &Planned, named: &[Planned], unnamed: &[Planned]) -> String 
         }
         None => {
             let base = entry.base.as_deref().unwrap_or("QtObject");
-            let module = toolkit_module(base, entry.base_module.as_deref()).unwrap_or_else(|| "QtQml".to_string());
+            let module = toolkit_module(base, entry.base_module.as_deref())
+                .unwrap_or_else(|| "QtQml".to_string());
             imports.insert(format!("import {module}"));
             base.to_string()
         }
@@ -316,10 +354,23 @@ fn file_of(planned: &Planned, named: &[Planned], unnamed: &[Planned]) -> String 
     }
     let _ = writeln!(text, "\n{root} {{");
     for enumeration in &entry.enums {
-        let keys: Vec<String> = enumeration.keys.iter().map(|(key, value)| format!("{key} = {value}")).collect();
-        let _ = writeln!(text, "    enum {} {{ {} }}", enumeration.name, keys.join(", "));
+        let keys: Vec<String> = enumeration
+            .keys
+            .iter()
+            .map(|(key, value)| format!("{key} = {value}"))
+            .collect();
+        let _ = writeln!(
+            text,
+            "    enum {} {{ {} }}",
+            enumeration.name,
+            keys.join(", ")
+        );
     }
-    let declared: BTreeSet<&str> = entry.properties.iter().map(|property| property.name.as_str()).collect();
+    let declared: BTreeSet<&str> = entry
+        .properties
+        .iter()
+        .map(|property| property.name.as_str())
+        .collect();
     for property in &entry.properties {
         let mut words = Vec::new();
         if entry.default_property.as_deref() == Some(property.name.as_str()) {
@@ -331,13 +382,29 @@ fn file_of(planned: &Planned, named: &[Planned], unnamed: &[Planned]) -> String 
         // A group is made, as natively, and is the same object throughout:
         // `font.size: 3` sets a property of it.
         let group = property.kind == PropertyKind::Group
-            && unnamed.iter().chain(named).any(|planned| planned.entry.name == property.ty);
+            && unnamed
+                .iter()
+                .chain(named)
+                .any(|planned| planned.entry.name == property.ty);
         if property.readonly || group {
             words.push("readonly");
         }
-        let ty = if group { property.ty.clone() } else { property_type(property) };
-        let value = if group { format!(": {} {{}}", property.ty) } else { String::new() };
-        let _ = writeln!(text, "    {} property {ty} {}{value}", words.join(" "), property.name);
+        let ty = if group {
+            property.ty.clone()
+        } else {
+            property_type(property)
+        };
+        let value = if group {
+            format!(": {} {{}}", property.ty)
+        } else {
+            String::new()
+        };
+        let _ = writeln!(
+            text,
+            "    {} property {ty} {}{value}",
+            words.join(" "),
+            property.name
+        );
         // A change signal of another name than QML gives the property's.
         if let Some(notify) = &property.notify
             && *notify != format!("{}Changed", property.name)
@@ -348,24 +415,47 @@ fn file_of(planned: &Planned, named: &[Planned], unnamed: &[Planned]) -> String 
     }
     for signal in &entry.signals {
         // What QML declares with the property already.
-        if signal.name.strip_suffix("Changed").is_some_and(|property| declared.contains(property))
+        if signal
+            .name
+            .strip_suffix("Changed")
+            .is_some_and(|property| declared.contains(property))
             && signal.parameters.is_empty()
         {
             continue;
         }
-        let parameters: Vec<String> =
-            signal.parameters.iter().map(|parameter| format!("{} {}", value_type(&parameter.ty), parameter.name)).collect();
-        let _ = writeln!(text, "    signal {}({})", signal.name, parameters.join(", "));
+        let parameters: Vec<String> = signal
+            .parameters
+            .iter()
+            .map(|parameter| format!("{} {}", value_type(&parameter.ty), parameter.name))
+            .collect();
+        let _ = writeln!(
+            text,
+            "    signal {}({})",
+            signal.name,
+            parameters.join(", ")
+        );
     }
     for method in &entry.methods {
-        let parameters: Vec<&str> = method.parameters.iter().map(|parameter| parameter.name.as_str()).collect();
-        let _ = writeln!(text, "    function {}({}) {{}}", method.name, parameters.join(", "));
+        let parameters: Vec<&str> = method
+            .parameters
+            .iter()
+            .map(|parameter| parameter.name.as_str())
+            .collect();
+        let _ = writeln!(
+            text,
+            "    function {}({}) {{}}",
+            method.name,
+            parameters.join(", ")
+        );
     }
     text.push_str("}\n");
     // A group's type is a file of the unnamed ones, which a module's file
     // imports by its directory.
     if entry.properties.iter().any(|property| {
-        property.kind == PropertyKind::Group && unnamed.iter().any(|planned| planned.entry.name == property.ty)
+        property.kind == PropertyKind::Group
+            && unnamed
+                .iter()
+                .any(|planned| planned.entry.name == property.ty)
     }) && planned.uri.is_some()
     {
         let import = format!("import \"{}\"\n", towards(planned.uri, None));
@@ -389,7 +479,9 @@ fn property_type(property: &PropertyEntry) -> String {
     match property.kind {
         PropertyKind::Enum | PropertyKind::Flags if !property.list => "int".to_string(),
         PropertyKind::Object | PropertyKind::Group if !property.list => "QtObject".to_string(),
-        PropertyKind::List | PropertyKind::Object | PropertyKind::Group => "list<QtObject>".to_string(),
+        PropertyKind::List | PropertyKind::Object | PropertyKind::Group => {
+            "list<QtObject>".to_string()
+        }
         _ if property.list => "var".to_string(),
         _ => value_type(&property.ty).to_string(),
     }
@@ -398,8 +490,10 @@ fn property_type(property: &PropertyEntry) -> String {
 /// A value type as QML names it; one QML has no name for holds anything.
 fn value_type(name: &str) -> &'static str {
     match name {
-        "int" | "qint32" | "i32" | "u32" | "i16" | "u16" | "i8" | "u8" | "uint" | "short" | "ushort" => "int",
-        "real" | "double" | "float" | "qreal" | "f64" | "f32" | "i64" | "u64" | "qint64" | "quint64" => "real",
+        "int" | "qint32" | "i32" | "u32" | "i16" | "u16" | "i8" | "u8" | "uint" | "short"
+        | "ushort" => "int",
+        "real" | "double" | "float" | "qreal" | "f64" | "f32" | "i64" | "u64" | "qint64"
+        | "quint64" => "real",
         "bool" => "bool",
         "string" | "QString" | "String" => "string",
         "url" | "QUrl" => "url",
@@ -430,8 +524,16 @@ impl<'f> Layered<'f> {
     /// `root`, which is absolute.
     pub fn new(files: &'f dyn Files, root: &Path, stand_ins: BTreeMap<String, String>) -> Self {
         let under = root.join(DIRECTORY);
-        let texts = stand_ins.into_iter().map(|(path, text)| (under.join(path), text)).collect();
-        Self { files, under, texts, here: std::env::current_dir().unwrap_or_default() }
+        let texts = stand_ins
+            .into_iter()
+            .map(|(path, text)| (under.join(path), text))
+            .collect();
+        Self {
+            files,
+            under,
+            texts,
+            here: std::env::current_dir().unwrap_or_default(),
+        }
     }
 
     /// `path` cleaned and, when relative, taken from where qmlc runs.
@@ -445,7 +547,11 @@ impl<'f> Layered<'f> {
     }
 
     fn is_directory(&self, path: &Path) -> bool {
-        path.starts_with(&self.under) && self.texts.keys().any(|file| file.starts_with(path) && file != path)
+        path.starts_with(&self.under)
+            && self
+                .texts
+                .keys()
+                .any(|file| file.starts_with(path) && file != path)
     }
 }
 
@@ -466,10 +572,14 @@ impl Files for Layered<'_> {
         let directory = cleaned;
         let mut found: BTreeMap<String, bool> = BTreeMap::new();
         for path in self.texts.keys() {
-            let Ok(rest) = path.strip_prefix(&directory) else { continue };
+            let Ok(rest) = path.strip_prefix(&directory) else {
+                continue;
+            };
             let mut parts = rest.components();
             let Some(first) = parts.next() else { continue };
-            *found.entry(first.as_os_str().to_string_lossy().into_owned()).or_default() |= parts.next().is_some();
+            *found
+                .entry(first.as_os_str().to_string_lossy().into_owned())
+                .or_default() |= parts.next().is_some();
         }
         found.into_iter().collect()
     }
@@ -485,7 +595,8 @@ impl Files for Layered<'_> {
     fn canonicalize(&self, path: &Path) -> Option<PathBuf> {
         let cleaned = self.clean(path);
         if cleaned.starts_with(&self.under) {
-            return (self.texts.contains_key(&cleaned) || self.is_directory(&cleaned)).then_some(cleaned);
+            return (self.texts.contains_key(&cleaned) || self.is_directory(&cleaned))
+                .then_some(cleaned);
         }
         self.files.canonicalize(path)
     }

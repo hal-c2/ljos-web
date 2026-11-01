@@ -61,19 +61,28 @@ fn uninstalled(document: &QmlDocument<'_>, project: &Project, options: &Options)
         project.has_module(uri)
             || QtTypeOracle.has_module(uri)
             || RUNTIME.contains(&format!("\"./{path}\""))
-            || options.qt_imports.iter().any(|root| root.join(&path).join("qmldir").is_file())
+            || options
+                .qt_imports
+                .iter()
+                .any(|root| root.join(&path).join("qmldir").is_file())
             || options.installed.iter().any(|module| module == uri)
     };
     document
         .imports
         .iter()
         .filter_map(|import| {
-            let QmlImportSource::Module(uri) = &import.source else { return None };
+            let QmlImportSource::Module(uri) = &import.source else {
+                return None;
+            };
             let uri = uri.to_string();
             if let Some((_, why)) = NOT_ON_THE_WEB.iter().find(|(module, _)| *module == uri) {
-                return Some(Error::new(format!("module \"{uri}\" is not on the web: {why}"), import.span));
+                return Some(Error::new(
+                    format!("module \"{uri}\" is not on the web: {why}"),
+                    import.span,
+                ));
             }
-            (!installed(&uri)).then(|| Error::new(format!("module \"{uri}\" is not installed"), import.span))
+            (!installed(&uri))
+                .then(|| Error::new(format!("module \"{uri}\" is not installed"), import.span))
         })
         .collect()
 }
@@ -90,7 +99,10 @@ fn lower_from<'a>(
     files: &mut usize,
     text: bool,
 ) -> Result<Program<'a>, Vec<Error>> {
-    let types = Types { project, file: &options.name };
+    let types = Types {
+        project,
+        file: &options.name,
+    };
     let mut errors = Vec::new();
     let tree = Tree::analyze(&document, types, &mut errors);
 
@@ -106,11 +118,20 @@ fn lower_from<'a>(
         Some(types::Origin::File(file)) => *file != options.name,
         _ => true,
     };
-    let shadows = tree.objects.iter().any(|object| object.name == stem && is_other(&object.origin));
+    let shadows = tree
+        .objects
+        .iter()
+        .any(|object| object.name == stem && is_other(&object.origin));
     // `pragma Singleton`: what the file exports is the one object, and the
     // function that makes it has to be called something else.
-    let is_singleton = project.summary(&options.name).is_some_and(|summary| summary.is_singleton);
-    let name = if shadows || is_singleton { format!("{stem}$component") } else { stem.to_string() };
+    let is_singleton = project
+        .summary(&options.name)
+        .is_some_and(|summary| summary.is_singleton);
+    let name = if shadows || is_singleton {
+        format!("{stem}$component")
+    } else {
+        stem.to_string()
+    };
 
     let mut lower = Lower::new(b, &tree, types, stem);
     lower.uses.paths.known.clone_from(&options.files);
@@ -119,7 +140,9 @@ fn lower_from<'a>(
     if text {
         // What a text names and does not have is looked for where it is
         // written, whatever it is.
-        lower.dynamic.extend(project.mentions(&options.name).cloned());
+        lower
+            .dynamic
+            .extend(project.mentions(&options.name).cloned());
     }
     lower.assigned = options.urls_on_assignment;
     // A text's places would be in the text, not in the file.
@@ -138,7 +161,11 @@ fn lower_from<'a>(
         // A singleton named like the type it is one of (`QtObject.qml`, a
         // QtObject) leaves the name to the type, as QML does: an import
         // comes before the file's own directory.
-        let one = if shadows { format!("{stem}$singleton") } else { stem.to_string() };
+        let one = if shadows {
+            format!("{stem}$singleton")
+        } else {
+            stem.to_string()
+        };
         let mut arguments = vec![b.id(&name), b.record(enums)];
         // Known by its module's name, a singleton is one a page can reach
         // from outside the QML: a theme overrides `Ljos.Design.Colors`.
@@ -157,8 +184,21 @@ fn lower_from<'a>(
     }
     let mut program = b.program(source, body);
     let mut uses = lower.uses;
-    names::resolve(b, &mut program, &tree, types, stem, &lower.dynamic, &mut uses, &mut errors);
-    if uses.handles.iter().any(|handle| handle.starts_with("$scope")) {
+    names::resolve(
+        b,
+        &mut program,
+        &tree,
+        types,
+        stem,
+        &lower.dynamic,
+        &mut uses,
+        &mut errors,
+    );
+    if uses
+        .handles
+        .iter()
+        .any(|handle| handle.starts_with("$scope"))
+    {
         uses.kernel.insert("$context");
     }
     // The files of the program the module names, it says where they are.
@@ -226,7 +266,10 @@ fn lower_from<'a>(
     imports.extend(tables);
     for (address, path) in &kept {
         let path = types::relative(&options.name, path);
-        let url = b.member(b.new_(b.id("URL"), [b.string(&path), b.import_meta_url()]), "href");
+        let url = b.member(
+            b.new_(b.id("URL"), [b.string(&path), b.import_meta_url()]),
+            "href",
+        );
         imports.push(b.statement(b.call(b.id("$resource"), [b.string(address), url])));
     }
     imports.extend(made);

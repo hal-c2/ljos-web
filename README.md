@@ -364,20 +364,26 @@ described type does not have is an error where it is written. A mock of the
 same type (`-I mocks`) or the project's own QML wins. A site build takes none.
 
 ## Ljós's own models
+
 `import Ljos.Models` gives `JsonListModel`, a list whose rows are the objects
 of a JSON array in `json` or in the file `source` names, as Ljós has it
 natively. A dev server reads the file again when it is saved, a built site
 when `reload()` is called, and a page that compiles QML reads it from the
 files given to `compile`. `Ljos.Observer` is refused by qmlc: a page inspects
 itself with `ljos-web/inspect` (docs/LJOS_WEB.md, A19).
+
 ```qml
 import QtQuick
 import Ljos.Models
+
 ListView {
     model: JsonListModel { id: people; source: "data/people.json" }
     delegate: Text { required property string name; text: name }
 }
+```
+
 ## Blocks and a user's shell
+
 `import Ljos.Blocks` gives a page Ljós's `Contribution`, `Slot` and
 `ShellLoader` (docs/LJOS_WEB.md A21). A `ShellLoader` whose `source` is a
 file of the build shows it as any compiled QML; one whose `source` is not
@@ -385,7 +391,11 @@ file of the build shows it as any compiled QML; one whose `source` is not
 with `ljos-web/compiler`, loaded only then, and shows `fallback` with
 `error` saying `file:line: message` when it does not work. `reload()`
 compiles it again and keeps the state of what is in both.
+
+```qml
+import QtQuick
 import Ljos.Blocks
+
 Item {
     Contribution { slot: "toolbar"; Rectangle { width: 20; height: 20 } }
     ShellLoader {
@@ -393,6 +403,46 @@ Item {
         source: "user/Shell.qml"      // not in the build: compiled in the page
         fallback: "Default.qml"       // in the build
     }
+}
+```
+
+## A shell a visitor drops
+
+A site built with `qml({ liveShell: true })` (or `buildSite({ liveShell: true })`)
+lets its visitors drop a `Shell.qml` of their own over its blocks
+(docs/LJOS_WEB.md A9). A block is a type its module's `qmldir` marks:
+
+```text
+module Shop
+Basket 1.0 Basket.qml
+# block Basket 1.0 Basket.qml Shop "Holds what the visitor buys"
+```
+
+Its read-only properties are its state, its functions its actions, its
+signals its events. The page mounts its entry with `liveShell`:
+
+```js
+import { liveShell } from "ljos-web/live";
+import Shell from "./Shell.qml";
+
+liveShell(Shell, document.getElementById("app"), {
+  publish: async (text, { blocks, hash }) => ({ url: await save(text) }), // optional
+});
+```
+
+A dropped shell is compiled in a worker by the page's compiler, fetched on
+the first drop, to data the page runs (never to JavaScript); a name outside
+its scope (`window`, `eval`, `x["constructor"]`, a URL of its own, an import
+beyond QtQuick and the block modules) is an error at its line and column,
+shown over the shell that keeps running. The blocks keep their state across
+shells. The visitor's shell is kept in `localStorage` for the site until
+Reset. Until then, on every visit, what blocks write to `Settings` and
+`QtQuick.LocalStorage` lasts only as long as the page, and the first such write
+warns (`docs/LJOS_WEB.md`, *What a kept shell costs a site*). Under a CSP of
+`script-src 'self'`, serve `shell-worker-*.js` with
+`script-src 'self' 'wasm-unsafe-eval'`. A site without `liveShell` has none
+of it and is the same size.
+
 ## What is supported
 
 Of the language: property declarations (with `required`, `readonly`,

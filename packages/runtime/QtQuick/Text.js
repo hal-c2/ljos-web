@@ -532,7 +532,7 @@ export const Text = defineType("Text", Item, {
         const { made } = next;
         const style = content.style;
         if (made.kind) {
-          if (shown.kind !== made.kind || shown.text !== made.text) content.replaceChildren(elements(made.text));
+          if (shown.kind !== made.kind || shown.text !== made.text || shown.inert !== made.inert) content.replaceChildren(elements(made.text));
           clothe(content, made.look);
           style.setProperty("--qq-link", next.link);
           style.textTransform = next.capitals;

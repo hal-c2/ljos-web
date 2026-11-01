@@ -1,0 +1,19 @@
+module Shop
+# block Basket 1.0 Basket.qml Shop "Holds what the visitor buys"
+Basket 1.0 Basket.qml
+# block Card 1.0 Card.qml Shop "One of many"
+Card 1.0 Card.qml
+# block Title 1.0 Title.qml Shop "A line of text a shell gives"
+Title 1.0 Title.qml
+# block Headline 1.0 Headline.qml Shop "A heading a shell gives the words of"
+Headline 1.0 Headline.qml
+# block Note 1.0 Note.qml Shop "Markup of the site's own"
+Note 1.0 Note.qml
+# block Panel 1.0 Panel.qml Shop "Holds what a shell writes inside it"
+Panel 1.0 Panel.qml
+# block Pic 1.0 Pic.qml Shop "A picture a shell names"
+Pic 1.0 Pic.qml
+# block Sinks 1.0 Sinks.qml Shop "Fetches what a shell names"
+Sinks 1.0 Sinks.qml
+# block Keeps 1.0 Keeps.qml Shop "Keeps what it is handed"
+Keeps 1.0 Keeps.qml

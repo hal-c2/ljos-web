@@ -9,6 +9,7 @@
 // out. Contributions find their Slots by name through a registry of the
 // page's, so anything in the application (a page, a plugin a Loader brings
 // in, the site around a user's shell) adds to a place it does not hold.
+import { guardedFetch } from "../../guard.js";
 import { getOwner, onCleanup, runWithOwner } from "solid-js";
 import { bounded, defineType, derived, effect, instantiate, QtObject, slot, whenMade } from "../../object.js";
 import { Item } from "../../QtQuick/Item.js";
@@ -179,7 +180,7 @@ async function compiled(url) {
   const file = decodeURIComponent(address.pathname.split("/").pop() || "Shell.qml");
   let text;
   try {
-    const response = await fetch(address);
+    const response = await guardedFetch(address);
     if (!response.ok) return { error: `${file}: cannot load ${address.href}: ${response.status}` };
     text = await response.text();
   } catch (error) {
