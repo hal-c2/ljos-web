@@ -1,11 +1,14 @@
 // A site whose visitors may drop a shell of their own (docs/LJOS_WEB.md A9),
 // and one whose visitors may not: what each page is, served as a host would
 // serve it.
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
-import { extname, join, normalize } from "node:path";
+import { tmpdir } from "node:os";
+import { dirname, extname, join, normalize } from "node:path";
 import { expect, test } from "@playwright/test";
+import { build } from "vite";
 import { buildSite } from "../site.js";
+import qml from "../vite.js";
 import { bundle, qmlc } from "./bundle.js";
 
 const port = Number(process.env.LJOS_SITE_PORT ?? 4480) + 7;
@@ -70,6 +73,49 @@ test.describe("a site built without a live shell", () => {
     expect(asked.filter((url) => /\.wasm$|shell-worker|compiler/.test(url))).toEqual([]);
     // Nor is any of it written beside the page.
     expect(all(made.out).filter((path) => /\.wasm$|shell-worker/.test(path))).toEqual([]);
+  });
+});
+
+test.describe("a site whose blocks are on an import path", () => {
+  test.describe.configure({ mode: "serial" });
+  let place;
+  let server;
+  test.beforeAll(async () => {
+    place = realpathSync(mkdtempSync(join(tmpdir(), "ljos-live-")));
+    const files = {
+      "index.html": '<!doctype html><script type="module" src="/main.js"></script>',
+      "main.js": 'import Main from "./Main.qml";\nwindow.live = Main.$live.blocks.map(({ name, file, component }) => [name, file, typeof component]);\n',
+      "Main.qml": "import QtQuick\nimport Shop\nBasket { }\n",
+      "../vendor/Shop/qmldir": 'module Shop\n# block Basket 1.0 Basket.qml Shop "From the vendor"\n',
+      "../vendor/Shop/Basket.qml": "import QtQuick\nItem { }\n",
+    };
+    for (const [name, text] of Object.entries(files)) {
+      const file = join(place, "app", name);
+      mkdirSync(dirname(file), { recursive: true });
+      writeFileSync(file, text);
+    }
+    const app = join(place, "app");
+    await build({
+      configFile: false,
+      root: app,
+      base: "./",
+      logLevel: "error",
+      plugins: [qml({ qmlc, root: app, importPaths: [join(place, "vendor")], liveShell: true })],
+      build: { outDir: join(place, "out"), target: "esnext", chunkSizeWarningLimit: 4000 },
+      worker: { format: "es" },
+    });
+    server = await serve(join(place, "out"), port + 2);
+  });
+  test.afterAll(async () => {
+    await new Promise((done) => server?.close(done));
+    if (place) rmSync(place, { recursive: true, force: true });
+  });
+
+  test("A block on an import path is offered, its file said from the root and no further", async ({ page }) => {
+    await page.goto(`http://127.0.0.1:${port + 2}/`);
+    await expect.poll(() => page.evaluate(() => window.live)).toEqual([["Basket", "../vendor/Shop/Basket.qml", "function"]]);
+    const written = all(join(place, "out")).filter((path) => path.endsWith(".js"));
+    for (const path of written) expect(readFileSync(join(place, "out", path), "utf8")).not.toContain(place);
   });
 });
 

@@ -900,12 +900,13 @@ export default function qml({
       // uses, as their qmldir says, and their components.
       if (live && entries.has(file)) {
         const home = projectOf(file);
-        const asked = spawnSync(qmlc, ["--shell", "--root", home, file], { encoding: "utf8" });
+        // Asked as the file is compiled, so its blocks are the modules its compile finds.
+        const asked = spawnSync(qmlc, ["--shell", ...given, "--root", home, file], { encoding: "utf8" });
         if (asked.error) this.error(`could not run ${qmlc}: ${asked.error.message}`);
         if (asked.status !== 0) this.error(asked.stderr.trim());
         const contracts = JSON.parse(asked.stdout);
         const site = (typeof live === "object" && live.site) || basename(home);
-        const imports = contracts.map((contract, at) => `import $$block${at} from ${JSON.stringify(join(home, contract.file))};`);
+        const imports = contracts.map((contract, at) => `import $$block${at} from ${JSON.stringify(resolvePath(home, contract.file))};`);
         const blocks = contracts.map((contract, at) => `{ ...${JSON.stringify(contract)}, component: $$block${at} }`);
         code += `\n${imports.join("\n")}\n${component}.$live = { site: ${JSON.stringify(site)}, blocks: [${blocks.join(", ")}] };\n`;
       }
