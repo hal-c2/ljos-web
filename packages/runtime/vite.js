@@ -227,7 +227,12 @@ function baked(context, file) {
   if (there) {
     context.addWatchFile(file);
     const bytes = readFileSync(file);
-    text = heldShader(bytes[4] === 0x78 ? inflateSync(bytes.subarray(4)) : bytes);
+    // One that cannot be read holds nothing, as one is on the page.
+    try {
+      text = heldShader(bytes[4] === 0x78 ? inflateSync(bytes.subarray(4)) : bytes);
+    } catch {
+      text = null;
+    }
   }
   if (!text) {
     if (!existsSync(source)) context.error(there ? `${file} has no shader for OpenGL ES in it` : `${file} is not there, nor is ${source} to bake it from`);

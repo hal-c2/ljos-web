@@ -189,6 +189,21 @@ test("a shader named as what Qt's tool bakes needs no tool of Qt's", async ({ pa
   await settled(page, [250, 50], [0, 255, 0], 0, "a baked file with no source beside it");
 });
 
+test.describe("a shader named as baked", () => {
+  test.use({ told: [/^ShaderEffect: ERROR/] });
+  test("that is wrong says so, and one that holds nothing is made from its source", async ({ page }) => {
+    await open(page, "qtlessshaderfaults");
+    const Compiled = 0;
+    const Failed = 2;
+    await expect.poll(() => page.evaluate(() => JSON.parse(JSON.stringify(window.scene.statuses())))).toEqual([Failed, Failed, Compiled, Compiled]);
+    const [wrong, malformed] = await page.evaluate(() => window.scene.logs());
+    expect(wrong).toContain("nothing");
+    expect(malformed).not.toBe("");
+    await settled(page, [250, 50], [0, 255, 0], 0, "a file that cannot be read, with its source beside it");
+    await settled(page, [350, 50], [0, 255, 0], 0, "a file with no OpenGL ES in it, with its source beside it");
+  });
+});
+
 test("a modal popup of a style with no shade of its own still shades the window", async ({ page }) => {
   await open(page, "qtlessdim");
   await settled(page, [20, 20], [148, 148, 149], 2, "what is behind it");
