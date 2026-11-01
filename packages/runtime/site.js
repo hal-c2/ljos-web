@@ -197,6 +197,13 @@ export function check(dir, qmlc = process.env.QMLC ?? "qmlc") {
     if (module) throw new SiteError(`${file} declares module ${module}, which modules does not name`);
   }
 
+  for (const { block, file } of manifest.blocks ?? []) {
+    if (!listed.has(file)) throw new SiteError(`the block ${block}'s file ${file} is not a listed file`);
+  }
+  for (const { path } of manifest.left_out ?? []) {
+    if (listed.has(path)) throw new SiteError(`${path} is said to be left out but is in the bundle`);
+  }
+
   // What it takes from ljos-web, sorted and once, each provided by it.
   const offered = new Map(provided().modules.map((entry) => [entry.module, entry]));
   imports.forEach((module, index) => {
