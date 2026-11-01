@@ -2391,3 +2391,8 @@ test("a View3D says how fast it draws", async ({ page }) => {
   // The one drawn once has not had a second of frames.
   expect(later.still).toMatchObject({ fps: 0, maxFrameTime: 0 });
 });
+
+test("a CustomMaterial's max and min are as GLSL says they are, of what is no number too", async ({ page }) => {
+  await open(page, "undefinedmax3d");
+  await expect.poll(async () => (await pixels(page, [[50, 50]]))[0]).toBe("255 255 255");
+});

@@ -153,6 +153,26 @@ function worded(source, corners, takes) {
   return { text: all.map((word) => word.text).join(""), has, handed };
 }
 
+// GLSL says max is "y if x < y, otherwise x", and min the other way about, and
+// Qt's OpenGL does just that; WebGL's built-ins can answer NaN if either side
+// is. A shader may lean on it: FX_Material_Showroom's floor takes
+// max(0.0, 0.0 / 0.0) where its roughness is 0, and was black with the built-in.
+// Whole numbers are never NaN: they have the built-ins, under the same name.
+const SIZES = ["", 2, 3, 4];
+const forms = (row, one) => SIZES.flatMap((n) => (n ? [[`${row}${n}`, `${row}${n}`], [`${row}${n}`, one]] : [[one, one]]));
+const ORDERED = [
+  ...forms("vec", "float").map(([a, b]) => {
+    const y = a === b ? "y" : `${a}(y)`;
+    const pick = a === "float" ? (test) => `${test[0]} < ${test[1]} ? y2 : x` : (test) => `mix(x, y2, lessThan(${test[0]}, ${test[1]}))`;
+    return `${a} qt_max(${a} x, ${b} y) { ${a} y2 = ${y}; return ${pick(["x", "y2"])}; }
+${a} qt_min(${a} x, ${b} y) { ${a} y2 = ${y}; return ${pick(["y2", "x"])}; }`;
+  }),
+  ...[...forms("ivec", "int"), ...forms("uvec", "uint")].map(
+    ([a, b]) => `${a} qt_max(${a} x, ${b} y) { return max(x, y); }
+${a} qt_min(${a} x, ${b} y) { return min(x, y); }`,
+  ),
+].join("\n");
+
 // What both shaders are told besides what the renderer's own are.
 const BOTH = `
 uniform mat4 u_view;
@@ -403,7 +423,9 @@ function whole({ text, reader }, declared, extra, piece, main) {
   const reading = reader.fork();
   reading.declare(`${declared}\n${extra}`);
   const fitted = reading.fitted(piece);
-  return `${text}\n${declared}\n${extra}\n${fitted.text}\nvoid qt_customGlobals() {\n${fitted.begun.join("\n")}\n}\n${prefixed(main)}`;
+  // After it is fitted: the reader knows what max and min give.
+  const ordered = (code) => code.replace(/(?<![\w.])(max|min)(?=\s*\()/g, "qt_$1");
+  return `${text}\n${declared}\n${extra}\n${ORDERED}\n${ordered(fitted.text)}\nvoid qt_customGlobals() {\n${ordered(fitted.begun.join("\n"))}\n}\n${prefixed(main)}`;
 }
 
 // The two shaders a CustomMaterial draws with. `own` is the renderer's
