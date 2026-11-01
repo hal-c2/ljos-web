@@ -652,7 +652,7 @@ delivered by the runtime's pointer code and picked in wasm. ljos-web
 builds nothing 3D; it provides the canvas, the frame clock and the
 graph.
 
-As built so far (A22): the wgpu crate is reached through
+As built so far (A25): the wgpu crate is reached through
 `crates/ljos_web_3d` and is opt-in per page, `?view3d=wgpu` or
 `VITE_LJOS_VIEW3D=wgpu`; the default is still `QtQuick3D/render.js`.
 Picking stays in JavaScript (`pick.js`), not wasm.
