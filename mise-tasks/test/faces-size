@@ -3,12 +3,7 @@
 #MISE depends=["build:kernel", "packages"]
 set -euo pipefail
 
-bindgen="$PWD/examples/wasm-counter/.tools/wasm-bindgen-0.2.129-x86_64-unknown-linux-musl/wasm-bindgen"
-if [ ! -x "$bindgen" ]; then
-  mkdir -p examples/wasm-counter/.tools
-  curl -fsSL https://github.com/rustwasm/wasm-bindgen/releases/download/0.2.129/wasm-bindgen-0.2.129-x86_64-unknown-linux-musl.tar.gz \
-    | tar xz -C examples/wasm-counter/.tools
-fi
+bindgen="$(mise-tasks/tool/wasm-bindgen)"
 
 # Made absolute before the cd, as CARGO_TARGET_DIR may be either.
 out="$(realpath -m "${CARGO_TARGET_DIR:-target}/size")"

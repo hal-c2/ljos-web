@@ -1574,7 +1574,20 @@ what is declared and has no glTF reader.
 
 Known gaps: a live `sourceItem` texture and a `TextureData` that is not
 RGBA8 give no picture; a `.tga` is a picture on both renderers, a `.ktx` only
-on the JavaScript one, since `ljos_3d` has no KTX reader.
+on the JavaScript one, since `ljos_3d` has no KTX reader. A `Geometry` with an `I32Type` attribute is not
+drawn, and the console says so once: the renderer reads no signed integers.
+A shader that does not translate leaves its model without that material,
+and the console says why once. `RuntimeLoader` says `status` and
+`errorString` only on wgpu, and only of a loader the build reached: one
+inside something invisible says them when it is next shown. While its file
+is on its way it says `Empty`. A file that failed is read again when a
+loader or a model comes to name it again, not on its own.
+
+What a view keeps is one revision of each shape, picture and table, the one
+it draws. A `Geometry` committed every frame stays level
+(`tests/view3d-wgpu.spec.js`, "is let go"); on the build before that, a
+hundred revisions took wasm from 27 to 97 MB and live GPU objects from 102
+to 402. Programs are kept by their text until the view goes.
 
 What it reaches today, built with the `ljos_3d` that has the corpus's fixes (the
 pin in `crates/ljos_web_3d/Cargo.toml` has to reach them; this crate does not

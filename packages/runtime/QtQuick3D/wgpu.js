@@ -8,7 +8,7 @@
 // one of those changes. An unset member answers nothing, so that the defaults
 // are the mapping's own. A build that draws the same asks for no frame;
 // one that draws differently asks for one. Nothing here runs otherwise.
-import { located, slot, effect } from "../object.js";
+import { flush, located, slot, effect } from "../object.js";
 import { color } from "../QtQuick/color.js";
 import { guardedFetch } from "../guard.js";
 import { signal, untrack } from "#kernel";
@@ -30,14 +30,17 @@ const chunks = import.meta.glob("./wgpu/ljos_web_3d.js");
 
 let module = null;
 let drawnModels = null;
+let memory = null;
 async function chunk() {
   const load = chunks["./wgpu/ljos_web_3d.js"];
   if (!load) throw new Error("View3D: the renderer is not built (mise run build:wasm-3d)");
   // Fetched with it: a page on the other renderer does not carry these shaders.
   ({ drawnModels } = await import("./Particles3D/drawn.js"));
-  module = await load();
-  await module.default();
-  NAMES = module.propNames();
+  // Kept only once it works: a next view asks again after a failed fetch.
+  const loaded = await load();
+  ({ memory } = await loaded.default());
+  NAMES = loaded.propNames();
+  module = loaded;
 }
 let NAMES = null;
 
@@ -371,6 +374,17 @@ class Host {
   report(url, error) {
     console.warn(`${this.view.$type.typeName}: ${url}: ${error}`);
   }
+  // Asked in the build's effect, and what this writes may be read by what
+  // the build reads: so after it.
+  loaderStatus(o, status, error) {
+    const loader = this.objectsBy.get(o);
+    if (loader.status === status && loader.errorString === error) return;
+    queueMicrotask(() => {
+      loader.status = status;
+      loader.errorString = error;
+      flush();
+    });
+  }
   request() {
     this.ask();
   }
@@ -386,7 +400,7 @@ export function drawOn(self, canvas, told) {
   let gone = false;
   let wanted = false;
   let own = false;
-  const state = (canvas.$view3d = { backend: null, frames: 0, builds: 0, error: null });
+  const state = (canvas.$view3d = { backend: null, frames: 0, builds: 0, error: null, memory: () => memory?.buffer.byteLength ?? 0 });
   // A view that reads itself reads what it drew before and is not drawn again
   // for that.
   self.$view = () => {
