@@ -607,6 +607,42 @@ fn a_module_nobody_has_is_refused_as_its_compile_refuses_it() {
 }
 
 #[test]
+fn a_syntax_error_in_a_block_is_said_as_its_compile_says_it() {
+    let place = Path::new(env!("CARGO_TARGET_TMPDIR")).join("shell-bad-block");
+    let _ = std::fs::remove_dir_all(&place);
+    std::fs::create_dir_all(place.join("app/Shop")).unwrap();
+    std::fs::create_dir_all(place.join("app/src")).unwrap();
+    let shell = "import QtQuick\nimport Shop\nItem { }\n";
+    std::fs::write(place.join("app/Main.qml"), shell).unwrap();
+    std::fs::write(place.join("app/src/Main.qml"), shell).unwrap();
+    std::fs::write(
+        place.join("app/Shop/qmldir"),
+        "module Shop\n# block Bad 1.0 Bad.qml Shop \"A basket\"\n",
+    )
+    .unwrap();
+    std::fs::write(
+        place.join("app/Shop/Bad.qml"),
+        "import QtQuick\nItem {\n    width: 1\n}}\n",
+    )
+    .unwrap();
+    let run = |words: &[&str]| {
+        let output = std::process::Command::new(env!("CARGO_BIN_EXE_qmlc"))
+            .args(["--root", "app"])
+            .args(words)
+            .current_dir(&place)
+            .output()
+            .unwrap();
+        assert!(!output.status.success());
+        String::from_utf8_lossy(&output.stderr).into_owned()
+    };
+    let compiled = run(&["app/Shop/Bad.qml"]);
+    assert!(compiled.starts_with("app/Shop/Bad.qml:4:"), "{compiled}");
+    assert_eq!(run(&["--shell", "app/Main.qml"]), compiled);
+    // From further down, the name is the same one and not `app/src/../Shop`.
+    assert_eq!(run(&["--shell", "app/src/Main.qml"]), compiled);
+}
+
+#[test]
 fn a_module_a_dump_stands_in_for_is_found() {
     let output = asked_with(&[
         "--root",
