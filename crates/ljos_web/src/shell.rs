@@ -271,7 +271,18 @@ fn as_written(load: &Load, shell: &Path, path: &Path) -> PathBuf {
         }
     }
     // Through a symlink, what is above in the name is not what `..` reaches.
-    if load.files.canonicalize(&named) == load.files.canonicalize(path) {
+    // By the directories, as a block that is missing has no path to compare.
+    let directory_of = |file: &Path| {
+        let parent = file.parent().unwrap_or(Path::new(""));
+        let parent = if parent.as_os_str().is_empty() {
+            Path::new(".")
+        } else {
+            parent
+        };
+        load.files.canonicalize(parent)
+    };
+    let here = directory_of(&named);
+    if here.is_some() && here == directory_of(path) {
         named
     } else {
         written.join(relative)

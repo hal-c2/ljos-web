@@ -668,25 +668,32 @@ fn a_block_that_cannot_be_read_is_said_as_the_build_writes_it() {
     let place = Path::new(env!("CARGO_TARGET_TMPDIR")).join("shell-gone-block");
     let _ = std::fs::remove_dir_all(&place);
     std::fs::create_dir_all(place.join("app/Shop")).unwrap();
-    std::fs::write(
-        place.join("app/Main.qml"),
-        "import QtQuick\nimport Shop\nItem { }\n",
-    )
-    .unwrap();
+    std::fs::create_dir_all(place.join("app/src")).unwrap();
+    let shell = "import QtQuick\nimport Shop\nItem { }\n";
+    std::fs::write(place.join("app/Main.qml"), shell).unwrap();
+    std::fs::write(place.join("app/src/Main.qml"), shell).unwrap();
     std::fs::write(
         place.join("app/Shop/qmldir"),
         "module Shop\n# block Gone 1.0 Gone.qml Shop \"A basket\"\n",
     )
     .unwrap();
-    let output = std::process::Command::new(env!("CARGO_BIN_EXE_qmlc"))
-        .args(["--shell", "--root", "app", "app/Main.qml"])
-        .current_dir(&place)
-        .output()
-        .unwrap();
-    assert!(!output.status.success());
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(place.join("app/src"), place.join("link")).unwrap();
+    let asked = |shell: &str| {
+        let output = std::process::Command::new(env!("CARGO_BIN_EXE_qmlc"))
+            .args(["--shell", "--root", "app", shell])
+            .current_dir(&place)
+            .output()
+            .unwrap();
+        assert!(!output.status.success());
+        String::from_utf8_lossy(&output.stderr).into_owned()
+    };
+    assert_eq!(asked("app/Main.qml"), "cannot read app/Shop/Gone.qml\n");
+    assert_eq!(asked("app/src/Main.qml"), "cannot read app/Shop/Gone.qml\n");
+    #[cfg(unix)]
     assert_eq!(
-        String::from_utf8_lossy(&output.stderr),
-        "cannot read app/Shop/Gone.qml\n"
+        asked("link/Main.qml"),
+        "cannot read link/../Shop/Gone.qml\n"
     );
 }
 
