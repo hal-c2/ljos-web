@@ -222,6 +222,24 @@ for (const backend of ["webgpu", "webgl2"]) {
       near(await at(page, 320 + 25, 150 + 25), [255, 255, 255]);
     });
 
+    test.describe("while a dropped shell is shown", () => {
+      test.use({ told: [/not fetched while a dropped shell|model\.gltf: cannot be read/] });
+      test("a loader's file from another host is not fetched", async ({ page }) => {
+        let asked = 0;
+        await page.route(/evil\.example/, (route) => (asked++, route.abort()));
+        await show(page, "wgpu_loader");
+        await page.evaluate(async () => {
+          // The page's own instance of the guard, by the address it was loaded from.
+          const address = performance.getEntriesByType("resource").find(({ name }) => /\/guard\.js/.test(name)).name;
+          (await import(address)).zoneShows({});
+          window.objects.loader.source = "https://evil.example/model.gltf";
+        });
+        await still(page);
+        await still(page);
+        expect(asked).toBe(0);
+      });
+    });
+
     test("two entries draw two copies and not the model, and an entry moves its copy", async ({ page }) => {
       await show(page, "wgpu_instancing");
       near(await at(page, 150, 150), [255, 255, 0]);
@@ -277,9 +295,9 @@ for (const backend of ["webgpu", "webgl2"]) {
       near(await at(page, 100, 50), [255, 0, 0]);
     });
 
-    test.fixme("the picture is the native renderer's within 3 a channel on all but 0.5 % of pixels", async ({ page }) => {
+    test("the picture is the native renderer's within 3 a channel on all but 0.5 % of pixels", async ({ page }) => {
       await show(page, "wgpu_reference");
-      const shot = (await page.screenshot()).toString("base64");
+      const shot = (await page.screenshot({ clip: { x: 0, y: 0, width: 400, height: 300 } })).toString("base64");
       const reference = readFileSync(join(import.meta.dirname, "references3d/lit.png")).toString("base64");
       const { over, total, largest } = await page.evaluate(
         async ([shot, reference]) => {

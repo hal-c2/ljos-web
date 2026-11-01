@@ -10,6 +10,7 @@
 // one that draws differently asks for one. Nothing here runs otherwise.
 import { located, slot, effect } from "../object.js";
 import { color } from "../QtQuick/color.js";
+import { guardedFetch } from "../guard.js";
 import { signal, untrack } from "#kernel";
 import { CustomMaterial } from "./CustomMaterial.js";
 import { handed, text } from "./effects.js";
@@ -275,7 +276,7 @@ class Host {
     this.setArrivals((count) => count + 1);
   }
   async fetched(url) {
-    const response = await fetch(located(url));
+    const response = await guardedFetch(located(url));
     if (!response.ok) throw `${response.status} ${response.statusText}`;
     return new Uint8Array(await response.arrayBuffer());
   }
