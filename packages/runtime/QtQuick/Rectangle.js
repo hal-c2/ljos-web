@@ -48,7 +48,7 @@ export const Rectangle = defineType("Rectangle", Item, {
       () => self.gradient?.$css() ?? css(self.color),
       (background) => {
         const allowed = allowedStyle(background);
-        style.background = allowed;
+        style.background = allowed; // guarded
         if (self.$under) style.setProperty("--qq-fill", allowed);
       },
     );
