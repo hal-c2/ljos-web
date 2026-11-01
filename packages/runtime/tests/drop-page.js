@@ -13,6 +13,7 @@ import { saved as databasesSaved } from "ljos-web/QtQuick/LocalStorage";
 
 window.publishing = { answer: { url: "https://shells.example/1" } };
 window.liveShell = liveShell;
+window.pictureOf = async (root) => (await import("ljos-web/picture")).picture(root);
 window.Shell = Shell;
 window.Reaches = Reaches;
 window.Keeping = Keeping;

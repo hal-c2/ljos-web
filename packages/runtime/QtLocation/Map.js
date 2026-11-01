@@ -6,7 +6,7 @@
 // as elements of one layer which is moved, enlarged and turned as a whole:
 // a tile is an element for as long as it is in view, and the element of one
 // that left is the next one's.
-import { sourced } from "../guard.js";
+import { allowedStyle, sourced } from "../guard.js";
 import { defineType, derived, effect, slot } from "../object.js";
 import { coordinate, fromMercator, INVALID, latitudeAt, mercatorX, mercatorY } from "../QtPositioning/coordinate.js";
 import { Point } from "../QtQml/values.js";
@@ -344,7 +344,7 @@ export const Map = defineType("Map", Item, {
     );
     effect(
       () => css(self.color),
-      (background) => void (node.style.background = background),
+      (background) => void (node.style.background = allowedStyle(background)),
     );
     effect(
       () => (self.activeMapType, self.$view()),

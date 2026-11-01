@@ -77,3 +77,64 @@ export function sourced(element, url) {
 // `url` where it may be fetched, nothing where it may not: for what is said
 // to the browser in a style or an attribute, which tells of no failure.
 export const allowedUrl = (url) => (mayFetch(url) ? url : "");
+
+// What a value of a style may call. CSS can load an address from `url()`,
+// `image()`, `image-set()`, `cross-fade()`, `src()` and whatever comes next,
+// written in capitals, in escapes or behind a comment, so an address is not
+// looked for: what is here is what is known to load nothing, and anything else
+// is not used. A value is read as the browser would only as far as that needs:
+// no escape, no string, no comment and no way out of the declaration.
+const INERT = new Set([
+  "",
+  "rgb",
+  "rgba",
+  "hsl",
+  "hsla",
+  "hwb",
+  "lab",
+  "lch",
+  "oklab",
+  "oklch",
+  "color",
+  "color-mix",
+  "linear-gradient",
+  "radial-gradient",
+  "conic-gradient",
+  "repeating-linear-gradient",
+  "repeating-radial-gradient",
+  "repeating-conic-gradient",
+  "blur",
+  "opacity",
+  "drop-shadow",
+  "inset",
+  "polygon",
+  "calc",
+]);
+function inert(text) {
+  if (/[\\"'@;{}<>]|\/\*/.test(text)) return false;
+  for (const [, name] of text.matchAll(/([\w-]*)\(/g)) if (!INERT.has(name.toLowerCase())) return false;
+  return true;
+}
+
+function unused(text, instead) {
+  if (!told.has(text)) {
+    told.add(text);
+    console.warn(`not used while a dropped shell is shown: ${text}`);
+  }
+  return instead;
+}
+
+// A value for a style that holds pictures or filters, as the runtime makes one
+// up from colours and numbers. Its own filters and masks are in this document,
+// and asked for by a name it chose.
+export function allowedStyle(value) {
+  if (zones.size === 0) return value;
+  const text = String(value);
+  return inert(text.replace(/url\(#qq-[\w-]+\)/g, "")) ? value : unused(text, "");
+}
+
+// A colour, and nothing else: all of it has to be one, as the browser reads it.
+export function allowedColour(text) {
+  if (zones.size === 0) return text;
+  return inert(text) && CSS.supports("color", text) ? text : unused(text, "transparent");
+}

@@ -21,7 +21,7 @@
 //   there, and is left out here.
 // - The effect of an item's layer (`layer.effect: MultiEffect {}`) is what
 //   Qt draws of the item, where the item is: all of it is done to the item.
-import { allowedUrl } from "../../guard.js";
+import { allowedStyle, allowedUrl } from "../../guard.js";
 import { onCleanup } from "solid-js";
 import { Rect } from "../../QtQml/values.js";
 import { defineType, derived, effect, slot } from "../../object.js";
@@ -363,7 +363,7 @@ export const MultiEffect = defineType("MultiEffect", Item, {
     };
     const clear = (given) => {
       const style = given.node.style;
-      style.filter = style.mask = style.translate = style.scale = style.clipPath = "";
+      style.filter = style.mask = style.translate = style.scale = style.clipPath = ""; // guarded: cleared
       if (given.shown) show(given.shown, false);
     };
 
@@ -377,11 +377,11 @@ export const MultiEffect = defineType("MultiEffect", Item, {
         if (next.colours) tint(next.colours);
         if (next.mask) cut(next.mask, next.levels);
         const style = next.node.style;
-        style.filter = next.filter;
-        style.mask = next.mask ? `url(#${names.mask})` : "";
+        style.filter = allowedStyle(next.filter);
+        style.mask = next.mask ? allowedStyle(`url(#${names.mask})`) : "";
         style.translate = next.translate ?? "";
         style.scale = next.scale ?? "";
-        style.clipPath = next.clip ?? "";
+        style.clipPath = allowedStyle(next.clip ?? "");
         if (next.shown) show(next.shown, true);
       },
     );

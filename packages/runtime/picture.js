@@ -17,6 +17,7 @@
 //
 // Nothing is kept: each picture is read when it is asked for, and nothing
 // waits or watches between two.
+import { mayFetch } from "./guard.js";
 import { flush } from "./object.js";
 import { described, loads, stem } from "./QtQuick/FontLoader.js";
 
@@ -234,10 +235,10 @@ function copy(node, { width, height, area, blank, name }) {
       made.removeAttribute("sizes");
       made.removeAttribute("loading");
       const url = element.currentSrc || element.src;
-      if (url) inline(url, element, (found) => made.setAttribute("src", found));
+      if (url) inline(url, element, (found) => made.setAttribute("src", found)); // guarded: a data URL
     } else if (element.namespaceURI === SVG && kind === "image") {
       const url = element.href?.baseVal;
-      if (url) inline(new globalThis.URL(url, document.baseURI).href, element, (found) => made.setAttribute("href", found));
+      if (url) inline(new globalThis.URL(url, document.baseURI).href, element, (found) => made.setAttribute("href", found)); // guarded: a data URL
     } else if (kind === "input") {
       if (element.scrollLeft || element.scrollTop) visible && refuse(element, "is scrolled");
       made.setAttribute("value", element.value);
@@ -301,7 +302,7 @@ function copy(node, { width, height, area, blank, name }) {
       else if (!gl.getContextAttributes()?.preserveDrawingBuffer) visible && refuse(element, "is a WebGL canvas that does not keep its drawing (preserveDrawingBuffer)");
     }
     try {
-      made.setAttribute("src", element.toDataURL());
+      made.setAttribute("src", element.toDataURL()); // guarded: a data URL
     } catch {
       if (visible) refuse(element, "draws a picture from another origin");
     }
@@ -317,7 +318,7 @@ function copy(node, { width, height, area, blank, name }) {
     canvas.getContext("2d").drawImage(element, 0, 0);
     const made = document.createElementNS(XHTML, "img");
     try {
-      made.setAttribute("src", canvas.toDataURL());
+      made.setAttribute("src", canvas.toDataURL()); // guarded: a data URL
     } catch {
       if (visible) refuse(element, "plays a video from another origin");
     }
@@ -350,9 +351,10 @@ async function data(url) {
 }
 
 async function fetched(url) {
+  if (!mayFetch(url)) throw "is not fetched while a dropped shell is shown";
   let response;
   try {
-    response = await fetch(url);
+    response = await fetch(url); // guarded
   } catch {
     throw "is from another origin that does not let this page read it";
   }
@@ -434,7 +436,7 @@ const escaped = (text) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;");
 // The SVG drawn into a canvas, and the canvas as a PNG.
 async function drawn(svg, [width, height]) {
   const image = new Image();
-  image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  image.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`; // guarded: a data URL
   try {
     await image.decode();
   } catch {
