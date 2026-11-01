@@ -166,28 +166,38 @@ export function touch(of) {
   rethrow();
 }
 
+// A node with no owner goes when nothing can reach what reads and moves it,
+// as a Solid signal does: a row of a model that is gone has no one to say so.
+// Readers of the graph hold it by number, which does not keep `node` alive.
+const unreachable = new FinalizationRegistry(dispose);
+function held(owner) {
+  const node = { of: cell(owner) };
+  if (!owner) unreachable.register(node, node.of);
+  return node;
+}
+
 // A version to follow and to move, for what keeps a value of its own
 // outside a slot: Solid's `createSignal(0)` as the runtime uses it.
 export function version(owner) {
-  const index = cell(owner);
-  return [() => read(index, owner), () => touch(index)];
+  const node = held(owner);
+  return [() => read(node.of, owner), () => touch(node.of)];
 }
 
 // Solid's `createSignal` on the graph: a value kept here, as a cell the
 // graph's bindings and Solid's computations both follow.
 // `equals: false` tells of every write, the same value or not.
 export function signal(value, owner = null, { equals } = {}) {
-  const index = cell(owner);
+  const node = held(owner);
   const same = equals === false ? () => false : Object.is;
   const get = () => {
-    read(index, owner);
+    read(node.of, owner);
     return value;
   };
   const set = (next) => {
     if (typeof next === "function") next = next(value);
     if (same(next, value)) return value;
     value = next;
-    touch(index);
+    touch(node.of);
     return value;
   };
   return [get, set];
