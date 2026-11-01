@@ -131,8 +131,14 @@ impl Diagnostic {
 
 /// The contracts of the blocks of the modules `shell` imports, a shell of
 /// the project under `root`: the site's own shell, whose blocks a visitor's
-/// may use. A module is the `qmldir` at its place under `root`.
-pub fn contracts(files: &dyn Files, root: &Path, shell: &Path) -> Result<Vec<Contract>, String> {
+/// may use. A module is found as a compile finds it: the `qmldir` at its place
+/// under the first of `imports`, then `root`, to have one.
+pub fn contracts(
+    files: &dyn Files,
+    root: &Path,
+    imports: &[PathBuf],
+    shell: &Path,
+) -> Result<Vec<Contract>, String> {
     let text = files
         .read(shell)
         .ok_or_else(|| format!("cannot read {}", shell.display()))?;
@@ -154,11 +160,19 @@ pub fn contracts(files: &dyn Files, root: &Path, shell: &Path) -> Result<Vec<Con
         if module == "QtQuick" || module.starts_with("QtQuick.") || module.starts_with("Qt") {
             continue;
         }
-        let directory: PathBuf = name
-            .parts
+        let found_at = imports
             .iter()
-            .fold(root.to_path_buf(), |path, part| path.join(part));
-        let Some(qmldir) = files.read(&directory.join("qmldir")) else {
+            .map(PathBuf::as_path)
+            .chain([root])
+            .find_map(|path| {
+                let directory = name
+                    .parts
+                    .iter()
+                    .fold(path.to_path_buf(), |path, part| path.join(part));
+                let qmldir = files.read(&directory.join("qmldir"))?;
+                Some((directory, qmldir))
+            });
+        let Some((directory, qmldir)) = found_at else {
             continue;
         };
         for line in qmldir.lines() {
@@ -169,15 +183,27 @@ pub fn contracts(files: &dyn Files, root: &Path, shell: &Path) -> Result<Vec<Con
             let source = files
                 .read(&path)
                 .ok_or_else(|| format!("cannot read {}", path.display()))?;
-            let file = path
-                .strip_prefix(root)
-                .unwrap_or(&path)
-                .to_string_lossy()
-                .replace('\\', "/");
+            let file = from_root(root, &path).to_string_lossy().replace('\\', "/");
             found.push(contract_of(&module, block, file, &source)?);
         }
     }
     Ok(found)
+}
+
+/// `path` as it is from `root`, going above it when it has to: a contract
+/// goes to the page, and where the site was built is not the page's to know.
+fn from_root(root: &Path, path: &Path) -> PathBuf {
+    let shared = root
+        .components()
+        .zip(path.components())
+        .take_while(|(a, b)| a == b)
+        .count();
+    let mut relative = PathBuf::new();
+    for _ in shared..root.components().count() {
+        relative.push("..");
+    }
+    relative.extend(path.components().skip(shared));
+    relative
 }
 
 struct BlockLine {

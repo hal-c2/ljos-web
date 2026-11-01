@@ -189,9 +189,15 @@ fn listed_imports(files: &[String]) -> ExitCode {
                 return ExitCode::FAILURE;
             }
         };
-        let read = if file.ends_with(".js") { ljos_web::script_imports(&text) } else { ljos_web::imports(&text) };
+        let read = if file.ends_with(".js") {
+            ljos_web::script_imports(&text)
+        } else {
+            ljos_web::imports(&text)
+        };
         said.push(match read {
-            Ok(found) => serde_json::json!({ "file": file, "modules": found.modules, "paths": found.paths }),
+            Ok(found) => {
+                serde_json::json!({ "file": file, "modules": found.modules, "paths": found.paths })
+            }
             Err(errors) => {
                 let errors: Vec<String> = errors
                     .iter()
@@ -286,7 +292,11 @@ fn main() -> ExitCode {
                 .map(|root| std::fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf()));
             let project =
                 project.unwrap_or_else(|| path.parent().map(Path::to_path_buf).unwrap_or_default());
-            match ljos_web::shell::contracts(&Disk, &project, &path) {
+            let looked: Vec<PathBuf> = imports
+                .iter()
+                .map(|path| std::fs::canonicalize(path).unwrap_or_else(|_| path.clone()))
+                .collect();
+            match ljos_web::shell::contracts(&Disk, &project, &looked, &path) {
                 Ok(contracts) => println!(
                     "{}",
                     serde_json::to_string(&contracts).expect("contracts are JSON")
