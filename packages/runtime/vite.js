@@ -235,9 +235,19 @@ function baked(context, file) {
     }
   }
   if (!text) {
-    if (!existsSync(source)) context.error(there ? `${file} has no shader for OpenGL ES in it` : `${file} is not there, nor is ${source} to bake it from`);
-    context.addWatchFile(source);
-    text = forBrowser(readFileSync(source, "utf8"), source.endsWith(".vert") ? "vertex" : "fragment");
+    if (existsSync(source)) {
+      context.addWatchFile(source);
+      text = forBrowser(readFileSync(source, "utf8"), source.endsWith(".vert") ? "vertex" : "fragment");
+    } else if (!there) {
+      context.error(`${file} is not there, nor is ${source} to bake it from`);
+    } else {
+      // Many a program ships only what is baked. That it can't be used is for
+      // the effect's `status` and `log` to say, when the program runs: the rest
+      // of the program is not stopped from being built.
+      const said = `${basename(file)} holds no shader for OpenGL ES`;
+      context.warn(said);
+      text = `#version 300 es\n#error ${said}\n`;
+    }
   }
   return `data:text/plain;charset=utf-8,${encodeURIComponent(text)}`;
 }

@@ -191,16 +191,20 @@ test("a shader named as what Qt's tool bakes needs no tool of Qt's", async ({ pa
 
 test.describe("a shader named as baked", () => {
   test.use({ told: [/^ShaderEffect: ERROR/] });
-  test("that is wrong says so, and one that holds nothing is made from its source", async ({ page }) => {
+  test("that is wrong says so, one that holds nothing is made from its source, and with no source says so too", async ({ page }) => {
     await open(page, "qtlessshaderfaults");
     const Compiled = 0;
     const Failed = 2;
-    await expect.poll(() => page.evaluate(() => JSON.parse(JSON.stringify(window.scene.statuses())))).toEqual([Failed, Failed, Compiled, Compiled]);
+    await expect.poll(() => page.evaluate(() => JSON.parse(JSON.stringify(window.scene.statuses())))).toEqual([Failed, Failed, Compiled, Compiled, Failed, Failed, Compiled]);
     const [wrong, malformed] = await page.evaluate(() => window.scene.logs());
     expect(wrong).toContain("nothing");
     expect(malformed).not.toBe("");
     await settled(page, [250, 50], [0, 255, 0], 0, "a file that cannot be read, with its source beside it");
     await settled(page, [350, 50], [0, 255, 0], 0, "a file with no OpenGL ES in it, with its source beside it");
+    const logs = await page.evaluate(() => window.scene.logs());
+    expect(logs[4]).toContain("onlyunreadable.frag.qsb");
+    expect(logs[5]).toContain("onlynogles.frag.qsb");
+    await settled(page, [250, 150], [0, 255, 0], 0, "a block with an instance in one stage only, read by the other");
   });
 });
 
