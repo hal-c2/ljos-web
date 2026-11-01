@@ -15,7 +15,6 @@ import { signal, untrack } from "#kernel";
 import { CustomMaterial } from "./CustomMaterial.js";
 import { handed, text } from "./effects.js";
 import { inside } from "./Node.js";
-import { drawnModels } from "./Particles3D/drawn.js";
 import { Format } from "./TextureData.js";
 
 const asked = new URLSearchParams(globalThis.location?.search ?? "").get("view3d");
@@ -30,9 +29,12 @@ export const renderer = () => asked ?? import.meta.env?.VITE_LJOS_VIEW3D ?? "js"
 const chunks = import.meta.glob("./wgpu/ljos_web_3d.js");
 
 let module = null;
+let drawnModels = null;
 async function chunk() {
   const load = chunks["./wgpu/ljos_web_3d.js"];
   if (!load) throw new Error("View3D: the renderer is not built (mise run build:wasm-3d)");
+  // Fetched with it: a page on the other renderer does not carry these shaders.
+  ({ drawnModels } = await import("./Particles3D/drawn.js"));
   module = await load();
   await module.default();
   NAMES = module.propNames();
@@ -248,7 +250,7 @@ class Host {
   // once it has drawn.
   shown(o) {
     const texture = this.objectsBy.get(o).$texture?.();
-    if (!texture || (texture.view && !texture.element.$view3d?.drawn)) return null;
+    if (!texture || (texture.view && !texture.element.$drawn)) return null;
     return texture.data || texture.element ? texture : null;
   }
   // Each way up of what a view drew is a picture, and so is what an item has
@@ -256,7 +258,7 @@ class Host {
   pictureId(o) {
     const texture = this.shown(o);
     if (!texture) return undefined;
-    if (texture.view) return serialOf(texture.down ? flipped(texture.element.$view3d.drawn) : texture.element.$view3d.drawn);
+    if (texture.view) return serialOf(texture.down ? flipped(texture.element.$drawn) : texture.element.$drawn);
     return texture.live ? serialOf(this.liveRead(texture.element)) : serialOf(texture.data ?? texture.element);
   }
   liveRead(element) {
@@ -277,7 +279,7 @@ class Host {
       const baked = data.baked && data.sides === 6 ? data.levels?.map(joined) : undefined;
       return { width, height, pixels: new Uint8Array(pixels.buffer, pixels.byteOffset, pixels.byteLength), format: Format[format], opaque: !texture.sheer, baked };
     }
-    if (texture.view) return { ...(texture.down ? flipped(texture.element.$view3d.drawn) : texture.element.$view3d.drawn), opaque: !texture.sheer };
+    if (texture.view) return { ...(texture.down ? flipped(texture.element.$drawn) : texture.element.$drawn), opaque: !texture.sheer };
     if (texture.live) return { ...this.liveRead(texture.element), opaque: !texture.sheer };
     return { ...pixelsOf(texture.element), opaque: !texture.sheer };
   }
@@ -384,12 +386,12 @@ export function drawOn(self, canvas, told) {
   let gone = false;
   let wanted = false;
   let own = false;
-  const state = (canvas.$view3d = { backend: null, frames: 0, builds: 0, error: null, drawn: null });
+  const state = (canvas.$view3d = { backend: null, frames: 0, builds: 0, error: null });
   // A view that reads itself reads what it drew before and is not drawn again
   // for that.
   self.$view = () => {
     wanted = true;
-    if (!state.drawn) request();
+    if (!canvas.$drawn) request();
     return own ? 0 : draws();
   };
   const request = () =>
@@ -402,7 +404,7 @@ export function drawOn(self, canvas, told) {
         // The picture leaves the surface for the page once drawn: what
         // takes this view as a texture is handed a copy made before it does.
         if (wanted) {
-          state.drawn = readPixels(canvas);
+          canvas.$drawn = readPixels(canvas);
           setDraws((times) => times + 1);
         }
       }
