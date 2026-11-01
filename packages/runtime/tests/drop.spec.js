@@ -968,10 +968,9 @@ Column {
     const { readdirSync, readFileSync } = await import("node:fs");
     const { join, relative } = await import("node:path");
     const root = join(import.meta.dirname, "..");
-    // Fetched by the runtime for itself, at addresses of its own, or (the
-    // inspector's picture) never while a page is showing anybody's shell.
-    const own = new Set(["guard.js", "picture.js", "vite.js", "site.js", "kernel/wasm.js", "Ljos/Blocks/shell-worker.js", "QtMultimedia/audible.js"]);
-    const SINK = /\bfetch\(|\.src\s*=[^=]|\.href\s*=[^=]|setAttribute\("(src|href)"|window\.open\(|new window\.WebSocket|new EventSource|sendBeacon|(backgroundImage|maskImage|borderImageSource)\s*=\s*`?[^"`]*url\(/;
+    // Fetched by the runtime for itself, at addresses of its own.
+    const own = new Set(["guard.js", "vite.js", "site.js", "kernel/wasm.js", "Ljos/Blocks/shell-worker.js", "QtMultimedia/audible.js"]);
+    const SINK = /\bfetch\(|\.src\s*=[^=]|\.href\s*=[^=]|setAttribute\("(src|href)"|window\.open\(|new window\.WebSocket|new EventSource|sendBeacon|(backgroundImage|maskImage|borderImageSource)\s*=\s*`?[^"`]*url\(|style\.(background|filter|clipPath|mask)\s*=\s*[^"\s]/;
     const found = [];
     const walk = (directory) => {
       for (const entry of readdirSync(directory, { withFileTypes: true })) {
@@ -982,7 +981,7 @@ Column {
           readFileSync(path, "utf8")
             .split("\n")
             .forEach((line, at) => {
-              if (SINK.test(line) && !/allowedUrl\(|\/\/ guarded/.test(line) && !line.trim().startsWith("//")) found.push(`${relative(root, path)}:${at + 1}: ${line.trim()}`);
+              if (SINK.test(line) && !/allowedUrl\(|allowedStyle\(|\/\/ guarded/.test(line) && !line.trim().startsWith("//")) found.push(`${relative(root, path)}:${at + 1}: ${line.trim()}`);
             });
         }
       }

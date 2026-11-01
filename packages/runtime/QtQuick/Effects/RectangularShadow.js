@@ -2,6 +2,7 @@
 // rectangle. A box in the shadow's colour, blurred by CSS.
 import { Vector2d } from "../../QtQml/values.js";
 import { defineType, derived, effect } from "../../object.js";
+import { allowedStyle } from "../../guard.js";
 import { colorValue, css } from "../color.js";
 import { rules } from "../compute.js";
 import { Item } from "../Item.js";
@@ -70,8 +71,8 @@ export const RectangularShadow = defineType("RectangularShadow", Item, {
         style.borderRadius = next.radii.some((radius) => radius > 0)
           ? next.radii.map((radius) => `${radius}px`).join(" ")
           : "";
-        style.background = next.colour;
-        style.filter = next.soft > 0 ? `blur(${next.soft}px)` : "";
+        style.background = allowedStyle(next.colour);
+        style.filter = next.soft > 0 ? allowedStyle(`blur(${next.soft}px)`) : "";
       },
     );
   },
