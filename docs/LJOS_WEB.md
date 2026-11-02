@@ -1287,7 +1287,7 @@ run.
 
 ### A22. The kernel at ljos-ui's graph, and what an editor asks of a page
 
-The kernel's `ljos_reactive` follows ljos-ui (rev f8e705d4), whose graph takes a
+The kernel's `ljos_reactive` follows ljos-ui (rev cb4a991a), whose graph takes a
 mark for a value a type places: a loop through such a value goes on to the next
 binding instead of ending there. `placed` in both kernels is that mark; Solid's
 has nothing to mark.

@@ -1,7 +1,7 @@
 {
   "repository": "https://github.com/hal-c2/ljos-ui",
   "path": "crates/ljos_quick3d/qml",
-  "rev": "f8e705d4e206e45e20f04c5645e9e8a62f68317f",
+  "rev": "cb4a991ab27688b36b1c13184fc387ab4eab8086",
   "files": {
     "QtQuick3D/Helpers/AxisHelper.qml": "d5223db9910a36bb5426bdd610c5ef91a80faee30720405eecf5e28e7245716c",
     "QtQuick3D/Helpers/DebugView.qml": "e8098f108d143135ab3033883fb82621054276cb1f9d3b9436e736ffcb4c2b01"

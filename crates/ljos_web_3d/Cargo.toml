@@ -11,10 +11,10 @@ crate-type = ["cdylib", "rlib"]
 
 # The mapping is tested natively, so that needs no renderer; the page draws.
 [dependencies]
-ljos_3d = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "f8e705d4e206e45e20f04c5645e9e8a62f68317f", default-features = false, features = ["gltf", "snippets"] }
+ljos_3d = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "cb4a991ab27688b36b1c13184fc387ab4eab8086", default-features = false, features = ["gltf", "snippets"] }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-ljos_3d = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "f8e705d4e206e45e20f04c5645e9e8a62f68317f", default-features = false, features = ["gpu", "gltf", "snippets"] }
+ljos_3d = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "cb4a991ab27688b36b1c13184fc387ab4eab8086", default-features = false, features = ["gpu", "gltf", "snippets"] }
 js-sys = "=0.3.106"
 wasm-bindgen = "=0.2.129"
 wasm-bindgen-futures = "=0.4.79"

@@ -15,4 +15,4 @@ description = "A Rust Counter as a QML type in the browser, from the same source
 web = ["ljos/web"]
 
 [dependencies]
-ljos = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "f8e705d4e206e45e20f04c5645e9e8a62f68317f", default-features = false }
+ljos = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "cb4a991ab27688b36b1c13184fc387ab4eab8086", default-features = false }
