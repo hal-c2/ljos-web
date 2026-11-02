@@ -82,6 +82,8 @@ jobs:
           version: 2026.9.9
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
       - run: git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+      # The example's Rust is also a desktop application, whose text finds fonts by fontconfig.
+      - run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
       - run: |
           pnpm install --frozen-lockfile
           pnpm --filter ljos-web exec playwright install --with-deps chromium
