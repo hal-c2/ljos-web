@@ -147,7 +147,7 @@ const UNIFORMS = ["u_world", "u_view", "u_projection", "u_mode", "u_facing", "u_
 // it is, its turn, its colour, and its size with how far through its life
 // it is, a place for the row of the colour table that is its own and how
 // far through the frames of its picture it is.
-const EACH = 15;
+export const EACH = 15;
 // And one corner of a ribbon: where in the picture, where the point of the
 // line is, the way across it with how far that way the corner is, the
 // colour, and which point it is with how far through its life and through
@@ -639,14 +639,14 @@ function ribbons(kind) {
 // as it is in the system. Qt takes that way through the system's matrix as
 // if it were a place, so a system that is not where the scene begins sorts
 // its particles along a way that is not quite the eye's, and so is it here.
-function away(world, view) {
+export function away(world, view) {
   const way = math.point(math.inverse(world), -view[2], -view[6], -view[10]);
   const long = Math.hypot(...way);
   return long > 0 ? way.map((value) => value / long) : [0, 0, 0];
 }
 
 // The rows of a kind's sprites with the farthest that way first.
-function farthest(kind, way) {
+export function farthest(kind, way) {
   const { rows, count } = kind;
   const far = new Float32Array(count);
   for (let index = 0; index < count; index++) {
@@ -657,6 +657,11 @@ function farthest(kind, way) {
   const sorted = new Float32Array(rows.length);
   order.forEach((from, to) => sorted.set(rows.subarray(from * EACH, (from + 1) * EACH), to * EACH));
   return sorted;
+}
+
+// What is drawn of a kind now, for a renderer that does the drawing itself.
+export function drawnOf(kind, system) {
+  return kind.$line ? lines(kind, system, system.$upTo()) : sprites(kind, system);
 }
 
 // What a View3D calls to have a system's sprites and lines drawn, with

@@ -8,6 +8,9 @@ use std::sync::Arc;
 
 use js_sys::{Array, Float32Array, Reflect, Uint8Array};
 use ljos_3d::fetch::{Fetch, Reply};
+use ljos_3d::geometry::Subset;
+use ljos_3d::math::Vec3;
+use ljos_3d::mesh_file::MeshFile;
 use ljos_3d::qml::{self, Prop3d};
 use ljos_3d::{Gpu, SceneSlot, SurfaceView};
 use wasm_bindgen::prelude::*;
@@ -52,6 +55,8 @@ extern "C" {
     fn picture_id(this: &JsHost, o: u32) -> Option<u32>;
     #[wasm_bindgen(method)]
     fn picture(this: &JsHost, o: u32) -> JsValue;
+    #[wasm_bindgen(method)]
+    fn warn(this: &JsHost, message: &str);
     #[wasm_bindgen(method, js_name = geometryId)]
     fn geometry_id(this: &JsHost, o: u32) -> Option<u32>;
     #[wasm_bindgen(method)]
@@ -188,8 +193,18 @@ impl Host for JsHost {
             width: int(&p, "width") as u32,
             height: int(&p, "height") as u32,
             opaque: yes(&p, "opaque"),
+            format: get(&p, "format").as_f64().map(|f| f as i32),
             pixels: bytes(&p, "pixels"),
+            baked: given(get(&p, "baked")).map(|levels| {
+                js_sys::Array::from(&levels)
+                    .iter()
+                    .map(|level| js_sys::Uint8Array::new(&level).to_vec())
+                    .collect()
+            }),
         })
+    }
+    fn warn(&self, message: &str) {
+        JsHost::warn(self, message);
     }
     fn geometry_id(&self, o: u32) -> Option<u32> {
         JsHost::geometry_id(self, o)
@@ -213,6 +228,21 @@ impl Host for JsHost {
                 .collect(),
             primitive: int(&g, "primitive") as u32,
             bounds: fixed::<3>(min).zip(fixed::<3>(max)),
+            subsets: list(&g, "subsets")
+                .iter()
+                .map(|p| {
+                    let corner = |name| {
+                        let [x, y, z] = fixed::<3>(reals(p, name))?;
+                        Some(Vec3::new(x, y, z))
+                    };
+                    Subset {
+                        offset: index(p, "offset").unwrap_or(0),
+                        count: index(p, "count").unwrap_or(0),
+                        // A box of no size says nothing of where it is.
+                        bounds: corner("min").zip(corner("max")).filter(|(a, b)| a != b),
+                    }
+                })
+                .collect(),
         })
     }
     fn table_id(&self, o: u32) -> Option<u32> {
@@ -242,6 +272,8 @@ impl Host for JsHost {
             textures: textures(&s),
             source_blend: int(&s, "sourceBlend"),
             destination_blend: int(&s, "destinationBlend"),
+            source_alpha_blend: int(&s, "sourceAlphaBlend"),
+            destination_alpha_blend: int(&s, "destinationAlphaBlend"),
             depth_draw: int(&s, "depthDraw"),
             cull_mode: int(&s, "cullMode"),
         })
@@ -254,6 +286,7 @@ impl Host for JsHost {
             buffers: list(&e, "buffers")
                 .iter()
                 .map(|b| PassBuffer {
+                    name: string(b, "name"),
                     format: int(b, "format"),
                     scale: real(b, "scale"),
                     filter: int(b, "filter"),
@@ -272,6 +305,7 @@ impl Host for JsHost {
                         .collect(),
                     input: index(p, "input"),
                     output: index(p, "output"),
+                    leaves: int(p, "leaves"),
                 })
                 .collect(),
         })
@@ -298,6 +332,25 @@ impl Host for JsHost {
             },
         );
     }
+    fn load_mesh(&self, url: &str, kept: &Rc<Kept>) {
+        let (kept, host, owned) = (kept.clone(), self.clone(), url.to_owned());
+        BrowserFetch(self.clone()).fetch(
+            &(),
+            url,
+            Box::new(move |_: &(), got| {
+                let read = got.and_then(|bytes| MeshFile::read(&bytes).map_err(|e| e.to_string()));
+                match read {
+                    Ok(file) => kept.arrive_mesh(&owned, Asked::Ready(Arc::new(file))),
+                    Err(error) => {
+                        JsHost::report(&host, &owned, &error);
+                        kept.arrive_mesh(&owned, Asked::Failed(error));
+                    }
+                }
+                host.arrived();
+            }),
+        );
+    }
+
     fn report(&self, about: &str, error: &str) {
         JsHost::report(self, about, error);
     }

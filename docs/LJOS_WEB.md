@@ -1287,7 +1287,7 @@ run.
 
 ### A22. The kernel at ljos-ui's graph, and what an editor asks of a page
 
-The kernel's `ljos_reactive` follows ljos-ui (rev f8e705d4), whose graph takes a
+The kernel's `ljos_reactive` follows ljos-ui (rev cb4a991a), whose graph takes a
 mark for a value a type places: a loop through such a value goes on to the next
 binding instead of ending there. `placed` in both kernels is that mark; Solid's
 has nothing to mark.
@@ -1573,14 +1573,15 @@ renderers, but only wgpu reads the file: the JavaScript renderer draws
 what is declared and has no glTF reader.
 
 Known gaps: a live `sourceItem` texture and a `TextureData` that is not
-RGBA8 give no picture. A `Geometry` with an `I32Type` attribute is not
+RGBA8 give no picture; a `.tga` is a picture on both renderers, a `.ktx` only
+on the JavaScript one, since `ljos_3d` has no KTX reader. A `Geometry` with an `I32Type` attribute is not
 drawn, and the console says so once: the renderer reads no signed integers.
 A shader that does not translate leaves its model without that material,
 and the console says why once. `RuntimeLoader` says `status` and
 `errorString` only on wgpu, and only of a loader the build reached: one
 inside something invisible says them when it is next shown. While its file
 is on its way it says `Empty`. A file that failed is read again when a
-loader comes to name it again, not on its own.
+loader or a model comes to name it again, not on its own.
 
 What a view keeps is one revision of each shape, picture and table, the one
 it draws. A `Geometry` committed every frame stays level
@@ -1588,11 +1589,20 @@ it draws. A `Geometry` committed every frame stays level
 hundred revisions took wasm from 27 to 97 MB and live GPU objects from 102
 to 402. Programs are kept by their text until the view goes.
 
-What it reaches today: a lit scene of built-in shapes is the native renderer's
-picture on WebGPU and on WebGL2 (`tests/references3d`). `tests/quick3d.spec.js`
-passes 11 of 49 on wgpu, none failing by timing: what fails is the picture. Real
-applications do not draw yet: dice and robotarm show no 3D, car-configurator
-shows its mesh files as white boxes.
+What it reaches today, built with the `ljos_3d` that has the corpus's fixes (the
+pin in `crates/ljos_web_3d/Cargo.toml` has to reach them; this crate does not
+compile on an older one): a lit scene of built-in shapes is the native renderer's
+picture to the pixel on WebGPU and on WebGL2 (`tests/references3d`). Dice,
+robotarm, toycustomizer, car-configurator and FX_Material_Showroom draw on both,
+on both kernels. `tests/quick3d.spec.js` passes 39 of 51 on wgpu and
+`tests/particles3d.spec.js` 15 of 16, none failing by timing. What fails: morph
+targets in a CustomMaterial, KTX pictures, what a probe mirrors, a blurred sky, a
+skin, Mask and Opaque with an opacity, a picture given as numbers by fractions,
+affectors, and a view of very many nodes.
+
+DECISION: JavaScript stays the default renderer of View3D until those specs pass,
+and until a scene's rebuild and a view read back as a texture cost less than they
+do: a View3D drawn into another's scene reads back every frame.
 
 ## Part II — An application's own Rust types
 

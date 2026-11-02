@@ -12,14 +12,16 @@ use std::sync::Arc;
 use ljos_3d::custom::{
     Blend, BufferFormat, EffectBuffer, Pass, PassTexture, UniformKind, UniformValue,
 };
-use ljos_3d::geometry::{ComponentType, PrimitiveType, Semantic};
+use ljos_3d::geometry::{ComponentType, PrimitiveType, Semantic, Subset};
 use ljos_3d::gltf::Asset;
 use ljos_3d::math::{Mat4, Quat, Vec3};
+use ljos_3d::mesh_file::MeshFile;
 use ljos_3d::qml::enums::{cull, depth_draw};
 use ljos_3d::qml::{self, Loaded, Prop3d, SceneSource, Type3d};
 use ljos_3d::texture::{
-    Filter, PixelEncoding, TextureImage, TexturePixels, Tiling, fresh_pixels_id,
+    BakedCube, Filter, PixelEncoding, TextureImage, TexturePixels, Tiling, fresh_pixels_id,
 };
+use ljos_3d::texture_data::TextureData;
 use ljos_3d::{CustomGeometry, CustomMaterial, Effect, Instance, InstanceTable, Instancing};
 
 use crate::names;
@@ -29,12 +31,17 @@ pub const VIEW: u32 = 0;
 /// A hole in a list of handles.
 pub const NO_OBJECT: u32 = u32::MAX;
 
-/// A picture's pixels: not premultiplied, the top row first.
+/// A picture's pixels: not premultiplied, the top row first, unless it has
+/// a `format`: then what `TextureData` of that format holds.
 pub struct Picture {
     pub width: u32,
     pub height: u32,
     pub opaque: bool,
+    pub format: Option<i32>,
     pub pixels: Vec<u8>,
+    /// Where the picture is a cube with its levels baked: its levels, each
+    /// its six sides.
+    pub baked: Option<Vec<Vec<u8>>>,
 }
 
 /// What a `Geometry` last committed, in `Geometry`'s own numbers.
@@ -46,6 +53,8 @@ pub struct Shape {
     pub attributes: Vec<[u32; 3]>,
     pub primitive: u32,
     pub bounds: Option<([f32; 3], [f32; 3])>,
+    /// What materials of their own draw, if it was said.
+    pub subsets: Vec<Subset>,
 }
 
 /// What of an `Instancing`'s table each build reads. Its numbers, twenty an
@@ -74,16 +83,31 @@ pub struct Snippets {
     pub textures: Vec<(String, u32)>,
     pub source_blend: i32,
     pub destination_blend: i32,
+    pub source_alpha_blend: i32,
+    pub destination_alpha_blend: i32,
     pub depth_draw: i32,
     pub cull_mode: i32,
 }
 
 /// A buffer an effect's passes draw into.
 pub struct PassBuffer {
+    pub name: String,
     pub format: i32,
     pub scale: f32,
     pub filter: i32,
     pub wrap: i32,
+}
+
+fn format(told: i32) -> BufferFormat {
+    match told {
+        2 => BufferFormat::Rgba16F,
+        3 => BufferFormat::Rgba32F,
+        4 => BufferFormat::R8,
+        5 => BufferFormat::R16,
+        6 => BufferFormat::R16F,
+        7 => BufferFormat::R32F,
+        _ => BufferFormat::Rgba8,
+    }
 }
 
 /// One pass of an `Effect`.
@@ -95,6 +119,8 @@ pub struct PassShaders {
     pub reads: Vec<(String, usize)>,
     pub input: Option<usize>,
     pub output: Option<usize>,
+    /// The kind of picture the effect leaves, where the pass says one.
+    pub leaves: i32,
 }
 
 /// An `Effect`'s passes.
@@ -129,6 +155,7 @@ pub trait Host {
     /// What names the picture a `Texture` shows; `None` while it has none.
     fn picture_id(&self, o: u32) -> Option<u32>;
     fn picture(&self, o: u32) -> Option<Picture>;
+    fn warn(&self, message: &str);
     fn geometry_id(&self, o: u32) -> Option<u32>;
     fn geometry(&self, o: u32) -> Option<Shape>;
     fn table_id(&self, o: u32) -> Option<u32>;
@@ -140,6 +167,8 @@ pub trait Host {
     fn arrivals(&self);
     /// Starts reading the file at `url`; [`Kept::arrive`] follows.
     fn load(&self, url: &str, kept: &Rc<Kept>);
+    /// Starts reading the mesh file at `url`; [`Kept::arrive_mesh`] follows.
+    fn load_mesh(&self, url: &str, kept: &Rc<Kept>);
     /// What an author should see of what could not be drawn.
     fn report(&self, about: &str, error: &str);
     /// A loader's `status` and `errorString`.
@@ -156,11 +185,11 @@ pub enum LoaderStatus {
     Error = 2,
 }
 
-/// A file a loader names.
-pub enum Asked {
+/// A file the scene names.
+pub enum Asked<T> {
     Loading,
     Failed(String),
-    Ready(Arc<Asset>),
+    Ready(Arc<T>),
 }
 
 /// What was made of each object's current revision. An object's new revision
@@ -225,9 +254,10 @@ pub struct Kept {
     shapes: RefCell<Revisions<Option<Arc<CustomGeometry>>>>,
     tables: RefCell<Revisions<Arc<InstanceTable>>>,
     programs: RefCell<HashMap<String, Option<Arc<ljos_3d::custom::Program>>>>,
-    files: RefCell<HashMap<String, Asked>>,
-    /// Which file each loader names: a file is held as long as one does, so
-    /// one that failed is read again when a loader comes to name it again.
+    files: RefCell<HashMap<String, Asked<Asset>>>,
+    meshes: RefCell<HashMap<String, Asked<MeshFile>>>,
+    /// Which file each loader or model names: a file is held as long as one
+    /// does, so one that failed is read again when one comes to name it again.
     named: RefCell<HashMap<u32, String>>,
     said: RefCell<HashSet<String>>,
 }
@@ -235,8 +265,16 @@ pub struct Kept {
 impl Kept {
     /// A file's outcome; the host then tells the reactive graph. No loader
     /// names it any more, if it has no entry: then it is not kept.
-    pub fn arrive(&self, url: &str, asked: Asked) {
+    pub fn arrive(&self, url: &str, asked: Asked<Asset>) {
         if let Some(file) = self.files.borrow_mut().get_mut(url) {
+            *file = asked;
+        }
+    }
+
+    /// A mesh file's outcome; the host then tells the reactive graph. No model
+    /// names it any more, if it has no entry: then it is not kept.
+    pub fn arrive_mesh(&self, url: &str, asked: Asked<MeshFile>) {
+        if let Some(file) = self.meshes.borrow_mut().get_mut(url) {
             *file = asked;
         }
     }
@@ -253,20 +291,21 @@ impl Kept {
         }
     }
 
-    /// `loader` now names `url`.
-    fn name(&self, loader: u32, url: Option<&str>) {
+    /// `namer`, a loader or a model, now names `url`.
+    fn name(&self, namer: u32, url: Option<&str>) {
         let mut named = self.named.borrow_mut();
-        if named.get(&loader).map(String::as_str) == url {
+        if named.get(&namer).map(String::as_str) == url {
             return;
         }
         let was = match url {
-            Some(url) => named.insert(loader, url.to_owned()),
-            None => named.remove(&loader),
+            Some(url) => named.insert(namer, url.to_owned()),
+            None => named.remove(&namer),
         };
         if let Some(was) = was
             && !named.values().any(|other| *other == was)
         {
             self.files.borrow_mut().remove(&was);
+            self.meshes.borrow_mut().remove(&was);
         }
     }
 }
@@ -295,6 +334,35 @@ impl TexturePixels for Pixels {
     }
     fn with_pixels(&self, read: &mut dyn FnMut(&[u8])) {
         read(&self.pixels);
+    }
+}
+
+/// A picture that is a cube with its levels baked, for a light probe; as a
+/// material's picture it is what `first` holds.
+#[derive(Debug)]
+struct Baked {
+    first: TextureImage,
+    cube: BakedCube,
+}
+
+impl TexturePixels for Baked {
+    fn id(&self) -> u64 {
+        self.first.0.id()
+    }
+    fn size(&self) -> [u32; 2] {
+        self.first.0.size()
+    }
+    fn encoding(&self) -> PixelEncoding {
+        self.first.0.encoding()
+    }
+    fn opaque(&self) -> bool {
+        self.first.0.opaque()
+    }
+    fn with_pixels(&self, read: &mut dyn FnMut(&[u8])) {
+        self.first.0.with_pixels(read);
+    }
+    fn baked(&self) -> Option<&BakedCube> {
+        Some(&self.cube)
     }
 }
 
@@ -454,6 +522,9 @@ fn shape(s: Shape) -> Result<CustomGeometry, String> {
             Vec3::new(max[0], max[1], max[2]),
         );
     }
+    for subset in s.subsets {
+        g.add_subset(subset);
+    }
     g.update();
     Ok(g)
 }
@@ -516,7 +587,13 @@ impl<H: Host> SceneSource for Source<'_, H> {
     }
 
     fn url(&self, o: u32, p: Prop3d) -> Option<String> {
-        self.host.url(o, p as u32)
+        let url = self.host.url(o, p as u32);
+        // A model on a built-in shape or none is never asked for a file, so
+        // this is where it comes to stop naming one.
+        if p == Prop3d::Source && url.as_ref().is_none_or(|url| url.contains('#')) {
+            self.kept.name(o, None);
+        }
+        url
     }
 
     fn object(&self, o: u32, p: Prop3d) -> Option<u32> {
@@ -563,17 +640,56 @@ impl<H: Host> SceneSource for Source<'_, H> {
             return known;
         }
         let p = self.host.picture(texture)?;
-        let image = TextureImage::new(Pixels {
-            id: fresh_pixels_id(),
-            size: [p.width, p.height],
-            opaque: p.opaque,
-            pixels: p.pixels,
-        });
+        let image = match p.format {
+            Some(format) => TextureData {
+                width: p.width,
+                height: p.height,
+                depth: 0,
+                format,
+                has_transparency: !p.opaque,
+                bytes: p.pixels,
+            }
+            .image()
+            .ok()??,
+            None => TextureImage::new(Pixels {
+                id: fresh_pixels_id(),
+                size: [p.width, p.height],
+                opaque: p.opaque,
+                pixels: p.pixels,
+            }),
+        };
+        let image = match p.baked {
+            Some(levels) => TextureImage::new(Baked {
+                first: image,
+                cube: BakedCube {
+                    across: p.width,
+                    levels,
+                },
+            }),
+            None => image,
+        };
         self.kept
             .pictures
             .borrow_mut()
             .put(texture, id, image.clone());
         Some(image)
+    }
+
+    fn mesh_file(&self, _view: u32, model: u32) -> Option<Arc<MeshFile>> {
+        self.host.arrivals();
+        let url = self.url(model, Prop3d::Source)?;
+        self.kept.name(model, Some(&url));
+        match self.kept.meshes.borrow().get(&url) {
+            Some(Asked::Ready(file)) => return Some(file.clone()),
+            Some(_) => return None,
+            None => {}
+        }
+        self.kept
+            .meshes
+            .borrow_mut()
+            .insert(url.clone(), Asked::Loading);
+        self.host.load_mesh(&url, self.kept);
+        None
     }
 
     fn geometry(&self, geometry: u32) -> Option<Arc<CustomGeometry>> {
@@ -640,9 +756,12 @@ impl<H: Host> SceneSource for Source<'_, H> {
         })?;
         let mut made = CustomMaterial::new(program);
         made.values = s.uniforms.iter().filter_map(value).collect();
+        // A program keeps the samplers its snippets read, and binds those.
+        let kept: Vec<String> = made.program.textures().to_vec();
         made.textures = s
             .textures
             .iter()
+            .filter(|(name, _)| kept.contains(name))
             .map(|(_, t)| {
                 (*t != NO_OBJECT)
                     .then(|| qml::texture(self, view, *t))
@@ -651,6 +770,8 @@ impl<H: Host> SceneSource for Source<'_, H> {
             .collect();
         made.source_blend = blend(s.source_blend);
         made.destination_blend = blend(s.destination_blend);
+        made.source_alpha_blend = blend(s.source_alpha_blend);
+        made.destination_alpha_blend = blend(s.destination_alpha_blend);
         made.depth_draw = match s.depth_draw {
             depth_draw::ALWAYS => ljos_3d::DepthDraw::Always,
             depth_draw::NEVER => ljos_3d::DepthDraw::Never,
@@ -674,11 +795,8 @@ impl<H: Host> SceneSource for Source<'_, H> {
                 .buffers
                 .iter()
                 .map(|b| EffectBuffer {
-                    format: match b.format {
-                        2 => BufferFormat::Rgba16F,
-                        3 => BufferFormat::Rgba32F,
-                        _ => BufferFormat::Rgba8,
-                    },
+                    name: b.name.clone(),
+                    format: format(b.format),
                     size_multiplier: b.scale,
                     filter: if b.filter == 1 {
                         Filter::Nearest
@@ -696,7 +814,14 @@ impl<H: Host> SceneSource for Source<'_, H> {
         };
         for pass in &told.passes {
             let mut samplers: Vec<String> = told.textures.iter().map(|(n, _)| n.clone()).collect();
-            samplers.extend(pass.reads.iter().map(|(n, _)| n.clone()));
+            // A property of the effect a pass reads a buffer through says
+            // no more than that buffer's name in that pass.
+            samplers.extend(
+                pass.reads
+                    .iter()
+                    .filter(|(n, _)| !told.textures.iter().any(|(own, _)| own == n))
+                    .map(|(n, _)| n.clone()),
+            );
             let key = format!(
                 "e\0{}\0{}\0{uniforms:?}\0{samplers:?}",
                 pass.vertex, pass.fragment
@@ -714,7 +839,10 @@ impl<H: Host> SceneSource for Source<'_, H> {
             let mut textures: Vec<PassTexture> = told
                 .textures
                 .iter()
-                .map(|(_, t)| {
+                .map(|(name, t)| {
+                    if let Some((_, buffer)) = pass.reads.iter().find(|(n, _)| n == name) {
+                        return PassTexture::Buffer(*buffer);
+                    }
                     PassTexture::Texture(
                         (*t != NO_OBJECT)
                             .then(|| qml::texture(self, view, *t))
@@ -722,13 +850,19 @@ impl<H: Host> SceneSource for Source<'_, H> {
                     )
                 })
                 .collect();
-            textures.extend(pass.reads.iter().map(|(_, b)| PassTexture::Buffer(*b)));
+            textures.extend(
+                pass.reads
+                    .iter()
+                    .filter(|(n, _)| !told.textures.iter().any(|(own, _)| own == n))
+                    .map(|(_, b)| PassTexture::Buffer(*b)),
+            );
             made.passes.push(Pass {
                 program,
                 values,
                 textures,
                 input: pass.input,
                 output: pass.output,
+                leaves: (pass.leaves != 0).then(|| format(pass.leaves)),
             });
         }
         Some(made)
@@ -878,9 +1012,12 @@ mod tests {
                 width: 1,
                 height: 1,
                 opaque: true,
+                format: None,
                 pixels: vec![0; 4],
+                baked: None,
             })
         }
+        fn warn(&self, _: &str) {}
         fn geometry_id(&self, _: u32) -> Option<u32> {
             self.revision.get()
         }
@@ -892,6 +1029,7 @@ mod tests {
                 attributes: vec![[1, 0, self.component.get()]],
                 primitive: 5,
                 bounds: None,
+                subsets: Vec::new(),
             })
         }
         fn table_id(&self, _: u32) -> Option<u32> {
@@ -917,6 +1055,8 @@ mod tests {
                 textures: Vec::new(),
                 source_blend: 0,
                 destination_blend: 0,
+                source_alpha_blend: 0,
+                destination_alpha_blend: 0,
                 depth_draw: 0,
                 cull_mode: 0,
             })
@@ -933,6 +1073,9 @@ mod tests {
         }
         fn loader_status(&self, _: u32, status: LoaderStatus, error: &str) {
             *self.status.borrow_mut() = Some((status, error.to_owned()));
+        }
+        fn load_mesh(&self, url: &str, _: &Rc<Kept>) {
+            self.loads.borrow_mut().push(url.to_owned());
         }
     }
 
@@ -1134,6 +1277,34 @@ mod tests {
         assert!(source.loaded(LOADER).is_none());
         kept.arrive("bad.gltf", Asked::Failed("late".to_owned()));
         assert!(kept.files.borrow().is_empty());
+    }
+
+    #[test]
+    fn a_mesh_file_that_failed_is_read_again_only_when_named_again() {
+        let host = Fake::default();
+        let kept = Rc::new(Kept::default());
+        let source = Source {
+            host: &host,
+            kept: &kept,
+        };
+        let names = |url: &str| *host.source.borrow_mut() = url.to_owned();
+        names("bad.mesh");
+        assert!(source.mesh_file(VIEW, LOADER).is_none());
+        kept.arrive_mesh("bad.mesh", Asked::Failed("404".to_owned()));
+        // The arrival builds again, and that must not ask again.
+        assert!(source.mesh_file(VIEW, LOADER).is_none());
+        assert_eq!(host.loads.borrow().len(), 1);
+        // A built-in shape is not asked for as a file: the build only reads
+        // the name.
+        names("#Cube");
+        assert!(SceneSource::url(&source, LOADER, Prop3d::Source).is_some());
+        names("bad.mesh");
+        assert!(source.mesh_file(VIEW, LOADER).is_none());
+        assert_eq!(*host.loads.borrow(), ["bad.mesh", "bad.mesh"]);
+        // What arrives after no one names it is not kept.
+        kept.forget(&[LOADER]);
+        kept.arrive_mesh("bad.mesh", Asked::Failed("late".to_owned()));
+        assert!(kept.meshes.borrow().is_empty());
     }
 
     #[test]

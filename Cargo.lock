@@ -774,7 +774,7 @@ checksum = "4744e383959f0db86ede514b809b1c53251889093803c05267acc7d4e7030d70"
 [[package]]
 name = "ljos_3d"
 version = "0.0.0"
-source = "git+ssh://git@github.com/hal-c2/ljos-ui.git?rev=f8e705d4e206e45e20f04c5645e9e8a62f68317f#f8e705d4e206e45e20f04c5645e9e8a62f68317f"
+source = "git+ssh://git@github.com/hal-c2/ljos-ui.git?rev=cb4a991ab27688b36b1c13184fc387ab4eab8086#cb4a991ab27688b36b1c13184fc387ab4eab8086"
 dependencies = [
  "bytemuck",
  "gltf",
@@ -834,7 +834,7 @@ dependencies = [
 [[package]]
 name = "ljos_reactive"
 version = "0.0.0"
-source = "git+ssh://git@github.com/hal-c2/ljos-ui.git?rev=f8e705d4e206e45e20f04c5645e9e8a62f68317f#f8e705d4e206e45e20f04c5645e9e8a62f68317f"
+source = "git+ssh://git@github.com/hal-c2/ljos-ui.git?rev=cb4a991ab27688b36b1c13184fc387ab4eab8086#cb4a991ab27688b36b1c13184fc387ab4eab8086"
 dependencies = [
  "slotmap",
  "smallvec",
