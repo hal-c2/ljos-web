@@ -525,6 +525,36 @@ const untouched = (self) => {
   if (node) node.style.touchAction = "none";
 };
 
+// Their middle, in the scene.
+const middleOf = (points) => ({
+  x: points.reduce((sum, point) => sum + point.x, 0) / points.length,
+  y: points.reduce((sum, point) => sum + point.y, 0) / points.length,
+});
+
+// The middle moved because a finger came down or lifted, and the item
+// did not: where the drag is from, in the scene and in the target,
+// moves by as much, so the drag goes on from where it was.
+function movedMiddle(self, was, now) {
+  const mine = self.$mine;
+  const target = self.target;
+  const atWas = target ? sceneToItem(target, was.x, was.y) : was;
+  const atNow = target ? sceneToItem(target, now.x, now.y) : now;
+  mine.fromX += now.x - was.x;
+  mine.fromY += now.y - was.y;
+  mine.pressX += atNow.x - atWas.x;
+  mine.pressY += atNow.y - atWas.y;
+}
+
+// A finger of a drag of several is gone. Enough of them left, the drag
+// goes on; too few, it is over.
+function lostFinger(self, point) {
+  const mine = self.$mine;
+  const was = middleOf(mine.points);
+  mine.points.splice(mine.points.indexOf(point), 1);
+  if (mine.points.length >= self.minimumPointCount) movedMiddle(self, was, middleOf(mine.points));
+  else endDrag(self);
+}
+
 // A drag of several fingers: where their middle has gone since the last of
 // them came down. Fingers that mean to drag may mean to pinch as well, so
 // this only watches them and takes them from no one.
@@ -587,35 +617,27 @@ export const DragHandler = defineType("DragHandler", PointerHandler, {
         watch(point, this);
         if (mine.points.length >= needs) {
           const count = mine.points.length;
-          const middleX = mine.points.reduce((sum, each) => sum + each.x, 0) / count;
-          const middleY = mine.points.reduce((sum, each) => sum + each.y, 0) / count;
-          const target = this.target;
-          const inTarget = (x, y) => (target ? sceneToItem(target, x, y) : { x, y });
+          const middle = middleOf(mine.points);
           if (count === needs) {
-            mine.fromX = middleX;
-            mine.fromY = middleY;
+            mine.fromX = middle.x;
+            mine.fromY = middle.y;
             // Where in the target their middle came down, as the
             // one-point press below keeps it: `follow` holds that
             // spot under their middle, and without it the target
             // jumps to put its corner there instead.
-            const at = inTarget(middleX, middleY);
+            const target = this.target;
+            const at = target ? sceneToItem(target, middle.x, middle.y) : middle;
             mine.pressX = at.x;
             mine.pressY = at.y;
             this.$point.$press(item, mine.fromX, mine.fromY, point);
             settle();
             this.centroidChanged();
           } else {
-            // One more finger: the middle moves and the item does
-            // not, so where the drag is from, in the scene and in
-            // the target, moves by as much as the middle did.
-            const wasX = (middleX * count - point.x) / (count - 1);
-            const wasY = (middleY * count - point.y) / (count - 1);
-            const was = inTarget(wasX, wasY);
-            const now = inTarget(middleX, middleY);
-            mine.fromX += middleX - wasX;
-            mine.fromY += middleY - wasY;
-            mine.pressX += now.x - was.x;
-            mine.pressY += now.y - was.y;
+            movedMiddle(
+              this,
+              { x: (middle.x * count - point.x) / (count - 1), y: (middle.y * count - point.y) / (count - 1) },
+              middle,
+            );
           }
         }
         return false;
@@ -666,8 +688,8 @@ export const DragHandler = defineType("DragHandler", PointerHandler, {
     $release(point) {
       const mine = this.$mine;
       if (mine.points.includes(point)) {
-        mine.points.splice(mine.points.indexOf(point), 1);
-        return endDrag(this);
+        lostFinger(this, point);
+        return;
       }
       if (mine.point !== point) return;
       // Where it was let go, in the item as it is now.
@@ -677,8 +699,7 @@ export const DragHandler = defineType("DragHandler", PointerHandler, {
     $grab(transition, point) {
       const mine = this.$mine;
       if (cancelled(transition) && mine.points.includes(point)) {
-        mine.points.splice(mine.points.indexOf(point), 1);
-        endDrag(this);
+        lostFinger(this, point);
       } else if (cancelled(transition) && mine.point === point) endDrag(this);
       told(this, transition, point);
     },

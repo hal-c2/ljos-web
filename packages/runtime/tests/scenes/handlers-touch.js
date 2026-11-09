@@ -60,6 +60,13 @@
 //         }
 //     }
 //     Rectangle {
+//         id: tdrag3; x: 120; y: 10; width: 80; height: 80; color: "peru"
+//         DragHandler {
+//             id: td3; minimumPointCount: 2; maximumPointCount: 3
+//             onActiveChanged: log.push(`td3 active ${active}`)
+//         }
+//     }
+//     Rectangle {
 //         id: tdrag2; x: 335; y: 155; width: 60; height: 60; color: "sienna"
 //         DragHandler {
 //             id: td2; minimumPointCount: 2
@@ -94,7 +101,7 @@ import {
 import { make } from "../scene.js";
 
 const names = ["root", "pinched", "pinch", "area", "areaTarget", "inArea", "wheeled", "wr", "scaled", "ws", "slid", "wx"];
-const more = ["tapped", "tt", "tdrag", "td", "tdrag2", "td2", "op", "wo", "wo2"];
+const more = ["tapped", "tt", "tdrag", "td", "tdrag2", "td2", "tdrag3", "td3", "op", "wo", "wo2"];
 
 export const objects = { log: [], clock };
 
@@ -105,7 +112,7 @@ export default function HandlersTouch() {
   clock.stop();
   for (const name of [...names, ...more]) objects[name] = $object();
   const { log, root, pinched, pinch, area, areaTarget, inArea, wheeled, wr, scaled, ws, slid, wx } = objects;
-  const { tapped, tt, tdrag, td, tdrag2, td2, op, wo, wo2 } = objects;
+  const { tapped, tt, tdrag, td, tdrag2, td2, tdrag3, td3, op, wo, wo2 } = objects;
 
   return make(Item, { $self: root, width: 400, height: 300 }, () => [
     make(Rectangle, { $self: pinched, x: 100, y: 100, width: 100, height: 100, color: "teal" }, () => [
@@ -197,6 +204,14 @@ export default function HandlersTouch() {
         $self: td,
         onActiveChanged: () => log.push(`td active ${td.active}`),
         onGrabChanged: (transition, point) => log.push(`td grab ${transition}`),
+      }),
+    ]),
+    make(Rectangle, { $self: tdrag3, x: 120, y: 10, width: 80, height: 80, color: "peru" }, () => [
+      make(DragHandler, {
+        $self: td3,
+        minimumPointCount: 2,
+        maximumPointCount: 3,
+        onActiveChanged: () => log.push(`td3 active ${td3.active}`),
       }),
     ]),
     make(Rectangle, { $self: tdrag2, x: 335, y: 155, width: 60, height: 60, color: "sienna" }, () => [
