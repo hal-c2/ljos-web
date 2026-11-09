@@ -415,6 +415,28 @@ test("a finger taps and drags as the mouse does", async ({ page }) => {
   expect(await log(page)).toEqual(["td active false", "td grab 32", "td grab 2"]);
 });
 
+test("two fingers drag an item from where their middle came down", async ({ page }) => {
+  await open(page, "handlers-touch");
+  const touch = await fingers(page);
+  // One finger is not the drag, and moves nothing.
+  await touch("touchStart", [1, 345, 170]);
+  expect(await log(page)).toEqual([]);
+  expect(await place(page, "tdrag2")).toEqual([335, 155]);
+  // The second makes it one: their middle is at (355,170), which is
+  // (20,15) in the item, and that spot stays under their middle.
+  await touch("touchStart", [1, 345, 170], [2, 365, 170]);
+  await touch("touchMove", [1, 350, 173], [2, 370, 173]);
+  expect(await place(page, "tdrag2")).toEqual([335, 155]);
+  await touch("touchMove", [1, 365, 180], [2, 385, 180]);
+  expect(await log(page)).toEqual(["td2 active true"]);
+  expect(await place(page, "tdrag2")).toEqual([355, 165]);
+  await touch("touchMove", [1, 375, 190], [2, 395, 190]);
+  expect(await place(page, "tdrag2")).toEqual([365, 175]);
+  await touch("touchEnd");
+  expect(await log(page)).toEqual(["td2 active false"]);
+  expect(await place(page, "tdrag2")).toEqual([365, 175]);
+});
+
 test("two fingers on a PinchHandler's item scale, turn and move it", async ({ page }) => {
   await open(page, "handlers-touch");
   const touch = await fingers(page);
