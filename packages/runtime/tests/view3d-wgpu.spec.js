@@ -400,6 +400,20 @@ for (const backend of ["webgpu", "webgl2"]) {
       });
     });
 
+    test("a live texture whose item has no size yet is no picture, and the scene goes on", async ({ page }) => {
+      await show(page, "wgpu_livezero");
+      near(await at(page, 300, 150), [255, 0, 0]);
+      const builds = () => page.evaluate(() => document.querySelector(".qq-view3d").$view3d.builds);
+      const before = await builds();
+      await set(page, () => {
+        window.scene.effectSize = 100;
+        window.objects.cube.x = 60;
+      });
+      expect(await builds()).toBeGreaterThan(before);
+      near(await at(page, 260, 150), [255, 0, 0]);
+      near(await at(page, 300, 150), CLEAR);
+    });
+
     test("two views each draw their own scene, and one taken away is let go", async ({ page }) => {
       await show(page, "wgpu_two");
       near(await at(page, 100, 150), [255, 0, 0]);

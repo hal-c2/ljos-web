@@ -254,6 +254,14 @@ class Host {
   shown(o) {
     const texture = this.objectsBy.get(o).$texture?.();
     if (!texture || (texture.view && !texture.element.$drawn)) return null;
+    // An element of no size has no picture yet: reading it throws, where
+    // the JavaScript renderer uploads the empty canvas and draws on.
+    if (!texture.data && !texture.view && texture.element) {
+      const { element } = texture;
+      const width = element.naturalWidth ?? element.videoWidth ?? element.width;
+      const height = element.naturalHeight ?? element.videoHeight ?? element.height;
+      if (!width || !height) return null;
+    }
     return texture.data || texture.element ? texture : null;
   }
   // Each way up of what a view drew is a picture, and so is what an item has
