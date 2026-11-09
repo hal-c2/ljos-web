@@ -414,6 +414,17 @@ for (const backend of ["webgpu", "webgl2"]) {
       near(await at(page, 300, 150), CLEAR);
     });
 
+    test("one sprite system in two views is toned by each view's own surroundings", async ({ page }) => {
+      await show(page, "wgpu_twotoned");
+      await page.waitForFunction(() => [...document.querySelectorAll(".qq-view3d")].every((c) => c.$view3d.frames > 0));
+      await still(page);
+      const [left, right] = [await at(page, 100, 150), await at(page, 300, 150)];
+      // #404040 with no tone mapping, and with the linear one (toScreen).
+      expect(left[0], `left ${left}, right ${right}`).toBeGreaterThanOrEqual(50);
+      expect(left[0], `left ${left}, right ${right}`).toBeLessThanOrEqual(85);
+      expect(right[0], `left ${left}, right ${right}`).toBeGreaterThan(left[0] + 40);
+    });
+
     test("two views each draw their own scene, and one taken away is let go", async ({ page }) => {
       await show(page, "wgpu_two");
       near(await at(page, 100, 150), [255, 0, 0]);

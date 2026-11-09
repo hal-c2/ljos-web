@@ -266,6 +266,15 @@ const SpriteMaterial = defineType("SpriteMaterial", CustomMaterial, {
   },
 });
 
+// The shader premultiplies: one factor does for colour and alpha, and only
+// this way what was opaque stays so.
+function blendInto(material, mode) {
+  material.sourceAlphaBlend = CustomMaterial.One;
+  material.destinationAlphaBlend = mode === Normal ? CustomMaterial.OneMinusSrcAlpha : CustomMaterial.One;
+  material.sourceBlend = mode === Multiply ? CustomMaterial.DstColor : CustomMaterial.One;
+  material.destinationBlend = mode === Screen ? CustomMaterial.One : mode === Multiply ? CustomMaterial.Zero : CustomMaterial.OneMinusSrcAlpha;
+}
+
 function make(kind, system, toned, eye) {
   return inside(null, () => {
     const picture = (named) => {
@@ -282,12 +291,7 @@ function make(kind, system, toned, eye) {
     material.shadingMode = CustomMaterial.Unshaded;
     material.depthDrawMode = Material.NeverDepthDraw;
     material.cullMode = Material.NoCulling;
-    // The shader premultiplies: one factor does for colour and alpha, and only
-    // this way what was opaque stays so.
-    material.sourceAlphaBlend = CustomMaterial.One;
-    material.destinationAlphaBlend = kind.blendMode === Normal ? CustomMaterial.OneMinusSrcAlpha : CustomMaterial.One;
-    material.sourceBlend = kind.blendMode === Multiply ? CustomMaterial.DstColor : CustomMaterial.One;
-    material.destinationBlend = kind.blendMode === Screen ? CustomMaterial.One : kind.blendMode === Multiply ? CustomMaterial.Zero : CustomMaterial.OneMinusSrcAlpha;
+    blendInto(material, kind.blendMode);
     material.__vertexShaderCode = kind.$line ? LINE : SPRITE;
     material.__fragmentShaderCode = PIXELS;
     const rows = Rows({});
@@ -299,20 +303,29 @@ function make(kind, system, toned, eye) {
     model.pickable = false;
     model.materials = material;
     model.instancing = rows;
-    return { model, blend: kind.blendMode };
+    return { model, material, blend: kind.blendMode };
   });
 }
 
 const made = new WeakMap();
 
-// The models that draw a system's sprites and lines. A kind that blends some
-// other way is another material, as its factors are not uniforms.
-export function drawnModels(system, toned, eye) {
+// The models that draw a system's sprites and lines, one to a kind for each
+// view that draws it: a view's tone mapping and its eye are its own, so a
+// kind shared by two views (an imported scene) is a model in each. A kind
+// that blends some other way has its material's factors set again, as its
+// factors are not uniforms.
+export function drawnModels(system, host, toned, eye) {
   const models = [];
   for (const kind of system.$members().particles) {
     if (!kind.$sprite) continue;
-    let draw = made.get(kind);
-    if (draw?.blend !== kind.blendMode) made.set(kind, (draw = make(kind, system, toned, eye)));
+    let byHost = made.get(kind);
+    if (!byHost) made.set(kind, (byHost = new WeakMap()));
+    let draw = byHost.get(host);
+    if (!draw) byHost.set(host, (draw = make(kind, system, toned, eye)));
+    else if (draw.blend !== kind.blendMode) {
+      blendInto(draw.material, kind.blendMode);
+      draw.blend = kind.blendMode;
+    }
     models.push(draw.model);
   }
   return models;

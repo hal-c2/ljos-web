@@ -222,7 +222,7 @@ class Host {
     const name = NAMES[p];
     let all;
     if (name === "data" && object === this.view) all = inside(object.$scene);
-    else if (name === "data" && object.$particles) all = [...inside(object), ...drawnModels(object, () => this.view.environment?.tonemapMode ?? 1, () => this.eye())];
+    else if (name === "data" && object.$particles) all = [...inside(object), ...drawnModels(object, this, () => this.view.environment?.tonemapMode ?? 1, () => this.eye())];
     else if (name === "data" && object.$spatial !== undefined) all = inside(object);
     else all = listed(slot(object, name)?.get());
     return Uint32Array.from(all.filter((each) => each?.$type).map((each) => this.handle(each)));
