@@ -260,6 +260,10 @@ fn lower_from<'a>(
         let path = types::relative(&options.name, file);
         imports.push(b.import_default(name, &format!("{path}{}", options.component_extension)));
     }
+    // Every module of the project's own is made by the one `$namespace`:
+    // its import is written for the first of them and no other, a name
+    // being declared once in a file.
+    let mut namespace = false;
     for name in &uses.namespaces {
         // A module of the project's own is files, not a module of the
         // package: its name is a table of them, read when it is used, since
@@ -277,7 +281,10 @@ fn lower_from<'a>(
                 );
                 members.push((b.str(member).as_str(), b.arrow(&[], b.id(&local))));
             }
-            imports.push(b.import_named(["$namespace"], &format!("{prefix}/object")));
+            if !namespace {
+                imports.push(b.import_named(["$namespace"], &format!("{prefix}/object")));
+                namespace = true;
+            }
             imports.push(b.const_(name, b.call(b.id("$namespace"), [b.object(members)])));
             continue;
         }

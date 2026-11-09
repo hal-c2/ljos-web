@@ -559,6 +559,8 @@ function gatherDrag(self) {
 export const DragHandler = defineType("DragHandler", PointerHandler, {
   properties: {
     minimumPointCount: 1,
+    // Qt's is `minimumPointCount` until something says otherwise.
+    maximumPointCount: derived((self) => self.minimumPointCount),
     xAxis: axis(-DBL_MAX, DBL_MAX, 0),
     yAxis: axis(-DBL_MAX, DBL_MAX, 0),
     activeTranslation: derived(translation),
@@ -579,15 +581,42 @@ export const DragHandler = defineType("DragHandler", PointerHandler, {
       const item = this.$parent;
       const needs = this.minimumPointCount;
       if (needs > 1) {
-        if (point.type !== "touch" || mine.points.length >= needs || !wants(this, point) || !inside(item, point)) return false;
+        const most = Math.max(needs, this.maximumPointCount);
+        if (point.type !== "touch" || mine.points.length >= most || !wants(this, point) || !inside(item, point)) return false;
         mine.points.push(point);
         watch(point, this);
-        if (mine.points.length === needs) {
-          mine.fromX = mine.points.reduce((sum, each) => sum + each.x, 0) / needs;
-          mine.fromY = mine.points.reduce((sum, each) => sum + each.y, 0) / needs;
-          this.$point.$press(item, mine.fromX, mine.fromY, point);
-          settle();
-          this.centroidChanged();
+        if (mine.points.length >= needs) {
+          const count = mine.points.length;
+          const middleX = mine.points.reduce((sum, each) => sum + each.x, 0) / count;
+          const middleY = mine.points.reduce((sum, each) => sum + each.y, 0) / count;
+          const target = this.target;
+          const inTarget = (x, y) => (target ? sceneToItem(target, x, y) : { x, y });
+          if (count === needs) {
+            mine.fromX = middleX;
+            mine.fromY = middleY;
+            // Where in the target their middle came down, as the
+            // one-point press below keeps it: `follow` holds that
+            // spot under their middle, and without it the target
+            // jumps to put its corner there instead.
+            const at = inTarget(middleX, middleY);
+            mine.pressX = at.x;
+            mine.pressY = at.y;
+            this.$point.$press(item, mine.fromX, mine.fromY, point);
+            settle();
+            this.centroidChanged();
+          } else {
+            // One more finger: the middle moves and the item does
+            // not, so where the drag is from, in the scene and in
+            // the target, moves by as much as the middle did.
+            const wasX = (middleX * count - point.x) / (count - 1);
+            const wasY = (middleY * count - point.y) / (count - 1);
+            const was = inTarget(wasX, wasY);
+            const now = inTarget(middleX, middleY);
+            mine.fromX += middleX - wasX;
+            mine.fromY += middleY - wasY;
+            mine.pressX += now.x - was.x;
+            mine.pressY += now.y - was.y;
+          }
         }
         return false;
       }
@@ -607,7 +636,7 @@ export const DragHandler = defineType("DragHandler", PointerHandler, {
     $move(point) {
       const mine = this.$mine;
       if (mine.points.includes(point)) {
-        if (mine.points.length === this.minimumPointCount) gatherDrag(this);
+        if (mine.points.length >= this.minimumPointCount) gatherDrag(this);
         return;
       }
       // Whoever has the point may not let go of it.
