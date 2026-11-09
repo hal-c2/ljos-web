@@ -551,8 +551,18 @@ function lostFinger(self, point) {
   const mine = self.$mine;
   const was = middleOf(mine.points);
   mine.points.splice(mine.points.indexOf(point), 1);
-  if (mine.points.length >= self.minimumPointCount) movedMiddle(self, was, middleOf(mine.points));
-  else endDrag(self);
+  if (mine.points.length >= self.minimumPointCount) {
+    const now = middleOf(mine.points);
+    movedMiddle(self, was, now);
+    // The centroid is at their middle now and says so, though no
+    // finger has moved: nothing bound to it is left at the middle
+    // of fingers that are gone, nor named for one of them.
+    const first = mine.points[0];
+    self.$point.$move(self.$parent, now.x, now.y, first);
+    self.$point.$id = first.id;
+    settle();
+    self.centroidChanged();
+  } else endDrag(self);
 }
 
 // A drag of several fingers: where their middle has gone since the last of

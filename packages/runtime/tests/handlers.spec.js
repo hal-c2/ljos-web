@@ -451,8 +451,10 @@ test("a third finger joins a drag and leaves it, and the item does not jump", as
   await touch("touchMove", [1, 165, 70], [2, 215, 70], [3, 190, 100]);
   expect(await place(page, "tdrag3")).toEqual([150, 30]);
   // It lifts: two fingers are still the drag, so it goes on from there.
+  // Their middle is the centroid at once, with no move to say so.
   await touch("touchEnd", [3, 190, 100]);
   expect(await log(page)).toEqual([]);
+  expect(await state(page, ["td3.centroid.position", "td3.centroid.scenePosition"])).toEqual(["40,40", "190,70"]);
   await touch("touchMove", [1, 175, 80], [2, 225, 80]);
   expect(await place(page, "tdrag3")).toEqual([160, 40]);
   // One more lifts: what is left is no drag, and it ends.
