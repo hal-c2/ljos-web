@@ -425,6 +425,26 @@ for (const backend of ["webgpu", "webgl2"]) {
       expect(right[0], `left ${left}, right ${right}`).toBeGreaterThan(left[0] + 40);
     });
 
+    test.describe("texture data that is not drawn", () => {
+      test.use({ told: [/View3D: Texture: |HUGE_FAN_IN/] });
+      test("says why, once, however often it is committed again", async ({ page }) => {
+        const said = [];
+        page.on("console", (message) => /View3D: Texture: /.test(message.text()) && said.push(message.text()));
+        await show(page, "wgpu_revisions");
+        const commit = (shade) =>
+          set(page, (shade) => {
+            const { picture } = window.objects;
+            picture.setSize({ width: 2, height: 2 });
+            picture.setFormat(1);
+            picture.setDepth(2);
+            picture.setTextureData(new Uint8Array(2 * 2 * 4).fill(shade).buffer);
+          }, shade);
+        await commit(7);
+        await commit(9);
+        expect(said, said.join("\n")).toEqual(["View3D: Texture: a texture with depth is not drawn here"]);
+      });
+    });
+
     test("two views each draw their own scene, and one taken away is let go", async ({ page }) => {
       await show(page, "wgpu_two");
       near(await at(page, 100, 150), [255, 0, 0]);

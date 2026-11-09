@@ -74,7 +74,7 @@ const warned = new Set();
 
 // The numbers as the renderer takes them, or null where there are too few
 // of them for the size, or the format is one that is not drawn.
-export function picture({ bytes, width, height, format, sheer }) {
+export function picture({ bytes, width, height, depth, format, sheer }) {
   const kind = KINDS[format];
   if (!bytes || !(width > 0) || !(height > 0)) return null;
   if (!kind) {
@@ -86,7 +86,7 @@ export function picture({ bytes, width, height, format, sheer }) {
   const buffer = bytes instanceof ArrayBuffer ? bytes : ArrayBuffer.isView(bytes) ? bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) : Uint8Array.from(bytes).buffer;
   const count = width * height * each;
   if (buffer.byteLength < count * Numbers.BYTES_PER_ELEMENT) return null;
-  return { pixels: new Numbers(buffer, 0, count), width, height, format: FORMATS[format], linear: format === Format.RGBA16F || format === Format.RGBA32F, sheer };
+  return { pixels: new Numbers(buffer, 0, count), width, height, depth: depth ?? 0, format: FORMATS[format], linear: format === Format.RGBA16F || format === Format.RGBA32F, sheer };
 }
 
 export const TextureData = defineType("TextureData", Object3D, {

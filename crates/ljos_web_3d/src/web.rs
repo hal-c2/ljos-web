@@ -55,8 +55,6 @@ extern "C" {
     fn picture_id(this: &JsHost, o: u32) -> Option<u32>;
     #[wasm_bindgen(method)]
     fn picture(this: &JsHost, o: u32) -> JsValue;
-    #[wasm_bindgen(method)]
-    fn warn(this: &JsHost, message: &str);
     #[wasm_bindgen(method, js_name = geometryId)]
     fn geometry_id(this: &JsHost, o: u32) -> Option<u32>;
     #[wasm_bindgen(method)]
@@ -192,6 +190,7 @@ impl Host for JsHost {
         Some(Picture {
             width: int(&p, "width") as u32,
             height: int(&p, "height") as u32,
+            depth: int(&p, "depth") as u32,
             opaque: yes(&p, "opaque"),
             format: get(&p, "format").as_f64().map(|f| f as i32),
             pixels: bytes(&p, "pixels"),
@@ -202,9 +201,6 @@ impl Host for JsHost {
                     .collect()
             }),
         })
-    }
-    fn warn(&self, message: &str) {
-        JsHost::warn(self, message);
     }
     fn geometry_id(&self, o: u32) -> Option<u32> {
         JsHost::geometry_id(self, o)

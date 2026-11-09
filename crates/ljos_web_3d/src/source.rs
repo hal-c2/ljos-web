@@ -36,6 +36,8 @@ pub const NO_OBJECT: u32 = u32::MAX;
 pub struct Picture {
     pub width: u32,
     pub height: u32,
+    /// More than 0 where the data is a volume, which is not drawn.
+    pub depth: u32,
     pub opaque: bool,
     pub format: Option<i32>,
     pub pixels: Vec<u8>,
@@ -155,7 +157,6 @@ pub trait Host {
     /// What names the picture a `Texture` shows; `None` while it has none.
     fn picture_id(&self, o: u32) -> Option<u32>;
     fn picture(&self, o: u32) -> Option<Picture>;
-    fn warn(&self, message: &str);
     fn geometry_id(&self, o: u32) -> Option<u32>;
     fn geometry(&self, o: u32) -> Option<Shape>;
     fn table_id(&self, o: u32) -> Option<u32>;
@@ -641,16 +642,24 @@ impl<H: Host> SceneSource for Source<'_, H> {
         }
         let p = self.host.picture(texture)?;
         let image = match p.format {
-            Some(format) => TextureData {
+            Some(format) => match (TextureData {
                 width: p.width,
                 height: p.height,
-                depth: 0,
+                depth: p.depth,
                 format,
                 has_transparency: !p.opaque,
                 bytes: p.pixels,
             }
-            .image()
-            .ok()??,
+            .image())
+            {
+                Ok(Some(image)) => image,
+                // No pixels at all is no picture yet, not a fault.
+                Ok(None) => return None,
+                Err(error) => {
+                    self.say_once("Texture", &error.to_string());
+                    return None;
+                }
+            },
             None => TextureImage::new(Pixels {
                 id: fresh_pixels_id(),
                 size: [p.width, p.height],
@@ -937,6 +946,10 @@ mod tests {
         component: Cell<u32>,
         table_reads: Cell<u32>,
         fragment: RefCell<String>,
+        /// The format the picture's numbers are said to be, and the numbers.
+        format: Cell<Option<i32>>,
+        depth: Cell<u32>,
+        given: RefCell<Vec<u8>>,
         source: RefCell<String>,
         loads: RefCell<Vec<String>>,
         reports: RefCell<Vec<String>>,
@@ -1008,16 +1021,21 @@ mod tests {
             self.revision.get()
         }
         fn picture(&self, _: u32) -> Option<Picture> {
+            let given = self.given.borrow();
             Some(Picture {
                 width: 1,
                 height: 1,
+                depth: self.depth.get(),
                 opaque: true,
-                format: None,
-                pixels: vec![0; 4],
+                format: self.format.get(),
+                pixels: if given.is_empty() {
+                    vec![0; 4]
+                } else {
+                    given.clone()
+                },
                 baked: None,
             })
         }
-        fn warn(&self, _: &str) {}
         fn geometry_id(&self, _: u32) -> Option<u32> {
             self.revision.get()
         }
@@ -1240,6 +1258,67 @@ mod tests {
         assert_eq!(
             *host.reports.borrow(),
             ["Geometry: an attribute's component type 2 is not drawn"]
+        );
+    }
+
+    #[test]
+    fn texture_data_of_a_format_that_is_not_drawn_says_why_once() {
+        let host = Fake::default();
+        let kept = Rc::new(Kept::default());
+        let source = Source {
+            host: &host,
+            kept: &kept,
+        };
+        // `TextureData.Format.BC1`, as the page numbers it.
+        host.format.set(Some(9));
+        for revision in 1..3 {
+            host.revision.set(Some(revision));
+            assert!(source.texture_image(VIEW, CUBE).is_none());
+            assert!(source.texture_image(VIEW, CUBE).is_none());
+        }
+        assert_eq!(
+            *host.reports.borrow(),
+            [
+                "Texture: the block-compressed format BC1 is not drawn; \
+                 give RGBA8 or a floating point format"
+            ]
+        );
+    }
+
+    #[test]
+    fn texture_data_with_too_few_bytes_says_how_many_it_wanted() {
+        let host = Fake::default();
+        let kept = Rc::new(Kept::default());
+        let source = Source {
+            host: &host,
+            kept: &kept,
+        };
+        // RGBA8, one pixel of it, and half its bytes.
+        host.format.set(Some(1));
+        *host.given.borrow_mut() = vec![0; 2];
+        host.revision.set(Some(1));
+        assert!(source.texture_image(VIEW, CUBE).is_none());
+        assert_eq!(
+            *host.reports.borrow(),
+            ["Texture: 1 by 1 pixels of this format are 4 bytes, and 2 were given"]
+        );
+    }
+
+    #[test]
+    fn texture_data_with_a_depth_says_it_is_not_drawn() {
+        let host = Fake::default();
+        let kept = Rc::new(Kept::default());
+        let source = Source {
+            host: &host,
+            kept: &kept,
+        };
+        host.format.set(Some(1));
+        host.depth.set(2);
+        host.revision.set(Some(1));
+        assert!(source.texture_image(VIEW, CUBE).is_none());
+        assert_eq!(
+            *host.reports.borrow(),
+            ["Texture: a texture with depth is not drawn here"]
         );
     }
 

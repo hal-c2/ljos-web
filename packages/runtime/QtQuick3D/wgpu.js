@@ -156,10 +156,6 @@ class Host {
     // object of the type it is written on, whatever name it is imported by.
     return names.includes("SceneEffectEnvironment") ? [...names, "ExtendedSceneEnvironment"] : names;
   }
-  warn(message) {
-    console.warn(message);
-  }
-
   number(o, p) {
     const object = this.objectsBy.get(o);
     const name = NAMES[p];
@@ -288,7 +284,7 @@ class Host {
       const { width, height, pixels, format } = data;
       // Surroundings baked into a file: each level's sides, one after another.
       const baked = data.baked && data.sides === 6 ? data.levels?.map(joined) : undefined;
-      return { width, height, pixels: new Uint8Array(pixels.buffer, pixels.byteOffset, pixels.byteLength), format: Format[format], opaque: !texture.sheer, baked };
+      return { width, height, depth: data.depth ?? 0, pixels: new Uint8Array(pixels.buffer, pixels.byteOffset, pixels.byteLength), format: Format[format], opaque: !texture.sheer, baked };
     }
     if (texture.view) return { ...(texture.down ? flipped(texture.element.$drawn) : texture.element.$drawn), opaque: !texture.sheer };
     if (texture.live) return { ...this.liveRead(texture.element), opaque: !texture.sheer };
