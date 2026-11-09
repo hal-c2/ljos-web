@@ -426,10 +426,10 @@ for (const backend of ["webgpu", "webgl2"]) {
     });
 
     test.describe("texture data that is not drawn", () => {
-      test.use({ told: [/View3D: Texture: |HUGE_FAN_IN/] });
+      test.use({ told: [/TextureData: a picture with a depth is not drawn|HUGE_FAN_IN/] });
       test("says why, once, however often it is committed again", async ({ page }) => {
         const said = [];
-        page.on("console", (message) => /View3D: Texture: /.test(message.text()) && said.push(message.text()));
+        page.on("console", (message) => /TextureData: a picture with a depth/.test(message.text()) && said.push(message.text()));
         await show(page, "wgpu_revisions");
         const commit = (shade) =>
           set(page, (shade) => {
@@ -441,7 +441,7 @@ for (const backend of ["webgpu", "webgl2"]) {
           }, shade);
         await commit(7);
         await commit(9);
-        expect(said, said.join("\n")).toEqual(["View3D: Texture: a texture with depth is not drawn here"]);
+        expect(said, said.join("\n")).toEqual(["TextureData: a picture with a depth is not drawn"]);
       });
     });
 

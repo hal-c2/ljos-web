@@ -871,6 +871,39 @@ test("a DefaultMaterial gives back a light as Qt has it", async ({ page }) => {
   near(await painted(page, points), points.map(([, colour]) => colour), "", 3);
 });
 
+test.describe("a picture with a depth", () => {
+  test.use({ told: [/TextureData: a picture with a depth is not drawn/] });
+  test("is not drawn as a 2D picture, and says so once", async ({ page }) => {
+    const said = [];
+    page.on("console", (message) => /TextureData: a picture with a depth/.test(message.text()) && said.push(message.text()));
+    await open(page, "datadepth3d");
+    const centre = async () => (await pixels(page, [[200, 150]]))[0];
+    const commit = (depth, rgb) =>
+      page.evaluate(
+        ([depth, rgb]) => {
+          const { picture } = window.objects;
+          picture.setSize({ width: 1, height: 1 });
+          picture.setFormat(1);
+          picture.setDepth(depth);
+          picture.setTextureData(new Uint8Array([...rgb, 255]).buffer);
+          window.flush();
+        },
+        [depth, rgb],
+      );
+    await commit(0, [255, 0, 0]);
+    await expect.poll(centre).toBe("255 0 0");
+    // With a depth the numbers are no picture on either renderer, as one
+    // of a packed format is none: the green slice is not drawn. (What the
+    // sheet falls back to with no picture — undrawn here, unmapped on
+    // wgpu — already differed for the packed formats.)
+    await commit(2, [0, 255, 0]);
+    await expect.poll(async () => !["255 0 0", "0 255 0"].includes(await centre())).toBe(true);
+    await commit(2, [0, 0, 255]);
+    await page.waitForTimeout(100);
+    expect(said).toEqual(["TextureData: a picture with a depth is not drawn"]);
+  });
+});
+
 test("a Radiance picture lights a scene and is drawn as Qt has it", async ({ page }) => {
   await open(page, "hdr3d");
   const points = [

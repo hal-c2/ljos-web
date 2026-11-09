@@ -12,8 +12,9 @@
 //
 // Also here is how a Radiance `.hdr` file is read, which gives the same.
 //
-// Not here: the formats that are packed (`BC1` and after), `RGBE8` and
-// `R16`, of which nothing is drawn, and a picture with a depth.
+// Not drawn, on either renderer: the formats that are packed (`BC1` and
+// after), `RGBE8` and `R16`, and a picture with a depth, a volume being
+// no 2D picture. Each is said once where its numbers are taken up.
 import { defineType, flush } from "../object.js";
 import { Object3D } from "./Node.js";
 import { signal } from "#kernel";
@@ -77,6 +78,11 @@ const warned = new Set();
 export function picture({ bytes, width, height, depth, format, sheer }) {
   const kind = KINDS[format];
   if (!bytes || !(width > 0) || !(height > 0)) return null;
+  if (depth > 0) {
+    if (!warned.has("depth")) console.warn("TextureData: a picture with a depth is not drawn");
+    warned.add("depth");
+    return null;
+  }
   if (!kind) {
     if (!warned.has(format)) console.warn(`TextureData: the format ${FORMATS[format] ?? format} is not drawn`);
     warned.add(format);

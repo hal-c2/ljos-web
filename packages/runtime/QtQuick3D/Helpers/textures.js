@@ -23,7 +23,7 @@ export const ProceduralTextureData = defineType("ProceduralTextureData", Texture
     textureData: null,
   },
   setup(self) {
-    self.$picture = kept(self, () => picture({ bytes: self.textureData, width: self.width, height: self.height, format: self.format || Format.RGBA8, sheer: self.hasTransparency }));
+    self.$picture = kept(self, () => picture({ bytes: self.textureData, width: self.width, height: self.height, depth: self.depth, format: self.format || Format.RGBA8, sheer: self.hasTransparency }));
   },
 });
 
