@@ -1278,10 +1278,8 @@ mod tests {
         }
         assert_eq!(
             *host.reports.borrow(),
-            [
-                "Texture: the block-compressed format BC1 is not drawn; \
-                 give RGBA8 or a floating point format"
-            ]
+            ["Texture: the block-compressed format BC1 is not drawn; \
+                 give RGBA8 or a floating point format"]
         );
     }
 
