@@ -177,3 +177,38 @@ test("a type of Qt's QML that Ljós has not written says so and names the module
   const said = await page.evaluate(() => window.objects.tried());
   expect(said).toBe("QtQuick3D.Effects: Blur is QML of Qt's own, and Qt's QtQuick3D.Effects is not installed here");
 });
+
+test("a shader named as what Qt's tool bakes needs no tool of Qt's", async ({ page }) => {
+  await open(page, "qtlessshader");
+  const Compiled = 0;
+  await expect.poll(() => page.evaluate(() => JSON.parse(JSON.stringify(window.scene.statuses()))), {
+    message: JSON.stringify(await page.evaluate(() => window.scene.logs())),
+  }).toEqual([Compiled, Compiled, Compiled]);
+  await settled(page, [50, 50], [0, 255, 0], 0, "what OpenGL ES does not say as OpenGL 4.4 does");
+  await settled(page, [150, 50], [255, 0, 0], 0, "a block with a name");
+  await settled(page, [250, 50], [0, 255, 0], 0, "a baked file with no source beside it");
+});
+
+test.describe("a shader named as baked", () => {
+  test.use({ told: [/^ShaderEffect: ERROR/] });
+  test("that is wrong says so, one that holds nothing is made from its source, and with no source says so too", async ({ page }) => {
+    await open(page, "qtlessshaderfaults");
+    const Compiled = 0;
+    const Failed = 2;
+    await expect.poll(() => page.evaluate(() => JSON.parse(JSON.stringify(window.scene.statuses())))).toEqual([Failed, Failed, Compiled, Compiled, Failed, Failed, Compiled]);
+    const [wrong, malformed] = await page.evaluate(() => window.scene.logs());
+    expect(wrong).toContain("nothing");
+    expect(malformed).not.toBe("");
+    await settled(page, [250, 50], [0, 255, 0], 0, "a file that cannot be read, with its source beside it");
+    await settled(page, [350, 50], [0, 255, 0], 0, "a file with no OpenGL ES in it, with its source beside it");
+    const logs = await page.evaluate(() => window.scene.logs());
+    expect(logs[4]).toContain("onlyunreadable.frag.qsb");
+    expect(logs[5]).toContain("onlynogles.frag.qsb");
+    await settled(page, [250, 150], [0, 255, 0], 0, "a block with an instance in one stage only, read by the other");
+  });
+});
+
+test("a modal popup of a style with no shade of its own still shades the window", async ({ page }) => {
+  await open(page, "qtlessdim");
+  await settled(page, [20, 20], [148, 148, 149], 2, "what is behind it");
+});

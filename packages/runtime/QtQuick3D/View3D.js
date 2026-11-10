@@ -22,7 +22,9 @@ import { inside, Node } from "./Node.js";
 import { met } from "./pick.js";
 import { draw } from "./render.js";
 import { SceneEnvironment } from "./scene.js";
+import { drawOn, renderer } from "./wgpu.js";
 import { signal, untrack } from "#kernel";
+import { getOwner, onCleanup } from "solid-js";
 
 const sheet = new CSSStyleSheet();
 sheet.replaceSync(`.qq-view3d { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }`);
@@ -251,7 +253,9 @@ export const View3D = defineType("View3D", Item, {
     canvas.className = "qq-view3d";
     canvas.width = canvas.height = 0;
     self.$node.append(canvas);
-    const paper = canvas.getContext("bitmaprenderer");
+    // A canvas has one kind of context: wgpu's is made where it draws.
+    const wgpu = renderer() === "wgpu";
+    const paper = wgpu ? null : canvas.getContext("bitmaprenderer");
 
     // The scene is a node of its own, whose children are the view's.
     const scene = (self.$scene = within(null, () => Node({})));
@@ -284,6 +288,22 @@ export const View3D = defineType("View3D", Item, {
     let slow = false;
     const stats = (self.$stats = within(null, () => RenderStats({})));
     const frame = counted(stats);
+    if (wgpu) {
+      self.$canvas = { element: canvas };
+      self.$view = () => 0;
+      const dispose = drawOn(self, canvas, frame);
+      if (getOwner()) onCleanup(dispose);
+      // What the picture does not need but mapping does: the camera a view
+      // is seen through, and the view it was last seen in.
+      effect(
+        () => ({ camera: self.camera ?? found(self).camera, width: self.width, height: self.height }),
+        ({ camera, width, height }) => {
+          first = camera;
+          if (camera) Object.assign(camera, { $width: width, $height: height });
+        },
+      );
+      return;
+    }
     const drawn = () => {
       const from = performance.now();
       // A timer may ring a little early.

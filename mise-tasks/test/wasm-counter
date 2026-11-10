@@ -5,16 +5,10 @@ set -euo pipefail
 
 cd examples/wasm-counter
 
-# The tool that makes JavaScript of what wasm-bindgen wrote into the
-# .wasm, the version the crate is pinned to (its Cargo.toml).
-bindgen=.tools/wasm-bindgen-0.2.129-x86_64-unknown-linux-musl/wasm-bindgen
-if [ ! -x "$bindgen" ]; then
-  mkdir -p .tools
-  curl -fsSL https://github.com/rustwasm/wasm-bindgen/releases/download/0.2.129/wasm-bindgen-0.2.129-x86_64-unknown-linux-musl.tar.gz \
-    | tar xz -C .tools
-fi
+# The tool that makes JavaScript of what wasm-bindgen wrote into the .wasm.
+bindgen="$(../../mise-tasks/tool/wasm-bindgen)"
 
 cargo test
-WASM_BINDGEN="$PWD/$bindgen" node ../../packages/runtime/bin/ljos-web.js faces .
+WASM_BINDGEN="$bindgen" node ../../packages/runtime/bin/ljos-web.js faces .
 
 pnpm --filter ljos-web-example-wasm-counter test "$@"

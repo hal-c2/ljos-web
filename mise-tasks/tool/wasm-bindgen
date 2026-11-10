@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+#MISE description="Fetch the wasm-bindgen the crates pin, for this machine, and print where it is"
+set -euo pipefail
+
+# The tool must be the version the crates pin wasm-bindgen to. What is
+# fetched is checked against the sums below, the release's own at the time of
+# pinning: moving the version means taking the new ones from the release.
+version=0.2.129
+
+if [ "$(wasm-bindgen --version 2>/dev/null)" = "wasm-bindgen $version" ]; then
+  command -v wasm-bindgen
+  exit 0
+fi
+
+machine="$(uname -m)-$(uname -s)"
+exe=
+case "$machine" in
+  x86_64-Linux)
+    target=x86_64-unknown-linux-musl
+    sum=82d12bb940e2d4e72e0d5605387fc1b8ca179044e012b620f0ce4e7440e8320e
+    ;;
+  aarch64-Linux)
+    target=aarch64-unknown-linux-musl
+    sum=2ed4351c35dd9440308bbb02767d47ea278efe851a52465300f3c94f5b6c2a87
+    ;;
+  x86_64-Darwin)
+    target=x86_64-apple-darwin
+    sum=7e028879a68ec53dae14048b55cc5215f6df75b17a9c1426fac8fa086d3202fd
+    ;;
+  arm64-Darwin)
+    target=aarch64-apple-darwin
+    sum=81d4a23d56b3c3eb8187658329116d50e0b228a93b343825fb71f70179051cd1
+    ;;
+  x86_64-MINGW* | x86_64-MSYS*)
+    target=x86_64-pc-windows-msvc
+    sum=79e348c169d0c10c0b287647f1e753d0985353ca96800bc29be8f4261baf13e6
+    exe=.exe
+    ;;
+  *)
+    echo "wasm-bindgen $version: no release for $machine; install it (cargo install wasm-bindgen-cli --version $version)" >&2
+    exit 1
+    ;;
+esac
+
+root="$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel)"
+name="wasm-bindgen-$version-$target"
+bindgen="$root/.tools/$name/wasm-bindgen$exe"
+if [ ! -x "$bindgen" ]; then
+  mkdir -p "$root/.tools"
+  archive="$(mktemp "$root/.tools/$name.XXXXXX")"
+  trap 'rm -f "$archive"' EXIT
+  curl -fsSL "https://github.com/wasm-bindgen/wasm-bindgen/releases/download/$version/$name.tar.gz" -o "$archive"
+  if command -v sha256sum >/dev/null; then
+    got="$(sha256sum "$archive")"
+  else
+    got="$(shasum -a 256 "$archive")"
+  fi
+  if [ "${got%% *}" != "$sum" ]; then
+    echo "wasm-bindgen $version: $name.tar.gz is not what was pinned: ${got%% *}, not $sum" >&2
+    exit 1
+  fi
+  tar xzf "$archive" -C "$root/.tools"
+fi
+echo "$bindgen"

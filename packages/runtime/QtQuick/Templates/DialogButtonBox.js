@@ -363,6 +363,22 @@ export const DialogButtonBox = defineType("DialogButtonBox", Container, {
       return (self.availableWidth - (count - 1) * self.spacing) / count;
     };
     const sized = new Set();
+    const shares = (button) => {
+      if (sized.has(button)) return;
+      sized.add(button);
+      const width = slot(button, "width");
+      const free = (alignment) => (self.alignment & alignment) !== 0 || width.explicit();
+      width.place(() => (free(AlignHorizontal) ? undefined : share()));
+      slot(button, "height").place(() => (free(AlignVertical) ? undefined : self.contentHeight));
+    };
+    // The first buttons are measured at their own width, which is how a box
+    // as wide as its view gets a width at all. One that joins them is in its
+    // share from before it is in the model: a view laying it out first would
+    // see it at its own width, and the box would stay as narrow as that made
+    // it, for any width agrees with itself.
+    self.$adding = (button) => {
+      if (sized.size) shares(button);
+    };
     effect(
       () => self.contentChildren,
       (buttons) => {
@@ -372,14 +388,7 @@ export const DialogButtonBox = defineType("DialogButtonBox", Container, {
           slot(button, "width").place(undefined);
           slot(button, "height").place(undefined);
         }
-        for (const button of buttons) {
-          if (sized.has(button)) continue;
-          sized.add(button);
-          const width = slot(button, "width");
-          const free = (alignment) => (self.alignment & alignment) !== 0 || width.explicit();
-          width.place(() => (free(AlignHorizontal) ? undefined : share()));
-          slot(button, "height").place(() => (free(AlignVertical) ? undefined : self.contentHeight));
-        }
+        buttons.forEach(shares);
       },
     );
     // Focus is the default button's, else the first that accepts; the
