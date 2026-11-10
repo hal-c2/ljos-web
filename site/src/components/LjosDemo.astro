@@ -1,0 +1,36 @@
+---
+// A live ljos-web demo as a client-only island. The page is complete
+// without it: the fallback (a text picture of what the demo does) is
+// server-rendered, the runtime loads lazily when the figure scrolls
+// into view, and a failed load keeps the fallback plus an honest note.
+interface Props { demo: "counter" | "gauge" | "toggle" | "clock"; title: string; fallback: string; }
+const { demo, title, fallback } = Astro.props;
+---
+<figure class="ljos-demo" data-ljos-demo={demo} data-state="loading" aria-label={title}>
+  <div class="ljos-demo__stage">
+    <p class="ljos-demo__fallback">{fallback}</p>
+    <div class="ljos-demo__mount"></div>
+  </div>
+  <p class="ljos-demo__error" role="status">The live demo could not load here. The description above is what it does; the QML source is in <code>site/src/demos/</code>.</p>
+  <figcaption><strong>{title}</strong> — QML compiled by ljos-web, running in this page.</figcaption>
+</figure>
+<script>
+  const loaders = {
+    counter: () => import("../islands/counter.js"),
+    gauge: () => import("../islands/gauge.js"),
+    toggle: () => import("../islands/toggle.js"),
+    clock: () => import("../islands/clock.js"),
+  };
+  const io = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      const fig = entry.target;
+      io.unobserve(fig);
+      const name = fig.getAttribute("data-ljos-demo");
+      loaders[name]()
+        .then((m) => { m.default(fig.querySelector(".ljos-demo__mount")); fig.dataset.state = "live"; })
+        .catch(() => { fig.dataset.state = "failed"; });
+    }
+  }, { rootMargin: "200px" });
+  document.querySelectorAll("[data-ljos-demo]").forEach((el) => io.observe(el));
+</script>
