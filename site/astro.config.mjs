@@ -14,8 +14,7 @@ export default defineConfig({
       title: "Ljós",
       description: "Ljós is a general-purpose Rust UI toolkit that runs QML — malleable software everywhere.",
       logo: {
-        light: "./src/assets/ljos.svg",
-        dark: "./src/assets/ljos-dark.svg",
+        src: "./src/assets/ljos.svg",
         alt: "Ljós",
         replacesTitle: true,
       },
