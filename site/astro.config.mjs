@@ -9,6 +9,9 @@ export default defineConfig({
   // DECISION: no `site:` URL and no CNAME yet — the domain is pointed
   // at this build only when the user says so; relative output keeps
   // artifact previews honest in the meantime.
+  // TODO(site-url): og:image/twitter:image below are relative until
+  // then; scrapers need absolute URLs, so when `site:` lands build
+  // them as new URL("/og-image.png", Astro.site).
   integrations: [
     starlight({
       title: "Ljós",

@@ -6,8 +6,8 @@
 // dark variants. The favicon is the mark file unchanged; the touch
 // icon keeps padding around the mark inside its square slot (the
 // mark's own viewBox has none to spare at the edges that matter).
-import { execSync } from "node:child_process";
-import { cpSync, readFileSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { cpSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -22,8 +22,11 @@ const inner = (file) => readFileSync(join(assets, file), "utf8")
 const rsvg = (svgText, out, w, h) => {
   const tmp = join(root, ".brand-tmp.svg");
   writeFileSync(tmp, svgText);
-  execSync(`rsvg-convert -w ${w} -h ${h} -o ${out} ${tmp}`);
-  execSync(`rm ${tmp}`);
+  try {
+    execFileSync("rsvg-convert", ["-w", String(w), "-h", String(h), "-o", out, tmp]);
+  } finally {
+    unlinkSync(tmp);
+  }
 };
 // Touch icon: mark centred with ~12% padding on paper (mark viewBox
 // is 0 -3 188 188, so shift it into a 236 square).
