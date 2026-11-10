@@ -2,6 +2,6 @@ packages:
   - packages/*
   - examples/*
   - site
-onlyBuiltDependencies:
-  - esbuild
-  - sharp
+allowBuilds:
+  esbuild: true
+  sharp: true
