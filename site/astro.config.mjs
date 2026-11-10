@@ -13,6 +13,19 @@ export default defineConfig({
     starlight({
       title: "Ljós",
       description: "Ljós is a general-purpose Rust UI toolkit that runs QML — malleable software everywhere.",
+      logo: {
+        light: "./src/assets/ljos.svg",
+        dark: "./src/assets/ljos-dark.svg",
+        alt: "Ljós",
+        replacesTitle: true,
+      },
+      head: [
+        { tag: "link", attrs: { rel: "apple-touch-icon", sizes: "180x180", href: "/apple-touch-icon.png" } },
+        { tag: "meta", attrs: { property: "og:image", content: "/og-image.png" } },
+        { tag: "meta", attrs: { property: "og:type", content: "website" } },
+        { tag: "meta", attrs: { name: "twitter:card", content: "summary_large_image" } },
+        { tag: "meta", attrs: { name: "twitter:image", content: "/og-image.png" } },
+      ],
       customCss: ["./src/styles/site.css"],
       social: [{ icon: "github", label: "GitHub", href: "https://github.com/hal-c2/ljos-ui" }],
       sidebar: [
