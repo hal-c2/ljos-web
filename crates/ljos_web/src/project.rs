@@ -11,7 +11,7 @@
 //! properties some instance sets, and everything else stays as static as it
 //! was written.
 
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 
 use oxc_allocator::Allocator;
 use oxc_ast::ast::CallExpression;
@@ -39,6 +39,8 @@ pub struct Project {
     extras: HashMap<String, Extras>,
     /// The modules the project has, whether or not any of their types is QML.
     modules: HashSet<String>,
+    /// The types of each module the project has files of, by name.
+    module_types: BTreeMap<String, BTreeMap<String, String>>,
 }
 
 /// What one file asks of the components it uses, and what its own
@@ -176,6 +178,15 @@ impl Project {
     /// what a `qmldir` says, or the build that makes the module.
     pub fn add_type(&mut self, uri: &str, name: &str, file: &str) {
         self.front.add_type(uri, name, file);
+        self.module_types
+            .entry(uri.to_string())
+            .or_default()
+            .insert(name.to_string(), file.to_string());
+    }
+
+    /// The types of the project's module `uri`, by name, each the file it is.
+    pub(crate) fn module_types(&self, uri: &str) -> Option<&BTreeMap<String, String>> {
+        self.module_types.get(uri)
     }
 
     /// The name a module gives the file `file` as one of its types

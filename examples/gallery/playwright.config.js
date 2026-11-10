@@ -5,7 +5,7 @@ const url = `http://127.0.0.1:${port}`;
 
 export default defineConfig({
   testDir: "./tests",
-  testMatch: "report.spec.js",
+  testMatch: ["report.spec.js", "assets.spec.js"],
   fullyParallel: true,
   reporter: [["./tests/table.js"]],
   timeout: 150000,

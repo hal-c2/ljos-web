@@ -12,9 +12,17 @@ export default defineConfig({
   fullyParallel: true,
   reporter: "list",
   use: { baseURL: `http://127.0.0.1:${port}` },
-  webServer: {
-    command: `vite --config vite.config.js --host 127.0.0.1 --port ${port} --strictPort`,
-    url: `http://127.0.0.1:${port}`,
-    reuseExistingServer: false,
-  },
+  webServer: [
+    {
+      command: `vite --config vite.config.js --host 127.0.0.1 --port ${port} --strictPort`,
+      url: `http://127.0.0.1:${port}`,
+      reuseExistingServer: false,
+    },
+    // The same scenes where no Qt is: `qtless.spec.js`.
+    {
+      command: `vite --config qtless.config.js --host 127.0.0.1 --port ${port + 1} --strictPort`,
+      url: `http://127.0.0.1:${port + 1}`,
+      reuseExistingServer: false,
+    },
+  ],
 });

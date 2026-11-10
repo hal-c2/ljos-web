@@ -10,5 +10,5 @@ export default defineConfig({
     conditions: kernel === "wasm" ? ["ljos-wasm-kernel", ...defaultClientConditions] : defaultClientConditions,
   },
   // The wasm is a file of its own, as a page fetches it, so it is counted.
-  build: { target: "es2022", outDir: process.env.LJOS_SIZE_OUT, emptyOutDir: true, assetsInlineLimit: 0 },
+  build: { target: "es2022", outDir: process.env.LJOS_SIZE_OUT, emptyOutDir: true, rollupOptions: { input: fileURLToPath(new URL(process.env.LJOS_SIZE_ENTRY ?? "index.html", import.meta.url)) }, assetsInlineLimit: 0 },
 });

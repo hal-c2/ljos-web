@@ -11,4 +11,4 @@ crate-type = ["cdylib", "rlib"]
 
 # The same graph the desktop runs, from the same source: not a port.
 [dependencies]
-ljos_reactive = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "b6c095671da1ae9066b26ef803a35944afa2158f" }
+ljos_reactive = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "f8e705d4e206e45e20f04c5645e9e8a62f68317f" }

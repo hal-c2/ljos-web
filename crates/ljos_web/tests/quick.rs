@@ -1951,3 +1951,22 @@ Item {
     assert_contains(&code, "return this.width + 1;");
     assert_contains(&code, "return this;");
 }
+
+#[test]
+fn a_script_is_told_it_cannot_import_a_module_of_its_project() {
+    let errors = ljos_web::compile_script(
+        ".import App.Media as M\nfunction f() { return 1 }\n",
+        &Options::default(),
+    )
+    .expect_err("a module no package has is refused");
+    assert!(
+        errors[0].message.contains("App.Media"),
+        "{:?}",
+        errors[0].message
+    );
+    ljos_web::compile_script(
+        ".import QtQuick as Q\nfunction f() { return 1 }\n",
+        &Options::default(),
+    )
+    .expect("a Qt module is imported");
+}

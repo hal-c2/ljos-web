@@ -14,7 +14,7 @@ import { createEffect, createMemo, createRenderEffect, createRoot, createSignal,
 import { Color, color } from "./QtQuick/color.js";
 // Which graph is under the slots: Solid's signals, or Ljós's own graph in
 // wasm (`kernel/wasm.js`), as the build's `ljos-wasm-kernel` condition says.
-import { WASM, binding, cell, followed, read as follow, signal as counted, touch, untrack } from "#kernel";
+import { WASM, binding, cell, followed, read as follow, placed as typeOwn, signal as counted, touch, untrack } from "#kernel";
 
 // Solid refuses a write from a component's body or a computation; an object
 // is assigned to from wherever its QML says.
@@ -378,6 +378,12 @@ export function gather(work) {
   }
 }
 
+// A value an object holds that a program reads the members of, as a node's
+// `position`, is that object's still in the program's hands: `p.x` is what
+// the node has now. What a property is given of it, by an assignment or a
+// binding, is the value as it was then (`$copy`), as in Qt.
+const own = (value) => (value !== null && typeof value === "object" && typeof value.$copy === "function" ? value.$copy() : value);
+
 // A binding that cannot be evaluated, as `game.over` before there is a
 // game, is told of and leaves the property what it was: QML's rule, which
 // programs written for it lean on. Only what asking too much of a value
@@ -406,7 +412,7 @@ function guarded(key, compute, pure = true, self) {
     guard.failing = false;
     const before = early;
     try {
-      return (last = compute());
+      return (last = own(compute()));
     } catch (error) {
       if (!(error instanceof TypeError)) {
         // Under a boundary it is the boundary's; a binding's throw would
@@ -499,7 +505,7 @@ export function bound(owner, compute, first) {
 // date and where a loop ends: one that asks for its own value while it is
 // computed gets what it had, as the graph gives any binding it is running.
 // What is read through the same interface as `ringed`'s.
-function graphed(owner, compute, first) {
+function graphed(owner, compute, first, own = false) {
   let held = first;
   let index;
   let evaluating = false;
@@ -549,6 +555,7 @@ function graphed(owner, compute, first) {
     if (index === undefined) {
       if (owner) runWithOwner(owner, () => onCleanup(() => made?.()));
       index = binding(owner, run);
+      if (own) typeOwn(index);
       untrack(get);
     }
     return get;
@@ -569,7 +576,7 @@ export function memo(compute, options = SYNC) {
 }
 
 function ringed(owner, compute, first, binding) {
-  if (WASM) return graphed(owner, compute, first);
+  if (WASM) return graphed(owner, compute, first, !binding);
   let memo;
   let held = first;
   let evaluating = false;
@@ -911,7 +918,7 @@ class Slot {
   // An assignment: it replaces the binding, as in QML, and what depends on
   // the property is up to date when it returns.
   set(value) {
-    if (this.write(value)) settle();
+    if (this.write(own(value))) settle();
   }
 
   // The same without settling what depends on it: for a type's own writes,
@@ -2081,7 +2088,9 @@ export function made(Component, props, reloadable) {
 
 // Puts a component's object in the page. A Window is told what it was put
 // in and with what `options`: it fills the element, or with
-// `{ fill: false }` gives it the size its QML says. With
+// `{ fill: false }` gives it the size its QML says. Any other root keeps the
+// size its QML says unless `{ fill: true }` lays it out at the element's,
+// following the element from then on. With
 // `{ reloadable: true }` (the default in a dev server) `reload` can give it
 // a new component and keep its state.
 export function mount(Component, element, props = {}, options = {}) {
@@ -2176,3 +2185,11 @@ export const QtObject = defineType("QtObject", null, {
     },
   },
 });
+
+// What `import LocalModule as X` names: a table of the module's files, each
+// read when it is used, as a file of the module may be loading this one.
+export function $namespace(members) {
+  const table = {};
+  for (const [name, member] of Object.entries(members)) Object.defineProperty(table, name, { get: member, enumerable: true });
+  return table;
+}

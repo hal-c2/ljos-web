@@ -415,6 +415,55 @@ test("a finger taps and drags as the mouse does", async ({ page }) => {
   expect(await log(page)).toEqual(["td active false", "td grab 32", "td grab 2"]);
 });
 
+test("two fingers drag an item from where their middle came down", async ({ page }) => {
+  await open(page, "handlers-touch");
+  const touch = await fingers(page);
+  // One finger is not the drag, and moves nothing.
+  await touch("touchStart", [1, 345, 170]);
+  expect(await log(page)).toEqual([]);
+  expect(await place(page, "tdrag2")).toEqual([335, 155]);
+  // The second makes it one: their middle is at (355,170), which is
+  // (20,15) in the item, and that spot stays under their middle.
+  await touch("touchStart", [1, 345, 170], [2, 365, 170]);
+  await touch("touchMove", [1, 350, 173], [2, 370, 173]);
+  expect(await place(page, "tdrag2")).toEqual([335, 155]);
+  await touch("touchMove", [1, 365, 180], [2, 385, 180]);
+  expect(await log(page)).toEqual(["td2 active true"]);
+  expect(await place(page, "tdrag2")).toEqual([355, 165]);
+  await touch("touchMove", [1, 375, 190], [2, 395, 190]);
+  expect(await place(page, "tdrag2")).toEqual([365, 175]);
+  await touch("touchEnd");
+  expect(await log(page)).toEqual(["td2 active false"]);
+  expect(await place(page, "tdrag2")).toEqual([365, 175]);
+});
+
+test("a third finger joins a drag and leaves it, and the item does not jump", async ({ page }) => {
+  await open(page, "handlers-touch");
+  const touch = await fingers(page);
+  await touch("touchStart", [1, 135, 50]);
+  await touch("touchStart", [1, 135, 50], [2, 185, 50]);
+  await touch("touchMove", [1, 155, 60], [2, 205, 60]);
+  expect(await log(page)).toEqual(["td3 active true"]);
+  expect(await place(page, "tdrag3")).toEqual([140, 20]);
+  // A third finger moves their middle by coming down, which is no move
+  // of the drag's: the item goes only as far as the fingers go.
+  await touch("touchStart", [1, 155, 60], [2, 205, 60], [3, 180, 90]);
+  await touch("touchMove", [1, 165, 70], [2, 215, 70], [3, 190, 100]);
+  expect(await place(page, "tdrag3")).toEqual([150, 30]);
+  // It lifts: two fingers are still the drag, so it goes on from there.
+  // Their middle is the centroid at once, with no move to say so.
+  await touch("touchEnd", [3, 190, 100]);
+  expect(await log(page)).toEqual([]);
+  expect(await state(page, ["td3.centroid.position", "td3.centroid.scenePosition"])).toEqual(["40,40", "190,70"]);
+  await touch("touchMove", [1, 175, 80], [2, 225, 80]);
+  expect(await place(page, "tdrag3")).toEqual([160, 40]);
+  // One more lifts: what is left is no drag, and it ends.
+  await touch("touchEnd", [2, 225, 80]);
+  expect(await log(page)).toEqual(["td3 active false"]);
+  expect(await place(page, "tdrag3")).toEqual([160, 40]);
+  await touch("touchEnd");
+});
+
 test("two fingers on a PinchHandler's item scale, turn and move it", async ({ page }) => {
   await open(page, "handlers-touch");
   const touch = await fingers(page);

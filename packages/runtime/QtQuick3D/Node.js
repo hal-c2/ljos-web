@@ -103,11 +103,22 @@ function angled(self) {
 
 // `scale`, `eulerRotation` and `pivot` are vectors a program reads as one
 // (`node.scale.times(2)`) and whose members it binds and animates one by
-// one (`eulerRotation.y`): a group that is also a vector.
-function vectorGroup(name) {
+// one (`eulerRotation.y`): a group that is also a vector. So is `position`,
+// whose members are the node's `x`, `y` and `z`.
+//
+// What a program has of one is the node's still, as in Qt: `p.x` is what
+// the node has now, and `node.position.x = 3` moves the node. What a
+// property is given of it is the vector as it was (`$copy`).
+function vectorGroup(name, named = (axis) => `${name}$${axis}`) {
   const view = Object.create(Vector3d.prototype);
+  view.$copy = function () {
+    return new Vector3d(this.x, this.y, this.z);
+  };
+  view.toJSON = function () {
+    return { x: this.x, y: this.y, z: this.z };
+  };
   for (const axis of AXES) {
-    const key = `${name}$${axis}`;
+    const key = named(axis);
     Object.defineProperty(view, axis, {
       get() {
         const given = name === "eulerRotation" ? assigned(this.$self) : null;
@@ -126,6 +137,7 @@ function vectorGroup(name) {
 }
 
 const GROUPS = { scale: vectorGroup("scale"), eulerRotation: vectorGroup("eulerRotation"), pivot: vectorGroup("pivot") };
+const PLACE = vectorGroup("position", (axis) => axis);
 
 const three = (value) => [Number(value?.x) || 0, Number(value?.y) || 0, Number(value?.z) || 0];
 
@@ -177,7 +189,7 @@ export const Node = defineType("Node", Object3D, {
   enums: { LocalSpace, ParentSpace, SceneSpace },
   methods: {
     get position() {
-      return new Vector3d(this.x, this.y, this.z);
+      return (this.$groups.position ??= Object.create(PLACE, { $self: { value: this } }));
     },
     set position(value) {
       for (const axis of AXES) slot(this, axis).write(Number(value?.[axis]) || 0);

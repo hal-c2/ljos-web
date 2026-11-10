@@ -29,7 +29,7 @@ export default defineConfig({
       // Projects of their own: one whose dumps (`ljostypes.json`) are
       // anywhere in it, as a preview of one is compiled, and the drop page's.
       root: (file) => {
-        for (const project of ["dumped", "drop"]) if (file.includes(`/scenes/${project}/`)) return join(import.meta.dirname, "scenes", project);
+        for (const project of ["dumped", "drop", "qualified"]) if (file.includes(`/scenes/${project}/`)) return join(import.meta.dirname, "scenes", project);
         return undefined;
       },
     }),

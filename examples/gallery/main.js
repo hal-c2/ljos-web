@@ -37,8 +37,17 @@ function list() {
   );
 }
 
+// The page's requests go through the worker only once it controls the page,
+// so nothing of the example is asked for before that.
+async function serve(served) {
+  const controlled = new Promise((resolve) => navigator.serviceWorker.addEventListener("controllerchange", resolve, { once: true }));
+  const worker = `./assets-worker.js?served=${encodeURIComponent(JSON.stringify(served))}`;
+  await navigator.serviceWorker.register(worker);
+  if (navigator.serviceWorker.controller?.scriptURL !== new URL(worker, location).href) await controlled;
+}
+
 async function show(example) {
-  const state = (window.gallery = { id: example.id, status: "loading", error: null, busy });
+  const state = (window.gallery = { id: example.id, status: "loading", error: null, busy, unfetched: example.unfetched });
   const fail = (error) => {
     state.status = "failed";
     state.error ??= String(error?.message ?? error);
@@ -50,6 +59,7 @@ async function show(example) {
   stage.style.height = `${example.window.height}px`;
   about.append(
     element("p", {}, [element("a", { href: "./", textContent: "examples" }), ` / ${example.id}: ${example.dir}/${example.entry}`]),
+    ...(example.unfetched ? [element("p", { className: "unfetched", textContent: `What this example downloads is not here: mise run assets ${example.id}` })] : []),
     element("pre"),
     ...(example.reference ? [element("p", { textContent: "What Qt renders:" }), element("img", { src: example.reference })] : []),
   );
@@ -57,6 +67,7 @@ async function show(example) {
   window.addEventListener("error", (event) => fail(event.error ?? event.message));
   window.addEventListener("unhandledrejection", (event) => fail(event.reason));
   try {
+    if (example.served.length > 0) await serve(example.served);
     const module = await example.load();
     if (typeof module.default !== "function") throw new Error(`${example.entry} did not compile to a component`);
     // What the example's main.cpp does: it gives the entry file properties,

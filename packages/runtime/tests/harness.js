@@ -5,7 +5,8 @@
 // With `&still` time stands still from the start, for `window.clock` to move.
 // `window.reload(name)` reloads the mounted root with another scene's
 // component, as a save does: it answers the error's message if there was one.
-// With `&inspect` the root is `window.inspector`.
+// With `&inspect` the root is `window.inspector`. With `&fill` the root is
+// mounted with `{ fill: true }`.
 import { flush, mount } from "ljos-web/object";
 import { reload } from "ljos-web/reload";
 import { clock } from "ljos-web/QtQuick";
@@ -15,7 +16,7 @@ const asked = new URLSearchParams(location.search);
 const name = asked.get("scene");
 if (asked.has("still")) clock.stop();
 const module = await (scenes[`./scenes/${name}.js`] ?? scenes[`./scenes/${name}.qml`])();
-const handle = mount(module.default, document.getElementById("scene"));
+const handle = mount(module.default, document.getElementById("scene"), {}, asked.has("fill") ? { fill: true } : {});
 // A reload puts a new root in the handle: these read the one there now.
 Object.defineProperty(window, "scene", { get: () => handle.object });
 Object.defineProperty(window, "objects", { get: () => module.objects ?? handle.object });
