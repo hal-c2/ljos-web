@@ -2,3 +2,6 @@ packages:
   - packages/*
   - examples/*
   - site
+onlyBuiltDependencies:
+  - esbuild
+  - sharp

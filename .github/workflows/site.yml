@@ -45,7 +45,7 @@ jobs:
           path: site/dist
       # DECISION: no CNAME, no domain. Pages deploys only on a manual
       # dispatch that asks for it; pointing ljos.dev here is separate.
-      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462baf5f3 # v3
+      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         if: ${{ inputs.deploy == true }}
         with:
           path: site/dist
