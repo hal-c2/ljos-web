@@ -2,7 +2,7 @@ name: site
 
 on:
   pull_request:
-    paths: ["site/**", "packages/**", "crates/**", "pnpm-workspace.yaml", ".github/workflows/site.yml"]
+    paths: ["site/**", "packages/**", "crates/**", "pnpm-workspace.yaml", "pnpm-lock.yaml", "package.json", ".github/workflows/site.yml"]
   workflow_dispatch:
     inputs:
       deploy:

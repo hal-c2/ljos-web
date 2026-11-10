@@ -8,6 +8,7 @@
 // the same) into src/content/docs/ at build time; the copies are
 // gitignored. The source pages are never edited here.
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { execSync } from "node:child_process";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -23,6 +24,17 @@ const src = candidates.find((c) => existsSync(join(c, "start/index.md")));
 if (!src) {
   console.error(`sync-docs: no ljos-ui docs/site found. Tried:\n  ${candidates.join("\n  ")}\nSet LJOS_DOCS_DIR to a ljos-ui docs/site checkout.`);
   process.exit(1);
+}
+// A fallback checkout is whatever revision happens to be there; say
+// so when it is not the pinned one, instead of building other docs
+// than CI does without a word. An explicit LJOS_DOCS_DIR is the
+// caller's own choice (CI pins it), so it is not second-guessed.
+if (!process.env.LJOS_DOCS_DIR) {
+  const pinned = readFileSync(join(siteRoot, "ljos-ui.sha"), "utf8").trim();
+  try {
+    const head = execSync("git rev-parse HEAD", { cwd: src, encoding: "utf8" }).trim();
+    if (head !== pinned) console.warn(`sync-docs: WARNING docs checkout is at ${head}, but site/ljos-ui.sha pins ${pinned}; building the checkout's pages, not the pinned ones.`);
+  } catch { /* not a git checkout: nothing to compare */ }
 }
 const destRoot = join(siteRoot, "src/content/docs");
 const SECTIONS = ["start", "ui", "controls", "data", "language", "quality", "rust"];

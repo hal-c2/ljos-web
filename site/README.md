@@ -25,3 +25,12 @@ Deployment is defined but off: `.github/workflows/site.yml` builds on
 pull requests and uploads an artifact; the Pages deploy job runs only
 on manual dispatch, and there is no CNAME. Pointing ljos.dev at it is
 a deliberate, separate step.
+
+DECISION: `sharp` is pinned exactly to 0.34.5, the version astro
+5.18.2 resolves its optional `sharp` dependency to, so the lockfile
+holds one copy. The site must name it itself: Astro's image service
+does a dynamic `import("sharp")` that Rollup cannot resolve from
+Astro's subtree under pnpm's isolated layout, and the build fails
+without a site-level dependency (verified). An earlier `^0.35.5`
+added a second copy Astro never resolved to; that claim in the
+9a2fe8c commit message was wrong.
