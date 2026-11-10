@@ -355,21 +355,58 @@ async function fingers(page) {
   const device = await page.context().newCDPSession(page);
   await page.evaluate(() => {
     window.touched = 0;
+    window.downOrder = [];
     for (const type of ["pointerdown", "pointermove", "pointerup", "pointercancel"]) {
-      document.addEventListener(type, (event) => void (window.touched += event.pointerType === "touch"));
+      document.addEventListener(type, (event) => {
+        if (event.pointerType !== "touch") return;
+        window.touched += 1;
+        if (event.type === "pointerdown") window.downOrder.push(event.pointerId);
+      });
     }
   });
   const down = new Set();
+  // The browser's own number for each finger, so one of them can be taken
+  // from the page, as the device's touchCancel takes all of them at once.
+  const browserId = new Map();
+  let assigned = 0;
   let expected = 0;
   return async (type, ...points) => {
     const ids = points.map(([id]) => id);
-    if (type === "touchStart") expected += ids.filter((id) => !down.has(id)).length;
+    if (type === "touchCancel") {
+      // One finger's grab is cancelled, as when the page takes the pointer
+      // for a scroll of its own; the device is then told it lifted, so its
+      // fingers and the page's stay the same ones.
+      expected += ids.length * 2;
+      for (const [id, x, y] of points) {
+        await page.evaluate(
+          ([pointerId, x, y]) =>
+            document.dispatchEvent(
+              new PointerEvent("pointercancel", { pointerId, pointerType: "touch", clientX: x, clientY: y }),
+            ),
+          [browserId.get(id), x, y],
+        );
+        down.delete(id);
+        browserId.delete(id);
+      }
+      await device.send("Input.dispatchTouchEvent", {
+        type: "touchEnd",
+        touchPoints: points.map(([id, x, y]) => ({ id, x, y })),
+      });
+      await page.waitForFunction((expected) => window.touched >= expected, expected);
+      return;
+    }
+    const fresh = type === "touchStart" ? ids.filter((id) => !down.has(id)) : [];
+    if (type === "touchStart") expected += fresh.length;
     else if (type === "touchMove") expected += ids.length;
     else expected += ids.length || down.size;
     if (type === "touchStart") for (const id of ids) down.add(id);
     else if (type === "touchEnd") for (const id of ids.length ? ids : [...down]) down.delete(id);
     await device.send("Input.dispatchTouchEvent", { type, touchPoints: points.map(([id, x, y]) => ({ id, x, y })) });
     await page.waitForFunction((expected) => window.touched >= expected, expected);
+    if (fresh.length) {
+      const order = await page.evaluate(() => window.downOrder);
+      for (const id of fresh) browserId.set(id, order[assigned++]);
+    }
   };
 }
 
@@ -462,6 +499,33 @@ test("a third finger joins a drag and leaves it, and the item does not jump", as
   expect(await log(page)).toEqual(["td3 active false"]);
   expect(await place(page, "tdrag3")).toEqual([160, 40]);
   await touch("touchEnd");
+});
+
+test("one finger's grab cancelled ends a drag of three, where a lift would leave it going", async ({ page }) => {
+  await open(page, "handlers-touch");
+  const touch = await fingers(page);
+  await touch("touchStart", [1, 135, 50]);
+  await touch("touchStart", [1, 135, 50], [2, 185, 50]);
+  await touch("touchMove", [1, 155, 60], [2, 205, 60]);
+  expect(await log(page)).toEqual(["td3 active true"]);
+  expect(await place(page, "tdrag3")).toEqual([140, 20]);
+  await touch("touchStart", [1, 155, 60], [2, 205, 60], [3, 180, 90]);
+  await touch("touchMove", [1, 165, 70], [2, 215, 70], [3, 190, 100]);
+  expect(await place(page, "tdrag3")).toEqual([150, 30]);
+  // The third finger is taken from the drag, not lifted: two fingers
+  // would still be enough, but a cancelled grab ends the handler, as
+  // Qt's CancelGrab does, and nothing re-centres on what is left.
+  await touch("touchCancel", [3, 190, 100]);
+  expect(await log(page)).toEqual(["td3 active false"]);
+  expect(await place(page, "tdrag3")).toEqual([150, 30]);
+  expect(await state(page, ["td3.centroid.position", "td3.centroid.scenePosition"])).toEqual(["0,0", "0,0"]);
+  // The two fingers still down are no drag either: moving them moves
+  // nothing, and the handler does not come back to life.
+  await touch("touchMove", [1, 175, 80], [2, 225, 80]);
+  expect(await log(page)).toEqual([]);
+  expect(await place(page, "tdrag3")).toEqual([150, 30]);
+  await touch("touchEnd");
+  expect(await log(page)).toEqual([]);
 });
 
 test("two fingers on a PinchHandler's item scale, turn and move it", async ({ page }) => {
