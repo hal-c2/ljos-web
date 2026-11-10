@@ -525,6 +525,46 @@ const untouched = (self) => {
   if (node) node.style.touchAction = "none";
 };
 
+// Their middle, in the scene.
+const middleOf = (points) => ({
+  x: points.reduce((sum, point) => sum + point.x, 0) / points.length,
+  y: points.reduce((sum, point) => sum + point.y, 0) / points.length,
+});
+
+// The middle moved because a finger came down or lifted, and the item
+// did not: where the drag is from, in the scene and in the target,
+// moves by as much, so the drag goes on from where it was.
+function movedMiddle(self, was, now) {
+  const mine = self.$mine;
+  const target = self.target;
+  const atWas = target ? sceneToItem(target, was.x, was.y) : was;
+  const atNow = target ? sceneToItem(target, now.x, now.y) : now;
+  mine.fromX += now.x - was.x;
+  mine.fromY += now.y - was.y;
+  mine.pressX += atNow.x - atWas.x;
+  mine.pressY += atNow.y - atWas.y;
+}
+
+// A finger of a drag of several is gone. Enough of them left, the drag
+// goes on; too few, it is over.
+function lostFinger(self, point) {
+  const mine = self.$mine;
+  const was = middleOf(mine.points);
+  mine.points.splice(mine.points.indexOf(point), 1);
+  if (mine.points.length >= self.minimumPointCount) {
+    const now = middleOf(mine.points);
+    movedMiddle(self, was, now);
+    // The centroid is at their middle now and says so, though no
+    // finger has moved: nothing bound to it is left at the middle
+    // of fingers that are gone, nor named for one of them.
+    const first = mine.points[0];
+    self.$point.$move(self.$parent, now.x, now.y, first);
+    self.$point.$id = first.id;
+    settle();
+    self.centroidChanged();
+  } else endDrag(self);
+}
+
 // A drag of several fingers: where their middle has gone since the last of
 // them came down. Fingers that mean to drag may mean to pinch as well, so
 // this only watches them and takes them from no one.
@@ -559,6 +599,8 @@ function gatherDrag(self) {
 export const DragHandler = defineType("DragHandler", PointerHandler, {
   properties: {
     minimumPointCount: 1,
+    // Qt's is `minimumPointCount` until something says otherwise.
+    maximumPointCount: derived((self) => self.minimumPointCount),
     xAxis: axis(-DBL_MAX, DBL_MAX, 0),
     yAxis: axis(-DBL_MAX, DBL_MAX, 0),
     activeTranslation: derived(translation),
@@ -579,15 +621,34 @@ export const DragHandler = defineType("DragHandler", PointerHandler, {
       const item = this.$parent;
       const needs = this.minimumPointCount;
       if (needs > 1) {
-        if (point.type !== "touch" || mine.points.length >= needs || !wants(this, point) || !inside(item, point)) return false;
+        const most = Math.max(needs, this.maximumPointCount);
+        if (point.type !== "touch" || mine.points.length >= most || !wants(this, point) || !inside(item, point)) return false;
         mine.points.push(point);
         watch(point, this);
-        if (mine.points.length === needs) {
-          mine.fromX = mine.points.reduce((sum, each) => sum + each.x, 0) / needs;
-          mine.fromY = mine.points.reduce((sum, each) => sum + each.y, 0) / needs;
-          this.$point.$press(item, mine.fromX, mine.fromY, point);
-          settle();
-          this.centroidChanged();
+        if (mine.points.length >= needs) {
+          const count = mine.points.length;
+          const middle = middleOf(mine.points);
+          if (count === needs) {
+            mine.fromX = middle.x;
+            mine.fromY = middle.y;
+            // Where in the target their middle came down, as the
+            // one-point press below keeps it: `follow` holds that
+            // spot under their middle, and without it the target
+            // jumps to put its corner there instead.
+            const target = this.target;
+            const at = target ? sceneToItem(target, middle.x, middle.y) : middle;
+            mine.pressX = at.x;
+            mine.pressY = at.y;
+            this.$point.$press(item, mine.fromX, mine.fromY, point);
+            settle();
+            this.centroidChanged();
+          } else {
+            movedMiddle(
+              this,
+              { x: (middle.x * count - point.x) / (count - 1), y: (middle.y * count - point.y) / (count - 1) },
+              middle,
+            );
+          }
         }
         return false;
       }
@@ -607,7 +668,7 @@ export const DragHandler = defineType("DragHandler", PointerHandler, {
     $move(point) {
       const mine = this.$mine;
       if (mine.points.includes(point)) {
-        if (mine.points.length === this.minimumPointCount) gatherDrag(this);
+        if (mine.points.length >= this.minimumPointCount) gatherDrag(this);
         return;
       }
       // Whoever has the point may not let go of it.
@@ -637,8 +698,8 @@ export const DragHandler = defineType("DragHandler", PointerHandler, {
     $release(point) {
       const mine = this.$mine;
       if (mine.points.includes(point)) {
-        mine.points.splice(mine.points.indexOf(point), 1);
-        return endDrag(this);
+        lostFinger(this, point);
+        return;
       }
       if (mine.point !== point) return;
       // Where it was let go, in the item as it is now.
@@ -648,8 +709,7 @@ export const DragHandler = defineType("DragHandler", PointerHandler, {
     $grab(transition, point) {
       const mine = this.$mine;
       if (cancelled(transition) && mine.points.includes(point)) {
-        mine.points.splice(mine.points.indexOf(point), 1);
-        endDrag(this);
+        lostFinger(this, point);
       } else if (cancelled(transition) && mine.point === point) endDrag(this);
       told(this, transition, point);
     },
