@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { defineConfig } from "vite";
+import { defaultClientConditions, defineConfig } from "vite";
 import qml from "ljos-web/vite";
 import { manifestFile, readManifest } from "./manifest.js";
 
@@ -146,6 +146,8 @@ export default defineConfig({
     // The QML is in the corpus, outside this package: what its compiled
     // output imports still resolves from here.
     dedupe: ["solid-js", "@solidjs/web", "ljos-web"],
+    // `LJOS_KERNEL=wasm`: the same examples over Ljós's graph (`kernel/wasm.js`).
+    conditions: process.env.LJOS_KERNEL === "wasm" ? ["ljos-wasm-kernel", ...defaultClientConditions] : defaultClientConditions,
   },
   // Known before the first example is loaded, so the server does not reload
   // the page to bundle them when it meets them.

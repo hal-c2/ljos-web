@@ -12,8 +12,9 @@
 //
 // Also here is how a Radiance `.hdr` file is read, which gives the same.
 //
-// Not here: the formats that are packed (`BC1` and after), `RGBE8` and
-// `R16`, of which nothing is drawn, and a picture with a depth.
+// Not drawn, on either renderer: the formats that are packed (`BC1` and
+// after), `RGBE8` and `R16`, and a picture with a depth, a volume being
+// no 2D picture. Each is said once where its numbers are taken up.
 import { defineType, flush } from "../object.js";
 import { Object3D } from "./Node.js";
 import { signal } from "#kernel";
@@ -74,9 +75,14 @@ const warned = new Set();
 
 // The numbers as the renderer takes them, or null where there are too few
 // of them for the size, or the format is one that is not drawn.
-export function picture({ bytes, width, height, format, sheer }) {
+export function picture({ bytes, width, height, depth, format, sheer }) {
   const kind = KINDS[format];
   if (!bytes || !(width > 0) || !(height > 0)) return null;
+  if (depth > 0) {
+    if (!warned.has("depth")) console.warn("TextureData: a picture with a depth is not drawn");
+    warned.add("depth");
+    return null;
+  }
   if (!kind) {
     if (!warned.has(format)) console.warn(`TextureData: the format ${FORMATS[format] ?? format} is not drawn`);
     warned.add(format);
@@ -86,7 +92,7 @@ export function picture({ bytes, width, height, format, sheer }) {
   const buffer = bytes instanceof ArrayBuffer ? bytes : ArrayBuffer.isView(bytes) ? bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) : Uint8Array.from(bytes).buffer;
   const count = width * height * each;
   if (buffer.byteLength < count * Numbers.BYTES_PER_ELEMENT) return null;
-  return { pixels: new Numbers(buffer, 0, count), width, height, format: FORMATS[format], linear: format === Format.RGBA16F || format === Format.RGBA32F, sheer };
+  return { pixels: new Numbers(buffer, 0, count), width, height, depth: depth ?? 0, format: FORMATS[format], linear: format === Format.RGBA16F || format === Format.RGBA32F, sheer };
 }
 
 export const TextureData = defineType("TextureData", Object3D, {

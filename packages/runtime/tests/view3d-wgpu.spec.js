@@ -400,6 +400,51 @@ for (const backend of ["webgpu", "webgl2"]) {
       });
     });
 
+    test("a live texture whose item has no size yet is no picture, and the scene goes on", async ({ page }) => {
+      await show(page, "wgpu_livezero");
+      near(await at(page, 300, 150), [255, 0, 0]);
+      const builds = () => page.evaluate(() => document.querySelector(".qq-view3d").$view3d.builds);
+      const before = await builds();
+      await set(page, () => {
+        window.scene.effectSize = 100;
+        window.objects.cube.x = 60;
+      });
+      expect(await builds()).toBeGreaterThan(before);
+      near(await at(page, 260, 150), [255, 0, 0]);
+      near(await at(page, 300, 150), CLEAR);
+    });
+
+    test("one sprite system in two views is toned by each view's own surroundings", async ({ page }) => {
+      await show(page, "wgpu_twotoned");
+      await page.waitForFunction(() => [...document.querySelectorAll(".qq-view3d")].every((c) => c.$view3d.frames > 0));
+      await still(page);
+      const [left, right] = [await at(page, 100, 150), await at(page, 300, 150)];
+      // #404040 with no tone mapping, and with the linear one (toScreen).
+      expect(left[0], `left ${left}, right ${right}`).toBeGreaterThanOrEqual(50);
+      expect(left[0], `left ${left}, right ${right}`).toBeLessThanOrEqual(85);
+      expect(right[0], `left ${left}, right ${right}`).toBeGreaterThan(left[0] + 40);
+    });
+
+    test.describe("texture data that is not drawn", () => {
+      test.use({ told: [/TextureData: a picture with a depth is not drawn|HUGE_FAN_IN/] });
+      test("says why, once, however often it is committed again", async ({ page }) => {
+        const said = [];
+        page.on("console", (message) => /TextureData: a picture with a depth/.test(message.text()) && said.push(message.text()));
+        await show(page, "wgpu_revisions");
+        const commit = (shade) =>
+          set(page, (shade) => {
+            const { picture } = window.objects;
+            picture.setSize({ width: 2, height: 2 });
+            picture.setFormat(1);
+            picture.setDepth(2);
+            picture.setTextureData(new Uint8Array(2 * 2 * 4).fill(shade).buffer);
+          }, shade);
+        await commit(7);
+        await commit(9);
+        expect(said, said.join("\n")).toEqual(["TextureData: a picture with a depth is not drawn"]);
+      });
+    });
+
     test("two views each draw their own scene, and one taken away is let go", async ({ page }) => {
       await show(page, "wgpu_two");
       near(await at(page, 100, 150), [255, 0, 0]);

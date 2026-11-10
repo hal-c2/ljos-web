@@ -709,7 +709,13 @@ export const DragHandler = defineType("DragHandler", PointerHandler, {
     $grab(transition, point) {
       const mine = this.$mine;
       if (cancelled(transition) && mine.points.includes(point)) {
-        lostFinger(this, point);
+        // Taken from the handler is not lifted: Qt's CancelGrab
+        // deactivates it where it is and re-centres on nothing, so
+        // the fingers left are forgotten too rather than left to
+        // carry the drag on or to gather a new one where they stand.
+        // A real lift goes by $release and `lostFinger` instead.
+        mine.points.length = 0;
+        endDrag(this);
       } else if (cancelled(transition) && mine.point === point) endDrag(this);
       told(this, transition, point);
     },
