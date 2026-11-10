@@ -16,7 +16,7 @@ export default defineConfig({
   integrations: [
     starlight({
       title: "Ljós",
-      description: "Ljós is a general-purpose Rust UI toolkit that runs QML — malleable software everywhere.",
+      description: "Ljós is a Rust UI toolkit for malleable software. Declarative interfaces, typed TypeScript, and running apps you can observe, drive and reshape.",
       logo: {
         src: "./src/assets/ljos.svg",
         alt: "Ljós",

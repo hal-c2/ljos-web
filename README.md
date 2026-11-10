@@ -2,7 +2,9 @@
 
 ![Ljós](site/src/assets/ljos.svg)
 
-Compiles QML to Solid 2 components for the web.
+Compiles QML to Solid 2 components for the web. It is the web target
+for Ljós, a Rust UI toolkit for malleable software. Existing QML runs
+here as a way in.
 
 ```text
 .qml ──oxc (QML mode)──▶ QML tree with Oxc expression leaves
@@ -21,9 +23,10 @@ time: a binding is a getter Solid tracks, and an `id` is a JavaScript `const`.
 A file that imports Qt's modules is compiled against Qt's own types
 (`crates/ljos_web/types.txt`, generated from the `.qmltypes` of a Qt
 installation), and what it creates are the objects of `packages/runtime`:
-QtQuick written for the DOM on Solid's signals. The yardstick is Qt's own
-examples (`corpus/qtdoc`): `mise run gallery` compiles each, renders it in a
-browser and compares it with the picture real Qt renders.
+QtQuick written for the DOM on Solid's signals. One check on that path
+is a corpus of existing examples (`corpus/qtdoc`). `mise run gallery`
+compiles each one, renders it in a browser and compares it with the
+picture real Qt renders.
 
 ## Layout
 
