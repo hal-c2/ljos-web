@@ -1,0 +1,34 @@
+/* Ljós means "light": warm paper surfaces, amber accent, OKLCH neutrals
+   tinted toward the brand hue, per docs/design/color.md (12-step ramp,
+   text pairs checked to WCAG 4.5:1). No webfont: system stacks keep
+   first paint instant and honest. */
+:root {
+  --ljos-ink: oklch(0.24 0.02 75);
+  --ljos-paper: oklch(0.985 0.008 85);
+  --ljos-amber: oklch(0.55 0.13 70);
+  --ljos-amber-strong: oklch(0.45 0.12 65);
+  --sl-font: system-ui, "Segoe UI", sans-serif;
+  --sl-font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+}
+:root[data-theme="light"] {
+  --sl-color-accent: var(--ljos-amber-strong);
+  --sl-color-accent-high: oklch(0.35 0.1 65);
+  --sl-color-text: var(--ljos-ink);
+  --sl-color-bg: var(--ljos-paper);
+}
+:root[data-theme="dark"] {
+  --sl-color-accent: oklch(0.78 0.11 78);
+  --sl-color-accent-high: oklch(0.88 0.09 82);
+  --sl-color-bg: oklch(0.17 0.012 75);
+}
+h1, h2, .hero h1 { font-family: ui-serif, Georgia, serif; letter-spacing: -0.01em; }
+.ljos-demo { border: 1px solid var(--sl-color-gray-5); border-radius: 6px; padding: 1rem; margin: 1.5rem 0; background: var(--sl-color-bg); }
+.ljos-demo figcaption { font-size: 0.875rem; margin-top: 0.75rem; }
+.ljos-demo__stage { min-height: 180px; display: grid; place-items: center; }
+.ljos-demo__fallback { text-align: center; color: var(--sl-color-text); }
+.ljos-demo[data-state="live"] .ljos-demo__fallback { display: none; }
+.ljos-demo__error { display: none; }
+.ljos-demo[data-state="failed"] .ljos-demo__error { display: block; }
+/* mount() sizes the scene to its element, so the element must have a
+   size: the demos are written at 320x180. */
+.ljos-demo__mount { width: 320px; height: 180px; max-width: 100%; }

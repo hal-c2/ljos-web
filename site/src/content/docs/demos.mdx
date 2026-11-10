@@ -1,0 +1,29 @@
+---
+title: Live demos
+description: Small QML programs compiled by ljos-web and running in this page, each with a plain-text fallback.
+---
+
+import LjosDemo from "../../components/LjosDemo.astro";
+
+Each demo below is a small, complete QML file from `site/src/demos/`,
+compiled ahead of time by ljos-web and mounted as a lazy island: the
+page reads fine with no JavaScript, and the runtime only loads when a
+demo scrolls into view. They were picked for what already runs well on
+the web runtime — bindings, animation, timers and pointer input with
+no native types.
+
+## Counter
+
+<LjosDemo demo="counter" title="Counter" fallback="A dark card reading “Count: 0”. Clicking it counts up — a QML property, a MouseArea, and a text binding." />
+
+## Gauge
+
+<LjosDemo demo="gauge" title="Gauge" fallback="A percentage and an amber bar that eases between 18 % and 92 %. One animated property drives both readings." />
+
+## Toggle
+
+<LjosDemo demo="toggle" title="Toggle" fallback="A switch labelled “Ljós: off”. Clicking it slides the knob, warms the card's colour, and changes the label to “Ljós: on”." />
+
+## Clock
+
+<LjosDemo demo="clock" title="Clock" fallback="A card counting the seconds since it appeared: “Elapsed: 0 s”, ticking up once a second." />

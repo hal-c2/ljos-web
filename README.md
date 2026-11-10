@@ -1,5 +1,7 @@
 # ljos-web
 
+![Ljós](site/src/assets/ljos.svg)
+
 Compiles QML to Solid 2 components for the web.
 
 ```text
