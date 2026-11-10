@@ -1,0 +1,67 @@
+---
+title: Ljós — malleable software, everywhere
+description: Ljós is a general-purpose Rust UI toolkit that runs QML on desktop, mobile and the web.
+template: splash
+hero:
+  tagline: Ljós is a general-purpose Rust UI toolkit that runs QML (Qt Quick and Qt Quick Controls compatible) on desktop, mobile and the web. Write the interface once in QML, keep your logic in Rust, and reshape the running program while it runs.
+  actions:
+    - text: What is Ljós?
+      link: /start/
+      icon: right-arrow
+    - text: Your first app
+      link: /start/first-app/
+      variant: minimal
+---
+
+import { Card, CardGrid } from "@astrojs/starlight/components";
+import LjosDemo from "../../components/LjosDemo.astro";
+
+## Software you can reshape
+
+Most programs are finished before you meet them. Ljós is built the other
+way: the interface is QML text the engine can re-read while the program
+runs, so saving a file patches the live window and keeps its state.
+That is malleable software — tools that stay open to the people using
+them, not only to the people who shipped them.
+
+Ljós is a clean-room implementation. It reads the same `QtQuick` and
+`QtQuick.Controls` modules existing QML uses, renders natively on
+Linux, macOS and Windows (with Android and iOS behind the same engine),
+and compiles QML to the web through ljos-web — the demos on this page
+are QML, compiled and running in your browser.
+
+<LjosDemo demo="counter" title="Counter" fallback="A dark card reading “Count: 0”. Clicking it counts up — a QML property, a MouseArea, and a text binding." />
+
+<LjosDemo demo="gauge" title="Gauge" fallback="A percentage and an amber bar that eases between 18 % and 92 %. One animated property drives both the number and the bar's width." />
+
+## Where it runs
+
+<CardGrid>
+  <Card title="Desktop and mobile">
+    One Rust engine renders through egui on Linux, macOS and Windows,
+    with Android and iOS behind the same scene graph. Idle means
+    0 % CPU: work is scheduled by dirty state, never polled.
+  </Card>
+  <Card title="The web">
+    ljos-web compiles QML ahead of time to components over a DOM
+    runtime — no QML interpreter ships to the browser. These pages
+    embed live examples exactly that way.
+  </Card>
+  <Card title="From the command line">
+    `ljos run Main.qml` opens a file; `--watch` re-reads it as you
+    type. `ljos check --port` reports what an existing Qt Quick
+    program needs to run here.
+  </Card>
+  <Card title="Embedded in Rust">
+    Register native types, models and singletons from Rust, and let
+    QML drive them. Other threads talk to the UI through one bounded
+    handle.
+  </Card>
+</CardGrid>
+
+## Start reading
+
+- [What is Ljós?](/start/) — the pitch, the compatibility promise, and the map of these docs.
+- [Your first app](/start/first-app/) — a QML file, a window, live edits.
+- [Live demos](/demos/) — every embedded example in one place.
+- [Goals and principles](/quality/principles/) — what Ljós does, what it leaves out, and why.

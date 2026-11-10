@@ -1,0 +1,11 @@
+dist/
+.astro/
+src/content/docs/start/
+src/content/docs/ui/
+src/content/docs/controls/
+src/content/docs/data/
+src/content/docs/language/
+src/content/docs/quality/
+src/content/docs/rust/
+test-results/
+playwright-report/
