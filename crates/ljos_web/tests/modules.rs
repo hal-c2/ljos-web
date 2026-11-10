@@ -118,6 +118,36 @@ fn a_qmldir_out_of_its_modules_place_declares_nothing() {
 }
 
 #[test]
+fn a_module_of_the_project_imported_as_a_name_is_its_files() {
+    let code = compiled(&["--root", "qualified", "qualified/Main.qml"]);
+    assert_contains(&code, "/Media/Player.qml\"");
+    assert_contains(&code, "$namespace");
+    assert!(
+        !code.contains("ljos-web/App/Media"),
+        "no such module of the package:\n{code}"
+    );
+    // Two of the project's own modules under names share the one
+    // `$namespace` import: declared twice, the file is not JavaScript a
+    // browser will load, and `qmlc` says nothing of it.
+    let code = compiled(&["--root", "qualified-two", "qualified-two/Main.qml"]);
+    assert_contains(&code, "/Media/Player.qml\"");
+    assert_contains(&code, "/Audio/Speaker.qml\"");
+    let imports = code.matches("import { $namespace }").count();
+    assert_eq!(imports, 1, "`$namespace` imported {imports} times:\n{code}");
+    let place = Path::new(env!("CARGO_TARGET_TMPDIR")).join("qualified-two.mjs");
+    std::fs::write(&place, &code).expect("the compiled file written out");
+    let checked = Command::new("node")
+        .args(["--check", place.to_str().expect("a Node path")])
+        .output()
+        .expect("Node runs (mise.toml installs it)");
+    let stderr = String::from_utf8_lossy(&checked.stderr);
+    assert!(
+        checked.status.success(),
+        "node --check refused the compiled file:\n{stderr}\n{code}"
+    );
+}
+
+#[test]
 fn a_block_line_of_a_qmldir_declares_its_type() {
     // Ljós's `# block Name Version File` is a comment to Qt and a type of
     // the module to Ljós (ADR 0003).

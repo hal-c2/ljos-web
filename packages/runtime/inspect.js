@@ -112,6 +112,14 @@ function typeOf(object) {
   return declared(object)?.$at[3] ?? object.$type?.typeName ?? "QtObject";
 }
 
+// The type an object is written as and those it derives from, nearest first.
+function lineage(object) {
+  const names = (object.$type?.chain ?? []).map((type) => type.typeName).reverse();
+  return [...new Set([typeOf(object), ...names])];
+}
+
+const plainRect = ({ x, y, width, height }) => ({ x, y, width, height });
+
 const idOf = (object) => declared(object)?.$id ?? "";
 
 function source(object) {
@@ -280,6 +288,32 @@ export function inspect(root) {
         return { object, type: typeOf(object), id: idOf(object), source: source(object) };
       }
       return null;
+    },
+
+    // Where objects are, for what draws over the root: those whose id is in
+    // `ids`, each copy when a delegate has it, and those of a type in `types`
+    // that have no id (one with an id is asked for by it). Each with its
+    // place in its parent and in the root, both as the object's own numbers
+    // say and so right when it is hidden, where it is written, or null, and
+    // its type and those it derives from. What is not an item has no place.
+    placed(ids = [], types = []) {
+      flush();
+      const wanted = new Set(ids);
+      const kinds = new Set(types);
+      const rows = [];
+      const walk = (object) => {
+        const id = idOf(object);
+        if (object.$node && (id ? wanted.has(id) : kinds.has(typeOf(object)))) rows.push(place(object));
+        for (const child of below(object)) walk(child);
+      };
+      const place = (object) => ({
+        local: { x: object.x, y: object.y, width: object.width, height: object.height },
+        window: plainRect(object.mapToItem(item, 0, 0, object.width, object.height)),
+        declared: source(object),
+        types: lineage(object),
+      });
+      walk(root);
+      return rows;
     },
 
     // A PNG of the root, or of the part of it an object covers (`target`,

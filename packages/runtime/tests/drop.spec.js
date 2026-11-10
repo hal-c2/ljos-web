@@ -89,8 +89,12 @@ test.describe("A visitor drops a shell of their own", () => {
   test("A shell is opened from a file with the keyboard", async ({ page }) => {
     await opened(page);
     const open = page.getByRole("button", { name: "Open a shell…" });
+    // A listener is what turns Playwright's interception on, and nothing waits for
+    // that: pressed too soon, Enter reaches the input and opens a chooser nobody
+    // hears. The round trips below let it arrive first.
+    const listening = () => {};
+    page.on("filechooser", listening);
     await open.focus();
-    // This test waits out its 30 s now and then, cause unknown: if the page took the focus back, Enter clicks nothing.
     await expect(open).toBeFocused();
     await page.evaluate(() => {
       window.seen = [];
@@ -111,6 +115,7 @@ test.describe("A visitor drops a shell of their own", () => {
     });
     await page.keyboard.press("Enter");
     await (await chooser).setFiles({ name: "Mine.qml", mimeType: "text/plain", buffer: Buffer.from(MINE) });
+    page.off("filechooser", listening);
     await expect(page.getByRole("status")).toHaveText("Your shell is shown");
     expect(await read(page, "mine", "objectName")).toBe("mine");
   });
@@ -969,7 +974,7 @@ Column {
     const { join, relative } = await import("node:path");
     const root = join(import.meta.dirname, "..");
     // Fetched by the runtime for itself, at addresses of its own.
-    const own = new Set(["guard.js", "vite.js", "site.js", "kernel/wasm.js", "Ljos/Blocks/shell-worker.js", "QtMultimedia/audible.js"]);
+    const own = new Set(["guard.js", "vite.js", "site.js", "kernel/wasm.js", "QtQuick3D/wgpu/ljos_web_3d.js", "Ljos/Blocks/shell-worker.js", "QtMultimedia/audible.js"]);
     const SINK = /\bfetch\(|\.src\s*=[^=]|\.href\s*=[^=]|setAttribute\("(src|href)"|window\.open\(|new window\.WebSocket|new EventSource|sendBeacon|(backgroundImage|maskImage|borderImageSource)\s*=\s*`?[^"`]*url\(|style\.(background|filter|clipPath|mask)\s*=\s*[^"\s]/;
     const found = [];
     const walk = (directory) => {

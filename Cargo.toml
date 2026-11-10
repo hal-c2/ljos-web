@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/ljos_web", "crates/ljos_web_compiler", "crates/ljos_web_kernel"]
+members = ["crates/ljos_web", "crates/ljos_web_3d", "crates/ljos_web_compiler", "crates/ljos_web_kernel"]
 exclude = ["vendor"]
 
 [workspace.package]
@@ -32,3 +32,9 @@ strip = true
 [profile.compiler]
 inherits = "wasm"
 opt-level = "z"
+
+# View3D's renderer: its own chunk, fetched the first time a page makes a
+# View3D, and drawing frames, so not at "z"'s cost. Sized in size/check.js.
+[profile.view3d]
+inherits = "wasm"
+opt-level = "s"

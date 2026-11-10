@@ -9,11 +9,14 @@
 // yet is there all the same, to say so when it is used: a style names every
 // control, and a program that uses three of them needs those three.
 import { spawnSync } from "node:child_process";
-import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, delimiter, dirname, isAbsolute, join, relative, resolve as resolvePath, sep } from "node:path";
+import { inflateSync } from "node:zlib";
 import { searchForWorkspaceRoot } from "vite";
 import { CONTROLS } from "./controls.js";
+import { heldShader } from "./QtQuick/baked.js";
+import { forBrowser } from "./QtQuick/qsb.js";
+import { QUICK3D } from "./quick3d.js";
 
 // What marks a `.js` file as the script a QML file imports
 // (`import "logic.js" as Logic`), which `qmlc` makes a module of.
@@ -113,6 +116,7 @@ const KEPT = "qrc:/qt-project.org/imports";
 // `qrc:/qtquick3deffects/shaders/blur.frag`: what else the QML of a module
 // names that its plugin keeps, under a name of the plugin's own: the shaders
 // of an effect of QtQuick3D.Effects, and the pictures they read.
+const OWN = "ljos-quick3d/";
 const LODGED = /qrc:\/((?!qt-project\.org\/)[\w-]+(?:\/[\w-]+)*)\/[\w.-]+/g;
 
 const EXTRACT = (uri, folder) => `import QtQml
@@ -161,10 +165,10 @@ function extract(tool, uri, folder, directory) {
 }
 
 // `wave.frag.qsb`: a shader as Qt draws with it, baked by Qt's `qsb` tool
-// from its source, `wave.frag`, when a program is built. It is baked here
-// likewise when it is not there. In what is baked is the same shader for
-// each way of drawing Qt knows: a browser's is OpenGL ES, and that text is
-// what the runtime is given.
+// from its source, `wave.frag`, when a program is built. What a browser wants
+// of it is the text for OpenGL ES: from the file when it is there and has one,
+// otherwise made from the source with no tool of Qt's, which a machine that
+// builds for the web need not have.
 const BAKED = ".qsb";
 
 // A project's type dumps (`ljostypes.json`, as `ljos types` writes them),
@@ -209,30 +213,42 @@ function standIn(source, importer, root) {
   return file?.includes(`${sep}${DUMPED}${sep}`) ? file : null;
 }
 
-function baked(context, tool, file, directory) {
-  let read = file;
-  const run = (args) => {
-    const ran = spawnSync(tool, args, { encoding: "utf8", maxBuffer: 1 << 26 });
-    if (ran.error) context.error(`could not run ${tool}: ${ran.error.message}`);
-    if (ran.status !== 0) context.error(ran.stderr.trim() || `${tool} could not read ${file}`);
-    return ran.stdout;
-  };
-  if (existsSync(file)) context.addWatchFile(file);
-  else {
-    const source = file.slice(0, -BAKED.length);
-    if (!existsSync(source)) context.error(`${file} is not there, nor is ${source} to bake it from`);
-    context.addWatchFile(source);
-    mkdirSync(directory, { recursive: true });
-    read = join(directory, `${createHash("sha1").update(file).digest("hex")}${BAKED}`);
-    run(["--glsl", "300 es", "-o", read, source]);
+// The generated face of a dump's stand-in, if the application has one.
+function faceOf(faces, file) {
+  const at = file.lastIndexOf(`${sep}${DUMPED}${sep}`);
+  const face = join(faces, file.slice(at + DUMPED.length + 2).replace(/\.qml$/, ".js"));
+  return existsSync(face) ? face : null;
+}
+
+function baked(context, file) {
+  const source = file.slice(0, -BAKED.length);
+  const there = existsSync(file);
+  let text = null;
+  if (there) {
+    context.addWatchFile(file);
+    const bytes = readFileSync(file);
+    // One that cannot be read holds nothing, as one is on the page.
+    try {
+      text = heldShader(bytes[4] === 0x78 ? inflateSync(bytes.subarray(4)) : bytes);
+    } catch {
+      text = null;
+    }
   }
-  const shaders = new Map();
-  for (const part of run(["-d", read]).split(/^\*{8,}$/m)) {
-    const [, level, text] = part.match(/^Shader \d+: GLSL (\d+ es) \[Standard\]\nEntry point: \w+\nContents:\n([^]*)$/m) ?? [];
-    if (level) shaders.set(level, text.trim() + "\n");
+  if (!text) {
+    if (existsSync(source)) {
+      context.addWatchFile(source);
+      text = forBrowser(readFileSync(source, "utf8"), source.endsWith(".vert") ? "vertex" : "fragment");
+    } else if (!there) {
+      context.error(`${file} is not there, nor is ${source} to bake it from`);
+    } else {
+      // Many a program ships only what is baked. That it can't be used is for
+      // the effect's `status` and `log` to say, when the program runs: the rest
+      // of the program is not stopped from being built.
+      const said = `${basename(file)} holds no shader for OpenGL ES`;
+      context.warn(said);
+      text = `#version 300 es\n#error ${said}\n`;
+    }
   }
-  const text = shaders.get("300 es") ?? shaders.get("100 es");
-  if (!text) context.error(`${file} has no shader for OpenGL ES in it`);
   return `data:text/plain;charset=utf-8,${encodeURIComponent(text)}`;
 }
 
@@ -393,6 +409,7 @@ export const compilerAt = (qmlc) => (qmlc.includes("/") || qmlc.includes(sep) ? 
 //   and an entry carries what it is compiled against. Off, a page has none
 //   of it.
 export default function qml({
+  faces,
   qmlc = "qmlc",
   args = [],
   qt,
@@ -415,7 +432,9 @@ export default function qml({
   // Ljós's controls are looked in first, so that each module of them is
   // theirs and none of the installed Qt's QML comes in with them.
   const ljos = (styles ?? (qts.some(hasControls) ? "qt" : "ljos")) === "ljos";
-  const roots = ljos ? [CONTROLS, ...qts] : qts;
+  // Ljós's 3D is last: what there is where no Qt has those modules. A Qt that
+  // has them has all of them, with what Ljós has not written.
+  const roots = [...(ljos ? [CONTROLS] : []), ...qts, QUICK3D];
   // Where a module of Qt's is: null when Qt has none of that name here.
   const home = (module) => {
     const root = roots.find((root) => existsSync(join(root, module, "qmldir")));
@@ -467,7 +486,11 @@ export default function qml({
   // The dumps `file` is compiled with. A stand-in's file is in its
   // project's `.ljostypes`, which `qmlc` puts beside the first dump when no
   // project is named.
+  // The directory `ljos-web faces` wrote: its `ljostypes.json` tells the
+  // compiler of the types, and what compiled QML imports for one is the face.
+  const facesAt = faces ? resolvePath(base, faces) : null;
   const dumpsOf = (file) => {
+    if (facesAt) return [join(facesAt, DUMP)];
     const listed = typeof types === "function" ? types(file) : types;
     if (listed) return [listed].flat().map((dump) => resolvePath(base, dump));
     const project = named(file);
@@ -555,8 +578,13 @@ export default function qml({
   const lodged = (module, about) => {
     const texts = [...about.types.values()].map((file) => readFileSync(join(home(module), file), "utf8"));
     const folders = new Set(texts.flatMap((text) => [...text.matchAll(LODGED)].map(([, folder]) => folder)));
-    const { bins, version } = found();
     return [...folders].sort().flatMap((folder) => {
+      // `qrc:/ljos-quick3d/shaders/…`: Ljós's own, beside the module's QML.
+      if (folder.startsWith(OWN)) {
+        const directory = join(home(module), folder.slice(OWN.length));
+        return readdirSync(directory).map((name) => [`qrc:/${folder}/${name}`, `${join(directory, name)}?url`]);
+      }
+      const { bins, version } = found();
       const directory = join(cache, version || "qt", module, ...folder.split("/"));
       if (!existsSync(directory)) {
         const failed = extract(join(bins || "", "qml"), module.replaceAll("/", "."), `qrc:/${folder}`, directory);
@@ -586,7 +614,8 @@ export default function qml({
   const needed = (module) => listed("--types", module);
   // The types Qt has of it as QML files, which are of Qt's installation and
   // not of the runtime: what there is none of where Qt has no such module.
-  const written = (module) => (home(module) ? null : listed("--qml-types", module));
+  // Ljós's own 3D has only some of them: the others are still Qt's.
+  const written = (module) => (home(module) && !home(module).startsWith(QUICK3D + sep) ? null : listed("--qml-types", module));
   // What Qt's installation says of a module, when it is worth reading: one
   // with QML files or a style, or one that only brings others.
   const composed = (module, seen = []) => {
@@ -680,7 +709,10 @@ export default function qml({
     async resolveId(source, importer, options) {
       if (source.startsWith(VIRTUAL) || source.startsWith(THEME)) return source;
       const dumped = standIn(source, importer, base);
-      if (dumped) return dumped;
+      if (dumped) {
+        const face = facesAt && faceOf(facesAt, dumped);
+        return face ?? dumped;
+      }
       // An entry: the page's QML, which reads the page's theme.
       const fromQml = importer && (importer.split("?")[0].endsWith(".qml") || isScript(importer));
       if (!fromQml && !source.startsWith("\0") && source.split("?")[0].endsWith(".qml")) {
@@ -804,7 +836,7 @@ export default function qml({
       }
       const [file] = id.split("?");
       if (file.endsWith(BAKED)) {
-        const text = baked(this, join(found().bins || "", "qsb"), file, join(cache, "shaders"));
+        const text = baked(this, file);
         return { code: `export default ${JSON.stringify(text)};\n`, map: null };
       }
       if (!file.endsWith(".qml") && !isScript(id)) return null;

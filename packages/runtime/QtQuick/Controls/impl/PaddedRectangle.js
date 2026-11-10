@@ -58,4 +58,9 @@ export const PaddedRectangle = defineType("PaddedRectangle", Rectangle, {
       },
     );
   },
+  methods: {
+    // Its fill is a child of its own, already above one of negative z, and the
+    // layer Rectangle moves a fill to would paint over the padding.
+    $lower() {},
+  },
 });

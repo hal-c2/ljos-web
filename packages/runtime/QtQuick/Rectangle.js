@@ -46,7 +46,11 @@ export const Rectangle = defineType("Rectangle", Item, {
     const style = self.$node.style;
     effect(
       () => self.gradient?.$css() ?? css(self.color),
-      (background) => void (style.background = allowedStyle(background)),
+      (background) => {
+        const allowed = allowedStyle(background);
+        style.background = allowed; // guarded
+        if (self.$under) style.setProperty("--qq-fill", allowed);
+      },
     );
     effect(
       () => {
@@ -71,7 +75,23 @@ export const Rectangle = defineType("Rectangle", Item, {
         const width = self.border.width;
         return drawn && width > 0 ? `inset 0 0 0 ${width}px ${css(self.border.color)}` : "";
       },
-      (shadow) => void (style.boxShadow = shadow),
+      (shadow) => {
+        style.boxShadow = shadow;
+        if (self.$under) style.setProperty("--qq-edge", shadow || "none");
+      },
     );
+  },
+  methods: {
+    // Every item has a transform, so is a stacking context, and one paints its
+    // own background under its children of negative z: Qt has them under the
+    // whole item. A child like that moves the fill into a layer above them.
+    $lower() {
+      if (this.$under) return;
+      this.$under = true;
+      const { classList, style } = this.$node;
+      style.setProperty("--qq-fill", style.background);
+      style.setProperty("--qq-edge", style.boxShadow || "none");
+      classList.add("qq-under");
+    },
   },
 });

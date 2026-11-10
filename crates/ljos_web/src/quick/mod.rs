@@ -94,6 +94,22 @@ pub(crate) fn uninstalled(
         .collect()
 }
 
+/// The types of the project's own module `source` is, if it is one: neither
+/// Qt's nor one the runtime has.
+fn own_module<'p>(
+    source: &qml_front::project::Source,
+    project: &'p Project,
+    options: &Options,
+) -> Option<&'p std::collections::BTreeMap<String, String>> {
+    let qml_front::project::Source::Module(uri) = source else {
+        return None;
+    };
+    if QtTypeOracle.has_module(uri) || options.installed.iter().any(|module| module == uri) {
+        return None;
+    }
+    project.module_types(uri)
+}
+
 /// The same, of a document the module of another takes in: `files` is how
 /// many QML files that one names by their path so far, and counts on. With
 /// `text` it is one written as a text of the other.
@@ -244,7 +260,34 @@ fn lower_from<'a>(
         let path = types::relative(&options.name, file);
         imports.push(b.import_default(name, &format!("{path}{}", options.component_extension)));
     }
+    // Every module of the project's own is made by the one `$namespace`:
+    // its import is written for the first of them and no other, a name
+    // being declared once in a file.
+    let mut namespace = false;
     for name in &uses.namespaces {
+        // A module of the project's own is files, not a module of the
+        // package: its name is a table of them, read when it is used, since
+        // a file of the module may be why another is being loaded.
+        if let Some(own) = types
+            .namespace(name)
+            .and_then(|source| own_module(source, project, options))
+        {
+            let mut members = Vec::new();
+            for (member, file) in own {
+                let local = format!("{name}${member}");
+                let path = types::relative(&options.name, file);
+                imports.push(
+                    b.import_default(&local, &format!("{path}{}", options.component_extension)),
+                );
+                members.push((b.str(member).as_str(), b.arrow(&[], b.id(&local))));
+            }
+            if !namespace {
+                imports.push(b.import_named(["$namespace"], &format!("{prefix}/object")));
+                namespace = true;
+            }
+            imports.push(b.const_(name, b.call(b.id("$namespace"), [b.object(members)])));
+            continue;
+        }
         match types.namespace(name).and_then(|source| names::namespace_source(source, prefix)) {
             Some(module) => imports.push(b.import_namespace(name, &module)),
             None => errors.push(Error::new(

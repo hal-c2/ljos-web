@@ -3,9 +3,10 @@
 //
 // Qt draws with shaders baked by its `qsb` tool from Vulkan-style GLSL; in
 // what it bakes is the same shader for OpenGL ES, which is what a browser
-// draws with. The build has that put where `fragmentShader` names the baked
-// file (`vite.js`); a shader fetched from elsewhere is OpenGL ES as it is,
-// or a baked file, of which the one for OpenGL ES is taken.
+// draws with. The build puts that where `fragmentShader` names the baked file,
+// and needs no tool of Qt's for it (`vite.js`, `qsb.js`); a shader fetched from
+// elsewhere is OpenGL ES as it is, or a baked file, of which the one for
+// OpenGL ES is taken.
 //
 // Every effect is drawn by one WebGL context, of which a page may have few,
 // and what was drawn is handed to the effect's own canvas.
@@ -18,6 +19,7 @@ import { onCleanup } from "solid-js";
 import { defineType, effect, flush, located, QtObject, slot } from "../object.js";
 import { Size } from "../QtQml/values.js";
 import { Color, color } from "./color.js";
+import { heldShader } from "./baked.js";
 import { drawn as shown } from "./drawn.js";
 import { Item } from "./Item.js";
 import { signal } from "#kernel";
@@ -115,28 +117,15 @@ function text(url) {
 
 // The shader for OpenGL ES in what Qt's `qsb` baked, or nothing when `bytes`
 // are no such file. A baked file is the length of what it holds and that
-// compressed, as `qCompress` leaves it; in it each shader is its length and
-// its text, and the text says in its first line what it is written for.
-const LATIN = new TextDecoder("latin1");
+// compressed, as `qCompress` leaves it.
 async function unbaked(bytes) {
-  let held = bytes;
-  if (bytes[4] === 0x78) {
-    try {
-      const stream = new Blob([bytes.subarray(4)]).stream().pipeThrough(new DecompressionStream("deflate"));
-      held = new Uint8Array(await new Response(stream).arrayBuffer());
-    } catch {
-      return null;
-    }
+  if (bytes[4] !== 0x78) return heldShader(bytes);
+  try {
+    const stream = new Blob([bytes.subarray(4)]).stream().pipeThrough(new DecompressionStream("deflate"));
+    return heldShader(new Uint8Array(await new Response(stream).arrayBuffer()));
+  } catch {
+    return null;
   }
-  const view = new DataView(held.buffer, held.byteOffset, held.byteLength);
-  const found = {};
-  for (const match of LATIN.decode(held).matchAll(/#version (300 es|100)\n/g)) {
-    if (match.index < 4) continue;
-    const length = view.getUint32(match.index - 4);
-    if (length < match[0].length || match.index + length > held.length) continue;
-    found[match[1]] ??= new TextDecoder().decode(held.subarray(match.index, match.index + length));
-  }
-  return found["300 es"] ?? found["100"] ?? null;
 }
 
 // A program for two shaders, and what it asks for: one for every effect

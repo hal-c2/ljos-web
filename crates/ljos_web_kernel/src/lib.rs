@@ -255,6 +255,14 @@ impl Kernel {
         watcher
     }
 
+    /// Marks the binding `index` as a value a type works out for itself:
+    /// a loop through it goes on to the next binding (`Graph::set_placed`).
+    pub fn placed(&self, index: u32) {
+        if let Some(node) = self.node(index) {
+            let _ = self.graph.set_placed(node, true);
+        }
+    }
+
     pub fn dispose(&self, index: u32) {
         let node = self
             .nodes
@@ -323,6 +331,11 @@ mod exports {
     #[unsafe(no_mangle)]
     pub extern "C" fn ljos_follow(index: u32) -> u32 {
         kernel().follow(index)
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn ljos_placed(index: u32) {
+        kernel().placed(index);
     }
 
     #[unsafe(no_mangle)]

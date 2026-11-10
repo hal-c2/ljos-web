@@ -61,3 +61,4 @@ Tumbler 6.0 Tumbler.qml
 VerticalHeaderView 6.0 VerticalHeaderView.qml
 VerticalHeaderViewDelegate 6.0 VerticalHeaderViewDelegate.qml
 WeekNumberColumn 6.0 WeekNumberColumn.qml
+import QtQuick.Templates auto

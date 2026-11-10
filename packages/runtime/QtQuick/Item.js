@@ -229,8 +229,15 @@ function arranged(self) {
 
 // What an item that is mounted is in, as the root of a QQuickView is in the
 // view's content item: an item as large as the element, which is the root's
-// `parent`. A root that says `anchors.fill: parent` fills the element.
-function viewed(self, host) {
+// `parent`. A root that says `anchors.fill: parent` fills the element. With
+// `{ fill: true }` any root does, whatever size its file gives it, as with
+// QQuickView's SizeRootObjectToView: its own width and height are assigned.
+function viewed(self, host, options) {
+  const sized = () => {
+    if (!options?.fill) return;
+    self.width = host.clientWidth;
+    self.height = host.clientHeight;
+  };
   const [width, setWidth] = signal(host.clientWidth, self.$owner);
   const [height, setHeight] = signal(host.clientHeight, self.$owner);
   const view = inside(null, () =>
@@ -248,6 +255,7 @@ function viewed(self, host) {
   const observer = new ResizeObserver(() => {
     setWidth(host.clientWidth);
     setHeight(host.clientHeight);
+    sized();
     flush();
   });
   observer.observe(host);
@@ -257,6 +265,7 @@ function viewed(self, host) {
   });
   under(self, view);
   self.parent = view;
+  sized();
 }
 
 export const Item = defineType("Item", QtObject, {
@@ -358,8 +367,8 @@ export const Item = defineType("Item", QtObject, {
       this.$touch((version) => version + 1);
     },
     // Called by `mount` for the object it mounted.
-    $mounted(host) {
-      viewed(this, host);
+    $mounted(host, options) {
+      viewed(this, host, options);
     },
     // `mapToItem`, `mapFromItem`, `mapToGlobal`, `mapFromGlobal`, `contains`
     // and `childAt`.
@@ -387,8 +396,9 @@ export const Item = defineType("Item", QtObject, {
       },
     );
     effect(
-      () => [self.visible, drawn(self, "opacity"), self.z, self.clip],
-      ([visible, opacity, z, clip]) => {
+      () => [self.visible, drawn(self, "opacity"), self.z, self.clip, self.z < 0 ? self.parent : null],
+      ([visible, opacity, z, clip, above]) => {
+        above?.$lower?.();
         node.style.display = visible ? "" : "none";
         node.style.opacity = opacity === 1 ? "" : opacity;
         node.style.zIndex = z === 0 ? "" : z;

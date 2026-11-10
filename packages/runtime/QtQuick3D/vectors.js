@@ -13,6 +13,13 @@ const AXES = ["x", "y", "z"];
 export function vectors(Type, ...names) {
   for (const name of names) {
     const view = Object.create(Vector3d.prototype);
+    // What a property is given of it: the vector as it is now.
+    view.$copy = function () {
+      return new Vector3d(this.x, this.y, this.z);
+    };
+    view.toJSON = function () {
+      return { x: this.x, y: this.y, z: this.z };
+    };
     for (const axis of AXES) {
       const key = `${name}$${axis}`;
       Object.defineProperty(view, axis, {

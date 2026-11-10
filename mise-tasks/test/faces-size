@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+#MISE description="What native types cost a page: nothing with none, the budget with them (docs/LJOS_WEB.md A22)"
+#MISE depends=["build:kernel", "packages"]
+set -euo pipefail
+
+bindgen="$(mise-tasks/tool/wasm-bindgen)"
+
+# Made absolute before the cd, as CARGO_TARGET_DIR may be either.
+out="$(realpath -m "${CARGO_TARGET_DIR:-target}/size")"
+crates=("$PWD/examples/wasm-counter" "$PWD/examples/wasm-gauge")
+for crate in "${crates[@]}"; do
+  (cd "$crate" && WASM_BINDGEN="$bindgen" node ../../packages/runtime/bin/ljos-web.js faces .)
+done
+
+cd packages/runtime
+LJOS_SIZE_OUT="$out/page" pnpm exec vite build -c size/vite.config.js
+LJOS_SIZE_ENTRY=face-page.html LJOS_SIZE_OUT="$out/face-page" pnpm exec vite build -c size/vite.config.js
+node size/faces.js "$out/page" "$out/face-page" "${crates[@]}"

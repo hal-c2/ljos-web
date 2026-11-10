@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+#MISE description="Native visual types from their Rust, in a browser, against the desktop's picture (docs/LJOS_WEB.md A22)"
+#MISE depends=["build:compiler", "browser"]
+set -euo pipefail
+
+cd examples/wasm-gauge
+
+bindgen="$(../../mise-tasks/tool/wasm-bindgen)"
+
+out="${LJOS_GAUGE_PICTURES:-picture-out}"
+mkdir -p "$out"
+for scene in "Gauges 320 120" "Dials 240 240" "Label 240 80"; do
+  read -r name width height <<<"$scene"
+  cargo run --features picture --bin picture -- "$name" "$width" "$height" "$out/$name.desktop.png"
+done
+WASM_BINDGEN="$(realpath "$bindgen")" node ../../packages/runtime/bin/ljos-web.js faces .
+
+pnpm --filter ljos-web-example-wasm-gauge test "$@"
