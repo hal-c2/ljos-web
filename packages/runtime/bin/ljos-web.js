@@ -1,8 +1,10 @@
 #!/usr/bin/env node
-// ljos-web build-site DIR [--out DIR] [--qmlc PATH] [--qt DIR]... [--with DIR]... [--styles ljos|qt]
+// ljos-web build-site DIR [--out DIR] [--qmlc PATH] [--qt DIR]... [--with DIR]... [--styles ljos|qt] [--prerender]
 //   A static site from DIR, a directory with ljos-site.json (default out:
 //   DIR-site). A site this built there is replaced; anything else is not.
 //   Its controls are Ljós's style, or an installed Qt's with `--styles qt`.
+//   With `--prerender` the page's HTML is written at build time (readable
+//   with no script) and taken over by its script when it runs.
 // ljos-web modules [--json]
 //   The modules this ljos-web provides, and what building with each needs.
 // ljos-web faces CRATE [--out DIR] [--register PATH] [--bindgen PATH]
@@ -13,7 +15,7 @@ import { buildFaces, FaceError } from "../web/faces.js";
 import { provided } from "../modules.js";
 import { buildSite, SiteError } from "../site.js";
 
-const USAGE = `usage: ljos-web build-site DIR [--out DIR] [--qmlc PATH] [--qt DIR]... [--with DIR]... [--styles ljos|qt]
+const USAGE = `usage: ljos-web build-site DIR [--out DIR] [--qmlc PATH] [--qt DIR]... [--with DIR]... [--styles ljos|qt] [--prerender]
        ljos-web modules [--json]
        ljos-web faces CRATE [--out DIR] [--register PATH] [--bindgen PATH]`;
 
@@ -30,7 +32,7 @@ try {
     allowPositionals: true,
     options:
       command === "build-site"
-        ? { out: { type: "string" }, qmlc: { type: "string" }, qt: { type: "string", multiple: true }, with: { type: "string", multiple: true }, styles: { type: "string" } }
+        ? { out: { type: "string" }, qmlc: { type: "string" }, qt: { type: "string", multiple: true }, with: { type: "string", multiple: true }, styles: { type: "string" }, prerender: { type: "boolean" } }
         : command === "faces"
           ? { out: { type: "string" }, register: { type: "string" }, bindgen: { type: "string" } }
           : { json: { type: "boolean" } },
@@ -46,7 +48,7 @@ if (command === "modules" && positionals.length === 0) {
   else for (const { module, needs } of list.modules) console.log(needs.length > 0 ? `${module} (needs ${needs.join(", ")})` : module);
 } else if (command === "build-site" && positionals.length === 1) {
   try {
-    const { out, files, bytes } = await buildSite({ dir: positionals[0], out: values.out, qmlc: values.qmlc, qt: values.qt, with: values.with, styles: values.styles });
+    const { out, files, bytes } = await buildSite({ dir: positionals[0], out: values.out, qmlc: values.qmlc, qt: values.qt, with: values.with, styles: values.styles, prerender: values.prerender });
     console.log(`site: ${out} (${files.length} files, ${bytes} bytes)`);
   } catch (error) {
     // What the compiler or Vite says is said as they say it, without a stack.

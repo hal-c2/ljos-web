@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="A static site from a directory with ljos-site.json: mise run site:build DIR [--out DIR] [--with DIR]... [--qt DIR]..."
+#MISE description="A static site from a directory with ljos-site.json: mise run site:build DIR [--out DIR] [--with DIR]... [--qt DIR]... [--prerender]"
 #MISE depends=["build:compiler", "packages"]
 set -euo pipefail
 # The compiler this checkout built; paths are taken from where mise was run.

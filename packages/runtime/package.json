@@ -67,6 +67,7 @@
     "./Ljos/Blocks": "./Ljos/Blocks/index.js",
     "./vite": "./vite.js",
     "./site": "./site.js",
+    "./server": "./server.js",
     "./theme": "./theme.js",
     "./modules.json": "./modules.json"
   },

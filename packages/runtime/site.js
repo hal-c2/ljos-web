@@ -305,14 +305,21 @@ export function replaceSite(from, out, rename = renameSync) {
 // (or `{ site }`, the name a visitor's shell is kept under) for a site whose
 // visitors may drop a shell of their own over its blocks (docs/LJOS_WEB.md
 // A9); its compiler is written beside the page and fetched only on a drop.
+// `prerender`: true (or `{ width, height }`, the page size it is made at)
+// writes the page's HTML at build time — its text, links and structure in
+// `index.html`, for a reader or a crawler with no script — and the page's
+// script hydrates it, taking those elements over rather than making the
+// page again (docs/LJOS_WEB.md, the prerender section). A live shell's
+// page is its own host's to make, so the two are refused together.
 // What it wrote, and its size.
 //
 // A site's controls are Ljós's whether or not the machine that builds it
 // has a Qt: the site is a Ljós application, which draws with Ljós's style
 // natively, and a bundle builds to the same site on any machine. A style
 // Ljós has none of (Imagine) is still the installed Qt's.
-export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", qt, styles = "ljos", with: standins = [], liveShell = false, logLevel = "warn" } = {}) {
+export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", qt, styles = "ljos", with: standins = [], liveShell = false, prerender = false, logLevel = "warn" } = {}) {
   if (!dir) throw new SiteError("which bundle? buildSite({ dir })");
+  if (prerender && liveShell) throw new SiteError("a site with a live shell is not prerendered: its page is the shell host's to make (choose one of prerender and liveShell)");
   dir = resolve(dir);
   out = resolve(out ?? `${dir}-site`);
   qmlc = compilerAt(qmlc);
@@ -347,28 +354,72 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
   const stage = mkdtempSync(join(tmpdir(), "ljos-site-"));
   try {
     writeFileSync(join(stage, "index.html"), PAGE);
-    writeFileSync(join(stage, "main.js"), liveShell ? LIVE : MAIN);
-    await build({
+    writeFileSync(join(stage, "main.js"), liveShell ? LIVE : prerender ? PRERENDERED : MAIN);
+    // The kernel the page's graph is: Solid's own, or Ljós's compiled
+    // to wasm where `LJOS_KERNEL=wasm`, as everywhere else in this
+    // repository. The prerender below is made with the same one, so
+    // what it writes is what the page would make.
+    const kernel = process.env.LJOS_KERNEL === "wasm" ? join(runtime, "kernel/wasm.js") : join(runtime, "kernel/solid.js");
+    const shared = {
       configFile: false,
       root: stage,
       base: "./",
       logLevel,
       cacheDir: join(runtime, "node_modules/.vite/ljos-site"),
-      plugins: [qml({ qmlc, args: ["--root", dir], qt, styles, standins, theme: theme ? join(dir, theme) : false, liveShell })],
       resolve: {
         alias: {
           "ljos-site:entry": join(dir, manifest.entry),
           "ljos-site:object": join(runtime, "object.js"),
+          "ljos-site:server": join(runtime, "server.js"),
           "ljos-site:css": join(runtime, "style.css"),
           "ljos-site:live": join(runtime, "Ljos/Blocks/live.js"),
+          "#kernel": kernel,
         },
         dedupe: ["solid-js", "@solidjs/web", "@solidjs/signals"],
       },
+    };
+    const plugin = () => qml({ qmlc, args: ["--root", dir], qt, styles, standins, theme: theme ? join(dir, theme) : false, liveShell });
+    await build({
+      ...shared,
+      plugins: [plugin()],
       build: { outDir: join(stage, "dist"), emptyOutDir: true, target: "esnext", chunkSizeWarningLimit: 4000 },
       // The live shell's compiler runs in a module worker.
       worker: { format: "es" },
     });
     const site = join(stage, "dist");
+    if (prerender) {
+      // The same entry made where there is no browser: a server bundle
+      // of the entry over this runtime, rendered in a Node process of
+      // its own into the page the client build wrote.
+      writeFileSync(join(stage, "server-entry.js"), SERVER);
+      await build({
+        ...shared,
+        plugins: [plugin()],
+        build: {
+          ssr: join(stage, "server-entry.js"),
+          outDir: join(stage, "server"),
+          emptyOutDir: true,
+          target: "esnext",
+          chunkSizeWarningLimit: 4000,
+          rollupOptions: { output: { format: "es", entryFileNames: "server-entry.mjs" } },
+        },
+        ssr: { noExternal: true },
+        environments: { ssr: { resolve: { noExternal: true } } },
+      });
+      const options = typeof prerender === "object" ? prerender : {};
+      const ran = spawnSync(process.execPath, [join(runtime, "server/prerender.js"), join(stage, "server/server-entry.mjs"), JSON.stringify(options)], {
+        encoding: "utf8",
+        maxBuffer: 1 << 28,
+        timeout: 120_000,
+      });
+      if (ran.error) throw new SiteError(`could not prerender the site: ${ran.error.message}`);
+      if (ran.status !== 0) throw new SiteError(`the site could not be prerendered:\n${(ran.stderr || ran.stdout).trim()}`);
+      if (ran.stderr) console.warn(ran.stderr.trimEnd());
+      const page = join(site, "index.html");
+      const html = readFileSync(page, "utf8");
+      if (!html.includes('<div id="app"></div>')) throw new SiteError("the built page has no empty #app to prerender into");
+      writeFileSync(page, html.replace('<div id="app"></div>', () => `<div id="app">${ran.stdout}</div>`));
+    }
     // Carried as it is too, for whatever reads it beside the page.
     if (theme) {
       mkdirSync(dirname(join(site, theme)), { recursive: true });
@@ -407,6 +458,24 @@ import { mount } from "ljos-site:object";
 import Entry from "ljos-site:entry";
 
 mount(Entry, document.getElementById("app"));
+`;
+
+// The page of a prerendered site: its HTML is in the page already, and
+// is taken over.
+const PRERENDERED = `import "ljos-site:css";
+import { hydrate } from "ljos-site:object";
+import Entry from "ljos-site:entry";
+
+hydrate(Entry, document.getElementById("app"));
+`;
+
+// What the prerender renders: the entry, made by the runtime's server
+// renderer (one runtime in the bundle, the entry's and the renderer's
+// together).
+const SERVER = `import { renderToString } from "ljos-site:server";
+import Entry from "ljos-site:entry";
+
+export default (options) => renderToString(Entry, options);
 `;
 
 // The page of a site with a live shell: the entry, under what lets a visitor

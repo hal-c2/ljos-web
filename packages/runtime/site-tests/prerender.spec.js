@@ -1,0 +1,175 @@
+// A prerendered site: the build writes every page's HTML with the page's
+// own text, links and structure in it, so the page reads with no script
+// at all; with script, hydration takes those very nodes over rather
+// than making the page again, and the page then behaves as it always
+// did. Both kernels are built the same way and must give the same page.
+import { existsSync, readFileSync, statSync } from "node:fs";
+import { createServer } from "node:http";
+import { extname, join, normalize } from "node:path";
+import { expect, test } from "@playwright/test";
+import { buildSite } from "../site.js";
+import { bundle, design, qmlc } from "./bundle.js";
+
+const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".json": "application/json", ".wasm": "application/wasm" };
+
+function serve(directory) {
+  const server = createServer((request, response) => {
+    const path = decodeURIComponent(new URL(request.url, "http://site").pathname);
+    const file = normalize(join(directory, path === "/" ? "index.html" : path));
+    if (!file.startsWith(directory) || !existsSync(file) || !statSync(file).isFile()) {
+      response.writeHead(404).end();
+      return;
+    }
+    response.writeHead(200, { "content-type": TYPES[extname(file)] ?? "application/octet-stream" }).end(readFileSync(file));
+  });
+  return new Promise((done) => server.listen(0, "127.0.0.1", () => done(server)));
+}
+
+for (const kernel of ["solid", "wasm"]) {
+  test.describe(`a prerendered site on the ${kernel} kernel`, () => {
+    test.describe.configure({ mode: "serial" });
+    let made;
+    let server;
+    let origin;
+
+    test.beforeAll(async () => {
+      if (kernel === "wasm" && !existsSync(join(import.meta.dirname, "../kernel/ljos_web_kernel.wasm"))) {
+        throw new Error("no wasm kernel beside the runtime: build it (`mise run build:kernel`)");
+      }
+      made = bundle("prerender");
+      const was = process.env.LJOS_KERNEL;
+      process.env.LJOS_KERNEL = kernel;
+      try {
+        await buildSite({ dir: made.dir, out: made.out, qmlc, prerender: true });
+      } finally {
+        if (was === undefined) delete process.env.LJOS_KERNEL;
+        else process.env.LJOS_KERNEL = was;
+      }
+      server = await serve(made.out);
+      origin = `http://127.0.0.1:${server.address().port}`;
+    });
+    test.afterAll(async () => {
+      await new Promise((done) => server?.close(done));
+      made?.remove();
+    });
+
+    test("the HTML the build wrote holds the page's text, link and count", () => {
+      const html = readFileSync(join(made.out, "index.html"), "utf8");
+      expect(html).toContain("Prerendered heading");
+      expect(html).toContain("Static text a crawler reads.");
+      expect(html).toContain("Read the docs");
+      expect(html).toContain("https://example.com/docs");
+      expect(html).toContain("Count 0");
+      expect(html).toContain("Increment");
+    });
+
+    test("reads with JavaScript off: text, link and structure are the page's", async ({ browser }) => {
+      const context = await browser.newContext({ javaScriptEnabled: false });
+      try {
+        const page = await context.newPage();
+        await page.goto(`${origin}/`);
+        await expect(page.getByText("Prerendered heading", { exact: true })).toBeVisible();
+        await expect(page.getByText("Static text a crawler reads.", { exact: true })).toBeVisible();
+        await expect(page.getByText("Count 0", { exact: true })).toBeVisible();
+        await expect(page.getByText("Increment", { exact: true })).toBeVisible();
+        const link = page.getByText("Read the docs", { exact: true });
+        await expect(link).toBeVisible();
+        // The link is a link in the markup, not a script's promise of one.
+        const href = await link.evaluate((element) => element.closest("[data-link]")?.dataset.link ?? element.closest("a")?.getAttribute("href"));
+        expect(href).toBe("https://example.com/docs");
+        // Structure, not a flat string: the heading and the button's words
+        // are in different elements under #app.
+        expect(await page.locator("#app *").count()).toBeGreaterThan(5);
+      } finally {
+        await context.close();
+      }
+    });
+
+    test("hydration adopts the prerendered nodes, and the counter then counts", async ({ page }) => {
+      const warnings = [];
+      page.on("console", (message) => {
+        if (["warning", "error"].includes(message.type())) warnings.push(message.text());
+      });
+      page.on("pageerror", (error) => warnings.push(error.message));
+      // Hold the page's script back until the prerendered nodes are tagged,
+      // so that only hydration could keep or replace them.
+      let release;
+      const held = new Promise((done) => (release = done));
+      await page.route("**/*.js", async (route) => {
+        await held;
+        await route.continue();
+      });
+      await page.goto(`${origin}/`, { waitUntil: "commit" });
+      await page.waitForSelector("#app [data-hk]");
+      const tagged = await page.evaluate(() => {
+        window.__prerendered = [...document.querySelectorAll("#app [data-hk]")];
+        for (const element of window.__prerendered) element.setAttribute("data-tag", "kept");
+        return window.__prerendered.length;
+      });
+      expect(tagged).toBeGreaterThan(5);
+      release();
+      await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+      await page.unroute("**/*.js");
+      const kept = await page.evaluate(() => ({
+        same: window.__prerendered.filter((element) => document.contains(element) && element.getAttribute("data-tag") === "kept").length,
+        total: window.__prerendered.length,
+        // The heading the reader sees is the node that was tagged.
+        heading: document.querySelector("#app")?.textContent.includes("Prerendered heading"),
+      }));
+      expect(kept.same).toBe(kept.total);
+      expect(kept.heading).toBe(true);
+      expect(warnings.filter((text) => /hydrat/i.test(text))).toEqual([]);
+      expect(warnings).toEqual([]);
+      // The MouseArea over the words is what takes the click, as a
+      // reader's press lands on it: press there, not on the text.
+      const box = await page.getByText("Increment", { exact: true }).boundingBox();
+      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+      await expect(page.getByText("Count 1", { exact: true })).toBeVisible();
+      // Still the same nodes after the page has reacted.
+      expect(await page.evaluate(() => window.__prerendered.every((element) => document.contains(element)))).toBe(true);
+    });
+  });
+}
+
+// The bundle the site builder's other tests build: its own module, a
+// design module's colours, a picture, a theme. Prerendering is of any
+// site, not of the fixture above.
+test("the project bundle prerenders too, and hydrates in its design colour", async ({ browser, page }) => {
+  const made = bundle("project");
+  let server;
+  try {
+    await buildSite({ dir: made.dir, out: made.out, qmlc, with: [design], prerender: true });
+    expect(readFileSync(join(made.out, "index.html"), "utf8")).toContain("Stopped");
+    server = await serve(made.out);
+    const origin = `http://127.0.0.1:${server.address().port}`;
+    const context = await browser.newContext({ javaScriptEnabled: false });
+    try {
+      const still = await context.newPage();
+      await still.goto(`${origin}/`);
+      await expect(still.getByText("Stopped", { exact: true })).toBeVisible();
+    } finally {
+      await context.close();
+    }
+    await page.goto(`${origin}/`);
+    await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+    const text = page.getByText("Stopped", { exact: true });
+    await expect(text).toBeVisible();
+    expect(await text.evaluate((element) => getComputedStyle(element).color)).toBe("rgb(18, 52, 86)");
+  } finally {
+    await new Promise((done) => server?.close(done));
+    made.remove();
+  }
+});
+
+test("a site built without prerender keeps its empty page and mounts as before", async ({ page }) => {
+  const made = bundle("prerender");
+  const server = await buildSite({ dir: made.dir, out: made.out, qmlc }).then(() => serve(made.out));
+  try {
+    expect(readFileSync(join(made.out, "index.html"), "utf8")).not.toContain("Prerendered heading");
+    await page.goto(`http://127.0.0.1:${server.address().port}/`);
+    await expect(page.getByText("Prerendered heading", { exact: true })).toBeVisible();
+  } finally {
+    await new Promise((done) => server.close(done));
+    made.remove();
+  }
+});

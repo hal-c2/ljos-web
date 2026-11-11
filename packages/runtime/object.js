@@ -2109,6 +2109,60 @@ export function mount(Component, element, props = {}, options = {}) {
   return handle;
 }
 
+// Puts a component's object in the page over what a prerender of it
+// wrote there (`renderToString` of `ljos-web/server`), taking the
+// prerendered elements over instead of making the page again: while
+// the root is made, each element a type asks the document for is the
+// prerendered one of that making's number, and the effects that then
+// run write to it as they always did. A reader who was reading the
+// page keeps the very nodes they had; only what the browser measures
+// or paints differently is settled, in place.
+//
+// An element whose number the making never asks for, or asks for by
+// another tag — the page made differently here than it was
+// prerendered — is a mismatch: it is told of once, what was not taken
+// over is taken out, and the page goes on as a mount would have made
+// it. Nothing prerendered in `element` is a plain mount. That the
+// page was hydrated, `element` says (`data-ljos-hydrated`), so that
+// what waits for the live page need not guess.
+export function hydrate(Component, element, props = {}, options = {}) {
+  const marked = element.querySelectorAll("[data-hk]");
+  if (marked.length === 0) return mount(Component, element, props, options);
+  const waiting = new Map([...marked].map((node) => [Number(node.getAttribute("data-hk")), node]));
+  const document = element.ownerDocument;
+  let made = 0;
+  let told = false;
+  const take = (tag) => {
+    const node = waiting.get(++made);
+    if (!node) return null;
+    if (node.localName !== String(tag).toLowerCase()) {
+      if (!told) {
+        told = true;
+        console.warn(`ljos-web: hydration mismatch: the page asks for a <${String(tag).toLowerCase()}> where the prerendered page has a <${node.localName}> (element ${made}); what does not match is made again`);
+      }
+      return null;
+    }
+    waiting.delete(made);
+    node.removeAttribute("data-hk");
+    return node;
+  };
+  const createElement = document.createElement.bind(document);
+  const createElementNS = document.createElementNS.bind(document);
+  document.createElement = (tag, given) => take(tag) ?? createElement(tag, given);
+  document.createElementNS = (namespace, tag, given) => take(tag) ?? createElementNS(namespace, tag, given);
+  try {
+    const root = mount(Component, element, props, options);
+    // What no type took over is not the page's: a part the prerender
+    // had and this making does not.
+    for (const node of waiting.values()) node.remove();
+    element.setAttribute("data-ljos-hydrated", "true");
+    return root;
+  } finally {
+    delete document.createElement;
+    delete document.createElementNS;
+  }
+}
+
 // What a component declares, put on its root object so that it can be
 // reached through it: `{ name: [get, set] }` for a property, a function for
 // a function or a signal.
