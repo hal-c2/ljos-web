@@ -264,10 +264,17 @@ impl TypeOracle for WebOracle {
         QtTypeOracle.is_unlisted(qt(ty))
     }
 
-    fn adds_member(&self, _ty: Qt, _name: &str) -> bool {
+    fn adds_member(&self, ty: Qt, name: &str) -> bool {
         // Ljós's own table names members its runtime adds to Qt's types;
-        // the web runtime has no such member by that fact alone.
-        false
+        // the web runtime has no such member by that fact alone. The one
+        // it has is a font's `size`, its pixel size by Ljós's name
+        // (`QtQuick/font.js`), which a file of either API may say — on
+        // the font value type the dialect defines it for, in either
+        // table's name for it, and on no other type a `pixelSize` alone
+        // would let in (a `FontInfo` has one and no `size`).
+        name == "size"
+            && matches!(ty.0.class, "QtQuick.font" | "QFont")
+            && QtTypeOracle.adds_member(qt(ty), name)
     }
 
     fn unknown_type_note(&self, name: &str) -> Option<&'static str> {

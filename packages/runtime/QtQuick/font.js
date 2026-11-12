@@ -43,13 +43,26 @@ export const font = group({
   underline: false,
   overline: false,
   strikeout: false,
+  // Ljós's name for the pixel size, a second name for it on every font
+  // (ljos-ui's type table has `size` in `QtQuick.font`): a file of either
+  // API may say `font.size`, and what it says is the pixel size.
+  size: typed(
+    kinds.pixels,
+    derived((self) => self.font.pixelSize),
+  ),
   pixelSize: typed(
     kinds.pixels,
-    derived((self) => (given(self, "font", "pointSize") ? Math.round((self.font.pointSize * 96) / 72) : 12)),
+    derived((self) =>
+      given(self, "font", "size")
+        ? self.font.size
+        : given(self, "font", "pointSize")
+          ? Math.round((self.font.pointSize * 96) / 72)
+          : 12,
+    ),
   ),
   pointSize: typed(
     kinds.points,
-    derived((self) => (given(self, "font", "pixelSize") ? (self.font.pixelSize * 72) / 96 : 9)),
+    derived((self) => (given(self, "font", "pixelSize") || given(self, "font", "size") ? (self.font.pixelSize * 72) / 96 : 9)),
   ),
   capitalization: 0,
   letterSpacing: 0,

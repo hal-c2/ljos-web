@@ -14,6 +14,7 @@ fn module(uri: &str, types: &[(&str, &str)]) -> Module {
             .collect(),
         resources: Vec::new(),
         prefix: "/qt/qml".to_string(),
+        native: Vec::new(),
     }
 }
 
@@ -84,6 +85,7 @@ qt6_add_qml_module(controls URI Thermostat.Controls QML_FILES Knob.qml)
         [
             Module {
                 resources: vec!["images/Icon.qml.png".to_string()],
+                native: vec!["backend.cpp".to_string(), "backend.h".to_string()],
                 ..module(
                     "Thermostat",
                     &[

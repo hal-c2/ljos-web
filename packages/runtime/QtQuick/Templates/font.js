@@ -32,6 +32,21 @@ function said(self, member, other, convert) {
 const pixels = (points) => Math.round((points * 96) / 72);
 const heavy = (bold) => (bold ? 700 : 400);
 
+// The pixel size the objects around one were given, resolved at each
+// one in turn, nearest first: at one object, whichever of the three
+// names for a size it was given, read as that object's `pixelSize`
+// (where `size` and `pointSize` have already been resolved into it,
+// a directly given `pixelSize` first, as on the control itself
+// below); a farther object's `size` never beats a nearer one's
+// `pixelSize` or `pointSize`.
+function saidPixels(self) {
+  for (let at = around(self); at; at = around(at)) {
+    if (given(at, "font", "size") || given(at, "font", "pixelSize")) return at.font.pixelSize;
+    if (given(at, "font", "pointSize")) return pixels(at.font.pointSize);
+  }
+  return undefined;
+}
+
 const inherited = (member, plain) => derived((self) => said(self, member) ?? styled(self.$type)[member] ?? plain);
 
 export const font = group({
@@ -45,12 +60,19 @@ export const font = group({
   underline: inherited("underline", false),
   overline: inherited("overline", false),
   strikeout: inherited("strikeout", false),
+  // Ljós's name for the pixel size, as on every font (`QtQuick/font.js`).
+  size: typed(
+    kinds.pixels,
+    derived((self) => self.font.pixelSize),
+  ),
   pixelSize: typed(
     kinds.pixels,
     derived((self) =>
-      given(self, "font", "pointSize")
-        ? pixels(self.font.pointSize)
-        : (said(self, "pixelSize", "pointSize", pixels) ?? styled(self.$type).pixelSize),
+      given(self, "font", "size")
+        ? self.font.size
+        : given(self, "font", "pointSize")
+          ? pixels(self.font.pointSize)
+          : (saidPixels(self) ?? styled(self.$type).pixelSize),
     ),
   ),
   pointSize: typed(

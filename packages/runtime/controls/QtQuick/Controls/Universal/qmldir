@@ -4,7 +4,9 @@ ApplicationWindow 6.0 ApplicationWindow.qml
 Button 6.0 Button.qml
 CheckBox 6.0 CheckBox.qml
 Dialog 6.0 Dialog.qml
+Drawer 6.0 Drawer.qml
 Label 6.0 Label.qml
+Menu 6.0 Menu.qml
 Pane 6.0 Pane.qml
 Popup 6.0 Popup.qml
 RoundButton 6.0 RoundButton.qml

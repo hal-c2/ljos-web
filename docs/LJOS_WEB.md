@@ -1813,10 +1813,7 @@ grouped example's scripts ride as files the editor shows and a `.ts`
 import is the compiler's gap to close, not papered over here; an
 example importing `QtQuick.Controls` runs on a page built with them
 (the site is, so its compiler is given them, A15) and is reported at
-its import and left plain on one that is not; and the `import Ljos…` dialect
-modules are not in the page compiler's table at this pin, so dialect
-examples check as not-installed until ljos-web carries them — the
-check says so rather than showing them dead.
+its import and left plain on one that is not.
 
 ### A28. A site of many pages, and Markdown as a content source
 
@@ -1906,6 +1903,75 @@ What a page of many has that a page of one has not, stated plain:
   fill its window binds its width and height to its parent's —
   an anchor to the view an entry is mounted in settles before
   that parent stands, and a prerender would write it at no size.
+
+### A29. Ljós's own API on the web: `Ljos.Ui`, `Ljos.Layout`, `Ljos.Core`
+
+`import Ljos.Ui` is `ljos-web/Ljos/Ui`, and likewise `Ljos/Layout` and
+`Ljos/Core`: the modules of Ljós's own API, as ljos-ui has them
+natively (its `ljos_ui.rs` and `ljos_layout.rs`, and the three modules
+of its type table, are the specification). The compiler's front end is
+pinned to the ljos-ui main that knows them
+(`2d725000e02f496072063adace4064c205fcb5cd`), so a file `ljos migrate`
+writes compiles here as it checks natively, to these imports.
+
+A type Ljós renames, or whose members it renames, is a *face* of the
+runtime's type, as natively: the same object under the new names. A
+face here is a type derived from the one it faces, in whose props the
+dialect's names are put under the names the type has before anything
+has read a property, and on whose objects the dialect's names are the
+same slot (`slot(item, "fill")` is `slot(item, "color")`), so a
+`Behavior on fill`, a state's `PropertyChanges` and an animation's
+`property: "fill"` move what either name reads. Nothing is made twice
+and no implementation is forked. The faces are `Rectangle` (`fill` for
+`color`), `Text` (`align`, `wrap`, `format`), `PointerArea` (Qt's
+`MouseArea`), the gestures `Tap`, `Hover`, `Drag` and `Wheel` (whose
+`buttons`, `modifiers`, `devices` and `pointerTypes` are their
+handlers' `accepted…`), `Loader` (`component` for `sourceComponent`),
+`ListView`, and `DragSource` (Qt's attached `Drag`, the one attached
+object by both names). `font.size` is a second name for `pixelSize` on
+every font, as in Ljós's table; beside a Qt table, whose font has no
+`size`, the compiler takes it as the member the runtime adds, and no
+other added member. The rest of `Ljos.Ui` — `Item`, `Image`, the
+shapes and paths, the animations, states and transitions, the views'
+companions — Ljós keeps as they are, so they are the runtime's types
+exported from this module too. `Ljos.Core` is `Timer`, `Binding`,
+`Connections`, `Component`, `Locale` and `QtObject` likewise.
+
+`Ljos.Layout`'s `Row`, `Column`, `Box` and `Grid` are faces of the
+runtime's layouts, which are the arrangement's arithmetic already,
+with the arrangement's defaults (no spacing until it is given) and
+its `padding`, inside which the layouts' own engine measures,
+arranges and places. `Pages` is a face of `StackLayout`, `Flow` is
+`QtQuick`'s, and `Layout` is the layouts' attached type.
+
+`tests/ljosui.spec.js` holds it, on both kernels: each face by its
+dialect names, beside the QtQuick specs, and a whole dialect file
+compiled by qmlc (`tests/scenes/ljosuidialect.qml`) drawing what its
+compat twin draws, to the pixel (a layout rounds a text's fractional
+measure up, as Qt's own layouts do beside its positioners). On the
+site (A28) nothing changes in the count at the docs pin — the same
+138 live and 21 plain (10 not compiling, 11 not running), checked
+with the build's own gathering: none of the 21 is plain for want of
+this module (each fails for a type, module or script the web has not,
+in Qt's form too) — while a docs example `ljos migrate` writes in
+the dialect (`ui/layouts`, a `Column` of `Rectangle`s by `fill` and
+`Layout.fillHeight`) compiles and prerenders through the site's own
+check, live when the docs are read at a revision that has it.
+
+Not mapped, and said so rather than papered over: `Pointer` (the face
+of Qt's `PointHandler`, which the runtime has not in `QtQuick`
+either — a file that names it fails at its import) and `KeyEvent` as a
+named type (a key event here is the object a handler is given, in
+either API; nothing is made of the name); a `ListView`'s
+`enter` and `exit` (the runtime's views have no `add`/`remove`
+transitions in either API to rename); `Screen.points(…)` (not in
+Ljós's API yet either: a file that sets `font.pointSize` is kept by
+migrate, so none is written); a `Grid`'s unset `columns`/`rows` read
+as the layout's −1, not the arrangement's 0; and the dialect modules
+beyond these three — `Ljos.Controls…` and a 3D module Ljós has not
+yet — which no file can import here until they are carried as these
+were.
+
 
 ## Part II — An application's own Rust types
 
