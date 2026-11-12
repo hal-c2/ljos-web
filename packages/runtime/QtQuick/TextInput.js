@@ -5,6 +5,7 @@
 import { $string, defineType, derived, effect, flush, kinds, onChange, settle as settleAll, slot, typed } from "../object.js";
 import { color, css } from "./color.js";
 import { lazy, rules, sized } from "./compute.js";
+import { speaks } from "./Accessible.js";
 import { forceActiveFocus, setFocus } from "./focus.js";
 import { advance, capitalized, describe, dress, font, fonts, metrics, overhang } from "./font.js";
 import { Item } from "./Item.js";
@@ -526,3 +527,9 @@ export const TextEdit = defineType("TextEdit", Item, {
     );
   },
 });
+
+// An editable field says it is one, and is called by what it asks
+// for until it is given a name: a TextField dressed by a style is
+// this same field with a placeholder of its own.
+speaks(TextInput, "EditableText", (self) => self.placeholderText || undefined);
+speaks(TextEdit, "EditableText", (self) => self.placeholderText || undefined);

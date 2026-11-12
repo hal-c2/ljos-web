@@ -134,6 +134,32 @@ function show(node, [role, name, description, ignored, labelledBy, ...told]) {
   states.forEach(([, attribute], index) => set(attribute, told[index]));
 }
 
+// What `show` wrote, taken off again: an attribute of no value is
+// none of them.
+const UNSPOKEN = [null, "", "", false, null, ...states.map(() => null)];
+
+// Where an item's saying goes: on its element, but a text box's is
+// its field — the form element inside it is what a reader edits,
+// and a name on the box around it names that, not this. The field
+// may be made after the item is (a control's content), so where
+// the saying goes is asked for as it is shown, and a saying shown
+// on the box moves to the field when the field stands.
+function shower(item) {
+  let shown = null;
+  return (attributes) => {
+    if (!attributes) return;
+    const field =
+      attributes[0] === "textbox" || attributes[0] === "searchbox"
+        ? (item.$input ?? item.$node?.querySelector?.("input.qq-edit, textarea.qq-edit") ?? null)
+        : null;
+    const node = field ?? item.$node;
+    if (!node) return;
+    if (shown && shown !== node) show(shown, UNSPOKEN);
+    shown = node;
+    show(node, attributes);
+  };
+}
+
 // A control whose type says what it is says it on its element, before
 // anything asks for its `Accessible` object; once something has, that
 // object says it.
@@ -142,9 +168,7 @@ export function described(item) {
   if (!node || !item.$type.chain.some((Type) => spoken.get(Type)?.role !== undefined)) return;
   effect(
     () => (item.$attached?.Accessible ? null : aria(null, item)),
-    (attributes) => {
-      if (attributes) show(node, attributes);
-    },
+    shower(item),
   );
 }
 
@@ -207,7 +231,7 @@ const AccessibleAttached = defineType("AccessibleAttached", QtObject, {
     if (!node) return;
     effect(
       () => aria(self, props.$attachee),
-      (attributes) => show(node, attributes),
+      shower(props.$attachee),
     );
     // What an item is the label for is labelled by it.
     effect(

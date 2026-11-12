@@ -23,6 +23,8 @@ Item {
         T.Button { id: mine; text: "Delete"; Accessible.name: "Remove the row" }
         T.CheckBox { id: told; text: "Told"; Accessible.checked: true }
         T.Button { id: other; text: "Odd"; Accessible.role: Accessible.Link }
+        T.TextField { id: field; width: 120; height: 20; placeholderText: "Search" }
+        T.TextField { id: named; width: 120; height: 20; Accessible.name: "Your name" }
     }
 
     function read() {
@@ -32,7 +34,7 @@ Item {
     }
 
     function items() {
-        return { go, check, toggle, slider, group, label, tabs, tab, second, mine, told, other }
+        return { go, check, toggle, slider, group, label, tabs, tab, second, mine, told, other, field, named }
     }
 
     function step() {
