@@ -49,7 +49,7 @@ function paint(self, name) {
 
 const numbers = (values) => values.map((value) => Number(value) || 0);
 
-const ShapeGradient = defineType("ShapeGradient", Gradient, {
+export const ShapeGradient = defineType("ShapeGradient", Gradient, {
   properties: { spread: 0 },
   enums: { PadSpread: 0, ReflectSpread: 1, RepeatSpread: 2 },
 });

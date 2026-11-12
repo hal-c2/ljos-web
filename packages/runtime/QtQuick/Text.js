@@ -280,7 +280,7 @@ function laid(self, state, bounded) {
   const fits = (tried) =>
     !(horizontal && (tried.widest > limit || (!vertical && tried.wrapped))) && !(vertical && tried.full * tried.pitch > ceiling);
   if (fits(made)) return made;
-  const points = !given(self, "font", "pixelSize");
+  const points = !given(self, "font", "pixelSize") && !given(self, "font", "size");
   const least = Math.min(points ? Math.round((self.minimumPointSize * 96) / 72) : self.minimumPixelSize, base.size);
   let low = least;
   let high = Math.ceil(base.size) - 1;

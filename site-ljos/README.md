@@ -42,15 +42,13 @@ Decisions taken here, of a piece with the sibling lanes':
 
 - The QML is written to lower cleanly with `ljos migrate`
   (verified file by file; 0 errors, 0 warnings under
-  `ljos check`) and shipped in the compat form ljos-web's
-  compiler at its current pin runs (`import QtQuick`,
+  `ljos check`) and shipped in the compat form (`import QtQuick`,
   `import Ljos.Blocks`). The dialect form (`import Ljos.Ui`,
-  `import Ljos.Layout`) cannot run on the web yet: the compiler's
-  pin predates those modules in Ljós's table, and the runtime has
-  no `Ljos/Ui` module for the compiled output to import
-  (migrate-gaps SC5, and SM1 for the Blocks import migrate keeps).
-  When the pin passes the dialect table, switching is one
-  `ljos migrate --write` over `bundle/`.
+  `import Ljos.Layout`) runs on the web now — the compiler's pin
+  knows those modules and the runtime has them
+  (docs/LJOS_WEB.md A29) — so switching is one
+  `ljos migrate --write` over `bundle/` when migrate carries a
+  `Ljos.Blocks` import over as it stands (migrate-gaps SM1).
 - Showcase demos mount into named `Ljos.Blocks` Slots
   (`showcase-shell`, `showcase`, `demo-*`); until the showcase
   lane's PR lands, each slot's own delegate says what stands

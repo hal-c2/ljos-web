@@ -165,8 +165,11 @@ export const fontNamed = (name) =>
     underline: false,
     overline: false,
     strikeout: false,
-    pixelSize: derived((self) => (given(self, name, "pointSize") ? Math.round((self[name].pointSize * 96) / 72) : 12)),
-    pointSize: derived((self) => (given(self, name, "pixelSize") ? (self[name].pixelSize * 72) / 96 : 9)),
+    size: derived((self) => self[name].pixelSize),
+    pixelSize: derived((self) =>
+      given(self, name, "size") ? self[name].size : given(self, name, "pointSize") ? Math.round((self[name].pointSize * 96) / 72) : 12,
+    ),
+    pointSize: derived((self) => (given(self, name, "pixelSize") || given(self, name, "size") ? (self[name].pixelSize * 72) / 96 : 9)),
     capitalization: 0,
     letterSpacing: 0,
     wordSpacing: 0,

@@ -73,6 +73,27 @@ fn a_member_of_a_group_the_group_does_not_have_is_an_error() {
 }
 
 #[test]
+fn the_members_of_ljos_own_api_compile() {
+    // `fill`, `font.size`, `align`, a `Tap` child: what `ljos migrate`
+    // writes, compiled to the runtime's `Ljos/Ui` and `Ljos/Layout`.
+    let made = compiled(&["members/Dialect.qml"]);
+    assert_contains(&made, "ljos-web/Ljos/Ui");
+    assert_contains(&made, "fill: \"tomato\"");
+    assert_contains(&made, "font$size: 20");
+}
+
+#[test]
+fn a_size_on_a_type_that_is_no_font_is_refused() {
+    // `font.size` is taken as the member Ljós adds to the font value
+    // type; a `FontInfo` has a `pixelSize` and no `size` to take.
+    let said = refused(&["members/FontInfo.qml"]);
+    assert_contains(
+        &said,
+        "members/FontInfo.qml:4:5: `size` is not a property of `FontInfo`",
+    );
+}
+
+#[test]
 fn the_members_a_type_has_compile() {
     compiled(&["members/Known.qml"]);
     // What the object declares itself is its own to set and handle.

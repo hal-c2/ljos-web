@@ -9,6 +9,7 @@ DelayButton 6.0 DelayButton.qml
 Dial 6.0 Dial.qml
 Dialog 6.0 Dialog.qml
 DialogButtonBox 6.0 DialogButtonBox.qml
+Drawer 6.0 Drawer.qml
 Frame 6.0 Frame.qml
 GroupBox 6.0 GroupBox.qml
 ItemDelegate 6.0 ItemDelegate.qml

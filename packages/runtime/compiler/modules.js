@@ -63,4 +63,7 @@ export const modules = {
   "ljos-web/Qt/labs/synchronizer": () => import("ljos-web/Qt/labs/synchronizer"),
   "ljos-web/Qt/labs/qmlmodels": () => import("ljos-web/Qt/labs/qmlmodels"),
   "ljos-web/Ljos/Models": () => import("ljos-web/Ljos/Models"),
+  "ljos-web/Ljos/Ui": () => import("ljos-web/Ljos/Ui"),
+  "ljos-web/Ljos/Layout": () => import("ljos-web/Ljos/Layout"),
+  "ljos-web/Ljos/Core": () => import("ljos-web/Ljos/Core"),
 };

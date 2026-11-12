@@ -1026,6 +1026,11 @@ impl<'a, 's> Lower<'a, 's> {
                     None => return,
                 },
                 Lookup::Missing if front.oracle.members_checked(ty) => {
+                    // A member the runtime adds to the type (`font.size`)
+                    // is there, though the type's description has it not.
+                    if front.oracle.adds_member(ty, name) {
+                        return;
+                    }
                     let signal = types::handled(name).filter(|_| last);
                     if let Some(signal) = &signal {
                         let changed = signal.strip_suffix("Changed").is_some_and(|property| {

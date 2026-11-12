@@ -8,6 +8,11 @@
       "needs": []
     },
     {
+      "module": "Ljos.Core",
+      "from": "runtime",
+      "needs": []
+    },
+    {
       "module": "Ljos.Design",
       "from": "ljos",
       "needs": [
@@ -15,7 +20,17 @@
       ]
     },
     {
+      "module": "Ljos.Layout",
+      "from": "runtime",
+      "needs": []
+    },
+    {
       "module": "Ljos.Models",
+      "from": "runtime",
+      "needs": []
+    },
+    {
+      "module": "Ljos.Ui",
       "from": "runtime",
       "needs": []
     },

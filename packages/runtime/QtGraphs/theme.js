@@ -64,8 +64,17 @@ const labelFont = group({
   underline: false,
   overline: false,
   strikeout: false,
-  pixelSize: derived((self) => (given(self, "labelFont", "pointSize") ? Math.round((self.labelFont.pointSize * 96) / 72) : 16)),
-  pointSize: derived((self) => (given(self, "labelFont", "pixelSize") ? (self.labelFont.pixelSize * 72) / 96 : 12)),
+  size: derived((self) => self.labelFont.pixelSize),
+  pixelSize: derived((self) =>
+    given(self, "labelFont", "size")
+      ? self.labelFont.size
+      : given(self, "labelFont", "pointSize")
+        ? Math.round((self.labelFont.pointSize * 96) / 72)
+        : 16,
+  ),
+  pointSize: derived((self) =>
+    given(self, "labelFont", "pixelSize") || given(self, "labelFont", "size") ? (self.labelFont.pixelSize * 72) / 96 : 12,
+  ),
   capitalization: 0,
   letterSpacing: 0,
   wordSpacing: 0,
