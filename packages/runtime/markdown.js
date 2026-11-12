@@ -52,15 +52,26 @@ function plainOf(text) {
 export function inline(text, { routeOf = (href) => href } = {}) {
   const code = [];
   let out = "";
-  // Code first, by token, so its words take no other mark.
-  const parts = String(text).split(/`([^`]*)`/g);
-  for (let index = 0; index < parts.length; index++) {
-    if (index % 2 === 1) {
-      code.push(`<code>${escapeHtml(parts[index])}</code>`);
-      out += `\u0000${code.length - 1}\u0000`;
-    } else {
-      out += parts[index];
+  // Code first, by token, so its words take no other mark. A span
+  // is a run of backticks and its pair of the same length; a run
+  // with no pair is text.
+  const said = String(text);
+  for (let at = 0; at < said.length;) {
+    if (said[at] !== "`") {
+      out += said[at++];
+      continue;
     }
+    let run = 0;
+    while (said[at + run] === "`") run++;
+    const close = closesAt(said, at + run, run);
+    if (close < 0) {
+      out += "`".repeat(run);
+      at += run;
+      continue;
+    }
+    code.push(`<code>${escapeHtml(said.slice(at + run, close))}</code>`);
+    out += `\u0000${code.length - 1}\u0000`;
+    at = close + run;
   }
   out = escapeHtml(out);
   out = out.replace(/!\[([^\]]*)\]\(([^)\s]+)(?:\s+&quot;[^&]*&quot;)?\)/g, (_all, alt, src) => `<img src="${escapeHtml(routeOf(htmlUnescape(src)))}" alt="${alt}">`);
@@ -160,21 +171,45 @@ export function parseFrontMatter(text) {
 }
 
 const isTableRow = (line) => /^\s*\|.*\|\s*$/.test(line);
+// Where a code span opened by a run of `run` backticks at `from`
+// closes: the next run of the same length, or -1 when there is
+// none — a run with no pair is text, as CommonMark reads it.
+function closesAt(text, from, run) {
+  for (let at = from; at < text.length; at++) {
+    if (text[at] !== "`") continue;
+    let length = 0;
+    while (text[at + length] === "`") length++;
+    if (length === run) return at;
+    at += length - 1;
+  }
+  return -1;
+}
+
 // A row's cells: split on the pipes between cells, never on one in
 // a code span or written `\|` — the docs write both (a cell whose
-// code is `|` itself).
+// code is `|` itself). Backticks pair as runs: a lone one is text,
+// a double one holds a single.
 function cellsOf(line) {
   const inner = line.trim().replace(/^\|/, "").replace(/\|$/, "");
   const cells = [];
   let cell = "";
-  let code = false;
+  let open = 0; // the run length a span is open with, 0 for none
   for (let at = 0; at < inner.length; at++) {
     const char = inner[at];
-    if (char === "`") code = !code;
+    if (char === "`") {
+      let run = 0;
+      while (inner[at + run] === "`") run++;
+      if (open === 0) {
+        if (closesAt(inner, at + run, run) >= 0) open = run;
+      } else if (run === open) open = 0;
+      cell += "`".repeat(run);
+      at += run - 1;
+      continue;
+    }
     if (char === "\\" && inner[at + 1] === "|") {
       cell += "|";
       at++;
-    } else if (char === "|" && !code) {
+    } else if (char === "|" && open === 0) {
       cells.push(cell.trim());
       cell = "";
     } else {

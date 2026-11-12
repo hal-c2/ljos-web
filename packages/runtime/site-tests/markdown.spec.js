@@ -73,6 +73,16 @@ test("a table's cells are split outside code spans, and an escaped pipe is a pip
   expect(blocks[0].rows[0][1]).toBe("bar | baz");
 });
 
+test("backtick runs pair as runs: a lone backtick is text, a double span holds its pipe", () => {
+  const lone = markdownBlocks("| A | B |\n|---|---|\n| it`s | x |\n");
+  expect(lone[0].rows[0]).toHaveLength(2);
+  expect(lone[0].rows[0][0]).toContain("it`s");
+  const doubled = markdownBlocks("| A | B |\n|---|---|\n| ``a|b`` | y |\n");
+  expect(doubled[0].rows[0]).toHaveLength(2);
+  expect(doubled[0].rows[0][0]).toContain("<code>a|b</code>");
+  expect(inline("a ``b`c`` d")).toContain("<code>b`c</code>");
+});
+
 test("a heading's own trailing hash is its word, not a closing sequence", () => {
   const blocks = markdownBlocks("## Using C#\n\n## Closed ##\n");
   expect(blocks[0]).toMatchObject({ plain: "Using C#", anchor: "using-c" });

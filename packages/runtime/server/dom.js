@@ -572,11 +572,14 @@ export function serialize(node) {
   if (node.nodeType === 11) return node.childNodes.map(serialize).join("");
   // A textarea's value is its content, as a browser reads it: the
   // reflected `value` attribute (above) is an input's spelling, and
-  // a browser given it on a textarea reads an empty field.
+  // a browser given it on a textarea reads an empty field. An HTML
+  // parser drops one newline after the opening tag, so the first
+  // written is the renderer's and the field's own leading blank
+  // line survives it.
   if (node.localName === "textarea") {
     const attributes = [...node.attributes].filter(([name]) => name !== "value").map(([name, value]) => ` ${name}="${escapeAttribute(value)}"`).join("");
     const style = node.style.cssText ? ` style="${escapeAttribute(node.style.cssText)}"` : "";
-    return `<textarea${attributes}${style}>${escapeText(node.getAttribute("value") ?? node.textContent)}</textarea>`;
+    return `<textarea${attributes}${style}>\n${escapeText(node.getAttribute("value") ?? node.textContent)}</textarea>`;
   }
   const attributes = [...node.attributes].map(([name, value]) => ` ${name}="${escapeAttribute(value)}"`).join("");
   const style = node.style.cssText ? ` style="${escapeAttribute(node.style.cssText)}"` : "";
