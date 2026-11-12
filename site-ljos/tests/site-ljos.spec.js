@@ -274,9 +274,19 @@ test("the flagship: rewrite the Pantry's shell and its state survives", async ({
   await editor.fill(app.replace('"The Corner Pantry"', '"Edited Once More"'));
   await expect(page.getByText("Edited Once More", { exact: true })).toBeVisible({ timeout: 30_000 });
   // Typing, then resetting inside the debounce: the armed apply
-  // is stopped and the typed edit never lands.
+  // is stopped and the typed edit never lands. Found and tagged
+  // before the fill, so the proof works on one deliberate timeline:
+  // nothing may have applied between the fill and the press.
+  const resetBox = await page.getByText("Reset", { exact: true }).boundingBox();
+  expect(resetBox).not.toBeNull();
+  await page.getByText("Edited Once More", { exact: true }).evaluate((el) => {
+    window.__beforeFill = el;
+  });
   await editor.fill(app.replace('"The Corner Pantry"', '"Never Landed"'));
-  await pressWords(page, "Reset");
+  expect(await page.evaluate(() => window.__beforeFill?.isConnected)).toBe(true);
+  if (resetBox) {
+    await page.mouse.click(resetBox.x + resetBox.width / 2, resetBox.y + resetBox.height / 2);
+  }
   await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible({ timeout: 30_000 });
   await page.getByText("The Corner Pantry", { exact: true }).evaluate((el) => {
     window.__fastResetMade = el;
