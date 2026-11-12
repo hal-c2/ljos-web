@@ -1,0 +1,14 @@
+---
+// Starlight's head, plus the live code blocks' hydrator. The script is
+// small and page-wide; the editor, the compiler and the runtime load
+// only on a page that has a block, and only as a block nears the
+// viewport (ljos-web/codeblock).
+import Default from "@astrojs/starlight/components/Head.astro";
+---
+
+<Default />
+<script>
+  if (document.querySelector("[data-ljos-codeblock]")) {
+    import("../islands/codeblocks.js");
+  }
+</script>

@@ -1,4 +1,7 @@
 dist/
+dist-fixture/
+.codeblock-pictures/
+public/codeblocks/
 .astro/
 src/content/docs/start/
 src/content/docs/ui/

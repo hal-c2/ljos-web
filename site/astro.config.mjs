@@ -1,9 +1,35 @@
+import { existsSync, readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
+import { loadHarnesses } from "ljos-web/codeblocks";
+import { liveCodeBlocks } from "ljos-web/codeblocks/remark";
 import qml from "ljos-web/vite";
 
 const path = (r) => fileURLToPath(new URL(r, import.meta.url));
+
+// Live code blocks: harnesses and pictures come from the docs checkout
+// sync-docs reads (the same candidates it tries), and the picture
+// manifest scripts/codeblock-pictures.mjs writes. DECISION: strict —
+// every non-exempt block must compile or the build fails — is a switch
+// (LJOS_CODEBLOCKS_STRICT=1), not inferred from the docs: a docs pin
+// that carries harnesses must not by itself start failing this build
+// on examples whose dialect this compiler cannot run yet. Until it is
+// switched on, a block that claims to run must compile, and one that
+// does not claim to stays plain and is counted, so the site never
+// promises a block is live when it is not.
+const docsCandidates = [
+  process.env.LJOS_DOCS_DIR,
+  resolve(path("."), "../ljos-ui/docs/site"),
+  resolve(path("."), "../../ljos-ui/docs/site"),
+  join(homedir(), "dev/ljos-ui/docs/site"),
+].filter(Boolean);
+const docsDir = docsCandidates.find((c) => existsSync(join(c, "start/index.md")));
+const harnessDir = docsDir ? join(docsDir, "harness") : undefined;
+const picturesAt = path(".codeblock-pictures/manifest.json");
+let legacyBlocks = 0;
 
 const SITE = "https://ljos.dev";
 
@@ -29,6 +55,7 @@ export default defineConfig({
         { tag: "meta", attrs: { name: "twitter:card", content: "summary_large_image" } },
         { tag: "meta", attrs: { name: "twitter:image", content: new URL("/og-image.png", SITE).href } },
       ],
+      components: { Head: "./src/components/Head.astro" },
       customCss: ["./src/styles/site.css"],
       social: [{ icon: "github", label: "GitHub", href: "https://github.com/hal-c2/ljos-ui" }],
       sidebar: [
@@ -43,8 +70,32 @@ export default defineConfig({
       ],
     }),
   ],
+  markdown: {
+    remarkPlugins: [
+      [
+        liveCodeBlocks,
+        {
+          harnesses: loadHarnesses(harnessDir),
+          qmlc: process.env.QMLC ?? path("../target/debug/qmlc"),
+          strict: process.env.LJOS_CODEBLOCKS_STRICT === "1",
+          pictures: existsSync(picturesAt) ? JSON.parse(readFileSync(picturesAt, "utf8")) : {},
+          pictureBase: "/codeblocks/",
+          onLegacy: (count, file) => {
+            legacyBlocks += count;
+            console.warn(`codeblocks: ${count} untagged block(s) left plain in ${file?.path ?? "a page"} (${legacyBlocks} so far)`);
+          },
+        },
+      ],
+    ],
+  },
   vite: {
-    plugins: [qml({ qmlc: process.env.QMLC ?? path("../target/debug/qmlc") })],
+    // Ljós's own control styles (docs/LJOS_WEB.md A20) and no installed
+    // Qt: a live block's page bundles the modules the in-page compiler
+    // may link, controls among them, and which QML they are — and
+    // whether a style Ljós has none of is stubbed or taken from a Qt
+    // that happens to be installed — must not depend on the building
+    // machine. The site builds as it builds in CI, where there is none.
+    plugins: [qml({ qmlc: process.env.QMLC ?? path("../target/debug/qmlc"), styles: "ljos", qt: [] })],
     resolve: { dedupe: ["solid-js", "@solidjs/web", "ljos-web"] },
   },
 });

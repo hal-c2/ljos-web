@@ -4,11 +4,13 @@
   "type": "module",
   "scripts": {
     "sync-docs": "node scripts/sync-docs.mjs",
+    "codeblock-pictures": "node scripts/codeblock-pictures.mjs",
     "dev": "node scripts/sync-docs.mjs && astro dev",
     "build": "node scripts/sync-docs.mjs && astro build",
     "preview": "astro preview",
     "check-links": "node scripts/check-links.mjs",
     "test": "playwright test",
+    "test:codeblocks": "node tests/build-fixture.mjs && playwright test -c playwright.codeblocks.config.js",
     "brand": "node scripts/build-brand.mjs"
   },
   "dependencies": {
