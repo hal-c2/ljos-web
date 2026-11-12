@@ -49,21 +49,29 @@ export function parseMeta(lang, meta) {
 
 // The fenced blocks of a Markdown text, in order, each with its parsed
 // info string, its code (ending in one newline) and the 1-based line of
-// its fence. An unclosed fence runs to the end of the text.
+// its fence. An unclosed fence runs to the end of the text. The code
+// is as a Markdown reader gives it: the opening fence's own indent —
+// a fence inside a list item carries its container's — comes off each
+// line, so this and an mdast parse of the same page give the same
+// code, and with it the same example and the same hash.
 export function extractBlocks(markdown) {
   const blocks = [];
   const lines = String(markdown).split("\n");
   let open = null;
+  const close = () => {
+    const indent = new RegExp(`^ {0,${open.indent}}`);
+    const code = open.code.map((line) => line.replace(indent, "")).join("\n");
+    blocks.push({ ...parseInfo(open.info), code: ended(code), line: open.line });
+    open = null;
+  };
   for (let i = 0; i < lines.length; i++) {
-    const fence = /^\s*(`{3,}|~{3,})(.*)$/.exec(lines[i]);
+    const fence = /^( *)(`{3,}|~{3,})(.*)$/.exec(lines[i]);
     if (!open) {
-      if (fence) open = { mark: fence[1], info: fence[2].trim(), line: i + 1, code: [] };
-    } else if (fence && fence[1][0] === open.mark[0] && fence[1].length >= open.mark.length && fence[2].trim() === "") {
-      blocks.push({ ...parseInfo(open.info), code: ended(open.code.join("\n")), line: open.line });
-      open = null;
-    } else open.code.push(lines[i]);
+      if (fence) open = { mark: fence[2], indent: fence[1].length, info: fence[3].trim(), line: i + 1, code: [] };
+    } else if (fence && fence[2][0] === open.mark[0] && fence[2].length >= open.mark.length && fence[3].trim() === "") close();
+    else open.code.push(lines[i]);
   }
-  if (open) blocks.push({ ...parseInfo(open.info), code: ended(open.code.join("\n")), line: open.line });
+  if (open) close();
   return blocks;
 }
 
@@ -131,6 +139,11 @@ function add(example, block, harnesses) {
   if (block.lang !== "qml" && !block.file)
     throw new Error(`line ${block.line}: a ${block.lang} block of an example needs file= to say which file it is`);
   const name = block.file ?? "Main.qml";
+  // A file of an example stays in its project: a build writes these
+  // names under a directory of its own, on a reader's machine and on
+  // a build's alike.
+  if (name.startsWith("/") || name.split("/").includes(".."))
+    throw new Error(`line ${block.line}: file=${name} is not a name inside its example`);
   if (example.display.some((file) => file.name === name))
     throw new Error(`line ${block.line}: two blocks are both ${name} of one example`);
   example.display.push({ name, code: ended(block.code), lang: block.lang });

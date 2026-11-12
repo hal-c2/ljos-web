@@ -11,7 +11,7 @@ import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkExamples, hashExample, loadHarnesses, renderPrerenders } from "ljos-web/codeblocks";
-import { assemble, extractBlocks } from "ljos-web/codeblocks/parse";
+import { assemble, extractBlocks, tagged } from "ljos-web/codeblocks/parse";
 
 const siteRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const candidates = [
@@ -45,7 +45,7 @@ for (const page of pages) {
   for (const example of examples) byHash.set(hashExample(example), example);
 }
 const examples = [...byHash.values()];
-const claimed = (example) => strict || example.harness || example.group || example.before;
+const claimed = (example) => strict || example.blocks.some(tagged);
 const failures = checkExamples(examples, { qmlc });
 const failed = new Set(failures.map(({ example }) => hashExample(example)));
 for (const { example, diagnostics } of failures) {

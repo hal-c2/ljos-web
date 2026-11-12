@@ -145,3 +145,22 @@ Rectangle { width: 80; height: 40; color: "red" }
 ```sh
 ljos check Main.qml
 ```
+
+A block inside a list item, carrying its container's indent:
+
+1. First, this:
+
+   ```qml
+   import QtQuick
+
+   Rectangle {
+       width: 160
+       height: 60
+       color: "#20242e"
+       Text {
+           anchors.centerIn: parent
+           color: "#e8eaf0"
+           text: "From a list"
+       }
+   }
+   ```

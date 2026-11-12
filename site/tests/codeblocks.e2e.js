@@ -17,6 +17,10 @@ test("with no JS the code and its prerendered result are the page", async ({ bro
   await expect(counter(page).locator("textarea")).toHaveCount(0);
   // The old half is labelled, and the shell command stayed plain code.
   await expect(page.locator("[data-ljos-codeblock] .ljos-codeblock__before")).toContainText("Before");
+  // The fence inside a list item found its prerender (same hash on
+  // raw text in the prerender step and on mdast in the remark step).
+  const listed = page.locator("[data-ljos-codeblock]").last();
+  await expect(listed.locator(".ljos-codeblock__stage")).toContainText("From a list");
   await context.close();
 });
 

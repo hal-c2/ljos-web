@@ -159,8 +159,15 @@ export async function mountLiveCodeBlock(figure, data, options = {}) {
   };
   for (const area of areas) {
     area.addEventListener("input", edited);
+    // Tab indents, as in an editor — but never traps: Shift+Tab always
+    // leaves, and Escape turns capture off until the field is entered
+    // again, so the next Tab leaves too. The field's hint says so.
+    let escaped = false;
+    area.setAttribute("aria-description", "Tab indents. Press Escape, then Tab, to leave this editor.");
+    area.addEventListener("focus", () => (escaped = false));
     area.addEventListener("keydown", (event) => {
-      if (event.key !== "Tab") return;
+      if (event.key === "Escape") return void (escaped = true);
+      if (event.key !== "Tab" || event.shiftKey || escaped) return;
       event.preventDefault();
       area.setRangeText("    ", area.selectionStart, area.selectionEnd, "end");
       edited();

@@ -57,6 +57,25 @@ plain.describe("the fence contract", () => {
     expect(before.before).toBe(true);
   });
 
+  plain("a fence inside a list item reads as an mdast parse reads it", () => {
+    // The prerender step reads raw text and the remark plugin reads
+    // mdast: both must give the same code, or their hashes part and
+    // the block loses its prerender — or worse, its failure mark.
+    const listed = ["1. Step", "", "   ```qml", "   Rectangle {", "       width: 10", "   }", "   ```", ""].join("\n");
+    const [block] = extractBlocks(listed);
+    expect(block.code).toBe("Rectangle {\n    width: 10\n}\n");
+    const [fromList] = assemble([block], {}).examples;
+    const [flat] = assemble(extractBlocks("```qml\nRectangle {\n    width: 10\n}\n```\n"), {}).examples;
+    expect(hashExample(fromList)).toBe(hashExample(flat));
+  });
+
+  plain("a file name that leaves its example is refused", () => {
+    const doc = "```qml file=../../x.qml group=g\nRectangle {}\n```\n";
+    expect(() => assemble(extractBlocks(doc), {})).toThrow(/not a name inside its example/);
+    const abs = "```qml file=/tmp/x.qml group=g\nRectangle {}\n```\n";
+    expect(() => assemble(extractBlocks(abs), {})).toThrow(/not a name inside its example/);
+  });
+
   plain("unknown and bare tags are not silently runnable", () => {
     const { examples, plain: left, unknown } = assemble(extractBlocks("```\ncode\n```\n\n```cobol\nx\n```\n"), {});
     expect(examples).toEqual([]);
@@ -278,6 +297,27 @@ test.describe("a live code block in the page", () => {
         ),
       )
       .toBe(true);
+  });
+
+  test("Tab indents, and Escape then Tab (or Shift+Tab) leaves the editor", async ({ page }) => {
+    await opened(page);
+    const figure = counterFigure(page);
+    await figure.scrollIntoViewIfNeeded();
+    await expect(figure).toHaveAttribute("data-state", "live", { timeout: 30000 });
+    const editor = figure.getByRole("textbox", { name: /Main\.qml/ });
+    await editor.focus();
+    await editor.evaluate((el) => el.setSelectionRange(0, 0));
+    await editor.press("Tab");
+    await expect(editor).toHaveValue(/^ {4}import/);
+    await expect(editor).toBeFocused();
+    await editor.press("Escape");
+    await editor.press("Tab");
+    await expect(editor).not.toBeFocused();
+    // Back in: Shift+Tab leaves at once, without an Escape first.
+    await editor.focus();
+    await expect(editor).toBeFocused();
+    await editor.press("Shift+Tab");
+    await expect(editor).not.toBeFocused();
   });
 
   test("a broken edit shows the compiler error inline and keeps the last good result", async ({ page }) => {
