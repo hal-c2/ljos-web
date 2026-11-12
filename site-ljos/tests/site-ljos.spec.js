@@ -165,24 +165,33 @@ test("light and dark are the reader's", async ({ page }) => {
 
 // How many shells the Pantry demo has applied: its pantry-live.js
 // counts each apply as it starts, so a second one shows at once,
-// not only when its compile lands.
-const applies = (page) => page.evaluate(() => globalThis.ljosPantryApplies ?? 0);
+// not only when its compile lands. It counts only on a page the
+// test has opted in, by putting `__ljosTest` there before the page
+// loads; a visitor's page has no such object.
+const applies = (page) => page.evaluate(() => globalThis.__ljosTest.pantryApplies);
 
-// Time in the page stands still while a probe sets up its press: a
-// debounce the fill armed cannot fire before the press, however
-// slow the runner. (It jumps a second ahead to stop, as the clock
-// cannot stop at a moment already gone: whatever falls due in that
-// second fires before the probe begins.)
-async function holdTime(page) {
-  await page.clock.pauseAt((await page.evaluate(() => Date.now())) + 1000);
-}
+// Where the reset probes' page keeps its time: stopped before the
+// page exists, so nothing the test does waits on wall time passing.
+const HELD_AT = Date.UTC(2026, 0, 1);
 
-// Then time moves on past the editor's debounce in one step, so an
-// apply still armed has started by the time this returns, and time
-// flows again for the reload to land.
-async function pastDebounce(page) {
-  await page.clock.runFor(1000);
-  await page.clock.resume();
+// In a held page, time moves only when the test moves it. One step
+// past the editor's debounce runs each timer that falls due in it
+// once, so an apply still armed has started when this returns.
+const pastDebounce = (page) => page.clock.fastForward(1000);
+
+// And what the page is waiting on (a compile, a frame) lands a
+// step at a time, each step running what has fallen due, until the
+// test sees it.
+async function shownInHeldTime(page, locator) {
+  await expect
+    .poll(
+      async () => {
+        await page.clock.fastForward(50);
+        return locator.isVisible();
+      },
+      { timeout: 30_000 },
+    )
+    .toBe(true);
 }
 
 // Shift+Tab walks back from the editor through the scene's tab stops
@@ -199,17 +208,9 @@ async function resetFromKeyboard(page, before) {
 }
 
 test("the flagship: rewrite the Pantry's shell and its state survives", async ({ page }) => {
-  await page.clock.install();
   await page.goto("/demos/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
   await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible();
-  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
-  // Loading the demo applies its shell once, and its own writing
-  // into the editor arms nothing: past the debounce it is still
-  // one.
-  await holdTime(page);
-  await pastDebounce(page);
-  expect(await applies(page)).toBe(1);
   await page.getByRole("button", { name: "Add tea" }).click();
   await expect(page.getByText("1 in the basket · £3.50").first()).toBeVisible();
 
@@ -260,28 +261,12 @@ test("the flagship: rewrite the Pantry's shell and its state survives", async ({
   await expect(page.getByText("Fixed Again", { exact: true })).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText("2 in the basket · £7.00").first()).toBeVisible();
 
-  // Reset restores the app's shell, its source and its words, in
-  // one apply. The reset's own writing into the editor is not an
-  // edit: past the debounce it is still one apply. The guard
-  // compares the text, so whenever the change is heard, what the
-  // demo wrote itself restarts nothing.
-  let before = await applies(page);
-  await holdTime(page);
-  await pressWords(page, "Reset");
-  expect(await applies(page), "a press on Reset applies the app's shell").toBe(before + 1);
-  await pastDebounce(page);
-  expect(await applies(page), "the reset's own write into the editor applies nothing more").toBe(before + 1);
-  await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible({ timeout: 30_000 });
-  await expect(editor).toHaveValue(app);
-  await expect(page.getByText("2 in the basket · £7.00").first()).toBeVisible();
-  // A visitor's edit after all that still applies.
-  await editor.fill(app.replace('"The Corner Pantry"', '"Edited Once More"'));
-  await expect(page.getByText("Edited Once More", { exact: true })).toBeVisible({ timeout: 30_000 });
-  // Undoing back to the app's own text applies like any edit:
-  // the guard compares with the text last applied, not with
-  // the app's shell forever.
+  // Undoing back to the app's own text applies like any edit: the
+  // guard compares with the text last applied, not with the app's
+  // shell forever.
   await editor.fill(app);
   await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("2 in the basket · £7.00").first()).toBeVisible();
   // A broken edit refused, then undone: the refusal clears and
   // the good shell stands again.
   await editor.fill("import QtQuick\nimport Pantry\n\nRectangle {\n    Basket {\n}\n");
@@ -289,52 +274,114 @@ test("the flagship: rewrite the Pantry's shell and its state survives", async ({
   await editor.fill(app);
   await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText(/Shell\.qml:\d+:\d+:/)).toHaveCount(0);
-  // A reset from the keyboard: Return on Reset runs outside any
-  // flush, so the change is heard during the assignment itself
-  // (the inline-settle order). It still applies once. The accessible
-  // press action takes this same path; Playwright has no
-  // assistive-technology client to press it with, so the
-  // keyboard stands for both.
-  await editor.fill(app.replace('"The Corner Pantry"', '"Edited Once More"'));
-  await expect(page.getByText("Edited Once More", { exact: true })).toBeVisible({ timeout: 30_000 });
-  await editor.click();
-  before = await applies(page);
-  await holdTime(page);
-  await resetFromKeyboard(page, before);
-  expect(await applies(page), "Return on Reset applies the app's shell").toBe(before + 1);
-  await pastDebounce(page);
-  expect(await applies(page), "the reset's own write into the editor applies nothing more").toBe(before + 1);
-  await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible({ timeout: 30_000 });
-  await expect(editor).toHaveValue(app);
-  // Typing, then resetting inside the debounce, by a press and from
-  // the keyboard: the armed apply is stopped, the reset applies
-  // once, and the typed edit never lands. Time stands still from
-  // the fill to the press, so the debounce is still armed when the
-  // reset comes, on any runner.
-  const resetWords = page.getByText("Reset", { exact: true });
-  before = await applies(page);
-  await holdTime(page);
-  await editor.fill(app.replace('"The Corner Pantry"', '"Never Landed"'));
-  // Measured after the fill, which may scroll the page.
-  await resetWords.scrollIntoViewIfNeeded();
-  await pressWords(page, "Reset");
-  expect(await applies(page), "a press on Reset, with an edit pending, applies the app's shell").toBe(before + 1);
-  await pastDebounce(page);
-  expect(await applies(page), "the reset stopped the typed edit's debounce").toBe(before + 1);
-  await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible({ timeout: 30_000 });
-  await expect(editor).toHaveValue(app);
-  await expect(page.getByText("Never Landed", { exact: true })).toHaveCount(0);
+});
 
-  before = await applies(page);
-  await holdTime(page);
-  await editor.fill(app.replace('"The Corner Pantry"', '"Never Landed"'));
-  await resetFromKeyboard(page, before);
-  expect(await applies(page), "Return on Reset, with an edit pending, applies the app's shell").toBe(before + 1);
-  await pastDebounce(page);
-  expect(await applies(page), "the reset stopped the typed edit's debounce").toBe(before + 1);
-  await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible({ timeout: 30_000 });
-  await expect(editor).toHaveValue(app);
-  await expect(page.getByText("Never Landed", { exact: true })).toHaveCount(0);
+// Reset restores the app's shell, its source and its words, in one
+// apply, by a press and from the keyboard, and stops an edit still
+// waiting on the debounce. The count is read against time only the
+// test moves: the page's clock stops before the page opens, so the
+// debounce a fill arms is still armed when the reset comes, on any
+// runner, and moves on only by fastForward.
+test("Reset applies the app's shell once, and stops an edit still waiting to apply", async ({ browser }) => {
+  const context = await browser.newContext();
+  try {
+    await context.clock.pauseAt(HELD_AT);
+    await context.addInitScript(() => {
+      globalThis.__ljosTest = { pantryApplies: 0 };
+    });
+    const page = await context.newPage();
+    await page.goto("/demos/");
+    await shownInHeldTime(page, page.locator('#app[data-ljos-hydrated="true"]'));
+    await shownInHeldTime(page, page.getByText("The Corner Pantry", { exact: true }));
+    // Loading the demo applies its shell once, and its own writing
+    // into the editor arms nothing: past the debounce it is still
+    // one.
+    await pastDebounce(page);
+    expect(await applies(page), "loading the demo applies its shell once").toBe(1);
+    await page.getByRole("button", { name: "Add tea" }).click();
+    await shownInHeldTime(page, page.getByText("1 in the basket · £3.50").first());
+
+    const editor = page.locator("textarea").first();
+    const app = await editor.inputValue();
+    const edited = app.replace('"The Corner Pantry"', '"Edited Once More"');
+    const typed = app.replace('"The Corner Pantry"', '"Never Landed"');
+    const resetWords = page.getByText("Reset", { exact: true });
+    const landedEdit = async () => {
+      await editor.fill(edited);
+      await pastDebounce(page);
+      await shownInHeldTime(page, page.getByText("Edited Once More", { exact: true }));
+    };
+    const resetStands = async () => {
+      await shownInHeldTime(page, page.getByText("The Corner Pantry", { exact: true }));
+      await expect(editor).toHaveValue(app);
+      await shownInHeldTime(page, page.getByText("1 in the basket · £3.50").first());
+    };
+
+    // A press on Reset, after an edit has landed. The reset's own
+    // writing into the editor is not an edit: the guard compares the
+    // text, so whenever the change is heard, what the demo wrote
+    // itself restarts nothing.
+    await landedEdit();
+    let before = await applies(page);
+    await resetWords.scrollIntoViewIfNeeded();
+    await pressWords(page, "Reset");
+    expect(await applies(page), "a press on Reset applies the app's shell").toBe(before + 1);
+    await pastDebounce(page);
+    expect(await applies(page), "the reset's own write into the editor applies nothing more").toBe(before + 1);
+    await resetStands();
+
+    // A visitor's edit after a reset still applies; then Return on
+    // Reset, which runs outside any flush, so the change is heard
+    // during the assignment itself. It still applies once. The
+    // accessible press action takes this same path; Playwright has
+    // no assistive-technology client to press it with, so the
+    // keyboard stands for both.
+    await landedEdit();
+    await editor.click();
+    before = await applies(page);
+    await resetFromKeyboard(page, before);
+    expect(await applies(page), "Return on Reset applies the app's shell").toBe(before + 1);
+    await pastDebounce(page);
+    expect(await applies(page), "the reset's own write into the editor applies nothing more").toBe(before + 1);
+    await resetStands();
+
+    // Typing, then resetting inside the debounce, by a press and from
+    // the keyboard: the armed apply is stopped, the reset applies
+    // once, and the typed edit never lands.
+    before = await applies(page);
+    await editor.fill(typed);
+    // Measured after the fill, which may scroll the page.
+    await resetWords.scrollIntoViewIfNeeded();
+    await pressWords(page, "Reset");
+    expect(await applies(page), "a press on Reset, with an edit pending, applies the app's shell").toBe(before + 1);
+    await pastDebounce(page);
+    expect(await applies(page), "the reset stopped the typed edit's debounce").toBe(before + 1);
+    await resetStands();
+    await expect(page.getByText("Never Landed", { exact: true })).toHaveCount(0);
+
+    before = await applies(page);
+    await editor.fill(typed);
+    await resetFromKeyboard(page, before);
+    expect(await applies(page), "Return on Reset, with an edit pending, applies the app's shell").toBe(before + 1);
+    await pastDebounce(page);
+    expect(await applies(page), "the reset stopped the typed edit's debounce").toBe(before + 1);
+    await resetStands();
+    await expect(page.getByText("Never Landed", { exact: true })).toHaveCount(0);
+  } finally {
+    await context.close();
+  }
+});
+
+// The count is the test's, never the visitor's: a page loaded with
+// no `__ljosTest` put there first runs the demo, applies its shell,
+// and holds no global of the demo's.
+test("a visitor's demos page holds no test hook", async ({ page }) => {
+  await page.goto("/demos/");
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  // The basket answers only once the shell has applied.
+  await page.getByRole("button", { name: "Add tea" }).click();
+  await expect(page.getByText("1 in the basket · £3.50").first()).toBeVisible();
+  expect(await page.evaluate(() => ["__ljosTest", "ljosPantryApplies"].filter((name) => name in globalThis))).toEqual([]);
 });
 
 test("every showcase demo stands in its slot, on the landing and the demos page", async ({ page }) => {

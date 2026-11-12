@@ -69,13 +69,23 @@ test("each page's HTML carries its title and its headings, and its links resolve
   expect(gaps).toEqual([]);
 });
 
-test("every docs page answers and shows its title", async ({ page }) => {
+// Each docs page is a test of its own, with its own time: the walk
+// grows with the docs, so one test over all of them outgrows any
+// budget, and a page that does not answer is named by its test.
+const docsSite = (() => {
   const docs = docsDir();
-  const site = readMarkdownSite({ dir: docs, sections: SECTIONS });
-  expect(site.pages.length).toBeGreaterThanOrEqual(50);
-  for (const docsPage of site.pages) {
+  return docs ? readMarkdownSite({ dir: docs, sections: SECTIONS }) : { pages: [] };
+})();
+
+test("the docs have their pages to answer", () => {
+  expect(docsDir(), "LJOS_DOCS_DIR or a sibling ljos-ui checkout").toBeTruthy();
+  expect(docsSite.pages.length).toBeGreaterThanOrEqual(50);
+});
+
+for (const docsPage of docsSite.pages) {
+  test(`${docsPage.route} answers and shows its title`, async ({ page }) => {
     const response = await page.goto(docsPage.route);
     expect(response.ok(), docsPage.route).toBeTruthy();
     await expect(page.getByText(docsPage.title, { exact: true }).first()).toBeVisible();
-  }
-});
+  });
+}

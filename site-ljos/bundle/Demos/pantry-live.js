@@ -16,13 +16,17 @@ function setProject(files, text) {
     shellText = text;
 }
 
-// Every apply sets the shell, so it is counted here, on the page,
-// where the site's own test reads it: a reload the demo did not
-// mean to make shows in the count the moment it starts, where a
-// remade node would show only once its compile had landed.
+// Every apply sets the shell, so this is where the site's own test
+// counts them: a reload the demo did not mean to make shows in the
+// count the moment it starts, where a remade node would show only
+// once its compile had landed. The test opts in by putting
+// `__ljosTest` on the page before it loads; a visitor's page has no
+// such object, and the demo records nothing and adds no global.
 function setShell(text) {
     shellText = text;
-    globalThis.ljosPantryApplies = (globalThis.ljosPantryApplies || 0) + 1;
+    var probe = globalThis.__ljosTest;
+    if (probe)
+        probe.pantryApplies = (probe.pantryApplies || 0) + 1;
 }
 
 async function compileWith() {
