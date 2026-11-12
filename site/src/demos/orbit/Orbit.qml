@@ -243,6 +243,6 @@ Rectangle {
         anchors.margins: 14
         color: "#8b93a7"
         font.pixelSize: 13
-        text: qsTr("One QML file, drawn by Ljós's wgpu renderer")
+        text: qsTr("One QML file, drawn by Ljós's 3D renderer")
     }
 }

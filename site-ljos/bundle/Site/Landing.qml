@@ -1,6 +1,7 @@
 import QtQuick
 import Ljos.Blocks
 import Site
+import Demos
 import "../nav.js" as Nav
 
 // The front page. It leads with what malleable means here: the
@@ -141,25 +142,21 @@ Column {
     Slot {
         name: "showcase-shell"
         delegate: Component {
-            Rectangle {
+            Column {
                 width: landing.textWidth
-                height: shellNote.implicitHeight + 28
-                color: Theme.panel
-                border.color: Theme.border
-                border.width: 1
+                spacing: 8
 
                 Text {
-                    id: shellNote
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.margins: 14
+                    width: parent.width
                     textFormat: Text.RichText
                     color: Theme.ink
                     font.family: Theme.sans
                     font.pixelSize: 14
                     wrapMode: Text.Wrap
-                    text: "<b>Rewrite this app's shell.</b> The flagship demo stands here: a small app whose shell you edit on the page. Move where a <code>Slot</code> contribution lands and it moves; break the shell and the app's own shell stands in its place, with the error shown; the app's data and state survive both."
+                    text: "<b>Rewrite this app's shell.</b> A small app whose shell you edit below, on the page. Move where a <code>Slot</code> contribution lands and it moves; break the shell and the app's own shell stands in its place, with the error shown; the app's data and state survive both."
+                }
+                PantryDemo {
+                    width: parent.width
                 }
             }
         }
@@ -241,19 +238,16 @@ Column {
     Slot {
         name: "showcase"
         delegate: Component {
-            Rectangle {
+            Column {
                 width: landing.textWidth
-                height: showNote.implicitHeight + 28
-                color: Theme.panel
-                border.color: Theme.border
-                border.width: 1
+                spacing: 8
 
+                Orbit {
+                    width: parent.width
+                    height: width * 420 / 720
+                }
                 Text {
-                    id: showNote
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.margins: 14
+                    width: parent.width
                     textFormat: Text.RichText
                     color: Theme.ink
                     font.family: Theme.sans

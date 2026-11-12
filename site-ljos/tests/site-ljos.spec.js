@@ -80,7 +80,10 @@ test("the demos page names what stands there, flagship first, readable with no s
     const words = await page.locator("#app").innerText();
     expect(words.indexOf("A shell you rewrite")).toBeGreaterThan(-1);
     expect(words.indexOf("A shell you rewrite")).toBeLessThan(words.indexOf("3D you can orbit"));
-    await expect(page.getByText("This demo mounts here.").first()).toBeVisible();
+    // The flagship stands in its place as written: its app's own
+    // shell, prerendered, until hydration takes it over.
+    await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible();
+    await expect(page.getByText("This demo mounts here.")).toHaveCount(0);
   } finally {
     await context.close();
   }
@@ -158,4 +161,96 @@ test("light and dark are the reader's", async ({ page }) => {
   await press(page, page.getByText("Dark", { exact: true }));
   await expect(page.getByText("Light", { exact: true })).toBeVisible();
   expect(await ground()).not.toBe(before);
+});
+
+test("the flagship: rewrite the Pantry's shell and its state survives", async ({ page }) => {
+  await page.goto("/demos/");
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Add tea" }).click();
+  await expect(page.getByText("1 in the basket · £3.50").first()).toBeVisible();
+
+  const editor = page.locator("textarea").first();
+  const app = await editor.inputValue();
+  expect(app).toContain("import Pantry");
+  const mine = [
+    "import QtQuick",
+    "import Pantry",
+    "",
+    "Rectangle {",
+    "    width: 480",
+    "    height: 400",
+    '    color: "#241a10"',
+    "    Column {",
+    "        x: 18",
+    "        y: 14",
+    "        spacing: 12",
+    '        Text { text: "My Pantry"; color: "#f0ead8"; font.pixelSize: 24 }',
+    "        Basket { id: basket; width: 444 }",
+    "        Row {",
+    "            spacing: 10",
+    '            Rectangle { width: 140; height: 58; radius: 8; color: "#232839"',
+    '                Text { x: 10; y: 8; color: "#e8eaf0"; font.pixelSize: 15; text: "Tea" }',
+    '                MouseArea { width: 140; height: 58; Accessible.name: "Add tea"; Accessible.role: Accessible.Button; onClicked: basket.addTea() } }',
+    "        }",
+    "        StatusSlot {}",
+    "        Note { width: 444 }",
+    "    }",
+    "}",
+    "",
+  ].join("\n");
+  await editor.fill(mine);
+  await expect(page.getByText("My Pantry", { exact: true })).toBeVisible({ timeout: 30_000 });
+  // What the app held, it still holds — and still works.
+  await expect(page.getByText("1 in the basket · £3.50").first()).toBeVisible();
+  await page.getByRole("button", { name: "Add tea" }).click();
+  await expect(page.getByText("2 in the basket · £7.00").first()).toBeVisible();
+
+  // A broken shell is refused with what broke and where, and the
+  // running shell stands; the next good edit takes over again.
+  await editor.fill("import QtQuick\nimport Pantry\n\nRectangle {\n    Basket {\n}\n");
+  await expect(page.getByText(/Shell\.qml:\d+:\d+:/)).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("My Pantry", { exact: true })).toBeVisible();
+  await expect(page.getByText("2 in the basket · £7.00").first()).toBeVisible();
+
+  await editor.fill(mine.replace('"My Pantry"', '"Fixed Again"'));
+  await expect(page.getByText("Fixed Again", { exact: true })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("2 in the basket · £7.00").first()).toBeVisible();
+
+  // Reset restores the app's shell, its source and its words.
+  await pressWords(page, "Reset");
+  await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible({ timeout: 30_000 });
+  await expect(editor).toHaveValue(app);
+  await expect(page.getByText("2 in the basket · £7.00").first()).toBeVisible();
+});
+
+test("every showcase demo stands in its slot, on the landing and the demos page", async ({ page }) => {
+  await page.goto("/");
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible();
+  expect(await page.locator("canvas").count()).toBeGreaterThan(0);
+
+  await page.goto("/demos/");
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  for (const words of ["A shell you rewrite", "3D you can orbit", "A shader effect", "A whole app", "Motion"])
+    await expect(page.getByText(words, { exact: true })).toBeVisible();
+  await expect(page.getByText("Drag to orbit · scroll or pinch to zoom")).toBeVisible();
+  await expect(page.getByText("Move to stir the light · tap for other colours")).toBeVisible();
+  await expect(page.getByText("Field guide")).toBeVisible();
+  await expect(page.getByText("Shuffle the tiles")).toBeVisible();
+  // The other demos did not take the flagship's place away.
+  await expect(page.getByRole("button", { name: "Add bread" })).toBeAttached();
+});
+
+test("the demos page reads with JavaScript off: the app's shell and words stand", async ({ browser }) => {
+  const context = await browser.newContext({ javaScriptEnabled: false, viewport: BUILD_SIZE });
+  try {
+    const page = await context.newPage();
+    await page.goto("/demos/");
+    await expect(page.getByText("Live demos", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible();
+    await expect(page.getByText(/complete Ljós app that passes ljos check/)).toBeVisible();
+  } finally {
+    await context.close();
+  }
 });

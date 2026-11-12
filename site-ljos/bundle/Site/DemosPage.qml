@@ -1,12 +1,17 @@
 import QtQuick
 import Ljos.Blocks
 import Site
+import Demos
 
 // The demos page: complete Ljós apps running in the page, flagship
-// first. Each demo mounts into its named Slot; until the showcase
-// lands, the slot's own delegate says what stands there and what it
-// shows, which is also what a reader without wasm or WebGPU keeps.
-// Nothing on this page is needed to read it.
+// first. Each demo stands in its named Slot as the slot's own
+// delegate, so the prerendered page holds the demo as first made
+// and hydration takes it over in place; what paints (a canvas, a
+// GPU face) paints then, and the words under each demo say what a
+// reader without wasm or WebGPU is looking at. Nothing on this
+// page is needed to read it. The sections are written out, not
+// repeated over a model: a Slot's delegate is made by the Slot,
+// in the Slot's place, and a Repeater's model is not its to give.
 Column {
     id: demos
 
@@ -33,84 +38,160 @@ Column {
         wrapMode: Text.Wrap
     }
 
-    Repeater {
-        model: [
-            {
-                "slot": "demo-shell",
-                "title": "A shell you rewrite",
-                "words": "The flagship: a small app whose shell you rewrite in the page's editor. Its data and state survive the swap; move a Slot and its contribution moves with it; break the shell and the app's own shell stands, with what broke shown."
-            },
-            {
-                "slot": "demo-orbit",
-                "title": "3D you can orbit",
-                "words": "A Quick3D scene on wgpu, in the browser: drag to orbit it. The same scene runs natively under the same engine."
-            },
-            {
-                "slot": "demo-shader",
-                "title": "A shader effect",
-                "words": "A custom shader over live content, written as part of the app — no toolkit-private path, nothing pre-baked."
-            },
-            {
-                "slot": "demo-app",
-                "title": "A whole app",
-                "words": "A real app of the corpus, not a toy: the whole program, running here as it runs on a desktop."
-            },
-            {
-                "slot": "demo-motion",
-                "title": "Motion",
-                "words": "Animation as a property of the interface: one value, eased, driving everything that moves — and nothing at all moving, or costing, at rest."
+    Column {
+        width: demos.textWidth
+        spacing: 8
+
+        Text {
+            width: parent.width
+            text: "A shell you rewrite"
+            color: Theme.ink
+            font.family: Theme.serif
+            font.pixelSize: 22
+            font.bold: true
+            wrapMode: Text.Wrap
+        }
+        Slot {
+            name: "demo-shell"
+            delegate: Component {
+                PantryDemo {}
             }
-        ]
+        }
+        Text {
+            width: parent.width
+            text: "The flagship: a small app whose shell you rewrite in the page's editor. Its data and state survive the swap; move a Slot and its contribution moves with it; break the shell and the app's own shell stands, with what broke shown."
+            color: Theme.ink
+            font.family: Theme.sans
+            font.pixelSize: 14
+            wrapMode: Text.Wrap
+        }
+    }
 
-        Column {
-            required property var modelData
+    Column {
+        width: demos.textWidth
+        spacing: 8
 
-            width: demos.textWidth
-            spacing: 8
-
-            Text {
-                width: parent.width
-                text: modelData.title
-                color: Theme.ink
-                font.family: Theme.serif
-                font.pixelSize: 22
-                font.bold: true
-                wrapMode: Text.Wrap
-            }
-            Slot {
-                name: modelData.slot
-                delegate: Component {
-                    Rectangle {
-                        property string words: ""
-                        width: demos.textWidth
-                        height: 150
-                        color: Theme.panel
-                        border.color: Theme.border
-                        border.width: 1
-
-                        Text {
-                            anchors.left: parent.left
-                            anchors.right: parent.right
-                            anchors.verticalCenter: parent.verticalCenter
-                            anchors.margins: 16
-                            horizontalAlignment: Text.AlignHCenter
-                            text: "This demo mounts here."
-                            color: Theme.muted
-                            font.family: Theme.sans
-                            font.pixelSize: 13
-                            wrapMode: Text.Wrap
-                        }
-                    }
+        Text {
+            width: parent.width
+            text: "3D you can orbit"
+            color: Theme.ink
+            font.family: Theme.serif
+            font.pixelSize: 22
+            font.bold: true
+            wrapMode: Text.Wrap
+        }
+        Slot {
+            name: "demo-orbit"
+            delegate: Component {
+                Orbit {
+                    width: demos.textWidth
+                    height: width * 420 / 720
                 }
             }
-            Text {
-                width: parent.width
-                text: modelData.words
-                color: Theme.ink
-                font.family: Theme.sans
-                font.pixelSize: 14
-                wrapMode: Text.Wrap
+        }
+        Text {
+            width: parent.width
+            text: "A Quick3D scene on wgpu, in the browser: drag to orbit it. The same scene runs natively under the same engine."
+            color: Theme.ink
+            font.family: Theme.sans
+            font.pixelSize: 14
+            wrapMode: Text.Wrap
+        }
+    }
+
+    Column {
+        width: demos.textWidth
+        spacing: 8
+
+        Text {
+            width: parent.width
+            text: "A shader effect"
+            color: Theme.ink
+            font.family: Theme.serif
+            font.pixelSize: 22
+            font.bold: true
+            wrapMode: Text.Wrap
+        }
+        Slot {
+            name: "demo-shader"
+            delegate: Component {
+                Shader {
+                    width: demos.textWidth
+                    height: width * 420 / 720
+                }
             }
+        }
+        Text {
+            width: parent.width
+            text: "A custom shader over live content, written as part of the app — no toolkit-private path, nothing pre-baked."
+            color: Theme.ink
+            font.family: Theme.sans
+            font.pixelSize: 14
+            wrapMode: Text.Wrap
+        }
+    }
+
+    Column {
+        width: demos.textWidth
+        spacing: 8
+
+        Text {
+            width: parent.width
+            text: "A whole app"
+            color: Theme.ink
+            font.family: Theme.serif
+            font.pixelSize: 22
+            font.bold: true
+            wrapMode: Text.Wrap
+        }
+        Slot {
+            name: "demo-app"
+            delegate: Component {
+                FieldGuide {
+                    width: demos.textWidth
+                    height: width * 420 / 720
+                }
+            }
+        }
+        Text {
+            width: parent.width
+            text: "A real app of the corpus, not a toy: the whole program, running here as it runs on a desktop."
+            color: Theme.ink
+            font.family: Theme.sans
+            font.pixelSize: 14
+            wrapMode: Text.Wrap
+        }
+    }
+
+    Column {
+        width: demos.textWidth
+        spacing: 8
+
+        Text {
+            width: parent.width
+            text: "Motion"
+            color: Theme.ink
+            font.family: Theme.serif
+            font.pixelSize: 22
+            font.bold: true
+            wrapMode: Text.Wrap
+        }
+        Slot {
+            name: "demo-motion"
+            delegate: Component {
+                Motion {
+                    width: demos.textWidth
+                    height: width * 420 / 720
+                }
+            }
+        }
+        Text {
+            width: parent.width
+            text: "Animation as a property of the interface: one value, eased, driving everything that moves — and nothing at all moving, or costing, at rest."
+            color: Theme.ink
+            font.family: Theme.sans
+            font.pixelSize: 14
+            wrapMode: Text.Wrap
         }
     }
 }
