@@ -63,8 +63,7 @@ test("a shell edit keeps the basket and the note", async ({ page }) => {
   await page.goto("/");
   const fig = await live(page, "pantry");
   await fig.getByRole("button", { name: "Add bread" }).click();
-  await noteField(fig).click();
-  await page.keyboard.type("Extra crusty, please");
+  await noteField(fig).fill("Extra crusty, please");
   await expect(summaries(fig).first()).toHaveText("1 in the basket · £2.25");
 
   const editor = fig.locator(".pantry-editor__text");
@@ -213,13 +212,50 @@ test("with wasm blocked the demos degrade to picture and words, and the Pantry s
     await expect(orbit.locator(".ljos-demo__fallback")).toBeVisible();
     await expect(orbit.locator(".ljos-demo__error")).toBeVisible();
   }
-  // The Pantry's app shell is compiled with the page: it runs, and
-  // only the shell compiler is missing when an edit is applied.
-  const fig = await live(page, "pantry");
-  await expect(fig.getByText("The Corner Pantry", { exact: true })).toBeVisible();
-  await fig.locator(".pantry-apply").click();
-  await expect(fig.locator(".pantry-editor__errors")).toBeVisible({ timeout: 30000 });
+  // The Pantry's app shell is compiled with the page. Where the
+  // page's kernel needs no wasm it runs, and only the shell
+  // compiler is missing when an edit is applied; built over the
+  // wasm kernel, the whole figure degrades to its picture instead.
+  // Either is said out loud, never a blank stage.
+  const pantry = demo(page, "pantry");
+  await pantry.scrollIntoViewIfNeeded();
+  await expect(pantry).toHaveAttribute("data-state", /live|failed/, { timeout: 30000 });
+  if ((await pantry.getAttribute("data-state")) === "failed") {
+    await expect(pantry.locator(".ljos-demo__fallback")).toBeVisible();
+    await expect(pantry.locator(".ljos-demo__error")).toBeVisible();
+  } else {
+    await expect(pantry.getByText("The Corner Pantry", { exact: true })).toBeVisible();
+    await pantry.locator(".pantry-apply").click();
+    await expect(pantry.locator(".pantry-editor__errors")).toBeVisible({ timeout: 30000 });
+  }
   await ctx.close();
+});
+
+test("a demo off screen stops moving, and resumes in view", async ({ page }) => {
+  await page.goto("/demos/");
+  const fig = await live(page, "orbit");
+  // The canvas's own pixels, read without scrolling to it: a
+  // screenshot would scroll the demo back into view to take it.
+  const pixels = () =>
+    fig.evaluate((f) => {
+      const c = [...f.querySelectorAll("canvas")].sort((a, b) => b.width * b.height - a.width * a.height)[0];
+      const copy = document.createElement("canvas");
+      copy.width = c.width;
+      copy.height = c.height;
+      const ctx = copy.getContext("2d", { willReadFrequently: true });
+      ctx.drawImage(c, 0, 0);
+      return [...ctx.getImageData(0, 0, copy.width, copy.height).data.slice(0, 8192)].join(",");
+    });
+  // In view it moves (which also proves the canvas can be read).
+  const seen = await pixels();
+  await expect.poll(pixels, { timeout: 30000 }).not.toBe(seen);
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await page.waitForTimeout(900);
+  const away1 = await pixels();
+  await page.waitForTimeout(900);
+  expect(await pixels()).toBe(away1);
+  await fig.scrollIntoViewIfNeeded();
+  await expect.poll(pixels, { timeout: 15000 }).not.toBe(away1);
 });
 
 test("reduced motion calms the demos instead of stopping them", async ({ browser }) => {

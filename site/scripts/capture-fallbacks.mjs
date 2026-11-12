@@ -47,8 +47,7 @@ try {
   await shoot("pantry", "/", async (fig) => {
     await fig.getByRole("button", { name: "Add tea" }).click();
     await fig.getByRole("button", { name: "Add tea" }).click();
-    await fig.locator(".pantry-stage input:not([type='file'])").click();
-    await page.keyboard.type("Extra crusty, please");
+    await fig.locator(".pantry-stage input:not([type='file'])").fill("Extra crusty, please");
   });
   await shoot("orbit", "/demos/", async () => page.waitForTimeout(1600));
   await shoot("shader", "/demos/", async (fig) => {

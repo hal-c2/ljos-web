@@ -16,10 +16,45 @@ pages are never edited from here; needed fixes are reported upstream.
 
 ```sh
 cargo build --bin qmlc                 # the demos compile through it
-LJOS_DOCS_DIR=../ljos-ui/docs/site pnpm --filter ljos-site build
+mise run build:wasm-compiler           # the shell drop + live blocks compile in the page
+mise run build:wasm-3d                 # the orbit demo's wgpu renderer
+mise run build:kernel                  # only for an LJOS_KERNEL=wasm build
+LJOS_DOCS_DIR=../ljos-ui/docs/site VITE_LJOS_VIEW3D=wgpu pnpm --filter ljos-site build
 pnpm --filter ljos-site check-links    # every built link resolves
 pnpm --filter ljos-site test           # Playwright: fallback/live/axe
+LJOS_KERNEL=wasm VITE_LJOS_VIEW3D=wgpu pnpm --filter ljos-site build && pnpm --filter ljos-site test  # the same, over Ljós's kernel
 ```
+
+## Showcase demos
+
+Each demo is a complete app under `src/demos/<id>/` — its QML (and
+shader sources) plus one mount module (`index.js`) — so another
+host (the Ljós-pages site, a docs page) mounts it by name without
+the Astro shell around it. Each passes `ljos check`, is written to
+lower cleanly through `ljos migrate`, mounts lazily, pauses off
+screen (`active`), and calms under `prefers-reduced-motion`
+(`calm`); `src/islands/mount.js` drives those two root properties.
+The fallback each figure server-renders is a real screenshot of
+the demo running (`scripts/capture-fallbacks.mjs` re-takes them;
+review the PNGs, then optimize them into `src/assets/fallbacks/`
+as JPEGs) plus its description — what no-JS, no-wasm and
+no-WebGPU readers keep.
+
+| id | entry | Ljós-pages slot |
+|---|---|---|
+| `pantry` | `pantry/Shell.qml` over the `Pantry` blocks | `showcase-shell`, `demo-shell` |
+| `orbit` | `orbit/Orbit.qml` | `demo-orbit` |
+| `shader` | `shader/Shader.qml` + `light.frag` | `demo-shader` |
+| `fieldguide` | `fieldguide/FieldGuide.qml` | `demo-app` |
+| `motion` | `motion/Motion.qml` | `demo-motion` |
+
+DECISION: the demos are written in Qt's QML API even though they
+lower cleanly to Ljós's dialect, because the web compiler cannot
+run the dialect yet (migrate-gaps SC5: no `ljos-web/Ljos/Ui`
+runtime module); three of them wait on dialect types besides
+(QtQuick3D, ShaderEffect, the animations — SC1–SC3). When those
+land, each demo's dialect form is what `ljos migrate --write`
+makes of it, with no other change.
 
 Deployment is defined but off: `.github/workflows/site.yml` builds on
 pull requests and uploads an artifact; the Pages deploy job runs only

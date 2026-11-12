@@ -39,13 +39,31 @@ jobs:
       # first compile in a reader's browser, and the prerender step
       # renders with the same compiler built ahead of time.
       - run: mise run build:wasm-compiler
+      # The showcase's 3D demo is drawn by the wgpu renderer, and
+      # the showcase suite runs again over Ljós's own kernel.
+      - run: mise run build:wasm-3d
+      - run: mise run build:kernel
       - run: pnpm --filter ljos-site exec playwright install --with-deps chromium
       # Prerenders each live block (and fails on one that claims to
       # run and does not) before the build embeds them.
       - run: pnpm --filter ljos-site codeblock-prerenders
       - run: pnpm --filter ljos-site build
+        env:
+          VITE_LJOS_VIEW3D: wgpu
       - run: pnpm --filter ljos-site check-links
       - run: pnpm --filter ljos-site test
+      # The same suite over Ljós's reactive graph (A22): a second
+      # build of the same pages, then the showcase specs on it.
+      - run: pnpm --filter ljos-site build
+        env:
+          VITE_LJOS_VIEW3D: wgpu
+          LJOS_KERNEL: wasm
+      - run: pnpm --filter ljos-site exec playwright test tests/showcase.spec.js tests/site.spec.js
+      # The artifact (and a dispatch's deploy) is the ordinary build
+      # again, not the wasm-kernel one the tests just ran on.
+      - run: pnpm --filter ljos-site build
+        env:
+          VITE_LJOS_VIEW3D: wgpu
       # The live blocks on a site built from fixture docs, strictly.
       # After the ordinary suite: its setup syncs the fixture's pages.
       - run: pnpm --filter ljos-site test:codeblocks
