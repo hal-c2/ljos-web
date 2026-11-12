@@ -49,7 +49,12 @@ const show = (page, request) => page.evaluate((request) => window.show(request),
 plain("compiled QML may import every module the runtime package exports", () => {
   const { exports } = JSON.parse(readFileSync(join(import.meta.dirname, "../package.json"), "utf8"));
   const kept = Object.entries(exports)
-    .filter(([, file]) => file.endsWith(".js") && !["./vite.js", "./site.js", "./compiler/index.js", "./web/faces.js"].includes(file))
+    .filter(
+      ([, file]) =>
+        file.endsWith(".js") &&
+        !["./vite.js", "./site.js", "./compiler/index.js", "./web/faces.js"].includes(file) &&
+        !file.startsWith("./codeblocks/"),
+    )
     .map(([name]) => name.replace(/^\./, "ljos-web"));
   expect(Object.keys(modules).sort()).toEqual(["solid-js", ...kept].sort());
 });
