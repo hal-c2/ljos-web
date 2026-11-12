@@ -1,7 +1,6 @@
 dist/
 dist-fixture/
-.codeblock-pictures/
-public/codeblocks/
+.codeblock-prerenders/
 .astro/
 src/content/docs/start/
 src/content/docs/ui/

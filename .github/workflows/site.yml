@@ -36,13 +36,13 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: cargo build --bin qmlc --locked
       # The compiler in the page: a live code block fetches it on its
-      # first compile in a reader's browser, and the picture step
-      # compiles with it here.
+      # first compile in a reader's browser, and the prerender step
+      # renders with the same compiler built ahead of time.
       - run: mise run build:wasm-compiler
       - run: pnpm --filter ljos-site exec playwright install --with-deps chromium
-      # Draws each live block's static picture (and fails on one that
-      # claims to run and does not) before the build embeds them.
-      - run: pnpm --filter ljos-site codeblock-pictures
+      # Prerenders each live block (and fails on one that claims to
+      # run and does not) before the build embeds them.
+      - run: pnpm --filter ljos-site codeblock-prerenders
       - run: pnpm --filter ljos-site build
       - run: pnpm --filter ljos-site check-links
       - run: pnpm --filter ljos-site test

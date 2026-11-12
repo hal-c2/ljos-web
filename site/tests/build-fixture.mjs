@@ -12,7 +12,7 @@ const site = join(dirname(fileURLToPath(import.meta.url)), "..");
 const env = { ...process.env, LJOS_DOCS_DIR: join(site, "tests/fixtures/docs"), LJOS_CODEBLOCKS_STRICT: "1" };
 for (const command of [
   "node scripts/sync-docs.mjs",
-  "node scripts/codeblock-pictures.mjs",
+  "node scripts/codeblock-prerenders.mjs",
   "pnpm exec astro build --outDir dist-fixture",
 ]) {
   execSync(command, { cwd: site, env, stdio: "inherit" });

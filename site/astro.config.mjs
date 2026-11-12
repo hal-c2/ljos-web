@@ -1,18 +1,18 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
-import { loadHarnesses } from "ljos-web/codeblocks";
+import { loadHarnesses, loadPrerenders } from "ljos-web/codeblocks";
 import { liveCodeBlocks } from "ljos-web/codeblocks/remark";
 import qml from "ljos-web/vite";
 
 const path = (r) => fileURLToPath(new URL(r, import.meta.url));
 
-// Live code blocks: harnesses and pictures come from the docs checkout
-// sync-docs reads (the same candidates it tries), and the picture
-// manifest scripts/codeblock-pictures.mjs writes. DECISION: strict —
+// Live code blocks: harnesses and prerenders come from the checkout
+// sync-docs reads (the same candidates it tries), and the prerenders
+// scripts/codeblock-prerenders.mjs writes. DECISION: strict —
 // every non-exempt block must compile or the build fails — is a switch
 // (LJOS_CODEBLOCKS_STRICT=1), not inferred from the docs: a docs pin
 // that carries harnesses must not by itself start failing this build
@@ -28,7 +28,7 @@ const docsCandidates = [
 ].filter(Boolean);
 const docsDir = docsCandidates.find((c) => existsSync(join(c, "start/index.md")));
 const harnessDir = docsDir ? join(docsDir, "harness") : undefined;
-const picturesAt = path(".codeblock-pictures/manifest.json");
+const prerendersAt = path(".codeblock-prerenders");
 let legacyBlocks = 0;
 
 const SITE = "https://ljos.dev";
@@ -78,8 +78,7 @@ export default defineConfig({
           harnesses: loadHarnesses(harnessDir),
           qmlc: process.env.QMLC ?? path("../target/debug/qmlc"),
           strict: process.env.LJOS_CODEBLOCKS_STRICT === "1",
-          pictures: existsSync(picturesAt) ? JSON.parse(readFileSync(picturesAt, "utf8")) : {},
-          pictureBase: "/codeblocks/",
+          prerenders: loadPrerenders(prerendersAt),
           onLegacy: (count, file) => {
             legacyBlocks += count;
             console.warn(`codeblocks: ${count} untagged block(s) left plain in ${file?.path ?? "a page"} (${legacyBlocks} so far)`);

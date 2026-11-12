@@ -2157,10 +2157,17 @@ export function hydrate(Component, element, props = {}, options = {}) {
     return at < 0 ? [Number(said), ""] : [Number(said.slice(0, at)), said.slice(at + 1)];
   };
   const waiting = new Map([...marked].map((node) => [...keyed(node), node]).map(([number, kind, node]) => [number, { kind, node }]));
+  // A canvas is no making in the count, on either side (dom.js): the
+  // measuring canvas is made at whatever making first measures, which
+  // an anchored text's layout read decides differently here than the
+  // prerender decided it. The prerendered ones are taken out below;
+  // what paints into a canvas paints when the page runs.
+  const staleCanvases = [...element.querySelectorAll("canvas")];
   const document = element.ownerDocument;
   let made = 0;
   let told = false;
   const take = (tag) => {
+    if (String(tag).toLowerCase() === "canvas") return null;
     // Once the makings have parted, no later number can be trusted to
     // name the same making: the rest is made again, and what was
     // prerendered of it is taken out below.
@@ -2196,6 +2203,7 @@ export function hydrate(Component, element, props = {}, options = {}) {
       if (!told) console.warn(`ljos-web: hydration mismatch: ${waiting.size} prerendered element${waiting.size === 1 ? "" : "s"} the page did not ask for; what does not match is made again`);
       for (const { node } of waiting.values()) node.remove();
     }
+    for (const node of staleCanvases) node.remove();
     element.setAttribute("data-ljos-hydrated", "true");
     return root;
   } finally {

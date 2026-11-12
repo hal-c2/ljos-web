@@ -1748,19 +1748,22 @@ turns a Markdown page's fenced blocks into live ones, for any site:
   each example is checked with `qmlc` — the page's compiler, against the
   modules ljos-web provides, not an installed Qt's — and a block that
   claims to run and does not compile fails the build, saying why. What is
-  written is static HTML: the code as code, and a picture of the result
-  drawn at build time by the runtime itself in a headless browser
-  (`ljos-web/picture` of the compiled-in-page mount), cached by content
-  hash. The stage carries the picture's size, so hydration changes
-  nothing's place.
+  written is static HTML: the code as code, beside the result as **the
+  prerender wrote it** (A26): the examples are built once into a server
+  bundle by the same Vite build and made in Node by `renderToString`
+  (`ljos-web/server`), cached by content hash. Making an example runs
+  it, so the prerender is also the run half of the check. There is no
+  second, picture-shaped path: a block's static half is its own markup.
 - **The page** (`ljos-web/codeblock`): hydration mounts each block only
-  as it nears the viewport. The editor is a labelled textarea per file;
-  an edit compiles in the page (A15) and reloads (A13), so state is kept
-  — a counter at 3 stays 3 when its colour changes, and a contribution a
+  as it nears the viewport, and its first making takes the prerendered
+  nodes over (`hydrate`, A26) — the nodes a reader had are the nodes
+  that then behave. The editor is a labelled textarea per file; an edit
+  compiles in the page (A15) and reloads (A13), so state is kept — a
+  counter at 3 stays 3 when its colour changes, and a contribution a
   visitor's edited shell still places keeps the app's count. A broken
   edit shows `file:line:column: message` beside the code and the last
-  good result keeps running. With JavaScript off, code and picture are
-  the page. Nothing polls; motion is CSS the page's
+  good result keeps running. With JavaScript off, code and prerendered
+  result are the page. Nothing polls; motion is CSS the page's
   `prefers-reduced-motion` stills. A page gives its controls or other
   modules to the compiler through `options.compile`
   (`createCompiler({ modules })`, as A15's pages do).
@@ -1768,12 +1771,12 @@ turns a Markdown page's fenced blocks into live ones, for any site:
 **DECISION:** the feature is general, the site is its first user: the
 Astro site wires the remark plugin and a small hydrator island, and
 nothing of the site is in the package. A later ljos.dev built from
-prerendered Ljós pages uses the same halves without remark — `assemble`
-and `renderStatic` at build time, `hydrateLiveCodeBlocks` in the page:
-the static figure is plain HTML with a JSON payload, which is what a
-prerender emits, and hydration replaces the picture in its sized stage
-exactly as here. No server prerender of the editor is needed, because
-the prerendered half is already the readable one.
+prerendered Ljós pages uses the same halves without remark — `assemble`,
+`renderPrerenders` and `renderStatic` at build time,
+`hydrateLiveCodeBlocks` in the page — and a block inside a prerendered
+Ljós page is then a prerender within the prerender, hydrated by the
+same `hydrate` either way. No server prerender of the editor chrome is
+needed, because the static figure is already the readable page.
 
 **DECISION:** a docs tree earns strictness. A fence that claims to run
 (`harness=`/`file=`/`group=`/`before`) must compile or the build fails,
@@ -1792,21 +1795,25 @@ never breaks on docs that predate the tagging.
 **Scenarios.** `packages/runtime/tests/codeblocks.spec.js`: the
 contract (parse, splice, assemble, hash), the check naming a broken
 block, a `ShellLoader`/`Slot` example assembling and checking, the
-static HTML carrying code + picture + payload, JS off reading them,
-hydration into an editor, an edit keeping state, a broken edit keeping
+a prerender made by running each example (a throw is a failure, not
+the end), static HTML carrying code + prerendered result + payload,
+JS off reading them, hydration keeping the very nodes into an editor,
+an edit keeping state, a broken edit keeping
 the last good result, harnessed and grouped examples, editing the
 user's shell keeping the app's state, lazy mounting, exempt code
 plain. `site/tests/codeblocks.e2e.js` (its own config) holds the same
 on a site built from fixture docs, strictly.
 
-Known limits, as the pieces stand: a `.ts` file a QML file imports by
+Known limits, as the pieces stand: a `ShellLoader` loads its shell as
+it can (async, by design), so that subtree is made after hydration's
+window and remade there — the app around it is adopted, and the
+prerender still serves a reader without script; a `.ts` file a QML file imports by
 name is refused by the compiler today (a `.mjs` script is not), so a
 grouped example's scripts ride as files the editor shows and a `.ts`
 import is the compiler's gap to close, not papered over here; an
-example importing `QtQuick.Controls` compiles under `qmlc` but the
-compiler in the page has no style's QML compiled into it to give (A15,
-requests 13 and 36), so it is reported at its import and left plain
-until a page can give real controls; and the `import Ljos…` dialect
+example importing `QtQuick.Controls` runs on a page built with them
+(the site is, so its compiler is given them, A15) and is reported at
+its import and left plain on one that is not; and the `import Ljos…` dialect
 modules are not in the page compiler's table at this pin, so dialect
 examples check as not-installed until ljos-web carries them — the
 check says so rather than showing them dead.

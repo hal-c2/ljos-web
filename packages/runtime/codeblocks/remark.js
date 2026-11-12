@@ -25,15 +25,15 @@
 //   untagged block that does not compile yet — a snippet a docs tree
 //   has not given a harness — stays plain code and is counted
 //   (`onLegacy(count, file)`), never silently promised as live.
-// - `pictures`: a `renderPictures` manifest; `pictureBase` where its
-//   files are served from. A manifest entry marked failed (it compiled
-//   for `qmlc` but did not run in a page) keeps its block plain, by the
+// - `prerenders`: what `loadPrerenders` read back — an example's
+//   prerendered HTML by its content hash. An entry marked failed (it
+//   compiled for `qmlc` but did not run) keeps its block plain, by the
 //   same rule as a compile failure.
 import { checkExamples, hashExample, renderStatic } from "./build.js";
 import { assemble, parseMeta, tagged } from "./parse.js";
 
 export function liveCodeBlocks(options = {}) {
-  const { harnesses = {}, qmlc, strict = false, pictures = {}, pictureBase = "/codeblocks/", onLegacy } = options;
+  const { harnesses = {}, qmlc, strict = false, prerenders = {}, onLegacy } = options;
   // One compile per distinct example in a build, however many pages
   // repeat it: the answer is the code's, and its hash names it.
   const checked = new Map();
@@ -85,22 +85,21 @@ export function liveCodeBlocks(options = {}) {
         if (strict || example.blocks.some(tagged)) fail(diagnostics);
         legacy += own.length;
       };
-      const had = pictures[hashExample(example)];
+      const had = prerenders[hashExample(example)];
       if (had?.failed) {
         refuse(`a code block does not run:\n${(had.diagnostics ?? []).join("\n")}`);
         continue;
       }
-      // A drawn picture is a compile that ran: the picture step already
-      // held this code to both, and its hash names the code.
-      if (qmlc && !had?.file) {
+      // A prerender is a compile that ran: that step already held
+      // this code to both, and its hash names the code.
+      if (qmlc && !had?.html) {
         const failures = check(example);
         if (failures.length > 0) {
           refuse(`a code block does not compile:\n${failures[0].diagnostics.join("\n")}`);
           continue;
         }
       }
-      const picture = had ? { src: `${pictureBase}${had.file}`, width: had.width, height: had.height } : undefined;
-      const html = { type: "html", value: renderStatic(example, { picture }) };
+      const html = { type: "html", value: renderStatic(example, { prerender: had }) };
       // One parent, neighbouring fences: the figure replaces the run.
       // Spread through prose: it replaces the entry's fence only.
       const parent = own[0].parent;

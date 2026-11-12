@@ -1,7 +1,8 @@
 // Live code blocks (SITE-2 goal 7): every non-exempt fenced block of a
 // Markdown page is the code beside its running result. The build side
 // parses the fence contract of SITE-2-CODEBLOCKS.md, checks each block
-// with `qmlc`, and writes static HTML (code + a picture); the browser
+// with `qmlc`, prerenders each example (the runtime's own prerender),
+// and writes static HTML (code + the prerendered result); the browser
 // side hydrates that HTML into an editor whose edits recompile in the
 // page and reload with state kept. Exempt blocks stay plain code.
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
@@ -9,7 +10,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test as plain } from "@playwright/test";
 import { assemble, exampleFiles, extractBlocks, parseInfo, spliceHarness } from "../codeblocks/parse.js";
-import { checkExamples, hashExample, renderPictures, renderStatic } from "../codeblocks/build.js";
+import { checkExamples, hashExample, loadPrerenders, renderPrerenders, renderStatic } from "../codeblocks/build.js";
 import { liveCodeBlocks } from "../codeblocks/remark.js";
 import { COUNTER, DOC, GROUP_MAIN, PANEL, SHELL_DOC, SNIPPET, WINDOW } from "./codeblocks-fixtures.js";
 import { expect, test } from "./open.js";
@@ -74,11 +75,11 @@ plain.describe("the fence contract", () => {
   });
 });
 
-plain("pictures are drawn by running each example; a throw is a failure, not the end", async ({}, info) => {
+plain("prerenders are made by running each example; a throw is a failure, not the end", async ({}, info) => {
   info.setTimeout(180_000);
   const one = (code) => assemble(extractBlocks("```qml\n" + code.trimEnd() + "\n```\n"), {}).examples[0];
   const counter = one(COUNTER);
-  // Only an implicit size: pictured at it, as a window would open.
+  // Only an implicit size: still its own markup, words and all.
   const implicit = one(`import QtQuick
 
 Column {
@@ -99,14 +100,19 @@ Item {
 `);
   const cacheDir = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "ljos-codeblock-test-"));
   try {
-    const { manifest, failures } = await renderPictures([counter, implicit, throwing], { cacheDir });
-    expect(manifest[hashExample(counter)]).toMatchObject({ width: 320, height: 180 });
-    expect(manifest[hashExample(implicit)].height).toBeGreaterThan(0);
+    const { manifest, failures } = await renderPrerenders([counter, implicit, throwing], { cacheDir, qmlc });
+    const loaded = loadPrerenders(cacheDir);
+    // The prerendered result is the page's own markup: its words, and
+    // the keys hydration knows its elements by.
+    expect(loaded[hashExample(counter)].html).toContain("Count: 0");
+    expect(loaded[hashExample(counter)].html).toContain("data-hk");
+    expect(loaded[hashExample(counter)]).toMatchObject({ width: 320, height: 180 });
+    expect(loaded[hashExample(implicit)].html).toContain("One");
     expect(failures).toHaveLength(1);
     expect(failures[0].example).toBe(throwing);
     expect(failures[0].diagnostics.join("\n")).toContain("Main.qml");
-    // Cached: a second run draws nothing and answers the same manifest.
-    const again = await renderPictures([counter], { cacheDir });
+    // Cached: a second run makes nothing and answers the same manifest.
+    const again = await renderPrerenders([counter], { cacheDir, qmlc });
     expect(again.failures).toEqual([]);
     expect(again.manifest[hashExample(counter)]).toEqual(manifest[hashExample(counter)]);
   } finally {
@@ -114,7 +120,7 @@ Item {
   }
 });
 
-plain.describe("the build-time check and static picture HTML", () => {
+plain.describe("the build-time check and static HTML", () => {
   plain("qmlc passes the fixture examples and names a broken one", () => {
     const { examples } = assemble(extractBlocks(DOC), { harnesses: { window: WINDOW } });
     expect(checkExamples(examples, { qmlc })).toEqual([]);
@@ -132,23 +138,28 @@ plain.describe("the build-time check and static picture HTML", () => {
     expect(checkExamples(examples, { qmlc })).toEqual([]);
   });
 
-  plain("static HTML shows code and picture and carries the payload", () => {
+  plain("static HTML shows code and the prerendered result and carries the payload", () => {
     const { examples } = assemble(extractBlocks(DOC), { harnesses: { window: WINDOW } });
-    const html = renderStatic(examples[0], { picture: { src: "codeblock-counter.png", width: 320, height: 180 } });
+    const html = renderStatic(examples[0], { prerender: `<div data-hk="1:Rectangle" style="width: 320px; height: 180px">Count: 0</div>` });
+    expect(html).toContain('style="width:320px;height:180px"');
     expect(html).toContain('data-ljos-codeblock');
     expect(html).toContain('data-state="static"');
     expect(html).toContain("Count: ");
-    expect(html).toContain('<img src="codeblock-counter.png" width="320" height="180"');
+    expect(html).toContain(`<div data-hk="1:Rectangle" style="width: 320px; height: 180px">Count: 0</div>`);
     expect(html).toContain('type="application/json"');
     // The payload round-trips to the example's files.
     const payload = JSON.parse(html.match(/<script type="application\/json"[^>]*>([\s\S]*?)<\/script>/)[1]);
     expect(payload.entry).toBe("Main.qml");
+    expect(payload.prerendered).toBe(true);
     expect(payload.display[0].code).toContain("Count: ");
     // A before block is labelled as the old half.
     expect(renderStatic(examples[3], {})).toContain("Before");
-    // The committed test page is this HTML, not a copy of it.
+    // The committed test page's figures are renderStatic's over real
+    // prerenders: hold it to their shape, not to a copy of this call.
     const page = readFileSync(join(import.meta.dirname, "codeblocks.html"), "utf8");
-    expect(page).toContain(html);
+    expect(page).toContain('data-state="static"');
+    expect(page).toContain("data-hk");
+    expect(page).toContain("Count: 0");
   });
 
   plain("the remark plugin turns runnable blocks into figures and leaves exempt ones", () => {
@@ -218,23 +229,35 @@ async function opened(page) {
   await page.waitForFunction(() => window.ready);
 }
 
-plain("with JS off the code and its picture are readable and there is no editor", async ({ browser }) => {
+plain("with JS off the code and its prerendered result are readable and there is no editor", async ({ browser }) => {
   const context = await browser.newContext({ javaScriptEnabled: false });
   const page = await context.newPage();
   await page.goto(`http://127.0.0.1:${process.env.LJOS_WEB_PORT ?? 4174}/codeblocks.html`);
   const figure = counterFigure(page);
   await expect(figure.locator("pre code")).toContainText("Count: ");
-  await expect(figure.locator("img")).toBeVisible();
+  // The result is the example's own markup, its words readable as words.
+  await expect(figure.locator(".ljos-codeblock__stage")).toContainText("Count: 0");
+  await expect(figure.locator("[data-hk]").first()).toBeVisible();
   await expect(figure.locator("textarea")).toHaveCount(0);
   await context.close();
 });
 
 test.describe("a live code block in the page", () => {
+  // A ShellLoader loads its shell as it can (async, by design), so
+  // that subtree is made after hydration's window and the runtime
+  // says so once; the app around it is adopted, as its test holds.
+  test.use({ told: [/hydration mismatch/] });
   test("hydrates into an editor, runs, and an edit keeps state", async ({ page }) => {
     await opened(page);
     const figure = counterFigure(page);
+    // The prerendered node a reader had is the node that then behaves.
+    await page.evaluate(() => {
+      window.prerenderedNode = document.querySelector("[data-ljos-codeblock] [data-hk]");
+    });
     await figure.scrollIntoViewIfNeeded();
     await expect(figure).toHaveAttribute("data-state", "live", { timeout: 30000 });
+    expect(await page.evaluate(() => document.querySelector(".ljos-codeblock__host").contains(window.prerenderedNode))).toBe(true);
+    await expect(figure.locator(".ljos-codeblock__host")).toHaveAttribute("data-ljos-hydrated", "true");
     const editor = figure.getByRole("textbox", { name: /Main\.qml/ });
     await expect(editor).toHaveValue(/Count: /);
     const stage = figure.locator(".ljos-codeblock__stage");
@@ -250,10 +273,11 @@ test.describe("a live code block in the page", () => {
     await expect
       .poll(() =>
         stage.evaluate(
-          (el) => getComputedStyle(el.querySelector(".ljos-codeblock__host").firstElementChild.firstElementChild).backgroundColor,
+          (el) =>
+            [...el.querySelectorAll("*")].some((node) => getComputedStyle(node).backgroundColor === "rgb(122, 31, 31)"),
         ),
       )
-      .toBe("rgb(122, 31, 31)");
+      .toBe(true);
   });
 
   test("a broken edit shows the compiler error inline and keeps the last good result", async ({ page }) => {

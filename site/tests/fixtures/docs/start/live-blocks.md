@@ -104,6 +104,36 @@ Column {
 }
 ```
 
+A control from Qt Quick Controls, which this page is built with:
+
+```qml
+import QtQuick
+import QtQuick.Controls
+
+Rectangle {
+    id: root
+    width: 260
+    height: 120
+    color: "#20242e"
+    property int count: 0
+
+    Column {
+        anchors.centerIn: parent
+        spacing: 8
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            color: "#e8eaf0"
+            text: "Pressed: " + root.count
+        }
+        Button {
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: "Press"
+            onClicked: root.count += 1
+        }
+    }
+}
+```
+
 The old half of a before/after, and a shell command:
 
 ```qml before

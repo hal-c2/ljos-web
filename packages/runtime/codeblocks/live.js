@@ -1,12 +1,13 @@
 // A live code block in a page (`ljos-web/codeblock`): the code beside
 // its running result, as an editor. The static figure the build wrote
-// (code + a picture, `renderStatic` in build.js) hydrates where it
-// stands — the picture is replaced by the running result in a stage of
-// the same size — and every edit is compiled in the page
-// (`ljos-web/compiler`) and put over the running one with its state
-// kept (`ljos-web/reload`): a counter at 3 stays 3 when its colour
-// changes. An edit that does not compile says why beside the code, and
-// the last good result keeps running.
+// (code + the result prerendered, `renderStatic` in build.js) hydrates
+// where it stands — the first making takes the prerendered nodes over
+// (`hydrate` of `ljos-web/object`, as a prerendered page's does) — and
+// every edit is compiled in the page (`ljos-web/compiler`) and put
+// over the running one with its state kept (`ljos-web/reload`): a
+// counter at 3 stays 3 when its colour changes. An edit that does not
+// compile says why beside the code, and the last good result keeps
+// running.
 //
 // Nothing is fetched or compiled before a block is mounted, and
 // `hydrateLiveCodeBlocks` mounts only blocks near the viewport: a long
@@ -34,11 +35,11 @@ const el = (tag, className, text) => {
 };
 
 // Turns one static figure into the editor + running result. `data` is
-// the figure's payload (`{ entry, before, harness?, display, picture? }`
-// as build.js wrote it). Answers `{ dispose, idle }`: `idle()` settles
-// when the compile an edit set off has landed.
+// the figure's payload (`{ entry, before, harness?, display,
+// prerendered }` as build.js wrote it). Answers `{ dispose, idle }`:
+// `idle()` settles when the compile an edit set off has landed.
 export async function mountLiveCodeBlock(figure, data, options = {}) {
-  const [{ mount }, { reload }] = await Promise.all([import("../object.js"), import("../reload.js")]);
+  const [{ hydrate, mount }, { reload }] = await Promise.all([import("../object.js"), import("../reload.js")]);
   const compile = await compilerOf(options);
   const delay = options.delay ?? 300;
   const original = data.display.map((file) => file.code);
@@ -85,12 +86,11 @@ export async function mountLiveCodeBlock(figure, data, options = {}) {
   };
   if (data.display.length === 1) tabs.querySelector(".ljos-codeblock__tab")?.replaceWith(el("span", "ljos-codeblock__file", data.display[0].name));
 
-  const stage = el("div", "ljos-codeblock__stage");
-  const oldStage = figure.querySelector(".ljos-codeblock__stage");
-  if (oldStage?.getAttribute("style")) stage.setAttribute("style", oldStage.getAttribute("style"));
-  const picture = oldStage?.querySelector("img");
-  if (picture) stage.append(picture);
+  // The stage the build wrote, with the prerendered result in it: its
+  // nodes move into the host hydration takes over, themselves.
+  const stage = figure.querySelector(".ljos-codeblock__stage") ?? el("div", "ljos-codeblock__stage");
   const host = el("div", "ljos-codeblock__host");
+  host.append(...stage.childNodes);
   stage.append(host);
 
   const body = el("div", "ljos-codeblock__body");
@@ -126,19 +126,20 @@ export async function mountLiveCodeBlock(figure, data, options = {}) {
     if (mine !== turn) return;
     if (made.diagnostics) {
       said(made.diagnostics.map((d) => (d.line ? `${d.file ?? entry}:${d.line}:${d.column ?? 1}: ${d.message}` : `${d.file ?? entry}: ${d.message}`)));
-      status.textContent = handle ? "" : "This code does not compile; the picture shows what it drew as written.";
+      status.textContent = handle ? "" : "This code does not compile; what it drew as written is still shown.";
       if (!handle) figure.dataset.state = "error";
       return;
     }
     try {
       if (handle) reload(handle, made.component);
-      else handle = mount(made.component, host, {}, { reloadable: true });
+      // First making over a prerendered stage takes its nodes over
+      // (hydrate is mount where there are none); edits reload after.
+      else handle = (data.prerendered ? hydrate : mount)(made.component, host, {}, { reloadable: true });
     } catch (error) {
       said([`${entry}: ${error?.message ?? error}`]);
       status.textContent = "";
       return;
     }
-    picture?.remove();
     const { width, height } = handle.object ?? {};
     if (width > 0 && height > 0) {
       // The host is the runtime's scene element: pointer delivery is
@@ -194,7 +195,7 @@ export function payloadOf(figure) {
 
 // Hydrates every `[data-ljos-codeblock]` figure under `root`, each only
 // as it nears the viewport. A figure whose payload does not read is
-// left as the build wrote it: code and picture, never a hole.
+// left as the build wrote it: code and its prerender, never a hole.
 export function hydrateLiveCodeBlocks(root = document, options = {}) {
   const figures = [...root.querySelectorAll("[data-ljos-codeblock]")];
   const mounted = new Map();
