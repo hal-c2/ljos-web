@@ -2,7 +2,7 @@
 // was given, else what the style sets a control of its type in. A Button in
 // a Pane with `font.pixelSize: 20` is that big, and as bold as the style
 // makes buttons.
-import { derived, group, kinds, typed } from "../../object.js";
+import { alone, derived, group, kinds, typed } from "../../object.js";
 import { given, lazy } from "../compute.js";
 import { font as styled } from "./theme.js";
 
@@ -61,9 +61,11 @@ export const font = group({
   overline: inherited("overline", false),
   strikeout: inherited("strikeout", false),
   // Ljós's name for the pixel size, as on every font (`QtQuick/font.js`).
-  size: typed(
-    kinds.pixels,
-    derived((self) => self.font.pixelSize),
+  size: alone(
+    typed(
+      kinds.pixels,
+      derived((self) => self.font.pixelSize),
+    ),
   ),
   pixelSize: typed(
     kinds.pixels,

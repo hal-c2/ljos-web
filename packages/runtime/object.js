@@ -67,6 +67,14 @@ export const derived = (compute) => ({ [DERIVED]: compute });
 const GROUP = Symbol("group");
 export const group = (properties) => ({ [GROUP]: properties });
 
+// A member of a group that is a second name for another member of it
+// (a font's `size` for its `pixelSize`): what a whole value given to
+// the group says by that name is not read, because the member it names
+// reads the whole value already, and the two must never disagree on
+// the one object once that member is written to.
+const ALONE = Symbol("alone");
+export const alone = (initial) => ({ [ALONE]: initial });
+
 // A property of a type: `property int hours` is an int, whatever it is
 // given, and what it is given becomes one as Qt makes it one. `typed(int, 0)`
 // is such a property that is 0 until something says otherwise. What cannot
@@ -763,7 +771,8 @@ function* sources(record) {
 }
 
 class Slot {
-  constructor(self, key, initial, resolve, whole, member, kind) {
+  constructor(self, key, initial, resolve, whole, member, kind, alone) {
+    this.alone = alone === true;
     this.self = self;
     this.key = key;
     this.initial = initial;
@@ -884,7 +893,7 @@ class Slot {
     const back = this.assigned && this.back();
     if (this.assigned && !back) return this.value;
     let value = back ? undefined : this.bound ? this.bound() : this.given;
-    if (value === undefined && this.whole) value = slot(this.self, this.whole).get()?.[this.member];
+    if (value === undefined && this.whole && !this.alone) value = slot(this.self, this.whole).get()?.[this.member];
     if (value === undefined) {
       const initial = this.initial;
       value = initial?.[DERIVED] ? initial[DERIVED](this.self) : initial;
@@ -1177,12 +1186,14 @@ function changes(self, name) {
 
 function defineGroup(Type, proto, name, properties) {
   const view = {};
-  for (const [property, given] of Object.entries(properties)) {
+  for (let [property, given] of Object.entries(properties)) {
     const key = `${name}$${property}`;
     const resolve = Type.spec.resolve?.[key];
+    const byItself = given?.[ALONE] !== undefined;
+    if (byItself) given = given[ALONE];
     const kind = given?.[TYPED];
     const initial = kind ? given.initial : given;
-    const make = (self) => (self.$slots[key] = new Slot(self, key, initial, resolve, name, property, kind));
+    const make = (self) => (self.$slots[key] = new Slot(self, key, initial, resolve, name, property, kind, byItself));
     Type.slots[key] = make;
     Object.defineProperty(view, property, {
       get() {

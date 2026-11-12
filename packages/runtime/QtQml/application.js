@@ -41,6 +41,9 @@ const FONT = {
   strikeout: false,
   pointSize: 9,
   pixelSize: 12,
+  // Ljós's name for the pixel size, as on every font: resolved with
+  // it in the constructor, and read back as it.
+  size: 12,
   capitalization: 0,
   letterSpacing: 0,
   wordSpacing: 0,
@@ -58,8 +61,17 @@ export class Font {
   constructor(given = {}) {
     Object.assign(this, FONT, given);
     // Either size says the other, and so do weight and boldness.
-    if ("pixelSize" in given && !("pointSize" in given)) this.pointSize = (this.pixelSize * 72) / 96;
+    // `size` is the pixel size by Ljós's name, resolved as an item's
+    // font resolves it (`QtQuick/font.js`): a given `size` is the
+    // pixel size unless a `pixelSize` was given directly, and either
+    // pixel name wins over a `pointSize` given beside it but for the
+    // three together, where the point size has always had the word.
+    if ("size" in given && !("pixelSize" in given)) {
+      this.pixelSize = given.size;
+      this.pointSize = (this.pixelSize * 72) / 96;
+    } else if ("pixelSize" in given && !("pointSize" in given)) this.pointSize = (this.pixelSize * 72) / 96;
     else this.pixelSize = Math.round((this.pointSize * 96) / 72);
+    this.size = this.pixelSize;
     if ("bold" in given && !("weight" in given)) this.weight = given.bold ? 700 : 400;
     else this.bold = this.weight > 500;
   }

@@ -191,6 +191,35 @@ test("a Loader shows its component, and a control's font takes font.size", async
   expect(await pixelsOf("both")).toBe(10);
 });
 
+test("a font as a value takes size, and sets an item at that size", async ({ page }) => {
+  await open(page, "ljosuifont");
+  // `Qt.font({ size: 20 })` is made without throwing, and reads back
+  // by all three names, as an item's font resolves them.
+  expect(await page.evaluate(() => [window.objects.made.size, window.objects.made.pixelSize, window.objects.made.pointSize])).toEqual([20, 20, 15]);
+  // The three names together: a pixel name wins over a point size
+  // beside it, a directly given `pixelSize` over `size`, and the
+  // point size over both together.
+  expect(await page.evaluate(() => window.objects.mixed.map((f) => [f.size, f.pixelSize, f.pointSize]))).toEqual([
+    [20, 20, 15],
+    [10, 10, 7.5],
+    [40, 40, 30],
+  ]);
+  expect(await page.evaluate(() => window.objects.app.font.size)).toBe(12);
+  expect(await page.evaluate(() => [window.objects.label.font.size, window.objects.label.font.pixelSize])).toEqual([20, 20]);
+  // And it draws at that size: taller than the same text at the default.
+  const label = await rect(page, "label");
+  const plain = await rect(page, "plain");
+  expect(label.height).toBeGreaterThan(plain.height);
+  // `size` is the pixel size by its other name on the item too: a
+  // later `font.pixelSize` write is what `font.size` reads, not the
+  // size the given font value carried.
+  await page.evaluate(() => {
+    window.objects.label.font.pixelSize = 30;
+    window.flush();
+  });
+  expect(await page.evaluate(() => [window.objects.label.font.size, window.objects.label.font.pixelSize])).toEqual([30, 30]);
+});
+
 test("a Drag child drags its item", async ({ page }) => {
   await open(page, "ljosuigesture");
   await page.mouse.move(10, 110);

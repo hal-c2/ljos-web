@@ -1,7 +1,7 @@
 // What a chart is drawn with, QtCharts' and QtGraphs' alike: a few SVG
 // elements, each described by what it is to be and changed only where that
 // differs from what it is.
-import { derived, group } from "../object.js";
+import { alone, derived, group } from "../object.js";
 import { given, rules } from "../QtQuick/compute.js";
 import { advance, dress, metrics } from "../QtQuick/font.js";
 
@@ -165,7 +165,7 @@ export const fontNamed = (name) =>
     underline: false,
     overline: false,
     strikeout: false,
-    size: derived((self) => self[name].pixelSize),
+    size: alone(derived((self) => self[name].pixelSize)),
     pixelSize: derived((self) =>
       given(self, name, "size") ? self[name].size : given(self, name, "pointSize") ? Math.round((self[name].pointSize * 96) / 72) : 12,
     ),
