@@ -406,6 +406,10 @@ export function shellOf(compiled, blocks, file = "Shell.qml") {
       if (index === 0) props.$given = given;
       members(props, def.members, "");
       for (const group of def.grouped) members(props, group.members, `${group.path.join("$")}$`);
+      // An attached group does nothing until its type is attached:
+      // compiled QML says so in its `$attach` list, and a shell's
+      // `Accessible.*` values are in the props the same way.
+      if (def.grouped.some((group) => group.path[0] === "Accessible")) props.$attach = [quick("Accessible")];
       if (def.properties.length > 0) {
         props.$declare = { properties: Object.fromEntries(def.properties.map(({ name, ty }) => [name, DECLARED[ty]])) };
       }

@@ -37,12 +37,15 @@ Column {
     }
     function resetToAppShell() {
         editor.text = PantryProject.shellText;
+        // The assignment itself asks for an apply of its own.
+        debounce.stop();
         apply();
     }
 
     Component.onCompleted: {
         LivePantry.setProject(PantryProject.files, PantryProject.shellText);
         editor.text = PantryProject.shellText;
+        debounce.stop();
         apply();
     }
 

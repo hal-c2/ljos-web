@@ -77,6 +77,9 @@ test("a shell edit keeps the basket and the note", async ({ page }) => {
   await expect(fig.getByText("My Pantry", { exact: true })).toBeVisible();
   await expect(summaries(fig).first()).toHaveText("1 in the basket · £2.25");
   await expect(noteField(fig)).toHaveValue("Extra crusty, please");
+  // The shell's own buttons still say what they are after the swap.
+  await fig.getByRole("button", { name: "Add tea" }).click();
+  await expect(summaries(fig).first()).toHaveText("2 in the basket · £5.75");
 });
 
 test("a broken shell is refused, the running shell stays, and the next good edit takes over", async ({ page }) => {
