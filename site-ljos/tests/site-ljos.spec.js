@@ -13,28 +13,23 @@ async function press(page, locator) {
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
 }
 
-// The same press, on the first of several matches that stands on
-// the page with a size (a result's button, where an ancestor in the
-// scene carries the same words and no box of its own).
+// The same press, on the first of several matches that stands in
+// the viewport with a size (a result's button, where an ancestor
+// in the scene carries the same words and no box of its own, and
+// later blocks on the page carry the same words below the fold).
 async function pressWords(page, words) {
   const matches = page.getByText(words, { exact: true });
-  await expect
-    .poll(async () => {
-      for (let i = 0; i < (await matches.count()); i++) {
-        const box = await matches.nth(i).boundingBox().catch(() => null);
-        if (box && box.width > 0 && box.height > 0) return i;
-      }
-      return -1;
-    }, { timeout: 20_000 })
-    .toBeGreaterThanOrEqual(0);
-  for (let i = 0; i < (await matches.count()); i++) {
-    const box = await matches.nth(i).boundingBox().catch(() => null);
-    if (box && box.width > 0 && box.height > 0) {
-      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-      return;
+  const { width, height } = page.viewportSize();
+  const standing = async () => {
+    for (let i = 0; i < (await matches.count()); i++) {
+      const box = await matches.nth(i).boundingBox().catch(() => null);
+      if (box && box.width > 0 && box.height > 0 && box.x >= 0 && box.y >= 0 && box.x + box.width <= width && box.y + box.height <= height) return box;
     }
-  }
-  throw new Error(`nothing on the page to press for ${words}`);
+    return null;
+  };
+  await expect.poll(async () => (await standing()) !== null, { timeout: 30_000 }).toBe(true);
+  const box = await standing();
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
 }
 
 // The size the build prerenders at: with no script there is no
@@ -117,7 +112,7 @@ test("a code block runs beside its code, edits keep its state, and a broken edit
   // The first runnable block is the counter: its result runs.
   await expect(page.getByText("Count: 0").first()).toBeVisible({ timeout: 30_000 });
   await pressWords(page, "Increment");
-  await expect(page.getByText("Count: 1").first()).toBeVisible();
+  await expect(page.getByText("Count: 1").first()).toBeVisible({ timeout: 30_000 });
   // Edit the code in its editor: the result takes the edit and
   // keeps its state.
   const editor = page.locator("textarea").first();
