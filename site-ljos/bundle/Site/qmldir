@@ -6,3 +6,4 @@ CodeBlock 1.0 CodeBlock.qml
 Landing 1.0 Landing.qml
 DemosPage 1.0 DemosPage.qml
 NavLink 1.0 NavLink.qml
+ControlsHost 1.0 ControlsHost.qml

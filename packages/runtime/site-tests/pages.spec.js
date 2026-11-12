@@ -133,6 +133,26 @@ test("a site that imports Ljos.Blocks builds prerendered, its Slot's delegate in
   }
 });
 
+test("a page with a text editor prerenders, its text in the HTML", async () => {
+  const src = `import QtQuick\n\nColumn {\n    Text { text: "Edit me" }\n    TextEdit { width: 300; text: "import QtQuick" }\n}\n`;
+  const made = bundle("pages", (dir, written) => {
+    writeFileSync(join(dir, "Shell.qml"), src);
+    written.files = written.files.map((file) => (file.path === "Shell.qml" ? { path: file.path, bytes: Buffer.byteLength(src) } : file));
+    written.imports = ["QtQuick"];
+  });
+  try {
+    await buildSite({ dir: made.dir, out: made.out, qmlc, prerender: true });
+    const html = readFileSync(join(made.out, "index.html"), "utf8");
+    expect(html).toContain("Edit me");
+    // A textarea's words are its content, as a browser reads them:
+    // a `value` attribute on one is nobody's text.
+    expect(html).toContain(">import QtQuick</textarea>");
+    expect(html).not.toContain('value="import QtQuick"');
+  } finally {
+    made.remove();
+  }
+});
+
 test("a page that carries its words as data, larger than a pipe holds by default, still builds", async () => {
   const words = "word ".repeat(80_000);
   const made = bundle("pages", (dir, written) => {

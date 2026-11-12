@@ -237,17 +237,19 @@ Column {
                     }
                 }
             }
-            // Code, through the site's one code-block face.
+            // Code, through the site's one code-block face: plain,
+            // or live where the build ran it.
             CodeBlock {
-                visible: kind === "code"
+                visible: kind === "code" || kind === "live"
                 width: doc.textWidth
-                lang: kind === "code" ? (modelData.lang || "") : ""
+                lang: (kind === "code" || kind === "live") ? (modelData.lang || "") : ""
                 code: kind === "code" ? (modelData.code || "") : ""
-                rich: kind === "code" ? (modelData.rich || "") : ""
+                rich: (kind === "code" || kind === "live") ? (modelData.rich || "") : ""
                 harness: kind === "code" ? (modelData.harness || "") : ""
                 file: kind === "code" ? (modelData.file || "") : ""
                 group: kind === "code" ? (modelData.group || "") : ""
                 before: kind === "code" ? (modelData.before || false) : false
+                live: kind === "live" ? modelData.live : null
             }
             // A quote, or an admonition the Markdown named.
             Rectangle {

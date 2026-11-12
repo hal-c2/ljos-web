@@ -10,12 +10,15 @@
 // sync-docs has it: `LJOS_DOCS_DIR`, else the usual sibling layouts.
 // CI checks ljos-ui out at the pin and says where it put it.
 import { execSync } from "node:child_process";
-import { cpSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { chromium } from "@playwright/test";
 import { readMarkdownSite } from "ljos-web/markdown";
 import { buildSite } from "ljos-web/site";
+import { checkExamples, hashExample, loadHarnesses, loadPrerenders, renderPrerenders } from "ljos-web/codeblocks";
+import { assemble, tagged } from "ljos-web/codeblocks/parse";
 
 const here = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repo = resolve(here, "..");
@@ -53,10 +56,127 @@ const SECTIONS = [
   { id: "rust", label: "Rust" },
 ];
 const site = readMarkdownSite({ dir: docs, sections: SECTIONS });
+const qmlc = process.env.QMLC ?? join(repo, "target/debug/qmlc");
+
+// Live code blocks (docs/LJOS_WEB.md A27), without remark, as that
+// section has a Ljós-page site use them: assemble each page's fences
+// into examples, hold every one that claims to run to compiling and
+// running at build time, and give the ones that do to the shell as
+// live blocks — code beside its running result, the result
+// prerendered to a picture for the page as first written and for a
+// reader with no script, then mounted live in the page. An example
+// that does not compile or run and never claimed to stays plain
+// code and is counted; the site never shows a block as live that
+// is not.
+const harnesses = loadHarnesses(join(docs, "harness"));
+const liveAt = new Map(); // a page's code block -> its live payload
+{
+  const gathered = [];
+  for (const page of site.pages) {
+    const fences = page.blocks.filter((block) => block.kind === "code");
+    if (!fences.length) continue;
+    const said = fences.map((block) => ({
+      lang: block.lang,
+      code: block.code,
+      line: block.line ?? 0,
+      ...(block.harness ? { harness: block.harness } : {}),
+      ...(block.file ? { file: block.file } : {}),
+      ...(block.group ? { group: block.group } : {}),
+      ...(block.before ? { before: true } : {}),
+      of: block,
+    }));
+    const { examples } = assemble(said, { harnesses });
+    for (const example of examples) gathered.push({ page, example });
+  }
+  const cacheDir = join(here, ".codeblock-prerenders");
+  const checked = checkExamples(gathered.map(({ example }) => example), { qmlc });
+  const refused = new Map(checked.map(({ example, diagnostics }) => [example, diagnostics]));
+  const claimed = checked.filter(({ example }) => example.blocks.some(tagged));
+  if (claimed.length) {
+    console.error(`site-ljos: ${claimed.length} example(s) claim to run and do not compile:`);
+    for (const { diagnostics } of claimed) console.error(`  ${diagnostics.join("\n  ")}`);
+    process.exit(1);
+  }
+  const runnable = gathered.filter(({ example }) => !refused.has(example));
+  const { failures } = await renderPrerenders(runnable.map(({ example }) => example), { cacheDir, qmlc });
+  const unrun = new Map(failures.map(({ example, diagnostics }) => [example, diagnostics]));
+  const claimedUnrun = failures.filter(({ example }) => example.blocks.some(tagged));
+  if (claimedUnrun.length) {
+    console.error(`site-ljos: ${claimedUnrun.length} example(s) claim to run and did not run:`);
+    for (const { diagnostics } of claimedUnrun) console.error(`  ${diagnostics.join("\n  ")}`);
+    process.exit(1);
+  }
+  const prerendered = loadPrerenders(cacheDir);
+  const live = runnable.filter(({ example }) => !unrun.has(example) && prerendered[hashExample(example)]?.html);
+  // A picture of each live example's prerendered result, drawn by
+  // the browser from the prerender's own HTML, cached by hash: the
+  // stage a reader without script (and every reader, before the
+  // live mount) is shown.
+  const pictures = join(bundle, "Examples");
+  rmSync(pictures, { recursive: true, force: true });
+  mkdirSync(pictures, { recursive: true });
+  const shots = live.filter(({ example }) => !existsSync(join(cacheDir, `${hashExample(example).slice(0, 16)}.png`)));
+  if (shots.length) {
+    const browser = await chromium.launch();
+    try {
+      const page = await browser.newPage();
+      for (const { example } of shots) {
+        const hash = hashExample(example);
+        const { html } = prerendered[hash];
+        // A root that gave itself no size prerenders at none: the
+        // stage's own size is the picture's then, as in QML below.
+        const width = prerendered[hash].width > 0 ? prerendered[hash].width : 320;
+        const height = prerendered[hash].height > 0 ? prerendered[hash].height : 180;
+        await page.setViewportSize({ width, height });
+        await page.setContent(`<!doctype html><style>html,body{margin:0;background:#fdfbf6}</style><div id="app" style="position:relative;width:${width}px;height:${height}px">${html}</div>`);
+        await page.screenshot({ path: join(cacheDir, `${hash.slice(0, 16)}.png`), clip: { x: 0, y: 0, width, height } });
+      }
+    } finally {
+      await browser.close();
+    }
+  }
+  for (const { example } of live) {
+    const hash = hashExample(example);
+    const picture = `${hash.slice(0, 16)}.png`;
+    if (!existsSync(join(cacheDir, picture))) continue;
+    cpSync(join(cacheDir, picture), join(pictures, picture));
+    const width = prerendered[hash].width > 0 ? prerendered[hash].width : 320;
+    const height = prerendered[hash].height > 0 ? prerendered[hash].height : 180;
+    // The figure stands at the example's entry fence; its other
+    // fences stay in the flow as code.
+    const entryFence = example.blocks.find((block) => (block.file ?? "Main.qml") === example.entry) ?? example.blocks[0];
+    liveAt.set(entryFence.of, {
+      hash: hash.slice(0, 16),
+      entry: example.entry,
+      before: example.before,
+      ...(example.harness ? { harness: example.harness, harnessTemplate: example.harnessTemplate, harnessFile: example.harnessFile } : {}),
+      display: example.display,
+      picture,
+      width,
+      height,
+    });
+  }
+  console.log(
+    `site-ljos: ${live.length} live code blocks ` +
+      `(${gathered.length - live.length} left plain: ${checked.length} not compiling, ${failures.length} not running)`,
+  );
+}
 
 // The reading, as the data the shell's Content type holds. Written
 // fresh each build and gitignored: the Markdown is its source.
-const slim = site.pages.map(({ route, title, description, headings, blocks }) => ({ route, title, description, headings, blocks }));
+const slim = site.pages.map(({ route, title, description, headings, blocks }) => ({
+  route,
+  title,
+  description,
+  headings,
+  // A picture's address is the page's own: from its route's depth
+  // back to the site's root, where the pictures stand.
+  blocks: blocks.map((block) =>
+    liveAt.has(block)
+      ? { kind: "live", lang: block.lang, rich: block.rich, live: { ...liveAt.get(block), picture: `${"../".repeat(route.split("/").filter(Boolean).length)}Examples/${liveAt.get(block).picture}` } }
+      : block,
+  ),
+}));
 writeFileSync(
   join(bundle, "Site/Content.qml"),
   `pragma Singleton
@@ -108,7 +228,6 @@ writeFileSync(
   )}\n`,
 );
 
-const qmlc = process.env.QMLC ?? join(repo, "target/debug/qmlc");
 const pages = [
   { route: "/", title: "Ljós — malleable software, everywhere", props: { route: "/" } },
   { route: "/demos/", title: "Live demos — Ljós", props: { route: "/demos/" } },
@@ -143,5 +262,9 @@ for (const name of ["favicon.svg", "apple-touch-icon.png", "og-image.png"]) {
   const from = join(repo, "site/public", name);
   if (existsSync(from)) cpSync(from, join(out, name));
 }
+// A live block's picture is named from its payload, not written in
+// any QML the compiler sees, so no build step carries it: the
+// pictures the bundle was built with stand beside the pages.
+if (existsSync(join(bundle, "Examples"))) cpSync(join(bundle, "Examples"), join(out, "Examples"), { recursive: true });
 console.log(`site-ljos: ${pages.length} pages (${site.pages.length} docs) from ${docs}`);
 console.log(`site-ljos: ${out} (${built.files.length} files, ${built.bytes} bytes)`);

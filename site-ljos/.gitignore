@@ -1,5 +1,7 @@
 dist/
 test-results/
 playwright-report/
+.codeblock-prerenders/
 bundle/ljos-site.json
 bundle/Site/Content.qml
+bundle/Examples/

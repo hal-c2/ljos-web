@@ -1859,19 +1859,43 @@ to what the Markdown says, links resolved against the pages read)
 and `pages.spec.js` (each page at its route with only its words,
 read with JavaScript off, hydrated as the page its route names;
 a page that carries its words as megabytes of data still builds —
-the compiler is run with room for what it writes; and a site that
+the compiler is run with room for what it writes; a page with a
+text editor prerenders, its text in the HTML; and a site that
 imports `Ljos.Blocks` builds prerendered: the styles' own QML is
 no project's, and is compiled under the root it stands in, not
 the bundle's).
+
+Live code blocks (A27) stand in such a page as the decision there
+has it — the same halves without remark. The site's build
+assembles each page's fences, holds every one that claims to run
+to compiling and running (`checkExamples`, `renderPrerenders`),
+and gives the shell's one code-block face the ones that do as
+live blocks: an editor per file beside a stage. The stage as
+first written holds a picture the build drew of the prerendered
+result (an `<img>` in rich text, so it stands in the HTML for a
+reader with no script); in a browser a `ShellLoader` compiles the
+code in the page — through a script library that resolves it with
+`ljos-web/compiler`, given this page's Controls as the Astro
+site's compiler is given them — and takes the stage over, and
+every edit reloads it with its state kept, a broken one saying
+why beside the code. An example that does not compile or run and
+never claimed to stays plain highlighted code and is counted in
+the build's output (at the current pin: 138 live, 21 plain). A
+text field made in a prerender holds a selection and writes its
+text as a textarea's content, as a browser reads it
+(`server/dom.js`).
 
 What a page of many has that a page of one has not, stated plain:
 
 - Every page carries the one bundle's data with it: a docs site's
   shell reads every page's blocks from the reading the build
   wrote in, so the script a reader loads holds the whole site's
-  words (ljos.dev's is some 20 MB of assets, the in-page
+  words (ljos.dev's is some 35 MB of assets, the in-page
   compiler's link table most of it). The HTML a reader without
-  script gets is only the page asked for.
+  script gets is only the page asked for. A live block mounts
+  when its page is made, not only as it nears the viewport as
+  the DOM hydrator mounts its figures: a page's blocks compile
+  as the page stands up.
 - A link in rich text is the runtime's `data-link`, followed when
   the page has hydrated; with no script the words and the address
   are in the page, and the navigation is readable, but no press

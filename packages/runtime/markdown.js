@@ -238,12 +238,13 @@ export function markdownBlocks(markdown, { routeOf = (href) => href } = {}) {
     const fence = /^\s*(`{3,}|~{3,})(.*)$/.exec(line);
     if (fence) {
       const info = fenceInfo(fence[2]);
+      const at = index + 1;
       const code = [];
       index++;
       while (index < lines.length && !new RegExp(`^\\s*${fence[1][0]}{3,}\\s*$`).test(lines[index])) code.push(lines[index++]);
       index++; // the closing fence, or past the end
       const text = `${code.join("\n")}\n`;
-      blocks.push({ kind: "code", ...info, code: text, rich: highlight(text.replace(/\n$/, ""), info.lang) });
+      blocks.push({ kind: "code", ...info, code: text, line: at, rich: highlight(text.replace(/\n$/, ""), info.lang) });
       continue;
     }
     const heading = /^(#{1,6})\s+(.*?)(?:\s+#+)?\s*$/.exec(line);

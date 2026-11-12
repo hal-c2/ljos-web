@@ -2,23 +2,26 @@
 
 The same site as `site/` (Astro + Starlight), built instead as
 prerendered Ljós pages with ljos-web's own site builder
-(docs/LJOS_WEB.md A12, A26, A27). The Astro site stays and keeps
-deploying; this stands beside it until it reaches parity, and
-nothing here is served or deployed yet.
+(docs/LJOS_WEB.md A12, A26, A27, A28). The Astro site stays and
+keeps deploying; this stands beside it until it reaches parity,
+and nothing here is served or deployed yet.
 
 - `bundle/` — the shell and pages as QML: header, sidebar,
   content, an "On this page" contents list, footer; the landing
   page; the demos page; a docs page that shows Markdown blocks.
-  Code blocks render as highlighted static code through the one
-  named hook (`Site/CodeBlock.qml`), where the live code-block
-  lane's editor plugs in; it already carries the whole fence
-  contract.
+  Every fence goes through the one code-block face
+  (`Site/CodeBlock.qml`): live where the build ran it — an editor
+  beside its running result, edits recompiled in the page with
+  state kept, a picture of the result standing in the prerendered
+  HTML — and highlighted static code where it did not.
 - `scripts/build.mjs` — reads the docs of the pinned ljos-ui
   revision (`../site/ljos-ui.sha`, found as the Astro build's
   sync-docs finds them: `LJOS_DOCS_DIR` or a sibling checkout)
-  with `ljos-web/markdown`, writes them into the bundle as
-  `Site/Content.qml` (generated, gitignored), and builds every
-  route prerendered into `dist/`.
+  with `ljos-web/markdown`, assembles and checks their examples
+  and draws each live one's picture (`ljos-web/codeblocks`,
+  cached under `.codeblock-prerenders/`), writes the reading into
+  the bundle as `Site/Content.qml` (generated, gitignored), and
+  builds every route prerendered into `dist/`.
 - `tests/` — the landing page's word, a docs page read with
   JavaScript off, navigation and light/dark with it on, and
   parity: the built routes are the docs' routes (and the Astro

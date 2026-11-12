@@ -454,6 +454,46 @@ class Element {
   }
   focus() {}
   blur() {}
+  // A text field's selection, for an editor made in a prerender: no
+  // reader selects in it there, but an editor that is made at all
+  // puts its cursor somewhere and reads it back, and the text it
+  // holds is the page's to write. The browser's own field takes
+  // over as the page hydrates.
+  get selectionStart() {
+    return this._selection?.start ?? 0;
+  }
+  set selectionStart(at) {
+    this.setSelectionRange(at, Math.max(at, this.selectionEnd));
+  }
+  get selectionEnd() {
+    return this._selection?.end ?? 0;
+  }
+  set selectionEnd(at) {
+    this.setSelectionRange(Math.min(at, this.selectionStart), at);
+  }
+  get selectionDirection() {
+    return this._selection?.direction ?? "forward";
+  }
+  set selectionDirection(direction) {
+    (this._selection ??= { start: 0, end: 0, direction: "forward" }).direction = direction;
+  }
+  setSelectionRange(start, end, direction = "forward") {
+    const length = String(this.value ?? "").length;
+    const clamp = (at) => Math.max(0, Math.min(length, Math.floor(Number(at) || 0)));
+    this._selection = { start: clamp(start), end: clamp(end), direction: direction === "backward" ? "backward" : "forward" };
+  }
+  setRangeText(text, start, end, mode = "preserve") {
+    const value = String(this.value ?? "");
+    const from = start === undefined ? this.selectionStart : Math.max(0, Math.min(value.length, start));
+    const to = end === undefined ? this.selectionEnd : Math.max(0, Math.min(value.length, end));
+    this.value = value.slice(0, from) + String(text) + value.slice(to);
+    if (mode === "start") this.setSelectionRange(from, from);
+    else if (mode === "select") this.setSelectionRange(from, from + String(text).length);
+    else if (mode !== "preserve") this.setSelectionRange(from + String(text).length, from + String(text).length);
+  }
+  select() {
+    this.setSelectionRange(0, String(this.value ?? "").length);
+  }
   click() {}
   scrollTo(given = {}) {
     if (typeof given === "object") {
@@ -530,6 +570,14 @@ class Fragment extends Element {
 export function serialize(node) {
   if (node.nodeType === 3) return escapeText(node.data);
   if (node.nodeType === 11) return node.childNodes.map(serialize).join("");
+  // A textarea's value is its content, as a browser reads it: the
+  // reflected `value` attribute (above) is an input's spelling, and
+  // a browser given it on a textarea reads an empty field.
+  if (node.localName === "textarea") {
+    const attributes = [...node.attributes].filter(([name]) => name !== "value").map(([name, value]) => ` ${name}="${escapeAttribute(value)}"`).join("");
+    const style = node.style.cssText ? ` style="${escapeAttribute(node.style.cssText)}"` : "";
+    return `<textarea${attributes}${style}>${escapeText(node.getAttribute("value") ?? node.textContent)}</textarea>`;
+  }
   const attributes = [...node.attributes].map(([name, value]) => ` ${name}="${escapeAttribute(value)}"`).join("");
   const style = node.style.cssText ? ` style="${escapeAttribute(node.style.cssText)}"` : "";
   if (VOID.has(node.localName)) return `<${node.localName}${attributes}${style}>`;

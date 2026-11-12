@@ -13,6 +13,30 @@ async function press(page, locator) {
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
 }
 
+// The same press, on the first of several matches that stands on
+// the page with a size (a result's button, where an ancestor in the
+// scene carries the same words and no box of its own).
+async function pressWords(page, words) {
+  const matches = page.getByText(words, { exact: true });
+  await expect
+    .poll(async () => {
+      for (let i = 0; i < (await matches.count()); i++) {
+        const box = await matches.nth(i).boundingBox().catch(() => null);
+        if (box && box.width > 0 && box.height > 0) return i;
+      }
+      return -1;
+    }, { timeout: 20_000 })
+    .toBeGreaterThanOrEqual(0);
+  for (let i = 0; i < (await matches.count()); i++) {
+    const box = await matches.nth(i).boundingBox().catch(() => null);
+    if (box && box.width > 0 && box.height > 0) {
+      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+      return;
+    }
+  }
+  throw new Error(`nothing on the page to press for ${words}`);
+}
+
 // The size the build prerenders at: with no script there is no
 // relayout, and the page keeps the build's geometry (docs/LJOS_WEB.md
 // A26 — hydration settles the exact numbers in place).
@@ -80,6 +104,51 @@ test("with script, the sidebar navigates and the contents list lands on its head
   await press(page, late);
   await expect(page.getByText("The authoring server (ljos mcp)", { exact: true }).first()).toBeInViewport();
   expect(errors).toEqual([]);
+});
+
+test("a code block runs beside its code, edits keep its state, and a broken edit keeps the last good result", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  // Tall enough that the first block's editor and its result stand
+  // together without scrolling the page's own Flickable.
+  await page.setViewportSize({ width: 1440, height: 1600 });
+  await page.goto("/start/first-app/");
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  // The first runnable block is the counter: its result runs.
+  await expect(page.getByText("Count: 0").first()).toBeVisible({ timeout: 30_000 });
+  await pressWords(page, "Increment");
+  await expect(page.getByText("Count: 1").first()).toBeVisible();
+  // Edit the code in its editor: the result takes the edit and
+  // keeps its state.
+  const editor = page.locator("textarea").first();
+  await expect(editor).toBeVisible();
+  await editor.click();
+  await page.keyboard.press("Control+Home");
+  await page.keyboard.type("// edited\n");
+  await expect(page.getByText("Count: 1").first()).toBeVisible({ timeout: 30_000 });
+  // A broken edit says why, and the last good result still stands.
+  await page.keyboard.press("Control+Home");
+  await page.keyboard.type("Broken {");
+  await expect(page.getByText(/Main\.qml:\d+/).first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("Count: 1").first()).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test("with JavaScript off a runnable block is its code beside a picture of its result", async ({ browser }) => {
+  const context = await browser.newContext({ javaScriptEnabled: false, viewport: BUILD_SIZE });
+  try {
+    const page = await context.newPage();
+    await page.goto("/start/first-app/");
+    // The code stands in its editor field, readable as written.
+    await expect(page.locator("textarea").first()).toHaveValue(/property int count: 0/);
+    // The stage's picture: the example's prerendered result as an
+    // image in the page, not words promising one.
+    const pictured = page.locator('img[src*="Examples/"][src$=".png"]').first();
+    await expect(pictured).toBeVisible();
+    expect(await pictured.evaluate((img) => img.complete && img.naturalWidth > 0)).toBe(true);
+  } finally {
+    await context.close();
+  }
 });
 
 test("light and dark are the reader's", async ({ page }) => {

@@ -35,6 +35,12 @@ Rectangle {
     // The scroller a docs page lands its headings in is named as
     // the page is made, below; only a press in a browser asks it.
 
+    // Named, never made: this page is built with Qt Quick Controls,
+    // so a live block's compiler may be given them (A15).
+    Component {
+        ControlsHost {}
+    }
+
     // The header.
     Rectangle {
         id: header
