@@ -1,7 +1,7 @@
 // Fonts: QML's `font` group as CSS, and how wide and how tall text set in
 // one is. Text is measured here, on a canvas, and not by laying out
 // elements: a binding reads `implicitWidth` before anything is in the page.
-import { derived, flush, group, kinds, typed } from "../object.js";
+import { alone, derived, flush, group, kinds, typed } from "../object.js";
 import { given } from "./compute.js";
 import { signal } from "#kernel";
 
@@ -46,9 +46,11 @@ export const font = group({
   // Ljós's name for the pixel size, a second name for it on every font
   // (ljos-ui's type table has `size` in `QtQuick.font`): a file of either
   // API may say `font.size`, and what it says is the pixel size.
-  size: typed(
-    kinds.pixels,
-    derived((self) => self.font.pixelSize),
+  size: alone(
+    typed(
+      kinds.pixels,
+      derived((self) => self.font.pixelSize),
+    ),
   ),
   pixelSize: typed(
     kinds.pixels,

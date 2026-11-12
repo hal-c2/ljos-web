@@ -11,9 +11,12 @@ export function lazy(self, compute, first) {
 }
 
 // Whether a property of a group was given, by itself or through the whole
-// group (`font: other.font`, `sourceSize: Qt.size(10, 10)`).
+// group (`font: other.font`, `sourceSize: Qt.size(10, 10)`). A member
+// that stands alone (a font's `size`) is given only by itself: a whole
+// font value always has one, as its pixel size by the other name.
 export function given(self, name, member) {
-  return slot(self, `${name}$${member}`).explicit() || slot(self, name).get()?.[member] !== undefined;
+  const at = slot(self, `${name}$${member}`);
+  return at.explicit() || (!at.alone && slot(self, name).get()?.[member] !== undefined);
 }
 
 // Whether something decides the item's width (or height): what it was given,
