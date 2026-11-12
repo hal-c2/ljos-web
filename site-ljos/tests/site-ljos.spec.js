@@ -220,6 +220,16 @@ async function resetFromKeyboard(page, before) {
   expect(await applies(page), "Shift+Tab from the editor reaches Reset, and Return resets").toBeGreaterThan(before);
 }
 
+// The Pantry's stage: where the running app stands, under whichever
+// shell. A shell's button is looked for there and nowhere else, and
+// must be the only one of its name, so a shell that grows a second
+// fails here instead of having the wrong one pressed.
+async function stageButton(page, name) {
+  const button = page.getByRole("group", { name: "The Pantry, running" }).getByRole("button", { name });
+  await expect(button, `one "${name}" on the Pantry's stage`).toHaveCount(1);
+  return button;
+}
+
 // A visitor's own shell over the Pantry's blocks: its own title, the
 // basket, one button that adds tea, the status and the note.
 const MY_SHELL = [
@@ -253,7 +263,7 @@ test("the flagship: rewrite the Pantry's shell and its state survives", async ({
   await page.goto("/demos/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
   await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Add tea" }).click();
+  await (await stageButton(page, "Add tea")).click();
   await expect(page.getByText("1 in the basket · £3.50").first()).toBeVisible();
 
   const editor = page.locator("textarea").first();
@@ -263,7 +273,7 @@ test("the flagship: rewrite the Pantry's shell and its state survives", async ({
   await expect(page.getByText("My Pantry", { exact: true })).toBeVisible({ timeout: 30_000 });
   // What the app held, it still holds — and still works.
   await expect(page.getByText("1 in the basket · £3.50").first()).toBeVisible();
-  await page.getByRole("button", { name: "Add tea" }).click();
+  await (await stageButton(page, "Add tea")).click();
   await expect(page.getByText("2 in the basket · £7.00").first()).toBeVisible();
 
   // A broken shell is refused with what broke and where, and the
@@ -316,7 +326,7 @@ test("Reset applies the app's shell once over the visitor's, keeps the basket, a
     // one.
     await pastDebounce(page);
     expect(await applies(page), "loading the demo applies its shell once").toBe(1);
-    await page.getByRole("button", { name: "Add tea" }).click();
+    await (await stageButton(page, "Add tea")).click();
     await shownInHeldTime(page, page.getByText("1 in the basket · £3.50").first());
 
     const editor = page.locator("textarea").first();
@@ -345,7 +355,7 @@ test("Reset applies the app's shell once over the visitor's, keeps the basket, a
     // The visitor's shell, and a second tea added through its own
     // button: the basket now holds what two shells put there.
     await landedEdit();
-    await page.getByRole("button", { name: "Add tea" }).click();
+    await (await stageButton(page, "Add tea")).click();
     basket = "2 in the basket · £7.00";
     await shownInHeldTime(page, page.getByText(basket).first());
 
@@ -400,7 +410,7 @@ test("Reset applies the app's shell once over the visitor's, keeps the basket, a
     await expect(page.getByText("Never Landed", { exact: true })).toHaveCount(0);
 
     // The app's shell, back, works on the basket it kept.
-    await page.getByRole("button", { name: "Add tea" }).click();
+    await (await stageButton(page, "Add tea")).click();
     await shownInHeldTime(page, page.getByText("3 in the basket · £10.50").first());
   } finally {
     await context.close();
@@ -414,7 +424,7 @@ test("a visitor's demos page holds no test hook", async ({ page }) => {
   await page.goto("/demos/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
   // The basket answers only once the shell has applied.
-  await page.getByRole("button", { name: "Add tea" }).click();
+  await (await stageButton(page, "Add tea")).click();
   await expect(page.getByText("1 in the basket · £3.50").first()).toBeVisible();
   expect(await page.evaluate(() => ["__ljosTest", "ljosPantryApplies"].filter((name) => name in globalThis))).toEqual([]);
 });
@@ -434,7 +444,7 @@ test("every showcase demo stands in its slot, on the landing and the demos page"
   await expect(page.getByText("Field guide")).toBeVisible();
   await expect(page.getByText("Shuffle the tiles")).toBeVisible();
   // The other demos did not take the flagship's place away.
-  await expect(page.getByRole("button", { name: "Add bread" })).toBeAttached();
+  await stageButton(page, "Add bread");
 });
 
 test("the demos page reads with JavaScript off: the app's shell and words stand", async ({ browser }) => {

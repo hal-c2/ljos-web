@@ -72,10 +72,14 @@ Column {
         onTriggered: demo.apply()
     }
 
-    // The stage: the running app, under whichever shell stands.
+    // The stage: the running app, under whichever shell stands. It
+    // is a named group, so the app's controls are found as the app's,
+    // apart from the editor's and the page's.
     Item {
         width: parent.width
         height: 400
+        Accessible.role: Accessible.Grouping
+        Accessible.name: "The Pantry, running"
 
         ShellLoader {
             id: stage
