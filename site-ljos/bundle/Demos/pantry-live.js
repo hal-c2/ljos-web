@@ -16,8 +16,13 @@ function setProject(files, text) {
     shellText = text;
 }
 
+// Every apply sets the shell, so it is counted here, on the page,
+// where the site's own test reads it: a reload the demo did not
+// mean to make shows in the count the moment it starts, where a
+// remade node would show only once its compile had landed.
 function setShell(text) {
     shellText = text;
+    globalThis.ljosPantryApplies = (globalThis.ljosPantryApplies || 0) + 1;
 }
 
 async function compileWith() {
