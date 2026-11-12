@@ -24,11 +24,39 @@
 h1, h2, .hero h1 { font-family: ui-serif, Georgia, serif; letter-spacing: -0.01em; }
 .ljos-demo { border: 1px solid var(--sl-color-gray-5); border-radius: 6px; padding: 1rem; margin: 1.5rem 0; background: var(--sl-color-bg); }
 .ljos-demo figcaption { font-size: 0.875rem; margin-top: 0.75rem; }
-.ljos-demo__stage { min-height: 180px; display: grid; place-items: center; }
-.ljos-demo__fallback { text-align: center; color: var(--sl-color-text); }
+.ljos-demo__stage { display: grid; place-items: center; }
+/* The fallback is a real screenshot of the demo running plus its
+   description: what a reader with no JavaScript, no wasm or no
+   WebGPU/WebGL gets instead of the stage. */
+.ljos-demo__fallback { text-align: center; color: var(--sl-color-text); max-width: 720px; }
+.ljos-demo__fallback img { width: 100%; height: auto; border-radius: 6px; display: block; }
+.ljos-demo__fallback p { margin: 0.6rem 0 0; font-size: 0.9rem; }
 .ljos-demo[data-state="live"] .ljos-demo__fallback { display: none; }
 .ljos-demo__error { display: none; }
 .ljos-demo[data-state="failed"] .ljos-demo__error { display: block; }
-/* mount() sizes the scene to its element, so the element must have a
-   size: the demos are written at 320x180. */
-.ljos-demo__mount { width: 320px; height: 180px; max-width: 100%; }
+/* QML positions every item itself; the page's prose rhythm
+   (Starlight's sibling margins) must not move them. */
+.ljos-demo__mount *, .ljos-demo__mount *::before, .ljos-demo__mount *::after { margin: 0; }
+/* Demos mount with fill, so the scene takes the element's size:
+   the stage keeps each demo's designed aspect at any width. */
+.ljos-demo__mount { width: min(720px, 100%); aspect-ratio: var(--demo-aspect, 720 / 420); }
+.ljos-demo[data-state="loading"] .ljos-demo__mount,
+.ljos-demo[data-state="failed"] .ljos-demo__mount { display: none; }
+
+/* The Pantry flagship: editor left, running app right. The live
+   drop renders its own file bar inside the stage; the editor's
+   Apply and Reset drive the same handle, so the bar stays out. */
+.ljos-demo[data-ljos-demo="pantry"] .ljos-demo__mount { width: 100%; aspect-ratio: auto; }
+.pantry { display: grid; grid-template-columns: minmax(300px, 1fr) minmax(500px, 1.1fr); gap: 1rem; width: 100%; align-items: start; }
+@media (max-width: 1100px) { .pantry { grid-template-columns: 1fr; } .pantry-stage { min-height: 25rem; overflow-x: auto; } }
+.pantry-editor__label { display: block; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.4rem; }
+.pantry-editor__text { width: 100%; box-sizing: border-box; font-family: var(--sl-font-mono); font-size: 0.78rem; line-height: 1.45; padding: 0.6rem; border-radius: 6px; border: 1px solid var(--sl-color-gray-5); background: var(--sl-color-black); color: var(--sl-color-gray-2); min-height: 26rem; resize: vertical; white-space: pre; overflow: auto; }
+:root[data-theme="light"] .pantry-editor__text { background: oklch(0.22 0.015 75); color: oklch(0.93 0.01 85); }
+.pantry-editor__bar { display: flex; gap: 0.6rem; margin-top: 0.5rem; flex-wrap: wrap; }
+.pantry-editor__bar button { font: inherit; font-size: 0.9rem; padding: 0.45rem 0.9rem; border-radius: 6px; border: 1px solid var(--sl-color-gray-5); cursor: pointer; }
+.pantry-apply { background: var(--ljos-amber-strong); color: #fff; border-color: transparent; font-weight: 600; }
+.pantry-editor__status { min-height: 1.4em; font-size: 0.9rem; margin: 0.5rem 0 0; }
+.pantry-editor__errors { white-space: pre-wrap; font-family: var(--sl-font-mono); font-size: 0.78rem; color: #8a1111; background: #fff4f4; border-radius: 6px; padding: 0.5rem 0.6rem; margin: 0.5rem 0 0; }
+.pantry-editor__hint { font-size: 0.85rem; color: var(--sl-color-gray-3); margin: 0.5rem 0 0; }
+.pantry-stage { min-height: 26rem; height: 100%; }
+.pantry-stage .ljos-live-bar { display: none; }

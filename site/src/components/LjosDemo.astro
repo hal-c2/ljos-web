@@ -1,25 +1,62 @@
 ---
 // A live ljos-web demo as a client-only island. The page is complete
-// without it: the fallback (a text picture of what the demo does) is
-// server-rendered, the runtime loads lazily when the figure scrolls
-// into view, and a failed load keeps the fallback plus an honest note.
-interface Props { demo: "counter" | "gauge" | "toggle" | "clock"; title: string; fallback: string; }
-const { demo, title, fallback } = Astro.props;
+// without it: a real screenshot of the demo running plus a description
+// is server-rendered as the fallback, the runtime loads lazily when
+// the figure scrolls into view, and a browser that cannot run it
+// (no wasm, no WebGPU/WebGL, no JS) keeps the picture and the words.
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import pantryImg from "../assets/fallbacks/pantry.jpg";
+import orbitImg from "../assets/fallbacks/orbit.jpg";
+import shaderImg from "../assets/fallbacks/shader.jpg";
+import fieldguideImg from "../assets/fallbacks/fieldguide.jpg";
+import motionImg from "../assets/fallbacks/motion.jpg";
+
+interface Props {
+  demo: "pantry" | "orbit" | "shader" | "fieldguide" | "motion";
+  title: string;
+  caption: string;
+  fallback: string;
+  aspect?: string;
+}
+const { demo, title, caption, fallback, aspect = "720 / 420" } = Astro.props;
+const images = { pantry: pantryImg, orbit: orbitImg, shader: shaderImg, fieldguide: fieldguideImg, motion: motionImg };
+const image = images[demo];
+// The Pantry editor starts from the app's own shell source, read
+// from the file the demo is built from so the words visitors see
+// are the words that run. This component is bundled for the
+// server, so the file is looked for from the site's root (the
+// build's working directory) and from beside the component.
+const shellCandidates = [
+  resolve(process.cwd(), "src/demos/pantry/Shell.qml"),
+  fileURLToPath(new URL("../demos/pantry/Shell.qml", import.meta.url)),
+  fileURLToPath(new URL("../../src/demos/pantry/Shell.qml", import.meta.url)),
+];
+const shellSource = demo === "pantry"
+  ? readFileSync(shellCandidates.find((f) => existsSync(f)), "utf8")
+  : null;
 ---
-<figure class="ljos-demo" data-ljos-demo={demo} data-state="loading" aria-label={title}>
+
+<figure class="ljos-demo" data-ljos-demo={demo} data-state="loading" aria-label={title} style={`--demo-aspect: ${aspect}`}>
   <div class="ljos-demo__stage">
-    <p class="ljos-demo__fallback">{fallback}</p>
+    <div class="ljos-demo__fallback">
+      <img src={image.src} width={image.width} height={image.height} alt="" loading="lazy" decoding="async" />
+      <p>{fallback}</p>
+    </div>
     <div class="ljos-demo__mount"></div>
   </div>
-  <p class="ljos-demo__error" role="status">The live demo could not load here. The description above is what it does; the QML source is in <code>site/src/demos/</code>.</p>
-  <figcaption><strong>{title}</strong> — QML compiled by ljos-web, running in this page.</figcaption>
+  <p class="ljos-demo__error" role="status">The live demo needs a browser feature this one does not have, so the picture above stands in for it. The demo's source is in <code>site/src/demos/</code> — the same file runs as a desktop app with <code>ljos run</code>.</p>
+  <figcaption><strong>{title}.</strong> {caption}</figcaption>
+  {shellSource !== null && <script type="application/json" data-shell-source set:html={JSON.stringify(shellSource).replaceAll("<", "\\u003c")} />}
 </figure>
 <script>
   const loaders = {
-    counter: () => import("../islands/counter.js"),
-    gauge: () => import("../islands/gauge.js"),
-    toggle: () => import("../islands/toggle.js"),
-    clock: () => import("../islands/clock.js"),
+    pantry: () => import("../demos/pantry/index.js"),
+    orbit: () => import("../demos/orbit/index.js"),
+    shader: () => import("../demos/shader/index.js"),
+    fieldguide: () => import("../demos/fieldguide/index.js"),
+    motion: () => import("../demos/motion/index.js"),
   };
   const io = new IntersectionObserver((entries) => {
     for (const entry of entries) {
@@ -28,7 +65,8 @@ const { demo, title, fallback } = Astro.props;
       io.unobserve(fig);
       const name = fig.getAttribute("data-ljos-demo");
       loaders[name]()
-        .then((m) => { m.default(fig.querySelector(".ljos-demo__mount")); fig.dataset.state = "live"; })
+        .then((m) => m.default(fig.querySelector(".ljos-demo__mount")))
+        .then(() => { fig.dataset.state = "live"; })
         .catch(() => { fig.dataset.state = "failed"; });
     }
   }, { rootMargin: "200px" });

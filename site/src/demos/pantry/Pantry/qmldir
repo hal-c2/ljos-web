@@ -1,0 +1,7 @@
+module Pantry
+# block Basket 1.0 Basket.qml Pantry "What is being bought: counts, total, and adding to it"
+Basket 1.0 Basket.qml
+# block StatusSlot 1.0 StatusSlot.qml Pantry "The place the basket's status line is shown"
+StatusSlot 1.0 StatusSlot.qml
+# block Note 1.0 Note.qml Pantry "A note field whose text is the visitor's own"
+Note 1.0 Note.qml

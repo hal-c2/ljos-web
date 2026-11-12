@@ -39,9 +39,21 @@ and Windows, with Android and iOS behind the same engine. It also
 compiles to the web through ljos-web. The demos on this page run
 that way in your browser.
 
-<LjosDemo demo="counter" title="Counter" fallback="A dark card reading “Count: 0”. Clicking it counts up — a QML property, a MouseArea, and a text binding." />
+This first demo is the point of Ljós in one small app. The Pantry's
+data — its basket, your note, its status line — lives in blocks.
+What you see around them is the app's shell, and the editor holds
+that shell's source. Rewrite it and apply: your shell takes over
+while the app keeps running and keeps everything it held. A shell
+that does not compile is refused with the place and the reason,
+and the running one stays. People and their agents reshaping an
+app while it runs is what Ljós is for.
 
-<LjosDemo demo="gauge" title="Gauge" fallback="A percentage and an amber bar that eases between 18 % and 92 %. One animated property drives both the number and the bar's width." />
+<LjosDemo demo="pantry" title="Your own shell over a running app" caption="Blocks, slots and a live shell swap: rewrite the interface and the app's data never moves." fallback="The Corner Pantry: three goods with prices, an empty basket, a note field, and beside it the shell source that lays them out — ready to rewrite and apply while the app runs." aspect="auto" />
+
+And because the same engine draws everywhere, a page can carry
+real-time 3D as one more item in the tree:
+
+<LjosDemo demo="orbit" title="A 3D scene you can orbit" caption="Quick3D drawn by Ljós's wgpu renderer — drag to orbit, scroll or pinch to zoom." fallback="A lighthouse at night on dark water: a striped tower with a lit lamp, its spotlight sweeping the surface while a brass sphere, a stone cube and a rust cone circle it." />
 
 ## What it is built for
 
@@ -83,5 +95,5 @@ that way in your browser.
 
 - [What is Ljós?](/start/) — the map of these docs.
 - [Your first app](/start/first-app/) — a QML file, a window, live edits.
-- [Live demos](/demos/) — every embedded example in one place.
+- [Showcase](/demos/) — every live demo in one place: a shell you rewrite, 3D, a custom shader, a whole app, and motion.
 - [Goals and principles](/quality/principles/) — what Ljós does, what it leaves out, and why.
