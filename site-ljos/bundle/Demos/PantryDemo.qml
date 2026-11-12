@@ -20,6 +20,13 @@ Column {
 
     property string said: ""
     property bool started: false
+    // What the demo last wrote into the editor itself: a change
+    // to that text is not an edit, whenever it is heard — a
+    // change handler may be queued behind the assignment (the
+    // runtime's `after()`), so neither a flag set after the
+    // assignment nor stopping the debounce is the guard; the
+    // text compared is.
+    property string written: ""
 
     width: parent ? parent.width : 680
     spacing: 0
@@ -36,16 +43,15 @@ Column {
         });
     }
     function resetToAppShell() {
-        editor.text = PantryProject.shellText;
-        // The assignment itself asks for an apply of its own.
-        debounce.stop();
+        written = PantryProject.shellText;
+        editor.text = written;
         apply();
     }
 
     Component.onCompleted: {
         LivePantry.setProject(PantryProject.files, PantryProject.shellText);
-        editor.text = PantryProject.shellText;
-        debounce.stop();
+        written = PantryProject.shellText;
+        editor.text = written;
         apply();
     }
 
@@ -149,7 +155,10 @@ Column {
                 font.pixelSize: 12
                 wrapMode: TextEdit.NoWrap
                 selectByMouse: true
-                onTextChanged: debounce.restart()
+                onTextChanged: {
+                    if (text !== demo.written)
+                        debounce.restart();
+                }
             }
         }
     }

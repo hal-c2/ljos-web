@@ -167,6 +167,17 @@ test("the flagship: rewrite the Pantry's shell and its state survives", async ({
   await page.goto("/demos/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
   await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible();
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  // Loading the demo applies its shell once: past the editor's
+  // debounce, the stage's item is still the one first made (a
+  // second apply would reload and remake it).
+  await page.getByText("The Corner Pantry", { exact: true }).evaluate((el) => {
+    el.setAttribute("data-tag", "first-made");
+  });
+  await page.waitForTimeout(900);
+  expect(
+    await page.getByText("The Corner Pantry", { exact: true }).evaluate((el) => el.getAttribute("data-tag")),
+  ).toBe("first-made");
   await page.getByRole("button", { name: "Add tea" }).click();
   await expect(page.getByText("1 in the basket · £3.50").first()).toBeVisible();
 
@@ -222,6 +233,22 @@ test("the flagship: rewrite the Pantry's shell and its state survives", async ({
   await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible({ timeout: 30_000 });
   await expect(editor).toHaveValue(app);
   await expect(page.getByText("2 in the basket · £7.00").first()).toBeVisible();
+  // The reset's own writing into the editor is not an edit: past
+  // the debounce the stage's item is still the one the reset
+  // made — no second apply reloads it. This is the deferred
+  // path too (a press handler is a flush of its own): the guard
+  // compares the text, so whenever the change is heard, what
+  // the demo wrote itself restarts nothing.
+  await page.getByText("The Corner Pantry", { exact: true }).evaluate((el) => {
+    el.setAttribute("data-tag", "reset-made");
+  });
+  await page.waitForTimeout(900);
+  expect(
+    await page.getByText("The Corner Pantry", { exact: true }).evaluate((el) => el.getAttribute("data-tag")),
+  ).toBe("reset-made");
+  // A visitor's edit after all that still applies.
+  await editor.fill(app.replace('"The Corner Pantry"', '"Edited Once More"'));
+  await expect(page.getByText("Edited Once More", { exact: true })).toBeVisible({ timeout: 30_000 });
 });
 
 test("every showcase demo stands in its slot, on the landing and the demos page", async ({ page }) => {
