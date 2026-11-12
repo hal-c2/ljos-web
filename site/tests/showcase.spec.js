@@ -233,29 +233,43 @@ test("with wasm blocked the demos degrade to picture and words, and the Pantry s
 
 test("a demo off screen stops moving, and resumes in view", async ({ page }) => {
   await page.goto("/demos/");
-  const fig = await live(page, "orbit");
-  // The canvas's own pixels, read without scrolling to it: a
-  // screenshot would scroll the demo back into view to take it.
-  const pixels = () =>
+  const fig = await live(page, "motion");
+  // The puck springs after the pointer: fling it, scroll away
+  // mid-flight, and its place must not change until it is back.
+  // (GPU canvases have no readable bitmap; the puck's own style
+  // is where the spring says it is.)
+  const puckAt = () =>
     fig.evaluate((f) => {
-      const c = [...f.querySelectorAll("canvas")].sort((a, b) => b.width * b.height - a.width * a.height)[0];
-      const copy = document.createElement("canvas");
-      copy.width = c.width;
-      copy.height = c.height;
-      const ctx = copy.getContext("2d", { willReadFrequently: true });
-      ctx.drawImage(c, 0, 0);
-      return [...ctx.getImageData(0, 0, copy.width, copy.height).data.slice(0, 8192)].join(",");
+      const puck = [...f.querySelectorAll("div.qq")].find(
+        (el) => el.style.width === "54px" && (el.style.background ?? "").includes("232"),
+      );
+      const m = /translate\((-?[\d.]+)px, (-?[\d.]+)px\)/.exec(puck?.style.transform ?? "");
+      return m ? Number(m[1]) : Number.NaN;
     });
-  // In view it moves (which also proves the canvas can be read).
-  const seen = await pixels();
-  await expect.poll(pixels, { timeout: 30000 }).not.toBe(seen);
+  const mount = fig.locator(".ljos-demo__mount");
+  const box = await mount.boundingBox();
+  await page.mouse.move(box.x + box.width * 0.5, box.y + 60);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.15, box.y + 130, { steps: 3 });
+  await page.mouse.up();
+  // In view the spring travels a long way after the fling.
+  await expect.poll(async () => Math.abs((await puckAt()) - box.width * 0.5), { timeout: 10000 }).toBeGreaterThan(60);
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-  await page.waitForTimeout(900);
-  const away1 = await pixels();
-  await page.waitForTimeout(900);
-  expect(await pixels()).toBe(away1);
+  await page.waitForTimeout(400);
+  const away1 = await puckAt();
+  await page.waitForTimeout(700);
+  // Off screen the spring is not driven: at most the tail of the
+  // flight it was in, never the tens of pixels a live spring moves.
+  expect(Math.abs((await puckAt()) - away1)).toBeLessThan(2);
+  // Back in view the spring answers again: a new fling travels.
   await fig.scrollIntoViewIfNeeded();
-  await expect.poll(pixels, { timeout: 15000 }).not.toBe(away1);
+  const box2 = await mount.boundingBox();
+  const rested = await puckAt();
+  await page.mouse.move(box2.x + box2.width * 0.5, box2.y + 60);
+  await page.mouse.down();
+  await page.mouse.move(box2.x + box2.width * 0.85, box2.y + 130, { steps: 3 });
+  await page.mouse.up();
+  await expect.poll(async () => Math.abs((await puckAt()) - rested), { timeout: 15000 }).toBeGreaterThan(30);
 });
 
 test("reduced motion calms the demos instead of stopping them", async ({ browser }) => {

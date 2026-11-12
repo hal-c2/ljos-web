@@ -31,7 +31,9 @@ Rectangle {
         palette.base: "#171b26"
         palette.text: "#eef0f6"
         palette.placeholderText: "#9aa7c2"
-        placeholderText: qsTr("Type a note…")
-        Accessible.name: qsTr("Note for the baker")
+        // No Accessible.name: the control says its placeholder,
+        // as every TextField does; naming the wrapper here would
+        // label the box around the field instead of the field.
+        placeholderText: qsTr("Note for the baker…")
     }
 }
