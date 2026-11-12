@@ -236,6 +236,18 @@ building with it needs (`qt`: an installed Qt's QML; `with`: a directory
 of the module's QML). `mise run test:site` builds bundles into sites,
 opens one in headless Chromium and tries each refusal.
 
+With `--prerender` (`buildSite({ prerender: true })`, or `{ width,
+height }` for the size the page is made at) the build also writes the
+page's HTML at build time: its text, links and structure are in
+`index.html`, to be read with no script at all, and the page's script
+hydrates it — `hydrate(Entry, …)` of `ljos-web/object` takes the
+prerendered elements over instead of making the page again. What
+paints (a canvas, a shader, a 3D view) or is fetched does so when the
+page hydrates, over the elements written for it. Any page, not only a
+site bundle's, is rendered the same way with `renderToString` of
+`ljos-web/server` in a Node process of its own (`docs/LJOS_WEB.md`
+A26 says how, and what its limits are).
+
 ## A theme
 
 A page reads a theme as ljos-ui's `docs/theme.md` says: other values for

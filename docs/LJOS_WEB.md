@@ -1604,6 +1604,129 @@ DECISION: JavaScript stays the default renderer of View3D until those specs pass
 and until a scene's rebuild and a view read back as a texture cost less than they
 do: a View3D drawn into another's scene reads back every frame.
 
+### A26. A page written at build time, and taken over when it runs
+
+A page of ljos-web is made by its script, so a reader with no script —
+a crawler, a reader's first paint, a screen that has not run it yet —
+had nothing. A site may be built prerendered (`buildSite({ dir,
+prerender: true })`, `ljos-web build-site DIR --prerender`, `mise run
+site:build DIR -- --prerender`): the build writes the page's own HTML
+into `index.html` — its text, its links and its structure, in the
+markup the runtime itself makes — and the page's script then
+*hydrates* it, taking those elements over instead of making the page
+again. Any site may: nothing of a particular site is in it.
+
+How it works. What `qmlc` emits names no DOM: a compiled file is
+`createComponent` over this runtime's types, and the DOM is made by
+the types when the page runs (A2, A5). So there is no second,
+server-shaped output of the compiler to keep in step; a prerender is
+the same compiled components over the same runtime, made in Node
+instead of in a browser. The build makes a server bundle by the same
+Vite build with an SSR target (`server-entry`, beside the page's own
+bundle in the build's stage), and renders it in a Node process of its
+own (`packages/runtime/server/prerender.js`) over a document made for
+the purpose (`packages/runtime/server/dom.js`): enough of a DOM for
+the runtime's types to make their elements and be written as HTML.
+The kernel is the build's own — Solid's, or Ljós's graph where
+`LJOS_KERNEL=wasm` (A22) — in the prerender as in the page, so what a
+binding decides at build time is what it decides in the browser.
+Solid draws and Ljós decides on the server exactly as on the client;
+only the document under them differs.
+
+Each element the prerender makes is numbered as it is made, with
+the type whose making made it, and carries the two in the HTML
+(`data-hk="12:Text"`). `hydrate(Component, element)`
+(`ljos-web/object`, beside `mount`) makes the page over an element
+that holds such HTML: while the root is made, an element a type asks
+the document for is answered with the prerendered one of that number
+and type, and the effects that then run write to it as they always
+did — its listeners, its measured styles, its painted faces are the
+browser's own, settled in place. The nodes a reader was reading are
+the nodes that then behave. An element of another tag or for another
+type than the page asks for, or one no making asks for — the page
+made differently here than it was prerendered, an element more or
+fewer from what only the browser measures — is a mismatch: it is
+told of once on the console, no element after it is taken over
+either (from where the makings part, no number can be trusted to
+name the same making), what was not taken over is taken out and
+told of, and the page goes on as a mount would have made it. What the page says as it is made
+(`console.log`, QML's `print`) a prerender sends to the build's
+stderr, never into the HTML. That the page is live, the element it
+was hydrated into says (`data-ljos-hydrated`). With nothing
+prerendered in it, `hydrate` is `mount`.
+
+What a prerender has, and what it has not:
+
+- Everything a page's first making puts in its DOM is in the HTML:
+  text (plain, styled and rich, links as the runtime writes them),
+  the items and their order, colours, sizes and placing as the
+  runtime computed them, a model's rows made from what the file says.
+- Measurements a browser makes of real fonts are made on the server
+  by a canvas that measures by the font's size, not by its glyphs:
+  the first paint is the page's shape, and hydration settles the
+  exact numbers in place. A site may say the size its page is made
+  at (`prerender: { width, height }`, 1280×720 by default).
+- What paints is not in the HTML: a `Canvas`, a `ShaderEffect`, a
+  `View3D` and the other GPU faces prerender as the element they
+  paint into, of the size and place the page gives them, and paint
+  when the page hydrates. Put the words that say what such a view is
+  in the page beside it, as a site does for a browser with no WebGPU.
+- What is fetched is fetched when the page runs: a picture, a model
+  read over the network, a font. What a visitor's own browser holds
+  (a `Settings` store) a prerender has empty, as a first visit does.
+  The HTML has the page in the state it starts in, as a first load
+  anywhere does.
+- A live shell's page (A9) is its host's to make; `prerender` and
+  `liveShell` together are refused by the build.
+- The `import OpenTUI` dialect is drawn by Solid's own DOM templates
+  (Part I's other target), not by the runtime's types, and is not
+  prerendered by this: it is a page of terminal cells, not the site
+  a reader is served.
+
+**DECISION:** no `--emit ssr` in `qmlc`. Solid's server compiler
+makes strings of JSX elements; of a QtQuick page there are none —
+every object is a component whose type makes its own element. A
+server output of the compiler would be a second tree to keep equal
+to the first. The one compiled tree, run over the prerender's
+document, is the single source both sides draw from.
+
+**DECISION:** the prerender's document is ljos-web's own
+(`server/dom.js`), not a browser driven at build time and not a
+general DOM library: a build then needs nothing fetched and nothing
+running but Node, and what the document cannot do (paint, load,
+measure a glyph) is stated above rather than half-done.
+
+**DECISION:** adoption is by the order elements are made in, held in
+`data-hk` as that order's count and the type being made, not by a
+structural walk of the tree: the runtime's types make their elements
+where they make them (sixty-odd places), and the count of those
+makings is the one thing both sides share; the type is in the key
+because most elements are `<div>`s, and a count alone cannot tell a
+shifted one from its own. Copies a type makes of an element
+(`cloneNode`, a parser's) are not makings and carry no key; they are
+made again in the browser over the elements that do.
+
+A host that is not the site builder renders its own pages the same
+way: it builds each page a server bundle whose default export renders
+it (`export default (options) => renderToString(Entry, options)`,
+with `renderToString` of `ljos-web/server` in the same bundle, so
+that the entry and the renderer are over one runtime), in a Node
+process per page:
+
+```sh
+node node_modules/ljos-web/server/prerender.js page-server.mjs '{"width":1280,"height":720}' > page.html
+```
+
+and puts what it prints in the element its page calls
+`hydrate(Entry, …)` on. `renderToString(Component, { props, width,
+height })` is also there for a host that runs in a process it has
+already given the prerender's globals to (`installPrerenderGlobals`,
+also of `ljos-web/server`, before any module of the page's is
+loaded). The tests are `packages/runtime/site-tests/prerender.spec.js`:
+the page read with JavaScript off, the very nodes kept through
+hydration, a counter counting after it, on both kernels, and the
+site builder's own project bundle beside them.
+
 ## Part II — An application's own Rust types
 
 ## 1. The shape of a native type on the web

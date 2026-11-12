@@ -1599,84 +1599,103 @@ function onto(target, props, key, rest) {
   );
 }
 
+// What type is being made now, while its setups run: a prerender
+// writes it in an element's hydration key with the making's number,
+// and hydration expects it of the same making, so that a page made
+// differently is told apart where its elements are all `<div>`s.
+// Held where the prerender's document reads it as it makes an
+// element (`server/dom.js`), which is not in a page.
+const MAKING_KIND = Symbol.for("ljos-web.making-kind");
+let makingKind = "";
+const kindNow = (kind) => {
+  makingKind = kind;
+  globalThis[MAKING_KIND] = kind;
+};
+
 function create(Type, props) {
   if (props.$given) props = inherit(props, props.$given);
   if (props.$declare) Type = derive(Type, props.$declare);
   const self = props.$self ?? $object();
-  return complete(() => {
-    Object.setPrototypeOf(self, Type.proto);
-    hidden(self, "$type", Type);
-    hidden(self, "$props", props);
-    hidden(self, "$owner", getOwner());
-    hidden(self, "$parent", parent);
-    // What is made later inside an object bounded (a Repeater's delegate, a
-    // Loader's item) is bounded as it is.
-    const boundary = fault ?? parent?.$fault;
-    if (boundary) hidden(self, "$fault", boundary);
-    // A root that may be reloaded knows what was made in what, so that a
-    // reload can tell which object of the new tree is which of the old.
-    const born = parent ? parent.$born : making;
-    if (born) record(self, born);
-    hidden(self, "$slots", Object.create(null));
-    hidden(self, "$groups", Object.create(null));
-    hidden(self, "$signals", Object.create(null));
-    // `function tick() { }`: what the object's QML declares it can do.
-    if (props.$functions) {
-      for (const [name, declared] of Object.entries(props.$functions)) hidden(self, name, declared);
-    }
-    for (const type of Type.chain) type.spec.setup?.(self, props);
-    if (props.$aliases) {
-      for (const [name, path] of Object.entries(props.$aliases)) defineAlias(self, name, path);
-    }
-    // `toolbar.onBackClicked`, `stack.initialItem`: said of the object a
-    // property holds, and done before that object's own work on completion.
-    for (const key of Object.keys(props)) {
-      const at = key.indexOf("$");
-      if (at > 0 && key[0] >= "a" && key[0] <= "z" && !(key in Type.slots)) whenComplete(() => through(self, props, key, key));
-    }
-    if (Type.adopt && "children" in props) Type.adopt(self, props);
-    for (const key of Object.keys(props)) {
-      // `onWidthChanged`: a handler of a property's changes, not of a signal.
-      const property = /^on([A-Z]\w*)Changed$/.exec(key)?.[1];
-      if (!property) continue;
-      const name = property[0].toLowerCase() + property.slice(1);
-      if (name in Type.slots) self[`${name}Changed`].watch((value, firsts) => first(self, name, key, value, firsts));
-      else if (props.$aliases?.[name]) self[`${name}Changed`].watch();
-    }
-    // `Keys.onPressed`, `Layout.fillWidth`: the attached object is what does
-    // something about them, so it has to exist.
-    if (props.$attach) {
-      whenComplete(() => {
-        for (const type of props.$attach) type.attached?.(self);
-      });
-    }
-    const completed = props.Component$onCompleted;
-    if (completed) completions.push(() => heard(() => untrack(completed), undefined, self));
-    // An object a property holds is made with the rest, whoever reads it:
-    // a state entered from the start may change what is in it.
-    if (props.$made) {
-      const owner = getOwner();
-      holding.push(() =>
-        runWithOwner(owner, () => {
-          for (const name of props.$made) untrack(() => self[name]);
-        }),
-      );
-    }
-    const destruction = props.Component$onDestruction;
-    if (destruction) {
-      // Told once: when `destroy()` ends the object, or what owns it ends.
-      const tell = () => {
-        if (self.$gone) return;
-        hidden(self, "$gone", true);
-        destruction();
-      };
-      hidden(self, "$destruction", tell);
-      onCleanup(tell);
-    }
-    // Whoever read the object before it existed reads it again.
-    if (props.$self) self.$touch(next);
-    return self;
-  });
+  const outerKind = makingKind;
+  kindNow(Type.typeName ?? "");
+  try {
+    return complete(() => {
+      Object.setPrototypeOf(self, Type.proto);
+      hidden(self, "$type", Type);
+      hidden(self, "$props", props);
+      hidden(self, "$owner", getOwner());
+      hidden(self, "$parent", parent);
+      // What is made later inside an object bounded (a Repeater's delegate, a
+      // Loader's item) is bounded as it is.
+      const boundary = fault ?? parent?.$fault;
+      if (boundary) hidden(self, "$fault", boundary);
+      // A root that may be reloaded knows what was made in what, so that a
+      // reload can tell which object of the new tree is which of the old.
+      const born = parent ? parent.$born : making;
+      if (born) record(self, born);
+      hidden(self, "$slots", Object.create(null));
+      hidden(self, "$groups", Object.create(null));
+      hidden(self, "$signals", Object.create(null));
+      // `function tick() { }`: what the object's QML declares it can do.
+      if (props.$functions) {
+        for (const [name, declared] of Object.entries(props.$functions)) hidden(self, name, declared);
+      }
+      for (const type of Type.chain) type.spec.setup?.(self, props);
+      if (props.$aliases) {
+        for (const [name, path] of Object.entries(props.$aliases)) defineAlias(self, name, path);
+      }
+      // `toolbar.onBackClicked`, `stack.initialItem`: said of the object a
+      // property holds, and done before that object's own work on completion.
+      for (const key of Object.keys(props)) {
+        const at = key.indexOf("$");
+        if (at > 0 && key[0] >= "a" && key[0] <= "z" && !(key in Type.slots)) whenComplete(() => through(self, props, key, key));
+      }
+      if (Type.adopt && "children" in props) Type.adopt(self, props);
+      for (const key of Object.keys(props)) {
+        // `onWidthChanged`: a handler of a property's changes, not of a signal.
+        const property = /^on([A-Z]\w*)Changed$/.exec(key)?.[1];
+        if (!property) continue;
+        const name = property[0].toLowerCase() + property.slice(1);
+        if (name in Type.slots) self[`${name}Changed`].watch((value, firsts) => first(self, name, key, value, firsts));
+        else if (props.$aliases?.[name]) self[`${name}Changed`].watch();
+      }
+      // `Keys.onPressed`, `Layout.fillWidth`: the attached object is what does
+      // something about them, so it has to exist.
+      if (props.$attach) {
+        whenComplete(() => {
+          for (const type of props.$attach) type.attached?.(self);
+        });
+      }
+      const completed = props.Component$onCompleted;
+      if (completed) completions.push(() => heard(() => untrack(completed), undefined, self));
+      // An object a property holds is made with the rest, whoever reads it:
+      // a state entered from the start may change what is in it.
+      if (props.$made) {
+        const owner = getOwner();
+        holding.push(() =>
+          runWithOwner(owner, () => {
+            for (const name of props.$made) untrack(() => self[name]);
+          }),
+        );
+      }
+      const destruction = props.Component$onDestruction;
+      if (destruction) {
+        // Told once: when `destroy()` ends the object, or what owns it ends.
+        const tell = () => {
+          if (self.$gone) return;
+          hidden(self, "$gone", true);
+          destruction();
+        };
+        hidden(self, "$destruction", tell);
+        onCleanup(tell);
+      }
+      // Whoever read the object before it existed reads it again.
+      if (props.$self) self.$touch(next);
+      return self;
+    });
+  } finally {
+    kindNow(outerKind);
+  }
 }
 
 // What a reloadable root has made, in the order it was made, under what it
@@ -2107,6 +2126,82 @@ export function mount(Component, element, props = {}, options = {}) {
   };
   mounted.add(handle);
   return handle;
+}
+
+// Puts a component's object in the page over what a prerender of it
+// wrote there (`renderToString` of `ljos-web/server`), taking the
+// prerendered elements over instead of making the page again: while
+// the root is made, each element a type asks the document for is the
+// prerendered one of that making's number and type (its key is
+// `number:Type`, since most elements are `<div>`s and a count alone
+// cannot tell a shifted one from its own), and the effects that then
+// run write to it as they always did. A reader who was reading the
+// page keeps the very nodes they had; only what the browser measures
+// or paints differently is settled, in place.
+//
+// An element whose number the making never asks for, or asks for by
+// another tag or for another type — the page made differently here
+// than it was prerendered — is a mismatch: it is told of once, no
+// element after it is taken over either (from there no number can
+// be trusted to name the same making), what was not taken over is
+// taken out and told of, and the page goes on as a mount would have
+// made it. Nothing prerendered in `element` is a plain mount. That the
+// page was hydrated, `element` says (`data-ljos-hydrated`), so that
+// what waits for the live page need not guess.
+export function hydrate(Component, element, props = {}, options = {}) {
+  const marked = element.querySelectorAll("[data-hk]");
+  if (marked.length === 0) return mount(Component, element, props, options);
+  const keyed = (node) => {
+    const said = node.getAttribute("data-hk") ?? "";
+    const at = said.indexOf(":");
+    return at < 0 ? [Number(said), ""] : [Number(said.slice(0, at)), said.slice(at + 1)];
+  };
+  const waiting = new Map([...marked].map((node) => [...keyed(node), node]).map(([number, kind, node]) => [number, { kind, node }]));
+  const document = element.ownerDocument;
+  let made = 0;
+  let told = false;
+  const take = (tag) => {
+    // Once the makings have parted, no later number can be trusted to
+    // name the same making: the rest is made again, and what was
+    // prerendered of it is taken out below.
+    if (told) return null;
+    const held = waiting.get(++made);
+    if (!held) return null;
+    const { kind, node } = held;
+    // A making outside any type's setup (a measuring canvas, a bench)
+    // has no type to expect, on either side: where the key names one
+    // and this making is another's, the counts have parted, however
+    // alike the tags are.
+    const off =
+      node.localName !== String(tag).toLowerCase() ? `a <${String(tag).toLowerCase()}> where the prerendered page has a <${node.localName}>` : kind && makingKind && kind !== makingKind ? `an element for ${makingKind} where the prerendered page has one for ${kind}` : null;
+    if (off) {
+      told = true;
+      console.warn(`ljos-web: hydration mismatch: the page asks for ${off} (element ${made}); what does not match is made again`);
+      return null;
+    }
+    waiting.delete(made);
+    node.removeAttribute("data-hk");
+    return node;
+  };
+  const createElement = document.createElement.bind(document);
+  const createElementNS = document.createElementNS.bind(document);
+  document.createElement = (tag, given) => take(tag) ?? createElement(tag, given);
+  document.createElementNS = (namespace, tag, given) => take(tag) ?? createElementNS(namespace, tag, given);
+  try {
+    const root = mount(Component, element, props, options);
+    // What no type took over is not the page's: a part the prerender
+    // had and this making does not. It is told of, as a mismatch is,
+    // unless that parting was already told of.
+    if (waiting.size > 0) {
+      if (!told) console.warn(`ljos-web: hydration mismatch: ${waiting.size} prerendered element${waiting.size === 1 ? "" : "s"} the page did not ask for; what does not match is made again`);
+      for (const { node } of waiting.values()) node.remove();
+    }
+    element.setAttribute("data-ljos-hydrated", "true");
+    return root;
+  } finally {
+    delete document.createElement;
+    delete document.createElementNS;
+  }
 }
 
 // What a component declares, put on its root object so that it can be
