@@ -158,7 +158,12 @@ fn a_shell_may_say_what_a_control_is_called() {
     let mouse = file.components[0]
         .objects
         .iter()
-        .find(|object| object.grouped.iter().any(|group| group.path == ["Accessible"]))
+        .find(|object| {
+            object
+                .grouped
+                .iter()
+                .any(|group| group.path == ["Accessible"])
+        })
         .expect("an object with an Accessible group");
     let group = &mouse.grouped[0];
     assert!(
