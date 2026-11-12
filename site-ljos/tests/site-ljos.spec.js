@@ -27,8 +27,10 @@ async function pressWords(page, words) {
     }
     return null;
   };
-  await expect.poll(async () => (await standing()) !== null, { timeout: 30_000 }).toBe(true);
-  const box = await standing();
+  // One reading, pressed as read: a second would race a layout
+  // shift and fail on the box that is no longer there.
+  let box = null;
+  await expect.poll(async () => (box = await standing()) !== null, { timeout: 30_000 }).toBe(true);
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
 }
 
