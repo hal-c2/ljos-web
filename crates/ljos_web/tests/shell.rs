@@ -146,6 +146,60 @@ fn a_shell_compiles_to_objects_and_programs_with_no_javascript() {
 }
 
 #[test]
+fn a_shell_may_say_what_a_control_is_called() {
+    // `Accessible.name`/`role`: how a shell's own buttons say what
+    // they are to someone who does not see them. A name is a plain
+    // assignment in the group; a role is the type's enum key, as a
+    // QtQuick type's own are.
+    let text = shell_with(
+        r#"    MouseArea { width: 10; height: 10; Accessible.name: "Add"; Accessible.role: Accessible.Button; onClicked: basket.add() }"#,
+    );
+    let file = shell::compile(&text, &blocks()).unwrap();
+    let mouse = file.components[0]
+        .objects
+        .iter()
+        .find(|object| object.grouped.iter().any(|group| group.path == ["Accessible"]))
+        .expect("an object with an Accessible group");
+    let group = &mouse.grouped[0];
+    assert!(
+        group
+            .members
+            .assignments
+            .iter()
+            .any(|a| a.name == "name" && a.value == ir::Literal::String("Add".into()))
+    );
+    assert!(
+        file.exprs.iter().any(|expr| {
+            expr.tier1.as_ref().is_some_and(|tier1| {
+                tier1
+                    .code
+                    .iter()
+                    .any(|op| matches!(op, ir::Op::EnumKey { .. }))
+            })
+        }),
+        "the role is the Accessible type's enum key"
+    );
+}
+
+#[test]
+fn an_accessible_member_a_shell_has_not_is_refused() {
+    // No such member at all, and one whose value is an object: a
+    // shell gives values, and `labelledBy` names an item.
+    says(
+        &refused(&shell_with("    Text { Accessible.nope: 1 }")),
+        6,
+        "`Accessible` has no `nope`",
+    );
+    says(
+        &refused(&shell_with(
+            "    Text { id: label; text: \"a\" }\n    MouseArea { Accessible.labelledBy: label }",
+        )),
+        7,
+        "`Accessible.labelledBy`",
+    );
+}
+
+#[test]
 fn a_number_of_a_program_goes_to_the_page_as_a_decimal_string() {
     let file = shell::compile(
         &shell_with("    Text { text: 0.1 + basket.count }"),
