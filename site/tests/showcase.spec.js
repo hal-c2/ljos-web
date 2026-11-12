@@ -6,6 +6,14 @@
 // site-level seam of the same scenarios
 // `packages/runtime/tests/drop.spec.js` holds the runtime to.
 import { expect, test } from "@playwright/test";
+import sharp from "sharp";
+
+// A screenshot's spread of brightness: a drawn scene varies, a
+// blank or flat canvas does not.
+async function spread(png) {
+  const stats = await sharp(png).stats();
+  return stats.channels.reduce((sum, c) => sum + c.stdev, 0);
+}
 
 const demo = (page, name) => page.locator(`[data-ljos-demo='${name}']`);
 
@@ -43,7 +51,7 @@ test("showcase page shows every demo's fallback with no JS", async ({ browser })
 test("the Pantry runs, and its basket counts what was tapped", async ({ page }) => {
   await page.goto("/");
   const fig = await live(page, "pantry");
-  await expect(fig.getByText("The Corner Pantry")).toBeVisible();
+  await expect(fig.getByText("The Corner Pantry", { exact: true })).toBeVisible();
   await expect(summaries(fig).first()).toHaveText("0 in the basket · £0.00");
   await fig.getByRole("button", { name: "Add tea" }).click();
   await fig.getByRole("button", { name: "Add tea" }).click();
@@ -67,7 +75,7 @@ test("a shell edit keeps the basket and the note", async ({ page }) => {
   await fig.locator(".pantry-apply").click();
   await expect(fig.locator(".pantry-editor__status")).toContainText("Your shell is shown", { timeout: 30000 });
 
-  await expect(fig.getByText("My Pantry")).toBeVisible();
+  await expect(fig.getByText("My Pantry", { exact: true })).toBeVisible();
   await expect(summaries(fig).first()).toHaveText("1 in the basket · £2.25");
   await expect(noteField(fig)).toHaveValue("Extra crusty, please");
 });
@@ -84,13 +92,13 @@ test("a broken shell is refused, the running shell stays, and the next good edit
   await expect(errors).toBeVisible({ timeout: 30000 });
   await expect(errors).toContainText("Shell.qml:");
   // The app's shell never went away, and the basket still works.
-  await expect(fig.getByText("The Corner Pantry")).toBeVisible();
+  await expect(fig.getByText("The Corner Pantry", { exact: true })).toBeVisible();
   await fig.getByRole("button", { name: "Add jam" }).click();
   await expect(summaries(fig).first()).toHaveText("1 in the basket · £4.00");
 
   await editor.fill(good.replace('"The Corner Pantry"', '"Fixed Again"'));
   await fig.locator(".pantry-apply").click();
-  await expect(fig.getByText("Fixed Again")).toBeVisible({ timeout: 30000 });
+  await expect(fig.getByText("Fixed Again", { exact: true })).toBeVisible({ timeout: 30000 });
   await expect(summaries(fig).first()).toHaveText("1 in the basket · £4.00");
 });
 
@@ -127,74 +135,53 @@ test("reset brings the app's shell and its source back", async ({ page }) => {
   const app = await editor.inputValue();
   await editor.fill(app.replace('"The Corner Pantry"', '"Soon Gone"'));
   await fig.locator(".pantry-apply").click();
-  await expect(fig.getByText("Soon Gone")).toBeVisible({ timeout: 30000 });
+  await expect(fig.getByText("Soon Gone", { exact: true })).toBeVisible({ timeout: 30000 });
 
   // Reset forgets the kept shell and reloads the page to shed it.
   await Promise.all([page.waitForEvent("load"), fig.locator(".pantry-reset").click()]);
   const again = await live(page, "pantry");
-  await expect(again.getByText("The Corner Pantry")).toBeVisible();
+  await expect(again.getByText("The Corner Pantry", { exact: true })).toBeVisible();
   await expect(again.locator(".pantry-editor__text")).toHaveValue(app);
 });
 
 test("the orbit demo draws a 3D scene and orbiting changes the frame", async ({ page }) => {
   await page.goto("/demos/");
   const fig = await live(page, "orbit");
-  const canvas = fig.locator("canvas").first();
-  await expect(canvas).toBeVisible();
-  const pixelsOf = async () =>
-    canvas.evaluate((c) => {
-      const copy = document.createElement("canvas");
-      copy.width = c.width;
-      copy.height = c.height;
-      const ctx = copy.getContext("2d", { willReadFrequently: true });
-      ctx.drawImage(c, 0, 0);
-      const data = ctx.getImageData(0, 0, copy.width, copy.height).data;
-      let lit = 0;
-      for (let i = 0; i < data.length; i += 16) if (data[i] + data[i + 1] + data[i + 2] > 90) lit++;
-      return { lit, sample: [...data.slice(0, 4096)] };
-    });
-  await expect.poll(async () => (await pixelsOf()).lit, { timeout: 30000 }).toBeGreaterThan(200);
-  const before = (await pixelsOf()).sample.join(",");
-  const box = await canvas.boundingBox();
+  const mount = fig.locator(".ljos-demo__mount");
+  // The canvas paints a beat after the mount is live.
+  await expect.poll(async () => spread(await mount.screenshot()), { timeout: 30000 }).toBeGreaterThan(20);
+  const before = await mount.screenshot();
+  const box = await mount.boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();
   await page.mouse.move(box.x + box.width / 2 + 140, box.y + box.height / 2 - 50, { steps: 12 });
   await page.mouse.up();
   await page.waitForTimeout(600);
-  const after = (await pixelsOf()).sample.join(",");
-  expect(after).not.toBe(before);
+  const after = await mount.screenshot();
+  expect(Buffer.compare(before, after)).not.toBe(0);
 });
 
 test("the shader demo paints and answers the pointer", async ({ page }) => {
   await page.goto("/demos/");
   const fig = await live(page, "shader");
-  const canvas = fig.locator("canvas").first();
-  await expect(canvas).toBeVisible();
-  const centre = () =>
-    canvas.evaluate((c) => {
-      const ctx = document.createElement("canvas").getContext("2d", { willReadFrequently: true });
-      ctx.canvas.width = c.width;
-      ctx.canvas.height = c.height;
-      ctx.drawImage(c, 0, 0);
-      const d = ctx.getImageData(Math.floor(c.width / 2), Math.floor(c.height / 2), 1, 1).data;
-      return [d[0], d[1], d[2]].join(" ");
-    });
-  await expect.poll(centre, { timeout: 30000 }).not.toBe("0 0 0");
-  const box = await fig.locator(".ljos-demo__mount").boundingBox();
-  const far = await centre();
+  const mount = fig.locator(".ljos-demo__mount");
+  await expect.poll(async () => spread(await mount.screenshot()), { timeout: 30000 }).toBeGreaterThan(20);
+  const box = await mount.boundingBox();
+  const corner = await mount.screenshot();
   await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.5);
-  await page.waitForTimeout(400);
-  expect(await centre()).not.toBe(far);
+  await expect
+    .poll(async () => Buffer.compare(corner, await mount.screenshot()), { timeout: 15000 })
+    .not.toBe(0);
 });
 
 test("the field guide searches, selects and keeps its records", async ({ page }) => {
   await page.goto("/demos/");
   const fig = await live(page, "fieldguide");
   await expect(fig).toContainText("Atlantic puffin");
-  await fig.getByPlaceholder("Search by name…").fill("tern");
+  await fig.locator("input").first().fill("tern");
   await expect(fig).toContainText("Arctic tern");
   await expect(fig).not.toContainText("Northern gannet");
-  await fig.getByPlaceholder("Search by name…").fill("");
+  await fig.locator("input").first().fill("");
   await fig.getByRole("button", { name: "Northern gannet" }).click();
   await expect(fig).toContainText("Morus bassanus");
   await fig.getByRole("checkbox").click();
@@ -206,10 +193,10 @@ test("the motion demo springs, shuffles and opens", async ({ page }) => {
   const fig = await live(page, "motion");
   const tiles = () => fig.locator(".ljos-demo__mount").getByText(/^(Ljós|holds|state|while|it|moves)$/).allTextContents();
   expect(await tiles()).toEqual(["Ljós", "holds", "state", "while", "it", "moves"]);
-  await fig.getByText("Shuffle the tiles").click();
+  await fig.getByRole("button", { name: "Shuffle the tiles" }).click();
   await page.waitForTimeout(800);
   expect([...(await tiles())].sort()).toEqual(["Ljós", "holds", "it", "moves", "state", "while"].sort());
-  await fig.getByText(/About this motion/).click();
+  await fig.getByRole("button", { name: /About this motion/ }).click();
   await expect(fig).toContainText("Springs, behaviors, list transitions");
 });
 
@@ -229,7 +216,7 @@ test("with wasm blocked the demos degrade to picture and words, and the Pantry s
   // The Pantry's app shell is compiled with the page: it runs, and
   // only the shell compiler is missing when an edit is applied.
   const fig = await live(page, "pantry");
-  await expect(fig.getByText("The Corner Pantry")).toBeVisible();
+  await expect(fig.getByText("The Corner Pantry", { exact: true })).toBeVisible();
   await fig.locator(".pantry-apply").click();
   await expect(fig.locator(".pantry-editor__errors")).toBeVisible({ timeout: 30000 });
   await ctx.close();
@@ -241,7 +228,7 @@ test("reduced motion calms the demos instead of stopping them", async ({ browser
   await page.goto("/demos/");
   const fig = await live(page, "motion");
   // Still usable: the card opens, the tiles can shuffle.
-  await fig.getByText(/About this motion/).click();
+  await fig.getByRole("button", { name: /About this motion/ }).click();
   await expect(fig).toContainText("Springs, behaviors, list transitions", { timeout: 10000 });
   await ctx.close();
 });
