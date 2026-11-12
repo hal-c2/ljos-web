@@ -35,10 +35,20 @@ jobs:
       - run: git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
       - run: pnpm install --frozen-lockfile
       - run: cargo build --bin qmlc --locked
+      # The compiler in the page: a live code block fetches it on its
+      # first compile in a reader's browser, and the prerender step
+      # renders with the same compiler built ahead of time.
+      - run: mise run build:wasm-compiler
+      - run: pnpm --filter ljos-site exec playwright install --with-deps chromium
+      # Prerenders each live block (and fails on one that claims to
+      # run and does not) before the build embeds them.
+      - run: pnpm --filter ljos-site codeblock-prerenders
       - run: pnpm --filter ljos-site build
       - run: pnpm --filter ljos-site check-links
-      - run: pnpm --filter ljos-site exec playwright install --with-deps chromium
       - run: pnpm --filter ljos-site test
+      # The live blocks on a site built from fixture docs, strictly.
+      # After the ordinary suite: its setup syncs the fixture's pages.
+      - run: pnpm --filter ljos-site test:codeblocks
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: site-dist

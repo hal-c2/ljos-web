@@ -1,0 +1,354 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>ljos-web live code blocks</title>
+<style>body { margin: 0; font-family: system-ui, sans-serif; }</style>
+<div style="height: 150vh"></div>
+<figure class="ljos-codeblock" data-ljos-codeblock data-state="static"><div class="ljos-codeblock__head"><span class="ljos-codeblock__file">Main.qml</span></div><div class="ljos-codeblock__body"><div class="ljos-codeblock__code"><div class="ljos-codeblock__source" data-file="Main.qml"><pre><code class="language-qml">import QtQuick
+
+Rectangle {
+    id: root
+    width: 320
+    height: 180
+    color: &quot;#20242e&quot;
+    property int count: 0
+
+    Text {
+        anchors.centerIn: parent
+        color: &quot;#e8eaf0&quot;
+        font.pixelSize: 24
+        text: &quot;Count: &quot; + root.count
+    }
+    MouseArea {
+        anchors.fill: parent
+        onClicked: root.count = root.count + 1
+    }
+}</code></pre></div></div><div class="ljos-codeblock__stage" style="width:320px;height:180px"><style>
+.q-scene { position: relative; overflow: hidden; }
+.qq { position: absolute; left: 0; top: 0; box-sizing: border-box; transform-origin: 0 0; }
+.qq-under { background: none !important; box-shadow: none !important; }
+.qq-under::before { content: ""; position: absolute; inset: 0; z-index: 0; border-radius: inherit; background: var(--qq-fill); box-shadow: var(--qq-edge); }
+
+
+qq-flick { position: absolute; inset: 0; display: block; overflow: hidden; scrollbar-width: none; }
+qq-flick::-webkit-scrollbar { display: none; }
+.qq-extent { position: absolute; left: 0; top: 0; overflow: clip; }
+qq-flick.qq-snap > .qq-extent > .qq > .qq { scroll-snap-align: start; }
+qq-flick.qq-snap-one > .qq-extent > .qq > .qq { scroll-snap-stop: always; }
+qq-flick.qq-held { scroll-snap-type: none !important; }
+
+
+.qq-text { position: absolute; left: 0; top: 0; white-space: pre; tab-size: 80px; }
+.qq-bench {
+  position: absolute; left: 0; top: 0; width: 0; height: 0; overflow: hidden; visibility: hidden; pointer-events: none;
+}
+.qq-markup, .qq-markup * { line-height: var(--qq-line); }
+.qq-markup :is(p, h1, h2, h3, h4, h5, h6, ul, ol, dl, pre, blockquote, hr, table) { margin: 0; }
+.qq-markup :is(h1, h2, h3, h4, h5, h6) { font-weight: bold; }
+.qq-markup h1 { font-size: 2em; }
+.qq-markup h2 { font-size: 1.5em; }
+.qq-markup h3 { font-size: 1.2em; }
+.qq-markup h4 { font-size: 1em; }
+.qq-markup h5 { font-size: 0.8em; }
+.qq-markup h6 { font-size: 0.7em; }
+.qq-markup big { font-size: 1.2em; }
+.qq-markup small { font-size: 0.8em; }
+.qq-markup :is(pre, code, tt, kbd, samp) { font-family: monospace; font-size: 1em; }
+.qq-markup :is(ul, ol) { padding-left: 40px; }
+.qq-markup dd { margin-left: 40px; }
+.qq-markup a { color: var(--qq-link); text-decoration: underline; cursor: pointer; pointer-events: auto; }
+.qq-rich :is(p, ul, ol, dl, pre, table) { margin: 12px 0; }
+.qq-rich blockquote { margin: 12px 40px; }
+.qq-rich h1 { margin: 18px 0 12px; }
+.qq-rich h2 { margin: 16px 0 12px; }
+.qq-rich h3 { margin: 14px 0 12px; }
+.qq-rich h4 { margin: 12px 0; }
+.qq-rich :is(h5, h6) { margin: 12px 0 4px; }
+.qq-rich > :first-child { margin-top: 0; }
+.qq-rich > :last-child { margin-bottom: 0; }
+
+
+.qq-edit {
+  position: absolute; box-sizing: border-box; margin: 0; padding: 0; border: 0; border-radius: 0; outline: 0;
+  background: none; appearance: none; resize: none; overflow: hidden;
+}
+.qq-edit::selection { background: var(--qq-selection); color: var(--qq-selected); }
+
+
+.qq-image { position: absolute; left: 0; top: 0; box-sizing: border-box; overflow: hidden; background-repeat: no-repeat; }
+.qq-image > canvas { position: absolute; left: 0; top: 0; }
+
+
+.qq-window { position: absolute; left: 0; top: 0; box-sizing: border-box; overflow: hidden; }
+.qq-window > .qq { isolation: isolate; }
+.qq-layer { z-index: 2147483000; box-shadow: 0 2px 16px rgba(0, 0, 0, 0.3); }
+
+.qq-sprite { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background-repeat: no-repeat; pointer-events: none; }
+.qq-canvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; }
+.qq-shader { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }</style><div class="qq" data-hk="5:Item" style="transform: translate(0px,0px); width: 1280px; height: 720px;"><div class="qq" data-hk="1:Rectangle" style="transform: translate(0px,0px); width: 320px; height: 180px; background: #20242e;"><div class="qq" data-hk="2:Text" style="transform: translate(107px,78px); width: 106.5px; height: 24px;"><div class="qq-text" data-hk="3:Text" style="font: 400 24px sans-serif; line-height: 24px; width: 106.5px; left: 0px; top: 0px; text-align: left; color: #e8eaf0;">Count: 0</div></div><div class="qq" data-hk="4:MouseArea" style="transform: translate(0px,0px); width: 320px; height: 180px; touch-action: none;"></div></div></div></div></div><script type="application/json" data-ljos-codeblock-data>{"v":1,"entry":"Main.qml","before":false,"display":[{"name":"Main.qml","code":"import QtQuick\n\nRectangle {\n    id: root\n    width: 320\n    height: 180\n    color: \"#20242e\"\n    property int count: 0\n\n    Text {\n        anchors.centerIn: parent\n        color: \"#e8eaf0\"\n        font.pixelSize: 24\n        text: \"Count: \" + root.count\n    }\n    MouseArea {\n        anchors.fill: parent\n        onClicked: root.count = root.count + 1\n    }\n}\n","lang":"qml"}],"prerendered":true}</script></figure>
+<figure class="ljos-codeblock" data-ljos-codeblock data-state="static"><div class="ljos-codeblock__head"><span class="ljos-codeblock__file">Main.qml (in the window harness)</span></div><div class="ljos-codeblock__body"><div class="ljos-codeblock__code"><div class="ljos-codeblock__source" data-file="Main.qml"><pre><code class="language-qml">Text {
+    anchors.centerIn: parent
+    color: &quot;#e8eaf0&quot;
+    text: &quot;Hello from a snippet&quot;
+}</code></pre></div></div><div class="ljos-codeblock__stage" style="width:240px;height:120px"><style>
+.q-scene { position: relative; overflow: hidden; }
+.qq { position: absolute; left: 0; top: 0; box-sizing: border-box; transform-origin: 0 0; }
+.qq-under { background: none !important; box-shadow: none !important; }
+.qq-under::before { content: ""; position: absolute; inset: 0; z-index: 0; border-radius: inherit; background: var(--qq-fill); box-shadow: var(--qq-edge); }
+
+
+qq-flick { position: absolute; inset: 0; display: block; overflow: hidden; scrollbar-width: none; }
+qq-flick::-webkit-scrollbar { display: none; }
+.qq-extent { position: absolute; left: 0; top: 0; overflow: clip; }
+qq-flick.qq-snap > .qq-extent > .qq > .qq { scroll-snap-align: start; }
+qq-flick.qq-snap-one > .qq-extent > .qq > .qq { scroll-snap-stop: always; }
+qq-flick.qq-held { scroll-snap-type: none !important; }
+
+
+.qq-text { position: absolute; left: 0; top: 0; white-space: pre; tab-size: 80px; }
+.qq-bench {
+  position: absolute; left: 0; top: 0; width: 0; height: 0; overflow: hidden; visibility: hidden; pointer-events: none;
+}
+.qq-markup, .qq-markup * { line-height: var(--qq-line); }
+.qq-markup :is(p, h1, h2, h3, h4, h5, h6, ul, ol, dl, pre, blockquote, hr, table) { margin: 0; }
+.qq-markup :is(h1, h2, h3, h4, h5, h6) { font-weight: bold; }
+.qq-markup h1 { font-size: 2em; }
+.qq-markup h2 { font-size: 1.5em; }
+.qq-markup h3 { font-size: 1.2em; }
+.qq-markup h4 { font-size: 1em; }
+.qq-markup h5 { font-size: 0.8em; }
+.qq-markup h6 { font-size: 0.7em; }
+.qq-markup big { font-size: 1.2em; }
+.qq-markup small { font-size: 0.8em; }
+.qq-markup :is(pre, code, tt, kbd, samp) { font-family: monospace; font-size: 1em; }
+.qq-markup :is(ul, ol) { padding-left: 40px; }
+.qq-markup dd { margin-left: 40px; }
+.qq-markup a { color: var(--qq-link); text-decoration: underline; cursor: pointer; pointer-events: auto; }
+.qq-rich :is(p, ul, ol, dl, pre, table) { margin: 12px 0; }
+.qq-rich blockquote { margin: 12px 40px; }
+.qq-rich h1 { margin: 18px 0 12px; }
+.qq-rich h2 { margin: 16px 0 12px; }
+.qq-rich h3 { margin: 14px 0 12px; }
+.qq-rich h4 { margin: 12px 0; }
+.qq-rich :is(h5, h6) { margin: 12px 0 4px; }
+.qq-rich > :first-child { margin-top: 0; }
+.qq-rich > :last-child { margin-bottom: 0; }
+
+
+.qq-edit {
+  position: absolute; box-sizing: border-box; margin: 0; padding: 0; border: 0; border-radius: 0; outline: 0;
+  background: none; appearance: none; resize: none; overflow: hidden;
+}
+.qq-edit::selection { background: var(--qq-selection); color: var(--qq-selected); }
+
+
+.qq-image { position: absolute; left: 0; top: 0; box-sizing: border-box; overflow: hidden; background-repeat: no-repeat; }
+.qq-image > canvas { position: absolute; left: 0; top: 0; }
+
+
+.qq-window { position: absolute; left: 0; top: 0; box-sizing: border-box; overflow: hidden; }
+.qq-window > .qq { isolation: isolate; }
+.qq-layer { z-index: 2147483000; box-shadow: 0 2px 16px rgba(0, 0, 0, 0.3); }
+
+.qq-sprite { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background-repeat: no-repeat; pointer-events: none; }
+.qq-canvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; }
+.qq-shader { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }</style><div class="qq" data-hk="4:Item" style="transform: translate(0px,0px); width: 1280px; height: 720px;"><div class="qq" data-hk="1:Rectangle" style="transform: translate(0px,0px); width: 240px; height: 120px; background: #20242e;"><div class="qq" data-hk="2:Text" style="transform: translate(54px,54px); width: 131.875px; height: 12px;"><div class="qq-text" data-hk="3:Text" style="font: 400 12px sans-serif; line-height: 12px; width: 131.875px; left: 0px; top: 0px; text-align: left; color: #e8eaf0;">Hello from a snippet</div></div></div></div></div></div><script type="application/json" data-ljos-codeblock-data>{"v":1,"entry":"Main.qml","before":false,"harness":"window","harnessTemplate":"import QtQuick\n\nRectangle {\n    width: 240\n    height: 120\n    color: \"#20242e\"\n    //! snippet\n}\n","harnessFile":"Main.qml","display":[{"name":"Main.qml","code":"Text {\n    anchors.centerIn: parent\n    color: \"#e8eaf0\"\n    text: \"Hello from a snippet\"\n}\n","lang":"qml"}],"prerendered":true}</script></figure>
+<figure class="ljos-codeblock" data-ljos-codeblock data-state="static"><div class="ljos-codeblock__head"></div><div class="ljos-codeblock__body"><div class="ljos-codeblock__code"><div class="ljos-codeblock__source" data-file="Main.qml"><p class="ljos-codeblock__file">Main.qml</p><pre><code class="language-qml">import QtQuick
+
+Rectangle {
+    width: 200
+    height: 120
+    color: &quot;#20242e&quot;
+    Panel {
+        anchors.centerIn: parent
+    }
+}</code></pre></div><div class="ljos-codeblock__source" data-file="Panel.qml"><p class="ljos-codeblock__file">Panel.qml</p><pre><code class="language-qml">import QtQuick
+
+Rectangle {
+    width: 120
+    height: 60
+    color: &quot;#33415e&quot;
+    Text {
+        anchors.centerIn: parent
+        color: &quot;#e8eaf0&quot;
+        text: &quot;Panel&quot;
+    }
+}</code></pre></div></div><div class="ljos-codeblock__stage" style="width:200px;height:120px"><style>
+.q-scene { position: relative; overflow: hidden; }
+.qq { position: absolute; left: 0; top: 0; box-sizing: border-box; transform-origin: 0 0; }
+.qq-under { background: none !important; box-shadow: none !important; }
+.qq-under::before { content: ""; position: absolute; inset: 0; z-index: 0; border-radius: inherit; background: var(--qq-fill); box-shadow: var(--qq-edge); }
+
+
+qq-flick { position: absolute; inset: 0; display: block; overflow: hidden; scrollbar-width: none; }
+qq-flick::-webkit-scrollbar { display: none; }
+.qq-extent { position: absolute; left: 0; top: 0; overflow: clip; }
+qq-flick.qq-snap > .qq-extent > .qq > .qq { scroll-snap-align: start; }
+qq-flick.qq-snap-one > .qq-extent > .qq > .qq { scroll-snap-stop: always; }
+qq-flick.qq-held { scroll-snap-type: none !important; }
+
+
+.qq-text { position: absolute; left: 0; top: 0; white-space: pre; tab-size: 80px; }
+.qq-bench {
+  position: absolute; left: 0; top: 0; width: 0; height: 0; overflow: hidden; visibility: hidden; pointer-events: none;
+}
+.qq-markup, .qq-markup * { line-height: var(--qq-line); }
+.qq-markup :is(p, h1, h2, h3, h4, h5, h6, ul, ol, dl, pre, blockquote, hr, table) { margin: 0; }
+.qq-markup :is(h1, h2, h3, h4, h5, h6) { font-weight: bold; }
+.qq-markup h1 { font-size: 2em; }
+.qq-markup h2 { font-size: 1.5em; }
+.qq-markup h3 { font-size: 1.2em; }
+.qq-markup h4 { font-size: 1em; }
+.qq-markup h5 { font-size: 0.8em; }
+.qq-markup h6 { font-size: 0.7em; }
+.qq-markup big { font-size: 1.2em; }
+.qq-markup small { font-size: 0.8em; }
+.qq-markup :is(pre, code, tt, kbd, samp) { font-family: monospace; font-size: 1em; }
+.qq-markup :is(ul, ol) { padding-left: 40px; }
+.qq-markup dd { margin-left: 40px; }
+.qq-markup a { color: var(--qq-link); text-decoration: underline; cursor: pointer; pointer-events: auto; }
+.qq-rich :is(p, ul, ol, dl, pre, table) { margin: 12px 0; }
+.qq-rich blockquote { margin: 12px 40px; }
+.qq-rich h1 { margin: 18px 0 12px; }
+.qq-rich h2 { margin: 16px 0 12px; }
+.qq-rich h3 { margin: 14px 0 12px; }
+.qq-rich h4 { margin: 12px 0; }
+.qq-rich :is(h5, h6) { margin: 12px 0 4px; }
+.qq-rich > :first-child { margin-top: 0; }
+.qq-rich > :last-child { margin-bottom: 0; }
+
+
+.qq-edit {
+  position: absolute; box-sizing: border-box; margin: 0; padding: 0; border: 0; border-radius: 0; outline: 0;
+  background: none; appearance: none; resize: none; overflow: hidden;
+}
+.qq-edit::selection { background: var(--qq-selection); color: var(--qq-selected); }
+
+
+.qq-image { position: absolute; left: 0; top: 0; box-sizing: border-box; overflow: hidden; background-repeat: no-repeat; }
+.qq-image > canvas { position: absolute; left: 0; top: 0; }
+
+
+.qq-window { position: absolute; left: 0; top: 0; box-sizing: border-box; overflow: hidden; }
+.qq-window > .qq { isolation: isolate; }
+.qq-layer { z-index: 2147483000; box-shadow: 0 2px 16px rgba(0, 0, 0, 0.3); }
+
+.qq-sprite { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background-repeat: no-repeat; pointer-events: none; }
+.qq-canvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; }
+.qq-shader { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }</style><div class="qq" data-hk="5:Item" style="transform: translate(0px,0px); width: 1280px; height: 720px;"><div class="qq" data-hk="1:Rectangle" style="transform: translate(0px,0px); width: 200px; height: 120px; background: #20242e;"><div class="qq" data-hk="2:Rectangle" style="transform: translate(40px,30px); width: 120px; height: 60px; background: #33415e;"><div class="qq" data-hk="3:Text" style="transform: translate(44px,24px); width: 32.96875px; height: 12px;"><div class="qq-text" data-hk="4:Text" style="font: 400 12px sans-serif; line-height: 12px; width: 32.96875px; left: 0px; top: 0px; text-align: left; color: #e8eaf0;">Panel</div></div></div></div></div></div></div><script type="application/json" data-ljos-codeblock-data>{"v":1,"entry":"Main.qml","before":false,"display":[{"name":"Main.qml","code":"import QtQuick\n\nRectangle {\n    width: 200\n    height: 120\n    color: \"#20242e\"\n    Panel {\n        anchors.centerIn: parent\n    }\n}\n","lang":"qml"},{"name":"Panel.qml","code":"import QtQuick\n\nRectangle {\n    width: 120\n    height: 60\n    color: \"#33415e\"\n    Text {\n        anchors.centerIn: parent\n        color: \"#e8eaf0\"\n        text: \"Panel\"\n    }\n}\n","lang":"qml"}],"prerendered":true}</script></figure>
+<figure class="ljos-codeblock" data-ljos-codeblock data-state="static"><div class="ljos-codeblock__head"></div><div class="ljos-codeblock__body"><div class="ljos-codeblock__code"><div class="ljos-codeblock__source" data-file="Main.qml"><p class="ljos-codeblock__file">Main.qml</p><pre><code class="language-qml">import QtQuick
+import Ljos.Blocks
+
+Rectangle {
+    width: 280
+    height: 160
+    color: &quot;#20242e&quot;
+    QtObject {
+        id: counter
+        property int count: 0
+    }
+    Contribution {
+        slot: &quot;main&quot;
+        Text {
+            objectName: &quot;counter-view&quot;
+            color: &quot;#e8eaf0&quot;
+            text: &quot;Count: &quot; + counter.count
+        }
+    }
+    ShellLoader {
+        anchors.fill: parent
+        source: &quot;user/Shell.qml&quot;
+        fallback: &quot;Default.qml&quot;
+    }
+    MouseArea {
+        anchors.fill: parent
+        onClicked: counter.count = counter.count + 1
+    }
+}</code></pre></div><div class="ljos-codeblock__source" data-file="user/Shell.qml"><p class="ljos-codeblock__file">user/Shell.qml</p><pre><code class="language-qml">import QtQuick
+import Ljos.Blocks
+
+Column {
+    spacing: 6
+    Text {
+        color: &quot;#9ec1ff&quot;
+        text: &quot;My shell&quot;
+    }
+    Slot {
+        name: &quot;main&quot;
+    }
+}</code></pre></div><div class="ljos-codeblock__source" data-file="Default.qml"><p class="ljos-codeblock__file">Default.qml</p><pre><code class="language-qml">import QtQuick
+import Ljos.Blocks
+
+Column {
+    spacing: 6
+    Text {
+        color: &quot;#e8eaf0&quot;
+        text: &quot;App shell&quot;
+    }
+    Slot {
+        name: &quot;main&quot;
+    }
+}</code></pre></div></div><div class="ljos-codeblock__stage" style="width:280px;height:160px"><style>
+.q-scene { position: relative; overflow: hidden; }
+.qq { position: absolute; left: 0; top: 0; box-sizing: border-box; transform-origin: 0 0; }
+.qq-under { background: none !important; box-shadow: none !important; }
+.qq-under::before { content: ""; position: absolute; inset: 0; z-index: 0; border-radius: inherit; background: var(--qq-fill); box-shadow: var(--qq-edge); }
+
+
+qq-flick { position: absolute; inset: 0; display: block; overflow: hidden; scrollbar-width: none; }
+qq-flick::-webkit-scrollbar { display: none; }
+.qq-extent { position: absolute; left: 0; top: 0; overflow: clip; }
+qq-flick.qq-snap > .qq-extent > .qq > .qq { scroll-snap-align: start; }
+qq-flick.qq-snap-one > .qq-extent > .qq > .qq { scroll-snap-stop: always; }
+qq-flick.qq-held { scroll-snap-type: none !important; }
+
+
+.qq-text { position: absolute; left: 0; top: 0; white-space: pre; tab-size: 80px; }
+.qq-bench {
+  position: absolute; left: 0; top: 0; width: 0; height: 0; overflow: hidden; visibility: hidden; pointer-events: none;
+}
+.qq-markup, .qq-markup * { line-height: var(--qq-line); }
+.qq-markup :is(p, h1, h2, h3, h4, h5, h6, ul, ol, dl, pre, blockquote, hr, table) { margin: 0; }
+.qq-markup :is(h1, h2, h3, h4, h5, h6) { font-weight: bold; }
+.qq-markup h1 { font-size: 2em; }
+.qq-markup h2 { font-size: 1.5em; }
+.qq-markup h3 { font-size: 1.2em; }
+.qq-markup h4 { font-size: 1em; }
+.qq-markup h5 { font-size: 0.8em; }
+.qq-markup h6 { font-size: 0.7em; }
+.qq-markup big { font-size: 1.2em; }
+.qq-markup small { font-size: 0.8em; }
+.qq-markup :is(pre, code, tt, kbd, samp) { font-family: monospace; font-size: 1em; }
+.qq-markup :is(ul, ol) { padding-left: 40px; }
+.qq-markup dd { margin-left: 40px; }
+.qq-markup a { color: var(--qq-link); text-decoration: underline; cursor: pointer; pointer-events: auto; }
+.qq-rich :is(p, ul, ol, dl, pre, table) { margin: 12px 0; }
+.qq-rich blockquote { margin: 12px 40px; }
+.qq-rich h1 { margin: 18px 0 12px; }
+.qq-rich h2 { margin: 16px 0 12px; }
+.qq-rich h3 { margin: 14px 0 12px; }
+.qq-rich h4 { margin: 12px 0; }
+.qq-rich :is(h5, h6) { margin: 12px 0 4px; }
+.qq-rich > :first-child { margin-top: 0; }
+.qq-rich > :last-child { margin-bottom: 0; }
+
+
+.qq-edit {
+  position: absolute; box-sizing: border-box; margin: 0; padding: 0; border: 0; border-radius: 0; outline: 0;
+  background: none; appearance: none; resize: none; overflow: hidden;
+}
+.qq-edit::selection { background: var(--qq-selection); color: var(--qq-selected); }
+
+
+.qq-image { position: absolute; left: 0; top: 0; box-sizing: border-box; overflow: hidden; background-repeat: no-repeat; }
+.qq-image > canvas { position: absolute; left: 0; top: 0; }
+
+
+.qq-window { position: absolute; left: 0; top: 0; box-sizing: border-box; overflow: hidden; }
+.qq-window > .qq { isolation: isolate; }
+.qq-layer { z-index: 2147483000; box-shadow: 0 2px 16px rgba(0, 0, 0, 0.3); }
+
+.qq-sprite { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background-repeat: no-repeat; pointer-events: none; }
+.qq-canvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; }
+.qq-shader { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }</style><div class="qq" data-hk="4:Item" style="transform: translate(0px,0px); width: 1280px; height: 720px;"><div class="qq" data-hk="1:Rectangle" style="transform: translate(0px,0px); width: 280px; height: 160px; background: #20242e;"><div class="qq" data-hk="2:ShellLoader" style="transform: translate(0px,0px); width: 280px; height: 160px;"><div class="qq" data-hk="5:Column" style="transform: translate(0px,0px); width: 52.75px; height: 12px;"><div class="qq" data-hk="6:Text" style="transform: translate(0px,0px); width: 52.75px; height: 12px;"><div class="qq-text" data-hk="7:Text" style="font: 400 12px sans-serif; line-height: 12px; width: 52.75px; left: 0px; top: 0px; text-align: left; color: #9ec1ff;">My shell</div></div><div class="qq" data-hk="9:Text" style="transform: translate(0px,0px); width: 52.75px; height: 12px;"><div class="qq-text" data-hk="10:Text" style="font: 400 12px sans-serif; line-height: 12px; width: 52.75px; left: 0px; top: 0px; text-align: left; color: #e8eaf0;">Count: 0</div></div><div class="qq" data-hk="8:Slot" style="visibility: hidden; transform: translate(0px,0px); width: 0px; height: 0px;"></div></div></div><div class="qq" data-hk="3:MouseArea" style="transform: translate(0px,0px); width: 280px; height: 160px; touch-action: none;"></div></div></div></div></div><script type="application/json" data-ljos-codeblock-data>{"v":1,"entry":"Main.qml","before":false,"display":[{"name":"Main.qml","code":"import QtQuick\nimport Ljos.Blocks\n\nRectangle {\n    width: 280\n    height: 160\n    color: \"#20242e\"\n    QtObject {\n        id: counter\n        property int count: 0\n    }\n    Contribution {\n        slot: \"main\"\n        Text {\n            objectName: \"counter-view\"\n            color: \"#e8eaf0\"\n            text: \"Count: \" + counter.count\n        }\n    }\n    ShellLoader {\n        anchors.fill: parent\n        source: \"user/Shell.qml\"\n        fallback: \"Default.qml\"\n    }\n    MouseArea {\n        anchors.fill: parent\n        onClicked: counter.count = counter.count + 1\n    }\n}\n","lang":"qml"},{"name":"user/Shell.qml","code":"import QtQuick\nimport Ljos.Blocks\n\nColumn {\n    spacing: 6\n    Text {\n        color: \"#9ec1ff\"\n        text: \"My shell\"\n    }\n    Slot {\n        name: \"main\"\n    }\n}\n","lang":"qml"},{"name":"Default.qml","code":"import QtQuick\nimport Ljos.Blocks\n\nColumn {\n    spacing: 6\n    Text {\n        color: \"#e8eaf0\"\n        text: \"App shell\"\n    }\n    Slot {\n        name: \"main\"\n    }\n}\n","lang":"qml"}],"prerendered":true}</script></figure>
+<pre><code class="language-sh">ljos check Main.qml</code></pre>
+<script type="module" src="./codeblocks-page.js"></script>

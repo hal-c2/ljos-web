@@ -49,7 +49,16 @@ const show = (page, request) => page.evaluate((request) => window.show(request),
 plain("compiled QML may import every module the runtime package exports", () => {
   const { exports } = JSON.parse(readFileSync(join(import.meta.dirname, "../package.json"), "utf8"));
   const kept = Object.entries(exports)
-    .filter(([, file]) => file.endsWith(".js") && !["./vite.js", "./site.js", "./compiler/index.js", "./web/faces.js"].includes(file))
+    // Host-only modules are no part of what compiled QML imports: the
+    // build plugin, the site builder, the compiler itself, the faces'
+    // seam, the prerender's server side, and the code blocks' build
+    // and page halves (an editor a page mounts, not a QML module).
+    .filter(
+      ([, file]) =>
+        file.endsWith(".js") &&
+        !["./vite.js", "./site.js", "./server.js", "./compiler/index.js", "./compiler/modules.js", "./web/faces.js"].includes(file) &&
+        !file.startsWith("./codeblocks/"),
+    )
     .map(([name]) => name.replace(/^\./, "ljos-web"));
   expect(Object.keys(modules).sort()).toEqual(["solid-js", ...kept].sort());
 });

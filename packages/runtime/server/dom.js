@@ -646,9 +646,15 @@ export class ServerDocument {
       element.tagName = element.localName.toUpperCase();
     }
     element.ownerDocument = this;
-    element.$hk = ++this._sequence;
-    element.$kind = kindNow();
-    if (element.localName === "canvas") {
+    // A canvas is painted, not read, and the measuring canvas a type
+    // makes while it measures text is made at whatever making first
+    // measures — no numbering names it the same on both sides. It is
+    // no making in the count, here as in `hydrate`: hydration remakes
+    // it and takes the prerendered one out.
+    if (element.localName !== "canvas") {
+      element.$hk = ++this._sequence;
+      element.$kind = kindNow();
+    } else {
       element.width = 300;
       element.height = 150;
     }
@@ -662,8 +668,10 @@ export class ServerDocument {
   createElementNS(namespace, tag) {
     const element = new Element(tag, namespace);
     element.ownerDocument = this;
-    element.$hk = ++this._sequence;
-    element.$kind = kindNow();
+    if (element.localName !== "canvas") {
+      element.$hk = ++this._sequence;
+      element.$kind = kindNow();
+    }
     return element;
   }
   createTextNode(text) {

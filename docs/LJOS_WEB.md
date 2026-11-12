@@ -1727,6 +1727,97 @@ the page read with JavaScript off, the very nodes kept through
 hydration, a counter counting after it, on both kernels, and the
 site builder's own project bundle beside them.
 
+### A27. Live code blocks: every example runs, beside its code
+
+A documentation page's examples are programs, and a reader learns more
+from changing one than from reading one. `packages/runtime/codeblocks/`
+turns a Markdown page's fenced blocks into live ones, for any site:
+
+- **The fence contract** (`codeblocks/parse.js`, shared by build and
+  page): `qml` is a whole app; `qml harness=<name>` is a snippet spliced
+  into a small whole-app harness at its one `//! snippet` line, so a
+  fragment still runs; `qml before` is the old half of a before/after
+  and is labelled; `file=`/`group=` make one example of several files,
+  scripts included, in folders as written (`file=user/Shell.qml`), so a
+  `ShellLoader` example carries the user's shell, the app's fallback
+  and its contributions as three editable files. Exempt tags (`sh`,
+  `rust`, `toml`, `json`, `text`, `xml`, `gherkin`, `javascript`,
+  `diff`) stay plain highlighted code; a bare or unknown tag is named,
+  never quietly plain.
+- **The build** (`codeblocks/build.js`, remark in `codeblocks/remark.js`):
+  each example is checked with `qmlc` — the page's compiler, against the
+  modules ljos-web provides, not an installed Qt's — and a block that
+  claims to run and does not compile fails the build, saying why. What is
+  written is static HTML: the code as code, beside the result as **the
+  prerender wrote it** (A26): the examples are built once into a server
+  bundle by the same Vite build and made in Node by `renderToString`
+  (`ljos-web/server`), cached by content hash. Making an example runs
+  it, so the prerender is also the run half of the check. There is no
+  second, picture-shaped path: a block's static half is its own markup.
+- **The page** (`ljos-web/codeblock`): hydration mounts each block only
+  as it nears the viewport, and its first making takes the prerendered
+  nodes over (`hydrate`, A26) — the nodes a reader had are the nodes
+  that then behave. The editor is a labelled textarea per file; an edit
+  compiles in the page (A15) and reloads (A13), so state is kept — a
+  counter at 3 stays 3 when its colour changes, and a contribution a
+  visitor's edited shell still places keeps the app's count. A broken
+  edit shows `file:line:column: message` beside the code and the last
+  good result keeps running. With JavaScript off, code and prerendered
+  result are the page. Nothing polls; motion is CSS the page's
+  `prefers-reduced-motion` stills. A page gives its controls or other
+  modules to the compiler through `options.compile`
+  (`createCompiler({ modules })`, as A15's pages do).
+
+**DECISION:** the feature is general, the site is its first user: the
+Astro site wires the remark plugin and a small hydrator island, and
+nothing of the site is in the package. A later ljos.dev built from
+prerendered Ljós pages uses the same halves without remark — `assemble`,
+`renderPrerenders` and `renderStatic` at build time,
+`hydrateLiveCodeBlocks` in the page — and a block inside a prerendered
+Ljós page is then a prerender within the prerender, hydrated by the
+same `hydrate` either way. No server prerender of the editor chrome is
+needed, because the static figure is already the readable page.
+
+**DECISION:** a docs tree earns strictness. A fence that claims to run
+(`harness=`/`file=`/`group=`/`before`) must compile or the build fails,
+always. An untagged `qml` block that does not compile — a snippet whose
+harness has not been written yet — stays plain code and is counted in
+the build's output, until a site switches `strict` on; from then every
+non-exempt block must compile and no tag may be unknown. The switch is
+deliberate, never inferred from the docs tree's shape: a docs pin must
+not by itself start failing a site build on examples this compiler
+cannot run yet. A multi-file example's fences may spread through prose
+(docs introduce each file); the figure stands at its entry file with
+every file in its editor, and a group written as one run of fences is
+replaced whole. The site never shows a block as live that is not, and
+never breaks on docs that predate the tagging.
+
+**Scenarios.** `packages/runtime/tests/codeblocks.spec.js`: the
+contract (parse, splice, assemble, hash), the check naming a broken
+block, a `ShellLoader`/`Slot` example assembling and checking, the
+a prerender made by running each example (a throw is a failure, not
+the end), static HTML carrying code + prerendered result + payload,
+JS off reading them, hydration keeping the very nodes into an editor,
+an edit keeping state, a broken edit keeping
+the last good result, harnessed and grouped examples, editing the
+user's shell keeping the app's state, lazy mounting, exempt code
+plain. `site/tests/codeblocks.e2e.js` (its own config) holds the same
+on a site built from fixture docs, strictly.
+
+Known limits, as the pieces stand: a `ShellLoader` loads its shell as
+it can (async, by design), so that subtree is made after hydration's
+window and remade there — the app around it is adopted, and the
+prerender still serves a reader without script; a `.ts` file a QML file imports by
+name is refused by the compiler today (a `.mjs` script is not), so a
+grouped example's scripts ride as files the editor shows and a `.ts`
+import is the compiler's gap to close, not papered over here; an
+example importing `QtQuick.Controls` runs on a page built with them
+(the site is, so its compiler is given them, A15) and is reported at
+its import and left plain on one that is not; and the `import Ljos…` dialect
+modules are not in the page compiler's table at this pin, so dialect
+examples check as not-installed until ljos-web carries them — the
+check says so rather than showing them dead.
+
 ## Part II — An application's own Rust types
 
 ## 1. The shape of a native type on the web
