@@ -333,7 +333,7 @@ function pagesOf(prerender) {
   if (!Array.isArray(pages) || pages.length === 0) throw new SiteError("prerender.pages is a list of pages, one at least");
   const seen = new Set();
   for (const page of pages) {
-    if (typeof page !== "object" || page === null || typeof page.route !== "string" || !/^\/([A-Za-z0-9._~-]+\/)*$/.test(page.route)) {
+    if (typeof page !== "object" || page === null || typeof page.route !== "string" || !/^\/([A-Za-z0-9._~-]+\/)*$/.test(page.route) || page.route.split("/").some((part) => /^\.+$/.test(part))) {
       throw new SiteError(`a page's route is a plain path below the site ending in /, not ${JSON.stringify(page?.route)}`);
     }
     if (seen.has(page.route)) throw new SiteError(`the route ${page.route} is in prerender.pages twice`);

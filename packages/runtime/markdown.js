@@ -160,7 +160,30 @@ export function parseFrontMatter(text) {
 }
 
 const isTableRow = (line) => /^\s*\|.*\|\s*$/.test(line);
-const cellsOf = (line) => line.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((cell) => cell.trim());
+// A row's cells: split on the pipes between cells, never on one in
+// a code span or written `\|` — the docs write both (a cell whose
+// code is `|` itself).
+function cellsOf(line) {
+  const inner = line.trim().replace(/^\|/, "").replace(/\|$/, "");
+  const cells = [];
+  let cell = "";
+  let code = false;
+  for (let at = 0; at < inner.length; at++) {
+    const char = inner[at];
+    if (char === "`") code = !code;
+    if (char === "\\" && inner[at + 1] === "|") {
+      cell += "|";
+      at++;
+    } else if (char === "|" && !code) {
+      cells.push(cell.trim());
+      cell = "";
+    } else {
+      cell += char;
+    }
+  }
+  cells.push(cell.trim());
+  return cells;
+}
 const isDivider = (line) => isTableRow(line) && cellsOf(line).every((cell) => /^:?-{2,}:?$/.test(cell));
 
 // A Markdown body as the blocks a page shows, in order. `routeOf`
@@ -223,7 +246,7 @@ export function markdownBlocks(markdown, { routeOf = (href) => href } = {}) {
       blocks.push({ kind: "code", ...info, code: text, rich: highlight(text.replace(/\n$/, ""), info.lang) });
       continue;
     }
-    const heading = /^(#{1,6})\s+(.*?)\s*#*\s*$/.exec(line);
+    const heading = /^(#{1,6})\s+(.*?)(?:\s+#+)?\s*$/.exec(line);
     if (heading) {
       const plain = plainOf(heading[2]);
       blocks.push({ kind: "heading", level: heading[1].length, plain, anchor: anchorFor(plain), rich: rich(heading[2]) });

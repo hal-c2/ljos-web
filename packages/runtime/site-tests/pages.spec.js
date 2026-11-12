@@ -151,7 +151,11 @@ test("a page that carries its words as data, larger than a pipe holds by default
 test("a route that is not a plain path below the site is refused before anything is built", async () => {
   const made = bundle("pages");
   try {
-    await expect(buildSite({ dir: made.dir, out: made.out, qmlc, prerender: { pages: [{ route: "../elsewhere/", props: {} }] } })).rejects.toThrow(/route/);
+    // Each of these would write outside the site, or at another
+    // route's own place, whatever its words say.
+    for (const route of ["../elsewhere/", "/../elsewhere/", "/../../outside/", "/docs/../", "/./", "/.../"]) {
+      await expect(buildSite({ dir: made.dir, out: made.out, qmlc, prerender: { pages: [{ route, props: {} }] } }), route).rejects.toThrow(/route/);
+    }
     expect(existsSync(join(made.out, "index.html"))).toBe(false);
   } finally {
     made.remove();

@@ -61,6 +61,28 @@ test("highlighting never colours inside a string, a number, or its own markup", 
   expect(rich.match(/<span/g).length).toBeLessThanOrEqual(3);
 });
 
+test("a table's cells are split outside code spans, and an escaped pipe is a pipe", () => {
+  // As the docs themselves write one (quality/layout-and-typography):
+  // a cell whose code span holds a `|`.
+  const blocks = markdownBlocks("| Glyph | Name | Where |\n|---|---|---|\n| (`·`, `|`, `ToolSeparator`) | bar \\| baz | here |\n");
+  expect(blocks[0].head).toEqual(["Glyph", "Name", "Where"]);
+  expect(blocks[0].rows).toHaveLength(1);
+  expect(blocks[0].rows[0]).toHaveLength(3);
+  expect(blocks[0].rows[0][0]).toContain("<code>|</code>");
+  expect(blocks[0].rows[0][0]).toContain("<code>ToolSeparator</code>");
+  expect(blocks[0].rows[0][1]).toBe("bar | baz");
+});
+
+test("a heading's own trailing hash is its word, not a closing sequence", () => {
+  const blocks = markdownBlocks("## Using C#\n\n## Closed ##\n");
+  expect(blocks[0]).toMatchObject({ plain: "Using C#", anchor: "using-c" });
+  expect(blocks[1]).toMatchObject({ plain: "Closed", anchor: "closed" });
+});
+
+test("emphasis is never written inside a link's address", () => {
+  expect(inline("[star](https://example.com/a*b_c)")).toBe('<a href="https://example.com/a*b_c">star</a>');
+});
+
 test("an HTML comment in the prose is the writer's note, not the reader's text", () => {
   const blocks = markdownBlocks("Before.\n\n<!-- check: verify this before publishing -->\n\nAfter <!-- inline note --> words.\n");
   const words = JSON.stringify(blocks);
