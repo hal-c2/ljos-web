@@ -196,9 +196,11 @@ for (const kernel of ["solid", "wasm"]) {
       // the fifth making and move every later key up one, as such a
       // prerender's keys would read.
       await page.evaluate(() => {
+        window.__prerendered = [...document.querySelectorAll("#app [data-hk]")];
+        for (const element of window.__prerendered) element.dataset.orig = element.getAttribute("data-hk").split(":")[0];
         const fifth = document.querySelector('[data-hk^="5:"]');
         const extra = fifth.cloneNode(true);
-        for (const element of [...document.querySelectorAll("#app [data-hk]")]) {
+        for (const element of window.__prerendered) {
           const said = element.getAttribute("data-hk");
           const at = said.indexOf(":");
           if (Number(said.slice(0, at)) >= 5) element.setAttribute("data-hk", `${Number(said.slice(0, at)) + 1}${said.slice(at)}`);
@@ -209,9 +211,19 @@ for (const kernel of ["solid", "wasm"]) {
       await page.waitForSelector('#app[data-ljos-hydrated="true"]');
       await page.unroute("**/*.js");
       // The counts part where a Rectangle's element is asked for and a
-      // Text's is what the key holds: one warning, and the page made
-      // again from there is the page, whole and working.
-      expect(warnings.filter((text) => /hydration mismatch/.test(text))).toHaveLength(1);
+      // Text's is what the key holds — the warning says which, since
+      // every tag here is a div and a leftover left alone would warn
+      // once too: this is the type check speaking, not the fallback.
+      const told = warnings.filter((text) => /hydration mismatch/.test(text));
+      expect(told).toHaveLength(1);
+      expect(told[0]).toMatch(/an element for Rectangle where the prerendered page has one for Text/);
+      // The makings before the parting (1–4, and the Text ones the
+      // shift still names rightly, the old 5–8 as 6–9) were taken
+      // over; from the Rectangle on, nothing was: its prerendered
+      // node and every one after it are gone. Without the type in
+      // the key they would all have been adopted shifted, and only
+      // the last left over.
+      expect(await page.evaluate(() => window.__prerendered.filter((element) => document.contains(element)).map((element) => element.dataset.orig))).toEqual(["1", "2", "3", "4", "5", "6", "7", "8"]);
       await expect(page.getByText("Prerendered heading", { exact: true })).toBeVisible();
       const box = await page.getByText("Increment", { exact: true }).boundingBox();
       await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
