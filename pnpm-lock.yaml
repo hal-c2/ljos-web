@@ -295,6 +295,16 @@ importers:
         specifier: 0.34.5
         version: 0.34.5
 
+  site-ljos:
+    dependencies:
+      ljos-web:
+        specifier: workspace:*
+        version: link:../packages/runtime
+    devDependencies:
+      '@playwright/test':
+        specifier: ^1.63.0
+        version: 1.65.0
+
 packages:
 
   '@astrojs/compiler@2.13.1':

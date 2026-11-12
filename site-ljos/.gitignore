@@ -1,0 +1,5 @@
+dist/
+test-results/
+playwright-report/
+bundle/ljos-site.json
+bundle/Site/Content.qml

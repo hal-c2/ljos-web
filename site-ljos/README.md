@@ -1,0 +1,54 @@
+# ljos.dev as Ljós pages
+
+The same site as `site/` (Astro + Starlight), built instead as
+prerendered Ljós pages with ljos-web's own site builder
+(docs/LJOS_WEB.md A12, A26, A27). The Astro site stays and keeps
+deploying; this stands beside it until it reaches parity, and
+nothing here is served or deployed yet.
+
+- `bundle/` — the shell and pages as QML: header, sidebar,
+  content, an "On this page" contents list, footer; the landing
+  page; the demos page; a docs page that shows Markdown blocks.
+  Code blocks render as highlighted static code through the one
+  named hook (`Site/CodeBlock.qml`), where the live code-block
+  lane's editor plugs in; it already carries the whole fence
+  contract.
+- `scripts/build.mjs` — reads the docs of the pinned ljos-ui
+  revision (`../site/ljos-ui.sha`, found as the Astro build's
+  sync-docs finds them: `LJOS_DOCS_DIR` or a sibling checkout)
+  with `ljos-web/markdown`, writes them into the bundle as
+  `Site/Content.qml` (generated, gitignored), and builds every
+  route prerendered into `dist/`.
+- `tests/` — the landing page's word, a docs page read with
+  JavaScript off, navigation and light/dark with it on, and
+  parity: the built routes are the docs' routes (and the Astro
+  build's, where it stands), each page's HTML carries its title
+  and headings, and every internal link resolves.
+
+Build and read it:
+
+```sh
+cargo build --bin qmlc          # or point QMLC at a qmlc
+pnpm install
+LJOS_DOCS_DIR=/path/to/ljos-ui/docs/site pnpm --filter ljos-site-ljos build
+pnpm --filter ljos-site-ljos serve    # http://127.0.0.1:4471/
+pnpm --filter ljos-site-ljos test
+```
+
+Decisions taken here, of a piece with the sibling lanes':
+
+- The QML is written to lower cleanly with `ljos migrate`
+  (verified file by file; 0 errors, 0 warnings under
+  `ljos check`) and shipped in the compat form ljos-web's
+  compiler at its current pin runs (`import QtQuick`,
+  `import Ljos.Blocks`). The dialect form (`import Ljos.Ui`,
+  `import Ljos.Layout`) cannot run on the web yet: the compiler's
+  pin predates those modules in Ljós's table, and the runtime has
+  no `Ljos/Ui` module for the compiled output to import
+  (migrate-gaps SC5, and SM1 for the Blocks import migrate keeps).
+  When the pin passes the dialect table, switching is one
+  `ljos migrate --write` over `bundle/`.
+- Showcase demos mount into named `Ljos.Blocks` Slots
+  (`showcase-shell`, `showcase`, `demo-*`); until the showcase
+  lane's PR lands, each slot's own delegate says what stands
+  there, which is also what a reader without wasm/WebGPU keeps.
