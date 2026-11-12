@@ -7,6 +7,9 @@ import QtQuick
 Column {
     id: page
     property int count: 0
+    // What a page says as it is made is not the page: none of this may
+    // land in the HTML a prerender writes.
+    Component.onCompleted: console.log("a page logging <while> it is made")
 
     Text { text: "Prerendered heading"; font.pixelSize: 24; font.bold: true }
     Text { text: "Static text a crawler reads." }

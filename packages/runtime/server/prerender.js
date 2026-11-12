@@ -11,8 +11,8 @@
 //
 //   node prerender.js SERVER-BUNDLE [{"width":1280,"height":720}]
 import { readFile } from "node:fs/promises";
-import { basename, dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { basename, dirname, join, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { installPrerenderGlobals } from "./dom.js";
 
 const [bundle, said] = process.argv.slice(2);
@@ -47,7 +47,11 @@ globalThis.fetch = async (url, init) => {
 };
 
 installPrerenderGlobals(options);
-const page = await import(bundle);
+// What the page says as it is made — QML's `print` and `console.log`
+// are console.log here — is not the page: stdout is the HTML and
+// nothing else, so the page's saying goes where a build's does.
+for (const said of ["log", "info", "debug"]) console[said] = (...args) => console.error(...args);
+const page = await import(pathToFileURL(resolve(bundle)).href);
 // A page's animations and timers would keep this process for ever:
 // the render is what it was run for, and it ends with it.
 process.stdout.write(await page.default(options), () => process.exit(0));

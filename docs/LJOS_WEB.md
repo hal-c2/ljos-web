@@ -1644,8 +1644,12 @@ browser's own, settled in place. The nodes a reader was reading are
 the nodes that then behave. An element of another tag than the page
 asks for, or one no making asks for — the page made differently here
 than it was prerendered — is a mismatch: it is told of once on the
-console, what was not taken over is taken out, and the page goes on
-as a mount would have made it. That the page is live, the element it
+console, no element after it is taken over either (from where the
+makings part, no number can be trusted to name the same making),
+what was not taken over is taken out, and the page goes on as a
+mount would have made it. What the page says as it is made
+(`console.log`, QML's `print`) a prerender sends to the build's
+stderr, never into the HTML. That the page is live, the element it
 was hydrated into says (`data-ljos-hydrated`). With nothing
 prerendered in it, `hydrate` is `mount`.
 

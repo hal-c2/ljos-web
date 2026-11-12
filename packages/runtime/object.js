@@ -2120,9 +2120,11 @@ export function mount(Component, element, props = {}, options = {}) {
 //
 // An element whose number the making never asks for, or asks for by
 // another tag — the page made differently here than it was
-// prerendered — is a mismatch: it is told of once, what was not taken
-// over is taken out, and the page goes on as a mount would have made
-// it. Nothing prerendered in `element` is a plain mount. That the
+// prerendered — is a mismatch: it is told of once, no element after
+// it is taken over either (from there no number can be trusted to
+// name the same making), what was not taken over is taken out, and
+// the page goes on as a mount would have made it. Nothing
+// prerendered in `element` is a plain mount. That the
 // page was hydrated, `element` says (`data-ljos-hydrated`), so that
 // what waits for the live page need not guess.
 export function hydrate(Component, element, props = {}, options = {}) {
@@ -2133,13 +2135,15 @@ export function hydrate(Component, element, props = {}, options = {}) {
   let made = 0;
   let told = false;
   const take = (tag) => {
+    // Once the makings have parted, no later number can be trusted to
+    // name the same making: the rest is made again, and what was
+    // prerendered of it is taken out below.
+    if (told) return null;
     const node = waiting.get(++made);
     if (!node) return null;
     if (node.localName !== String(tag).toLowerCase()) {
-      if (!told) {
-        told = true;
-        console.warn(`ljos-web: hydration mismatch: the page asks for a <${String(tag).toLowerCase()}> where the prerendered page has a <${node.localName}> (element ${made}); what does not match is made again`);
-      }
+      told = true;
+      console.warn(`ljos-web: hydration mismatch: the page asks for a <${String(tag).toLowerCase()}> where the prerendered page has a <${node.localName}> (element ${made}); what does not match is made again`);
       return null;
     }
     waiting.delete(made);

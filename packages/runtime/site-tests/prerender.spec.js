@@ -61,6 +61,9 @@ for (const kernel of ["solid", "wasm"]) {
       expect(html).toContain("https://example.com/docs");
       expect(html).toContain("Count 0");
       expect(html).toContain("Increment");
+      // What the page logged as it was made is the build's to hear,
+      // not the reader's: it is not in the page, as text or as markup.
+      expect(html).not.toContain("a page logging");
     });
 
     test("reads with JavaScript off: text, link and structure are the page's", async ({ browser }) => {
@@ -127,6 +130,51 @@ for (const kernel of ["solid", "wasm"]) {
       await expect(page.getByText("Count 1", { exact: true })).toBeVisible();
       // Still the same nodes after the page has reacted.
       expect(await page.evaluate(() => window.__prerendered.every((element) => document.contains(element)))).toBe(true);
+    });
+
+    test("a page that was not made as it was prerendered is made again from where they part", async ({ page }) => {
+      const warnings = [];
+      page.on("console", (message) => {
+        if (message.type() === "warning") warnings.push(message.text());
+      });
+      let release;
+      const held = new Promise((done) => (release = done));
+      await page.route("**/*.js", async (route) => {
+        await held;
+        await route.continue();
+      });
+      await page.goto(`${origin}/`, { waitUntil: "commit" });
+      await page.waitForSelector("#app [data-hk]");
+      // The third element the page makes (a text's face, a div) is a
+      // span in what was prerendered: from there the makings have
+      // parted, and no later number names the same making.
+      const before = await page.evaluate(() => {
+        window.__prerendered = [...document.querySelectorAll("#app [data-hk]")];
+        const third = document.querySelector('[data-hk="3"]');
+        const other = document.createElement("span");
+        other.setAttribute("data-hk", "3");
+        other.replaceChildren(...third.childNodes);
+        third.replaceWith(other);
+        return window.__prerendered.length;
+      });
+      expect(before).toBeGreaterThan(5);
+      release();
+      await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+      await page.unroute("**/*.js");
+      expect(warnings.filter((text) => /hydration mismatch/.test(text))).toHaveLength(1);
+      const heldNodes = await page.evaluate(() => ({
+        // The two makings before the parting were taken over; the
+        // span and everything after it was not, and is gone.
+        kept: window.__prerendered.filter((element) => document.contains(element)).length,
+        span: document.querySelector("#app span") !== null,
+      }));
+      expect(heldNodes.kept).toBe(2);
+      expect(heldNodes.span).toBe(false);
+      // And the page made again is the page, whole and working.
+      await expect(page.getByText("Prerendered heading", { exact: true })).toBeVisible();
+      const box = await page.getByText("Increment", { exact: true }).boundingBox();
+      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+      await expect(page.getByText("Count 1", { exact: true })).toBeVisible();
     });
   });
 }
