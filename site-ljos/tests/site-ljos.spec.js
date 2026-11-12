@@ -172,12 +172,10 @@ test("the flagship: rewrite the Pantry's shell and its state survives", async ({
   // debounce, the stage's item is still the one first made (a
   // second apply would reload and remake it).
   await page.getByText("The Corner Pantry", { exact: true }).evaluate((el) => {
-    el.setAttribute("data-tag", "first-made");
+    window.__firstMade = el;
   });
   await page.waitForTimeout(900);
-  expect(
-    await page.getByText("The Corner Pantry", { exact: true }).evaluate((el) => el.getAttribute("data-tag")),
-  ).toBe("first-made");
+  expect(await page.evaluate(() => window.__firstMade?.isConnected)).toBe(true);
   await page.getByRole("button", { name: "Add tea" }).click();
   await expect(page.getByText("1 in the basket · £3.50").first()).toBeVisible();
 
@@ -240,15 +238,25 @@ test("the flagship: rewrite the Pantry's shell and its state survives", async ({
   // compares the text, so whenever the change is heard, what
   // the demo wrote itself restarts nothing.
   await page.getByText("The Corner Pantry", { exact: true }).evaluate((el) => {
-    el.setAttribute("data-tag", "reset-made");
+    window.__resetMade = el;
   });
   await page.waitForTimeout(900);
-  expect(
-    await page.getByText("The Corner Pantry", { exact: true }).evaluate((el) => el.getAttribute("data-tag")),
-  ).toBe("reset-made");
+  expect(await page.evaluate(() => window.__resetMade?.isConnected)).toBe(true);
   // A visitor's edit after all that still applies.
   await editor.fill(app.replace('"The Corner Pantry"', '"Edited Once More"'));
   await expect(page.getByText("Edited Once More", { exact: true })).toBeVisible({ timeout: 30_000 });
+  // Undoing back to the app's own text applies like any edit:
+  // the guard compares with the text last applied, not with
+  // the app's shell forever.
+  await editor.fill(app);
+  await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible({ timeout: 30_000 });
+  // A broken edit refused, then undone: the refusal clears and
+  // the good shell stands again.
+  await editor.fill("import QtQuick\nimport Pantry\n\nRectangle {\n    Basket {\n}\n");
+  await expect(page.getByText(/Shell\.qml:\d+:\d+:/)).toBeVisible({ timeout: 30_000 });
+  await editor.fill(app);
+  await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText(/Shell\.qml:\d+:\d+:/)).toHaveCount(0);
 });
 
 test("every showcase demo stands in its slot, on the landing and the demos page", async ({ page }) => {

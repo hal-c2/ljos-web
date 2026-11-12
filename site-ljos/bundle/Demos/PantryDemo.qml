@@ -20,18 +20,19 @@ Column {
 
     property string said: ""
     property bool started: false
-    // What the demo last wrote into the editor itself: a change
-    // to that text is not an edit, whenever it is heard — a
-    // change handler may be queued behind the assignment (the
-    // runtime's `after()`), so neither a flag set after the
-    // assignment nor stopping the debounce is the guard; the
-    // text compared is.
-    property string written: ""
+    // The text last applied: a change to that text is not an
+    // edit, whenever it is heard — a change handler may be
+    // queued behind the assignment (the runtime's `after()`),
+    // so a flag set after it would not guard it; the comparison
+    // does, and it still lets a revert to an earlier text apply,
+    // since that differs from what was last applied.
+    property string applied: ""
 
     width: parent ? parent.width : 680
     spacing: 0
 
     function apply() {
+        applied = editor.text;
         LivePantry.setShell(editor.text);
         if (!started) {
             started = true;
@@ -43,15 +44,13 @@ Column {
         });
     }
     function resetToAppShell() {
-        written = PantryProject.shellText;
-        editor.text = written;
+        editor.text = PantryProject.shellText;
         apply();
     }
 
     Component.onCompleted: {
         LivePantry.setProject(PantryProject.files, PantryProject.shellText);
-        written = PantryProject.shellText;
-        editor.text = written;
+        editor.text = PantryProject.shellText;
         apply();
     }
 
@@ -156,7 +155,7 @@ Column {
                 wrapMode: TextEdit.NoWrap
                 selectByMouse: true
                 onTextChanged: {
-                    if (text !== demo.written)
+                    if (text !== demo.applied)
                         debounce.restart();
                 }
             }
