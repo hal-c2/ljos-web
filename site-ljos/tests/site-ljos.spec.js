@@ -80,7 +80,10 @@ test("the demos page names what stands there, flagship first, readable with no s
     const words = await page.locator("#app").innerText();
     expect(words.indexOf("A shell you rewrite")).toBeGreaterThan(-1);
     expect(words.indexOf("A shell you rewrite")).toBeLessThan(words.indexOf("3D you can orbit"));
-    await expect(page.getByText("This demo mounts here.").first()).toBeVisible();
+    // The flagship stands in its place as written: its app's own
+    // shell, prerendered, until hydration takes it over.
+    await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible();
+    await expect(page.getByText("This demo mounts here.")).toHaveCount(0);
   } finally {
     await context.close();
   }
@@ -158,4 +161,301 @@ test("light and dark are the reader's", async ({ page }) => {
   await press(page, page.getByText("Dark", { exact: true }));
   await expect(page.getByText("Light", { exact: true })).toBeVisible();
   expect(await ground()).not.toBe(before);
+});
+
+// How many shells the Pantry demo has applied: its pantry-live.js
+// counts each apply as it starts, so a second one shows at once,
+// not only when its compile lands. It counts only on a page the
+// test has opted in, by putting `__ljosTest` there before the page
+// loads; a visitor's page has no such object.
+const applies = (page) => page.evaluate(() => globalThis.__ljosTest.pantryApplies);
+
+// Where the reset probes' page keeps its time: stopped before the
+// page exists, so nothing the test does waits on wall time passing.
+const HELD_AT = Date.UTC(2026, 0, 1);
+
+// In a held page, time moves only when the test moves it. One step
+// past the editor's debounce runs each timer that falls due in it
+// once, so an apply still armed has started when this returns.
+const pastDebounce = (page) => page.clock.fastForward(1000);
+
+// And what the page is waiting on (a compile, a frame) lands a
+// step at a time, each step running what has fallen due, until the
+// test sees it.
+async function shownInHeldTime(page, locator) {
+  await expect
+    .poll(
+      async () => {
+        await page.clock.fastForward(50);
+        return locator.isVisible();
+      },
+      { timeout: 30_000 },
+    )
+    .toBe(true);
+}
+
+// The same, for what leaves the page.
+async function goneInHeldTime(page, locator, message) {
+  await expect
+    .poll(
+      async () => {
+        await page.clock.fastForward(50);
+        return locator.count();
+      },
+      { message, timeout: 30_000 },
+    )
+    .toBe(0);
+}
+
+// Shift+Tab walks back from the editor through the scene's tab stops
+// and Return presses each, until one applies: that one is Reset. How
+// many stops lie between is the page's business. A press that
+// applies does so as it is handled, so the count says at once.
+async function resetFromKeyboard(page, before) {
+  for (let n = 0; n < 12; n++) {
+    await page.keyboard.press("Shift+Tab");
+    await page.keyboard.press("Enter");
+    if ((await applies(page)) > before) return;
+  }
+  expect(await applies(page), "Shift+Tab from the editor reaches Reset, and Return resets").toBeGreaterThan(before);
+}
+
+// The Pantry's stage: where the running app stands, under whichever
+// shell. A shell's button is looked for there and nowhere else, and
+// must be the only one of its name, so a shell that grows a second
+// fails here instead of having the wrong one pressed.
+async function stageButton(page, name) {
+  const button = page.getByRole("group", { name: "The Pantry, running" }).getByRole("button", { name });
+  await expect(button, `one "${name}" on the Pantry's stage`).toHaveCount(1);
+  return button;
+}
+
+// A visitor's own shell over the Pantry's blocks: its own title, the
+// basket, one button that adds tea, the status and the note.
+const MY_SHELL = [
+  "import QtQuick",
+  "import Pantry",
+  "",
+  "Rectangle {",
+  "    width: 480",
+  "    height: 400",
+  '    color: "#241a10"',
+  "    Column {",
+  "        x: 18",
+  "        y: 14",
+  "        spacing: 12",
+  '        Text { text: "My Pantry"; color: "#f0ead8"; font.pixelSize: 24 }',
+  "        Basket { id: basket; width: 444 }",
+  "        Row {",
+  "            spacing: 10",
+  '            Rectangle { width: 140; height: 58; radius: 8; color: "#232839"',
+  '                Text { x: 10; y: 8; color: "#e8eaf0"; font.pixelSize: 15; text: "Tea" }',
+  '                MouseArea { width: 140; height: 58; Accessible.name: "Add tea"; Accessible.role: Accessible.Button; onClicked: basket.addTea() } }',
+  "        }",
+  "        StatusSlot {}",
+  "        Note { width: 444 }",
+  "    }",
+  "}",
+  "",
+].join("\n");
+
+test("the flagship: rewrite the Pantry's shell and its state survives", async ({ page }) => {
+  await page.goto("/demos/");
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible();
+  await (await stageButton(page, "Add tea")).click();
+  await expect(page.getByText("1 in the basket · £3.50").first()).toBeVisible();
+
+  const editor = page.locator("textarea").first();
+  const app = await editor.inputValue();
+  expect(app).toContain("import Pantry");
+  await editor.fill(MY_SHELL);
+  await expect(page.getByText("My Pantry", { exact: true })).toBeVisible({ timeout: 30_000 });
+  // What the app held, it still holds — and still works.
+  await expect(page.getByText("1 in the basket · £3.50").first()).toBeVisible();
+  await (await stageButton(page, "Add tea")).click();
+  await expect(page.getByText("2 in the basket · £7.00").first()).toBeVisible();
+
+  // A broken shell is refused with what broke and where, and the
+  // running shell stands; the next good edit takes over again.
+  await editor.fill("import QtQuick\nimport Pantry\n\nRectangle {\n    Basket {\n}\n");
+  await expect(page.getByText(/Shell\.qml:\d+:\d+:/)).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("My Pantry", { exact: true })).toBeVisible();
+  await expect(page.getByText("2 in the basket · £7.00").first()).toBeVisible();
+
+  await editor.fill(MY_SHELL.replace('"My Pantry"', '"Fixed Again"'));
+  await expect(page.getByText("Fixed Again", { exact: true })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("2 in the basket · £7.00").first()).toBeVisible();
+
+  // Undoing back to the app's own text applies like any edit: the
+  // guard compares with the text last applied, not with the app's
+  // shell forever.
+  await editor.fill(app);
+  await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("2 in the basket · £7.00").first()).toBeVisible();
+  // A broken edit refused, then undone: the refusal clears and
+  // the good shell stands again.
+  await editor.fill("import QtQuick\nimport Pantry\n\nRectangle {\n    Basket {\n}\n");
+  await expect(page.getByText(/Shell\.qml:\d+:\d+:/)).toBeVisible({ timeout: 30_000 });
+  await editor.fill(app);
+  await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText(/Shell\.qml:\d+:\d+:/)).toHaveCount(0);
+});
+
+// Reset restores the app's shell, its source and its words, in one
+// apply, by a press and from the keyboard, and stops an edit still
+// waiting on the debounce. It does so over what a visitor has made:
+// their own shell standing, and a basket two shells have filled,
+// which the reset keeps. The count is read against time only the
+// test moves: the page's clock stops before the page opens, so the
+// debounce a fill arms is still armed when the reset comes, on any
+// runner, and moves on only by fastForward.
+test("Reset applies the app's shell once over the visitor's, keeps the basket, and stops an edit still waiting to apply", async ({ browser }) => {
+  const context = await browser.newContext();
+  try {
+    await context.clock.pauseAt(HELD_AT);
+    await context.addInitScript(() => {
+      globalThis.__ljosTest = { pantryApplies: 0 };
+    });
+    const page = await context.newPage();
+    await page.goto("/demos/");
+    await shownInHeldTime(page, page.locator('#app[data-ljos-hydrated="true"]'));
+    await shownInHeldTime(page, page.getByText("The Corner Pantry", { exact: true }));
+    // Loading the demo applies its shell once, and its own writing
+    // into the editor arms nothing: past the debounce it is still
+    // one.
+    await pastDebounce(page);
+    expect(await applies(page), "loading the demo applies its shell once").toBe(1);
+    await (await stageButton(page, "Add tea")).click();
+    await shownInHeldTime(page, page.getByText("1 in the basket · £3.50").first());
+
+    const editor = page.locator("textarea").first();
+    const app = await editor.inputValue();
+    const typed = app.replace('"The Corner Pantry"', '"Never Landed"');
+    const resetWords = page.getByText("Reset", { exact: true });
+    // The visitor's shell lands over the basket the app's shell
+    // filled, and shows it.
+    let basket = "1 in the basket · £3.50";
+    const landedEdit = async () => {
+      await editor.fill(MY_SHELL);
+      await pastDebounce(page);
+      await shownInHeldTime(page, page.getByText("My Pantry", { exact: true }));
+      await shownInHeldTime(page, page.getByText(basket).first());
+    };
+    // After a reset the editor holds the app's shell, the stage shows
+    // it and not the visitor's, and the basket is as the visitor left
+    // it.
+    const resetStands = async () => {
+      await shownInHeldTime(page, page.getByText("The Corner Pantry", { exact: true }));
+      await expect(editor, "the reset puts the app's shell back in the editor").toHaveValue(app);
+      await goneInHeldTime(page, page.getByText("My Pantry", { exact: true }), "the visitor's shell is gone from the stage");
+      await shownInHeldTime(page, page.getByText(basket).first());
+    };
+
+    // The visitor's shell, and a second tea added through its own
+    // button: the basket now holds what two shells put there.
+    await landedEdit();
+    await (await stageButton(page, "Add tea")).click();
+    basket = "2 in the basket · £7.00";
+    await shownInHeldTime(page, page.getByText(basket).first());
+
+    // A press on Reset, after an edit has landed. The reset's own
+    // writing into the editor is not an edit: the guard compares the
+    // text, so whenever the change is heard, what the demo wrote
+    // itself restarts nothing.
+    let before = await applies(page);
+    await resetWords.scrollIntoViewIfNeeded();
+    await pressWords(page, "Reset");
+    expect(await applies(page), "a press on Reset applies the app's shell").toBe(before + 1);
+    await pastDebounce(page);
+    expect(await applies(page), "the reset's own write into the editor applies nothing more").toBe(before + 1);
+    await resetStands();
+
+    // A visitor's edit after a reset still applies; then Return on
+    // Reset, which runs outside any flush, so the change is heard
+    // during the assignment itself. It still applies once. The
+    // accessible press action takes this same path; Playwright has
+    // no assistive-technology client to press it with, so the
+    // keyboard stands for both.
+    await landedEdit();
+    await editor.click();
+    before = await applies(page);
+    await resetFromKeyboard(page, before);
+    expect(await applies(page), "Return on Reset applies the app's shell").toBe(before + 1);
+    await pastDebounce(page);
+    expect(await applies(page), "the reset's own write into the editor applies nothing more").toBe(before + 1);
+    await resetStands();
+
+    // Typing, then resetting inside the debounce, by a press and from
+    // the keyboard: the armed apply is stopped, the reset applies
+    // once, and the typed edit never lands.
+    before = await applies(page);
+    await editor.fill(typed);
+    // Measured after the fill, which may scroll the page.
+    await resetWords.scrollIntoViewIfNeeded();
+    await pressWords(page, "Reset");
+    expect(await applies(page), "a press on Reset, with an edit pending, applies the app's shell").toBe(before + 1);
+    await pastDebounce(page);
+    expect(await applies(page), "the reset stopped the typed edit's debounce").toBe(before + 1);
+    await resetStands();
+    await expect(page.getByText("Never Landed", { exact: true })).toHaveCount(0);
+
+    before = await applies(page);
+    await editor.fill(typed);
+    await resetFromKeyboard(page, before);
+    expect(await applies(page), "Return on Reset, with an edit pending, applies the app's shell").toBe(before + 1);
+    await pastDebounce(page);
+    expect(await applies(page), "the reset stopped the typed edit's debounce").toBe(before + 1);
+    await resetStands();
+    await expect(page.getByText("Never Landed", { exact: true })).toHaveCount(0);
+
+    // The app's shell, back, works on the basket it kept.
+    await (await stageButton(page, "Add tea")).click();
+    await shownInHeldTime(page, page.getByText("3 in the basket · £10.50").first());
+  } finally {
+    await context.close();
+  }
+});
+
+// The count is the test's, never the visitor's: a page loaded with
+// no `__ljosTest` put there first runs the demo, applies its shell,
+// and holds no global of the demo's.
+test("a visitor's demos page holds no test hook", async ({ page }) => {
+  await page.goto("/demos/");
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  // The basket answers only once the shell has applied.
+  await (await stageButton(page, "Add tea")).click();
+  await expect(page.getByText("1 in the basket · £3.50").first()).toBeVisible();
+  expect(await page.evaluate(() => ["__ljosTest", "ljosPantryApplies"].filter((name) => name in globalThis))).toEqual([]);
+});
+
+test("every showcase demo stands in its slot, on the landing and the demos page", async ({ page }) => {
+  await page.goto("/");
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible();
+  expect(await page.locator("canvas").count()).toBeGreaterThan(0);
+
+  await page.goto("/demos/");
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  for (const words of ["A shell you rewrite", "3D you can orbit", "A shader effect", "A whole app", "Motion"])
+    await expect(page.getByText(words, { exact: true })).toBeVisible();
+  await expect(page.getByText("Drag to orbit · scroll or pinch to zoom")).toBeVisible();
+  await expect(page.getByText("Move to stir the light · tap for other colours")).toBeVisible();
+  await expect(page.getByText("Field guide")).toBeVisible();
+  await expect(page.getByText("Shuffle the tiles")).toBeVisible();
+  // The other demos did not take the flagship's place away.
+  await stageButton(page, "Add bread");
+});
+
+test("the demos page reads with JavaScript off: the app's shell and words stand", async ({ browser }) => {
+  const context = await browser.newContext({ javaScriptEnabled: false, viewport: BUILD_SIZE });
+  try {
+    const page = await context.newPage();
+    await page.goto("/demos/");
+    await expect(page.getByText("Live demos", { exact: true }).first()).toBeVisible();
+    await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible();
+    await expect(page.getByText(/complete Ljós app that passes ljos check/)).toBeVisible();
+  } finally {
+    await context.close();
+  }
 });

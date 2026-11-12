@@ -462,6 +462,10 @@ costs a site* below: for a visitor who keeps a shell, Settings and
   - its blocks' contracts;
   - the QtQuick types `Item`, `Rectangle`, `Text`, `Row`, `Column`,
     `Grid`, `Flow`, `MouseArea` and `Image`;
+  - `Accessible`, the one attached type a shell may write, values
+    only (a name, a role and their kin, not its handlers nor the
+    members whose value is an item): a shell's own buttons say
+    what they are with it, and it makes and reaches nothing;
   - pure builtins: `Math.*`, `qsTr*`, Qt's value functions
     (`Qt.rgba`, `Qt.point`, `Qt.lighter`, …) and a primitive's own
     methods.

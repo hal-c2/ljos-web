@@ -838,6 +838,23 @@ export function installPrerenderGlobals({ width = 1280, height = 720 } = {}) {
         return Promise.resolve(this);
       }
     },
+    // The painters a GPU face draws into first (a View3D, a
+    // ShaderEffect): there is no GPU here, and such a view
+    // prerenders as the element it paints into, so an offscreen
+    // surface answers as a canvas here does — a measuring 2d
+    // context, and nothing for any other kind.
+    OffscreenCanvas: class {
+      constructor(width, height) {
+        this.width = width;
+        this.height = height;
+      }
+      getContext(kind) {
+        return kind === "2d" ? (this._context ??= context2d()) : null;
+      }
+      transferToImageBitmap() {
+        return { width: this.width, height: this.height, close() {} };
+      }
+    },
     // A visitor's own store is theirs: a prerender has the empty one
     // a first visit has.
     localStorage: storage(),

@@ -274,3 +274,23 @@ test("a site built without prerender keeps its empty page and mounts as before",
     made.remove();
   }
 });
+
+test("a page with faces that paint prerenders as the elements they paint into", async ({ page }) => {
+  // A View3D and a ShaderEffect draw into an offscreen surface
+  // first; where there is no GPU that must not take the build
+  // with it — the elements stand in the HTML, and the words do.
+  const made = bundle("prerender-gpu");
+  const server = await buildSite({ dir: made.dir, out: made.out, qmlc, prerender: true }).then(() => serve(made.out));
+  try {
+    const html = readFileSync(join(made.out, "index.html"), "utf8");
+    expect(html).toContain("GPU faces prerendered");
+    expect(html).toContain("Words beside what paints.");
+    expect(html).toContain("<canvas");
+    await page.goto(`http://127.0.0.1:${server.address().port}/`);
+    await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+    await expect(page.getByText("GPU faces prerendered", { exact: true })).toBeVisible();
+  } finally {
+    await new Promise((done) => server.close(done));
+    made.remove();
+  }
+});

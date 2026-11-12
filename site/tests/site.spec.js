@@ -29,18 +29,18 @@ test("demo page shows its fallback with no JS", async ({ browser }) => {
   const ctx = await browser.newContext({ javaScriptEnabled: false });
   const page = await ctx.newPage();
   await page.goto("/demos/");
-  await expect(page.locator("[data-ljos-demo='counter'] .ljos-demo__fallback")).toContainText("Count: 0");
+  await expect(page.locator("[data-ljos-demo='pantry'] .ljos-demo__fallback")).toContainText("Corner Pantry");
   await ctx.close();
 });
 
-test("live demo mounts with JS and counts", async ({ page }) => {
+test("live demo mounts with JS and answers a tap", async ({ page }) => {
   await page.goto("/demos/");
-  const fig = page.locator("[data-ljos-demo='counter']");
+  const fig = page.locator("[data-ljos-demo='pantry']");
   await fig.scrollIntoViewIfNeeded();
-  await expect(fig).toHaveAttribute("data-state", "live", { timeout: 20000 });
-  await expect(fig).toContainText("Count:");
-  await fig.locator(".ljos-demo__mount").click();
-  await expect(fig).toContainText("Count: 1");
+  await expect(fig).toHaveAttribute("data-state", "live", { timeout: 30000 });
+  await expect(fig).toContainText("0 in the basket");
+  await fig.getByRole("button", { name: "Add tea" }).click();
+  await expect(fig).toContainText("1 in the basket");
 });
 
 test("no serious axe violations on landing and demos", async ({ page }) => {

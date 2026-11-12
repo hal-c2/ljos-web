@@ -66,7 +66,7 @@ export default defineConfig({
         { label: "Language", autogenerate: { directory: "language" } },
         { label: "Quality", autogenerate: { directory: "quality" } },
         { label: "Rust", autogenerate: { directory: "rust" } },
-        { label: "Live demos", link: "/demos/" },
+        { label: "Showcase", link: "/demos/" },
       ],
     }),
   ],
@@ -94,7 +94,26 @@ export default defineConfig({
     // whether a style Ljós has none of is stubbed or taken from a Qt
     // that happens to be installed — must not depend on the building
     // machine. The site builds as it builds in CI, where there is none.
-    plugins: [qml({ qmlc: process.env.QMLC ?? path("../target/debug/qmlc"), styles: "ljos", qt: [] })],
-    resolve: { dedupe: ["solid-js", "@solidjs/web", "ljos-web"] },
+    plugins: [
+      qml({
+        qmlc: process.env.QMLC ?? path("../target/debug/qmlc"),
+        styles: "ljos",
+        qt: [],
+        // Only the Pantry flagship takes a visitor's shell (A9):
+        // its entry carries the block contracts it is compiled
+        // against, and no other demo pays for any of it.
+        liveShell: (file) => (file.endsWith("/demos/pantry/Shell.qml") ? { site: "pantry-demo" } : false),
+        // The Pantry is its own little project: its `Pantry`
+        // module is the qmldir under it, found from its root.
+        root: (file) => (file.includes("/demos/pantry/") ? path("src/demos/pantry") : undefined),
+      }),
+    ],
+    resolve: {
+      dedupe: ["solid-js", "@solidjs/web", "ljos-web"],
+      // `LJOS_KERNEL=wasm` builds the same site over Ljós's own
+      // reactive graph instead of Solid's, as the runtime's specs
+      // run on both kernels; needs `mise run build:kernel` first.
+      conditions: process.env.LJOS_KERNEL === "wasm" ? ["ljos-wasm-kernel"] : [],
+    },
   },
 });

@@ -1,29 +1,46 @@
 ---
-title: Live demos
-description: Small QML programs compiled by ljos-web and running in this page, each with a plain-text fallback.
+title: Showcase
+description: What Ljós can do, running in this page — a shell you rewrite over a live app, Quick3D you can orbit, a custom shader, a whole application, and motion.
 ---
 
 import LjosDemo from "../../components/LjosDemo.astro";
 
-Each demo below is a small, complete QML file from `site/src/demos/`,
-compiled ahead of time by ljos-web and mounted as a lazy island: the
-page reads fine with no JavaScript, and the runtime only loads when a
-demo scrolls into view. They were picked for what already runs well on
-the web runtime — bindings, animation, timers and pointer input with
-no native types.
+Every demo here is a complete Ljós app from `site/src/demos/`,
+compiled ahead of time by ljos-web and mounted as a lazy island:
+the page reads fine with no JavaScript, each stage loads only
+when it scrolls into view and pauses when it leaves, and a
+browser without the feature a demo needs (WebAssembly, WebGPU or
+WebGL) gets a picture of it running and the words instead. The
+same files run as desktop apps with `ljos run`.
 
-## Counter
+## Your own shell over a running app
 
-<LjosDemo demo="counter" title="Counter" fallback="A dark card reading “Count: 0”. Clicking it counts up — a QML property, a MouseArea, and a text binding." />
+The Pantry's data lives in blocks — the basket, a note, a status
+contribution. Its interface is a shell, and the editor holds that
+shell's source. Rewrite it and apply: your shell takes over while
+the app keeps everything it held. The status line is a
+contribution to a named slot, so moving the `StatusSlot` in your
+shell moves the status with it. A shell that does not compile is
+refused with the place and the reason, and the running one stays.
 
-## Gauge
+<LjosDemo demo="pantry" title="Your own shell over a running app" caption="Blocks, slots and a live shell swap: rewrite the interface and the app's data never moves." fallback="The Corner Pantry: three goods with prices, an empty basket, a note field, and beside it the shell source that lays them out — ready to rewrite and apply while the app runs." aspect="auto" />
 
-<LjosDemo demo="gauge" title="Gauge" fallback="A percentage and an amber bar that eases between 18 % and 92 %. One animated property drives both readings." />
+## A 3D scene you can orbit
 
-## Toggle
+<LjosDemo demo="orbit" title="A 3D scene you can orbit" caption="Quick3D drawn by Ljós's wgpu renderer — drag to orbit, scroll or pinch to zoom." fallback="A lighthouse at night on dark water: a striped tower with a lit lamp, its spotlight sweeping the surface while a brass sphere, a stone cube and a rust cone circle it." />
 
-<LjosDemo demo="toggle" title="Toggle" fallback="A switch labelled “Ljós: off”. Clicking it slides the knob, warms the card's colour, and changes the label to “Ljós: on”." />
+## A custom shader
 
-## Clock
+<LjosDemo demo="shader" title="Light on water, per pixel" caption="A fragment shader written for this page, compiled for the browser at build time — move to stir it, tap for other colours." fallback="Interfering waves of deep blue light with amber crests, brightest where the pointer last stirred them." />
 
-<LjosDemo demo="clock" title="Clock" fallback="A card counting the seconds since it appeared: “Elapsed: 0 s”, ticking up once a second." />
+## A whole application
+
+Not a widget: a field guide with search, a species list and a
+detail pane, sightings to tick off and a note kept per species.
+One QML app, unchanged, in the page.
+
+<LjosDemo demo="fieldguide" title="A whole app, unchanged" caption="Search, models, controls and kept records — the desktop app and this page run the same file." fallback="A field guide to North Atlantic birds: a searchable list of nine species on the left, the Atlantic puffin's measurements and description on the right, a 'seen it' tick and a notes field." />
+
+## Motion
+
+<LjosDemo demo="motion" title="Motion with a job to do" caption="Springs, behaviors, list transitions and states — declared beside the values they move, calmer when reduced motion is asked for." fallback="An amber puck in a dark tray, six colour tiles spelling a sentence mid-glide after a shuffle, and two buttons: shuffle the tiles, and a card that opens to explain the motion." />

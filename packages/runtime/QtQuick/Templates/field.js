@@ -3,6 +3,7 @@
 // behind them, a placeholder for a style to show, the mouse over them and
 // the reason they have focus.
 import { onCleanup } from "solid-js";
+import { described } from "../Accessible.js";
 import { derived, effect, settle } from "../../object.js";
 import { parts } from "./parts.js";
 import { styleHints } from "../../QtQml/application.js";
@@ -123,6 +124,9 @@ export const methods = {
 
 // `around` is what a field's background fills when that is not the field.
 export function setup(self, around) {
+  // A field is not a Control by type here, so Control's setup
+  // never says what it is: say it as one does (Accessible.js).
+  described(self);
   backed(self, around);
   const [hovers$, hover$] = signal(false, self.$owner);
   self.$field = {

@@ -1,0 +1,8 @@
+module Demos
+singleton PantryProject 1.0 PantryProject.qml
+PantryDemo 1.0 PantryDemo.qml
+PantryShell 1.0 PantryShell.qml
+Orbit 1.0 Orbit.qml
+Shader 1.0 Shader.qml
+FieldGuide 1.0 FieldGuide.qml
+Motion 1.0 Motion.qml

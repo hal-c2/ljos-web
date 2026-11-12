@@ -49,7 +49,16 @@ Decisions taken here, of a piece with the sibling lanes':
   (docs/LJOS_WEB.md A29) — so switching is one
   `ljos migrate --write` over `bundle/` when migrate carries a
   `Ljos.Blocks` import over as it stands (migrate-gaps SM1).
-- Showcase demos mount into named `Ljos.Blocks` Slots
-  (`showcase-shell`, `showcase`, `demo-*`); until the showcase
-  lane's PR lands, each slot's own delegate says what stands
-  there, which is also what a reader without wasm/WebGPU keeps.
+  The showcase demos are the exception that stays compat for
+  now: the dialect has no QtQuick3D, `ShaderEffect` or
+  animations yet (migrate-gaps SC1–SC3), so three of them
+  cannot be lowered at all.
+- Showcase demos stand in named `Ljos.Blocks` Slots
+  (`showcase-shell`, `showcase`, `demo-*`) as each slot's own
+  delegate, so the prerender holds the demo as first made and
+  hydration takes it over in place (contributions registered
+  from the shell did not settle into a prerender; a slot's own
+  delegate is made with it). The demos are the Astro site's
+  (`site/src/demos/`) by copy under `bundle/Demos/` and
+  `bundle/Pantry/` — the same files, mounted by name there and
+  here.

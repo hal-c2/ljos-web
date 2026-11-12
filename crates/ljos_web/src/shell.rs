@@ -534,6 +534,31 @@ fn quick(name: &str) -> Option<&'static qt_types::Type> {
         .flatten()
 }
 
+/// The one attached type a shell may write: `Accessible`, what an
+/// object is called by someone who does not see it. It makes
+/// nothing, loads nothing and reaches nowhere — a name, a role and
+/// their kin are values a shell gives its own objects, checked
+/// against the attached type's properties as a group is. Its
+/// handlers and the members whose value is an object (one item
+/// naming another, as `labelledBy` does) are not values, and stay
+/// out of a shell's scope.
+fn accessible() -> Option<&'static qt_types::Type> {
+    qt_types::module("QtQuick")?.type_named("Accessible")
+}
+
+fn accessible_attached() -> Option<&'static qt_types::Type> {
+    accessible()?.attached()
+}
+
+fn accessible_enum(key: &str) -> bool {
+    accessible().is_some_and(|ty| {
+        ty.enum_value(key).is_some()
+            || ty
+                .attached()
+                .is_some_and(|attached| attached.enum_value(key).is_some())
+    })
+}
+
 impl<'s> Shell<'s> {
     fn refuse(&mut self, span: Span, message: impl Into<String>) {
         self.errors.push(Diagnostic::at(self.source, span, message));
@@ -832,17 +857,25 @@ impl<'s> Shell<'s> {
                             binding.name.span,
                         );
                     } else if parts.len() == 2
-                        && parts[0].starts_with(|first: char| first.is_ascii_lowercase())
+                        && (parts[0].starts_with(|first: char| first.is_ascii_lowercase())
+                            || parts[0] == "Accessible")
                     {
                         let group = parts[0];
-                        let Some(Member::Property { group: true, .. }) = self.member(index, group)
-                        else {
+                        // A group is a property of the object's own;
+                        // `Accessible` attaches to any item, and its
+                        // members are checked in `member_binding`.
+                        if group != "Accessible"
+                            && !matches!(
+                                self.member(index, group),
+                                Some(Member::Property { group: true, .. })
+                            )
+                        {
                             self.refuse(
                                 binding.name.span,
                                 format!("{} has no group `{group}`", self.type_name(index)),
                             );
                             continue;
-                        };
+                        }
                         let at = match groups.iter().position(|existing| existing.path == [group]) {
                             Some(at) => at,
                             None => {
@@ -1033,19 +1066,39 @@ impl<'s> Shell<'s> {
             return;
         }
         let ty = if let [group] = group {
-            let Some(member) = self.member(index, group).and_then(|_| {
-                let ty = match self.objects[index].kind {
-                    Kind::Quick(ty) => ty,
-                    Kind::Block(block) => quick(&block.base)?,
-                };
-                ty.property(group)?.value_type()?.property(name)
+            let Some(member) = (if *group == "Accessible" {
+                accessible_attached().and_then(|attached| attached.property(name))
+            } else {
+                self.member(index, group).and_then(|_| {
+                    let ty = match self.objects[index].kind {
+                        Kind::Quick(ty) => ty,
+                        Kind::Block(block) => quick(&block.base)?,
+                    };
+                    ty.property(group)?.value_type()?.property(name)
+                })
             }) else {
                 self.refuse(
                     name_span,
-                    format!("{type_name}'s `{group}` has no `{name}`"),
+                    if *group == "Accessible" {
+                        format!("`Accessible` has no `{name}`")
+                    } else {
+                        format!("{type_name}'s `{group}` has no `{name}`")
+                    },
                 );
                 return;
             };
+            // What attaches is given as values: a member whose value
+            // is an object, a list of them, a component or a script
+            // is not one (`labelledBy` names another item).
+            if *group == "Accessible"
+                && (member.is_pointer || member.is_list || member.is_component || member.is_script)
+            {
+                self.refuse(
+                    name_span,
+                    format!("`Accessible.{name}` is not a value a shell gives"),
+                );
+                return;
+            }
             if member.is_readonly {
                 self.refuse(
                     name_span,
@@ -2029,6 +2082,23 @@ impl<'p, 's> Program<'p, 's> {
                     return Ok(dst);
                 }
                 return Err(Refusal(expression.span(), not_in_scope(&whole())));
+            }
+            if name == "Accessible" {
+                if path.len() == 1 && accessible_enum(first) {
+                    let ty_ref = ir::TypeRef::Native {
+                        module: "QtQuick".to_string(),
+                        name: name.to_string(),
+                    };
+                    let param = self.param_index(name, ir::Arg::Type(ty_ref));
+                    let key = self.name(first);
+                    let dst = self.reg();
+                    self.emit(ir::Op::EnumKey { dst, param, key });
+                    return Ok(dst);
+                }
+                return Err(Refusal(
+                    expression.span(),
+                    format!("Accessible has no enum key `{first}`"),
+                ));
             }
             if let Some(ty) = quick(name) {
                 if path.len() == 1 && ty.enum_value(first).is_some() {

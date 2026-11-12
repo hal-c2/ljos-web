@@ -11,3 +11,4 @@ src/content/docs/quality/
 src/content/docs/rust/
 test-results/
 playwright-report/
+fallback-captures/

@@ -51,6 +51,13 @@ test("a control says what it is and what it is called when its author says nothi
   expect(said.mine).toEqual({ role: "button", "aria-label": "Remove the row" });
   expect(said.told).toEqual({ role: "checkbox", "aria-label": "Told", "aria-checked": "true" });
   expect(said.other).toEqual({ role: "link", "aria-label": "Odd" });
+  // A text box's saying is on its field, not the box around it:
+  // the field is what a reader edits, and it is called by its
+  // placeholder until it is given a name.
+  expect(said.field).toEqual({});
+  expect(said.named).toEqual({});
+  await expect(page.getByRole("textbox", { name: "Search" })).toHaveCount(1);
+  await expect(page.getByRole("textbox", { name: "Your name" })).toHaveCount(1);
   await expect(page.getByRole("button", { name: "Go" })).toHaveCount(1);
   await expect(page.getByRole("checkbox", { name: "Check" })).toHaveCount(1);
 

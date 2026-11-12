@@ -86,6 +86,35 @@ test.describe("A visitor drops a shell of their own", () => {
     expect(await page.locator("#scene").textContent()).toContain("Mine 3 3");
   });
 
+  test("A shell's Accessible words are said on the page, as a compiled shell's are", async ({ page }) => {
+    await opened(page);
+    await dropped(
+      page,
+      `import QtQuick
+import Shop
+
+Column {
+    objectName: "mine"
+    Basket { id: basket; objectName: "basket" }
+    MouseArea {
+        width: 120
+        height: 40
+        Accessible.name: "Add one"
+        Accessible.role: Accessible.Button
+        onClicked: basket.add()
+    }
+    Text { objectName: "label"; text: "Mine " + basket.count }
+}
+`,
+    );
+    await expect(errors(page)).toBeHidden();
+    const add = page.getByRole("button", { name: "Add one" });
+    await expect(add).toHaveCount(1);
+    await add.click();
+    await page.evaluate(() => window.flush());
+    expect(await read(page, "label", "text")).toBe("Mine 1");
+  });
+
   test("A shell is opened from a file with the keyboard", async ({ page }) => {
     await opened(page);
     const open = page.getByRole("button", { name: "Open a shell…" });
