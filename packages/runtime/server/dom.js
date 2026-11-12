@@ -10,14 +10,20 @@
 // What a page needs of those it gets when it hydrates, in a browser,
 // over the HTML this wrote (docs/LJOS_WEB.md, the prerender section).
 //
-// Every element this document makes is numbered as it is made. The
-// number is its hydration key: the client, making the same page again
-// in the same order, takes the element of that number out of the
-// prerendered HTML instead of making another (`hydrate` in
-// `../object.js`).
+// Every element this document makes is numbered as it is made, with
+// the type whose making made it (held where the runtime says it, as
+// below). The two are its hydration key: the client, making the same
+// page again in the same order, takes the element of that number and
+// type out of the prerendered HTML instead of making another
+// (`hydrate` in `../object.js`) — the type because most elements are
+// <div>s, and a count alone cannot tell a shifted one from its own.
 
 const VOID = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
 const XHTML = "http://www.w3.org/1999/xhtml";
+// Where the runtime says what type it is making, while it makes it
+// (`object.js`): read here as an element is made.
+const MAKING_KIND = Symbol.for("ljos-web.making-kind");
+const kindNow = () => globalThis[MAKING_KIND] ?? "";
 
 // The numbering starts again: a render's elements are numbered from
 // its making, as the client's are from its hydration. The count is
@@ -641,6 +647,7 @@ export class ServerDocument {
     }
     element.ownerDocument = this;
     element.$hk = ++this._sequence;
+    element.$kind = kindNow();
     if (element.localName === "canvas") {
       element.width = 300;
       element.height = 150;
@@ -656,6 +663,7 @@ export class ServerDocument {
     const element = new Element(tag, namespace);
     element.ownerDocument = this;
     element.$hk = ++this._sequence;
+    element.$kind = kindNow();
     return element;
   }
   createTextNode(text) {

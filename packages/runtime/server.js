@@ -57,7 +57,7 @@ export async function renderToString(Component, { props = {}, width = 1280, heig
   try {
     const mark = (node) => {
       for (const child of node.childNodes ?? []) {
-        if (child.nodeType === 1 && child.$hk !== undefined) child.setAttribute("data-hk", String(child.$hk));
+        if (child.nodeType === 1 && child.$hk !== undefined) child.setAttribute("data-hk", child.$kind ? `${child.$hk}:${child.$kind}` : String(child.$hk));
         mark(child);
       }
     };

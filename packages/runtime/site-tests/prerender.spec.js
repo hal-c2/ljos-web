@@ -150,9 +150,9 @@ for (const kernel of ["solid", "wasm"]) {
       // parted, and no later number names the same making.
       const before = await page.evaluate(() => {
         window.__prerendered = [...document.querySelectorAll("#app [data-hk]")];
-        const third = document.querySelector('[data-hk="3"]');
+        const third = document.querySelector('[data-hk^="3:"]');
         const other = document.createElement("span");
-        other.setAttribute("data-hk", "3");
+        other.setAttribute("data-hk", third.getAttribute("data-hk"));
         other.replaceChildren(...third.childNodes);
         third.replaceWith(other);
         return window.__prerendered.length;
@@ -171,6 +171,47 @@ for (const kernel of ["solid", "wasm"]) {
       expect(heldNodes.kept).toBe(2);
       expect(heldNodes.span).toBe(false);
       // And the page made again is the page, whole and working.
+      await expect(page.getByText("Prerendered heading", { exact: true })).toBeVisible();
+      const box = await page.getByText("Increment", { exact: true }).boundingBox();
+      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+      await expect(page.getByText("Count 1", { exact: true })).toBeVisible();
+    });
+
+    test("an element more in the prerender than the page makes is told of, though every tag is a div", async ({ page }) => {
+      const warnings = [];
+      page.on("console", (message) => {
+        if (message.type() === "warning") warnings.push(message.text());
+      });
+      let release;
+      const held = new Promise((done) => (release = done));
+      await page.route("**/*.js", async (route) => {
+        await held;
+        await route.continue();
+      });
+      await page.goto(`${origin}/`, { waitUntil: "commit" });
+      await page.waitForSelector("#app [data-hk]");
+      // One element more was made when the page was prerendered than
+      // this making makes (a row the visitor's own store would add,
+      // a line only the server's measure wraps): put its copy in at
+      // the fifth making and move every later key up one, as such a
+      // prerender's keys would read.
+      await page.evaluate(() => {
+        const fifth = document.querySelector('[data-hk^="5:"]');
+        const extra = fifth.cloneNode(true);
+        for (const element of [...document.querySelectorAll("#app [data-hk]")]) {
+          const said = element.getAttribute("data-hk");
+          const at = said.indexOf(":");
+          if (Number(said.slice(0, at)) >= 5) element.setAttribute("data-hk", `${Number(said.slice(0, at)) + 1}${said.slice(at)}`);
+        }
+        fifth.before(extra);
+      });
+      release();
+      await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+      await page.unroute("**/*.js");
+      // The counts part where a Rectangle's element is asked for and a
+      // Text's is what the key holds: one warning, and the page made
+      // again from there is the page, whole and working.
+      expect(warnings.filter((text) => /hydration mismatch/.test(text))).toHaveLength(1);
       await expect(page.getByText("Prerendered heading", { exact: true })).toBeVisible();
       const box = await page.getByText("Increment", { exact: true }).boundingBox();
       await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);

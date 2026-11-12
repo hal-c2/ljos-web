@@ -1633,21 +1633,23 @@ binding decides at build time is what it decides in the browser.
 Solid draws and Ljós decides on the server exactly as on the client;
 only the document under them differs.
 
-Each element the prerender makes is numbered as it is made and
-carries its number in the HTML (`data-hk`). `hydrate(Component,
-element)` (`ljos-web/object`, beside `mount`) makes the page over an
-element that holds such HTML: while the root is made, an element a
-type asks the document for is answered with the prerendered one of
-that number, and the effects that then run write to it as they always
+Each element the prerender makes is numbered as it is made, with
+the type whose making made it, and carries the two in the HTML
+(`data-hk="12:Text"`). `hydrate(Component, element)`
+(`ljos-web/object`, beside `mount`) makes the page over an element
+that holds such HTML: while the root is made, an element a type asks
+the document for is answered with the prerendered one of that number
+and type, and the effects that then run write to it as they always
 did — its listeners, its measured styles, its painted faces are the
 browser's own, settled in place. The nodes a reader was reading are
-the nodes that then behave. An element of another tag than the page
-asks for, or one no making asks for — the page made differently here
-than it was prerendered — is a mismatch: it is told of once on the
-console, no element after it is taken over either (from where the
-makings part, no number can be trusted to name the same making),
-what was not taken over is taken out, and the page goes on as a
-mount would have made it. What the page says as it is made
+the nodes that then behave. An element of another tag or for another
+type than the page asks for, or one no making asks for — the page
+made differently here than it was prerendered, an element more or
+fewer from what only the browser measures — is a mismatch: it is
+told of once on the console, no element after it is taken over
+either (from where the makings part, no number can be trusted to
+name the same making), what was not taken over is taken out and
+told of, and the page goes on as a mount would have made it. What the page says as it is made
 (`console.log`, QML's `print`) a prerender sends to the build's
 stderr, never into the HTML. That the page is live, the element it
 was hydrated into says (`data-ljos-hydrated`). With nothing
@@ -1695,12 +1697,14 @@ running but Node, and what the document cannot do (paint, load,
 measure a glyph) is stated above rather than half-done.
 
 **DECISION:** adoption is by the order elements are made in, held in
-`data-hk`, not by a structural walk of the tree: the runtime's types
-make their elements where they make them (sixty-odd places), and the
-one count both sides share is the count of those makings. Copies a
-type makes of an element (`cloneNode`, a parser's) are not makings
-and carry no number; they are made again in the browser over the
-elements that do.
+`data-hk` as that order's count and the type being made, not by a
+structural walk of the tree: the runtime's types make their elements
+where they make them (sixty-odd places), and the count of those
+makings is the one thing both sides share; the type is in the key
+because most elements are `<div>`s, and a count alone cannot tell a
+shifted one from its own. Copies a type makes of an element
+(`cloneNode`, a parser's) are not makings and carry no key; they are
+made again in the browser over the elements that do.
 
 A host that is not the site builder renders its own pages the same
 way: it builds each page a server bundle whose default export renders
