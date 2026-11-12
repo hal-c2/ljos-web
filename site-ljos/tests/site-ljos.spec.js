@@ -257,6 +257,33 @@ test("the flagship: rewrite the Pantry's shell and its state survives", async ({
   await editor.fill(app);
   await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText(/Shell\.qml:\d+:\d+:/)).toHaveCount(0);
+  // The other write paths need no driving of their own to be
+  // covered: the guard compares the text with the last applied
+  // one, so it does not matter whether the change is heard
+  // during the assignment (a keyboard or accessible-action
+  // reset, settling inline) or after it (queued inside a
+  // flush) — both loads above are built inside the hydration
+  // flush, and the mouse reset below is a press handler of its
+  // own. A keyboard reset through Return/Space on the focused
+  // Reset cannot be driven from Playwright here: the runtime
+  // gives no QML item a DOM tabindex, so DOM Tab never lands
+  // QML focus on it (probed: Tab cycles the page's form fields
+  // only, and Enter after each never reaches the button), and
+  // there is no assistive-technology client to press it with
+  // either. Its handler calls the same resetToAppShell().
+  await editor.fill(app.replace('"The Corner Pantry"', '"Edited Once More"'));
+  await expect(page.getByText("Edited Once More", { exact: true })).toBeVisible({ timeout: 30_000 });
+  // Typing, then resetting inside the debounce: the armed apply
+  // is stopped and the typed edit never lands.
+  await editor.fill(app.replace('"The Corner Pantry"', '"Never Landed"'));
+  await pressWords(page, "Reset");
+  await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible({ timeout: 30_000 });
+  await page.getByText("The Corner Pantry", { exact: true }).evaluate((el) => {
+    window.__fastResetMade = el;
+  });
+  await page.waitForTimeout(900);
+  expect(await page.evaluate(() => window.__fastResetMade?.isConnected)).toBe(true);
+  await expect(page.getByText("Never Landed", { exact: true })).toHaveCount(0);
 });
 
 test("every showcase demo stands in its slot, on the landing and the demos page", async ({ page }) => {

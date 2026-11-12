@@ -43,14 +43,26 @@ Column {
             demo.said = why || "";
         });
     }
+    // The demo's own writing into the editor, in one place: say
+    // first that this text is the applied one, then write it, so
+    // whenever the change is heard — during the assignment (a
+    // settle outside a flush) or after it (a handler queued
+    // inside one) — it compares equal and restarts nothing; the
+    // debounce a visitor's typing just armed is stopped as well.
+    function writeOwn(text) {
+        applied = text;
+        editor.text = text;
+        debounce.stop();
+    }
+
     function resetToAppShell() {
-        editor.text = PantryProject.shellText;
+        writeOwn(PantryProject.shellText);
         apply();
     }
 
     Component.onCompleted: {
         LivePantry.setProject(PantryProject.files, PantryProject.shellText);
-        editor.text = PantryProject.shellText;
+        writeOwn(PantryProject.shellText);
         apply();
     }
 
