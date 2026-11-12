@@ -85,6 +85,9 @@ test("backtick runs pair as runs: a lone backtick is text, a double span holds i
   // each end when both ends have one and the span is not all spaces.
   expect(inline("`` ` ``")).toBe("<code>`</code>");
   expect(inline("``  ``")).toBe("<code>  </code>");
+  // All spaces is spaces only: a span of a tab between spaces is
+  // not all spaces, and its padding still comes off.
+  expect(inline("` \t `")).toBe("<code>\t</code>");
   const padded = markdownBlocks("| A | B |\n|---|---|\n| `` ` `` | q |\n");
   expect(padded[0].rows[0][0]).toContain("<code>`</code>");
 });

@@ -72,7 +72,7 @@ export function inline(text, { routeOf = (href) => href } = {}) {
     // Padding is how a span holds a backtick: one space comes off
     // each end when both ends have one and the span is not all spaces.
     const inner = said.slice(at + run, close);
-    const trimmed = inner.length > 2 && inner.startsWith(" ") && inner.endsWith(" ") && inner.trim() ? inner.slice(1, -1) : inner;
+    const trimmed = inner.length > 2 && inner.startsWith(" ") && inner.endsWith(" ") && !/^ +$/.test(inner) ? inner.slice(1, -1) : inner;
     code.push(`<code>${escapeHtml(trimmed)}</code>`);
     out += `\u0000${code.length - 1}\u0000`;
     at = close + run;
