@@ -1,21 +1,24 @@
 #!/usr/bin/env node
-// ljos-web build-site DIR [--out DIR] [--qmlc PATH] [--qt DIR]... [--with DIR]... [--styles ljos|qt] [--prerender]
+// ljos-web build-site DIR [--out DIR] [--qmlc PATH] [--qt DIR]... [--with DIR]... [--styles ljos|qt] [--prerender] [--pages FILE]
 //   A static site from DIR, a directory with ljos-site.json (default out:
 //   DIR-site). A site this built there is replaced; anything else is not.
 //   Its controls are Ljós's style, or an installed Qt's with `--styles qt`.
 //   With `--prerender` the page's HTML is written at build time (readable
-//   with no script) and taken over by its script when it runs.
+//   with no script) and taken over by its script when it runs. `--pages`
+//   names a JSON file of the site's pages (`[{ route, title, props }]`)
+//   and prerenders the entry once per page, at its route.
 // ljos-web modules [--json]
 //   The modules this ljos-web provides, and what building with each needs.
 // ljos-web faces CRATE [--out DIR] [--register PATH] [--bindgen PATH]
 //   The application crate's wasm, the faces of its native types and their
 //   ljostypes.json (default out: CRATE/pkg).
+import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 import { buildFaces, FaceError } from "../web/faces.js";
 import { provided } from "../modules.js";
 import { buildSite, SiteError } from "../site.js";
 
-const USAGE = `usage: ljos-web build-site DIR [--out DIR] [--qmlc PATH] [--qt DIR]... [--with DIR]... [--styles ljos|qt] [--prerender]
+const USAGE = `usage: ljos-web build-site DIR [--out DIR] [--qmlc PATH] [--qt DIR]... [--with DIR]... [--styles ljos|qt] [--prerender] [--pages FILE]
        ljos-web modules [--json]
        ljos-web faces CRATE [--out DIR] [--register PATH] [--bindgen PATH]`;
 
@@ -32,7 +35,7 @@ try {
     allowPositionals: true,
     options:
       command === "build-site"
-        ? { out: { type: "string" }, qmlc: { type: "string" }, qt: { type: "string", multiple: true }, with: { type: "string", multiple: true }, styles: { type: "string" }, prerender: { type: "boolean" } }
+        ? { out: { type: "string" }, qmlc: { type: "string" }, qt: { type: "string", multiple: true }, with: { type: "string", multiple: true }, styles: { type: "string" }, prerender: { type: "boolean" }, pages: { type: "string" } }
         : command === "faces"
           ? { out: { type: "string" }, register: { type: "string" }, bindgen: { type: "string" } }
           : { json: { type: "boolean" } },
@@ -48,7 +51,8 @@ if (command === "modules" && positionals.length === 0) {
   else for (const { module, needs } of list.modules) console.log(needs.length > 0 ? `${module} (needs ${needs.join(", ")})` : module);
 } else if (command === "build-site" && positionals.length === 1) {
   try {
-    const { out, files, bytes } = await buildSite({ dir: positionals[0], out: values.out, qmlc: values.qmlc, qt: values.qt, with: values.with, styles: values.styles, prerender: values.prerender });
+    const prerender = values.pages ? { pages: JSON.parse(readFileSync(values.pages, "utf8")) } : values.prerender;
+    const { out, files, bytes } = await buildSite({ dir: positionals[0], out: values.out, qmlc: values.qmlc, qt: values.qt, with: values.with, styles: values.styles, prerender });
     console.log(`site: ${out} (${files.length} files, ${bytes} bytes)`);
   } catch (error) {
     // What the compiler or Vite says is said as they say it, without a stack.

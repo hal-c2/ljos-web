@@ -2,7 +2,7 @@ name: site
 
 on:
   pull_request:
-    paths: ["site/**", "packages/**", "crates/**", "pnpm-workspace.yaml", "pnpm-lock.yaml", "package.json", ".github/workflows/site.yml"]
+    paths: ["site/**", "site-ljos/**", "packages/**", "crates/**", "pnpm-workspace.yaml", "pnpm-lock.yaml", "package.json", ".github/workflows/site.yml"]
   workflow_dispatch:
     inputs:
       deploy:
@@ -49,6 +49,21 @@ jobs:
       # The live blocks on a site built from fixture docs, strictly.
       # After the ordinary suite: its setup syncs the fixture's pages.
       - run: pnpm --filter ljos-site test:codeblocks
+      # The same site as Ljós pages, beside the Astro one: built and
+      # held to parity with it, uploaded as its own artifact, and
+      # never what Pages deploys (that stays site/dist, below). The
+      # wasm compiler is built above, for the Astro build's blocks.
+      - run: mise run build:kernel
+      # The build draws each live block's picture in a browser.
+      - run: pnpm --filter ljos-site-ljos exec playwright install --with-deps chromium
+      - run: pnpm --filter ljos-site-ljos build
+        env:
+          QMLC: ${{ github.workspace }}/target/debug/qmlc
+      - run: pnpm --filter ljos-site-ljos test
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: site-ljos-dist
+          path: site-ljos/dist
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: site-dist

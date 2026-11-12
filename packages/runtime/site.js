@@ -310,16 +310,44 @@ export function replaceSite(from, out, rename = renameSync) {
 // `index.html`, for a reader or a crawler with no script — and the page's
 // script hydrates it, taking those elements over rather than making the
 // page again (docs/LJOS_WEB.md, the prerender section). A live shell's
-// page is its own host's to make, so the two are refused together.
+// page is its own host's to make, so the two are refused together. With
+// `pages` (`[{ route, title, props }]`), the one entry is prerendered
+// once per page — at its route (`/` is `index.html`, `/docs/` is
+// `docs/index.html`), under its title, made with its `props` as the
+// entry's own properties — and each page's script hydrates it with the
+// same props, which its HTML carries. One build, one set of assets,
+// every page's own HTML: a site of many pages is one shell that shows
+// the page its route names.
 // What it wrote, and its size.
 //
 // A site's controls are Ljós's whether or not the machine that builds it
 // has a Qt: the site is a Ljós application, which draws with Ljós's style
 // natively, and a bundle builds to the same site on any machine. A style
 // Ljós has none of (Imagine) is still the installed Qt's.
+// The pages a prerender is asked for, held to their shape before
+// anything is compiled: a route is a plain path below the site's root
+// and names a directory (`/`, `/docs/`), each once.
+function pagesOf(prerender) {
+  if (typeof prerender !== "object" || prerender === null || prerender.pages === undefined) return null;
+  const { pages } = prerender;
+  if (!Array.isArray(pages) || pages.length === 0) throw new SiteError("prerender.pages is a list of pages, one at least");
+  const seen = new Set();
+  for (const page of pages) {
+    if (typeof page !== "object" || page === null || typeof page.route !== "string" || !/^\/([A-Za-z0-9._~-]+\/)*$/.test(page.route) || page.route.split("/").some((part) => /^\.+$/.test(part))) {
+      throw new SiteError(`a page's route is a plain path below the site ending in /, not ${JSON.stringify(page?.route)}`);
+    }
+    if (seen.has(page.route)) throw new SiteError(`the route ${page.route} is in prerender.pages twice`);
+    seen.add(page.route);
+    if (page.title !== undefined && typeof page.title !== "string") throw new SiteError(`the route ${page.route}'s title is not a string`);
+    if (page.props !== undefined && (typeof page.props !== "object" || page.props === null || Array.isArray(page.props))) throw new SiteError(`the route ${page.route}'s props are not an object`);
+  }
+  return pages;
+}
+
 export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", qt, styles = "ljos", with: standins = [], liveShell = false, prerender = false, logLevel = "warn" } = {}) {
   if (!dir) throw new SiteError("which bundle? buildSite({ dir })");
   if (prerender && liveShell) throw new SiteError("a site with a live shell is not prerendered: its page is the shell host's to make (choose one of prerender and liveShell)");
+  const pages = prerender ? pagesOf(prerender) : null;
   dir = resolve(dir);
   out = resolve(out ?? `${dir}-site`);
   qmlc = compilerAt(qmlc);
@@ -406,19 +434,42 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
         ssr: { noExternal: true },
         environments: { ssr: { resolve: { noExternal: true } } },
       });
-      const options = typeof prerender === "object" ? prerender : {};
-      const ran = spawnSync(process.execPath, [join(runtime, "server/prerender.js"), join(stage, "server/server-entry.mjs"), JSON.stringify(options)], {
-        encoding: "utf8",
-        maxBuffer: 1 << 28,
-        timeout: 120_000,
-      });
-      if (ran.error) throw new SiteError(`could not prerender the site: ${ran.error.message}`);
-      if (ran.status !== 0) throw new SiteError(`the site could not be prerendered:\n${(ran.stderr || ran.stdout).trim()}`);
-      if (ran.stderr) console.warn(ran.stderr.trimEnd());
-      const page = join(site, "index.html");
-      const html = readFileSync(page, "utf8");
-      if (!html.includes('<div id="app"></div>')) throw new SiteError("the built page has no empty #app to prerender into");
-      writeFileSync(page, html.replace('<div id="app"></div>', () => `<div id="app">${ran.stdout}</div>`));
+      // One render per page, each in a process of its own, as a render
+      // takes the globals over. A site of one page is the entry made
+      // with no props at `/`, as it always was.
+      const said = typeof prerender === "object" ? prerender : {};
+      const size = { ...(said.width !== undefined ? { width: said.width } : {}), ...(said.height !== undefined ? { height: said.height } : {}) };
+      const shell = readFileSync(join(site, "index.html"), "utf8");
+      if (!shell.includes('<div id="app"></div>')) throw new SiteError("the built page has no empty #app to prerender into");
+      for (const page of pages ?? [{ route: "/" }]) {
+        const options = { ...size, ...(page.props ? { props: page.props } : {}) };
+        const ran = spawnSync(process.execPath, [join(runtime, "server/prerender.js"), join(stage, "server/server-entry.mjs"), JSON.stringify(options)], {
+          encoding: "utf8",
+          maxBuffer: 1 << 28,
+          timeout: 120_000,
+        });
+        if (ran.error) throw new SiteError(`could not prerender ${page.route}: ${ran.error.message}`);
+        if (ran.status !== 0) throw new SiteError(`${page.route} could not be prerendered:\n${(ran.stderr || ran.stdout).trim()}`);
+        if (ran.stderr) console.warn(ran.stderr.trimEnd());
+        // The page at its route asks for the one build's assets from
+        // its own depth, carries the props it was made with for its
+        // script to hydrate it by, and is titled as its own page.
+        const depth = page.route.split("/").filter(Boolean).length;
+        let html = shell;
+        if (depth > 0) html = html.replaceAll('="./', `="${"../".repeat(depth)}`);
+        if (page.title !== undefined) {
+          const title = page.title.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+          html = html.replace("<title>Ljós site</title>", () => `<title>${title}</title>`);
+        }
+        if (page.props) {
+          const carried = JSON.stringify(page.props).replaceAll("</script", "<\\/script");
+          html = html.replace('<div id="app"></div>', () => `<script type="application/json" id="ljos-props">${carried}</script>\n    <div id="app"></div>`);
+        }
+        html = html.replace('<div id="app"></div>', () => `<div id="app">${ran.stdout}</div>`);
+        const at = join(site, page.route.slice(1), "index.html");
+        mkdirSync(dirname(at), { recursive: true });
+        writeFileSync(at, html);
+      }
     }
     // Carried as it is too, for whatever reads it beside the page.
     if (theme) {
@@ -461,12 +512,14 @@ mount(Entry, document.getElementById("app"));
 `;
 
 // The page of a prerendered site: its HTML is in the page already, and
-// is taken over.
+// is taken over — with the props its page of the site was made with,
+// where the build wrote them beside it.
 const PRERENDERED = `import "ljos-site:css";
 import { hydrate } from "ljos-site:object";
 import Entry from "ljos-site:entry";
 
-hydrate(Entry, document.getElementById("app"));
+const carried = document.getElementById("ljos-props");
+hydrate(Entry, document.getElementById("app"), carried ? JSON.parse(carried.textContent) : {});
 `;
 
 // What the prerender renders: the entry, made by the runtime's server

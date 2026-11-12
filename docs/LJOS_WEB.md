@@ -1818,6 +1818,95 @@ modules are not in the page compiler's table at this pin, so dialect
 examples check as not-installed until ljos-web carries them — the
 check says so rather than showing them dead.
 
+### A28. A site of many pages, and Markdown as a content source
+
+A site is more than one page. A prerender may name the pages
+(`buildSite({ prerender: { pages: [{ route, title, props }] } })`,
+`ljos-web build-site DIR --pages FILE`): one build of the entry,
+one set of assets, and the entry prerendered once per page — at its
+route (`/` is `index.html`, `/docs/` is `docs/index.html`), under
+its title, made with its `props` as the entry's own properties. A
+route is a plain path below the site ending in `/`, each once, or
+the build is refused before anything is compiled. Each page's HTML
+carries the props it was made with (`<script type="application/json"
+id="ljos-props">`), and its script hydrates it with the same ones,
+so the page that stands up in the browser is the page that was
+prerendered for that address. Without `pages` a prerender is the
+one page at `/`, as it always was. A site of many pages is then
+one shell that shows the page its route names — ljos.dev's own
+55 pages are built this way (`site-ljos/`, beside the Astro site
+it will one day replace; nothing serves it yet).
+
+Where the words of those pages come from is a step of its own.
+`ljos-web/markdown` reads a directory of Markdown as a site:
+front matter (`title`, `description`, `section`, `order`) over a
+body, read as blocks — headings with the anchor a reader links
+to, paragraphs, lists, tables, quotes and admonitions, pictures,
+rules, and fenced code kept verbatim with its fence contract
+(`harness=`/`file=`/`group=`/`before`, the live code blocks'
+words) and coloured for a reader whose page has not made it live.
+Inline words become the rich subset this runtime's `Text` takes,
+escaped first so what a page wrote as text stays text; a `.md`
+link becomes the route of the page it names; an HTML comment is
+the writer's note and no reader is shown it. `readMarkdownSite`
+gives the pages in sidebar order with each page's headings, and
+the sidebar those orders make. Nothing in it builds or draws: a
+site writes the reading into its bundle as data its shell reads
+(ljos.dev's build writes a `Content.qml`), and any shell that
+shows blocks can stand over it. The tests are
+`packages/runtime/site-tests/markdown.spec.js` (the reading held
+to what the Markdown says, links resolved against the pages read)
+and `pages.spec.js` (each page at its route with only its words,
+read with JavaScript off, hydrated as the page its route names;
+a page that carries its words as megabytes of data still builds —
+the compiler is run with room for what it writes; a page with a
+text editor prerenders, its text in the HTML; and a site that
+imports `Ljos.Blocks` builds prerendered: the styles' own QML is
+no project's, and is compiled under the root it stands in, not
+the bundle's).
+
+Live code blocks (A27) stand in such a page as the decision there
+has it — the same halves without remark. The site's build
+assembles each page's fences, holds every one that claims to run
+to compiling and running (`checkExamples`, `renderPrerenders`),
+and gives the shell's one code-block face the ones that do as
+live blocks: an editor per file beside a stage. The stage as
+first written holds a picture the build drew of the prerendered
+result (an `<img>` in rich text, so it stands in the HTML for a
+reader with no script); in a browser a `ShellLoader` compiles the
+code in the page — through a script library that resolves it with
+`ljos-web/compiler`, given this page's Controls as the Astro
+site's compiler is given them — and takes the stage over, and
+every edit reloads it with its state kept, a broken one saying
+why beside the code. An example that does not compile or run and
+never claimed to stays plain highlighted code and is counted in
+the build's output (at the current pin: 138 live, 21 plain). A
+text field made in a prerender holds a selection and writes its
+text as a textarea's content, as a browser reads it
+(`server/dom.js`).
+
+What a page of many has that a page of one has not, stated plain:
+
+- Every page carries the one bundle's data with it: a docs site's
+  shell reads every page's blocks from the reading the build
+  wrote in, so the script a reader loads holds the whole site's
+  words (ljos.dev's is some 35 MB of assets, the in-page
+  compiler's link table most of it). The HTML a reader without
+  script gets is only the page asked for. A live block mounts
+  when its page is made, not only as it nears the viewport as
+  the DOM hydrator mounts its figures: a page's blocks compile
+  as the page stands up.
+- A link in rich text is the runtime's `data-link`, followed when
+  the page has hydrated; with no script the words and the address
+  are in the page, and the navigation is readable, but no press
+  is taken. Search is a site's own to grow; ljos.dev's shell
+  carries a placeholder that says so.
+- The shell's size is the build's (`prerender: { width, height }`)
+  until hydration settles it, as A26 has it; a root that would
+  fill its window binds its width and height to its parent's —
+  an anchor to the view an entry is mounted in settles before
+  that parent stands, and a prerender would write it at no size.
+
 ## Part II — An application's own Rust types
 
 ## 1. The shape of a native type on the web

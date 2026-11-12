@@ -1,0 +1,16 @@
+{
+  "name": "ljos-site-ljos",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "serve": "node scripts/serve.mjs dist",
+    "test": "playwright test"
+  },
+  "dependencies": {
+    "ljos-web": "workspace:*"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0"
+  }
+}

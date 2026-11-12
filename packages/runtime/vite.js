@@ -874,9 +874,21 @@ export default function qml({
       // Qt's own QML is no project's, and takes none of its types.
       const dumps = own ? [] : dumpsOf(file);
       for (const dump of dumps) if (existsSync(dump)) this.addWatchFile(dump);
+      // The caller's `--root` names the project's, for the project's
+      // files: a file of a root's own (a style's QML under `controls/`)
+      // compiled with it resolves its sibling impl types from the
+      // table instead of from beside it, and does not compile. Its
+      // project is the root it stands under, as it compiles alone.
+      const said = typeof args === "function" ? args(file) : args;
+      const argsKept = [];
+      for (let at = 0; at < said.length; at++) {
+        if (own && said[at] === "--root") at++;
+        else argsKept.push(said[at]);
+      }
+      const ownRoot = own ? roots.find((root) => file.startsWith(root + sep)) : null;
       const given = [
-        ...(typeof args === "function" ? args(file) : args),
-        ...(project ? ["--root", project] : []),
+        ...argsKept,
+        ...(own ? ["--root", ownRoot] : project ? ["--root", project] : []),
         ...dumps.flatMap((dump) => ["--types", dump]),
         ...looked(file).flatMap((directory) => ["-I", directory]),
         ...more.flatMap((directory) => ["--with", directory]),
@@ -884,8 +896,11 @@ export default function qml({
         ...(selector ? ["--select", selector] : []),
         ...((typeof inspect === "function" ? inspect(file) : inspect) ? ["--inspect", relative(base, file).split(sep).join("/")] : []),
       ];
+      // A compiled file can be larger than a pipe's default room (a
+      // page that carries its words as data is megabytes of it).
       const result = spawnSync(qmlc, [...given, file], {
         encoding: "utf8",
+        maxBuffer: 1 << 28,
       });
       if (result.error) this.error(`could not run ${qmlc}: ${result.error.message}`);
       if (result.status !== 0) this.error(result.stderr.trim());
@@ -901,7 +916,7 @@ export default function qml({
       if (live && entries.has(file)) {
         // Asked with what the file is compiled with, and told which directory
         // the files are from: the one lookup says both.
-        const asked = spawnSync(qmlc, ["--shell", ...given, file], { encoding: "utf8" });
+        const asked = spawnSync(qmlc, ["--shell", ...given, file], { encoding: "utf8", maxBuffer: 1 << 28 });
         if (asked.error) this.error(`could not run ${qmlc}: ${asked.error.message}`);
         if (asked.status !== 0) this.error(asked.stderr.trim());
         for (const line of asked.stderr.split("\n")) if (line.trim()) this.warn(line.replace(/^warning: /, ""));
