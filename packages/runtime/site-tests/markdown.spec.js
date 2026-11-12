@@ -81,6 +81,12 @@ test("backtick runs pair as runs: a lone backtick is text, a double span holds i
   expect(doubled[0].rows[0]).toHaveLength(2);
   expect(doubled[0].rows[0][0]).toContain("<code>a|b</code>");
   expect(inline("a ``b`c`` d")).toContain("<code>b`c</code>");
+  // Padding is how a span holds a backtick: one space comes off
+  // each end when both ends have one and the span is not all spaces.
+  expect(inline("`` ` ``")).toBe("<code>`</code>");
+  expect(inline("``  ``")).toBe("<code>  </code>");
+  const padded = markdownBlocks("| A | B |\n|---|---|\n| `` ` `` | q |\n");
+  expect(padded[0].rows[0][0]).toContain("<code>`</code>");
 });
 
 test("a heading's own trailing hash is its word, not a closing sequence", () => {
