@@ -1,7 +1,7 @@
 // The table of what `measure.bench.js` wrote, with qml6's numbers for the
-// same QML where `qml6.json` has them (`qml6.sh`): printed, and written to
+// same QML where `qml6.json` has them (`qml6.js`): printed, and written to
 // `summary.md` beside the results. Also `node table.js` on its own.
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -13,12 +13,23 @@ const ms = (value, digits = 1) => (value === null || value === undefined || Numb
 const kb = (value) => (value ? `${Math.round(value / 1024 / 1024)} MB` : "–");
 const n = (value) => (value === null || value === undefined ? "–" : value >= 100 ? Math.round(value).toString() : value.toFixed(1));
 
-export function table() {
-  if (!existsSync(OUT)) return "";
-  const results = readdirSync(OUT)
+// Before a run (the harness's globalSetup): what an earlier run wrote goes,
+// so the table is of this run alone. qml6's files stay, as `qml6.js`
+// measures them on its own.
+export function fresh(out = OUT) {
+  if (!existsSync(out)) return;
+  for (const name of readdirSync(out)) {
+    if (/qml6/.test(name) || !/\.(json|png|cpuprofile|md)$/.test(name)) continue;
+    if (statSync(join(out, name)).isFile()) rmSync(join(out, name));
+  }
+}
+
+export function table(out = OUT) {
+  if (!existsSync(out)) return "";
+  const results = readdirSync(out)
     .filter((name) => name.endsWith(".json") && name !== "qml6.json")
-    .map((name) => JSON.parse(readFileSync(join(OUT, name), "utf8")));
-  const qml6 = existsSync(join(OUT, "qml6.json")) ? JSON.parse(readFileSync(join(OUT, "qml6.json"), "utf8")) : {};
+    .map((name) => JSON.parse(readFileSync(join(out, name), "utf8")));
+  const qml6 = existsSync(join(out, "qml6.json")) ? JSON.parse(readFileSync(join(out, "qml6.json"), "utf8")) : {};
   for (const [scene, each] of Object.entries(qml6.scenes ?? {})) results.push({ scene, renderer: "qml6", qml6: each });
   results.sort((a, b) => ORDER.indexOf(a.scene) - ORDER.indexOf(b.scene) || RENDERERS.indexOf(a.renderer) - RENDERERS.indexOf(b.renderer));
 

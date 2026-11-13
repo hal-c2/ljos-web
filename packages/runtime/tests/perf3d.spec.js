@@ -4,8 +4,12 @@
 // it to the GPU (submit), how many draw calls and uploads it made, and how
 // often it crossed between JavaScript and wasm. And a scene that stands
 // still asks for no frame once it is drawn: nothing polls.
+import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { expect, test } from "./open.js";
 import { kinds, probe } from "./perf3d/probe.js";
+import { fresh, table } from "./perf3d/table.js";
 
 test.use({
   launchOptions: { args: ["--enable-unsafe-webgpu", "--enable-features=Vulkan", "--use-angle=vulkan", "--ignore-gpu-blocklist"] },
@@ -71,3 +75,35 @@ for (const renderer of RENDERERS) {
     });
   });
 }
+
+// A run's table is of that run: what an earlier one measured is taken away
+// before it starts, so a run of one scene does not show another's old rows
+// as new. qml6's numbers, measured on their own by `qml6.js`, stay.
+test("the harness's table shows only what its last run measured, beside qml6's", () => {
+  const out = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "perf3d-"));
+  try {
+    const result = (scene, renderer) => ({
+      scene,
+      renderer,
+      label: renderer,
+      startup: { presented: 100 },
+      frames: { fps: 60, interval: {}, busy: {}, sync: {}, draw: {}, submit: {}, other: {} },
+      cpu: {},
+      counts: { perFrame: {} },
+      memory: {},
+      idle: { percent: {}, asked: 0 },
+    });
+    const earlier = ["grid-js.json", "grid-js.png", "grid-js.cpuprofile", "summary.md", "qml6.json", "grid-qml6.png", "qml6-grid.log"];
+    for (const name of earlier) writeFileSync(join(out, name), name === "grid-js.json" ? JSON.stringify(result("grid", "js")) : name === "qml6.json" ? JSON.stringify({ version: "6.12.0", scenes: { grid: {} } }) : "");
+    mkdirSync(join(out, "kept"));
+
+    fresh(out);
+    writeFileSync(join(out, "spin-js.json"), JSON.stringify(result("spin", "js")));
+
+    expect(readdirSync(out).sort()).toEqual(["grid-qml6.png", "kept", "qml6-grid.log", "qml6.json", "spin-js.json"]);
+    const rows = table(out).split("\n").filter((line) => /^\| (spin|grid) /.test(line));
+    expect(rows.map((line) => line.split(" | ").slice(0, 2).join(" | "))).toEqual(["| spin | js", "| grid | qml6 6.12.0 native (rhi)"]);
+  } finally {
+    rmSync(out, { recursive: true, force: true });
+  }
+});
