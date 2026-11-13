@@ -11,7 +11,8 @@
 // its own and so is not in what the first times.
 //
 // `LJOS_PERF3D_SCENES` and `LJOS_PERF3D_RENDERERS` (comma lists) choose;
-// `LJOS_PERF3D_SECONDS` is how long the frames are measured (5).
+// `LJOS_PERF3D_SECONDS` is how long the frames are measured (5);
+// `LJOS_PERF3D_PROFILE=1` also samples where the main thread's time went.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { cpus, loadavg } from "node:os";
 import { join } from "node:path";
@@ -245,6 +246,32 @@ async function counting(browser, scene, renderer) {
   };
 }
 
+// With `LJOS_PERF3D_PROFILE`, a third page samples the main thread's stacks
+// while the scene animates: `<scene>-<renderer>.cpuprofile` (DevTools opens
+// it), and the functions that most time was spent in, in the result.
+async function profiling(browser, scene, renderer, path) {
+  const { context, page, cdp } = await opened(browser, scene, renderer, {});
+  await page.waitForTimeout(WARM);
+  await cdp.send("Profiler.enable");
+  await cdp.send("Profiler.setSamplingInterval", { interval: 100 });
+  await cdp.send("Profiler.start");
+  await page.waitForTimeout(SECONDS * 1000);
+  const { profile } = await cdp.send("Profiler.stop");
+  await context.close();
+  writeFileSync(path, JSON.stringify(profile));
+  const self = new Map();
+  const total = profile.samples.length;
+  const byId = new Map(profile.nodes.map((node) => [node.id, node]));
+  const hits = new Map();
+  for (const id of profile.samples) hits.set(id, (hits.get(id) ?? 0) + 1);
+  for (const [id, count] of hits) {
+    const { functionName, url, lineNumber } = byId.get(id).callFrame;
+    const name = `${functionName || "(anonymous)"} ${url.split("/").pop()}:${lineNumber + 1}`;
+    self.set(name, (self.get(name) ?? 0) + count);
+  }
+  return [...self].sort((a, b) => b[1] - a[1]).slice(0, 30).map(([name, count]) => [name, Math.round((1000 * count) / total) / 10]);
+}
+
 // The scene 1.5 s after it starts, still, once what it fetched is drawn:
 // `<scene>-<renderer>.png`, to see that each renderer draws the same.
 async function picture(browser, scene, renderer, path) {
@@ -261,9 +288,11 @@ for (const scene of chosen(SCENES, process.env.LJOS_PERF3D_SCENES)) {
       const load = { before: loadavg(), cpus: cpus().length };
       const timed = await timing(browser, scene, renderer);
       const counted = await counting(browser, scene, renderer);
+      mkdirSync(OUT, { recursive: true });
+      const profiled = process.env.LJOS_PERF3D_PROFILE ? await profiling(browser, scene, renderer, join(OUT, `${scene.name}-${renderer.id}.cpuprofile`)) : undefined;
       load.after = loadavg();
       mkdirSync(OUT, { recursive: true });
-      const result = { scene: scene.name, about: scene.about, size: scene.size, renderer: renderer.id, label: renderer.label, browser: browser.version(), load, seconds: SECONDS, ...timed, counts: counted };
+      const result = { scene: scene.name, about: scene.about, size: scene.size, renderer: renderer.id, label: renderer.label, browser: browser.version(), load, seconds: SECONDS, ...timed, counts: counted, profile: profiled };
       writeFileSync(join(OUT, `${scene.name}-${renderer.id}.json`), `${JSON.stringify(result, null, 2)}\n`);
       await picture(browser, scene, renderer, join(OUT, `${scene.name}-${renderer.id}.png`));
     });
