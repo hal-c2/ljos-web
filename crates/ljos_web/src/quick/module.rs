@@ -41,7 +41,7 @@ use oxc_parser::Parser;
 use oxc_semantic::SemanticBuilder;
 use oxc_span::{GetSpan, SourceType, Span};
 
-use super::names::{JS_GLOBALS, SUGAR_GLOBALS};
+use super::names::{FETCH_GLOBALS, JS_GLOBALS, SUGAR_GLOBALS};
 use crate::{Error, Options, build::B, parse_errors};
 
 /// The module that has the helpers `match` and `is` are lowered to.
@@ -99,13 +99,17 @@ pub(crate) fn compile(
     let allocator = Allocator::default();
     let parsed = Parser::new(&allocator, &text, SourceType::ts().with_module(true)).parse();
     if !parsed.diagnostics.is_empty() {
-        return Err(parse_errors(parsed.diagnostics)
-            .into_iter()
-            .map(|mut error| {
-                error.span = back(error.span);
-                error
-            })
-            .collect());
+        // The rename stays said: it is as true of a file that is broken
+        // elsewhere.
+        errors.extend(
+            parse_errors(parsed.diagnostics)
+                .into_iter()
+                .map(|mut error| {
+                    error.span = back(error.span);
+                    error
+                }),
+        );
+        return Err(errors);
     }
     let mut eraser = Eraser {
         source: &text,
@@ -221,7 +225,9 @@ fn javascript<'a>(
             let name = name.as_str();
             if let Some(helper) = SUGAR_GLOBALS.iter().find(|helper| **helper == name) {
                 sugar.insert(*helper);
-            } else if !JS_GLOBALS.contains(&name) {
+            // `fetch` and its classes are the page's in a module too, as
+            // `ljos check` has them (docs/DIALECT.md §4.19).
+            } else if !JS_GLOBALS.contains(&name) && !FETCH_GLOBALS.contains(&name) {
                 let first = references
                     .iter()
                     .map(|reference| {

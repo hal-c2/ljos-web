@@ -617,6 +617,55 @@ Item {
     assert_lacks(&code, " as number");
 }
 
+#[test]
+fn a_module_calls_fetch_as_a_page_does() {
+    let main = given(
+        r#"import Ljos.Ui
+import "net.lts" as Net
+Item {
+  function go() { Net.get("/x") }
+}"#,
+    );
+    let net = given(
+        r#"export async function get(u: string): Promise<number> {
+  const r = await fetch(u, { headers: new Headers() });
+  return r.status;
+}"#,
+    );
+    let code = code_of(
+        &[("Main.qml", main), ("net.lts", net)],
+        "Main.qml",
+        "net.lts",
+    );
+    assert_contains(&code, "await fetch(u, { headers: new Headers() });");
+}
+
+/// What `ljos check` says of a `.ts` module with a `match` and a fault
+/// elsewhere: the desugar refuses the file, so it is read as it is, and
+/// the parser stops at the `match`.
+#[test]
+fn a_ts_module_broken_beside_its_match_says_what_ljos_check_says() {
+    let main = given(
+        r#"import Ljos.Ui
+import "s.ts" as S
+Item {
+  property real gap: S.f("big")
+}"#,
+    );
+    let s = bare(
+        r#"export function f(name: string): number {
+  return match (name) { when "big": 2; default: 1 };
+}
+const x = ;"#,
+    );
+    assert_eq!(
+        checked(&[("Main.qml", main), ("s.ts", s)], "Main.qml"),
+        [
+            "s.ts:2:22: error: Expected a semicolon or an implicit semicolon after a statement, but found none [syntax]"
+        ]
+    );
+}
+
 /// `qmlc` with `args`, in a directory of `files`.
 fn qmlc(name: &str, files: &[(&str, &str)], args: &[&str]) -> std::process::Output {
     let place = std::path::Path::new(env!("CARGO_TARGET_TMPDIR")).join(name);
