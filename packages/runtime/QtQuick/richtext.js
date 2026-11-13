@@ -6,7 +6,7 @@ import { shellShown } from "../guard.js";
 import { css } from "./color.ts";
 import { rules } from "./compute.ts";
 import { dress, fonts, metrics, resized } from "./font.js";
-import { flush } from "../object.ts";
+import { flush, outsideTheCount } from "../object.ts";
 import { signal, untrack } from "#kernel";
 
 // Qt's line is its font's height rounded up, which CSS computes per element
@@ -218,7 +218,7 @@ function rebuild(from, to, inert) {
       rebuild(node, to, inert);
       continue;
     }
-    const made = document.createElement(AS[name] ?? name);
+    const made = outsideTheCount(() => document.createElement(AS[name] ?? name));
     copy(node, made, name, inert);
     rebuild(node, made, inert);
     to.append(made);
@@ -318,9 +318,9 @@ export function survey(markup, look) {
   let found = surveys.get(key);
   if (found) return found;
   if (!bench) {
-    bench = document.createElement("div");
+    bench = outsideTheCount(() => document.createElement("div"));
     bench.className = "qq-bench";
-    bench.append(document.createElement("div"));
+    bench.append(outsideTheCount(() => document.createElement("div")));
     document.body.append(bench);
   }
   const box = bench.firstChild;
@@ -359,7 +359,7 @@ export function survey(markup, look) {
   // on it, and the ascent is counted from there.
   let ascent = 0;
   if (runs.length) {
-    const probe = document.createElement("span");
+    const probe = outsideTheCount(() => document.createElement("span"));
     probe.style.display = "inline-block";
     runs[0].node.before(probe);
     const line = probe.getBoundingClientRect().bottom;
