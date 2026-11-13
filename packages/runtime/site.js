@@ -214,7 +214,7 @@ export function check(dir, qmlc = process.env.QMLC ?? "qmlc") {
   });
   // What the compiler would read for a path import is the bundle's too: the
   // manifest's promise holds only if it never reads past what is listed.
-  const read = importsOf(dir, [...listed].filter((path) => path.endsWith(".qml") || path.endsWith(".js")), qmlc);
+  const read = importsOf(dir, [...listed].filter((path) => /\.(?:qml|js|ts|lts)$/.test(path)), qmlc);
   for (const { file: path, paths } of read) {
     for (const target of paths) {
       const at = within(path, target);

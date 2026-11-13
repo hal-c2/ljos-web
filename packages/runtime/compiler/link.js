@@ -35,9 +35,13 @@ async function ask(request) {
     return JSON.parse(text);
   } catch (error) {
     instance = undefined;
-    return { diagnostics: [{ file: request.entry, message: `the compiler failed: ${error.message}` }] };
+    return { diagnostics: [whole(`the compiler failed: ${error.message}`, request.entry)] };
   }
 }
+
+// A fault of no place in a file: it has the shape the compiler's have, at
+// the file's start, as the compiler says of what it cannot place.
+const whole = (message, file = "") => ({ message, file, line: 1, column: 1, endLine: 1, endColumn: 1, severity: "error" });
 
 // The QML modules a page has that are not Qt's or the runtime's own by
 // name: `ljos-web/Qt5Compat/GraphicalEffects` given makes that module one
@@ -75,7 +79,7 @@ const bridges = new WeakMap();
 const blob = (code) => URL.createObjectURL(new Blob([code], { type: "text/javascript" }));
 const LINK = "ljos-web link";
 // What a compile reads itself, and nothing reads at run time.
-const CODE = /(?:\.(?:qml|js|mjs)|(?:^|\/)qmldir)$/;
+const CODE = /(?:\.(?:qml|js|mjs|ts|lts)|(?:^|\/)qmldir)$/;
 
 // A module whose exports are those of `namespace`, which the page loaded.
 function bridge(namespace) {
@@ -123,7 +127,7 @@ export async function compile(request, { modules, base }) {
   try {
     await Promise.all([...specifiers].map(async (specifier) => namespaces.set(specifier, await modules[specifier]())));
   } catch (error) {
-    return { diagnostics: [{ message: `a module of the page's did not load: ${error.message}` }] };
+    return { diagnostics: [whole(`a module of the page's did not load: ${error.message}`)] };
   }
 
   const standIns = new Map(answer.modules.map((module) => [module.file, standIn(module.exports)]));
@@ -166,7 +170,7 @@ export async function compile(request, { modules, base }) {
       (await import(/* @vite-ignore */ standIns.get(file)))[LINK](namespace);
       namespacesOf.set(file, namespace);
     } catch (error) {
-      return { diagnostics: [{ file, message: error.message }] };
+      return { diagnostics: [whole(error.message, file)] };
     } finally {
       URL.revokeObjectURL(made.get(file));
     }

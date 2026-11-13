@@ -19,12 +19,14 @@ import { forBrowser } from "./QtQuick/qsb.js";
 import { QUICK3D } from "./quick3d.js";
 
 // What marks a `.js` file as the script a QML file imports
-// (`import "logic.js" as Logic`), which `qmlc` makes a module of.
+// (`import "logic.js" as Logic`), which `qmlc` makes a module of. A `.ts`
+// or `.lts` module it imports is `qmlc`'s to compile the same way.
 const SCRIPT = "qml";
+const SCRIPTED = /\.(?:js|ts|lts)$/;
 
 const isScript = (id) => {
   const [file, query] = id.split("?");
-  return file.endsWith(".js") && new URLSearchParams(query).has(SCRIPT);
+  return SCRIPTED.test(file) && new URLSearchParams(query).has(SCRIPT);
 };
 
 // The modules the runtime has, by what they are imported as.
@@ -750,7 +752,7 @@ export default function qml({
         const next = await this.resolve(source, importer, { ...options, skipSelf: true });
         return !next || next.id.includes("?") ? next : { ...next, id: `${next.id}?${FOR}=${carried(importer)}` };
       }
-      if (!source.endsWith(".js") || !/^\.\.?\//.test(source)) return null;
+      if (!SCRIPTED.test(source) || !/^\.\.?\//.test(source)) return null;
       const resolved = await this.resolve(source, importer, { ...options, skipSelf: true });
       if (!resolved || resolved.external || resolved.id.includes("?")) return resolved;
       return { ...resolved, id: `${resolved.id}?${SCRIPT}` };

@@ -51,12 +51,13 @@ plain("compiled QML may import every module the runtime package exports", () => 
   const kept = Object.entries(exports)
     // Host-only modules are no part of what compiled QML imports: the
     // build plugin, the site builder, the compiler itself, the faces'
-    // seam, the prerender's server side, and the code blocks' build
-    // and page halves (an editor a page mounts, not a QML module).
+    // seam, the prerender's server side, the Markdown content source a
+    // site's build reads, and the code blocks' build and page halves (an
+    // editor a page mounts, not a QML module).
     .filter(
       ([, file]) =>
         file.endsWith(".js") &&
-        !["./vite.js", "./site.js", "./server.js", "./compiler/index.js", "./compiler/modules.js", "./web/faces.js"].includes(file) &&
+        !["./vite.js", "./site.js", "./server.js", "./compiler/index.js", "./compiler/modules.js", "./web/faces.js", "./markdown.js"].includes(file) &&
         !file.startsWith("./codeblocks/"),
     )
     .map(([name]) => name.replace(/^\./, "ljos-web"));
@@ -115,14 +116,65 @@ test("a syntax error is a diagnostic with its file, line and column", async ({ p
     "Panel.qml": "import QtQuick\nRectangle {\n    width: 10 +\n}\n",
   };
   const made = await show(page, { files, entry: "Main.qml" });
-  expect(made.diagnostics[0]).toEqual({ file: "Panel.qml", line: 4, column: expect.any(Number), message: expect.any(String) });
+  expect(made.diagnostics[0]).toEqual({
+    file: "Panel.qml",
+    line: 4,
+    column: 1,
+    endLine: 4,
+    endColumn: 2,
+    message: expect.any(String),
+    severity: "error",
+    code: "syntax",
+  });
+});
+
+// features/language/lts-modules.feature, and match.feature: the sugar a
+// match is lowered to is the page's, and a match no arm fits says so as
+// `ljos run` does.
+test("a match in an .lts module compiled in the page runs on the page's sugar", async ({ page }) => {
+  await opened(page);
+  const files = {
+    "Main.qml": 'import QtQuick\nimport "size.lts" as Size\nItem {\n    property int big: Size.size("big")\n    function sized(name) { return Size.size(name) }\n}\n',
+    "size.lts": 'export function size(name: string): number {\n  return match (name) {\n    when "big": 2;\n    when "small": 1;\n  } |> % * 10\n}\n',
+  };
+  expect(await show(page, { files, entry: "Main.qml" })).toMatchObject({ mounted: true });
+  expect(await page.evaluate(() => [window.scene.big, window.scene.sized("small")])).toEqual([20, 10]);
+  expect(await page.evaluate(() => {
+    try {
+      return window.scene.sized("huge");
+    } catch (error) {
+      return `${error.name}: ${error.message}`;
+    }
+  })).toBe('TypeError: no arm of the `match` matches "huge"');
+});
+
+test("the new syntax in a .ts module is a diagnostic that names the rename", async ({ page }) => {
+  await opened(page);
+  const files = {
+    "Main.qml": 'import QtQuick\nimport "size.ts" as Size\nItem { property int big: Size.size("big") }\n',
+    "size.ts": 'export function size(name: string): number {\n  return match (name) {\n    when "big": 2;\n    default: 1;\n  }\n}\n',
+  };
+  expect((await show(page, { files, entry: "Main.qml" })).diagnostics).toEqual([
+    {
+      file: "size.ts",
+      line: 2,
+      column: 10,
+      endLine: 2,
+      endColumn: 15,
+      message: "`match` is Ljós syntax, which stock TypeScript tools cannot read in a `.ts` file; rename `size.ts` to `size.lts`",
+      severity: "error",
+      code: "ts-lts-syntax",
+    },
+  ]);
 });
 
 test("an unknown module is a diagnostic where it is imported", async ({ page }) => {
   await opened(page);
   const files = { "Main.qml": "import QtQuick\nimport No.Such.Module\n\nItem { }\n" };
   const made = await show(page, { files, entry: "Main.qml" });
-  expect(made.diagnostics).toEqual([{ file: "Main.qml", line: 2, column: 1, message: 'module "No.Such.Module" is not installed' }]);
+  expect(made.diagnostics).toEqual([
+    { file: "Main.qml", line: 2, column: 1, endLine: 2, endColumn: 22, message: 'module "No.Such.Module" is not installed', severity: "error" },
+  ]);
 });
 
 test("Qt Quick Controls a page was not built with is a diagnostic naming requests 13 and 36", async ({ page }) => {
@@ -130,7 +182,15 @@ test("Qt Quick Controls a page was not built with is a diagnostic naming request
   const files = { "Main.qml": "import QtQuick\nimport QtQuick.Controls\nItem { Button { } }\n" };
   const made = await show(page, { files, entry: "Main.qml" });
   expect(made.diagnostics).toEqual([
-    { file: "Main.qml", line: 2, column: 1, message: expect.stringMatching(/QtQuick\.Controls.*requests 13 and 36/) },
+    {
+      file: "Main.qml",
+      line: 2,
+      column: 1,
+      endLine: 2,
+      endColumn: 24,
+      message: expect.stringMatching(/QtQuick\.Controls.*requests 13 and 36/),
+      severity: "error",
+    },
   ]);
 });
 
@@ -190,7 +250,9 @@ test("the dumps of a project run as one, compiled in the page", async ({ page })
 test("a dump that does not read is a diagnostic naming it", async ({ page }) => {
   await opened(page);
   const made = await show(page, { files: dumped({ "native/ljostypes.json": '{"format": 2, "modules": [\n' }), entry: "Main.qml" });
-  expect(made.diagnostics).toEqual([{ file: "native/ljostypes.json", line: 2, column: 1, message: "EOF while parsing a list" }]);
+  expect(made.diagnostics).toEqual([
+    { file: "native/ljostypes.json", line: 2, column: 1, endLine: 2, endColumn: 1, message: "EOF while parsing a list", severity: "error" },
+  ]);
 });
 
 test("the dumps a compile is given are the ones it reads", async ({ page }) => {
@@ -201,5 +263,7 @@ test("the dumps a compile is given are the ones it reads", async ({ page }) => {
   delete one["sensors/ljostypes.json"];
   expect(await show(page, { files: one, entry: "Main.qml", types: ["rust/player.json"] })).toMatchObject({ mounted: true });
   const none = await show(page, { files, entry: "Main.qml", types: [] });
-  expect(none.diagnostics).toEqual([{ file: "Main.qml", line: 2, column: 1, message: 'module "App.Media" is not installed' }]);
+  expect(none.diagnostics).toEqual([
+    { file: "Main.qml", line: 2, column: 1, endLine: 2, endColumn: 17, message: 'module "App.Media" is not installed', severity: "error" },
+  ]);
 });
