@@ -175,7 +175,9 @@ export function probe({ count = false, gpu = false } = {}) {
   timed(self.WebGL2RenderingContext?.prototype, "flush");
 
   // Each wasm module by what it was fetched as: its memory, and when
-  // counting, every call into it and out of it.
+  // counting, every call into it and out of it. A frame's crossings are the
+  // 3D renderer's only: with LJOS_KERNEL=wasm the QML kernel crosses too,
+  // and that is not View3D's cost.
   const named = (url) => (/ljos_web_3d/.test(url) ? "3d" : /kernel/.test(url) ? "kernel" : /compiler/.test(url) ? "compiler" : "other");
   const plain = (name) => name.replace(/^__wbg_/, "").replace(/_[0-9a-f]{8,}$/, "");
   const record = (name) => (P.wasm[name] ??= { into: 0, out: 0, imports: {}, exports: {}, memory: null });
@@ -192,7 +194,7 @@ export function probe({ count = false, gpu = false } = {}) {
         }
         const label = plain(key);
         wrapped[module][key] = function (...args) {
-          acc.out++;
+          if (name === "3d") acc.out++;
           kept.out++;
           kept.imports[label] = (kept.imports[label] ?? 0) + 1;
           return value.apply(this, args);
@@ -210,7 +212,7 @@ export function probe({ count = false, gpu = false } = {}) {
       exports[key] =
         typeof value === "function"
           ? (...args) => {
-              acc.into++;
+              if (name === "3d") acc.into++;
               kept.into++;
               kept.exports[key] = (kept.exports[key] ?? 0) + 1;
               return value(...args);
