@@ -28,11 +28,15 @@ const XHTML = "http://www.w3.org/1999/xhtml";
 const MAKING_KIND = Symbol.for("ljos-web.making-kind");
 const kindNow = () => globalThis[MAKING_KIND] ?? "";
 // What is no making in hydration's count, as `unnumbered` in object.js
-// has it (this module imports nothing of the runtime's): a canvas, and
-// what belongs in a document's head, which the bundler makes in a
-// reader's browser as it preloads a chunk, and nothing makes here.
-const UNNUMBERED = new Set(["canvas", "link", "script", "style", "meta"]);
-const unnumbered = (tag) => UNNUMBERED.has(String(tag).toLowerCase());
+// has it (this module imports nothing of the runtime's): a canvas; a
+// picture, film or sound, loaded through an element made per load, as
+// often here as a load fails; and what belongs in a document's head,
+// which the bundler makes in a reader's browser as it preloads a chunk,
+// and nothing makes here. So is what the runtime makes while it says so
+// (`outsideTheCount`).
+const UNNUMBERED = new Set(["canvas", "img", "video", "audio", "link", "script", "style", "meta"]);
+const OUTSIDE_THE_COUNT = Symbol.for("ljos-web.outside-the-count");
+const unnumbered = (tag) => UNNUMBERED.has(String(tag).toLowerCase()) || globalThis[OUTSIDE_THE_COUNT] === true;
 
 // The numbering starts again: a render's elements are numbered from
 // its making, as the client's are from its hydration. The count is
