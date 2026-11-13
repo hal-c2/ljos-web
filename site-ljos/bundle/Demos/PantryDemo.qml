@@ -41,6 +41,7 @@ Column {
         }
         stage.reload().then(function (why) {
             demo.said = why || "";
+            editor.diagnostics = LivePantry.diagnostics();
         });
     }
     // The demo's own writing into the editor, in one place: say
@@ -158,18 +159,19 @@ Column {
         Flickable {
             anchors.fill: parent
             anchors.margins: 10
-            contentWidth: editor.contentWidth
-            contentHeight: editor.contentHeight
+            contentWidth: editor.width
+            contentHeight: editor.height
             clip: true
 
-            TextEdit {
+            // Highlighted by the build; CodeMirror once the reader is
+            // in it (Site/CodeEditor).
+            CodeEditor {
                 id: editor
-                width: Math.max(parent.width, contentWidth)
-                color: Theme.ink
-                font.family: Theme.mono
-                font.pixelSize: 12
-                wrapMode: TextEdit.NoWrap
-                selectByMouse: true
+                width: Math.max(parent.width, implicitWidth)
+                code: PantryProject.shellText
+                rich: PantryProject.shellRich
+                label: "Edit the Pantry's Shell.qml"
+                errors: told
                 onTextChanged: {
                     if (text !== demo.applied)
                         debounce.restart();
@@ -179,6 +181,7 @@ Column {
     }
 
     Text {
+        id: told
         visible: (demo.said || stage.error) !== ""
         width: parent.width
         text: demo.said || stage.error

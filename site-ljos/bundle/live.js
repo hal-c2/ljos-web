@@ -13,6 +13,15 @@
 
 var examples = {};
 var compiler = null;
+// What the last compile of each block said, by display file, in the
+// file's own lines (`parse.displayPosition`): the squiggles its editors
+// show. A compile that worked says nothing.
+var said = {};
+
+function diagnosticsFor(id, index) {
+    var lists = said[id];
+    return lists && lists[index] ? lists[index] : [];
+}
 
 function setExample(id, display, entry, harnessTemplate, harnessFile) {
     examples[id] = {
@@ -50,7 +59,14 @@ async function moduleFor(id) {
     const parse = await import("ljos-web/codeblocks/parse");
     const files = parse.exampleFiles(example);
     const made = await compile({ files: files.files, entry: files.entry });
+    said[id] = {};
     if (made.diagnostics) {
+        made.diagnostics.forEach(function (d) {
+            const at = parse.displayPosition(example, d);
+            if (at.index < 0 || !at.line)
+                return;
+            (said[id][at.index] = said[id][at.index] || []).push(Object.assign({}, d, at, { file: example.display[at.index].name }));
+        });
         throw new Error(made.diagnostics.map(function (d) {
             return d.line ? (d.file || files.entry) + ":" + d.line + ":" + (d.column || 1) + ": " + d.message : (d.file || files.entry) + ": " + d.message;
         }).join("\n"));

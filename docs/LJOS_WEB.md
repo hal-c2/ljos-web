@@ -1269,7 +1269,20 @@ scenarios: ljos-ui's `features/blocks/slots.feature` and
   user's own `Shell.qml`) is fetched and compiled in the page with
   `ljos-web/compiler`, which is imported only then; its objects are
   placed (`$at`), so what a handler of it throws is said at the line of
-  the object it is written in. A fault while it is made, or in one of
+  the object it is written in. While a source is on its way (fetched,
+  compiled, a module still to come) the stage is never empty: what is
+  shown stands, and where nothing is yet the fallback stands in, with
+  `status` still `Null` until the source has come or failed, so a page
+  prerendered meanwhile is written with the app's own shell. The
+  reader may use that shell meanwhile: a source that comes takes over
+  as a reload does, keeping the state of what is in both (the two
+  shells are of two builds, the app's whose files a minifier named and
+  the one compiled in the page, so each object pairs by where it is and
+  the type it is built on, whatever its file is called in either),
+  and one that fails leaves the fallback, and what it holds, in place.
+  A `reload()` that overtakes the first load (an edit made meanwhile)
+  takes over from the fallback the same way, and a failed one leaves
+  it standing with status `Fallback`. A fault while it is made, or in one of
   its handlers later, drops it and shows the fallback; a fallback that
   fails too gives `why\nfallback: …` and status `Error`; a fault in a
   fallback is the page's, as natively. `reload()` fetches and compiles
@@ -1635,7 +1648,16 @@ The kernel is the build's own — Solid's, or Ljós's graph where
 `LJOS_KERNEL=wasm` (A22) — in the prerender as in the page, so what a
 binding decides at build time is what it decides in the browser.
 Solid draws and Ljós decides on the server exactly as on the client;
-only the document under them differs.
+only the document under them differs. The server bundle resolves its
+packages under a browser's conditions (`server/conditions.js`), not
+Node's: under Node's, Solid is its server build, where a write tells
+no one and nothing settles, and the page would be written as its
+bindings first read it — before a Repeater's rows reached the Column
+they are in, before `Component.onCompleted` changed anything — and
+then hydrate into another page. A host that builds its own server
+bundle (below) resolves under the same conditions. What comes only
+later — a `ShellLoader`'s source, compiled in the page — is written as
+it stands meanwhile: the loader's fallback, standing in.
 
 Each element the prerender makes is numbered as it is made, with
 the type whose making made it, and carries the two in the HTML
@@ -1668,7 +1690,11 @@ What a prerender has, and what it has not:
 - Measurements a browser makes of real fonts are made on the server
   by a canvas that measures by the font's size, not by its glyphs:
   the first paint is the page's shape, and hydration settles the
-  exact numbers in place. A site may say the size its page is made
+  exact numbers in place. A line height in pixels
+  (`lineHeightMode: Text.FixedHeight`) is the browser's exactly, in
+  plain and rich text, with a rich text's `<br/>` a line: a page
+  whose code must not move when it hydrates sets its lines that way
+  (A30). A site may say the size its page is made
   at (`prerender: { width, height }`, 1280×720 by default).
 - What paints is not in the HTML: a `Canvas`, a `ShaderEffect`, a
   `View3D` and the other GPU faces prerender as the element they
@@ -1761,12 +1787,14 @@ turns a Markdown page's fenced blocks into live ones, for any site:
 - **The page** (`ljos-web/codeblock`): hydration mounts each block only
   as it nears the viewport, and its first making takes the prerendered
   nodes over (`hydrate`, A26) — the nodes a reader had are the nodes
-  that then behave. The editor is a labelled textarea per file; an edit
+  that then behave. The code is highlighted at build time and is
+  editable as it stands; the first focus, press or key brings the
+  editor in over it (A30), and an edit
   compiles in the page (A15) and reloads (A13), so state is kept — a
   counter at 3 stays 3 when its colour changes, and a contribution a
   visitor's edited shell still places keeps the app's count. A broken
-  edit shows `file:line:column: message` beside the code and the last
-  good result keeps running. With JavaScript off, code and prerendered
+  edit shows `file:line:column: message` beside the code, squiggles
+  the place in the editor, and the last good result keeps running. With JavaScript off, code and prerendered
   result are the page. Nothing polls; motion is CSS the page's
   `prefers-reduced-motion` stills. A page gives its controls or other
   modules to the compiler through `options.compile`
@@ -1975,6 +2003,95 @@ as the layout's −1, not the arrangement's 0; and the dialect modules
 beyond these three — `Ljos.Controls…` and a 3D module Ljós has not
 yet — which no file can import here until they are carried as these
 were.
+
+
+### A30. The code editor: CodeMirror over code the build highlighted
+
+Code a reader can change — a live block (A27), a site's own editable
+shell — is first of all code to read. The build colours it, the page
+shows it with no script at all, and the editor comes in only when the
+reader goes to change it, over the code and in its place.
+
+- **One grammar** (`packages/lezer-ljos`): a Lezer grammar of QML,
+  of `.lts` scripts and of the Ljós dialect — TypeScript as the
+  language of scripts and bindings, with TC39's `match` and `|>` and
+  its topic — the editor's language and the build's highlighter both.
+  `langOf(tagOrFile)` names the grammar of a fence tag or a file
+  (`qml`, `lts`, `ts`, `js`, `mjs`; QML files read the dialect); one it does not read is plain.
+- **Highlighted by the build** (`lezer-ljos/html`, `highlightToHtml`):
+  `<span class="tok-…">` runs, written into the HTML by the codeblock
+  build, by the remark plugin for every fence that stays code, and by
+  `markdown.js`'s `highlight` (a site's own pages) — the grammar's
+  languages by the grammar, the others by a rough colouring of
+  strings, numbers and comments. Rich text keeps a span's `class`, so
+  a QML page shows the same runs in a `Text`.
+- **One theme, by class**: `tok-keyword`, `string`, `number`,
+  `comment`, `typeName`, `propertyName`, `variableName`, `function`,
+  `operator`, `punctuation`, `bool`, `null`, `regexp`, `meta`,
+  `invalid` and `topic`. Their colours come only from custom
+  properties a site sets — `--ljos-code-<tag>`, `--ljos-code-bg`,
+  `-fg`, `-selection`, `-gutter`, `--ljos-code-diagnostic-error` and
+  `-warning` — with neutral fallbacks in `ljos-web/codeblock.css`
+  (each a mix with `currentColor`, so they read on light and dark).
+  The static code and the editor carry the same classes: the editor
+  coming in changes no colour.
+- **The editor** (`ljos-web/codeblock/editor`): CodeMirror 6 over the
+  grammar, `createCodeEditor(parent, { doc, lang, label, errors,
+  onChange })` giving `{ view, text, setText, setDiagnostics, focus,
+  destroy }`. The keyboard never traps (#14): Tab indents, Shift+Tab
+  leaves, and Escape makes the next Tab leave too, until the editor is
+  entered again — the field's description says so to a screen reader.
+  Its words are 16px or more on a touch screen, so a phone does not
+  zoom in as it focuses, and a long line scrolls in the editor, never
+  the page.
+- **Lazily**: the editor module is in no page's first load. It is
+  fetched when the page is idle, or on the first focus, press or key
+  if that comes first, and only then put in place — in the code's own
+  font and line height, so no line moves. A page of a Markdown site
+  does it with `hydrateLiveCodeBlocks` (A27); a page built from QML
+  does it with `ljos-web/codeblock/attach`: `attachCodeEditor(item,
+  { lang, label, like, errors })` puts the editor over a QML item
+  holding the code as its `text`, in the look of the rich `Text`
+  (`like`) it hides. The item stays the field as QML sees it: an edit
+  writes its `text`, writing `text` (a Reset) is shown, a press gives
+  it focus, and the keys the editor does not take (Tab after Escape,
+  Shift+Tab) go on to QML's tab chain.
+- **Diagnostics**: a compile's diagnostics are given to the editor as
+  `{ message, file, line, column, endLine, endColumn, severity, code? }`,
+  1-based, in the file's own text (`setDiagnostics`; a thin adapter
+  over `@codemirror/lint`). They are squiggles under the place, their
+  messages on hover and in the lint panel, and to a screen reader the
+  field is `aria-invalid` with `aria-errormessage` naming the element
+  that says the errors in words (`errors`).
+- **No layout shift**: a code `Text` in a QML page sets its lines in
+  pixels (`lineHeightMode: Text.FixedHeight`), which the prerender
+  and the browser set alike (A26); the editor takes that line height,
+  so the page the build wrote, the page hydrated and the page with the
+  editor in it are one height.
+
+**DECISION:** the editor is CodeMirror 6, not a textarea with an
+overlay: it is the editor whose language support is a Lezer grammar,
+which is also what highlights at build time, so the two cannot
+disagree; and it is accessible (a real `contenteditable` text field,
+labelled, with its own keyboard handling) and good on touch. Its size
+(about 400 KB built, with the grammar) is why it is lazy.
+
+**DECISION:** the static code is the field itself, not a picture of
+it: it is readable and selectable with no script, has the field's
+role and name, and the editor is put over it in place rather than
+the page swapping one element for another.
+
+**Scenarios.** `packages/lezer-ljos/test/` (the grammar: QML, the
+dialect, `match`, `|>`, tasks, fetching, the demos parse with no
+error), `packages/runtime/tests/codeblocks.spec.js` (static colours,
+the editor fetched only when the reader reaches for the code and
+taking over without moving a line, Tab and Escape, squiggles
+and `aria-invalid`, no zoom at 390px, no horizontal page scroll),
+`packages/runtime/site-tests/prerender.spec.js` (rich code as tall
+prerendered as hydrated, coloured by class) and
+`site-ljos/tests/site-ljos.spec.js` (a live block and the Pantry
+edited in CodeMirror, a broken edit squiggled while the basket is
+kept).
 
 
 ## Part II — An application's own Rust types

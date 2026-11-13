@@ -3,7 +3,27 @@
 // its text, its navigation and its place in the sidebar — and with
 // script the shell navigates, its contents list lands on a heading,
 // and light and dark are the reader's to choose.
+import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
+import { packRich, unpackRich } from "ljos-web/codeblock/rich";
+import { highlight } from "ljos-web/markdown";
+
+// The Pantry's own shell, as the build ships it and the editor starts
+// from it: CodeMirror draws only the lines in view, so the text is read
+// here, without the newline that ends the file (the editor shows none).
+const APP_SHELL = readFileSync(new URL("../bundle/Demos/PantryShell.qml", import.meta.url), "utf8").replace(/\n$/, "");
+
+// The site reads the build's packed colouring with its own copy of
+// `unpackRich` (a library file imports nothing): the two read alike.
+test("the site reads a block's packed colouring as the runtime does", () => {
+  const source = readFileSync(new URL("../bundle/Site/code-editor.js", import.meta.url), "utf8").replace(/^\.pragma library\n/, "");
+  const richOf = new Function(`${source}\nreturn richOf;`)();
+  for (const [code, lang] of [[APP_SHELL, "qml"], ["a.b()", "qml"], ["let x: number = 1 // c", "ts"], ["echo hi # there", "sh"], ["", "qml"]]) {
+    const html = highlight(code, lang);
+    expect(richOf(packRich(html))).toBe(unpackRich(packRich(html)));
+    expect(richOf(packRich(html))).toBe(html);
+  }
+});
 
 // A press lands on the MouseArea over the words, as a reader's does:
 // press there, not on the text.
@@ -34,6 +54,17 @@ async function pressWords(page, words) {
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
 }
 
+// A code field (Site/CodeEditor), by its name: the code as the build
+// highlighted it until the reader is in it, then CodeMirror, a textbox
+// of the same name. A press on the field brings the editor in, and the
+// editor is what this answers, focused.
+async function codeEditor(page, name) {
+  await page.getByRole("textbox", { name }).first().click();
+  const editor = page.locator(`.cm-content[aria-label="${name}"]`).first();
+  await expect(editor).toBeFocused({ timeout: 30_000 });
+  return editor;
+}
+
 // The size the build prerenders at: with no script there is no
 // relayout, and the page keeps the build's geometry (docs/LJOS_WEB.md
 // A26 — hydration settles the exact numbers in place).
@@ -42,7 +73,15 @@ const BUILD_SIZE = { width: 1440, height: 900 };
 test("the landing page leads with your own shell, and never pitches compatibility", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByText("Ljós — malleable software, everywhere", { exact: true })).toBeVisible();
-  const words = await page.locator("#app").innerText();
+  // The page's own words: the code in a field is the reader's to
+  // edit, and an `import QtQuick` there pitches nothing.
+  const words = await page.locator("#app").evaluate((app) => {
+    const fields = Array.from(app.querySelectorAll('[role="textbox"]'));
+    for (const field of fields) field.style.visibility = "hidden";
+    const text = app.innerText;
+    for (const field of fields) field.style.visibility = "";
+    return text;
+  });
   expect(words.indexOf("Your own shell")).toBeGreaterThan(-1);
   expect(words.indexOf("Your own shell")).toBeLessThan(words.indexOf("TypeScript first"));
   expect(words).toContain("shell.qml");
@@ -77,7 +116,15 @@ test("the demos page names what stands there, flagship first, readable with no s
   try {
     const page = await context.newPage();
     await page.goto("/demos/");
-    const words = await page.locator("#app").innerText();
+    // The page's own words: the code in a field is the reader's to
+  // edit, and an `import QtQuick` there pitches nothing.
+  const words = await page.locator("#app").evaluate((app) => {
+    const fields = Array.from(app.querySelectorAll('[role="textbox"]'));
+    for (const field of fields) field.style.visibility = "hidden";
+    const text = app.innerText;
+    for (const field of fields) field.style.visibility = "";
+    return text;
+  });
     expect(words.indexOf("A shell you rewrite")).toBeGreaterThan(-1);
     expect(words.indexOf("A shell you rewrite")).toBeLessThan(words.indexOf("3D you can orbit"));
     // The flagship stands in its place as written: its app's own
@@ -115,22 +162,27 @@ test("a code block runs beside its code, edits keep its state, and a broken edit
   await page.goto("/start/first-app/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
   // The first runnable block is the counter: its result runs.
-  await expect(page.getByText("Count: 0").first()).toBeVisible({ timeout: 30_000 });
+  // (Exactly: the code says "Count: " too.)
+  await expect(page.getByText("Count: 0", { exact: true }).first()).toBeVisible({ timeout: 30_000 });
   await pressWords(page, "Increment");
-  await expect(page.getByText("Count: 1").first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("Count: 1", { exact: true }).first()).toBeVisible({ timeout: 30_000 });
   // Edit the code in its editor: the result takes the edit and
   // keeps its state.
-  const editor = page.locator("textarea").first();
-  await expect(editor).toBeVisible();
-  await editor.click();
+  const editor = await codeEditor(page, "Edit Main.qml");
   await page.keyboard.press("Control+Home");
   await page.keyboard.type("// edited\n");
-  await expect(page.getByText("Count: 1").first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("Count: 1", { exact: true }).first()).toBeVisible({ timeout: 30_000 });
   // A broken edit says why, and the last good result still stands.
   await page.keyboard.press("Control+Home");
   await page.keyboard.type("Broken {");
   await expect(page.getByText(/Main\.qml:\d+/).first()).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByText("Count: 1").first()).toBeVisible();
+  await expect(page.getByText("Count: 1", { exact: true }).first()).toBeVisible();
+  // The editor marks where, and says it is wrong to a screen reader,
+  // pointing at the words that say why.
+  await expect(editor.locator(".cm-lintRange-error").first()).toBeVisible();
+  await expect(editor).toHaveAttribute("aria-invalid", "true");
+  const why = await editor.getAttribute("aria-errormessage");
+  await expect(page.locator(`[id="${why}"]`)).toContainText(/Main\.qml:\d+/);
   expect(errors).toEqual([]);
 });
 
@@ -140,7 +192,7 @@ test("with JavaScript off a runnable block is its code beside a picture of its r
     const page = await context.newPage();
     await page.goto("/start/first-app/");
     // The code stands in its editor field, readable as written.
-    await expect(page.locator("textarea").first()).toHaveValue(/property int count: 0/);
+    await expect(page.getByRole("textbox", { name: "Edit Main.qml" }).first()).toContainText("property int count: 0");
     // The stage's picture: the example's prerendered result as an
     // image in the page, not words promising one.
     const pictured = page.locator('img[src*="Examples/"][src$=".png"]').first();
@@ -266,9 +318,9 @@ test("the flagship: rewrite the Pantry's shell and its state survives", async ({
   await (await stageButton(page, "Add tea")).click();
   await expect(page.getByText("1 in the basket · £3.50").first()).toBeVisible();
 
-  const editor = page.locator("textarea").first();
-  const app = await editor.inputValue();
-  expect(app).toContain("import Pantry");
+  const editor = await codeEditor(page, "Edit the Pantry's Shell.qml");
+  const app = APP_SHELL;
+  await expect(editor).toContainText("import Pantry");
   await editor.fill(MY_SHELL);
   await expect(page.getByText("My Pantry", { exact: true })).toBeVisible({ timeout: 30_000 });
   // What the app held, it still holds — and still works.
@@ -280,11 +332,14 @@ test("the flagship: rewrite the Pantry's shell and its state survives", async ({
   // running shell stands; the next good edit takes over again.
   await editor.fill("import QtQuick\nimport Pantry\n\nRectangle {\n    Basket {\n}\n");
   await expect(page.getByText(/Shell\.qml:\d+:\d+:/)).toBeVisible({ timeout: 30_000 });
+  await expect(editor.locator(".cm-lintRange-error").first()).toBeVisible();
+  await expect(editor).toHaveAttribute("aria-invalid", "true");
   await expect(page.getByText("My Pantry", { exact: true })).toBeVisible();
   await expect(page.getByText("2 in the basket · £7.00").first()).toBeVisible();
 
   await editor.fill(MY_SHELL.replace('"My Pantry"', '"Fixed Again"'));
   await expect(page.getByText("Fixed Again", { exact: true })).toBeVisible({ timeout: 30_000 });
+  await expect(editor.locator(".cm-lintRange-error")).toHaveCount(0);
   await expect(page.getByText("2 in the basket · £7.00").first()).toBeVisible();
 
   // Undoing back to the app's own text applies like any edit: the
@@ -329,8 +384,8 @@ test("Reset applies the app's shell once over the visitor's, keeps the basket, a
     await (await stageButton(page, "Add tea")).click();
     await shownInHeldTime(page, page.getByText("1 in the basket · £3.50").first());
 
-    const editor = page.locator("textarea").first();
-    const app = await editor.inputValue();
+    const editor = await codeEditor(page, "Edit the Pantry's Shell.qml");
+    const app = APP_SHELL;
     const typed = app.replace('"The Corner Pantry"', '"Never Landed"');
     const resetWords = page.getByText("Reset", { exact: true });
     // The visitor's shell lands over the basket the app's shell
@@ -347,7 +402,8 @@ test("Reset applies the app's shell once over the visitor's, keeps the basket, a
     // it.
     const resetStands = async () => {
       await shownInHeldTime(page, page.getByText("The Corner Pantry", { exact: true }));
-      await expect(editor, "the reset puts the app's shell back in the editor").toHaveValue(app);
+      await expect(editor, "the reset puts the app's shell back in the editor").toContainText('"The Corner Pantry"');
+      await expect(editor, "and none of the visitor's").not.toContainText("My Pantry");
       await goneInHeldTime(page, page.getByText("My Pantry", { exact: true }), "the visitor's shell is gone from the stage");
       await shownInHeldTime(page, page.getByText(basket).first());
     };
