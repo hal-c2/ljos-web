@@ -27,6 +27,12 @@ const XHTML = "http://www.w3.org/1999/xhtml";
 // (`object.js`): read here as an element is made.
 const MAKING_KIND = Symbol.for("ljos-web.making-kind");
 const kindNow = () => globalThis[MAKING_KIND] ?? "";
+// What is no making in hydration's count, as `unnumbered` in object.js
+// has it (this module imports nothing of the runtime's): a canvas, and
+// what belongs in a document's head, which the bundler makes in a
+// reader's browser as it preloads a chunk, and nothing makes here.
+const UNNUMBERED = new Set(["canvas", "link", "script", "style", "meta"]);
+const unnumbered = (tag) => UNNUMBERED.has(String(tag).toLowerCase());
 
 // The numbering starts again: a render's elements are numbered from
 // its making, as the client's are from its hydration. The count is
@@ -758,11 +764,12 @@ export class ServerDocument {
     // makes while it measures text is made at whatever making first
     // measures — no numbering names it the same on both sides. It is
     // no making in the count, here as in `hydrate`: hydration remakes
-    // it and takes the prerendered one out.
-    if (element.localName !== "canvas") {
+    // it and takes the prerendered one out. Nor is a head element.
+    if (!unnumbered(element.localName)) {
       element.$hk = ++this._sequence;
       element.$kind = kindNow();
-    } else {
+    }
+    if (element.localName === "canvas") {
       element.width = 300;
       element.height = 150;
     }
@@ -776,7 +783,7 @@ export class ServerDocument {
   createElementNS(namespace, tag) {
     const element = new Element(tag, namespace);
     element.ownerDocument = this;
-    if (element.localName !== "canvas") {
+    if (!unnumbered(element.localName)) {
       element.$hk = ++this._sequence;
       element.$kind = kindNow();
     }

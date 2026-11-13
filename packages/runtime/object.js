@@ -2164,6 +2164,17 @@ export function mount(Component, element, props = {}, options = {}) {
   return handle;
 }
 
+// What is no making in hydration's count, on either side (server/dom.js
+// numbers the same way): a canvas, whose measuring one is made at
+// whatever making first measures; and what belongs in a document's
+// head, which no type makes but the bundler does, mid-mount, as it
+// preloads a chunk a type imports (a `<link rel="modulepreload">`) —
+// a prerender, which imports no chunk that way, makes none.
+const UNNUMBERED = new Set(["canvas", "link", "script", "style", "meta"]);
+function unnumbered(tag) {
+  return UNNUMBERED.has(String(tag).toLowerCase());
+}
+
 // Puts a component's object in the page over what a prerender of it
 // wrote there (`renderToString` of `ljos-web/server`), taking the
 // prerendered elements over instead of making the page again: while
@@ -2203,7 +2214,7 @@ export function hydrate(Component, element, props = {}, options = {}) {
   let made = 0;
   let told = false;
   const take = (tag) => {
-    if (String(tag).toLowerCase() === "canvas") return null;
+    if (unnumbered(tag)) return null;
     // Once the makings have parted, no later number can be trusted to
     // name the same making: the rest is made again, and what was
     // prerendered of it is taken out below.
