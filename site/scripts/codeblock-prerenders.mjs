@@ -12,6 +12,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkExamples, hashExample, loadHarnesses, renderPrerenders } from "ljos-web/codeblocks";
 import { assemble, extractBlocks, tagged } from "ljos-web/codeblocks/parse";
+import { writeHeld } from "./codeblocks-held.mjs";
 import { exampleKeys, listedEverywhere, pageRecords, readLedger } from "./codeblocks-ledger.mjs";
 
 const siteRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -64,6 +65,8 @@ const mustRun = (example) => claimed(example) && !listedEverywhere(keysOf.get(ha
 // Named as the ledger names it, so what cannot run on the web yet can
 // be listed there with why.
 const named = (example) => (keysOf.get(hashExample(example)) ?? []).join(", ");
+// The claimed examples let stand plain, for the page build to keep so.
+const held = new Set();
 const failures = checkExamples(examples, { qmlc });
 const failed = new Map(failures.map(({ example, diagnostics }) => [hashExample(example), diagnostics]));
 for (const { example, diagnostics } of failures) {
@@ -71,6 +74,7 @@ for (const { example, diagnostics } of failures) {
     console.error(`codeblock-prerenders: ${named(example)} does not compile:\n${diagnostics.join("\n")}`);
     process.exit(1);
   }
+  if (claimed(example)) held.add(hashExample(example));
 }
 legacy += failures.length;
 const runnable = examples.filter((example) => !failed.has(hashExample(example)));
@@ -82,6 +86,7 @@ for (const { example, diagnostics } of unmade) {
     console.error(`codeblock-prerenders: ${named(example)} does not run:\n${diagnostics.join("\n")}`);
     process.exit(1);
   }
+  if (claimed(example)) held.add(hashExample(example));
   // Said in the manifest, so the build that embeds them leaves this
   // block plain instead of promising it live.
   manifest[hashExample(example)] = { failed: true, diagnostics };
@@ -90,6 +95,7 @@ for (const { example, diagnostics } of unmade) {
 let drawn = 0;
 for (const example of runnable) if (manifest[hashExample(example)]?.file) drawn++;
 writeFileSync(join(cacheDir, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+writeHeld(cacheDir, held);
 // Every example, page by page, as it stands: what the suite holds to
 // the ledger of plain examples (codeblocks-ledger.mjs).
 const outcome = (example) => {

@@ -4,6 +4,10 @@
 // manifest the build embeds.
 import { existsSync, readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
+import { hashExample } from "ljos-web/codeblocks";
+import { assemble, parseMeta } from "ljos-web/codeblocks/parse";
+import { liveCodeBlocks } from "ljos-web/codeblocks/remark";
+import { holdPlain } from "../scripts/codeblocks-held.mjs";
 import { exampleKeys, listedEverywhere, readLedger, unmarked } from "../scripts/codeblocks-ledger.mjs";
 
 const REPORT = ".codeblock-prerenders/report.json";
@@ -40,5 +44,35 @@ test.describe("an example the ledger lists may stand plain", () => {
     expect(listedEverywhere(["language/controllers.md 1", "start/index.md 2"], ledger)).toBe(false);
     expect(listedEverywhere(["language/controllers.md 3"], ledger)).toBe(false);
     expect(listedEverywhere([], ledger)).toBe(false);
+  });
+});
+
+// The Markdown step holds every claimed example to running, as the
+// prerender step does; an example that step let stand plain because
+// the ledger lists it stays plain code here too, and nothing else does.
+test.describe("the page build keeps a listed example plain", () => {
+  const fence = (id) => ({ type: "code", lang: "qml", meta: "file=Main.qml", value: `import QtQuick\nItem { id: ${id} }` });
+  const hashOf = (node) => hashExample(assemble([{ ...parseMeta(node.lang, node.meta), code: node.value }]).examples[0]);
+  const page = () => ({ type: "root", children: [fence("listed"), { type: "paragraph", children: [] }, fence("other")] });
+  const failed = (...nodes) =>
+    Object.fromEntries(nodes.map((node) => [hashOf(node), { failed: true, diagnostics: ["Main.qml: no such type"] }]));
+
+  test("and counts it among the plain blocks", () => {
+    const tree = page();
+    const [listed, , other] = tree.children;
+    let plain = 0;
+    const run = holdPlain(liveCodeBlocks, new Set([hashOf(listed)]));
+    run({ prerenders: failed(listed), onLegacy: (count) => (plain += count) })(tree, { path: "a.md" });
+    expect(tree.children[0]).toBe(listed);
+    expect(tree.children[2]).not.toBe(other);
+    expect(tree.children[2].type).toBe("html");
+    expect(plain).toBe(1);
+  });
+
+  test("while another claimed example that does not run still stops it", () => {
+    const tree = page();
+    const [listed, , other] = tree.children;
+    const run = holdPlain(liveCodeBlocks, new Set([hashOf(listed)]));
+    expect(() => run({ prerenders: failed(listed, other) })(tree, { path: "a.md" })).toThrow(/a code block does not run/);
   });
 });
