@@ -9,7 +9,7 @@
 // Controller written as a module (`controller({ … })`) is the same object
 // with its lifecycle given as functions.
 import { onCleanup, runWithOwner } from "solid-js";
-import { contents, defineType, derived, effect, flushing, QtObject, whenToldComplete } from "../../object.js";
+import { contents, defineType, derived, effect, flushing, heard, QtObject, whenToldComplete } from "../../object.js";
 import { untrack } from "#kernel";
 
 const hidden = (object, key, value) => Object.defineProperty(object, key, { value, writable: true, configurable: true });
@@ -36,7 +36,7 @@ function* steps(self, step) {
 }
 
 function handlesUpdated(self) {
-  if ("onUpdated" in self.$props || self.$replaced?.onUpdated) return true;
+  if ("onUpdated" in self.$props || self.$replaced?.onUpdated || self.$connected) return true;
   return !steps(self, "updated").next().done;
 }
 
@@ -44,19 +44,30 @@ function attach(self) {
   if (self.$life || self.$ended) return;
   const host = untrack(() => self.host);
   if (!host) return;
-  const life = { host, cleanups: [], armed: false, quiet: false, gone: false };
+  const life = { host, cleanups: [], armed: false, quiet: false, gone: false, following: false };
   hidden(self, "$life", life);
+  // A module's step throws as a handler does: reported, and nothing else
+  // made with it stops.
   for (const run of steps(self, "attached")) {
-    const back = run(host, self);
+    const back = heard(run, [host, self], self);
     if (typeof back === "function") life.cleanups.push(back);
   }
   self.attached(host);
   if (!handlesUpdated(self)) return;
-  listen(host, self, life);
+  follow(self, life);
   // The first update is at the end of the turn it was attached in, so
   // what the load still writes to the host (its parent, as it is put in
   // the page) is in it, not a second one.
   arm(self, life);
+}
+
+// A Controller that handles `updated` follows its host from then on. One
+// whose `updated` is connected to only later starts as it is, and is next
+// updated by the next change.
+function follow(self, life) {
+  if (life.following || life.gone) return;
+  life.following = true;
+  listen(life.host, self, life);
 }
 
 // The host tells the Controllers that listen when one of its properties is
@@ -107,10 +118,13 @@ function arm(self, life) {
 // Controller stays quiet until it has.
 function update(self, life) {
   life.quiet = true;
-  for (const run of steps(self, "updated")) run(life.host, self);
-  self.updated();
-  if (flushing()) queueMicrotask(() => (life.quiet = false));
-  else life.quiet = false;
+  try {
+    for (const run of steps(self, "updated")) heard(run, [life.host, self], self);
+    self.updated();
+  } finally {
+    if (flushing()) queueMicrotask(() => (life.quiet = false));
+    else life.quiet = false;
+  }
 }
 
 // Detached once, whichever comes first: the Controller destroyed, or what
@@ -123,8 +137,8 @@ function end(self) {
   if (!life) return;
   life.gone = true;
   life.host.$listening?.delete(self);
-  for (const cleanup of life.cleanups) cleanup();
-  for (const run of steps(self, "detached")) run(life.host, self);
+  for (const cleanup of life.cleanups) heard(cleanup, [], self);
+  for (const run of steps(self, "detached")) heard(run, [life.host, self], self);
   self.detached();
 }
 
@@ -132,8 +146,27 @@ function end(self) {
 // complete, detached as it goes. A gesture of `Ljos.Ui` lives so; it keeps
 // the type of the handler it faces, which listens on its host's element.
 export function live(self) {
+  // `updated.connect` (and a `Connections` on it) counts as handling it,
+  // before the Controller is attached or after.
+  const updated = self.updated;
+  const connect = updated.connect;
+  updated.connect = (listener) => {
+    connect(listener);
+    hidden(self, "$connected", true);
+    if (self.$life) follow(self, self.$life);
+  };
   whenToldComplete(() => attach(self));
   onCleanup(() => end(self));
+}
+
+// Destroyed, a Controller or a gesture is detached as the delay runs out:
+// one that was declared has no disposal of its own to do it.
+export function destroying(Base) {
+  return function destroy(delay = 0) {
+    if (this.$destroyed) return;
+    Base.proto.destroy.call(this, delay);
+    setTimeout(() => end(this), delay);
+  };
 }
 
 export { hostOf };
@@ -143,13 +176,7 @@ export const Controller = defineType("Controller", QtObject, {
     host: derived((self) => hostOf(self)),
   },
   signals: ["attached", "detached", "updated"],
-  methods: {
-    destroy(delay = 0) {
-      if (this.$destroyed) return;
-      QtObject.proto.destroy.call(this, delay);
-      setTimeout(() => end(this), delay);
-    },
-  },
+  methods: { destroy: destroying(QtObject) },
   setup(self) {
     live(self);
   },

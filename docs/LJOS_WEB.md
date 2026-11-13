@@ -2246,8 +2246,10 @@ something new, or what the host's type works out as it is read (an
 anchored item's geometry), which is never written and so is followed for as
 long as the Controller is. Two writes in a turn are one update, and what
 `updated` writes does not arm it again, so a Controller cannot keep the
-page awake. Only a Controller that handles `updated` listens: a host with
-none pays nothing for it.
+page awake. Only a Controller that handles `updated` listens (one that
+declares `onUpdated`, a module's `updated`, or a listener connected to
+`updated` at any time, which hears the next change): a host with none pays
+nothing for it.
 
 A Controller written as a module is the same object with its lifecycle
 given as functions:
@@ -2268,12 +2270,16 @@ export const Breakpoint = controller({
 ```
 
 A binding is a function of the host and the Controller, and what `attached`
-returns runs as the Controller is detached, before `detached` itself. A
-member it has not (`started`) is a `TypeError` that names those it has.
+returns runs as the Controller is detached, before `detached` itself. What
+any of them throws is reported as a handler's throw is, and nothing else
+stops for it: the rest of the page is still made, and a throw in `updated`
+does not keep the next update away. A member it has not (`started`) is a
+`TypeError` that names those it has.
 
 The gestures (`Tap`, `Hover`, `Drag`, `Wheel`) are Controllers too: each
-has a `host` and is attached and detached as a Controller is, and stays
-the handler it faces, listening on its host's element. A gesture in a
+has a `host` and is attached and detached as a Controller is (destroyed,
+it is detached and takes nothing more), and stays the handler it faces,
+listening on its host's element. A gesture in a
 Controller acts on the Controller's host; one in a `Window` acts on the
 window's content item, since it needs an element to listen on.
 
@@ -2334,7 +2340,9 @@ owner that never ends; a root that ends is taken off it, so none piles up
 (`tests/kernel.spec.js`, `tests/scenes/placing.qml`).
 
 **Tests**, each on both kernels: `controller.spec.js`,
-`controllerwindow.spec.js` (a Controller and a `Tap` in a `Window`), `task.spec.js`,
+`controllerwindow.spec.js` (a Controller and a `Tap` in a `Window`),
+`controllerfaults.spec.js` (what a module throws, a late `updated.connect`,
+a gesture destroyed), `task.spec.js`,
 `fetch.spec.js`, `ljoshomes.spec.js`, and `ergoruntime.spec.js`, a card in
 Ljós's API compiled by `qmlc` (`tests/scenes/ergoruntime.qml`) with a
 Controller that keeps a label of its host's size as its anchors change it,

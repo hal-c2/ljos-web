@@ -188,7 +188,8 @@ function eventOf(self, point) {
 // Qt's `QQuickPointerDeviceHandler::wantsPointerEvent`. A handler that
 // accepts no button does not care which are held: HoverHandler.
 function wants(self, point) {
-  if (!self.enabled) return false;
+  // A gesture of Ljos.Ui that was detached (destroyed) takes nothing more.
+  if (!self.enabled || self.$ended) return false;
   const type = point.type;
   if (!(self.acceptedDevices & (DEVICES[type] ?? 0)) || !(self.acceptedPointerTypes & (POINTERS[type] ?? 0))) return false;
   const modifiers = self.acceptedModifiers >>> 0;

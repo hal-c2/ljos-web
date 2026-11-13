@@ -1259,9 +1259,9 @@ export function replace(self, handler, run) {
 
 // What a handler throws stops that handler and is told of, as Qt warns of
 // it: whoever emitted the signal goes on, and so do the handlers after it.
-function heard(handler, args = [], self) {
+export function heard(handler, args = [], self) {
   try {
-    handler(...args);
+    return handler(...args);
   } catch (error) {
     const boundary = self?.$fault;
     if (boundary) boundary(error, self);

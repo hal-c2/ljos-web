@@ -17,7 +17,7 @@
 // `color` reads. The dialect's font size, `font.size`, is a second name
 // for `pixelSize` on every font (`QtQuick/font.js`), as natively.
 import { defineType, derived, QtObject, slot } from "../../object.js";
-import { hostOf, live } from "../Core/controller.js";
+import { destroying, hostOf, live } from "../Core/controller.js";
 import { Accessible } from "../../QtQuick/Accessible.js";
 import { Animation, ParallelAnimation, PauseAnimation, ScriptAction, SequentialAnimation } from "../../QtQuick/animation/Animation.js";
 import { Behavior } from "../../QtQuick/animation/Behavior.js";
@@ -145,6 +145,7 @@ function gesture(name, Base) {
   const Type = defineType(name, Face, {
     properties: { host: derived((self) => hostOf(self)) },
     signals: ["attached", "detached", "updated"],
+    methods: { destroy: destroying(Face) },
     setup(self) {
       Object.defineProperty(self, "$gesture", { value: true });
       live(self);
