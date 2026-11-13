@@ -516,6 +516,13 @@ export function bound(owner, compute, first) {
   return ringed(owner, compute, first, true);
 }
 
+// Where what an evaluation of the graph's makes is held: an owner that never
+// ends and so never ends it. The graph evaluates as a write reaches it, and
+// a layout writes where its items go in an effect's callback, where Solid's
+// development build refuses a root with no owner at all. Ended, a root is
+// taken off its owner, so nothing piles up here.
+const PARKED = WASM ? runWithOwner(null, () => createRoot(() => getOwner())) : null;
+
 // A binding on the wasm kernel's graph, which decides when it is out of
 // date and where a loop ends: one that asks for its own value while it is
 // computed gets what it had, as the graph gives any binding it is running.
@@ -537,7 +544,7 @@ function graphed(owner, compute, first, own = false) {
     if (spent) after(spent);
     evaluating = true;
     try {
-      held = runWithOwner(null, () =>
+      held = runWithOwner(PARKED, () =>
         createRoot((dispose) => {
           made = dispose;
           return compute();

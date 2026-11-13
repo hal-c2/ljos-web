@@ -278,3 +278,10 @@ test("what nobody can reach any more holds no node of the graph", async ({ page 
   });
   await expect.poll(collect).toBeLessThanOrEqual(before);
 });
+
+test("what a binding gives as a column places its items is made, on either kernel", async ({ page }) => {
+  await open(page, "placing");
+  const { y, text } = await page.evaluate(() => ({ y: window.scene.second.y, text: window.scene.second.text }));
+  expect(text).toBe("second");
+  expect(y).toBeGreaterThan(0);
+});
