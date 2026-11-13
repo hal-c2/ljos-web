@@ -86,6 +86,8 @@ for (const docsPage of docsSite.pages) {
   test(`${docsPage.route} answers and shows its title`, async ({ page }) => {
     const response = await page.goto(docsPage.route);
     expect(response.ok(), docsPage.route).toBeTruthy();
-    await expect(page.getByText(docsPage.title, { exact: true }).first()).toBeVisible();
+    // The page's title as the reader sees it: the page is written at
+    // more than one size, and only the one that fits is shown.
+    await expect(page.getByText(docsPage.title, { exact: true }).filter({ visible: true }).first()).toBeVisible();
   });
 }
