@@ -28,7 +28,7 @@ for (const route of PINNED_PAGES) {
     await page.goto("/start/");
     await expect(page.locator(`nav[aria-label="Main"] a[href="${route}"]`)).toHaveCount(1);
     await page.getByRole("button", { name: "Search" }).first().click();
-    await page.getByRole("searchbox").fill(titleOf(route));
+    await page.getByRole("dialog", { name: "Search" }).getByRole("textbox", { name: "Search" }).fill(titleOf(route));
     await expect(page.locator(`.pagefind-ui__result-link[href="${route}"]`).first()).toBeVisible({ timeout: 15_000 });
   });
 }
