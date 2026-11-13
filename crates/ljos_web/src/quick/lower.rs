@@ -60,6 +60,10 @@ pub(crate) struct Uses {
     pub places: Option<Places>,
     /// What the output takes from the inspector: `$console`, `$bound`.
     pub inspect: BTreeSet<&'static str>,
+    /// What `Ljos.Core` gives the file in place of Qt's `Qt`: `later`, `App`.
+    pub core: BTreeSet<&'static str>,
+    /// The helpers `match` and `is` are lowered to call: `$is`, `$nomatch`.
+    pub sugar: BTreeSet<&'static str>,
 }
 
 impl Uses {

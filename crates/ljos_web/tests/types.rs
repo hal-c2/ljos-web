@@ -230,7 +230,10 @@ fn a_page_s_dump_that_does_not_read_is_the_answer() {
             file: Some("native/ljostypes.json".into()),
             line: Some(2),
             column: Some(1),
+            end_line: Some(2),
+            end_column: Some(1),
             message: "EOF while parsing a list".into(),
+            code: None,
         }]
     );
 }

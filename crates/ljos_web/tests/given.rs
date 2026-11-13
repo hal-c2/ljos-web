@@ -138,7 +138,10 @@ fn a_module_nobody_has_is_an_error_at_its_import() {
             file: Some("Main.qml".into()),
             line: Some(2),
             column: Some(1),
-            message: "module \"No.Such.Module\" is not installed".into()
+            end_line: Some(2),
+            end_column: Some(22),
+            message: "module \"No.Such.Module\" is not installed".into(),
+            code: None,
         }]
     );
 }

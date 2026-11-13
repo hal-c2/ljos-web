@@ -9,6 +9,7 @@ publish = false
 qml_front = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "c2443e1593f56acfbf97d9f7f7fde921f3984f5d" }
 qt_types = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "c2443e1593f56acfbf97d9f7f7fde921f3984f5d" }
 qml_syntax = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "c2443e1593f56acfbf97d9f7f7fde921f3984f5d" }
+qml_compat = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "c2443e1593f56acfbf97d9f7f7fde921f3984f5d" }
 # The theme file's reader and checker. The pin is ljos-ui's main as
 # `Ljos.Ui` came to the web: the first whose type table knows Ljós's
 # own modules, so a dialect file compiles here (docs/LJOS_WEB.md A29).

@@ -117,6 +117,9 @@ pub struct Error {
     pub message: String,
     /// Offsets into the QML source.
     pub span: Span,
+    /// What kind of error it is, as `ljos check` names it (`qt-global`):
+    /// what an editor keys a fix on. None for one `ljos check` gives no name.
+    pub code: Option<&'static str>,
 }
 
 impl Error {
@@ -124,21 +127,45 @@ impl Error {
         Self {
             message: message.into(),
             span,
+            code: None,
+        }
+    }
+
+    pub(crate) fn coded(message: impl Into<String>, span: Span, code: &'static str) -> Self {
+        Self {
+            code: Some(code),
+            ..Self::new(message, span)
         }
     }
 
     /// One-based line and column of the error in `source`.
     pub fn position(&self, source: &str) -> (usize, usize) {
-        let before = &source[..(self.span.start as usize).min(source.len())];
-        let line = before.matches('\n').count() + 1;
-        let column = before.chars().rev().take_while(|c| *c != '\n').count() + 1;
-        (line, column)
+        place(source, self.span.start)
     }
+
+    /// One-based line and column just past the error in `source`: where an
+    /// editor ends its underline. An error with no extent ends where it
+    /// starts.
+    pub fn end(&self, source: &str) -> (usize, usize) {
+        place(source, self.span.end.max(self.span.start))
+    }
+}
+
+/// Lines and columns count characters, as `ljos check` counts them.
+fn place(source: &str, offset: u32) -> (usize, usize) {
+    let mut offset = (offset as usize).min(source.len());
+    while !source.is_char_boundary(offset) {
+        offset -= 1;
+    }
+    let before = &source[..offset];
+    let line = before.matches('\n').count() + 1;
+    let column = before.chars().rev().take_while(|c| *c != '\n').count() + 1;
+    (line, column)
 }
 
 impl From<qml_syntax::Diagnostic> for Error {
     fn from(diagnostic: qml_syntax::Diagnostic) -> Self {
-        Self::new(diagnostic.message, diagnostic.span)
+        Self::coded(diagnostic.message, diagnostic.span, "syntax")
     }
 }
 
@@ -171,6 +198,25 @@ pub fn compile(source: &str, options: &Options) -> Result<Output, Vec<Error>> {
 /// the module that import is: what the script declares, exported.
 pub fn compile_script(source: &str, options: &Options) -> Result<Output, Vec<Error>> {
     quick::script::compile(source, options).map(|code| Output { code, map: None })
+}
+
+/// Whether `path` names a TypeScript module a QML file imports by path:
+/// `size.ts`, or `size.lts`, which may use Ljós's syntax too.
+pub fn is_module(path: &str) -> bool {
+    quick::module::is_module(path)
+}
+
+/// Compiles `source`, the TypeScript module named `name` (`size.lts`), to
+/// the ECMAScript module it is with its types erased. `taken`: whether a
+/// file is where renaming a `.ts` module to `.lts` would put it, which the
+/// error for Ljós's syntax in a `.ts` module says instead of the rename.
+pub fn compile_module(
+    source: &str,
+    name: &str,
+    taken: bool,
+    options: &Options,
+) -> Result<Output, Vec<Error>> {
+    quick::module::compile(source, name, taken, options).map(|code| Output { code, map: None })
 }
 
 /// What a file imports, read as compiling it reads it: the modules it names
@@ -206,6 +252,12 @@ pub fn script_imports(source: &str) -> Result<Imports, Vec<Error>> {
     quick::script::imports(source)
 }
 
+/// What the TypeScript module `name` imports: the files beside it it names,
+/// as written. A module imports no QML module.
+pub fn module_imports(source: &str, name: &str) -> Result<Imports, Vec<Error>> {
+    quick::module::imports(source, name)
+}
+
 /// The tree handed to Solid's compiler, printed. Solid never sees this text;
 /// it is here to look at what the lowering built.
 pub fn lowered_source(source: &str, options: &Options) -> Result<String, Vec<Error>> {
@@ -225,7 +277,7 @@ pub(crate) fn parse_errors(diagnostics: Diagnostics) -> Vec<Error> {
                     let start = label.offset();
                     Span::new(start, start + label.len())
                 });
-            Error::new(diagnostic.message.to_string(), span)
+            Error::coded(diagnostic.message.to_string(), span, "syntax")
         })
         .collect()
 }

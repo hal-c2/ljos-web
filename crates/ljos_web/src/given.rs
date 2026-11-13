@@ -98,9 +98,46 @@ pub struct Module {
 pub struct Diagnostic {
     /// The file as it was given, when the problem is in one.
     pub file: Option<String>,
+    /// Where it starts and ends, 1-based, columns in characters: what
+    /// `ljos check` prints and an editor underlines.
     pub line: Option<usize>,
     pub column: Option<usize>,
+    pub end_line: Option<usize>,
+    pub end_column: Option<usize>,
     pub message: String,
+    /// What kind of problem, as `ljos check` names it: `syntax`,
+    /// `qt-global`, `ts-forbidden`.
+    pub code: Option<String>,
+}
+
+impl Diagnostic {
+    /// A problem with a file as a whole, or with none.
+    fn whole(file: Option<String>, message: String) -> Self {
+        Self {
+            file,
+            line: None,
+            column: None,
+            end_line: None,
+            end_column: None,
+            message,
+            code: None,
+        }
+    }
+
+    /// A compile error, where it is in the file's text.
+    fn of(file: String, source: &str, error: crate::Error) -> Self {
+        let (line, column) = error.position(source);
+        let (end_line, end_column) = error.end(source);
+        Self {
+            file: Some(file),
+            line: Some(line),
+            column: Some(column),
+            end_line: Some(end_line),
+            end_column: Some(end_column),
+            message: error.message,
+            code: error.code.map(str::to_string),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -141,12 +178,10 @@ pub fn compile(request: &Request) -> Result<Compiled, Vec<Diagnostic>> {
     let entry = normal(&request.entry)
         .filter(|entry| files.contains_key(entry))
         .ok_or_else(|| {
-            vec![Diagnostic {
-                file: Some(request.entry.clone()),
-                line: None,
-                column: None,
-                message: "no such file".into(),
-            }]
+            vec![Diagnostic::whole(
+                Some(request.entry.clone()),
+                "no such file".into(),
+            )]
         })?;
 
     let mut modules: Vec<Module> = Vec::new();
@@ -175,15 +210,11 @@ pub fn compile(request: &Request) -> Result<Compiled, Vec<Diagnostic>> {
         let output = match compiled.result {
             Ok(output) => output,
             Err(errors) => {
-                diagnostics.extend(errors.into_iter().map(|error| {
-                    let (line, column) = error.position(&compiled.source);
-                    Diagnostic {
-                        file: Some(named(&file)),
-                        line: Some(line),
-                        column: Some(column),
-                        message: error.message,
-                    }
-                }));
+                diagnostics.extend(
+                    errors
+                        .into_iter()
+                        .map(|error| Diagnostic::of(named(&file), &compiled.source, error)),
+                );
                 continue;
             }
         };
@@ -192,12 +223,10 @@ pub fn compile(request: &Request) -> Result<Compiled, Vec<Diagnostic>> {
             match &link.target {
                 Target::File(target) => {
                     if !files.contains_key(target) {
-                        diagnostics.push(Diagnostic {
-                            file: Some(named(&file)),
-                            line: None,
-                            column: None,
-                            message: format!("`{target}` is not among the files given"),
-                        });
+                        diagnostics.push(Diagnostic::whole(
+                            Some(named(&file)),
+                            format!("`{target}` is not among the files given"),
+                        ));
                     } else if seen.insert(target.clone()) {
                         pending.push(target.clone());
                     }
@@ -218,9 +247,13 @@ pub fn compile(request: &Request) -> Result<Compiled, Vec<Diagnostic>> {
     if !diagnostics.is_empty() {
         // A file that does not parse is left out of the project, so what
         // imports it is told its type is unknown: the syntax error is why.
+        // The file's own compile says its syntax errors too: each once.
         let mut broken = syntax_errors(&files, &named);
-        broken.extend(diagnostics);
-        broken.dedup();
+        for diagnostic in diagnostics {
+            if !broken.contains(&diagnostic) {
+                broken.push(diagnostic);
+            }
+        }
         return Err(broken);
     }
     starred(&mut modules);
@@ -253,12 +286,7 @@ fn dumped(
     let mut read = Vec::new();
     for path in paths {
         let Some(text) = request.files.get(&path) else {
-            return Err(vec![Diagnostic {
-                file: Some(path),
-                line: None,
-                column: None,
-                message: "no such file".into(),
-            }]);
+            return Err(vec![Diagnostic::whole(Some(path), "no such file".into())]);
         };
         match crate::dump::read(&path, text) {
             Ok(dump) => read.push((path, dump)),
@@ -274,10 +302,11 @@ fn dumped(
 
 fn dump_diagnostic(error: crate::dump::DumpError) -> Diagnostic {
     Diagnostic {
-        file: Some(error.file),
         line: Some(error.line),
         column: Some(error.column),
-        message: error.message,
+        end_line: Some(error.line),
+        end_column: Some(error.column),
+        ..Diagnostic::whole(Some(error.file), error.message)
     }
 }
 
@@ -290,13 +319,7 @@ fn syntax_errors(
     for (file, source) in files.iter().filter(|(file, _)| file.ends_with(".qml")) {
         let allocator = Allocator::default();
         for error in qml_syntax::parse(&allocator, source).diagnostics {
-            let (line, column) = error.position(source);
-            found.push(Diagnostic {
-                file: Some(named(file)),
-                line: Some(line),
-                column: Some(column),
-                message: error.message,
-            });
+            found.push(Diagnostic::of(named(file), source, error.into()));
         }
     }
     found
@@ -493,9 +516,7 @@ fn absent(file: &str, source: &str, specifier: &str) -> Diagnostic {
         .filter(|(imported, _)| *imported == uri || uri.starts_with(&format!("{imported}.")))
         .max_by_key(|(imported, _)| imported.len())
         .map(|(_, import)| import);
-    let (line, column) = import.map_or((1, 1), |import| {
-        crate::Error::new("", import.span).position(source)
-    });
+    let span = import.map_or_else(oxc_span::Span::default, |import| import.span);
     let message = if uri == "QtQuick.Controls" || uri.starts_with("QtQuick.Controls.") {
         format!(
             "module \"{uri}\" is not in this page: the styles of Qt Quick Controls are QML of Qt's own, which a page has only when it was built with them (ljos-web requests 13 and 36)"
@@ -503,12 +524,7 @@ fn absent(file: &str, source: &str, specifier: &str) -> Diagnostic {
     } else {
         format!("module \"{uri}\" is not in this page")
     };
-    Diagnostic {
-        file: Some(file.to_string()),
-        line: Some(line),
-        column: Some(column),
-        message,
-    }
+    Diagnostic::of(file.to_string(), source, crate::Error::new(message, span))
 }
 
 /// Byte offsets of a text as UTF-16 code units.

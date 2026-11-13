@@ -6,6 +6,7 @@
 //! objects with the runtime's types (`packages/runtime`).
 
 mod lower;
+pub(crate) mod module;
 mod names;
 mod paths;
 mod places;
@@ -156,6 +157,7 @@ fn lower_from<'a>(
         stem.to_string()
     };
 
+    let dialect = names::Dialect::of(&document);
     let mut lower = Lower::new(b, &tree, types, stem);
     lower.uses.paths.known.clone_from(&options.files);
     lower.uses.paths.pictures.clone_from(&options.pictures);
@@ -214,6 +216,7 @@ fn lower_from<'a>(
         types,
         stem,
         &lower.dynamic,
+        dialect,
         &mut uses,
         &mut errors,
     );
@@ -249,9 +252,26 @@ fn lower_from<'a>(
     } else if uses.places.is_some() {
         imports.push(b.import_bare(&format!("{prefix}/inspect")));
     }
+    // What `Ljos.Core` gives is of its module, with the module's types the
+    // file uses: one import of it.
+    let mut core: std::collections::BTreeSet<&str> = uses.core.iter().copied().collect();
     for (uri, names) in &uses.modules {
         let module = format!("{prefix}/{}", uri.replace('.', "/"));
+        if uri == names::CORE {
+            core.extend(names.iter().map(String::as_str));
+            continue;
+        }
         imports.push(b.import_named(names.iter().map(String::as_str), &module));
+    }
+    if !core.is_empty() {
+        let module = format!("{prefix}/{}", names::CORE.replace('.', "/"));
+        imports.push(b.import_named(core, &module));
+    }
+    if !uses.sugar.is_empty() {
+        imports.push(b.import_named(
+            uses.sugar.iter().copied(),
+            &format!("{prefix}/compiler/sugar"),
+        ));
     }
     for (name, file) in &uses.files {
         if *file == options.name {
