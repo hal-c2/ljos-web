@@ -21,6 +21,16 @@ import { checkExamples, hashExample, loadHarnesses, loadPrerenders, renderPreren
 import { assemble, tagged } from "ljos-web/codeblocks/parse";
 
 const here = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+// Where the site stands below its address's root: `/` at a domain of
+// its own, `/ljos-web/` as a project's github.io pages. Every asset a
+// page asks for is relative already; what the base decides is where a
+// route the site names from its root goes (`nav.js`), told to each
+// page in its head.
+const base = process.env.LJOS_SITE_BASE ?? "/";
+if (!/^\/(?:[A-Za-z0-9._~-]+\/)*$/.test(base)) {
+  console.error(`site-ljos: LJOS_SITE_BASE is ${JSON.stringify(base)}; it is a path that starts and ends with "/" (such as "/" or "/ljos-web/")`);
+  process.exit(1);
+}
 const repo = resolve(here, "..");
 const bundle = join(here, "bundle");
 const out = join(here, "dist");
@@ -281,6 +291,19 @@ try {
   rmSync(noQt, { recursive: true, force: true });
 }
 
+// Each page is told the base it stands at, in its head, before
+// anything of the page runs.
+const htmlUnder = (directory) =>
+  readdirSync(directory, { withFileTypes: true }).flatMap((entry) =>
+    entry.isDirectory() ? htmlUnder(join(directory, entry.name)) : entry.name.endsWith(".html") ? [join(directory, entry.name)] : [],
+  );
+for (const file of htmlUnder(out)) {
+  const html = readFileSync(file, "utf8");
+  const at = html.indexOf("<head>");
+  if (at < 0) throw new Error(`site-ljos: ${file} has no <head> to name the base in`);
+  writeFileSync(file, `${html.slice(0, at + 6)}\n    <meta name="ljos-base" content="${base}">${html.slice(at + 6)}`);
+}
+
 // The brand files a browser asks for by name are the site's, whichever
 // builder wrote the pages.
 for (const name of ["favicon.svg", "apple-touch-icon.png", "og-image.png"]) {
@@ -291,5 +314,5 @@ for (const name of ["favicon.svg", "apple-touch-icon.png", "og-image.png"]) {
 // any QML the compiler sees, so no build step carries it: the
 // pictures the bundle was built with stand beside the pages.
 if (existsSync(join(bundle, "Examples"))) cpSync(join(bundle, "Examples"), join(out, "Examples"), { recursive: true });
-console.log(`site-ljos: ${pages.length} pages (${site.pages.length} docs) from ${docs}`);
+console.log(`site-ljos: ${pages.length} pages (${site.pages.length} docs) from ${docs}, standing at ${base}`);
 console.log(`site-ljos: ${out} (${built.files.length} files, ${built.bytes} bytes)`);

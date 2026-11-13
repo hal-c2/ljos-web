@@ -6,13 +6,26 @@ on:
   workflow_dispatch:
     inputs:
       deploy:
-        description: "Deploy to GitHub Pages (still no custom domain)"
+        description: "Deploy site-ljos to GitHub Pages (the github.io preview unless custom_domain)"
+        type: boolean
+        default: false
+      custom_domain:
+        description: "Build for the repository's Pages custom domain, at its root, and ship its CNAME (only once DNS and the domain are set; see site-ljos/README.md)"
         type: boolean
         default: false
 
+permissions:
+  contents: read
+
+# A newer push supersedes a pull request's run. A dispatch is never
+# cancelled once running, so a deploy it asked for is not lost. Every
+# deploying dispatch shares one group, so they build and deploy in the
+# order they were made and an older commit never lands after a newer
+# one; a deploy still waiting is replaced by a newer one, which is the
+# deploy wanted anyway. A dispatch that only builds stands alone.
 concurrency:
-  group: site-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.event_name != 'workflow_dispatch' && format('site-{0}', github.ref) || (inputs.deploy && 'site-deploy' || format('site-dispatch-{0}', github.run_id)) }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 
 env:
   CARGO_NET_GIT_FETCH_WITH_CLI: "true"
@@ -21,6 +34,10 @@ env:
 jobs:
   build:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      # The deploy step reads the repository's Pages domain.
+      pages: read
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - name: Docs, at the pinned ljos-ui revision
@@ -68,16 +85,33 @@ jobs:
       # After the ordinary suite: its setup syncs the fixture's pages.
       - run: pnpm --filter ljos-site test:codeblocks
       # The same site as Ljós pages, beside the Astro one: built and
-      # held to parity with it, uploaded as its own artifact, and
-      # never what Pages deploys (that stays site/dist, below). The
-      # wasm compiler is built above, for the Astro build's blocks.
+      # held to parity with it, uploaded as its own artifact, and what
+      # Pages deploys (the Astro site/dist is the reference, never
+      # deployed). The wasm compiler is built above, for the Astro
+      # build's blocks.
       - run: mise run build:kernel
       # The build draws each live block's picture in a browser.
       - run: pnpm --filter ljos-site-ljos exec playwright install --with-deps chromium
+      # Built twice, once for each place it stands: at a domain's
+      # root (ljos.dev), the whole suite; then below a project path
+      # (the github.io preview, /<repo>/), what the base decides.
+      # Each build is kept for the deploy to pick from.
       - run: pnpm --filter ljos-site-ljos build
         env:
           QMLC: ${{ github.workspace }}/target/debug/qmlc
+          LJOS_SITE_BASE: /
       - run: pnpm --filter ljos-site-ljos test
+        env:
+          LJOS_SITE_BASE: /
+      - run: cp -r site-ljos/dist "$RUNNER_TEMP/site-ljos-root"
+      - run: pnpm --filter ljos-site-ljos build
+        env:
+          QMLC: ${{ github.workspace }}/target/debug/qmlc
+          LJOS_SITE_BASE: /${{ github.event.repository.name }}/
+      - run: pnpm --filter ljos-site-ljos exec playwright test tests/base.spec.js
+        env:
+          LJOS_SITE_BASE: /${{ github.event.repository.name }}/
+      - run: cp -r site-ljos/dist "$RUNNER_TEMP/site-ljos-project"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: ${{ failure() }}
         with:
@@ -86,25 +120,74 @@ jobs:
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: site-ljos-dist
-          path: site-ljos/dist
+          path: ${{ runner.temp }}/site-ljos-project
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: site-dist
           path: site/dist
-      # DECISION: no CNAME, no domain. Pages deploys only on a manual
-      # dispatch that asks for it; pointing ljos.dev here is separate.
+      # DECISION: Pages serves site-ljos (the Ljós-built site), never
+      # the Astro reference. Only a manual dispatch that asks for it
+      # deploys: by default the github.io preview, under the project
+      # path; with custom_domain, the root build and a CNAME naming
+      # the domain. The domain itself is the repository's Pages
+      # setting, set by hand once DNS is in place (GitHub ignores a
+      # CNAME file in an Actions deploy; the file records the intent).
+      # Pages serves the deploy wherever that setting says, and a
+      # build for the other place breaks every link, so a dispatch
+      # whose custom_domain disagrees with it fails instead of
+      # deploying. The CNAME names the setting, so a fork never
+      # claims ljos.dev.
+      - name: The site Pages serves
+        if: ${{ inputs.deploy == true }}
+        id: pages
+        env:
+          CUSTOM_DOMAIN: ${{ inputs.custom_domain }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          # A 404 is a repository whose Pages is not set up yet: no domain.
+          if domain=$(gh api "repos/$REPO/pages" --jq '.cname // ""' 2>"$RUNNER_TEMP/pages.err"); then
+            :
+          elif grep -q "HTTP 404" "$RUNNER_TEMP/pages.err"; then
+            domain=""
+          else
+            cat "$RUNNER_TEMP/pages.err" >&2
+            exit 1
+          fi
+          if [ "$CUSTOM_DOMAIN" = "true" ]; then
+            if [ -z "$domain" ]; then
+              echo "::error::custom_domain is on, but $REPO has no Pages custom domain: set it first (site-ljos/README.md, steps 1-4)"
+              exit 1
+            fi
+            dir="$RUNNER_TEMP/site-ljos-root"
+            echo "$domain" > "$dir/CNAME"
+          else
+            if [ -n "$domain" ]; then
+              echo "::error::Pages serves $REPO at the root of $domain, where the project-path build breaks every link: dispatch with custom_domain on"
+              exit 1
+            fi
+            dir="$RUNNER_TEMP/site-ljos-project"
+          fi
+          echo "dir=$dir" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         if: ${{ inputs.deploy == true }}
         with:
-          path: site/dist
+          path: ${{ steps.pages.outputs.dir }}
   deploy:
     if: ${{ inputs.deploy == true }}
     needs: build
     runs-on: ubuntu-24.04
+    # One deploy at a time, and one in flight is never cancelled; the
+    # workflow's own group already keeps deploying runs in order.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     permissions:
       pages: write
       id-token: write
     environment:
       name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
+      - id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4

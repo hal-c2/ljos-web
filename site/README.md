@@ -56,10 +56,10 @@ runtime module); three of them wait on dialect types besides
 land, each demo's dialect form is what `ljos migrate --write`
 makes of it, with no other change.
 
-Deployment is defined but off: `.github/workflows/site.yml` builds on
-pull requests and uploads an artifact; the Pages deploy job runs only
-on manual dispatch, and there is no CNAME. Pointing ljos.dev at it is
-a deliberate, separate step.
+This site is never deployed. `.github/workflows/site.yml` builds and
+tests it on pull requests and uploads it as an artifact, as the
+reference `site-ljos/` is held to; Pages serves `site-ljos/` (its
+README says how, and what ljos.dev's DNS needs).
 
 DECISION: `sharp` is pinned exactly to 0.34.5, the version astro
 5.18.2 resolves its optional `sharp` dependency to, so the lockfile
