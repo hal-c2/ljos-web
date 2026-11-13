@@ -83,10 +83,11 @@ export class Font {
 }
 
 // `Qt.font({ family: "Arial", bold: true })`.
-export function font(given) {
-  if (given === null || typeof given !== "object") throw new Error("Qt.font(): Invalid arguments");
+// `said` is the name the error gives the call: `Font.of()` in Ljós's API.
+export function font(given, said = "Qt.font()") {
+  if (given === null || typeof given !== "object") throw new Error(`${said}: Invalid arguments`);
   const known = Object.keys(given).filter((key) => key in FONT);
-  if (!known.length) throw new Error("Qt.font(): Invalid argument: no valid font subproperties specified");
+  if (!known.length) throw new Error(`${said}: Invalid argument: no valid font subproperties specified`);
   return new Font(Object.fromEntries(known.map((key) => [key, given[key]])));
 }
 

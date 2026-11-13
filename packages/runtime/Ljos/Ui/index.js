@@ -33,7 +33,8 @@ import {
 } from "../../QtQuick/animation/PropertyAnimation.js";
 import { Drag as DragAttachedSource, DropArea } from "../../QtQuick/Drag.js";
 import { Flickable } from "../../QtQuick/Flickable.js";
-import { Font } from "../../QtQuick/font.js";
+import { font } from "../../QtQml/application.js";
+import { Font as FontEnums } from "../../QtQuick/font.js";
 import { DragHandler, HoverHandler, PointerDevice, TapHandler, WheelHandler } from "../../QtQuick/handlers.js";
 import { Image } from "../../QtQuick/Image.js";
 import { Item } from "../../QtQuick/Item.js";
@@ -208,6 +209,18 @@ DragSource.attached = (self) => {
   return DragAttachedSource.attached(self);
 };
 
+// `Font.of({ family, size })` is Qt's `Qt.font`, and `Font.families()` its
+// `Qt.fontFamilies()`, beside the enums of the font value (`Font.Bold`).
+// A page is told only of the families it has loaded itself: the browser
+// does not list what is installed.
+export const Font = Object.freeze({
+  ...FontEnums,
+  of: (given) => font(given, "Font.of()"),
+  families: () => [...new Set([...(document.fonts ?? [])].map((face) => face.family.replace(/^["']|["']$/g, "")))].sort(),
+});
+
+export * from "./enums.js";
+
 // The types Ljós's API keeps as they are: what a file names by them is
 // what `QtQuick` has. What arranges children is `Ljos.Layout`'s.
 export {
@@ -220,7 +233,6 @@ export {
   DropArea,
   Easing,
   Flickable,
-  Font,
   FontMetrics,
   Gradient,
   GradientStop,

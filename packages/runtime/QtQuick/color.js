@@ -337,6 +337,11 @@ export class Color {
     return darker(this, Math.floor(factor * 100 + 0.5));
   }
 
+  // `Color.of(c).equals("#ff0000")` (Ljos.Core): `Qt.colorEqual`.
+  equals(other) {
+    return equal(this, other);
+  }
+
   // This colour seen through `over`, by how opaque that is.
   tint(over) {
     const tint = color(over);

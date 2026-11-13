@@ -98,6 +98,18 @@ class LocaleValue {
     this.numberOptions = name === "C" ? Locale.OmitGroupSeparator : Locale.DefaultNumberOptions;
   }
 
+  // `Locale.current.formatDate(when, "yyyy-MM-dd")` (Ljos.Core): what
+  // `Qt.formatDate` does, written by this locale.
+  formatDate(value, format = Locale.ShortFormat) {
+    return formatDate(value, this, format);
+  }
+  formatTime(value, format = Locale.ShortFormat) {
+    return formatTime(value, this, format);
+  }
+  formatDateTime(value, format = Locale.ShortFormat) {
+    return formatDateTimeOf(value, this, format);
+  }
+
   // Each answer is worked out once.
   $once(key, make) {
     if (!this.$made.has(key)) this.$made.set(key, make());
