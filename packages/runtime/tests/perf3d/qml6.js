@@ -44,15 +44,16 @@ function run(file, { warm, seconds, picture }) {
     sleep ${warm}
     a=$(cpu); sleep ${seconds}; b=$(cpu)
     rss=$(awk '/VmRSS/ { print $2 }' /proc/$pid/status)
-    if [ -n "${picture ?? ""}" ]; then
+    if [ -n "\${3:-}" ]; then
       for socket in "$XDG_RUNTIME_DIR"/wayland-*; do [ -S "$socket" ] && break; done
-      WAYLAND_DISPLAY=$(basename "$socket") grim "${picture ?? ""}" 2> /dev/null || true
+      WAYLAND_DISPLAY=$(basename "$socket") grim "$3" 2> /dev/null || true
     fi
     kill $pid; wait $pid 2> /dev/null
     echo "$a $b $rss $(getconf CLK_TCK)"
   `;
   const base = join(OUT, `qml6-${file.split("/").pop().replace(/\.qml$/, "")}`);
-  const done = spawnSync(RUN[0], [...RUN.slice(1), "bash", "-c", script, "qml6", file, base], { encoding: "utf8" });
+  // Paths go in as arguments, never into the script's text.
+  const done = spawnSync(RUN[0], [...RUN.slice(1), "bash", "-c", script, "qml6", file, base, picture ?? ""], { encoding: "utf8" });
   if (done.status !== 0) throw new Error(`qml6 ${file}: ${done.stderr}`);
   const [a, b, rss, tick] = done.stdout.trim().split("\n").pop().split(" ").map(Number);
   return { log: readFileSync(`${base}.log`, "utf8"), cpu: (b - a) / tick, rss: rss * 1024 };
