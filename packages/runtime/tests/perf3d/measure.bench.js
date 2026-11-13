@@ -236,7 +236,9 @@ async function counting(browser, scene, renderer) {
     perFrame: {
       drawn: drawn.length,
       ...per(kinds(steady), drawn.length),
-      bytes: mean(drawn.map(({ bytes }) => bytes)),
+      // Over every frame, as on wgpu a build's uploads can land a frame
+      // before its draw.
+      bytes: frames.reduce((total, { bytes }) => total + bytes, 0) / Math.max(1, drawn.length),
       into: frames.reduce((total, { into }) => total + into, 0) / Math.max(1, drawn.length),
       out: frames.reduce((total, { out }) => total + out, 0) / Math.max(1, drawn.length),
       topCalls: top(steady, 15),
