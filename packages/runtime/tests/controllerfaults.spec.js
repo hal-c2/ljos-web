@@ -70,3 +70,20 @@ test("a gesture destroyed is detached once, and taps no more", async ({ page }) 
   await settle(page);
   expect(await page.evaluate(() => window.objects.taps)).toBe(1);
 });
+
+test("once its last listener is disconnected, a turn that writes the host asks nothing of the Controller", async ({ page }) => {
+  await open(page, "controllerfaults");
+  await settle(page);
+  const armed = await page.evaluate(() => {
+    const { late, root } = window.objects;
+    const told = () => {};
+    late.updated.connect(told);
+    late.updated.disconnect(told);
+    root.width = 300;
+    window.flush();
+    // What a write asks of it is a microtask at the turn's end, queued as
+    // the write is made.
+    return late.$life.armed;
+  });
+  expect(armed).toBe(false);
+});

@@ -36,7 +36,7 @@ function* steps(self, step) {
 }
 
 function handlesUpdated(self) {
-  if ("onUpdated" in self.$props || self.$replaced?.onUpdated || self.$connected) return true;
+  if ("onUpdated" in self.$props || self.$replaced?.onUpdated || self.$connected?.size) return true;
   return !steps(self, "updated").next().done;
 }
 
@@ -106,6 +106,9 @@ function listen(host, self, life) {
 // frame is never asked for it.
 function arm(self, life) {
   if (life.armed || life.quiet || life.gone) return;
+  // What connected to `updated` may have disconnected since: then nobody
+  // would hear it.
+  if (!handlesUpdated(self)) return;
   life.armed = true;
   queueMicrotask(() => {
     life.armed = false;
@@ -149,11 +152,17 @@ export function live(self) {
   // `updated.connect` (and a `Connections` on it) counts as handling it,
   // before the Controller is attached or after.
   const updated = self.updated;
-  const connect = updated.connect;
+  const { connect, disconnect } = updated;
+  const connected = new Set();
+  hidden(self, "$connected", connected);
   updated.connect = (listener) => {
     connect(listener);
-    hidden(self, "$connected", true);
+    connected.add(listener);
     if (self.$life) follow(self, self.$life);
+  };
+  updated.disconnect = (listener) => {
+    disconnect(listener);
+    connected.delete(listener);
   };
   whenToldComplete(() => attach(self));
   onCleanup(() => end(self));
