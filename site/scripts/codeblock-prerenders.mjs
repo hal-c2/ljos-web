@@ -61,11 +61,14 @@ for (const { page, fences, examples: shown } of onPages)
     keysOf.set(hash, [...(keysOf.get(hash) ?? []), key]);
   }
 const mustRun = (example) => claimed(example) && !listedEverywhere(keysOf.get(hashExample(example)) ?? [], ledger);
+// Named as the ledger names it, so what cannot run on the web yet can
+// be listed there with why.
+const named = (example) => (keysOf.get(hashExample(example)) ?? []).join(", ");
 const failures = checkExamples(examples, { qmlc });
 const failed = new Map(failures.map(({ example, diagnostics }) => [hashExample(example), diagnostics]));
 for (const { example, diagnostics } of failures) {
   if (mustRun(example)) {
-    console.error(`codeblock-prerenders: a code block does not compile:\n${diagnostics.join("\n")}`);
+    console.error(`codeblock-prerenders: ${named(example)} does not compile:\n${diagnostics.join("\n")}`);
     process.exit(1);
   }
 }
@@ -76,7 +79,7 @@ const cacheDir = join(siteRoot, ".codeblock-prerenders");
 const { manifest, failures: unmade } = await renderPrerenders(runnable, { cacheDir, qmlc });
 for (const { example, diagnostics } of unmade) {
   if (mustRun(example)) {
-    console.error(`codeblock-prerenders: a code block does not run:\n${diagnostics.join("\n")}`);
+    console.error(`codeblock-prerenders: ${named(example)} does not run:\n${diagnostics.join("\n")}`);
     process.exit(1);
   }
   // Said in the manifest, so the build that embeds them leaves this

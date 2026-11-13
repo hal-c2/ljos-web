@@ -116,7 +116,7 @@ const liveAt = new Map(); // a page's code block -> its live payload
   const claimed = checked.filter(mustRun);
   if (claimed.length) {
     console.error(`site-ljos: ${claimed.length} example(s) claim to run and do not compile:`);
-    for (const { diagnostics } of claimed) console.error(`  ${diagnostics.join("\n  ")}`);
+    for (const { example, diagnostics } of claimed) console.error(`  ${keysOf.get(example)?.join(", ")}:\n    ${diagnostics.join("\n    ")}`);
     process.exit(1);
   }
   const runnable = gathered.filter(({ example }) => !refused.has(example));
@@ -125,7 +125,7 @@ const liveAt = new Map(); // a page's code block -> its live payload
   const claimedUnrun = failures.filter(mustRun);
   if (claimedUnrun.length) {
     console.error(`site-ljos: ${claimedUnrun.length} example(s) claim to run and did not run:`);
-    for (const { diagnostics } of claimedUnrun) console.error(`  ${diagnostics.join("\n  ")}`);
+    for (const { example, diagnostics } of claimedUnrun) console.error(`  ${keysOf.get(example)?.join(", ")}:\n    ${diagnostics.join("\n    ")}`);
     process.exit(1);
   }
   const prerendered = loadPrerenders(cacheDir);

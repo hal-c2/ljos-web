@@ -19,9 +19,10 @@ import { fileURLToPath } from "node:url";
 export const LEDGER = join(resolve(dirname(fileURLToPath(import.meta.url)), ".."), "codeblocks-pending.txt");
 
 // The reasons an example may stand plain: the same words as ljos-ui's
-// ledger where the reason is the docs' own, and `web:` for what runs
-// in Ljós but not yet on the web.
-const REASONS = /^(host-types|shows-findings|web:[a-z0-9-]+)$/;
+// ledger where the reason is the docs' own, `web:` for what runs in
+// Ljós but not yet on the web, and `docs:` for an example the page
+// leaves without what it reads, which ljos check only warns about.
+const REASONS = /^(host-types|shows-findings|(web|docs):[a-z0-9-]+)$/;
 
 /** The docs page a site route is read from: `/start/` is `start/index.md`. */
 export function pageOfRoute(route) {
