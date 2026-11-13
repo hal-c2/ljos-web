@@ -344,17 +344,88 @@ function pagesOf(prerender) {
     seen.add(page.route);
     if (page.title !== undefined && typeof page.title !== "string") throw new SiteError(`the route ${page.route}'s title is not a string`);
     if (page.props !== undefined && (typeof page.props !== "object" || page.props === null || Array.isArray(page.props))) throw new SiteError(`the route ${page.route}'s props are not an object`);
+    if (page.description !== undefined && typeof page.description !== "string") throw new SiteError(`the route ${page.route}'s description is not a string`);
   }
   return pages;
 }
 
-export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", qt, styles = "ljos", with: standins = [], liveShell = false, prerender = false, css = [], logLevel = "warn" } = {}) {
+// The sizes a page is prerendered at, narrowest first: each is the page a
+// browser at least `from` wide is shown (its own width when not said; the
+// narrowest is shown below its `from` too), picked by the stylesheet, so
+// a reader's first paint is laid out for a window like theirs with no
+// script, and the page hydrates the one shown. One size is a page of one.
+function sizesOf(prerender) {
+  if (typeof prerender !== "object" || prerender === null) return [{}];
+  const { width, height, sizes } = prerender;
+  const plain = (value, what) => {
+    if (value !== undefined && !(typeof value === "number" && Number.isFinite(value) && value > 0)) throw new SiteError(`${what} is a number of pixels above 0, not ${JSON.stringify(value)}`);
+  };
+  plain(width, "prerender.width");
+  plain(height, "prerender.height");
+  if (sizes === undefined) return [{ ...(width !== undefined ? { width } : {}), ...(height !== undefined ? { height } : {}) }];
+  if (width !== undefined || height !== undefined) throw new SiteError("prerender has sizes or a width and height, not both");
+  if (!Array.isArray(sizes) || sizes.length === 0) throw new SiteError("prerender.sizes is a list of sizes, one at least");
+  let last = -Infinity;
+  return sizes.map((size, index) => {
+    if (typeof size !== "object" || size === null) throw new SiteError(`prerender.sizes[${index}] is not a size`);
+    plain(size.width, `prerender.sizes[${index}].width`);
+    plain(size.height, `prerender.sizes[${index}].height`);
+    if (size.width === undefined || size.height === undefined) throw new SiteError(`prerender.sizes[${index}] has no width or height`);
+    if (size.from !== undefined && !(typeof size.from === "number" && Number.isFinite(size.from) && size.from >= 0)) throw new SiteError(`prerender.sizes[${index}].from is a width in pixels, not ${JSON.stringify(size.from)}`);
+    const from = size.from ?? size.width;
+    if (from <= last) throw new SiteError(`prerender.sizes are narrowest first: sizes[${index}] is shown from ${from}px, not past ${last}px`);
+    last = from;
+    return { width: size.width, height: size.height, from };
+  });
+}
+
+// Which of a page's sizes the browser shows, as a stylesheet: each from
+// its `from` up to the next one's.
+function sizesSheet(sizes) {
+  const rules = sizes.map(({ from }, index) => {
+    const up = sizes[index + 1]?.from;
+    const below = up === undefined ? "" : `(max-width: ${up - 0.02}px)`;
+    const above = index === 0 ? "" : `(min-width: ${from}px)`;
+    const when = [above, below].filter(Boolean).join(" and ");
+    const rule = `[data-ljos-size="${index}"] { display: block; }`;
+    return when ? `@media ${when} { ${rule} }` : rule;
+  });
+  return `<style>\n      [data-ljos-size] { display: none; width: 100%; height: 100%; }\n      ${rules.join("\n      ")}\n    </style>`;
+}
+
+// The head a page is written with: what the site gives every page, and
+// the page's own description.
+const escapeText = (text) => text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+const escapeAttribute = (text) => escapeText(text).replaceAll('"', "&quot;");
+
+// The page a reader is shown first is the prerendered one: its script is
+// asked for once that has been painted, so that nothing the page will run
+// stands before what the reader came to read, and the module graph's
+// preloads are asked for with it. A tab opened behind others asks when it
+// is first shown, as a frame is only painted then.
+const STARTER =
+  '{const s=document.currentScript,main=new URL(s.dataset.ljosStart,document.baseURI);requestAnimationFrame(()=>setTimeout(()=>{for(const name of s.dataset.ljosPreload.split(" ").filter(Boolean)){const link=document.createElement("link");link.rel="modulepreload";link.crossOrigin="";link.href=new URL(name,main).href;document.head.append(link)}import(main.href)}))}';
+
+function startAfterPaint(html) {
+  const script = /[ \t]*<script type="module" crossorigin src="(\.\/[^"]+)"><\/script>\n?/.exec(html);
+  if (!script) throw new SiteError("the built page has no module script to start once it is painted");
+  const preloads = [...html.matchAll(/[ \t]*<link rel="modulepreload" crossorigin href="(\.\/[^"]+)">\n?/g)];
+  const from = posix.dirname(script[1]);
+  let started = html.replace(script[0], "");
+  for (const [whole] of preloads) started = started.replace(whole, "");
+  const names = preloads.map(([, href]) => posix.relative(from, href)).join(" ");
+  return started.replace("</body>", () => `  <script data-ljos-start="${script[1]}" data-ljos-preload="${names}">${STARTER}</script>\n  </body>`);
+}
+
+export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", qt, styles = "ljos", with: standins = [], liveShell = false, prerender = false, css = [], head = "", logLevel = "warn" } = {}) {
   if (!dir) throw new SiteError("which bundle? buildSite({ dir })");
   if (!Array.isArray(css) || css.some((path) => typeof path !== "string" || !path.endsWith(".css") || !existsSync(path))) {
     throw new SiteError(`css is a list of .css files that exist, not ${JSON.stringify(css)}`);
   }
   if (prerender && liveShell) throw new SiteError("a site with a live shell is not prerendered: its page is the shell host's to make (choose one of prerender and liveShell)");
+  if (typeof head !== "string") throw new SiteError("head is the HTML every page's head is given, a string");
   const pages = prerender ? pagesOf(prerender) : null;
+  const sizes = prerender ? sizesOf(prerender) : null;
   dir = resolve(dir);
   out = resolve(out ?? `${dir}-site`);
   qmlc = compilerAt(qmlc);
@@ -425,6 +496,13 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
       worker: { format: "es" },
     });
     const site = join(stage, "dist");
+    // What the site gives every page's head (its icon, its colours, what a
+    // link to it shows) names files the site puts beside its pages, as it
+    // wrote them: a relative one is asked for from each page's own depth.
+    if (head.trim()) {
+      const page = join(site, "index.html");
+      writeFileSync(page, readFileSync(page, "utf8").replace("  </head>", () => `    ${head.trim()}\n  </head>`));
+    }
     if (prerender) {
       // The same entry made where there is no browser: a server bundle
       // of the entry over this runtime, rendered in a Node process of
@@ -441,41 +519,56 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
           chunkSizeWarningLimit: 4000,
           rollupOptions: { output: { format: "es", entryFileNames: "server-entry.mjs" } },
         },
+        // The browser's builds of what the page is made with: Node's own
+        // build of solid-js renders once and never again, so a root sized
+        // by the element it is put in would keep the size it had before it
+        // was put there, and every binding what it first read.
         ssr: { noExternal: true, resolve: { conditions: CLIENT_CONDITIONS } },
         environments: { ssr: { resolve: { noExternal: true, conditions: CLIENT_CONDITIONS } } },
       });
       // One render per page, each in a process of its own, as a render
       // takes the globals over. A site of one page is the entry made
       // with no props at `/`, as it always was.
-      const said = typeof prerender === "object" ? prerender : {};
-      const size = { ...(said.width !== undefined ? { width: said.width } : {}), ...(said.height !== undefined ? { height: said.height } : {}) };
-      const shell = readFileSync(join(site, "index.html"), "utf8");
+      let shell = readFileSync(join(site, "index.html"), "utf8");
       if (!shell.includes('<div id="app"></div>')) throw new SiteError("the built page has no empty #app to prerender into");
+      shell = startAfterPaint(shell);
+      if (sizes.length > 1) shell = shell.replace("  </head>", () => `    ${sizesSheet(sizes)}\n  </head>`);
       for (const page of pages ?? [{ route: "/" }]) {
-        const options = { ...size, ...(page.props ? { props: page.props } : {}) };
-        const ran = spawnSync(process.execPath, [join(runtime, "server/prerender.js"), join(stage, "server/server-entry.mjs"), JSON.stringify(options)], {
-          encoding: "utf8",
-          maxBuffer: 1 << 28,
-          timeout: 120_000,
+        const renders = sizes.map(({ width, height }) => {
+          const options = { ...(width !== undefined ? { width } : {}), ...(height !== undefined ? { height } : {}), ...(page.props ? { props: page.props } : {}) };
+          const ran = spawnSync(process.execPath, [join(runtime, "server/prerender.js"), join(stage, "server/server-entry.mjs"), JSON.stringify(options)], {
+            encoding: "utf8",
+            maxBuffer: 1 << 28,
+            timeout: 120_000,
+          });
+          const at = sizes.length > 1 ? ` at ${width}×${height}` : "";
+          if (ran.error) throw new SiteError(`could not prerender ${page.route}${at}: ${ran.error.message}`);
+          if (ran.status !== 0) throw new SiteError(`${page.route} could not be prerendered${at}:\n${(ran.stderr || ran.stdout).trim()}`);
+          if (ran.stderr) console.warn(ran.stderr.trimEnd());
+          return ran.stdout;
         });
-        if (ran.error) throw new SiteError(`could not prerender ${page.route}: ${ran.error.message}`);
-        if (ran.status !== 0) throw new SiteError(`${page.route} could not be prerendered:\n${(ran.stderr || ran.stdout).trim()}`);
-        if (ran.stderr) console.warn(ran.stderr.trimEnd());
+        // The rules every render gives the page by a sheet are said once,
+        // before the sizes, however many sizes say them.
+        const sheets = [];
+        const bodies = renders.map((html) => {
+          const sheet = /^<style>[\s\S]*?<\/style>/.exec(html)?.[0] ?? "";
+          if (sheet && !sheets.includes(sheet)) sheets.push(sheet);
+          return html.slice(sheet.length);
+        });
+        const made = sizes.length > 1 ? sheets.join("") + bodies.map((html, index) => `<div data-ljos-size="${index}">${html}</div>`).join("") : renders[0];
         // The page at its route asks for the one build's assets from
         // its own depth, carries the props it was made with for its
         // script to hydrate it by, and is titled as its own page.
         const depth = page.route.split("/").filter(Boolean).length;
         let html = shell;
         if (depth > 0) html = html.replaceAll('="./', `="${"../".repeat(depth)}`);
-        if (page.title !== undefined) {
-          const title = page.title.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
-          html = html.replace("<title>Ljós site</title>", () => `<title>${title}</title>`);
-        }
+        if (page.title !== undefined) html = html.replace("<title>Ljós site</title>", () => `<title>${escapeText(page.title)}</title>`);
+        if (page.description !== undefined) html = html.replace(/(<title>[^<]*<\/title>)/, (title) => `${title}\n    <meta name="description" content="${escapeAttribute(page.description)}" />`);
         if (page.props) {
           const carried = JSON.stringify(page.props).replaceAll("</script", "<\\/script");
           html = html.replace('<div id="app"></div>', () => `<script type="application/json" id="ljos-props">${carried}</script>\n    <div id="app"></div>`);
         }
-        html = html.replace('<div id="app"></div>', () => `<div id="app">${ran.stdout}</div>`);
+        html = html.replace('<div id="app"></div>', () => `<div id="app">${made}</div>`);
         const at = join(site, page.route.slice(1), "index.html");
         mkdirSync(dirname(at), { recursive: true });
         writeFileSync(at, html);
@@ -529,7 +622,18 @@ import { hydrate } from "ljos-site:object";
 import Entry from "ljos-site:entry";
 
 const carried = document.getElementById("ljos-props");
-hydrate(Entry, document.getElementById("app"), carried ? JSON.parse(carried.textContent) : {});
+const app = document.getElementById("app");
+// A page prerendered at more than one size hydrates the one the reader
+// is shown, and is then that one alone, whatever size the window becomes.
+const sizes = [...app.querySelectorAll(":scope > [data-ljos-size]")];
+const shown = sizes.find((size) => getComputedStyle(size).display !== "none") ?? sizes[0];
+for (const size of sizes) if (size !== shown) size.remove();
+if (shown) {
+  shown.removeAttribute("data-ljos-size");
+  shown.style.cssText = "width:100%;height:100%";
+}
+hydrate(Entry, shown ?? app, carried ? JSON.parse(carried.textContent) : {});
+if (shown) app.setAttribute("data-ljos-hydrated", "true");
 `;
 
 // What the prerender renders: the entry, made by the runtime's server

@@ -184,3 +184,127 @@ test("a route that is not a plain path below the site is refused before anything
     made.remove();
   }
 });
+
+// A page laid out by its window's width is prerendered at the sizes the
+// site names: a reader's first paint is the one made for a window like
+// theirs, with no script, and the script hydrates that one. The words
+// and the head of each page are the site's to give it.
+test.describe("a site prerendered at more than one size", () => {
+  test.describe.configure({ mode: "serial" });
+  const shell = `import QtQuick\n\nItem {\n    id: root\n    property string route: "/"\n    width: parent ? parent.width : 0\n    height: parent ? parent.height : 0\n    Text { text: root.width < 600 ? "Narrow layout" : "Wide layout" }\n    Text { y: 40; text: "Window " + root.width }\n}\n`;
+  let made;
+  let server;
+  let origin;
+
+  test.beforeAll(async () => {
+    made = bundle("pages", (dir, written) => {
+      writeFileSync(join(dir, "Shell.qml"), shell);
+      written.files = written.files.map((file) => (file.path === "Shell.qml" ? { path: file.path, bytes: Buffer.byteLength(shell) } : file));
+    });
+    await buildSite({
+      dir: made.dir,
+      out: made.out,
+      qmlc,
+      head: '<link rel="icon" href="./mark.svg" type="image/svg+xml" />',
+      prerender: {
+        sizes: [
+          { width: 390, height: 844 },
+          { width: 1200, height: 800, from: 800 },
+        ],
+        pages: [
+          { route: "/", title: "Home", description: "What a <home> says & shows", props: { route: "/" } },
+          { route: "/docs/", title: "Docs", props: { route: "/docs/" } },
+        ],
+      },
+    });
+    server = await serve(made.out);
+    origin = `http://127.0.0.1:${server.address().port}`;
+  });
+  test.afterAll(async () => {
+    await new Promise((done) => server?.close(done));
+    made?.remove();
+  });
+
+  test("each page holds a render of each size, its description and the site's head", () => {
+    const home = readFileSync(join(made.out, "index.html"), "utf8");
+    const docs = readFileSync(join(made.out, "docs/index.html"), "utf8");
+    expect(home).toContain("Narrow layout");
+    expect(home).toContain("Wide layout");
+    expect(home).toContain('<meta name="description" content="What a &lt;home&gt; says &amp; shows" />');
+    expect(docs).not.toContain('name="description"');
+    expect(home).toContain('<link rel="icon" href="./mark.svg"');
+    // A nested page asks for what the head names from its own depth.
+    expect(docs).toContain('<link rel="icon" href="../mark.svg"');
+    // The script is asked for once the page is painted, not by the parser.
+    for (const html of [home, docs]) {
+      expect(html).not.toMatch(/<script type="module"/);
+      expect(html).not.toMatch(/<link rel="modulepreload"/);
+      expect(html).toMatch(/<script data-ljos-start="(\.\.\/|\.\/)assets\/[^"]+\.js"/);
+    }
+  });
+
+  for (const [width, shown, hidden] of [
+    [390, "Narrow layout", "Wide layout"],
+    [1200, "Wide layout", "Narrow layout"],
+  ]) {
+    test(`a window ${width} wide is shown its own render with JavaScript off`, async ({ browser }) => {
+      const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width, height: 800 } });
+      try {
+        const page = await context.newPage();
+        await page.goto(`${origin}/`);
+        await expect(page.getByText(shown, { exact: true })).toBeVisible();
+        await expect(page.getByText(hidden, { exact: true })).toBeHidden();
+      } finally {
+        await context.close();
+      }
+    });
+  }
+
+  test("the page hydrates the render it shows, and then follows the window", async ({ browser }) => {
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    try {
+      const page = await context.newPage();
+      const told = [];
+      page.on("console", (message) => ["warning", "error"].includes(message.type()) && told.push(message.text()));
+      page.on("pageerror", (error) => told.push(error.message));
+      // Hold the script back until the render shown is tagged, so that
+      // only hydration could keep or replace it.
+      let release;
+      const held = new Promise((done) => (release = done));
+      await page.route("**/*.js", async (route) => {
+        await held;
+        await route.continue();
+      });
+      await page.goto(`${origin}/docs/`, { waitUntil: "commit" });
+      await page.waitForSelector('[data-ljos-size="0"] [data-hk]');
+      await page.evaluate(() => document.querySelector('[data-ljos-size="0"]').setAttribute("data-tag", "shown"));
+      release();
+      await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+      await page.unroute("**/*.js");
+      expect(told).toEqual([]);
+      // The render that was shown is the one taken over; the other is gone.
+      expect(await page.evaluate(() => [document.querySelectorAll('#app > [data-tag="shown"]').length, document.querySelectorAll("#app [data-ljos-size]").length])).toEqual([1, 0]);
+      await expect(page.getByText("Narrow layout", { exact: true })).toBeVisible();
+      await expect(page.getByText("Window 390", { exact: true })).toBeVisible();
+      await page.setViewportSize({ width: 1200, height: 800 });
+      await expect(page.getByText("Wide layout", { exact: true })).toBeVisible();
+      await expect(page.getByText("Window 1200", { exact: true })).toBeVisible();
+    } finally {
+      await context.close();
+    }
+  });
+});
+
+test("sizes that are not narrowest first, or beside a width, are refused before anything is built", async () => {
+  const made = bundle("pages");
+  try {
+    const pages = [{ route: "/" }];
+    await expect(buildSite({ dir: made.dir, out: made.out, qmlc, prerender: { pages, sizes: [{ width: 1200, height: 800 }, { width: 390, height: 844 }] } })).rejects.toThrow(/narrowest first/);
+    await expect(buildSite({ dir: made.dir, out: made.out, qmlc, prerender: { pages, width: 390, sizes: [{ width: 390, height: 844 }] } })).rejects.toThrow(/not both/);
+    await expect(buildSite({ dir: made.dir, out: made.out, qmlc, prerender: { pages, sizes: [{ width: 390 }] } })).rejects.toThrow(/no width or height/);
+    await expect(buildSite({ dir: made.dir, out: made.out, qmlc, prerender: { pages: [{ route: "/", description: 3 }] } })).rejects.toThrow(/description/);
+    expect(existsSync(join(made.out, "index.html"))).toBe(false);
+  } finally {
+    made.remove();
+  }
+});
