@@ -7,3 +7,5 @@ export { Connections } from "../../QtQuick/Connections.js";
 export { Timer } from "../../QtQuick/animation/Timer.js";
 export { Component } from "../../QtQml/Component.js";
 export { Locale } from "../../QtQml/locale.js";
+export { Controller, controller } from "./controller.js";
+export { Task } from "./task.js";

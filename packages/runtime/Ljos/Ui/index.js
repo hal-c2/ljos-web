@@ -16,7 +16,8 @@
 // a Behavior, a state or an animation that names `fill` moves what
 // `color` reads. The dialect's font size, `font.size`, is a second name
 // for `pixelSize` on every font (`QtQuick/font.js`), as natively.
-import { defineType, QtObject, slot } from "../../object.js";
+import { defineType, derived, QtObject, slot } from "../../object.js";
+import { hostOf, live } from "../Core/controller.js";
 import { Accessible } from "../../QtQuick/Accessible.js";
 import { Animation, ParallelAnimation, PauseAnimation, ScriptAction, SequentialAnimation } from "../../QtQuick/animation/Animation.js";
 import { Behavior } from "../../QtQuick/animation/Behavior.js";
@@ -130,12 +131,27 @@ const GESTURE = {
   devices: "acceptedDevices",
   pointerTypes: "acceptedPointerTypes",
 };
-const gesture = (name, Base) =>
-  face(
+//
+// A gesture is a Controller: its `host` is the item it acts on, and it is
+// `attached(host)` and `detached()` as one is. It stays the handler it
+// faces, so it listens on the host's element as that handler does.
+function gesture(name, Base) {
+  const Face = face(
     name,
     Base,
     Object.fromEntries(Object.entries(GESTURE).filter(([, own]) => own in Base.slots)),
   );
+  const Type = defineType(name, Face, {
+    properties: { host: derived((self) => hostOf(self)) },
+    signals: ["attached", "detached", "updated"],
+    setup(self) {
+      Object.defineProperty(self, "$gesture", { value: true });
+      live(self);
+    },
+  });
+  if (Face.attached) Type.attached = Face.attached;
+  return Type;
+}
 
 // `Rectangle`, with `color` called `fill`: what is inside the outline,
 // beside the `border` around it, where a `color` of `Text` is the glyphs'.

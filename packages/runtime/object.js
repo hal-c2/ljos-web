@@ -917,6 +917,9 @@ class Slot {
   }
 
   changed() {
+    // A Controller that handles `updated` is told its host was written to
+    // (Ljos/Core/controller.js); nothing is asked of any other object.
+    this.self.$written?.();
     if (WASM) {
       if (this.cell !== undefined) touch(this.cell);
       return;
@@ -1372,6 +1375,14 @@ export function whenComplete(work) {
 export function whenCompleted(work) {
   if (!completions) return untrack(work);
   (completions.first ??= []).push(() => untrack(work));
+}
+
+// Runs `work` as the objects being created are told that they are
+// complete, after the `Component.onCompleted` of whatever holds the object
+// being made now: a Controller is attached to a host that is complete.
+export function whenToldComplete(work) {
+  if (!completions) return untrack(work);
+  completions.push(() => untrack(work));
 }
 
 // Runs `work` once they exist and before anything that waits for that: what
