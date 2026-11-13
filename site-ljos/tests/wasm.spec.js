@@ -89,10 +89,12 @@ const read = (page, placed) =>
         if (node.nodeType !== Node.ELEMENT_NODE || skipped.has(node)) return;
         if (node.tagName === "SCRIPT" || node.tagName === "STYLE") return;
         const style = getComputedStyle(node);
-        // What no reader sees, and the note only one side has (what
-        // holds it is hidden on the other).
+        // What no reader sees, and the notes only one side has (what
+        // holds it is hidden on the other): a live block's, and a demo's
+        // that stands as its picture (DemoFrame).
         if (style.display === "none") return;
-        if (/^Live editing needs WebAssembly[^.]*\.$/.test(node.innerText.replace(/\s+/g, " ").trim())) return;
+        const said = node.innerText.replace(/\s+/g, " ").trim();
+        if (/^Live editing needs WebAssembly[^.]*\.$/.test(said) || (/^A picture of the demo: it runs in a browser with [^,.]+, which this one does not offer\.$/.test(said) && !node.querySelector("img"))) return;
         const box = node.getBoundingClientRect();
         const at = placed ? ` ${Math.round(box.x)},${Math.round(box.y)} ${Math.round(box.width)}x${Math.round(box.height)}` : "";
         out.push(`${"  ".repeat(depth)}<${node.tagName.toLowerCase()} ${style.display} ${style.visibility} ${style.color} ${style.backgroundColor}${at}>`);
