@@ -2,44 +2,28 @@ import QtQuick
 import Site
 import "../nav.js" as Nav
 
-// One link of the shell: its words, the page it names a full
-// navigation away. The page the reader is on is the strong one. A
-// keyboard reaches it as a pointer does.
-Item {
+// One link of the shell: a real link to the page it names (a reader
+// can open it in a new tab, a crawler follows it, Tab reaches it), a
+// full navigation away. The page the reader is on is the strong one.
+Text {
     id: link
 
     property string label: ""
     property string href: "/"
     property bool current: false
-    property int size: 14
+    property int size: Theme.bodySize
+    property int line: Theme.bodyLine
+    property bool muted: false
 
-    implicitWidth: words.implicitWidth
-    implicitHeight: words.implicitHeight + 4
-
-    activeFocusOnTab: true
-    Accessible.role: Accessible.Link
-    Accessible.name: label
-    Accessible.onPressAction: () => Nav.go(link.href)
-    Keys.onPressed: (event) => {
-        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
-            Nav.go(link.href);
-            event.accepted = true;
-        }
-    }
-
-    Text {
-        id: words
-        anchors.verticalCenter: parent.verticalCenter
-        text: link.label
-        color: link.current ? Theme.accent : Theme.ink
-        font.family: Theme.sans
-        font.pixelSize: link.size
-        font.bold: link.current
-    }
-    MouseArea {
-        anchors.fill: parent
-        Accessible.ignored: true
-        cursorShape: Qt.PointingHandCursor
-        onClicked: Nav.go(link.href)
-    }
+    textFormat: Text.RichText
+    text: Nav.anchor(href, label, hoveredLink !== "")
+    color: current ? Theme.link : muted ? Theme.textMuted : Theme.text
+    linkColor: color
+    font.family: Theme.sans
+    font.pixelSize: size
+    font.weight: current ? Font.DemiBold : Font.Normal
+    lineHeightMode: Text.FixedHeight
+    lineHeight: line
+    wrapMode: Text.Wrap
+    onLinkActivated: (to) => Nav.go(to)
 }

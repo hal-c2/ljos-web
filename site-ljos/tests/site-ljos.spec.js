@@ -257,15 +257,16 @@ test("with JavaScript off a runnable block is its code beside a picture of its r
 });
 
 test("light and dark are the reader's", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "light" });
   await page.goto("/start/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
   // The header's own ground, at a point nothing else covers.
   const ground = () => page.evaluate(() => getComputedStyle(document.elementFromPoint(700, 28)).backgroundColor);
   const before = await ground();
   expect(before).not.toBe("rgba(0, 0, 0, 0)");
-  await press(page, page.getByText("Dark", { exact: true }));
-  await expect(page.getByText("Light", { exact: true })).toBeVisible();
-  expect(await ground()).not.toBe(before);
+  await page.getByRole("button", { name: "Use the dark theme" }).click();
+  await expect(page.getByRole("button", { name: "Use the light theme" })).toBeVisible();
+  await expect.poll(ground).not.toBe(before);
 });
 
 // How many shells the Pantry demo has applied: its pantry-live.js
@@ -546,12 +547,21 @@ test("every showcase demo stands in its slot, on the landing and the demos page"
 
   await page.goto("/demos/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
-  for (const words of ["A shell you rewrite", "3D you can orbit", "A shader effect", "A whole app", "Motion"])
-    await expect(page.getByText(words, { exact: true })).toBeVisible();
-  await expect(page.getByText("Drag to orbit · scroll or pinch to zoom")).toBeVisible();
-  await expect(page.getByText("Move to stir the light · tap for other colours")).toBeVisible();
-  await expect(page.getByText("Field guide")).toBeVisible();
-  await expect(page.getByText("Shuffle the tiles")).toBeVisible();
+  // Each demo but the flagship is made once its frame comes near the
+  // screen, so the reader scrolls to it, as a reader would.
+  const demos = [
+    ["A shell you rewrite", null],
+    ["3D you can orbit", "Drag to orbit · scroll or pinch to zoom"],
+    ["A shader effect", "Move to stir the light · tap for other colours"],
+    ["A whole app", "Field guide"],
+    ["Motion", "Shuffle the tiles"],
+  ];
+  for (const [title, inside] of demos) {
+    const heading = page.getByText(title, { exact: true });
+    await heading.scrollIntoViewIfNeeded();
+    await expect(heading).toBeVisible();
+    if (inside) await expect(page.getByText(inside).first()).toBeAttached({ timeout: 30_000 });
+  }
   // The other demos did not take the flagship's place away.
   await stageButton(page, "Add bread");
 });

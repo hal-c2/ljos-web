@@ -87,8 +87,8 @@ Column {
     Rectangle {
         width: parent.width
         height: headRow.implicitHeight + 10
-        color: Theme.panel
-        border.color: Theme.border
+        color: Theme.surface
+        border.color: Theme.divider
         border.width: 1
 
         Row {
@@ -100,7 +100,7 @@ Column {
 
             Text {
                 anchors.verticalCenter: parent.verticalCenter
-                color: Theme.muted
+                color: Theme.textMuted
                 font.family: Theme.mono
                 font.pixelSize: 11
                 text: {
@@ -142,7 +142,7 @@ Column {
                     id: resetWords
                     anchors.verticalCenter: parent.verticalCenter
                     text: "Reset"
-                    color: Theme.accent
+                    color: Theme.link
                     font.family: Theme.sans
                     font.pixelSize: 12
                 }
@@ -166,7 +166,7 @@ Column {
         width: parent.width
         height: visible ? body.implicitHeight + 20 : 0
         color: Theme.codeBg
-        border.color: Theme.border
+        border.color: Theme.divider
         border.width: 1
 
         Text {
@@ -175,7 +175,7 @@ Column {
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.margins: 10
-            color: Theme.ink
+            color: Theme.codeFg
             font.family: Theme.mono
             font.pixelSize: 12
             // As a live block's editor sets its lines (CodeEditor): a
@@ -215,8 +215,8 @@ Column {
 
                     width: tabWords.implicitWidth + 16
                     height: tabWords.implicitHeight + 8
-                    color: index === block.currentFile ? Theme.codeBg : Theme.panel
-                    border.color: Theme.border
+                    color: index === block.currentFile ? Theme.codeBg : Theme.surface
+                    border.color: Theme.divider
                     border.width: 1
                     activeFocusOnTab: true
                     Accessible.role: Accessible.Button
@@ -233,7 +233,7 @@ Column {
                         id: tabWords
                         anchors.centerIn: parent
                         text: modelData.name
-                        color: Theme.ink
+                        color: Theme.codeFg
                         font.family: Theme.mono
                         font.pixelSize: 11
                         font.bold: index === block.currentFile
@@ -252,7 +252,7 @@ Column {
             width: parent.width
             height: editorBox.implicitHeight
             color: Theme.codeBg
-            border.color: Theme.border
+            border.color: Theme.divider
             border.width: 1
 
             Column {
@@ -320,7 +320,7 @@ Column {
             visible: text !== ""
             width: parent.width
             text: [block.said || stage.error, block.absent].filter(function (line) { return line !== ""; }).join("\n")
-            color: Theme.accent
+            color: Theme.danger
             font.family: Theme.mono
             font.pixelSize: 12
             wrapMode: Text.Wrap
