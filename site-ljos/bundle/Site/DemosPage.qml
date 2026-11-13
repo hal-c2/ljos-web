@@ -5,193 +5,159 @@ import Demos
 
 // The demos page: complete Ljós apps running in the page, flagship
 // first. Each demo stands in its named Slot as the slot's own
-// delegate, so the prerendered page holds the demo as first made
-// and hydration takes it over in place; what paints (a canvas, a
-// GPU face) paints then, and the words under each demo say what a
-// reader without wasm or WebGPU is looking at. Nothing on this
-// page is needed to read it. The sections are written out, not
-// repeated over a model: a Slot's delegate is made by the Slot,
-// in the Slot's place, and a Repeater's model is not its to give.
+// delegate. The flagship is made with the page, so the prerendered
+// page holds it as first made and hydration takes it over in place.
+// The others stand in a frame their own size from the first paint,
+// a picture of each in it, and are made once the reader nears them;
+// a browser without wasm or WebGPU keeps the picture, and its words
+// say what it shows. Nothing on this page is needed to read it. The
+// sections are written out, not repeated over a model: a Slot's
+// delegate is made by the Slot, in the Slot's place, and a
+// Repeater's model is not its to give.
 Column {
     id: demos
 
-    property int textWidth: width
+    property var scroller: null
+    property bool wide: true
+    readonly property int textWidth: width
 
     width: parent ? parent.width : 680
-    spacing: 16
-
-    Text {
-        width: parent.width
-        text: "Live demos"
-        color: Theme.ink
-        font.family: Theme.serif
-        font.pixelSize: 34
-        font.bold: true
-        wrapMode: Text.Wrap
-    }
-    Text {
-        width: parent.width
-        text: "Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in the page. The page reads with no script; where a demo cannot run — no wasm, no WebGPU — its picture and its words stand in its place."
-        color: Theme.muted
-        font.family: Theme.sans
-        font.pixelSize: 15
-        wrapMode: Text.Wrap
-    }
+    spacing: Theme.xxl
+    topPadding: demos.wide ? Theme.xl : Theme.m
 
     Column {
-        width: demos.textWidth
-        spacing: 8
+        width: parent.width
+        spacing: Theme.s
 
         Text {
             width: parent.width
-            text: "A shell you rewrite"
-            color: Theme.ink
-            font.family: Theme.serif
-            font.pixelSize: 22
-            font.bold: true
+            text: "Live demos"
+            color: Theme.text
+            font.family: Theme.sans
+            font.pixelSize: demos.wide ? Theme.displaySize : Theme.compactDisplaySize
+            font.weight: Font.Bold
+            lineHeightMode: Text.FixedHeight
+            lineHeight: demos.wide ? Theme.displayLine : Theme.compactDisplayLine
+            wrapMode: Text.Wrap
+            Accessible.role: Accessible.Heading
+        }
+        Text {
+            width: Math.min(parent.width, Theme.measure)
+            text: "Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in the page. The page reads with no script; where a demo cannot run — no wasm, no WebGPU — its picture and its words stand in its place."
+            color: Theme.textMuted
+            font.family: Theme.sans
+            font.pixelSize: Theme.subtitleSize - 1
+            lineHeightMode: Text.FixedHeight
+            lineHeight: Theme.subtitleLine - 2
             wrapMode: Text.Wrap
         }
+    }
+
+    DemoSection {
+        width: demos.textWidth
+        wide: demos.wide
+        title: "A shell you rewrite"
+        body: "The flagship: a small app whose shell you rewrite in the page's editor. Its data and state survive the swap; move a Slot and its contribution moves with it; break the shell and the app's own shell stands, with what broke shown."
+
         Slot {
             name: "demo-shell"
             delegate: Component {
-                PantryDemo {}
+                PantryDemo {
+                    width: demos.textWidth
+                }
             }
-        }
-        Text {
-            width: parent.width
-            text: "The flagship: a small app whose shell you rewrite in the page's editor. Its data and state survive the swap; move a Slot and its contribution moves with it; break the shell and the app's own shell stands, with what broke shown."
-            color: Theme.ink
-            font.family: Theme.sans
-            font.pixelSize: 14
-            wrapMode: Text.Wrap
         }
     }
 
-    Column {
+    DemoSection {
         width: demos.textWidth
-        spacing: 8
+        wide: demos.wide
+        title: "3D you can orbit"
+        body: "A Quick3D scene on wgpu, in the browser: drag to orbit it. The same scene runs natively under the same engine."
 
-        Text {
-            width: parent.width
-            text: "3D you can orbit"
-            color: Theme.ink
-            font.family: Theme.serif
-            font.pixelSize: 22
-            font.bold: true
-            wrapMode: Text.Wrap
-        }
         Slot {
             name: "demo-orbit"
             delegate: Component {
-                Orbit {
+                DemoFrame {
                     width: demos.textWidth
-                    height: width * 420 / 720
+                    scroller: demos.scroller
+                    needs: "webgpu"
+                    picture: "../assets/demo-orbit.webp"
+                    description: "A lit 3D scene of shapes on a floor, which a drag turns."
+                    demo: Component {
+                        Orbit {}
+                    }
                 }
             }
         }
-        Text {
-            width: parent.width
-            text: "A Quick3D scene on wgpu, in the browser: drag to orbit it. The same scene runs natively under the same engine."
-            color: Theme.ink
-            font.family: Theme.sans
-            font.pixelSize: 14
-            wrapMode: Text.Wrap
-        }
     }
 
-    Column {
+    DemoSection {
         width: demos.textWidth
-        spacing: 8
+        wide: demos.wide
+        title: "A shader effect"
+        body: "A custom shader over live content, written as part of the app — no toolkit-private path, nothing pre-baked."
 
-        Text {
-            width: parent.width
-            text: "A shader effect"
-            color: Theme.ink
-            font.family: Theme.serif
-            font.pixelSize: 22
-            font.bold: true
-            wrapMode: Text.Wrap
-        }
         Slot {
             name: "demo-shader"
             delegate: Component {
-                Shader {
+                DemoFrame {
                     width: demos.textWidth
-                    height: width * 420 / 720
+                    scroller: demos.scroller
+                    needs: "webgpu"
+                    picture: "../assets/demo-shader.webp"
+                    description: "Light pooling over a card of text, following the pointer."
+                    demo: Component {
+                        Shader {}
+                    }
                 }
             }
         }
-        Text {
-            width: parent.width
-            text: "A custom shader over live content, written as part of the app — no toolkit-private path, nothing pre-baked."
-            color: Theme.ink
-            font.family: Theme.sans
-            font.pixelSize: 14
-            wrapMode: Text.Wrap
-        }
     }
 
-    Column {
+    DemoSection {
         width: demos.textWidth
-        spacing: 8
+        wide: demos.wide
+        title: "A whole app"
+        body: "A real app of the corpus, not a toy: the whole program, running here as it runs on a desktop."
 
-        Text {
-            width: parent.width
-            text: "A whole app"
-            color: Theme.ink
-            font.family: Theme.serif
-            font.pixelSize: 22
-            font.bold: true
-            wrapMode: Text.Wrap
-        }
         Slot {
             name: "demo-app"
             delegate: Component {
-                FieldGuide {
+                DemoFrame {
                     width: demos.textWidth
-                    height: width * 420 / 720
+                    scroller: demos.scroller
+                    needs: "wasm"
+                    picture: "../assets/demo-app.webp"
+                    description: "A field guide to birds: a list of species beside the one picked, with notes and a count of those seen."
+                    demo: Component {
+                        FieldGuide {}
+                    }
                 }
             }
-        }
-        Text {
-            width: parent.width
-            text: "A real app of the corpus, not a toy: the whole program, running here as it runs on a desktop."
-            color: Theme.ink
-            font.family: Theme.sans
-            font.pixelSize: 14
-            wrapMode: Text.Wrap
         }
     }
 
-    Column {
+    DemoSection {
         width: demos.textWidth
-        spacing: 8
+        wide: demos.wide
+        title: "Motion"
+        body: "Animation as a property of the interface: one value, eased, driving everything that moves — and nothing at all moving, or costing, at rest."
 
-        Text {
-            width: parent.width
-            text: "Motion"
-            color: Theme.ink
-            font.family: Theme.serif
-            font.pixelSize: 22
-            font.bold: true
-            wrapMode: Text.Wrap
-        }
         Slot {
             name: "demo-motion"
             delegate: Component {
-                Motion {
+                DemoFrame {
                     width: demos.textWidth
-                    height: width * 420 / 720
+                    scroller: demos.scroller
+                    needs: "wasm"
+                    picture: "../assets/demo-motion.webp"
+                    description: "Tiles that shuffle and settle, driven by one eased value."
+                    demo: Component {
+                        Motion {}
+                    }
                 }
             }
-        }
-        Text {
-            width: parent.width
-            text: "Animation as a property of the interface: one value, eased, driving everything that moves — and nothing at all moving, or costing, at rest."
-            color: Theme.ink
-            font.family: Theme.sans
-            font.pixelSize: 14
-            wrapMode: Text.Wrap
         }
     }
 }
