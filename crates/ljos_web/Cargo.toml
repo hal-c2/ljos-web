@@ -6,18 +6,18 @@ license.workspace = true
 publish = false
 
 [dependencies]
-qml_front = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "2d725000e02f496072063adace4064c205fcb5cd" }
-qt_types = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "2d725000e02f496072063adace4064c205fcb5cd" }
-qml_syntax = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "2d725000e02f496072063adace4064c205fcb5cd" }
+qml_front = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "c2443e1593f56acfbf97d9f7f7fde921f3984f5d" }
+qt_types = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "c2443e1593f56acfbf97d9f7f7fde921f3984f5d" }
+qml_syntax = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "c2443e1593f56acfbf97d9f7f7fde921f3984f5d" }
 # The theme file's reader and checker. The pin is ljos-ui's main as
 # `Ljos.Ui` came to the web: the first whose type table knows Ljós's
 # own modules, so a dialect file compiles here (docs/LJOS_WEB.md A29).
-ljos_design = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "2d725000e02f496072063adace4064c205fcb5cd" }
+ljos_design = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "c2443e1593f56acfbf97d9f7f7fde921f3984f5d" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
 # What a dropped shell compiles to: data the page runs, not code.
-ljos_ir = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "2d725000e02f496072063adace4064c205fcb5cd" }
+ljos_ir = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "c2443e1593f56acfbf97d9f7f7fde921f3984f5d" }
 blake3 = "1"
 oxc_allocator = "0.144"
 oxc_ast = "0.144"
