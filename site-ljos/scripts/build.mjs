@@ -294,11 +294,57 @@ writeFileSync(
   )}\n`,
 );
 
+// A page's description is its front matter's, else the start of its
+// first paragraph: every page says what it is to a search result.
+const plain = (rich) => String(rich ?? "").replace(/<[^>]+>/g, "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
+function describe(page) {
+  if (page.description) return page.description;
+  const first = plain(page.blocks.find((block) => block.kind === "para")?.rich);
+  if (!first) return `${page.title}, in the Ljós docs.`;
+  return first.length <= 160 ? first : `${first.slice(0, first.lastIndexOf(" ", 157))}…`;
+}
 const pages = [
-  { route: "/", title: "Ljós — malleable software, everywhere", props: { route: "/" } },
-  { route: "/demos/", title: "Live demos — Ljós", props: { route: "/demos/" } },
-  ...site.pages.map((page) => ({ route: page.route, title: `${page.title} — Ljós`, props: { route: page.route } })),
+  {
+    route: "/",
+    title: "Ljós — malleable software, everywhere",
+    description: "Ljós is a Rust UI toolkit for malleable software: apps that the people who use them, and their agents, can reshape while they run.",
+    props: { route: "/" },
+  },
+  {
+    route: "/demos/",
+    title: "Live demos — Ljós",
+    description: "Complete Ljós apps running in the page: a shell you rewrite, a 3D scene to orbit, a shader effect, a whole app, and motion.",
+    props: { route: "/demos/" },
+  },
+  ...site.pages.map((page) => ({ route: page.route, title: `${page.title} — Ljós`, description: describe(page), props: { route: page.route } })),
 ];
+// The site's head, with the colours of bundle/tokens.js (the table
+// Site/Theme.qml reads) written in as CSS custom properties: one table,
+// so the HTML around the app and the app never disagree.
+function siteHead() {
+  const source = readFileSync(join(bundle, "tokens.js"), "utf8").replace(/^\.pragma library$/m, "");
+  const { light, dark } = new Function(`${source}\nreturn { light, dark };`)();
+  const css = (name) => `--ljos-${name.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`;
+  const declarations = (tone) =>
+    [
+      ...Object.entries(tone)
+        .filter(([, value]) => typeof value === "string")
+        .map(([name, value]) => `${css(name)}: ${value};`),
+      `--ljos-codeblock-border: ${tone.divider};`,
+      `--ljos-codeblock-focus: ${tone.focus};`,
+      ...Object.entries(tone.code).map(([tag, value]) => `--ljos-code-${tag}: ${value};`),
+    ].join(" ");
+  const tokens = [
+    `  :root { ${declarations(light)} }`,
+    `  @media (prefers-color-scheme: dark) { :root:not([data-ljos-scheme="light"]) { ${declarations(dark)} } }`,
+    `  :root[data-ljos-scheme="dark"] { ${declarations(dark)} }`,
+  ].join("\n");
+  return readFileSync(join(bundle, "assets/head.html"), "utf8")
+    .replace("%LJOS_TOKENS%", () => tokens)
+    .replaceAll("%LIGHT_CANVAS%", light.canvas)
+    .replaceAll("%DARK_CANVAS%", dark.canvas);
+}
+
 // Built as a machine with no Qt 6 builds it, which is how CI builds
 // it and how the site builder's own controls tests build theirs
 // (`withoutQt` in site-tests): the site is a Ljós application whose
@@ -313,10 +359,30 @@ delete process.env.QT_INSTALL_QML;
 delete process.env.QML_IMPORT_PATH;
 let built;
 try {
+  // DECISION (site3 design): every page is written for a phone and a
+  // desktop, in light and dark, so the first paint is laid out and
+  // coloured as the reader's window will have it; the site's head
+  // (icons, metadata, the colour tokens, and the script that says the
+  // reader's own scheme before the body is read) is the bundle's.
   // codeblock.css: the code's colours (`tok-*`, `--ljos-code-*`) and
   // the editor's look, for the highlighted code the pages show.
   const codeCss = createRequire(import.meta.url).resolve("ljos-web/codeblock.css");
-  built = await buildSite({ dir: bundle, out, qmlc, qt: [], css: [codeCss], prerender: { width: 1440, height: 900, pages } });
+  built = await buildSite({
+    dir: bundle,
+    out,
+    qmlc,
+    qt: [],
+    css: [codeCss],
+    head: siteHead(),
+    prerender: {
+      sizes: [
+        { width: 390, height: 844 },
+        { width: 1440, height: 900, from: 1000 },
+      ],
+      schemes: ["light", "dark"],
+      pages,
+    },
+  });
 } finally {
   for (const [name, value] of Object.entries(saved)) {
     if (value === undefined) delete process.env[name];
@@ -338,12 +404,10 @@ for (const file of htmlUnder(out)) {
   writeFileSync(file, `${html.slice(0, at + 6)}\n    <meta name="ljos-base" content="${base}">${html.slice(at + 6)}`);
 }
 
-// The brand files a browser asks for by name are the site's, whichever
-// builder wrote the pages.
-for (const name of ["favicon.svg", "apple-touch-icon.png", "og-image.png"]) {
-  const from = join(repo, "site/public", name);
-  if (existsSync(from)) cpSync(from, join(out, name));
-}
+// The brand files a browser asks for by name: the mark, and the
+// pictures of it made once from it (bundle/assets).
+cpSync(join(bundle, "assets/ljos-mark.svg"), join(out, "favicon.svg"));
+for (const name of ["apple-touch-icon.png", "og-image.png"]) cpSync(join(bundle, "assets", name), join(out, name));
 // A live block's picture is named from its payload, not written in
 // any QML the compiler sees, so no build step carries it: the
 // pictures the bundle was built with stand beside the pages.
