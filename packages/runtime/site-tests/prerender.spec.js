@@ -376,6 +376,39 @@ test("a site built without prerender keeps its empty page and mounts as before",
   }
 });
 
+test("a picture's load and a text's markup take no number: every prerendered node is kept", async ({ page }) => {
+  const made = bundle("prerender-loads");
+  const server = await buildSite({ dir: made.dir, out: made.out, qmlc, prerender: true }).then(() => serve(made.out));
+  try {
+    const warnings = [];
+    page.on("console", (message) => {
+      if (message.type() === "warning") warnings.push(message.text());
+    });
+    let release;
+    const held = new Promise((done) => (release = done));
+    await page.route("**/*.js", async (route) => {
+      await held;
+      await route.continue();
+    });
+    await page.goto(`http://127.0.0.1:${server.address().port}/`, { waitUntil: "commit" });
+    await page.waitForSelector("#app [data-hk]");
+    const before = await page.evaluate(() => (window.__prerendered = [...document.querySelectorAll("#app [data-hk]")]).length);
+    // Numbered without a gap: nothing the prerender made for itself
+    // took a number the page it wrote does not hold.
+    const numbers = await page.evaluate(() => window.__prerendered.map((element) => Number(element.getAttribute("data-hk").split(":")[0])).sort((a, b) => a - b));
+    expect(numbers).toEqual(numbers.map((_, index) => index + 1));
+    release();
+    await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+    await page.unroute("**/*.js");
+    await expect(page.getByText("After the pictures and the markup", { exact: true })).toBeVisible();
+    expect(warnings.filter((text) => /hydration mismatch/.test(text))).toEqual([]);
+    expect(await page.evaluate(() => window.__prerendered.filter((element) => document.contains(element)).length)).toBe(before);
+  } finally {
+    await new Promise((done) => server.close(done));
+    made.remove();
+  }
+});
+
 test("a page with faces that paint prerenders as the elements they paint into", async ({ page }) => {
   // A View3D and a ShaderEffect draw into an offscreen surface
   // first; where there is no GPU that must not take the build
