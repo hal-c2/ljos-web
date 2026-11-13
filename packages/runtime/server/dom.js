@@ -114,18 +114,37 @@ function fontSizeOf(element) {
   return 16;
 }
 
+// How far apart its lines are: its line height, or markup's
+// (`--qq-line`: a fixed height, or a rounding up of a part of the
+// font's size, the part the font's metrics say, which the browser may
+// find otherwise), or the font's size.
+function pitchOf(element, size) {
+  const said = parseFloat(element.style?.getPropertyValue?.("line-height"));
+  if (said) return said;
+  const line = element.style?.getPropertyValue?.("--qq-line") ?? "";
+  const fixed = /^([\d.]+)px$/.exec(line);
+  if (fixed) return parseFloat(fixed[1]);
+  const markup = /round\(up,\s*([\d.]+)em,\s*1px\)/.exec(line);
+  return markup ? Math.ceil(parseFloat(markup[1]) * size) : size;
+}
+
 function rect(element) {
   const width = element._width ?? parseFloat(element.style?.getPropertyValue?.("width")) ?? 0;
   const height = element._height ?? parseFloat(element.style?.getPropertyValue?.("height")) ?? 0;
   const w = Number.isFinite(width) && width > 0 ? width : element._textWidth?.() ?? 0;
   // An element that holds text and says no height is as tall as its
   // lines: on the server that is said by the text it holds over the
-  // width there is for it, a browser's line-breaking near enough.
+  // width there is for it, a browser's line-breaking near enough. A
+  // `<br>` ends a line, wrapping or not (rich text's lines, highlighted
+  // code's), and text that does not wrap is a line per break.
   let h = Number.isFinite(height) && height > 0 ? height : 0;
   if (h === 0 && element.textContent) {
     const size = fontSizeOf(element);
-    const pitch = parseFloat(element.style?.getPropertyValue?.("line-height")) || size;
-    const lines = w > 0 ? Math.max(1, Math.ceil((element._textWidth?.() ?? 0) / w)) : 1;
+    const pitch = pitchOf(element, size);
+    const wraps = !/^(nowrap|pre)$/.test(element.style?.getPropertyValue?.("white-space") ?? "");
+    const set = element._lines?.() ?? [element.textContent];
+    let lines = 0;
+    for (const line of set) lines += wraps && w > 0 ? Math.max(1, Math.ceil(advance(line, size) / w)) : 1;
     h = lines * pitch;
   }
   return { x: 0, y: 0, left: 0, top: 0, right: w, bottom: h, width: w, height: h, toJSON: () => ({}) };
@@ -539,9 +558,26 @@ class Element {
   toDataURL() {
     return "data:,";
   }
+  // As wide as its widest line.
   _textWidth() {
-    const text = this.textContent;
-    return text === "" ? 0 : advance(text, fontSizeOf(this));
+    if (this.textContent === "") return 0;
+    const size = fontSizeOf(this);
+    return Math.max(...this._lines().map((line) => advance(line, size)));
+  }
+  // The text it holds as the lines a `<br>` breaks it into. A last
+  // break ends a line and starts none, as in a browser.
+  _lines() {
+    const lines = [""];
+    const walk = (node) => {
+      for (const child of node.childNodes ?? []) {
+        if (child.nodeType === 3) lines[lines.length - 1] += child.data;
+        else if (child.localName === "br") lines.push("");
+        else if (child.nodeType === 1) walk(child);
+      }
+    };
+    walk(this);
+    if (lines.length > 1 && lines.at(-1) === "") lines.pop();
+    return lines;
   }
 }
 

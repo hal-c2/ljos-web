@@ -17,6 +17,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, 
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { highlightToHtml } from "lezer-ljos/html";
+import { CLIENT_CONDITIONS } from "../server/conditions.js";
 import { assemble, exampleFiles } from "./parse.js";
 
 export { assemble };
@@ -258,8 +259,8 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
             chunkSizeWarningLimit: 4000,
             rollupOptions: { output: { format: "es", entryFileNames: "entries.mjs" } },
           },
-          ssr: { noExternal: true },
-          environments: { ssr: { resolve: { noExternal: true } } },
+          ssr: { noExternal: true, resolve: { conditions: CLIENT_CONDITIONS } },
+          environments: { ssr: { resolve: { noExternal: true, conditions: CLIENT_CONDITIONS } } },
         });
       } catch (error) {
         if (batch.length === 1) {

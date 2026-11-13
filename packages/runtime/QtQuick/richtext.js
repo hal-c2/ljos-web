@@ -138,6 +138,15 @@ function copy(from, to, name, inert) {
     const value = from.style.getPropertyValue(property);
     if (value && !/url\(|expression|var\(/i.test(value)) style.setProperty(property, value);
   }
+  // A code token's class (`tok-keyword`, from `lezer-ljos/html`): the
+  // one class kept, so highlighted code takes its colours from the
+  // page's `--ljos-code-*` theme, where a style attribute could only
+  // name fixed ones. It names a rule the page already has and loads
+  // nothing, so a shell's markup may carry it too.
+  if (name === "span") {
+    const tokens = (read("class") ?? "").split(/\s+/).filter((token) => /^tok-[A-Za-z]+$/.test(token));
+    if (tokens.length) to.className = tokens.join(" ");
+  }
   if (read("align") && name !== "img") style.textAlign = read("align");
   if (read("bgcolor")) style.backgroundColor = css(read("bgcolor"));
   if (name === "font") {
@@ -229,6 +238,9 @@ export function clothe(element, look) {
   element.className = look.kind === 2 ? "qq-text qq-markup qq-rich" : "qq-text qq-markup";
   dress(style, font);
   style.setProperty("--qq-line", look.line);
+  // The `font` shorthand above set the element's own line height back to
+  // normal, over the sheet's: its lines are the markup's height too.
+  style.lineHeight = "var(--qq-line)";
   style.setProperty("--qq-size", `${font.size}px`);
   const wraps = mode !== 0 && limit !== Infinity;
   const cut = look.kind === 1 && limit !== Infinity;

@@ -18,6 +18,7 @@ import { build } from "vite";
 import { findTheme } from "./find-theme.js";
 import { provided } from "./modules.js";
 import qml, { compilerAt, hasControls, installed } from "./vite.js";
+import { CLIENT_CONDITIONS } from "./server/conditions.js";
 
 const runtime = import.meta.dirname;
 
@@ -317,7 +318,9 @@ export function replaceSite(from, out, rename = renameSync) {
 // entry's own properties — and each page's script hydrates it with the
 // same props, which its HTML carries. One build, one set of assets,
 // every page's own HTML: a site of many pages is one shell that shows
-// the page its route names.
+// the page its route names. `css`: stylesheets the page carries after
+// the runtime's own (`ljos-web/codeblock.css`, whose `tok-*` rules colour
+// the code a site's rich text holds through its `--ljos-code-*` theme).
 // What it wrote, and its size.
 //
 // A site's controls are Ljós's whether or not the machine that builds it
@@ -344,8 +347,11 @@ function pagesOf(prerender) {
   return pages;
 }
 
-export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", qt, styles = "ljos", with: standins = [], liveShell = false, prerender = false, logLevel = "warn" } = {}) {
+export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", qt, styles = "ljos", with: standins = [], liveShell = false, prerender = false, css = [], logLevel = "warn" } = {}) {
   if (!dir) throw new SiteError("which bundle? buildSite({ dir })");
+  if (!Array.isArray(css) || css.some((path) => typeof path !== "string" || !path.endsWith(".css") || !existsSync(path))) {
+    throw new SiteError(`css is a list of .css files that exist, not ${JSON.stringify(css)}`);
+  }
   if (prerender && liveShell) throw new SiteError("a site with a live shell is not prerendered: its page is the shell host's to make (choose one of prerender and liveShell)");
   const pages = prerender ? pagesOf(prerender) : null;
   dir = resolve(dir);
@@ -382,7 +388,9 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
   const stage = mkdtempSync(join(tmpdir(), "ljos-site-"));
   try {
     writeFileSync(join(stage, "index.html"), PAGE);
-    writeFileSync(join(stage, "main.js"), liveShell ? LIVE : prerender ? PRERENDERED : MAIN);
+    const sheets = css.map((_, at) => `import "ljos-site:sheet-${at}";\n`).join("");
+    // After the runtime's sheet, so a site's rules win over its defaults.
+    writeFileSync(join(stage, "main.js"), (liveShell ? LIVE : prerender ? PRERENDERED : MAIN).replace('import "ljos-site:css";\n', (own) => own + sheets));
     // The kernel the page's graph is: Solid's own, or Ljós's compiled
     // to wasm where `LJOS_KERNEL=wasm`, as everywhere else in this
     // repository. The prerender below is made with the same one, so
@@ -400,6 +408,7 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
           "ljos-site:object": join(runtime, "object.js"),
           "ljos-site:server": join(runtime, "server.js"),
           "ljos-site:css": join(runtime, "style.css"),
+          ...Object.fromEntries(css.map((path, at) => [`ljos-site:sheet-${at}`, resolve(path)])),
           "ljos-site:live": join(runtime, "Ljos/Blocks/live.js"),
           "#kernel": kernel,
         },
@@ -431,8 +440,8 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
           chunkSizeWarningLimit: 4000,
           rollupOptions: { output: { format: "es", entryFileNames: "server-entry.mjs" } },
         },
-        ssr: { noExternal: true },
-        environments: { ssr: { resolve: { noExternal: true } } },
+        ssr: { noExternal: true, resolve: { conditions: CLIENT_CONDITIONS } },
+        environments: { ssr: { resolve: { noExternal: true, conditions: CLIENT_CONDITIONS } } },
       });
       // One render per page, each in a process of its own, as a render
       // takes the globals over. A site of one page is the entry made

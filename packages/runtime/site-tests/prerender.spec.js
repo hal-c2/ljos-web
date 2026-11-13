@@ -88,6 +88,44 @@ for (const kernel of ["solid", "wasm"]) {
       }
     });
 
+    test("rich text's lines prerender as tall as the browser draws them, coloured by class", async ({ browser, page }) => {
+      const code = (on) => on.getByText("a third line");
+      const height = (on) => code(on).evaluate((words) => words.parentElement.getBoundingClientRect().height);
+      const context = await browser.newContext({ javaScriptEnabled: false });
+      let written;
+      try {
+        const still = await context.newPage();
+        await still.goto(`${origin}/`);
+        written = await height(still);
+        expect(await code(still).locator(".tok-keyword").count()).toBe(1);
+      } finally {
+        await context.close();
+      }
+      await page.goto(`${origin}/`);
+      await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+      // Three lines, as the build wrote them and as the browser sets
+      // them: nothing below moves when the page hydrates.
+      expect(written).toBe(54);
+      expect(await height(page)).toBe(written);
+      expect(await code(page).locator(".tok-keyword").count()).toBe(1);
+    });
+
+    test("what the page changed as it settled is in the page as written: a Repeater's rows, placed", async ({ browser }) => {
+      const context = await browser.newContext({ javaScriptEnabled: false });
+      try {
+        const still = await context.newPage();
+        await still.goto(`${origin}/`);
+        const first = still.getByText("A first row", { exact: true });
+        const second = still.getByText("A second row", { exact: true });
+        await expect(first).toBeVisible();
+        await expect(second).toBeVisible();
+        const [above, below] = [await first.boundingBox(), await second.boundingBox()];
+        expect(below.y).toBeGreaterThanOrEqual(above.y + above.height);
+      } finally {
+        await context.close();
+      }
+    });
+
     test("hydration adopts the prerendered nodes, and the counter then counts", async ({ page }) => {
       const warnings = [];
       page.on("console", (message) => {
@@ -166,7 +204,7 @@ for (const kernel of ["solid", "wasm"]) {
         // The two makings before the parting were taken over; the
         // span and everything after it was not, and is gone.
         kept: window.__prerendered.filter((element) => document.contains(element)).length,
-        span: document.querySelector("#app span") !== null,
+        span: document.querySelector("#app span[data-hk]") !== null,
       }));
       expect(heldNodes.kept).toBe(2);
       expect(heldNodes.span).toBe(false);
