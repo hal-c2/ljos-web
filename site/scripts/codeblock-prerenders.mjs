@@ -12,6 +12,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkExamples, hashExample, loadHarnesses, renderPrerenders } from "ljos-web/codeblocks";
 import { assemble, extractBlocks, tagged } from "ljos-web/codeblocks/parse";
+import { pageRecords } from "./codeblocks-ledger.mjs";
 
 const siteRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const candidates = [
@@ -34,9 +35,12 @@ const pages = readdirSync(src, { recursive: true })
   .map(String)
   .filter((f) => f.endsWith(".md") && !f.startsWith("harness"));
 const byHash = new Map();
+const onPages = [];
 let legacy = 0;
 for (const page of pages) {
-  const { examples, unknown } = assemble(extractBlocks(readFileSync(join(src, page), "utf8")), { harnesses });
+  const fences = extractBlocks(readFileSync(join(src, page), "utf8"));
+  const { examples, unknown } = assemble(fences, { harnesses });
+  onPages.push({ page, fences, examples });
   if (strict && unknown.length > 0) {
     console.error(`codeblock-prerenders: ${page}: ${unknown.length} bare or unknown fence(s), first at line ${unknown[0].line}`);
     process.exit(1);
@@ -47,7 +51,7 @@ for (const page of pages) {
 const examples = [...byHash.values()];
 const claimed = (example) => strict || example.blocks.some(tagged);
 const failures = checkExamples(examples, { qmlc });
-const failed = new Set(failures.map(({ example }) => hashExample(example)));
+const failed = new Map(failures.map(({ example, diagnostics }) => [hashExample(example), diagnostics]));
 for (const { example, diagnostics } of failures) {
   if (claimed(example)) {
     console.error(`codeblock-prerenders: a code block does not compile:\n${diagnostics.join("\n")}`);
@@ -72,6 +76,16 @@ for (const { example, diagnostics } of unmade) {
 let drawn = 0;
 for (const example of runnable) if (manifest[hashExample(example)]?.file) drawn++;
 writeFileSync(join(cacheDir, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+// Every example, page by page, as it stands: what the suite holds to
+// the ledger of plain examples (codeblocks-ledger.mjs).
+const outcome = (example) => {
+  const hash = hashExample(example);
+  if (failed.has(hash)) return { state: "not compiling", diagnostics: failed.get(hash) };
+  if (manifest[hash]?.failed) return { state: "not running", diagnostics: manifest[hash].diagnostics };
+  return manifest[hash]?.file ? { state: "live" } : { state: "not running", diagnostics: ["no prerender was made"] };
+};
+const report = onPages.flatMap(({ page, fences, examples }) => pageRecords(page, fences, examples, outcome, tagged));
+writeFileSync(join(cacheDir, "report.json"), `${JSON.stringify(report, null, 2)}\n`);
 console.log(
   `codeblock-prerenders: ${drawn} live block(s) prerendered, ${legacy} untagged block(s) left plain, from ${pages.length} pages in ${src}`,
 );

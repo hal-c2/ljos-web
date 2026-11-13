@@ -1,0 +1,15 @@
+# The QML examples of the pinned docs that stand on ljos.dev as plain
+# code, and why: `<page> <n> <reason> [note…]`, where <page> is the
+# page's path under docs/site and <n> counts its `qml` fences from 1,
+# as ljos-ui's crates/ljos_cli/tests/docs_site.txt counts them. Read
+# by site/scripts/codeblocks-ledger.mjs; both sites' suites fail on a
+# plain example missing here and on an entry that runs now, so this
+# list only shrinks.
+#
+# Reasons:
+#   host-types      it uses types a Rust program registers; ljos-ui
+#                   lists it so too, and no page can run it
+#   shows-findings  it shows what the checks find, so it is meant not
+#                   to compile; ljos-ui lists it so too
+#   web:<gap>       it runs in Ljós, not yet on the web; <gap> names
+#                   what ljos-web lacks

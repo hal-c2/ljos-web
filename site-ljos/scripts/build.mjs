@@ -21,6 +21,7 @@ import { buildSite } from "ljos-web/site";
 import { checkExamples, hashExample, loadHarnesses, loadPrerenders, renderPrerenders } from "ljos-web/codeblocks";
 import { assemble, tagged } from "ljos-web/codeblocks/parse";
 import { packRich } from "ljos-web/codeblock/rich";
+import { pageOfRoute, pageRecords } from "../../site/scripts/codeblocks-ledger.mjs";
 
 const here = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 // Where the site stands below its address's root: `/` at a domain of
@@ -84,6 +85,7 @@ const harnesses = loadHarnesses(join(docs, "harness"));
 const liveAt = new Map(); // a page's code block -> its live payload
 {
   const gathered = [];
+  const onPages = [];
   for (const page of site.pages) {
     const fences = page.blocks.filter((block) => block.kind === "code");
     if (!fences.length) continue;
@@ -98,6 +100,7 @@ const liveAt = new Map(); // a page's code block -> its live payload
       of: block,
     }));
     const { examples } = assemble(said, { harnesses });
+    onPages.push({ page: pageOfRoute(page.route), fences: said, examples });
     for (const example of examples) gathered.push({ page, example });
   }
   const cacheDir = join(here, ".codeblock-prerenders");
@@ -170,6 +173,16 @@ const liveAt = new Map(); // a page's code block -> its live payload
       height,
     });
   }
+  // Every example, page by page, as it stands: what the suite holds
+  // to the ledger of plain examples (site/scripts/codeblocks-ledger.mjs).
+  const liveSet = new Set(live.map(({ example }) => example));
+  const outcome = (example) => {
+    if (refused.has(example)) return { state: "not compiling", diagnostics: refused.get(example) };
+    if (unrun.has(example)) return { state: "not running", diagnostics: unrun.get(example) };
+    return liveSet.has(example) ? { state: "live" } : { state: "not running", diagnostics: ["no prerender was made"] };
+  };
+  const report = onPages.flatMap(({ page, fences, examples }) => pageRecords(page, fences, examples, outcome, tagged));
+  writeFileSync(join(cacheDir, "report.json"), `${JSON.stringify(report, null, 2)}\n`);
   console.log(
     `site-ljos: ${live.length} live code blocks ` +
       `(${gathered.length - live.length} left plain: ${checked.length} not compiling, ${failures.length} not running)`,
