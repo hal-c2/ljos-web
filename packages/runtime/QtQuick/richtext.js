@@ -62,6 +62,15 @@ const KEPT = new Set([...KNOWN].filter((name) => !DROPPED.has(name) && !["html",
 // browser follows.
 const AS = { font: "span", center: "div", nobr: "span", tt: "code" };
 
+// Whether a link's target is a page: one with no scheme (a path, a
+// fragment) or one of the web's own. What a browser strips before it
+// reads a scheme is stripped here first, so a hidden one is seen.
+export function followable(href) {
+  const read = String(href).replace(/[\t\n\r]/g, "").replace(/^[\x00-\x20]+/, "");
+  const scheme = /^([a-z][a-z0-9+.-]*):/i.exec(read)?.[1]?.toLowerCase();
+  return scheme === undefined || scheme === "http" || scheme === "https" || scheme === "mailto";
+}
+
 const letter = (char) => /[\p{L}\p{N}]/u.test(char);
 const space = (char) => /\s/.test(char);
 
@@ -163,7 +172,16 @@ function copy(from, to, name, inert) {
   } else if (name === "center") style.textAlign = "center";
   else if (name === "nobr") style.whiteSpace = "nowrap";
   else if (name === "a") {
-    if (!inert && from.hasAttribute("href")) to.dataset.link = read("href");
+    if (!inert && from.hasAttribute("href")) {
+      to.dataset.link = read("href");
+      // A link to a page is one a crawler, a reader's "open in a new
+      // tab" and a screen reader's list of links can follow too; a
+      // press is still `linkActivated`'s (Text.js). What could run
+      // a script or leave the web (`javascript:`, `data:`) stays a
+      // name only the program reads. While a dropped shell is shown
+      // markup is inert, and no link gets an address.
+      if (followable(read("href"))) to.setAttribute("href", read("href")); // guarded
+    }
   } else if (name === "img") {
     if (!inert && read("src")) to.src = read("src"); // guarded
     if (read("alt")) to.alt = read("alt");

@@ -556,7 +556,7 @@ test("markup is as large as Qt makes it, and made of the elements it names", asy
   expect(await html("lined")).toBe("ab<br>cdef");
   expect(await html("rich")).toBe("<p>ab</p><p>cdef</p>");
   expect(await html("plain")).toBe("&lt;b&gt;ab&lt;/b&gt;");
-  expect(await html("linked")).toBe('go <a data-link="there">there</a> or <a data-link="https://example.org/">away</a>');
+  expect(await html("linked")).toBe('go <a data-link="there" href="there">there</a> or <a data-link="https://example.org/" href="https://example.org/">away</a>');
 });
 
 test("a text is painted in its colour, with its style around it, under it or over it", async ({ page }) => {
@@ -646,6 +646,27 @@ test("markup cannot run a script or bring a frame into the page", async ({ page 
     "<b>ab</b>cd",
     undefined,
     0,
+  ]);
+});
+
+// A link to a page carries its `href`, for a crawler and a new tab;
+// one whose scheme could run a script, however it is hidden, does not.
+test("a link to a page is followable, and a script's is not", async ({ page }) => {
+  await boxes(page, "markup");
+  const hrefs = await page.evaluate(() => {
+    const { linked } = window.objects;
+    linked.text = '<a href="/docs/">a</a><a href="#top">b</a><a href="mailto:x@example.org">c</a><a href="java&#9;script:x">d</a><a href=" JAVASCRIPT:x">e</a><a href="data:text/html,x">f</a><a href="vbscript:x">g</a>';
+    window.flush();
+    return [...linked.$markup.querySelectorAll("a")].map((a) => [a.dataset.link, a.getAttribute("href")]);
+  });
+  expect(hrefs).toEqual([
+    ["/docs/", "/docs/"],
+    ["#top", "#top"],
+    ["mailto:x@example.org", "mailto:x@example.org"],
+    ["java\tscript:x", null],
+    [" JAVASCRIPT:x", null],
+    ["data:text/html,x", null],
+    ["vbscript:x", null],
   ]);
 });
 

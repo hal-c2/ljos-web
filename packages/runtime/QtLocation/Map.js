@@ -410,7 +410,9 @@ export const Map = defineType("Map", Item, {
     );
     notice.addEventListener("click", (event) => {
       const link = event.target.closest?.("a[data-link]")?.dataset.link;
-      if (link !== undefined) self.copyrightLinkActivated(link);
+      if (link === undefined || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+      event.preventDefault();
+      self.copyrightLinkActivated(link);
     });
   },
 });
