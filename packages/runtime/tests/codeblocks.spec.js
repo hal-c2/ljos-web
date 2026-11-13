@@ -9,8 +9,10 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test as plain } from "@playwright/test";
-import { assemble, exampleFiles, extractBlocks, parseInfo, spliceHarness } from "../codeblocks/parse.js";
-import { checkExamples, hashExample, loadPrerenders, renderPrerenders, renderStatic } from "../codeblocks/build.js";
+import { Text } from "@codemirror/state";
+import { assemble, displayPosition, exampleFiles, extractBlocks, parseInfo, spliceHarness } from "../codeblocks/parse.js";
+import { checkExamples, hashExample, loadPrerenders, renderCode, renderPrerenders, renderStatic } from "../codeblocks/build.js";
+import { toDiagnostics } from "../codeblocks/editor.js";
 import { liveCodeBlocks } from "../codeblocks/remark.js";
 import { COUNTER, DOC, GROUP_MAIN, PANEL, SHELL_DOC, SNIPPET, WINDOW } from "./codeblocks-fixtures.js";
 import { expect, test } from "./open.js";
@@ -18,6 +20,44 @@ import { expect, test } from "./open.js";
 const qmlc = process.env.QMLC ?? join(import.meta.dirname, "../../../target/debug/qmlc");
 
 plain.describe("the fence contract", () => {
+  plain("a compiler's position in a harnessed snippet is moved back into the snippet", () => {
+    const { examples } = assemble(extractBlocks(DOC), { harnesses: { window: WINDOW } });
+    const [counter, harnessed] = examples;
+    // The marker is the harness's 7th line, indented by four.
+    expect(displayPosition(harnessed, { file: "Main.qml", line: 8, column: 16, message: "x" })).toEqual({ index: 0, line: 2, column: 12 });
+    expect(displayPosition(harnessed, { file: "Main.qml", line: 8, column: 3, endLine: 9, endColumn: 9 })).toEqual({
+      index: 0,
+      line: 2,
+      column: 1,
+      endLine: 3,
+      endColumn: 5,
+    });
+    // The harness's own lines are in no file the reader has.
+    expect(displayPosition(harnessed, { file: "Main.qml", line: 2, column: 1 })).toEqual({ index: -1 });
+    expect(displayPosition(harnessed, { file: "Main.qml", line: 13, column: 1 })).toEqual({ index: -1 });
+    // A whole app is as compiled.
+    expect(displayPosition(counter, { file: "Main.qml", line: 5, column: 5 })).toEqual({ index: 0, line: 5, column: 5 });
+    expect(displayPosition(counter, { file: "Other.qml", line: 5 })).toEqual({ index: -1 });
+  });
+
+  plain("a diagnostic becomes an editor's mark: its range, or its word, or its line's start", () => {
+    const doc = Text.of(["Rectangle {", "    width: 320 +", "}"]);
+    const [range, word, line] = toDiagnostics(doc, [
+      { message: "a", line: 2, column: 5, endLine: 2, endColumn: 10 },
+      { message: "b", line: 2, column: 5, code: "E1", severity: "warning" },
+      { message: "c" },
+    ]);
+    expect(range).toMatchObject({ from: 16, to: 21, severity: "error", message: "a" });
+    expect(word).toMatchObject({ from: 16, to: 21, severity: "warning", message: "b [E1]" });
+    expect(line).toMatchObject({ from: 0, to: 9 });
+    // Past the end is clamped into the text, on its last character;
+    // spaces before a word are not the word.
+    const [past, spaced] = toDiagnostics(doc, [{ message: "d", line: 9, column: 40 }, { message: "e", line: 2, column: 1 }]);
+    expect(past).toMatchObject({ from: doc.length - 1, to: doc.length });
+    expect(spaced).toMatchObject({ from: 16, to: 21 });
+    expect(renderCode("a < b", "sh")).toBe('<pre class="ljos-code"><code class="language-sh">a &lt; b</code></pre>');
+  });
+
   plain("info strings parse: whole app, harness, before, file and group", () => {
     expect(parseInfo("qml")).toEqual({ lang: "qml" });
     expect(parseInfo("qml harness=window")).toEqual({ lang: "qml", harness: "window" });
@@ -171,6 +211,10 @@ plain.describe("the build-time check and static HTML", () => {
     expect(payload.entry).toBe("Main.qml");
     expect(payload.prerendered).toBe(true);
     expect(payload.display[0].code).toContain("Count: ");
+    // The code is highlighted by the build, with the grammar's classes.
+    expect(html).toContain('<pre class="ljos-code"><code class="language-qml">');
+    expect(html).toMatch(/<span class="tok-typeName">Text<\/span>/);
+    expect(html).toMatch(/<span class="tok-string">&quot;Count: &quot;<\/span>/);
     // A before block is labelled as the old half.
     expect(renderStatic(examples[3], {})).toContain("Before");
     // The committed test page's figures are renderStatic's over real
@@ -197,6 +241,7 @@ plain.describe("the build-time check and static HTML", () => {
     liveCodeBlocks({ harnesses: { window: WINDOW }, qmlc })(tree);
     const kinds = tree.children.map((n) => n.type);
     // counter figure, paragraph, harness figure, one group figure, sh code
+    // (a language the grammar does not read stays the host's)
     expect(kinds).toEqual(["html", "paragraph", "html", "html", "code"]);
     expect(tree.children[0].value).toContain("data-ljos-codeblock");
     expect(tree.children.at(-1).lang).toBe("sh");
@@ -215,10 +260,13 @@ plain.describe("the build-time check and static HTML", () => {
       ],
     };
     liveCodeBlocks({ qmlc })(tree);
-    expect(tree.children.map((n) => n.type)).toEqual(["paragraph", "html", "paragraph", "code"]);
+    expect(tree.children.map((n) => n.type)).toEqual(["paragraph", "html", "paragraph", "html"]);
     // The one figure's editor carries both files.
     expect(tree.children[1].value).toContain("Panel.qml");
     expect(tree.children[1].value).toContain("data-ljos-codeblock");
+    // The fence left in the flow is code, highlighted, not a figure.
+    expect(tree.children[3].value).toMatch(/^<pre class="ljos-code"><code class="language-qml">/);
+    expect(tree.children[3].value).not.toContain("data-ljos-codeblock");
   });
 
   plain("a tagged block that cannot compile fails the build", () => {
@@ -236,28 +284,62 @@ plain.describe("the build-time check and static HTML", () => {
     });
     const legacy = make();
     liveCodeBlocks({ qmlc })(legacy);
-    expect(legacy.children[0].type).toBe("code");
+    // Plain code, not a figure: highlighted, its broken end marked.
+    expect(legacy.children[0].type).toBe("html");
+    expect(legacy.children[0].value).not.toContain("data-ljos-codeblock");
+    expect(legacy.children[0].value).toContain('<span class="tok-typeName">Rectangle</span>');
+    const host = make();
+    liveCodeBlocks({ qmlc, highlight: false })(host);
+    expect(host.children[0].type).toBe("code");
     expect(() => liveCodeBlocks({ qmlc, strict: true })(make())).toThrow();
   });
 });
 
 const counterFigure = (page) => page.locator("[data-ljos-codeblock]").first();
 
-async function opened(page) {
-  await page.goto("/codeblocks.html");
+async function opened(page, query = "") {
+  await page.goto(`/codeblocks.html${query}`);
   await page.waitForFunction(() => window.ready);
 }
 
-plain("with JS off the code and its prerendered result are readable and there is no editor", async ({ browser }) => {
+// A block's editor for a file, once CodeMirror is in: its content
+// element is the textbox (the `<pre>` before it is one too, so the
+// editor is waited for, not raced).
+async function editorOf(figure, name) {
+  await expect(figure).toHaveAttribute("data-editor", "ready", { timeout: 30000 });
+  return figure.locator(".cm-content").and(figure.getByRole("textbox", { name }));
+}
+
+// What an editor holds, line by line as it shows it.
+const textOf = (editor) => editor.evaluate((el) => [...el.querySelectorAll(".cm-line")].map((line) => line.textContent).join("\n"));
+
+// A reader replacing everything in the editor with `text`.
+async function retype(editor, text) {
+  await editor.focus();
+  await editor.press("ControlOrMeta+a");
+  await editor.page().keyboard.insertText(text);
+  await expect.poll(() => textOf(editor)).toBe(text);
+}
+
+async function live(figure) {
+  await figure.scrollIntoViewIfNeeded();
+  await expect(figure).toHaveAttribute("data-state", "live", { timeout: 30000 });
+}
+
+plain("with JS off the code is highlighted, its prerendered result readable, and there is no editor", async ({ browser }) => {
   const context = await browser.newContext({ javaScriptEnabled: false });
   const page = await context.newPage();
   await page.goto(`http://127.0.0.1:${process.env.LJOS_WEB_PORT ?? 4174}/codeblocks.html`);
   const figure = counterFigure(page);
   await expect(figure.locator("pre code")).toContainText("Count: ");
+  // The build wrote the grammar's classes: the colours need no script.
+  await expect(figure.locator("pre code .tok-typeName").filter({ hasText: /^Rectangle$/ })).toHaveCount(1);
+  await expect(figure.locator("pre code .tok-propertyName").filter({ hasText: /^width$/ }).first()).toBeVisible();
+  await expect(figure.locator("pre code .tok-string").first()).toBeVisible();
   // The result is the example's own markup, its words readable as words.
   await expect(figure.locator(".ljos-codeblock__stage")).toContainText("Count: 0");
   await expect(figure.locator("[data-hk]").first()).toBeVisible();
-  await expect(figure.locator("textarea")).toHaveCount(0);
+  await expect(figure.locator("textarea, .cm-editor, [contenteditable]")).toHaveCount(0);
   await context.close();
 });
 
@@ -273,12 +355,13 @@ test.describe("a live code block in the page", () => {
     await page.evaluate(() => {
       window.prerenderedNode = document.querySelector("[data-ljos-codeblock] [data-hk]");
     });
-    await figure.scrollIntoViewIfNeeded();
-    await expect(figure).toHaveAttribute("data-state", "live", { timeout: 30000 });
+    await live(figure);
     expect(await page.evaluate(() => document.querySelector(".ljos-codeblock__host").contains(window.prerenderedNode))).toBe(true);
     await expect(figure.locator(".ljos-codeblock__host")).toHaveAttribute("data-ljos-hydrated", "true");
-    const editor = figure.getByRole("textbox", { name: /Main\.qml/ });
-    await expect(editor).toHaveValue(/Count: /);
+    const editor = await editorOf(figure, /Main\.qml/);
+    expect(await textOf(editor)).toMatch(/Count: /);
+    // The editor colours with the classes the build wrote.
+    await expect(editor.locator(".tok-typeName").filter({ hasText: /^Rectangle$/ })).toHaveCount(1);
     const stage = figure.locator(".ljos-codeblock__stage");
     await expect(stage).toContainText("Count: 0");
     await stage.click();
@@ -286,8 +369,7 @@ test.describe("a live code block in the page", () => {
     await stage.click();
     await expect(stage).toContainText("Count: 3");
     // Changing the colour recompiles and reloads: the count is kept.
-    const value = await editor.inputValue();
-    await editor.fill(value.replace("#20242e", "#7a1f1f"));
+    await retype(editor, (await textOf(editor)).replace("#20242e", "#7a1f1f"));
     await expect(stage).toContainText("Count: 3");
     await expect
       .poll(() =>
@@ -297,18 +379,21 @@ test.describe("a live code block in the page", () => {
         ),
       )
       .toBe(true);
+    // Reset puts the code back, in the editor too.
+    await figure.getByRole("button", { name: "Reset" }).click();
+    await expect.poll(() => textOf(editor)).toMatch(/#20242e/);
   });
 
   test("Tab indents, and Escape then Tab (or Shift+Tab) leaves the editor", async ({ page }) => {
     await opened(page);
     const figure = counterFigure(page);
-    await figure.scrollIntoViewIfNeeded();
-    await expect(figure).toHaveAttribute("data-state", "live", { timeout: 30000 });
-    const editor = figure.getByRole("textbox", { name: /Main\.qml/ });
+    await live(figure);
+    const editor = await editorOf(figure, /Main\.qml/);
+    await expect(editor).toHaveAttribute("aria-description", /Escape, then Tab/);
     await editor.focus();
-    await editor.evaluate((el) => el.setSelectionRange(0, 0));
+    await editor.press("ControlOrMeta+Home");
     await editor.press("Tab");
-    await expect(editor).toHaveValue(/^ {4}import/);
+    await expect.poll(() => textOf(editor)).toMatch(/^ {4}import/);
     await expect(editor).toBeFocused();
     await editor.press("Escape");
     await editor.press("Tab");
@@ -318,56 +403,71 @@ test.describe("a live code block in the page", () => {
     await expect(editor).toBeFocused();
     await editor.press("Shift+Tab");
     await expect(editor).not.toBeFocused();
+    // And in again, Tab indents again: Escape lasted one visit.
+    await editor.focus();
+    await editor.press("Tab");
+    await expect(editor).toBeFocused();
   });
 
-  test("a broken edit shows the compiler error inline and keeps the last good result", async ({ page }) => {
+  test("a broken edit is marked where it is wrong, summed up, and keeps the last good result", async ({ page }) => {
     await opened(page);
     const figure = counterFigure(page);
-    await figure.scrollIntoViewIfNeeded();
-    await expect(figure).toHaveAttribute("data-state", "live", { timeout: 30000 });
+    await live(figure);
     const stage = figure.locator(".ljos-codeblock__stage");
     await stage.click();
     await expect(stage).toContainText("Count: 1");
-    const editor = figure.getByRole("textbox", { name: /Main\.qml/ });
-    const good = await editor.inputValue();
-    await editor.fill(good.replace("width: 320", "width: 320 +"));
-    await expect(figure.getByRole("alert")).toContainText(/Main\.qml:\d+/, { timeout: 30000 });
+    const editor = await editorOf(figure, /Main\.qml/);
+    const good = await textOf(editor);
+    await retype(editor, good.replace("width: 320", "width: 320 +"));
+    // The summary a screen reader hears, and the squiggle a reader sees.
+    const alert = figure.getByRole("alert");
+    await expect(alert).toContainText(/Main\.qml:\d+:\d+: /, { timeout: 30000 });
+    await expect(editor.locator(".cm-lintRange-error").first()).toBeVisible();
+    await expect(editor).toHaveAttribute("aria-invalid", "true");
+    await expect(editor).toHaveAttribute("aria-errormessage", (await alert.getAttribute("id")) ?? "");
+    // The squiggle is the theme's colour, as a text decoration.
+    expect(await editor.locator(".cm-lintRange-error").first().evaluate((el) => getComputedStyle(el).textDecorationStyle)).toBe("wavy");
+    // The line the summary names is a line of the code the reader has.
+    const [, line] = /Main\.qml:(\d+):/.exec(await alert.textContent());
+    expect(Number(line)).toBeLessThanOrEqual(good.split("\n").length);
     await expect(stage).toContainText("Count: 1");
-    await editor.fill(good);
-    await expect(figure.getByRole("alert")).toBeHidden({ timeout: 30000 });
+    await retype(editor, good);
+    await expect(alert).toBeHidden({ timeout: 30000 });
+    await expect(editor.locator(".cm-lintRange-error")).toHaveCount(0);
+    await expect(editor).not.toHaveAttribute("aria-invalid", "true");
     await expect(stage).toContainText("Count: 1");
   });
 
-  test("a harnessed snippet runs and its editor shows the snippet only", async ({ page }) => {
+  test("a harnessed snippet runs, its editor shows the snippet only, and its errors are placed in it", async ({ page }) => {
     await opened(page);
     const figure = page.locator("[data-ljos-codeblock]").nth(1);
-    await figure.scrollIntoViewIfNeeded();
-    await expect(figure).toHaveAttribute("data-state", "live", { timeout: 30000 });
+    await live(figure);
     await expect(figure.locator(".ljos-codeblock__stage")).toContainText("Hello from a snippet");
-    const editor = figure.getByRole("textbox");
-    await expect(editor).not.toHaveValue(/240/);
-    await editor.fill('Text {\n    anchors.centerIn: parent\n    color: "#e8eaf0"\n    text: "Edited snippet"\n}');
+    const editor = await editorOf(figure, /harness/);
+    expect(await textOf(editor)).not.toMatch(/240/);
+    await retype(editor, 'Text {\n    anchors.centerIn: parent\n    color: "#e8eaf0"\n    text: "Edited snippet"\n}');
     await expect(figure.locator(".ljos-codeblock__stage")).toContainText("Edited snippet", { timeout: 30000 });
+    // Broken on the snippet's third line: the summary counts lines of
+    // the snippet, not of the harness it compiled in.
+    await retype(editor, 'Text {\n    anchors.centerIn: parent\n    color: "#e8eaf0" +\n}');
+    await expect(figure.getByRole("alert")).toContainText(/Main\.qml:[34]:/, { timeout: 30000 });
+    await expect(editor.locator(".cm-lintRange-error").first()).toBeVisible();
   });
 
   test("a grouped example runs and every file can be edited", async ({ page }) => {
     await opened(page);
     const figure = page.locator("[data-ljos-codeblock]").nth(2);
-    await figure.scrollIntoViewIfNeeded();
-    await expect(figure).toHaveAttribute("data-state", "live", { timeout: 30000 });
+    await live(figure);
     await expect(figure.locator(".ljos-codeblock__stage")).toContainText("Panel");
-    await figure.getByRole("button", { name: "Panel.qml" }).click();
-    const editor = figure.getByRole("textbox", { name: /Panel\.qml/ });
-    const value = await editor.inputValue();
-    await editor.fill(value.replace('"Panel"', '"Edited panel"'));
+    const editor = await editorOf(figure, /Panel\.qml/);
+    await retype(editor, (await textOf(editor)).replace('"Panel"', '"Edited panel"'));
     await expect(figure.locator(".ljos-codeblock__stage")).toContainText("Edited panel", { timeout: 30000 });
   });
 
   test("a ShellLoader example runs: editing the user's shell keeps the app's state", async ({ page }) => {
     await opened(page);
     const figure = page.locator("[data-ljos-codeblock]").nth(3);
-    await figure.scrollIntoViewIfNeeded();
-    await expect(figure).toHaveAttribute("data-state", "live", { timeout: 30000 });
+    await live(figure);
     const stage = figure.locator(".ljos-codeblock__stage");
     await expect(stage).toContainText("My shell");
     await expect(stage).toContainText("Count: 0");
@@ -375,10 +475,8 @@ test.describe("a live code block in the page", () => {
     await expect(stage).toContainText("Count: 1");
     // The visitor rewrites their shell; the app's contribution and its
     // count are still there, placed by the new shell.
-    await figure.getByRole("button", { name: "user/Shell.qml" }).click();
-    const editor = figure.getByRole("textbox", { name: /user\/Shell\.qml/ });
-    const value = await editor.inputValue();
-    await editor.fill(value.replace('"My shell"', '"Edited shell"'));
+    const editor = await editorOf(figure, /user\/Shell\.qml/);
+    await retype(editor, (await textOf(editor)).replace('"My shell"', '"Edited shell"'));
     await expect(stage).toContainText("Edited shell", { timeout: 30000 });
     await expect(stage).toContainText("Count: 1");
   });
@@ -393,9 +491,67 @@ test.describe("a live code block in the page", () => {
     await page.waitForLoadState("networkidle");
     expect(fetched).toEqual([]);
     await expect(page.locator("pre code.language-sh")).toContainText("ljos check");
-    await expect(page.locator("pre code.language-sh").locator("..").locator("textarea")).toHaveCount(0);
-    await counterFigure(page).scrollIntoViewIfNeeded();
-    await expect(counterFigure(page)).toHaveAttribute("data-state", "live", { timeout: 30000 });
+    await expect(page.locator("pre code.language-sh").locator("..").locator("textarea, .cm-editor")).toHaveCount(0);
+    await live(counterFigure(page));
     expect(fetched).toHaveLength(1);
   });
+
+  test("the editor loads only when a reader reaches for the code, and takes over without moving a line", async ({ page }) => {
+    const editorRequests = [];
+    page.on("request", (request) => {
+      if (/codemirror|codeblocks\/editor\.js/.test(request.url())) editorRequests.push(request.url());
+    });
+    await opened(page, "?editor=on-demand");
+    const figure = counterFigure(page);
+    await live(figure);
+    await page.waitForLoadState("networkidle");
+    // Running, compiled, and still the build's highlighted <pre>.
+    expect(editorRequests).toEqual([]);
+    await expect(figure.locator(".cm-editor")).toHaveCount(0);
+    const pre = figure.locator("pre.ljos-code");
+    await expect(pre).toHaveAttribute("role", "textbox");
+    const box = (locator) => locator.evaluate((el) => {
+      const { x, y, width, height } = el.getBoundingClientRect();
+      return { x, y, width, height };
+    });
+    const before = { code: await box(pre), figure: await box(figure), first: await box(pre.locator(".tok-keyword").first()) };
+    await page.evaluate(() => {
+      window.shifts = 0;
+      new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) if (!entry.hadRecentInput) window.shifts += entry.value;
+      }).observe({ type: "layout-shift", buffered: false });
+    });
+    // Reaching in with the keyboard brings the editor, focused.
+    await pre.focus();
+    const editor = await editorOf(figure, /Main\.qml/);
+    await expect(editor).toBeFocused();
+    expect(editorRequests.length).toBeGreaterThan(0);
+    const after = {
+      code: await box(figure.locator(".ljos-codeblock__editor")),
+      figure: await box(figure),
+      first: await box(editor.locator(".tok-keyword").first()),
+    };
+    for (const part of ["code", "figure", "first"])
+      for (const side of ["x", "y", "width", "height"]) expect(Math.abs(after[part][side] - before[part][side]), `${part}.${side}`).toBeLessThan(0.5);
+    await page.evaluate(() => new Promise(requestAnimationFrame));
+    expect(await page.evaluate(() => window.shifts)).toBe(0);
+  });
+});
+
+plain("on a phone the code is 16px, a tap puts the caret in the editor, and nothing scrolls sideways", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 3 });
+  const page = await context.newPage();
+  await page.goto(`http://127.0.0.1:${process.env.LJOS_WEB_PORT ?? 4174}/codeblocks.html`);
+  await page.waitForFunction(() => window.ready);
+  const figure = counterFigure(page);
+  await live(figure);
+  // Below 16px a phone zooms into a field on focus.
+  expect(parseFloat(await figure.locator("pre.ljos-code, .ljos-codeblock__editor").first().evaluate((el) => getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(16);
+  const editor = await editorOf(figure, /Main\.qml/);
+  expect(parseFloat(await editor.evaluate((el) => getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(16);
+  await editor.locator(".cm-line").nth(2).tap();
+  await expect(editor).toBeFocused();
+  for (const at of await page.locator("[data-ljos-codeblock]").all()) await at.scrollIntoViewIfNeeded();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  await context.close();
 });

@@ -18,8 +18,7 @@
   border-bottom: 1px solid var(--ljos-codeblock-border, color-mix(in srgb, currentColor 22%, transparent));
   font-size: 0.85em;
 }
-.ljos-codeblock__tabs { display: flex; gap: 0.3em; flex-wrap: wrap; }
-.ljos-codeblock__tab, .ljos-codeblock__reset {
+.ljos-codeblock__reset {
   font: inherit;
   padding: 0.15em 0.55em;
   border: 1px solid var(--ljos-codeblock-border, color-mix(in srgb, currentColor 22%, transparent));
@@ -28,9 +27,7 @@
   color: inherit;
   cursor: pointer;
 }
-.ljos-codeblock__tab[aria-pressed="true"] { background: color-mix(in srgb, currentColor 12%, transparent); }
-.ljos-codeblock__tab:focus-visible, .ljos-codeblock__reset:focus-visible,
-.ljos-codeblock__editor:focus-visible { outline: 2px solid var(--ljos-codeblock-focus, currentColor); outline-offset: 1px; }
+.ljos-codeblock__reset:focus-visible { outline: 2px solid var(--ljos-codeblock-focus, currentColor); outline-offset: 1px; }
 .ljos-codeblock__before {
   padding: 0.1em 0.5em;
   border-radius: 4px;
@@ -46,23 +43,61 @@
   align-items: start;
 }
 .ljos-codeblock__code { min-width: 0; }
-.ljos-codeblock__code pre, .ljos-codeblock__source pre { margin: 0; padding: 0.75em 0.9em; overflow-x: auto; }
 .ljos-codeblock__file { margin: 0; padding: 0.4em 0.9em 0; font-size: 0.8em; opacity: 0.7; }
-.ljos-codeblock__editors { min-width: 0; }
-.ljos-codeblock__editor[hidden] { display: none; }
-.ljos-codeblock__editor {
+.ljos-codeblock__source + .ljos-codeblock__source { border-top: 1px solid var(--ljos-codeblock-border, color-mix(in srgb, currentColor 22%, transparent)); }
+
+/* Code, static or in the editor. The build's highlighted <pre> and the
+   editor that takes its place share one box: font, line height,
+   padding, tab size and height limit are set here for both, so the
+   editor coming in moves no line. */
+.ljos-code, .ljos-codeblock__editor {
+  --ljos-code-pad: 0.75em 0.9em;
   display: block;
-  width: 100%;
   box-sizing: border-box;
+  max-width: 100%;
   margin: 0;
-  padding: 0.75em 0.9em;
-  border: 0;
-  resize: vertical;
-  background: transparent;
-  color: inherit;
+  background: var(--ljos-code-bg, transparent);
+  color: var(--ljos-code-fg, inherit);
   font: 0.9em/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   tab-size: 4;
 }
+.ljos-code {
+  padding: var(--ljos-code-pad);
+  overflow: auto;
+  max-height: calc(28 * 1.5em + 1.5em);
+  white-space: pre;
+}
+.ljos-code > code { font: inherit; padding: 0; margin: 0; background: none; color: inherit; border: 0; white-space: inherit; }
+.ljos-codeblock__editor .cm-scroller { max-height: calc(28 * 1.5em + 1.5em); }
+.ljos-codeblock__source pre.ljos-code[role="textbox"] { cursor: text; }
+.ljos-code:focus-visible { outline: 2px solid var(--ljos-codeblock-focus, currentColor); outline-offset: -2px; }
+.ljos-code ::selection, .ljos-codeblock__editor ::selection { background: var(--ljos-code-selection, color-mix(in srgb, currentColor 22%, transparent)); }
+/* A phone zooms into a field whose text is under 16px when it is
+   focused: on a touch screen the code is 16px, static and editing
+   alike, so tapping in neither zooms nor moves a line. */
+@media (pointer: coarse) {
+  .ljos-code, .ljos-codeblock__editor { font-size: max(16px, 0.9em); }
+}
+
+/* The code theme. A site sets `--ljos-code-<role>`; without it each
+   role is the text's own colour mixed toward a hue, so the fallback
+   reads on a light page and a dark one alike. */
+.tok-keyword { color: var(--ljos-code-keyword, color-mix(in oklab, currentColor 62%, #8b3fd9)); }
+.tok-string { color: var(--ljos-code-string, color-mix(in oklab, currentColor 62%, #2f8a3a)); }
+.tok-number { color: var(--ljos-code-number, color-mix(in oklab, currentColor 62%, #c2571a)); }
+.tok-bool { color: var(--ljos-code-bool, color-mix(in oklab, currentColor 62%, #c2571a)); }
+.tok-null { color: var(--ljos-code-null, color-mix(in oklab, currentColor 62%, #c2571a)); }
+.tok-regexp { color: var(--ljos-code-regexp, color-mix(in oklab, currentColor 62%, #b8326a)); }
+.tok-comment { color: var(--ljos-code-comment, color-mix(in oklab, currentColor 55%, transparent)); font-style: italic; }
+.tok-typeName { color: var(--ljos-code-typeName, color-mix(in oklab, currentColor 62%, #1d6fb8)); }
+.tok-propertyName { color: var(--ljos-code-propertyName, color-mix(in oklab, currentColor 75%, #0e7f86)); }
+.tok-variableName { color: var(--ljos-code-variableName, inherit); }
+.tok-function { color: var(--ljos-code-function, color-mix(in oklab, currentColor 62%, #2d55c8)); }
+.tok-operator { color: var(--ljos-code-operator, color-mix(in oklab, currentColor 80%, transparent)); }
+.tok-punctuation { color: var(--ljos-code-punctuation, color-mix(in oklab, currentColor 70%, transparent)); }
+.tok-meta { color: var(--ljos-code-meta, color-mix(in oklab, currentColor 60%, #8a6d00)); }
+.tok-topic { color: var(--ljos-code-topic, color-mix(in oklab, currentColor 50%, #c2571a)); font-weight: 600; }
+.tok-invalid { color: var(--ljos-code-invalid, inherit); text-decoration: underline wavy var(--ljos-code-diagnostic-error, #c62828); text-decoration-skip-ink: none; }
 .ljos-codeblock__stage {
   position: relative;
   max-width: 100%;
@@ -73,8 +108,9 @@
 .ljos-codeblock__errors {
   padding: 0.55em 0.9em;
   border-top: 1px solid var(--ljos-codeblock-border, color-mix(in srgb, currentColor 22%, transparent));
-  background: var(--ljos-codeblock-error-bg, #fff4f4);
-  color: var(--ljos-codeblock-error-fg, #8a1111);
+  border-left: 3px solid var(--ljos-code-diagnostic-error, #c62828);
+  background: var(--ljos-codeblock-error-bg, color-mix(in srgb, var(--ljos-code-diagnostic-error, #c62828) 9%, transparent));
+  color: var(--ljos-codeblock-error-fg, inherit);
   font: 0.85em/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   white-space: pre-wrap;
 }

@@ -16,6 +16,7 @@ import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { highlightToHtml } from "lezer-ljos/html";
 import { assemble, exampleFiles } from "./parse.js";
 
 export { assemble };
@@ -110,6 +111,15 @@ const prerenderSize = (html) => {
   return width && height ? { width: Math.round(Number(width)), height: Math.round(Number(height)) } : {};
 };
 
+// One fence as static, highlighted HTML: the grammar's `tok-*` classes
+// around its words (lezer-ljos), coloured by codeblock.css's
+// `--ljos-code-*` properties, so a reader without JavaScript sees the
+// colours the editor shows. A language the grammar does not read is
+// written escaped, as it was.
+export function renderCode(code, lang) {
+  return `<pre class="ljos-code"><code class="language-${esc(lang ?? "")}">${highlightToHtml(String(code).replace(/\n$/, ""), lang ?? "")}</code></pre>`;
+}
+
 // The static half of a block: the code, readable as code (a search
 // engine and a reader without JavaScript get the same words), beside
 // what it draws — the example's own HTML as the prerender wrote it,
@@ -125,7 +135,7 @@ export function renderStatic(example, { prerender } = {}) {
       (file) =>
         `<div class="ljos-codeblock__source" data-file="${esc(file.name)}">` +
         (example.display.length > 1 ? `<p class="ljos-codeblock__file">${esc(file.name)}</p>` : "") +
-        `<pre><code class="language-${esc(file.lang)}">${esc(file.code.replace(/\n$/, ""))}</code></pre></div>`,
+        `${renderCode(file.code, file.lang)}</div>`,
     )
     .join("");
   const stage = fragment ?? `<p class="ljos-codeblock__norun">This example runs in the page, with JavaScript on.</p>`;

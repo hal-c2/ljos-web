@@ -1,21 +1,23 @@
 // A live code block in a page (`ljos-web/codeblock`): the code beside
 // its running result, as an editor. The static figure the build wrote
-// (code + the result prerendered, `renderStatic` in build.js) hydrates
-// where it stands — the first making takes the prerendered nodes over
-// (`hydrate` of `ljos-web/object`, as a prerendered page's does) — and
-// every edit is compiled in the page (`ljos-web/compiler`) and put
-// over the running one with its state kept (`ljos-web/reload`): a
-// counter at 3 stays 3 when its colour changes. An edit that does not
-// compile says why beside the code, and the last good result keeps
-// running.
+// (highlighted code + the result prerendered, `renderStatic` in
+// build.js) hydrates where it stands — the first making takes the
+// prerendered nodes over (`hydrate` of `ljos-web/object`, as a
+// prerendered page's does) — and every edit is compiled in the page
+// (`ljos-web/compiler`) and put over the running one with its state
+// kept (`ljos-web/reload`): a counter at 3 stays 3 when its colour
+// changes. An edit that does not compile is marked where it is wrong,
+// summed up beside the code, and the last good result keeps running.
 //
 // Nothing is fetched or compiled before a block is mounted, and
 // `hydrateLiveCodeBlocks` mounts only blocks near the viewport: a long
 // page costs the blocks on it only as its reader reaches them, and an
-// idle page costs nothing. The editor is a plain textarea under a
-// label, so the keyboard and a screen reader reach it as they reach
-// any text field.
-import { exampleFiles } from "./parse.js";
+// idle page costs nothing. The editor (CodeMirror, `editor.js`) is
+// later still: the build's highlighted `<pre>` stays the code until a
+// reader focuses, touches or types in it, or the page is idle, and the
+// editor then takes its place in the same box, the same font and the
+// same colours, so nothing on the page moves.
+import { displayPosition, exampleFiles } from "./parse.js";
 
 // A page may compile with modules of its own (the styles of Qt Quick
 // Controls, say): `options.compile` is then `createCompiler({...})`'s
@@ -27,6 +29,20 @@ async function compilerOf(options) {
   return compile;
 }
 
+// The editor module, once for the page: every block shares it, and a
+// block that asks after it is loaded is upgraded at once (a touch on
+// a phone must focus the editor in the same gesture to raise the
+// keyboard).
+let editorModule = null;
+let editorLoaded = null;
+export function loadEditor() {
+  editorLoaded ??= import("./editor.js").then((module) => (editorModule = module));
+  return editorLoaded;
+}
+
+const idle = (run) =>
+  typeof requestIdleCallback === "function" ? requestIdleCallback(run, { timeout: 4000 }) : setTimeout(run, 1500);
+
 const el = (tag, className, text) => {
   const made = document.createElement(tag);
   if (className) made.className = className;
@@ -34,87 +50,183 @@ const el = (tag, className, text) => {
   return made;
 };
 
+let ids = 0;
+
+// The character offset a point of `pre` is at, so a click that brings
+// the editor in puts its caret where the reader clicked.
+function offsetAt(pre, x, y) {
+  const at = document.caretPositionFromPoint?.(x, y);
+  const node = at?.offsetNode ?? document.caretRangeFromPoint?.(x, y)?.startContainer;
+  const offset = at?.offset ?? document.caretRangeFromPoint?.(x, y)?.startOffset;
+  if (!node || !pre.contains(node)) return null;
+  const range = document.createRange();
+  range.setStart(pre, 0);
+  range.setEnd(node, offset);
+  return range.toString().length;
+}
+
 // Turns one static figure into the editor + running result. `data` is
 // the figure's payload (`{ entry, before, harness?, display,
-// prerendered }` as build.js wrote it). Answers `{ dispose, idle }`:
-// `idle()` settles when the compile an edit set off has landed.
+// prerendered }` as build.js wrote it). Answers `{ dispose, idle,
+// editors }`: `idle()` settles when the compile an edit set off has
+// landed, and `editors()` when the code is in the editor.
 export async function mountLiveCodeBlock(figure, data, options = {}) {
   const [{ hydrate, mount }, { reload }] = await Promise.all([import("../object.js"), import("../reload.js")]);
   const compile = await compilerOf(options);
   const delay = options.delay ?? 300;
-  const original = data.display.map((file) => file.code);
+  // The code as the `<pre>` shows it, without the file's last newline
+  // (a compile puts it back): an editor holding it would be a line
+  // taller than the code it takes the place of.
+  const original = data.display.map((file) => file.code.replace(/\n$/, ""));
+  const texts = [...original];
 
-  const head = el("div", "ljos-codeblock__head");
-  const tabs = el("div", "ljos-codeblock__tabs");
-  if (data.before) tabs.append(el("span", "ljos-codeblock__before", "Before"));
+  // The figure as the build wrote it stays: its head gains Reset and a
+  // status, each file's highlighted code becomes its editor in place.
+  const head = figure.querySelector(".ljos-codeblock__head") ?? el("div", "ljos-codeblock__head");
   const reset = el("button", "ljos-codeblock__reset", "Reset");
   reset.type = "button";
   const status = el("span", "ljos-codeblock__status");
   status.setAttribute("role", "status");
-  head.append(tabs, reset, status);
+  head.append(reset, status);
 
-  const editors = el("div", "ljos-codeblock__editors");
-  const areas = data.display.map((file, i) => {
-    const area = el("textarea", "ljos-codeblock__editor");
-    area.value = file.code;
-    area.rows = Math.min(28, Math.max(3, file.code.split("\n").length));
-    area.spellcheck = false;
-    area.autocapitalize = "off";
-    area.setAttribute(
-      "aria-label",
-      data.harness && file.name === (data.harnessFile ?? data.entry)
-        ? `Edit the snippet, shown in the ${data.harness} harness (${file.name})`
-        : `Edit ${file.name}`,
-    );
-    area.dataset.file = file.name;
-    area.hidden = i !== 0;
-    editors.append(area);
-    return area;
-  });
-  const buttons = data.display.map((file, i) => {
-    const button = el("button", "ljos-codeblock__tab", file.name);
-    button.type = "button";
-    button.setAttribute("aria-pressed", String(i === 0));
-    button.addEventListener("click", () => show(i));
-    tabs.append(button);
-    return button;
-  });
-  const show = (at) => {
-    areas.forEach((area, i) => (area.hidden = i !== at));
-    buttons.forEach((button, i) => button.setAttribute("aria-pressed", String(i === at)));
-    areas[at].focus();
-  };
-  if (data.display.length === 1) tabs.querySelector(".ljos-codeblock__tab")?.replaceWith(el("span", "ljos-codeblock__file", data.display[0].name));
+  const code = figure.querySelector(".ljos-codeblock__code") ?? el("div", "ljos-codeblock__code");
+  const errors = el("div", "ljos-codeblock__errors");
+  errors.id = `ljos-codeblock-errors-${++ids}`;
+  errors.setAttribute("role", "alert");
+  errors.hidden = true;
 
-  // The stage the build wrote, with the prerendered result in it: its
-  // nodes move into the host hydration takes over, themselves.
+  const labelOf = (file) =>
+    data.harness && file.name === (data.harnessFile ?? data.entry)
+      ? `Edit the snippet, shown in the ${data.harness} harness (${file.name})`
+      : `Edit ${file.name}`;
+  const hint = "Tab indents. Press Escape, then Tab, to leave this editor.";
+
+  // Each file's surface: the build's `<pre>`, focusable and named as
+  // the editor it becomes, until the editor is in.
+  const sources = data.display.map((file) => {
+    let source = [...code.querySelectorAll(".ljos-codeblock__source")].find((s) => s.dataset.file === file.name);
+    if (!source) {
+      source = el("div", "ljos-codeblock__source");
+      source.dataset.file = file.name;
+      const pre = el("pre", "ljos-code");
+      pre.append(el("code", `language-${file.lang}`, file.code.replace(/\n$/, "")));
+      source.append(pre);
+      code.append(source);
+    }
+    const pre = source.querySelector("pre");
+    pre.tabIndex = 0;
+    pre.setAttribute("role", "textbox");
+    pre.setAttribute("aria-multiline", "true");
+    pre.setAttribute("aria-label", labelOf(file));
+    pre.setAttribute("aria-description", hint);
+    return { source, pre };
+  });
+
   const stage = figure.querySelector(".ljos-codeblock__stage") ?? el("div", "ljos-codeblock__stage");
   const host = el("div", "ljos-codeblock__host");
   host.append(...stage.childNodes);
   stage.append(host);
-
-  const body = el("div", "ljos-codeblock__body");
-  body.append(editors, stage);
-  const errors = el("div", "ljos-codeblock__errors");
-  errors.setAttribute("role", "alert");
-  errors.hidden = true;
-  figure.replaceChildren(head, body, errors);
+  if (!figure.contains(code) || !figure.contains(stage)) {
+    const body = el("div", "ljos-codeblock__body");
+    body.append(code, stage);
+    figure.replaceChildren(head, body);
+  }
+  figure.append(errors);
+  figure.querySelector("script[data-ljos-codeblock-data]")?.remove();
   figure.dataset.state = "loading";
 
   let handle = null;
   let turn = 0;
   let timer = 0;
   let pending = Promise.resolve();
+  let disposed = false;
+  // Each file's CodeMirror, once it is in; and the marks each file
+  // carries now, for an editor that comes in after they were made.
+  const editors = [];
+  let marks = data.display.map(() => []);
 
   const said = (lines) => {
     errors.textContent = lines.join("\n");
     errors.hidden = lines.length === 0;
   };
 
-  const current = () => ({
-    ...data,
-    display: data.display.map((file, i) => ({ ...file, code: areas[i].value })),
+  const current = () => ({ ...data, display: data.display.map((file, i) => ({ ...file, code: texts[i] })) });
+
+  const edited = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => (pending = apply()), delay);
+  };
+
+  // The editors take the surfaces' places, every file of the block at
+  // once. A surface the reader is in hands its focus (and the caret
+  // where they clicked) to its editor; one they have left keeps none.
+  let ready = null;
+  const upgrade = (wanted) => {
+    if (disposed || editors.length) return;
+    const { createCodeEditor } = editorModule;
+    data.display.forEach((file, i) => {
+      const { source, pre } = sources[i];
+      const box = el("div", "ljos-codeblock__editor");
+      box.dataset.file = file.name;
+      const focused = document.activeElement === pre;
+      const editor = createCodeEditor(box, {
+        doc: texts[i],
+        lang: file.name.includes(".") ? file.name : file.lang,
+        label: labelOf(file),
+        description: hint,
+        errors: errors.id,
+        onChange(text) {
+          texts[i] = text;
+          edited();
+        },
+      });
+      pre.replaceWith(box);
+      source.dataset.editor = "codemirror";
+      editors[i] = editor;
+      if (marks[i].length) editor.setDiagnostics(marks[i]);
+      const at = wanted?.index === i ? wanted.offset : null;
+      if (focused || wanted?.index === i) {
+        if (at !== null && at !== undefined) editor.view.dispatch({ selection: { anchor: Math.min(at, editor.view.state.doc.length) } });
+        editor.focus();
+      }
+    });
+    figure.dataset.editor = "ready";
+  };
+  const bringIn = (wanted) => {
+    if (editorModule) return upgrade(wanted);
+    ready ??= loadEditor().then(() => upgrade());
+  };
+  sources.forEach(({ pre }, index) => {
+    pre.addEventListener("focus", () => bringIn());
+    pre.addEventListener("keydown", () => bringIn());
+    pre.addEventListener("pointerdown", (event) => {
+      const offset = offsetAt(pre, event.clientX, event.clientY);
+      if (editorModule) {
+        // Same gesture: the editor is in before the browser places
+        // focus, so the caret (and a phone's keyboard) land in it.
+        event.preventDefault();
+        upgrade({ index, offset });
+      } else {
+        ready ??= loadEditor().then(() => upgrade(document.activeElement === pre ? { index, offset } : null));
+      }
+    });
   });
+
+  // The compiler's words, each moved to the file and place the reader
+  // sees, marked in that file's editor and summed up under the block.
+  const diagnose = (diagnostics) => {
+    const example = current();
+    marks = data.display.map(() => []);
+    const lines = diagnostics.map((d) => {
+      const at = displayPosition(example, d);
+      if (at.index >= 0) marks[at.index].push({ ...d, ...at });
+      const name = at.index >= 0 ? data.display[at.index].name : d.file ?? data.entry;
+      const where = at.index >= 0 && at.line ? at : d;
+      return where.line ? `${name}:${where.line}:${where.column ?? 1}: ${d.message}` : `${name}: ${d.message}`;
+    });
+    editors.forEach((editor, i) => editor.setDiagnostics(marks[i]));
+    said(lines);
+  };
 
   async function apply() {
     const mine = ++turn;
@@ -125,7 +237,7 @@ export async function mountLiveCodeBlock(figure, data, options = {}) {
     }));
     if (mine !== turn) return;
     if (made.diagnostics) {
-      said(made.diagnostics.map((d) => (d.line ? `${d.file ?? entry}:${d.line}:${d.column ?? 1}: ${d.message}` : `${d.file ?? entry}: ${d.message}`)));
+      diagnose(made.diagnostics);
       status.textContent = handle ? "" : "This code does not compile; what it drew as written is still shown.";
       if (!handle) figure.dataset.state = "error";
       return;
@@ -136,7 +248,7 @@ export async function mountLiveCodeBlock(figure, data, options = {}) {
       // (hydrate is mount where there are none); edits reload after.
       else handle = (data.prerendered ? hydrate : mount)(made.component, host, {}, { reloadable: true });
     } catch (error) {
-      said([`${entry}: ${error?.message ?? error}`]);
+      diagnose([{ file: entry, message: error?.message ?? String(error) }]);
       status.textContent = "";
       return;
     }
@@ -148,42 +260,34 @@ export async function mountLiveCodeBlock(figure, data, options = {}) {
       host.style.cssText = `width:${Math.round(width)}px;height:${Math.round(height)}px`;
       stage.style.cssText = `width:${Math.round(width)}px;height:${Math.round(height)}px`;
     }
-    said([]);
+    diagnose([]);
     status.textContent = "";
     figure.dataset.state = "live";
   }
 
-  const edited = () => {
-    clearTimeout(timer);
-    timer = setTimeout(() => (pending = apply()), delay);
-  };
-  for (const area of areas) {
-    area.addEventListener("input", edited);
-    // Tab indents, as in an editor — but never traps: Shift+Tab always
-    // leaves, and Escape turns capture off until the field is entered
-    // again, so the next Tab leaves too. The field's hint says so.
-    let escaped = false;
-    area.setAttribute("aria-description", "Tab indents. Press Escape, then Tab, to leave this editor.");
-    area.addEventListener("focus", () => (escaped = false));
-    area.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") return void (escaped = true);
-      if (event.key !== "Tab" || event.shiftKey || escaped) return;
-      event.preventDefault();
-      area.setRangeText("    ", area.selectionStart, area.selectionEnd, "end");
-      edited();
-    });
-  }
   reset.addEventListener("click", () => {
-    areas.forEach((area, i) => (area.value = original[i]));
+    texts.splice(0, texts.length, ...original);
+    editors.forEach((editor, i) => editor.setText(original[i]));
     pending = apply();
   });
 
   pending = apply();
+  // The editor comes in when the page has nothing better to do, so a
+  // reader who reaches for the code mostly finds it already there.
+  if (options.editor !== "on-demand") pending.then(() => idle(() => bringIn()));
   return {
     idle: () => pending,
+    editors: async () => {
+      bringIn();
+      await loadEditor();
+      upgrade();
+      return editors;
+    },
     dispose: () => {
+      disposed = true;
       turn++;
       clearTimeout(timer);
+      editors.forEach((editor) => editor.destroy());
       handle?.root?.dispose?.();
     },
   };
@@ -203,6 +307,8 @@ export function payloadOf(figure) {
 // Hydrates every `[data-ljos-codeblock]` figure under `root`, each only
 // as it nears the viewport. A figure whose payload does not read is
 // left as the build wrote it: code and its prerender, never a hole.
+// `options.editor: "on-demand"` keeps the editor out until a reader
+// reaches for the code (no idle load).
 export function hydrateLiveCodeBlocks(root = document, options = {}) {
   const figures = [...root.querySelectorAll("[data-ljos-codeblock]")];
   const mounted = new Map();
