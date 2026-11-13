@@ -68,15 +68,21 @@ the project-path build runs `base.spec.js`.
 |---|---|---|
 | off | (any) | nothing: the build and its tests only |
 | on | off (default) | the preview, built for `/ljos-web/`, at `https://hal-c2.github.io/ljos-web/` |
-| on | on | the root build with a `CNAME` of `ljos.dev`, for `https://ljos.dev/` |
+| on | on | the root build with a `CNAME` naming the repository's Pages domain, for `https://ljos.dev/` |
+
+The deploy step reads the repository's Pages custom domain and
+fails when `custom_domain` disagrees with it: on with no domain set,
+or off once one is (Pages would serve the project-path build at the
+domain's root, where every link 404s). After step 5 below, every
+deploy is a dispatch with `custom_domain` on.
 
 Once, before the first deploy: Settings → Pages → Build and
 deployment → Source: **GitHub Actions**.
 
 GitHub ignores a `CNAME` file in a deploy made by an Actions
 workflow; the domain is the repository's Pages setting. The file
-the domain build writes only records which build is meant for the
-domain. Set the domain in this order, from GitHub's "Managing a
+the domain build writes names that setting, and only records which
+build is meant for the domain. Set the domain in this order, from GitHub's "Managing a
 custom domain for your GitHub Pages site":
 
 1. Verify `ljos.dev` for the hal-c2 organisation (Organisation
@@ -114,7 +120,11 @@ custom domain for your GitHub Pages site":
 5. Dispatch the workflow with `deploy` and `custom_domain` on.
 
 With the custom domain set, `hal-c2.github.io/ljos-web/` redirects
-to `ljos.dev`, so the preview build is for before that step.
+to `ljos.dev`, so the preview build is for before step 2; from then
+on a dispatch without `custom_domain` fails rather than deploy it.
+Between step 2 and step 5 the domain serves the preview build, whose
+links point below `/ljos-web/`: dispatch step 5 as soon as HTTPS is
+on.
 
 Decisions taken here, of a piece with the sibling lanes':
 

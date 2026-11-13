@@ -10,13 +10,18 @@ on:
         type: boolean
         default: false
       custom_domain:
-        description: "Build for ljos.dev at the domain's root and ship its CNAME (only once DNS and the repo's Pages domain are set; see site-ljos/README.md)"
+        description: "Build for the repository's Pages custom domain, at its root, and ship its CNAME (only once DNS and the domain are set; see site-ljos/README.md)"
         type: boolean
         default: false
 
+permissions:
+  contents: read
+
+# A newer push supersedes a pull request's run; a dispatch is never
+# cancelled by another run, so a deploy it asked for is not lost.
 concurrency:
-  group: site-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.event_name == 'workflow_dispatch' && format('site-dispatch-{0}', github.run_id) || format('site-{0}', github.ref) }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 
 env:
   CARGO_NET_GIT_FETCH_WITH_CLI: "true"
@@ -25,6 +30,10 @@ env:
 jobs:
   build:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      # The deploy step reads the repository's Pages domain.
+      pages: read
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - name: Docs, at the pinned ljos-ui revision
@@ -116,19 +125,43 @@ jobs:
       # the Astro reference. Only a manual dispatch that asks for it
       # deploys: by default the github.io preview, under the project
       # path; with custom_domain, the root build and a CNAME naming
-      # ljos.dev. GitHub ignores a CNAME file in an Actions deploy, so
-      # the file only records the intent: the domain itself is the
-      # repository's Pages setting, set by hand once DNS is in place.
+      # the domain. The domain itself is the repository's Pages
+      # setting, set by hand once DNS is in place (GitHub ignores a
+      # CNAME file in an Actions deploy; the file records the intent).
+      # Pages serves the deploy wherever that setting says, and a
+      # build for the other place breaks every link, so a dispatch
+      # whose custom_domain disagrees with it fails instead of
+      # deploying. The CNAME names the setting, so a fork never
+      # claims ljos.dev.
       - name: The site Pages serves
         if: ${{ inputs.deploy == true }}
         id: pages
         env:
           CUSTOM_DOMAIN: ${{ inputs.custom_domain }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
         run: |
-          if [ "$CUSTOM_DOMAIN" = "true" ]; then
-            dir="$RUNNER_TEMP/site-ljos-root"
-            echo "ljos.dev" > "$dir/CNAME"
+          # A 404 is a repository whose Pages is not set up yet: no domain.
+          if domain=$(gh api "repos/$REPO/pages" --jq '.cname // ""' 2>"$RUNNER_TEMP/pages.err"); then
+            :
+          elif grep -q "HTTP 404" "$RUNNER_TEMP/pages.err"; then
+            domain=""
           else
+            cat "$RUNNER_TEMP/pages.err" >&2
+            exit 1
+          fi
+          if [ "$CUSTOM_DOMAIN" = "true" ]; then
+            if [ -z "$domain" ]; then
+              echo "::error::custom_domain is on, but $REPO has no Pages custom domain: set it first (site-ljos/README.md, steps 1-4)"
+              exit 1
+            fi
+            dir="$RUNNER_TEMP/site-ljos-root"
+            echo "$domain" > "$dir/CNAME"
+          else
+            if [ -n "$domain" ]; then
+              echo "::error::Pages serves $REPO at the root of $domain, where the project-path build breaks every link: dispatch with custom_domain on"
+              exit 1
+            fi
             dir="$RUNNER_TEMP/site-ljos-project"
           fi
           echo "dir=$dir" >> "$GITHUB_OUTPUT"

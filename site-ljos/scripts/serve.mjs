@@ -14,6 +14,11 @@ const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/cs
 
 createServer((request, response) => {
   let path = decodeURIComponent(new URL(request.url, "http://site").pathname);
+  // The bare project path is sent on to the base, as Pages does.
+  if (base !== "/" && path === base.slice(0, -1)) {
+    response.writeHead(301, { location: base }).end();
+    return;
+  }
   if (!path.startsWith(base)) {
     response.writeHead(404).end(`not here: the site stands at ${base}\n`);
     return;

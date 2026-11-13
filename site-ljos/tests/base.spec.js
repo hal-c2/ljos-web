@@ -32,6 +32,15 @@ test(`every page names the base it was built for (${base})`, () => {
   expect(wrong.map((file) => file.slice(here.length + 1))).toEqual([]);
 });
 
+// Pages sends the bare project path on to the base; so does the
+// local server, or a reader who types it sees a false "not here".
+test(`${base.slice(0, -1) || "/"} is sent on to ${base}`, async ({ request }) => {
+  test.skip(base === "/", "the root has no bare form");
+  const response = await request.get(base.slice(0, -1), { maxRedirects: 0 });
+  expect(response.status()).toBe(301);
+  expect(response.headers().location).toBe(base);
+});
+
 for (const route of ["", "start/", "demos/"]) {
   test(`${base}${route} asks for nothing outside ${base}, and gets all it asks for`, async ({ page }) => {
     const gaps = [];
