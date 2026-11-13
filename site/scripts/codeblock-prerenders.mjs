@@ -12,7 +12,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkExamples, hashExample, loadHarnesses, renderPrerenders } from "ljos-web/codeblocks";
 import { assemble, extractBlocks, tagged } from "ljos-web/codeblocks/parse";
-import { pageRecords } from "./codeblocks-ledger.mjs";
+import { exampleKeys, listedEverywhere, pageRecords, readLedger } from "./codeblocks-ledger.mjs";
 
 const siteRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const candidates = [
@@ -50,10 +50,21 @@ for (const page of pages) {
 }
 const examples = [...byHash.values()];
 const claimed = (example) => strict || example.blocks.some(tagged);
+// An example the ledger lists everywhere it stands is plain by the
+// docs' own word, so it does not stop the build; the suite holds the
+// report to the ledger. Every other claim to run is kept.
+const ledger = readLedger();
+const keysOf = new Map();
+for (const { page, fences, examples: shown } of onPages)
+  for (const { example, key } of exampleKeys(page, fences, shown)) {
+    const hash = hashExample(example);
+    keysOf.set(hash, [...(keysOf.get(hash) ?? []), key]);
+  }
+const mustRun = (example) => claimed(example) && !listedEverywhere(keysOf.get(hashExample(example)) ?? [], ledger);
 const failures = checkExamples(examples, { qmlc });
 const failed = new Map(failures.map(({ example, diagnostics }) => [hashExample(example), diagnostics]));
 for (const { example, diagnostics } of failures) {
-  if (claimed(example)) {
+  if (mustRun(example)) {
     console.error(`codeblock-prerenders: a code block does not compile:\n${diagnostics.join("\n")}`);
     process.exit(1);
   }
@@ -64,7 +75,7 @@ const runnable = examples.filter((example) => !failed.has(hashExample(example)))
 const cacheDir = join(siteRoot, ".codeblock-prerenders");
 const { manifest, failures: unmade } = await renderPrerenders(runnable, { cacheDir, qmlc });
 for (const { example, diagnostics } of unmade) {
-  if (claimed(example)) {
+  if (mustRun(example)) {
     console.error(`codeblock-prerenders: a code block does not run:\n${diagnostics.join("\n")}`);
     process.exit(1);
   }

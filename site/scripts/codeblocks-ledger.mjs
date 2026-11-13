@@ -30,25 +30,44 @@ export function pageOfRoute(route) {
 }
 
 /**
- * One page's examples as the report holds them. `fences` are the page's
- * code blocks in order, as given to `assemble`; `outcome(example)` says
- * `live`, `not compiling` or `not running`, with the diagnostics.
+ * Each of a page's examples with its name, `<page> <n>`. `fences` are
+ * the page's code blocks in order, as given to `assemble`.
  */
-export function pageRecords(page, fences, examples, outcome, tagged) {
+export function exampleKeys(page, fences, examples) {
   const ordinals = new Map();
   for (const fence of fences) if (fence.lang === "qml") ordinals.set(fence, ordinals.size + 1);
   return examples.map((example) => {
-    const ns = example.blocks.map((block) => ordinals.get(block)).filter((n) => n !== undefined);
+    const n = Math.min(...example.blocks.map((block) => ordinals.get(block)).filter((k) => k !== undefined));
+    return { example, n, key: `${page} ${n}` };
+  });
+}
+
+/**
+ * One page's examples as the report holds them. `outcome(example)`
+ * says `live`, `not compiling` or `not running`, with the diagnostics.
+ */
+export function pageRecords(page, fences, examples, outcome, tagged) {
+  return exampleKeys(page, fences, examples).map(({ example, n }) => {
     const { state, diagnostics = [] } = outcome(example);
     return {
       page,
-      n: Math.min(...ns),
+      n,
       line: example.blocks[0].line ?? 0,
       claimed: example.blocks.some(tagged),
       state,
       diagnostics: diagnostics.slice(0, 3),
     };
   });
+}
+
+/**
+ * Whether an example that claims to run may stand plain instead of
+ * stopping the build: the ledger lists it on every page that shows it,
+ * by the `keys` `exampleKeys` gives it there. One page left out would
+ * be a plain example nobody said was plain.
+ */
+export function listedEverywhere(keys, ledger) {
+  return keys.length > 0 && keys.every((key) => ledger.entries.has(key));
 }
 
 export function readLedger(text = readFileSync(LEDGER, "utf8")) {

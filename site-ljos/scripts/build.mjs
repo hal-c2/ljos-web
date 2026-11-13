@@ -21,7 +21,7 @@ import { buildSite } from "ljos-web/site";
 import { checkExamples, hashExample, loadHarnesses, loadPrerenders, renderPrerenders } from "ljos-web/codeblocks";
 import { assemble, tagged } from "ljos-web/codeblocks/parse";
 import { packRich } from "ljos-web/codeblock/rich";
-import { pageOfRoute, pageRecords } from "../../site/scripts/codeblocks-ledger.mjs";
+import { exampleKeys, listedEverywhere, pageOfRoute, pageRecords, readLedger } from "../../site/scripts/codeblocks-ledger.mjs";
 
 const here = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 // Where the site stands below its address's root: `/` at a domain of
@@ -106,7 +106,14 @@ const liveAt = new Map(); // a page's code block -> its live payload
   const cacheDir = join(here, ".codeblock-prerenders");
   const checked = checkExamples(gathered.map(({ example }) => example), { qmlc });
   const refused = new Map(checked.map(({ example, diagnostics }) => [example, diagnostics]));
-  const claimed = checked.filter(({ example }) => example.blocks.some(tagged));
+  // As in site/scripts/codeblock-prerenders.mjs: an example the ledger
+  // lists everywhere it stands is plain by the docs' own word.
+  const ledger = readLedger();
+  const keysOf = new Map();
+  for (const { page, fences, examples } of onPages)
+    for (const { example, key } of exampleKeys(page, fences, examples)) keysOf.set(example, [...(keysOf.get(example) ?? []), key]);
+  const mustRun = ({ example }) => example.blocks.some(tagged) && !listedEverywhere(keysOf.get(example) ?? [], ledger);
+  const claimed = checked.filter(mustRun);
   if (claimed.length) {
     console.error(`site-ljos: ${claimed.length} example(s) claim to run and do not compile:`);
     for (const { diagnostics } of claimed) console.error(`  ${diagnostics.join("\n  ")}`);
@@ -115,7 +122,7 @@ const liveAt = new Map(); // a page's code block -> its live payload
   const runnable = gathered.filter(({ example }) => !refused.has(example));
   const { failures } = await renderPrerenders(runnable.map(({ example }) => example), { cacheDir, qmlc });
   const unrun = new Map(failures.map(({ example, diagnostics }) => [example, diagnostics]));
-  const claimedUnrun = failures.filter(({ example }) => example.blocks.some(tagged));
+  const claimedUnrun = failures.filter(mustRun);
   if (claimedUnrun.length) {
     console.error(`site-ljos: ${claimedUnrun.length} example(s) claim to run and did not run:`);
     for (const { diagnostics } of claimedUnrun) console.error(`  ${diagnostics.join("\n  ")}`);
