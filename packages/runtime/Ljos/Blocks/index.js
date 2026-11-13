@@ -321,15 +321,43 @@ function discard(shown) {
   });
 }
 
+// A source that is not had at once: a module still to come, or a file
+// to fetch and compile in the page.
+const arrives = (source) => source != null && source !== "" && !(typeof source === "function" && source.$component === true);
+
 async function load(self, state) {
   const turn = ++state.turn;
-  drop(self, state);
-  const resolved = await resolve(untrack(() => self.source));
+  const source = untrack(() => self.source);
+  // The stage is not empty while a source is on its way (a compile in
+  // the page, a fetch): what is shown stands, and where nothing is yet,
+  // the fallback stands in. Not on the screen, and not in a page
+  // prerendered meanwhile, which would be written with nothing there.
+  // Standing in is not falling back: the status stays Null, the loader
+  // not done, until the source has come or failed.
+  if (!state.shown && arrives(source) && untrack(() => self.fallback) != null) {
+    await showFallback(self, state, "", turn, true);
+    if (turn !== state.turn) return;
+  }
+  const resolved = await resolve(source);
   if (turn !== state.turn) return;
   let why = "";
   if (resolved?.component) {
+    const stood = state.shown;
     const made = runWithOwner(state.owner, () => make(self, state, resolved, false));
     if (made.shown) {
+      // The reader may have used the shell that stood in (it is the
+      // application's own, and runs): the source takes over as a
+      // reload does, with the state of what is in both.
+      if (stood?.standsIn && stood.object && made.shown.object) {
+        try {
+          const { carry } = await import("../../reload.js");
+          if (turn !== state.turn) return void discard(made.shown);
+          carry(stood.object, stood.Component, made.shown.object, made.shown.Component, { across: true });
+        } catch (error) {
+          console.warn(`ShellLoader: what stood in is not carried: ${describe(error, null, resolved.file)}`);
+        }
+      }
+      drop(self, state);
       put(self, state, made.shown);
       write(self, "status", Ready);
       write(self, "error", "");
@@ -339,15 +367,36 @@ async function load(self, state) {
     why = made.error;
   } else if (resolved) why = resolved.error;
   if (why) console.warn(`ShellLoader: ${why}`);
+  // The fallback that stood while the source came stays, with what it
+  // keeps, and says why the source did not take its place.
+  const standing = state.shown;
+  if (standing?.fallback && standing.from === untrack(() => self.fallback)) {
+    write(self, "error", why);
+    write(self, "status", Fallback);
+    settle();
+    return;
+  }
+  drop(self, state);
   await showFallback(self, state, why, turn);
 }
 
 // Shows the fallback in place of the source's shell, which did not work
-// for `why` (empty when there is no source).
-async function showFallback(self, state, why, turn) {
+// for `why` (empty when there is no source). One that only `standsIn`
+// for a source on its way says nothing, done or not: the source will.
+async function showFallback(self, state, why, turn, standsIn = false) {
   const fallback = untrack(() => self.fallback);
   const resolved = await resolve(fallback);
   if (turn !== state.turn) return;
+  if (standsIn) {
+    const made = resolved?.component ? runWithOwner(state.owner, () => make(self, state, resolved, true)) : null;
+    if (made?.shown) {
+      made.shown.from = fallback;
+      made.shown.standsIn = true;
+      put(self, state, made.shown);
+      settle();
+    }
+    return;
+  }
   if (!resolved) {
     write(self, "error", why);
     write(self, "status", why ? Failed : Null);
@@ -356,6 +405,7 @@ async function showFallback(self, state, why, turn) {
   }
   const made = resolved.component ? runWithOwner(state.owner, () => make(self, state, resolved, true)) : resolved;
   if (made.shown) {
+    made.shown.from = fallback;
     put(self, state, made.shown);
     write(self, "error", why);
     write(self, "status", Fallback);
@@ -385,6 +435,9 @@ async function reloaded(self) {
       return why;
     }
     if (why) write(self, "error", why);
+    // What stood in for the first load, which this turn took over,
+    // now stands as the fallback: the loader is done.
+    if (why && old.standsIn) write(self, "status", Fallback);
     settle();
     return why;
   }
@@ -392,10 +445,14 @@ async function reloaded(self) {
   if (made.error) {
     console.warn(`ShellLoader: reload: ${made.error}`);
     if (old?.fallback) write(self, "error", made.error);
+    if (old?.standsIn) write(self, "status", Fallback);
     if (!old) await showFallback(self, state, made.error, turn);
     return made.error;
   }
-  if (old && !old.fallback && old.object && made.shown.object) {
+  // What stood in while the first source came (or stayed when it
+  // failed) is the reader's too: a reload from it carries across, as
+  // the source's arrival would have.
+  if (old && (!old.fallback || old.standsIn) && old.object && made.shown.object) {
     try {
       const { carry } = await import("../../reload.js");
       if (turn !== state.turn) {
@@ -403,7 +460,7 @@ async function reloaded(self) {
         discard(made.shown);
         return "";
       }
-      carry(old.object, old.Component, made.shown.object, made.shown.Component);
+      carry(old.object, old.Component, made.shown.object, made.shown.Component, { across: !!old.standsIn });
     } catch (error) {
       // The old shell was only read from: it stays, and the new one goes.
       discard(made.shown);

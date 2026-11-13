@@ -263,6 +263,61 @@ test.describe("A ShellLoader shows a user's shell, or the application's own when
       expect(await read(page, "loader", "status")).toBe(1);
       expect(await read(page, "loader", "width")).toBe(50);
     });
+
+    // The stage is never empty while the user's shell is fetched and
+    // compiled, nor a page prerendered meanwhile: the application's own
+    // stands in, and the loader is not done (status Null) until the
+    // user's has come, which takes over with the state of what is in
+    // both.
+    test("While a user's shell is on its way, the application's own stands in", async ({ page }) => {
+      let release;
+      const held = new Promise((done) => (release = done));
+      await page.route("**/user/Shell.qml", async (route) => {
+        await held;
+        await route.fulfill({ body: 'import QtQuick\nRectangle { objectName: "user-shell"; width: 50; height: 20 }\n', contentType: "text/plain" });
+      });
+      await opened(page, "shellsfetched");
+      await expect.poll(() => named(page, "loader/default-shell")).toBe(true);
+      expect(await read(page, "loader", "status")).toBe(0);
+      expect(await read(page, "loader", "error")).toBe("");
+      // What the reader did with the shell that stood in, the user's
+      // takes over with, as a reload does.
+      await page.evaluate(() => {
+        window.named("loader/default-shell").opacity = 0.5;
+      });
+      release();
+      await settled(page);
+      expect(await named(page, "loader/user-shell")).toBe(true);
+      expect(await named(page, "loader/default-shell")).toBe(false);
+      expect(await read(page, "loader", "status")).toBe(1);
+      expect(await read(page, "loader/user-shell", "opacity")).toBe(0.5);
+    });
+
+    // The two shells are of two builds: the application's, whose files a
+    // minifier named, and the user's, compiled in the page. A block of
+    // both is found by where it is and what it is built on, not by what
+    // its file is called in either.
+    test("The user's shell takes over the blocks of the one that stood in, whichever build made them", async ({ page }) => {
+      let release;
+      const held = new Promise((done) => (release = done));
+      await page.route("**/user/Shell.qml", async (route) => {
+        await held;
+        await route.fulfill({
+          body: 'import QtQuick\nRectangle {\n  objectName: "user-shell"; width: 50; height: 20\n  component Counted: Item { property int n: 0 }\n  Counted { id: tally; objectName: "tally" }\n}\n',
+          contentType: "text/plain",
+        });
+      });
+      await opened(page, "shellsheld");
+      await expect.poll(() => named(page, "loader/default-shell/tally")).toBe(true);
+      await page.evaluate(() => {
+        window.named("loader/default-shell/tally").n = 3;
+        window.flush();
+      });
+      release();
+      await settled(page);
+      expect(await named(page, "loader/user-shell")).toBe(true);
+      expect(await read(page, "loader/user-shell/tally", "n")).toBe(3);
+    });
   });
 
   test.describe("A shell that does not work gives way to the fallback", () => {
@@ -474,6 +529,27 @@ test.describe("A ShellLoader shows a user's shell, or the application's own when
         expect(await read(page, "loader", "error")).not.toBe("");
       });
     }
+
+    // An edit while the first source is still on its way: what the reader
+    // did with the shell that stood in, the edited one takes over with.
+    test("A reload while the application's own stands in keeps what it holds", async ({ page }) => {
+      let asked = 0;
+      await page.route("**/user/Shell.qml", async (route) => {
+        // The first load's fetch never comes; the reload's does.
+        if (++asked === 1) return;
+        await route.fulfill({ body: 'import QtQuick\nRectangle { objectName: "user-shell"; width: 50; height: 20 }\n', contentType: "text/plain" });
+      });
+      await opened(page, "shellsfetched");
+      await expect.poll(() => named(page, "loader/default-shell")).toBe(true);
+      await page.evaluate(() => {
+        window.named("loader/default-shell").opacity = 0.5;
+      });
+      expect(await reload(page)).toBe("");
+      expect(await named(page, "loader/user-shell")).toBe(true);
+      expect(await named(page, "loader/default-shell")).toBe(false);
+      expect(await read(page, "loader", "status")).toBe(1);
+      expect(await read(page, "loader/user-shell", "opacity")).toBe(0.5);
+    });
 
     test("Mending the shell's file replaces the fallback", async ({ page }) => {
       await serve(page, { "Shell.qml": "import QtQuick\nRectangle { NoSuchThing { } }\n" });
