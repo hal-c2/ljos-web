@@ -1,0 +1,546 @@
+# fetching 1 (qml) {"dialect":"ts"}
+
+import Ljos.Ui
+import Ljos.Core
+
+Item {
+    id: root
+    property string activity: ""
+
+    function load(): void {
+        const run = async (): Promise<void> => {
+            const reply = await fetch("https://example.org/activity.json")
+            if (!reply.ok) {
+                root.activity = `${reply.status} ${reply.statusText}`
+                return
+            }
+            const given: unknown = await reply.json()
+            if (typeof given === "object" && given !== null && "activity" in given && typeof given.activity === "string") {
+                root.activity = given.activity
+            }
+        }
+        run()
+    }
+
+    Component.onCompleted: load()
+}
+
+==>
+
+Program(
+  UiImport(import,UiQualifiedId(UiIdentifier,".",UiIdentifier)),
+  UiImport(import,UiQualifiedId(UiIdentifier,".",UiIdentifier)),
+  UiObjectDefinition(
+    UiQualifiedId(UiIdentifier),
+    UiObjectInitializer(
+      "{",
+      UiBinding(
+        UiQualifiedId(UiIdentifier),
+        ":",
+        ExpressionStatement(VariableName)),
+      UiPropertyDeclaration(
+        property,
+        UiPropertyType(UiQualifiedId(UiIdentifier)),
+        PropertyDefinition,
+        ":",
+        ExpressionStatement(String)),
+      FunctionDeclaration(
+        function,
+        VariableDefinition,
+        ParamList("(",")"),
+        TypeAnnotation(":",VoidType(void)),
+        Block(
+          "{",
+          VariableDeclaration(
+            const,
+            VariableDefinition,
+            Equals,
+            ArrowFunction(
+              async,
+              ParamList("(",")"),
+              TypeAnnotation(
+                ":",
+                ParameterizedType(
+                  TypeName,
+                  TypeArgList("<",VoidType(void),">"))),
+              Arrow,
+              Block(
+                "{",
+                VariableDeclaration(
+                  const,
+                  VariableDefinition,
+                  Equals,
+                  AwaitExpression(
+                    await,
+                    CallExpression(VariableName,ArgList("(",String,")")))),
+                IfStatement(
+                  if,
+                  ParenthesizedExpression(
+                    "(",
+                    UnaryExpression(
+                      LogicOp,
+                      MemberExpression(VariableName,".",PropertyName)),
+                    ")"),
+                  Block(
+                    "{",
+                    ExpressionStatement(
+                      AssignmentExpression(
+                        MemberExpression(VariableName,".",PropertyName),
+                        Equals,
+                        TemplateString(
+                          Interpolation(
+                            InterpolationStart,
+                            MemberExpression(VariableName,".",PropertyName),
+                            InterpolationEnd),
+                          Interpolation(
+                            InterpolationStart,
+                            MemberExpression(VariableName,".",PropertyName),
+                            InterpolationEnd)))),
+                    ReturnStatement(return),
+                    "}")),
+                VariableDeclaration(
+                  const,
+                  VariableDefinition,
+                  TypeAnnotation(":",TypeName),
+                  Equals,
+                  AwaitExpression(
+                    await,
+                    CallExpression(
+                      MemberExpression(VariableName,".",PropertyName),
+                      ArgList("(",")")))),
+                IfStatement(
+                  if,
+                  ParenthesizedExpression(
+                    "(",
+                    BinaryExpression(
+                      BinaryExpression(
+                        BinaryExpression(
+                          BinaryExpression(
+                            UnaryExpression(typeof,VariableName),
+                            CompareOp,
+                            String),
+                          LogicOp,
+                          BinaryExpression(VariableName,CompareOp,null)),
+                        LogicOp,
+                        BinaryExpression(String,in,VariableName)),
+                      LogicOp,
+                      BinaryExpression(
+                        UnaryExpression(
+                          typeof,
+                          MemberExpression(VariableName,".",PropertyName)),
+                        CompareOp,
+                        String)),
+                    ")"),
+                  Block(
+                    "{",
+                    ExpressionStatement(
+                      AssignmentExpression(
+                        MemberExpression(VariableName,".",PropertyName),
+                        Equals,
+                        MemberExpression(VariableName,".",PropertyName))),
+                    "}")),
+                "}"))),
+          ExpressionStatement(CallExpression(VariableName,ArgList("(",")"))),
+          "}")),
+      UiBinding(
+        UiQualifiedId(UiIdentifier,".",UiIdentifier),
+        ":",
+        ExpressionStatement(CallExpression(VariableName,ArgList("(",")")))),
+      "}")))
+
+# fetching 2 (qml) {"dialect":"ts"}
+
+import Ljos.Ui
+import Ljos.Core
+
+Item {
+    id: root
+    property string saved: ""
+
+    function save(name: string): void {
+        const headers = new Headers({ "Content-Type": "application/json" })
+        fetch("https://example.org/names", { method: "POST", headers, body: JSON.stringify({ name }) })
+            .then((reply: Response) => reply.text())
+            .then((text: string) => { root.saved = text })
+    }
+
+    Component.onCompleted: save("Ada")
+}
+
+==>
+
+Program(
+  UiImport(import,UiQualifiedId(UiIdentifier,".",UiIdentifier)),
+  UiImport(import,UiQualifiedId(UiIdentifier,".",UiIdentifier)),
+  UiObjectDefinition(
+    UiQualifiedId(UiIdentifier),
+    UiObjectInitializer(
+      "{",
+      UiBinding(
+        UiQualifiedId(UiIdentifier),
+        ":",
+        ExpressionStatement(VariableName)),
+      UiPropertyDeclaration(
+        property,
+        UiPropertyType(UiQualifiedId(UiIdentifier)),
+        PropertyDefinition,
+        ":",
+        ExpressionStatement(String)),
+      FunctionDeclaration(
+        function,
+        VariableDefinition,
+        ParamList("(",VariableDefinition,TypeAnnotation(":",TypeName),")"),
+        TypeAnnotation(":",VoidType(void)),
+        Block(
+          "{",
+          VariableDeclaration(
+            const,
+            VariableDefinition,
+            Equals,
+            NewExpression(
+              new,
+              VariableName,
+              ArgList(
+                "(",
+                ObjectExpression("{",Property(String,":",String),"}"),
+                ")"))),
+          ExpressionStatement(
+            CallExpression(
+              MemberExpression(
+                CallExpression(
+                  MemberExpression(
+                    CallExpression(
+                      VariableName,
+                      ArgList(
+                        "(",
+                        String,
+                        ",",
+                        ObjectExpression(
+                          "{",
+                          Property(PropertyDefinition,":",String),
+                          ",",
+                          Property(PropertyDefinition),
+                          ",",
+                          Property(
+                            PropertyDefinition,
+                            ":",
+                            CallExpression(
+                              MemberExpression(VariableName,".",PropertyName),
+                              ArgList(
+                                "(",
+                                ObjectExpression(
+                                  "{",
+                                  Property(PropertyDefinition),
+                                  "}"),
+                                ")"))),
+                          "}"),
+                        ")")),
+                    ".",
+                    PropertyName),
+                  ArgList(
+                    "(",
+                    ArrowFunction(
+                      ParamList(
+                        "(",
+                        VariableDefinition,
+                        TypeAnnotation(":",TypeName),
+                        ")"),
+                      Arrow,
+                      CallExpression(
+                        MemberExpression(VariableName,".",PropertyName),
+                        ArgList("(",")"))),
+                    ")")),
+                ".",
+                PropertyName),
+              ArgList(
+                "(",
+                ArrowFunction(
+                  ParamList(
+                    "(",
+                    VariableDefinition,
+                    TypeAnnotation(":",TypeName),
+                    ")"),
+                  Arrow,
+                  Block(
+                    "{",
+                    ExpressionStatement(
+                      AssignmentExpression(
+                        MemberExpression(VariableName,".",PropertyName),
+                        Equals,
+                        VariableName)),
+                    "}")),
+                ")"))),
+          "}")),
+      UiBinding(
+        UiQualifiedId(UiIdentifier,".",UiIdentifier),
+        ":",
+        ExpressionStatement(
+          CallExpression(VariableName,ArgList("(",String,")")))),
+      "}")))
+
+# fetching 3 (qml) {"dialect":"ts"}
+
+import Ljos.Ui
+import Ljos.Core
+
+Item {
+    id: root
+    property string state: "idle"
+
+    function load(): void {
+        const user = new AbortController()
+        const signal = AbortSignal.any([user.signal, AbortSignal.timeout(5000)])
+        const run = async (): Promise<void> => {
+            try {
+                const reply = await fetch("https://example.org/slow", { signal })
+                root.state = `${reply.status}`
+            } catch {
+                root.state = signal.aborted ? "stopped" : "unreachable"
+            }
+        }
+        run()
+        user.abort()
+    }
+
+    Component.onCompleted: load()
+}
+
+==>
+
+Program(
+  UiImport(import,UiQualifiedId(UiIdentifier,".",UiIdentifier)),
+  UiImport(import,UiQualifiedId(UiIdentifier,".",UiIdentifier)),
+  UiObjectDefinition(
+    UiQualifiedId(UiIdentifier),
+    UiObjectInitializer(
+      "{",
+      UiBinding(
+        UiQualifiedId(UiIdentifier),
+        ":",
+        ExpressionStatement(VariableName)),
+      UiPropertyDeclaration(
+        property,
+        UiPropertyType(UiQualifiedId(UiIdentifier)),
+        PropertyDefinition,
+        ":",
+        ExpressionStatement(String)),
+      FunctionDeclaration(
+        function,
+        VariableDefinition,
+        ParamList("(",")"),
+        TypeAnnotation(":",VoidType(void)),
+        Block(
+          "{",
+          VariableDeclaration(
+            const,
+            VariableDefinition,
+            Equals,
+            NewExpression(new,VariableName,ArgList("(",")"))),
+          VariableDeclaration(
+            const,
+            VariableDefinition,
+            Equals,
+            CallExpression(
+              MemberExpression(VariableName,".",PropertyName),
+              ArgList(
+                "(",
+                ArrayExpression(
+                  "[",
+                  MemberExpression(VariableName,".",PropertyName),
+                  ",",
+                  CallExpression(
+                    MemberExpression(VariableName,".",PropertyName),
+                    ArgList("(",Number,")")),
+                  "]"),
+                ")"))),
+          VariableDeclaration(
+            const,
+            VariableDefinition,
+            Equals,
+            ArrowFunction(
+              async,
+              ParamList("(",")"),
+              TypeAnnotation(
+                ":",
+                ParameterizedType(
+                  TypeName,
+                  TypeArgList("<",VoidType(void),">"))),
+              Arrow,
+              Block(
+                "{",
+                TryStatement(
+                  try,
+                  Block(
+                    "{",
+                    VariableDeclaration(
+                      const,
+                      VariableDefinition,
+                      Equals,
+                      AwaitExpression(
+                        await,
+                        CallExpression(
+                          VariableName,
+                          ArgList(
+                            "(",
+                            String,
+                            ",",
+                            ObjectExpression(
+                              "{",
+                              Property(PropertyDefinition),
+                              "}"),
+                            ")")))),
+                    ExpressionStatement(
+                      AssignmentExpression(
+                        MemberExpression(VariableName,".",PropertyName),
+                        Equals,
+                        TemplateString(
+                          Interpolation(
+                            InterpolationStart,
+                            MemberExpression(VariableName,".",PropertyName),
+                            InterpolationEnd)))),
+                    "}"),
+                  CatchClause(
+                    catch,
+                    Block(
+                      "{",
+                      ExpressionStatement(
+                        AssignmentExpression(
+                          MemberExpression(VariableName,".",PropertyName),
+                          Equals,
+                          ConditionalExpression(
+                            MemberExpression(VariableName,".",PropertyName),
+                            LogicOp,
+                            String,
+                            LogicOp,
+                            String))),
+                      "}"))),
+                "}"))),
+          ExpressionStatement(CallExpression(VariableName,ArgList("(",")"))),
+          ExpressionStatement(
+            CallExpression(
+              MemberExpression(VariableName,".",PropertyName),
+              ArgList("(",")"))),
+          "}")),
+      UiBinding(
+        UiQualifiedId(UiIdentifier,".",UiIdentifier),
+        ":",
+        ExpressionStatement(CallExpression(VariableName,ArgList("(",")")))),
+      "}")))
+
+# fetching 4 (javascript) {"top":"Script"}
+
+var http = new XMLHttpRequest()
+http.open("GET", "https://example.org/activity.json", true)
+http.onreadystatechange = function() {
+    if (http.readyState === 4) {
+        got = http.status + " " + http.responseText
+    }
+}
+http.send()
+
+==>
+
+Script(
+  VariableDeclaration(
+    var,
+    VariableDefinition,
+    Equals,
+    NewExpression(new,VariableName,ArgList("(",")"))),
+  ExpressionStatement(
+    CallExpression(
+      MemberExpression(VariableName,".",PropertyName),
+      ArgList("(",String,",",String,",",BooleanLiteral,")"))),
+  ExpressionStatement(
+    AssignmentExpression(
+      MemberExpression(VariableName,".",PropertyName),
+      Equals,
+      FunctionExpression(
+        function,
+        ParamList("(",")"),
+        Block(
+          "{",
+          IfStatement(
+            if,
+            ParenthesizedExpression(
+              "(",
+              BinaryExpression(
+                MemberExpression(VariableName,".",PropertyName),
+                CompareOp,
+                Number),
+              ")"),
+            Block(
+              "{",
+              ExpressionStatement(
+                AssignmentExpression(
+                  VariableName,
+                  Equals,
+                  BinaryExpression(
+                    BinaryExpression(
+                      MemberExpression(VariableName,".",PropertyName),
+                      ArithOp,
+                      String),
+                    ArithOp,
+                    MemberExpression(VariableName,".",PropertyName)))),
+              "}")),
+          "}")))),
+  ExpressionStatement(
+    CallExpression(
+      MemberExpression(VariableName,".",PropertyName),
+      ArgList("(",")"))))
+
+# fetching 5 (javascript) {"top":"Script"}
+
+fetch("https://example.org/activity.json").catch(() => Response.error()).then(async (http: Response) => {
+    got = http.status + " " + (await http.text())
+})
+
+==>
+
+Script(
+  ExpressionStatement(
+    CallExpression(
+      MemberExpression(
+        CallExpression(
+          MemberExpression(
+            CallExpression(VariableName,ArgList("(",String,")")),
+            ".",
+            PropertyName),
+          ArgList(
+            "(",
+            ArrowFunction(
+              ParamList("(",")"),
+              Arrow,
+              CallExpression(
+                MemberExpression(VariableName,".",PropertyName),
+                ArgList("(",")"))),
+            ")")),
+        ".",
+        PropertyName),
+      ArgList(
+        "(",
+        ArrowFunction(
+          async,
+          ParamList("(",VariableDefinition,TypeAnnotation(":",TypeName),")"),
+          Arrow,
+          Block(
+            "{",
+            ExpressionStatement(
+              AssignmentExpression(
+                VariableName,
+                Equals,
+                BinaryExpression(
+                  BinaryExpression(
+                    MemberExpression(VariableName,".",PropertyName),
+                    ArithOp,
+                    String),
+                  ArithOp,
+                  ParenthesizedExpression(
+                    "(",
+                    AwaitExpression(
+                      await,
+                      CallExpression(
+                        MemberExpression(VariableName,".",PropertyName),
+                        ArgList("(",")"))),
+                    ")")))),
+            "}")),
+        ")"))))

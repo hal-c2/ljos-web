@@ -1,0 +1,384 @@
+# Imports: modules, versions, files, qualifiers, pragmas {"dialect":"ts"}
+
+pragma Singleton
+pragma ComponentBehavior: Bound
+import QtQuick
+import QtQuick.Controls 2.15 as C
+import "size.lts" as Size
+import "../live.js" as Live
+
+Item {}
+
+==>
+
+Program(
+  UiPragma(pragma,PragmaName),
+  UiPragma(pragma,PragmaName,":"),
+  UiImport(import,UiQualifiedId(UiIdentifier)),
+  UiImport(
+    import,
+    UiQualifiedId(UiIdentifier,".",UiIdentifier),
+    Version(Number),
+    as,
+    TypeDefinition),
+  UiImport(import,String,as,TypeDefinition),
+  UiImport(import,String,as,TypeDefinition),
+  UiObjectDefinition(UiQualifiedId(UiIdentifier),UiObjectInitializer("{","}")))
+
+# Object members: bindings, grouped and attached properties, nested objects {"dialect":"ts"}
+
+Item {
+    id: root
+    anchors.fill: parent
+    font { pixelSize: 12; bold: true }
+    Component.onCompleted: load()
+    Rectangle { width: 4 }
+}
+
+==>
+
+Program(
+  UiObjectDefinition(
+    UiQualifiedId(UiIdentifier),
+    UiObjectInitializer(
+      "{",
+      UiBinding(
+        UiQualifiedId(UiIdentifier),
+        ":",
+        ExpressionStatement(VariableName)),
+      UiBinding(
+        UiQualifiedId(UiIdentifier,".",UiIdentifier),
+        ":",
+        ExpressionStatement(VariableName)),
+      UiObjectDefinition(
+        UiQualifiedId(UiIdentifier),
+        UiObjectInitializer(
+          "{",
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(Number,";")),
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(BooleanLiteral)),
+          "}")),
+      UiBinding(
+        UiQualifiedId(UiIdentifier,".",UiIdentifier),
+        ":",
+        ExpressionStatement(CallExpression(VariableName,ArgList("(",")")))),
+      UiObjectDefinition(
+        UiQualifiedId(UiIdentifier),
+        UiObjectInitializer(
+          "{",
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(Number)),
+          "}")),
+      "}")))
+
+# Property declarations with modifiers, types and values {"dialect":"ts"}
+
+Item {
+    property int count: 0
+    readonly property real half: count / 2
+    required property string name
+    default property list<Item> kids
+    property var made: ({ a: 1 })
+    property Component row: Text {}
+    property alias label: text.text
+    required name
+}
+
+==>
+
+Program(
+  UiObjectDefinition(
+    UiQualifiedId(UiIdentifier),
+    UiObjectInitializer(
+      "{",
+      UiPropertyDeclaration(
+        property,
+        UiPropertyType(UiQualifiedId(UiIdentifier)),
+        PropertyDefinition,
+        ":",
+        ExpressionStatement(Number)),
+      UiPropertyDeclaration(
+        readonly,
+        property,
+        UiPropertyType(UiQualifiedId(UiIdentifier)),
+        PropertyDefinition,
+        ":",
+        ExpressionStatement(BinaryExpression(VariableName,ArithOp,Number))),
+      UiPropertyDeclaration(
+        required,
+        property,
+        UiPropertyType(UiQualifiedId(UiIdentifier)),
+        PropertyDefinition),
+      UiPropertyDeclaration(
+        default,
+        property,
+        UiPropertyType(
+          UiQualifiedId(UiIdentifier),
+          "<",
+          UiQualifiedId(UiIdentifier),
+          ">"),
+        PropertyDefinition),
+      UiPropertyDeclaration(
+        property,
+        UiPropertyType(var),
+        PropertyDefinition,
+        ":",
+        ExpressionStatement(
+          ParenthesizedExpression(
+            "(",
+            ObjectExpression("{",Property(PropertyDefinition,":",Number),"}"),
+            ")"))),
+      UiPropertyDeclaration(
+        property,
+        UiPropertyType(UiQualifiedId(UiIdentifier)),
+        PropertyDefinition,
+        ":",
+        UiObjectDefinition(
+          UiQualifiedId(VariableName),
+          UiObjectInitializer("{","}"))),
+      UiPropertyDeclaration(
+        property,
+        UiPropertyType(UiQualifiedId(UiIdentifier)),
+        PropertyDefinition,
+        ":",
+        ExpressionStatement(MemberExpression(VariableName,".",PropertyName))),
+      UiRequired(required,PropertyDefinition),
+      "}")))
+
+# Signals, enums, inline components, typed functions {"dialect":"ts"}
+
+Item {
+    signal moved(x: real, y: real)
+    signal cleared
+    signal picked(string name)
+    enum Look { Plain, Bold = 2 }
+    component Badge: Rectangle { radius: 4 }
+    function area(w: number, h: number): number { return w * h }
+    async function load(): Promise<void> {}
+}
+
+==>
+
+Program(
+  UiObjectDefinition(
+    UiQualifiedId(UiIdentifier),
+    UiObjectInitializer(
+      "{",
+      UiSignalDeclaration(
+        signal,
+        PropertyDefinition,
+        UiSignalParams(
+          "(",
+          UiSignalParam(VariableDefinition,TypeAnnotation(":",TypeName)),
+          ",",
+          UiSignalParam(VariableDefinition,TypeAnnotation(":",TypeName)),
+          ")")),
+      UiSignalDeclaration(signal,PropertyDefinition),
+      UiSignalDeclaration(
+        signal,
+        PropertyDefinition,
+        UiSignalParams(
+          "(",
+          UiSignalParam(
+            UiPropertyType(UiQualifiedId(UiIdentifier)),
+            VariableDefinition),
+          ")")),
+      EnumDeclaration(
+        enum,
+        TypeDefinition,
+        EnumBody("{",PropertyName,",",PropertyName,Equals,Number,"}")),
+      UiInlineComponent(
+        component,
+        TypeDefinition,
+        ":",
+        UiObjectDefinition(
+          UiQualifiedId(UiIdentifier),
+          UiObjectInitializer(
+            "{",
+            UiBinding(
+              UiQualifiedId(UiIdentifier),
+              ":",
+              ExpressionStatement(Number)),
+            "}"))),
+      FunctionDeclaration(
+        function,
+        VariableDefinition,
+        ParamList(
+          "(",
+          VariableDefinition,
+          TypeAnnotation(":",TypeName),
+          ",",
+          VariableDefinition,
+          TypeAnnotation(":",TypeName),
+          ")"),
+        TypeAnnotation(":",TypeName),
+        Block(
+          "{",
+          ReturnStatement(
+            return,
+            BinaryExpression(VariableName,ArithOp,VariableName)),
+          "}")),
+      FunctionDeclaration(
+        async,
+        function,
+        VariableDefinition,
+        ParamList("(",")"),
+        TypeAnnotation(
+          ":",
+          ParameterizedType(TypeName,TypeArgList("<",VoidType(void),">"))),
+        Block("{","}")),
+      "}")))
+
+# Handlers: expressions, blocks and typed arrows {"dialect":"ts"}
+
+Tap {
+    onTapped: count = count + 1
+    onPressed: { log("down"); held = true }
+    onDone: (value: string, signal: AbortSignal): Promise<string> => { return value }
+}
+
+==>
+
+Program(
+  UiObjectDefinition(
+    UiQualifiedId(UiIdentifier),
+    UiObjectInitializer(
+      "{",
+      UiBinding(
+        UiQualifiedId(UiIdentifier),
+        ":",
+        ExpressionStatement(
+          AssignmentExpression(
+            VariableName,
+            Equals,
+            BinaryExpression(VariableName,ArithOp,Number)))),
+      UiBinding(
+        UiQualifiedId(UiIdentifier),
+        ":",
+        Block(
+          "{",
+          ExpressionStatement(
+            CallExpression(VariableName,ArgList("(",String,")")),
+            ";"),
+          ExpressionStatement(
+            AssignmentExpression(VariableName,Equals,BooleanLiteral)),
+          "}")),
+      UiBinding(
+        UiQualifiedId(UiIdentifier),
+        ":",
+        ExpressionStatement(
+          ArrowFunction(
+            ParamList(
+              "(",
+              VariableDefinition,
+              TypeAnnotation(":",TypeName),
+              ",",
+              VariableDefinition,
+              TypeAnnotation(":",TypeName),
+              ")"),
+            TypeAnnotation(
+              ":",
+              ParameterizedType(TypeName,TypeArgList("<",TypeName,">"))),
+            Arrow,
+            Block("{",ReturnStatement(return,VariableName),"}")))),
+      "}")))
+
+# Values that are objects, lists of objects and object literals {"dialect":"ts"}
+
+Item {
+    model: ListModel {}
+    states: [ State { name: "on" }, C.State { name: "off" } ]
+    to: { "end": 1 }
+    Behavior on opacity { NumberAnimation { duration: 120 } }
+}
+
+==>
+
+Program(
+  UiObjectDefinition(
+    UiQualifiedId(UiIdentifier),
+    UiObjectInitializer(
+      "{",
+      UiBinding(
+        UiQualifiedId(UiIdentifier),
+        ":",
+        UiObjectDefinition(
+          UiQualifiedId(VariableName),
+          UiObjectInitializer("{","}"))),
+      UiBinding(
+        UiQualifiedId(UiIdentifier),
+        ":",
+        UiArrayBinding(
+          "[",
+          UiObjectDefinition(
+            UiQualifiedId(VariableName),
+            UiObjectInitializer(
+              "{",
+              UiBinding(
+                UiQualifiedId(UiIdentifier),
+                ":",
+                ExpressionStatement(String)),
+              "}")),
+          ",",
+          UiObjectDefinition(
+            UiQualifiedId(MemberExpression(VariableName,".",PropertyName)),
+            UiObjectInitializer(
+              "{",
+              UiBinding(
+                UiQualifiedId(UiIdentifier),
+                ":",
+                ExpressionStatement(String)),
+              "}")),
+          "]")),
+      UiBinding(
+        UiQualifiedId(UiIdentifier),
+        ":",
+        ObjectExpression("{",Property(String,":",Number),"}")),
+      UiOnBinding(
+        UiQualifiedId(UiIdentifier),
+        on,
+        UiPropertyPath(UiIdentifier),
+        UiObjectInitializer(
+          "{",
+          UiObjectDefinition(
+            UiQualifiedId(UiIdentifier),
+            UiObjectInitializer(
+              "{",
+              UiBinding(
+                UiQualifiedId(UiIdentifier),
+                ":",
+                ExpressionStatement(Number)),
+              "}")),
+          "}")),
+      "}")))
+
+# A binding written on the line after its colon {"dialect":"ts"}
+
+Item {
+    readonly property real ratio:
+        width / height
+}
+
+==>
+
+Program(
+  UiObjectDefinition(
+    UiQualifiedId(UiIdentifier),
+    UiObjectInitializer(
+      "{",
+      UiPropertyDeclaration(
+        readonly,
+        property,
+        UiPropertyType(UiQualifiedId(UiIdentifier)),
+        PropertyDefinition,
+        ":",
+        ExpressionStatement(
+          BinaryExpression(VariableName,ArithOp,VariableName))),
+      "}")))

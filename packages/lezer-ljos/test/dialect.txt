@@ -1,0 +1,294 @@
+# The topic is a value; between two values % is modulo {"top":"Script","dialect":"ts"}
+
+x |> % % 3
+
+==>
+
+Script(
+  ExpressionStatement(
+    PipeExpression(
+      VariableName,
+      PipeOp,
+      BinaryExpression(TopicReference,ArithOp,Number))))
+
+# A pipe binds looser than everything but assignment {"top":"Script","dialect":"ts"}
+
+y = a + b |> f(%) |> % * 2
+
+==>
+
+Script(
+  ExpressionStatement(
+    AssignmentExpression(
+      VariableName,
+      Equals,
+      PipeExpression(
+        PipeExpression(
+          BinaryExpression(VariableName,ArithOp,VariableName),
+          PipeOp,
+          CallExpression(VariableName,ArgList("(",TopicReference,")"))),
+        PipeOp,
+        BinaryExpression(TopicReference,ArithOp,Number)))))
+
+# await binds tighter than a pipe {"top":"Script","dialect":"ts"}
+
+await size |> `${%} px`
+
+==>
+
+Script(
+  ExpressionStatement(
+    PipeExpression(
+      AwaitExpression(await,VariableName),
+      PipeOp,
+      TemplateString(
+        Interpolation(InterpolationStart,TopicReference,InterpolationEnd)))))
+
+# A pipe into a match {"top":"Script","dialect":"ts"}
+
+n |> match (%) { when if (% < 2): "few"; default: "many"; }
+
+==>
+
+Script(
+  ExpressionStatement(
+    PipeExpression(
+      VariableName,
+      PipeOp,
+      MatchExpression(
+        match,
+        ParenthesizedExpression("(",TopicReference,")"),
+        MatchBody(
+          "{",
+          MatchClause(
+            when,
+            GuardPattern(
+              if,
+              ParenthesizedExpression(
+                "(",
+                BinaryExpression(TopicReference,CompareOp,Number),
+                ")")),
+            ":",
+            String,
+            ";"),
+          MatchDefault(default,":",String,";"),
+          "}")))))
+
+# match is still a name when no body follows {"top":"Script","dialect":"ts"}
+
+match(x); const match = 1
+
+==>
+
+Script(
+  ExpressionStatement(
+    CallExpression(VariableName,ArgList("(",VariableName,")")),
+    ";"),
+  VariableDeclaration(const,VariableDefinition,Equals,Number))
+
+# Patterns: literals, names, regexes, bindings, arrays, objects, combinators {"top":"Script","dialect":"ts"}
+
+match (v) {
+    when 0: a;
+    when -1: b;
+    when "s": c;
+    when null: d;
+    when /^x/: e;
+    when String: f;
+    when Size.small: g;
+    when let n and if (n > 1): h;
+    when [let head, ...let rest]: i;
+    when { status: 200, let body }: j;
+    when 1 or 2: k;
+    when not 3: l;
+    when (4): m;
+    when if (ready): n;
+    default: o;
+}
+
+==>
+
+Script(
+  ExpressionStatement(
+    MatchExpression(
+      match,
+      ParenthesizedExpression("(",VariableName,")"),
+      MatchBody(
+        "{",
+        MatchClause(when,LiteralPattern(Number),":",VariableName,";"),
+        MatchClause(when,LiteralPattern(ArithOp,Number),":",VariableName,";"),
+        MatchClause(when,LiteralPattern(String),":",VariableName,";"),
+        MatchClause(when,LiteralPattern(null),":",VariableName,";"),
+        MatchClause(when,LiteralPattern(RegExp),":",VariableName,";"),
+        MatchClause(when,ValuePattern(VariableName),":",VariableName,";"),
+        MatchClause(
+          when,
+          ValuePattern(VariableName,".",PropertyName),
+          ":",
+          VariableName,
+          ";"),
+        MatchClause(
+          when,
+          AndPattern(
+            BindingPattern(let,VariableDefinition),
+            and,
+            GuardPattern(
+              if,
+              ParenthesizedExpression(
+                "(",
+                BinaryExpression(VariableName,CompareOp,Number),
+                ")"))),
+          ":",
+          VariableName,
+          ";"),
+        MatchClause(
+          when,
+          ArrayMatchPattern(
+            "[",
+            BindingPattern(let,VariableDefinition),
+            ",",
+            RestPattern(Spread,BindingPattern(let,VariableDefinition)),
+            "]"),
+          ":",
+          VariableName,
+          ";"),
+        MatchClause(
+          when,
+          ObjectMatchPattern(
+            "{",
+            PropertyPattern(PropertyName,":",LiteralPattern(Number)),
+            ",",
+            BindingPattern(let,VariableDefinition),
+            "}"),
+          ":",
+          VariableName,
+          ";"),
+        MatchClause(
+          when,
+          OrPattern(LiteralPattern(Number),or,LiteralPattern(Number)),
+          ":",
+          VariableName,
+          ";"),
+        MatchClause(
+          when,
+          NotPattern(not,LiteralPattern(Number)),
+          ":",
+          VariableName,
+          ";"),
+        MatchClause(
+          when,
+          ParenthesizedPattern("(",LiteralPattern(Number),")"),
+          ":",
+          VariableName,
+          ";"),
+        MatchClause(
+          when,
+          GuardPattern(if,ParenthesizedExpression("(",VariableName,")")),
+          ":",
+          VariableName,
+          ";"),
+        MatchDefault(default,":",VariableName,";"),
+        "}"))))
+
+# is tests a value against a pattern {"top":"Script","dialect":"ts"}
+
+if (reply is { status: 200, let body }) use(body)
+
+==>
+
+Script(
+  IfStatement(
+    if,
+    ParenthesizedExpression(
+      "(",
+      IsExpression(
+        VariableName,
+        is,
+        ObjectMatchPattern(
+          "{",
+          PropertyPattern(PropertyName,":",LiteralPattern(Number)),
+          ",",
+          BindingPattern(let,VariableDefinition),
+          "}")),
+      ")"),
+    ExpressionStatement(
+      CallExpression(VariableName,ArgList("(",VariableName,")")))))
+
+# An .lts module: types, unions and exports {"top":"Script","dialect":"ts"}
+
+export type Feed =
+    | { status: "pending" }
+    | { status: "done"; titles: readonly string[] }
+export const latest: Feed = { status: "pending" }
+
+==>
+
+Script(
+  ExportDeclaration(
+    export,
+    TypeAliasDeclaration(
+      type,
+      TypeDefinition,
+      Equals,
+      UnionType(
+        LogicOp,
+        ObjectType(
+          "{",
+          PropertyType(
+            PropertyDefinition,
+            TypeAnnotation(":",LiteralType(String))),
+          "}"),
+        LogicOp,
+        ObjectType(
+          "{",
+          PropertyType(
+            PropertyDefinition,
+            TypeAnnotation(":",LiteralType(String))),
+          ";",
+          PropertyType(
+            PropertyDefinition,
+            TypeAnnotation(
+              ":",
+              ReadonlyType(readonly,ArrayType(TypeName,"[","]")))),
+          "}")))),
+  ExportDeclaration(
+    export,
+    VariableDeclaration(
+      const,
+      VariableDefinition,
+      TypeAnnotation(":",TypeName),
+      Equals,
+      ObjectExpression("{",Property(PropertyDefinition,":",String),"}"))))
+
+# .pragma library opens a JavaScript resource {"top":"Script"}
+
+.pragma library
+var count = 0
+function bump() { return ++count }
+
+==>
+
+Script(
+  Pragma,
+  VariableDeclaration(var,VariableDefinition,Equals,Number),
+  FunctionDeclaration(
+    function,
+    VariableDefinition,
+    ParamList("(",")"),
+    Block(
+      "{",
+      ReturnStatement(return,UnaryExpression(ArithOp,VariableName)),
+      "}")))
+
+# Plain JavaScript keeps < and > as comparisons {"top":"Script"}
+
+a < b > c
+
+==>
+
+Script(
+  ExpressionStatement(
+    BinaryExpression(
+      BinaryExpression(VariableName,CompareOp,VariableName),
+      CompareOp,
+      VariableName)))

@@ -1,0 +1,960 @@
+# match 1 (qml) {"dialect":"ts"}
+
+import Ljos.Ui
+
+Window {
+    width: 200
+    height: 60
+    visible: true
+
+    property int unread: 3
+
+    Text {
+        text: match (unread) {
+            when 0: qsTr("No messages");
+            when 1: qsTr("One message");
+            default: qsTr("%1 messages").arg(unread);
+        }
+    }
+}
+
+==>
+
+Program(
+  UiImport(import,UiQualifiedId(UiIdentifier,".",UiIdentifier)),
+  UiObjectDefinition(
+    UiQualifiedId(UiIdentifier),
+    UiObjectInitializer(
+      "{",
+      UiBinding(UiQualifiedId(UiIdentifier),":",ExpressionStatement(Number)),
+      UiBinding(UiQualifiedId(UiIdentifier),":",ExpressionStatement(Number)),
+      UiBinding(
+        UiQualifiedId(UiIdentifier),
+        ":",
+        ExpressionStatement(BooleanLiteral)),
+      UiPropertyDeclaration(
+        property,
+        UiPropertyType(UiQualifiedId(UiIdentifier)),
+        PropertyDefinition,
+        ":",
+        ExpressionStatement(Number)),
+      UiObjectDefinition(
+        UiQualifiedId(UiIdentifier),
+        UiObjectInitializer(
+          "{",
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(
+              MatchExpression(
+                match,
+                ParenthesizedExpression("(",VariableName,")"),
+                MatchBody(
+                  "{",
+                  MatchClause(
+                    when,
+                    LiteralPattern(Number),
+                    ":",
+                    CallExpression(VariableName,ArgList("(",String,")")),
+                    ";"),
+                  MatchClause(
+                    when,
+                    LiteralPattern(Number),
+                    ":",
+                    CallExpression(VariableName,ArgList("(",String,")")),
+                    ";"),
+                  MatchDefault(
+                    default,
+                    ":",
+                    CallExpression(
+                      MemberExpression(
+                        CallExpression(VariableName,ArgList("(",String,")")),
+                        ".",
+                        PropertyName),
+                      ArgList("(",VariableName,")")),
+                    ";"),
+                  "}")))),
+          "}")),
+      "}")))
+
+# match 2 (size.lts) {"top":"Script","dialect":"ts"}
+
+export type Size = "small" | "medium" | "large"
+
+export function margin(size: Size): number {
+    return match (size) {
+        when "small": 4;
+        when "medium": 8;
+        when "large": 12;
+    }
+}
+
+==>
+
+Script(
+  ExportDeclaration(
+    export,
+    TypeAliasDeclaration(
+      type,
+      TypeDefinition,
+      Equals,
+      UnionType(
+        LiteralType(String),
+        LogicOp,
+        LiteralType(String),
+        LogicOp,
+        LiteralType(String)))),
+  ExportDeclaration(
+    export,
+    FunctionDeclaration(
+      function,
+      VariableDefinition,
+      ParamList("(",VariableDefinition,TypeAnnotation(":",TypeName),")"),
+      TypeAnnotation(":",TypeName),
+      Block(
+        "{",
+        ReturnStatement(
+          return,
+          MatchExpression(
+            match,
+            ParenthesizedExpression("(",VariableName,")"),
+            MatchBody(
+              "{",
+              MatchClause(when,LiteralPattern(String),":",Number,";"),
+              MatchClause(when,LiteralPattern(String),":",Number,";"),
+              MatchClause(when,LiteralPattern(String),":",Number,";"),
+              "}"))),
+        "}"))))
+
+# match 3 (qml) {"dialect":"ts"}
+
+import Ljos.Ui
+import "size.lts" as Size
+
+Window {
+    width: 200
+    height: 60
+    visible: true
+
+    Rectangle {
+        x: Size.margin("large")
+        width: 40
+        height: 40
+        fill: "steelblue"
+    }
+}
+
+==>
+
+Program(
+  UiImport(import,UiQualifiedId(UiIdentifier,".",UiIdentifier)),
+  UiImport(import,String,as,TypeDefinition),
+  UiObjectDefinition(
+    UiQualifiedId(UiIdentifier),
+    UiObjectInitializer(
+      "{",
+      UiBinding(UiQualifiedId(UiIdentifier),":",ExpressionStatement(Number)),
+      UiBinding(UiQualifiedId(UiIdentifier),":",ExpressionStatement(Number)),
+      UiBinding(
+        UiQualifiedId(UiIdentifier),
+        ":",
+        ExpressionStatement(BooleanLiteral)),
+      UiObjectDefinition(
+        UiQualifiedId(UiIdentifier),
+        UiObjectInitializer(
+          "{",
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(
+              CallExpression(
+                MemberExpression(VariableName,".",PropertyName),
+                ArgList("(",String,")")))),
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(Number)),
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(Number)),
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(String)),
+          "}")),
+      "}")))
+
+# match 4 (feed.lts) {"top":"Script","dialect":"ts"}
+
+export type Feed =
+    | { status: "pending" }
+    | { status: "done"; titles: readonly string[] }
+    | { status: "failed"; reason: string }
+
+export function summary(feed: Feed): string {
+    return match (feed) {
+        when { status: "pending" }: "Loading…";
+        when { status: "done", titles: [] }: "Nothing new";
+        when { status: "done", titles: [let only] }: only;
+        when { status: "done", let titles } and if (titles.length > 99): "99+ new";
+        when { status: "done", let titles }: `${titles.length} new`;
+        when { status: "failed", reason: "offline" }: "Offline";
+        when { status: "failed" }: "Could not load";
+    }
+}
+
+export const latest: Feed = { status: "done", titles: ["Ljós 1.0"] }
+
+==>
+
+Script(
+  ExportDeclaration(
+    export,
+    TypeAliasDeclaration(
+      type,
+      TypeDefinition,
+      Equals,
+      UnionType(
+        LogicOp,
+        ObjectType(
+          "{",
+          PropertyType(
+            PropertyDefinition,
+            TypeAnnotation(":",LiteralType(String))),
+          "}"),
+        LogicOp,
+        ObjectType(
+          "{",
+          PropertyType(
+            PropertyDefinition,
+            TypeAnnotation(":",LiteralType(String))),
+          ";",
+          PropertyType(
+            PropertyDefinition,
+            TypeAnnotation(
+              ":",
+              ReadonlyType(readonly,ArrayType(TypeName,"[","]")))),
+          "}"),
+        LogicOp,
+        ObjectType(
+          "{",
+          PropertyType(
+            PropertyDefinition,
+            TypeAnnotation(":",LiteralType(String))),
+          ";",
+          PropertyType(PropertyDefinition,TypeAnnotation(":",TypeName)),
+          "}")))),
+  ExportDeclaration(
+    export,
+    FunctionDeclaration(
+      function,
+      VariableDefinition,
+      ParamList("(",VariableDefinition,TypeAnnotation(":",TypeName),")"),
+      TypeAnnotation(":",TypeName),
+      Block(
+        "{",
+        ReturnStatement(
+          return,
+          MatchExpression(
+            match,
+            ParenthesizedExpression("(",VariableName,")"),
+            MatchBody(
+              "{",
+              MatchClause(
+                when,
+                ObjectMatchPattern(
+                  "{",
+                  PropertyPattern(PropertyName,":",LiteralPattern(String)),
+                  "}"),
+                ":",
+                String,
+                ";"),
+              MatchClause(
+                when,
+                ObjectMatchPattern(
+                  "{",
+                  PropertyPattern(PropertyName,":",LiteralPattern(String)),
+                  ",",
+                  PropertyPattern(PropertyName,":",ArrayMatchPattern("[","]")),
+                  "}"),
+                ":",
+                String,
+                ";"),
+              MatchClause(
+                when,
+                ObjectMatchPattern(
+                  "{",
+                  PropertyPattern(PropertyName,":",LiteralPattern(String)),
+                  ",",
+                  PropertyPattern(
+                    PropertyName,
+                    ":",
+                    ArrayMatchPattern(
+                      "[",
+                      BindingPattern(let,VariableDefinition),
+                      "]")),
+                  "}"),
+                ":",
+                VariableName,
+                ";"),
+              MatchClause(
+                when,
+                AndPattern(
+                  ObjectMatchPattern(
+                    "{",
+                    PropertyPattern(PropertyName,":",LiteralPattern(String)),
+                    ",",
+                    BindingPattern(let,VariableDefinition),
+                    "}"),
+                  and,
+                  GuardPattern(
+                    if,
+                    ParenthesizedExpression(
+                      "(",
+                      BinaryExpression(
+                        MemberExpression(VariableName,".",PropertyName),
+                        CompareOp,
+                        Number),
+                      ")"))),
+                ":",
+                String,
+                ";"),
+              MatchClause(
+                when,
+                ObjectMatchPattern(
+                  "{",
+                  PropertyPattern(PropertyName,":",LiteralPattern(String)),
+                  ",",
+                  BindingPattern(let,VariableDefinition),
+                  "}"),
+                ":",
+                TemplateString(
+                  Interpolation(
+                    InterpolationStart,
+                    MemberExpression(VariableName,".",PropertyName),
+                    InterpolationEnd)),
+                ";"),
+              MatchClause(
+                when,
+                ObjectMatchPattern(
+                  "{",
+                  PropertyPattern(PropertyName,":",LiteralPattern(String)),
+                  ",",
+                  PropertyPattern(PropertyName,":",LiteralPattern(String)),
+                  "}"),
+                ":",
+                String,
+                ";"),
+              MatchClause(
+                when,
+                ObjectMatchPattern(
+                  "{",
+                  PropertyPattern(PropertyName,":",LiteralPattern(String)),
+                  "}"),
+                ":",
+                String,
+                ";"),
+              "}"))),
+        "}"))),
+  ExportDeclaration(
+    export,
+    VariableDeclaration(
+      const,
+      VariableDefinition,
+      TypeAnnotation(":",TypeName),
+      Equals,
+      ObjectExpression(
+        "{",
+        Property(PropertyDefinition,":",String),
+        ",",
+        Property(PropertyDefinition,":",ArrayExpression("[",String,"]")),
+        "}"))))
+
+# match 5 (qml) {"dialect":"ts"}
+
+import Ljos.Ui
+import "feed.lts" as Feed
+
+Window {
+    width: 200
+    height: 60
+    visible: true
+
+    Text {
+        text: Feed.summary(Feed.latest)
+    }
+}
+
+==>
+
+Program(
+  UiImport(import,UiQualifiedId(UiIdentifier,".",UiIdentifier)),
+  UiImport(import,String,as,TypeDefinition),
+  UiObjectDefinition(
+    UiQualifiedId(UiIdentifier),
+    UiObjectInitializer(
+      "{",
+      UiBinding(UiQualifiedId(UiIdentifier),":",ExpressionStatement(Number)),
+      UiBinding(UiQualifiedId(UiIdentifier),":",ExpressionStatement(Number)),
+      UiBinding(
+        UiQualifiedId(UiIdentifier),
+        ":",
+        ExpressionStatement(BooleanLiteral)),
+      UiObjectDefinition(
+        UiQualifiedId(UiIdentifier),
+        UiObjectInitializer(
+          "{",
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(
+              CallExpression(
+                MemberExpression(VariableName,".",PropertyName),
+                ArgList(
+                  "(",
+                  MemberExpression(VariableName,".",PropertyName),
+                  ")")))),
+          "}")),
+      "}")))
+
+# match 6 (qml) {"dialect":"ts"}
+
+import Ljos.Ui
+
+Window {
+    width: 200
+    height: 60
+    visible: true
+
+    property string selected: "inbox"
+    property string folder: "drafts/today"
+
+    Rectangle {
+        width: 40
+        height: 40
+        fill: match (folder) {
+            when selected: "steelblue";
+            when let name and if (name.startsWith("drafts/")): "gray";
+            default: "black";
+        }
+    }
+}
+
+==>
+
+Program(
+  UiImport(import,UiQualifiedId(UiIdentifier,".",UiIdentifier)),
+  UiObjectDefinition(
+    UiQualifiedId(UiIdentifier),
+    UiObjectInitializer(
+      "{",
+      UiBinding(UiQualifiedId(UiIdentifier),":",ExpressionStatement(Number)),
+      UiBinding(UiQualifiedId(UiIdentifier),":",ExpressionStatement(Number)),
+      UiBinding(
+        UiQualifiedId(UiIdentifier),
+        ":",
+        ExpressionStatement(BooleanLiteral)),
+      UiPropertyDeclaration(
+        property,
+        UiPropertyType(UiQualifiedId(UiIdentifier)),
+        PropertyDefinition,
+        ":",
+        ExpressionStatement(String)),
+      UiPropertyDeclaration(
+        property,
+        UiPropertyType(UiQualifiedId(UiIdentifier)),
+        PropertyDefinition,
+        ":",
+        ExpressionStatement(String)),
+      UiObjectDefinition(
+        UiQualifiedId(UiIdentifier),
+        UiObjectInitializer(
+          "{",
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(Number)),
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(Number)),
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(
+              MatchExpression(
+                match,
+                ParenthesizedExpression("(",VariableName,")"),
+                MatchBody(
+                  "{",
+                  MatchClause(when,ValuePattern(VariableName),":",String,";"),
+                  MatchClause(
+                    when,
+                    AndPattern(
+                      BindingPattern(let,VariableDefinition),
+                      and,
+                      GuardPattern(
+                        if,
+                        ParenthesizedExpression(
+                          "(",
+                          CallExpression(
+                            MemberExpression(VariableName,".",PropertyName),
+                            ArgList("(",String,")")),
+                          ")"))),
+                    ":",
+                    String,
+                    ";"),
+                  MatchDefault(default,":",String,";"),
+                  "}")))),
+          "}")),
+      "}")))
+
+# match 7 (qml) {"dialect":"ts"}
+
+import Ljos.Ui
+
+Window {
+    width: 200
+    height: 60
+    visible: true
+
+    property real distance: 40
+
+    readonly property real clipNear: match (distance) {
+        when if (distance < 1): 0.01;
+        when if (distance < 100): 0.1;
+        default: 1;
+    }
+}
+
+==>
+
+Program(
+  UiImport(import,UiQualifiedId(UiIdentifier,".",UiIdentifier)),
+  UiObjectDefinition(
+    UiQualifiedId(UiIdentifier),
+    UiObjectInitializer(
+      "{",
+      UiBinding(UiQualifiedId(UiIdentifier),":",ExpressionStatement(Number)),
+      UiBinding(UiQualifiedId(UiIdentifier),":",ExpressionStatement(Number)),
+      UiBinding(
+        UiQualifiedId(UiIdentifier),
+        ":",
+        ExpressionStatement(BooleanLiteral)),
+      UiPropertyDeclaration(
+        property,
+        UiPropertyType(UiQualifiedId(UiIdentifier)),
+        PropertyDefinition,
+        ":",
+        ExpressionStatement(Number)),
+      UiPropertyDeclaration(
+        readonly,
+        property,
+        UiPropertyType(UiQualifiedId(UiIdentifier)),
+        PropertyDefinition,
+        ":",
+        ExpressionStatement(
+          MatchExpression(
+            match,
+            ParenthesizedExpression("(",VariableName,")"),
+            MatchBody(
+              "{",
+              MatchClause(
+                when,
+                GuardPattern(
+                  if,
+                  ParenthesizedExpression(
+                    "(",
+                    BinaryExpression(VariableName,CompareOp,Number),
+                    ")")),
+                ":",
+                Number,
+                ";"),
+              MatchClause(
+                when,
+                GuardPattern(
+                  if,
+                  ParenthesizedExpression(
+                    "(",
+                    BinaryExpression(VariableName,CompareOp,Number),
+                    ")")),
+                ":",
+                Number,
+                ";"),
+              MatchDefault(default,":",Number,";"),
+              "}")))),
+      "}")))
+
+# match 8 (qml) {"dialect":"ts"}
+
+import Ljos.Ui
+
+Window {
+    width: 200
+    height: 60
+    visible: true
+
+    Rectangle {
+        width: 120
+        height: 40
+        fill: match (look) {
+            when "pressed": "#1d4ed8";
+            when "hovered": "#3b82f6";
+            when "disabled": "#9ca3af";
+            default: "#2563eb";
+        }
+
+        readonly property string look: match ({ enabled: enabled, down: tap.pressed, hovered: hover.hovered }) {
+            when { enabled: false }: "disabled";
+            when { down: true }: "pressed";
+            when { hovered: true }: "hovered";
+            default: "normal";
+        }
+
+        Tap {
+            id: tap
+        }
+
+        Hover {
+            id: hover
+        }
+    }
+}
+
+==>
+
+Program(
+  UiImport(import,UiQualifiedId(UiIdentifier,".",UiIdentifier)),
+  UiObjectDefinition(
+    UiQualifiedId(UiIdentifier),
+    UiObjectInitializer(
+      "{",
+      UiBinding(UiQualifiedId(UiIdentifier),":",ExpressionStatement(Number)),
+      UiBinding(UiQualifiedId(UiIdentifier),":",ExpressionStatement(Number)),
+      UiBinding(
+        UiQualifiedId(UiIdentifier),
+        ":",
+        ExpressionStatement(BooleanLiteral)),
+      UiObjectDefinition(
+        UiQualifiedId(UiIdentifier),
+        UiObjectInitializer(
+          "{",
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(Number)),
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(Number)),
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(
+              MatchExpression(
+                match,
+                ParenthesizedExpression("(",VariableName,")"),
+                MatchBody(
+                  "{",
+                  MatchClause(when,LiteralPattern(String),":",String,";"),
+                  MatchClause(when,LiteralPattern(String),":",String,";"),
+                  MatchClause(when,LiteralPattern(String),":",String,";"),
+                  MatchDefault(default,":",String,";"),
+                  "}")))),
+          UiPropertyDeclaration(
+            readonly,
+            property,
+            UiPropertyType(UiQualifiedId(UiIdentifier)),
+            PropertyDefinition,
+            ":",
+            ExpressionStatement(
+              MatchExpression(
+                match,
+                ParenthesizedExpression(
+                  "(",
+                  ObjectExpression(
+                    "{",
+                    Property(PropertyDefinition,":",VariableName),
+                    ",",
+                    Property(
+                      PropertyDefinition,
+                      ":",
+                      MemberExpression(VariableName,".",PropertyName)),
+                    ",",
+                    Property(
+                      PropertyDefinition,
+                      ":",
+                      MemberExpression(VariableName,".",PropertyName)),
+                    "}"),
+                  ")"),
+                MatchBody(
+                  "{",
+                  MatchClause(
+                    when,
+                    ObjectMatchPattern(
+                      "{",
+                      PropertyPattern(
+                        PropertyName,
+                        ":",
+                        LiteralPattern(BooleanLiteral)),
+                      "}"),
+                    ":",
+                    String,
+                    ";"),
+                  MatchClause(
+                    when,
+                    ObjectMatchPattern(
+                      "{",
+                      PropertyPattern(
+                        PropertyName,
+                        ":",
+                        LiteralPattern(BooleanLiteral)),
+                      "}"),
+                    ":",
+                    String,
+                    ";"),
+                  MatchClause(
+                    when,
+                    ObjectMatchPattern(
+                      "{",
+                      PropertyPattern(
+                        PropertyName,
+                        ":",
+                        LiteralPattern(BooleanLiteral)),
+                      "}"),
+                    ":",
+                    String,
+                    ";"),
+                  MatchDefault(default,":",String,";"),
+                  "}")))),
+          UiObjectDefinition(
+            UiQualifiedId(UiIdentifier),
+            UiObjectInitializer(
+              "{",
+              UiBinding(
+                UiQualifiedId(UiIdentifier),
+                ":",
+                ExpressionStatement(VariableName)),
+              "}")),
+          UiObjectDefinition(
+            UiQualifiedId(UiIdentifier),
+            UiObjectInitializer(
+              "{",
+              UiBinding(
+                UiQualifiedId(UiIdentifier),
+                ":",
+                ExpressionStatement(VariableName)),
+              "}")),
+          "}")),
+      "}")))
+
+# match 9 (access.lts) {"top":"Script","dialect":"ts"}
+
+export type Status = "granted" | "denied" | "undetermined"
+
+export function next(status: Status): string {
+    return match (status) {
+        when "granted": "recenter";
+        when "denied": "explain";
+        when "undetermined": "ask";
+    }
+}
+
+==>
+
+Script(
+  ExportDeclaration(
+    export,
+    TypeAliasDeclaration(
+      type,
+      TypeDefinition,
+      Equals,
+      UnionType(
+        LiteralType(String),
+        LogicOp,
+        LiteralType(String),
+        LogicOp,
+        LiteralType(String)))),
+  ExportDeclaration(
+    export,
+    FunctionDeclaration(
+      function,
+      VariableDefinition,
+      ParamList("(",VariableDefinition,TypeAnnotation(":",TypeName),")"),
+      TypeAnnotation(":",TypeName),
+      Block(
+        "{",
+        ReturnStatement(
+          return,
+          MatchExpression(
+            match,
+            ParenthesizedExpression("(",VariableName,")"),
+            MatchBody(
+              "{",
+              MatchClause(when,LiteralPattern(String),":",String,";"),
+              MatchClause(when,LiteralPattern(String),":",String,";"),
+              MatchClause(when,LiteralPattern(String),":",String,";"),
+              "}"))),
+        "}"))))
+
+# match 10 (qml) {"dialect":"ts"}
+
+import Ljos.Ui
+import "access.lts" as Access
+
+Rectangle {
+    width: 200
+    height: 60
+
+    property string action: ""
+
+    Tap {
+        onTapped: action = Access.next("undetermined")
+    }
+}
+
+==>
+
+Program(
+  UiImport(import,UiQualifiedId(UiIdentifier,".",UiIdentifier)),
+  UiImport(import,String,as,TypeDefinition),
+  UiObjectDefinition(
+    UiQualifiedId(UiIdentifier),
+    UiObjectInitializer(
+      "{",
+      UiBinding(UiQualifiedId(UiIdentifier),":",ExpressionStatement(Number)),
+      UiBinding(UiQualifiedId(UiIdentifier),":",ExpressionStatement(Number)),
+      UiPropertyDeclaration(
+        property,
+        UiPropertyType(UiQualifiedId(UiIdentifier)),
+        PropertyDefinition,
+        ":",
+        ExpressionStatement(String)),
+      UiObjectDefinition(
+        UiQualifiedId(UiIdentifier),
+        UiObjectInitializer(
+          "{",
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(
+              AssignmentExpression(
+                VariableName,
+                Equals,
+                CallExpression(
+                  MemberExpression(VariableName,".",PropertyName),
+                  ArgList("(",String,")"))))),
+          "}")),
+      "}")))
+
+# match 11 (reply.lts) {"top":"Script","dialect":"ts"}
+
+export type Reply = { status: number; body: string }
+
+export function text(reply: Reply): string {
+    if (reply is { status: 200, let body }) {
+        return body
+    }
+    return `failed with ${reply.status}`
+}
+
+==>
+
+Script(
+  ExportDeclaration(
+    export,
+    TypeAliasDeclaration(
+      type,
+      TypeDefinition,
+      Equals,
+      ObjectType(
+        "{",
+        PropertyType(PropertyDefinition,TypeAnnotation(":",TypeName)),
+        ";",
+        PropertyType(PropertyDefinition,TypeAnnotation(":",TypeName)),
+        "}"))),
+  ExportDeclaration(
+    export,
+    FunctionDeclaration(
+      function,
+      VariableDefinition,
+      ParamList("(",VariableDefinition,TypeAnnotation(":",TypeName),")"),
+      TypeAnnotation(":",TypeName),
+      Block(
+        "{",
+        IfStatement(
+          if,
+          ParenthesizedExpression(
+            "(",
+            IsExpression(
+              VariableName,
+              is,
+              ObjectMatchPattern(
+                "{",
+                PropertyPattern(PropertyName,":",LiteralPattern(Number)),
+                ",",
+                BindingPattern(let,VariableDefinition),
+                "}")),
+            ")"),
+          Block("{",ReturnStatement(return,VariableName),"}")),
+        ReturnStatement(
+          return,
+          TemplateString(
+            Interpolation(
+              InterpolationStart,
+              MemberExpression(VariableName,".",PropertyName),
+              InterpolationEnd))),
+        "}"))))
+
+# match 12 (qml) {"dialect":"ts"}
+
+import Ljos.Ui
+import "reply.lts" as Reply
+
+Window {
+    width: 200
+    height: 60
+    visible: true
+
+    Text {
+        text: Reply.text({ status: 200, body: "ok" })
+    }
+}
+
+==>
+
+Program(
+  UiImport(import,UiQualifiedId(UiIdentifier,".",UiIdentifier)),
+  UiImport(import,String,as,TypeDefinition),
+  UiObjectDefinition(
+    UiQualifiedId(UiIdentifier),
+    UiObjectInitializer(
+      "{",
+      UiBinding(UiQualifiedId(UiIdentifier),":",ExpressionStatement(Number)),
+      UiBinding(UiQualifiedId(UiIdentifier),":",ExpressionStatement(Number)),
+      UiBinding(
+        UiQualifiedId(UiIdentifier),
+        ":",
+        ExpressionStatement(BooleanLiteral)),
+      UiObjectDefinition(
+        UiQualifiedId(UiIdentifier),
+        UiObjectInitializer(
+          "{",
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(
+              CallExpression(
+                MemberExpression(VariableName,".",PropertyName),
+                ArgList(
+                  "(",
+                  ObjectExpression(
+                    "{",
+                    Property(PropertyDefinition,":",Number),
+                    ",",
+                    Property(PropertyDefinition,":",String),
+                    "}"),
+                  ")")))),
+          "}")),
+      "}")))

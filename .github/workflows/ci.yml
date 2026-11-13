@@ -60,6 +60,9 @@ jobs:
           mise run build:wasm-compiler
           mise run build:kernel
           pnpm --filter ljos-web exec playwright install --with-deps chromium
+      - name: the code grammar
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
+        run: pnpm --filter lezer-ljos test
       # Each whatever came before it, so one run shows which kernel a failure is on.
       - if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
         run: pnpm --filter ljos-web test:site
