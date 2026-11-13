@@ -1,7 +1,9 @@
 // What each page of a built site loads: for every `index.html` below a
 // site's directory, the page itself and the scripts, styles and wasm
 // its first load takes (the module graph from its `<script
-// type="module">` and `<link rel="modulepreload">`, through every
+// type="module">` and `<link rel="modulepreload">`, or from the script
+// a prerendered page starts once painted (`data-ljos-start`, with its
+// `data-ljos-preload`s), through every
 // static import) and what it may fetch later (the dynamic imports beyond that, and the files those
 // take), each raw and gzip. Read from the files alone: no browser, so it
 // is what the build wrote, not what one visit happened to ask for.
@@ -11,7 +13,7 @@
 //   --json   the report as JSON, for a test or a before/after table
 //   --files  each page's files by name under its line
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
+import { dirname, join, posix, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { gzipSync } from "node:zlib";
 
@@ -58,6 +60,17 @@ function htmlAssets(file) {
   const html = readFileSync(file, "utf8");
   const found = [];
   for (const [tag] of html.matchAll(/<(?:script|link)\b[^>]*>/gi)) {
+    // A prerendered page asks for its script and that script's preloads
+    // once it is painted, before a reader does anything: its first load.
+    const start = tag.match(/\bdata-ljos-start="([^"]+)"/i)?.[1];
+    if (start) {
+      const preloads = (tag.match(/\bdata-ljos-preload="([^"]*)"/i)?.[1] ?? "").split(" ").filter(Boolean);
+      for (const href of [start, ...preloads.map((name) => posix.join(posix.dirname(start), name))]) {
+        const path = local(file, href);
+        if (path && ASSET.test(path)) found.push(path);
+      }
+      continue;
+    }
     const src = tag.match(/\b(?:src|href)="([^"]+)"/i)?.[1];
     const path = local(file, src);
     if (!path || !ASSET.test(path)) continue;
