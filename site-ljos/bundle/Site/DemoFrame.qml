@@ -61,7 +61,8 @@ Item {
             anchors.fill: parent
             anchors.margins: 1
             visible: frame.picture !== "" && !(loader.status === Loader.Ready && loader.opacity === 1)
-            source: frame.picture
+            // Named from the site's root; the site may stand below it.
+            source: frame.picture === "" ? "" : Nav.within(frame.picture)
             fillMode: Image.PreserveAspectCrop
             Accessible.name: frame.description
         }

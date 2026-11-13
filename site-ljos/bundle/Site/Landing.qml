@@ -247,7 +247,7 @@ Column {
                         width: parent.width
                         scroller: landing.scroller
                         needs: "webgpu"
-                        picture: "../assets/demo-orbit.webp"
+                        picture: "/pictures/demo-orbit.webp"
                         description: "A lit 3D scene of shapes on a floor, which a drag turns."
                         demo: Component {
                             Orbit {}

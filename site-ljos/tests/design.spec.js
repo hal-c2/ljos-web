@@ -212,11 +212,16 @@ test("a browser with no WebGPU keeps each GPU demo's picture, and says why", asy
     await page.addInitScript(() => {
       delete Navigator.prototype.gpu;
     });
+    const shown = page.waitForResponse((response) => response.url().endsWith("/pictures/demo-orbit.webp") && response.ok());
     await page.goto("/demos/");
     await page.waitForSelector('#app[data-ljos-hydrated="true"]');
-    const why = page.getByText(/A picture of the demo: it runs in a browser with WebGPU/).first();
-    await expect(why).toBeAttached();
-    expect(await page.locator('img[alt*="3D scene"]').count()).toBeGreaterThan(0);
+    // The picture, named for what it shows, stands where the 3D scene
+    // would, with the reason beside it.
+    const picture = page.locator('[aria-label^="A lit 3D scene"]').first();
+    await picture.scrollIntoViewIfNeeded();
+    await expect(picture).toBeVisible();
+    await shown;
+    await expect(page.getByText(/A picture of the demo: it runs in a browser with WebGPU/).first()).toBeVisible();
   } finally {
     await context.close();
   }

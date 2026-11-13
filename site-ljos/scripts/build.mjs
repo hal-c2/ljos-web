@@ -408,6 +408,10 @@ for (const file of htmlUnder(out)) {
 // pictures of it made once from it (bundle/assets).
 cpSync(join(bundle, "assets/ljos-mark.svg"), join(out, "favicon.svg"));
 for (const name of ["apple-touch-icon.png", "og-image.png"]) cpSync(join(bundle, "assets", name), join(out, name));
+// The pictures a demo's frame shows until the demo runs, or instead of
+// it where it cannot: named by the pages as strings, like a live block's.
+mkdirSync(join(out, "pictures"), { recursive: true });
+for (const name of readdirSync(join(bundle, "assets")).filter((name) => /^demo-.*\.webp$/.test(name))) cpSync(join(bundle, "assets", name), join(out, "pictures", name));
 // A live block's picture is named from its payload, not written in
 // any QML the compiler sees, so no build step carries it: the
 // pictures the bundle was built with stand beside the pages.
