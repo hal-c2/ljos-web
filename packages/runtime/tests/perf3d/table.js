@@ -54,6 +54,7 @@ export function table() {
   if (loads.length) lines.push(`Load average (1 min) while measuring: ${Math.min(...loads).toFixed(1)}–${Math.max(...loads).toFixed(1)} on ${results.find((r) => r.load).load.cpus} CPUs.`);
   if (about) lines.push(`Chromium ${about.browser}; WebGPU adapter: ${JSON.stringify(about.counts.adapter.webgpu)}; WebGL2: ${about.counts.adapter.webgl2}.`);
   if (qml6.note) lines.push(qml6.note);
+  if (qml6.load) lines.push(`Load average (1 min) while qml6 ran: ${qml6.load.before[0].toFixed(1)}–${qml6.load.after[0].toFixed(1)}.`);
   return lines.join("\n");
 }
 
