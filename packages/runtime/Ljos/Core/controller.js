@@ -5,11 +5,11 @@
 // The item it is declared in is its `host`. It is `attached(host)` once the
 // host is complete (or at once, put into one that is), `detached()` once, as
 // it or its host goes, and, if it handles it, `updated()` once after it is
-// attached and once after each turn that wrote a property of the host. A
+// attached and once after each turn that changed a property of the host. A
 // Controller written as a module (`controller({ … })`) is the same object
 // with its lifecycle given as functions.
-import { onCleanup } from "solid-js";
-import { contents, defineType, derived, flushing, QtObject, whenToldComplete } from "../../object.js";
+import { onCleanup, runWithOwner } from "solid-js";
+import { contents, defineType, derived, effect, flushing, QtObject, whenToldComplete } from "../../object.js";
 import { untrack } from "#kernel";
 
 const hidden = (object, key, value) => Object.defineProperty(object, key, { value, writable: true, configurable: true });
@@ -60,7 +60,8 @@ function attach(self) {
 }
 
 // The host tells the Controllers that listen when one of its properties is
-// written (`$written`, called by the slot). Only those that handle
+// written or a binding gives it something new (`$written`, called by the
+// slot and the binding). Only those that handle
 // `updated` listen, so a host with none pays nothing more than the call.
 function listen(host, self, life) {
   let listening = host.$listening;
@@ -72,6 +73,21 @@ function listen(host, self, life) {
     });
   }
   listening.set(self, life);
+  // What the host's type works out as it is read (an item's anchored
+  // geometry, its visibility through its parent) is never written: it is
+  // followed instead, for as long as the Controller is.
+  const resolved = [...new Set(host.$type.chain.flatMap((type) => Object.keys(type.spec.resolve ?? {})))];
+  if (!resolved.length) return;
+  let seen = null;
+  runWithOwner(self.$owner ?? null, () =>
+    effect(
+      () => resolved.map((key) => host[key]),
+      (values) => {
+        if (seen && values.some((value, at) => !Object.is(value, seen[at]))) arm(self, life);
+        seen = values;
+      },
+    ),
+  );
 }
 
 // Once a turn, at its end: each assignment settles as it returns, so the

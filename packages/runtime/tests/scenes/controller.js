@@ -21,6 +21,14 @@
 //     Tap { id: tap; onAttached: (host) => log.push(`tap ${host === root}`) }
 //     Controller { id: holding; Tap { onTapped: root.taps = root.taps + 1 } }
 //     Breakpoint { id: wide }
+//     Item {
+//         id: half; width: root.width / 2
+//         Controller { id: following; onUpdated: log.push(`following ${half.width}`) }
+//     }
+//     Item {
+//         id: filling; anchors.fill: root
+//         Controller { id: fitted; onUpdated: log.push(`fitted ${filling.width}`) }
+//     }
 //     Loader { id: loader; component: Item { Controller { … } } }
 // }
 //
@@ -37,7 +45,7 @@ import { Controller, controller } from "ljos-web/Ljos/Core";
 import { Item, Loader, Tap } from "ljos-web/Ljos/Ui";
 import { make } from "../scene.js";
 
-const names = ["root", "outer", "inner", "watching", "tap", "holding", "wide", "loader", "loaded"];
+const names = ["root", "outer", "inner", "watching", "tap", "holding", "wide", "half", "following", "filling", "fitted", "loader", "loaded"];
 export const objects = { log: [], ready: 0, taps: 0 };
 
 const Breakpoint = controller({
@@ -92,6 +100,27 @@ export default function Controllers() {
       make(Tap, { $self: objects.tap, onAttached: (host) => log.push(`tap ${host === root}`) }),
       make(Controller, { $self: objects.holding }, () => make(Tap, { onTapped: () => (objects.taps += 1) })),
       make(Breakpoint, { $self: objects.wide }),
+      make(
+        Item,
+        {
+          $self: objects.half,
+          get width() {
+            return root.width / 2;
+          },
+          height: 10,
+        },
+        () => make(Controller, { $self: objects.following, onUpdated: () => log.push(`following ${objects.half.width}`) }),
+      ),
+      make(
+        Item,
+        {
+          $self: objects.filling,
+          get anchors$fill() {
+            return root;
+          },
+        },
+        () => make(Controller, { $self: objects.fitted, onUpdated: () => log.push(`fitted ${objects.filling.width}`) }),
+      ),
       make(Loader, { $self: objects.loader, y: 50, component: loads }),
     ],
   );

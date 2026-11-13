@@ -410,6 +410,7 @@ const own = (value) => (value !== null && typeof value === "object" && typeof va
 // objects would make them twice).
 function guarded(key, compute, pure = true, self) {
   let last;
+  let ran = false;
   let failed = null;
   const guard = () => {
     // Evaluated again, so not ended: what cleaned up was this. One kept for
@@ -420,7 +421,13 @@ function guarded(key, compute, pure = true, self) {
     guard.failing = false;
     const before = early;
     try {
-      return (last = own(compute()));
+      const value = own(compute());
+      // A binding that gives its object something new changed a property
+      // of it as a write does: a Controller there is told so
+      // (Ljos/Core/controller.js).
+      if (ran && !Object.is(value, last)) self?.$written?.();
+      ran = true;
+      return (last = value);
     } catch (error) {
       if (!(error instanceof TypeError)) {
         // Under a boundary it is the boundary's; a binding's throw would

@@ -38,6 +38,28 @@ test("updated runs once after attached, and once a turn that wrote the host", as
   expect(await log(page)).toEqual([]);
 });
 
+test("a binding that gives the host something new updates it, as a write does", async ({ page }) => {
+  await open(page, "controller");
+  expect((await log(page)).filter((told) => told.startsWith("following"))).toEqual(["following 100"]);
+  await page.evaluate(() => {
+    window.objects.root.width = 300;
+    window.flush();
+  });
+  await page.evaluate(() => new Promise((done) => setTimeout(done, 20)));
+  expect((await log(page)).filter((told) => told.startsWith("following"))).toEqual(["following 150"]);
+});
+
+test("a host whose anchors give it a new size updates it", async ({ page }) => {
+  await open(page, "controller");
+  expect((await log(page)).filter((told) => told.startsWith("fitted"))).toEqual(["fitted 200"]);
+  await page.evaluate(() => {
+    window.objects.root.width = 300;
+    window.flush();
+  });
+  await page.evaluate(() => new Promise((done) => setTimeout(done, 20)));
+  expect((await log(page)).filter((told) => told.startsWith("fitted"))).toEqual(["fitted 300"]);
+});
+
 test("a Controller destroyed is detached once", async ({ page }) => {
   await open(page, "controller");
   await log(page);
