@@ -2308,9 +2308,8 @@ they answer as fetch.feature asks with no code of the runtime's: a reply is
 a `Response` whatever its status, a body is read once, an unreachable server
 rejects with a `TypeError`, an aborted request with an `AbortError` or the
 signal's own reason, a timed-out one with a `TimeoutError`, and nothing polls
-while a request waits. `tests/fetch.spec.js` holds each scenario. Its scene
-is written as `qmlc` emits a file, since the compiler takes the fetch classes
-as names only once A30 lands.
+while a request waits. `tests/fetch.spec.js` holds each scenario, run
+from a file of Ljós's API that `qmlc` compiles (`tests/scenes/fetching.qml`).
 
 **The homes of `Qt.*`.** A file of Ljós's API has no `Qt`; what Qt's `Qt`
 object held is each under its own name, imported from the module Ljós puts
@@ -2343,15 +2342,16 @@ owner that never ends; a root that ends is taken off it, so none piles up
 `controllerwindow.spec.js` (a Controller and a `Tap` in a `Window`),
 `controllerfaults.spec.js` (what a module throws, a late `updated.connect`,
 a gesture destroyed), `task.spec.js`,
-`fetch.spec.js`, `ljoshomes.spec.js`, and `ergoruntime.spec.js`, a card in
+`fetch.spec.js`, `ljoshomes.spec.js` (the names called from their
+modules, and a compiled file, `tests/scenes/ljoshomesfile.qml`, that
+reaches each with no `Qt`), and `ergoruntime.spec.js`, a card in
 Ljós's API compiled by `qmlc` (`tests/scenes/ergoruntime.qml`) with a
 Controller that keeps a label of its host's size as its anchors change it,
 a `Tap` that counts, and a `Task` that fetches what the city names.
 
-Not done, and said so: the QML forms of the fetch scene and of `App` and
-`Color` wait for the compiler's names (A30); and a child's explicit `width`
-in a `Ljos.Layout` `Column` is not yet the size the arrangement's rule gives
-it (A29), so the card's labels use `Layout.preferredWidth`.
+Not done, and said so: a child's explicit `width` in a `Ljos.Layout`
+`Column` is not yet the size the arrangement's rule gives it (A29), so the
+card's labels use `Layout.preferredWidth`.
 
 
 ## Part II — An application's own Rust types

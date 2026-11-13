@@ -89,3 +89,26 @@ test("Locale has its formats and enums beside current and named", async ({ page 
     }),
   ).toEqual([1, 1, "de_DE", "function"]);
 });
+
+test("a file of Ljós's API, compiled, reaches each name in its module and no Qt", async ({ page }) => {
+  await open(page, "ljoshomesfile");
+  await expect.poll(() => page.evaluate(() => window.scene.called)).toBe("later");
+  const read = await page.evaluate(() => {
+    const { dark, same, px, corner, button, across, german, named, twice } = window.scene;
+    window.scene.base = 5;
+    window.flush();
+    return { dark, same, px, corner, button, across, german, named, twice, again: window.scene.twice };
+  });
+  expect(read).toEqual({
+    dark: "#66331a",
+    same: true,
+    px: 20,
+    corner: 33,
+    button: 1,
+    across: 9,
+    german: "de_DE",
+    named: true,
+    twice: 6,
+    again: 10,
+  });
+});
