@@ -43,6 +43,7 @@ export const enums = {
   GlobalColor: { color0: 0, color1: 1, black: 2, white: 3, darkGray: 4, gray: 5, lightGray: 6, red: 7, green: 8, blue: 9, cyan: 10, magenta: 11, yellow: 12, darkRed: 13, darkGreen: 14, darkBlue: 15, darkCyan: 16, darkMagenta: 17, darkYellow: 18, transparent: 19 },
   ColorScheme: { Unknown: 0, Light: 1, Dark: 2 },
   ContrastPreference: { NoPreference: 0, HighContrast: 1 },
+  MotionPreference: { NoPreference: 0, ReducedMotion: 1 },
   AspectRatioMode: { IgnoreAspectRatio: 0, KeepAspectRatio: 1, KeepAspectRatioByExpanding: 2 },
   TransformationMode: { FastTransformation: 0, SmoothTransformation: 1 },
   ImageConversionFlags: { ColorMode_Mask: 3, AutoColor: 0, ColorOnly: 3, MonoOnly: 2, AlphaDither_Mask: 12, ThresholdAlphaDither: 0, OrderedAlphaDither: 4, DiffuseAlphaDither: 8, NoAlpha: 12, Dither_Mask: 48, DiffuseDither: 0, OrderedDither: 16, ThresholdDither: 32, DitherMode_Mask: 192, AutoDither: 0, PreferDither: 64, AvoidDither: 128, NoOpaqueDetection: 0x100, NoFormatConversion: 0x200 },
