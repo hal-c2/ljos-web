@@ -276,14 +276,14 @@ test.describe("a site prerendered at more than one size", () => {
         await route.continue();
       });
       await page.goto(`${origin}/docs/`, { waitUntil: "commit" });
-      await page.waitForSelector('[data-ljos-size="0"] [data-hk]');
-      await page.evaluate(() => document.querySelector('[data-ljos-size="0"]').setAttribute("data-tag", "shown"));
+      await page.waitForSelector('[data-ljos-render="0"] [data-hk]');
+      await page.evaluate(() => document.querySelector('[data-ljos-render="0"]').setAttribute("data-tag", "shown"));
       release();
       await page.waitForSelector('#app[data-ljos-hydrated="true"]');
       await page.unroute("**/*.js");
       expect(told).toEqual([]);
       // The render that was shown is the one taken over; the other is gone.
-      expect(await page.evaluate(() => [document.querySelectorAll('#app > [data-tag="shown"]').length, document.querySelectorAll("#app [data-ljos-size]").length])).toEqual([1, 0]);
+      expect(await page.evaluate(() => [document.querySelectorAll('#app > [data-tag="shown"]').length, document.querySelectorAll("#app [data-ljos-render]").length])).toEqual([1, 0]);
       await expect(page.getByText("Narrow layout", { exact: true })).toBeVisible();
       await expect(page.getByText("Window 390", { exact: true })).toBeVisible();
       await page.setViewportSize({ width: 1200, height: 800 });
@@ -291,6 +291,119 @@ test.describe("a site prerendered at more than one size", () => {
       await expect(page.getByText("Window 1200", { exact: true })).toBeVisible();
     } finally {
       await context.close();
+    }
+  });
+});
+
+// A page in the reader's colour scheme from its first paint: it is
+// prerendered as a browser asking for each scheme would have it, the
+// stylesheet shows the one asked for — the browser's, or the page's own
+// where its root says one — and the script hydrates that one, in it.
+test.describe("a site prerendered in both colour schemes", () => {
+  test.describe.configure({ mode: "serial" });
+  const shell = `import QtQuick\n\nRectangle {\n    id: root\n    property string route: "/"\n    readonly property bool dark: Application.styleHints.colorScheme === Qt.ColorScheme.Dark\n    width: parent ? parent.width : 0\n    height: parent ? parent.height : 0\n    color: dark ? "#101010" : "#fafafa"\n    Text { text: (root.dark ? "Dark" : "Light") + (root.width < 600 ? " narrow" : " wide") }\n}\n`;
+  let made;
+  let server;
+  let origin;
+
+  test.beforeAll(async () => {
+    made = bundle("pages", (dir, written) => {
+      writeFileSync(join(dir, "Shell.qml"), shell);
+      written.files = written.files.map((file) => (file.path === "Shell.qml" ? { path: file.path, bytes: Buffer.byteLength(shell) } : file));
+    });
+    await buildSite({
+      dir: made.dir,
+      out: made.out,
+      qmlc,
+      prerender: {
+        sizes: [
+          { width: 390, height: 844 },
+          { width: 1200, height: 800, from: 800 },
+        ],
+        schemes: ["dark", "light"],
+        pages: [{ route: "/", title: "Home", props: { route: "/" } }],
+      },
+    });
+    server = await serve(made.out);
+    origin = `http://127.0.0.1:${server.address().port}`;
+  });
+  test.afterAll(async () => {
+    await new Promise((done) => server?.close(done));
+    made?.remove();
+  });
+
+  for (const [scheme, width, shown] of [
+    ["light", 390, "Light narrow"],
+    ["dark", 390, "Dark narrow"],
+    ["light", 1200, "Light wide"],
+    ["dark", 1200, "Dark wide"],
+  ]) {
+    test(`a browser asking for ${scheme} at ${width} is shown that render alone, with JavaScript off`, async ({ browser }) => {
+      const context = await browser.newContext({ javaScriptEnabled: false, colorScheme: scheme, viewport: { width, height: 800 } });
+      try {
+        const page = await context.newPage();
+        await page.goto(`${origin}/`);
+        for (const text of ["Light narrow", "Dark narrow", "Light wide", "Dark wide"]) {
+          if (text === shown) await expect(page.getByText(text, { exact: true })).toBeVisible();
+          else await expect(page.getByText(text, { exact: true })).toBeHidden();
+        }
+      } finally {
+        await context.close();
+      }
+    });
+  }
+
+  for (const [asked, chosen] of [
+    ["dark", "light"],
+    ["light", "dark"],
+  ]) {
+    test(`the page's own ${chosen} wins over a browser asking for ${asked}, before and after it hydrates`, async ({ browser }) => {
+      const context = await browser.newContext({ colorScheme: asked, viewport: { width: 390, height: 844 } });
+      try {
+        const page = await context.newPage();
+        const told = [];
+        page.on("pageerror", (error) => told.push(error.message));
+        // What a page's own head script does with what its reader chose:
+        // said on the root as the head is read, before the body.
+        await page.route(`${origin}/`, async (route) => {
+          const response = await route.fetch();
+          const html = (await response.text()).replace("<head>", () => `<head><script>document.documentElement.setAttribute("data-ljos-scheme", "${chosen}")</script>`);
+          await route.fulfill({ response, body: html });
+        });
+        let release;
+        const held = new Promise((done) => (release = done));
+        await page.route("**/*.js", async (route) => {
+          await held;
+          await route.continue();
+        });
+        await page.goto(`${origin}/`, { waitUntil: "commit" });
+        const name = `${chosen === "dark" ? "Dark" : "Light"} narrow`;
+        const other = `${chosen === "dark" ? "Light" : "Dark"} narrow`;
+        await expect(page.getByText(name, { exact: true })).toBeVisible();
+        await expect(page.getByText(other, { exact: true })).toBeHidden();
+        release();
+        await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+        await page.unroute("**/*.js");
+        expect(told).toEqual([]);
+        expect(await page.evaluate(() => document.querySelectorAll("#app [data-ljos-render]").length)).toBe(0);
+        await expect(page.getByText(name, { exact: true })).toBeVisible();
+        expect(await page.getByText(other, { exact: true }).count()).toBe(0);
+      } finally {
+        await context.close();
+      }
+    });
+  }
+
+  test("a scheme that is neither light nor dark, or one said twice, is refused before anything is built", async () => {
+    const other = bundle("pages");
+    try {
+      const pages = [{ route: "/" }];
+      await expect(buildSite({ dir: other.dir, out: other.out, qmlc, prerender: { pages, schemes: ["sepia"] } })).rejects.toThrow(/schemes/);
+      await expect(buildSite({ dir: other.dir, out: other.out, qmlc, prerender: { pages, schemes: ["dark", "dark"] } })).rejects.toThrow(/schemes/);
+      await expect(buildSite({ dir: other.dir, out: other.out, qmlc, prerender: { pages, schemes: [] } })).rejects.toThrow(/schemes/);
+      expect(existsSync(join(other.out, "index.html"))).toBe(false);
+    } finally {
+      other.remove();
     }
   });
 });

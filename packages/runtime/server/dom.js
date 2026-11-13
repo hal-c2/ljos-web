@@ -724,6 +724,8 @@ export class ServerDocument {
     }
     this.documentElement.parentNode = this;
     this.activeElement = this.body;
+    // The page is made as its reader first sees it: shown, and theirs.
+    this.visibilityState = "visible";
     // No font is loaded here: what asks is told they are all in, of
     // the fallbacks the measurements are made with.
     this.fonts = {
@@ -740,6 +742,9 @@ export class ServerDocument {
     };
     this.adoptedStyleSheets = [];
     this.styleSheets = [];
+  }
+  hasFocus() {
+    return true;
   }
   createElement(tag) {
     const custom = this._custom?.get(String(tag).toLowerCase());
@@ -876,7 +881,7 @@ function storage() {
 // looks for it. A render runs in a process of its own (the site
 // build's), so this takes the globals over rather than adding to a
 // page's.
-export function installPrerenderGlobals({ width = 1280, height = 720 } = {}) {
+export function installPrerenderGlobals({ width = 1280, height = 720, scheme } = {}) {
   const document = new ServerDocument();
   const globals = {
     document,
@@ -952,7 +957,18 @@ export function installPrerenderGlobals({ width = 1280, height = 720 } = {}) {
           },
         },
       ),
-    matchMedia: () => ({ matches: false, media: "", addEventListener() {}, removeEventListener() {} }),
+    // The window is told of no focus, blur or resize here: nothing
+    // happens to a page being made.
+    addEventListener() {},
+    removeEventListener() {},
+    // A page made for a colour scheme is told that scheme is the one
+    // asked for; nothing else here matches, as no reader is here.
+    matchMedia: (media) => ({
+      matches: scheme !== undefined && new RegExp(`\\(\\s*prefers-color-scheme\\s*:\\s*${scheme}\\s*\\)`).test(media),
+      media,
+      addEventListener() {},
+      removeEventListener() {},
+    }),
     Image: class {
       constructor() {
         // Not a `createElement`, in a browser or here.

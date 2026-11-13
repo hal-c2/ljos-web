@@ -319,9 +319,19 @@ export function replaceSite(from, out, rename = renameSync) {
 // entry's own properties — and each page's script hydrates it with the
 // same props, which its HTML carries. One build, one set of assets,
 // every page's own HTML: a site of many pages is one shell that shows
-// the page its route names. `css`: stylesheets the page carries after
-// the runtime's own (`ljos-web/codeblock.css`, whose `tok-*` rules colour
-// the code a site's rich text holds through its `--ljos-code-*` theme).
+// the page its route names. A page's `description` is its
+// `<meta name="description">`. `prerender.sizes`
+// (`[{ width, height, from }]`, narrowest first) makes each page once
+// per window size, the stylesheet showing the one a browser of the
+// reader's width is, and `prerender.schemes` (`["light", "dark"]`) once
+// per colour scheme, shown as the browser asks or as the page's root
+// says (`data-ljos-scheme`); the page hydrates the render shown. `head`
+// is HTML put at the end of every page's `<head>`: a site's icons,
+// metadata, and a script that says the reader's own scheme before the
+// body is read. A prerendered page's script is asked for once its HTML
+// has been painted. `css`: stylesheets the page carries after the
+// runtime's own (`ljos-web/codeblock.css`, whose `tok-*` rules colour the
+// code a site's rich text holds through its `--ljos-code-*` theme).
 // What it wrote, and its size.
 //
 // A site's controls are Ljós's whether or not the machine that builds it
@@ -379,18 +389,47 @@ function sizesOf(prerender) {
   });
 }
 
-// Which of a page's sizes the browser shows, as a stylesheet: each from
-// its `from` up to the next one's.
-function sizesSheet(sizes) {
-  const rules = sizes.map(({ from }, index) => {
-    const up = sizes[index + 1]?.from;
+// The colour schemes a page is prerendered in: the page made as a
+// browser asking for each would have it, so a reader asking for dark is
+// first shown the dark page and no light one flashes before it. Light,
+// where it is one of them, is shown to a browser that asks for neither.
+// None said is one render, made as a browser asking for nothing.
+function schemesOf(prerender) {
+  if (typeof prerender !== "object" || prerender === null || prerender.schemes === undefined) return [undefined];
+  const { schemes } = prerender;
+  if (!Array.isArray(schemes) || schemes.length === 0 || schemes.some((scheme) => scheme !== "light" && scheme !== "dark") || new Set(schemes).size !== schemes.length) {
+    throw new SiteError(`prerender.schemes is a list of "light" and "dark", each once, not ${JSON.stringify(schemes)}`);
+  }
+  return schemes.includes("light") ? ["light", ...schemes.filter((scheme) => scheme !== "light")] : schemes;
+}
+
+// Which of a page's renders the browser shows, as a stylesheet: each size
+// from its `from` up to the next one's, and in each the scheme the reader
+// asks for — the browser's, or the page's own where its root says one
+// (`<html data-ljos-scheme="dark">`, set before the body is read by a
+// page that lets its reader choose).
+function rendersSheet(renders, sizes) {
+  const rules = [];
+  for (const [index, { size, scheme }] of renders.entries()) {
+    const { from } = sizes[size];
+    const up = sizes[size + 1]?.from;
     const below = up === undefined ? "" : `(max-width: ${up - 0.02}px)`;
-    const above = index === 0 ? "" : `(min-width: ${from}px)`;
-    const when = [above, below].filter(Boolean).join(" and ");
-    const rule = `[data-ljos-size="${index}"] { display: block; }`;
-    return when ? `@media ${when} { ${rule} }` : rule;
-  });
-  return `<style>\n      [data-ljos-size] { display: none; width: 100%; height: 100%; }\n      ${rules.join("\n      ")}\n    </style>`;
+    const above = size === 0 ? "" : `(min-width: ${from}px)`;
+    const when = [above, below].filter(Boolean);
+    const at = (media, rule) => (media.length ? `@media ${media.join(" and ")} { ${rule} }` : rule);
+    const shown = `[data-ljos-render="${index}"]`;
+    if (scheme === undefined || renders.every((other) => other.size !== size || other.scheme === scheme)) {
+      rules.push(at(when, `${shown} { display: block; }`));
+    } else if (scheme === "light") {
+      rules.push(at(when, `:root:not([data-ljos-scheme="dark"]) ${shown} { display: block; }`));
+    } else {
+      // Later than light's, and as specific: where both match, this wins.
+      const light = `[data-ljos-render="${renders.findIndex((other) => other.size === size && other.scheme === "light")}"]`;
+      rules.push(at([...when, "(prefers-color-scheme: dark)"], `:root:not([data-ljos-scheme]) ${light} { display: none; } :root:not([data-ljos-scheme]) ${shown} { display: block; }`));
+      rules.push(at(when, `:root[data-ljos-scheme="dark"] ${shown} { display: block; }`));
+    }
+  }
+  return `<style>\n      [data-ljos-render] { display: none; width: 100%; height: 100%; }\n      ${rules.join("\n      ")}\n    </style>`;
 }
 
 // The head a page is written with: what the site gives every page, and
@@ -426,6 +465,7 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
   if (typeof head !== "string") throw new SiteError("head is the HTML every page's head is given, a string");
   const pages = prerender ? pagesOf(prerender) : null;
   const sizes = prerender ? sizesOf(prerender) : null;
+  const schemes = prerender ? schemesOf(prerender) : null;
   dir = resolve(dir);
   out = resolve(out ?? `${dir}-site`);
   qmlc = compilerAt(qmlc);
@@ -532,16 +572,24 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
       let shell = readFileSync(join(site, "index.html"), "utf8");
       if (!shell.includes('<div id="app"></div>')) throw new SiteError("the built page has no empty #app to prerender into");
       shell = startAfterPaint(shell);
-      if (sizes.length > 1) shell = shell.replace("  </head>", () => `    ${sizesSheet(sizes)}\n  </head>`);
+      // Every size in every scheme, narrowest first and light before dark.
+      const made = sizes.flatMap((_, size) => schemes.map((scheme) => ({ size, scheme })));
+      if (made.length > 1) shell = shell.replace("  </head>", () => `    ${rendersSheet(made, sizes)}\n  </head>`);
       for (const page of pages ?? [{ route: "/" }]) {
-        const renders = sizes.map(({ width, height }) => {
-          const options = { ...(width !== undefined ? { width } : {}), ...(height !== undefined ? { height } : {}), ...(page.props ? { props: page.props } : {}) };
+        const renders = made.map(({ size, scheme }) => {
+          const { width, height } = sizes[size];
+          const options = {
+            ...(width !== undefined ? { width } : {}),
+            ...(height !== undefined ? { height } : {}),
+            ...(scheme !== undefined ? { scheme } : {}),
+            ...(page.props ? { props: page.props } : {}),
+          };
           const ran = spawnSync(process.execPath, [join(runtime, "server/prerender.js"), join(stage, "server/server-entry.mjs"), JSON.stringify(options)], {
             encoding: "utf8",
             maxBuffer: 1 << 28,
             timeout: 120_000,
           });
-          const at = sizes.length > 1 ? ` at ${width}×${height}` : "";
+          const at = [sizes.length > 1 ? ` at ${width}×${height}` : "", schemes.length > 1 ? ` in ${scheme}` : ""].join("");
           if (ran.error) throw new SiteError(`could not prerender ${page.route}${at}: ${ran.error.message}`);
           if (ran.status !== 0) throw new SiteError(`${page.route} could not be prerendered${at}:\n${(ran.stderr || ran.stdout).trim()}`);
           if (ran.stderr) console.warn(ran.stderr.trimEnd());
@@ -555,7 +603,7 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
           if (sheet && !sheets.includes(sheet)) sheets.push(sheet);
           return html.slice(sheet.length);
         });
-        const made = sizes.length > 1 ? sheets.join("") + bodies.map((html, index) => `<div data-ljos-size="${index}">${html}</div>`).join("") : renders[0];
+        const written = renders.length > 1 ? sheets.join("") + bodies.map((html, index) => `<div data-ljos-render="${index}">${html}</div>`).join("") : renders[0];
         // The page at its route asks for the one build's assets from
         // its own depth, carries the props it was made with for its
         // script to hydrate it by, and is titled as its own page.
@@ -568,7 +616,7 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
           const carried = JSON.stringify(page.props).replaceAll("</script", "<\\/script");
           html = html.replace('<div id="app"></div>', () => `<script type="application/json" id="ljos-props">${carried}</script>\n    <div id="app"></div>`);
         }
-        html = html.replace('<div id="app"></div>', () => `<div id="app">${made}</div>`);
+        html = html.replace('<div id="app"></div>', () => `<div id="app">${written}</div>`);
         const at = join(site, page.route.slice(1), "index.html");
         mkdirSync(dirname(at), { recursive: true });
         writeFileSync(at, html);
@@ -623,13 +671,14 @@ import Entry from "ljos-site:entry";
 
 const carried = document.getElementById("ljos-props");
 const app = document.getElementById("app");
-// A page prerendered at more than one size hydrates the one the reader
-// is shown, and is then that one alone, whatever size the window becomes.
-const sizes = [...app.querySelectorAll(":scope > [data-ljos-size]")];
-const shown = sizes.find((size) => getComputedStyle(size).display !== "none") ?? sizes[0];
-for (const size of sizes) if (size !== shown) size.remove();
+// A page prerendered at more than one size or in more than one scheme
+// hydrates the render the reader is shown, and is then that one alone,
+// whatever size the window becomes and whichever scheme is asked for.
+const renders = [...app.querySelectorAll(":scope > [data-ljos-render]")];
+const shown = renders.find((render) => getComputedStyle(render).display !== "none") ?? renders[0];
+for (const render of renders) if (render !== shown) render.remove();
 if (shown) {
-  shown.removeAttribute("data-ljos-size");
+  shown.removeAttribute("data-ljos-render");
   shown.style.cssText = "width:100%;height:100%";
 }
 hydrate(Entry, shown ?? app, carried ? JSON.parse(carried.textContent) : {});

@@ -1703,7 +1703,22 @@ What a prerender has, and what it has not:
   plain and rich text, with a rich text's `<br/>` a line: a page
   whose code must not move when it hydrates sets its lines that way
   (A30). A site may say the size its page is made
-  at (`prerender: { width, height }`, 1280×720 by default).
+  at (`prerender: { width, height }`, 1280×720 by default), or
+  several (`prerender: { sizes: [{ width, height, from }] }`): each
+  page is then written once per size, and the stylesheet shows the
+  render made for a window of the reader's width, so a phone's first
+  paint is laid out for a phone.
+- A page made for both colour schemes (`prerender: { schemes:
+  ["light", "dark"] }`) is written once per scheme, with
+  `Application.styleHints.colorScheme` as a browser asking for each
+  would give it. The stylesheet shows the one the browser asks for,
+  or the page's own where its root says one (`<html
+  data-ljos-scheme="dark">`): a site that lets its reader choose
+  sets that from a head script (`buildSite({ head })`) before the
+  body is read, and `styleHints` reads it too once the page runs, so
+  neither paint nor hydration shows the other scheme first.
+- A prerendered page asks for its script once its HTML is painted,
+  so the script never stands before the first paint.
 - What paints is not in the HTML: a `Canvas`, a `ShaderEffect`, a
   `View3D` and the other GPU faces prerender as the element they
   paint into, of the size and place the page gives them, and paint
