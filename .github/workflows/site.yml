@@ -17,10 +17,14 @@ on:
 permissions:
   contents: read
 
-# A newer push supersedes a pull request's run; a dispatch is never
-# cancelled by another run, so a deploy it asked for is not lost.
+# A newer push supersedes a pull request's run. A dispatch is never
+# cancelled once running, so a deploy it asked for is not lost. Every
+# deploying dispatch shares one group, so they build and deploy in the
+# order they were made and an older commit never lands after a newer
+# one; a deploy still waiting is replaced by a newer one, which is the
+# deploy wanted anyway. A dispatch that only builds stands alone.
 concurrency:
-  group: ${{ github.event_name == 'workflow_dispatch' && format('site-dispatch-{0}', github.run_id) || format('site-{0}', github.ref) }}
+  group: ${{ github.event_name != 'workflow_dispatch' && format('site-{0}', github.ref) || (inputs.deploy && 'site-deploy' || format('site-dispatch-{0}', github.run_id)) }}
   cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 
 env:
@@ -173,7 +177,8 @@ jobs:
     if: ${{ inputs.deploy == true }}
     needs: build
     runs-on: ubuntu-24.04
-    # One deploy at a time, and one in flight is never cancelled.
+    # One deploy at a time, and one in flight is never cancelled; the
+    # workflow's own group already keeps deploying runs in order.
     concurrency:
       group: pages
       cancel-in-progress: false
