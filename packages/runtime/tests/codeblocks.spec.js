@@ -13,6 +13,8 @@ import { Text } from "@codemirror/state";
 import { assemble, displayPosition, exampleFiles, extractBlocks, parseInfo, spliceHarness } from "../codeblocks/parse.js";
 import { checkExamples, hashExample, loadPrerenders, renderCode, renderPrerenders, renderStatic } from "../codeblocks/build.js";
 import { toDiagnostics } from "../codeblocks/editor.js";
+import { PACKED, packRich, unpackRich } from "../codeblocks/rich.js";
+import { highlight } from "../markdown.js";
 import { liveCodeBlocks } from "../codeblocks/remark.js";
 import { COUNTER, DOC, GROUP_MAIN, PANEL, SHELL_DOC, SNIPPET, WINDOW } from "./codeblocks-fixtures.js";
 import { expect, test } from "./open.js";
@@ -55,6 +57,11 @@ plain.describe("the fence contract", () => {
     const [past, spaced] = toDiagnostics(doc, [{ message: "d", line: 9, column: 40 }, { message: "e", line: 2, column: 1 }]);
     expect(past).toMatchObject({ from: doc.length - 1, to: doc.length });
     expect(spaced).toMatchObject({ from: 16, to: 21 });
+    // An unclosed block is told at the end of the file, on an empty
+    // last line: the mark is the last sign before it, never empty.
+    const open = Text.of(["Rectangle {", "    Item {", "}", ""]);
+    const [eof] = toDiagnostics(open, [{ message: "f", line: 4, column: 1 }]);
+    expect(eof).toMatchObject({ from: open.line(3).from, to: open.line(3).from + 1 });
     expect(renderCode("a < b", "sh")).toBe('<pre class="ljos-code"><code class="language-sh">a &lt; b</code></pre>');
   });
 
@@ -197,7 +204,31 @@ plain.describe("the build-time check and static HTML", () => {
     expect(checkExamples(examples, { qmlc })).toEqual([]);
   });
 
-  plain("static HTML shows code and the prerendered result and carries the payload", () => {
+  // A site ships every page's colouring in its first script: packed, a
+// token is its text and three marks, and it reads back to the very
+// markup the build wrote, or is shipped as that markup.
+plain("a block's colouring packs small and reads back exactly", () => {
+  const code = 'import QtQuick\nRectangle { width: 10; /* a<b & c */ text: "x > y"; onClicked: f(a.b) }\nx = a |> % + 1';
+  for (const lang of ["qml", "ts", "sh", "rust"]) {
+    const html = highlight(code, lang);
+    const packed = packRich(html);
+    expect(packed.startsWith(PACKED)).toBe(true);
+    expect(unpackRich(packed)).toBe(html);
+    // The grammar's colouring is a span on nearly every token.
+    expect(packed.length).toBeLessThan(lang === "qml" || lang === "ts" ? html.length / 2 : html.length);
+  }
+  // Tokens that touch close no span between them.
+  expect(packRich(highlight("a.b()", "ts"))).toBe(`${PACKED}<ia<k.<gb<k(<k)>`);
+  // What is not the colouring's own markup is shipped as it is.
+  expect(unpackRich(packRich(`${PACKED}<a`))).toBe("&#xE000;<a");
+  for (const html of ['<span class="tok-unknown">x</span>', "", "plain"]) {
+    expect(unpackRich(packRich(html))).toBe(html);
+  }
+  expect(packRich('<span class="tok-unknown">x</span>')).toBe('<span class="tok-unknown">x</span>');
+  expect(unpackRich("<b>not packed</b>")).toBe("<b>not packed</b>");
+});
+
+plain("static HTML shows code and the prerendered result and carries the payload", () => {
     const { examples } = assemble(extractBlocks(DOC), { harnesses: { window: WINDOW } });
     const html = renderStatic(examples[0], { prerender: `<div data-hk="1:Rectangle" style="width: 320px; height: 180px">Count: 0</div>` });
     expect(html).toContain('style="width:320px;height:180px"');

@@ -137,16 +137,21 @@ export function toDiagnostics(doc, diagnostics) {
     let to = d.endLine ? offset(doc, d.endLine, d.endColumn) : from;
     if (to <= from) {
       // No range: the word (or sign) it points at, past any spaces;
-      // at a line's end, the character before, so the mark is seen.
+      // with nothing after it on the line (an unclosed block is told
+      // at the end of the file), the last sign before it, so the mark
+      // is a squiggle that is seen, not an empty point.
       const line = doc.lineAt(from);
       const word = /^(\s*)([\w$.]+|\S)/.exec(line.text.slice(from - line.from));
       if (word) {
         from += word[1].length;
         to = from + word[2].length;
-      } else if (from > line.from) {
-        to = from;
-        from -= 1;
-      } else to = Math.min(doc.length, from + 1);
+      } else {
+        const before = /\S\s*$/.exec(doc.sliceString(0, from));
+        if (before) {
+          from = before.index;
+          to = from + 1;
+        } else to = Math.min(doc.length, from + 1);
+      }
     }
     return {
       from,
@@ -200,12 +205,16 @@ export function createCodeEditor(parent, { doc = "", lang = "qml", label = "Code
         attributes.of(attrs(false)),
         // Entering the editor again turns Tab back into indenting:
         // ours, and CodeMirror's own Escape-then-Tab, which would last
-        // two seconds whatever the reader did.
-        EditorView.updateListener.of((update) => {
-          if (update.focusChanged && update.view.hasFocus) {
+        // two seconds whatever the reader did. On the focus itself, not
+        // the update CodeMirror reports it in a moment later: a reader
+        // quick to leave again would be gone before that, and the
+        // Escape would still be armed on the next visit.
+        EditorView.domEventHandlers({
+          focus(_event, view) {
             escaped.on = false;
-            update.view.setTabFocusMode(false);
-          }
+            view.setTabFocusMode(false);
+            return false;
+          },
         }),
         EditorView.updateListener.of((update) => {
           if (update.docChanged && !quiet) onChange?.(update.state.doc.toString());
@@ -219,12 +228,19 @@ export function createCodeEditor(parent, { doc = "", lang = "qml", label = "Code
     get text() {
       return view.state.doc.toString();
     },
-    // The block's own writing (Reset): no edit is heard for it.
+    // The block's own writing (Reset): no edit is heard for it. It is
+    // a text as written, so it is read from its start: the caret goes
+    // there and the start is scrolled to, where a caret left at the
+    // end of the reader's text would keep the editor on its last lines.
     setText(text) {
       if (text === view.state.doc.toString()) return;
       quiet = true;
       try {
-        view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text } });
+        view.dispatch({
+          changes: { from: 0, to: view.state.doc.length, insert: text },
+          selection: { anchor: 0 },
+          effects: EditorView.scrollIntoView(0, { y: "nearest" }),
+        });
       } finally {
         quiet = false;
       }
