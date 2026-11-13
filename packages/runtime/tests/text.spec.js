@@ -559,6 +559,16 @@ test("markup is as large as Qt makes it, and made of the elements it names", asy
   expect(await html("linked")).toBe('go <a data-link="there" href="there">there</a> or <a data-link="https://example.org/" href="https://example.org/">away</a>');
 });
 
+test("markup keeps a fixed line height, which the font it is set in does not undo", async ({ page }) => {
+  await boxes(page, "markup");
+  const line = () => page.evaluate(() => getComputedStyle(window.objects.rich.$markup).lineHeight);
+  await page.evaluate(() => {
+    window.objects.rich.lineHeightMode = 1; // Text.FixedHeight
+    window.objects.rich.lineHeight = 30;
+  });
+  await expect.poll(line).toBe("30px");
+});
+
 test("a text is painted in its colour, with its style around it, under it or over it", async ({ page }) => {
   await boxes(page, "markup");
   const RED = "255 0 0";

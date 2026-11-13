@@ -255,6 +255,9 @@ export function clothe(element, look) {
   const { font, limit, mode } = look;
   element.className = look.kind === 2 ? "qq-text qq-markup qq-rich" : "qq-text qq-markup";
   dress(style, font);
+  // The `font` shorthand dress writes sets line-height to normal, which,
+  // inline, would win over the stylesheet's `var(--qq-line)`.
+  style.lineHeight = look.line;
   style.setProperty("--qq-line", look.line);
   // The `font` shorthand above set the element's own line height back to
   // normal, over the sheet's: its lines are the markup's height too.
