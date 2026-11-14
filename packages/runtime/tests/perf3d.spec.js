@@ -129,14 +129,17 @@ test("the harness's table shows only what its last run measured, beside qml6's",
       memory: {},
       idle: { percent: {}, asked: 0 },
     });
-    const earlier = ["grid-js.json", "grid-js.png", "grid-js.cpuprofile", "summary.md", "qml6.json", "grid-qml6.png", "qml6-grid.log"];
+    // What a run wrote, qml6's files, and what else may share the folder
+    // `LJOS_PERF3D_OUT` names: only the first go.
+    const others = ["README.md", "package.json", "notes-js.json", "grid.png"];
+    const earlier = ["grid-js.json", "grid-js.png", "grid-js.cpuprofile", "stress-webgl2.json", "summary.md", "qml6.json", "grid-qml6.png", "qml6-grid.log", ...others];
     for (const name of earlier) writeFileSync(join(out, name), name === "grid-js.json" ? JSON.stringify(result("grid", "js")) : name === "qml6.json" ? JSON.stringify({ version: "6.12.0", scenes: { grid: {} } }) : "");
     mkdirSync(join(out, "kept"));
 
     fresh(out);
     writeFileSync(join(out, "spin-js.json"), JSON.stringify(result("spin", "js")));
 
-    expect(readdirSync(out).sort()).toEqual(["grid-qml6.png", "kept", "qml6-grid.log", "qml6.json", "spin-js.json"]);
+    expect(readdirSync(out).sort()).toEqual([...others, "grid-qml6.png", "kept", "qml6-grid.log", "qml6.json", "spin-js.json"].sort());
     const rows = table(out).split("\n").filter((line) => /^\| (spin|grid) /.test(line));
     expect(rows.map((line) => line.split(" | ").slice(0, 2).join(" | "))).toEqual(["| spin | js", "| grid | qml6 6.12.0 native (rhi)"]);
   } finally {

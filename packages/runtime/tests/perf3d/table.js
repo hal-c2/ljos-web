@@ -13,21 +13,36 @@ const ms = (value, digits = 1) => (value === null || value === undefined || Numb
 const kb = (value) => (value ? `${Math.round(value / 1024 / 1024)} MB` : "–");
 const n = (value) => (value === null || value === undefined ? "–" : value >= 100 ? Math.round(value).toString() : value.toFixed(1));
 
+// `LJOS_PERF3D_OUT` can name any folder, so the harness reads and removes
+// only the names it writes: `<scene>-<renderer>.*` for a scene in `scenes/`
+// and a web renderer, and `summary.md`.
+function written() {
+  const names = new Set(["summary.md"]);
+  for (const file of readdirSync(join(import.meta.dirname, "scenes"))) {
+    if (!file.endsWith(".qml")) continue;
+    for (const renderer of RENDERERS.filter((each) => each !== "qml6")) {
+      for (const kind of ["json", "png", "cpuprofile"]) names.add(`${file.slice(0, -".qml".length)}-${renderer}.${kind}`);
+    }
+  }
+  return names;
+}
+
 // Before a run (the harness's globalSetup): what an earlier run wrote goes,
 // so the table is of this run alone. qml6's files stay, as `qml6.js`
 // measures them on its own.
 export function fresh(out = OUT) {
   if (!existsSync(out)) return;
+  const ours = written();
   for (const name of readdirSync(out)) {
-    if (/qml6/.test(name) || !/\.(json|png|cpuprofile|md)$/.test(name)) continue;
-    if (statSync(join(out, name)).isFile()) rmSync(join(out, name));
+    if (ours.has(name) && statSync(join(out, name)).isFile()) rmSync(join(out, name));
   }
 }
 
 export function table(out = OUT) {
   if (!existsSync(out)) return "";
+  const ours = written();
   const results = readdirSync(out)
-    .filter((name) => name.endsWith(".json") && name !== "qml6.json")
+    .filter((name) => name.endsWith(".json") && ours.has(name))
     .map((name) => JSON.parse(readFileSync(join(out, name), "utf8")));
   const qml6 = existsSync(join(out, "qml6.json")) ? JSON.parse(readFileSync(join(out, "qml6.json"), "utf8")) : {};
   for (const [scene, each] of Object.entries(qml6.scenes ?? {})) results.push({ scene, renderer: "qml6", qml6: each });

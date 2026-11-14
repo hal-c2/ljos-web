@@ -19,7 +19,9 @@ LJOS_PERF3D_SCENES=grid,stress LJOS_PERF3D_RENDERERS=webgpu mise run perf:3d
 - The harness builds `tests/perf3d` for production, serves it with
   `vite preview`, and opens one headless Chromium page per scene on the
   machine's own GPU. Nothing appears on screen.
-- Results go to `tests/perf3d/results/` (`LJOS_PERF3D_OUT` moves them):
+- Results go to `tests/perf3d/results/` (`LJOS_PERF3D_OUT` moves them). Each
+  run first removes what the previous run wrote there; other files and
+  qml6's results are left alone:
   - one JSON per scene and renderer
   - a picture of each at 1.5 s
   - `summary.md`, the table
