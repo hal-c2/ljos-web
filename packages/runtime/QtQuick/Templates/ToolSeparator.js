@@ -3,7 +3,7 @@
 import { defineType, derived } from "../../object.ts";
 import { Control } from "./Control.js";
 import { Horizontal, Vertical } from "./Slider.js";
-import { speaks } from "../Accessible.js";
+import { speaks } from "../Accessible.ts";
 
 export const ToolSeparator = defineType("ToolSeparator", Control, {
   properties: {

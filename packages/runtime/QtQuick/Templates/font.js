@@ -60,7 +60,7 @@ export const font = group({
   underline: inherited("underline", false),
   overline: inherited("overline", false),
   strikeout: inherited("strikeout", false),
-  // Ljós's name for the pixel size, as on every font (`QtQuick/font.js`).
+  // Ljós's name for the pixel size, as on every font (`QtQuick/font.ts`).
   size: alone(
     typed(
       kinds.pixels,

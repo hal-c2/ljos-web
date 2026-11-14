@@ -16,7 +16,7 @@ import { allowedStyle } from "../guard.js";
 import { colorValue, css } from "./color.ts";
 import { toScene } from "./geometry.ts";
 import { Item } from "./Item.js";
-import { paletteOf } from "./Palette.js";
+import { paletteOf } from "./Palette.ts";
 import { signal, untrack } from "#kernel";
 
 const sheet = new CSSStyleSheet();

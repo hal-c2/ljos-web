@@ -5,7 +5,7 @@
 import { shellShown } from "../guard.js";
 import { css } from "./color.ts";
 import { rules } from "./compute.ts";
-import { dress, fonts, metrics, resized } from "./font.js";
+import { dress, fonts, metrics, resized } from "./font.ts";
 import { flush, outsideTheCount } from "../object.ts";
 import { signal, untrack } from "#kernel";
 

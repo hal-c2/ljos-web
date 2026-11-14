@@ -2,7 +2,7 @@
 // style's controls are written with.
 import { defineType, effect, slot } from "../../../object.ts";
 import { lazy, rules } from "../../compute.ts";
-import { capitalized } from "../../font.js";
+import { capitalized } from "../../font.ts";
 import { mightBeRichText } from "../../richtext.js";
 import { RIGHT_TO_LEFT, Text } from "../../Text.js";
 

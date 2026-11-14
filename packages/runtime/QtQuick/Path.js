@@ -6,7 +6,7 @@
 import { Point, Size } from "../QtQml/values.ts";
 import { contents, defineType, derived, effect, QtObject, settle, slot } from "../object.ts";
 import { lazy } from "./compute.ts";
-import { Outline, svgPath } from "./outline.js";
+import { Outline, svgPath } from "./outline.ts";
 import { signal } from "#kernel";
 
 const next = (version) => version + 1;

@@ -2,7 +2,7 @@
 export { QtObject } from "../object.ts";
 export { Timer } from "../QtQuick/animation/Timer.js";
 export { Binding } from "../QtQuick/Binding.js";
-export { Connections } from "../QtQuick/Connections.js";
+export { Connections } from "../QtQuick/Connections.ts";
 export { Component } from "./Component.ts";
 export { Locale } from "./locale.ts";
 export {

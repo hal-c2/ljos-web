@@ -5,7 +5,7 @@ import { parts } from "./parts.js";
 import { Item } from "../Item.js";
 import { Control, keeps } from "./Control.js";
 import { untrack } from "#kernel";
-import { speaks } from "../Accessible.js";
+import { speaks } from "../Accessible.ts";
 
 // What the content would like to be: what the content item says, or with
 // one item in it and nothing said, that item.

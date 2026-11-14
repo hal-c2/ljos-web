@@ -5,7 +5,7 @@
 // its `KeyNavigation`, then Tab. A `Shortcut` is asked before any of them.
 import { onCleanup } from "solid-js";
 import { defineType, derived, effect, QtObject, slot, whenComplete } from "../object.ts";
-import { activeItem, forceActiveFocus, keyWindow, tab, whenOpened, windowOf } from "./focus.js";
+import { activeItem, forceActiveFocus, keyWindow, tab, whenOpened, windowOf } from "./focus.ts";
 import { AltModifier, chord, chordMatches, chordText, ControlModifier, Key, keyOf, modifiersOf, ShiftModifier, textOf } from "./keycodes.ts";
 import { untrack } from "#kernel";
 

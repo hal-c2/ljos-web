@@ -5,9 +5,9 @@
 import { $string, defineType, derived, effect, flush, kinds, onChange, settle as settleAll, slot, typed } from "../object.ts";
 import { color, css } from "./color.ts";
 import { lazy, rules, sized } from "./compute.ts";
-import { speaks } from "./Accessible.js";
-import { forceActiveFocus, setFocus } from "./focus.js";
-import { advance, capitalized, describe, dress, font, fonts, metrics, overhang } from "./font.js";
+import { speaks } from "./Accessible.ts";
+import { forceActiveFocus, setFocus } from "./focus.ts";
+import { advance, capitalized, describe, dress, font, fonts, metrics, overhang } from "./font.ts";
 import { Item } from "./Item.js";
 import { alignment } from "./LayoutMirroring.ts";
 import { AltModifier, ControlModifier, Key, MetaModifier } from "./keycodes.ts";
@@ -101,7 +101,7 @@ function editor(self, field, { changed, home, finished }) {
     settle();
   });
 
-  // Which item has focus is decided as for any item (focus.js). The field
+  // Which item has focus is decided as for any item (focus.ts). The field
   // has the browser's while its item has active focus, and when the user
   // puts the browser's in the field, the item is given it.
   field.addEventListener("focus", () => {

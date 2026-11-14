@@ -4,7 +4,7 @@ import { parts } from "./parts.js";
 import { Text } from "../Text.js";
 import { backed, insets, methods } from "./Control.js";
 import { font } from "./font.js";
-import { described, speaks } from "../Accessible.js";
+import { described, speaks } from "../Accessible.ts";
 
 export const Label = defineType("Label", Text, {
   properties: {

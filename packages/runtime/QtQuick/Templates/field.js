@@ -3,13 +3,13 @@
 // behind them, a placeholder for a style to show, the mouse over them and
 // the reason they have focus.
 import { onCleanup } from "solid-js";
-import { described } from "../Accessible.js";
+import { described } from "../Accessible.ts";
 import { derived, effect, settle } from "../../object.ts";
 import { parts } from "./parts.js";
 import { styleHints } from "../../QtQml/application.ts";
 import { PauseJob } from "../animation/jobs.js";
 import { colorValue } from "../color.ts";
-import { forceActiveFocus, MouseFocusReason, OtherFocusReason } from "../focus.js";
+import { forceActiveFocus, MouseFocusReason, OtherFocusReason } from "../focus.ts";
 import { globalToScene, sceneToItem } from "../geometry.ts";
 import { buttonOf, LeftButton, modifiersOf } from "../keycodes.ts";
 import { after, cancel, CancelGrabExclusive, gone, hoverable, receive } from "../pointer.js";
@@ -125,7 +125,7 @@ export const methods = {
 // `around` is what a field's background fills when that is not the field.
 export function setup(self, around) {
   // A field is not a Control by type here, so Control's setup
-  // never says what it is: say it as one does (Accessible.js).
+  // never says what it is: say it as one does (Accessible.ts).
   described(self);
   backed(self, around);
   const [hovers$, hover$] = signal(false, self.$owner);

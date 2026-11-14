@@ -8,13 +8,13 @@ import { parts } from "./parts.js";
 import { styleHints } from "../../QtQml/application.ts";
 import { PauseJob } from "../animation/jobs.js";
 import { colorValue } from "../color.ts";
-import { forceActiveFocus, MouseFocusReason } from "../focus.js";
+import { forceActiveFocus, MouseFocusReason } from "../focus.ts";
 import { Key, LeftButton } from "../keycodes.ts";
 import { after, cancel } from "../pointer.js";
 import { check, ICON, trigger, uses } from "./Action.js";
 import { Control, keeps, loose, put, within } from "./Control.js";
 import { untrack } from "#kernel";
-import { speaks, unmarked } from "../Accessible.js";
+import { speaks, unmarked } from "../Accessible.ts";
 
 // The keys that click the button with focus. Qt asks the platform: Space and
 // Select everywhere, Return and Enter too on the desktops, as in a browser.

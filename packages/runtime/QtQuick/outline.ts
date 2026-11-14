@@ -10,18 +10,39 @@ const MOVE = 0;
 const LINE = 1;
 const CURVE = 2;
 
+// A curve is its eight numbers: where it starts, its two control points and
+// where it ends.
+type Curve = [number, number, number, number, number, number, number, number];
+export type Point = [number, number];
+
+// What a path is made of, as QPainterPath keeps it.
+type Part =
+  | { kind: typeof MOVE; x: number; y: number }
+  | { kind: typeof LINE; x: number; y: number }
+  | { kind: typeof CURVE; x1: number; y1: number; x2: number; y2: number; x: number; y: number };
+
+// A line or a curve, where it starts along the outline and how long it is.
+type Segment =
+  | { line: true; x0: number; y0: number; x1: number; y1: number; before: number; length: number }
+  | { line: false; b: Curve; before: number; length: number };
+
+interface Measured {
+  segments: Segment[];
+  length: number;
+}
+
 // Qt's QT_PATH_KAPPA: how far a quarter circle's control points are out.
 const KAPPA = 0.5522847498;
 
 // qFuzzyIsNull and qFuzzyCompare, of doubles.
-const isNull = (value) => Math.abs(value) <= 1e-12;
-const same = (a, b) => Math.abs(a - b) * 1e12 <= Math.min(Math.abs(a), Math.abs(b));
+const isNull = (value: number): boolean => Math.abs(value) <= 1e-12;
+const same = (a: number, b: number): boolean => Math.abs(a - b) * 1e12 <= Math.min(Math.abs(a), Math.abs(b));
 
-const finite = (...values) => values.every(Number.isFinite);
-const distance = (x1, y1, x2, y2) => Math.hypot(x2 - x1, y2 - y1);
+const finite = (...values: number[]): boolean => values.every(Number.isFinite);
+const distance = (x1: number, y1: number, x2: number, y2: number): number => Math.hypot(x2 - x1, y2 - y1);
 
 // The point of a curve at `t`. A curve is its eight numbers.
-function curvePoint(b, t) {
+function curvePoint(b: Curve, t: number): Point {
   const m = 1 - t;
   const a = m * m * m;
   const c = 3 * m * m * t;
@@ -31,7 +52,7 @@ function curvePoint(b, t) {
 }
 
 // The direction a curve goes in at `t`.
-function curveTangent(b, t) {
+function curveTangent(b: Curve, t: number): Point {
   const m = 1 - t;
   const a = 3 * m * m;
   const c = 6 * m * t;
@@ -44,35 +65,35 @@ function curveTangent(b, t) {
 
 // Cuts `b` at `t`: returns what is before, and leaves in `b` what is after
 // (QBezier::parameterSplitLeft).
-function splitLeft(b, t) {
-  const left = new Array(8);
+function splitLeft(b: Curve, t: number): Curve {
+  const left = new Array(8) as Curve;
   for (let axis = 0; axis < 2; axis++) {
-    left[axis] = b[axis];
-    left[2 + axis] = b[axis] + t * (b[2 + axis] - b[axis]);
-    b[2 + axis] = b[2 + axis] + t * (b[4 + axis] - b[2 + axis]);
-    b[4 + axis] = b[4 + axis] + t * (b[6 + axis] - b[4 + axis]);
-    left[4 + axis] = left[2 + axis] + t * (b[2 + axis] - left[2 + axis]);
-    b[2 + axis] = b[2 + axis] + t * (b[4 + axis] - b[2 + axis]);
-    left[6 + axis] = b[axis] = left[4 + axis] + t * (b[2 + axis] - left[4 + axis]);
+    left[axis] = b[axis]!;
+    left[2 + axis] = b[axis]! + t * (b[2 + axis]! - b[axis]!);
+    b[2 + axis] = b[2 + axis]! + t * (b[4 + axis]! - b[2 + axis]!);
+    b[4 + axis] = b[4 + axis]! + t * (b[6 + axis]! - b[4 + axis]!);
+    left[4 + axis] = left[2 + axis]! + t * (b[2 + axis]! - left[2 + axis]!);
+    b[2 + axis] = b[2 + axis]! + t * (b[4 + axis]! - b[2 + axis]!);
+    left[6 + axis] = b[axis] = left[4 + axis]! + t * (b[2 + axis]! - left[4 + axis]!);
   }
   return left;
 }
 
 // The part of a curve between two of its parameters.
-function interval(b, from, to) {
+function interval(b: Curve, from: number, to: number): Curve {
   if (from === 0 && to === 1) return b;
-  const rest = b.slice();
+  const rest = b.slice() as Curve;
   splitLeft(rest, from);
   return splitLeft(rest, (to - from) / (1 - from));
 }
 
 // A curve's length as Qt measures it (QBezier::length): halved until the
 // control polygon is within 0.01 of the chord, then the polygons added up.
-function curveLength(b) {
+function curveLength(b: Curve): number {
   const polygon =
     distance(b[0], b[1], b[2], b[3]) + distance(b[2], b[3], b[4], b[5]) + distance(b[4], b[5], b[6], b[7]);
   if (polygon - distance(b[0], b[1], b[6], b[7]) <= 0.01) return polygon;
-  const right = b.slice();
+  const right = b.slice() as Curve;
   const left = splitLeft(right, 0.5);
   return curveLength(left) + curveLength(right);
 }
@@ -80,7 +101,7 @@ function curveLength(b) {
 // The parameter of a quarter circle's curve at an angle of it in degrees
 // (qt_t_for_arc_angle): two steps of Newton's method for the cosine, two
 // for the sine, and the middle of the two.
-function arcParameter(angle) {
+function arcParameter(angle: number): number {
   if (isNull(angle)) return 0;
   if (same(angle, 90)) return 1;
   const radians = (angle * Math.PI) / 180;
@@ -102,7 +123,7 @@ function arcParameter(angle) {
 
 // The point of the ellipse in a rectangle at an angle, counter-clockwise
 // from three o'clock as Qt's angles are (qt_find_ellipse_coords).
-function ellipsePoint(x, y, width, height, angle) {
+function ellipsePoint(x: number, y: number, width: number, height: number, angle: number): Point {
   const turn = angle - 360 * Math.floor(angle / 360);
   let t = turn / 90;
   const quadrant = Math.trunc(t);
@@ -122,13 +143,20 @@ function ellipsePoint(x, y, width, height, angle) {
 
 // The curves of an arc of the ellipse in a rectangle, and where the first
 // starts (qt_curves_for_arc). Angles in degrees, counter-clockwise.
-function arcCurves(x, y, w, h, startAngle, sweep) {
-  const curves = [];
+function arcCurves(
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  startAngle: number,
+  sweep: number,
+): { start: Point; curves: Curve[] } {
+  const curves: Curve[] = [];
   const w2 = w / 2;
   const w2k = w2 * KAPPA;
   const h2 = h / 2;
   const h2k = h2 * KAPPA;
-  const points = [
+  const points: Point[] = [
     [x + w, y + h2],
     [x + w, y + h2 + h2k],
     [x + w2 + w2k, y + h],
@@ -143,17 +171,17 @@ function arcCurves(x, y, w, h, startAngle, sweep) {
     [x + w, y + h2 - h2k],
     [x + w, y + h2],
   ];
-  const curve = (...indices) => indices.flatMap((index) => points[index]);
+  const curve = (...indices: number[]): Curve => indices.flatMap((index) => points[index]!) as Curve;
   if (sweep > 360) sweep = 360;
   else if (sweep < -360) sweep = -360;
   if (startAngle === 0) {
     if (same(sweep, 360)) {
       for (let index = 12; index >= 3; index -= 3) curves.push(curve(index, index - 1, index - 2, index - 3));
-      return { start: points[12], curves };
+      return { start: points[12]!, curves };
     }
     if (same(sweep, -360)) {
       for (let index = 0; index <= 9; index += 3) curves.push(curve(index, index + 1, index + 2, index + 3));
-      return { start: points[0], curves };
+      return { start: points[0]!, curves };
     }
   }
   let startSegment = Math.floor(startAngle / 90);
@@ -179,11 +207,11 @@ function arcCurves(x, y, w, h, startAngle, sweep) {
   const splitAtStart = !isNull(startT);
   const splitAtEnd = !isNull(endT - 1);
   const end = endSegment + delta;
-  const quarter = (segment) => 3 * (3 - (((segment % 4) + 4) % 4));
+  const quarter = (segment: number): number => 3 * (3 - (((segment % 4) + 4) % 4));
   // Nothing to draw.
   if (startSegment === end) {
     const at = quarter(startSegment);
-    return { start: delta > 0 ? points[at + 3] : points[at], curves };
+    return { start: delta > 0 ? points[at + 3]! : points[at]!, curves };
   }
   const start = ellipsePoint(x, y, w, h, startAngle);
   for (let segment = startSegment; segment !== end; segment += delta) {
@@ -199,7 +227,7 @@ function arcCurves(x, y, w, h, startAngle, sweep) {
     curves.push(b);
   }
   const [ex, ey] = ellipsePoint(x, y, w, h, startAngle + sweep);
-  const last = curves.at(-1);
+  const last = curves.at(-1)!;
   last[6] = ex;
   last[7] = ey;
   return { start, curves };
@@ -207,13 +235,13 @@ function arcCurves(x, y, w, h, startAngle, sweep) {
 
 // A number of an SVG path, short: the outline is exact, what is written to
 // the page need not be.
-const number = (value) => {
+const number = (value: number): string => {
   const rounded = Math.round(value * 1000) / 1000;
   return Object.is(rounded, -0) ? "0" : String(rounded);
 };
 
 // Where a curve's coordinate along one axis turns back: its extremes.
-function turns(p0, p1, p2, p3, into) {
+function turns(p0: number, p1: number, p2: number, p3: number, into: number[]): void {
   const a = -p0 + 3 * p1 - 3 * p2 + p3;
   const b = 2 * (p0 - 2 * p1 + p2);
   const c = p1 - p0;
@@ -228,6 +256,11 @@ function turns(p0, p1, p2, p3, into) {
 }
 
 export class Outline {
+  declare parts: Part[];
+  declare first: number;
+  declare shut: boolean;
+  declare measured: Measured | null;
+
   constructor() {
     // Qt's path is never empty once something is added: it starts at 0,0.
     this.parts = [{ kind: MOVE, x: 0, y: 0 }];
@@ -238,24 +271,24 @@ export class Outline {
     this.measured = null;
   }
 
-  get x() {
-    return this.parts.at(-1).x;
+  get x(): number {
+    return this.parts.at(-1)!.x;
   }
 
-  get y() {
-    return this.parts.at(-1).y;
+  get y(): number {
+    return this.parts.at(-1)!.y;
   }
 
-  begin() {
+  begin(): void {
     if (!this.shut) return;
     this.shut = false;
     this.parts.push({ kind: MOVE, x: this.x, y: this.y });
   }
 
-  moveTo(x, y) {
+  moveTo(x: number, y: number): void {
     if (!finite(x, y)) return;
     this.shut = false;
-    const last = this.parts.at(-1);
+    const last = this.parts.at(-1)!;
     // A move after a move replaces it.
     if (last.kind === MOVE) {
       last.x = x;
@@ -266,14 +299,14 @@ export class Outline {
     this.first = this.parts.length - 1;
   }
 
-  lineTo(x, y) {
+  lineTo(x: number, y: number): void {
     if (!finite(x, y)) return;
     this.begin();
     if (x === this.x && y === this.y) return;
     this.parts.push({ kind: LINE, x, y });
   }
 
-  cubicTo(x1, y1, x2, y2, x, y) {
+  cubicTo(x1: number, y1: number, x2: number, y2: number, x: number, y: number): void {
     if (!finite(x1, y1, x2, y2, x, y)) return;
     const fromX = this.x;
     const fromY = this.y;
@@ -283,7 +316,7 @@ export class Outline {
     this.parts.push({ kind: CURVE, x1, y1, x2, y2, x, y });
   }
 
-  quadTo(cx, cy, x, y) {
+  quadTo(cx: number, cy: number, x: number, y: number): void {
     if (!finite(cx, cy, x, y)) return;
     const fromX = this.x;
     const fromY = this.y;
@@ -291,11 +324,11 @@ export class Outline {
     this.cubicTo((fromX + 2 * cx) / 3, (fromY + 2 * cy) / 3, (x + 2 * cx) / 3, (y + 2 * cy) / 3, x, y);
   }
 
-  close() {
+  close(): void {
     if (this.parts.length === 1) return;
     this.shut = true;
-    const first = this.parts[this.first];
-    const last = this.parts.at(-1);
+    const first = this.parts[this.first]!;
+    const last = this.parts.at(-1)!;
     if (first.x === last.x && first.y === last.y) return;
     if (same(first.x, last.x) && same(first.y, last.y)) {
       last.x = first.x;
@@ -306,19 +339,19 @@ export class Outline {
   }
 
   // QPainterPath::arcMoveTo and arcTo: an arc of the ellipse in a rectangle.
-  arcMoveTo(x, y, width, height, angle) {
+  arcMoveTo(x: number, y: number, width: number, height: number, angle: number): void {
     if (!finite(x, y, width, height, angle) || (width === 0 && height === 0)) return;
     this.moveTo(...ellipsePoint(x, y, width, height, angle));
   }
 
-  arcTo(x, y, width, height, startAngle, sweep) {
+  arcTo(x: number, y: number, width: number, height: number, startAngle: number, sweep: number): void {
     if (!finite(x, y, width, height, startAngle, sweep) || (width === 0 && height === 0)) return;
     const { start, curves } = arcCurves(x, y, width, height, startAngle, sweep);
     this.lineTo(start[0], start[1]);
     for (const b of curves) this.cubicTo(b[2], b[3], b[4], b[5], b[6], b[7]);
   }
 
-  addRect(x, y, width, height) {
+  addRect(x: number, y: number, width: number, height: number): void {
     if (!finite(x, y, width, height) || (width === 0 && height === 0)) return;
     this.moveTo(x, y);
     this.parts.push(
@@ -332,7 +365,7 @@ export class Outline {
 
   // An SVG arc from where the outline is, as Qt's SVG code draws one: curves
   // of at most a quarter turn each.
-  svgArc(rx, ry, rotation, large, sweep, x, y) {
+  svgArc(rx: number, ry: number, rotation: number, large: unknown, sweep: unknown, x: number, y: number): void {
     if (!finite(rx, ry, rotation, x, y)) return;
     const curX = this.x;
     const curY = this.y;
@@ -400,7 +433,7 @@ export class Outline {
   }
 
   // `Path.scale`: every coordinate, from the origin.
-  scale(sx, sy) {
+  scale(sx: number, sy: number): void {
     for (const part of this.parts) {
       part.x *= sx;
       part.y *= sy;
@@ -414,15 +447,15 @@ export class Outline {
   }
 
   // The point `back` parts before the end: what a smooth curve bends from.
-  before(back) {
+  before(back: number): Point {
     const part = this.parts[this.parts.length - 1 - back];
-    return part ? [part.x, part.y] : [this.parts[0].x, this.parts[0].y];
+    return part ? [part.x, part.y] : [this.parts[0]!.x, this.parts[0]!.y];
   }
 
   // The lines and curves, each with where it starts and how long it is.
-  measure() {
+  measure(): Measured {
     if (this.measured) return this.measured;
-    const segments = [];
+    const segments: Segment[] = [];
     let length = 0;
     let x = 0;
     let y = 0;
@@ -432,7 +465,7 @@ export class Outline {
         segments.push({ line: true, x0: x, y0: y, x1: part.x, y1: part.y, before: length, length: own });
         length += own;
       } else if (part.kind === CURVE) {
-        const b = [x, y, part.x1, part.y1, part.x2, part.y2, part.x, part.y];
+        const b: Curve = [x, y, part.x1, part.y1, part.x2, part.y2, part.x, part.y];
         const own = curveLength(b);
         segments.push({ line: false, b, before: length, length: own });
         length += own;
@@ -443,15 +476,15 @@ export class Outline {
     return (this.measured = { segments, length });
   }
 
-  get length() {
+  get length(): number {
     return this.measure().length;
   }
 
   // How long its first `count` parts are.
-  lengthAt(count) {
+  lengthAt(count: number): number {
     const { segments } = this.measure();
     let drawn = 0;
-    for (let index = 0; index < count && index < this.parts.length; index++) if (this.parts[index].kind !== MOVE) drawn++;
+    for (let index = 0; index < count && index < this.parts.length; index++) if (this.parts[index]!.kind !== MOVE) drawn++;
     const last = segments[drawn - 1];
     return last ? last.before + last.length : 0;
   }
@@ -459,12 +492,12 @@ export class Outline {
   // The segment a fraction of the length falls in, and how far along it:
   // by length for a line, by the curve's own parameter for a curve, which is
   // how Qt has it.
-  locate(fraction) {
+  locate(fraction: unknown): { segment: Segment; along: number } | null {
     const { segments, length } = this.measure();
     if (!segments.length || !(length > 0)) return null;
     const t = Math.min(1, Math.max(0, Number(fraction) || 0));
     const target = length * t;
-    let segment = segments.at(-1);
+    let segment = segments.at(-1)!;
     for (const each of segments) {
       if (each.before + each.length >= target) {
         segment = each;
@@ -476,9 +509,9 @@ export class Outline {
   }
 
   // The point at a fraction of the length, 0 to 1.
-  pointAt(fraction) {
+  pointAt(fraction: unknown): Point {
     const found = this.locate(fraction);
-    if (!found) return [this.parts[0].x, this.parts[0].y];
+    if (!found) return [this.parts[0]!.x, this.parts[0]!.y];
     const { segment, along } = found;
     if (segment.line) {
       return [segment.x0 + (segment.x1 - segment.x0) * along, segment.y0 + (segment.y1 - segment.y0) * along];
@@ -488,12 +521,12 @@ export class Outline {
 
   // The direction the outline goes in there, in degrees clockwise from
   // pointing right, 0 to 360: the rotation of something that follows it.
-  angleAt(fraction) {
+  angleAt(fraction: unknown): number {
     const found = this.locate(fraction);
     if (!found) return 0;
     const { segment, along } = found;
-    let dx;
-    let dy;
+    let dx: number;
+    let dy: number;
     if (segment.line) {
       dx = segment.x1 - segment.x0;
       dy = segment.y1 - segment.y0;
@@ -510,12 +543,12 @@ export class Outline {
 
   // The rectangle the outline is in: the curves themselves, not their
   // control points.
-  bounds() {
+  bounds(): { x: number; y: number; width: number; height: number } {
     let left = Infinity;
     let top = Infinity;
     let right = -Infinity;
     let bottom = -Infinity;
-    const take = (x, y) => {
+    const take = (x: number, y: number): void => {
       if (x < left) left = x;
       if (x > right) right = x;
       if (y < top) top = y;
@@ -526,8 +559,8 @@ export class Outline {
     for (const part of this.parts) {
       take(part.x, part.y);
       if (part.kind === CURVE) {
-        const b = [x, y, part.x1, part.y1, part.x2, part.y2, part.x, part.y];
-        const at = [];
+        const b: Curve = [x, y, part.x1, part.y1, part.x2, part.y2, part.x, part.y];
+        const at: number[] = [];
         turns(b[0], b[2], b[4], b[6], at);
         turns(b[1], b[3], b[5], b[7], at);
         for (const t of at) if (t > 0 && t < 1) take(...curvePoint(b, t));
@@ -539,20 +572,20 @@ export class Outline {
   }
 
   // Whether anything is drawn at all.
-  get empty() {
+  get empty(): boolean {
     return this.parts.length === 1;
   }
 
   // The outline as an SVG path. A subpath that ends where it started is
   // closed: Qt joins its ends when it strokes one.
-  toString() {
-    const text = [];
-    let start = null;
+  toString(): string {
+    const text: string[] = [];
+    let start: Part | null = null;
     let drawn = false;
-    const finish = (last) => {
+    const finish = (last: Part): void => {
       if (drawn && start && last.x === start.x && last.y === start.y) text.push("Z");
     };
-    let previous = null;
+    let previous: Part | null = null;
     for (const part of this.parts) {
       if (part.kind === MOVE) {
         if (previous) finish(previous);
@@ -581,25 +614,25 @@ const COMMAND = /([a-zA-Z])([^a-zA-Z]*)/g;
 // Draws SVG path data into an outline, as Qt's parser does (PathSvg): the
 // data's coordinates start from 0,0 whatever the outline has already.
 // Returns whether all of it was understood.
-export function svgPath(outline, data) {
+export function svgPath(outline: Outline, data: unknown): boolean {
   let x0 = 0;
   let y0 = 0;
   let x = 0;
   let y = 0;
-  let control = [0, 0];
+  let control: Point = [0, 0];
   let lastMode = "";
   for (const [, letter, text] of String(data ?? "").matchAll(COMMAND)) {
-    const numbers = (text.match(NUMBER) ?? []).map(Number);
-    let mode = letter;
+    const numbers = (text!.match(NUMBER) ?? []).map(Number);
+    let mode = letter!;
     if (mode === "z" || mode === "Z") numbers.push(0);
     let at = 0;
     const left = () => numbers.length - at;
-    const take = () => numbers[at++];
+    const take = (): number => numbers[at++]!;
     while (left() > 0) {
       const relative = mode === mode.toLowerCase();
       const ox = relative ? x : 0;
       const oy = relative ? y : 0;
-      const needs = { m: 2, l: 2, h: 1, v: 1, c: 6, s: 4, q: 4, t: 2, a: 7, z: 1 }[mode.toLowerCase()];
+      const needs = ({ m: 2, l: 2, h: 1, v: 1, c: 6, s: 4, q: 4, t: 2, a: 7, z: 1 } as Record<string, number | undefined>)[mode.toLowerCase()];
       if (needs === undefined) return false;
       if (left() < needs) break;
       switch (mode.toLowerCase()) {

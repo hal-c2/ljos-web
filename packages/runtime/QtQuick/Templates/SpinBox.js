@@ -7,14 +7,14 @@ import { onCleanup } from "solid-js";
 import { defineType, derived, effect, onChange, QtObject, settle, slot } from "../../object.ts";
 import { parts } from "./parts.js";
 import { PauseJob } from "../animation/jobs.js";
-import { forceActiveFocus, MouseFocusReason, windowOf } from "../focus.js";
+import { forceActiveFocus, MouseFocusReason, windowOf } from "../focus.ts";
 import { Key, LeftButton } from "../keycodes.ts";
 import { after, cancel } from "../pointer.js";
 import { TextInput } from "../TextInput.js";
 import { Control, keeps, loose, put } from "./Control.js";
 import { clamp, close, keep, nothing, now } from "./Slider.js";
 import { untrack } from "#kernel";
-import { speaks } from "../Accessible.js";
+import { speaks } from "../Accessible.ts";
 
 // Qt's `QQuickIndicatorButton`: what `up` and `down` are.
 const IndicatorButton = defineType("IndicatorButton", QtObject, {

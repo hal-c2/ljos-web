@@ -15,7 +15,7 @@ import { inflateSync } from "node:zlib";
 import { parseAst, searchForWorkspaceRoot } from "vite";
 import { CONTROLS } from "./controls.js";
 import { heldShader } from "./QtQuick/baked.ts";
-import { forBrowser } from "./QtQuick/qsb.js";
+import { forBrowser } from "./QtQuick/qsb.ts";
 import { QUICK3D } from "./quick3d.js";
 
 // What marks a `.js` file as the script a QML file imports

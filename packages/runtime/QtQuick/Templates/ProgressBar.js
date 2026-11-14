@@ -5,7 +5,7 @@ import { defineType, derived, effect } from "../../object.ts";
 import { Control, loose } from "./Control.js";
 import { bounded, close, fitted, keep } from "./Slider.js";
 import { untrack } from "#kernel";
-import { speaks } from "../Accessible.js";
+import { speaks } from "../Accessible.ts";
 
 export const ProgressBar = defineType("ProgressBar", Control, {
   properties: {

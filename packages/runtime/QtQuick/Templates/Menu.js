@@ -8,7 +8,7 @@ import { onCleanup } from "solid-js";
 import { contents, defineType, derived, effect, group, instantiate, last, settle, slot } from "../../object.ts";
 import { parts } from "./parts.js";
 import { colorValue } from "../color.ts";
-import { BacktabFocusReason, departing, forceActiveFocus, OtherFocusReason, setFocus, TabFocusReason } from "../focus.js";
+import { BacktabFocusReason, departing, forceActiveFocus, OtherFocusReason, setFocus, TabFocusReason } from "../focus.ts";
 import { globalToScene, itemToScene, sceneToItem } from "../geometry.ts";
 import { Key } from "../keycodes.ts";
 import { ObjectModel } from "../model.js";
@@ -19,7 +19,7 @@ import { house, reparent, repeat, shows, within } from "./Container.js";
 import { keeps } from "./Control.js";
 import { housed, overlayOf, Popup, PopupFocusReason, stacked } from "./Popup.js";
 import { signal, untrack } from "#kernel";
-import { speaks } from "../Accessible.js";
+import { speaks } from "../Accessible.ts";
 
 // How long the mouse is over an item before its sub-menu opens.
 const SUBMENU_DELAY = 225;

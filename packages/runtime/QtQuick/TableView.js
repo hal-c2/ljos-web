@@ -16,7 +16,7 @@ import { defineType, derived, effect, flush, flushing, instantiate, memo, QtObje
 import { Point } from "../QtQml/values.ts";
 import { changed, depend, make, resized, SAME, Table } from "./cells.js";
 import { Flickable } from "./Flickable.js";
-import { forceActiveFocus } from "./focus.js";
+import { forceActiveFocus } from "./focus.ts";
 import { TapHandler } from "./handlers.js";
 import { ControlModifier } from "./keycodes.ts";
 import { modelIndex, touch, track } from "./model.js";

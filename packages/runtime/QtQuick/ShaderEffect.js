@@ -4,7 +4,7 @@
 // Qt draws with shaders baked by its `qsb` tool from Vulkan-style GLSL; in
 // what it bakes is the same shader for OpenGL ES, which is what a browser
 // draws with. The build puts that where `fragmentShader` names the baked file,
-// and needs no tool of Qt's for it (`vite.js`, `qsb.js`); a shader fetched from
+// and needs no tool of Qt's for it (`vite.js`, `qsb.ts`); a shader fetched from
 // elsewhere is OpenGL ES as it is, or a baked file, of which the one for
 // OpenGL ES is taken.
 //

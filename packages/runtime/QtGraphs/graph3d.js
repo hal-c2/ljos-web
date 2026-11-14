@@ -14,7 +14,7 @@ import { runWithOwner } from "solid-js";
 import { defineType, derived, effect, inside, settle, slot } from "../object.ts";
 import { Point, Vector3d } from "../QtQml/values.ts";
 import { colorValue, css, rgba } from "../QtQuick/color.ts";
-import { advance, describe, fonts, metrics } from "../QtQuick/font.js";
+import { advance, describe, fonts, metrics } from "../QtQuick/font.ts";
 import { kept, Node } from "../QtQuick3D/Node.js";
 import { DefaultMaterial, DirectionalLight, linear, Model, OrthographicCamera, PerspectiveCamera, PrincipledMaterial, SceneEnvironment, Texture } from "../QtQuick3D/scene.js";
 import { View3D } from "../QtQuick3D/View3D.js";

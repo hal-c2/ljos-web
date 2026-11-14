@@ -17,10 +17,21 @@ import { onCleanup } from "solid-js";
 import { defineType, effect, group, inside, instantiate, QtObject, settle, slot, whenHeld } from "../object.ts";
 import { Rect, Size } from "../QtQml/values.ts";
 import { untrack } from "#kernel";
+import type { Dynamic, Instantiated, Props, QObject } from "../object.ts";
+
+// An item that may have a layer: what this module reads and sets of it.
+interface Layered extends Dynamic {
+  layer: Dynamic;
+  parent: QObject | null | undefined;
+  $layerEffect?: HTMLElement | SVGElement | null | undefined;
+}
+
+type Make = (data?: Props) => QObject | null;
+type Made = Instantiated & { parent: QObject | null | undefined };
 
 export const layer = group({
   enabled: false,
-  effect: null,
+  effect: null as unknown,
   samplerName: "source",
   textureSize: Object.freeze(new Size(0, 0)),
   sourceRect: Object.freeze(new Rect(0, 0, 0, 0)),
@@ -37,13 +48,13 @@ export const layer = group({
 // the item, which names the item it is of.
 const Source = defineType("ShaderEffectSource", QtObject, {
   properties: {
-    sourceItem: null,
+    sourceItem: null as unknown,
     width: 0,
     height: 0,
     hideSource: false,
     recursive: false,
-    textureSize: null,
-    sourceRect: null,
+    textureSize: null as unknown,
+    sourceRect: null as unknown,
     mipmap: false,
     smooth: false,
     live: true,
@@ -54,15 +65,15 @@ const Source = defineType("ShaderEffectSource", QtObject, {
   },
 });
 
-function source(self) {
-  const taken = { sourceItem: { get: () => self, enumerable: true } };
+function source(self: Layered): QObject {
+  const taken: PropertyDescriptorMap = { sourceItem: { get: () => self, enumerable: true } };
   for (const name of ["width", "height"]) taken[name] = { get: () => self[name], enumerable: true };
   for (const name of ["textureSize", "sourceRect", "mipmap", "smooth", "live", "wrapMode", "format", "textureMirroring", "samples"]) {
     taken[name] = { get: () => self.layer[name], enumerable: true };
   }
   const made = inside(self, () => Source(Object.defineProperties({}, taken)));
   // The item itself, for an effect that does what it does to that.
-  made.$layer = self;
+  (made as unknown as Dynamic).$layer = self;
   return made;
 }
 
@@ -71,49 +82,51 @@ const MIRRORED = ["x", "y", "width", "height", "z", "opacity", "scale", "rotatio
 
 // Told that the element under one of its children is another, an item puts
 // its children's elements in order again.
-const told = (parent) => parent?.$touch?.((version) => version + 1);
+const told = (parent: QObject | null | undefined) => parent?.$touch?.((version) => version + 1);
 
-export function layered(self, props) {
+export function layered(item: QObject, props: Props): void {
+  const self = item as Layered;
   if (!("layer$enabled" in props || "layer$effect" in props)) return;
-  let given = null;
-  let made = null;
+  let given: QObject | null = null;
+  let made: Made | null = null;
   // What the effect that is there was made of, and the one that is to be.
-  let last = [];
-  let wanted = null;
+  let last: readonly unknown[] = [];
+  let wanted: object | null = null;
   const drop = () => {
     wanted = null;
     if (!made) return;
     const { object, dispose, parent } = made;
     made = null;
     self.$layerEffect = null;
-    object.$node?.remove();
+    object?.$node?.remove();
     dispose();
     told(parent);
   };
-  const make = (component, parent, name) => {
+  const make = (component: Make, parent: QObject | null | undefined, name: string) => {
     given ??= source(self);
     // It has its source before it is complete, as in Qt.
-    const sourced = (data) => {
+    const sourced = (data?: Props) => {
       const object = component(data);
-      if (object && name in object) object[name] = given;
+      if (object && name in object) (object as Dynamic)[name] = given;
       return object;
     };
-    made = { ...instantiate(sourced, {}, parent ?? null, self.$owner), parent };
+    made = { ...instantiate(sourced, {} as Props, parent ?? null, self.$owner), parent };
     if (!made.object?.$node) drop();
   };
   const place = () => {
     if (!made) return;
-    const { object, parent } = made;
-    for (const name of MIRRORED) slot(object, name).write(self[name]);
+    const { parent } = made;
+    const object = made.object!;
+    for (const name of MIRRORED) slot(object, name)!.write(self[name]);
     if (self.$layerEffect === object.$node) return;
     self.$layerEffect = object.$node;
     told(parent);
   };
   effect(
     () => {
-      const { enabled, effect: component, samplerName } = self.layer;
+      const { enabled, effect: component, samplerName } = self.layer as Dynamic & { enabled: boolean };
       for (const name of MIRRORED) self[name];
-      return [enabled && typeof component === "function" ? component : null, self.parent, String(samplerName)];
+      return [enabled && typeof component === "function" ? (component as Make) : null, self.parent, String(samplerName)] as const;
     },
     ([component, parent, name]) => {
       if (component !== last[0] || parent !== last[1] || name !== last[2]) {

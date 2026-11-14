@@ -4,14 +4,14 @@
 // comes to be current opens in its place. MenuBarItem is the button those
 // items are, and what the bar's delegate makes for each Menu declared in it.
 import { defineType, effect, inside, instantiate, settle, slot } from "../../object.ts";
-import { forceActiveFocus, OtherFocusReason, setFocus } from "../focus.js";
+import { forceActiveFocus, OtherFocusReason, setFocus } from "../focus.ts";
 import { Key, LeftButton } from "../keycodes.ts";
 import { Shortcut } from "../Keys.js";
 import { AbstractButton } from "./AbstractButton.js";
 import { Container } from "./Container.js";
 import { Menu, mnemonic } from "./Menu.js";
 import { untrack } from "#kernel";
-import { speaks } from "../Accessible.js";
+import { speaks } from "../Accessible.ts";
 
 // CloseOnEscape with CloseOnPressOutsideParent and
 // CloseOnReleaseOutsideParent: a press of the item is the bar's to answer.

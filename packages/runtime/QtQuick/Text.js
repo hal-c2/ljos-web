@@ -21,7 +21,7 @@ import {
   metrics,
   overhang,
   resized,
-} from "./font.js";
+} from "./font.ts";
 import { Item } from "./Item.js";
 import { alignment } from "./LayoutMirroring.ts";
 import { clothe, elements, mightBeRichText, survey } from "./richtext.js";

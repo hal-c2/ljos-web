@@ -3,7 +3,7 @@
 // `QtQml` has, exported from this module too, as natively.
 export { QtObject } from "../../object.ts";
 export { Binding } from "../../QtQuick/Binding.js";
-export { Connections } from "../../QtQuick/Connections.js";
+export { Connections } from "../../QtQuick/Connections.ts";
 export { Timer } from "../../QtQuick/animation/Timer.js";
 export { Component } from "../../QtQml/Component.ts";
 export { Locale } from "./globals.js";

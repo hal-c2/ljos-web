@@ -5,7 +5,7 @@
 // has the dialog's standard buttons, and a click on one of them accepts the
 // dialog, rejects it, or says what else is wanted of it.
 import { defineType, effect, last, onChange, settle, slot, whenComplete } from "../../object.ts";
-import { OtherFocusReason, setFocus } from "../focus.js";
+import { OtherFocusReason, setFocus } from "../focus.ts";
 import { DialogButtonBox, roleOf, standardButtons } from "./DialogButtonBox.js";
 import { forward, forwarded, Popup } from "./Popup.js";
 import { untrack } from "#kernel";

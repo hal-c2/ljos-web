@@ -14,7 +14,7 @@ import { day } from "./Calendar.js";
 import { Control } from "./Control.js";
 import { close } from "./Slider.js";
 import { signal, untrack } from "#kernel";
-import { speaks } from "../Accessible.js";
+import { speaks } from "../Accessible.ts";
 
 const WEEKS = 6;
 const DAYS = 7;

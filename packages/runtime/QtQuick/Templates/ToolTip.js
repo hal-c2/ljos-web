@@ -9,7 +9,7 @@ import { defineType, effect, instantiate, last, onChange, QtObject, slot, whenCo
 import { after, cancel } from "../pointer.js";
 import { itemOf, Popup } from "./Popup.js";
 import { untrack } from "#kernel";
-import { speaks } from "../Accessible.js";
+import { speaks } from "../Accessible.ts";
 
 const never = () => false;
 

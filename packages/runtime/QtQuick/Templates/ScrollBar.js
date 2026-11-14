@@ -9,7 +9,7 @@ import { Control } from "./Control.js";
 import { drive, reads } from "./driven.js";
 import { assignables, follows, Horizontal, inside, properties, resolve, same, setPosition, setup } from "./scrolling.js";
 import { untrack } from "#kernel";
-import { speaks } from "../Accessible.js";
+import { speaks } from "../Accessible.ts";
 
 const NoSnap = 0;
 const SnapAlways = 1;

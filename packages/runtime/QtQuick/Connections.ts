@@ -5,21 +5,31 @@ import { createEffect, createMemo, createRenderEffect, createRoot, onCleanup, ru
 import { defineType, QtObject, slot, whenComplete, whenCompleted } from "../object.ts";
 import { Component } from "../QtQml/Component.ts";
 import { untrack } from "#kernel";
+import type { Dynamic, Handler, QObject, Signal } from "../object.ts";
+
+// What a Connections is, beyond its properties: whether it was given a
+// `target` at all.
+interface Conn extends QObject {
+  target: unknown;
+  enabled: boolean;
+  ignoreUnknownSignals: boolean;
+  $named?: boolean;
+}
 
 const SYNC = { sync: true };
 const DEFER = { defer: true };
 const HANDLER = /^on[A-Z]/;
 
-const signalName = (handler) => handler[2].toLowerCase() + handler.slice(3);
+const signalName = (handler: string): string => handler[2]!.toLowerCase() + handler.slice(3);
 
 // Runs `listener` when `target` emits `name`, or when the property a
 // `fooChanged` is about has another value: reading it again is not a change.
 // False when the target has neither.
-function listen(target, name, listener) {
-  const emitted = target[name];
-  if (typeof emitted?.connect === "function") {
-    emitted.connect(listener);
-    onCleanup(() => emitted.disconnect(listener));
+function listen(target: Dynamic, name: string, listener: Handler): boolean {
+  const emitted = target[name] as Partial<Signal> | undefined;
+  if (typeof emitted?.connect === "function" && typeof emitted.disconnect === "function") {
+    emitted.connect!(listener);
+    onCleanup(() => emitted.disconnect!(listener));
     return true;
   }
   const property = /^(\w+)Changed$/.exec(name)?.[1];
@@ -34,54 +44,57 @@ function listen(target, name, listener) {
 
 export const Connections = defineType("Connections", QtObject, {
   properties: {
-    target: undefined,
+    target: undefined as unknown,
     enabled: true,
     ignoreUnknownSignals: false,
   },
   methods: {
-    get target() {
-      const given = slot(this, "target");
+    get target(): unknown {
+      const self = this as Conn;
+      const given = slot(self, "target")!;
       const target = given.get();
-      return this.$named || given.assigned ? target : this.$parent;
+      return self.$named || given.assigned ? target : self.$parent;
     },
-    set target(target) {
-      slot(this, "target").set(target);
+    set target(target: unknown) {
+      slot(this as Conn, "target")!.set(target);
     },
   },
-  setup(self, props) {
+  setup(object, props) {
+    const self = object as Conn;
     // `target: null` is no target; no `target` at all is the parent.
     self.$named = "target" in props;
     const handlers = Object.keys(props).filter((key) => HANDLER.test(key));
     if (!handlers.length) return;
     // A handler is a function of the object too, which a program may call
     // itself: to do at the start what it does at each change.
-    for (const handler of handlers) Object.defineProperty(self, handler, { value: (...args) => props[handler]?.(...args), configurable: true });
+    for (const handler of handlers) Object.defineProperty(self, handler, { value: (...args: unknown[]) => (props[handler] as Handler | undefined)?.(...args), configurable: true });
     // `target: Component` is the Connections' own: what any object is told
     // of itself, of its completion and its end, this one hears as signals.
     const own = () => untrack(() => self.target) === Component;
-    if (props.onCompleted) whenCompleted(() => own() && self.enabled && props.onCompleted());
-    if (props.onDestruction) onCleanup(() => own() && untrack(() => self.enabled && props.onDestruction()));
+    const { onCompleted, onDestruction } = props as { onCompleted?: Handler; onDestruction?: Handler };
+    if (onCompleted) whenCompleted(() => own() && self.enabled && onCompleted());
+    if (onDestruction) onCleanup(() => own() && untrack(() => self.enabled && onDestruction()));
     whenComplete(() => {
-      let disconnect = null;
+      let disconnect: (() => void) | null = null;
       createRenderEffect(
         () => {
-          const target = self.target;
+          const target = self.target as Dynamic | null | undefined;
           // An object that is named and not made yet: again once it is.
           const pending = target != null && typeof target.$track === "function" && !target.$props;
           if (pending) target.$track();
-          return [pending ? null : target];
+          return [pending ? null : target] as const;
         },
         ([target]) => {
           disconnect?.();
           disconnect = null;
-          if (target == null || target === Component) return;
+          if (target == null || (target as unknown) === Component) return;
           disconnect = runWithOwner(self.$owner, () =>
-            createRoot((dispose) => {
+            createRoot((dispose): (() => void) => {
               untrack(() => {
                 for (const handler of handlers) {
                   // A handler reads what it likes: it is run, not kept up to date.
-                  const heard = listen(target, signalName(handler), (...args) =>
-                    untrack(() => self.enabled && props[handler]?.(...args)),
+                  const heard = listen(target, signalName(handler), (...args: unknown[]) =>
+                    untrack(() => self.enabled && (props[handler] as Handler | undefined)?.(...args)),
                   );
                   if (heard || self.ignoreUnknownSignals) continue;
                   console.warn(

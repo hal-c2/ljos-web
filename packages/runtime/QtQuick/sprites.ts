@@ -7,17 +7,54 @@
 import { allowedUrl } from "../guard.js";
 import { rules } from "./compute.ts";
 
+// Where a frame of a sprite is on its sheet.
+export interface Frame {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+// What the player and the painter read of a Sprite.
+export interface Sprite {
+  name: unknown;
+  to?: Record<string, unknown> | null;
+  $duration(random: () => number): number;
+  $image?: HTMLImageElement | null;
+  $frame(frame: number, out: Frame): void;
+  $sheet: readonly number[];
+  $reverse?: boolean;
+}
+
+export type Paint = (
+  sprite: Sprite | null | undefined,
+  frame: number,
+  progress: number,
+  width: number,
+  height: number,
+  smooth: boolean,
+) => void;
+
 rules(
   ".qq-sprite { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background-repeat: no-repeat; pointer-events: none; }",
 );
 
-const NONE = Object.freeze([]);
-const FRAME = { x: 0, y: 0, width: 0, height: 0 };
+const NONE: readonly Sprite[] = Object.freeze([]);
+const FRAME: Frame = { x: 0, y: 0, width: 0, height: 0 };
 
-const weight = (value) => Number(value) || 0;
+const weight = (value: unknown): number => Number(value) || 0;
 
 export class Player {
-  constructor(random = Math.random) {
+  declare random: () => number;
+  declare sprites: readonly Sprite[];
+  declare now: number;
+  declare which: number;
+  declare since: number;
+  declare span: number;
+  declare goal: number;
+  declare entered: ((which: number) => void) | null;
+
+  constructor(random: () => number = Math.random) {
     this.random = random;
     this.sprites = NONE;
     // Milliseconds since it started, and when the sprite that is on did.
@@ -31,7 +68,7 @@ export class Player {
   }
 
   // Starts over with these sprites.
-  load(sprites) {
+  load(sprites: readonly Sprite[]): void {
     this.sprites = sprites;
     this.now = 0;
     this.goal = -1;
@@ -39,22 +76,22 @@ export class Player {
     this.restart();
   }
 
-  get sprite() {
+  get sprite(): Sprite | undefined {
     return this.sprites[this.which];
   }
 
-  index(name) {
+  index(name: unknown): number {
     return this.sprites.findIndex((sprite) => sprite.name === name);
   }
 
   // The sprite that is on starts again, now.
-  restart() {
+  restart(): void {
     const sprite = this.sprite;
     this.span = sprite ? sprite.$duration(this.random) : 0;
     this.since = this.now;
   }
 
-  enter(which) {
+  enter(which: number): void {
     const changed = which !== this.which;
     this.which = which;
     this.restart();
@@ -63,32 +100,32 @@ export class Player {
 
   // Moves time on. A sprite that ran out is followed by the next, which
   // starts now and not when the other was due, as Qt has it.
-  advance(delta) {
+  advance(delta: number): void {
     this.now += delta;
     if (this.sprite && this.span > 0 && this.now - this.since >= this.span) this.enter(this.next());
   }
 
   // How long until the sprite that is on runs out.
-  left() {
+  left(): number {
     return this.span > 0 ? Math.max(0, this.since + this.span - this.now) : Infinity;
   }
 
   // `goalSprite`: a name that no sprite has changes nothing, the empty one
   // included, and a goal that was reached is stayed at.
-  seek(which) {
+  seek(which: number): void {
     if (which >= 0 && which < this.sprites.length) this.goal = which;
   }
 
   // `jumpTo`: on now, whatever the sprite that was on says, and no goal.
-  jump(which) {
+  jump(which: number): void {
     if (!(which >= 0 && which < this.sprites.length) || which === this.which) return;
     this.goal = -1;
     this.enter(which);
   }
 
   // One of the sprites `from` names, by their weights: -1 when it is none.
-  pick(from, allowed) {
-    const to = this.sprites[from].to ?? {};
+  pick(from: number, allowed?: Set<number>): number {
+    const to = this.sprites[from]!.to ?? {};
     const names = Object.keys(to).filter((name) => !allowed || allowed.has(this.index(name)));
     let total = 0;
     for (const name of names) total += weight(to[name]);
@@ -105,27 +142,27 @@ export class Player {
 
   // The sprite to go to from `from` on a shortest way to the goal, whatever
   // the weights on that way: Qt's `goalSeek`. -1 when there is no way.
-  towards(from, goal, depth = this.sprites.length) {
+  towards(from: number, goal: number, depth: number = this.sprites.length): number {
     const sprites = this.sprites;
-    const name = sprites[goal].name;
-    if (sprites[from].name === name) return from;
-    const to = sprites[from].to ?? {};
-    if (name in to) return this.index(name);
+    const name = sprites[goal]!.name;
+    if (sprites[from]!.name === name) return from;
+    const to = sprites[from]!.to ?? {};
+    if (String(name) in to) return this.index(name);
     for (let far = 1; far < depth; far++) {
-      const options = new Set();
+      const options = new Set<number>();
       for (const via of Object.keys(to)) {
         for (let index = 0; index < sprites.length; index++) {
-          if (sprites[index].name === via && this.towards(index, goal, far) !== -1) options.add(index);
+          if (sprites[index]!.name === via && this.towards(index, goal, far) !== -1) options.add(index);
         }
       }
-      if (options.size === 1) return options.values().next().value;
+      if (options.size === 1) return options.values().next().value!;
       if (options.size) return this.pick(from, options);
     }
     return -1;
   }
 
   // What follows the sprite that is on: itself, when it names nothing.
-  next() {
+  next(): number {
     const way = this.goal < 0 ? -1 : this.towards(this.which, this.goal);
     const found = way >= 0 ? way : this.pick(this.which);
     return found >= 0 ? found : this.which;
@@ -135,39 +172,39 @@ export class Player {
 // The item's two layers, and what paints a frame of a sprite on them:
 // stretched to the item's size, and on its way to the frame after it by
 // `progress`.
-export function painted(self) {
+export function painted(self: { $node?: HTMLElement | SVGElement | null }): Paint {
   const layers = [document.createElement("div"), document.createElement("div")];
-  const drawn = ["", ""];
+  const drawn: [string, string] = ["", ""];
   for (const layer of layers) {
     layer.className = "qq-sprite";
-    self.$node.append(layer);
+    self.$node!.append(layer);
   }
-  const put = (which, sprite, frame, width, height) => {
-    const sheet = sprite.$image;
+  const put = (which: 0 | 1, sprite: Sprite, frame: number, width: number, height: number) => {
+    const sheet = sprite.$image!;
     sprite.$frame(frame, FRAME);
     const across = width / FRAME.width;
     const down = height / FRAME.height;
     const key = `${sheet.src} ${FRAME.x} ${FRAME.y} ${across} ${down}`;
     if (drawn[which] === key) return;
     drawn[which] = key;
-    const style = layers[which].style;
-    style.backgroundImage = `url(${JSON.stringify(allowedUrl(sheet.src))})`;
+    const style = layers[which]!.style;
+    style.backgroundImage = `url(${JSON.stringify(allowedUrl(sheet.src) as string)})`;
     style.backgroundSize = `${sheet.naturalWidth * across}px ${sheet.naturalHeight * down}px`;
     style.backgroundPosition = `${-FRAME.x * across}px ${-FRAME.y * down}px`;
   };
   return (sprite, frame, progress, width, height, smooth) => {
-    const [under, over] = layers;
+    const [under, over] = layers as [HTMLDivElement, HTMLDivElement];
     const shown = Boolean(sprite?.$image) && width > 0 && height > 0;
     under.style.display = shown ? "" : "none";
-    const count = shown ? sprite.$sheet[0] : 0;
+    const count = shown ? sprite!.$sheet[0]! : 0;
     const blend = shown && progress > 0 && frame < count - 1;
     over.style.display = blend ? "" : "none";
-    if (!shown) return;
-    const at = (index) => (sprite.$reverse ? count - 1 - index : index);
+    if (!shown || !sprite) return;
+    const at = (index: number) => (sprite.$reverse ? count - 1 - index : index);
     under.style.imageRendering = over.style.imageRendering = smooth ? "" : "pixelated";
     put(0, sprite, at(frame), width, height);
     if (!blend) return;
     put(1, sprite, at(frame + 1), width, height);
-    over.style.opacity = progress;
+    over.style.opacity = String(progress);
   };
 }

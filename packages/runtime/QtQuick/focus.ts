@@ -7,25 +7,60 @@
 import { createEffect, onCleanup, runWithOwner } from "solid-js";
 import { settle, slot, whenComplete } from "../object.ts";
 import { untrack } from "#kernel";
+import type { Props, QObject } from "../object.ts";
 
-const parentOf = (item) => {
-  const parent = untrack(() => item.parent);
+// What focus reads of an item and keeps on it.
+export interface Focusable extends QObject {
+  readonly parent?: unknown;
+  readonly enabled?: unknown;
+  readonly visible?: unknown;
+  readonly children?: unknown;
+  readonly activeFocusOnTab?: unknown;
+  $focusWindow?: FocusWindow | undefined;
+  readonly $popup?: unknown;
+  readonly $tabFence?: unknown;
+  readonly $window?: QObject | null;
+  readonly $reason?: (reason: number) => void;
+  readonly $focusScope?: boolean;
+  $subFocus?: Focusable | null;
+  $active?: boolean;
+  $focus?: boolean;
+  $forgets?: boolean;
+}
+
+// A window: a scope like an item's, that always has active focus. It is
+// no item, and has none of an item's own state.
+export interface FocusWindow {
+  top: Focusable;
+  $subFocus: Focusable | null;
+  active: Focusable | null;
+  nowhere?: boolean;
+  readonly $focusScope?: undefined;
+  readonly $active?: undefined;
+}
+
+type Scope = Focusable | FocusWindow;
+// Each item that changed, and which of its properties: `[item, name, ...]`.
+type Changed = (Focusable | string)[];
+
+const parentOf = (item: Focusable): Focusable | null => {
+  const parent = untrack(() => item.parent) as Focusable | null | undefined;
   return parent?.$node ? parent : null;
 };
 
 // The window that had something pressed or focused in it last: where a key
 // goes when the page itself does not say.
-let current = null;
-const windows = new Set();
+let current: FocusWindow | null = null;
+const windows = new Set<FocusWindow>();
 
 // What listens for keys starts when there is a window for them to go to.
-let opened = null;
-export function whenOpened(start) {
+let opened: (() => void) | null = null;
+export function whenOpened(start: () => void): void {
   opened = start;
   if (windows.size) start();
 }
 
-export function windowOf(item) {
+export function windowOf(item: Focusable): FocusWindow {
   let top = item;
   for (let parent = parentOf(top); parent; parent = parentOf(top)) top = parent;
   if (top.$focusWindow) return top.$focusWindow;
@@ -33,7 +68,7 @@ export function windowOf(item) {
   // it has the keys once it is open, and not before.
   if (top.$popup) return { top, $subFocus: null, active: null, nowhere: true };
   // A scope like the others, that always has active focus.
-  const window = { top, $subFocus: null, active: null };
+  const window: FocusWindow = { top, $subFocus: null, active: null };
   top.$focusWindow = window;
   windows.add(window);
   opened?.();
@@ -48,7 +83,7 @@ export function windowOf(item) {
 
 // The tree `top` was the top of is the same window once `above` is over it,
 // as the view is over what is mounted: the keys go where they went.
-export function under(top, above) {
+export function under(top: Focusable, above: Focusable): void {
   const window = top.$focusWindow;
   if (!window) return;
   top.$focusWindow = undefined;
@@ -58,7 +93,7 @@ export function under(top, above) {
 
 // The scope an item's `focus` is in: the nearest FocusScope around it, else
 // its window.
-function scopeOf(item, window) {
+function scopeOf(item: Focusable, window: FocusWindow): Scope {
   for (let parent = parentOf(item); parent; parent = parentOf(parent)) {
     if (parent.$focusScope) return parent;
   }
@@ -67,7 +102,7 @@ function scopeOf(item, window) {
 
 // The item with active focus loses it, and so do the scopes it is in, up to
 // `scope`: its own state does not change.
-function leave(window, scope, changed) {
+function leave(window: FocusWindow, scope: Scope, changed: Changed): void {
   for (let item = window.active; item && item !== scope; item = parentOf(item)) {
     if (!item.$active) continue;
     item.$active = false;
@@ -76,12 +111,12 @@ function leave(window, scope, changed) {
   window.active = null;
 }
 
-const enabled = (item) => untrack(() => item.enabled) !== false;
+const enabled = (item: Focusable): boolean => untrack(() => item.enabled) !== false;
 
 // Qt's `setFocusInScope`. An item that is not enabled has focus without the
 // keys: they stay with its scope.
-function give(window, scope, item, changed) {
-  let active = null;
+function give(window: FocusWindow, scope: Scope, item: Focusable, changed: Changed): void {
+  let active: Scope | null = null;
   if (scope === window ? !window.nowhere : scope.$active) {
     active = enabled(item) ? item : scope;
     while (active.$focusScope && active.$subFocus && enabled(active.$subFocus)) active = active.$subFocus;
@@ -99,7 +134,7 @@ function give(window, scope, item, changed) {
     forget(item);
   }
   if (!active) return;
-  window.active = active === window ? null : active;
+  window.active = active === window ? null : (active as Focusable);
   for (let at = window.active; at && at !== scope; at = parentOf(at)) {
     if ((at !== active && !at.$focusScope) || at.$active) continue;
     at.$active = true;
@@ -108,17 +143,17 @@ function give(window, scope, item, changed) {
 }
 
 // Qt's `clearFocusInScope`: active focus goes back to the scope.
-function take(window, scope, item, changed) {
+function take(window: FocusWindow, scope: Scope, item: Focusable, changed: Changed): void {
   const had = scope === window ? !window.nowhere : scope.$active;
   if (had) leave(window, scope, changed);
   if (scope.$subFocus === item) scope.$subFocus = null;
   item.$focus = false;
   changed.push(item, "focus");
-  if (had && scope !== window) window.active = scope;
+  if (had && scope !== window) window.active = scope as Focusable;
 }
 
 // An item that is destroyed with focus leaves its scope without one.
-function forget(item) {
+function forget(item: Focusable): void {
   if (item.$forgets) return;
   item.$forgets = true;
   runWithOwner(item.$owner, () =>
@@ -126,7 +161,7 @@ function forget(item) {
       // One that was taken out of its parent first is in no scope by now.
       if (!item.$focus || (!parentOf(item) && !item.$focusWindow)) return;
       const window = windowOf(item);
-      const changed = [];
+      const changed: Changed = [];
       take(window, scopeOf(item, window), item, changed);
       tell(window, changed);
     }),
@@ -145,15 +180,15 @@ export const OtherFocusReason = 7;
 // What changed is told as Qt tells it: item by item in the order they were
 // touched, an item's focus before its active focus. One that keeps the
 // reason (`$reason`) is told it first, whether it gained focus or lost it.
-function tell(window, changed, reason = OtherFocusReason) {
+function tell(window: FocusWindow, changed: Changed, reason: number = OtherFocusReason): void {
   for (let index = 0; index < changed.length; index += 2) {
-    const item = changed[index];
+    const item = changed[index] as Focusable;
     if (changed.indexOf(item) < index) continue;
     item.$reason?.(reason);
     for (const property of PROPERTIES) {
       for (let at = index; at < changed.length; at += 2) {
         if (changed[at] !== item || changed[at + 1] !== property) continue;
-        slot(item, property).changed();
+        slot(item, property)!.changed();
         break;
       }
     }
@@ -164,11 +199,11 @@ function tell(window, changed, reason = OtherFocusReason) {
 }
 
 // `item.focus = value`, without settling what depends on it.
-export function setFocus(item, value, reason) {
+export function setFocus(item: Focusable, value: unknown, reason?: number): void {
   if ((item.$focus === true) === Boolean(value)) return;
   const window = windowOf(item);
   const scope = scopeOf(item, window);
-  const changed = [];
+  const changed: Changed = [];
   if (value) give(window, scope, item, changed);
   else take(window, scope, item, changed);
   tell(window, changed, reason);
@@ -177,27 +212,27 @@ export function setFocus(item, value, reason) {
 // What Qt's `setParentItem` does about focus. Before an item with focus
 // leaves its parent its scope lets go of it: the scope has no focus item
 // then, and the item's own `focus` is as it was.
-export function departing(item) {
+export function departing(item: Focusable): void {
   if (!item.$focus) return;
   const window = windowOf(item);
   const scope = scopeOf(item, window);
   if (scope.$subFocus !== item) return;
   const had = scope === window ? !window.nowhere : scope.$active;
-  const changed = [];
+  const changed: Changed = [];
   if (had) leave(window, scope, changed);
   scope.$subFocus = null;
-  if (had && scope !== window) window.active = scope;
+  if (had && scope !== window) window.active = scope as Focusable;
   tell(window, changed);
 }
 
 // And with its new parent it is the focus item of the scope it is in now,
 // unless that has one: then it has focus no more.
-export function arrived(item) {
+export function arrived(item: Focusable): void {
   if (!item.$focus) return;
   const window = windowOf(item);
   const scope = scopeOf(item, window);
   if (scope.$subFocus === item) return;
-  const changed = [];
+  const changed: Changed = [];
   if (scope.$subFocus) {
     item.$focus = false;
     changed.push(item, "focus");
@@ -209,14 +244,14 @@ export function arrived(item) {
 
 // Focus for the item and for every scope around it, so that it is the one
 // the keys go to.
-export function forceActiveFocus(item, reason) {
+export function forceActiveFocus(item: Focusable, reason?: number): void {
   setFocus(item, true, reason);
   // One that kept its `focus` when it left the scope it was in, as a block
   // does between shells, is no scope's focus item here until it is given.
   const held = windowOf(item);
   const inScope = scopeOf(item, held);
   if (inScope.$subFocus !== item) {
-    const changed = [];
+    const changed: Changed = [];
     give(held, inScope, item, changed);
     tell(held, changed, reason);
   }
@@ -231,24 +266,24 @@ export function forceActiveFocus(item, reason) {
 // What `focus: true` in an item's declaration does. Of several in a scope
 // the first has it; one that is bound takes it when it becomes true, as an
 // assignment would.
-export function declared(self, props) {
-  const bound = Object.getOwnPropertyDescriptor(props, "focus").get;
+export function declared(self: Focusable, props: Props): void {
+  const bound = Object.getOwnPropertyDescriptor(props, "focus")!.get;
   whenComplete(() => {
     if (!bound) {
       if (!props.focus) return;
       const window = windowOf(self);
       const scope = scopeOf(self, window);
       if (scope.$subFocus) return;
-      const changed = [];
+      const changed: Changed = [];
       give(window, scope, self, changed);
       tell(window, changed);
       return;
     }
-    let last = Boolean(untrack(() => slot(self, "focus").own()));
+    let last = Boolean(untrack(() => slot(self, "focus")!.own()));
     if (last) setFocus(self, true);
     createEffect(
-      () => Boolean(slot(self, "focus").own()),
-      (value) => {
+      () => Boolean(slot(self, "focus")!.own()),
+      (value: boolean) => {
         if (value === last) return;
         last = value;
         untrack(() => setFocus(self, value));
@@ -259,60 +294,60 @@ export function declared(self, props) {
 
 // An item that can be tabbed to makes its window known, so that Tab finds
 // it when nothing has focus yet.
-export const reachable = (self) => whenComplete(() => void windowOf(self));
+export const reachable = (self: Focusable) => whenComplete(() => void windowOf(self));
 
 // A press in a window makes it the one the keys go to.
-export function activate(item) {
+export function activate(item: Focusable): void {
   current = windowOf(item);
 }
 
 // The window a key event is for: the one the page's focus is in, else the
 // one used last, else the only one.
-export function keyWindow(target) {
-  for (const window of windows) if (window.top.$node.contains(target)) return window;
+export function keyWindow(target: Node): FocusWindow | null {
+  for (const window of windows) if (window.top.$node!.contains(target)) return window;
   if (current) return current;
-  return windows.size === 1 ? windows.values().next().value : null;
+  return windows.size === 1 ? windows.values().next().value! : null;
 }
 
 // The item the keys go to, or nothing: then they are the window's.
-export function activeItem(window) {
+export function activeItem(window: FocusWindow): Focusable | null {
   let item = window.active;
   // What cannot be seen or is disabled is passed over for what it is in.
   while (item && !(item.visible && item.enabled)) item = parentOf(item);
   return item;
 }
 
-export const activeFocusItem = (item) => activeItem(windowOf(item));
+export const activeFocusItem = (item: Focusable): Focusable | null => activeItem(windowOf(item));
 
-function walk(item, all) {
+function walk(item: Focusable, all: Focusable[]): void {
   all.push(item);
-  for (const child of untrack(() => item.children)) walk(child, all);
+  for (const child of untrack(() => item.children) as Iterable<Focusable>) walk(child, all);
 }
 
-const stop = (item) => item.activeFocusOnTab && item.visible && item.enabled;
+const stop = (item: Focusable): unknown => item.activeFocusOnTab && item.visible && item.enabled;
 
-function around(scope, item) {
+function around(scope: Focusable, item: Focusable | null): boolean {
   for (let parent = item && parentOf(item); parent; parent = parentOf(parent)) if (parent === scope) return true;
   return false;
 }
 
 // What Tab does not leave: the popup the item is in (`$tabFence`), else the
 // window.
-function fenceOf(window, item) {
-  for (let at = item; at; at = parentOf(at)) if (at.$tabFence) return at;
+function fenceOf(window: FocusWindow, item: Focusable | null): Focusable {
+  for (let at: Focusable | null = item; at; at = parentOf(at)) if (at.$tabFence) return at;
   return window.top;
 }
 
 // The next tab stop after `item` (before it, backwards) in the order the
 // items were declared in, around the whole window; `item` itself if there
 // is no other. From no item it is the first, or the last.
-export function nextInChain(window, item, forward = true) {
-  const all = [];
+export function nextInChain(window: FocusWindow, item: Focusable | null, forward = true): Focusable | null {
+  const all: Focusable[] = [];
   walk(fenceOf(window, item), all);
   const count = all.length;
   const from = item ? all.indexOf(item) : forward ? -1 : count;
   for (let step = 1; step <= count; step++) {
-    const candidate = all[(((from + (forward ? step : -step)) % count) + count) % count];
+    const candidate = all[(((from + (forward ? step : -step)) % count) + count) % count]!;
     if (candidate === item) break;
     // Backwards, a scope that has active focus around the item is passed
     // over, as Qt does: Tab stops at what is in it.
@@ -322,10 +357,10 @@ export function nextInChain(window, item, forward = true) {
   return item;
 }
 
-export const nextItemInFocusChain = (item, forward) => nextInChain(windowOf(item), item, forward);
+export const nextItemInFocusChain = (item: Focusable, forward?: boolean): Focusable | null => nextInChain(windowOf(item), item, forward);
 
 // Tab and Shift+Tab: whether focus moved.
-export function tab(window, item, forward) {
+export function tab(window: FocusWindow, item: Focusable | null, forward: boolean): boolean {
   const next = nextInChain(window, item, forward);
   if (!next || next === item) return false;
   forceActiveFocus(next, forward ? TabFocusReason : BacktabFocusReason);

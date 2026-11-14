@@ -5,8 +5,25 @@
 // read from `qml6`: a browser has no palette to ask for.
 import { runWithOwner } from "solid-js";
 import { defineType, derived, group, QtObject, slot } from "../object.ts";
+import type { QObject, Resolve } from "../object.ts";
 import { color, colorValue } from "./color.ts";
 import { untrack } from "#kernel";
+
+type Role = keyof typeof ACTIVE;
+type Colours = Record<Role, string>;
+
+// What a palette is asked through: `paletteOf` sets all three.
+interface Paletted extends QObject {
+  $from?: (() => Paletted | null | undefined) | undefined;
+  $base?: (() => Record<string, Colours> | undefined) | undefined;
+  $group?: (() => string) | undefined;
+}
+
+// What an item or a window that has a palette gives it.
+interface Owning extends QObject {
+  $palette?: Paletted;
+  $colours?: () => Record<string, Colours> | undefined;
+}
 
 const ACTIVE = {
   alternateBase: "#f7f7f7",
@@ -44,11 +61,11 @@ const DISABLED = {
   accent: "#919191",
 };
 
-const ROLES = Object.keys(ACTIVE);
+const ROLES = Object.keys(ACTIVE) as Role[];
 // An inactive window is painted as an active one.
-const NUMBERS = { active: ACTIVE, inactive: ACTIVE, disabled: DISABLED };
+const NUMBERS: Record<string, Colours> = { active: ACTIVE, inactive: ACTIVE, disabled: DISABLED };
 
-const each = (make) => Object.fromEntries(ROLES.map((role) => [role, make(role)]));
+const each = <T,>(make: (role: Role) => T): Record<Role, T> => Object.fromEntries(ROLES.map((role) => [role, make(role)])) as Record<Role, T>;
 
 // `ColorGroup {}` on its own: the active colours, until it is given others.
 export const ColorGroup = defineType("ColorGroup", QtObject, {
@@ -58,16 +75,16 @@ export const ColorGroup = defineType("ColorGroup", QtObject, {
 
 // What a palette says for a role whatever the group: `palette.button: "red"`
 // is the button colour of all three.
-function common(self, role) {
-  const all = slot(self, role);
+function common(self: QObject, role: Role): unknown {
+  const all = slot(self, role)!;
   return all.explicit() ? all.own() : undefined;
 }
 
 // What the palette was given for a role of a group, or the one it follows
 // was: not what either answers when nothing was said.
-function said(self, name, role) {
+function said(self: Paletted | null | undefined, name: string, role: Role): unknown {
   for (let at = self; at; at = at.$from?.()) {
-    const own = slot(at, `${name}$${role}`);
+    const own = slot(at, `${name}$${role}`)!;
     const value = own.explicit() ? own.get() : common(at, role);
     if (value !== undefined) return value;
   }
@@ -79,18 +96,22 @@ function said(self, name, role) {
 // `$from` is set by `paletteOf`, which gives items a palette), else the
 // colours of whatever has the palette (`$base`: a control's are its
 // style's), else Qt's.
-const part = (name) =>
+const part = (name: string) =>
   group(
     each((role) =>
-      derived((self) => common(self, role) ?? said(self.$from?.(), name, role) ?? (self.$base?.() ?? NUMBERS)[name][role]),
+      derived((self: Paletted) => common(self, role) ?? said(self.$from?.(), name, role) ?? (self.$base?.() ?? NUMBERS)[name]![role]),
     ),
   );
 
 // The colours of a style, as a palette's defaults: the active ones, and what
 // is different of an object that is not enabled.
-export const colours = (active, disabled) => ({ active, inactive: active, disabled: { ...active, ...disabled } });
+export const colours = (active: Colours, disabled: Partial<Colours>): Record<string, Colours> => ({ active, inactive: active, disabled: { ...active, ...disabled } });
 
-const resolve = each((role) => (self) => self[self.$group?.() ?? "active"][role]);
+const resolve: Record<string, Resolve> = each(
+  (role): Resolve =>
+    (self) =>
+      (self[(self as Paletted).$group?.() ?? "active"] as Colours)[role],
+);
 for (const name of Object.keys(NUMBERS)) {
   for (const role of ROLES) resolve[`${name}$${role}`] = colorValue;
 }
@@ -132,7 +153,7 @@ export const SystemPalette = defineType("SystemPalette", QtObject, {
         "highlightedText",
         "placeholderText",
         "accent",
-      ].map((role) => [role, derived((self) => color(NUMBERS[GROUPS[self.colorGroup] ?? "active"][role]))]),
+      ].map((role) => [role, derived((self) => color(NUMBERS[GROUPS[self.colorGroup as number] ?? "active"]![role as Role]))]),
     ),
   },
   enums: { Active: 0, Disabled: 1, Inactive: 2 },
@@ -144,13 +165,17 @@ export const SystemPalette = defineType("SystemPalette", QtObject, {
 // `from` its parent's, or from what the item is (`$colours`).
 const PREFIX = "palette$";
 
-export function paletteOf(self, from, group) {
+export function paletteOf(
+  self: Owning,
+  from: (() => Paletted | null | undefined) | undefined,
+  group: (() => string) | undefined,
+): Paletted {
   if (self.$palette) return self.$palette;
-  const props = {};
+  const props: Record<string, unknown> = {};
   for (const key of Object.keys(self.$props)) {
-    if (key.startsWith(PREFIX)) Object.defineProperty(props, key.slice(PREFIX.length), Object.getOwnPropertyDescriptor(self.$props, key));
+    if (key.startsWith(PREFIX)) Object.defineProperty(props, key.slice(PREFIX.length), Object.getOwnPropertyDescriptor(self.$props, key)!);
   }
-  const made = runWithOwner(self.$owner, () => untrack(() => Palette(props)));
+  const made = runWithOwner(self.$owner, () => untrack(() => Palette(props))) as Paletted;
   made.$from = from;
   made.$group = group;
   made.$base = () => self.$colours?.();
