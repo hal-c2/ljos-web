@@ -103,6 +103,12 @@ struct Asked {
     /// is read again when it does. One that no longer asks stays until
     /// then, and is read once more for nothing.
     readers: Vec<Piece<u32>>,
+    /// How long `readers` grows before its repeats are let go: twice what
+    /// was left the last time, so a long list of distinct readers is not
+    /// gone through again for each one noted again. 0 until then.
+    fold_at: usize,
+    #[cfg(test)]
+    folds: usize,
 }
 
 impl Asked {
@@ -115,9 +121,14 @@ impl Asked {
         // A piece read again after another asked is noted again: kept to
         // as many as there are, in a list a shared material makes long.
         let n = self.readers.len();
-        if n >= 16 && n.is_power_of_two() {
+        if n >= self.fold_at.max(16) {
             let mut seen = HashSet::with_capacity(n);
             self.readers.retain(|p| seen.insert(*p));
+            self.fold_at = self.readers.len() * 2;
+            #[cfg(test)]
+            {
+                self.folds += 1;
+            }
         }
     }
 }
@@ -324,6 +335,7 @@ impl Answers {
             asked.next = 0;
             // Read again, each piece notes itself again.
             pieces.extend(asked.readers.drain(..).filter(|p| seen.insert(*p)));
+            asked.fold_at = 0;
         };
         for &o in changed {
             forget(o, None);
@@ -555,6 +567,23 @@ mod tests {
         answers.answer(1, Kind::Number, 0, || unreachable!());
         answers.answer(1, Kind::Quaternion, 3, || unreachable!());
         assert_eq!(answers.looked(), 2);
+    }
+
+    #[test]
+    fn many_readers_read_again_in_turn_are_not_gone_through_for_each() {
+        // One fewer than a power of two: each noted again reaches one.
+        const READERS: u32 = 1023;
+        let mut asked = Asked::default();
+        for _ in 0..4 {
+            for n in 0..READERS {
+                asked.read_by(Piece::Node(n));
+            }
+        }
+        let distinct: HashSet<_> = asked.readers.iter().copied().collect();
+        assert_eq!(distinct.len(), READERS as usize);
+        assert!(asked.readers.len() < 2 * READERS as usize);
+        // Up to 1024 while the list first grows, then about once a round.
+        assert!(asked.folds <= 12, "{} folds", asked.folds);
     }
 
     #[test]
