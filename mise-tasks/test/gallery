@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 #MISE description="The gallery's report, checked on examples whose answers are known (with a stand-in compiler)"
 #MISE depends=["browser"]
-#USAGE arg "[args]..." var=#true help="Passed on to Playwright (e.g. a spec file, --grep TEXT, --headed)"
 set -euo pipefail
-pnpm --filter ljos-web-example-gallery selftest "$@"
+pnpm --filter ljos-web-example-gallery selftest

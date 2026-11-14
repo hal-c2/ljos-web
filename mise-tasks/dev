@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 #MISE description="Run something locally with Vite: the web example (default; QML recompiles as it is edited), the site, the Ljós-pages site or the gallery"
 #MISE depends=["build:compiler", "packages"]
-#USAGE arg "[what]" default="example" help="example: examples/web; site: the Astro site (site/); site-ljos: the site as Ljós pages, built then served; gallery: Qt's examples (gallery:serve)" {
-#USAGE   choices "example" "site" "site-ljos" "gallery"
-#USAGE }
+#USAGE arg "[what]" default="example" help="example (default): examples/web; site: the Astro site (site/); site-ljos: the site as Ljós pages, built then served; gallery: Qt's examples (gallery:serve). An option first (dev --port N) goes to the example's server"
 #USAGE arg "[args]..." var=#true help="Passed on to the server (Vite, Astro), after WHAT"
 set -euo pipefail
 
-what=${usage_what:-example}
-# The raw arguments, without WHAT, go on to the server.
-[ "$#" -gt 0 ] && [ "$1" = "$what" ] && shift
+# WHAT is checked here, not by a choices list: usage would take a leading
+# server option (dev --port N) as WHAT and refuse it.
+what=example
+if [ "$#" -gt 0 ] && [ "${1#-}" = "$1" ]; then
+  what=$1
+  shift
+fi
 
 case "$what" in
   example)
@@ -31,5 +33,9 @@ case "$what" in
     ;;
   gallery)
     exec mise run gallery:serve "$@"
+    ;;
+  *)
+    echo "dev: WHAT is example, site, site-ljos or gallery, not '$what'" >&2
+    exit 2
     ;;
 esac
