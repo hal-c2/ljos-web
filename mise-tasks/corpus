@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #MISE description="How much of Qt's examples compiles, and what stops the rest"
 #MISE depends=["build:compiler"]
+#USAGE arg "[dir]" help="The directory of QML to compile; default every example in corpus/qtdoc/examples"
 set -euo pipefail
 git submodule update --init --depth 1 corpus/qtdoc
 exec corpus/report.sh "$@"

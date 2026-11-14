@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="The site builder: bundles built into sites and opened in a browser, and every bundle it refuses"
 #MISE depends=["build:compiler", "browser"]
+#USAGE arg "[args]..." var=#true help="Passed on to Playwright (e.g. a spec file, --grep TEXT, --headed)"
 set -euo pipefail
 pnpm --filter ljos-web test:site "$@"

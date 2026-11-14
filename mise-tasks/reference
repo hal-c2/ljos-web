@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #MISE description="Take the pictures real Qt renders of its examples: corpus/reference (needs Qt 6's qml tool, and sway to have shader effects in them)"
 #MISE depends=["tools"]
+#USAGE arg "[id]..." var=#true help="The examples to take pictures of (ids in corpus/examples.json); default every one"
 set -euo pipefail
 git submodule update --init --depth 1 corpus/qtdoc
 exec node corpus/reference.mjs "$@"

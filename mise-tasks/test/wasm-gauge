@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #MISE description="Native visual types from their Rust, in a browser, against the desktop's picture (docs/LJOS_WEB.md A22)"
 #MISE depends=["build:compiler", "browser"]
+#USAGE arg "[args]..." var=#true help="Passed on to Playwright (e.g. a spec file, --grep TEXT, --headed)"
 set -euo pipefail
 
 cd examples/wasm-gauge
