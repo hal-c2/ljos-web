@@ -84,7 +84,7 @@ export default defineConfig({
           prerenders: loadPrerenders(prerendersAt),
           onLegacy: (count, file) => {
             legacyBlocks += count;
-            console.warn(`codeblocks: ${count} untagged block(s) left plain in ${file?.path ?? "a page"} (${legacyBlocks} so far)`);
+            console.warn(`codeblocks: ${count} block(s) left plain, untagged or listed in the ledger, in ${file?.path ?? "a page"} (${legacyBlocks} so far)`);
           },
         },
       ],

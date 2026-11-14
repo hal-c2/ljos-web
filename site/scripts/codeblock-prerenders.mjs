@@ -107,5 +107,5 @@ const outcome = (example) => {
 const report = onPages.flatMap(({ page, fences, examples }) => pageRecords(page, fences, examples, outcome, tagged));
 writeFileSync(join(cacheDir, "report.json"), `${JSON.stringify(report, null, 2)}\n`);
 console.log(
-  `codeblock-prerenders: ${drawn} live block(s) prerendered, ${legacy} untagged block(s) left plain, from ${pages.length} pages in ${src}`,
+  `codeblock-prerenders: ${drawn} live block(s) prerendered, ${legacy} block(s) left plain (untagged, or listed in the ledger), from ${pages.length} pages in ${src}`,
 );
