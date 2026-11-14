@@ -1811,15 +1811,19 @@ turns a Markdown page's fenced blocks into live ones, for any site:
   of only its files (`closed: true` to the compiler), at a root of its
   own (`ljos-example://<n>/`) that no server answers: a relative address
   it names (a `ShellLoader`'s `source` or `fallback`, an `Image`'s, a
-  model's) is looked for among its fences and its harness, wherever the
-  page is, and is given from there. One it does not have is not there,
+  model's, an `XMLHttpRequest`'s) is looked for among its fences and its
+  harness, wherever the page is, and is given from there. A request
+  takes a relative address from beside the file that makes it, as
+  natively: the link gives each of the example's files an
+  `XMLHttpRequest` placed there (its static `beside`). One it does not have is not there,
   as a file not on disk is not there for `ljos run`: what loads it fails
   as natively (`shell.qml: No such file or directory`), the block says
   so beside the code at the line that names it (`Main.qml:4: shell.qml:
   No such file or directory`), and nothing is fetched. The choke points
   of `guard.js` (`guardedFetch`, `sourced`, `allowedUrl`, `mayFetch`)
   are where an address of such a project is answered, so every loader
-  that goes through them behaves so. Absolute URLs, and the page's own
+  that goes through them behaves so; a socket to one is refused, as an
+  example has no server. Absolute URLs, and the page's own
   addresses outside code blocks, are as before.
 
 **DECISION:** the feature is general, the site is its first user: the
