@@ -3,7 +3,7 @@
 // animation. So the Behavior owns what the property shows (the slot's
 // `shown`), and follows the value under it.
 import { createRenderEffect, onCleanup } from "solid-js";
-import { contents, defineType, group, memo, QtObject, slot, whenComplete } from "../../object.js";
+import { contents, defineType, group, memo, QtObject, slot, whenComplete } from "../../object.ts";
 import { RUNNING, STOPPED } from "./jobs.js";
 import { display, Property } from "./property.js";
 import { untrack } from "#kernel";

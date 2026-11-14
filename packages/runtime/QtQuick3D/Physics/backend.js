@@ -13,7 +13,7 @@
 //
 // Not here: a body inside a body that moved this frame is placed by where
 // its parent was the frame before.
-import { slot } from "../../object.js";
+import { slot } from "../../object.ts";
 import * as math from "../math.js";
 import { kinematicTurn, list, weight } from "./bodies.js";
 import { engine, flag, four, pose, sdk, three, vec } from "./engine.js";

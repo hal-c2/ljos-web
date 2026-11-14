@@ -6,7 +6,7 @@
 // table model it is given, or of the followed view's model when it is given
 // none; and a model that is no table (a list, an array, a number) as it is,
 // laid out along the header.
-import { defineType, derived } from "../../object.js";
+import { defineType, derived } from "../../object.ts";
 import { indexed, tabular } from "../cells.js";
 import { columnsOf, modelIndex, rowsOf } from "../model.js";
 import { TableView } from "../TableView.js";

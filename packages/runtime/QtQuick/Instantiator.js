@@ -1,6 +1,6 @@
 // Instantiator: an object for every row of a model, of any type and with no
 // place in the scene. It is QtQml's, which `import QtQuick` brings with it.
-import { defineType, effect, QtObject, slot } from "../object.js";
+import { defineType, effect, QtObject, slot } from "../object.ts";
 import { Rows, size } from "./model.js";
 import { untrack } from "#kernel";
 

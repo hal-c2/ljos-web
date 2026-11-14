@@ -5,7 +5,7 @@
 // button its items are, and what its delegate makes for an Action or a Menu
 // declared in it.
 import { onCleanup } from "solid-js";
-import { contents, defineType, derived, effect, group, instantiate, last, settle, slot } from "../../object.js";
+import { contents, defineType, derived, effect, group, instantiate, last, settle, slot } from "../../object.ts";
 import { parts } from "./parts.js";
 import { colorValue } from "../color.js";
 import { BacktabFocusReason, departing, forceActiveFocus, OtherFocusReason, setFocus, TabFocusReason } from "../focus.js";

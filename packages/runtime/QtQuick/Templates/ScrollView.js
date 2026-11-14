@@ -1,6 +1,6 @@
 // ScrollView: a pane whose content item is a Flickable, the one declared in
 // it or one of its own, with the scroll bars its style attaches to it.
-import { contents, defineType, derived, effect, inside, settle, slot, whenComplete } from "../../object.js";
+import { contents, defineType, derived, effect, inside, settle, slot, whenComplete } from "../../object.ts";
 import { Flickable } from "../Flickable.js";
 import { Key } from "../keycodes.js";
 import { receive, wheels } from "../pointer.js";

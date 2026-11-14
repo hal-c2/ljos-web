@@ -4,7 +4,7 @@
 // which shows `displayText`; the box takes its value from what the text says
 // when Return is let go and when the keys go elsewhere.
 import { onCleanup } from "solid-js";
-import { defineType, derived, effect, onChange, QtObject, settle, slot } from "../../object.js";
+import { defineType, derived, effect, onChange, QtObject, settle, slot } from "../../object.ts";
 import { parts } from "./parts.js";
 import { PauseJob } from "../animation/jobs.js";
 import { forceActiveFocus, MouseFocusReason, windowOf } from "../focus.js";

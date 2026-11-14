@@ -14,7 +14,7 @@
 // A layer with no effect is the item drawn as one thing, which is what a
 // page does with an element in any case.
 import { onCleanup } from "solid-js";
-import { defineType, effect, group, inside, instantiate, QtObject, settle, slot, whenHeld } from "../object.js";
+import { defineType, effect, group, inside, instantiate, QtObject, settle, slot, whenHeld } from "../object.ts";
 import { Rect, Size } from "../QtQml/values.js";
 import { untrack } from "#kernel";
 

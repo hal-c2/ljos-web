@@ -1,7 +1,7 @@
 // ButtonGroup: buttons of which one is checked at a time, wherever they
 // are. With `exclusive: false` it only says how many of them are checked.
 import { onCleanup } from "solid-js";
-import { defineType, effect, QtObject, settle, slot } from "../../object.js";
+import { defineType, effect, QtObject, settle, slot } from "../../object.ts";
 import { loose, put } from "./Control.js";
 import { untrack } from "#kernel";
 

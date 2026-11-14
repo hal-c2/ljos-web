@@ -6,7 +6,7 @@
 // what that element is scrolled to, measured as Qt measures them: from the
 // content's origin, which margins and a view's header put before zero.
 import { onCleanup, runWithOwner } from "solid-js";
-import { contents, defineType, derived, effect, inside, QtObject, slot } from "../object.js";
+import { contents, defineType, derived, effect, inside, QtObject, slot } from "../object.ts";
 import { Item } from "./Item.js";
 import { LeftButton } from "./keycodes.js";
 import { CancelGrabExclusive, CancelGrabPassive, canTake, receive, takeExclusive } from "./pointer.js";

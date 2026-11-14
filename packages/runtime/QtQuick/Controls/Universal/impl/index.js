@@ -2,7 +2,7 @@
 // in C++. The numbers are Qt's (`qquickuniversalbusyindicator.cpp`,
 // `…progressbar.cpp`, `…focusrectangle.cpp`), so that each is where Qt has
 // it at every moment.
-import { defineType } from "../../../../object.js";
+import { defineType } from "../../../../object.ts";
 import { curve } from "../../../animation/easing.js";
 import { colorValue, css } from "../../../color.js";
 import { rules } from "../../../compute.js";

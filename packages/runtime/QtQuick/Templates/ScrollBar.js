@@ -2,7 +2,7 @@
 // that moves the content when it is dragged. What it does with a press, a
 // move and a release is what Qt's does (`qquickscrollbar.cpp`).
 import { onCleanup } from "solid-js";
-import { defineType, effect, QtObject, settle, slot } from "../../object.js";
+import { defineType, effect, QtObject, settle, slot } from "../../object.ts";
 import { LeftButton } from "../keycodes.js";
 import { CancelGrabExclusive, cursorOf, drop, gone, hoverable, receive, UngrabExclusive } from "../pointer.js";
 import { Control } from "./Control.js";

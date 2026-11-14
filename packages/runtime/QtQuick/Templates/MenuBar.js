@@ -3,7 +3,7 @@
 // menu is the one that is open: with a menu open, the menu of whichever item
 // comes to be current opens in its place. MenuBarItem is the button those
 // items are, and what the bar's delegate makes for each Menu declared in it.
-import { defineType, effect, inside, instantiate, settle, slot } from "../../object.js";
+import { defineType, effect, inside, instantiate, settle, slot } from "../../object.ts";
 import { forceActiveFocus, OtherFocusReason, setFocus } from "../focus.js";
 import { Key, LeftButton } from "../keycodes.js";
 import { Shortcut } from "../Keys.js";

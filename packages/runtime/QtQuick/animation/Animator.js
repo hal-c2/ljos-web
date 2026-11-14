@@ -2,7 +2,7 @@
 // its opacity) or one uniform of a shader, moved where it is drawn. The
 // property itself is told where it got to when the animation is over, as in
 // Qt, whose animators run with the scene rather than with the program.
-import { defineType, group, slot } from "../../object.js";
+import { defineType, group, slot } from "../../object.ts";
 import { Animation } from "./Animation.js";
 import { curve } from "./easing.js";
 import { ActionJob, DrawnJob } from "./jobs.js";

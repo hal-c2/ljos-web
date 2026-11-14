@@ -5,7 +5,7 @@
 // where the fill mode puts the picture.
 import { guardedFetch } from "../guard.js";
 import { onCleanup } from "solid-js";
-import { defineType, derived, effect, slot } from "../object.js";
+import { defineType, derived, effect, slot } from "../object.ts";
 import { clock } from "./animation/clock.js";
 import { geometry, Image, picture } from "./Image.js";
 

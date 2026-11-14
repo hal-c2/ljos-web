@@ -4,7 +4,7 @@
 // The numbers are what Qt 6.11 answers with its own (Fusion) light palette,
 // read from `qml6`: a browser has no palette to ask for.
 import { runWithOwner } from "solid-js";
-import { defineType, derived, group, QtObject, slot } from "../object.js";
+import { defineType, derived, group, QtObject, slot } from "../object.ts";
 import { color, colorValue } from "./color.js";
 import { untrack } from "#kernel";
 

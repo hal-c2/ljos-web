@@ -5,7 +5,7 @@
 // The layout and what a drag does to it are Qt's `QQuickSplitView`, step by
 // step: where a handle stops is not something to work out anew.
 import { onCleanup } from "solid-js";
-import { defineType, derived, effect, inside, instantiate, QtObject, slot } from "../../object.js";
+import { defineType, derived, effect, inside, instantiate, QtObject, slot } from "../../object.ts";
 import { Item } from "../Item.js";
 import { LeftButton } from "../keycodes.js";
 import { CancelGrabExclusive, cursorOf, gone, hoverable, receive, UngrabExclusive } from "../pointer.js";

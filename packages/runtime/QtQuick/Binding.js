@@ -1,7 +1,7 @@
 // Binding: gives a property of another object a value for as long as `when`
 // holds, and gives back what it had after.
 import { createMemo, createRenderEffect, createRoot, runWithOwner } from "solid-js";
-import { defineType, flush, QtObject, slot, whenComplete } from "../object.js";
+import { defineType, flush, QtObject, slot, whenComplete } from "../object.ts";
 import { follow } from "./animation/Animation.js";
 import { later } from "./animation/clock.js";
 import { Property } from "./animation/property.js";

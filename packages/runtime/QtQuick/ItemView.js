@@ -7,7 +7,7 @@
 // they go. A row keeps its delegate for as long as it is needed: scrolling
 // makes the rows that come into view and nothing else.
 import { onCleanup } from "solid-js";
-import { defineType, derived, effect, instantiate, slot } from "../object.js";
+import { defineType, derived, effect, instantiate, slot } from "../object.ts";
 import { Flickable } from "./Flickable.js";
 import { Item } from "./Item.js";
 import { delegateOf, modelOf, moved, Rows, size } from "./model.js";

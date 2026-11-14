@@ -9,7 +9,7 @@
 // The first step reads no size the second one set, so a layout that is only
 // resized only shares again.
 import { onCleanup } from "solid-js";
-import { defineType, derived, effect, looped, QtObject, slot } from "../../object.js";
+import { defineType, derived, effect, looped, QtObject, slot } from "../../object.ts";
 import { Item } from "../Item.js";
 import { mirrored } from "../LayoutMirroring.js";
 import { given, Settling, shown } from "../placing.js";

@@ -1,7 +1,7 @@
 // ProgressBar: how far something has come between `from` and `to`, or that
 // it is under way at all (`indeterminate`). BusyIndicator says only the
 // latter. What turns or fills is the style's.
-import { defineType, derived, effect } from "../../object.js";
+import { defineType, derived, effect } from "../../object.ts";
 import { Control, loose } from "./Control.js";
 import { bounded, close, fitted, keep } from "./Slider.js";
 import { untrack } from "#kernel";

@@ -15,7 +15,7 @@
 // Not drawn, on either renderer: the formats that are packed (`BC1` and
 // after), `RGBE8` and `R16`, and a picture with a depth, a volume being
 // no 2D picture. Each is said once where its numbers are taken up.
-import { defineType, flush } from "../object.js";
+import { defineType, flush } from "../object.ts";
 import { Object3D } from "./Node.js";
 import { signal } from "#kernel";
 

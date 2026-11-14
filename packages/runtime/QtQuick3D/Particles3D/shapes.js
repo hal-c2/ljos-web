@@ -6,7 +6,7 @@
 // does not look at the scene. Both start every particle where the emitter
 // is, as Qt's scene shape did too for the one scene it was asked about.
 import { onCleanup } from "solid-js";
-import { defineType, group, instantiate, QtObject } from "../../object.js";
+import { defineType, group, instantiate, QtObject } from "../../object.ts";
 import * as math from "../math.js";
 import { column, Triangles } from "../mesh.js";
 import { kept } from "../Node.js";

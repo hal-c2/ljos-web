@@ -6,7 +6,7 @@
 // spot is told as it comes, moves, leaves and is dropped. What is dragged
 // into the page from outside it, and out of it, is the browser's and is not
 // done here.
-import { defineType, effect, group, QtObject, settle, slot } from "../object.js";
+import { defineType, effect, group, QtObject, settle, slot } from "../object.ts";
 import { later } from "./animation/clock.js";
 import { itemToScene, sceneToGlobal, sceneToItem, topOf } from "./geometry.js";
 import { Item } from "./Item.js";

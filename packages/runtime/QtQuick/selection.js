@@ -1,7 +1,7 @@
 // `ItemSelectionModel`: which cells of a model are selected, and which one
 // is current.
 import { onCleanup } from "solid-js";
-import { defineType, effect, QtObject, slot } from "../object.js";
+import { defineType, effect, QtObject, slot } from "../object.ts";
 import { columnsOf, modelIndex, moved, rowsOf } from "./model.js";
 import { settle } from "./settle.js";
 import { untrack } from "#kernel";

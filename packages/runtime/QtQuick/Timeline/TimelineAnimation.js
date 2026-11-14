@@ -14,7 +14,7 @@
 //
 // Not here: `pingPong` does nothing in an animation that is not in a
 // timeline's `animations`; what Qt makes of one there was not measured.
-import { defineType, derived, slot } from "../../object.js";
+import { defineType, derived, slot } from "../../object.ts";
 import { Animation } from "../animation/Animation.js";
 import { NumberAnimation, PropertyAnimation } from "../animation/PropertyAnimation.js";
 import { owning } from "./Timeline.js";

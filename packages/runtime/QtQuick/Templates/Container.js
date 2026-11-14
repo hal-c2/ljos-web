@@ -3,7 +3,7 @@
 // (`ListView { model: control.contentModel }`), or with none: then they are
 // the content item's children as they are. A container with no content item
 // shows none of them, as in Qt.
-import { contents, defineType, derived, effect, slot } from "../../object.js";
+import { contents, defineType, derived, effect, slot } from "../../object.ts";
 import { departing } from "../focus.js";
 import { Item } from "../Item.js";
 import { ObjectModel } from "../model.js";

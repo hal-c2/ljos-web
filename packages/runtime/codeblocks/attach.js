@@ -13,7 +13,7 @@
 // left. The editor's keys are its own: what it takes is kept from the
 // page's key handling, and what it leaves (Tab after Escape, Shift+Tab,
 // Escape) goes on to it, so QML's tab chain moves on from the item.
-import { settle } from "../object.js";
+import { settle } from "../object.ts";
 import { createCodeEditor } from "./editor.js";
 
 // The look the editor takes from the Text it replaces.

@@ -5,7 +5,7 @@
 // by going from the window down through the scopes that have it. A window
 // here is one tree of items, whatever it was mounted in.
 import { createEffect, onCleanup, runWithOwner } from "solid-js";
-import { settle, slot, whenComplete } from "../object.js";
+import { settle, slot, whenComplete } from "../object.ts";
 import { untrack } from "#kernel";
 
 const parentOf = (item) => {

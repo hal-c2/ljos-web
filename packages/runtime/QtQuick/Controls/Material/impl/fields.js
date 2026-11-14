@@ -3,7 +3,7 @@
 // the way when the field has the focus or a text. What is painted and when
 // things move are Qt's (`qquickmaterialtextcontainer.cpp`,
 // `qquickmaterialplaceholdertext.cpp`).
-import { defineType, derived, effect, slot } from "../../../../object.js";
+import { defineType, derived, effect, slot } from "../../../../object.ts";
 import { curve } from "../../../animation/easing.js";
 import { colorValue, css } from "../../../color.js";
 import { Item } from "../../../Item.js";

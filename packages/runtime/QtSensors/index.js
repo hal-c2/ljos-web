@@ -12,7 +12,7 @@
 // which are named and say so when used; `axesOrientationMode`, the buffers
 // and the output ranges, which are kept and do nothing.
 import { onCleanup } from "solid-js";
-import { defineType, derived, QtObject, settle, slot, whenComplete } from "../object.js";
+import { defineType, derived, QtObject, settle, slot, whenComplete } from "../object.ts";
 import { untrack } from "#kernel";
 
 const MOTION = "devicemotion";

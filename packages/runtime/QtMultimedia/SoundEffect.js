@@ -7,7 +7,7 @@
 // as it would have been when the sound comes on.
 import { guardedFetch } from "../guard.js";
 import { onCleanup } from "solid-js";
-import { defineType, effect, onChange, QtObject, settle, slot } from "../object.js";
+import { defineType, effect, onChange, QtObject, settle, slot } from "../object.ts";
 import { clock } from "../QtQuick/animation/clock.js";
 import { audible, whenAudible } from "./audible.js";
 import { untrack } from "#kernel";

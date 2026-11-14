@@ -9,7 +9,7 @@
 // the picture is painted on a canvas, piece by piece. Any other picture is
 // an Image's.
 import { sourced } from "../../../guard.js";
-import { defineType, derived, effect } from "../../../object.js";
+import { defineType, derived, effect } from "../../../object.ts";
 import { lazy, rules } from "../../compute.js";
 import { Image, picture } from "../../Image.js";
 import { signal } from "#kernel";

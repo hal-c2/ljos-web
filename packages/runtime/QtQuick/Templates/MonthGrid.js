@@ -4,7 +4,7 @@
 // `source`, the model the style's Repeater makes the `delegate` for, and
 // makes the cells as big as there is room for.
 import { onCleanup, runWithOwner } from "solid-js";
-import { defineType, derived, effect, last, settle, slot } from "../../object.js";
+import { defineType, derived, effect, last, settle, slot } from "../../object.ts";
 import { styleHints } from "../../QtQml/application.js";
 import { Locale } from "../../QtQml/locale.js";
 import { LeftButton } from "../keycodes.js";

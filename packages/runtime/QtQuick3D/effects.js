@@ -19,7 +19,7 @@
 // Not here: a Buffer is kept from one picture to the next whether it says
 // so or not (`bufferFlags`), and of an ExtendedSceneEnvironment's effects
 // only what the renderer itself does (`Helpers/impl`).
-import { defineType, kinds, located, slot } from "../object.js";
+import { defineType, kinds, located, slot } from "../object.ts";
 import { Matrix4x4, Point, Quaternion, Rect, Size, Vector2d, Vector3d, Vector4d } from "../QtQml/values.js";
 import { Color } from "../QtQuick/color.js";
 import { Object3D } from "./Node.js";

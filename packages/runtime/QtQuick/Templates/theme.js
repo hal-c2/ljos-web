@@ -4,7 +4,7 @@
 // Each style the runtime has tells what its are (`themed`); the one a build
 // chose for `QtQuick.Controls` is the one in use. Without any, a control is
 // painted in Qt's own colours and font, as with Qt's Fusion style.
-import { chosen } from "../../object.js";
+import { chosen } from "../../object.ts";
 
 const FONT = Object.freeze({ family: "Sans Serif", pixelSize: 12, weight: 400 });
 const PLAIN = { palette: undefined, font: FONT, fonts: {} };

@@ -4,7 +4,7 @@
 // Without a shape it is the whole rectangle, which `extrude` and `contains`
 // here answer for.
 import { sourced } from "../../guard.js";
-import { defineType, effect, QtObject } from "../../object.js";
+import { defineType, effect, QtObject } from "../../object.ts";
 
 // QRectF's: the edges are inside, and a rectangle of no size has no inside.
 const within = (x, y, width, height, px, py) =>

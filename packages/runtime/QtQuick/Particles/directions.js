@@ -2,7 +2,7 @@
 // chance in it. `$sample(x, y, random, out)` draws one for a particle at
 // (x, y) in the emitter and puts it in `out`; the draws are Qt's, in Qt's
 // order, so that a seeded system gives the same vectors every time.
-import { contents, defineType, QtObject } from "../../object.js";
+import { contents, defineType, QtObject } from "../../object.ts";
 import { between } from "./geometry.js";
 
 const RADIANS = Math.PI / 180;

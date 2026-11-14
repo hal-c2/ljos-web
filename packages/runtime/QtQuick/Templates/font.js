@@ -2,7 +2,7 @@
 // was given, else what the style sets a control of its type in. A Button in
 // a Pane with `font.pixelSize: 20` is that big, and as bold as the style
 // makes buttons.
-import { alone, derived, group, kinds, typed } from "../../object.js";
+import { alone, derived, group, kinds, typed } from "../../object.ts";
 import { given, lazy } from "../compute.js";
 import { font as styled } from "./theme.js";
 

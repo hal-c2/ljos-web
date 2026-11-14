@@ -3,7 +3,7 @@
 // It is a sprite of its own that it plays: what it says of the sheet is what
 // that sprite is given. Time is the clock's, so a test moves it.
 import { onCleanup } from "solid-js";
-import { defineType, derived, effect, settle, slot } from "../object.js";
+import { defineType, derived, effect, settle, slot } from "../object.ts";
 import { clock } from "./animation/clock.js";
 import { Item } from "./Item.js";
 import { Sprite } from "./Sprite.js";

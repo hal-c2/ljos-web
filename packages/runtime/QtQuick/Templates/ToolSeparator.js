@@ -1,6 +1,6 @@
 // ToolSeparator and MenuSeparator: a line between the tools of a tool bar
 // and between the items of a menu. The line is the style's.
-import { defineType, derived } from "../../object.js";
+import { defineType, derived } from "../../object.ts";
 import { Control } from "./Control.js";
 import { Horizontal, Vertical } from "./Slider.js";
 import { speaks } from "../Accessible.js";

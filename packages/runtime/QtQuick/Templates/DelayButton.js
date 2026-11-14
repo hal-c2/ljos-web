@@ -1,7 +1,7 @@
 // DelayButton: checked by being held for long enough. `progress` goes from
 // 0 to 1 while it is held, as the `transition` a style gives it says.
 import { onCleanup } from "solid-js";
-import { defineType, settle } from "../../object.js";
+import { defineType, settle } from "../../object.ts";
 import { Property } from "../animation/property.js";
 import { AbstractButton } from "./AbstractButton.js";
 import { put } from "./Control.js";

@@ -7,7 +7,7 @@
 // it, from the changes there are to animate (`actions`); what the animation
 // takes of them it adds to `modified`, and the rest is not its business.
 import { createEffect, createMemo, onCleanup } from "solid-js";
-import { contents, defineType, flush, QtObject, slot, whenComplete } from "../../object.js";
+import { contents, defineType, flush, QtObject, slot, whenComplete } from "../../object.ts";
 import { drain, later } from "./clock.js";
 import { ActionJob, ParallelJob, PauseJob, RUNNING, SequentialJob } from "./jobs.js";
 import { signal, untrack } from "#kernel";

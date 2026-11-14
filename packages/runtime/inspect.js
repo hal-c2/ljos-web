@@ -11,7 +11,7 @@
 // props, and `$console` and `$bound` around what logs and what binds. A page
 // built without it has none of them and never imports this module; an
 // object of such a file is listed and clicked all the same, with no place.
-import { flush } from "./object.js";
+import { flush } from "./object.ts";
 
 // What each of `console`'s calls is, as Qt's message types: qml6 says
 // `console.log` is a debug message and `console.error` a critical one.

@@ -19,7 +19,7 @@
 // not draw, and a property with no value of a type that says nothing of
 // what it would be (`property vector2d wind` alone), which is no uniform
 // until it has one.
-import { defineType } from "../object.js";
+import { defineType } from "../object.ts";
 import { declaration, handed, text } from "./effects.js";
 import { Material } from "./scene.js";
 import { mentioned } from "./shaders.js";

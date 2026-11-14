@@ -5,7 +5,7 @@
 // implicit size, and the rectangle it is painted in.
 import { allowedUrl, guardedFetch, sourced } from "../guard.js";
 import { signal } from "#kernel";
-import { defineType, derived, effect, flush, group, located } from "../object.js";
+import { defineType, derived, effect, flush, group, located } from "../object.ts";
 import { given, lazy, rules, sized } from "./compute.js";
 import { Rect } from "../QtQml/values.js";
 import { Item } from "./Item.js";

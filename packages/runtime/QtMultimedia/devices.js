@@ -1,7 +1,7 @@
 // MediaDevices: what there is to play sound on and to record with, as far
 // as the browser tells a page that has not asked for a microphone or a
 // camera: often one device of each kind, without a name.
-import { defineType, derived, flush, QtObject } from "../object.js";
+import { defineType, derived, flush, QtObject } from "../object.ts";
 import { signal } from "#kernel";
 
 const NULL = 0;

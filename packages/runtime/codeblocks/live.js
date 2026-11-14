@@ -94,7 +94,7 @@ export async function mountLiveCodeBlock(figure, data, options = {}) {
   // WebAssembly the figure stays as the build wrote it, code and drawn
   // result, and says why it cannot be edited.
   if (!wasmWorks()) return staticOnly(figure, data);
-  const [{ hydrate, mount }, { reload }] = await Promise.all([import("../object.js"), import("../reload.js")]);
+  const [{ hydrate, mount }, { reload }] = await Promise.all([import("../object.ts"), import("../reload.js")]);
   const compile = await compilerOf(options);
   const delay = options.delay ?? 300;
   // The code as the `<pre>` shows it, without the file's last newline

@@ -1,6 +1,6 @@
 // CheckBox: checked, unchecked or, with `tristate`, partially checked.
 // RadioButton: one of its siblings is checked.
-import { defineType, effect } from "../../object.js";
+import { defineType, effect } from "../../object.ts";
 import { AbstractButton } from "./AbstractButton.js";
 import { loose, put } from "./Control.js";
 import { untrack } from "#kernel";

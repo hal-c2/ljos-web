@@ -4,7 +4,7 @@
 // the browser. What QML reads of it is computed as Qt computes it: the size
 // of the frame, which is the item's implicit size, and the rectangle the
 // frame is painted in.
-import { defineType, derived, effect, settle } from "../object.js";
+import { defineType, derived, effect, settle } from "../object.ts";
 import { Rect } from "../QtQml/values.js";
 import { lazy, rules } from "../QtQuick/compute.js";
 import { Item } from "../QtQuick/Item.js";

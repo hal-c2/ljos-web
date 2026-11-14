@@ -5,7 +5,7 @@
 import { getOwner, onCleanup } from "solid-js";
 import { signal as counted, untrack } from "#kernel";
 import { sourced } from "../guard.js";
-import { effect, settle } from "../object.js";
+import { effect, settle } from "../object.ts";
 import { rules } from "../QtQuick/compute.js";
 import { Item } from "../QtQuick/Item.js";
 import { sceneToItem } from "../QtQuick/geometry.js";

@@ -4,8 +4,8 @@
 // that item itself, once, as its own child, and the property holds the item:
 // what the control computes from its parts reads an item either way. One an
 // application gives in its place is all there is: the style's is never made.
-// Here and not in object.js, so a page with no controls carries none of it.
-import { apart, typed } from "../../object.js";
+// Here and not in object.ts, so a page with no controls carries none of it.
+import { apart, typed } from "../../object.ts";
 
 const part = (value) => value;
 part.type = "QQuickItem*";

@@ -3,7 +3,7 @@
 // as the browser makes one: the page behind it takes no press, Escape
 // rejects it.
 import { onCleanup } from "solid-js";
-import { defineType, effect } from "../../object.js";
+import { defineType, effect } from "../../object.ts";
 import { rules } from "../compute.js";
 import { Dialog } from "./Dialog.js";
 import { untrack } from "#kernel";

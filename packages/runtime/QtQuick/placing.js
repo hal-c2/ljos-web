@@ -2,7 +2,7 @@
 // anything placed it, and whether it takes part at all.
 import { createSignal, getObserver, runWithOwner } from "solid-js";
 import { version, WASM } from "#kernel";
-import { looped, slot } from "../object.js";
+import { looped, slot } from "../object.ts";
 
 const WRITABLE = { ownedWrite: true };
 const next = (version) => version + 1;

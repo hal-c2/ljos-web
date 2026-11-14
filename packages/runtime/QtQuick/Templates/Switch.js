@@ -1,5 +1,5 @@
 // Switch: on or off, by a click or by dragging its handle across.
-import { defineType, derived } from "../../object.js";
+import { defineType, derived } from "../../object.ts";
 import { styleHints } from "../../QtQml/application.js";
 import { AbstractButton } from "./AbstractButton.js";
 import { put } from "./Control.js";
