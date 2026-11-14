@@ -5,7 +5,8 @@ import QtQuick.Templates as T
 // Qt 6.12's styles draw a menu item's icon and text with a
 // MenuItemIconLabel: an IconLabel that is told which item it is in. Next to
 // an IconLabel given the same, it measures, places and colours alike, given
-// an item or not. The font is one of boxes, so that Qt and a browser
+// an item or not, until the item's action has a shortcut: then the label
+// shows it too, at its far side, when there is room for it. The font is one of boxes, so that Qt and a browser
 // measure a text alike.
 Item {
     id: root
@@ -30,14 +31,34 @@ Item {
     Boxed { id: uncoloured; icon.source: "../assets/flag.png"; defaultIconColor: "#0000ff" }
     Boxed { id: tied; text: "Hello"; icon.source: "../assets/flag.png"; spacing: 6; menuItem: null }
 
+    // Items whose action has a shortcut, and one whose action has none.
+    T.MenuItem { id: keyed; visible: false; action: T.Action { text: "Hello"; shortcut: "Ctrl+S" } }
+    T.MenuItem { id: lower; visible: false; action: T.Action { text: "Hello"; shortcut: "ctrl+shift+q" } }
+    T.MenuItem { id: unkeyed; visible: false; action: T.Action { text: "Hello" } }
+
+    // Told their item once the font is there: Qt makes the shortcut's text
+    // when it is told, in the font the label has then.
+    Boxed { id: keyBeside; text: "Hello"; icon.source: "../assets/flag.png"; spacing: 6 }
+    Boxed { id: keyText; text: "Hello"; spacing: 6; display: MenuItemIconLabel.TextOnly }
+    Boxed { id: keyUnder; text: "Hello"; icon.source: "../assets/flag.png"; spacing: 6; display: MenuItemIconLabel.TextUnderIcon }
+    Boxed { id: keyIcon; text: "Hello"; icon.source: "../assets/flag.png"; spacing: 6; display: MenuItemIconLabel.IconOnly }
+    Boxed { id: keyFits; width: 140; height: 20; text: "Hello"; icon.source: "../assets/flag.png"; spacing: 6 }
+    Boxed { id: keyTight; width: 139; height: 20; text: "Hello"; icon.source: "../assets/flag.png"; spacing: 6 }
+    Boxed { id: keyPadded; width: 200; height: 40; leftPadding: 5; rightPadding: 7; topPadding: 3; text: "Hello"; icon.source: "../assets/flag.png"; spacing: 6; alignment: Qt.AlignLeft }
+    Boxed { id: keyMirrored; width: 200; height: 40; mirrored: true; text: "Hello"; icon.source: "../assets/flag.png"; spacing: 6; alignment: Qt.AlignLeft }
+    Boxed { id: keyRed; width: 200; height: 20; color: "#ff0000"; text: "Hello"; icon.source: "../assets/flag.png"; spacing: 6; alignment: Qt.AlignLeft }
+    Boxed { id: keyLower; width: 200; height: 20; text: "Hello"; spacing: 6; display: MenuItemIconLabel.TextOnly }
+    Boxed { id: keyNone; text: "Hello"; icon.source: "../assets/flag.png"; spacing: 6 }
+
     Plain { id: plainBoth; text: "Hello"; icon.source: "../assets/flag.png"; spacing: 6 }
     Plain { id: plainRoomy; width: 200; height: 40; text: "Hello"; icon.source: "../assets/flag.png"; spacing: 6; alignment: Qt.AlignLeft }
 
     readonly property var labels: [both, under, noIcon, roomy, mirrored, sized, coloured, uncoloured, tied, plainBoth, plainRoomy]
+    readonly property var keyedLabels: [keyBeside, keyText, keyUnder, keyIcon, keyFits, keyTight, keyPadded, keyMirrored, keyRed]
 
     function ready() {
         if (boxes.status !== FontLoader.Ready) return false
-        for (const label of labels) {
+        for (const label of labels.concat(keyedLabels, [keyLower, keyNone])) {
             for (const child of label.children)
                 if (child.objectName === "image" && child.source != "" && child.status !== Image.Ready) return false
         }
@@ -61,6 +82,18 @@ Item {
             text ? text.text : null, image ? String(image.color) : null]
     }
 
+    // The child that is neither the icon nor the text: the shortcut's.
+    function shortcut(label) {
+        for (const child of label.children)
+            if (child.objectName !== "image" && child.objectName !== "label") return child
+        return null
+    }
+
+    function keys(label) {
+        const shown = shortcut(label)
+        return measured(label).concat([shown ? box(shown).concat([shown.visible, shown.text, String(shown.color)]) : null])
+    }
+
     function answers() {
         const rows = []
         for (const label of labels) rows.push(measured(label))
@@ -73,6 +106,16 @@ Item {
         tied.menuItem = item
         tied.menuItem = null
         rows.push([tied.menuItem === null, told, measured(tied)])
+
+        for (const label of keyedLabels) label.menuItem = keyed
+        keyLower.menuItem = lower
+        keyNone.menuItem = unkeyed
+        for (const label of keyedLabels.concat([keyLower, keyNone])) rows.push(keys(label))
+        // Told no item, it has no shortcut to show.
+        keyBeside.menuItem = null
+        keyFits.menuItem = null
+        rows.push(keys(keyBeside))
+        rows.push(keys(keyFits))
         return rows
     }
 }

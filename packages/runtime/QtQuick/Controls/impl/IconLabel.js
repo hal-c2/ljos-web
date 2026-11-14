@@ -5,6 +5,8 @@ import { color, colorValue } from "../../color.js";
 import { lazy } from "../../compute.js";
 import { font } from "../../font.js";
 import { Item } from "../../Item.js";
+import { chord, chordText } from "../../keycodes.js";
+import { Text } from "../../Text.js";
 import { IconImage } from "./images.js";
 import { MnemonicLabel } from "./texts.js";
 import { untrack } from "#kernel";
@@ -257,7 +259,82 @@ export const IconLabel = defineType("IconLabel", Item, {
 });
 
 // MenuItemIconLabel (Qt 6.12): the IconLabel in a menu item, told which item
-// it is in. Measured under qml6 6.12, being told changes nothing it shows.
+// it is in. Where the label shows its text and the item's action has a
+// shortcut, the label shows the shortcut too: at its far side (its near side
+// when mirrored), in the middle of its height, and only where it fits beside
+// what else the label shows. Measured under qml6 6.12.
 export const MenuItemIconLabel = defineType("MenuItemIconLabel", IconLabel, {
   properties: { menuItem: null },
+  setup(self) {
+    const both = self.$both;
+    const keys = lazy(self, () => {
+      const display = self.display;
+      if (display !== TEXT_ONLY && display !== BESIDE) return "";
+      const parsed = chord(self.menuItem?.action?.shortcut);
+      return parsed ? chordText(parsed) : "";
+    });
+    // Qt 6.12: the shortcut's text takes the label's font and colour, and
+    // the action's shortcut, as it is made, and follows none of them after.
+    // Here it follows them.
+    const shortcut = inside(self, () =>
+      untrack(() =>
+        Text({
+          get text() {
+            return keys();
+          },
+          get font() {
+            return self.font;
+          },
+          get color() {
+            return self.color;
+          },
+          get visible() {
+            return placed().shown;
+          },
+          get x() {
+            return placed().x;
+          },
+          get y() {
+            return placed().y;
+          },
+        }),
+      ),
+    );
+    const { width: contentWidth, height: contentHeight } = both.sizes;
+    const across = () => contentWidth() - self.leftPadding - self.rightPadding;
+    const placed = lazy(self, () => {
+      const width = shortcut.implicitWidth;
+      // Shown only with room to spare: one that would just fit is not.
+      if (!(across() + self.spacing + width < self.width - self.leftPadding - self.rightPadding)) return { shown: false, x: 0, y: 0 };
+      const tall = self.height - self.topPadding - self.bottomPadding;
+      return {
+        shown: true,
+        x: self.mirrored ? self.leftPadding : self.width - self.rightPadding - width,
+        y: self.topPadding + (tall - shortcut.implicitHeight) / 2,
+      };
+    });
+    both.sizes = {
+      width() {
+        if (!keys()) return contentWidth();
+        // Qt 6.12: beside an icon, what it keeps for the shortcut is the
+        // spacing and the shortcut's height, however wide the shortcut is.
+        if (self.display === BESIDE) return contentWidth() + self.spacing + shortcut.implicitHeight;
+        return Math.max(across(), shortcut.implicitWidth) + self.leftPadding + self.rightPadding;
+      },
+      height() {
+        if (!keys()) return contentHeight();
+        const padding = self.topPadding + self.bottomPadding;
+        return Math.max(contentHeight() - padding, shortcut.implicitHeight) + padding;
+      },
+    };
+
+    let shown = false;
+    effect(
+      () => keys() !== "",
+      (next) => {
+        if (next !== shown) next ? self.$add(shortcut) : self.$remove(shortcut);
+        shown = next;
+      },
+    );
+  },
 });
