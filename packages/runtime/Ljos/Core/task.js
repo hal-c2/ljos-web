@@ -53,12 +53,16 @@ function call(self, args) {
   // What the aborted run's signal told may have started a run: it was
   // asked for after this one, so it is the Task's run, and this one is
   // superseded before it was called. Nothing is aborted again, so a
-  // listener that starts a run each time cannot make this loop.
-  if (self.$running) return;
+  // listener that starts a run each time cannot make this loop. It may
+  // have ended the Task too, by unloading what holds it.
+  if (self.$running || self.$ended) return;
   const number = ++self.$number;
   const control = new AbortController();
   self.$running = control;
   pend(self);
+  // What pending told may have aborted this run, started another or ended
+  // the Task: then this run is not called.
+  if (self.$running !== control) return;
   let given;
   try {
     const run = untrack(() => self.run);

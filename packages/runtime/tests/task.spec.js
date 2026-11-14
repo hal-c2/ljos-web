@@ -167,6 +167,34 @@ test("abort, when the aborted run's signal starts another, leaves that run in pr
   expect(await parts(page, "weather")).toEqual({ status: "done", value: "Snow in Tromsø", error: null });
 });
 
+test("a run aborted by what its pending state told is not called", async ({ page }) => {
+  await open(page, "task");
+  const told = await page.evaluate(() => {
+    const { manual } = window.objects;
+    const calls = [];
+    manual.run = (what) => (calls.push(what), what);
+    manual.statusChanged.connect(() => manual.status === "pending" && manual.abort());
+    manual.start("now");
+    return { calls, status: manual.status };
+  });
+  expect(told).toEqual({ calls: [], status: "failed" });
+});
+
+test("a Task whose owner the aborted run's signal unloads starts no run", async ({ page }) => {
+  await open(page, "task");
+  const started = await page.evaluate(() => {
+    const { loaded, loader } = window.objects;
+    const first = window.objects.loadedSignal;
+    first.addEventListener("abort", () => {
+      loader.active = false;
+      window.flush();
+    });
+    loaded.start();
+    return window.objects.loadedSignal !== first;
+  });
+  expect(started).toBe(false);
+});
+
 test("a run that throws at once fails", async ({ page }) => {
   await open(page, "task");
   await turn(page);
