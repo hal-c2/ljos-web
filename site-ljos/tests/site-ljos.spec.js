@@ -204,7 +204,8 @@ test("an editor goes with its page: the next page keeps none of its views or lis
   });
   const listening = () => page.evaluate(() => globalThis.__selectionListeners.size);
   await page.setViewportSize({ width: 1440, height: 1600 });
-  await page.goto("/start/first-app/");
+  // A page whose blocks run on the web, as the one above.
+  await page.goto("/language/overview/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
   const before = await listening();
   await codeEditor(page, "Edit Main.qml");
@@ -224,7 +225,8 @@ test("a reader who moves on while the editor loads keeps their focus where they 
     await route.continue();
   });
   await page.setViewportSize({ width: 1440, height: 1600 });
-  await page.goto("/start/first-app/");
+  // A page whose blocks run on the web, as the one above.
+  await page.goto("/language/overview/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
   // In with a press, and on with Tab before the editor has come.
   await page.getByRole("textbox", { name: "Edit Main.qml" }).first().click();
