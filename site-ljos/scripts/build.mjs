@@ -358,6 +358,64 @@ for (const file of htmlUnder(out)) {
   writeFileSync(file, `${html.slice(0, at + 6)}\n    <meta name="ljos-base" content="${base}">${html.slice(at + 6)}`);
 }
 
+// The page for an address the site has no page for. Pages serves the
+// one `404.html` at the site's root for a missing address at any depth
+// below it, so nothing in it is relative: every address in it starts
+// at the base this build stands at. It is plain HTML, with no script:
+// it says what happened and where to go, in the shell's own colours
+// and words, and needs nothing else to.
+// DECISION: written by hand here rather than prerendered from the
+// shell: a prerendered page asks for its script and styles relative to
+// its own depth, which a page served at every depth cannot.
+const notFound = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="ljos-base" content="${base}">
+    <meta name="robots" content="noindex">
+    <meta name="description" content="There is no page at this address on ljos.dev.">
+    <title>Page not found — Ljós</title>
+    <link rel="icon" href="${base}favicon.svg" type="image/svg+xml">
+    <style>
+      :root { color-scheme: light dark; --bg: #fdfbf6; --panel: #f6f1e6; --ink: #2b251d; --muted: #6b5f4c; --accent: #9a6210; --border: #ddd2bd; --on-accent: #ffffff; }
+      @media (prefers-color-scheme: dark) { :root { --bg: #1a1712; --panel: #241f19; --ink: #ece5d8; --muted: #b3a892; --accent: #e0a43c; --border: #453a2d; --on-accent: #1a1712; } }
+      html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: system-ui, sans-serif; }
+      body { min-height: 100vh; display: flex; flex-direction: column; }
+      header { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 22px; padding: 12px 20px; border-bottom: 1px solid var(--border); }
+      header .home { display: flex; align-items: center; gap: 8px; color: var(--ink); text-decoration: none; font: bold 24px Georgia, serif; }
+      nav { display: flex; gap: 22px; }
+      nav a { color: var(--ink); text-decoration: none; font-size: 14px; }
+      a:hover { text-decoration: underline; }
+      a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+      main { flex: 1; width: min(680px, calc(100% - 32px)); margin: 0 auto; padding: 48px 0; }
+      h1 { font: bold 34px Georgia, serif; margin: 0 0 12px; }
+      p { font-size: 16px; line-height: 1.5; color: var(--muted); margin: 0 0 24px; }
+      main .go { display: inline-block; padding: 10px 14px; background: var(--accent); color: var(--on-accent); font-weight: bold; font-size: 15px; text-decoration: none; }
+      main .docs { margin-left: 12px; color: var(--accent); font-size: 15px; }
+      footer { padding: 12px 20px; border-top: 1px solid var(--border); background: var(--panel); color: var(--muted); font-size: 12px; text-align: center; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a class="home" href="${base}" aria-label="Ljós — front page"><img src="${base}favicon.svg" width="28" height="28" alt="">Ljós</a>
+      <nav aria-label="Site">
+        <a href="${base}start/">Docs</a>
+        <a href="${base}demos/">Live demos</a>
+        <a href="https://github.com/hal-c2/ljos-ui">GitHub</a>
+      </nav>
+    </header>
+    <main>
+      <h1>Page not found</h1>
+      <p>There is no page at this address. It may have moved, or the link that brought you here may be mistyped.</p>
+      <a class="go" href="${base}">Go to the front page</a><a class="docs" href="${base}start/">Read the docs</a>
+    </main>
+    <footer>Ljós — malleable software, everywhere · MIT</footer>
+  </body>
+</html>
+`;
+writeFileSync(join(out, "404.html"), notFound);
+
 // The brand files a browser asks for by name are the site's, whichever
 // builder wrote the pages.
 for (const name of ["favicon.svg", "apple-touch-icon.png", "og-image.png"]) {
