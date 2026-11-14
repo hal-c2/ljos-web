@@ -269,9 +269,15 @@ function sequenceText(sequence) {
   const texts = [];
   let rest = sequence.trim();
   while (rest !== "") {
-    // A comma after a `+` is the key itself (`Ctrl+,`), not between chords.
+    // The first character of a chord, and the one after each `+` between
+    // its keys, belong to a key, so `Ctrl+,` is one chord and `Ctrl++,B` two.
     let at = -1;
-    for (let i = 1; i < rest.length && at < 0; i++) if (rest[i] === "," && rest[i - 1] !== "+") at = i;
+    let key = true;
+    for (let i = 0; i < rest.length && at < 0; i++) {
+      if (key) key = false;
+      else if (rest[i] === "+") key = true;
+      else if (rest[i] === ",") at = i;
+    }
     const one = chord(at < 0 ? rest : rest.slice(0, at));
     if (!one) return "";
     texts.push(chordText(one));

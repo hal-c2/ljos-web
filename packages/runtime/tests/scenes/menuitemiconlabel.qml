@@ -36,6 +36,7 @@ Item {
     T.MenuItem { id: lower; visible: false; action: T.Action { text: "Hello"; shortcut: "ctrl+shift+q" } }
     T.MenuItem { id: chords; visible: false; action: T.Action { text: "Hello"; shortcut: "Ctrl+E,Ctrl+W" } }
     T.MenuItem { id: spacedChords; visible: false; action: T.Action { text: "Hello"; shortcut: "ctrl+k, ctrl+c" } }
+    T.MenuItem { id: plusChords; visible: false; action: T.Action { text: "Hello"; shortcut: "Ctrl++,Ctrl+W" } }
     T.MenuItem { id: unread; visible: false; action: T.Action { text: "Hello"; shortcut: "Ctrl+Nope" } }
     T.MenuItem { id: unkeyed; visible: false; action: T.Action { text: "Hello" } }
 
@@ -56,6 +57,7 @@ Item {
     Boxed { id: keyTextFits; width: 101; height: 20; text: "Hello"; spacing: 6; display: MenuItemIconLabel.TextOnly }
     Boxed { id: keyChords; width: 400; height: 20; text: "Hello"; icon.source: "../assets/flag.png"; spacing: 6 }
     Boxed { id: keySpacedChords; width: 400; height: 20; text: "Hello"; icon.source: "../assets/flag.png"; spacing: 6 }
+    Boxed { id: keyPlusChords; width: 400; height: 20; text: "Hello"; icon.source: "../assets/flag.png"; spacing: 6 }
     Boxed { id: keyUnread; width: 400; height: 20; text: "Hello"; icon.source: "../assets/flag.png"; spacing: 6 }
     Boxed { id: keyNone; text: "Hello"; icon.source: "../assets/flag.png"; spacing: 6 }
 
@@ -64,7 +66,7 @@ Item {
 
     readonly property var labels: [both, under, noIcon, roomy, mirrored, sized, coloured, uncoloured, tied, plainBoth, plainRoomy]
     readonly property var keyedLabels: [keyBeside, keyText, keyUnder, keyIcon, keyFits, keyTight, keyPadded, keyMirrored, keyRed]
-    readonly property var laterLabels: [keyTextTight, keyTextFits, keyChords, keySpacedChords, keyUnread]
+    readonly property var laterLabels: [keyTextTight, keyTextFits, keyChords, keySpacedChords, keyUnread, keyPlusChords]
 
     function ready() {
         if (boxes.status !== FontLoader.Ready) return false
@@ -132,6 +134,7 @@ Item {
         keyChords.menuItem = chords
         keySpacedChords.menuItem = spacedChords
         keyUnread.menuItem = unread
+        keyPlusChords.menuItem = plusChords
         for (const label of laterLabels) rows.push(keys(label))
         return rows
     }
