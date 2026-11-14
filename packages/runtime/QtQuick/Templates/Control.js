@@ -11,14 +11,14 @@ import { parts } from "./parts.js";
 import { locale } from "../../QtQml/locale.ts";
 import { styleHints } from "../../QtQml/application.ts";
 import { sized } from "../compute.ts";
-import { departing, forceActiveFocus, MouseFocusReason, OtherFocusReason, windowOf } from "../focus.js";
+import { departing, forceActiveFocus, MouseFocusReason, OtherFocusReason, windowOf } from "../focus.ts";
 import { Item } from "../Item.js";
 import { mirrored } from "../LayoutMirroring.ts";
 import { CancelGrabExclusive, drop, gone, hoverable, receive, UngrabExclusive, wheels } from "../pointer.js";
 import { font } from "./font.js";
 import { palette } from "./theme.js";
 import { untrack } from "#kernel";
-import { described } from "../Accessible.js";
+import { described } from "../Accessible.ts";
 
 // Makes the items a control is given its children: `background`, `label`,
 // `header`. `read` is run with what is tracked and returns them; one that

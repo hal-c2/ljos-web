@@ -15,10 +15,10 @@
 // object nor its slot is made twice: `fill` and `color` are one slot, so
 // a Behavior, a state or an animation that names `fill` moves what
 // `color` reads. The dialect's font size, `font.size`, is a second name
-// for `pixelSize` on every font (`QtQuick/font.js`), as natively.
+// for `pixelSize` on every font (`QtQuick/font.ts`), as natively.
 import { defineType, derived, QtObject, slot } from "../../object.ts";
 import { destroying, hostOf, live } from "../Core/controller.js";
-import { Accessible } from "../../QtQuick/Accessible.js";
+import { Accessible } from "../../QtQuick/Accessible.ts";
 import { Animation, ParallelAnimation, PauseAnimation, ScriptAction, SequentialAnimation } from "../../QtQuick/animation/Animation.js";
 import { Behavior } from "../../QtQuick/animation/Behavior.js";
 import { Easing } from "../../QtQuick/animation/easing.js";
@@ -34,7 +34,7 @@ import {
 import { Drag as DragAttachedSource, DropArea } from "../../QtQuick/Drag.js";
 import { Flickable } from "../../QtQuick/Flickable.js";
 import { font } from "../../QtQml/application.ts";
-import { Font as FontEnums } from "../../QtQuick/font.js";
+import { Font as FontEnums } from "../../QtQuick/font.ts";
 import { DragHandler, HoverHandler, PointerDevice, TapHandler, WheelHandler } from "../../QtQuick/handlers.js";
 import { Image } from "../../QtQuick/Image.js";
 import { Item } from "../../QtQuick/Item.js";
@@ -66,7 +66,7 @@ import { PropertyChanges, State, Transition } from "../../QtQuick/states.js";
 import { Text as TextBase } from "../../QtQuick/Text.js";
 import { TextEdit, TextInput } from "../../QtQuick/TextInput.js";
 import { FontMetrics, TextMetrics } from "../../QtQuick/TextMetrics.js";
-import { DoubleValidator, IntValidator, RegularExpressionValidator } from "../../QtQuick/validators.js";
+import { DoubleValidator, IntValidator, RegularExpressionValidator } from "../../QtQuick/validators.ts";
 import { Screen, Window } from "../../QtQuick/Window.js";
 
 // Puts what `props` says by a dialect name under the name the type has,

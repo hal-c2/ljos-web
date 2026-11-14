@@ -2,7 +2,7 @@
 // TabButton, of which one of a bar is checked.
 import { defineType } from "../../object.ts";
 import { AbstractButton } from "./AbstractButton.js";
-import { speaks } from "../Accessible.js";
+import { speaks } from "../Accessible.ts";
 
 export const Button = defineType("Button", AbstractButton, {
   properties: { highlighted: false, flat: false },

@@ -1,6 +1,6 @@
 // `import QtQuick.Controls.Basic`: what the Basic style is in C++. Its
 // controls are Qt's QML; its colours are these.
-import { colours } from "../../Palette.js";
+import { colours } from "../../Palette.ts";
 import { themed } from "../../Templates/theme.js";
 import { preferred } from "../attached.js";
 

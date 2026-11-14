@@ -3,7 +3,7 @@
 import { defineType, derived, effect, group, inside, slot } from "../../../object.ts";
 import { color, colorValue } from "../../color.ts";
 import { lazy } from "../../compute.ts";
-import { font } from "../../font.js";
+import { font } from "../../font.ts";
 import { Item } from "../../Item.js";
 import { chord, chordText } from "../../keycodes.ts";
 import { Text } from "../../Text.js";

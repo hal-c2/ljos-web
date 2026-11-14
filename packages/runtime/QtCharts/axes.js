@@ -3,7 +3,7 @@
 // ChartValueAxisX/Y, ChartBarCategoryAxisX and Horizontal/VerticalAxis.
 import { defineType, derived, QtObject, settle, slot } from "../object.ts";
 import { colorValue, css } from "../QtQuick/color.ts";
-import { describe } from "../QtQuick/font.js";
+import { describe } from "../QtQuick/font.ts";
 import { fontNamed, label, line, tall, truncated, wide } from "./plot.js";
 
 export const HORIZONTAL = 1;

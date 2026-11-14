@@ -7,7 +7,7 @@ import { styleHints } from "../../QtQml/application.ts";
 import { Key, LeftButton } from "../keycodes.ts";
 import { Control, keeps, loose, put } from "./Control.js";
 import { untrack } from "#kernel";
-import { speaks } from "../Accessible.js";
+import { speaks } from "../Accessible.ts";
 
 export const Horizontal = 1;
 export const Vertical = 2;

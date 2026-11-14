@@ -4,7 +4,7 @@ import { defineType } from "../../object.ts";
 import { AbstractButton } from "./AbstractButton.js";
 import { checking } from "./CheckBox.js";
 import { switching } from "./Switch.js";
-import { speaks } from "../Accessible.js";
+import { speaks } from "../Accessible.ts";
 
 // A row does not take focus: the view it is in has it.
 export const ItemDelegate = defineType("ItemDelegate", AbstractButton, {

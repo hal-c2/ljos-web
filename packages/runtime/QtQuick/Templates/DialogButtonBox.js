@@ -3,7 +3,7 @@
 // shares its width among them, and says what a click on one means by the
 // role of the button: `accepted`, `rejected`, `applied` and so on.
 import { defineType, derived, effect, instantiate, last, onChange, QtObject, settle, slot, whenComplete } from "../../object.ts";
-import { setFocus } from "../focus.js";
+import { setFocus } from "../focus.ts";
 import { AbstractButton } from "./AbstractButton.js";
 import { Button } from "./Button.js";
 import { containerOf, Container } from "./Container.js";

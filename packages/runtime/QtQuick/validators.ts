@@ -10,7 +10,7 @@ const ACCEPTABLE = 2;
 export const IntValidator = defineType("IntValidator", QtObject, {
   properties: { bottom: -2147483648, top: 2147483647 },
   methods: {
-    $validate(text) {
+    $validate(text: string): number {
       const { bottom, top } = this;
       if (!/^[+-]?\d*$/.test(text)) return INVALID;
       if (text === "") return INTERMEDIATE;
@@ -34,11 +34,11 @@ export const DoubleValidator = defineType("DoubleValidator", QtObject, {
   properties: { bottom: -Infinity, top: Infinity, decimals: -1, notation: 1 },
   enums: { StandardNotation: 0, ScientificNotation: 1 },
   methods: {
-    $validate(text) {
+    $validate(text: string): number {
       const { bottom, top, decimals } = this;
       const standard = this.notation === 0;
       if (!(standard ? /^[+-]?\d*\.?\d*$/ : /^[+-]?\d*\.?\d*(e[+-]?\d*)?$/i).test(text)) return INVALID;
-      if (decimals >= 0 && (/\.(\d*)/.exec(text)?.[1].length ?? 0) > decimals) return INVALID;
+      if (decimals >= 0 && (/\.(\d*)/.exec(text)?.[1]!.length ?? 0) > decimals) return INVALID;
       if (text === "") return INTERMEDIATE;
       if ((bottom >= 0 && text[0] === "-") || (top < 0 && text[0] === "+")) return INVALID;
       if (!/^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i.test(text)) return INTERMEDIATE;
@@ -57,14 +57,14 @@ export const DoubleValidator = defineType("DoubleValidator", QtObject, {
   },
 });
 
-const whole = new WeakMap();
+const whole = new WeakMap<RegExp, RegExp>();
 
 export const RegularExpressionValidator = defineType("RegularExpressionValidator", QtObject, {
-  properties: { regularExpression: undefined },
+  properties: { regularExpression: undefined as unknown },
   methods: {
     // Qt asks its expressions whether a string could still become a match;
     // JavaScript's cannot say, so nothing is ever wrong, only not yet right.
-    $validate(text) {
+    $validate(text: string): number {
       const expression = this.regularExpression;
       if (!(expression instanceof RegExp)) return ACCEPTABLE;
       let anchored = whole.get(expression);

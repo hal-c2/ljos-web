@@ -3,7 +3,7 @@
 // differs from what it is.
 import { alone, derived, group } from "../object.ts";
 import { given, rules } from "../QtQuick/compute.ts";
-import { advance, dress, metrics } from "../QtQuick/font.js";
+import { advance, dress, metrics } from "../QtQuick/font.ts";
 
 const SVG = "http://www.w3.org/2000/svg";
 export const svg = (name) => document.createElementNS(SVG, name);
@@ -154,7 +154,7 @@ export function truncated(spec, text, width, height) {
   return { text: fits, width: wide(spec, fits), height: high };
 }
 
-// A font under a name of its own (`labelsFont`), as font.js's `font` is.
+// A font under a name of its own (`labelsFont`), as font.ts's `font` is.
 export const fontNamed = (name) =>
   group({
     family: "Sans Serif",

@@ -5,7 +5,7 @@
 import { guardedFetch } from "../guard.js";
 import { defineType, derived, effect, flush, located, QtObject } from "../object.ts";
 import { lazy } from "./compute.ts";
-import { fontsChanged } from "./font.js";
+import { fontsChanged } from "./font.ts";
 import { signal } from "#kernel";
 
 const NULL = 0;

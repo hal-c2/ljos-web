@@ -4,7 +4,7 @@ import { styleHints } from "../../QtQml/application.ts";
 import { AbstractButton } from "./AbstractButton.js";
 import { put } from "./Control.js";
 import { untrack } from "#kernel";
-import { speaks } from "../Accessible.js";
+import { speaks } from "../Accessible.ts";
 
 function setPosition(self, position) {
   put(self, "position", Math.min(1, Math.max(0, position)));

@@ -18,7 +18,7 @@ import {
   setFocus,
   tab,
   windowOf as focusWindow,
-} from "../focus.js";
+} from "../focus.ts";
 import { frameOf, itemToScene, sceneToItem } from "../geometry.ts";
 import { Item } from "../Item.js";
 import { Rectangle } from "../Rectangle.js";
@@ -27,7 +27,7 @@ import { gone, hoverable, overhear, receive, wheels } from "../pointer.js";
 import { windowOf } from "../Window.js";
 import { Page } from "./Pane.js";
 import { signal as graphed, untrack } from "#kernel";
-import { roleOf, speaks } from "../Accessible.js";
+import { roleOf, speaks } from "../Accessible.ts";
 
 const NONE = Object.freeze([]);
 

@@ -10,7 +10,7 @@ import { onCleanup, runWithOwner } from "solid-js";
 import { $component, defineType, derived, effect, settle, slot } from "../../object.ts";
 import { parts } from "./parts.js";
 import { DelegateModel } from "../DelegateModel.js";
-import { BacktabFocusReason, forceActiveFocus, MouseFocusReason, setFocus, TabFocusReason, windowOf } from "../focus.js";
+import { BacktabFocusReason, forceActiveFocus, MouseFocusReason, setFocus, TabFocusReason, windowOf } from "../focus.ts";
 import { Key, LeftButton } from "../keycodes.ts";
 import { modelOf } from "../model.js";
 import { TextInput } from "../TextInput.js";
@@ -18,7 +18,7 @@ import { AbstractButton } from "./AbstractButton.js";
 import { Control, keeps, loose, put, within } from "./Control.js";
 import { now } from "./Slider.js";
 import { signal, untrack } from "#kernel";
-import { speaks } from "../Accessible.js";
+import { speaks } from "../Accessible.ts";
 
 const next = (version) => version + 1;
 

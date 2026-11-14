@@ -4,7 +4,7 @@ export { QtObject } from "../object.ts";
 export { Component } from "../QtQml/Component.ts";
 export { Locale } from "../QtQml/locale.ts";
 export { Application } from "../QtQml/application.ts";
-export { Accessible } from "./Accessible.js";
+export { Accessible } from "./Accessible.ts";
 export { AnimatedImage } from "./AnimatedImage.js";
 export { AnimatedSprite } from "./AnimatedSprite.js";
 export { Canvas } from "./Canvas.js";
@@ -12,7 +12,7 @@ export { DelegateModel, DelegateModelGroup } from "./DelegateModel.js";
 export { Drag, DropArea } from "./Drag.js";
 export { Flickable } from "./Flickable.js";
 export { FocusScope } from "./FocusScope.js";
-export { Font } from "./font.js";
+export { Font } from "./font.ts";
 export { FontLoader } from "./FontLoader.js";
 export { GridView } from "./GridView.js";
 export {
@@ -24,7 +24,7 @@ export {
   TapHandler,
   WheelHandler,
 } from "./handlers.js";
-export { GraphicsInfo } from "./GraphicsInfo.js";
+export { GraphicsInfo } from "./GraphicsInfo.ts";
 export { BorderImage, Image } from "./Image.js";
 export { Instantiator } from "./Instantiator.js";
 export { Item } from "./Item.js";
@@ -45,9 +45,9 @@ export {
 export { ItemSelectionModel } from "./selection.js";
 export { MouseArea } from "./MouseArea.js";
 export { Column, Flow, Grid, Positioner, Row } from "./positioners.js";
-export { ColorGroup, Palette, SystemPalette } from "./Palette.js";
+export { ColorGroup, Palette, SystemPalette } from "./Palette.ts";
 export { Pinch, PinchArea } from "./PinchArea.js";
-export { SafeArea } from "./SafeArea.js";
+export { SafeArea } from "./SafeArea.ts";
 export {
   Path,
   PathAngleArc,
@@ -74,12 +74,12 @@ export { Text } from "./Text.js";
 export { TextEdit, TextInput } from "./TextInput.js";
 export { FontMetrics, TextMetrics } from "./TextMetrics.js";
 export { Rotation, Scale, Translate } from "./transforms.ts";
-export { DoubleValidator, IntValidator, RegularExpressionValidator } from "./validators.js";
+export { DoubleValidator, IntValidator, RegularExpressionValidator } from "./validators.ts";
 export { GridMesh, ShaderEffect, ShaderEffectSource } from "./ShaderEffect.js";
 export { Screen, Window } from "./Window.js";
 export { WindowContainer } from "./WindowContainer.js";
 export { Binding } from "./Binding.js";
-export { Connections } from "./Connections.js";
+export { Connections } from "./Connections.ts";
 export {
   Animation,
   ParallelAnimation,

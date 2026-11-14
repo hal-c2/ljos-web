@@ -6,7 +6,7 @@ import { receive, wheels } from "../pointer.js";
 import { containerOf, Container, indexOf } from "./Container.js";
 import { drive } from "./driven.js";
 import { untrack } from "#kernel";
-import { speaks } from "../Accessible.js";
+import { speaks } from "../Accessible.ts";
 
 const NOTCH = 120;
 

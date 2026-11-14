@@ -8,7 +8,7 @@ import { ListView } from "../ListView.js";
 import { PathView } from "../PathView.js";
 import { Control, loose } from "./Control.js";
 import { signal, untrack } from "#kernel";
-import { speaks } from "../Accessible.js";
+import { speaks } from "../Accessible.ts";
 
 const NONE = [];
 

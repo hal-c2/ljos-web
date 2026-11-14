@@ -8,7 +8,7 @@
 // release wherever they happen. The page is asked what is under a point, so
 // what is seen there is what is hit.
 import { PauseJob } from "./animation/jobs.js";
-import { activate } from "./focus.js";
+import { activate } from "./focus.ts";
 import { frameOf, sceneToItem } from "./geometry.ts";
 import { buttonOf, modifiersOf, NoButton } from "./keycodes.ts";
 

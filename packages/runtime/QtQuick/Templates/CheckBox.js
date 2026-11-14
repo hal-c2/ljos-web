@@ -4,7 +4,7 @@ import { defineType, effect } from "../../object.ts";
 import { AbstractButton } from "./AbstractButton.js";
 import { loose, put } from "./Control.js";
 import { untrack } from "#kernel";
-import { speaks } from "../Accessible.js";
+import { speaks } from "../Accessible.ts";
 
 // Qt's `setCheckState`: `checked` is whether the state is Checked.
 function setCheckState(self, state) {

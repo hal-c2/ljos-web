@@ -4,7 +4,7 @@
 // the content item's children as they are. A container with no content item
 // shows none of them, as in Qt.
 import { contents, defineType, derived, effect, slot } from "../../object.ts";
-import { departing } from "../focus.js";
+import { departing } from "../focus.ts";
 import { Item } from "../Item.js";
 import { ObjectModel } from "../model.js";
 import { settle } from "../settle.ts";

@@ -4,6 +4,77 @@
 import { alone, derived, flush, group, kinds, typed } from "../object.ts";
 import { given } from "./compute.ts";
 import { signal } from "#kernel";
+import type { QObject } from "../object.ts";
+
+// What `describe` reads of a `font` group.
+export interface FontValue {
+  family?: unknown;
+  styleName?: unknown;
+  weight?: unknown;
+  italic?: unknown;
+  pixelSize?: unknown;
+  capitalization?: unknown;
+  underline?: unknown;
+  overline?: unknown;
+  strikeout?: unknown;
+  letterSpacing?: unknown;
+  wordSpacing?: unknown;
+  kerning?: unknown;
+  features?: unknown;
+  variableAxes?: unknown;
+}
+
+// A font as CSS and the canvas need to know it: what `describe` makes.
+// `tab` is how far apart the tab stops are, for text that says.
+export interface FontSpec {
+  css: string;
+  family: string;
+  size: number;
+  weight: number;
+  italic: boolean;
+  smallCaps: boolean;
+  letterSpacing: number;
+  wordSpacing: number;
+  kerning: boolean;
+  features: string;
+  variations: string;
+  decoration: string;
+  face?: string;
+  metrics?: Metrics | null;
+  tab?: number;
+}
+
+export interface Metrics {
+  ascent: number;
+  descent: number;
+  height: number;
+}
+
+export interface Letters {
+  xHeight: number;
+  capitalHeight: number;
+}
+
+// A face's proportions to its size.
+interface Face {
+  ascent: number;
+  descent: number;
+  letters: Letters | null;
+}
+
+// A character's advance, loose and on Qt's grid, its overhang and its ink.
+interface Glyph {
+  loose: number;
+  kept: number;
+  hang: number;
+  left: number;
+  right: number;
+}
+
+// An object with a `font`, as the group's own bindings read it.
+type Fonted = QObject & {
+  font: { weight: number; bold: boolean; size: number; pixelSize: number; pointSize: number };
+};
 
 // `Font.Bold`, `Font.AllUppercase`: the enums of the `font` value type.
 export const Font = Object.freeze({
@@ -37,8 +108,8 @@ export const Font = Object.freeze({
 export const font = group({
   family: "Sans Serif",
   styleName: "",
-  bold: derived((self) => self.font.weight >= 600),
-  weight: derived((self) => (given(self, "font", "bold") && self.font.bold ? 700 : 400)),
+  bold: derived((self: Fonted) => self.font.weight >= 600),
+  weight: derived((self: Fonted) => (given(self, "font", "bold") && self.font.bold ? 700 : 400)),
   italic: false,
   underline: false,
   overline: false,
@@ -49,12 +120,12 @@ export const font = group({
   size: alone(
     typed(
       kinds.pixels,
-      derived((self) => self.font.pixelSize),
+      derived((self: Fonted) => self.font.pixelSize),
     ),
   ),
   pixelSize: typed(
     kinds.pixels,
-    derived((self) =>
+    derived((self: Fonted) =>
       given(self, "font", "size")
         ? self.font.size
         : given(self, "font", "pointSize")
@@ -64,19 +135,19 @@ export const font = group({
   ),
   pointSize: typed(
     kinds.points,
-    derived((self) => (given(self, "font", "pixelSize") || given(self, "font", "size") ? (self.font.pixelSize * 72) / 96 : 9)),
+    derived((self: Fonted) => (given(self, "font", "pixelSize") || given(self, "font", "size") ? (self.font.pixelSize * 72) / 96 : 9)),
   ),
   capitalization: 0,
   letterSpacing: 0,
   wordSpacing: 0,
   kerning: true,
-  features: undefined,
-  variableAxes: undefined,
+  features: undefined as unknown,
+  variableAxes: undefined as unknown,
 });
 
 // Qt asks fontconfig for these; the browser has its own names for them. A
 // family nobody has falls back to the default font, as it does in Qt.
-const GENERIC = {
+const GENERIC: Readonly<Record<string, string | undefined>> = {
   "sans serif": "sans-serif",
   "sans-serif": "sans-serif",
   sans: "sans-serif",
@@ -87,11 +158,11 @@ const GENERIC = {
   fantasy: "fantasy",
   "system-ui": "system-ui",
 };
-const GENERICS = new Set(Object.values(GENERIC));
+const GENERICS = new Set<unknown>(Object.values(GENERIC));
 
-const stacks = new Map();
+const stacks = new Map<unknown, string>();
 
-function families(names) {
+function families(names: unknown): string {
   let stack = stacks.get(names);
   if (stack) return stack;
   const list = String(names)
@@ -106,7 +177,7 @@ function families(names) {
 
 // `font.styleName: "Bold Italic"`: a face asked for by its name. CSS finds a
 // face by weight and slant, so the name is read for those.
-const WEIGHTS = [
+const WEIGHTS: readonly (readonly [RegExp, number])[] = [
   [/thin|hairline/, 100],
   [/(extra|ultra) ?light/, 200],
   [/light/, 300],
@@ -119,16 +190,16 @@ const WEIGHTS = [
 ];
 
 // `{ liga: 0 }` as `"liga" 0`: font features and variable axes.
-function settings(values) {
+function settings(values: unknown): string {
   if (!values || typeof values !== "object") return "";
   return Object.entries(values)
     .map(([tag, value]) => `"${tag.replace(/["\\]/g, "")}" ${Number(value)}`)
     .join(", ");
 }
 
-const specs = new Map();
+const specs = new Map<string, FontSpec>();
 
-function intern(spec) {
+function intern(spec: FontSpec): FontSpec {
   // What decides a string's width, and so what a measurement is kept under.
   spec.face = `${spec.css}|${spec.letterSpacing}|${spec.wordSpacing}|${spec.kerning}|${spec.features}|${spec.variations}`;
   const key = `${spec.face}|${spec.decoration}`;
@@ -141,9 +212,9 @@ function intern(spec) {
 
 // A font as what CSS and the canvas need to know. Equal fonts are the same
 // object, so a memo that returns one does not disturb what depends on it.
-export function describe(font) {
-  let weight = font.weight;
-  let italic = font.italic;
+export function describe(font: FontValue): FontSpec {
+  let weight = font.weight as number;
+  let italic = font.italic as boolean;
   const named = String(font.styleName ?? "").toLowerCase();
   if (named) {
     weight = WEIGHTS.find(([pattern]) => pattern.test(named))?.[1] ?? 400;
@@ -152,7 +223,7 @@ export function describe(font) {
   const size = Math.max(Number(font.pixelSize) || 0, 0);
   const family = families(font.family);
   const smallCaps = font.capitalization === 3;
-  const lines = [];
+  const lines: string[] = [];
   if (font.underline) lines.push("underline");
   if (font.overline) lines.push("overline");
   if (font.strikeout) lines.push("line-through");
@@ -173,7 +244,7 @@ export function describe(font) {
 }
 
 // The same font at another size: what `fontSizeMode` tries.
-export function resized(spec, size) {
+export function resized(spec: FontSpec, size: number): FontSpec {
   if (size === spec.size) return spec;
   const { italic, smallCaps, weight, family } = spec;
   return intern({
@@ -185,7 +256,7 @@ export function resized(spec, size) {
 
 // Gives an element the font. The shorthand resets `line-height`: whoever
 // wants one sets it afterwards.
-export function dress(style, spec) {
+export function dress(style: CSSStyleDeclaration, spec: FontSpec): void {
   style.font = spec.css;
   style.letterSpacing = spec.letterSpacing ? `${spec.letterSpacing}px` : "";
   style.wordSpacing = spec.wordSpacing ? `${spec.wordSpacing}px` : "";
@@ -196,10 +267,10 @@ export function dress(style, spec) {
 }
 
 // `font.capitalization`, for text the runtime lays out itself.
-export function capitalized(text, mode) {
+export function capitalized(text: string, mode: unknown): string {
   if (mode === 1) return text.toUpperCase();
   if (mode === 2) return text.toLowerCase();
-  if (mode === 4) return text.replace(/(^|\s)(\S)/g, (_, space, first) => space + first.toUpperCase());
+  if (mode === 4) return text.replace(/(^|\s)(\S)/g, (_: string, space: string, first: string) => space + first.toUpperCase());
   return text;
 }
 
@@ -208,11 +279,11 @@ export function capitalized(text, mode) {
 const [version, setVersion] = signal(0);
 export const fonts = version;
 
-const widths = new Map();
-const glyphs = new Map();
-const faces = new Map();
+const widths = new Map<string, Map<string, number>>();
+const glyphs = new Map<string, Map<string, Glyph>>();
+const faces = new Map<string, Face>();
 // What the canvas is set to, so that it is not set again for each string.
-let selected = null;
+let selected: string | null = null;
 
 export function fontsChanged() {
   widths.clear();
@@ -220,7 +291,7 @@ export function fontsChanged() {
   faces.clear();
   selected = null;
   for (const spec of specs.values()) spec.metrics = null;
-  setVersion((count) => count + 1);
+  setVersion((count: number) => count + 1);
 }
 
 document.fonts?.addEventListener("loadingdone", () => {
@@ -228,12 +299,12 @@ document.fonts?.addEventListener("loadingdone", () => {
   flush();
 });
 
-let context;
+let context: CanvasRenderingContext2D | undefined;
 // Features and axes are not something a canvas can be told: an element is.
-let ruler;
+let ruler: HTMLSpanElement | undefined;
 
-function select(css, spec) {
-  context ??= document.createElement("canvas").getContext("2d");
+function select(css: string, spec?: FontSpec): CanvasRenderingContext2D {
+  context ??= document.createElement("canvas").getContext("2d")!;
   if (selected !== css) {
     context.font = css;
     selected = css;
@@ -252,7 +323,7 @@ function select(css, spec) {
 // loses is taken off what the canvas says.
 const SUBPIXEL = 64;
 
-function glyph(spec, char) {
+function glyph(spec: FontSpec, char: string): Glyph {
   let known = glyphs.get(spec.css);
   if (!known) {
     if (glyphs.size > 256) glyphs.clear();
@@ -272,7 +343,7 @@ function glyph(spec, char) {
   return found;
 }
 
-function gridded(spec, text, total) {
+function gridded(spec: FontSpec, text: string, total: number): number {
   let loose = 0;
   let kept = 0;
   for (const char of text) {
@@ -284,26 +355,26 @@ function gridded(spec, text, total) {
 }
 
 // The last character of a text, both halves of it.
-function final(text) {
+function final(text: string): string {
   const length = text.length;
   const code = text.charCodeAt(length - 1);
-  return code >= 0xdc00 && code <= 0xdfff && length > 1 ? text.slice(-2) : text[length - 1];
+  return code >= 0xdc00 && code <= 0xdfff && length > 1 ? text.slice(-2) : text[length - 1]!;
 }
 
 // How far the last glyph of a line overhangs its advance: an `f`, a `k`,
 // most of an italic. Qt counts it in the width of the line, so that a line
 // that fits does not paint outside it.
-export function overhang(spec, text) {
+export function overhang(spec: FontSpec, text: string): number {
   return text === "" ? 0 : glyph(spec, final(text)).hang;
 }
 
 // Where the ink of a string is, in whole pixels about the start of its
 // baseline: what Qt's bounding rectangles are made of. The right edge is
 // the last glyph's, placed as Qt places its box.
-export function inked(spec, text) {
+export function inked(spec: FontSpec, text: string): { left: number; right: number; ascent: number; descent: number } {
   if (text === "") return { left: 0, right: 0, ascent: 0, descent: 0 };
   const last = glyph(spec, final(text));
-  const left = Math.floor(glyph(spec, String.fromCodePoint(text.codePointAt(0))).left + 1e-3);
+  const left = Math.floor(glyph(spec, String.fromCodePoint(text.codePointAt(0)!)).left + 1e-3);
   const start = measure(spec, text) - last.kept / SUBPIXEL;
   const box = select(spec.css, spec).measureText(text);
   return {
@@ -314,7 +385,7 @@ export function inked(spec, text) {
   };
 }
 
-function measured(spec, text) {
+function measured(spec: FontSpec, text: string): number {
   if (!spec.features && !spec.variations) return gridded(spec, text, select(spec.css, spec).measureText(text).width);
   if (!ruler) {
     ruler = document.createElement("span");
@@ -332,7 +403,7 @@ function measured(spec, text) {
 // How far `text` advances, without keeping the answer: for the pieces a line
 // breaker or an elision tries. Qt adds the letter spacing after every
 // character, the last one too, and the word spacing after every space.
-export function measure(spec, text) {
+export function measure(spec: FontSpec, text: string): number {
   if (text === "") return 0;
   if (text.includes("\t")) return tabbed(spec, text);
   let width = measured(spec, text);
@@ -347,12 +418,12 @@ export function measure(spec, text) {
 // pixels unless the text says how far apart (`spec.tab`): from one it is on,
 // to the one after. `text` is taken to start where its line does.
 const TAB = 80;
-function tabbed(spec, text) {
-  const apart = spec.tab > 0 ? spec.tab : TAB;
+function tabbed(spec: FontSpec, text: string): number {
+  const apart = spec.tab !== undefined && spec.tab > 0 ? spec.tab : TAB;
   const pieces = text.split("\t");
   let at = 0;
   for (let index = 0; index < pieces.length; index++) {
-    at += advance(spec, pieces[index]);
+    at += advance(spec, pieces[index]!);
     if (index + 1 < pieces.length) at = (Math.floor(at / apart) + 1) * apart;
   }
   return at;
@@ -360,9 +431,9 @@ function tabbed(spec, text) {
 
 // What `text` takes of the room there is when it is cut to fit: as Qt counts
 // it, a tab is as wide as the stops are apart, wherever in the line it is.
-function taking(spec, text) {
+function taking(spec: FontSpec, text: string): number {
   if (!text.includes("\t")) return measure(spec, text);
-  const apart = spec.tab > 0 ? spec.tab : TAB;
+  const apart = spec.tab !== undefined && spec.tab > 0 ? spec.tab : TAB;
   let width = 0;
   for (const piece of text.split("\t")) width += advance(spec, piece) + apart;
   return width - apart;
@@ -370,10 +441,10 @@ function taking(spec, text) {
 
 // The same, kept: a label, a word. Long strings are few and each belongs to
 // one object, which keeps its own layout.
-export function advance(spec, text) {
+export function advance(spec: FontSpec, text: string): number {
   if (text.length > 64 || text.includes("\t")) return measure(spec, text);
-  let known = widths.get(spec.face);
-  if (!known) widths.set(spec.face, (known = new Map()));
+  let known = widths.get(spec.face!);
+  if (!known) widths.set(spec.face!, (known = new Map()));
   let width = known.get(text);
   if (width === undefined) {
     if (known.size > 4096) known.clear();
@@ -387,7 +458,7 @@ export function advance(spec, text) {
 // where that no longer matters.
 const LARGE = 10000;
 
-function proportions(spec) {
+function proportions(spec: FontSpec): Face {
   const key = `${spec.italic ? "italic " : ""}${spec.weight} ${spec.family}`;
   let known = faces.get(key);
   if (!known) {
@@ -400,11 +471,11 @@ function proportions(spec) {
 }
 
 // FreeType gives Qt its metrics in 64ths of a pixel, rounded down.
-const fixed = (value) => Math.floor(value * 64 + 1e-6) / 64;
+const fixed = (value: number): number => Math.floor(value * 64 + 1e-6) / 64;
 
 // The font's metrics at its size. A line is as tall as Qt makes it: the
 // ascent and the descent, rounded up to a whole pixel.
-export function metrics(spec) {
+export function metrics(spec: FontSpec): Metrics {
   if (spec.metrics) return spec.metrics;
   const face = proportions(spec);
   const ascent = fixed(face.ascent * spec.size);
@@ -418,9 +489,9 @@ export function metrics(spec) {
 
 // How tall the font says an x and a capital are. The canvas does not pass
 // that on, but CSS has a unit for each, so an element is measured.
-let gauge;
+let gauge: HTMLDivElement | undefined;
 
-export function letters(spec) {
+export function letters(spec: FontSpec): Letters {
   const face = proportions(spec);
   if (!face.letters) {
     if (!gauge) {
@@ -442,7 +513,7 @@ export const ELLIPSIS = "…";
 
 // The largest count up to `most` for which `fits` holds, given that it holds
 // for every smaller one.
-function longest(most, fits) {
+function longest(most: number, fits: (count: number) => boolean): number {
   let low = 0;
   let high = most;
   while (low < high) {
@@ -454,7 +525,7 @@ function longest(most, fits) {
 }
 
 // How many characters of `text`, from `start`, fit in `width`: one at least.
-export function fitting(spec, text, start, width) {
+export function fitting(spec: FontSpec, text: string, start: number, width: number): number {
   return Math.max(
     longest(text.length - start, (count) => {
       const piece = text.slice(start, start + count);
@@ -468,7 +539,7 @@ export function fitting(spec, text, start, width) {
 // Text's `elide` (left 0, right 1, middle 2). As Qt does it: what is kept is
 // strictly narrower than the room the ellipsis leaves, and the middle keeps
 // as many characters from one end as from the other.
-export function elided(spec, text, mode, width) {
+export function elided(spec: FontSpec, text: string, mode: number, width: number): string {
   if (mode === 3 || measure(spec, text) <= width) return text;
   const room = width - advance(spec, ELLIPSIS);
   if (room < 0) return "";

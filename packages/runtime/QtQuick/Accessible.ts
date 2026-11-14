@@ -2,6 +2,33 @@
 // that with ARIA attributes on the item's element, and so does this: what
 // reads the page aloud reads a QML program as it reads any other.
 import { defineType, derived, effect, QtObject, slot } from "../object.ts";
+import type { Dynamic, QmlType, QObject } from "../object.ts";
+
+// What gives a control's role or name from the control.
+type Says = number | string | ((item: Dynamic) => unknown);
+interface Spoken {
+  role: Says | undefined;
+  name: Says | undefined;
+  state: string | undefined;
+}
+
+// What `aria` gives and `show` writes: role, name, description, ignored,
+// labelled by, level, current, value now, least and most, and then one
+// value for each of `states`.
+type Attributes = readonly [
+  string | null,
+  unknown,
+  unknown,
+  unknown,
+  string | null,
+  string | null,
+  string | null,
+  string | null,
+  string | null,
+  string | null,
+  ...(string | null)[],
+];
+type Value = [now: string, min: string, max: string];
 
 // prettier-ignore
 const Role = {
@@ -21,7 +48,7 @@ const Role = {
 // The roles ARIA has a word for. One it has none for is left unsaid: what
 // the element holds is read as it is.
 // prettier-ignore
-const ARIA = {
+const ARIA: Record<number, string | undefined> = {
   [Role.MenuBar]: "menubar", [Role.ScrollBar]: "scrollbar", [Role.AlertMessage]: "alert", [Role.PopupMenu]: "menu",
   [Role.MenuItem]: "menuitem", [Role.ToolTip]: "tooltip", [Role.Application]: "application",
   [Role.Document]: "document", [Role.Dialog]: "dialog", [Role.Grouping]: "group", [Role.Separator]: "separator",
@@ -44,8 +71,8 @@ const Polite = 0;
 const Assertive = 1;
 
 // What is announced is put where a reader listens: one place for all.
-let live;
-function announce(message, politeness) {
+let live: HTMLDivElement | undefined;
+function announce(message: unknown, politeness?: unknown): void {
   if (!live) {
     live = document.createElement("div");
     live.style.cssText = "position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);";
@@ -57,7 +84,7 @@ function announce(message, politeness) {
 
 // The item's element says where it is found by another's `labelledBy`.
 let count = 0;
-const named = (item) => (item?.$node ? (item.$node.id ||= `qq-accessible-${++count}`) : null);
+const named = (item: QObject | null | undefined): string | null => (item?.$node ? (item.$node.id ||= `qq-accessible-${++count}`) : null);
 
 // What a control is to a reader when its author says nothing: a role by
 // its type and a name from its text or title, as native Ljós has them. A
@@ -67,35 +94,35 @@ const named = (item) => (item?.$node ? (item.$node.id ||= `qq-accessible-${++cou
 // what gives the name; `state` how the control's own `checked` is said:
 // "checked" for one that checks, "selected" for a tab, which ARIA has
 // selected rather than checked.
-const spoken = new Map();
-export function speaks(Type, role, name, state) {
-  spoken.set(Type, { role: typeof role === "string" ? Role[role] : role, name, state });
+const spoken = new Map<QmlType, Spoken>();
+export function speaks(Type: QmlType, role?: Says, name?: Says, state?: string): void {
+  spoken.set(Type, { role: typeof role === "string" ? (Role as Record<string, number | undefined>)[role] : role, name, state });
 }
 
-function said(item, what) {
+function said(item: QObject | null | undefined, what: keyof Spoken): unknown {
   const chain = item?.$type?.chain;
   for (let i = (chain?.length ?? 0) - 1; i >= 0; i--) {
-    const value = spoken.get(chain[i])?.[what];
-    if (value !== undefined) return typeof value === "function" ? value(item) : value;
+    const value = spoken.get(chain![i]!)?.[what];
+    if (value !== undefined) return typeof value === "function" ? value(item as Dynamic) : value;
   }
   return undefined;
 }
 
 // The role an object is given by its type, for a popup's item by its popup.
-export const roleOf = (object) => said(object, "role") ?? Role.NoRole;
+export const roleOf = (object: QObject | null | undefined): unknown => said(object, "role") ?? Role.NoRole;
 
 // A button's text, as it is said: `&` marks the next character as its
 // mnemonic and goes, `&&` is one `&`, and a last `&` stays.
-export const unmarked = (text) => String(text ?? "").replace(/&(.)/gs, "$1");
+export const unmarked = (text: unknown): string => String(text ?? "").replace(/&(.)/gs, "$1");
 
 // What a control that checks or is selected says when its author does
 // not: whether it can be, whether it is and, checked, whether it is partly.
-const OWN = {
+const OWN: Record<string, Record<string, string | true> | undefined> = {
   checked: { checkable: "checkable", checked: "checked", checkStateMixed: "checkState" },
   selected: { selectable: true, selected: "checked" },
 };
-function ofControl(item, name) {
-  const from = OWN[said(item, "state")]?.[name];
+function ofControl(item: Dynamic, name: string): boolean {
+  const from = OWN[said(item, "state") as string]?.[name];
   if (from === undefined) return false;
   if (from === true) return true;
   if (from === "checkState") return item.checkState === 1;
@@ -103,7 +130,8 @@ function ofControl(item, name) {
 }
 
 // An attribute a state has only when the item says it has that state.
-const states = [
+type Own = (name: string) => boolean;
+const states: readonly (readonly [name: string, attribute: string, has: (own: Own) => boolean])[] = [
   ["checked", "aria-checked", (own) => own("checkable") || own("checked")],
   ["pressed", "aria-pressed", (own) => own("pressed")],
   ["selected", "aria-selected", (own) => own("selectable") || own("selected")],
@@ -125,37 +153,43 @@ const states = [
 // bar under way at a pace it cannot tell has no value to say, as ARIA
 // asks of one.
 const HEADING_LEVEL = "2";
-function levelOf(item) {
+function levelOf(item: Dynamic | null): string {
   const level = Number(item?.headingLevel);
   return Number.isInteger(level) && level >= 1 ? String(level) : HEADING_LEVEL;
 }
 const VALUED = new Set(["slider", "spinbutton", "progressbar", "scrollbar"]);
 const OWES_VALUE = new Set(["slider", "scrollbar"]);
-function valueOf(item, role) {
-  if (!VALUED.has(role) || !item) return null;
+function valueOf(item: Dynamic | null, role: string | null): Value | null {
+  if (role === null || !VALUED.has(role) || !item) return null;
   if (role === "progressbar" && item.indeterminate) return null;
-  const [now, min, max] = [item.value, item.from, item.to].map(Number);
-  if ([now, min, max].every(Number.isFinite)) return [now, Math.min(min, max), Math.max(min, max)].map(String);
+  const [now, min, max] = [Number(item.value), Number(item.from), Number(item.to)];
+  if ([now, min, max].every(Number.isFinite)) return [String(now), String(Math.min(min, max)), String(Math.max(min, max))];
   // A scroll bar's value is how far along it is, of all it can go.
-  const [position, size] = [item.position, item.size].map(Number);
+  const [position, size] = [Number(item.position), Number(item.size)];
   if (role === "scrollbar" && Number.isFinite(position) && Number.isFinite(size))
     return [String(size >= 1 ? 0 : Math.round((100 * position) / (1 - size))), "0", "100"];
   return null;
 }
-function worded(item, role, name, told, value) {
-  const at = (state) => states.findIndex(([own]) => own === state);
-  const checked = told[at("checked")];
+function worded(
+  item: Dynamic | null,
+  role: string | null,
+  name: unknown,
+  told: (string | null)[],
+  value: Value | null,
+): [role: string | null, level: string | null, current: string | null] {
+  const at = (state: string) => states.findIndex(([own]) => own === state);
+  const checked = told[at("checked")] ?? null;
   if (role === "button" && checked !== null) {
     told[at("pressed")] = checked;
     told[at("checked")] = null;
   }
   if (role === "menuitem" && checked !== null) role = "menuitemcheckbox";
-  let current = null;
+  let current: string | null = null;
   if (role === "listitem") {
     current = told[at("selected")] === "true" ? "true" : null;
     told[at("selected")] = null;
   }
-  if (OWES_VALUE.has(role) && !value) role = null;
+  if (role !== null && OWES_VALUE.has(role) && !value) role = null;
   if (!role && name) role = "group";
   return [role, role === "heading" ? levelOf(item) : null, current];
 }
@@ -163,19 +197,37 @@ function worded(item, role, name, told, value) {
 // The attributes of an item's element, from its `Accessible` object when it
 // has one and from what its type says when it does not. A state the author
 // set is theirs; one they did not is the control's.
-function aria(self, item) {
-  const own = (name) => (self && slot(self, name).explicit() ? Boolean(self[name]) : ofControl(item, name));
+function aria(self: Dynamic | null, item: Dynamic): Attributes {
+  const own = (name: string) => (self && slot(self, name)!.explicit() ? Boolean(self[name]) : ofControl(item, name));
   const name = self ? self.name : (said(item, "name") ?? "");
-  const told = states.map(([state, , has]) => (has(own) ? (state === "checked" && own("checkStateMixed") ? "mixed" : String(own(state))) : null));
-  const asked = self?.searchEdit ? "searchbox" : (ARIA[self ? self.role : roleOf(item)] ?? null);
+  const told = states.map(([state, , has]) =>
+    has(own) ? (state === "checked" && own("checkStateMixed") ? "mixed" : String(own(state))) : null,
+  );
+  const asked = self?.searchEdit ? "searchbox" : (ARIA[(self ? self.role : roleOf(item)) as number] ?? null);
   const value = valueOf(item, asked);
   const [role, level, current] = worded(item, asked, name, told, value);
   const [now, min, max] = value ?? [null, null, null];
-  return [role, name, self?.description ?? "", self?.ignored ?? false, named(self?.labelledBy), level, current, now, min, max, ...told];
+  return [
+    role,
+    name,
+    self?.description ?? "",
+    self?.ignored ?? false,
+    named(self?.labelledBy as QObject | null | undefined),
+    level,
+    current,
+    now,
+    min,
+    max,
+    ...told,
+  ];
 }
 
-function show(node, [role, name, description, ignored, labelledBy, level, current, now, min, max, ...told]) {
-  const set = (name, value) => (value === null || value === "" ? node.removeAttribute(name) : node.setAttribute(name, value));
+function show(
+  node: Element,
+  [role, name, description, ignored, labelledBy, level, current, now, min, max, ...told]: Attributes,
+): void {
+  const set = (name: string, value: unknown) =>
+    value === null || value === "" ? node.removeAttribute(name) : node.setAttribute(name, value as string);
   set("role", role);
   set("aria-label", name);
   set("aria-description", description);
@@ -191,7 +243,7 @@ function show(node, [role, name, description, ignored, labelledBy, level, curren
 
 // What `show` wrote, taken off again: an attribute of no value is
 // none of them.
-const UNSPOKEN = [null, "", "", false, null, null, null, null, null, null, ...states.map(() => null)];
+const UNSPOKEN: Attributes = [null, "", "", false, null, null, null, null, null, null, ...states.map(() => null)];
 
 // Where an item's saying goes: on its element, but a text box's is
 // its field — the form element inside it is what a reader edits,
@@ -199,13 +251,13 @@ const UNSPOKEN = [null, "", "", false, null, null, null, null, null, null, ...st
 // may be made after the item is (a control's content), so where
 // the saying goes is asked for as it is shown, and a saying shown
 // on the box moves to the field when the field stands.
-function shower(item) {
-  let shown = null;
+function shower(item: Dynamic): (attributes: Attributes | null) => void {
+  let shown: Element | null = null;
   return (attributes) => {
     if (!attributes) return;
     const field =
       attributes[0] === "textbox" || attributes[0] === "searchbox"
-        ? (item.$input ?? item.$node?.querySelector?.("input.qq-edit, textarea.qq-edit") ?? null)
+        ? ((item.$input as Element | null | undefined) ?? item.$node?.querySelector?.("input.qq-edit, textarea.qq-edit") ?? null)
         : null;
     const node = field ?? item.$node;
     if (!node) return;
@@ -218,11 +270,12 @@ function shower(item) {
 // A control whose type says what it is says it on its element, before
 // anything asks for its `Accessible` object; once something has, that
 // object says it.
-export function described(item) {
+export function described(object: QObject): void {
+  const item = object as Dynamic;
   const node = item.$node;
   if (!node || !item.$type.chain.some((Type) => spoken.get(Type)?.role !== undefined)) return;
   effect(
-    () => (item.$attached?.Accessible ? null : aria(null, item)),
+    (): Attributes | null => (item.$attached?.Accessible ? null : aria(null, item)),
     shower(item),
   );
 }
@@ -235,8 +288,8 @@ const AccessibleAttached = defineType("AccessibleAttached", QtObject, {
     description: "",
     id: "",
     ignored: false,
-    labelledBy: null,
-    labelFor: null,
+    labelledBy: null as QObject | null,
+    labelFor: null as QObject | null,
     checkable: false,
     checked: false,
     editable: false,
@@ -270,11 +323,11 @@ const AccessibleAttached = defineType("AccessibleAttached", QtObject, {
   enums: { ...Role, Polite, Assertive },
   methods: {
     announce,
-    setIgnored(ignored) {
+    setIgnored(ignored: unknown) {
       slot(this, "ignored").write(Boolean(ignored));
     },
     // The text of what is marked up, as it is read.
-    stripHtml(html) {
+    stripHtml(html: unknown): string {
       return new DOMParser().parseFromString(String(html), "text/html").body.textContent ?? "";
     },
     // The browser tells of an element's changes itself.
@@ -282,16 +335,17 @@ const AccessibleAttached = defineType("AccessibleAttached", QtObject, {
     cursorPositionChanged() {},
   },
   setup(self, props) {
-    const node = props.$attachee?.$node;
+    const attachee = props.$attachee as Dynamic | undefined;
+    const node = attachee?.$node;
     if (!node) return;
     effect(
-      () => aria(self, props.$attachee),
-      shower(props.$attachee),
+      () => aria(self as unknown as Dynamic, attachee!),
+      shower(attachee!),
     );
     // What an item is the label for is labelled by it.
     effect(
       () => self.labelFor?.$node ?? null,
-      (labelled) => labelled?.setAttribute("aria-labelledby", named(props.$attachee)),
+      (labelled) => labelled?.setAttribute("aria-labelledby", named(attachee)!),
     );
   },
 });
@@ -301,4 +355,4 @@ export const Accessible = defineType("Accessible", QtObject, {
   attached: AccessibleAttached,
 });
 // `Accessible.announce(...)` is said of the type as well as of an item.
-Accessible.announce = announce;
+(Accessible as typeof Accessible & { announce: typeof announce }).announce = announce;

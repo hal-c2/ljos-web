@@ -5,7 +5,7 @@
 // some of them over Qt's own).
 import { defineType, derived, QtObject } from "../../../object.ts";
 import { lazy } from "../../compute.ts";
-import { colours } from "../../Palette.js";
+import { colours } from "../../Palette.ts";
 import { themed } from "../../Templates/theme.js";
 import { around, preferred, said } from "../attached.js";
 import { configured } from "../settings.js";

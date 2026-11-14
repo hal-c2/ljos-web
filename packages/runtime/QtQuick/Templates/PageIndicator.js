@@ -6,7 +6,7 @@ import { LeftButton } from "../keycodes.ts";
 import { touch, track } from "../model.js";
 import { Control, put, within } from "./Control.js";
 import { untrack } from "#kernel";
-import { speaks } from "../Accessible.js";
+import { speaks } from "../Accessible.ts";
 
 // The dots: the children of the content item, less what repeats them.
 const dots = (self) => untrack(() => (self.contentItem?.children ?? []).filter((child) => !child.$repeat));
