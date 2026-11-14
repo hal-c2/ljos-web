@@ -420,6 +420,115 @@ test.describe("a site prerendered in both colour schemes", () => {
   });
 });
 
+// A page whose schemes differ only in colour is one render per size,
+// each colour that differs said by the scheme shown: what a reader is
+// first shown is the same as with a render per scheme, and the page
+// carries half as much.
+test.describe("a site whose schemes differ only in colour", () => {
+  test.describe.configure({ mode: "serial" });
+  const shell = `import QtQuick\n\nRectangle {\n    id: root\n    property string route: "/"\n    readonly property bool dark: Application.styleHints.colorScheme === Qt.ColorScheme.Dark\n    width: parent ? parent.width : 0\n    height: parent ? parent.height : 0\n    color: dark ? "#101010" : "#fafafa"\n    Text { objectName: "words"; text: root.width < 600 ? "Narrow" : "Wide"; color: root.dark ? "#eeeeee" : "#222222" }\n}\n`;
+  let made;
+  let server;
+  let origin;
+
+  test.beforeAll(async () => {
+    made = bundle("pages", (dir, written) => {
+      writeFileSync(join(dir, "Shell.qml"), shell);
+      written.files = written.files.map((file) => (file.path === "Shell.qml" ? { path: file.path, bytes: Buffer.byteLength(shell) } : file));
+    });
+    await buildSite({
+      dir: made.dir,
+      out: made.out,
+      qmlc,
+      prerender: {
+        sizes: [
+          { width: 390, height: 844 },
+          { width: 1200, height: 800, from: 800 },
+        ],
+        schemes: ["light", "dark"],
+        pages: [{ route: "/", title: "Home", props: { route: "/" } }],
+      },
+    });
+    server = await serve(made.out);
+    origin = `http://127.0.0.1:${server.address().port}`;
+  });
+  test.afterAll(async () => {
+    await new Promise((done) => server?.close(done));
+    made?.remove();
+  });
+
+  test("the page holds one render per size, its colours named by scheme", () => {
+    const home = readFileSync(join(made.out, "index.html"), "utf8");
+    expect(home.match(/<div data-ljos-render="\d+">/g)).toEqual(['<div data-ljos-render="0">', '<div data-ljos-render="1">']);
+    expect(home.match(/>Narrow</g)).toHaveLength(1);
+    expect(home).toMatch(/var\(--ljos-scheme-\d+\)/);
+    // Named once in the head, for light and for dark.
+    expect(home).toMatch(/:root \{ --ljos-scheme-0: [^;]+;/);
+    expect(home).toMatch(/:root\[data-ljos-scheme="dark"\] \{ --ljos-scheme-0: [^;]+;/);
+  });
+
+  const words = (page) => page.getByText(/^(Narrow|Wide)$/).filter({ visible: true }).evaluate((node) => getComputedStyle(node).color);
+
+  for (const [scheme, width, text, ink] of [
+    ["light", 390, "Narrow", "rgb(34, 34, 34)"],
+    ["dark", 390, "Narrow", "rgb(238, 238, 238)"],
+    ["light", 1200, "Wide", "rgb(34, 34, 34)"],
+    ["dark", 1200, "Wide", "rgb(238, 238, 238)"],
+  ]) {
+    test(`a browser asking for ${scheme} at ${width} is shown its colours, with JavaScript off`, async ({ browser }) => {
+      const context = await browser.newContext({ javaScriptEnabled: false, colorScheme: scheme, viewport: { width, height: 800 } });
+      try {
+        const page = await context.newPage();
+        await page.goto(`${origin}/`);
+        await expect(page.getByText(text, { exact: true }).filter({ visible: true })).toHaveCount(1);
+        expect(await words(page)).toBe(ink);
+      } finally {
+        await context.close();
+      }
+    });
+  }
+
+  for (const [asked, chosen, ink] of [
+    ["dark", "light", "rgb(34, 34, 34)"],
+    ["light", "dark", "rgb(238, 238, 238)"],
+  ]) {
+    test(`the page's own ${chosen} wins over a browser asking for ${asked}, before and after it hydrates`, async ({ browser }) => {
+      const context = await browser.newContext({ colorScheme: asked, viewport: { width: 390, height: 844 } });
+      try {
+        const page = await context.newPage();
+        const told = [];
+        page.on("console", (message) => ["warning", "error"].includes(message.type()) && told.push(message.text()));
+        page.on("pageerror", (error) => told.push(error.message));
+        await page.route(`${origin}/`, async (route) => {
+          const response = await route.fetch();
+          const html = (await response.text()).replace("<head>", () => `<head><script>document.documentElement.setAttribute("data-ljos-scheme", "${chosen}")</script>`);
+          await route.fulfill({ response, body: html });
+        });
+        let release;
+        const held = new Promise((done) => (release = done));
+        await page.route("**/*.js", async (route) => {
+          await held;
+          await route.continue();
+        });
+        await page.goto(`${origin}/`, { waitUntil: "commit" });
+        await expect(page.getByText("Narrow", { exact: true }).filter({ visible: true })).toHaveCount(1);
+        expect(await words(page)).toBe(ink);
+        release();
+        await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+        await page.unroute("**/*.js");
+        expect(told).toEqual([]);
+        expect(await page.evaluate(() => document.querySelectorAll("#app [data-ljos-render]").length)).toBe(0);
+        // Hydrated, the colours are the page's own bindings', in the
+        // scheme its root says, and no longer the head's names for them.
+        await expect.poll(() => words(page)).toBe(ink);
+        expect(await page.evaluate(() => document.querySelector("#app").innerHTML.includes("var(--ljos-scheme-"))).toBe(false);
+      } finally {
+        await context.close();
+      }
+    });
+  }
+});
+
 test("sizes that are not narrowest first, or beside a width, are refused before anything is built", async () => {
   const made = bundle("pages");
   try {
