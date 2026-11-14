@@ -31,10 +31,12 @@ const SCENES = [
   { name: "instances", size: [640, 480], about: "10000 instances by RandomInstancing, turned as one (bench/quick3d-instances.qml)" },
   { name: "stress", size: [800, 600], about: "400 textured models, 10 lights, a shadow, a circling camera, 50 turning" },
 ];
+// Each asked for by name, as a build's VITE_LJOS_VIEW3D would otherwise
+// choose for a page that does not say; `opened` checks it got it.
 const RENDERERS = [
-  { id: "js", query: "", label: "JS renderer (WebGL2)" },
-  { id: "webgpu", query: "&view3d=wgpu", label: "wgpu on WebGPU" },
-  { id: "webgl2", query: "&view3d=wgpu", label: "wgpu on WebGL2", hidden: true },
+  { id: "js", query: "&view3d=js", label: "JS renderer (WebGL2)", renderer: "js", backend: "webgl2" },
+  { id: "webgpu", query: "&view3d=wgpu", label: "wgpu on WebGPU", renderer: "wgpu", backend: "webgpu" },
+  { id: "webgl2", query: "&view3d=wgpu", label: "wgpu on WebGL2", renderer: "wgpu", backend: "webgl2", hidden: true },
 ];
 const chosen = (all, list) => (list ? all.filter(({ name, id }) => list.split(",").includes(name ?? id)) : all);
 
@@ -107,6 +109,7 @@ async function opened(browser, scene, renderer, options, query = "") {
     return { renderer, backend, error };
   });
   if (view.error) throw new Error(`${scene.name} on ${renderer.id}: ${view.error}`);
+  if (view.renderer !== renderer.renderer || view.backend !== renderer.backend) throw new Error(`${scene.name} on ${renderer.id} drew with ${view.renderer} on ${view.backend}`);
   return { context, page, cdp, problems, view };
 }
 
