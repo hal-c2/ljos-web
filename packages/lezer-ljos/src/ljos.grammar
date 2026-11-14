@@ -84,7 +84,7 @@ uiMember {
 uiValue {
   UiObjectBinding[@name=UiObjectDefinition] { uiTypeExpression UiObjectInitializer } |
   UiArrayBinding |
-  UiObjectLiteral[@name=ObjectExpression] { uiLiteralOpen commaSep1<Property> "}" } semi |
+  UiObjectLiteral[@name=ObjectExpression] { uiLiteralOpen Property ("," Property?)* "}" } semi |
   statement
 }
 

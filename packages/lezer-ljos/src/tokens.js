@@ -56,10 +56,31 @@ export const operatorToken = new ExternalTokenizer((input, stack) => {
 
 const braceL = 123, colon = 58, backslash = 92, quoteD = 34, quoteS = 39
 
+// The offset past the spaces and comments from `i` on, which the
+// grammar skips between any two tokens; -1 at an unclosed comment.
+function trivia(input, i) {
+  for (;;) {
+    let ch = input.peek(i)
+    if (space.indexOf(ch) > -1) { i++; continue }
+    if (ch != slash) return i
+    let after = input.peek(i + 1)
+    if (after == slash) {
+      for (i += 2; (ch = input.peek(i)) != 10 && ch != -1; i++) {}
+    } else if (after == star) {
+      for (i += 2;; i++) {
+        ch = input.peek(i)
+        if (ch == -1) return -1
+        if (ch == star && input.peek(i + 1) == slash) { i += 2; break }
+      }
+    } else return i
+  }
+}
+
 export const uiLiteral = new ExternalTokenizer((input, stack) => {
   if (input.next != braceL || !stack.canShift(uiLiteralOpen)) return
-  let i = 1, ch
-  while (space.indexOf(ch = input.peek(i)) > -1) i++
+  let i = trivia(input, 1), ch
+  if (i < 0) return
+  ch = input.peek(i)
   if (ch != quoteD && ch != quoteS) return
   let quote = ch
   for (i++;; i++) {
@@ -68,7 +89,6 @@ export const uiLiteral = new ExternalTokenizer((input, stack) => {
     if (ch == backslash) { i++; continue }
     if (ch == quote) break
   }
-  i++
-  while (space.indexOf(ch = input.peek(i)) > -1) i++
-  if (ch == colon) input.acceptToken(uiLiteralOpen, 1)
+  i = trivia(input, i + 1)
+  if (i > 0 && input.peek(i) == colon) input.acceptToken(uiLiteralOpen, 1)
 }, {contextual: true})

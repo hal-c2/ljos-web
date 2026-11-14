@@ -359,6 +359,33 @@ Program(
           "}")),
       "}")))
 
+# An object literal value with comments and a trailing comma {"dialect":"ts"}
+
+Item {
+    to: { /* where */ "end": 1, "start" // first
+        : 0, }
+}
+
+==>
+
+Program(
+  UiObjectDefinition(
+    UiQualifiedId(UiIdentifier),
+    UiObjectInitializer(
+      "{",
+      UiBinding(
+        UiQualifiedId(UiIdentifier),
+        ":",
+        ObjectExpression(
+          "{",
+          BlockComment,
+          Property(String,":",Number),
+          ",",
+          Property(String,LineComment,":",Number),
+          ",",
+          "}")),
+      "}")))
+
 # A binding written on the line after its colon {"dialect":"ts"}
 
 Item {
