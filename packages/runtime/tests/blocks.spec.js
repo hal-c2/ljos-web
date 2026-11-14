@@ -318,6 +318,19 @@ test.describe("A ShellLoader shows a user's shell, or the application's own when
       expect(await named(page, "loader/user-shell")).toBe(true);
       expect(await read(page, "loader/user-shell/tally", "n")).toBe(3);
     });
+
+    // What stands in is there for the wait, not part of it: the user's
+    // shell that comes first is shown, and the fallback after it is not.
+    test("A fallback slower to come than the user's shell does not hold it back", async ({ page }) => {
+      await serve(page, { "Shell.qml": 'import QtQuick\nRectangle { objectName: "user-shell"; width: 50; height: 20 }\n' });
+      // The fallback is fetched too, and never comes.
+      await page.route("**/user/Default.qml", () => {});
+      await opened(page, "shellsboth");
+      await settled(page);
+      expect(await named(page, "loader/user-shell")).toBe(true);
+      expect(await read(page, "loader", "status")).toBe(1);
+      expect(await named(page, "default-shell")).toBe(false);
+    });
   });
 
   test.describe("A shell that does not work gives way to the fallback", () => {
@@ -368,6 +381,52 @@ test.describe("A ShellLoader shows a user's shell, or the application's own when
       await expect.poll(() => named(page, "loader/default-shell")).toBe(true);
       expect(await named(page, "user-shell")).toBe(false);
       expect(await read(page, "loader", "status")).toBe(2);
+      expect(thrown).toEqual([]);
+    });
+
+    // The shell shown fails while the next source is on its way, and
+    // that source comes before the fallback does: it is what is shown.
+    test("A fallback for a shell that a newer one has replaced is not shown over it", async ({ page }) => {
+      const thrown = [];
+      page.on("pageerror", (error) => thrown.push(error.message));
+      let fallbackComes;
+      const fallbackHeld = new Promise((done) => (fallbackComes = done));
+      await serve(page, {
+        "Shell.qml":
+          'import QtQuick\nRectangle { objectName: "user-shell"; Item { objectName: "part"; signal poke(); onPoke: { throw new Error("shell broke") } } }\n',
+        "Default.qml": 'import QtQuick\nRectangle { objectName: "default-shell" }\n',
+      });
+      // What stands in at first comes as it is asked for; the fallback
+      // asked for when the shell fails is held.
+      let asked = 0;
+      await page.route("**/user/Default.qml", async (route) => {
+        if (++asked > 1) await fallbackHeld;
+        await route.fallback();
+      });
+      await opened(page, "shellsboth");
+      await settled(page);
+      expect(await named(page, "loader/user-shell")).toBe(true);
+      let nextComes;
+      const nextHeld = new Promise((done) => (nextComes = done));
+      await page.route("**/user/Next.qml", async (route) => {
+        await nextHeld;
+        await route.fulfill({ body: 'import QtQuick\nRectangle { objectName: "next-shell" }\n', contentType: "text/plain" });
+      });
+      await page.evaluate(() => {
+        window.named("loader").source = "user/Next.qml";
+        window.flush();
+        window.named("part").poke();
+        window.flush();
+      });
+      nextComes();
+      await expect.poll(() => named(page, "loader/next-shell")).toBe(true);
+      fallbackComes();
+      // Once the fallback asked for is had (fetched and compiled), what it
+      // was asked for has run: the newer shell is still the one shown.
+      await page.evaluate(() => window.named("loader").$shell.falling.resolving);
+      expect(await named(page, "default-shell")).toBe(false);
+      expect(await read(page, "loader", "status")).toBe(1);
+      expect(await page.evaluate(() => window.named("loader").$node.children.length)).toBe(1);
       expect(thrown).toEqual([]);
     });
 

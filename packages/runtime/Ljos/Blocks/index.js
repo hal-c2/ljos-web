@@ -245,7 +245,10 @@ export const ShellLoader = defineType("ShellLoader", Item, {
     // What a reload carries state across: the objects the shell made in
     // what, recorded under the loader.
     if (!self.$born) hide(self, "$born", []);
-    const state = (self.$shell = { turn: 0, shown: null, owner: getOwner() });
+    // `puts` counts the shells put in place, so a fallback that was asked
+    // for before another shell came knows it came too late; `arrived` is
+    // the turn whose source has come, which no stand-in follows.
+    const state = (self.$shell = { turn: 0, puts: 0, arrived: 0, shown: null, owner: getOwner() });
     whenMade(() => untrack(() => load(self, state)));
     let first = true;
     effect(
@@ -294,6 +297,7 @@ function make(self, state, resolved, fallback) {
 }
 
 function put(self, state, shown) {
+  state.puts++;
   state.shown = shown;
   const item = shown.object;
   fit(item, ...given(self));
@@ -333,13 +337,13 @@ async function load(self, state) {
   // the fallback stands in. Not on the screen, and not in a page
   // prerendered meanwhile, which would be written with nothing there.
   // Standing in is not falling back: the status stays Null, the loader
-  // not done, until the source has come or failed.
-  if (!state.shown && arrives(source) && untrack(() => self.fallback) != null) {
-    await showFallback(self, state, "", turn, true);
-    if (turn !== state.turn) return;
-  }
+  // not done, until the source has come or failed. The source is not
+  // kept waiting for it: a fallback slower to come than the source is
+  // never shown.
+  if (!state.shown && arrives(source) && untrack(() => self.fallback) != null) void showFallback(self, state, "", turn, true);
   const resolved = await resolve(source);
   if (turn !== state.turn) return;
+  state.arrived = turn;
   let why = "";
   if (resolved?.component) {
     const stood = state.shown;
@@ -385,9 +389,17 @@ async function load(self, state) {
 // for a source on its way says nothing, done or not: the source will.
 async function showFallback(self, state, why, turn, standsIn = false) {
   const fallback = untrack(() => self.fallback);
-  const resolved = await resolve(fallback);
-  if (turn !== state.turn) return;
+  // One fallback had per turn: what stood in and what falls back are
+  // the same file, fetched and compiled once.
+  if (state.falling?.turn !== turn || state.falling.fallback !== fallback)
+    state.falling = { turn, fallback, resolving: resolve(fallback) };
+  const puts = state.puts;
+  const resolved = await state.falling.resolving;
+  // A later turn, or a shell put meanwhile (the source that came while
+  // what it replaced failed), has the stage: this fallback is too late.
+  if (turn !== state.turn || puts !== state.puts) return;
   if (standsIn) {
+    if (state.arrived === turn) return;
     const made = resolved?.component ? runWithOwner(state.owner, () => make(self, state, resolved, true)) : null;
     if (made?.shown) {
       made.shown.from = fallback;
@@ -466,6 +478,13 @@ async function reloaded(self) {
       discard(made.shown);
       const why = describe(error, null, resolved.file);
       console.warn(`ShellLoader: reload: ${why}`);
+      // What stood in for the first load, which this turn took over,
+      // now stands as the fallback: the loader is done.
+      if (old.standsIn) {
+        write(self, "error", why);
+        write(self, "status", Fallback);
+        settle();
+      }
       return why;
     }
   }
