@@ -61,16 +61,17 @@ function md5(text: unknown): string {
 }
 
 // One turn of the event loop from now, each function once however often it
-// was asked for, with the arguments it was last given.
-type Call = (...args: unknown[]) => unknown;
-const later = new Map<Call, unknown[]>();
+// was asked for, with the arguments it was last given: arguments its own
+// parameters take, so it is called with what it says it takes.
+type Call = (...args: never[]) => unknown;
+const later = new Map<Call, readonly unknown[]>();
 
-function callLater(callback: Call, ...args: unknown[]): void {
+function callLater<A extends unknown[]>(callback: (...args: A) => unknown, ...args: A): void {
   if (!later.size) {
     queueMicrotask(() => {
       const calls = [...later];
       later.clear();
-      for (const [call, given] of calls) call(...given);
+      for (const [call, given] of calls) (call as (...args: readonly unknown[]) => unknown)(...given);
     });
   }
   later.delete(callback);
