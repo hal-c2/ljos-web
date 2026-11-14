@@ -7,11 +7,50 @@
 // `used` is false for one nothing sits in, which takes no size and no
 // spacing; `open` for one only spanning children cover.
 
-// Placed on whole pixels, a half rounded up.
-export const roundHalfUp = (value) => Math.floor(value + 0.5);
+// One row or column: what it needs, what it prefers, how far it can grow
+// and how much of a surplus it asks for (-1 for no stretch factor).
+export interface Track {
+  min: number;
+  pref: number;
+  max: number;
+  stretch: number;
+  used: boolean;
+  open: boolean;
+}
+// A child along one axis: where it starts, how many tracks it spans, and
+// its sizes, margins included.
+export interface Item {
+  start: number;
+  len: number;
+  min: number;
+  pref: number;
+  max: number;
+  stretch: number;
+}
+export interface Extent {
+  min: number;
+  pref: number;
+  max: number;
+}
+// Where a child asks to sit in a Grid; a row or column undefined when not named.
+export interface Want {
+  row: number | undefined;
+  column: number | undefined;
+  rowSpan: number;
+  columnSpan: number;
+}
+export interface Cell {
+  row: number;
+  column: number;
+  rowSpan: number;
+  columnSpan: number;
+}
 
-const empty = () => ({ min: 0, pref: 0, max: 0, stretch: -1, used: false, open: false });
-const sum = (values) => values.reduce((total, value) => total + value, 0);
+// Placed on whole pixels, a half rounded up.
+export const roundHalfUp = (value: number): number => Math.floor(value + 0.5);
+
+const empty = (): Track => ({ min: 0, pref: 0, max: 0, stretch: -1, used: false, open: false });
+const sum = (values: number[]): number => values.reduce((total, value) => total + value, 0);
 
 // The tracks `count` rows or columns need for `items`
 // (`{ start, len, min, pref, max, stretch }`, margins included).
@@ -20,12 +59,12 @@ const sum = (values) => values.reduce((total, value) => total + value, 0);
 // preferred size and can grow as far as its most generous child. Tracks
 // that only spanning children cover count as one per run. A child that
 // spans several and does not fit makes them grow as `distribute` would.
-export function tracks(count, items, spacing) {
+export function tracks(count: number, items: readonly Item[], spacing: number): Track[] {
   const t = Array.from({ length: count }, empty);
-  const covered = new Array(count).fill(false);
-  const starts = new Array(count).fill(false);
+  const covered: boolean[] = new Array(count).fill(false);
+  const starts: boolean[] = new Array(count).fill(false);
   // A spanning child without a maximum lets the tracks under it grow.
-  const unbounded = new Array(count).fill(false);
+  const unbounded: boolean[] = new Array(count).fill(false);
   for (const s of items) {
     const end = Math.min(s.start + s.len, count);
     for (let i = s.start; i < end; i++) {
@@ -34,7 +73,7 @@ export function tracks(count, items, spacing) {
     }
     if (s.start < count) starts[s.start] = true;
     if (s.len === 1 && s.start < count) {
-      const k = t[s.start];
+      const k = t[s.start]!;
       k.used = true;
       k.min = Math.max(k.min, s.min);
       k.pref = Math.max(k.pref, s.pref);
@@ -46,26 +85,26 @@ export function tracks(count, items, spacing) {
   // run's first; one where a spanning child starts begins a new run, so
   // that two such children side by side do not overlap.
   const own = t.map((k) => k.used);
-  let run = null;
+  let run: number | null = null;
   for (let i = 0; i < count; i++) {
     if (own[i]) {
       run = null;
     } else if (covered[i]) {
-      let first = run;
+      let first: number | null = run;
       if (run === null || starts[i]) {
-        t[i].used = true;
-        t[i].open = !starts[i];
+        t[i]!.used = true;
+        t[i]!.open = !starts[i];
         run = first = i;
       }
-      if (unbounded[i]) t[first].max = Infinity;
+      if (unbounded[i]) t[first!]!.max = Infinity;
     }
   }
   // Short spans first: a long one then sees what they already asked for.
   const spanning = items.filter((s) => s.len > 1).sort((a, b) => a.len - b.len);
   for (const s of spanning) {
     const end = Math.min(s.start + s.len, count);
-    const at = [];
-    for (let i = s.start; i < end; i++) if (t[i].used) at.push(i);
+    const at: number[] = [];
+    for (let i = s.start; i < end; i++) if (t[i]!.used) at.push(i);
     if (!at.length) continue;
     const gaps = spacing * (at.length - 1);
     widenPref(t, at, own, s.pref - gaps);
@@ -81,27 +120,27 @@ export function tracks(count, items, spacing) {
 // Makes the tracks `at` prefer `want` together: they grow as they would in
 // that room, except that one with no child of its `own` takes whatever is
 // asked of it.
-function widenPref(t, at, own, want) {
-  const have = sum(at.map((i) => t[i].pref));
+function widenPref(t: Track[], at: number[], own: boolean[], want: number): void {
+  const have = sum(at.map((i) => t[i]!.pref));
   if (want <= have) return;
-  const part = at.map((i) => (own[i] ? t[i] : { ...t[i], max: Infinity }));
+  const part = at.map((i) => (own[i] ? t[i]! : { ...t[i]!, max: Infinity }));
   const sizes = part.map((k) => k.pref);
   const left = fillUp(part, sizes, want - have);
   // Nothing could take it (no track has a size at all): equal parts.
   at.forEach((i, index) => {
-    t[i].pref = sizes[index] + left / at.length;
+    t[i]!.pref = sizes[index]! + left / at.length;
   });
 }
 
 // Makes the tracks `at` at least `want` wide together: each takes the part
 // of it its preferred size is of the whole, never less than its own
 // minimum and never more than its preferred size.
-function widenMin(t, at, want) {
-  const have = sum(at.map((i) => t[i].min));
+function widenMin(t: Track[], at: number[], want: number): void {
+  const have = sum(at.map((i) => t[i]!.min));
   if (want <= have) return;
-  const weight = sum(at.map((i) => t[i].pref));
+  const weight = sum(at.map((i) => t[i]!.pref));
   for (const i of at) {
-    const k = t[i];
+    const k = t[i]!;
     const share = weight > 0 ? (want * k.pref) / weight : want / at.length;
     k.min = Math.min(Math.max(k.min, share), Math.max(k.pref, k.min));
   }
@@ -109,7 +148,7 @@ function widenMin(t, at, want) {
 
 // The least, the preferred and the most of the whole axis: the used tracks
 // and the spacing between them.
-export function total(t, spacing) {
+export function total(t: readonly Track[], spacing: number): Extent {
   const used = t.filter((k) => k.used);
   const gaps = spacing * Math.max(used.length - 1, 0);
   return {
@@ -122,7 +161,7 @@ export function total(t, spacing) {
 // The size of every track when the axis is `size` long. No more room than
 // the minimums: each at its minimum. Less than the preferred sizes: each
 // gives up some of what it prefers. More: those that can grow share it.
-export function distribute(t, spacing, size) {
+export function distribute(t: Track[], spacing: number, size: number): number[] {
   const used = t.filter((k) => k.used);
   const avail = size - spacing * Math.max(used.length - 1, 0);
   const min = sum(used.map((k) => k.min));
@@ -137,7 +176,7 @@ export function distribute(t, spacing, size) {
 // Adds `surplus` to `sizes`, which start at the preferred sizes, by
 // stretch factor where there are any, then by preferred size. Returns what
 // no track could take.
-function fillUp(t, sizes, surplus) {
+function fillUp(t: Track[], sizes: number[], surplus: number): number {
   const stretch = stretchWeights(t);
   if (stretch.some((w) => w > 0)) surplus = grow(t, sizes, stretch, surplus);
   const even = t.some((k) => k.used && k.open && k.max > k.pref);
@@ -151,7 +190,7 @@ function fillUp(t, sizes, surplus) {
   const max = sum(t.filter((k) => k.used).map((k) => k.max));
   if (surplus > 0 && max > 0 && Number.isFinite(max)) {
     t.forEach((k, i) => {
-      if (k.used) sizes[i] += (surplus * k.max) / max;
+      if (k.used) sizes[i]! += (surplus * k.max) / max;
     });
     return 0;
   }
@@ -161,7 +200,7 @@ function fillUp(t, sizes, surplus) {
 // Sizes between the minimums and the preferred sizes: a track that can
 // give `r` of the `R` all can give keeps `r * t^(r / R)` of it, `t` the
 // share of `R` there is room for, scaled so that the whole fits.
-function shrink(t, avail, min, pref) {
+function shrink(t: Track[], avail: number, min: number, pref: number): number[] {
   const give = pref - min;
   const room = avail - min;
   const share = room / give;
@@ -172,14 +211,14 @@ function shrink(t, avail, min, pref) {
   const whole = sum(kept);
   return t.map((k, i) => {
     if (!k.used) return 0;
-    return whole > 0 ? k.min + (room * kept[i]) / whole : k.min;
+    return whole > 0 ? k.min + (room * kept[i]!) / whole : k.min;
   });
 }
 
 // The share of the surplus each stretching track takes: with factors `s`,
 // preferred sizes `p` and `q` the largest `p / s`, `3 s q - 2 p`.
-function stretchWeights(t) {
-  const stretching = (k) => k.used && k.stretch > 0 && k.max > k.pref;
+function stretchWeights(t: Track[]): number[] {
+  const stretching = (k: Track): boolean => k.used && k.stretch > 0 && k.max > k.pref;
   let q = 0;
   for (const k of t) if (stretching(k)) q = Math.max(q, k.pref / k.stretch);
   return t.map((k) => {
@@ -191,21 +230,21 @@ function stretchWeights(t) {
 // Shares `surplus` by `weights` among tracks below their maximum; one that
 // reaches it drops out and the others share the rest. Returns what nobody
 // could take.
-function grow(t, sizes, weights, surplus) {
-  let active = [];
+function grow(t: Track[], sizes: number[], weights: number[], surplus: number): number {
+  let active: number[] = [];
   t.forEach((k, i) => {
-    if (k.used && weights[i] > 0 && k.max > sizes[i]) active.push(i);
+    if (k.used && weights[i]! > 0 && k.max > sizes[i]!) active.push(i);
   });
   while (surplus > 0 && active.length) {
-    const weight = sum(active.map((i) => weights[i]));
-    const full = active.filter((i) => sizes[i] + (surplus * weights[i]) / weight >= t[i].max);
+    const weight = sum(active.map((i) => weights[i]!));
+    const full = active.filter((i) => sizes[i]! + (surplus * weights[i]!) / weight >= t[i]!.max);
     if (!full.length) {
-      for (const i of active) sizes[i] += (surplus * weights[i]) / weight;
+      for (const i of active) sizes[i]! += (surplus * weights[i]!) / weight;
       return 0;
     }
     for (const i of full) {
-      surplus -= t[i].max - sizes[i];
-      sizes[i] = t[i].max;
+      surplus -= t[i]!.max - sizes[i]!;
+      sizes[i] = t[i]!.max;
     }
     active = active.filter((i) => !full.includes(i));
   }
@@ -213,12 +252,12 @@ function grow(t, sizes, weights, surplus) {
 }
 
 // Where every track starts and ends, on whole pixels.
-export function edges(t, sizes, spacing) {
+export function edges(t: readonly Track[], sizes: readonly number[], spacing: number): [start: number, end: number][] {
   let at = 0;
   return t.map((k, i) => {
     if (!k.used) return [roundHalfUp(at), roundHalfUp(at)];
-    const edge = [roundHalfUp(at), roundHalfUp(at + sizes[i])];
-    at += sizes[i] + spacing;
+    const edge: [number, number] = [roundHalfUp(at), roundHalfUp(at + sizes[i]!)];
+    at += sizes[i]! + spacing;
     return edge;
   });
 }
@@ -228,11 +267,11 @@ export function edges(t, sizes, spacing) {
 // into the next free cell after the one before it, along the flow, across
 // a row until `columns` are full, or down a column until `rows` are; one
 // that names its row or column sits there, and the next follows it.
-export function place(wants, rows, columns, topToBottom) {
+export function place(wants: readonly Want[], rows: number, columns: number, topToBottom: boolean): Cell[] {
   const bound = topToBottom ? rows : columns;
   const limit = bound > 0 ? bound : Infinity;
-  const taken = new Set();
-  const key = (line, at) => `${line},${at}`;
+  const taken = new Set<string>();
+  const key = (line: number, at: number): string => `${line},${at}`;
   let line = 0;
   let at = 0;
   return wants.map((w) => {
@@ -259,7 +298,7 @@ export function place(wants, rows, columns, topToBottom) {
       }
     }
     for (let l = line; l < line + across; l++) for (let a = at; a < at + along; a++) taken.add(key(l, a));
-    const slot = topToBottom
+    const slot: Cell = topToBottom
       ? { row: at, column: line, rowSpan: along, columnSpan: across }
       : { row: line, column: at, rowSpan: across, columnSpan: along };
     at += along;
