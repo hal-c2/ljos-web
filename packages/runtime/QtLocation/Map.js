@@ -9,7 +9,7 @@
 import { allowedStyle, sourced } from "../guard.js";
 import { defineType, derived, effect, slot } from "../object.ts";
 import { coordinate, fromMercator, INVALID, latitudeAt, mercatorX, mercatorY } from "../QtPositioning/coordinate.js";
-import { Point } from "../QtQml/values.js";
+import { Point } from "../QtQml/values.ts";
 import { colorValue, css } from "../QtQuick/color.js";
 import { lazy, rules } from "../QtQuick/compute.js";
 import { Item } from "../QtQuick/Item.js";

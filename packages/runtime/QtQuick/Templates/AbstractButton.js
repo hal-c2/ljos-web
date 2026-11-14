@@ -5,7 +5,7 @@
 import { onCleanup } from "solid-js";
 import { defineType, derived, effect, group, settle, signal, slot } from "../../object.ts";
 import { parts } from "./parts.js";
-import { styleHints } from "../../QtQml/application.js";
+import { styleHints } from "../../QtQml/application.ts";
 import { PauseJob } from "../animation/jobs.js";
 import { colorValue } from "../color.js";
 import { forceActiveFocus, MouseFocusReason } from "../focus.js";

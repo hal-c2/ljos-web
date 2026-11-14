@@ -15,7 +15,7 @@
 // goes by the world's density.
 import { onCleanup } from "solid-js";
 import { defineType, derived, effect, inside as within, QtObject, settle, slot } from "../../object.ts";
-import { Vector3d } from "../../QtQml/values.js";
+import { Vector3d } from "../../QtQml/values.ts";
 import * as math from "../math.js";
 import { Node } from "../Node.js";
 import { untrack } from "#kernel";

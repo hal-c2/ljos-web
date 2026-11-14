@@ -3,21 +3,23 @@
 // program is the page, so these read the document and the browser.
 import { createRoot, onCleanup, runWithOwner } from "solid-js";
 import { defineType, derived, flush, inside, QtObject, slot } from "../object.ts";
-import { locale } from "./locale.js";
-import { enums } from "./namespace.js";
-import { Rect } from "./values.js";
+import { locale } from "./locale.ts";
+import type { LocaleValue } from "./locale.ts";
+import { enums } from "./namespace.ts";
+import { Rect } from "./values.ts";
 import { untrack } from "#kernel";
+import type { QObject, QmlType } from "../object.ts";
 
 // An object made when first asked for, and owned by nobody: it lasts as
 // long as the page does. QML reads a singleton through its type
 // (`Application.font`), so the type has the object's members too.
-export function singleton(Type) {
-  let made;
-  const get = () => (made ??= runWithOwner(null, () => createRoot(() => untrack(() => inside(null, () => Type({}))))));
+export function singleton<I extends QObject>(Type: QmlType<I>): () => I {
+  let made: I | undefined;
+  const get = (): I => (made ??= runWithOwner(null, () => createRoot(() => untrack(() => inside(null, () => Type({}))))));
   for (const key in Type.proto) {
     Object.defineProperty(Type, key, {
-      get: () => get()[key],
-      set: (value) => void (get()[key] = value),
+      get: () => (get() as Record<string, unknown>)[key],
+      set: (value: unknown) => void ((get() as Record<string, unknown>)[key] = value),
       configurable: true,
     });
   }
@@ -25,7 +27,7 @@ export function singleton(Type) {
 }
 
 // Listens for as long as the object lives.
-export function listen(target, event, handler) {
+export function listen(target: EventTarget, event: string, handler: EventListener): void {
   target.addEventListener(event, handler);
   onCleanup(() => target.removeEventListener(event, handler));
 }
@@ -56,9 +58,13 @@ const FONT = {
   preferTypoLineMetrics: false,
 };
 
-// A font as a value: what `Qt.font` makes and `Application.font` is.
+type FontValues = { -readonly [K in keyof typeof FONT]: (typeof FONT)[K] };
+
+// A font as a value: what `Qt.font` makes and `Application.font` is. Its
+// fields are FONT's, which the constructor assigns.
+export interface Font extends FontValues {}
 export class Font {
-  constructor(given = {}) {
+  constructor(given: Partial<FontValues> = {}) {
     Object.assign(this, FONT, given);
     // Either size says the other, and so do weight and boldness.
     // `size` is the pixel size by Ljós's name, resolved as an item's
@@ -67,7 +73,7 @@ export class Font {
     // pixel name wins over a `pointSize` given beside it but for the
     // three together, where the point size has always had the word.
     if ("size" in given && !("pixelSize" in given)) {
-      this.pixelSize = given.size;
+      this.pixelSize = given.size!;
       this.pointSize = (this.pixelSize * 72) / 96;
     } else if ("pixelSize" in given && !("pointSize" in given)) this.pointSize = (this.pixelSize * 72) / 96;
     else this.pixelSize = Math.round((this.pointSize * 96) / 72);
@@ -76,7 +82,7 @@ export class Font {
     else this.bold = this.weight > 500;
   }
   toString() {
-    const flag = (on) => (on ? 1 : 0);
+    const flag = (on: boolean) => (on ? 1 : 0);
     const { family, pointSize, weight, italic, underline, strikeout } = this;
     return `QFont(${family},${pointSize},-1,5,${weight},${flag(italic)},${flag(underline)},${flag(strikeout)},0,0,0,0,0,0,0,1,,0,0)`;
   }
@@ -84,11 +90,11 @@ export class Font {
 
 // `Qt.font({ family: "Arial", bold: true })`.
 // `said` is the name the error gives the call: `Font.of()` in Ljós's API.
-export function font(given, said = "Qt.font()") {
+export function font(given: unknown, said = "Qt.font()"): Font {
   if (given === null || typeof given !== "object") throw new Error(`${said}: Invalid arguments`);
   const known = Object.keys(given).filter((key) => key in FONT);
   if (!known.length) throw new Error(`${said}: Invalid argument: no valid font subproperties specified`);
-  return new Font(Object.fromEntries(known.map((key) => [key, given[key]])));
+  return new Font(Object.fromEntries(known.map((key) => [key, (given as Record<string, unknown>)[key]])));
 }
 
 const { ApplicationState, ColorScheme } = enums;
@@ -103,6 +109,15 @@ const ACCESSIBILITY = Object.freeze({
     ? enums.ContrastPreference.HighContrast
     : enums.ContrastPreference.NoPreference,
 });
+
+// What of the browser's virtual keyboard a page can use, where there is one.
+interface VirtualKeyboard extends EventTarget {
+  readonly boundingRect: DOMRect;
+  show(): void;
+  hide(): void;
+}
+const virtualKeyboard = (): VirtualKeyboard | undefined =>
+  (navigator as Navigator & { virtualKeyboard?: VirtualKeyboard }).virtualKeyboard;
 
 // Its numbers are Qt's own defaults: no browser says how far a drag starts.
 const StyleHints = defineType("StyleHints", QtObject, {
@@ -158,14 +173,14 @@ const InputMethod = defineType("InputMethod", QtObject, {
     visible: false,
     keyboardRectangle: derived(() => new Rect(0, 0, 0, 0)),
     locale: derived(() => locale()),
-    inputDirection: derived((self) => self.locale.textDirection),
+    inputDirection: derived((self) => (self.locale as LocaleValue).textDirection),
   },
   methods: {
     show() {
-      navigator.virtualKeyboard?.show();
+      virtualKeyboard()?.show();
     },
     hide() {
-      navigator.virtualKeyboard?.hide();
+      virtualKeyboard()?.hide();
     },
     // The browser commits and resets a composition itself.
     commit() {},
@@ -173,7 +188,7 @@ const InputMethod = defineType("InputMethod", QtObject, {
     update() {},
   },
   setup(self) {
-    const keyboard = navigator.virtualKeyboard;
+    const keyboard = virtualKeyboard();
     if (!keyboard) return;
     listen(keyboard, "geometrychange", () => {
       const { x, y, width, height } = keyboard.boundingRect;

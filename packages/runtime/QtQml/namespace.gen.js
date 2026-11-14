@@ -1,4 +1,4 @@
-// Writes namespace.js: the enums of Qt's `Qt` namespace, with the numbers
+// Writes namespace.ts: the enums of Qt's `Qt` namespace, with the numbers
 // Qt's own header gives them.
 //
 //     node namespace.gen.js [path/to/QtCore/qnamespace.h]
@@ -130,5 +130,5 @@ export const enums = {
 ${lines.join("\n")}
 };
 `;
-writeFileSync(join(import.meta.dirname, "namespace.js"), output);
+writeFileSync(join(import.meta.dirname, "namespace.ts"), output);
 console.log(`${Object.keys(registered).length} enums, ${new Set(Object.values(registered).flatMap(Object.keys)).size} names`);

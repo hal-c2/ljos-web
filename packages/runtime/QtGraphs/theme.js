@@ -3,7 +3,7 @@
 // numbers are the ones Qt's own theme reads as.
 import { alone, defineType, derived, group, QtObject } from "../object.ts";
 import { fontNamed } from "../QtCharts/plot.js";
-import { styleHints } from "../QtQml/application.js";
+import { styleHints } from "../QtQml/application.ts";
 import { color, colorValue } from "../QtQuick/color.js";
 import { given } from "../QtQuick/compute.js";
 

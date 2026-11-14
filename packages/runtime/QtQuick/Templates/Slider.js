@@ -3,7 +3,7 @@
 // handle is, from 0 to 1: a style puts the handle there.
 import { defineType, derived, effect, settle, slot } from "../../object.ts";
 import { parts } from "./parts.js";
-import { styleHints } from "../../QtQml/application.js";
+import { styleHints } from "../../QtQml/application.ts";
 import { Key, LeftButton } from "../keycodes.js";
 import { Control, keeps, loose, put } from "./Control.js";
 import { untrack } from "#kernel";

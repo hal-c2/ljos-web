@@ -2,7 +2,7 @@
 // colours and its font are Qt's own; `Fusion` makes of a palette the colours
 // its controls are drawn in. The arithmetic is Qt's (`qquickfusionstyle.cpp`),
 // on whole numbers as QColor does it, so that the colours are Qt's exactly.
-import { styleHints } from "../../../QtQml/application.js";
+import { styleHints } from "../../../QtQml/application.ts";
 import { color as colour, hsva, rgba } from "../../color.js";
 import { themed } from "../../Templates/theme.js";
 import { preferred } from "../attached.js";

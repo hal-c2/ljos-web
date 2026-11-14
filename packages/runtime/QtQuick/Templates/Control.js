@@ -8,8 +8,8 @@
 import { onCleanup } from "solid-js";
 import { defineType, derived, effect, settle, slot } from "../../object.ts";
 import { parts } from "./parts.js";
-import { locale } from "../../QtQml/locale.js";
-import { styleHints } from "../../QtQml/application.js";
+import { locale } from "../../QtQml/locale.ts";
+import { styleHints } from "../../QtQml/application.ts";
 import { sized } from "../compute.js";
 import { departing, forceActiveFocus, MouseFocusReason, OtherFocusReason, windowOf } from "../focus.js";
 import { Item } from "../Item.js";

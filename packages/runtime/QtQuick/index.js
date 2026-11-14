@@ -1,9 +1,9 @@
 // `import QtQuick`.
 export { QtObject } from "../object.ts";
 // QtQuick brings QtQml with it.
-export { Component } from "../QtQml/Component.js";
-export { Locale } from "../QtQml/locale.js";
-export { Application } from "../QtQml/application.js";
+export { Component } from "../QtQml/Component.ts";
+export { Locale } from "../QtQml/locale.ts";
+export { Application } from "../QtQml/application.ts";
 export { Accessible } from "./Accessible.js";
 export { AnimatedImage } from "./AnimatedImage.js";
 export { AnimatedSprite } from "./AnimatedSprite.js";
