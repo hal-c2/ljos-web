@@ -557,6 +557,65 @@ test.describe("A ShellLoader shows a user's shell, or the application's own when
       expect(await read(page, "loader", "error")).toBe("");
       expect(await read(page, "loader", "status")).toBe(1);
     });
+
+    // The web's own: a source resolves over time here, where natively it
+    // is read at once. What is shown stays shown until the new shell is
+    // made, so the loader never stands empty between the two.
+    test("A new source still loading leaves the shell shown in place", async ({ page }) => {
+      await opened(page, "shellsshown");
+      await page.evaluate(() => {
+        const loader = window.named("loader");
+        window.shownBefore = loader.item;
+        loader.source = () => new Promise((done) => (window.finish = done));
+        window.flush();
+      });
+      await page.waitForFunction(() => typeof window.finish === "function");
+      expect(await page.evaluate(() => window.named("loader").item === window.shownBefore)).toBe(true);
+      expect(await named(page, "loader/user-shell")).toBe(true);
+      await page.evaluate(() => {
+        window.finish({});
+        window.flush();
+      });
+      await expect.poll(() => named(page, "loader/default-shell")).toBe(true);
+      expect(await named(page, "loader/user-shell")).toBe(false);
+      expect(await read(page, "loader", "status")).toBe(2);
+    });
+
+    test("While a shell the page fetches is compiled, the fallback stands in for it", async ({ page }) => {
+      let release;
+      const held = new Promise((done) => (release = done));
+      await page.route("**/user/Shell.qml", async (route) => {
+        await held;
+        await route.fulfill({ body: 'import QtQuick\nRectangle { objectName: "user-shell"; width: 50; height: 20 }\n', contentType: "text/plain" });
+      });
+      await opened(page, "shellsfetched");
+      await expect.poll(() => named(page, "loader/default-shell")).toBe(true);
+      // The source has not answered: the loader says so.
+      expect(await read(page, "loader", "status")).toBe(0);
+      expect(await read(page, "loader", "error")).toBe("");
+      release();
+      await expect.poll(() => named(page, "loader/user-shell")).toBe(true);
+      expect(await named(page, "loader/default-shell")).toBe(false);
+      expect(await read(page, "loader", "status")).toBe(1);
+    });
+
+    test("A fallback shown stays the same fallback when another source fails", async ({ page }) => {
+      await opened(page, "shellsshown");
+      await page.evaluate(() => {
+        window.named("loader").source = () => Promise.reject(new Error("module failed"));
+        window.flush();
+      });
+      await expect.poll(() => named(page, "loader/default-shell")).toBe(true);
+      await page.evaluate(() => {
+        const loader = window.named("loader");
+        window.fallbackBefore = loader.item;
+        loader.source = () => Promise.reject(new Error("still failing"));
+        window.flush();
+      });
+      await expect.poll(() => read(page, "loader", "error")).toMatch(/still failing/);
+      expect(await page.evaluate(() => window.named("loader").item === window.fallbackBefore)).toBe(true);
+      expect(await read(page, "loader", "status")).toBe(2);
+    });
   });
 
   // The web's "a reload happens": `reload()` fetches and compiles the
