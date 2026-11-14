@@ -70,6 +70,12 @@ test(`every page's header links to the front page, the docs and the demos, at ${
   expect(missing).toEqual([]);
 });
 
+test(`every page names its icon at ${base}, and the build wrote it`, () => {
+  const unnamed = pages.filter(({ file }) => !readFileSync(file, "utf8").includes(`<link rel="icon" href="${base}favicon.svg"`)).map(({ at }) => at);
+  expect(unnamed).toEqual([]);
+  expect(existsSync(join(dist, "favicon.svg"))).toBe(true);
+});
+
 test("every link of every page goes to a page the build wrote", () => {
   const broken = [];
   let followed = 0;

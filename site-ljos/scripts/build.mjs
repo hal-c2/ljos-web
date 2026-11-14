@@ -346,16 +346,19 @@ try {
 }
 
 // Each page is told the base it stands at, in its head, before
-// anything of the page runs.
+// anything of the page runs. Its icon is named there too, at the base:
+// a page that names none is asked `/favicon.ico` of the address's root,
+// which below a project's base is not the site's, and is not there.
 const htmlUnder = (directory) =>
   readdirSync(directory, { withFileTypes: true }).flatMap((entry) =>
     entry.isDirectory() ? htmlUnder(join(directory, entry.name)) : entry.name.endsWith(".html") ? [join(directory, entry.name)] : [],
   );
+const icons = `\n    <link rel="icon" href="${base}favicon.svg" type="image/svg+xml">\n    <link rel="apple-touch-icon" href="${base}apple-touch-icon.png">`;
 for (const file of htmlUnder(out)) {
   const html = readFileSync(file, "utf8");
   const at = html.indexOf("<head>");
   if (at < 0) throw new Error(`site-ljos: ${file} has no <head> to name the base in`);
-  writeFileSync(file, `${html.slice(0, at + 6)}\n    <meta name="ljos-base" content="${base}">${html.slice(at + 6)}`);
+  writeFileSync(file, `${html.slice(0, at + 6)}\n    <meta name="ljos-base" content="${base}">${icons}${html.slice(at + 6)}`);
 }
 
 // The page for an address the site has no page for. Pages serves the
@@ -376,7 +379,7 @@ const notFound = `<!doctype html>
     <meta name="robots" content="noindex">
     <meta name="description" content="There is no page at this address on ljos.dev.">
     <title>Page not found — Ljós</title>
-    <link rel="icon" href="${base}favicon.svg" type="image/svg+xml">
+${icons.trimStart()}
     <style>
       :root { color-scheme: light dark; --bg: #fdfbf6; --panel: #f6f1e6; --ink: #2b251d; --muted: #6b5f4c; --accent: #9a6210; --border: #ddd2bd; --on-accent: #ffffff; }
       @media (prefers-color-scheme: dark) { :root { --bg: #1a1712; --panel: #241f19; --ink: #ece5d8; --muted: #b3a892; --accent: #e0a43c; --border: #453a2d; --on-accent: #1a1712; } }

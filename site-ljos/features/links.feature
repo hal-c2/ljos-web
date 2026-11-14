@@ -20,6 +20,10 @@ Feature: The site's links are the page's own links
     Then the header has a link to the front page, to the docs and to the live demos
     And each link's address starts at the base
 
+  Scenario: Every page names its icon at the base
+    When any built page is read as HTML
+    Then its head links the site's icon at the base, which the build wrote
+
   Scenario: Every link of the site goes to a page the build wrote
     When every built page is read as HTML, with no script
     Then every address on it inside the base names a page the build wrote
