@@ -51,6 +51,15 @@ Feature: The site's links are the page's own links
     When they go back
     Then the front page is shown, and the page was still not loaded again
 
+  Scenario: With script, back comes to where the reader was on the page
+    Given a reader with script, scrolled down the docs' first page
+    When they press a link to another page
+    Then that page is shown from its top
+    When they scroll the other page down and go back
+    Then the docs' first page is shown scrolled where they left it
+    When they go forward
+    Then the other page is shown scrolled where they left it
+
   Scenario: A middle press opens a new tab
     Given a reader on the front page with script
     When they middle-press "Docs" in the header

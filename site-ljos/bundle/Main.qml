@@ -33,21 +33,26 @@ Rectangle {
     // The scroller a docs page lands its headings in is named as
     // the page is made, below; only a press in a browser asks it.
 
-    // A route of the site's, shown in place: its page's title, or
-    // null for one the site has no page for.
-    function show(to, fragment) {
-        var title = Content.titles[to];
-        if (title === undefined)
-            return null;
-        if (to !== shell.route) {
+    // A route of the site's, shown in place (Nav.follow): at `offset`
+    // when going back or forward to it, else at its fragment, else at
+    // the top, as a page the browser loads.
+    function show(to, fragment, offset) {
+        if (to !== shell.route)
             shell.route = to;
+        if (typeof offset === "number") {
+            // Once the page shown is laid out, so it is as tall as it was.
+            Qt.callLater(() => pageScroll.contentY = Math.max(0, Math.min(offset, pageScroll.contentHeight - pageScroll.height)));
+        } else if (fragment) {
+            Qt.callLater(() => docItem.scrollToAnchor(fragment.slice(1)));
+        } else {
             pageScroll.contentY = 0;
         }
-        if (fragment)
-            Qt.callLater(() => docItem.scrollToAnchor(fragment.slice(1)));
-        return title;
     }
-    Component.onCompleted: Nav.follow(Content.base, shell.show)
+    Component.onCompleted: Nav.follow(Content.base, {
+        title: (to) => Content.titles[to] === undefined ? null : Content.titles[to],
+        show: (to, fragment, offset) => shell.show(to, fragment, offset),
+        offset: () => pageScroll.contentY
+    })
 
     // Named, never made: this page is built with Qt Quick Controls,
     // so a live block's compiler may be given them (A15).

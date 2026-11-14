@@ -160,6 +160,60 @@ test("with script, a plain press shows the page in place, and back shows the one
   expect(await page.evaluate(() => globalThis.stillHere)).toBe(true);
 });
 
+// Where a link of the page is, down it: it moves up as the page is
+// scrolled down.
+const down = async (link) => (await link.boundingBox()).y;
+// Where it comes to rest, once the wheel has stopped moving the page.
+async function rest(link) {
+  let last = null;
+  await expect
+    .poll(
+      async () => {
+        const now = await down(link);
+        const still = now === last;
+        last = now;
+        return still;
+      },
+      { intervals: [250] },
+    )
+    .toBe(true);
+  return last;
+}
+
+test("with script, a page pressed to is shown from its top, and back and forward come to where the reader left each", async ({ page }) => {
+  // Where the second page's link back is, with the page at its top.
+  await page.goto(`${base}start/first-app/`);
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  const back = page.getByRole("link", { name: /^Previous: / });
+  const top = await down(back);
+
+  await page.goto(`${base}start/`);
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  const next = page.getByRole("link", { name: /^Next: / });
+  const unscrolled = await down(next);
+  const { width, height } = page.viewportSize();
+  await page.mouse.move(width / 2, height / 2);
+  await page.mouse.wheel(0, 600);
+  await expect.poll(() => down(next)).toBeLessThan(unscrolled - 300);
+  const left = await rest(next);
+
+  await press(page, page.getByRole("link", { name: "Your first app" }).first());
+  await expect(page).toHaveURL(`${origin}${base}start/first-app/`);
+  await expect.poll(() => down(back)).toBe(top);
+  // Over the page, not the sidebar the press was in.
+  await page.mouse.move(width / 2, height / 2);
+  await page.mouse.wheel(0, 300);
+  await expect.poll(() => down(back)).toBeLessThan(top - 100);
+  const later = await rest(back);
+
+  await page.goBack();
+  await expect(page).toHaveURL(`${origin}${base}start/`);
+  await expect.poll(() => down(next)).toBe(left);
+  await page.goForward();
+  await expect(page).toHaveURL(`${origin}${base}start/first-app/`);
+  await expect.poll(() => down(back)).toBe(later);
+});
+
 test("with script, a middle press opens the link in a new tab", async ({ page, context }) => {
   await page.goto(base);
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');

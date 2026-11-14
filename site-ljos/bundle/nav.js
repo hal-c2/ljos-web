@@ -16,7 +16,7 @@
 // addresses a browser does.
 
 var root = "/";
-var shown = null;
+var shell = null;
 
 // The address of what the site names from its root, at the base the
 // site stands at; any other address (another site, a fragment) is as
@@ -42,37 +42,79 @@ function routeOf(url) {
     return "/" + url.pathname.slice(root.length);
 }
 
-// The shell, standing in a browser, says how it shows a route: `show`
-// takes the route and the fragment, and gives the page's title, or
-// null for a route it has no page for (which is then fetched).
-function follow(base, show) {
+// The title of the page a route is, or null for a route the shell has
+// no page for (which is then fetched).
+function titleOf(route) {
+    return route === null ? null : shell.title(route);
+}
+
+// The shell, standing in a browser, says how it shows a route:
+// `title(route)` names its page, or gives null for one it has none
+// for; `show(route, fragment, offset)` shows it, scrolled to `offset`
+// when one is given, else to the fragment, else to the top; and
+// `offset()` is how far down the page shown is scrolled.
+//
+// Back and forward come to a page where the reader left it, as with
+// the browser's own pages. Each entry of the history the shell shows
+// has a name in its state; the offset it was left at is kept by that
+// name, and written into the entry's state too when going on from it,
+// so it is still known once the page is loaded again.
+var entry = null;
+var offsets = {};
+var made = 0;
+
+function named() {
+    made += 1;
+    return Date.now() + "." + made;
+}
+
+function follow(base, given) {
     root = base;
     if (!globalThis.history || typeof globalThis.addEventListener !== "function")
         return;
-    shown = show;
-    globalThis.history.scrollRestoration = "manual";
-    globalThis.addEventListener("popstate", function () {
+    shell = given;
+    var history = globalThis.history;
+    history.scrollRestoration = "manual";
+    var state = history.state;
+    entry = state && state.entry ? state.entry : named();
+    if (!state || state.entry !== entry)
+        history.replaceState({ entry: entry, offset: state && typeof state.offset === "number" ? state.offset : 0 }, "");
+    globalThis.addEventListener("popstate", function (event) {
         var location = globalThis.location;
         var route = routeOf(new URL(location.href));
-        var title = route === null ? null : shown(route, location.hash);
-        if (title === null)
+        var title = titleOf(route);
+        if (title === null) {
             location.reload();
-        else
-            globalThis.document.title = title;
+            return;
+        }
+        offsets[entry] = shell.offset();
+        var state = event.state;
+        entry = state && state.entry ? state.entry : named();
+        var offset = entry in offsets ? offsets[entry] : state && typeof state.offset === "number" ? state.offset : null;
+        shell.show(route, location.hash, offset);
+        globalThis.document.title = title;
     });
 }
 
-// Go to an address, as `at` writes it (the base already in it).
+// Go to an address, as `at` writes it (the base already in it): its
+// entry is pushed first, the page shown after, as on going back.
 function go(address) {
     var location = globalThis.location;
     var url = new URL(address, location.href);
-    var route = shown ? routeOf(url) : null;
-    var title = route === null ? null : shown(route, url.hash);
+    var route = shell ? routeOf(url) : null;
+    var title = titleOf(route);
     if (title === null) {
         location.href = url.href;
         return;
     }
-    if (url.href !== location.href)
-        globalThis.history.pushState(null, "", url.href);
+    var history = globalThis.history;
+    var offset = shell.offset();
+    offsets[entry] = offset;
+    history.replaceState({ entry: entry, offset: offset }, "");
+    if (url.href !== location.href) {
+        entry = named();
+        history.pushState({ entry: entry }, "", url.href);
+    }
+    shell.show(route, url.hash, null);
     globalThis.document.title = title;
 }
