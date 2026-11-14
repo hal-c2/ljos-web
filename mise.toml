@@ -4,3 +4,9 @@
 rust = { version = "1.98.1", targets = "wasm32-unknown-unknown", components = "rustfmt,clippy" }
 node = "24.21.0"
 pnpm = "12.8.1"
+
+[env]
+# sharp (the sites' image step) uses its own prebuilt libvips. Where a system
+# libvips is installed it would otherwise build itself from source against
+# it, which needs node-addon-api and a compiler, and pnpm install fails.
+SHARP_IGNORE_GLOBAL_LIBVIPS = "1"
