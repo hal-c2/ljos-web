@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Build the QML compiler as wasm, for ljos-web/compiler to load when a page first compiles"
-#MISE depends=["install"]
+#MISE depends=["tools"]
 set -euo pipefail
 
 cargo build -p ljos_web_compiler --profile compiler --target wasm32-unknown-unknown

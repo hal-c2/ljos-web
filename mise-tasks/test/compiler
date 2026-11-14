@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Parser, compiler and snapshot tests"
-#MISE depends=["install"]
+#MISE depends=["tools"]
+#USAGE arg "[args]..." var=#true help="Passed on to cargo test (e.g. a test name filter)"
 set -euo pipefail
 cargo test "$@"

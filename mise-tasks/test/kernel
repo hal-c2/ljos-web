@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #MISE description="The runtime's specs on the wasm kernel (Ljós's reactive graph) instead of Solid's signals"
 #MISE depends=["build:compiler", "build:kernel", "browser"]
+#USAGE arg "[args]..." var=#true help="Passed on to Playwright (e.g. a spec file, --grep TEXT, --headed)"
 set -euo pipefail
 
 cargo test -p ljos_web_kernel

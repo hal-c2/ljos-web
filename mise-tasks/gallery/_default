@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #MISE description="How close the web is to Qt on Qt's own examples: what compiles, what renders, and how like Qt's picture it looks"
 #MISE depends=["build:compiler", "browser"]
+#USAGE arg "[args]..." var=#true help="Passed on to Playwright (e.g. a spec file, --grep TEXT, --headed)"
 set -euo pipefail
 git submodule update --init --depth 1 corpus/qtdoc
 exec pnpm --filter ljos-web-example-gallery report "$@"

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #MISE description="Serve the gallery of Qt's examples with Vite, to look at one: ?example=<id>"
 #MISE depends=["build:compiler", "packages"]
+#USAGE arg "[args]..." var=#true help="Passed on to Vite (e.g. --port 5174)"
 set -euo pipefail
 git submodule update --init --depth 1 corpus/qtdoc
 exec pnpm --filter ljos-web-example-gallery dev "$@"

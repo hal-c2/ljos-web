@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Playwright, against the built web example"
 #MISE depends=["build:compiler", "browser"]
+#USAGE arg "[args]..." var=#true help="Passed on to Playwright (e.g. a spec file, --grep TEXT, --headed)"
 set -euo pipefail
 pnpm --filter ljos-web-example-web test "$@"

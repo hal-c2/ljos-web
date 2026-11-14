@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-#MISE description="Copy Ljós's styles of Qt Quick Controls into packages/runtime/controls from ljos-ui (LJOS_UI: a checkout; REV: default the commit Ljos.Design is pinned at)"
+#MISE description="Copy Ljós's styles of Qt Quick Controls into packages/runtime/controls from a ljos-ui checkout, at the commit Ljos.Design is pinned at unless REV is given"
 #MISE depends=["packages"]
+#USAGE arg "[rev]" help="The ljos-ui commit to copy from; default the one crates/ljos_web/Cargo.toml pins ljos_design at"
+#USAGE flag "--ljos-ui <dir>" env="LJOS_UI" default="../ljos-ui" help="A checkout of ljos-ui"
 set -euo pipefail
 # One commit of ljos-ui for all of Ljós's QML the web takes: the one
 # crates/ljos_web/Cargo.toml pins ljos_design at, unless named.
-rev=${1:-$(grep -E '^ljos_design = ' crates/ljos_web/Cargo.toml | grep -oE 'rev = "[0-9a-f]{40}"' | cut -d'"' -f2)}
-ljos_ui=${LJOS_UI:-../ljos-ui}
+rev=${usage_rev:-$(grep -E '^ljos_design = ' crates/ljos_web/Cargo.toml | grep -oE 'rev = "[0-9a-f]{40}"' | cut -d'"' -f2)}
+ljos_ui=${usage_ljos_ui:-${LJOS_UI:-../ljos-ui}}
 [ -d "$ljos_ui/.git" ] || [ -f "$ljos_ui/.git" ] || { echo "LJOS_UI=$ljos_ui is not a checkout of ljos-ui" >&2; exit 1; }
 rev=$(git -C "$ljos_ui" rev-parse --verify "$rev^{commit}")
 scratch=$(mktemp -d)

@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+#MISE description="Dispatch the site workflow (site.yml) on GitHub, which builds ljos.dev and deploys it to Pages; --dry-run prints the command"
+#USAGE flag "--deploy" negate="--no-deploy" default=#true help="Deploy after building (the workflow's deploy input); --no-deploy only builds and tests"
+#USAGE flag "--custom-domain" negate="--no-custom-domain" default=#true help="Build for the Pages custom domain (ljos.dev) at its root (the workflow's custom_domain input); --no-custom-domain builds for the github.io project path"
+#USAGE flag "--ref <ref>" default="main" help="The branch or tag the workflow runs on"
+#USAGE flag "--repo <repo>" default="hal-c2/ljos-web" help="The repository whose workflow is dispatched"
+#USAGE flag "--dry-run" help="Print the gh command instead of running it"
+set -euo pipefail
+
+# A deploy by hand, of a branch or again of main. Pages serves this
+# repository at its custom domain, ljos.dev, and the workflow refuses a deploy
+# with custom_domain off while it does: so the default is on.
+cmd=(gh workflow run site.yml
+  --repo "${usage_repo:-hal-c2/ljos-web}"
+  --ref "${usage_ref:-main}"
+  -f "deploy=${usage_deploy:-true}"
+  -f "custom_domain=${usage_custom_domain:-true}")
+
+if [ "${usage_dry_run:-false}" = true ]; then
+  printf '%q ' "${cmd[@]}"
+  echo
+  exit 0
+fi
+command -v gh >/dev/null || { echo "deploy: needs the GitHub CLI, gh (https://cli.github.com), logged in" >&2; exit 1; }
+"${cmd[@]}"
+echo "dispatched; follow it with: gh run list --repo ${usage_repo:-hal-c2/ljos-web} --workflow site.yml"

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #MISE description="A Rust Counter bound from QML, in a browser, faces generated (docs/LJOS_WEB.md A22)"
 #MISE depends=["build:compiler", "browser"]
+#USAGE arg "[args]..." var=#true help="Passed on to Playwright (e.g. a spec file, --grep TEXT, --headed)"
 set -euo pipefail
 
 cd examples/wasm-counter

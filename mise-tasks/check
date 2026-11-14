@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+#MISE description="Formatting and clippy, as CI checks them (--fix formats in place first)"
+#MISE depends=["tools"]
+#USAGE flag "--fix" help="Format the code in place instead of only checking it"
+set -euo pipefail
+
+if [ "${usage_fix:-false}" = true ]; then
+  cargo fmt --all
+else
+  cargo fmt --all --check
+fi
+cargo clippy --workspace --all-targets --locked -- -D warnings

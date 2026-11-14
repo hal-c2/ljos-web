@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
-#MISE description="A static site from a directory with ljos-site.json: mise run site:build DIR [--out DIR] [--with DIR]... [--qt DIR]... [--prerender]"
+#MISE description="A static site from a directory with ljos-site.json (ljos-web build-site)"
 #MISE depends=["build:compiler", "packages"]
+#USAGE arg "<dir>" help="A directory with ljos-site.json"
+#USAGE flag "--out <dir>" help="Where the site is written"
+#USAGE flag "--qmlc <path>" help="The compiler; default this checkout's target/debug/qmlc"
+#USAGE flag "--qt <dir>" var=#true help="An installed Qt's qml directory (more than once for several)"
+#USAGE flag "--with <dir>" var=#true help="Another directory of QML modules the site imports (more than once for several)"
+#USAGE flag "--styles <styles>" help="Whose style of the controls" {
+#USAGE   choices "ljos" "qt"
+#USAGE }
+#USAGE flag "--prerender" help="Write each page's HTML at build time"
+#USAGE flag "--pages <file>" help="A file naming the pages to build"
 set -euo pipefail
 # The compiler this checkout built; paths are taken from where mise was run.
 root="$PWD"

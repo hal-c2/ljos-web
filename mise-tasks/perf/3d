@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 #MISE description="Measure View3D on each renderer, headless: startup, frames, CPU, draws, uploads, crossings, memory, idle (tests/perf3d)"
 #MISE depends=["build:compiler", "build:wasm-compiler", "build:wasm-3d", "browser"]
+#USAGE arg "[args]..." var=#true help="Passed on to Playwright (e.g. a spec file, --grep TEXT, --headed)"
 set -euo pipefail
 
 pnpm --filter ljos-web perf:3d "$@"

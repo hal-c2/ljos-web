@@ -1,6 +1,17 @@
-# The tooling. `mise run install` (or `mise install`) installs it; the tasks
-# are the scripts in mise-tasks/.
+# The tooling. `mise run tools` (or `mise install`) installs it, and `mise run
+# setup` the rest a first run needs; the tasks are the scripts in mise-tasks/.
 [tools]
 rust = { version = "1.98.1", targets = "wasm32-unknown-unknown", components = "rustfmt,clippy" }
 node = "24.21.0"
 pnpm = "12.8.1"
+
+[env]
+# sharp (the sites' image step) uses its own prebuilt libvips. Where a system
+# libvips is installed it would otherwise build itself from source against
+# it, which needs node-addon-api and a compiler, and pnpm install fails.
+SHARP_IGNORE_GLOBAL_LIBVIPS = "1"
+# With CARGO_TARGET_DIR set, the compiler the tasks build is not in ./target,
+# where the tests, examples and sites look unless QMLC names it; this script
+# sets QMLC to it. Otherwise QMLC stays as it is, so each consumer's own
+# default (./target, or qmlc on PATH for site.js) still applies.
+_.source = "{{ config_root }}/mise-tasks/qmlc-env.sh"
