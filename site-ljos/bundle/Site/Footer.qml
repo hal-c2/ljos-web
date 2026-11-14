@@ -4,6 +4,7 @@ import Site
 // Under every page: what Ljós is in a line, where to go, and its licence.
 Rectangle {
     id: footer
+    Accessible.role: Accessible.Footer
 
     property int gutter: Theme.gutterWide
     property int measure: Theme.pageWidth
