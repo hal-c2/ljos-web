@@ -1,8 +1,8 @@
 // What each page of a built site loads: for every `index.html` below a
-// site's directory, the scripts, styles and wasm its first load takes
-// (the module graph from its `<script type="module">` and
-// `<link rel="modulepreload">`, through every static import) and what it
-// may fetch later (the dynamic imports beyond that, and the files those
+// site's directory, the page itself and the scripts, styles and wasm
+// its first load takes (the module graph from its `<script
+// type="module">` and `<link rel="modulepreload">`, through every
+// static import) and what it may fetch later (the dynamic imports beyond that, and the files those
 // take), each raw and gzip. Read from the files alone: no browser, so it
 // is what the build wrote, not what one visit happened to ask for.
 //
@@ -114,7 +114,7 @@ function summed(files, dist) {
   const list = [...files].map((file) => ({ file: relative(dist, file), ...sized(file) })).sort((a, b) => b.gzip - a.gzip);
   const kind = (ext) => list.filter((entry) => entry.file.endsWith(ext));
   const total = (entries) => entries.reduce((sum, entry) => ({ raw: sum.raw + entry.raw, gzip: sum.gzip + entry.gzip, count: sum.count + 1 }), { raw: 0, gzip: 0, count: 0 });
-  return { total: total(list), js: total(kind(".js")), css: total(kind(".css")), wasm: total(kind(".wasm")), files: list };
+  return { total: total(list), html: total(kind(".html")), js: total(kind(".js")), css: total(kind(".css")), wasm: total(kind(".wasm")), files: list };
 }
 
 export function pageReport(dist, { base = "/" } = {}) {
@@ -124,6 +124,9 @@ export function pageReport(dist, { base = "/" } = {}) {
   edges.clear();
   return pagesUnder(dist).map(({ route, file }) => {
     const first = closure(htmlAssets(file));
+    // The page itself is first-load too, with what it carries (its
+    // props, its prerendered markup).
+    first.got.add(file);
     // Everything reachable later, through any number of dynamic imports.
     const later = new Set();
     let frontier = [...first.lazy];
@@ -141,12 +144,12 @@ const kb = (bytes) => `${(bytes / 1024).toFixed(1)}`;
 
 export function pageTable(report, { files = false } = {}) {
   const lines = [
-    "| page | first: requests | first: raw kB | first: gzip kB | js gzip | css gzip | wasm gzip | later: requests | later: gzip kB |",
-    "|---|--:|--:|--:|--:|--:|--:|--:|--:|",
+    "| page | first: requests | first: raw kB | first: gzip kB | html gzip | js gzip | css gzip | wasm gzip | later: requests | later: gzip kB |",
+    "|---|--:|--:|--:|--:|--:|--:|--:|--:|--:|",
   ];
   for (const { route, first, later } of report) {
-    lines.push(`| ${route} | ${first.total.count} | ${kb(first.total.raw)} | ${kb(first.total.gzip)} | ${kb(first.js.gzip)} | ${kb(first.css.gzip)} | ${kb(first.wasm.gzip)} | ${later.total.count} | ${kb(later.total.gzip)} |`);
-    if (files) for (const entry of first.files) lines.push(`|  ${entry.file} | | ${kb(entry.raw)} | ${kb(entry.gzip)} | | | | | |`);
+    lines.push(`| ${route} | ${first.total.count} | ${kb(first.total.raw)} | ${kb(first.total.gzip)} | ${kb(first.html.gzip)} | ${kb(first.js.gzip)} | ${kb(first.css.gzip)} | ${kb(first.wasm.gzip)} | ${later.total.count} | ${kb(later.total.gzip)} |`);
+    if (files) for (const entry of first.files) lines.push(`|  ${entry.file} | | ${kb(entry.raw)} | ${kb(entry.gzip)} | | | | | | |`);
   }
   return lines.join("\n");
 }

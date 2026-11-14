@@ -19,16 +19,10 @@ import "../nav.js" as Nav
 Column {
     id: doc
 
-    // The page this route names, read where it stands: known as
-    // the page is made, in a prerender as in a browser.
     property string route: "/"
-    readonly property var page: {
-        for (var i = 0; i < Content.pages.length; i++) {
-            if (Content.pages[i].route === route)
-                return Content.pages[i];
-        }
-        return null;
-    }
+    // The page this route names, as the shell was made with it: known
+    // as the page is made, in a prerender as in a browser.
+    property var page: null
     property int textWidth: width
 
     // The flickable that holds this column, named by the shell so a

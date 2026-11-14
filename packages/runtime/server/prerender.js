@@ -9,14 +9,16 @@
 // page that will not settle must not take the build with it: the
 // build runs this and says what it said.
 //
-//   node prerender.js SERVER-BUNDLE [{"width":1280,"height":720}]
+//   node prerender.js SERVER-BUNDLE [{"width":1280,"height":720} | -]
+//   (`-`: the options on stdin)
+import { readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { installPrerenderGlobals } from "./dom.js";
 
 const [bundle, said] = process.argv.slice(2);
-const options = said ? JSON.parse(said) : {};
+const options = said === "-" ? JSON.parse(readFileSync(0, "utf8") || "{}") : said ? JSON.parse(said) : {};
 
 // The wasm kernel is fetched as a page fetches it; here the file it
 // names is read, from where the bundle put it or from beside the

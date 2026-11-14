@@ -3,6 +3,7 @@
 // (ljos-web's size/pages.js), and what one visit to a page asked for.
 // Code a page never uses stays out of its first load. When it gets
 // back in, the failure lists the files and the pages they reached.
+import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
@@ -39,9 +40,28 @@ test("no page's static first load holds the editor, the compiler, PhysX or sql.j
   expect(wasm).toEqual([]);
 });
 
-// The ceiling stands at what a page loads now, and comes down as code
-// a page does not use leaves its first load. It never goes up.
-const CEILING_KB = 620;
+// A docs page's reading is its own: in its HTML's props, not in a
+// script every page loads. Another page's headings are in none of
+// a page's first-load files.
+test("a docs page's first load holds no other page's reading", () => {
+  const propsOf = (route) => {
+    const html = readFileSync(join(dist, route, "index.html"), "utf8");
+    const json = html.match(/<script type="application\/json" id="ljos-props">([\s\S]*?)<\/script>/)?.[1];
+    return json ? JSON.parse(json) : null;
+  };
+  const other = propsOf("start/install");
+  expect(other?.page?.headings?.length, "/start/install/ carries its own headings").toBeGreaterThan(0);
+  const words = other.page.headings.map((heading) => heading.plain).filter((text) => typeof text === "string" && text.length > 12);
+  expect(words.length).toBeGreaterThan(0);
+  const reader = report.find((entry) => entry.route === "/rust/overview/");
+  const holding = reader.first.files.filter((entry) => entry.file.endsWith(".js")).filter((entry) => words.some((text) => readFileSync(join(dist, entry.file), "utf8").includes(JSON.stringify(text).slice(1, -1))));
+  expect(holding.map((entry) => entry.file)).toEqual([]);
+});
+
+// The ceiling stands at what a page loads now, its own HTML with it,
+// and comes down as code a page does not use leaves its first load.
+// It never goes up.
+const CEILING_KB = 435;
 
 test(`no page's first load is over ${CEILING_KB} kB gzip`, () => {
   const over = report.filter(({ first }) => first.total.gzip > CEILING_KB * 1024).map(({ route, first }) => `${route}: ${kB(first.total.gzip)} kB`);

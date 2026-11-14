@@ -454,7 +454,10 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
       if (!shell.includes('<div id="app"></div>')) throw new SiteError("the built page has no empty #app to prerender into");
       for (const page of pages ?? [{ route: "/" }]) {
         const options = { ...size, ...(page.props ? { props: page.props } : {}) };
-        const ran = spawnSync(process.execPath, [join(runtime, "server/prerender.js"), join(stage, "server/server-entry.mjs"), JSON.stringify(options)], {
+        // On stdin, not as an argument: a page's props are as large as
+        // its reading, and one argument has a limit of its own (E2BIG).
+        const ran = spawnSync(process.execPath, [join(runtime, "server/prerender.js"), join(stage, "server/server-entry.mjs"), "-"], {
+          input: JSON.stringify(options),
           encoding: "utf8",
           maxBuffer: 1 << 28,
           timeout: 120_000,
@@ -473,7 +476,9 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
           html = html.replace("<title>Ljós site</title>", () => `<title>${title}</title>`);
         }
         if (page.props) {
-          const carried = JSON.stringify(page.props).replaceAll("</script", "<\\/script");
+          // Every `<` escaped, so no text in the props (`</script`, a
+          // `<!--` before a `<script`) ends or reopens the element.
+          const carried = JSON.stringify(page.props).replaceAll("<", "\\u003c");
           html = html.replace('<div id="app"></div>', () => `<script type="application/json" id="ljos-props">${carried}</script>\n    <div id="app"></div>`);
         }
         html = html.replace('<div id="app"></div>', () => `<div id="app">${ran.stdout}</div>`);
