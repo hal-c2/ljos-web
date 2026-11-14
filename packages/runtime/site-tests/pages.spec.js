@@ -420,13 +420,14 @@ test.describe("a site prerendered in both colour schemes", () => {
   });
 });
 
-// A page whose schemes differ only in colour is one render per size,
-// each colour that differs said by the scheme shown: what a reader is
-// first shown is the same as with a render per scheme, and the page
-// carries half as much.
-test.describe("a site whose schemes differ only in colour", () => {
+// A page whose schemes differ only in how they are drawn is one render
+// per size: each colour that differs, and each item shown in one scheme
+// only, said by the scheme shown, and what the page says in the dark
+// said by its script before it hydrates. What a reader is first shown is
+// the same as with a render per scheme, and the page carries half as much.
+test.describe("a site whose schemes differ only in how they are drawn", () => {
   test.describe.configure({ mode: "serial" });
-  const shell = `import QtQuick\n\nRectangle {\n    id: root\n    property string route: "/"\n    readonly property bool dark: Application.styleHints.colorScheme === Qt.ColorScheme.Dark\n    width: parent ? parent.width : 0\n    height: parent ? parent.height : 0\n    color: dark ? "#101010" : "#fafafa"\n    Text { objectName: "words"; text: root.width < 600 ? "Narrow" : "Wide"; color: root.dark ? "#eeeeee" : "#222222" }\n}\n`;
+  const shell = `import QtQuick\n\nRectangle {\n    id: root\n    property string route: "/"\n    readonly property bool dark: Application.styleHints.colorScheme === Qt.ColorScheme.Dark\n    width: parent ? parent.width : 0\n    height: parent ? parent.height : 0\n    color: dark ? "#101010" : "#fafafa"\n    Text { objectName: "words"; text: root.width < 600 ? "Narrow" : "Wide"; color: root.dark ? "#eeeeee" : "#222222" }\n    Rectangle { objectName: "toggle"; y: 40; width: 20; height: 20; color: "#808080"; Accessible.role: Accessible.Button; Accessible.name: root.dark ? "Use the light theme" : "Use the dark theme"\n        Rectangle { objectName: "moon"; visible: root.dark; width: 10; height: 10; color: "#ffcc00" }\n    }\n}\n`;
   let made;
   let server;
   let origin;
@@ -465,7 +466,14 @@ test.describe("a site whose schemes differ only in colour", () => {
     // Named once in the head, for light and for dark.
     expect(home).toMatch(/:root \{ --ljos-scheme-0: [^;]+;/);
     expect(home).toMatch(/:root\[data-ljos-scheme="dark"\] \{ --ljos-scheme-0: [^;]+;/);
+    // The moon's showing is the scheme's; the toggle says the light
+    // scheme's words, with the dark's beside them.
+    expect(home).toMatch(/display: var\(--ljos-scheme-\d+\)/);
+    expect(home.match(/aria-label="Use the dark theme" [^>]*data-ljos-dark="aria-label" data-ljos-dark-aria-label="Use the light theme"/g)).toHaveLength(2);
+    expect(home).not.toMatch(/\saria-label="Use the light theme"/);
   });
+
+  const moon = (page) => page.getByRole("button").first().evaluate((node) => [...node.querySelectorAll("div")].some((child) => child.getClientRects().length > 0 && getComputedStyle(child).display !== "none"));
 
   const words = (page) => page.getByText(/^(Narrow|Wide)$/).filter({ visible: true }).evaluate((node) => getComputedStyle(node).color);
 
@@ -482,6 +490,7 @@ test.describe("a site whose schemes differ only in colour", () => {
         await page.goto(`${origin}/`);
         await expect(page.getByText(text, { exact: true }).filter({ visible: true })).toHaveCount(1);
         expect(await words(page)).toBe(ink);
+        expect(await moon(page), "the moon is shown in the dark only").toBe(scheme === "dark");
       } finally {
         await context.close();
       }
@@ -513,6 +522,7 @@ test.describe("a site whose schemes differ only in colour", () => {
         await page.goto(`${origin}/`, { waitUntil: "commit" });
         await expect(page.getByText("Narrow", { exact: true }).filter({ visible: true })).toHaveCount(1);
         expect(await words(page)).toBe(ink);
+        expect(await moon(page)).toBe(chosen === "dark");
         release();
         await page.waitForSelector('#app[data-ljos-hydrated="true"]');
         await page.unroute("**/*.js");
@@ -522,6 +532,10 @@ test.describe("a site whose schemes differ only in colour", () => {
         // scheme its root says, and no longer the head's names for them.
         await expect.poll(() => words(page)).toBe(ink);
         expect(await page.evaluate(() => document.querySelector("#app").innerHTML.includes("var(--ljos-scheme-"))).toBe(false);
+        // Said in the scheme shown, and nothing of the other left.
+        await expect(page.getByRole("button", { name: chosen === "dark" ? "Use the light theme" : "Use the dark theme" })).toHaveCount(1);
+        expect(await page.evaluate(() => document.querySelectorAll("#app [data-ljos-dark]").length)).toBe(0);
+        expect(await moon(page)).toBe(chosen === "dark");
       } finally {
         await context.close();
       }
