@@ -267,3 +267,49 @@ test("a width the author gives a child a layout sized from its content is the on
   expect(await at("alAItem")).toEqual([10, 40]);
   expect((await at("alPosItem"))[1]).toBe(50);
 });
+
+test("a width the author gives is had at once: in an item, as it moves, and the same one again", async ({ page }) => {
+  await open(page, "ljoslayoutrule");
+  const at = (name) => page.evaluate((name) => [window.scene[name].x, window.scene[name].width], name);
+  const run = (f) => page.evaluate(f);
+  // Kept in an item, then written.
+  await run(() => {
+    window.scene.akAItem.parent = window.scene.akPlainItem;
+    window.flush();
+  });
+  expect((await at("akAItem"))[1]).toBe(21);
+  await run(() => {
+    window.scene.akAItem.width = 50;
+    window.flush();
+  });
+  expect((await at("akAItem"))[1]).toBe(50);
+  // Moved to a positioner and written before either is measured.
+  await run(() => {
+    window.scene.alAItem.parent = window.scene.alPosItem;
+    window.scene.alAItem.width = 40;
+    window.flush();
+  });
+  expect(await at("alAItem")).toEqual([10, 40]);
+  expect((await at("alPosItem"))[1]).toBe(50);
+  // Told 50, made to fill (290) and not (it keeps 290), told 50 again.
+  await run(() => {
+    window.scene.amAItem.width = 50;
+    window.flush();
+  });
+  expect((await at("amAItem"))[1]).toBe(50);
+  await run(() => {
+    window.scene.amRowItem.fill = true;
+    window.flush();
+  });
+  expect((await at("amAItem"))[1]).toBe(290);
+  await run(() => {
+    window.scene.amRowItem.fill = false;
+    window.flush();
+  });
+  expect((await at("amAItem"))[1]).toBe(290);
+  await run(() => {
+    window.scene.amAItem.width = 50;
+    window.flush();
+  });
+  expect((await at("amAItem"))[1]).toBe(50);
+});

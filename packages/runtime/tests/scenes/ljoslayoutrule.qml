@@ -31,6 +31,8 @@ Item {
     property alias alAItem: alA
     property alias alPosItem: alPos
     property alias alLayItem: alLay
+    property alias amRowItem: amRow
+    property alias amAItem: amA
     width: 1000
     height: 2000
 
@@ -426,6 +428,15 @@ Item {
     }
     Row {
         id: alLay; objectName: "alLay"; y: 1990; width: 300; height: 20
+        Rectangle { implicitWidth: 10; implicitHeight: 10; Layout.alignment: 32 }
+    }
+
+    // A child that fills, and then does not, keeps the width it was given;
+    // the author's width is had again once it is written, the same as before.
+    Row {
+        id: amRow; objectName: "amRow"; y: 2010; width: 300; height: 20
+        property bool fill: false
+        Rectangle { id: amA; objectName: "amA"; implicitWidth: 20.5; implicitHeight: 10; Layout.fillWidth: amRow.fill }
         Rectangle { implicitWidth: 10; implicitHeight: 10; Layout.alignment: 32 }
     }
 }

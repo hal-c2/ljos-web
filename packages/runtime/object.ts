@@ -1058,6 +1058,7 @@ class Slot {
   declare value: unknown;
   declare placed: unknown;
   declare over: boolean;
+  declare yields: boolean;
   declare shown: (() => unknown) | null;
   declare layers: Layer[] | null;
   declare version: Accessor<number> | null;
@@ -1094,6 +1095,11 @@ class Slot {
     // An assignment is over it until it is laid out somewhere else.
     this.placed = undefined;
     this.over = false;
+    // Whether the placed value yields to an assignment: a size an
+    // arrangement of Ljos.Layout placed is replaced by the author's write,
+    // as in ljos-ui, and that arrangement, told of the write, places again
+    // where the size is its own to say.
+    this.yields = false;
     // Set by a Behavior: what is shown while the value it follows moves.
     this.shown = null;
     // What is put over all the property has of its own (a theme over a
@@ -1239,6 +1245,7 @@ class Slot {
   // which an animation makes every frame.
   write(value: unknown): boolean {
     if (isBinding(value)) return this.rebind(value);
+    const yielded = this.yielded();
     if (this.kind) {
       const made = value === undefined && !this.kind.any ? REFUSED : this.kind(value);
       if (made === KEPT) return false;
@@ -1254,7 +1261,7 @@ class Slot {
     // Over what is on top, as in Ljós: what was under it comes back as it
     // was when it is taken off.
     else if (this.layers) return this.layers.at(-1)!.put({ value }), true;
-    else if (this.assigned && Object.is(this.value, value)) return false;
+    else if (this.assigned && Object.is(this.value, value) && !yielded) return false;
     this.assigned = true;
     this.value = value;
     this.changed();
@@ -1265,6 +1272,7 @@ class Slot {
   // the object.
   rebind(compute: Rebinding): boolean {
     const self = this.self;
+    this.yielded();
     if (this.layers) {
       this.layers.at(-1)!.put({ binding: () => compute.call(self) });
       return true;
@@ -1297,11 +1305,20 @@ class Slot {
     this.changed();
   }
 
-  place(value: unknown): void {
-    if (Object.is(this.placed, value)) return;
+  place(value: unknown, yields = false): void {
+    if (Object.is(this.placed, value) && this.yields === yields) return;
     this.placed = value;
     this.over = false;
+    this.yields = yields && value !== undefined;
     this.changed();
+  }
+
+  // Takes off a placed value that yields to an assignment, as one is made.
+  yielded(): boolean {
+    if (!this.yields) return false;
+    this.placed = undefined;
+    this.yields = false;
+    return true;
   }
 
   // Back to the binding, or to the default.

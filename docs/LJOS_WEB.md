@@ -2093,7 +2093,10 @@ content), to an item (it keeps its width) and back. A row that is a
 positioner keeps the width another row that is a layout gave a child,
 also once its content is gone, and only a size it gave itself follows
 the content: those numbers are Qt 6.11's, as ljos-ui's fixture has no
-such case.
+such case. A size the author writes replaces the one an arrangement
+placed at once, wherever the child is then, as in ljos-ui; the
+arrangement asks for it after, or sizes the child again where
+`Layout` says the size is its own.
 
 `tests/ljosui.spec.js` holds it, on both kernels: each face by its
 dialect names, beside the QtQuick specs, and a whole dialect file
