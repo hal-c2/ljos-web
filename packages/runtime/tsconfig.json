@@ -1,0 +1,10 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // Pages, and the Node that builds them.
+    "lib": ["ES2024", "DOM", "DOM.Iterable", "DOM.AsyncIterable"],
+    "types": ["node", "vite/client"]
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["node_modules", "dist", "test-results", "playwright-report"]
+}

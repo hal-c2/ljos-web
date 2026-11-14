@@ -1,0 +1,29 @@
+{
+  // What every package's TypeScript is held to. The packages run their
+  // TypeScript as it is written: Vite strips the types in a page and a
+  // site build, Node 24 in the CLI, the server, the site builder and the
+  // tests. So only what can be erased is written (no enums, namespaces or
+  // parameter properties), and a module names another by the file it is,
+  // `.ts` and all, which an emit rewrites to `.js`.
+  "compilerOptions": {
+    "target": "ES2024",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    "isolatedModules": true,
+    "rewriteRelativeImportExtensions": true,
+    // A file not yet ported is JavaScript; what is ported may import it,
+    // and gets what TypeScript infers of it, unchecked.
+    "allowJs": true,
+    "checkJs": false,
+    "skipLibCheck": true,
+    "noEmit": true
+  }
+}

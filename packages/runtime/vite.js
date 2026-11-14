@@ -313,7 +313,10 @@ function exported(context, file, names = new Set(), seen = new Set()) {
   if (seen.has(file) || !existsSync(file)) return names;
   seen.add(file);
   context.addWatchFile(file);
-  for (const node of context.parse(readFileSync(file, "utf8")).body) {
+  // A module ported to TypeScript is parsed as TypeScript: its `import type`
+  // is not JavaScript.
+  const lang = file.endsWith(".ts") ? "ts" : "js";
+  for (const node of context.parse(readFileSync(file, "utf8"), { lang }).body) {
     if (node.type === "ExportAllDeclaration") {
       if (node.exported) names.add(node.exported.name ?? node.exported.value);
       else if (/^\.\.?\//.test(node.source.value)) exported(context, join(dirname(file), node.source.value), names, seen);
