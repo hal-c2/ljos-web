@@ -1,6 +1,6 @@
 // The `Qt` object every QML file can see, and the functions that are there
 // beside it: `qsTr`, `print`, `"%1".arg()`.
-import { mayFetch } from "../guard.js";
+import { allowedUrl } from "../guard.js";
 import { failed } from "../object.js";
 import { color, equal, hsla, hsva, rgba } from "../QtQuick/color.js";
 import { application, font, inputMethod, styleHints } from "./application.js";
@@ -159,8 +159,9 @@ const methods = {
     }
   },
   openUrlExternally(url) {
-    if (!mayFetch(url)) return false;
-    window.open(String(url), "_blank", "noopener"); // guarded
+    const to = allowedUrl(String(url));
+    if (!to) return false;
+    window.open(to, "_blank", "noopener"); // guarded
     return true;
   },
 

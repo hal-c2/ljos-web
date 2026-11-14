@@ -12,6 +12,7 @@
 // are each one module that re-exports what the page loaded, so compiled QML
 // and the page's own share one instance of each.
 import { provide } from "../files.js";
+import { enclose, own } from "../guard.js";
 
 const url = new URL("./ljos_web_compiler.wasm", import.meta.url);
 const wasm = WebAssembly.compileStreaming(fetch(url));
@@ -82,6 +83,27 @@ const LINK = "ljos-web link";
 // What a compile reads itself, and nothing reads at run time.
 const CODE = /(?:\.(?:qml|js|mjs|ts|lts)|(?:^|\/)qmldir)$/;
 
+// What a file of an enclosed project (a live example's) sees of `namespace`:
+// an export that names things by address (`XMLHttpRequest`, with a static
+// `beside`) takes a relative one from beside the file, among the project's
+// files, as a QML file's request does natively; elsewhere it is the page's.
+// One per file and namespace, so an edit made again reuses its bridge.
+const placed = new Map();
+function placedFor(namespace, address) {
+  // Asked of each export's own keys, not read off it: a type ljos-web does
+  // not have yet (`absent`) throws when anything is read off it.
+  const names = Object.keys(namespace).filter((name) => typeof namespace[name] === "function" && Object.hasOwn(namespace[name], "beside"));
+  if (names.length === 0) return namespace;
+  if (!placed.has(address)) placed.set(address, new WeakMap());
+  const files = placed.get(address);
+  if (!files.has(namespace)) {
+    const seen = { ...namespace };
+    for (const name of names) seen[name] = namespace[name].beside(address);
+    files.set(namespace, seen);
+  }
+  return files.get(namespace);
+}
+
 // A module whose exports are those of `namespace`, which the page loaded.
 function bridge(namespace) {
   let at = bridges.get(namespace);
@@ -114,11 +136,21 @@ function standIn(exports) {
 export async function compile(request, { modules, base }) {
   const answer = await ask(asked(request, modules));
   if (answer.diagnostics) return answer;
-  const root = new URL(base ?? document.baseURI, location.href);
+  const root = new URL(request.base ?? base ?? document.baseURI, location.href);
   // What else the project has (the JSON a model reads) is read as it was
   // given, where the project's files are, and not fetched: a compile given
   // another text of it says it changed to whatever reads it.
   const given = request.files instanceof Map ? request.files : Object.entries(request.files ?? {});
+  // A project that is only what it was given (`closed`) has nothing else
+  // where it is: what it names and does not have is not there.
+  if (request.closed) {
+    enclose(
+      root.href,
+      [...given].filter(([, text]) => typeof text === "string"),
+      // One of its files made by address is made as these were, of these.
+      { missing: request.missing, compile: (entry) => compile({ ...request, entry, inspect: true, closed: false }, { modules, base }) },
+    );
+  }
   for (const [file, text] of given) if (typeof text === "string" && !CODE.test(file)) provide(new URL(file, root).href, text);
   const files = new Map(answer.modules.map((module) => [module.file, module]));
 
@@ -141,7 +173,7 @@ export async function compile(request, { modules, base }) {
         end,
         text: JSON.stringify(
           file === undefined
-            ? bridge(namespaces.get(module))
+            ? bridge(own(address) ? placedFor(namespaces.get(module), address) : namespaces.get(module))
             : (made.get(file) ?? standIns.get(file) ?? standIns.set(file, standIn(files.get(file).exports)).get(file)),
         ),
       })),

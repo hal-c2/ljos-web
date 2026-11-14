@@ -205,3 +205,25 @@ export function displayPosition(example, diagnostic) {
   }
   return moved;
 }
+
+// What a reader is told of a file their example names and does not have
+// (`url`, asked for by the example running at `root`): `Main.qml:4:
+// shell.qml: No such file or directory`, at the first string of the files
+// they see that names it, taken from the file it is written in.
+export function notThereLine(display, root, name, url) {
+  for (const file of display) {
+    const lines = file.code.split("\n");
+    for (let line = 0; line < lines.length; line++) {
+      for (const [, , literal] of lines[line].matchAll(/(["'])((?:(?!\1)[^\\\n])*)\1/g)) {
+        let named;
+        try {
+          named = new URL(literal, new URL(file.name, root)).href;
+        } catch {
+          continue;
+        }
+        if (named === url) return `${file.name}:${line + 1}: ${name}: No such file or directory`;
+      }
+    }
+  }
+  return `${name}: No such file or directory`;
+}

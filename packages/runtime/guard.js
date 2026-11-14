@@ -43,8 +43,88 @@ export function mayKeep() {
   return false;
 }
 
-// Whether `url` may be fetched now.
+// The projects that have no files but those they were given: a live code
+// block's example, whose fences and harness are all of it wherever its page
+// is. Each is at a root of its own on an address no server answers, so what
+// one names is looked for among its files, and what it names and does not
+// have is not there, as a file that is not on disk is not there natively,
+// and is not asked of anyone. Kept on `globalThis`, as `ljos-web/files`
+// keeps what it is given, so the compiler and the page's modules share them
+// however they were loaded.
+const ENCLOSED = Symbol.for("ljos-web/enclosed");
+const enclosed = (globalThis[ENCLOSED] ??= new Map());
+
+// `files` (a Map or entries of name to text) are all the project at `root`
+// has, from now on. `missing(name, url)` is told, once each, of a file it
+// does not have that something asks for; `compile(entry)` makes a component
+// of one of its files as the project's own were made, for what loads one
+// by address (a ShellLoader's `source`).
+export function enclose(root, files, { missing, compile } = {}) {
+  const at = new URL(".", root).href;
+  for (const url of enclosed.get(at)?.blobs.values() ?? []) URL.revokeObjectURL(url);
+  enclosed.set(at, { root: at, files: new Map(files), missing, compile, told: new Set(), blobs: new Map() });
+}
+
+// The project `url` is in, and the name of the file there it is (`text`
+// undefined where the project has no such file); null for an address of no
+// such project's.
+export function own(url) {
+  if (enclosed.size === 0) return null;
+  let at;
+  try {
+    at = new URL(String(url), document.baseURI);
+  } catch {
+    return null;
+  }
+  at.hash = "";
+  at.search = "";
+  for (const project of enclosed.values()) {
+    if (!at.href.startsWith(project.root)) continue;
+    const name = unescaped(at.href.slice(project.root.length));
+    return { project, name, url: at.href, text: project.files.get(name) };
+  }
+  return null;
+}
+
+// A name as its file is called. The URL parser keeps a `%` that starts no
+// escape as it is (`100%.png`), and such a name is its own.
+function unescaped(path) {
+  try {
+    return decodeURIComponent(path);
+  } catch {
+    return path;
+  }
+}
+
+// Why `found` is not there, told once to whoever its project tells.
+function notThere(found) {
+  const { project, name, url } = found;
+  if (!project.told.has(name)) {
+    project.told.add(name);
+    project.missing?.(name, url);
+  }
+  return new Error(`${name}: No such file or directory`);
+}
+
+const TYPES = { svg: "image/svg+xml", json: "application/json", js: "text/javascript", mjs: "text/javascript", css: "text/css" };
+const typeOf = (name) => TYPES[/\.(\w+)$/.exec(name)?.[1]?.toLowerCase()] ?? "text/plain";
+
+// An address the browser can load a given file of a project's from.
+function given(found) {
+  let url = found.project.blobs.get(found.name);
+  if (!url) found.project.blobs.set(found.name, (url = URL.createObjectURL(new Blob([found.text], { type: typeOf(found.name) }))));
+  return url;
+}
+
+// Whether `url` may be fetched now. A file of a project that has only the
+// files it was given is not fetched: `guardedFetch` and `sourced` give it
+// as it was given, and `allowedUrl` an address it can be loaded from.
 export function mayFetch(url) {
+  const found = own(url);
+  if (found) {
+    if (found.text === undefined) notThere(found);
+    return false;
+  }
   if (zones.size === 0) return true;
   let at;
   try {
@@ -66,17 +146,48 @@ export function mayFetch(url) {
 
 const refusal = (url) => new Error(`${url} is not fetched while a dropped shell is shown`);
 
-export const guardedFetch = (url, init) => (mayFetch(url) ? fetch(url, init) : Promise.reject(refusal(url)));
+// Tells the enclosed project that `url`, one of its files it does not
+// have, is not there, once: for a loader that asked for it quietly and
+// now uses what it asked for.
+export function sayNotThere(url) {
+  const found = own(url);
+  if (found && found.text === undefined) notThere(found);
+}
+
+// Why `url` is not loaded, where `allowedUrl` gave nothing for it: a file its
+// project does not have is not there, and anything else was held back.
+export function whyNot(url) {
+  const found = own(url);
+  return found ? `${found.name}: No such file or directory` : refusal(url).message;
+}
+
+export function guardedFetch(url, init) {
+  const found = own(url);
+  if (found) {
+    if (found.text === undefined) return Promise.reject(notThere(found));
+    return Promise.resolve(new Response(found.text, { headers: { "content-type": typeOf(found.name) } }));
+  }
+  return mayFetch(url) ? fetch(url, init) : Promise.reject(refusal(url));
+}
 
 // An element told to load `url`, or told it could not, as a browser tells.
 export function sourced(element, url) {
-  if (mayFetch(url)) element.src = url; // guarded
-  else queueMicrotask(() => element.dispatchEvent(new Event("error")));
+  const found = own(url);
+  if (found?.text !== undefined) element.src = given(found);
+  else if (!found && mayFetch(url)) element.src = url; // guarded
+  else {
+    if (found) notThere(found);
+    queueMicrotask(() => element.dispatchEvent(new Event("error")));
+  }
 }
 
 // `url` where it may be fetched, nothing where it may not: for what is said
 // to the browser in a style or an attribute, which tells of no failure.
-export const allowedUrl = (url) => (mayFetch(url) ? url : "");
+export function allowedUrl(url) {
+  const found = own(url);
+  if (found?.text !== undefined) return given(found);
+  return mayFetch(url) ? url : "";
+}
 
 // What a value of a style may call. CSS can load an address from `url()`,
 // `image()`, `image-set()`, `cross-fade()`, `src()` and whatever comes next,

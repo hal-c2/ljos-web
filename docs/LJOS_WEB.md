@@ -1274,7 +1274,8 @@ scenarios: ljos-ui's `features/blocks/slots.feature` and
   `file:line: message`, as natively. A source that is a file of the
   build is compiled QML like any other. One that is not (a URL, a
   user's own `Shell.qml`) is fetched and compiled in the page with
-  `ljos-web/compiler`, which is imported only then; its objects are
+  `ljos-web/compiler`, which is imported only then (one of a live code
+  block's example is one of the example's files, or not there: A27); its objects are
   placed (`$at`), so what a handler of it throws is said at the line of
   the object it is written in. While a source is on its way (fetched,
   compiled, a module still to come) the stage is never empty: what is
@@ -1806,6 +1807,24 @@ turns a Markdown page's fenced blocks into live ones, for any site:
   `prefers-reduced-motion` stills. A page gives its controls or other
   modules to the compiler through `options.compile`
   (`createCompiler({ modules })`, as A15's pages do).
+- **An example's files are its own.** Each block compiles as a project
+  of only its files (`closed: true` to the compiler), at a root of its
+  own (`ljos-example://<n>/`) that no server answers: a relative address
+  it names (a `ShellLoader`'s `source` or `fallback`, an `Image`'s, a
+  model's, an `XMLHttpRequest`'s) is looked for among its fences and its
+  harness, wherever the page is, and is given from there. A request
+  takes a relative address from beside the file that makes it, as
+  natively: the link gives each of the example's files an
+  `XMLHttpRequest` placed there (its static `beside`). One it does not have is not there,
+  as a file not on disk is not there for `ljos run`: what loads it fails
+  as natively (`shell.qml: No such file or directory`), the block says
+  so beside the code at the line that names it (`Main.qml:4: shell.qml:
+  No such file or directory`), and nothing is fetched. The choke points
+  of `guard.js` (`guardedFetch`, `sourced`, `allowedUrl`, `mayFetch`)
+  are where an address of such a project is answered, so every loader
+  that goes through them behaves so; a socket to one is refused, as an
+  example has no server. Absolute URLs, and the page's own
+  addresses outside code blocks, are as before.
 
 **DECISION:** the feature is general, the site is its first user: the
 Astro site wires the remark plugin and a small hydrator island, and
@@ -1840,7 +1859,10 @@ JS off reading them, hydration keeping the very nodes into an editor,
 an edit keeping state, a broken edit keeping
 the last good result, harnessed and grouped examples, editing the
 user's shell keeping the app's state, lazy mounting, exempt code
-plain. `site/tests/codeblocks.e2e.js` (its own config) holds the same
+plain. `packages/runtime/tests/examplefiles.spec.js`: a shell and a
+fallback an example does not have said to be not there at their lines,
+a shell named only at run time found among its files, a picture it does
+not have not there — none of them asked of the server. `site/tests/codeblocks.e2e.js` (its own config) holds the same
 on a site built from fixture docs, strictly.
 
 Known limits, as the pieces stand: a `ShellLoader` loads its shell as
