@@ -872,6 +872,37 @@ Item {
 }
 
 #[test]
+fn a_qml_file_imported_when_the_program_gets_there_is_not_imported_before() {
+    let options = Options {
+        files: Some(vec!["Page.qml".to_string(), "Other.qml".to_string()]),
+        ..Options::default()
+    };
+    let code = ljos_web::compile_script(
+        ".pragma library\nfunction page() { return import(\"./Page.qml\"); }\nlet other = Qt.createComponent(\"Other.qml\");\n",
+        &options,
+    )
+    .unwrap_or_else(|errors| panic!("{errors:?}"))
+    .code;
+    // The module asks for it then, so a bundler can leave it out of this one.
+    assert_contains(&code, r#"return import("./Page.qml");"#);
+    assert_lacks(&code, r#"from "./Page.qml""#);
+    // A path asked of Qt is the component still.
+    assert_contains(&code, r#"import $file1 from "./Other.qml";"#);
+
+    let code = lowered_among(
+        r#"import QtQuick
+Loader {
+    source: () => import("./Page.qml")
+    property var other: Qt.createComponent("Other.qml")
+}"#,
+        &["Sample.qml", "Page.qml", "Other.qml"],
+    );
+    assert_contains(&code, r#"import("./Page.qml")"#);
+    assert_lacks(&code, r#"from "./Page.qml""#);
+    assert_contains(&code, r#"from "./Other.qml""#);
+}
+
+#[test]
 fn a_script_is_the_module_its_import_is() {
     let options = Options {
         files: Some(vec![
