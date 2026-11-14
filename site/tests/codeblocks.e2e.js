@@ -7,6 +7,18 @@ import { expect, test } from "@playwright/test";
 
 const counter = (page) => page.locator("[data-ljos-codeblock]").first();
 
+// The block's CodeMirror editor once it has come in over the static code.
+async function editorOf(figure, name) {
+  await expect(figure).toHaveAttribute("data-editor", "ready", { timeout: 30000 });
+  return figure.locator(".cm-content").and(figure.getByRole("textbox", { name }));
+}
+const textOf = (editor) => editor.evaluate((el) => [...el.querySelectorAll(".cm-line")].map((line) => line.textContent).join("\n"));
+async function retype(editor, text) {
+  await editor.focus();
+  await editor.press("ControlOrMeta+a");
+  await editor.page().keyboard.insertText(text);
+}
+
 test("with no JS the code and its prerendered result are the page", async ({ browser }) => {
   const context = await browser.newContext({ javaScriptEnabled: false });
   const page = await context.newPage();
@@ -14,7 +26,7 @@ test("with no JS the code and its prerendered result are the page", async ({ bro
   await expect(counter(page).locator("pre code")).toContainText("Count: ");
   await expect(counter(page).locator(".ljos-codeblock__stage")).toContainText("Count: 0");
   await expect(counter(page).locator("[data-hk]").first()).toBeVisible();
-  await expect(counter(page).locator("textarea")).toHaveCount(0);
+  await expect(counter(page).locator("textarea, .cm-editor")).toHaveCount(0);
   // The old half is labelled, and the shell command stayed plain code.
   await expect(page.locator("[data-ljos-codeblock] .ljos-codeblock__before")).toContainText("Before");
   // The fence inside a list item found its prerender (same hash on
@@ -33,9 +45,9 @@ test("a docs block hydrates, edits keep state, and a shell example runs", async 
   await stage.click();
   await stage.click();
   await expect(stage).toContainText("Count: 2");
-  const editor = first.getByRole("textbox", { name: /Main\.qml/ });
-  const value = await editor.inputValue();
-  await editor.fill(value.replace("#20242e", "#7a1f1f"));
+  const editor = await editorOf(first, /Main\.qml/);
+  const value = await textOf(editor);
+  await retype(editor, value.replace("#20242e", "#7a1f1f"));
   await expect
     .poll(() =>
       stage.evaluate(
@@ -46,7 +58,7 @@ test("a docs block hydrates, edits keep state, and a shell example runs", async 
   await expect(stage).toContainText("Count: 2");
 
   // A broken edit is said inline; the last good result keeps running.
-  await editor.fill(value.replace("width: 320", "width: 320 +"));
+  await retype(editor, value.replace("width: 320", "width: 320 +"));
   await expect(first.getByRole("alert")).toContainText(/Main\.qml:\d+/, { timeout: 30000 });
   await expect(stage).toContainText("Count: 2");
 

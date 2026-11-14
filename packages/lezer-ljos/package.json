@@ -1,0 +1,24 @@
+{
+  "name": "lezer-ljos",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Lezer grammar for QML and the Ljós dialect: match, is, the |> pipe and its % topic, TypeScript in .lts modules and script blocks",
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": "./src/index.js",
+    "./html": "./src/html.js"
+  },
+  "scripts": {
+    "build": "lezer-generator src/ljos.grammar -o src/parser.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "@lezer/common": "1.5.5",
+    "@lezer/highlight": "1.2.5",
+    "@lezer/lr": "1.4.12"
+  },
+  "devDependencies": {
+    "@lezer/generator": "1.8.1"
+  }
+}

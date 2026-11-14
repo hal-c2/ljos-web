@@ -1,0 +1,520 @@
+# tasks 1 (qml) {"dialect":"ts"}
+
+import Ljos.Core
+import Ljos.Ui
+import Ljos.Layout
+import Ljos.Controls
+
+Column {
+    id: root
+    spacing: 8
+    padding: 12
+    property string city: "Oslo"
+
+    Task {
+        id: weather
+        args: [root.city]
+        run: async (name: string, signal: AbortSignal): Promise<string> => {
+            const reply = await fetch(`https://example.org/weather/${name}.txt`, { signal })
+            if (!reply.ok) {
+                throw new Error(reply.statusText)
+            }
+            return (await reply.text()).trim()
+        }
+    }
+
+    function forecast(): string {
+        const state = weather.state
+        switch (state.status) {
+            case "initial":
+                return ""
+            case "pending":
+                return state.value ?? qsTr("Loading…")
+            case "done":
+                return state.value
+            case "failed":
+                return qsTr("No forecast")
+        }
+    }
+
+    Label {
+        text: root.forecast()
+    }
+    Button {
+        text: "Bergen"
+        onClicked: root.city = "Bergen"
+    }
+}
+
+==>
+
+Program(
+  UiImport(import,UiQualifiedId(UiIdentifier,".",UiIdentifier)),
+  UiImport(import,UiQualifiedId(UiIdentifier,".",UiIdentifier)),
+  UiImport(import,UiQualifiedId(UiIdentifier,".",UiIdentifier)),
+  UiImport(import,UiQualifiedId(UiIdentifier,".",UiIdentifier)),
+  UiObjectDefinition(
+    UiQualifiedId(UiIdentifier),
+    UiObjectInitializer(
+      "{",
+      UiBinding(
+        UiQualifiedId(UiIdentifier),
+        ":",
+        ExpressionStatement(VariableName)),
+      UiBinding(UiQualifiedId(UiIdentifier),":",ExpressionStatement(Number)),
+      UiBinding(UiQualifiedId(UiIdentifier),":",ExpressionStatement(Number)),
+      UiPropertyDeclaration(
+        property,
+        UiPropertyType(UiQualifiedId(UiIdentifier)),
+        PropertyDefinition,
+        ":",
+        ExpressionStatement(String)),
+      UiObjectDefinition(
+        UiQualifiedId(UiIdentifier),
+        UiObjectInitializer(
+          "{",
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(VariableName)),
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(
+              ArrayExpression(
+                "[",
+                MemberExpression(VariableName,".",PropertyName),
+                "]"))),
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(
+              ArrowFunction(
+                async,
+                ParamList(
+                  "(",
+                  VariableDefinition,
+                  TypeAnnotation(":",TypeName),
+                  ",",
+                  VariableDefinition,
+                  TypeAnnotation(":",TypeName),
+                  ")"),
+                TypeAnnotation(
+                  ":",
+                  ParameterizedType(TypeName,TypeArgList("<",TypeName,">"))),
+                Arrow,
+                Block(
+                  "{",
+                  VariableDeclaration(
+                    const,
+                    VariableDefinition,
+                    Equals,
+                    AwaitExpression(
+                      await,
+                      CallExpression(
+                        VariableName,
+                        ArgList(
+                          "(",
+                          TemplateString(
+                            Interpolation(
+                              InterpolationStart,
+                              VariableName,
+                              InterpolationEnd)),
+                          ",",
+                          ObjectExpression(
+                            "{",
+                            Property(PropertyDefinition),
+                            "}"),
+                          ")")))),
+                  IfStatement(
+                    if,
+                    ParenthesizedExpression(
+                      "(",
+                      UnaryExpression(
+                        LogicOp,
+                        MemberExpression(VariableName,".",PropertyName)),
+                      ")"),
+                    Block(
+                      "{",
+                      ThrowStatement(
+                        throw,
+                        NewExpression(
+                          new,
+                          VariableName,
+                          ArgList(
+                            "(",
+                            MemberExpression(VariableName,".",PropertyName),
+                            ")"))),
+                      "}")),
+                  ReturnStatement(
+                    return,
+                    CallExpression(
+                      MemberExpression(
+                        ParenthesizedExpression(
+                          "(",
+                          AwaitExpression(
+                            await,
+                            CallExpression(
+                              MemberExpression(VariableName,".",PropertyName),
+                              ArgList("(",")"))),
+                          ")"),
+                        ".",
+                        PropertyName),
+                      ArgList("(",")"))),
+                  "}")))),
+          "}")),
+      FunctionDeclaration(
+        function,
+        VariableDefinition,
+        ParamList("(",")"),
+        TypeAnnotation(":",TypeName),
+        Block(
+          "{",
+          VariableDeclaration(
+            const,
+            VariableDefinition,
+            Equals,
+            MemberExpression(VariableName,".",PropertyName)),
+          SwitchStatement(
+            switch,
+            ParenthesizedExpression(
+              "(",
+              MemberExpression(VariableName,".",PropertyName),
+              ")"),
+            SwitchBody(
+              "{",
+              CaseLabel(case,String,":"),
+              ReturnStatement(return,String),
+              CaseLabel(case,String,":"),
+              ReturnStatement(
+                return,
+                BinaryExpression(
+                  MemberExpression(VariableName,".",PropertyName),
+                  LogicOp,
+                  CallExpression(VariableName,ArgList("(",String,")")))),
+              CaseLabel(case,String,":"),
+              ReturnStatement(
+                return,
+                MemberExpression(VariableName,".",PropertyName)),
+              CaseLabel(case,String,":"),
+              ReturnStatement(
+                return,
+                CallExpression(VariableName,ArgList("(",String,")"))),
+              "}")),
+          "}")),
+      UiObjectDefinition(
+        UiQualifiedId(UiIdentifier),
+        UiObjectInitializer(
+          "{",
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(
+              CallExpression(
+                MemberExpression(VariableName,".",PropertyName),
+                ArgList("(",")")))),
+          "}")),
+      UiObjectDefinition(
+        UiQualifiedId(UiIdentifier),
+        UiObjectInitializer(
+          "{",
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(String)),
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(
+              AssignmentExpression(
+                MemberExpression(VariableName,".",PropertyName),
+                Equals,
+                String))),
+          "}")),
+      "}")))
+
+# tasks 2 (qml) {"dialect":"ts"}
+
+import Ljos.Core
+import Ljos.Ui
+import Ljos.Models
+import Ljos.Layout
+import Ljos.Controls
+
+Column {
+    id: root
+    spacing: 8
+    padding: 12
+
+    ListModel {
+        id: today
+    }
+
+    function activityOf(given: unknown): string {
+        if (typeof given === "object" && given !== null && "activity" in given && typeof given.activity === "string") {
+            return given.activity
+        }
+        throw new Error("the reply has no activity")
+    }
+
+    Task {
+        id: randomActivity
+        autoRun: false
+        run: async (signal: AbortSignal): Promise<string> => {
+            const reply = await fetch("https://example.org/api/activity", { signal })
+            if (!reply.ok) {
+                throw new Error(`status ${reply.status}`)
+            }
+            return root.activityOf(await reply.json())
+        }
+        onDone: (activity: string) => { today.append({ name: activity }) }
+        onFailed: console.log("No random task: the service did not answer")
+    }
+
+    Button {
+        text: randomActivity.status === "pending" ? qsTr("Asking…") : qsTr("Add a random task")
+        onClicked: randomActivity.start()
+    }
+    Repeater {
+        model: today
+        Label {
+            required property string name
+            text: name
+        }
+    }
+}
+
+==>
+
+Program(
+  UiImport(import,UiQualifiedId(UiIdentifier,".",UiIdentifier)),
+  UiImport(import,UiQualifiedId(UiIdentifier,".",UiIdentifier)),
+  UiImport(import,UiQualifiedId(UiIdentifier,".",UiIdentifier)),
+  UiImport(import,UiQualifiedId(UiIdentifier,".",UiIdentifier)),
+  UiImport(import,UiQualifiedId(UiIdentifier,".",UiIdentifier)),
+  UiObjectDefinition(
+    UiQualifiedId(UiIdentifier),
+    UiObjectInitializer(
+      "{",
+      UiBinding(
+        UiQualifiedId(UiIdentifier),
+        ":",
+        ExpressionStatement(VariableName)),
+      UiBinding(UiQualifiedId(UiIdentifier),":",ExpressionStatement(Number)),
+      UiBinding(UiQualifiedId(UiIdentifier),":",ExpressionStatement(Number)),
+      UiObjectDefinition(
+        UiQualifiedId(UiIdentifier),
+        UiObjectInitializer(
+          "{",
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(VariableName)),
+          "}")),
+      FunctionDeclaration(
+        function,
+        VariableDefinition,
+        ParamList("(",VariableDefinition,TypeAnnotation(":",TypeName),")"),
+        TypeAnnotation(":",TypeName),
+        Block(
+          "{",
+          IfStatement(
+            if,
+            ParenthesizedExpression(
+              "(",
+              BinaryExpression(
+                BinaryExpression(
+                  BinaryExpression(
+                    BinaryExpression(
+                      UnaryExpression(typeof,VariableName),
+                      CompareOp,
+                      String),
+                    LogicOp,
+                    BinaryExpression(VariableName,CompareOp,null)),
+                  LogicOp,
+                  BinaryExpression(String,in,VariableName)),
+                LogicOp,
+                BinaryExpression(
+                  UnaryExpression(
+                    typeof,
+                    MemberExpression(VariableName,".",PropertyName)),
+                  CompareOp,
+                  String)),
+              ")"),
+            Block(
+              "{",
+              ReturnStatement(
+                return,
+                MemberExpression(VariableName,".",PropertyName)),
+              "}")),
+          ThrowStatement(
+            throw,
+            NewExpression(new,VariableName,ArgList("(",String,")"))),
+          "}")),
+      UiObjectDefinition(
+        UiQualifiedId(UiIdentifier),
+        UiObjectInitializer(
+          "{",
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(VariableName)),
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(BooleanLiteral)),
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(
+              ArrowFunction(
+                async,
+                ParamList(
+                  "(",
+                  VariableDefinition,
+                  TypeAnnotation(":",TypeName),
+                  ")"),
+                TypeAnnotation(
+                  ":",
+                  ParameterizedType(TypeName,TypeArgList("<",TypeName,">"))),
+                Arrow,
+                Block(
+                  "{",
+                  VariableDeclaration(
+                    const,
+                    VariableDefinition,
+                    Equals,
+                    AwaitExpression(
+                      await,
+                      CallExpression(
+                        VariableName,
+                        ArgList(
+                          "(",
+                          String,
+                          ",",
+                          ObjectExpression(
+                            "{",
+                            Property(PropertyDefinition),
+                            "}"),
+                          ")")))),
+                  IfStatement(
+                    if,
+                    ParenthesizedExpression(
+                      "(",
+                      UnaryExpression(
+                        LogicOp,
+                        MemberExpression(VariableName,".",PropertyName)),
+                      ")"),
+                    Block(
+                      "{",
+                      ThrowStatement(
+                        throw,
+                        NewExpression(
+                          new,
+                          VariableName,
+                          ArgList(
+                            "(",
+                            TemplateString(
+                              Interpolation(
+                                InterpolationStart,
+                                MemberExpression(
+                                  VariableName,
+                                  ".",
+                                  PropertyName),
+                                InterpolationEnd)),
+                            ")"))),
+                      "}")),
+                  ReturnStatement(
+                    return,
+                    CallExpression(
+                      MemberExpression(VariableName,".",PropertyName),
+                      ArgList(
+                        "(",
+                        AwaitExpression(
+                          await,
+                          CallExpression(
+                            MemberExpression(VariableName,".",PropertyName),
+                            ArgList("(",")"))),
+                        ")"))),
+                  "}")))),
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(
+              ArrowFunction(
+                ParamList(
+                  "(",
+                  VariableDefinition,
+                  TypeAnnotation(":",TypeName),
+                  ")"),
+                Arrow,
+                Block(
+                  "{",
+                  ExpressionStatement(
+                    CallExpression(
+                      MemberExpression(VariableName,".",PropertyName),
+                      ArgList(
+                        "(",
+                        ObjectExpression(
+                          "{",
+                          Property(PropertyDefinition,":",VariableName),
+                          "}"),
+                        ")"))),
+                  "}")))),
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(
+              CallExpression(
+                MemberExpression(VariableName,".",PropertyName),
+                ArgList("(",String,")")))),
+          "}")),
+      UiObjectDefinition(
+        UiQualifiedId(UiIdentifier),
+        UiObjectInitializer(
+          "{",
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(
+              ConditionalExpression(
+                BinaryExpression(
+                  MemberExpression(VariableName,".",PropertyName),
+                  CompareOp,
+                  String),
+                LogicOp,
+                CallExpression(VariableName,ArgList("(",String,")")),
+                LogicOp,
+                CallExpression(VariableName,ArgList("(",String,")"))))),
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(
+              CallExpression(
+                MemberExpression(VariableName,".",PropertyName),
+                ArgList("(",")")))),
+          "}")),
+      UiObjectDefinition(
+        UiQualifiedId(UiIdentifier),
+        UiObjectInitializer(
+          "{",
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(VariableName)),
+          UiObjectDefinition(
+            UiQualifiedId(UiIdentifier),
+            UiObjectInitializer(
+              "{",
+              UiPropertyDeclaration(
+                required,
+                property,
+                UiPropertyType(UiQualifiedId(UiIdentifier)),
+                PropertyDefinition),
+              UiBinding(
+                UiQualifiedId(UiIdentifier),
+                ":",
+                ExpressionStatement(VariableName)),
+              "}")),
+          "}")),
+      "}")))

@@ -1,0 +1,697 @@
+# pipe 1 (qml) {"dialect":"ts"}
+
+import Ljos.Ui
+
+Window {
+    width: 200
+    height: 60
+    visible: true
+
+    property real oldPrice: 40
+    property real newPrice: 30
+
+    readonly property real discountPercent:
+        oldPrice - newPrice |> Math.max(%, 0) / oldPrice * 100 |> Math.round(%)
+
+    Text {
+        text: qsTr("%1% off").arg(discountPercent)
+    }
+}
+
+==>
+
+Program(
+  UiImport(import,UiQualifiedId(UiIdentifier,".",UiIdentifier)),
+  UiObjectDefinition(
+    UiQualifiedId(UiIdentifier),
+    UiObjectInitializer(
+      "{",
+      UiBinding(UiQualifiedId(UiIdentifier),":",ExpressionStatement(Number)),
+      UiBinding(UiQualifiedId(UiIdentifier),":",ExpressionStatement(Number)),
+      UiBinding(
+        UiQualifiedId(UiIdentifier),
+        ":",
+        ExpressionStatement(BooleanLiteral)),
+      UiPropertyDeclaration(
+        property,
+        UiPropertyType(UiQualifiedId(UiIdentifier)),
+        PropertyDefinition,
+        ":",
+        ExpressionStatement(Number)),
+      UiPropertyDeclaration(
+        property,
+        UiPropertyType(UiQualifiedId(UiIdentifier)),
+        PropertyDefinition,
+        ":",
+        ExpressionStatement(Number)),
+      UiPropertyDeclaration(
+        readonly,
+        property,
+        UiPropertyType(UiQualifiedId(UiIdentifier)),
+        PropertyDefinition,
+        ":",
+        ExpressionStatement(
+          PipeExpression(
+            PipeExpression(
+              BinaryExpression(VariableName,ArithOp,VariableName),
+              PipeOp,
+              BinaryExpression(
+                BinaryExpression(
+                  CallExpression(
+                    MemberExpression(VariableName,".",PropertyName),
+                    ArgList("(",TopicReference,",",Number,")")),
+                  ArithOp,
+                  VariableName),
+                ArithOp,
+                Number)),
+            PipeOp,
+            CallExpression(
+              MemberExpression(VariableName,".",PropertyName),
+              ArgList("(",TopicReference,")"))))),
+      UiObjectDefinition(
+        UiQualifiedId(UiIdentifier),
+        UiObjectInitializer(
+          "{",
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(
+              CallExpression(
+                MemberExpression(
+                  CallExpression(VariableName,ArgList("(",String,")")),
+                  ".",
+                  PropertyName),
+                ArgList("(",VariableName,")")))),
+          "}")),
+      "}")))
+
+# pipe 2 (qml) {"dialect":"ts"}
+
+import Ljos.Ui
+
+Window {
+    width: 200
+    height: 60
+    visible: true
+
+    property int count: 7
+
+    readonly property string listed: [1, 2, 3] |> %.map(n => n * count) |> %.join(", ")
+    readonly property string shouted: "ljos" |> `${%}!` |> [%, %].join(" ")
+    readonly property int left: count |> % + 1 |> % % 3
+
+    Text {
+        text: `${listed} ${shouted} ${left}`
+    }
+}
+
+==>
+
+Program(
+  UiImport(import,UiQualifiedId(UiIdentifier,".",UiIdentifier)),
+  UiObjectDefinition(
+    UiQualifiedId(UiIdentifier),
+    UiObjectInitializer(
+      "{",
+      UiBinding(UiQualifiedId(UiIdentifier),":",ExpressionStatement(Number)),
+      UiBinding(UiQualifiedId(UiIdentifier),":",ExpressionStatement(Number)),
+      UiBinding(
+        UiQualifiedId(UiIdentifier),
+        ":",
+        ExpressionStatement(BooleanLiteral)),
+      UiPropertyDeclaration(
+        property,
+        UiPropertyType(UiQualifiedId(UiIdentifier)),
+        PropertyDefinition,
+        ":",
+        ExpressionStatement(Number)),
+      UiPropertyDeclaration(
+        readonly,
+        property,
+        UiPropertyType(UiQualifiedId(UiIdentifier)),
+        PropertyDefinition,
+        ":",
+        ExpressionStatement(
+          PipeExpression(
+            PipeExpression(
+              ArrayExpression("[",Number,",",Number,",",Number,"]"),
+              PipeOp,
+              CallExpression(
+                MemberExpression(TopicReference,".",PropertyName),
+                ArgList(
+                  "(",
+                  ArrowFunction(
+                    ParamList(VariableDefinition),
+                    Arrow,
+                    BinaryExpression(VariableName,ArithOp,VariableName)),
+                  ")"))),
+            PipeOp,
+            CallExpression(
+              MemberExpression(TopicReference,".",PropertyName),
+              ArgList("(",String,")"))))),
+      UiPropertyDeclaration(
+        readonly,
+        property,
+        UiPropertyType(UiQualifiedId(UiIdentifier)),
+        PropertyDefinition,
+        ":",
+        ExpressionStatement(
+          PipeExpression(
+            PipeExpression(
+              String,
+              PipeOp,
+              TemplateString(
+                Interpolation(
+                  InterpolationStart,
+                  TopicReference,
+                  InterpolationEnd))),
+            PipeOp,
+            CallExpression(
+              MemberExpression(
+                ArrayExpression("[",TopicReference,",",TopicReference,"]"),
+                ".",
+                PropertyName),
+              ArgList("(",String,")"))))),
+      UiPropertyDeclaration(
+        readonly,
+        property,
+        UiPropertyType(UiQualifiedId(UiIdentifier)),
+        PropertyDefinition,
+        ":",
+        ExpressionStatement(
+          PipeExpression(
+            PipeExpression(
+              VariableName,
+              PipeOp,
+              BinaryExpression(TopicReference,ArithOp,Number)),
+            PipeOp,
+            BinaryExpression(TopicReference,ArithOp,Number)))),
+      UiObjectDefinition(
+        UiQualifiedId(UiIdentifier),
+        UiObjectInitializer(
+          "{",
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(
+              TemplateString(
+                Interpolation(
+                  InterpolationStart,
+                  VariableName,
+                  InterpolationEnd),
+                Interpolation(
+                  InterpolationStart,
+                  VariableName,
+                  InterpolationEnd),
+                Interpolation(
+                  InterpolationStart,
+                  VariableName,
+                  InterpolationEnd)))),
+          "}")),
+      "}")))
+
+# pipe 3 (qml) {"dialect":"ts"}
+
+import Ljos.Ui
+
+Rectangle {
+    width: 200
+    height: 60
+
+    property real level: -3
+    property real shown: 0
+
+    readonly property real kept: level |> (% > 0 ? % : 0)
+
+    Tap {
+        onTapped: level |> (shown = % * 2)
+    }
+}
+
+==>
+
+Program(
+  UiImport(import,UiQualifiedId(UiIdentifier,".",UiIdentifier)),
+  UiObjectDefinition(
+    UiQualifiedId(UiIdentifier),
+    UiObjectInitializer(
+      "{",
+      UiBinding(UiQualifiedId(UiIdentifier),":",ExpressionStatement(Number)),
+      UiBinding(UiQualifiedId(UiIdentifier),":",ExpressionStatement(Number)),
+      UiPropertyDeclaration(
+        property,
+        UiPropertyType(UiQualifiedId(UiIdentifier)),
+        PropertyDefinition,
+        ":",
+        ExpressionStatement(UnaryExpression(ArithOp,Number))),
+      UiPropertyDeclaration(
+        property,
+        UiPropertyType(UiQualifiedId(UiIdentifier)),
+        PropertyDefinition,
+        ":",
+        ExpressionStatement(Number)),
+      UiPropertyDeclaration(
+        readonly,
+        property,
+        UiPropertyType(UiQualifiedId(UiIdentifier)),
+        PropertyDefinition,
+        ":",
+        ExpressionStatement(
+          PipeExpression(
+            VariableName,
+            PipeOp,
+            ParenthesizedExpression(
+              "(",
+              ConditionalExpression(
+                BinaryExpression(TopicReference,CompareOp,Number),
+                LogicOp,
+                TopicReference,
+                LogicOp,
+                Number),
+              ")")))),
+      UiObjectDefinition(
+        UiQualifiedId(UiIdentifier),
+        UiObjectInitializer(
+          "{",
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(
+              PipeExpression(
+                VariableName,
+                PipeOp,
+                ParenthesizedExpression(
+                  "(",
+                  AssignmentExpression(
+                    VariableName,
+                    Equals,
+                    BinaryExpression(TopicReference,ArithOp,Number)),
+                  ")")))),
+          "}")),
+      "}")))
+
+# pipe 4 (qml) {"dialect":"ts"}
+
+import Ljos.Ui
+
+Window {
+    width: 200
+    height: 60
+    visible: true
+
+    readonly property int nested: 3 |> (% + 1 |> % * 10) + %
+    readonly property string kept: [1, 2, 3].map(n => n |> (() => % * 10)) |> %.map(f => f()).join(",")
+
+    Text {
+        text: `${nested} ${kept}`
+    }
+}
+
+==>
+
+Program(
+  UiImport(import,UiQualifiedId(UiIdentifier,".",UiIdentifier)),
+  UiObjectDefinition(
+    UiQualifiedId(UiIdentifier),
+    UiObjectInitializer(
+      "{",
+      UiBinding(UiQualifiedId(UiIdentifier),":",ExpressionStatement(Number)),
+      UiBinding(UiQualifiedId(UiIdentifier),":",ExpressionStatement(Number)),
+      UiBinding(
+        UiQualifiedId(UiIdentifier),
+        ":",
+        ExpressionStatement(BooleanLiteral)),
+      UiPropertyDeclaration(
+        readonly,
+        property,
+        UiPropertyType(UiQualifiedId(UiIdentifier)),
+        PropertyDefinition,
+        ":",
+        ExpressionStatement(
+          PipeExpression(
+            Number,
+            PipeOp,
+            BinaryExpression(
+              ParenthesizedExpression(
+                "(",
+                PipeExpression(
+                  BinaryExpression(TopicReference,ArithOp,Number),
+                  PipeOp,
+                  BinaryExpression(TopicReference,ArithOp,Number)),
+                ")"),
+              ArithOp,
+              TopicReference)))),
+      UiPropertyDeclaration(
+        readonly,
+        property,
+        UiPropertyType(UiQualifiedId(UiIdentifier)),
+        PropertyDefinition,
+        ":",
+        ExpressionStatement(
+          PipeExpression(
+            CallExpression(
+              MemberExpression(
+                ArrayExpression("[",Number,",",Number,",",Number,"]"),
+                ".",
+                PropertyName),
+              ArgList(
+                "(",
+                ArrowFunction(
+                  ParamList(VariableDefinition),
+                  Arrow,
+                  PipeExpression(
+                    VariableName,
+                    PipeOp,
+                    ParenthesizedExpression(
+                      "(",
+                      ArrowFunction(
+                        ParamList("(",")"),
+                        Arrow,
+                        BinaryExpression(TopicReference,ArithOp,Number)),
+                      ")"))),
+                ")")),
+            PipeOp,
+            CallExpression(
+              MemberExpression(
+                CallExpression(
+                  MemberExpression(TopicReference,".",PropertyName),
+                  ArgList(
+                    "(",
+                    ArrowFunction(
+                      ParamList(VariableDefinition),
+                      Arrow,
+                      CallExpression(VariableName,ArgList("(",")"))),
+                    ")")),
+                ".",
+                PropertyName),
+              ArgList("(",String,")"))))),
+      UiObjectDefinition(
+        UiQualifiedId(UiIdentifier),
+        UiObjectInitializer(
+          "{",
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(
+              TemplateString(
+                Interpolation(
+                  InterpolationStart,
+                  VariableName,
+                  InterpolationEnd),
+                Interpolation(
+                  InterpolationStart,
+                  VariableName,
+                  InterpolationEnd)))),
+          "}")),
+      "}")))
+
+# pipe 5 (qml) {"dialect":"ts"}
+
+import Ljos.Ui
+import Ljos.Core
+
+Window {
+    width: 200
+    height: 60
+    visible: true
+
+    property string published: "2026-01-01T12:00"
+    property real now: Date.parse("2026-01-01T13:30")
+
+    function timeSinceEvent(published: string, now: number): string {
+        return (now - Date.parse(published)) / 60000 |> Math.floor(%) |> match (%) {
+            when if (% < 2): qsTr("Just now");
+            when if (% < 60): qsTr("%1 minutes ago").arg(%);
+            when if (% < 120): qsTr("1 hour ago");
+            when if (% < 1440): Math.floor(% / 60) |> qsTr("%1 hours ago").arg(%);
+            default: Locale.current.formatDate(published, "yyyy-MM-dd");
+        }
+    }
+
+    Text {
+        text: timeSinceEvent(published, now)
+    }
+}
+
+==>
+
+Program(
+  UiImport(import,UiQualifiedId(UiIdentifier,".",UiIdentifier)),
+  UiImport(import,UiQualifiedId(UiIdentifier,".",UiIdentifier)),
+  UiObjectDefinition(
+    UiQualifiedId(UiIdentifier),
+    UiObjectInitializer(
+      "{",
+      UiBinding(UiQualifiedId(UiIdentifier),":",ExpressionStatement(Number)),
+      UiBinding(UiQualifiedId(UiIdentifier),":",ExpressionStatement(Number)),
+      UiBinding(
+        UiQualifiedId(UiIdentifier),
+        ":",
+        ExpressionStatement(BooleanLiteral)),
+      UiPropertyDeclaration(
+        property,
+        UiPropertyType(UiQualifiedId(UiIdentifier)),
+        PropertyDefinition,
+        ":",
+        ExpressionStatement(String)),
+      UiPropertyDeclaration(
+        property,
+        UiPropertyType(UiQualifiedId(UiIdentifier)),
+        PropertyDefinition,
+        ":",
+        ExpressionStatement(
+          CallExpression(
+            MemberExpression(VariableName,".",PropertyName),
+            ArgList("(",String,")")))),
+      FunctionDeclaration(
+        function,
+        VariableDefinition,
+        ParamList(
+          "(",
+          VariableDefinition,
+          TypeAnnotation(":",TypeName),
+          ",",
+          VariableDefinition,
+          TypeAnnotation(":",TypeName),
+          ")"),
+        TypeAnnotation(":",TypeName),
+        Block(
+          "{",
+          ReturnStatement(
+            return,
+            PipeExpression(
+              PipeExpression(
+                BinaryExpression(
+                  ParenthesizedExpression(
+                    "(",
+                    BinaryExpression(
+                      VariableName,
+                      ArithOp,
+                      CallExpression(
+                        MemberExpression(VariableName,".",PropertyName),
+                        ArgList("(",VariableName,")"))),
+                    ")"),
+                  ArithOp,
+                  Number),
+                PipeOp,
+                CallExpression(
+                  MemberExpression(VariableName,".",PropertyName),
+                  ArgList("(",TopicReference,")"))),
+              PipeOp,
+              MatchExpression(
+                match,
+                ParenthesizedExpression("(",TopicReference,")"),
+                MatchBody(
+                  "{",
+                  MatchClause(
+                    when,
+                    GuardPattern(
+                      if,
+                      ParenthesizedExpression(
+                        "(",
+                        BinaryExpression(TopicReference,CompareOp,Number),
+                        ")")),
+                    ":",
+                    CallExpression(VariableName,ArgList("(",String,")")),
+                    ";"),
+                  MatchClause(
+                    when,
+                    GuardPattern(
+                      if,
+                      ParenthesizedExpression(
+                        "(",
+                        BinaryExpression(TopicReference,CompareOp,Number),
+                        ")")),
+                    ":",
+                    CallExpression(
+                      MemberExpression(
+                        CallExpression(VariableName,ArgList("(",String,")")),
+                        ".",
+                        PropertyName),
+                      ArgList("(",TopicReference,")")),
+                    ";"),
+                  MatchClause(
+                    when,
+                    GuardPattern(
+                      if,
+                      ParenthesizedExpression(
+                        "(",
+                        BinaryExpression(TopicReference,CompareOp,Number),
+                        ")")),
+                    ":",
+                    CallExpression(VariableName,ArgList("(",String,")")),
+                    ";"),
+                  MatchClause(
+                    when,
+                    GuardPattern(
+                      if,
+                      ParenthesizedExpression(
+                        "(",
+                        BinaryExpression(TopicReference,CompareOp,Number),
+                        ")")),
+                    ":",
+                    PipeExpression(
+                      CallExpression(
+                        MemberExpression(VariableName,".",PropertyName),
+                        ArgList(
+                          "(",
+                          BinaryExpression(TopicReference,ArithOp,Number),
+                          ")")),
+                      PipeOp,
+                      CallExpression(
+                        MemberExpression(
+                          CallExpression(VariableName,ArgList("(",String,")")),
+                          ".",
+                          PropertyName),
+                        ArgList("(",TopicReference,")"))),
+                    ";"),
+                  MatchDefault(
+                    default,
+                    ":",
+                    CallExpression(
+                      MemberExpression(
+                        MemberExpression(VariableName,".",PropertyName),
+                        ".",
+                        PropertyName),
+                      ArgList("(",VariableName,",",String,")")),
+                    ";"),
+                  "}")))),
+          "}")),
+      UiObjectDefinition(
+        UiQualifiedId(UiIdentifier),
+        UiObjectInitializer(
+          "{",
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(
+              CallExpression(
+                VariableName,
+                ArgList("(",VariableName,",",VariableName,")")))),
+          "}")),
+      "}")))
+
+# pipe 6 (sizes.lts) {"top":"Script","dialect":"ts"}
+
+export async function doubled(size: Promise<number>): Promise<string> {
+    return await size |> % * 2 |> `${%} px`
+}
+
+==>
+
+Script(
+  ExportDeclaration(
+    export,
+    FunctionDeclaration(
+      async,
+      function,
+      VariableDefinition,
+      ParamList(
+        "(",
+        VariableDefinition,
+        TypeAnnotation(
+          ":",
+          ParameterizedType(TypeName,TypeArgList("<",TypeName,">"))),
+        ")"),
+      TypeAnnotation(
+        ":",
+        ParameterizedType(TypeName,TypeArgList("<",TypeName,">"))),
+      Block(
+        "{",
+        ReturnStatement(
+          return,
+          PipeExpression(
+            PipeExpression(
+              AwaitExpression(await,VariableName),
+              PipeOp,
+              BinaryExpression(TopicReference,ArithOp,Number)),
+            PipeOp,
+            TemplateString(
+              Interpolation(
+                InterpolationStart,
+                TopicReference,
+                InterpolationEnd)))),
+        "}"))))
+
+# pipe 7 (qml) {"dialect":"ts"}
+
+import Ljos.Ui
+import "sizes.lts" as Sizes
+
+Rectangle {
+    width: 200
+    height: 60
+
+    property string shown: ""
+
+    Tap {
+        onTapped: Sizes.doubled(Promise.resolve(12)).then(text => shown = text)
+    }
+}
+
+==>
+
+Program(
+  UiImport(import,UiQualifiedId(UiIdentifier,".",UiIdentifier)),
+  UiImport(import,String,as,TypeDefinition),
+  UiObjectDefinition(
+    UiQualifiedId(UiIdentifier),
+    UiObjectInitializer(
+      "{",
+      UiBinding(UiQualifiedId(UiIdentifier),":",ExpressionStatement(Number)),
+      UiBinding(UiQualifiedId(UiIdentifier),":",ExpressionStatement(Number)),
+      UiPropertyDeclaration(
+        property,
+        UiPropertyType(UiQualifiedId(UiIdentifier)),
+        PropertyDefinition,
+        ":",
+        ExpressionStatement(String)),
+      UiObjectDefinition(
+        UiQualifiedId(UiIdentifier),
+        UiObjectInitializer(
+          "{",
+          UiBinding(
+            UiQualifiedId(UiIdentifier),
+            ":",
+            ExpressionStatement(
+              CallExpression(
+                MemberExpression(
+                  CallExpression(
+                    MemberExpression(VariableName,".",PropertyName),
+                    ArgList(
+                      "(",
+                      CallExpression(
+                        MemberExpression(VariableName,".",PropertyName),
+                        ArgList("(",Number,")")),
+                      ")")),
+                  ".",
+                  PropertyName),
+                ArgList(
+                  "(",
+                  ArrowFunction(
+                    ParamList(VariableDefinition),
+                    Arrow,
+                    AssignmentExpression(VariableName,Equals,VariableName)),
+                  ")")))),
+          "}")),
+      "}")))

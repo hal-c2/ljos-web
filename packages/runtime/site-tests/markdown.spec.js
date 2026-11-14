@@ -55,10 +55,19 @@ test("a fenced block keeps its fence contract and its code, highlighted", () => 
 });
 
 test("highlighting never colours inside a string, a number, or its own markup", () => {
-  const rich = highlight('color: "#9a6a00" // return 42', "qml");
-  expect(rich).not.toContain('style="<span');
-  expect(rich).toContain("&quot;#9a6a00&quot;");
-  expect(rich.match(/<span/g).length).toBeLessThanOrEqual(3);
+  // The grammar's tokens, where it reads the language.
+  const rich = highlight('Rectangle { color: "#9a6a00" } // return 42', "qml");
+  expect(rich).toContain('<span class="tok-string">&quot;#9a6a00&quot;</span>');
+  expect(rich).toContain('<span class="tok-comment">// return 42</span>');
+  expect(rich).toContain('<span class="tok-typeName">Rectangle</span>');
+  // The rough colouring, where it does not: one pass, so a keyword
+  // (`class`) in its own markup is never coloured again.
+  const rough = highlight('class Foo: "a 42" 7 # 3', "rust");
+  expect(rough).toContain('<span class="tok-string">&quot;a 42&quot;</span>');
+  expect(rough).toContain('<span class="tok-number">7</span>');
+  expect(rough).toContain('<span class="tok-keyword">class</span>');
+  expect(rough).not.toMatch(/class="<span|<span class="<span/);
+  expect(rough.match(/<span/g).length).toBe(4);
 });
 
 test("a table's cells are split outside code spans, and an escaped pipe is a pipe", () => {

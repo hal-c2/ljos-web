@@ -2,8 +2,10 @@
 // of a document into the static half of a live code block, and holds
 // the fences that claim to run to compiling. It works on the mdast a
 // host hands it (Astro/Starlight, or any unified pipeline) and needs
-// nothing of the host but the tree: exempt fences are left exactly as
-// they are, for the host's own highlighting.
+// nothing of the host but the tree. A fence that stays code (exempt, a
+// legacy snippet, the rest of a spread group) is left exactly as it is,
+// for the host's own highlighting, unless the host asks for the build's
+// (`highlight`).
 //
 // One example becomes one figure, wherever its fences sit. Docs
 // introduce a multi-file example's files one by one in prose, so the
@@ -29,11 +31,29 @@
 //   prerendered HTML by its content hash. An entry marked failed (it
 //   compiled for `qmlc` but did not run) keeps its block plain, by the
 //   same rule as a compile failure.
-import { checkExamples, hashExample, renderStatic } from "./build.js";
+// - `highlight`: `true` highlights every fence that stays code whose
+//   language the grammar reads (QML, .lts, TS, JS) at build time, with
+//   the `tok-*` classes a live block's code has. A host that asks loads
+//   `ljos-web/codeblock.css` on every page, not only where a live block
+//   is, or those fences stand uncoloured. Off by default: a host's own
+//   highlighting (Expressive Code, say) keeps the fences it had.
+import { langOf } from "lezer-ljos";
+import { checkExamples, hashExample, renderCode, renderStatic } from "./build.js";
 import { assemble, parseMeta, tagged } from "./parse.js";
 
+// Every fence left as code whose language the grammar reads, as its
+// highlighted HTML, in place.
+function highlightFences(node) {
+  if (!Array.isArray(node.children)) return;
+  node.children.forEach((child, i) => {
+    if (child.type !== "code") return highlightFences(child);
+    const { lang } = parseMeta(child.lang, child.meta);
+    if (langOf(lang)) node.children[i] = { type: "html", value: renderCode(child.value, lang), position: child.position };
+  });
+}
+
 export function liveCodeBlocks(options = {}) {
-  const { harnesses = {}, qmlc, strict = false, prerenders = {}, onLegacy } = options;
+  const { harnesses = {}, qmlc, strict = false, prerenders = {}, onLegacy, highlight = false } = options;
   // One compile per distinct example in a build, however many pages
   // repeat it: the answer is the code's, and its hash names it.
   const checked = new Map();
@@ -43,7 +63,7 @@ export function liveCodeBlocks(options = {}) {
     return checked.get(hash);
   };
 
-  return (tree, file) => {
+  const transform = (tree, file) => {
     const fail = (message) => {
       throw new Error(`${file?.path ?? "a Markdown page"}: ${message}`);
     };
@@ -120,6 +140,11 @@ export function liveCodeBlocks(options = {}) {
     }
     if (legacy > 0) onLegacy?.(legacy, file);
     return tree;
+  };
+  return (tree, file) => {
+    const done = transform(tree, file);
+    if (highlight) highlightFences(done);
+    return done;
   };
 }
 

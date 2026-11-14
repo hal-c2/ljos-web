@@ -2,6 +2,7 @@ import QtQuick
 import Ljos.Blocks
 import Site
 import "../live.js" as Live
+import "code-editor.js" as Editor
 
 // A fenced block of a page. One that runs (`live` set by the build,
 // docs/LJOS_WEB.md A27/A28) is the code beside its running result:
@@ -61,6 +62,8 @@ Column {
         }
         stage.reload().then(function (why) {
             block.said = why || "";
+            for (var i = 0; i < editors.count; i++)
+                editors.itemAt(i).diagnostics = Live.diagnosticsFor(live.hash, i);
         });
     }
 
@@ -171,13 +174,17 @@ Column {
             color: Theme.ink
             font.family: Theme.mono
             font.pixelSize: 12
+            // As a live block's editor sets its lines (CodeEditor): a
+            // height the build and the browser agree on.
+            lineHeightMode: Text.FixedHeight
+            lineHeight: 18
             textFormat: Text.RichText
             wrapMode: Text.Wrap
-            // The colouring's spans are markup rich text takes; a
-            // <pre> around them is not (its words come back as
-            // text). Lines are breaks, and a line's leading spaces
-            // are the indentation, kept.
-            text: block.rich.split("\n").map(function (line) {
+            // The colouring (packed by the build, Editor.richOf) is
+            // spans, markup rich text takes; a <pre> around them is
+            // not (its words come back as text). Lines are breaks,
+            // and a line's leading spaces are the indentation, kept.
+            text: Editor.richOf(block.rich).split("\n").map(function (line) {
                 var indent = /^ */.exec(line)[0];
                 return "&nbsp;".repeat(indent.length) + line.slice(indent.length);
             }).join("<br/>")
@@ -252,19 +259,20 @@ Column {
                     id: editors
                     model: block.isLive ? block.live.display : []
 
-                    TextEdit {
+                    // Highlighted by the build; CodeMirror once the
+                    // reader is in it (CodeEditor).
+                    CodeEditor {
                         required property var modelData
                         required property int index
 
                         visible: index === block.currentFile
                         width: block.width - 20
                         x: 10
-                        text: modelData.code
-                        color: Theme.ink
-                        font.family: Theme.mono
-                        font.pixelSize: 12
-                        wrapMode: TextEdit.NoWrap
-                        selectByMouse: true
+                        code: modelData.code
+                        rich: modelData.rich || ""
+                        lang: modelData.lang || "qml"
+                        label: "Edit " + modelData.name
+                        errors: told
                         onTextChanged: debounce.restart()
                     }
                 }
@@ -285,7 +293,9 @@ Column {
             height: Math.max(pictureHeight, stage.implicitHeight)
 
             Text {
-                visible: block.isLive && !stage.item
+                // Until the result runs: the empty fallback only
+                // stands in while the code compiles (status Null).
+                visible: block.isLive && (!stage.item || stage.status === ShellLoader.Null)
                 textFormat: Text.RichText
                 text: block.isLive ? "<img src=\"" + block.live.picture + "\" width=\"" + stageBox.pictureWidth + "\" height=\"" + Math.round(stageBox.pictureHeight) + "\" alt=\"What this example draws\">" : ""
             }
@@ -302,6 +312,7 @@ Column {
         }
 
         Text {
+            id: told
             visible: (block.said || stage.error) !== ""
             width: parent.width
             text: block.said || stage.error

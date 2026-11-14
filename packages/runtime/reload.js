@@ -94,7 +94,8 @@ const AMBIGUOUS = Symbol("ambiguous");
 // `Clock` over `Rectangle`: the files an object is made from, and the type
 // of the runtime's under them. The file reloaded is not one of them: the
 // root is of the type its text says, whatever the component is called now.
-function typeOf(object, reloaded) {
+function typeOf(object, reloaded, across = false) {
+  if (across) return object.$type?.typeName;
   const is = object.$props?.$is;
   const files = (Array.isArray(is) ? is : [is]).filter((file) => file && file !== reloaded).map((file) => file.name);
   return [...files, object.$type?.typeName].join("<");
@@ -107,20 +108,20 @@ const opens = (object) => object.$row !== undefined || object.$props?.$levels !=
 
 // Every object of the tree under `root` by its key; `visit(object, key)`
 // is told of each, parents first.
-function keyed(root, reloaded, visit) {
+function keyed(root, reloaded, visit, across = false) {
   const walk = (object, key, scope) => {
     visit(object, key);
     const inner = opens(object) ? key : scope;
     const counts = new Map();
     for (const child of object.$born ?? []) {
       let own;
-      if (child.$row !== undefined) own = `${key}/[${child.$row}]${typeOf(child, reloaded)}`;
+      if (child.$row !== undefined) own = `${key}/[${child.$row}]${typeOf(child, reloaded, across)}`;
       else if (child.$id) own = `${inner}#${child.$id}`;
       else {
         const name = child.$slots && "objectName" in child ? child.objectName : "";
         if (typeof name === "string" && name !== "") own = `${key}/@${name}`;
         else {
-          const type = typeOf(child, reloaded);
+          const type = typeOf(child, reloaded, across);
           const nth = counts.get(type) ?? 0;
           counts.set(type, nth + 1);
           own = `${key}/${type}:${nth}`;
@@ -142,7 +143,7 @@ function below(object, into) {
 
 // What the tree under `root` is keyed by and was given, apart from it: all a
 // new tree needs of it, whether the old one is still there or not.
-function kept(root, Old) {
+function kept(root, Old, across = false) {
   const olds = new Map();
   const all = new Set();
   const records = new Map();
@@ -150,14 +151,14 @@ function kept(root, Old) {
     all.add(object);
     olds.set(key, olds.has(key) ? AMBIGUOUS : object);
     records.set(object, {
-      type: typeOf(object, Old),
+      type: typeOf(object, Old, across),
       props: object.$props,
       assigned: Object.entries(object.$slots ?? {}).flatMap(([key, held]) => (held.assigned ? [[key, held.value, held.kind?.type]] : [])),
       focused: object.activeFocus === true && !object.$born?.some((child) => child.activeFocus === true),
       selection: typeof object.selectionStart === "number" && object.selectionStart !== object.selectionEnd ? [object.selectionStart, object.selectionEnd] : null,
       below: [...below(object, new Set())],
     });
-  });
+  }, across);
   return { olds, all, records };
 }
 
@@ -165,11 +166,16 @@ function kept(root, Old) {
 // one was given. Answers the new object that is to have the keyboard.
 // Ljos.Blocks' ShellLoader carries a reloaded shell with it too: the shell
 // is not a mounted root, but its tree is recorded under the loader.
-export function carry(oldRoot, Old, newRoot, New) {
-  return pairedWith(kept(oldRoot, Old), newRoot, New);
+// `across`: the two trees are one place made by two builds (a shell
+// compiled in the page taking over from the application's own, which
+// stood in): a file of one is never a file of the other, and a shipped
+// build names its files as its minifier chose, so each object pairs by
+// its key and the type of the runtime's it is built on.
+export function carry(oldRoot, Old, newRoot, New, { across = false } = {}) {
+  return pairedWith(kept(oldRoot, Old, across), newRoot, New, across);
 }
 
-function pairedWith({ olds, all, records }, newRoot, New) {
+function pairedWith({ olds, all, records }, newRoot, New, across = false) {
   const pairs = new Map();
   const spent = new Set();
   // An object made anew, and those below it, are new whatever their keys.
@@ -181,13 +187,13 @@ function pairedWith({ olds, all, records }, newRoot, New) {
     }
     const old = olds.get(key);
     if (!old || old === AMBIGUOUS || spent.has(old) || pairs.has(old)) return;
-    if (records.get(old).type !== typeOf(object, New)) {
+    if (records.get(old).type !== typeOf(object, New, across)) {
       anew.add(object);
       for (const under of records.get(old).below) spent.add(under);
       return;
     }
     pairs.set(old, object);
-  });
+  }, across);
   let focused = null;
   for (const [old, object] of pairs) {
     given(records.get(old), object, (value) => moved(value, all, pairs));

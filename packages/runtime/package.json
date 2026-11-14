@@ -16,6 +16,9 @@
     "./reload": "./reload.js",
     "./live": "./Ljos/Blocks/live.js",
     "./codeblock": "./codeblocks/live.js",
+    "./codeblock/editor": "./codeblocks/editor.js",
+    "./codeblock/attach": "./codeblocks/attach.js",
+    "./codeblock/rich": "./codeblocks/rich.js",
     "./codeblock.css": "./codeblocks/codeblock.css",
     "./codeblocks": "./codeblocks/build.js",
     "./codeblocks/parse": "./codeblocks/parse.js",
@@ -100,6 +103,12 @@
     "solid-js": "2.0.0-rc.13"
   },
   "dependencies": {
+    "@codemirror/commands": "6.11.1",
+    "@codemirror/language": "6.13.1",
+    "@codemirror/lint": "6.9.7",
+    "@codemirror/state": "6.7.6",
+    "@codemirror/view": "6.43.15",
+    "lezer-ljos": "workspace:*",
     "physx-js-webidl": "2.8.0",
     "sql.js": "^1.14.2",
     "vite": "^8.0.0"

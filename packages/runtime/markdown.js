@@ -17,6 +17,8 @@
 // coloured for a reader whose page has not made the block live yet.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { langOf } from "lezer-ljos";
+import { highlightToHtml } from "lezer-ljos/html";
 
 const escapeHtml = (text) =>
   String(text).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
@@ -96,19 +98,23 @@ const KEYWORDS = new Set(
     "fn pub struct impl use mut match").split(" "),
 );
 
-// The code of a block, coloured for reading: comments dimmed, strings
-// warmed, the language's own words weighted. The colouring is of the
-// code's characters only — escaped first, whole tokens after — so it
-// can never make markup of them.
-// One stretch of code outside any string: its numbers and the
-// language's own words coloured, the rest as it is, escaped first.
+// The code of a block, coloured for reading. What the grammar reads
+// (QML, the Ljós dialect, TypeScript, JavaScript: `lezer-ljos`) is its
+// tokens, each a `tok-*` class the page's code theme colours, as the
+// editor that may take the block over colours it. Anything else (a
+// shell line, Rust) is coloured roughly, by the same classes: comments,
+// strings, numbers and the usual keywords. Either way the code is
+// escaped first and coloured by whole tokens after, so it can never
+// make markup of itself.
 function colourPlain(text) {
-  return escapeHtml(text)
-    .replace(/\b(\d+(?:\.\d+)?)\b/g, '<span style="color:#7a3e9d">$1</span>')
-    .replace(/\b([A-Za-z_][\w]*)\b/g, (word) => (KEYWORDS.has(word) ? `<span style="color:#0b5cad"><b>${word}</b></span>` : word));
+  // One pass: a second would read the first one's markup as words.
+  return escapeHtml(text).replace(/\b(?:(\d+(?:\.\d+)?)|([A-Za-z_]\w*))\b/g, (all, number, word) =>
+    number ? `<span class="tok-number">${number}</span>` : KEYWORDS.has(word) ? `<span class="tok-keyword">${word}</span>` : all,
+  );
 }
 
-export function highlight(code, _lang) {
+export function highlight(code, lang) {
+  if (langOf(lang)) return highlightToHtml(String(code), lang);
   return String(code)
     .split("\n")
     .map((line) => {
@@ -121,9 +127,9 @@ export function highlight(code, _lang) {
       // is coloured again.
       const coloured = head
         .split(/("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/g)
-        .map((part, index) => (index % 2 === 1 ? `<span style="color:#9a6a00">${escapeHtml(part)}</span>` : colourPlain(part)))
+        .map((part, index) => (index % 2 === 1 ? `<span class="tok-string">${escapeHtml(part)}</span>` : colourPlain(part)))
         .join("");
-      return tail ? `${coloured}<span style="color:#6a737d">${escapeHtml(tail)}</span>` : coloured;
+      return tail ? `${coloured}<span class="tok-comment">${escapeHtml(tail)}</span>` : coloured;
     })
     .join("\n");
 }

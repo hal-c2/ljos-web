@@ -10,6 +10,12 @@
 var project = null;
 var shellText = "";
 var compiler = null;
+// What the last compile said of Shell.qml: the editor's squiggles.
+var said = [];
+
+function diagnostics() {
+    return said;
+}
 
 function setProject(files, text) {
     project = files;
@@ -50,6 +56,9 @@ async function moduleFor() {
     const compile = await compileWith();
     const files = Object.assign({}, project, { "Shell.qml": shellText });
     const made = await compile({ files: files, entry: "Shell.qml" });
+    said = (made.diagnostics || []).filter(function (d) {
+        return (d.file || "Shell.qml") === "Shell.qml" && d.line;
+    });
     if (made.diagnostics) {
         throw new Error(made.diagnostics.map(function (d) {
             return d.line ? (d.file || "Shell.qml") + ":" + d.line + ":" + (d.column || 1) + ": " + d.message : (d.file || "Shell.qml") + ": " + d.message;

@@ -176,3 +176,32 @@ export function exampleFiles(example) {
   }
   return { entry: example.entry, files };
 }
+
+// Where a diagnostic of what compiled stands in what an editor shows:
+// `{ file, line, column, endLine?, endColumn? }` (1-based, as the
+// compiler gives it) to the display file it is in, `{ index, line,
+// column, endLine?, endColumn? }`. A harnessed snippet compiled
+// spliced, moved down by the marker's line and in by its indent, so its
+// positions are moved back; one that falls in the harness around the
+// snippet is in no file the reader sees, and answers `{ index: -1 }`.
+export function displayPosition(example, diagnostic) {
+  const name = diagnostic.file ?? example.entry;
+  const index = example.display.findIndex((file) => file.name === name);
+  if (index < 0 || !diagnostic.line) return { index };
+  const at = { index, line: diagnostic.line, column: diagnostic.column ?? 1 };
+  if (diagnostic.endLine) Object.assign(at, { endLine: diagnostic.endLine, endColumn: diagnostic.endColumn ?? 1 });
+  if (!example.harnessTemplate || name !== (example.harnessFile ?? example.entry)) return at;
+  const lines = String(example.harnessTemplate).split("\n");
+  const marker = lines.findIndex((line) => line.trim() === "//! snippet");
+  const indent = /^\s*/.exec(lines[marker])[0].length;
+  const length = example.display[index].code.replace(/\n$/, "").split("\n").length;
+  const back = (line, column) => ({ line: line - marker, column: Math.max(1, column - indent) });
+  const start = back(at.line, at.column);
+  if (start.line < 1 || start.line > length) return { index: -1 };
+  const moved = { index, ...start };
+  if (at.endLine) {
+    const end = back(Math.min(at.endLine, marker + length), at.endLine > marker + length ? 1e9 : at.endColumn);
+    Object.assign(moved, { endLine: end.line, endColumn: end.column });
+  }
+  return moved;
+}

@@ -15,10 +15,12 @@ import { homedir, tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "@playwright/test";
-import { readMarkdownSite } from "ljos-web/markdown";
+import { createRequire } from "node:module";
+import { highlight, readMarkdownSite } from "ljos-web/markdown";
 import { buildSite } from "ljos-web/site";
 import { checkExamples, hashExample, loadHarnesses, loadPrerenders, renderPrerenders } from "ljos-web/codeblocks";
 import { assemble, tagged } from "ljos-web/codeblocks/parse";
+import { packRich } from "ljos-web/codeblock/rich";
 
 const here = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 // Where the site stands below its address's root: `/` at a domain of
@@ -160,7 +162,9 @@ const liveAt = new Map(); // a page's code block -> its live payload
       entry: example.entry,
       before: example.before,
       ...(example.harness ? { harness: example.harness, harnessTemplate: example.harnessTemplate, harnessFile: example.harnessFile } : {}),
-      display: example.display,
+      // Each file highlighted as its fence is: what the editor shows
+      // until the reader is in it.
+      display: example.display.map((file) => ({ ...file, rich: packRich(highlight(file.code, file.lang ?? "qml")) })),
       picture,
       width,
       height,
@@ -181,10 +185,14 @@ const slim = site.pages.map(({ route, title, description, headings, blocks }) =>
   headings,
   // A picture's address is the page's own: from its route's depth
   // back to the site's root, where the pictures stand.
+  // A code block's colouring is packed (`ljos-web/codeblock/rich`):
+  // every page's is in the site's first script.
   blocks: blocks.map((block) =>
     liveAt.has(block)
-      ? { kind: "live", lang: block.lang, rich: block.rich, live: { ...liveAt.get(block), picture: `${"../".repeat(route.split("/").filter(Boolean).length)}Examples/${liveAt.get(block).picture}` } }
-      : block,
+      ? { kind: "live", lang: block.lang, rich: packRich(block.rich), live: { ...liveAt.get(block), picture: `${"../".repeat(route.split("/").filter(Boolean).length)}Examples/${liveAt.get(block).picture}` } }
+      : block.kind === "code"
+        ? { ...block, rich: packRich(block.rich) }
+        : block,
   ),
 }));
 writeFileSync(
@@ -220,6 +228,7 @@ import QtQuick
 // files a visitor's shell compiles against. Do not edit by hand.
 QtObject {
     readonly property string shellText: ${JSON.stringify(readFileSync(join(bundle, "Demos/PantryShell.qml"), "utf8"))}
+    readonly property string shellRich: ${JSON.stringify(packRich(highlight(readFileSync(join(bundle, "Demos/PantryShell.qml"), "utf8"), "qml")))}
     readonly property var files: (${JSON.stringify(pantryFiles)})
 }
 `,
@@ -282,7 +291,10 @@ delete process.env.QT_INSTALL_QML;
 delete process.env.QML_IMPORT_PATH;
 let built;
 try {
-  built = await buildSite({ dir: bundle, out, qmlc, qt: [], prerender: { width: 1440, height: 900, pages } });
+  // codeblock.css: the code's colours (`tok-*`, `--ljos-code-*`) and
+  // the editor's look, for the highlighted code the pages show.
+  const codeCss = createRequire(import.meta.url).resolve("ljos-web/codeblock.css");
+  built = await buildSite({ dir: bundle, out, qmlc, qt: [], css: [codeCss], prerender: { width: 1440, height: 900, pages } });
 } finally {
   for (const [name, value] of Object.entries(saved)) {
     if (value === undefined) delete process.env[name];
