@@ -266,11 +266,15 @@ function measureLine(self, items, vertical, last) {
     else gave.delete(child);
     return again;
   });
+  const asked = items.map((child) => retold(self, child));
   let along = 0;
   let widest = 0;
   const extents = items.map((child, index) => {
     if (index > 0) along += spacing;
-    const extent = [H, V].map((axis) => (gives[index][axis] ? child[IMPLICIT[axis]] : child[SIZE[axis]]));
+    const extent = [H, V].map((axis) => {
+      if (gives[index][axis]) return child[IMPLICIT[axis]];
+      return asked[index].fresh[axis] ? asked[index].told[axis] : child[SIZE[axis]];
+    });
     along += extent[main];
     widest = Math.max(widest, extent[cross]);
     return extent;
@@ -287,6 +291,7 @@ function measureLine(self, items, vertical, last) {
     items,
     extents,
     gives,
+    asked,
     vertical,
     pad,
     spacing,
@@ -306,16 +311,36 @@ const seenOf = (self) => (self.$seen ??= new Map());
 // and its file gives it no size.
 const gaveOf = (self) => (self.$gave ??= new Map());
 
+// The size the author had told each child along each axis (`NaN` for
+// none) when the arrangement last placed it.
+const toldOf = (self) => (self.$told ??= new Map());
+
+// What the author tells a child now along each axis (`told`), and the axes
+// along which that is new since the arrangement last placed it (`fresh`,
+// `width = 50`). That size is what the child asks for then, over one the
+// arrangement placed: in ljos-ui an author's write replaces what a box
+// wrote, and the box asks for it after. Read so that the write measures
+// the arrangement again.
+function retold(self, child) {
+  const told = [H, V].map((axis) => {
+    const value = given(child, SIZE[axis]);
+    return typeof value === "number" ? value : NaN;
+  });
+  const had = toldOf(self).get(child);
+  const fresh = [H, V].map((axis) => had !== undefined && !Number.isNaN(told[axis]) && !Object.is(had[axis], told[axis]));
+  return { told, fresh };
+}
+
 // Forgets the children that have left, at every measure, line or plan: one
 // that left while the others were packed as a line comes back asking for
 // the size its file gives it then, as in ljos-ui.
 function forgetLeft(self) {
   const seen = seenOf(self);
   const gave = gaveOf(self);
-  if (!seen.size && !gave.size) return;
+  const told = toldOf(self);
+  if (!seen.size && !gave.size && !told.size) return;
   const children = new Set(self.children);
-  for (const child of seen.keys()) if (!children.has(child)) seen.delete(child);
-  for (const child of gave.keys()) if (!children.has(child)) gave.delete(child);
+  for (const map of [seen, gave, told]) for (const child of map.keys()) if (!children.has(child)) map.delete(child);
 }
 
 // A child left out holds no size the arrangement gave it for following
@@ -359,7 +384,11 @@ function measurePlan(self, items, grid, vertical, last) {
     const file = first[index];
     const follows = [H, V].map((axis) => Number.isNaN(stated(child, axis)));
     const implicit = [H, V].map((axis) => (round ? whole(child[IMPLICIT[axis]]) : child[IMPLICIT[axis]]));
-    const current = [H, V].map((axis) => (follows[axis] ? implicit[axis] : child[SIZE[axis]]));
+    const asked = retold(self, child);
+    const current = [H, V].map((axis) => {
+      if (follows[axis]) return implicit[axis];
+      return asked.fresh[axis] ? asked.told[axis] : child[SIZE[axis]];
+    });
     const gives = [H, V].map((axis) => follows[axis] && !managed(a, axis));
     if (gives[H] || gives[V]) gave.set(child, gives);
     else gave.delete(child);
@@ -369,6 +398,7 @@ function measurePlan(self, items, grid, vertical, last) {
       item: child,
       hint: [H, V].map((axis) => hint(a, axis, current[axis], file[axis], implicit[axis], least[axis])),
       managed: [own[H] || gives[H], own[V] || gives[V]],
+      asked,
       margins: a.margins,
       align: a.align,
       slot: { row: 0, column: 0, rowSpan: 1, columnSpan: 1 },
@@ -447,7 +477,7 @@ function arrangeLine(measured, width) {
     geometry[main] = (rtl ? room - at - extent[main] : at) + pad[main];
     geometry[cross] = pad[cross];
     at += extent[main] + spacing;
-    return { item, geometry, managed: gives[index] };
+    return { item, geometry, managed: gives[index], asked: measured.asked[index] };
   });
 }
 
@@ -488,7 +518,7 @@ function arrangePlan(measured, width, height) {
         geometry[axis] = pad[axis] + at;
         geometry[2 + axis] = length;
       }
-      return { item: cell.item, geometry, managed: cell.managed };
+      return { item: cell.item, geometry, managed: cell.managed, asked: cell.asked };
     });
   }
   const main = vertical ? V : H;
@@ -503,7 +533,7 @@ function arrangePlan(measured, width, height) {
     geometry[cross] = pad[cross] + atCross;
     geometry[2 + main] = lengthMain;
     geometry[2 + cross] = lengthCross;
-    return { item: cell.item, geometry, managed: cell.managed };
+    return { item: cell.item, geometry, managed: cell.managed, asked: cell.asked };
   });
 }
 
@@ -555,11 +585,17 @@ function arrangement(name, spec) {
         // A size goes only where the arrangement manages it or gives the
         // child its implicit size. One it placed stays when the axis stops
         // being managed or the child leaves, as in ljos-ui, whose
-        // arrangement writes every child's whole geometry.
-        for (const { item, geometry, managed: own } of arranged) {
+        // arrangement writes every child's whole geometry. One the author
+        // told a size since is taken off, so that the told one is had.
+        const told = toldOf(this);
+        for (const { item, geometry, managed: own, asked } of arranged) {
           slot(item, "x").place(geometry[0]);
           slot(item, "y").place(geometry[1]);
-          for (const axis of [H, V]) if (own[axis]) slot(item, SIZE[axis]).place(geometry[2 + axis]);
+          for (const axis of [H, V]) {
+            if (own[axis]) slot(item, SIZE[axis]).place(geometry[2 + axis]);
+            else if (asked.fresh[axis]) slot(item, SIZE[axis]).place(undefined);
+          }
+          told.set(item, asked.told);
         }
       },
     },
