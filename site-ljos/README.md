@@ -21,12 +21,14 @@ and is built and tested, never deployed.
   and draws each live one's picture (`ljos-web/codeblocks`,
   cached under `.codeblock-prerenders/`), writes the reading into
   the bundle as `Site/Content.qml` (generated, gitignored), and
-  builds every route prerendered into `dist/`.
+  builds every route prerendered into `dist/`, with each page's
+  canonical address, `sitemap.xml` and `robots.txt`.
 - `tests/` — the landing page's word, a docs page read with
   JavaScript off, navigation and light/dark with it on, and
   parity: the built routes are the docs' routes (and the Astro
   build's, where it stands), each page's HTML carries its title
-  and headings, and every internal link resolves.
+  and headings, and every internal link resolves; and each page's
+  address on ljos.dev, in its head and in the sitemap.
 
 Build and read it:
 
@@ -59,22 +61,48 @@ anything outside it fails `tests/base.spec.js`. CI builds both
 ways on every pull request: the root build runs the whole suite,
 the project-path build runs `base.spec.js`.
 
+## Its address: ljos.dev
+
+ljos.dev is the site's canonical home. Every page's head names its
+address there, as `<link rel="canonical">` and `og:url`, and
+`sitemap.xml` lists every page the build made at that address;
+`robots.txt` lets every crawler in and names the sitemap. A page's
+address is the origin and its route (`https://ljos.dev/start/`),
+whatever base the build stands at: the github.io preview below
+`/ljos-web/` names the ljos.dev page too, so a search engine counts
+the two as one. The origin is `LJOS_SITE_ORIGIN`
+(`https://ljos.dev` when unset), read by the build and by
+`tests/canonical.spec.js`, which holds every page's canonical, its
+og:url and its sitemap entry to one address.
+
 ## Deploying to GitHub Pages
 
-`.github/workflows/site.yml` deploys only on a manual dispatch
-(Actions → site → Run workflow), and only when `deploy` is ticked:
+Every merge to main is live: `.github/workflows/site.yml` builds,
+tests, and deploys the root build with a `CNAME` naming the
+repository's Pages domain, for `https://ljos.dev/`. Only a push to
+main in hal-c2/ljos-web deploys; a fork's push builds and tests
+only. A pull request builds and tests at both bases and never
+deploys. Deploying runs take turns: one in flight is never
+cancelled, so an older commit never lands after a newer one, and a
+deploy still waiting is replaced by a newer one.
 
-| `deploy` | `custom_domain` | What Pages gets |
-|---|---|---|
-| off | (any) | nothing: the build and its tests only |
-| on | off (default) | the preview, built for `/ljos-web/`, at `https://hal-c2.github.io/ljos-web/` |
-| on | on | the root build with a `CNAME` naming the repository's Pages domain, for `https://ljos.dev/` |
+A manual dispatch (Actions → site → Run workflow) still deploys
+when `deploy` is ticked:
+
+| Run | `deploy` | `custom_domain` | What Pages gets |
+|---|---|---|---|
+| pull request | — | — | nothing: the build and its tests only |
+| push to main | — | — | the root build with a `CNAME` naming the repository's Pages domain, for `https://ljos.dev/` |
+| dispatch | off | (any) | nothing: the build and its tests only |
+| dispatch | on | off (default) | the preview, built for `/ljos-web/`, at `https://hal-c2.github.io/ljos-web/` |
+| dispatch | on | on | the root build with its `CNAME`, as a merge deploys it |
 
 The deploy step reads the repository's Pages custom domain and
-fails when `custom_domain` disagrees with it: on with no domain set,
-or off once one is (Pages would serve the project-path build at the
-domain's root, where every link 404s). After step 5 below, every
-deploy is a dispatch with `custom_domain` on.
+fails when the run's build disagrees with it: a merge to main, or a
+dispatch with `custom_domain` on, with no domain set; or a preview
+dispatch once one is (Pages would serve the project-path build at
+the domain's root, where every link 404s). With the domain set, a
+merge deploys, and so does a dispatch with `custom_domain` on.
 
 Once, before the first deploy: Settings → Pages → Build and
 deployment → Source: **GitHub Actions**.
@@ -118,13 +146,16 @@ custom domain for your GitHub Pages site":
    certificate; then tick **Enforce HTTPS** (it can take up to 24
    hours to be offered).
 5. Dispatch the workflow with `deploy` and `custom_domain` on.
+   From then on every merge to main deploys by itself.
 
 With the custom domain set, `hal-c2.github.io/ljos-web/` redirects
 to `ljos.dev`, so the preview build is for before step 2; from then
 on a dispatch without `custom_domain` fails rather than deploy it.
 Between step 2 and step 5 the domain serves the preview build, whose
 links point below `/ljos-web/`: dispatch step 5 as soon as HTTPS is
-on.
+on (the next merge to main deploys the domain build too). Before
+step 2 a merge to main fails its deploy step, as it has no domain
+to deploy for: nothing is deployed, and the preview stays as it was.
 
 Decisions taken here, of a piece with the sibling lanes':
 
