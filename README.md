@@ -28,6 +28,20 @@ is a corpus of existing examples (`corpus/qtdoc`). `mise run gallery`
 compiles each one, renders it in a browser and compares it with the
 picture real Qt renders.
 
+## Getting started
+
+1. Install [mise](https://mise.jdx.dev/getting-started.html).
+2. `mise run setup`: the pinned Rust (with the wasm target), Node and pnpm,
+   Qt's examples (`corpus/qtdoc`), the Rust and JavaScript dependencies,
+   wasm-bindgen and Playwright's Chromium. It can be run again, and ends with
+   what it did and what it skipped (Qt's `qml` tool, ljos-ui's docs for the
+   sites) and why.
+3. `mise run dev`: the web example with Vite. `mise run dev site` is the site,
+   `mise run dev gallery` Qt's examples.
+
+`mise tasks` lists every task, and `mise run TASK --help` explains its
+arguments.
+
 ## Layout
 
 - `crates/ljos_web`: the compiler (`ljos_web::compile`, `compile_script`) and the `qmlc` binary.
@@ -44,7 +58,7 @@ picture real Qt renders.
   used from QML in the browser — the first spike of ljos-web (`docs/LJOS_WEB.md`).
 - `corpus/qtdoc`: Qt's own examples (a submodule); `corpus/examples.json` says where each
   starts and what it needs, `corpus/reference` has Qt's pictures of them.
-- `mise-tasks/`: install, build, run, test, gallery and corpus, see below.
+- `mise-tasks/`: setup, build, dev, check, test, install, deploy, gallery and corpus, see below.
 - `vendor/`: patched upstream crates, see below.
 
 ## Use
@@ -69,20 +83,29 @@ Everything else is a [mise](https://mise.jdx.dev) task, a script in
 whatever it needs:
 
 ```sh
-mise run install        # the tooling in mise.toml: Rust (with the wasm target), Node, pnpm
+mise run setup          # first run after a clone: tools, submodule, dependencies, browser (--no-corpus, --no-browser)
+mise run tools          # only the tooling in mise.toml: Rust (with the wasm target), Node, pnpm
 mise run build          # build:compiler (qmlc) and build:web (the example's bundle)
-mise run dev            # the example, with Vite; QML recompiles as it is edited
-mise run test           # test:compiler, test:web, test:runtime and test:gallery
+mise run dev [WHAT]     # example (default), site, site-ljos or gallery, with Vite; QML recompiles as it is edited
+mise run check          # cargo fmt --check and clippy, as CI runs them (--fix formats)
+mise run test           # test:compiler, test:runtime, test:site, test:web, test:gallery and test:size
+mise run install [WHAT] # cli: qmlc on PATH by cargo install (--root DIR); packages: pnpm pack --dry-run of ljos-web and lezer-ljos
+mise run deploy --dry-run # the site workflow (site.yml) dispatched by hand: --no-deploy, --no-custom-domain, --ref REF
 mise run gallery        # Qt's examples in a browser, against Qt's pictures of them
 mise run gallery:serve  # the same page, to look at
-mise run corpus         # how much of Qt's examples compiles, and what stops the rest
-mise run reference      # take Qt's pictures again (needs Qt 6's `qml` tool; `sway` for shader effects)
+mise run corpus [DIR]   # how much of Qt's examples compiles, and what stops the rest
+mise run reference [ID]... # take Qt's pictures again (needs Qt 6's `qml` tool; `sway` for shader effects)
 mise run assets ID...   # download what an example's build downloads (its pictures, meshes, fonts)
-mise run types          # the table of Qt's types, from the Qt installed here
+mise run types          # the table of Qt's types, from the Qt installed here (--qt DIR, --module URI)
 mise run site:build DIR # a static site from a directory with ljos-site.json
 mise run build:wasm-compiler # the compiler as wasm, for ljos-web/compiler
-mise run controls       # copy Ljós's style of the controls again from a ljos-ui checkout (LJOS_UI)
+mise run controls [REV] # copy Ljós's style of the controls again from a ljos-ui checkout (--ljos-ui DIR, or LJOS_UI)
 ```
+
+The test tasks pass what follows them on to Playwright (`mise run test:web
+--grep TEXT`), and `test:compiler` to `cargo test`. `install` publishes
+nothing; publishing the packages is a maintainer's step by hand. `deploy`
+needs `gh`, logged in.
 
 `packages` (pnpm install) and `browser` (Playwright's Chromium) are tasks the
 others depend on.
