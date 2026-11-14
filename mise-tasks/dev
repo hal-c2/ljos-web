@@ -1,5 +1,35 @@
 #!/usr/bin/env bash
-#MISE description="Serve the web example with Vite; QML recompiles as it is edited"
+#MISE description="Run something locally with Vite: the web example (default; QML recompiles as it is edited), the site, the Ljós-pages site or the gallery"
 #MISE depends=["build:compiler", "packages"]
+#USAGE arg "[what]" default="example" help="example: examples/web; site: the Astro site (site/); site-ljos: the site as Ljós pages, built then served; gallery: Qt's examples (gallery:serve)" {
+#USAGE   choices "example" "site" "site-ljos" "gallery"
+#USAGE }
+#USAGE arg "[args]..." var=#true help="Passed on to the server (Vite, Astro), after WHAT"
 set -euo pipefail
-exec pnpm --filter ljos-web-example-web dev "$@"
+
+what=${usage_what:-example}
+# The raw arguments, without WHAT, go on to the server.
+[ "$#" -gt 0 ] && [ "$1" = "$what" ] && shift
+
+case "$what" in
+  example)
+    exec pnpm --filter ljos-web-example-web dev "$@"
+    ;;
+  site)
+    # The live blocks and the orbit demo load these in the page.
+    mise run build:wasm-compiler
+    mise run build:wasm-3d
+    exec pnpm --filter ljos-site dev "$@"
+    ;;
+  site-ljos)
+    mise run build:wasm-compiler
+    mise run build:kernel
+    mise run browser
+    export QMLC="${QMLC:-${CARGO_TARGET_DIR:-$PWD/target}/debug/qmlc}"
+    pnpm --filter ljos-site-ljos build
+    exec pnpm --filter ljos-site-ljos serve "$@"
+    ;;
+  gallery)
+    exec mise run gallery:serve "$@"
+    ;;
+esac

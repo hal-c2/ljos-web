@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+#MISE description="First run after a clone, and safe to run again: toolchains, the qtdoc submodule, Rust and JavaScript dependencies, wasm-bindgen, Playwright's Chromium; says what it skipped"
+#USAGE flag "--no-corpus" help="Skip the corpus/qtdoc submodule (Qt's examples, for gallery, corpus and reference)"
+#USAGE flag "--no-browser" help="Skip fetching Playwright's Chromium (the browser tests need it)"
+set -euo pipefail
+
+done_=()
+skipped=()
+
+# Tools first: the rest runs on them. mise.toml pins Rust with the wasm
+# target, Node and pnpm.
+mise install
+done_+=("tools: Rust $(rustc --version | cut -d' ' -f2) (+ wasm32-unknown-unknown), Node $(node --version), pnpm $(pnpm --version) (mise install)")
+if ! rustup target list --installed 2>/dev/null | grep -qx wasm32-unknown-unknown; then
+  skipped+=("wasm32-unknown-unknown is not installed for this Rust: the wasm builds will fail; run 'rustup target add wasm32-unknown-unknown'")
+fi
+
+if [ "${usage_no_corpus:-false}" = true ]; then
+  skipped+=("corpus/qtdoc (--no-corpus): gallery, corpus and reference fetch it when they run")
+else
+  git submodule update --init --recursive --depth 1
+  done_+=("submodules: corpus/qtdoc, Qt's examples (shallow)")
+fi
+
+# ljos-ui is named by ssh in Cargo.lock; it is public, so https fetches it
+# without a key. Once in cargo's cache, builds need no rewrite.
+GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=url.https://github.com/.insteadOf GIT_CONFIG_VALUE_0=ssh://git@github.com/ \
+  CARGO_NET_GIT_FETCH_WITH_CLI=true cargo fetch --locked
+done_+=("Rust dependencies, ljos-ui's compiler front end among them (cargo fetch)")
+
+pnpm install --frozen-lockfile
+done_+=("JavaScript packages (pnpm install)")
+
+bindgen="$(mise-tasks/tool/wasm-bindgen)"
+done_+=("wasm-bindgen, the version the crates pin: $bindgen")
+
+if [ "${usage_no_browser:-false}" = true ]; then
+  skipped+=("Playwright's Chromium (--no-browser): every test task fetches it when it runs (mise run browser)")
+else
+  pnpm --filter ljos-web-example-web exec playwright install chromium
+  done_+=("Playwright's Chromium")
+fi
+
+# What setup does not install, only looks for.
+if ! command -v qml >/dev/null && ! command -v qml6 >/dev/null; then
+  skipped+=("Qt 6's qml tool not found: mise run reference cannot take Qt's pictures (install qt6-declarative); the gallery still compares with corpus/reference")
+fi
+if ! command -v sway >/dev/null; then
+  skipped+=("sway not found: mise run reference draws examples with shader effects without them")
+fi
+if ! pkg-config --exists fontconfig 2>/dev/null; then
+  skipped+=("fontconfig's headers not found (pkg-config fontconfig): test:wasm-counter and test:wasm-gauge build a desktop app with them (install libfontconfig1-dev or fontconfig-devel)")
+fi
+docs=""
+for candidate in "${LJOS_DOCS_DIR:-}" ../ljos-ui/docs/site ../../ljos-ui/docs/site "$HOME/dev/ljos-ui/docs/site"; do
+  if [ -n "$candidate" ] && [ -d "$candidate" ]; then docs=$candidate; break; fi
+done
+if [ -z "$docs" ]; then
+  skipped+=("no ljos-ui docs found: dev site / site-ljos need them; clone hal-c2/ljos-ui beside this checkout at site/ljos-ui.sha, or set LJOS_DOCS_DIR")
+else
+  done_+=("ljos-ui docs for the sites: $docs")
+fi
+if ! command -v gh >/dev/null; then
+  skipped+=("gh not found: mise run deploy dispatches the site workflow with it")
+fi
+
+echo
+echo "setup: done"
+for line in "${done_[@]}"; do echo "  - $line"; done
+if [ "${#skipped[@]}" -gt 0 ]; then
+  echo "setup: skipped"
+  for line in "${skipped[@]}"; do echo "  - $line"; done
+fi
+echo
+echo "next: mise run dev (the web example), mise run test, mise tasks for the rest"
