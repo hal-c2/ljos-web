@@ -76,6 +76,53 @@ Rectangle {
 }
 `;
 
+// A request for a file the example has, and for one it does not: the one
+// is read from what the example was given, the other is not there.
+export const READ = `import QtQuick
+
+Rectangle {
+    width: 280
+    height: 80
+    color: "#20242e"
+    property string has: "…"
+    property string lacks: "…"
+    function read(name, done) {
+        const request = new XMLHttpRequest();
+        request.onreadystatechange = () => {
+            if (request.readyState === XMLHttpRequest.DONE) done(request);
+        };
+        request.open("GET", name);
+        request.send();
+    }
+    Component.onCompleted: {
+        read("data.json", (r) => has = r.status + " " + JSON.parse(r.responseText).greeting);
+        read("notes.json", (r) => lacks = "status " + r.status);
+    }
+    Text {
+        color: "#e8eaf0"
+        text: has + " / " + lacks
+    }
+}
+`;
+
+// A name with a `%` that starts no escape is its own name.
+export const PERCENT = `import QtQuick
+
+Rectangle {
+    width: 200
+    height: 80
+    color: "#20242e"
+    Image {
+        id: logo
+        source: "100%.png"
+    }
+    Text {
+        color: "#e8eaf0"
+        text: logo.status === Image.Error ? "no picture" : "picture " + logo.status
+    }
+}
+`;
+
 const figure = (display, more = {}) => ({ v: 1, entry: "Main.qml", before: false, display, prerendered: false, ...more });
 const qml = (name, code) => ({ name, code, lang: "qml" });
 
@@ -84,7 +131,9 @@ export const EXAMPLES = {
   neither: figure([qml("Main.qml", NEITHER + "\n")], { harness: "shell", harnessTemplate: SHELL_HARNESS, harnessFile: "Main.qml" }),
   chosen: figure([qml("Main.qml", CHOSEN_MAIN), qml("user/Shell.qml", CHOSEN_SHELL)]),
   picture: figure([qml("Main.qml", PICTURE)]),
+  read: figure([qml("Main.qml", READ), { name: "data.json", code: '{ "greeting": "hello" }\n', lang: "json" }]),
+  percent: figure([qml("Main.qml", PERCENT)]),
 };
 
 // What may not be asked of the server: every file the examples name.
-export const NAMED = /(?:^|\/)(?:shell|AppShell|Shell|Missing)\.qml$|logo\.png$/;
+export const NAMED = /(?:^|\/)(?:(?:shell|AppShell|Shell|Missing)\.qml|logo\.png|100%(?:25)?\.png|(?:data|notes)\.json)$/;

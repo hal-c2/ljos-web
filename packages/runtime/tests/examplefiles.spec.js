@@ -66,4 +66,25 @@ test.describe("an example's files", () => {
     expect(server.named()).toEqual([]);
     expect(server.refused).toEqual([]);
   });
+
+  test("a request reads a file the example has, and one it does not have is not there", async ({ page }) => {
+    const server = watched(page);
+    const figure = await mounted(page, "read");
+    await expect(figure).toHaveAttribute("data-state", "live", { timeout: 30000 });
+    await expect(figure.locator(".ljos-codeblock__stage")).toContainText("200 hello / status 0", { timeout: 15000 });
+    await expect(figure.getByRole("alert")).toContainText("Main.qml:19: notes.json: No such file or directory");
+    await expect(figure.getByRole("alert")).not.toContainText("data.json");
+    expect(server.named()).toEqual([]);
+    expect(server.refused).toEqual([]);
+  });
+
+  test("a name with a % that starts no escape is looked for as written", async ({ page }) => {
+    const server = watched(page);
+    const figure = await mounted(page, "percent");
+    await expect(figure).toHaveAttribute("data-state", "live", { timeout: 30000 });
+    await expect(figure.locator(".ljos-codeblock__stage")).toContainText("no picture", { timeout: 15000 });
+    await expect(figure.getByRole("alert")).toContainText("Main.qml:9: 100%.png: No such file or directory");
+    expect(server.named()).toEqual([]);
+    expect(server.refused).toEqual([]);
+  });
 });
