@@ -8,8 +8,10 @@
 // `dump()` after 100 ms, after hiding `fFiller`, showing it again,
 // turning `gBox`, then (`moved`) after `aaRow.big`, `abRow.told = false`
 // and moving `acA` to `acHome`, (`measuredAgain`) after `aaRow.more`,
-// and (`returned`) after `aeA` goes to `aeHome`, `aeRow.big` and `aeA`
-// comes back, run by `ljos test` (ljos-ui c2443e15).
+// (`returned`) after `aeA` goes to `aeHome`, `aeRow.big` and `aeA` comes
+// back, (`lined`) after `ahB` goes to `ahHome`, and (`emptied`, `grown`)
+// after `ajRow.content` is 0, then 30.25, run by `ljos test`
+// (ljos-ui LJOS_UI_SHA).
 //
 // Each child is [x, y, width, height, implicitWidth, implicitHeight].
 import { readFileSync } from "node:fs";
@@ -49,6 +51,9 @@ const cases = [
   ["a child of a Column that says nothing of its width keeps it", ["yCol", "yA"]],
   ["two children of a Grid fill a row between them", ["zGrid", "zA", "zB"]],
   ["children that span columns share the room by their columns, not their stretch factors", ["adGrid", "adA", "adB"]],
+  ["a child that takes its size from its content is placed at a whole pixel in a Row that is a layout", ["afRow", "afA", "afB", "afC"]],
+  ["a Row that is a positioner places a child at the fraction its content gives it", ["agRow", "agA", "agB"]],
+  ["a Row in a Column that fills it is no narrower than its children need", ["aiCol", "aiRow", "aiA", "aiB"]],
 ];
 
 for (const [title, names] of cases) {
@@ -142,4 +147,30 @@ test("a child that leaves a row it alone sized comes back asking for the width i
     window.flush();
   })(page);
   expect(pick(dumped, names)).toEqual(pick(ljos.returned, names));
+});
+
+test("a row whose only child with a Layout leaves gives the others back the fractions their content gives them", async ({ page }) => {
+  await open(page, "ljoslayoutrule");
+  const names = ["ahRow", "ahA", "ahB"];
+  expect(pick(await dump(page), names)).toEqual(pick(ljos.start, names));
+  const dumped = await after(() => {
+    window.scene.ahBItem.parent = window.scene.ahHomeItem;
+    window.flush();
+  })(page);
+  expect(pick(dumped, names)).toEqual(pick(ljos.lined, names));
+});
+
+test("a child the row gave the width its content gave it is left out at 0, and back once its content grows", async ({ page }) => {
+  await open(page, "ljoslayoutrule");
+  const names = ["ajRow", "ajA", "ajB"];
+  const emptied = await after(() => {
+    window.scene.ajRowItem.content = 0;
+    window.flush();
+  })(page);
+  expect(pick(emptied, names)).toEqual(pick(ljos.emptied, names));
+  const grown = await after(() => {
+    window.scene.ajRowItem.content = 30.25;
+    window.flush();
+  })(page);
+  expect(pick(grown, names)).toEqual(pick(ljos.grown, names));
 });

@@ -16,7 +16,16 @@
 // as a positioner does. Where nothing can grow, children stay at the start
 // rather than being spread over the room; where room is shared out it is
 // shared in whole pixels, and a child centred or pushed to the far side
-// lands on one. Nothing else is rounded.
+// lands on one.
+//
+// A row, column, box or grid any of whose children has a `Layout` is a
+// layout, and a size a child takes from its content (its implicit size,
+// where its file gives it no width or height) is rounded up to a whole
+// pixel, so no seam falls between two pixels. One none of whose children
+// has a `Layout` is a positioner, and places each child at the size it
+// has. A size the author gives is never rounded. A child that is a layout
+// itself is no smaller than its own children need, unless it is told a
+// smallest size.
 //
 // They are layouts of the runtime's `QtQuick/Layouts` (measured, arranged
 // and placed by its `Layout` type, which also gives them their implicit
@@ -26,7 +35,7 @@
 // one child at a time, and arranges none.
 import { defineType, derived, slot } from "../../object.js";
 import { mirrored } from "../../QtQuick/LayoutMirroring.js";
-import { Layout, StackLayout } from "../../QtQuick/Layouts/index.js";
+import { hints as layoutSizes, Layout, StackLayout } from "../../QtQuick/Layouts/index.js";
 import { given, shown } from "../../QtQuick/placing.js";
 import { Flow } from "../../QtQuick/positioners.js";
 import { distribute, edges, place, roundHalfUp, total, tracks } from "./distribute.js";
@@ -67,8 +76,12 @@ function hasLayout(child) {
 }
 
 // One with no width or height is left out, as a positioner leaves it,
-// unless it asks the arrangement for a size.
-const skipped = (child) => !hasLayout(child) && (child.width === 0 || child.height === 0);
+// unless it asks the arrangement for a size. Along an axis it follows its
+// implicit size, that is the one read: the width the arrangement placed
+// is the one it gave, and a child given none would never come back.
+const skipped = (child) =>
+  !hasLayout(child) &&
+  [H, V].some((axis) => (Number.isNaN(stated(child, axis)) ? child[IMPLICIT[axis]] : child[SIZE[axis]]) === 0);
 
 // What a `Layout.name` was given by the author, else what the item a
 // LayoutItemProxy stands for was. A value only the type works out (a
@@ -149,16 +162,21 @@ function stated(child, axis) {
   });
 }
 
-// What one child asks for along one axis: the one size rule. `file` is the
-// size its file gave it when the arrangement first saw it.
-function hint(a, axis, child, file) {
-  if (!managed(a, axis)) {
-    const current = child[SIZE[axis]];
-    return { min: current, pref: current, max: current, stretch: -1 };
-  }
-  const asked = a.pref[axis] ?? (Number.isNaN(file) ? child[IMPLICIT[axis]] : file);
+// An implicit size as an arrangement that is a layout takes it: up to a
+// whole pixel. ljos-ui measured this of Qt's RowLayout and ColumnLayout (a
+// Text of implicit width 67.734375 is 68 wide in one); Row and Column, the
+// positioners, place it at the fraction.
+const whole = (implicit) => Math.ceil(implicit);
+
+// What one child asks for along one axis: the one size rule. `current` is
+// its width or height now, `file` the one its file gave it when the
+// arrangement first saw it (NaN when it followed its implicit size), and
+// `least` a nested layout's smallest size, its children's.
+function hint(a, axis, current, file, implicit, least) {
+  if (!managed(a, axis)) return { min: current, pref: current, max: current, stretch: -1 };
+  const asked = a.pref[axis] ?? (Number.isNaN(file) ? implicit : file);
   const max = a.max[axis] ?? Infinity;
-  const min = Math.min(a.min[axis] ?? 0, max);
+  const min = Math.min(a.min[axis] ?? least ?? 0, max);
   const pref = Math.min(Math.max(asked, min), max);
   if (a.fill[axis] === true) return { min, pref, max, stretch: a.stretch[axis] };
   return { min: pref, pref, max: pref, stretch: -1 };
@@ -229,11 +247,22 @@ function measureLine(self, items, vertical, last) {
   const cross = 1 - main;
   const pad = paddings(self);
   const spacing = self.spacing;
+  // A child the arrangement gave a size while it was a layout holds it:
+  // while it still follows its implicit size, it is given that again,
+  // unrounded.
+  const gave = gaveOf(self);
+  const gives = items.map((child) => {
+    const had = gave.get(child);
+    const again = [H, V].map((axis) => Boolean(had?.[axis]) && Number.isNaN(stated(child, axis)));
+    if (again[H] || again[V]) gave.set(child, again);
+    else gave.delete(child);
+    return again;
+  });
   let along = 0;
   let widest = 0;
   const extents = items.map((child, index) => {
     if (index > 0) along += spacing;
-    const extent = [child.width, child.height];
+    const extent = [H, V].map((axis) => (gives[index][axis] ? child[IMPLICIT[axis]] : child[SIZE[axis]]));
     along += extent[main];
     widest = Math.max(widest, extent[cross]);
     return extent;
@@ -249,6 +278,7 @@ function measureLine(self, items, vertical, last) {
     line: true,
     items,
     extents,
+    gives,
     vertical,
     pad,
     spacing,
@@ -263,14 +293,37 @@ function measureLine(self, items, vertical, last) {
 // another later is not asked for until the child comes back.
 const seenOf = (self) => (self.$seen ??= new Map());
 
+// The axes along which the arrangement last gave a child its implicit
+// size, as a layout rounds it, where the child says nothing about the axis
+// and its file gives it no size.
+const gaveOf = (self) => (self.$gave ??= new Map());
+
 // Forgets the children that have left, at every measure, line or plan: one
 // that left while the others were packed as a line comes back asking for
 // the size its file gives it then, as in ljos-ui.
 function forgetLeft(self) {
   const seen = seenOf(self);
-  if (!seen.size) return;
+  const gave = gaveOf(self);
+  if (!seen.size && !gave.size) return;
   const children = new Set(self.children);
   for (const child of seen.keys()) if (!children.has(child)) seen.delete(child);
+  for (const child of gave.keys()) if (!children.has(child)) gave.delete(child);
+}
+
+// A child left out holds no size the arrangement gave it for following
+// its implicit size: along each axis it still follows, it is given its
+// implicit size again (an emptied one is 0 wide, as in ljos-ui, and is
+// measured from its content when it comes back). The axes stay given.
+function leftOutSizes(self, left) {
+  const gave = gaveOf(self);
+  const sizes = [];
+  for (const child of left) {
+    const had = gave.get(child);
+    if (!had) continue;
+    for (const axis of [H, V])
+      if (had[axis] && Number.isNaN(stated(child, axis))) sizes.push([child, axis, child[IMPLICIT[axis]]]);
+  }
+  return sizes;
 }
 
 function firstSeen(self, items) {
@@ -287,13 +340,26 @@ function measurePlan(self, items, grid, vertical, last) {
   const cells = [];
   const wants = [];
   const first = firstSeen(self, items);
+  const gave = gaveOf(self);
+  // An arrangement that plans is a layout when a child has a `Layout`: it
+  // rounds an implicit size up. A grid of children that have none places
+  // them at their sizes.
+  const round = items.some(hasLayout);
   for (const [index, child] of items.entries()) {
     const a = attached(child);
     const file = first[index];
+    const follows = [H, V].map((axis) => Number.isNaN(stated(child, axis)));
+    const implicit = [H, V].map((axis) => (round ? whole(child[IMPLICIT[axis]]) : child[IMPLICIT[axis]]));
+    const current = [H, V].map((axis) => (follows[axis] ? implicit[axis] : child[SIZE[axis]]));
+    const gives = [H, V].map((axis) => follows[axis] && !managed(a, axis));
+    if (gives[H] || gives[V]) gave.set(child, gives);
+    else gave.delete(child);
+    const least = child.$measured ? layoutSizes(child).min : [undefined, undefined];
+    const own = [managed(a, H), managed(a, V)];
     cells.push({
       item: child,
-      hint: [hint(a, H, child, file[H]), hint(a, V, child, file[V])],
-      managed: [managed(a, H), managed(a, V)],
+      hint: [H, V].map((axis) => hint(a, axis, current[axis], file[axis], implicit[axis], least[axis])),
+      managed: [own[H] || gives[H], own[V] || gives[V]],
       margins: a.margins,
       align: a.align,
       slot: { row: 0, column: 0, rowSpan: 1, columnSpan: 1 },
@@ -358,20 +424,21 @@ function gridLimits(self, count) {
   return [rows, columns, topToBottom];
 }
 
-// The geometry of every child of a line `width` wide: positions only.
+// The geometry of every child of a line `width` wide: positions, and the
+// sizes it gives back.
 function arrangeLine(measured, width) {
-  const { items, extents, vertical, pad, spacing, rtl } = measured;
+  const { items, extents, gives, vertical, pad, spacing, rtl } = measured;
   const main = vertical ? V : H;
   const cross = 1 - main;
   const room = Math.max(width - pad[0] - pad[2], 0);
   let at = 0;
   return items.map((item, index) => {
     const extent = extents[index];
-    const position = [0, 0];
-    position[main] = (rtl ? room - at - extent[main] : at) + pad[main];
-    position[cross] = pad[cross];
+    const geometry = [0, 0, extent[H], extent[V]];
+    geometry[main] = (rtl ? room - at - extent[main] : at) + pad[main];
+    geometry[cross] = pad[cross];
     at += extent[main] + spacing;
-    return { item, geometry: position, managed: [false, false] };
+    return { item, geometry, managed: gives[index] };
   });
 }
 
@@ -449,24 +516,33 @@ function arrangement(name, spec) {
     methods: {
       $measure(last) {
         forgetLeft(this);
-        const items = this.children.filter((child) => laidOut(child) && !skipped(child));
+        const shown = this.children.filter(laidOut);
+        const items = shown.filter((child) => !skipped(child));
+        const left = leftOutSizes(this, shown.filter(skipped));
         const grid = spec.grid === true;
         const vertical = grid ? false : spec.vertical(this);
-        if (!grid && !items.some(hasLayout)) return measureLine(this, items, vertical, last);
-        return measurePlan(this, items, grid, vertical, last);
+        const measured =
+          !grid && !items.some(hasLayout)
+            ? measureLine(this, items, vertical, last)
+            : measurePlan(this, items, grid, vertical, last);
+        measured.left = left;
+        return measured;
       },
       $arrange(measured) {
         const width = this.width;
         const height = this.height;
+        const left = measured.left ?? [];
         // An arrangement with no size leaves its children where they are.
-        if (!(width >= 0 && height >= 0) || !measured.sizes || measured.line === undefined) return null;
-        return measured.line ? arrangeLine(measured, width) : arrangePlan(measured, width, height);
+        if (!(width >= 0 && height >= 0) || !measured.sizes || measured.line === undefined) return { left, items: null };
+        return { left, items: measured.line ? arrangeLine(measured, width) : arrangePlan(measured, width, height) };
       },
-      $place(arranged) {
+      $place({ left, items: arranged }) {
+        for (const [item, axis, size] of left) slot(item, SIZE[axis]).place(size);
         if (!arranged) return;
-        // A size goes only where the arrangement manages it. One it placed
-        // stays when the axis stops being managed or the child leaves, as
-        // in ljos-ui, whose arrangement writes every child's whole geometry.
+        // A size goes only where the arrangement manages it or gives the
+        // child its implicit size. One it placed stays when the axis stops
+        // being managed or the child leaves, as in ljos-ui, whose
+        // arrangement writes every child's whole geometry.
         for (const { item, geometry, managed: own } of arranged) {
           slot(item, "x").place(geometry[0]);
           slot(item, "y").place(geometry[1]);
