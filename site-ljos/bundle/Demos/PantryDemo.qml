@@ -14,7 +14,9 @@ import "pantry-live.js" as LivePantry
 // A shell that does not compile is refused with what broke and
 // where, beside the editor, and the last good shell stands. As
 // first written — and with no script — the stage holds the app's
-// own shell, which is also the loader's fallback.
+// own shell, which is also the loader's fallback: it runs as the
+// build compiled it until the visitor's first edit, so the compiler
+// is fetched only then.
 Column {
     id: demo
 
@@ -45,12 +47,6 @@ Column {
             // At once, as CodeBlock gives its stage's: what a visitor
             // does to the app's shell before a check answered is kept.
             stage.source = LivePantry.sourceFor();
-            LivePantry.needsWasm().then(function (why) {
-                if (why) {
-                    demo.runs = false;
-                    demo.said = why;
-                }
-            });
             return;
         }
         stage.reload().then(function (why) {
@@ -70,15 +66,24 @@ Column {
         debounce.stop();
     }
 
+    // Before the first edit the stage is the app's shell already.
     function resetToAppShell() {
         writeOwn(PantryProject.shellText);
-        apply();
+        if (started)
+            apply();
     }
 
     Component.onCompleted: {
         LivePantry.setProject(PantryProject.files, PantryProject.shellText);
         writeOwn(PantryProject.shellText);
-        apply();
+        // As CodeBlock asks it: before any edit, so the demo says why
+        // it cannot be rewritten here before it is tried.
+        LivePantry.needsWasm().then(function (why) {
+            if (why) {
+                demo.runs = false;
+                demo.said = why;
+            }
+        });
     }
 
     Timer {

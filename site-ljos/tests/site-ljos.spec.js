@@ -153,7 +153,7 @@ test("with script, the sidebar navigates and the contents list lands on its head
   expect(errors).toEqual([]);
 });
 
-test("a code block runs beside its code, edits keep its state, and a broken edit keeps the last good result", async ({ page }) => {
+test("a code block is its picture until the reader reaches for it, then runs beside its code, edits keep its state, and a broken edit keeps the last good result", async ({ page }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   // Tall enough that the first block's editor and its result stand
@@ -163,6 +163,14 @@ test("a code block runs beside its code, edits keep its state, and a broken edit
   // web; the first app's counter waits on Ljos.Controls there.
   await page.goto("/language/overview/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  // Until the reader reaches for it, the block is its picture: the
+  // compiler that runs it is not fetched for a reader who only reads.
+  const picture = page.locator('img[src*="Examples/"][src$=".png"]').first();
+  await expect(picture).toBeVisible();
+  await expect(page.getByText("Pressed 0 times")).toHaveCount(0);
+  // A press on the picture (the block's, over it) runs the example
+  // in its place.
+  await press(page, picture);
   await expect(page.getByText("Pressed 0 times").first()).toBeVisible({ timeout: 30_000 });
   await pressWords(page, "Pressed 0 times");
   await expect(page.getByText("Pressed 1 times").first()).toBeVisible({ timeout: 30_000 });
@@ -429,11 +437,12 @@ test("Reset applies the app's shell once over the visitor's, keeps the basket, a
     await page.goto("/demos/");
     await shownInHeldTime(page, page.locator('#app[data-ljos-hydrated="true"]'));
     await shownInHeldTime(page, page.getByText("The Corner Pantry", { exact: true }));
-    // Loading the demo applies its shell once, and its own writing
-    // into the editor arms nothing: past the debounce it is still
-    // one.
+    // Loading the demo applies nothing: the app's shell the build
+    // compiled stands until the visitor's first edit, and the demo's
+    // own writing into the editor arms nothing: past the debounce it
+    // is still none.
     await pastDebounce(page);
-    expect(await applies(page), "loading the demo applies its shell once").toBe(1);
+    expect(await applies(page), "loading the demo applies no shell").toBe(0);
     await (await stageButton(page, "Add tea")).click();
     await shownInHeldTime(page, page.getByText("1 in the basket · £3.50").first());
 
@@ -527,12 +536,12 @@ test("Reset applies the app's shell once over the visitor's, keeps the basket, a
 });
 
 // The count is the test's, never the visitor's: a page loaded with
-// no `__ljosTest` put there first runs the demo, applies its shell,
-// and holds no global of the demo's.
+// no `__ljosTest` put there first runs the demo and holds no global
+// of the demo's.
 test("a visitor's demos page holds no test hook", async ({ page }) => {
   await page.goto("/demos/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
-  // The basket answers only once the shell has applied.
+  // The basket answers in the app's own shell, as the build made it.
   await (await stageButton(page, "Add tea")).click();
   await expect(page.getByText("1 in the basket · £3.50").first()).toBeVisible();
   expect(await page.evaluate(() => ["__ljosTest", "ljosPantryApplies"].filter((name) => name in globalThis))).toEqual([]);

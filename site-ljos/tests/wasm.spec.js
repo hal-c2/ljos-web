@@ -8,9 +8,10 @@
 // - a page without a live block is the same page: the same words, the
 //   same elements in the same places, the same picture;
 // - a page with live blocks is the same page outside them, and each
-//   block, with WebAssembly, runs its example over the build's picture
-//   of it; without, it keeps that picture and says live editing needs
-//   WebAssembly, and nothing wasm is fetched.
+//   block is the build's picture of its example on both; with
+//   WebAssembly it runs once the reader reaches for it (payload.spec),
+//   and without, it says live editing needs WebAssembly, and nothing
+//   wasm is fetched.
 //
 // Time is held on both, so what moves has moved as far.
 import { expect, test } from "@playwright/test";
@@ -180,9 +181,12 @@ for (const path of PAGES) {
       expect(await differing(on.page, await shot(on.page, above), await shot(off.page, above)), "the same picture").toEqual({ count: 0 });
 
       if (live) {
-        expect(on.fetched.some((url) => /ljos_web_compiler[^/]*\.wasm/.test(url)), "with WebAssembly the blocks compile").toBe(true);
+        // Both are the build's picture until the reader reaches for a
+        // block (payload.spec runs one on its first edit): the compiler
+        // is not fetched even where it could run.
+        expect(on.fetched.filter((url) => /ljos_web_compiler/.test(url)), "with WebAssembly the compiler waits for an edit").toEqual([]);
         for (const [i, block] of withIt.entries()) {
-          expect(block.picture, `block ${i} runs over its picture`).toBe(false);
+          expect(block.picture, `block ${i} is the build's picture until it is reached for`).toBe(true);
           expect(block.said, `block ${i} has what it needs`).not.toMatch(NEEDS_WASM);
         }
         for (const [i, block] of without.entries()) {

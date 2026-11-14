@@ -319,6 +319,60 @@ test.describe("A ShellLoader shows a user's shell, or the application's own when
       expect(await read(page, "loader/user-shell/tally", "n")).toBe(3);
     });
 
+    // A shell given later (a visitor's first edit) to a loader that
+    // showed the application's own for want of one takes over with
+    // what the reader did meanwhile, as one that came while it stood
+    // in does.
+    test("A user's shell given after the application's own has run takes over its state", async ({ page }) => {
+      await serve(page, {
+        "Shell.qml": 'import QtQuick\nRectangle {\n  objectName: "user-shell"; width: 50; height: 20\n  component Counted: Item { property int n: 0 }\n  Counted { id: tally; objectName: "tally" }\n}\n',
+      });
+      await opened(page, "shellslater");
+      await expect.poll(() => named(page, "loader/default-shell/tally")).toBe(true);
+      expect(await read(page, "loader", "error")).toBe("");
+      await page.evaluate(() => {
+        window.named("loader/default-shell/tally").n = 3;
+        window.flush();
+      });
+      await page.evaluate(() => {
+        window.named("loader").source = "user/Shell.qml";
+        window.flush();
+      });
+      // The fallback's status is already settled: wait for what replaces it.
+      await expect.poll(() => read(page, "loader", "status")).toBe(1);
+      expect(await named(page, "loader/user-shell")).toBe(true);
+      expect(await named(page, "loader/default-shell")).toBe(false);
+      expect(await read(page, "loader/user-shell/tally", "n")).toBe(3);
+    });
+
+    // A reload asked for while that shell is still on its way takes the
+    // turn from the first load, and carries from the same fallback.
+    test("A user's shell reloaded before it first came still takes over the fallback's state", async ({ page }) => {
+      let release;
+      const held = new Promise((done) => (release = done));
+      await page.route("**/user/Shell.qml", async (route) => {
+        await held;
+        await route.fulfill({
+          body: 'import QtQuick\nRectangle {\n  objectName: "user-shell"; width: 50; height: 20\n  component Counted: Item { property int n: 0 }\n  Counted { id: tally; objectName: "tally" }\n}\n',
+          contentType: "text/plain",
+        });
+      });
+      await opened(page, "shellslater");
+      await expect.poll(() => named(page, "loader/default-shell/tally")).toBe(true);
+      await page.evaluate(() => {
+        window.named("loader/default-shell/tally").n = 3;
+        window.named("loader").source = "user/Shell.qml";
+        window.flush();
+        window.reloading = window.named("loader").reload();
+      });
+      release();
+      expect(await page.evaluate(() => window.reloading)).toBe("");
+      await expect.poll(() => read(page, "loader", "status")).toBe(1);
+      expect(await named(page, "loader/user-shell")).toBe(true);
+      expect(await named(page, "loader/default-shell")).toBe(false);
+      expect(await read(page, "loader/user-shell/tally", "n")).toBe(3);
+    });
+
     // What stands in is there for the wait, not part of it: the user's
     // shell that comes first is shown, and the fallback after it is not.
     test("A fallback slower to come than the user's shell does not hold it back", async ({ page }) => {

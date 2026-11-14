@@ -42,9 +42,12 @@ Item {
     Accessible.name: label
     Accessible.description: "Tab indents. Press Escape, then Tab, to leave this editor."
 
-    Component.onCompleted: Editor.whenIdle()
     Component.onDestruction: Editor.dispose(field)
-    onActiveFocusChanged: activeFocus ? Editor.bringIn(field, shown, true) : Editor.left(field)
+    onActiveFocusChanged: {
+        if (!activeFocus)
+            return Editor.left(field);
+        Editor.bringIn(field, shown, true);
+    }
     onTextChanged: Editor.textChanged(field)
     onDiagnosticsChanged: Editor.diagnosticsChanged(field)
 
