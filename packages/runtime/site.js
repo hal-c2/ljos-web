@@ -434,62 +434,111 @@ function rendersSheet(renders, sizes) {
   return `<style>\n      [data-ljos-render] { display: none; width: 100%; height: 100%; }\n      ${rules.join("\n      ")}\n    </style>`;
 }
 
-// A page's light and dark renders at one size that differ only in the
-// colours their styles say are one render: each colour that differs is a
+// A page's light and dark renders at one size that differ only in how
+// the scheme draws it are one render: each colour that differs is a
 // custom property, the light one where the reader is shown light and the
 // dark one where they are shown dark (as `rendersSheet` decides it, so a
-// reader's own pick on the root wins the same way). A render is about as
-// large as a page's reading, and two of a page do not share gzip's window:
-// two renders a page need not carry are most of what it would first load.
-// Anything else that differs (a word, an attribute, an element) keeps the
-// two renders, each shown in its own scheme. Once hydrated, the page's
-// own bindings write every colour as it always did.
-const STYLED = /(style="[^"]*"|<style>[\s\S]*?<\/style>)/;
+// reader's own pick on the root wins the same way), and so is an item
+// shown in one scheme and not the other (a theme toggle's sun and moon).
+// What an element says that differs (a toggle's "Use the dark theme") is
+// the light one, with the dark one beside it for the page's script to say
+// before it hydrates. A render is about as large as a page's reading, and
+// two of a page do not share gzip's window: two renders a page need not
+// carry are most of what it would first load. Anything else that differs
+// (a word, a size, an element) keeps the two renders, each shown in its
+// own scheme. Once hydrated, the page's own bindings write every colour
+// and every item's visibility as they always did.
 const COLOUR = /#[0-9a-fA-F]{3,8}\b|(?:rgb|hsl)a?\([^)]*\)/g;
+const TAG = /(<[^>]*>)/;
+const ATTRIBUTE = /\s([^\s="'>/]+)(?:="([^"]*)")?/g;
+// What an element says rather than draws: the light words stand in a page
+// with no script, which cannot switch the scheme either.
+const SAID = /^(aria-[a-z]+|title|alt)$/;
+const HIDDEN = "display: none";
 
-// The render cut where its styles say a colour: what is not a colour,
-// and the colours between.
-function colourParts(html) {
-  const words = [];
-  const colours = [];
-  let open = "";
-  for (const [index, part] of html.split(STYLED).entries()) {
-    if (index % 2 === 0) {
-      open += part;
-      continue;
-    }
-    const pieces = part.split(COLOUR);
-    const found = part.match(COLOUR) ?? [];
-    for (const [at, piece] of pieces.entries()) {
-      open += piece;
-      if (at < found.length) {
-        words.push(open);
-        open = "";
-        colours.push(found[at]);
-      }
-    }
-  }
-  words.push(open);
-  return { words, colours };
+// A name for what is `light` in the light scheme and `dark` in the dark.
+function schemeName(named, light, dark) {
+  const key = `${light}\n${dark}`;
+  if (!named.has(key)) named.set(key, { name: `--ljos-scheme-${named.size}`, light, dark });
+  return `var(${named.get(key).name})`;
 }
 
-// The one render the light and dark ones are, with what each differing
-// colour is named in `named` (light and dark, by name), or null where
-// they differ in more than colour.
-function shareSchemes(light, dark, named) {
-  const ours = colourParts(light);
-  const theirs = colourParts(dark);
-  if (ours.words.length !== theirs.words.length || ours.words.some((word, index) => word !== theirs.words[index])) return null;
-  let shared = ours.words[0];
-  for (const [index, colour] of ours.colours.entries()) {
-    const other = theirs.colours[index];
-    let value = colour;
-    if (colour !== other) {
-      const key = `${colour}\n${other}`;
-      if (!named.has(key)) named.set(key, { name: `--ljos-scheme-${named.size}`, light: colour, dark: other });
-      value = `var(${named.get(key).name})`;
+// Two texts that match outside their colours as one, or null.
+function shareColours(light, dark, named) {
+  if (light === dark) return light;
+  const words = light.split(COLOUR);
+  const theirs = dark.split(COLOUR);
+  if (words.length !== theirs.length || words.some((word, index) => word !== theirs[index])) return null;
+  const ours = light.match(COLOUR);
+  const other = dark.match(COLOUR);
+  return words.reduce((shared, word, index) => shared + word + (index < ours.length ? (ours[index] === other[index] ? ours[index] : schemeName(named, ours[index], other[index])) : ""), "");
+}
+
+// An item's style in both schemes as one, or null: its colours, and its
+// being hidden in one only. Only a positioned item (`.qq`) is shown by
+// any display that is not none, so `block` stands for its own.
+function shareStyle(light, dark, item, named) {
+  const shared = shareColours(light, dark, named);
+  if (shared !== null || !item) return shared;
+  const ours = light.split(/;\s*/).filter(Boolean);
+  const theirs = dark.split(/;\s*/).filter(Boolean);
+  if (Math.abs(ours.length - theirs.length) !== 1) return null;
+  const [longer, shorter] = ours.length > theirs.length ? [ours, theirs] : [theirs, ours];
+  const drawn = (declaration) => declaration?.replace(COLOUR, "");
+  const at = longer.findIndex((declaration, index) => drawn(declaration) !== drawn(shorter[index]));
+  if (longer[at] !== HIDDEN) return null;
+  const both = shareColours(longer.toSpliced(at, 1).join("; "), shorter.join("; "), named);
+  if (both === null) return null;
+  const parts = both.split("; ");
+  const display = ours.length > theirs.length ? schemeName(named, "none", "block") : schemeName(named, "block", "none");
+  return `${parts.toSpliced(at, 0, `display: ${display}`).join("; ")};`;
+}
+
+// One start tag in both schemes as one, or null.
+function shareTag(light, dark, named) {
+  const name = /^<([^\s>/]+)/.exec(light)?.[1];
+  if (!name || name !== /^<([^\s>/]+)/.exec(dark)?.[1]) return null;
+  const ours = [...light.matchAll(ATTRIBUTE)];
+  const theirs = [...dark.matchAll(ATTRIBUTE)];
+  const end = (tag, found) => tag.slice(found.length ? found.at(-1).index + found.at(-1)[0].length : name.length + 1);
+  if (ours.length !== theirs.length || end(light, ours) !== end(dark, theirs)) return null;
+  const item = ours.some(([, key, value]) => key === "class" && value?.split(" ").includes("qq"));
+  const said = [];
+  let tag = `<${name}`;
+  for (const [index, [, key, value]] of ours.entries()) {
+    const [, otherKey, other] = theirs[index];
+    if (key !== otherKey || (value === undefined) !== (other === undefined)) return null;
+    let shared = value;
+    if (value !== other) {
+      if (key === "style") shared = shareStyle(value, other, item, named);
+      else if (SAID.test(key)) said.push([key, other]);
+      else shared = null;
+      if (shared === null) return null;
     }
-    shared += value + ours.words[index + 1];
+    tag += value === undefined ? ` ${key}` : ` ${key}="${shared}"`;
+  }
+  if (said.length) tag += ` data-ljos-dark="${said.map(([key]) => key).join(" ")}"${said.map(([key, other]) => ` data-ljos-dark-${key}="${other}"`).join("")}`;
+  return tag + end(light, ours);
+}
+
+// The one render the light and dark ones are, with what differs named in
+// `named` (light and dark, by name), or null where they differ in more.
+function shareSchemes(light, dark, named) {
+  const ours = light.split(TAG);
+  const theirs = dark.split(TAG);
+  if (ours.length !== theirs.length) return null;
+  let shared = "";
+  let styleSheet = false;
+  for (const [index, part] of ours.entries()) {
+    const other = theirs[index];
+    let both = part;
+    if (part !== other) {
+      if (index % 2 === 1) both = shareTag(part, other, named);
+      else both = styleSheet ? shareColours(part, other, named) : null;
+      if (both === null) return null;
+    }
+    if (index % 2 === 1) styleSheet = /^<style[\s>]/.test(part);
+    shared += both;
   }
   return shared;
 }
@@ -770,6 +819,18 @@ for (const render of renders) if (render !== shown) render.remove();
 if (shown) {
   shown.removeAttribute("data-ljos-render");
   shown.style.cssText = "width:100%;height:100%";
+}
+// What a render says in the dark scheme where it is one render for both
+// (site.js's shareSchemes), said before it is hydrated, as the sheet
+// decides the scheme: the root's own pick, or else the browser's.
+const root = document.documentElement.dataset.ljosScheme;
+const dark = root ? root === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+for (const element of (shown ?? app).querySelectorAll("[data-ljos-dark]")) {
+  for (const key of element.dataset.ljosDark.split(" ")) {
+    if (dark) element.setAttribute(key, element.getAttribute(\`data-ljos-dark-\${key}\`));
+    element.removeAttribute(\`data-ljos-dark-\${key}\`);
+  }
+  element.removeAttribute("data-ljos-dark");
 }
 hydrate(Entry, shown ?? app, carried ? JSON.parse(carried.textContent) : {});
 if (shown) app.setAttribute("data-ljos-hydrated", "true");
