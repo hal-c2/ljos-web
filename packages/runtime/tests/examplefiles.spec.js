@@ -111,6 +111,27 @@ test.describe("an example's files", () => {
   });
 });
 
+test.describe("an example's edit that does not compile", () => {
+  test("keeps what the example still running said it does not have", async ({ page }) => {
+    const server = watched(page);
+    const figure = await mounted(page, "read");
+    const errors = figure.getByRole("alert");
+    await expect(errors).toContainText("Main.qml:19: notes.json: No such file or directory", { timeout: 30000 });
+    // The edit is compiled and refused; the example as it was keeps
+    // running, and what it asked for is still not there.
+    await expect(figure).toHaveAttribute("data-editor", "ready", { timeout: 30000 });
+    const editor = figure.getByRole("textbox", { name: "Edit Main.qml" }).and(figure.locator(".cm-content"));
+    await editor.focus();
+    await editor.press("ControlOrMeta+End");
+    await page.keyboard.insertText("\n}");
+    await expect(errors).toContainText(/Main\.qml:\d+:\d+: /, { timeout: 15000 });
+    await expect(errors).toContainText("Main.qml:19: notes.json: No such file or directory");
+    await expect(figure.locator(".ljos-codeblock__stage")).toContainText("200 hello");
+    expect(server.named()).toEqual([]);
+    expect(server.refused).toEqual([]);
+  });
+});
+
 test.describe("an example's block disposed", () => {
   // What an address it was loaded from is asked for once it has gone.
   test.use({ told: [/^Failed to load resource: net::ERR_FILE_NOT_FOUND$/] });
