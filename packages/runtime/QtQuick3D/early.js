@@ -6,10 +6,13 @@
 // there.
 //
 // What asks is a compiled document that names a type drawn in space: the
-// QML plugin calls `early()` first thing in such a module (`vite.js`). Not
-// this module's being run, nor View3D's: the QtGraphs module carries View3D
-// for its graphs in space, so a page of graphs in the plane would fetch it
-// too. A document compiled in the browser asks as its first view is made.
+// QML plugin calls `early()` first thing as one is made (`vite.js`), from
+// whichever of `early-at-once.js` and `early-held.js` holds the address. Not
+// this module's being run, nor View3D's, nor the document's: the QtGraphs
+// module carries View3D for its graphs in space, and an application has
+// all its pages' documents at once, so a page that draws nothing in space
+// would fetch it too. A document compiled in the browser asks as its first
+// view is made.
 import { guardedFetch } from "../guard.js";
 
 const asked = new URLSearchParams(globalThis.location?.search ?? "").get("view3d");
@@ -20,11 +23,6 @@ const asked = new URLSearchParams(globalThis.location?.search ?? "").get("view3d
 export const renderer = () => asked ?? import.meta.env?.VITE_LJOS_VIEW3D ?? "js";
 
 const glue = import.meta.glob("./wgpu/ljos_web_3d.js");
-// Globs, as for the glue in `wgpu.js`: a build of JavaScript alone has not
-// got these files. The address is had at once, so the fetch starts as this
-// module is run and not a round trip later: a build writes it in here, and
-// a dev server serves it as a module of its own.
-const addresses = import.meta.glob("./wgpu/ljos_web_3d_bg.wasm", { query: "?url", import: "default", eager: true });
 
 // What arrived, compiled: as it arrives where it is said to be wasm, else
 // from its bytes once they are all here, as the glue does. Not a copy of
@@ -37,17 +35,19 @@ async function compile(response) {
 }
 
 let compiled = null;
-export function early() {
+// Asked for with the address, or what will have it: undefined where a
+// build has not got the renderer. An address in hand is fetched at once, in
+// the task that asks, before the view that document makes; one still to
+// come is fetched as it comes.
+export function asking(address) {
   if (compiled || renderer() !== "wgpu") return;
   const load = glue["./wgpu/ljos_web_3d.js"];
-  const address = addresses["./wgpu/ljos_web_3d_bg.wasm"];
   if (!load || !address) return;
   // `wgpu.js` fetches these with the chunk.
   load().catch(() => {});
   import("./Particles3D/drawn.js").catch(() => {});
-  compiled = guardedFetch(address)
-    .then(compile)
-    .catch(() => undefined);
+  const fetched = (url) => (url ? guardedFetch(url).then(compile) : undefined);
+  compiled = (typeof address === "string" ? fetched(address) : address.then(fetched)).catch(() => undefined);
 }
 
 // The wasm compiled for the glue's `default()`, once it is: undefined when

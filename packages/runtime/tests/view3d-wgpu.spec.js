@@ -788,6 +788,25 @@ test("the first view's moment is when it is put in, so an ask in the same task a
   expect(asked).toBeGreaterThanOrEqual(made);
 });
 
+test("a page that holds a document drawing in space, and does not make it, fetches none of the renderer on wgpu", async ({ page }) => {
+  const fetched = [];
+  page.on("request", (request) => fetched.push(request.url()));
+  await page.goto("/?scene=wgpu_held&view3d=wgpu");
+  await page.waitForFunction(() => window.ready);
+  await page.waitForTimeout(100);
+  expect(fetched.filter((url) => WASM.test(url))).toEqual([]);
+});
+
+test("a page whose View3D is in a document inside its own, on wgpu, asks for the renderer before its first view is made", async ({ page }) => {
+  await page.addInitScript(MARK_FIRST_VIEW);
+  await page.goto("/?scene=wgpu_nested&view3d=wgpu");
+  await page.waitForFunction(() => window.ready);
+  await page.waitForFunction(() => document.querySelector(".qq-view3d")?.$view3d?.frames > 0);
+  const { made, asked } = await madeAndAsked(page, WASM);
+  expect(made).not.toBeNull();
+  expect(asked).toBeLessThan(made);
+});
+
 test("a page that names View3D through its module's name, on wgpu, asks for the renderer before its first view is made", async ({ page }) => {
   await page.addInitScript(MARK_FIRST_VIEW);
   await page.goto("/?scene=wgpu_named&view3d=wgpu");

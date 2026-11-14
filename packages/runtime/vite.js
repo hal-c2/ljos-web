@@ -366,6 +366,21 @@ const SPACE_MODULE = /^import \* as ([A-Za-z_$][\w$]*) from "ljos-web\/Qt(?:Quic
 const drawsInSpace = (code) =>
   SPACE_NAMED.test(code) ||
   [...code.matchAll(SPACE_MODULE)].some(([, name]) => new RegExp(`(?<![\\w$.])${name.replaceAll("$", "\\$")}\\.(?:${SPACE_TYPES})\\b`).test(code));
+// Where a compiled document's component begins, which is run each time one
+// is made.
+const MADE = /^export default function [A-Za-z_$][\w$]*\([^)]*\) \{$/m;
+// Such a document asks for the wgpu renderer first thing as one is made,
+// before its first view is (`QtQuick3D/early.js`); on the JavaScript
+// renderer it asks nothing. As it is made, not as its module is run: an
+// application has its pages' documents in what it loads at once, and a
+// page that is not shown makes no view. Where a view may draw on wgpu by
+// default (the dev server, a build for wgpu) the renderer's address comes
+// with the ask; a build for the JavaScript renderer holds it apart, so no
+// page names the renderer in what it loads first (`early-held.js`).
+const askingEarly = (code, atOnce) =>
+  drawsInSpace(code) && MADE.test(code)
+    ? `import { early as $$early3d } from "ljos-web/${atOnce ? "early3d" : "early3d-held"}";\n${code.replace(MADE, (start) => `${start}\n\t$$early3d();`)}`
+    : code;
 
 // The compiler as what is run from anywhere: it is run from other directories,
 // where a path the caller gave would mean something else. A bare name is left
@@ -481,6 +496,9 @@ export default function qml({
   const looked = (file) => (typeof importPaths === "function" ? importPaths(file) : importPaths) ?? [];
   const compiled = new Map();
   let serving = false;
+  // Whether a view may draw on wgpu by default, so a document that draws in
+  // space asks with the renderer's address at once (`askingEarly`).
+  let wgpuAtOnce = false;
   let cache = join(runtime, "node_modules/.vite/ljos-web");
   let base = process.cwd();
   // The QML files something other than QML imports, and what each theme
@@ -714,6 +732,7 @@ export default function qml({
     configResolved(config) {
       cache = join(config.cacheDir, "ljos-web");
       serving = config.command === "serve";
+      wgpuAtOnce = serving || config.env?.VITE_LJOS_VIEW3D === "wgpu";
       base = config.root;
     },
     // Qt's own QML is outside the project. What the runtime itself is built
@@ -936,12 +955,8 @@ export default function qml({
       });
       if (result.error) this.error(`could not run ${qmlc}: ${result.error.message}`);
       if (result.status !== 0) this.error(result.stderr.trim());
-      let code = result.stdout;
-      // A document that names a type drawn in space asks for the wgpu
-      // renderer first thing as it is run, before its first view is made
-      // (`QtQuick3D/early.js`); on the JavaScript renderer it asks nothing.
-      // What is kept of Qt's own QML asks so too.
-      if (drawsInSpace(code)) code = `import { early as $$early3d } from "ljos-web/early3d";\n$$early3d();\n${code}`;
+      // Kept with its ask, so what is kept of Qt's own QML asks too.
+      let code = askingEarly(result.stdout, wgpuAtOnce);
       if (own) compiled.set(file, code);
       const component = !own && /^export default (?:function\s+|class\s+)?([A-Za-z_$][\w$]*)/m.exec(code)?.[1];
       if (!component) return { code, map: null };
