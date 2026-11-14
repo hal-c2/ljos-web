@@ -200,3 +200,33 @@ test("a child moved from one row that is a layout to another still follows its c
   })(page);
   expect(pick(back, names)).toEqual(pick(ljos.movedBack, names));
 });
+
+// Measured in Qt 6.11 (qmltestrunner, offscreen) with RowLayout and Row:
+// ljos-ui's fixture has no such case, so the numbers are Qt's.
+test("a child a layout sized keeps that size in a positioner, also once its content is gone", async ({ page }) => {
+  await open(page, "ljoslayoutrule");
+  const at = (name) => page.evaluate((name) => [window.scene[name].x, window.scene[name].width], name);
+  await page.evaluate(() => {
+    window.scene.alAItem.parent = window.scene.alPosItem;
+    window.flush();
+    window.scene.alRowItem.content = 0;
+    window.flush();
+  });
+  expect(await at("alAItem")).toEqual([10, 21]);
+  expect((await at("alPosItem"))[1]).toBe(31);
+  await page.evaluate(() => {
+    window.scene.alRowItem.content = 30.25;
+    window.flush();
+  });
+  expect(await at("alAItem")).toEqual([10, 21]);
+  await page.evaluate(() => {
+    window.scene.alAItem.parent = window.scene.alLayItem;
+    window.flush();
+  });
+  expect((await at("alAItem"))[1]).toBe(31);
+  await page.evaluate(() => {
+    window.scene.alRowItem.content = 40.5;
+    window.flush();
+  });
+  expect((await at("alAItem"))[1]).toBe(41);
+});
