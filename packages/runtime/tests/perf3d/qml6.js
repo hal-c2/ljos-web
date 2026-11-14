@@ -16,6 +16,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { cpus, loadavg } from "node:os";
 import { join } from "node:path";
+import { sample } from "./sample.js";
 
 const OUT = process.env.LJOS_PERF3D_OUT ?? join(import.meta.dirname, "results");
 const SECONDS = Number(process.env.LJOS_PERF3D_SECONDS ?? 5);
@@ -59,9 +60,9 @@ function run(file, { warm, seconds, picture }) {
   // Paths go in as arguments, never into the script's text.
   const done = spawnSync(RUN[0], [...RUN.slice(1), "bash", "-c", script, "qml6", file, base, picture ?? ""], { encoding: "utf8" });
   if (done.status !== 0) throw new Error(`qml6 ${file}: ${done.stderr}`);
-  const said = done.stdout.trim().split("\n").pop().split(" ").map(Number);
-  const [a, b, rss, tick] = said;
-  if (said.length !== 4 || !said.every(Number.isFinite) || b < a || tick <= 0) throw new Error(`qml6 ${file}: no measurement in ${JSON.stringify(done.stdout)}`);
+  const said = sample(done.stdout);
+  if (!said) throw new Error(`qml6 ${file}: no measurement in ${JSON.stringify(done.stdout)}`);
+  const { a, b, rss, tick } = said;
   return { log: readFileSync(`${base}.log`, "utf8"), cpu: (b - a) / tick, rss: rss * 1024 };
 }
 

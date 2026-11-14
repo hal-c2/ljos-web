@@ -9,6 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "./open.js";
 import { kinds, probe } from "./perf3d/probe.js";
+import { sample } from "./perf3d/sample.js";
 import { fresh, table } from "./perf3d/table.js";
 
 test.use({
@@ -145,4 +146,12 @@ test("the harness's table shows only what its last run measured, beside qml6's",
   } finally {
     rmSync(out, { recursive: true, force: true });
   }
+});
+
+test("qml6's sample needs every field, so a resident size it could not read is no measurement", () => {
+  expect(sample("12 14 100 100")).toEqual({ a: 12, b: 14, rss: 100, tick: 100 });
+  expect(sample("12 14  100")).toBeNull();
+  expect(sample("12 14 100")).toBeNull();
+  expect(sample("14 12 100 100")).toBeNull();
+  expect(sample("12 14 100 0")).toBeNull();
 });
