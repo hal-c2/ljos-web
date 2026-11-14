@@ -508,9 +508,10 @@ async function reloaded(self) {
       discard(made.shown);
       const why = describe(error, null, resolved.file);
       console.warn(`ShellLoader: reload: ${why}`);
-      // What stood in for the first load, which this turn took over,
-      // now stands as the fallback: the loader is done.
-      if (old.standsIn) {
+      // What stood in for the first load, or for want of a source,
+      // which this turn took over, now stands as the fallback and says
+      // why: the loader is done.
+      if (old.standsIn || old.unasked) {
         write(self, "error", why);
         write(self, "status", Fallback);
         settle();
