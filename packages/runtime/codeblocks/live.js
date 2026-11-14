@@ -183,8 +183,16 @@ export async function mountLiveCodeBlock(figure, data, options = {}) {
   };
 
   // What the block's compiles gave the page (its files, the addresses
-  // they are loaded from) goes with it.
-  const releaseProject = () => import("../guard.js").then(({ release }) => release(root, missing));
+  // they are loaded from, the text its files read) goes with it.
+  const releaseProject = () =>
+    Promise.all([import("../guard.js"), import("../files.js")]).then(([{ release }, { withdraw }]) => {
+      for (const url of release(root, missing)) withdraw(url);
+    });
+  // Compiles on their way: one that is linking still needs its files to
+  // be the example's, so the last of them to land lets them go, and
+  // settles what `idle()` answered at dispose.
+  let compiling = 0;
+  let letGo = null;
 
   const current = () => ({ ...data, display: data.display.map((file, i) => ({ ...file, code: texts[i] })) });
 
@@ -312,13 +320,13 @@ export async function mountLiveCodeBlock(figure, data, options = {}) {
       absent = [];
       shown();
     };
+    compiling++;
     const made = await compile({ files, entry, base: root, closed: true, missing, enclosed }).catch((error) => ({
       diagnostics: [{ file: entry, message: error?.message ?? String(error) }],
     }));
+    compiling--;
     if (mine !== turn) {
-      // A compile the block was disposed during gave its project after
-      // the block let it go.
-      if (disposed) releaseProject();
+      if (disposed && compiling === 0) letGo?.(releaseProject());
       return;
     }
     if (made.diagnostics) {
@@ -377,7 +385,9 @@ export async function mountLiveCodeBlock(figure, data, options = {}) {
       clearTimeout(timer);
       editors.forEach((editor) => editor.destroy());
       handle?.root?.dispose?.();
-      releaseProject();
+      // `idle()` settles once the files are gone, which for a compile on
+      // its way is when the last of them lands.
+      pending = compiling === 0 ? releaseProject() : new Promise((resolve) => (letGo = resolve));
     },
   };
 }

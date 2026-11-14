@@ -67,13 +67,16 @@ export function enclose(root, files, { missing, compile } = {}) {
 
 // The project at `root` goes, with the addresses its files were given at,
 // when it is still the one whose `missing` that is: a block disposed does
-// not take a project another block has since been given there.
+// not take a project another block has since been given there. Answers
+// the addresses of the files it had (none when it was not this one's),
+// for what else holds them by address to let go of.
 export function release(root, missing) {
   const at = new URL(".", root).href;
   const project = enclosed.get(at);
-  if (!project || project.missing !== missing) return;
+  if (!project || project.missing !== missing) return [];
   for (const url of project.blobs.values()) URL.revokeObjectURL(url);
   enclosed.delete(at);
+  return [...project.files.keys()].map((name) => new URL(name, at).href);
 }
 
 // The project `url` is in, and the name of the file there it is (`text`
