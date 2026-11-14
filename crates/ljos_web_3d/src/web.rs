@@ -448,12 +448,22 @@ impl View3d {
     }
 
     /// Reads the scene from the page, asking again only of the objects in
-    /// `changed` and reading again only the pieces of the view that read
-    /// them: the page follows each object's reads on its own and says which
-    /// changed. Returns the handles no longer in the scene, which the page
-    /// lets go of.
-    pub fn build(&self, changed: Vec<u32>) -> Vec<u32> {
-        let built = crate::source::build(&self.host, &self.kept, &changed);
+    /// `changed` and of the members in `members`, and reading again only the
+    /// pieces of the view that read them: the page follows each object's
+    /// reads on its own and says which changed. `members` are triples of an
+    /// object, a kind (in the order of [`crate::answers::Kind`]) and a member;
+    /// one of a kind not known is taken as its whole object changed.
+    /// Returns the handles no longer in the scene, which the page lets go of.
+    pub fn build(&self, changed: Vec<u32>, members: Vec<u32>) -> Vec<u32> {
+        let mut whole = changed;
+        let mut said = Vec::with_capacity(members.len() / 3);
+        for triple in members.chunks_exact(3) {
+            match crate::answers::said_key(triple[1], triple[2]) {
+                Some(key) => said.push((triple[0], key)),
+                None => whole.push(triple[0]),
+            }
+        }
+        let built = crate::source::build_changed(&self.host, &self.kept, &whole, &said);
         self.pieces
             .set(u32::try_from(built.read).unwrap_or(u32::MAX));
         // The scene is patched, and knows whether it changed: no compare.

@@ -215,6 +215,17 @@ for (const backend of ["webgpu", "webgl2"]) {
       near(await at(page, 60, 50), [255, 0, 0]);
     });
 
+    test("a model moved among many is asked again what moved alone", async ({ page }) => {
+      await show(page, "wgpu_many");
+      await set(page, () => (window.objects.squares.objectAt(0).y = 80));
+      // Its y: not its x, scale, materials or anything else it was asked.
+      expect((await counts(page)).reads).toBe(1);
+      near(await at(page, 20, 70), [255, 0, 0]);
+      await set(page, () => (window.objects.squares.objectAt(0).y = 120));
+      expect((await counts(page)).reads).toBe(1);
+      near(await at(page, 20, 70), CLEAR);
+    });
+
     test("a change to one of many models reads that model's part of the scene alone", async ({ page }) => {
       await show(page, "wgpu_many");
       const pieces = () => page.evaluate(() => document.querySelector(".qq-view3d").$view3d.pieces);

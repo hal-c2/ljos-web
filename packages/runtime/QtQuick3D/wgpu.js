@@ -5,11 +5,12 @@
 // The objects stay here. `Host` is a view's registry of them, and what the
 // wasm reads through it. The wasm keeps each object's answers, and a build
 // asks only of the objects that changed since the last: each object is
-// followed on its own, by reading again what the mapping read of it, and what
-// one of those reads changes marks that object and builds. The build reads
-// again only the pieces of the view (a node, the view's own members, its
-// environment) that read a marked object, and patches the scene where they
-// changed, so a model moved among a thousand costs that model. It reads
+// followed on its own, by reading again what the mapping read of it, and a
+// read of those that gives something else marks that read and builds: the
+// wasm asks that read again and keeps the rest. The build reads again only
+// the pieces of the view (a node, the view's own members, its environment)
+// that read what is marked, and patches the scene where they changed, so a
+// model turned among a thousand costs that model's turn. It reads
 // untracked. An unset member answers nothing, so that the defaults are
 // the mapping's own. A build that draws the same draws nothing; one that
 // draws differently is drawn once it settles. Nothing here runs otherwise.
@@ -58,9 +59,22 @@ const NOTHING = 0xffffffff;
 // What the wasm asks of an object, by the reader that answers: what reading an
 // object again to follow it calls. Pixels and a shape's numbers are not: what
 // names them is, and they are new when that is.
-const READS = ["number", "boolean", "color", "vector", "quaternion", "url", "object", "objects", "slots", "authored", "matrices", "pictureId", "geometryId", "tableId", "table", "snippets", "passes", "arrivals"];
+// In the order of the wasm's own kinds (answers.rs `Kind`): a member said
+// changed is told by its kind's number.
+const READS = ["number", "boolean", "color", "vector", "quaternion", "url", "object", "objects", "slots", "authored", "matrices", "snippets", "passes", "table", "arrivals", "pictureId", "geometryId", "tableId"];
 const READ = Object.fromEntries(READS.map((name, kind) => [name, kind]));
 const MEMBERS = 0x10000;
+// What a read that threw gives: never the same as another.
+const THREW = Symbol("threw");
+// Whether a read gives what it gave: numbers, words and the wasm's arrays
+// by what they hold, anything else (a shader's pieces) only if it is the
+// very one, so that it is asked again.
+const same = (a, b) => {
+  if (Object.is(a, b)) return a !== THREW;
+  if (!ArrayBuffer.isView(a) || !ArrayBuffer.isView(b) || a.constructor !== b.constructor || a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (!Object.is(a[i], b[i])) return false;
+  return true;
+};
 const GROUP = (name, o) => ["x", "y", "z"].some((axis) => slot(o, `${name}$${axis}`)?.explicit());
 const said = (o, name) => Boolean(slot(o, name)?.explicit()) || GROUP(name, o);
 const isList = (v) => v && typeof v.length === "number" && typeof v !== "string" && !v.$type;
@@ -159,23 +173,26 @@ class Host {
     }
   }
   // Reads again all that the wasm asked of `o`, so that what runs this does
-  // follow it. A read that throws (of an object on its way out) is still
-  // followed up to where it threw.
+  // follow it, and returns what each read gives, by key. A read that throws
+  // (of an object on its way out) is still followed up to where it threw,
+  // and gives what nothing else is.
   readAgain(o) {
     const asked = this.asked.get(o);
-    if (!asked) return;
+    const given = new Map();
+    if (!asked) return given;
     this.again = true;
     try {
       for (const key of asked) {
         try {
-          this[READS[Math.floor(key / MEMBERS)]](o, key % MEMBERS);
+          given.set(key, this[READS[Math.floor(key / MEMBERS)]](o, key % MEMBERS));
         } catch {
-          // Followed as far as it read.
+          given.set(key, THREW);
         }
       }
     } finally {
       this.again = false;
     }
+    return given;
   }
   handle(object) {
     let handle = this.handles.get(object);
@@ -433,9 +450,10 @@ class Host {
       buffers,
     };
   }
+  // What arrived is the wasm's to look at: the count says when to.
   arrivals(o) {
     this.note(o, READ.arrivals);
-    this.count();
+    return this.count();
   }
   arrived() {
     this.setArrivals((count) => count + 1);
@@ -494,9 +512,11 @@ export function drawOn(self, canvas, told) {
   const [made, setMade] = signal(null, self.$owner);
   const [arrivals, setArrivals] = signal(0, self.$owner);
   const [draws, setDraws] = signal(0, self.$owner);
-  // Objects whose reads changed since the last build, and a count that says
-  // there are some.
+  // Objects whose reads changed since the last build, whole or by the keys
+  // of the reads that give something else, and a count that says there are
+  // some.
   const changed = new Set();
+  const members = new Map();
   const [changes, setChanges] = signal(0, self.$owner);
   // Each object's follower, by handle, and what owns them: a follower is
   // made while a build applies, where Solid has no owner to give it.
@@ -557,29 +577,36 @@ export function drawOn(self, canvas, told) {
   };
   const host = new Host(self, setArrivals, arrivals, request);
 
-  // Follows what the wasm asked of `o`: a change to any of it marks `o` and
-  // builds. Its own root, apart from whatever ran the build, ends when `o`
-  // leaves the view or the view goes; one that was asked something new is
-  // made again to follow that too.
+  // Follows what the wasm asked of `o`: a change to any of it marks the
+  // reads of `o` that give something else, which the wasm alone asks again,
+  // and builds; a node that turned is asked its turn. Its own root, apart
+  // from whatever ran the build, ends when `o` leaves the view or the view
+  // goes; one that was asked something new is made again to follow that too.
   const follow = (o) => {
     followers.get(o)?.();
     const end = runWithOwner(following.owner, () =>
       createRoot((end) => {
-        let runs = 0;
+        let gave = null;
         createRenderEffect(
           () => {
             own = true;
             try {
-              host.readAgain(o);
+              return host.readAgain(o);
             } finally {
               own = false;
             }
-            return ++runs;
           },
-          (run) => {
-            if (run === 1) return;
-            changed.add(o);
-            setChanges((count) => count + 1);
+          (given) => {
+            const before = gave;
+            gave = given;
+            if (!before) return;
+            let keys = members.get(o);
+            for (const [key, value] of given) {
+              if (before.has(key) && same(before.get(key), value)) continue;
+              if (!keys) members.set(o, (keys = new Set()));
+              keys.add(key);
+            }
+            if (keys) setChanges((count) => count + 1);
           },
         );
         return end;
@@ -628,6 +655,13 @@ export function drawOn(self, canvas, told) {
       host.crossed = 0;
       for (const o of host.unsteady) changed.add(o);
       host.unsteady.clear();
+      // Triples of object, kind and member, of objects not marked whole.
+      const said = [];
+      for (const [o, keys] of members) {
+        if (changed.has(o)) continue;
+        for (const key of keys) said.push(o, Math.floor(key / MEMBERS), key % MEMBERS);
+      }
+      members.clear();
       const marked = Uint32Array.from(changed);
       changed.clear();
       // What changed is followed for what this build asks of it, as the wasm
@@ -642,7 +676,7 @@ export function drawOn(self, canvas, told) {
       let left;
       own = true;
       try {
-        left = untrack(() => view.build(marked));
+        left = untrack(() => view.build(marked, Uint32Array.from(said)));
       } finally {
         own = false;
       }

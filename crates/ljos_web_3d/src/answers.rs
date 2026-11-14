@@ -96,7 +96,9 @@ struct Asked {
     seen: u32,
     /// Where the next answer in the order they were asked is.
     next: usize,
-    answers: Vec<(u32, Answer)>,
+    /// Each answer by its key; `None` where the page said that member
+    /// changed, kept in its place to be asked again in the same order.
+    answers: Vec<(u32, Option<Answer>)>,
     /// The pieces that asked for its answers since it last changed: what
     /// is read again when it does. One that no longer asks stays until
     /// then, and is read once more for nothing.
@@ -121,14 +123,26 @@ impl Asked {
 }
 
 impl Asked {
-    fn find(&mut self, key: u32) -> Option<&Answer> {
+    fn find(&mut self, key: u32) -> Option<usize> {
         let at = if self.answers.get(self.next).is_some_and(|(k, _)| *k == key) {
             self.next
         } else {
             self.answers.iter().position(|(k, _)| *k == key)?
         };
         self.next = at + 1;
-        Some(&self.answers[at].1)
+        Some(at)
+    }
+
+    /// Whether what `key` answers now names each of `names`.
+    fn still_names(&self, key: u32, names: &[u32]) -> bool {
+        let Some((_, Some(answer))) = self.answers.iter().find(|(k, _)| *k == key) else {
+            return false;
+        };
+        let mut now = HashSet::new();
+        named(answer, |o| {
+            now.insert(o);
+        });
+        names.iter().all(|o| now.contains(o))
     }
 }
 
@@ -147,9 +161,12 @@ struct Inner {
     looked: u32,
     /// The piece being read, which what is asked now is read by.
     reading: Option<Piece<u32>>,
-    /// An answer that named objects was let go of since the last build
-    /// ended: only then can an object have left.
-    unnamed: bool,
+    /// What the answers let go of since the last build ended named, by
+    /// object and key: only where one asked again names less can an object
+    /// have left.
+    unnamed: Vec<(u32, u32, Vec<u32>)>,
+    /// How many builds followed what the answers name, to find what left.
+    walks: u32,
 }
 
 impl Inner {
@@ -204,6 +221,17 @@ fn named(answer: &Answer, mut each: impl FnMut(u32)) {
     }
 }
 
+/// The key an answer is kept under: what was asked, of which member.
+pub fn key(kind: Kind, p: u32) -> u32 {
+    (kind as u32) << 24 | p
+}
+
+/// The key of what the page says changed, by its kind's number in the order
+/// of [`Kind`] and its member; none where it names no kind there is.
+pub fn said_key(kind: u32, p: u32) -> Option<u32> {
+    (kind <= Kind::TableId as u32 && p < 1 << 24).then_some(kind << 24 | p)
+}
+
 /// The answers of a view's objects.
 #[derive(Default)]
 pub struct Answers {
@@ -214,28 +242,41 @@ impl Answers {
     /// What `o` answered for `kind` of member `p`, asking the page with
     /// `read` where it has not answered since it last changed.
     pub fn answer(&self, o: u32, kind: Kind, p: u32, read: impl FnOnce() -> Answer) -> Answer {
-        let key = (kind as u32) << 24 | p;
-        {
+        let key = key(kind, p);
+        let changed = {
             let mut inner = self.inner.borrow_mut();
             inner.looked += 1;
             let at = inner.see(o);
             if let Some(piece) = inner.reading {
                 inner.asked[at].read_by(piece);
             }
-            if let Some(found) = inner.asked[at].find(key) {
-                let found = found.clone();
-                inner.see_named(&found);
-                return found;
+            let found = inner.asked[at].find(key);
+            match found.map(|i| (i, inner.asked[at].answers[i].1.clone())) {
+                Some((_, Some(found))) => {
+                    inner.see_named(&found);
+                    return found;
+                }
+                Some((i, None)) => Some(i),
+                None => None,
             }
-        }
+        };
         // Not borrowed while the page answers.
         let answer = read();
         let mut inner = self.inner.borrow_mut();
         inner.crossed += 1;
         let at = inner.place(o);
         let asked = &mut inner.asked[at];
-        asked.answers.push((key, answer.clone()));
-        asked.next = asked.answers.len();
+        // Back in its place, unless what answered let go of it meanwhile.
+        match changed
+            .and_then(|i| asked.answers.get_mut(i))
+            .filter(|(k, _)| *k == key)
+        {
+            Some(place) => place.1 = Some(answer.clone()),
+            None => {
+                asked.answers.push((key, Some(answer.clone())));
+                asked.next = asked.answers.len();
+            }
+        }
         inner.see_named(&answer);
         answer
     }
@@ -243,6 +284,13 @@ impl Answers {
     /// Forgets what `changed` answered: the next build asks them again.
     /// Returns the pieces that had read it, each once.
     pub fn clear(&self, changed: &[u32]) -> Vec<Piece<u32>> {
+        self.clear_members(changed, &[])
+    }
+
+    /// Forgets what `changed` answered, and what each of `members` (an
+    /// object and a [`key`]) did: a node that turned is asked its turn
+    /// alone. Returns the pieces that had read any of it, each once.
+    pub fn clear_members(&self, changed: &[u32], members: &[(u32, u32)]) -> Vec<Piece<u32>> {
         let mut inner = self.inner.borrow_mut();
         let Inner {
             places,
@@ -252,19 +300,36 @@ impl Answers {
         } = &mut *inner;
         let mut pieces = Vec::new();
         let mut seen = HashSet::new();
-        for o in changed {
-            if let Some(&at) = places.get(o) {
-                let asked = &mut asked[at];
-                let mut names = false;
-                for (_, answer) in &asked.answers {
-                    named(answer, |_| names = true);
+        let mut forget = |o: u32, member: Option<u32>| {
+            let Some(&at) = places.get(&o) else {
+                return;
+            };
+            let asked = &mut asked[at];
+            for (key, answer) in &mut asked.answers {
+                if member.is_some_and(|m| m != *key) {
+                    continue;
                 }
-                *unnamed |= names;
-                asked.answers.clear();
-                asked.next = 0;
-                // Read again, each piece notes itself again.
-                pieces.extend(asked.readers.drain(..).filter(|p| seen.insert(*p)));
+                if let Some(answer) = answer.take() {
+                    let mut names = Vec::new();
+                    named(&answer, |n| names.push(n));
+                    if !names.is_empty() {
+                        unnamed.push((o, *key, names));
+                    }
+                }
             }
+            // All of it is asked again, maybe in another order.
+            if member.is_none() {
+                asked.answers.clear();
+            }
+            asked.next = 0;
+            // Read again, each piece notes itself again.
+            pieces.extend(asked.readers.drain(..).filter(|p| seen.insert(*p)));
+        };
+        for &o in changed {
+            forget(o, None);
+        }
+        for &(o, key) in members {
+            forget(o, Some(key));
         }
         pieces
     }
@@ -272,7 +337,13 @@ impl Answers {
     /// A build starts: what changed is asked again. Returns the pieces
     /// that read what changed, for the build to read again.
     pub fn begin(&self, changed: &[u32]) -> Vec<Piece<u32>> {
-        let pieces = self.clear(changed);
+        self.begin_members(changed, &[])
+    }
+
+    /// As [`Answers::begin`], with the members the page said changed of
+    /// objects otherwise as they were.
+    pub fn begin_members(&self, changed: &[u32], members: &[(u32, u32)]) -> Vec<Piece<u32>> {
+        let pieces = self.clear_members(changed, members);
         let mut inner = self.inner.borrow_mut();
         inner.build = inner.build.wrapping_add(1);
         inner.crossed = 0;
@@ -297,11 +368,20 @@ impl Answers {
         let mut inner = self.inner.borrow_mut();
         inner.last = None;
         // Every object is named by an answer the view reaches, or was until
-        // one of those was let go of: none, and none has left. A build that
-        // moved a model follows nothing.
-        if !std::mem::take(&mut inner.unnamed) {
+        // one of those was let go of: where each was asked again and names
+        // what it named, none has left. A build that moved a model, which
+        // names its materials again, follows nothing.
+        let unnamed = std::mem::take(&mut inner.unnamed);
+        let renamed = |(o, key, names): &(u32, u32, Vec<u32>)| {
+            inner
+                .places
+                .get(o)
+                .is_some_and(|&at| inner.asked[at].still_names(*key, names))
+        };
+        if unnamed.iter().all(renamed) {
             return Vec::new();
         }
+        inner.walks += 1;
         let build = inner.build;
         let Inner {
             places,
@@ -317,6 +397,7 @@ impl Answers {
             let mut next: Vec<usize> = (0..live.len()).filter(|&at| live[at]).collect();
             while let Some(at) = next.pop() {
                 for (_, answer) in &asked[at].answers {
+                    let Some(answer) = answer else { continue };
                     named(answer, |o| {
                         if let Some(&to) = places.get(&o)
                             && !live[to]
@@ -344,6 +425,12 @@ impl Answers {
     /// How many reads crossed to the page in this build so far.
     pub fn crossed(&self) -> u32 {
         self.inner.borrow().crossed
+    }
+
+    /// How many builds followed what the answers name, to find what left.
+    #[cfg(test)]
+    pub fn walks(&self) -> u32 {
+        self.inner.borrow().walks
     }
 
     /// How many answers this build looked for so far, kept or not.
@@ -441,5 +528,77 @@ mod tests {
         let mut gone = answers.finish();
         gone.sort_unstable();
         assert_eq!(gone, [1, 3]);
+    }
+
+    #[test]
+    fn a_member_the_page_says_changed_is_asked_again_alone() {
+        let answers = Answers::default();
+        answers.begin(&[]);
+        answers.answer(1, Kind::Number, 0, || Answer::Number(Some(1.0)));
+        answers.answer(1, Kind::Quaternion, 3, || Answer::Quaternion(None));
+        answers.answer(1, Kind::Boolean, 0, || Answer::Boolean(Some(true)));
+        answers.finish();
+        // A node turned: its turn crosses, what else it is is as it was, and
+        // the piece that read it is read again.
+        let pieces = answers.begin_members(&[], &[(1, key(Kind::Quaternion, 3))]);
+        assert_eq!(pieces.len(), 0, "no piece read it");
+        answers.answer(1, Kind::Number, 0, || unreachable!());
+        let turned = answers.answer(1, Kind::Quaternion, 3, || {
+            Answer::Quaternion(Some([0.0, 0.0, 0.0, 1.0]))
+        });
+        answers.answer(1, Kind::Boolean, 0, || unreachable!());
+        assert!(matches!(turned, Answer::Quaternion(Some(_))));
+        assert_eq!(answers.crossed(), 1);
+        // Kept where it was asked: the next build finds each in turn.
+        answers.finish();
+        answers.begin(&[]);
+        answers.answer(1, Kind::Number, 0, || unreachable!());
+        answers.answer(1, Kind::Quaternion, 3, || unreachable!());
+        assert_eq!(answers.looked(), 2);
+    }
+
+    #[test]
+    fn the_pieces_that_read_a_changed_member_are_read_again() {
+        let answers = Answers::default();
+        let node = Piece::Node(1);
+        answers.begin(&[]);
+        answers.reading(Some(node));
+        answers.answer(1, Kind::Number, 0, || Answer::Number(Some(1.0)));
+        answers.reading(None);
+        answers.finish();
+        assert_eq!(
+            answers.begin_members(&[], &[(1, key(Kind::Number, 0))]),
+            [node]
+        );
+    }
+
+    #[test]
+    fn a_build_whose_answers_name_what_they_named_follows_nothing() {
+        let answers = Answers::default();
+        answers.begin(&[]);
+        answers.answer(VIEW, Kind::Objects, 0, || Answer::Objects([1].into()));
+        answers.answer(1, Kind::Objects, 0, || Answer::Objects([3].into()));
+        answers.answer(1, Kind::Number, 0, || Answer::Number(None));
+        assert!(answers.finish().is_empty());
+        let walks = answers.walks();
+        // A model that moved names its material again: nothing can have left.
+        answers.begin(&[1]);
+        answers.answer(VIEW, Kind::Objects, 0, || unreachable!());
+        answers.answer(1, Kind::Objects, 0, || Answer::Objects([3].into()));
+        answers.answer(1, Kind::Number, 0, || Answer::Number(Some(2.0)));
+        assert!(answers.finish().is_empty());
+        assert_eq!(answers.walks(), walks);
+        // One that names another material lets go of the first.
+        answers.begin(&[1]);
+        answers.answer(VIEW, Kind::Objects, 0, || unreachable!());
+        answers.answer(1, Kind::Objects, 0, || Answer::Objects([4].into()));
+        answers.answer(1, Kind::Number, 0, || Answer::Number(Some(2.0)));
+        assert_eq!(answers.finish(), [3]);
+        assert_eq!(answers.walks(), walks + 1);
+        // As does one said changed that this build does not read again.
+        answers.begin_members(&[], &[(VIEW, key(Kind::Objects, 0))]);
+        let mut gone = answers.finish();
+        gone.sort_unstable();
+        assert_eq!(gone, [1, 4]);
     }
 }

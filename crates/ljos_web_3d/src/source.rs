@@ -391,7 +391,19 @@ pub struct Built {
 /// what was kept, and the scene patched where they differ. The first reads
 /// every piece.
 pub fn build<H: Host>(host: &H, kept: &Rc<Kept>, changed: &[u32]) -> Built {
-    let pieces = kept.answers.begin(changed);
+    build_changed(host, kept, changed, &[])
+}
+
+/// As [`build`], with the members the page said changed (an object and an
+/// answer's [`crate::answers::key`]) of objects otherwise as they were: a
+/// node that turned is asked its turn and nothing else.
+pub fn build_changed<H: Host>(
+    host: &H,
+    kept: &Rc<Kept>,
+    changed: &[u32],
+    members: &[(u32, u32)],
+) -> Built {
+    let pieces = kept.answers.begin_members(changed, members);
     let source = Source { host, kept };
     let synced = kept.scene.borrow_mut().sync(pieces, |piece| {
         kept.answers.reading(Some(piece));
@@ -1278,6 +1290,20 @@ mod tests {
         assert_eq!(cube_x(&kept, &build(&host, &kept, &[CUBE])), 3.0);
         assert!(host.reads.get() > asked);
         assert!(kept.answers.crossed() < all);
+    }
+
+    #[test]
+    fn a_member_said_changed_alone_crosses_and_the_rest_is_kept() {
+        let host = Fake::default();
+        let kept = Rc::new(Kept::default());
+        build(&host, &kept, &[]);
+        host.x.set(Some(3.0));
+        let asked = host.reads.get();
+        let x = crate::answers::key(Kind::Number, Prop3d::X as u32);
+        let built = build_changed(&host, &kept, &[], &[(CUBE, x)]);
+        assert_eq!(cube_x(&kept, &built), 3.0);
+        assert_eq!(built.read, 1, "the cube's node alone");
+        assert_eq!(host.reads.get() - asked, 1, "its x alone crosses");
     }
 
     #[test]
