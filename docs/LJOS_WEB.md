@@ -2224,7 +2224,7 @@ and column `ljos check` prints, and `qmlc` on a module.
 a `.lts` module on the page's sugar, gets the rename of a `.ts` module
 as a diagnostic, and pins the shape above.
 
-### A31. ERGO: runtime — Controller, Task, fetch and the homes of `Qt.*`
+### A32. ERGO: runtime — Controller, Task, fetch and the homes of `Qt.*`
 
 The runtime gives a file of Ljós's API what ljos-ui gives it natively:
 the same members, the same order of what it is told, the same errors.
