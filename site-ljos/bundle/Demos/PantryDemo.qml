@@ -27,6 +27,10 @@ Column {
     // does, and it still lets a revert to an earlier text apply,
     // since that differs from what was last applied.
     property string applied: ""
+    // False where the browser runs no WebAssembly: there is no
+    // compiler, so the app's own shell (the fallback) stands and the
+    // demo says why it cannot be rewritten here.
+    property bool runs: true
 
     width: parent ? parent.width : 680
     spacing: 0
@@ -34,9 +38,19 @@ Column {
     function apply() {
         applied = editor.text;
         LivePantry.setShell(editor.text);
+        if (!runs)
+            return;
         if (!started) {
             started = true;
+            // At once, as CodeBlock gives its stage's: what a visitor
+            // does to the app's shell before a check answered is kept.
             stage.source = LivePantry.sourceFor();
+            LivePantry.needsWasm().then(function (why) {
+                if (why) {
+                    demo.runs = false;
+                    demo.said = why;
+                }
+            });
             return;
         }
         stage.reload().then(function (why) {

@@ -35,6 +35,13 @@ function setShell(text) {
         probe.pantryApplies = (probe.pantryApplies || 0) + 1;
 }
 
+// "" where the compiler can run; else the sentence the demo shows
+// instead of compiling (`ljos-web/wasm-check.js`).
+async function needsWasm() {
+    const made = await import("ljos-web/compiler");
+    return made.wasmWorks() ? "" : made.NEEDS_WASM;
+}
+
 async function compileWith() {
     if (!compiler) {
         // As bundle/live.js gives a live block's: the page's own

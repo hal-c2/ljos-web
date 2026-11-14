@@ -46,6 +46,13 @@ function setFiles(id, display) {
         examples[id].display = display;
 }
 
+// "" where the compiler can run; else the sentence a block shows
+// instead of compiling (`ljos-web/wasm-check.js`).
+async function needsWasm() {
+    const made = await import("ljos-web/compiler");
+    return made.wasmWorks() ? "" : made.NEEDS_WASM;
+}
+
 async function compileWith() {
     if (!compiler) {
         const made = await import("ljos-web/compiler");
