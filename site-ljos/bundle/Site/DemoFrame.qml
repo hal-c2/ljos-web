@@ -42,7 +42,11 @@ Item {
         return y;
     }
     readonly property real top: scroller ? offset() - scroller.contentY : 0
-    readonly property bool near: !scroller || (top < scroller.height * 2 && top + height > -scroller.height)
+    // A quarter of a screen ahead is time enough to make a demo before
+    // it is seen, and no more: a frame two screens down, under a reader
+    // who never scrolls to it, would cost them a GPU device for nothing.
+    readonly property real ahead: scroller ? scroller.height / 4 : 0
+    readonly property bool near: !scroller || (top < scroller.height + ahead && top + height > -ahead)
     readonly property bool onScreen: !scroller || (top < scroller.height && top + height > 0)
     property bool started: false
 

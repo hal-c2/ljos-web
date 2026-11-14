@@ -271,6 +271,36 @@ test("a browser with no WebGPU keeps each GPU demo's picture, and says why", asy
   }
 });
 
+// A 3D scene costs a GPU device and its frames, so on /demos/ it is made
+// only once a reader scrolls to it, not for a reader who reads the
+// flagship and leaves. Its own words stand in the page only once it is.
+for (const viewport of [
+  { width: 390, height: 844 },
+  { width: 1440, height: 900 },
+]) {
+  test(`on /demos/ at ${viewport.width} the 3D scene is made only once a reader nears it`, async ({ browser }) => {
+    const context = await browser.newContext({ viewport });
+    try {
+      const page = await context.newPage();
+      await page.goto("/demos/");
+      await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+      await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible();
+      // The scene's heading, over its frame.
+      const heading = page.getByText("3D you can orbit", { exact: true });
+      expect((await heading.boundingBox()).y, "the scene starts below the first view").toBeGreaterThan(viewport.height * 1.25);
+      // What made the scene would have made it by now: a frame of the page
+      // comes to life on the first tick after hydration.
+      await page.waitForTimeout(1000);
+      const hint = page.getByText("Drag to orbit · scroll or pinch to zoom");
+      expect(await hint.count(), "not made in the first view").toBe(0);
+      await heading.scrollIntoViewIfNeeded();
+      await expect(hint.first()).toBeAttached({ timeout: 30_000 });
+    } finally {
+      await context.close();
+    }
+  });
+}
+
 // The box of the one match the reader is shown, or null.
 const shownBox = (locator) => async () => {
   const shown = locator.filter({ visible: true });
