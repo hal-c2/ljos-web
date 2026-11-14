@@ -2043,12 +2043,20 @@ arithmetic with other defaults. The one rule, per axis: a child that
 says nothing about an axis through `Layout` (no `fill…`, no
 `preferred…`, `minimum…` or `maximum…`) keeps its size along it and
 is never sized there; one that does asks for its `Layout.preferred…`,
-else the size its file gives it, else its implicit size (not rounded
-up), held between its minimum (0 unless given) and maximum, and fills
-from there only if it says `fill…`. When no shown child of a `Row`,
+else the size its file gives it, else its implicit size, held between
+its minimum (0 unless given; for a child that is a layout itself, what
+its own children need) and maximum, and fills from there only if it
+says `fill…`. Where any shown child has a `Layout`, a size a child takes
+from its content (its implicit size, where its file gives it no width
+or height) is rounded up to a whole pixel, along both axes and whether
+or not the child says anything through `Layout`, as ljos-ui measured
+of Qt's `RowLayout`; a size the author gives is never rounded. When no shown child of a `Row`,
 `Column` or `Box` has a `Layout`, they are packed as a positioner
 packs them, along the axis from the padding and at the start of the
-other; a child with no width or height is left out. Otherwise the
+other, at the sizes they have, fractions and all; a child with no
+width or height is left out. A child given its rounded implicit size
+while a layout gets its implicit size back, unrounded, when the last
+child with a `Layout` leaves. Otherwise the
 rows and columns are planned: room is shared as `distribute` shares
 it (stretch factors, then preferred sizes, then maximums), edges fall
 on whole pixels with a half rounded up, a child sits at the start of
@@ -2076,8 +2084,10 @@ spans) is placed to the pixel as `ljos test` places the same file
 after a child that fills is hidden and shown, after a `Box` turns,
 after a preferred width goes away, after a child that fills moves to
 another parent, after a row whose child's bound width changed
-measures again, and after the only child of a row with a `Layout`
-leaves, its width changes and it comes back.
+measures again, after the only child of a row with a `Layout`
+leaves, its width changes and it comes back, and after the only child
+with a `Layout` of a row whose others take their size from their
+content leaves.
 
 `tests/ljosui.spec.js` holds it, on both kernels: each face by its
 dialect names, beside the QtQuick specs, and a whole dialect file
