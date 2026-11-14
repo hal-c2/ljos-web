@@ -17,7 +17,7 @@
 // reader focuses, touches or types in it, or the page is idle, and the
 // editor then takes its place in the same box, the same font and the
 // same colours, so nothing on the page moves.
-import { displayPosition, exampleFiles } from "./parse.js";
+import { displayPosition, exampleFiles, notThereLine } from "./parse.js";
 
 // A page may compile with modules of its own (the styles of Qt Quick
 // Controls, say): `options.compile` is then `createCompiler({...})`'s
@@ -50,6 +50,12 @@ export function loadEditor() {
 
 const idle = (run) =>
   typeof requestIdleCallback === "function" ? requestIdleCallback(run, { timeout: 4000 }) : setTimeout(run, 1500);
+
+// Each example is a project of its own files, at a root of its own that no
+// server answers (`closed` in `ljos-web/compiler`): what it names by a
+// relative address is among its fences and its harness, wherever its page
+// is, and what it names and does not have is not there.
+let examples = 0;
 
 const el = (tag, className, text) => {
   const made = document.createElement(tag);
@@ -156,10 +162,24 @@ export async function mountLiveCodeBlock(figure, data, options = {}) {
   // carries now, for an editor that comes in after they were made.
   const editors = [];
   let marks = data.display.map(() => []);
+  const root = `ljos-example://${++examples}/`;
 
-  const said = (lines) => {
+  // What the compile said, and the files the running example asked for
+  // that it does not have, as they are asked for.
+  let faults = [];
+  let absent = [];
+  const shown = () => {
+    const lines = [...faults, ...absent];
     errors.textContent = lines.join("\n");
     errors.hidden = lines.length === 0;
+  };
+  const said = (lines) => {
+    faults = lines;
+    shown();
+  };
+  const missing = (name, url) => {
+    absent = [...absent, notThereLine(current().display, root, name, url)];
+    shown();
   };
 
   const current = () => ({ ...data, display: data.display.map((file, i) => ({ ...file, code: texts[i] })) });
@@ -281,10 +301,12 @@ export async function mountLiveCodeBlock(figure, data, options = {}) {
     const mine = ++turn;
     status.textContent = "Compiling…";
     const { entry, files } = exampleFiles(current());
-    const made = await compile({ files, entry }).catch((error) => ({
+    const made = await compile({ files, entry, base: root, closed: true, missing }).catch((error) => ({
       diagnostics: [{ file: entry, message: error?.message ?? String(error) }],
     }));
     if (mine !== turn) return;
+    // What runs now is what this compile made, with the files it was given.
+    if (!made.diagnostics) absent = [];
     if (made.diagnostics) {
       diagnose(made.diagnostics);
       status.textContent = handle ? "" : "This code does not compile; what it drew as written is still shown.";

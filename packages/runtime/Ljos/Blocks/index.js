@@ -9,7 +9,7 @@
 // out. Contributions find their Slots by name through a registry of the
 // page's, so anything in the application (a page, a plugin a Loader brings
 // in, the site around a user's shell) adds to a place it does not hold.
-import { guardedFetch } from "../../guard.js";
+import { guardedFetch, own } from "../../guard.js";
 import { getOwner, onCleanup, runWithOwner } from "solid-js";
 import { bounded, defineType, derived, effect, instantiate, QtObject, slot, whenMade } from "../../object.js";
 import { Item } from "../../QtQuick/Item.js";
@@ -175,8 +175,18 @@ function describe(error, object, file) {
 // A shell that is not part of the build: its text fetched and compiled in
 // the page (`ljos-web/compiler`), against the page's own modules. It is a
 // project of one file, named as the URL names it, at the URL's directory.
+// A file of a project that is only what it was given (a live code block's
+// example) is one of that project's, made as its files were, or not there.
 async function compiled(url) {
   const address = new URL(url, document.baseURI);
+  const ours = own(address);
+  if (ours) {
+    if (ours.text === undefined) {
+      // Asked as anything is, so the project is told; said as natively.
+      return { error: await guardedFetch(address).then(() => "", (error) => error.message) };
+    }
+    return finished(ours.name, () => ours.project.compile(ours.name));
+  }
   const file = decodeURIComponent(address.pathname.split("/").pop() || "Shell.qml");
   let text;
   try {
@@ -186,10 +196,17 @@ async function compiled(url) {
   } catch (error) {
     return { error: `${file}: cannot load ${address.href}: ${error.message}` };
   }
+  return finished(file, async () => {
+    const { createCompiler } = await import("../../compiler/index.js");
+    return createCompiler({ base: new URL(".", address).href }).compile({ files: { [file]: text }, entry: file, inspect: true });
+  });
+}
+
+// What `compile()` made of `file`, or why it made nothing.
+async function finished(file, compile) {
   let made;
   try {
-    const { createCompiler } = await import("../../compiler/index.js");
-    made = await createCompiler({ base: new URL(".", address).href }).compile({ files: { [file]: text }, entry: file, inspect: true });
+    made = await compile();
   } catch (error) {
     return { error: `${file}: cannot compile: ${error?.message ?? error}` };
   }

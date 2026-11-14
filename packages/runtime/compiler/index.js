@@ -21,6 +21,11 @@ export function createCompiler({ modules = runtime, base } = {}) {
     // (docs/LJOS_WEB.md, "ERGO: compiler"). `types` names
     // the project's type dumps among `files`, whose types stand in as
     // `ljos run --types` makes them; otherwise every `ljostypes.json` there.
+    // `base` is where this project's files are, in place of the
+    // compiler's. `closed: true` says the project has no files but these:
+    // what it names is looked for among them and never fetched, and what
+    // is not among them is not there (`missing(name, url)` is told of each
+    // asked for), as a live code block's example is all its files.
     compile: async (request) => (await compiler()).compile(request, { modules, base }),
     // The same, unlinked: each file's module as `qmlc` prints it.
     translate: async (request) => (await compiler()).translate(request, { modules }),
