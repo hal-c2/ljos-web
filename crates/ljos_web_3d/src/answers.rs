@@ -15,7 +15,7 @@ use std::collections::HashMap;
 use std::hash::{BuildHasherDefault, Hasher};
 use std::rc::Rc;
 
-use crate::source::{NO_OBJECT, Passes, Snippets, VIEW};
+use crate::source::{NO_OBJECT, Passes, Snippets, Table, VIEW};
 
 /// What is asked, with the member's number: the key of an answer.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -34,6 +34,7 @@ pub enum Kind {
     Matrices,
     Snippets,
     Passes,
+    Table,
     Arrivals,
     PictureId,
     GeometryId,
@@ -56,6 +57,7 @@ pub enum Answer {
     Matrices(Rc<[f32]>),
     Snippets(Option<Rc<Snippets>>),
     Passes(Option<Rc<Passes>>),
+    Table(Option<Table>),
     Arrivals,
     PictureId(Option<u32>),
     GeometryId(Option<u32>),
