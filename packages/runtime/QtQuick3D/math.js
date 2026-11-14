@@ -96,6 +96,35 @@ export function normal(m) {
   ];
 }
 
+// The same, into `out`, for what does it for many things each picture.
+export function normalInto(out, m) {
+  const a = m[0], b = m[1], c = m[2], d = m[4], e = m[5], f = m[6], g = m[8], h = m[9], i = m[10];
+  const whole = a * (e * i - f * h) - d * (b * i - c * h) + g * (b * f - c * e);
+  if (whole === 0) {
+    out[0] = a;
+    out[1] = b;
+    out[2] = c;
+    out[3] = d;
+    out[4] = e;
+    out[5] = f;
+    out[6] = g;
+    out[7] = h;
+    out[8] = i;
+    return out;
+  }
+  const by = 1 / whole;
+  out[0] = (e * i - f * h) * by;
+  out[1] = (f * g - d * i) * by;
+  out[2] = (d * h - e * g) * by;
+  out[3] = (c * h - b * i) * by;
+  out[4] = (a * i - c * g) * by;
+  out[5] = (b * g - a * h) * by;
+  out[6] = (b * f - c * e) * by;
+  out[7] = (c * d - a * f) * by;
+  out[8] = (a * e - b * d) * by;
+  return out;
+}
+
 // A direction through nine such numbers.
 export const turned = (n, x, y, z) => [n[0] * x + n[3] * y + n[6] * z, n[1] * x + n[4] * y + n[7] * z, n[2] * x + n[5] * y + n[8] * z];
 

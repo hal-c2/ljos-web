@@ -1032,25 +1032,38 @@ let fractions = false;
 // A program keeps what each of its uniforms was last given, and a place
 // of a uniform belongs to one program: so what is the same as last time is
 // not handed over again. Every uniform of this file's programs is given
-// through these, or what they remember would be wrong.
-const given = new WeakMap();
+// through these, or what they remember would be wrong. What was given is
+// kept on the place itself, which is quicker to look up for each part of a
+// scene of many than a map of places is.
 function one(where, value) {
-  if (where == null || given.get(where) === value) return false;
-  given.set(where, value);
+  if (where == null || where.given === value) return false;
+  where.given = value;
   return true;
 }
 function many(where, values) {
   if (where == null) return false;
-  const was = given.get(where);
+  const was = where.given;
   if (was?.length === values.length) {
-    let index = 0;
-    while (index < values.length && was[index] === values[index]) index++;
+    // A list and a run of numbers are each read in a loop of their own,
+    // which then reads one kind of thing quickly.
+    const index = Array.isArray(values) ? same(was, values) : run(was, values);
     if (index === values.length) return false;
-    for (; index < values.length; index++) was[index] = values[index];
+    for (let at = index; at < values.length; at++) was[at] = values[at];
     return true;
   }
-  given.set(where, Float64Array.from(values));
+  where.given = Float64Array.from(values);
   return true;
+}
+// How many of `values` are what `was` holds, from the first.
+function same(was, values) {
+  let index = 0;
+  while (index < values.length && was[index] === values[index]) index++;
+  return index;
+}
+function run(was, values) {
+  let index = 0;
+  while (index < values.length && was[index] === values[index]) index++;
+  return index;
 }
 const uniform = {
   f: (where, value) => one(where, value) && gl.uniform1f(where, value),
@@ -1865,6 +1878,8 @@ function part(piece) {
   }
   shining = own.shining;
   handed(own, custom.uniforms);
+  // What it is handed may be under a name the material's own is said by.
+  worn = null;
   if (custom.blend) {
     gl.enable(gl.BLEND);
     gl.blendFuncSeparate(...custom.blend.map((factor) => FACTORS[factor]));
@@ -1877,6 +1892,12 @@ function part(piece) {
 }
 
 let morphing = null;
+// The material the last part was drawn with, by which program: one drawn
+// with the same again has all of it said already. Forgotten for each
+// picture, as a material may be another by then.
+let worn = null;
+let wearing = null;
+const facing = new Float32Array(9);
 function drawn(piece) {
   const { shape, subset, world, material, opacity } = piece;
   const made = held(shape);
@@ -1884,7 +1905,7 @@ function drawn(piece) {
   gl.bindVertexArray(made.array);
   uniform.m4(at.u_all, piece.all);
   uniform.m4(at.u_world, world);
-  uniform.m3(at.u_facing, piece.bones ? UNTURNED : math.normal(world));
+  uniform.m3(at.u_facing, piece.bones ? UNTURNED : math.normalInto(facing, world));
   const skinned = Boolean(piece.bones) && made.jointed;
   uniform.i(at.u_skinned, skinned ? 1 : 0);
   if (skinned) jointed(piece.bones);
@@ -1904,11 +1925,12 @@ function drawn(piece) {
     uniform.i4(at.u_morphAt, morphs.at);
     uniform.fv(at.u_morphBy, by);
   }
-  uniform.f(at.u_point, material.point);
-  uniform.f4(at.u_color, material.color);
   uniform.f(at.u_opacity, opacity * material.opacity);
-  uniform.f3(at.u_emissive, material.emissive);
-  uniform.i(at.u_lit, material.lit ? 1 : 0);
+  if (material !== worn || at !== wearing) {
+    worn = material;
+    wearing = at;
+    dressed(material);
+  }
   // An entry of a table colours what it draws whether the material looks
   // at the colours of the corners or not; how far it is seen through shows
   // only where the table says something of it is.
@@ -1916,27 +1938,8 @@ function drawn(piece) {
   uniform.i(at.u_instanced, instances ? 1 : 0);
   if (instances) uniform.m4(at.u_above, instances.above);
   uniform.i(at.u_colors, (material.colors && made.colors) || instances ? 1 : 0);
-  uniform.i(at.u_principled, material.principled ? 1 : 0);
   uniform.i(at.u_solid, material.solid || (instances && !piece.sheer) ? 1 : 0);
-  uniform.f(at.u_cutoff, material.cutoff);
-  uniform.f(at.u_specular, material.specular);
-  uniform.f(at.u_shine, material.shine ?? 1);
-  uniform.f(at.u_roughness, material.roughness ?? 0);
-  uniform.f(at.u_metalness, material.metalness);
-  uniform.f(at.u_ior, material.ior);
-  uniform.f(at.u_fresnel, material.fresnel);
   uniform.i(at.u_framed, made.framed ? 1 : 0);
-  uniform.i(at.u_inverted, material.inverted ? 1 : 0);
-  uniform.f(at.u_bump, material.bump ?? 1);
-  uniform.f(at.u_occlusion, material.occlusion ?? 1);
-  uniform.f(at.u_coat, material.coat ?? 0);
-  uniform.f(at.u_coatRoughness, material.coatRoughness ?? 0);
-  uniform.f(at.u_coatBump, material.coatBump ?? 1);
-  uniform.f3(at.u_coatEdge, material.coatEdge ?? [5, 1, 0]);
-  uniform.f3(at.u_tint, material.tint ?? [1, 1, 1]);
-  uniform.i(at.u_shiny, material.shiny === false ? 0 : 1);
-  uniform.i(at.u_glint, material.glint ? 1 : 0);
-  uniform.f2(at.u_edge, material.edge ?? [1, 0]);
   // What is round the reflection probe it is near, where it is near one.
   const { mirror } = piece;
   const round = (mirror && cubes.get(mirror.key)?.cube) || nothing;
@@ -1952,22 +1955,18 @@ function drawn(piece) {
     gl.bindTexture(gl.TEXTURE_CUBE_MAP, round);
     gl.activeTexture(gl.TEXTURE0);
   }
-  reads.fill(0);
-  places.fill(0);
-  MAPS.forEach((name, index) => {
-    const map = name === "map" ? material.map : material.maps?.[name];
-    if (!map) return;
-    bound(map, UNITS[index]);
-    reads.set([map.data?.linear ? 2 : 1, map.channel ?? 0, map.index ? 1 : 0], index * 3);
-    const m = map.transform;
-    places.set([m[0], m[1], 0, m[4], m[5], 0, m[12], m[13], 1], index * 9);
-  });
-  uniform.f3(at.u_reads, reads);
-  uniform.m3(at.u_places, places);
+  // A material with no pictures reads none, which the program is told
+  // once until one with pictures is drawn by it.
+  const bare = !material.map && !material.maps;
+  if (!bare || !at.bare) {
+    at.bare = bare;
+    pictures(material);
+    uniform.f3(at.u_reads, reads);
+    uniform.m3(at.u_places, places);
+  }
   // Which side of a triangle is its front is the other one in a mirror.
   const anticlockwise = (shape.winding !== 1) !== math.mirrors(piece.placed ?? world);
   gl.frontFace(anticlockwise ? gl.CCW : gl.CW);
-  uniform.i(at.u_sided, material.cull === 3 ? 1 : 0);
   if (material.cull === 3) gl.disable(gl.CULL_FACE);
   else {
     gl.enable(gl.CULL_FACE);
@@ -1984,6 +1983,63 @@ function drawn(piece) {
   // The shape is held once, for what draws it once as well.
   for (let row = 0; row < ROWS; row++) gl.disableVertexAttribArray(9 + row);
 }
+
+// Where each picture of a material is read from, and how, into `reads` and
+// `places`; and each picture bound for it.
+function pictures(material) {
+  reads.fill(0);
+  places.fill(0);
+  for (let index = 0; index < MAPS.length; index++) {
+    const name = MAPS[index];
+    const map = name === "map" ? material.map : material.maps?.[name];
+    if (!map) continue;
+    bound(map, UNITS[index]);
+    const read = index * 3;
+    reads[read] = map.data?.linear ? 2 : 1;
+    reads[read + 1] = map.channel ?? 0;
+    reads[read + 2] = map.index ? 1 : 0;
+    const m = map.transform;
+    const place = index * 9;
+    places[place] = m[0];
+    places[place + 1] = m[1];
+    places[place + 3] = m[4];
+    places[place + 4] = m[5];
+    places[place + 6] = m[12];
+    places[place + 7] = m[13];
+    places[place + 8] = 1;
+  }
+}
+
+// What is said of a material alone, for the program in use.
+function dressed(material) {
+  uniform.f(at.u_point, material.point);
+  uniform.f4(at.u_color, material.color);
+  uniform.f3(at.u_emissive, material.emissive);
+  uniform.i(at.u_lit, material.lit ? 1 : 0);
+  uniform.i(at.u_principled, material.principled ? 1 : 0);
+  uniform.f(at.u_cutoff, material.cutoff);
+  uniform.f(at.u_specular, material.specular);
+  uniform.f(at.u_shine, material.shine ?? 1);
+  uniform.f(at.u_roughness, material.roughness ?? 0);
+  uniform.f(at.u_metalness, material.metalness);
+  uniform.f(at.u_ior, material.ior);
+  uniform.f(at.u_fresnel, material.fresnel);
+  uniform.i(at.u_inverted, material.inverted ? 1 : 0);
+  uniform.f(at.u_bump, material.bump ?? 1);
+  uniform.f(at.u_occlusion, material.occlusion ?? 1);
+  uniform.f(at.u_coat, material.coat ?? 0);
+  uniform.f(at.u_coatRoughness, material.coatRoughness ?? 0);
+  uniform.f(at.u_coatBump, material.coatBump ?? 1);
+  uniform.f3(at.u_coatEdge, material.coatEdge ?? COAT_EDGE);
+  uniform.f3(at.u_tint, material.tint ?? UNTINTED);
+  uniform.i(at.u_shiny, material.shiny === false ? 0 : 1);
+  uniform.i(at.u_glint, material.glint ? 1 : 0);
+  uniform.f2(at.u_edge, material.edge ?? UNEDGED);
+  uniform.i(at.u_sided, material.cull === 3 ? 1 : 0);
+}
+const COAT_EDGE = [5, 1, 0];
+const UNTINTED = [1, 1, 1];
+const UNEDGED = [1, 0];
 
 // Whether something is seen through what a material draws.
 // A picture to draw into, of a size and a kind: the one held, where that is
@@ -2211,6 +2267,26 @@ function near(probes, placed, { min, max }) {
   return chosen;
 }
 
+// How far along the eye's z the middle of `subset` is, where `placed` puts
+// it: what `math.point` says, with nothing made for each part of a scene.
+function ahead(view, placed, { min, max }) {
+  const x = (min[0] + max[0]) / 2;
+  const y = (min[1] + max[1]) / 2;
+  const z = (min[2] + max[2]) / 2;
+  let px = placed[0] * x + placed[4] * y + placed[8] * z + placed[12];
+  let py = placed[1] * x + placed[5] * y + placed[9] * z + placed[13];
+  let pz = placed[2] * x + placed[6] * y + placed[10] * z + placed[14];
+  const pw = placed[3] * x + placed[7] * y + placed[11] * z + placed[15];
+  if (pw !== 1 && pw !== 0) {
+    px /= pw;
+    py /= pw;
+    pz /= pw;
+  }
+  const along = view[2] * px + view[6] * py + view[10] * pz + view[14];
+  const w = view[3] * px + view[7] * py + view[11] * pz + view[15];
+  return w === 1 || w === 0 ? along : along / w;
+}
+
 // What there is to draw, as `told` has it seen: each part of each shape
 // with a material is a thing to draw. A shape with fewer materials than
 // parts has the last for the rest; one with none is not drawn. What nothing
@@ -2249,19 +2325,20 @@ function listed(scene, { view, seen, looking }, mirrored) {
       const way = math.normalized(math.point(math.inverse(model.world) ?? math.IDENTITY, ...looking));
       instances = { ...instances, data: farthestFirst(instances.data, instances.count, way), fresh: true };
     }
-    shape.subsets.forEach((subset, index) => {
+    const { subsets } = shape;
+    for (let index = 0; index < subsets.length; index++) {
+      const subset = subsets[index];
       const material = materials[Math.min(index, materials.length - 1)];
-      if (!material || material.waiting) return;
-      const middle = math.point(placed, ...subset.min.map((least, axis) => (least + subset.max[axis]) / 2));
+      if (!material || material.waiting) continue;
       // How far in front of the eye it is: the eye looks down its own z.
-      const distance = -math.point(view, ...middle)[2] + Math.sign(bias) * bias * bias;
+      const distance = -ahead(view, placed, subset) + Math.sign(bias) * bias * bias;
       const through = sheer(material, opacity) || Boolean(instances?.sheer);
       const reads = Boolean(material.custom?.source.screen);
       const depth = material.custom ? material.custom.depth : material.depth;
       const hides = through && !reads ? depth === 1 : depth !== 2;
       const mirror = model.mirrors && probes.length ? near(probes, placed, subset) : null;
       (reads ? reading : through ? clear : solid).push({ shape, subset, world, all, material, opacity, distance, bones, weights, lights, instances, placed, sheer: through, hides, mirror });
-    });
+    }
   }
   // What nodes draw by themselves (`paints`), each with a program of its
   // own, is among what is seen through: as far away as the node is.
@@ -2400,6 +2477,7 @@ export function draw(scene, canvas, paper, ways = 0) {
   if (surface.width !== width) surface.width = width;
   if (surface.height !== height) surface.height = height;
   turn++;
+  worn = null;
   const { environment } = scene;
   const probe = environment.probe ? probed(environment.probe.map) : null;
   // What an effect brings to the screen afterwards is drawn in linear
