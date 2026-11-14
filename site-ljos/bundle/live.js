@@ -49,7 +49,9 @@ function setFiles(id, display) {
 // "" where the compiler can run; else the sentence a block shows
 // instead of compiling (`ljos-web/wasm-check.js`).
 async function needsWasm() {
-    const made = await import("ljos-web/compiler");
+    // The check alone, not the compiler: it is asked as the page is
+    // made, and the compiler comes only with the first edit.
+    const made = await import("ljos-web/wasm-check");
     return made.wasmWorks() ? "" : made.NEEDS_WASM;
 }
 

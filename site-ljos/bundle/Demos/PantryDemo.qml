@@ -47,12 +47,6 @@ Column {
             // At once, as CodeBlock gives its stage's: what a visitor
             // does to the app's shell before a check answered is kept.
             stage.source = LivePantry.sourceFor();
-            LivePantry.needsWasm().then(function (why) {
-                if (why) {
-                    demo.runs = false;
-                    demo.said = why;
-                }
-            });
             return;
         }
         stage.reload().then(function (why) {
@@ -82,6 +76,14 @@ Column {
     Component.onCompleted: {
         LivePantry.setProject(PantryProject.files, PantryProject.shellText);
         writeOwn(PantryProject.shellText);
+        // As CodeBlock asks it: before any edit, so the demo says why
+        // it cannot be rewritten here before it is tried.
+        LivePantry.needsWasm().then(function (why) {
+            if (why) {
+                demo.runs = false;
+                demo.said = why;
+            }
+        });
     }
 
     Timer {

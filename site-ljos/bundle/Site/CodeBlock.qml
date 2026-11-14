@@ -64,17 +64,9 @@ Column {
         Live.setFiles(live.hash, display());
         if (!started) {
             started = true;
-            // The source is given at once, as the page is made: a
-            // check that answered first would leave the stage empty
-            // until it did. Where the compile cannot run, what the
-            // block says is why, not how the compile failed.
+            // The source is given at once: a compile that answered
+            // first would leave the stage empty until it did.
             stage.source = Live.sourceFor(live.hash);
-            Live.needsWasm().then(function (why) {
-                if (why) {
-                    block.runs = false;
-                    block.said = why;
-                }
-            });
             return;
         }
         stage.reload().then(function (why) {
@@ -89,6 +81,15 @@ Column {
             return;
         Live.setExample(live.hash, live.display, live.entry, live.harnessTemplate || "", live.harnessFile || "", function (lines) {
             block.absent = lines;
+        });
+        // Asked as the page is made, not on the first edit: where the
+        // compile cannot run, the block says so before it is reached
+        // for, and what it says is why, not how the compile failed.
+        Live.needsWasm().then(function (why) {
+            if (why) {
+                block.runs = false;
+                block.said = why;
+            }
         });
     }
 
