@@ -73,6 +73,10 @@ const CLEAR = [0x20, 0x20, 0x20];
 // follows: what is read of one model, never what is read of sixty.
 const MODEL_READS = 40;
 
+// The renderer's wasm itself, and not the module that says its address,
+// which a dev server serves under the same name.
+const WASM = /ljos_web_3d_bg[^/?]*\.wasm$/;
+
 for (const backend of ["webgpu", "webgl2"]) {
   test.describe(backend, () => {
     async function show(page, scene) {
@@ -473,8 +477,9 @@ for (const backend of ["webgpu", "webgl2"]) {
     test.describe("a chunk that did not arrive", () => {
       test.use({ told: [/View3D: |net::ERR_FAILED/] });
       test("is asked for again by the next view, which draws", async ({ page }) => {
-        let refusals = 1;
-        await page.route(/ljos_web_3d_bg/, (route) => (refusals-- > 0 ? route.abort() : route.fallback()));
+        // The page's own ask, before its first view, and the first view's.
+        let refusals = 2;
+        await page.route(WASM, (route) => (refusals-- > 0 ? route.abort() : route.fallback()));
         if (backend === "webgl2") await page.addInitScript(HIDDEN);
         await page.goto("/?scene=wgpu_two&view3d=wgpu");
         await page.waitForFunction(() => window.ready);
@@ -483,6 +488,20 @@ for (const backend of ["webgpu", "webgl2"]) {
         const failed = (await states()).filter(({ error }) => error);
         expect(failed.length).toBe(1);
         expect(failed[0].error).not.toMatch(/undefined|not a function|Cannot read/);
+      });
+    });
+
+    test.describe("a chunk that did not arrive while the page loaded", () => {
+      test.use({ told: [/net::ERR_FAILED/] });
+      test("is asked for again by the first view, and every view draws", async ({ page }) => {
+        let refusals = 1;
+        await page.route(WASM, (route) => (refusals-- > 0 ? route.abort() : route.fallback()));
+        if (backend === "webgl2") await page.addInitScript(HIDDEN);
+        await page.goto("/?scene=wgpu_two&view3d=wgpu");
+        await page.waitForFunction(() => window.ready);
+        const states = () => page.evaluate(() => [...document.querySelectorAll(".qq-view3d")].map(({ $view3d: { error, frames } }) => ({ error, drew: frames > 0 })));
+        await expect.poll(async () => (await states()).filter(({ drew }) => drew).length).toBe(2);
+        expect((await states()).filter(({ error }) => error)).toEqual([]);
       });
     });
 
@@ -708,5 +727,30 @@ test("a page with a View3D on the JavaScript renderer fetches none of the wgpu o
   await page.goto("/?scene=shaded3d");
   await page.waitForFunction(() => window.ready);
   await page.waitForTimeout(100);
-  expect(fetched.filter((url) => /ljos_web_3d/.test(url))).toEqual([]);
+  // A dev server serves the wasm's address as a module of its own, which is
+  // a string and none of the renderer; a build writes it into the page's.
+  expect(fetched.filter((url) => /ljos_web_3d/.test(url) && !/\.wasm\?import&url$/.test(url))).toEqual([]);
+});
+
+test("a page whose View3D draws on wgpu asks for the renderer before its first view is made", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.viewMade = null;
+    new MutationObserver((_, observer) => {
+      if (!document.querySelector(".qq-view3d")) return;
+      window.viewMade = performance.now();
+      observer.disconnect();
+    }).observe(document, { childList: true, subtree: true });
+  });
+  await page.goto("/?scene=wgpu_two&view3d=wgpu");
+  await page.waitForFunction(() => window.ready);
+  await page.waitForFunction(() => {
+    const views = [...document.querySelectorAll(".qq-view3d")];
+    return views.length === 2 && views.every(({ $view3d }) => $view3d.frames > 0);
+  });
+  const { made, asked } = await page.evaluate((wasm) => ({
+    made: window.viewMade,
+    asked: performance.getEntriesByType("resource").find(({ name }) => new RegExp(wasm).test(name))?.startTime,
+  }), WASM.source);
+  expect(made).not.toBeNull();
+  expect(asked).toBeLessThan(made);
 });
