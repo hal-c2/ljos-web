@@ -823,3 +823,87 @@ Item {
     );
     assert_contains(&code, "export const twice = (n) => n * 2;");
 }
+
+/// A name that is a type and a value too, as an interface and the const of
+/// its name are, is the value's to export.
+#[test]
+fn a_name_that_is_a_type_and_a_value_is_exported_as_the_value() {
+    let main = given(
+        r#"import Ljos.Ui
+import "size.ts" as Size
+Item {
+  property real zero: Size.Size.zero
+}"#,
+    );
+    let size = bare(
+        r#"interface Size { w: number }
+const Size = { zero: 0 }
+export { Size }"#,
+    );
+    let code = code_of(
+        &[("Main.qml", main), ("size.ts", size)],
+        "Main.qml",
+        "size.ts",
+    );
+    assert_contains(&code, "export { Size };");
+}
+
+/// A comment where an erased type sits is erased with it: a list keeps its
+/// commas right, and an arrow is found where it is, not in a comment.
+#[test]
+fn comments_beside_erased_types_leave_the_module_whole() {
+    let main = given(
+        r#"import Ljos.Ui
+import "shapes.ts" as Shapes
+Item {
+  property real one: Shapes.one()
+}"#,
+    );
+    let kinds = bare(
+        r#"export type Kind = "dot" | "dash"
+export const fallback: Kind = "dot""#,
+    );
+    let shapes = bare(
+        r#"import { type Kind /* a type */, fallback } from "./kinds.ts"
+export { type Kind // a type
+  , fallback } from "./kinds.ts"
+export const one = (): number /* => */ => 1"#,
+    );
+    let code = code_of(
+        &[
+            ("Main.qml", main),
+            ("kinds.ts", kinds),
+            ("shapes.ts", shapes),
+        ],
+        "Main.qml",
+        "shapes.ts",
+    );
+    assert_contains(&code, "export { fallback } from \"./kinds.ts\";");
+    assert_contains(&code, "export const one = () => 1;");
+}
+
+/// An erased type with letters of more than one byte moves nothing after
+/// it, on its line or the next, nor what an arrow's return type spans.
+#[test]
+fn an_error_after_an_erased_type_of_any_letters_is_where_the_file_has_it() {
+    let main = given(
+        r#"import Ljos.Ui
+import "name.ts" as Name
+Item {
+  property real x: Name.x
+}"#,
+    );
+    let name = bare(
+        r#"type Name = "é"
+export const f = ():
+  "ö" => missing
+export const x: number = also"#,
+    );
+    assert_eq!(
+        checked(&[("Main.qml", main), ("name.ts", name)], "Main.qml"),
+        [
+            "name.ts:3:10: error: `missing` has no type: it is not in scope [ts-no-any]",
+            "name.ts:4:26: error: `also` has no type: it is not in scope [ts-no-any]",
+        ]
+    );
+}

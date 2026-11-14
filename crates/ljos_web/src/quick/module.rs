@@ -119,17 +119,20 @@ pub(crate) fn compile(
         types: HashSet::new(),
     };
     // Names that are only types are not read at run time: an export of one
-    // gives an importer nothing.
+    // gives an importer nothing. A name that is a value too, as an
+    // interface and the const of its name are, is the value's.
+    let mut values = HashSet::new();
     for statement in &parsed.program.body {
         if let Statement::ImportDeclaration(import) = statement {
             for specifier in import.specifiers.iter().flatten() {
                 let typed = import.import_kind == ImportOrExportKind::Type
                     || matches!(specifier, ImportDeclarationSpecifier::ImportSpecifier(it)
                         if it.import_kind == ImportOrExportKind::Type);
+                let name = specifier.local().name.as_str().to_string();
                 if typed {
-                    eraser
-                        .types
-                        .insert(specifier.local().name.as_str().to_string());
+                    eraser.types.insert(name);
+                } else {
+                    values.insert(name);
                 }
             }
             continue;
@@ -148,9 +151,23 @@ pub(crate) fn compile(
             Declaration::TSInterfaceDeclaration(interface) => {
                 eraser.types.insert(interface.id.name.as_str().to_string());
             }
+            Declaration::VariableDeclaration(it) if !it.declare => {
+                for declarator in &it.declarations {
+                    for name in declarator.id.get_binding_identifiers() {
+                        values.insert(name.name.as_str().to_string());
+                    }
+                }
+            }
+            Declaration::FunctionDeclaration(it) if !it.declare && it.body.is_some() => {
+                values.extend(it.id.iter().map(|id| id.name.as_str().to_string()));
+            }
+            Declaration::ClassDeclaration(it) if !it.declare => {
+                values.extend(it.id.iter().map(|id| id.name.as_str().to_string()));
+            }
             _ => {}
         }
     }
+    eraser.types.retain(|name| !values.contains(name));
     for statement in &parsed.program.body {
         eraser.statement(statement);
     }
@@ -366,8 +383,7 @@ impl Eraser<'_> {
     /// are told at. A list may end in a comma.
     fn blank_listed(&mut self, span: Span) {
         let rest = &self.source[span.end as usize..];
-        let comma = rest
-            .find(|c: char| !c.is_whitespace())
+        let comma = token_start(rest)
             .filter(|at| rest[*at..].starts_with(','))
             .map_or(0, |at| at + 1);
         self.blank(span.start, span.end + comma as u32);
@@ -690,12 +706,12 @@ impl<'a> Visit<'a> for Eraser<'_> {
                 .source
                 .get(returns.span.end as usize..it.body.span().start as usize)
                 .unwrap_or_default();
-            if let Some(at) = after.find("=>") {
+            if let Some(at) = token_start(after).filter(|at| after[*at..].starts_with("=>")) {
                 let end = returns.span.end + at as u32 + 2;
                 let text = &self.source[returns.span.start as usize..end as usize];
                 let breaks: String = text.chars().filter(|c| matches!(c, '\n' | '\r')).collect();
-                let others = text.chars().count() - breaks.chars().count();
-                let spaces = " ".repeat(others - 2);
+                // Bytes, not characters: the offsets after it are bytes.
+                let spaces = " ".repeat(text.len() - breaks.len() - 2);
                 self.replace(
                     Span::new(returns.span.start, end),
                     format!("{spaces}=>{breaks}"),
@@ -743,9 +759,26 @@ fn key_start(key: &PropertyKey<'_>) -> u32 {
     key.span().start
 }
 
+/// Where the first token of `text` starts, past blanks and comments.
+fn token_start(text: &str) -> Option<usize> {
+    let mut at = 0;
+    loop {
+        let rest = &text[at..];
+        let token = rest.trim_start();
+        at += rest.len() - token.len();
+        if let Some(comment) = token.strip_prefix("/*") {
+            at += 2 + comment.find("*/")? + 2;
+        } else if token.starts_with("//") {
+            at += token.find('\n')?;
+        } else {
+            return (!token.is_empty()).then_some(at);
+        }
+    }
+}
+
 /// `source` with the edits made, a blank keeping each line break and
-/// putting a space for every other character. An edit inside one already
-/// made is part of it.
+/// putting a space for every other byte, so that every offset after it is
+/// where it was. An edit inside one already made is part of it.
 fn apply(source: &str, mut edits: Vec<Edit>) -> String {
     edits.sort_by_key(|edit| (edit.span.start, std::cmp::Reverse(edit.span.end)));
     let mut out = String::with_capacity(source.len());
@@ -759,11 +792,14 @@ fn apply(source: &str, mut edits: Vec<Edit>) -> String {
         out.push_str(&source[at..start]);
         match edit.text {
             Some(text) => out.push_str(&text),
-            None => out.extend(
-                source[start..end]
-                    .chars()
-                    .map(|c| if c == '\n' || c == '\r' { c } else { ' ' }),
-            ),
+            None => {
+                for c in source[start..end].chars() {
+                    match c {
+                        '\n' | '\r' => out.push(c),
+                        _ => out.extend(std::iter::repeat_n(' ', c.len_utf8())),
+                    }
+                }
+            }
         }
         at = end;
     }
