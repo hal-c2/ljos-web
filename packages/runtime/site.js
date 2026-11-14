@@ -213,8 +213,9 @@ export function check(dir, qmlc = process.env.QMLC ?? "qmlc") {
     if (!offered.has(module)) throw new SiteError(`it imports ${module}, which ljos-web does not provide (\`ljos-web modules\` lists what it does)`);
   });
   // What the compiler would read for a path import is the bundle's too: the
-  // manifest's promise holds only if it never reads past what is listed.
-  const read = importsOf(dir, [...listed].filter((path) => /\.(?:qml|js|ts|lts)$/.test(path)), qmlc);
+  // manifest's promise holds only if it never reads past what is listed. A
+  // `.d.ts` file is an editor's, which the compiler never reads.
+  const read = importsOf(dir, [...listed].filter((path) => /\.(?:qml|js|ts|lts)$/.test(path) && !path.endsWith(".d.ts")), qmlc);
   for (const { file: path, paths } of read) {
     for (const target of paths) {
       const at = within(path, target);

@@ -133,3 +133,16 @@ test("what a document imports by path from the bundle's own files is built", asy
     made.remove();
   }
 });
+
+test("a declaration file beside a module is the editor's, and not read for what it imports", async () => {
+  const made = bundle("project", (dir, m) => {
+    add(dir, m, "parts/half.lts", "export function half(n: number): number { return n / 2 }\n");
+    add(dir, m, "parts/half.d.ts", 'import type { Rect } from "geometry"\nexport declare function half(n: number): number\n');
+    edit(dir, m, "Shell.qml", 'import "parts/half.lts" as Half\n');
+  });
+  try {
+    await expect(buildSite({ dir: made.dir, out: made.out, qmlc, with: [design] })).resolves.toMatchObject({ out: made.out });
+  } finally {
+    made.remove();
+  }
+});
