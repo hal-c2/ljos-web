@@ -14,7 +14,12 @@ if [ "$what" = all ] || [ "$what" = cli ]; then
   # without a key, for this command only.
   root_args=()
   # mise runs tasks from the repository's root; a relative DIR is the caller's.
-  [ -n "${usage_root:-}" ] && root_args=(--root "$(cd "${MISE_ORIGINAL_CWD:-$PWD}" && realpath -m -- "$usage_root")")
+  if [ -n "${usage_root:-}" ]; then
+    case $usage_root in
+      /*) root_args=(--root "$usage_root") ;;
+      *) root_args=(--root "${MISE_ORIGINAL_CWD:-$PWD}/$usage_root") ;;
+    esac
+  fi
   # Appended after any GIT_CONFIG_* entries the caller has, which stay.
   n=${GIT_CONFIG_COUNT:-0}
   env GIT_CONFIG_COUNT=$((n + 1)) "GIT_CONFIG_KEY_$n=url.https://github.com/.insteadOf" "GIT_CONFIG_VALUE_$n=ssh://git@github.com/" \

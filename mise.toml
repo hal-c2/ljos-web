@@ -10,9 +10,8 @@ pnpm = "12.8.1"
 # libvips is installed it would otherwise build itself from source against
 # it, which needs node-addon-api and a compiler, and pnpm install fails.
 SHARP_IGNORE_GLOBAL_LIBVIPS = "1"
-# The compiler the tasks build is where cargo put it: under CARGO_TARGET_DIR
-# when that is set. The tests, examples and sites read QMLC, and without it
-# look in ./target, so a build elsewhere was not found. Cargo reads a
-# relative CARGO_TARGET_DIR from the root, where tasks run; the consumers run
-# elsewhere, so QMLC is always absolute. A QMLC given wins.
-QMLC = "{% if env.QMLC %}{{ env.QMLC }}{% elif env.CARGO_TARGET_DIR %}{% if env.CARGO_TARGET_DIR is starting_with(pat='/') %}{{ env.CARGO_TARGET_DIR }}{% else %}{{ config_root }}/{{ env.CARGO_TARGET_DIR }}{% endif %}/debug/qmlc{% else %}{{ config_root }}/target/debug/qmlc{% endif %}"
+# With CARGO_TARGET_DIR set, the compiler the tasks build is not in ./target,
+# where the tests, examples and sites look unless QMLC names it; this script
+# sets QMLC to it. Otherwise QMLC stays as it is, so each consumer's own
+# default (./target, or qmlc on PATH for site.js) still applies.
+_.source = "{{ config_root }}/mise-tasks/qmlc-env.sh"
