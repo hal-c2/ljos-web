@@ -754,3 +754,21 @@ test("a page whose View3D draws on wgpu asks for the renderer before its first v
   expect(made).not.toBeNull();
   expect(asked).toBeLessThan(made);
 });
+
+test("a page whose View3D draws on wgpu fetches the renderer once, however late the page's own ask arrives", async ({ page }) => {
+  // The first view's chunk is there before the page's own ask has compiled,
+  // so it is the first view that waits for that ask and not one of its own.
+  let asked = 0;
+  await page.route(WASM, async (route) => {
+    asked += 1;
+    if (asked === 1) await new Promise((arrived) => setTimeout(arrived, 1500));
+    await route.fallback();
+  });
+  await page.goto("/?scene=wgpu_two&view3d=wgpu");
+  await page.waitForFunction(() => window.ready);
+  await page.waitForFunction(() => {
+    const views = [...document.querySelectorAll(".qq-view3d")];
+    return views.length === 2 && views.every(({ $view3d }) => $view3d.frames > 0);
+  });
+  expect(asked).toBe(1);
+});
