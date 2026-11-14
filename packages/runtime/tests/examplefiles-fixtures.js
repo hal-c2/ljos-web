@@ -58,6 +58,29 @@ Text {
 }
 `;
 
+// A shell that, once shown, is moved to a source the example does not
+// have and reloaded in the same turn: the reload is what reads it.
+export const RELOADED = `import QtQuick
+import Ljos.Blocks
+
+Rectangle {
+    width: 280
+    height: 120
+    color: "#20242e"
+    property bool moved: false
+    ShellLoader {
+        id: shell
+        anchors.fill: parent
+        source: moved ? "Gone.qml" : "user/Shell.qml"
+        onStatusChanged: {
+            if (shell.status !== ShellLoader.Ready || moved) return;
+            moved = true;
+            shell.reload();
+        }
+    }
+}
+`;
+
 // A picture the example names and does not have.
 export const PICTURE = `import QtQuick
 
@@ -130,10 +153,11 @@ const qml = (name, code) => ({ name, code, lang: "qml" });
 export const EXAMPLES = {
   neither: figure([qml("Main.qml", NEITHER + "\n")], { harness: "shell", harnessTemplate: SHELL_HARNESS, harnessFile: "Main.qml" }),
   chosen: figure([qml("Main.qml", CHOSEN_MAIN), qml("user/Shell.qml", CHOSEN_SHELL)]),
+  reloaded: figure([qml("Main.qml", RELOADED), qml("user/Shell.qml", CHOSEN_SHELL)]),
   picture: figure([qml("Main.qml", PICTURE)]),
   read: figure([qml("Main.qml", READ), { name: "data.json", code: '{ "greeting": "hello" }\n', lang: "json" }]),
   percent: figure([qml("Main.qml", PERCENT)]),
 };
 
 // What may not be asked of the server: every file the examples name.
-export const NAMED = /(?:^|\/)(?:(?:shell|AppShell|Shell|Missing)\.qml|logo\.png|100%(?:25)?\.png|(?:data|notes)\.json)$/;
+export const NAMED = /(?:^|\/)(?:(?:shell|AppShell|Shell|Missing|Gone)\.qml|logo\.png|100%(?:25)?\.png|(?:data|notes)\.json)$/;

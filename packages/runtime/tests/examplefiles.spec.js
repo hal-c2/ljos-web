@@ -88,3 +88,17 @@ test.describe("an example's files", () => {
     expect(server.refused).toEqual([]);
   });
 });
+
+test.describe("an example's shell reloaded", () => {
+  test.use({ told: [/^ShellLoader: (?:reload: )?Gone\.qml: No such file or directory$/] });
+
+  test("onto a source the example does not have says so beside the code, and the shell shown stays", async ({ page }) => {
+    const server = watched(page);
+    const figure = await mounted(page, "reloaded");
+    await expect(figure).toHaveAttribute("data-state", "live", { timeout: 30000 });
+    await expect(figure.locator(".ljos-codeblock__stage")).toContainText("My shell", { timeout: 15000 });
+    await expect(figure.getByRole("alert")).toContainText("Main.qml:12: Gone.qml: No such file or directory");
+    expect(server.named()).toEqual([]);
+    expect(server.refused).toEqual([]);
+  });
+});

@@ -459,6 +459,7 @@ async function reloaded(self) {
   const turn = ++state.turn;
   const resolved = await resolve(untrack(() => self.source));
   if (turn !== state.turn) return "";
+  used(resolved);
   const old = state.shown;
   const why = resolved && !resolved.component ? resolved.error : "";
   if (why || !resolved) {
