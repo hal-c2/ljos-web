@@ -247,10 +247,23 @@ export function probe({ count = false, gpu = false } = {}) {
       return { module: made.module, instance: exported(made.instance, name) };
     };
   }
+  // A module compiled from a response is named by where that came from: a
+  // page may compile one as it loads and instantiate it later.
+  const origins = new WeakMap();
+  const compiling = WebAssembly.compileStreaming;
+  if (compiling) {
+    WebAssembly.compileStreaming = async function (source) {
+      const response = await source;
+      const module = await compiling.call(this, response);
+      origins.set(module, named(response.url));
+      return module;
+    };
+  }
   const instantiate = WebAssembly.instantiate;
   WebAssembly.instantiate = async function (source, imports) {
-    // Bytes or a module say nothing of where they came from.
-    const name = "other";
+    // Bytes say nothing of where they came from, nor does a module compiled
+    // from them.
+    const name = origins.get(source) ?? "other";
     const made = await instantiate.call(this, source, imported(imports, name));
     if (made instanceof WebAssembly.Instance) return exported(made, name);
     return { module: made.module, instance: exported(made.instance, name) };
