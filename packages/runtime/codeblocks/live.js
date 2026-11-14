@@ -36,7 +36,15 @@ async function compilerOf(options) {
 let editorModule = null;
 let editorLoaded = null;
 export function loadEditor() {
-  editorLoaded ??= import("./editor.js").then((module) => (editorModule = module));
+  editorLoaded ??= import("./editor.js").then(
+    (module) => (editorModule = module),
+    (error) => {
+      // A load that failed (the network went) is asked for again by
+      // the next reader who reaches for the code.
+      editorLoaded = null;
+      throw error;
+    },
+  );
   return editorLoaded;
 }
 
@@ -207,6 +215,10 @@ export async function mountLiveCodeBlock(figure, data, options = {}) {
       // (a press, then Tab away) places nothing.
       if (wanted && document.activeElement !== sources[wanted.index].pre) wanted = null;
       upgrade();
+    }, () => {
+      // The code stays as the build wrote it, readable and running;
+      // the next focus, press or key asks for the editor again.
+      ready = null;
     });
   };
   sources.forEach(({ pre }, index) => {

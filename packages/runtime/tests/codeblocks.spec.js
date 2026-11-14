@@ -595,6 +595,28 @@ test.describe("a live code block in the page", () => {
     await expect(editor).toBeFocused();
     await expect.poll(() => textOf(editor)).toMatch(/ZRectangle/);
   });
+
+  test.describe("with the network failing once", () => {
+    // The failed load is the browser's to report, and only it.
+    test.use({ told: [[/hydration mismatch/, /Failed to load resource: net::ERR_FAILED/], { option: true }] });
+    test("an editor that fails to load leaves the code as it was, and the next reach brings it in", async ({ page }) => {
+      let failed = 0;
+      await page.route(/codeblocks\/editor\.js/, (route) => (failed++ ? route.continue() : route.abort()));
+      await opened(page, "?editor=on-demand");
+      const figure = counterFigure(page);
+      await live(figure);
+      const pre = figure.locator("pre.ljos-code");
+      await pre.focus();
+      await expect.poll(() => failed).toBe(1);
+      await expect(figure.locator(".cm-editor")).toHaveCount(0);
+      await expect(pre).toBeVisible();
+      await expect(figure.locator(".ljos-codeblock__stage")).toContainText("Count: 0");
+      await pre.blur();
+      await pre.focus();
+      const editor = await editorOf(figure, /Main\.qml/);
+      await expect(editor).toBeFocused();
+    });
+  });
 });
 
 plain("on a phone the code is 16px, a tap puts the caret in the editor, and nothing scrolls sideways", async ({ browser }) => {
