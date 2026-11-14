@@ -12,7 +12,7 @@
 // so `status` is never `Loading`, and nothing says that one has changed
 // (`geometryChanged`).
 import { defineType, derived } from "../../object.ts";
-import { Size } from "../../QtQml/values.js";
+import { Size } from "../../QtQml/values.ts";
 import { EMPTY, Geometry } from "../Geometry.js";
 import { kept, Object3D } from "../Node.js";
 

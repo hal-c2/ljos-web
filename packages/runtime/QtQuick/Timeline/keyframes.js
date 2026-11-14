@@ -1,6 +1,6 @@
 // The keyframes of a group: the order Qt puts them in, and the ones it reads
 // from a file (`keyframeSource`).
-import { Point, Quaternion, Rect, Size, Vector2d, Vector3d, Vector4d } from "../../QtQml/values.js";
+import { Point, Quaternion, Rect, Size, Vector2d, Vector3d, Vector4d } from "../../QtQml/values.ts";
 import { color } from "../color.js";
 
 // Qt sorts a group's keyframes by frame with `std::sort`, which does not keep

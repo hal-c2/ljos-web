@@ -1,7 +1,7 @@
 // mediaMetaData: what is known about a media file or one of its tracks, by
 // key. A browser tells little of it: how long the file is, the size of its
 // picture, the language of a track.
-import { Size } from "../QtQml/values.js";
+import { Size } from "../QtQml/values.ts";
 
 // What `metaDataKeyToString` gives, in the order of `MediaMetaData.Key`.
 const NAMES = [

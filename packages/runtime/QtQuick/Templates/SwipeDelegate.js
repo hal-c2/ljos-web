@@ -9,7 +9,7 @@
 // pointer once it is open.
 import { onCleanup } from "solid-js";
 import { defineType, effect, group, instantiate, onChange, QtObject, settle, signal, slot } from "../../object.ts";
-import { styleHints } from "../../QtQml/application.js";
+import { styleHints } from "../../QtQml/application.ts";
 import { Property } from "../animation/property.js";
 import { CancelGrabExclusive, takeExclusive } from "../pointer.js";
 import { AbstractButton, setPressed, stopPressAndHold, stopPressRepeat } from "./AbstractButton.js";

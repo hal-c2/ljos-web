@@ -23,7 +23,7 @@
 // however short the stop.
 import { onCleanup } from "solid-js";
 import { defineType, effect, QtObject, settle, slot } from "../../object.ts";
-import { Vector3d } from "../../QtQml/values.js";
+import { Vector3d } from "../../QtQml/values.ts";
 import { clock } from "../../QtQuick/animation/clock.js";
 import * as math from "../math.js";
 import { begin, end, sync } from "./backend.js";

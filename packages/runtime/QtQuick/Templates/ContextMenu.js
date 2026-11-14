@@ -3,7 +3,7 @@
 // made when first asked for: a style gives every field one.
 import { onCleanup } from "solid-js";
 import { defineType, QtObject, settle } from "../../object.ts";
-import { Point } from "../../QtQml/values.js";
+import { Point } from "../../QtQml/values.ts";
 import { globalToScene, sceneToItem } from "../geometry.js";
 import { untrack } from "#kernel";
 

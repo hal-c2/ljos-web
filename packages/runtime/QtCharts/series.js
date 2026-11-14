@@ -4,7 +4,7 @@
 import { runWithOwner } from "solid-js";
 import { contents, defineType, derived, QtObject, settle, slot, whenComplete } from "../object.ts";
 import { color, colorValue, css, equal, hsva, rgba } from "../QtQuick/color.js";
-import { Point } from "../QtQml/values.js";
+import { Point } from "../QtQml/values.ts";
 import { apart, box, curved, stroke } from "./plot.js";
 import { untrack } from "#kernel";
 

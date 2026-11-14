@@ -10,8 +10,8 @@
 // which is what `parent` is for them (as in Qt).
 import { onCleanup, runWithOwner } from "solid-js";
 import { $string, contents, defineType, derived, effect, flush, inside, onChange, QtObject, slot } from "../object.ts";
-import { application, listen, singleton } from "../QtQml/application.js";
-import { enums } from "../QtQml/namespace.js";
+import { application, listen, singleton } from "../QtQml/application.ts";
+import { enums } from "../QtQml/namespace.ts";
 import { allowedStyle } from "../guard.js";
 import { colorValue, css } from "./color.js";
 import { toScene } from "./geometry.js";

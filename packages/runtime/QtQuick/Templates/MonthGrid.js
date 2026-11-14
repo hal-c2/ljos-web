@@ -5,8 +5,8 @@
 // makes the cells as big as there is room for.
 import { onCleanup, runWithOwner } from "solid-js";
 import { defineType, derived, effect, last, settle, slot } from "../../object.ts";
-import { styleHints } from "../../QtQml/application.js";
-import { Locale } from "../../QtQml/locale.js";
+import { styleHints } from "../../QtQml/application.ts";
+import { Locale } from "../../QtQml/locale.ts";
 import { LeftButton } from "../keycodes.js";
 import { AbstractListModel } from "../model.js";
 import { after, cancel } from "../pointer.js";
