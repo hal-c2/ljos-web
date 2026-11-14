@@ -18,6 +18,8 @@ test.beforeEach(async ({ page }) => {
 test("the card's Controller, Tap and Task work as the file says", async ({ page }) => {
   await expect.poll(() => text(page, "size")).toBe("card 340×180");
   await expect.poll(() => text(page, "weather")).toBe("Oslo: clear");
+  // A label's own width is the one a Column gives it.
+  expect(await page.evaluate(() => window.scene.labelWidth)).toBe(300);
   const box = await page.evaluate(() => {
     const { x, y } = window.scene.card.$node.getBoundingClientRect();
     return { x, y };

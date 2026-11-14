@@ -2347,11 +2347,8 @@ modules, and a compiled file, `tests/scenes/ljoshomesfile.qml`, that
 reaches each with no `Qt`), and `ergoruntime.spec.js`, a card in
 Ljós's API compiled by `qmlc` (`tests/scenes/ergoruntime.qml`) with a
 Controller that keeps a label of its host's size as its anchors change it,
-a `Tap` that counts, and a `Task` that fetches what the city names.
-
-Not done, and said so: a child's explicit `width` in a `Ljos.Layout`
-`Column` is not yet the size the arrangement's rule gives it (A29), so the
-card's labels use `Layout.preferredWidth`.
+a `Tap` that counts, and a `Task` that fetches what the city names. Its
+labels give their own `width`, which a `Ljos.Layout` `Column` keeps (A29).
 
 
 ## Part II — An application's own Rust types

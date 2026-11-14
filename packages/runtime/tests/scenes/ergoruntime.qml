@@ -16,6 +16,7 @@ Item {
     readonly property string sizeText: sizeLabel.text
     readonly property string weatherText: weatherLabel.text
     readonly property string tapsText: tapsLabel.text
+    readonly property real labelWidth: sizeLabel.width
 
     Rectangle {
         id: card
@@ -43,20 +44,20 @@ Item {
             spacing: 6
             Text {
                 id: sizeLabel
-                Layout.preferredWidth: 300
+                width: 300
                 text: sizing.said
                 font: Font.of({ family: "Sans", pixelSize: 18 })
                 horizontalAlignment: Align.HCenter
             }
             Text {
                 id: weatherLabel
-                Layout.preferredWidth: 300
+                width: 300
                 text: weather.status === "done" ? `${root.city}: ${weather.value.sky}` : `${root.city}: ${weather.status}`
                 horizontalAlignment: Align.HCenter
             }
             Text {
                 id: tapsLabel
-                Layout.preferredWidth: 300
+                width: 300
                 text: `tapped ${root.taps} · ${Locale.current.name}`
                 horizontalAlignment: Align.HCenter
             }
