@@ -72,16 +72,18 @@ test(`the header's links stay inside ${base}`, async ({ page }) => {
   await expect(page).toHaveURL(`http://127.0.0.1:4471${base}`);
 });
 
-// A link in a docs page's words goes to its page inside the base.
-// The click is the anchor's own event, the one Text listens for: a
-// real pointer's click is taken by the scene's pointer capture before
-// it reaches the anchor (QtQuick/pointer.js, at any base, reported
-// apart from this), and what is held here is where the link goes.
+// A link in a docs page's words goes to its page inside the base: the
+// build writes the base into the words' addresses, so the link the
+// page has, before any script runs, is already the one a press follows.
 test(`a link in a page's words stays inside ${base}`, async ({ page }) => {
   await page.goto(`${base}start/`);
-  const link = page.locator('#app a[data-link^="/"]').first();
-  await expect(link).toBeAttached();
-  const route = (await link.getAttribute("data-link")).split("#")[0];
-  await link.dispatchEvent("click");
-  await expect(page).toHaveURL(`http://127.0.0.1:4471${base}${route.slice(1)}`);
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  expect(await page.locator('#app a[data-link^="/"]').evaluateAll((links, base) => links.map((link) => link.getAttribute("href")).filter((href) => !href?.startsWith(base)), base)).toEqual([]);
+  const link = page.locator(`#app a[data-link^="${base}start/"]`).first();
+  await link.scrollIntoViewIfNeeded();
+  const href = await link.getAttribute("href");
+  expect(href).toBe(await link.getAttribute("data-link"));
+  const box = await link.boundingBox();
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+  await expect(page).toHaveURL(`http://127.0.0.1:4471${href}`);
 });
