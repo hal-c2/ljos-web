@@ -32,7 +32,7 @@ export function addressed(self, node) {
   effect(
     () => (shellShown() || self.href === undefined || self.href === null ? "" : String(self.href)),
     (href) => {
-      if (href && followable(href)) node.setAttribute("href", href);
+      if (href && followable(href)) node.setAttribute("href", href); // guarded
       else node.removeAttribute("href");
     },
   );
