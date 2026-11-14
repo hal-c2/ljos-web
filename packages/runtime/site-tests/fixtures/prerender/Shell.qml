@@ -33,6 +33,18 @@ Column {
         textFormat: Text.RichText
         text: '<span class="tok-keyword">import</span> code<br/>a second line<br/>a third line'
     }
+    // Blocks are lines of their own, wrapping or not: what comes under
+    // them is placed by the height the build measured.
+    Column {
+        Text {
+            font.pixelSize: 12
+            lineHeightMode: Text.FixedHeight
+            lineHeight: 18
+            textFormat: Text.RichText
+            text: '<div>a block</div><div>a block below it</div>'
+        }
+        Text { text: "Under the blocks" }
+    }
     // Rows a Repeater makes, in a Column: in the page as written they
     // are placed one under another, as the page settles, not left as
     // the Column first read its children (none).

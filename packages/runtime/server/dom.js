@@ -19,6 +19,9 @@
 // <div>s, and a count alone cannot tell a shifted one from its own.
 
 const VOID = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
+// The elements rich text keeps that a browser sets as blocks: each
+// starts on a line of its own.
+const BLOCKS = new Set(["address", "blockquote", "caption", "dd", "div", "dl", "dt", "h1", "h2", "h3", "h4", "h5", "h6", "li", "ol", "p", "pre", "table", "tr", "ul"]);
 const XHTML = "http://www.w3.org/1999/xhtml";
 // Where the runtime says what type it is making, while it makes it
 // (`object.js`): read here as an element is made.
@@ -135,8 +138,8 @@ function rect(element) {
   // An element that holds text and says no height is as tall as its
   // lines: on the server that is said by the text it holds over the
   // width there is for it, a browser's line-breaking near enough. A
-  // `<br>` ends a line, wrapping or not (rich text's lines, highlighted
-  // code's), and text that does not wrap is a line per break.
+  // `<br>` or a block ends a line, wrapping or not (rich text's lines,
+  // highlighted code's), and text that does not wrap is a line per break.
   let h = Number.isFinite(height) && height > 0 ? height : 0;
   if (h === 0 && element.textContent) {
     const size = fontSizeOf(element);
@@ -564,15 +567,24 @@ class Element {
     const size = fontSizeOf(this);
     return Math.max(...this._lines().map((line) => advance(line, size)));
   }
-  // The text it holds as the lines a `<br>` breaks it into. A last
+  // The text it holds as the lines a `<br>` breaks it into, and a
+  // block (rich text's `<div>`, `<p>`, `<li>`) starts and ends. These
+  // are hard lines: text that does not wrap still has them. A last
   // break ends a line and starts none, as in a browser.
   _lines() {
     const lines = [""];
+    const end = () => {
+      if (lines.at(-1) !== "") lines.push("");
+    };
     const walk = (node) => {
       for (const child of node.childNodes ?? []) {
         if (child.nodeType === 3) lines[lines.length - 1] += child.data;
         else if (child.localName === "br") lines.push("");
-        else if (child.nodeType === 1) walk(child);
+        else if (child.nodeType === 1 && BLOCKS.has(child.localName)) {
+          end();
+          walk(child);
+          end();
+        } else if (child.nodeType === 1) walk(child);
       }
     };
     walk(this);

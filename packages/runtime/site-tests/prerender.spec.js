@@ -110,6 +110,31 @@ for (const kernel of ["solid", "wasm"]) {
       expect(await code(page).locator(".tok-keyword").count()).toBe(1);
     });
 
+    test("rich text's blocks are lines of their own in the prerender, though the text does not wrap", async ({ browser, page }) => {
+      const placed = async (on) => {
+        const block = await on.getByText("a block below it", { exact: true }).boundingBox();
+        const under = await on.getByText("Under the blocks", { exact: true }).boundingBox();
+        return under.y - (block.y + block.height);
+      };
+      const context = await browser.newContext({ javaScriptEnabled: false });
+      let written;
+      try {
+        const still = await context.newPage();
+        await still.goto(`${origin}/`);
+        written = await placed(still);
+      } finally {
+        await context.close();
+      }
+      // The text under the blocks starts below the second, not on it,
+      // and as far below as the hydrated page puts it. (Where the blocks
+      // are is not compared: plain text above them is measured by an
+      // estimate on the server.)
+      expect(written).toBeGreaterThanOrEqual(0);
+      await page.goto(`${origin}/`);
+      await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+      expect(await placed(page)).toBe(written);
+    });
+
     test("what the page changed as it settled is in the page as written: a Repeater's rows, placed", async ({ browser }) => {
       const context = await browser.newContext({ javaScriptEnabled: false });
       try {
