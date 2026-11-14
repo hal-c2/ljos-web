@@ -290,7 +290,8 @@ plain("static HTML shows code and the prerendered result and carries the payload
         code("qml", "file=Panel.qml group=pair", PANEL.trimEnd()),
       ],
     };
-    liveCodeBlocks({ qmlc })(tree);
+    // A host that colours its code at build time asks for it.
+    liveCodeBlocks({ qmlc, highlight: true })(tree);
     expect(tree.children.map((n) => n.type)).toEqual(["paragraph", "html", "paragraph", "html"]);
     // The one figure's editor carries both files.
     expect(tree.children[1].value).toContain("Panel.qml");
@@ -313,15 +314,16 @@ plain("static HTML shows code and the prerendered result and carries the payload
       type: "root",
       children: [{ type: "code", lang: "qml", meta: null, value: "Rectangle { width: 1 +" }],
     });
+    // Left to the host's highlighting unless the host asks for the build's.
+    const host = make();
+    liveCodeBlocks({ qmlc })(host);
+    expect(host.children[0].type).toBe("code");
     const legacy = make();
-    liveCodeBlocks({ qmlc })(legacy);
+    liveCodeBlocks({ qmlc, highlight: true })(legacy);
     // Plain code, not a figure: highlighted, its broken end marked.
     expect(legacy.children[0].type).toBe("html");
     expect(legacy.children[0].value).not.toContain("data-ljos-codeblock");
     expect(legacy.children[0].value).toContain('<span class="tok-typeName">Rectangle</span>');
-    const host = make();
-    liveCodeBlocks({ qmlc, highlight: false })(host);
-    expect(host.children[0].type).toBe("code");
     expect(() => liveCodeBlocks({ qmlc, strict: true })(make())).toThrow();
   });
 });
@@ -566,6 +568,32 @@ test.describe("a live code block in the page", () => {
       for (const side of ["x", "y", "width", "height"]) expect(Math.abs(after[part][side] - before[part][side]), `${part}.${side}`).toBeLessThan(0.5);
     await page.evaluate(() => new Promise(requestAnimationFrame));
     expect(await page.evaluate(() => window.shifts)).toBe(0);
+  });
+
+  test("what a reader does while the editor is on its way is kept: the last press places the caret, and their typing lands there", async ({ page }) => {
+    // The editor's code is held back until the reader has acted, so
+    // every press and key below comes before it.
+    let release;
+    const held = new Promise((resolve) => (release = resolve));
+    await page.route(/codemirror|codeblocks\/editor\.js/, async (route) => {
+      await held;
+      await route.continue();
+    });
+    await opened(page, "?editor=on-demand");
+    const figure = counterFigure(page);
+    await live(figure);
+    const pre = figure.locator("pre.ljos-code");
+    // Focus asks for the editor first; the press that follows is the one that counts.
+    await pre.focus();
+    const word = pre.locator(".tok-typeName").filter({ hasText: /^Rectangle$/ });
+    const { height } = await word.boundingBox();
+    await word.click({ position: { x: 1, y: height / 2 } });
+    await page.keyboard.type("Z");
+    await expect(figure.locator(".cm-editor")).toHaveCount(0);
+    release();
+    const editor = await editorOf(figure, /Main\.qml/);
+    await expect(editor).toBeFocused();
+    await expect.poll(() => textOf(editor)).toMatch(/ZRectangle/);
   });
 });
 

@@ -161,7 +161,12 @@ export async function mountLiveCodeBlock(figure, data, options = {}) {
   // once. A surface the reader is in hands its focus (and the caret
   // where they clicked) to its editor; one they have left keeps none.
   let ready = null;
-  const upgrade = (wanted) => {
+  // What the reader did while the editor was on its way, which it
+  // takes as if it had been there: where they last pressed (the file
+  // and the offset there), and the characters they typed.
+  let wanted = null;
+  let typed = "";
+  const upgrade = () => {
     if (disposed || editors.length) return;
     const { createCodeEditor } = editorModule;
     data.display.forEach((file, i) => {
@@ -188,27 +193,39 @@ export async function mountLiveCodeBlock(figure, data, options = {}) {
       if (focused || wanted?.index === i) {
         if (at !== null && at !== undefined) editor.view.dispatch({ selection: { anchor: Math.min(at, editor.view.state.doc.length) } });
         editor.focus();
+        if (typed) editor.view.dispatch(editor.view.state.replaceSelection(typed));
       }
     });
+    wanted = null;
+    typed = "";
     figure.dataset.editor = "ready";
   };
-  const bringIn = (wanted) => {
-    if (editorModule) return upgrade(wanted);
-    ready ??= loadEditor().then(() => upgrade());
+  const bringIn = () => {
+    if (editorModule) return upgrade();
+    ready ??= loadEditor().then(() => {
+      // A press counts where the reader still is; one they have left
+      // (a press, then Tab away) places nothing.
+      if (wanted && document.activeElement !== sources[wanted.index].pre) wanted = null;
+      upgrade();
+    });
   };
   sources.forEach(({ pre }, index) => {
     pre.addEventListener("focus", () => bringIn());
-    pre.addEventListener("keydown", () => bringIn());
-    pre.addEventListener("pointerdown", (event) => {
-      const offset = offsetAt(pre, event.clientX, event.clientY);
-      if (editorModule) {
-        // Same gesture: the editor is in before the browser places
-        // focus, so the caret (and a phone's keyboard) land in it.
+    pre.addEventListener("keydown", (event) => {
+      // The code as it stands takes no typing: a character the reader
+      // types is held for the editor, the one that brings it in too.
+      if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
         event.preventDefault();
-        upgrade({ index, offset });
-      } else {
-        ready ??= loadEditor().then(() => upgrade(document.activeElement === pre ? { index, offset } : null));
+        typed += event.key;
       }
+      bringIn();
+    });
+    pre.addEventListener("pointerdown", (event) => {
+      wanted = { index, offset: offsetAt(pre, event.clientX, event.clientY) };
+      // Same gesture: the editor is in before the browser places
+      // focus, so the caret (and a phone's keyboard) land in it.
+      if (editorModule) event.preventDefault();
+      bringIn();
     });
   });
 
