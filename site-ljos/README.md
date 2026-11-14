@@ -84,7 +84,12 @@ main in hal-c2/ljos-web deploys; a fork's push builds and tests
 only. A pull request builds and tests at both bases and never
 deploys. Deploying runs take turns: one in flight is never
 cancelled, so an older commit never lands after a newer one, and a
-deploy still waiting is replaced by a newer one.
+deploy still waiting is replaced by a newer one from main. The
+workflow runs for every path the build reads (`site/`, `site-ljos/`,
+`packages/`, `crates/`, `vendor/`, `mise-tasks/`, `mise.toml`, the
+Cargo and pnpm manifests and locks, `.cargo/`, and the workflow
+itself); a path missing from that list would be a merge that changes
+the site and never deploys it.
 
 A manual dispatch (Actions → site → Run workflow) still deploys
 when `deploy` is ticked:
@@ -95,14 +100,18 @@ when `deploy` is ticked:
 | push to main | — | — | the root build with a `CNAME` naming the repository's Pages domain, for `https://ljos.dev/` |
 | dispatch | off | (any) | nothing: the build and its tests only |
 | dispatch | on | off (default) | the preview, built for `/ljos-web/`, at `https://hal-c2.github.io/ljos-web/` |
-| dispatch | on | on | the root build with its `CNAME`, as a merge deploys it |
+| dispatch from main | on | on | the root build with its `CNAME`, as a merge deploys it |
+| dispatch from another branch | on | on | nothing: the run fails, as only main deploys to the custom domain |
 
 The deploy step reads the repository's Pages custom domain and
 fails when the run's build disagrees with it: a merge to main, or a
 dispatch with `custom_domain` on, with no domain set; or a preview
 dispatch once one is (Pages would serve the project-path build at
 the domain's root, where every link 404s). With the domain set, a
-merge deploys, and so does a dispatch with `custom_domain` on.
+merge deploys, and so does a dispatch from main with `custom_domain`
+on. A deploying dispatch from another branch takes no turn among
+main's deploys, so it never replaces a merge's waiting deploy; with
+the domain set it fails either way.
 
 Once, before the first deploy: Settings → Pages → Build and
 deployment → Source: **GitHub Actions**.
