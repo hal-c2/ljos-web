@@ -31,10 +31,11 @@ use std::collections::{BTreeSet, HashSet};
 
 use oxc_allocator::Allocator;
 use oxc_ast::ast::{
-    Class, ClassElement, Declaration, FormalParameter, ImportDeclarationSpecifier,
-    ImportOrExportKind, MethodDefinitionType, PropertyDefinitionType, PropertyKey, Statement,
-    TSAsExpression, TSNonNullExpression, TSSatisfiesExpression, TSThisParameter, TSTypeAnnotation,
-    TSTypeAssertion, TSTypeParameterDeclaration, TSTypeParameterInstantiation,
+    ArrowFunctionExpression, Class, ClassElement, Declaration, FormalParameter,
+    ImportDeclarationSpecifier, ImportOrExportKind, MethodDefinitionType, PropertyDefinitionType,
+    PropertyKey, Statement, TSAsExpression, TSNonNullExpression, TSSatisfiesExpression,
+    TSThisParameter, TSTypeAnnotation, TSTypeAssertion, TSTypeParameterDeclaration,
+    TSTypeParameterInstantiation,
 };
 use oxc_ast_visit::{Visit, walk};
 use oxc_parser::Parser;
@@ -120,6 +121,19 @@ pub(crate) fn compile(
     // Names that are only types are not read at run time: an export of one
     // gives an importer nothing.
     for statement in &parsed.program.body {
+        if let Statement::ImportDeclaration(import) = statement {
+            for specifier in import.specifiers.iter().flatten() {
+                let typed = import.import_kind == ImportOrExportKind::Type
+                    || matches!(specifier, ImportDeclarationSpecifier::ImportSpecifier(it)
+                        if it.import_kind == ImportOrExportKind::Type);
+                if typed {
+                    eraser
+                        .types
+                        .insert(specifier.local().name.as_str().to_string());
+                }
+            }
+            continue;
+        }
         let declaration = match statement {
             Statement::ExportDeclaration(export) => &export.declaration,
             other => match other.as_declaration() {
@@ -347,17 +361,28 @@ impl Eraser<'_> {
         self.faults.push((span, message.into()));
     }
 
-    /// A replacement on the first line of `span`, with its other lines kept
-    /// as line breaks.
-    fn replace_keeping_lines(&mut self, span: Span, text: String) {
-        let breaks = self.source[span.start as usize..span.end as usize]
-            .matches('\n')
-            .count();
-        self.replace(span, format!("{text}{}", "\n".repeat(breaks)));
+    /// Blank one name of an import or export list with the comma after it,
+    /// where it is: what follows keeps its line and column, which errors
+    /// are told at. A list may end in a comma.
+    fn blank_listed(&mut self, span: Span) {
+        let rest = &self.source[span.end as usize..];
+        let comma = rest
+            .find(|c: char| !c.is_whitespace())
+            .filter(|at| rest[*at..].starts_with(','))
+            .map_or(0, |at| at + 1);
+        self.blank(span.start, span.end + comma as u32);
     }
 
-    fn text(&self, span: Span) -> &str {
-        &self.source[span.start as usize..span.end as usize]
+    /// Blank the `typed` names of a statement's list of `names`, or the
+    /// whole statement when they are all of it: `export {}` would still be
+    /// one, but says nothing.
+    fn blank_list(&mut self, statement: Span, names: usize, typed: Vec<Span>) {
+        if !typed.is_empty() && typed.len() == names {
+            return self.blank_statement(statement.start, statement.end);
+        }
+        for span in typed {
+            self.blank_listed(span);
+        }
     }
 
     /// Whether `path`, which a module imports from, is one it can reach: a
@@ -389,15 +414,12 @@ impl Eraser<'_> {
                 }
                 let specifiers: &[ImportDeclarationSpecifier<'_>] =
                     import.specifiers.as_ref().map_or(&[], |s| s.as_slice());
-                let mut names = Vec::new();
-                let mut typed = 0;
+                let mut typed = Vec::new();
                 for specifier in specifiers {
                     match specifier {
                         ImportDeclarationSpecifier::ImportSpecifier(it) => {
                             if it.import_kind == ImportOrExportKind::Type {
-                                typed += 1;
-                            } else {
-                                names.push(self.text(it.span).to_string());
+                                typed.push(it.span);
                             }
                         }
                         ImportDeclarationSpecifier::ImportNamespaceSpecifier(_) => {}
@@ -409,15 +431,12 @@ impl Eraser<'_> {
                         }
                     }
                 }
-                if typed == 0 {
-                    return;
-                }
-                if typed == specifiers.len() {
+                if !typed.is_empty() && typed.len() == specifiers.len() {
                     return self.blank_statement(import.span.start, import.span.end);
                 }
-                let from = self.text(import.source.span).to_string();
-                let text = format!("import {{ {} }} from {from};", names.join(", "));
-                self.replace_keeping_lines(import.span, text);
+                for span in typed {
+                    self.blank_listed(span);
+                }
             }
             Statement::ExportDeclaration(export) => {
                 let declaration = &export.declaration;
@@ -430,23 +449,16 @@ impl Eraser<'_> {
                 if export.export_kind == ImportOrExportKind::Type {
                     return self.blank_statement(export.span.start, export.span.end);
                 }
-                let names: Vec<String> = export
+                let typed: Vec<Span> = export
                     .specifiers
                     .iter()
                     .filter(|specifier| {
-                        specifier.export_kind != ImportOrExportKind::Type
-                            && !self.types.contains(specifier.local.name().as_str())
+                        specifier.export_kind == ImportOrExportKind::Type
+                            || self.types.contains(specifier.local.name().as_str())
                     })
-                    .map(|specifier| self.text(specifier.span).to_string())
+                    .map(|specifier| specifier.span)
                     .collect();
-                if names.len() == export.specifiers.len() {
-                    return;
-                }
-                if names.is_empty() {
-                    return self.blank_statement(export.span.start, export.span.end);
-                }
-                let text = format!("export {{ {} }};", names.join(", "));
-                self.replace_keeping_lines(export.span, text);
+                self.blank_list(export.span, export.specifiers.len(), typed);
             }
             Statement::ExportFromDeclaration(export) => {
                 let path = export.source.value.as_str();
@@ -455,21 +467,13 @@ impl Eraser<'_> {
                 {
                     return self.blank_statement(export.span.start, export.span.end);
                 }
-                let names: Vec<String> = export
+                let typed: Vec<Span> = export
                     .specifiers
                     .iter()
-                    .filter(|specifier| specifier.export_kind != ImportOrExportKind::Type)
-                    .map(|specifier| self.text(specifier.span).to_string())
+                    .filter(|specifier| specifier.export_kind == ImportOrExportKind::Type)
+                    .map(|specifier| specifier.span)
                     .collect();
-                if names.len() == export.specifiers.len() {
-                    return;
-                }
-                if names.is_empty() {
-                    return self.blank_statement(export.span.start, export.span.end);
-                }
-                let from = self.text(export.source.span).to_string();
-                let text = format!("export {{ {} }} from {from};", names.join(", "));
-                self.replace_keeping_lines(export.span, text);
+                self.blank_list(export.span, export.specifiers.len(), typed);
             }
             Statement::ExportAllDeclaration(export) => {
                 if export.export_kind == ImportOrExportKind::Type {
@@ -598,12 +602,7 @@ impl<'a> Visit<'a> for Eraser<'_> {
 
     fn visit_ts_this_parameter(&mut self, it: &TSThisParameter<'a>) {
         // `this: T, x` loses `this: T,`.
-        let rest = &self.source[it.span.end as usize..];
-        let comma = rest
-            .find(|c: char| !c.is_whitespace())
-            .filter(|at| rest[*at..].starts_with(','))
-            .map_or(0, |at| at + 1);
-        self.blank(it.span.start, it.span.end + comma as u32);
+        self.blank_listed(it.span);
     }
 
     fn visit_class(&mut self, it: &Class<'a>) {
@@ -680,6 +679,30 @@ impl<'a> Visit<'a> for Eraser<'_> {
             ClassElement::StaticBlock(_) => {}
         }
         walk::walk_class_element(self, it);
+    }
+
+    fn visit_arrow_function_expression(&mut self, it: &ArrowFunctionExpression<'a>) {
+        // A return type may run over lines, but `=>` may not start one: the
+        // type's lines go after the `=>`, where they are blank lines of the
+        // body, and every line keeps its number.
+        if let Some(returns) = &it.return_type {
+            let after = self
+                .source
+                .get(returns.span.end as usize..it.body.span().start as usize)
+                .unwrap_or_default();
+            if let Some(at) = after.find("=>") {
+                let end = returns.span.end + at as u32 + 2;
+                let text = &self.source[returns.span.start as usize..end as usize];
+                let breaks: String = text.chars().filter(|c| matches!(c, '\n' | '\r')).collect();
+                let others = text.chars().count() - breaks.chars().count();
+                let spaces = " ".repeat(others - 2);
+                self.replace(
+                    Span::new(returns.span.start, end),
+                    format!("{spaces}=>{breaks}"),
+                );
+            }
+        }
+        walk::walk_arrow_function_expression(self, it);
     }
 
     fn visit_ts_type_annotation(&mut self, it: &TSTypeAnnotation<'a>) {

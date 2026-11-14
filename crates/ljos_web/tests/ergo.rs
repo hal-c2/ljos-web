@@ -731,3 +731,95 @@ fn qmlc_compiles_a_module_lists_what_it_imports_and_names_its_output() {
     assert!(out.join("out/Main.qml.js").is_file());
     assert!(out.join("out/width.lts.js").is_file());
 }
+
+/// A name imported only as a type and exported again is a type there too:
+/// the export gives nothing, as TypeScript's does.
+#[test]
+fn a_module_exports_again_a_type_it_imports_and_gives_nothing_of_it() {
+    let main = given(
+        r#"import Ljos.Ui
+import "shapes.ts" as Shapes
+Item {
+  property string kind: Shapes.fallback
+}"#,
+    );
+    let kinds = bare(
+        r#"export type Kind = "dot" | "dash"
+export const fallback: Kind = "dot""#,
+    );
+    let shapes = bare(
+        r#"import type { Kind } from "./kinds.ts"
+import { type Kind as Other, fallback } from "./kinds.ts"
+export { Kind, Other, fallback }"#,
+    );
+    let code = code_of(
+        &[
+            ("Main.qml", main),
+            ("kinds.ts", kinds),
+            ("shapes.ts", shapes),
+        ],
+        "Main.qml",
+        "shapes.ts",
+    );
+    assert_contains(&code, "export { fallback };");
+    assert_lacks(&code, "Kind");
+    assert_lacks(&code, "Other");
+}
+
+/// Erasing a type-only name from an import or an export list moves nothing
+/// after it: an error further on is where the file has it.
+#[test]
+fn an_error_after_an_erased_type_import_is_at_its_own_line_and_column() {
+    let main = given(
+        r#"import Ljos.Ui
+import "shapes.ts" as Shapes
+Item {
+  property real x: Shapes.x
+}"#,
+    );
+    let kinds = bare(
+        r#"export type Kind = "dot" | "dash"
+export const fallback: Kind = "dot""#,
+    );
+    let shapes = bare(
+        r#"import { type Kind,
+  fallback } from "./kinds.ts"
+export { type Kind, fallback } from "./kinds.ts"
+export const x: number = missing"#,
+    );
+    assert_eq!(
+        checked(
+            &[
+                ("Main.qml", main),
+                ("kinds.ts", kinds),
+                ("shapes.ts", shapes)
+            ],
+            "Main.qml"
+        ),
+        ["shapes.ts:4:26: error: `missing` has no type: it is not in scope [ts-no-any]"]
+    );
+}
+
+/// TypeScript lets an arrow's return type run over lines; JavaScript wants
+/// `=>` on the line of its parameters, so erasing the type puts it there.
+#[test]
+fn an_arrow_whose_return_type_runs_over_lines_compiles() {
+    let main = given(
+        r#"import Ljos.Ui
+import "pick.ts" as Pick
+Item {
+  property real two: Pick.twice(1)
+}"#,
+    );
+    let pick = bare(
+        r#"export const twice = (n: number):
+  | number
+  | undefined => n * 2"#,
+    );
+    let code = code_of(
+        &[("Main.qml", main), ("pick.ts", pick)],
+        "Main.qml",
+        "pick.ts",
+    );
+    assert_contains(&code, "export const twice = (n) => n * 2;");
+}
