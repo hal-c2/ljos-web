@@ -14,269 +14,329 @@ import "../nav.js" as Nav
 Column {
     id: landing
 
-    property int textWidth: width
+    // The flickable the page scrolls in, for the demos to know when
+    // they are on screen; and whether the window is a wide one.
+    property var scroller: null
+    property bool wide: true
+    // Prose reads at a measure, whatever the page's width.
+    readonly property int prose: Math.min(width, Theme.measure)
+    readonly property int textWidth: width
 
     width: parent ? parent.width : 680
-    spacing: 18
+    spacing: 0
 
     function follow(link) {
         Nav.go(link);
     }
 
-    Text {
+    // What Ljós is, and where to go first.
+    Column {
         width: parent.width
-        text: "Ljós — malleable software, everywhere"
-        color: Theme.ink
-        font.family: Theme.serif
-        font.pixelSize: 40
-        font.bold: true
-        wrapMode: Text.Wrap
-    }
-    Text {
-        width: parent.width
-        textFormat: Text.RichText
-        color: Theme.ink
-        font.family: Theme.sans
-        font.pixelSize: 17
-        wrapMode: Text.Wrap
-        text: "Ljós is a Rust UI toolkit for malleable software: apps that the people who use them — and their agents — can reshape while they run. An app does the work and keeps the state; its interface is a shell. Ship your own shell, and let each person replace it with a <code>shell.qml</code> of theirs: a <code>ShellLoader</code> shows theirs in place of yours, the app and its plugins offer their pieces into named <code>Slot</code>s for that shell to place, and when an edit does not work, yours is what stands, with what broke and where said out loud."
-        onLinkActivated: (link) => landing.follow(link)
-    }
-    Row {
-        spacing: 12
+        topPadding: landing.wide ? Theme.xxl : Theme.l
+        bottomPadding: landing.wide ? Theme.xxxl : Theme.xxl
+        spacing: Theme.l
 
-        Rectangle {
-            width: startWords.implicitWidth + 28
-            height: 40
-            color: Theme.accent
-            activeFocusOnTab: true
-            Accessible.role: Accessible.Link
-            Accessible.name: "What is Ljós?"
-            Accessible.onPressAction: () => Nav.go("/start/")
-            Keys.onPressed: (event) => {
-                if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
-                    Nav.go("/start/");
-                    event.accepted = true;
-                }
-            }
-
-            Text {
-                id: startWords
-                anchors.centerIn: parent
-                text: "What is Ljós?"
-                color: Theme.onAccent
-                font.family: Theme.sans
-                font.pixelSize: 15
-                font.bold: true
-            }
-            MouseArea {
-                anchors.fill: parent
-                Accessible.ignored: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: Nav.go("/start/")
-            }
+        Text {
+            text: "Malleable software"
+            color: Theme.link
+            font.family: Theme.sans
+            font.pixelSize: Theme.captionSize + 1
+            font.weight: Font.DemiBold
+            font.letterSpacing: 0.5
+            lineHeightMode: Text.FixedHeight
+            lineHeight: Theme.captionLine
         }
-        Rectangle {
-            width: firstWords.implicitWidth + 28
-            height: 40
-            color: Theme.bg
-            border.color: Theme.accent
-            border.width: 1
-            activeFocusOnTab: true
-            Accessible.role: Accessible.Link
-            Accessible.name: "Your first app"
-            Accessible.onPressAction: () => Nav.go("/start/first-app/")
-            Keys.onPressed: (event) => {
-                if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
-                    Nav.go("/start/first-app/");
-                    event.accepted = true;
-                }
-            }
+        Text {
+            width: Math.min(parent.width, 880)
+            text: "Ljós — malleable software, everywhere"
+            color: Theme.text
+            font.family: Theme.sans
+            font.pixelSize: landing.wide ? Theme.heroSize : Theme.compactHeroSize
+            font.weight: Font.Bold
+            font.letterSpacing: landing.wide ? -1 : -0.5
+            lineHeightMode: Text.FixedHeight
+            lineHeight: landing.wide ? Theme.heroLine : Theme.compactHeroLine
+            wrapMode: Text.Wrap
+            Accessible.role: Accessible.Heading
+        }
+        Text {
+            width: landing.prose
+            textFormat: Text.RichText
+            color: Theme.textMuted
+            linkColor: Theme.link
+            font.family: Theme.sans
+            font.pixelSize: landing.wide ? Theme.subtitleSize + 1 : Theme.subtitleSize - 1
+            lineHeightMode: Text.FixedHeight
+            lineHeight: landing.wide ? Theme.subtitleLine + 2 : Theme.subtitleLine - 2
+            wrapMode: Text.Wrap
+            text: "A Rust UI toolkit for apps that the people who use them — and their agents — can reshape while they run. Interfaces are declarative, scripts are typed TypeScript, and every part of a running app can be observed and driven."
+            onLinkActivated: (link) => landing.follow(link)
+        }
+        Flow {
+            width: parent.width
+            spacing: Theme.s
 
-            Text {
-                id: firstWords
-                anchors.centerIn: parent
-                text: "Your first app"
-                color: Theme.accent
-                font.family: Theme.sans
-                font.pixelSize: 15
-                font.bold: true
+            LinkButton {
+                primary: true
+                label: "What is Ljós?"
+                href: "/start/"
             }
-            MouseArea {
-                anchors.fill: parent
-                Accessible.ignored: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: Nav.go("/start/first-app/")
+            LinkButton {
+                label: "Your first app"
+                href: "/start/first-app/"
+            }
+            LinkButton {
+                label: "See the demos"
+                href: "/demos/"
             }
         }
     }
 
-    Text {
+    // Your own shell: the point, said, shown in code, and run.
+    Column {
         width: parent.width
-        text: "Your own shell"
-        color: Theme.ink
-        font.family: Theme.serif
-        font.pixelSize: 26
-        font.bold: true
-        wrapMode: Text.Wrap
-    }
-    Text {
-        width: parent.width
-        textFormat: Text.RichText
-        color: Theme.ink
-        font.family: Theme.sans
-        font.pixelSize: 15
-        wrapMode: Text.Wrap
-        text: "Most programs are finished before you meet them. A Ljós app is built from blocks: the pieces of its interface, contributed into named <code>Slot</code>s. A shell lays those slots out. Yours ships with the app; the person using it may keep a <code>shell.qml</code> of their own where the app looks for one, and <code>ShellLoader</code> — <code>import Ljos.Blocks</code> — shows it in your shell's place. The state stays, the work goes on, and a broken edit falls back to the app's shell with <code>error</code> saying what broke and where, so an experiment never bricks the app. The compiler and the lints ship in the app, so the edit is checked the way your own code is. Underneath, saving a file patches the running window and keeps its state — that is the mechanics; the shape of the thing is that the interface belongs to whoever is looking at it."
-        onLinkActivated: (link) => landing.follow(link)
-    }
-    CodeBlock {
-        width: parent.width
-        lang: "qml"
-        code: "import Ljos.Blocks\n\nShellLoader {\n    source: \"shell.qml\"       // the user's own, where the app looks\n    fallback: \"AppShell.qml\"  // the app's, standing when theirs does not\n}\n"
-        rich: "import Ljos.Blocks\n\nShellLoader {\n    source: \"shell.qml\"       // the user's own, where the app looks\n    fallback: \"AppShell.qml\"  // the app's, standing when theirs does not\n}\n"
-    }
-    // The flagship malleable demo mounts into this slot: a small app
-    // whose shell the visitor rewrites on the page, its state kept, a
-    // broken edit falling back with the error shown.
-    Slot {
-        name: "showcase-shell"
-        delegate: Component {
-            Column {
-                width: landing.textWidth
-                spacing: 8
+        spacing: Theme.m
+        bottomPadding: Theme.xxxl
 
-                Text {
-                    width: parent.width
-                    textFormat: Text.RichText
-                    color: Theme.ink
-                    font.family: Theme.sans
-                    font.pixelSize: 14
-                    wrapMode: Text.Wrap
-                    text: "<b>Rewrite this app's shell.</b> A small app whose shell you edit below, on the page. Move where a <code>Slot</code> contribution lands and it moves; break the shell and the app's own shell stands in its place, with the error shown; the app's data and state survive both."
-                }
-                PantryDemo {
-                    width: parent.width
-                }
-            }
+        Text {
+            width: parent.width
+            text: "Your own shell"
+            color: Theme.text
+            font.family: Theme.sans
+            font.pixelSize: landing.wide ? Theme.headlineSize + 4 : Theme.headlineSize - 2
+            font.weight: Font.Bold
+            lineHeightMode: Text.FixedHeight
+            lineHeight: landing.wide ? Theme.headlineLine + 4 : Theme.headlineLine - 4
+            wrapMode: Text.Wrap
+            Accessible.role: Accessible.Heading
         }
-    }
+        Text {
+            width: landing.prose
+            textFormat: Text.RichText
+            color: Theme.text
+            linkColor: Theme.link
+            font.family: Theme.sans
+            font.pixelSize: Theme.bodySize + 1
+            lineHeightMode: Text.FixedHeight
+            lineHeight: Theme.bodyLine + 4
+            wrapMode: Text.Wrap
+            text: "Most programs are finished before you meet them. A Ljós app does the work and keeps the state; its interface is a shell, built from blocks the app and its plugins offer into named <code>Slot</code>s. Ship your own shell, and let each person replace it with a <code>shell.qml</code> of theirs: <code>ShellLoader</code> — <code>import Ljos.Blocks</code> — shows theirs in your shell's place."
+            onLinkActivated: (link) => landing.follow(link)
+        }
+        Text {
+            width: landing.prose
+            textFormat: Text.RichText
+            color: Theme.text
+            linkColor: Theme.link
+            font.family: Theme.sans
+            font.pixelSize: Theme.bodySize + 1
+            lineHeightMode: Text.FixedHeight
+            lineHeight: Theme.bodyLine + 4
+            wrapMode: Text.Wrap
+            text: "The state stays and the work goes on. A broken edit falls back to the app's shell, with <code>error</code> saying what broke and where, so an experiment never bricks the app. The compiler and the lints ship in the app, so the edit is checked the way your own code is: the interface belongs to whoever is looking at it."
+            onLinkActivated: (link) => landing.follow(link)
+        }
+        CodeBlock {
+            width: landing.prose
+            lang: "qml"
+            code: "import Ljos.Blocks\n\nShellLoader {\n    source: \"shell.qml\"       // the user's own, where the app looks\n    fallback: \"AppShell.qml\"  // the app's, standing when theirs does not\n}\n"
+            rich: "import Ljos.Blocks\n\nShellLoader {\n    source: \"shell.qml\"       // the user's own, where the app looks\n    fallback: \"AppShell.qml\"  // the app's, standing when theirs does not\n}\n"
+        }
+        Item {
+            width: 1
+            height: Theme.xs
+        }
+        // The flagship malleable demo mounts into this slot: a small
+        // app whose shell the visitor rewrites on the page, its state
+        // kept, a broken edit falling back with the error shown. It is
+        // the page's point, so it is made with the page.
+        Slot {
+            name: "showcase-shell"
+            delegate: Component {
+                Column {
+                    width: landing.prose
+                    spacing: Theme.s
 
-    Text {
-        width: parent.width
-        text: "TypeScript first"
-        color: Theme.ink
-        font.family: Theme.serif
-        font.pixelSize: 26
-        font.bold: true
-        wrapMode: Text.Wrap
-    }
-    Text {
-        width: parent.width
-        textFormat: Text.RichText
-        color: Theme.ink
-        font.family: Theme.sans
-        font.pixelSize: 15
-        wrapMode: Text.Wrap
-        text: "Interfaces are declarative; scripts are typed TypeScript, checked before anything runs. Handlers, functions and bindings carry their types, and the compiler says so where they do not add up. Application logic, models and native types can stay in Rust, registered with the engine and driven from the interface like anything else on the page. Existing QML runs as a way in — <a href=\"/language/porting-from-qt/\">bringing an app along</a> has its own page, out of the main path."
-        onLinkActivated: (link) => landing.follow(link)
-    }
-
-    Text {
-        width: parent.width
-        text: "Observe and drive a running app"
-        color: Theme.ink
-        font.family: Theme.serif
-        font.pixelSize: 26
-        font.bold: true
-        wrapMode: Text.Wrap
-    }
-    Text {
-        width: parent.width
-        textFormat: Text.RichText
-        color: Theme.ink
-        font.family: Theme.sans
-        font.pixelSize: 15
-        wrapMode: Text.Wrap
-        text: "Every part of a running app can be observed and driven. <code>ljos observe</code> opens on its live objects, properties, bindings, frames and wakes, and sends real input; a coding agent gets the same view over <a href=\"/start/mcp/\">MCP</a>, static checking before the run and the live inspector during it. What an agent can reshape, it can also check."
-        onLinkActivated: (link) => landing.follow(link)
-    }
-
-    Text {
-        width: parent.width
-        text: "Stable, and still at rest"
-        color: Theme.ink
-        font.family: Theme.serif
-        font.pixelSize: 26
-        font.bold: true
-        wrapMode: Text.Wrap
-    }
-    Text {
-        width: parent.width
-        textFormat: Text.RichText
-        color: Theme.ink
-        font.family: Theme.sans
-        font.pixelSize: 15
-        wrapMode: Text.Wrap
-        text: "Work runs when input, a timer, an animation or a message asks for it; nothing polls, and an app at rest uses 0 % CPU. A fault restarts the part of the interface that caused it, not the window. Other threads reach the interface through one bounded handle. The same engine renders on Linux, macOS and Windows, with Android and iOS behind the same scene graph — and on the web, where this site is itself a Ljós page, compiled ahead of time and written out as HTML at build time for any reader, script or none."
-        onLinkActivated: (link) => landing.follow(link)
-    }
-
-    Text {
-        width: parent.width
-        text: "See it run"
-        color: Theme.ink
-        font.family: Theme.serif
-        font.pixelSize: 26
-        font.bold: true
-        wrapMode: Text.Wrap
-    }
-    // The showcase mounts here: a 3D scene to orbit, a shader, a
-    // whole app of the corpus, and motion. Each stands in its own
-    // named place, with its description kept for a reader whose
-    // browser cannot run it.
-    Slot {
-        name: "showcase"
-        delegate: Component {
-            Column {
-                width: landing.textWidth
-                spacing: 8
-
-                Orbit {
-                    width: parent.width
-                    height: width * 420 / 720
-                }
-                Text {
-                    width: parent.width
-                    textFormat: Text.RichText
-                    color: Theme.ink
-                    font.family: Theme.sans
-                    font.pixelSize: 14
-                    wrapMode: Text.Wrap
-                    text: "The <a href=\"/demos/\">live demos</a> run in this page: a shell you rewrite, a 3D scene you can orbit, a shader effect, a whole app, and motion — each a complete Ljós app, each with a picture and its words where wasm or WebGPU is missing."
-                    onLinkActivated: (link) => landing.follow(link)
+                    Text {
+                        width: Math.min(parent.width, Theme.measure)
+                        textFormat: Text.RichText
+                        color: Theme.text
+                        linkColor: Theme.link
+                        font.family: Theme.sans
+                        font.pixelSize: Theme.bodySize
+                        lineHeightMode: Text.FixedHeight
+                        lineHeight: Theme.bodyLine
+                        wrapMode: Text.Wrap
+                        text: "<b>Rewrite this app's shell.</b> A small app whose shell you edit below, on the page. Move where a <code>Slot</code> contribution lands and it moves; break the shell and the app's own shell stands in its place, with the error shown; the app's data and state survive both."
+                    }
+                    PantryDemo {
+                        width: parent.width
+                    }
                 }
             }
         }
     }
 
-    Text {
+    // The rest of what Ljós is, a card each.
+    Grid {
+        id: points
+
+        readonly property int cardWidth: landing.wide ? Math.floor((landing.width - 2 * Theme.m) / 3) : landing.width
+        readonly property real tallest: Math.max(typed.contentHeight, observed.contentHeight, stable.contentHeight)
+
         width: parent.width
-        text: "Start reading"
-        color: Theme.ink
-        font.family: Theme.serif
-        font.pixelSize: 26
-        font.bold: true
-        wrapMode: Text.Wrap
+        columns: landing.wide ? 3 : 1
+        columnSpacing: Theme.m
+        rowSpacing: Theme.m
+
+        FeatureCard {
+            id: typed
+            width: points.cardWidth
+            height: landing.wide ? points.tallest : contentHeight
+            title: "TypeScript first"
+            body: "Interfaces are declarative; scripts are typed TypeScript, checked before anything runs. Handlers, functions and bindings carry their types, and the compiler says so where they do not add up. Logic, models and native types can stay in Rust, driven from the interface like anything else. Existing QML runs as a way in — <a href=\"/language/porting-from-qt/\">bringing an app along</a> has its own page."
+            onFollowed: (link) => landing.follow(link)
+        }
+        FeatureCard {
+            id: observed
+            width: points.cardWidth
+            height: landing.wide ? points.tallest : contentHeight
+            title: "Observe and drive a running app"
+            body: "Every part of a running app can be observed and driven. <code>ljos observe</code> opens on its live objects, properties, bindings, frames and wakes, and sends real input; a coding agent gets the same view over <a href=\"/start/mcp/\">MCP</a>. What an agent can reshape, it can also check."
+            onFollowed: (link) => landing.follow(link)
+        }
+        FeatureCard {
+            id: stable
+            width: points.cardWidth
+            height: landing.wide ? points.tallest : contentHeight
+            title: "Stable, and still at rest"
+            body: "Work runs when input, a timer, an animation or a message asks for it; nothing polls, and an app at rest uses 0 % CPU. A fault restarts the part of the interface that caused it, not the window. The same engine renders on Linux, macOS, Windows, Android, iOS — and the web, where this site is itself a Ljós page."
+            onFollowed: (link) => landing.follow(link)
+        }
     }
-    Text {
+
+    // A demo of what the engine draws.
+    Column {
         width: parent.width
-        textFormat: Text.RichText
-        color: Theme.ink
-        font.family: Theme.sans
-        font.pixelSize: 15
-        wrapMode: Text.Wrap
-        text: "<a href=\"/start/\">What is Ljós?</a> — the map of these docs.<br><a href=\"/start/first-app/\">Your first app</a> — a file, a window, live edits.<br><a href=\"/demos/\">Live demos</a> — every embedded example in one place.<br><a href=\"/quality/principles/\">Goals and principles</a> — what Ljós does, what it leaves out, and why."
-        onLinkActivated: (link) => landing.follow(link)
+        topPadding: Theme.xxxl
+        spacing: Theme.m
+
+        Text {
+            width: parent.width
+            text: "See it run"
+            color: Theme.text
+            font.family: Theme.sans
+            font.pixelSize: landing.wide ? Theme.headlineSize + 4 : Theme.headlineSize - 2
+            font.weight: Font.Bold
+            lineHeightMode: Text.FixedHeight
+            lineHeight: landing.wide ? Theme.headlineLine + 4 : Theme.headlineLine - 4
+            wrapMode: Text.Wrap
+            Accessible.role: Accessible.Heading
+        }
+        // The showcase mounts here: a 3D scene to orbit, made once the
+        // reader nears it, its picture standing until then — and for
+        // good where the browser cannot run it.
+        Slot {
+            name: "showcase"
+            delegate: Component {
+                Column {
+                    width: landing.textWidth
+                    spacing: Theme.s
+
+                    DemoFrame {
+                        width: parent.width
+                        scroller: landing.scroller
+                        needs: "webgpu"
+                        picture: "/pictures/demo-orbit.webp"
+                        description: "A lit 3D scene of shapes on a floor, which a drag turns."
+                        demo: Component {
+                            Orbit {}
+                        }
+                    }
+                    Text {
+                        width: Math.min(parent.width, Theme.measure)
+                        textFormat: Text.RichText
+                        color: Theme.textMuted
+                        linkColor: Theme.link
+                        font.family: Theme.sans
+                        font.pixelSize: Theme.bodySize - 1
+                        lineHeightMode: Text.FixedHeight
+                        lineHeight: Theme.bodyLine
+                        wrapMode: Text.Wrap
+                        text: "The <a href=\"/demos/\">live demos</a> run in this page: a shell you rewrite, a 3D scene you can orbit, a shader effect, a whole app, and motion — each a complete Ljós app, each with a picture and its words where wasm or WebGPU is missing."
+                        onLinkActivated: (link) => landing.follow(link)
+                    }
+                }
+            }
+        }
+    }
+
+    // Where to read next.
+    Column {
+        width: parent.width
+        topPadding: Theme.xxxl
+        spacing: Theme.m
+
+        Text {
+            width: parent.width
+            text: "Start reading"
+            color: Theme.text
+            font.family: Theme.sans
+            font.pixelSize: landing.wide ? Theme.headlineSize + 4 : Theme.headlineSize - 2
+            font.weight: Font.Bold
+            lineHeightMode: Text.FixedHeight
+            lineHeight: landing.wide ? Theme.headlineLine + 4 : Theme.headlineLine - 4
+            wrapMode: Text.Wrap
+            Accessible.role: Accessible.Heading
+        }
+        Grid {
+            id: reading
+
+            readonly property int cardWidth: landing.wide ? Math.floor((landing.width - Theme.m) / 2) : landing.width
+            readonly property real tallestTop: Math.max(map.contentHeight, first.contentHeight)
+            readonly property real tallestBottom: Math.max(demosCard.contentHeight, goals.contentHeight)
+
+            width: parent.width
+            columns: landing.wide ? 2 : 1
+            columnSpacing: Theme.m
+            rowSpacing: Theme.m
+
+            FeatureCard {
+                id: map
+                width: reading.cardWidth
+                height: landing.wide ? reading.tallestTop : contentHeight
+                title: "What is Ljós?"
+                href: "/start/"
+                body: "The map of these docs."
+                onFollowed: (link) => landing.follow(link)
+            }
+            FeatureCard {
+                id: first
+                width: reading.cardWidth
+                height: landing.wide ? reading.tallestTop : contentHeight
+                title: "Your first app"
+                href: "/start/first-app/"
+                body: "A file, a window, live edits."
+                onFollowed: (link) => landing.follow(link)
+            }
+            FeatureCard {
+                id: demosCard
+                width: reading.cardWidth
+                height: landing.wide ? reading.tallestBottom : contentHeight
+                title: "Live demos"
+                href: "/demos/"
+                body: "Every embedded example in one place."
+                onFollowed: (link) => landing.follow(link)
+            }
+            FeatureCard {
+                id: goals
+                width: reading.cardWidth
+                height: landing.wide ? reading.tallestBottom : contentHeight
+                title: "Goals and principles"
+                href: "/quality/principles/"
+                body: "What Ljós does, what it leaves out, and why."
+                onFollowed: (link) => landing.follow(link)
+            }
+        }
     }
 }

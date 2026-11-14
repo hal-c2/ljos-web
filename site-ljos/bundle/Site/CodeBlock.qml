@@ -8,10 +8,10 @@ import "code-editor.js" as Editor
 // docs/LJOS_WEB.md A27/A28) is the code beside its running result:
 // an editor per file, and a stage the result stands in. As the page
 // is first written — and for a reader with no script — the stage
-// holds a picture of the result as the build prerendered it; in a
-// browser the stage's ShellLoader compiles the code in the page
-// and takes the stage over, and every edit recompiles and reloads
-// with its state kept. A broken edit says why beside the code, and
+// holds a picture of the result as the build prerendered it; once a
+// reader edits, the stage's ShellLoader compiles the code in the
+// page and takes the stage over, and every later edit recompiles and
+// reloads with its state kept. A broken edit says why beside the code, and
 // the last good result keeps running. A block that does not run is
 // its code, coloured at build time, in a panel of its own.
 //
@@ -40,6 +40,8 @@ Column {
     // What the running example asked for and does not have.
     property string absent: ""
     property bool started: false
+    // A reader is in one of the editors: its box says so.
+    property bool editing: false
 
     width: parent ? parent.width : 640
     spacing: 0
@@ -53,8 +55,23 @@ Column {
         return files;
     }
 
+    // Whether every editor holds the example as written: what the
+    // picture shows, so nothing to compile while nothing has run.
+    function unedited() {
+        for (var i = 0; i < editors.count; i++) {
+            var area = editors.itemAt(i);
+            if (area && area.text !== live.display[i].code)
+                return false;
+        }
+        return true;
+    }
+
     function apply() {
         if (!isLive)
+            return;
+        // An editor's first text is heard as a change too, and so is a
+        // Reset before any edit: neither is the reader's own.
+        if (!started && unedited())
             return;
         Live.setFiles(live.hash, display());
         if (!started) {
@@ -69,13 +86,16 @@ Column {
         });
     }
 
+    // Only told of the example: the stage stays its picture until a
+    // reader edits, and the first edit's apply compiles. The text as
+    // written is what the picture shows, and compiling it would fetch
+    // the compiler (megabytes of wasm) for every reader of the page.
     Component.onCompleted: {
         if (!isLive)
             return;
         Live.setExample(live.hash, live.display, live.entry, live.harnessTemplate || "", live.harnessFile || "", function (lines) {
             block.absent = lines;
         });
-        apply();
     }
 
     Timer {
@@ -87,8 +107,8 @@ Column {
     Rectangle {
         width: parent.width
         height: headRow.implicitHeight + 10
-        color: Theme.panel
-        border.color: Theme.border
+        color: Theme.surface
+        border.color: Theme.divider
         border.width: 1
 
         Row {
@@ -100,7 +120,7 @@ Column {
 
             Text {
                 anchors.verticalCenter: parent.verticalCenter
-                color: Theme.muted
+                color: Theme.textMuted
                 font.family: Theme.mono
                 font.pixelSize: 11
                 text: {
@@ -142,7 +162,7 @@ Column {
                     id: resetWords
                     anchors.verticalCenter: parent.verticalCenter
                     text: "Reset"
-                    color: Theme.accent
+                    color: Theme.link
                     font.family: Theme.sans
                     font.pixelSize: 12
                 }
@@ -166,7 +186,7 @@ Column {
         width: parent.width
         height: visible ? body.implicitHeight + 20 : 0
         color: Theme.codeBg
-        border.color: Theme.border
+        border.color: Theme.divider
         border.width: 1
 
         Text {
@@ -175,7 +195,7 @@ Column {
             anchors.right: parent.right
             anchors.top: parent.top
             anchors.margins: 10
-            color: Theme.ink
+            color: Theme.codeFg
             font.family: Theme.mono
             font.pixelSize: 12
             // As a live block's editor sets its lines (CodeEditor): a
@@ -215,8 +235,8 @@ Column {
 
                     width: tabWords.implicitWidth + 16
                     height: tabWords.implicitHeight + 8
-                    color: index === block.currentFile ? Theme.codeBg : Theme.panel
-                    border.color: Theme.border
+                    color: index === block.currentFile ? Theme.codeBg : Theme.surface
+                    border.color: Theme.divider
                     border.width: 1
                     activeFocusOnTab: true
                     Accessible.role: Accessible.Button
@@ -233,7 +253,7 @@ Column {
                         id: tabWords
                         anchors.centerIn: parent
                         text: modelData.name
-                        color: Theme.ink
+                        color: Theme.codeFg
                         font.family: Theme.mono
                         font.pixelSize: 11
                         font.bold: index === block.currentFile
@@ -252,12 +272,15 @@ Column {
             width: parent.width
             height: editorBox.implicitHeight
             color: Theme.codeBg
-            border.color: Theme.border
-            border.width: 1
+            border.color: block.editing ? Theme.focusRing : Theme.divider
+            border.width: block.editing ? 2 : 1
 
             Column {
                 id: editorBox
                 width: parent.width
+                // The code's first and last lines clear the box's edges.
+                topPadding: 8
+                bottomPadding: 8
 
                 Repeater {
                     id: editors
@@ -278,6 +301,7 @@ Column {
                         label: "Edit " + modelData.name
                         errors: told
                         onTextChanged: debounce.restart()
+                        onActiveFocusChanged: block.editing = activeFocus
                     }
                 }
             }
@@ -296,10 +320,22 @@ Column {
             readonly property int pictureHeight: block.isLive && block.live.width > 0 ? pictureWidth * block.live.height / block.live.width : 0
             height: Math.max(pictureHeight, stage.implicitHeight)
 
+            // The stage's edge, under what it shows: an example that
+            // draws little (or nothing) still reads as a result, not
+            // as a gap in the page.
+            Rectangle {
+                anchors.fill: parent
+                anchors.topMargin: -1
+                color: "transparent"
+                border.color: Theme.divider
+                border.width: 1
+            }
+
+            // The picture stands until the result runs: a stage still
+            // compiling, or one that could not, holds only its empty
+            // fallback.
             Text {
-                // Until the result runs: the empty fallback only
-                // stands in while the code compiles (status Null).
-                visible: block.isLive && (!stage.item || stage.status === ShellLoader.Null)
+                visible: block.isLive && stage.status !== ShellLoader.Ready
                 textFormat: Text.RichText
                 text: block.isLive ? "<img src=\"" + block.live.picture + "\" width=\"" + stageBox.pictureWidth + "\" height=\"" + Math.round(stageBox.pictureHeight) + "\" alt=\"What this example draws\">" : ""
             }
@@ -313,6 +349,11 @@ Column {
                 id: emptyStage
                 Item {}
             }
+            WindowContainer {
+                width: stageBox.pictureWidth
+                height: stageBox.height
+                window: Live.windowOf(stage.item)
+            }
         }
 
         Text {
@@ -320,7 +361,7 @@ Column {
             visible: text !== ""
             width: parent.width
             text: [block.said || stage.error, block.absent].filter(function (line) { return line !== ""; }).join("\n")
-            color: Theme.accent
+            color: Theme.danger
             font.family: Theme.mono
             font.pixelSize: 12
             wrapMode: Text.Wrap

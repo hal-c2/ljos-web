@@ -2,13 +2,18 @@ import QtQuick
 import Site
 import "nav.js" as Nav
 
-// The shell of ljos.dev: a header (the name, where to go, search to
-// come, the source, light and dark), the docs' sidebar, the page,
-// what is on it, and a footer. Which page it shows is the `route`
-// the build prerendered it for (`/`, `/demos/`, or a docs route);
-// each route is its own page of HTML, and a press is a navigation
-// to it. The page a reader without script gets is this same shell,
-// as the build wrote it.
+// The shell of ljos.dev: a header (the name, where to go, search, the
+// source, light and dark), the docs' sidebar, the page, what is on it,
+// and a footer under the page. Which page it shows is the `route` the
+// build prerendered it for (`/`, `/demos/`, or a docs route); each route
+// is its own page of HTML, and a link is a navigation to it. The page a
+// reader without script gets is this same shell, as the build wrote it,
+// at a phone's width or a desktop's and in light or dark, whichever is
+// theirs.
+//
+// Wide (Theme.wideFrom and up), the docs have their sidebar and, from
+// Theme.tocFrom, what is on the page beside them. Narrow, both are in
+// the menu the header opens, with search.
 Rectangle {
     id: shell
 
@@ -21,9 +26,15 @@ Rectangle {
     // a prerender would write the shell at no size at all.
     width: parent ? parent.width : 1440
     height: parent ? parent.height : 900
-    color: Theme.bg
+    color: Theme.canvas
 
+    readonly property bool wide: width >= Theme.wideFrom
     readonly property bool docsRoute: route !== "/" && route !== "/demos/"
+    readonly property bool sidebarShown: wide && docsRoute
+    readonly property bool tocShown: sidebarShown && width >= Theme.tocFrom && page !== null && page.headings.length > 0
+    readonly property int gutter: wide ? Theme.gutterWide : Theme.gutterCompact
+    property bool menuOpen: false
+
     readonly property var page: {
         for (var i = 0; i < Content.pages.length; i++) {
             if (Content.pages[i].route === route)
@@ -32,8 +43,29 @@ Rectangle {
         return null;
     }
 
-    // The scroller a docs page lands its headings in is named as
-    // the page is made, below; only a press in a browser asks it.
+    // A link within the site: a heading on this page is landed on
+    // without leaving it; anything else is a navigation.
+    function follow(href) {
+        var hash = href.indexOf("#");
+        var to = hash >= 0 ? href.slice(0, hash) : href;
+        if (hash >= 0 && shell.docsRoute && (to === "" || to === shell.route)) {
+            shell.menuOpen = false;
+            docItem.scrollToAnchor(href.slice(hash + 1));
+            return;
+        }
+        Nav.go(href);
+    }
+
+    // A page opened at one of its headings lands on it.
+    Timer {
+        interval: 0
+        running: Nav.inBrowser() && shell.docsRoute
+        onTriggered: {
+            var hash = String(globalThis.location.hash || "");
+            if (hash.length > 1)
+                docItem.scrollToAnchor(decodeURIComponent(hash.slice(1)));
+        }
+    }
 
     // Named, never made: this page is built with Qt Quick Controls,
     // so a live block's compiler may be given them (A15).
@@ -41,135 +73,111 @@ Rectangle {
         ControlsHost {}
     }
 
-    // The header.
+    Keys.onEscapePressed: shell.menuOpen = false
+
+    // The header. Each part of the shell is a landmark, so a reader
+    // goes to the page, the docs or the menu as a sighted one looks.
     Rectangle {
         id: header
+        z: 3
+        Accessible.role: Accessible.Section
+        Accessible.name: "Ljós"
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
-        height: 56
-        color: Theme.bg
-        border.color: Theme.border
-        border.width: 1
+        height: Theme.headerHeight
+        color: Theme.canvas
+
+        Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            height: 1
+            color: Theme.divider
+        }
 
         Row {
-            anchors.left: parent.left
-            anchors.leftMargin: 20
+            x: shell.gutter
             anchors.verticalCenter: parent.verticalCenter
-            spacing: 22
+            spacing: Theme.l
 
+            // The name, a link to the front page.
             Item {
-                width: 28 + 8 + wordmark.implicitWidth
-                height: 32
-                activeFocusOnTab: true
-                Accessible.role: Accessible.Link
-                Accessible.name: "Ljós — front page"
-                Accessible.onPressAction: () => Nav.go("/")
-                Keys.onPressed: (event) => {
-                    if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
-                        Nav.go("/");
-                        event.accepted = true;
-                    }
-                }
+                width: mark.width + Theme.xs + wordmark.implicitWidth
+                height: 40
 
-                Image {
+                // The mark is in the page as written, so it stands
+                // before the page runs and where it never does
+                // (Nav.picture): the site's icon, the same file.
+                Text {
+                    id: mark
                     width: 28
                     height: 28
                     anchors.verticalCenter: parent.verticalCenter
-                    source: "assets/ljos-mark.svg"
-                    sourceSize: Qt.size(28, 28)
-                    fillMode: Image.PreserveAspectFit
+                    textFormat: Text.RichText
+                    text: Nav.picture(shell.route, "/favicon.svg", 28, 28, "")
                     Accessible.ignored: true
                 }
                 Text {
                     id: wordmark
-                    x: 36
+                    x: mark.width + Theme.xs
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "Ljós"
-                    color: Theme.ink
-                    font.family: Theme.serif
-                    font.pixelSize: 24
-                    font.bold: true
+                    textFormat: Text.RichText
+                    text: Nav.anchor("/", "Ljós", false)
+                    color: Theme.text
+                    linkColor: Theme.text
+                    font.family: Theme.sans
+                    font.pixelSize: 22
+                    font.weight: Font.Bold
+                    onLinkActivated: (to) => Nav.go(to)
                 }
                 MouseArea {
-                    anchors.fill: parent
+                    width: mark.width
+                    height: parent.height
                     Accessible.ignored: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: Nav.go("/")
                 }
             }
             NavLink {
+                visible: shell.wide
+                anchors.verticalCenter: parent.verticalCenter
                 label: "Docs"
                 href: "/start/"
                 current: shell.docsRoute
-                height: 32
             }
             NavLink {
-                label: "Live demos"
+                visible: shell.wide
+                anchors.verticalCenter: parent.verticalCenter
+                label: "Demos"
                 href: "/demos/"
                 current: shell.route === "/demos/"
-                height: 32
             }
         }
 
         Row {
             anchors.right: parent.right
-            anchors.rightMargin: 20
+            anchors.rightMargin: shell.gutter - (shell.wide ? 0 : Theme.xs)
             anchors.verticalCenter: parent.verticalCenter
-            spacing: 18
+            spacing: shell.wide ? Theme.m : Theme.xxs
 
-            // Search stands here when the site grows one; until then
-            // it says so, and takes no press.
-            Rectangle {
-                width: 190
-                height: 32
-                color: Theme.panel
-                border.color: Theme.border
-                border.width: 1
-
-                Text {
-                    anchors.left: parent.left
-                    anchors.leftMargin: 10
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "Search the docs…"
-                    color: Theme.muted
-                    font.family: Theme.sans
-                    font.pixelSize: 13
-                }
+            Search {
+                visible: shell.wide
+                width: 280
+                height: 40
+                onPicked: (href) => shell.follow(href)
             }
             NavLink {
+                visible: shell.wide
+                anchors.verticalCenter: parent.verticalCenter
                 label: "GitHub"
                 href: "https://github.com/hal-c2/ljos-ui"
-                height: 32
             }
-            Item {
-                width: themeWords.implicitWidth
-                height: 32
-                activeFocusOnTab: true
-                Accessible.role: Accessible.Button
-                Accessible.name: Theme.dark ? "Use the light theme" : "Use the dark theme"
-                Accessible.onPressAction: () => Theme.dark = !Theme.dark
-                Keys.onPressed: (event) => {
-                    if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
-                        Theme.dark = !Theme.dark;
-                        event.accepted = true;
-                    }
-                }
-
-                Text {
-                    id: themeWords
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: Theme.dark ? "Light" : "Dark"
-                    color: Theme.ink
-                    font.family: Theme.sans
-                    font.pixelSize: 14
-                }
-                MouseArea {
-                    anchors.fill: parent
-                    Accessible.ignored: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: Theme.dark = !Theme.dark
-                }
+            ThemeToggle {}
+            MenuButton {
+                visible: !shell.wide
+                open: shell.menuOpen
+                onPressed: shell.menuOpen = !shell.menuOpen
             }
         }
     }
@@ -178,207 +186,251 @@ Rectangle {
     // them, the reader's page the strong one.
     Flickable {
         id: sidebarScroll
-        visible: shell.docsRoute
+        visible: shell.sidebarShown
+        Accessible.role: Accessible.ComplementaryContent
+        Accessible.name: "The docs"
         anchors.left: parent.left
         anchors.top: header.bottom
-        anchors.bottom: footer.top
-        width: 264
+        anchors.bottom: parent.bottom
+        width: Theme.sidebarWidth
         contentWidth: width
-        contentHeight: sidebar.implicitHeight + 32
+        contentHeight: sidebar.implicitHeight + Theme.xxl
         clip: true
 
-        Column {
+        DocsMap {
             id: sidebar
-            x: 20
-            y: 16
-            width: 224
-            spacing: 18
-
-            Repeater {
-                model: Content.sidebar
-
-                Column {
-                    required property var modelData
-
-                    width: 224
-                    spacing: 6
-
-                    Text {
-                        text: modelData.label
-                        color: Theme.muted
-                        font.family: Theme.sans
-                        font.pixelSize: 12
-                        font.bold: true
-                    }
-                    Repeater {
-                        model: modelData.pages
-
-                        NavLink {
-                            required property var modelData
-
-                            label: modelData.title
-                            href: modelData.route
-                            current: modelData.route === shell.route
-                        }
-                    }
-                }
-            }
-            NavLink {
-                label: "Live demos"
-                href: "/demos/"
-                current: shell.route === "/demos/"
-            }
+            x: shell.gutter
+            y: Theme.l
+            width: Theme.sidebarWidth - shell.gutter - Theme.m
+            route: shell.route
         }
     }
     Rectangle {
-        visible: shell.docsRoute
+        visible: shell.sidebarShown
         anchors.left: sidebarScroll.right
         anchors.top: header.bottom
-        anchors.bottom: footer.top
+        anchors.bottom: parent.bottom
         width: 1
-        color: Theme.border
+        color: Theme.divider
     }
 
-    // The page itself.
+    // The page itself, and the footer under it.
     Flickable {
         id: pageScroll
-        anchors.left: shell.docsRoute ? sidebarScroll.right : parent.left
-        anchors.right: shell.docsRoute ? tocScroll.left : parent.right
+        anchors.left: shell.sidebarShown ? sidebarScroll.right : parent.left
+        anchors.leftMargin: shell.sidebarShown ? 1 : 0
+        anchors.right: shell.tocShown ? tocScroll.left : parent.right
         anchors.top: header.bottom
-        anchors.bottom: footer.top
+        anchors.bottom: parent.bottom
         contentWidth: width
-        contentHeight: (shell.docsRoute ? docItem.height : pageLoader.height) + 48
+        contentHeight: column.height
         clip: true
 
-        // Only this route's page is made, so the HTML the build
-        // writes for a route holds that page and no other. The
-        // landing and demos pages load by route; a docs page
-        // stands here directly, its page bound as it is made, so
-        // a prerender — which writes the page as it first stands —
-        // holds it whole.
-        Loader {
-            id: pageLoader
-            visible: !shell.docsRoute
-            y: 24
-            width: Math.min(680, pageScroll.width - 48)
-            x: Math.max(24, (pageScroll.width - width) / 2)
-            sourceComponent: shell.route === "/" ? landingPage : shell.route === "/demos/" ? demosPage : emptyPage
-        }
-        DocPage {
-            id: docItem
-            visible: shell.docsRoute
-            y: 24
-            width: Math.min(680, pageScroll.width - 48)
-            x: Math.max(24, (pageScroll.width - width) / 2)
-            route: shell.route
-            scroller: pageScroll
+        readonly property int measure: shell.docsRoute ? Theme.measure : Theme.pageWidth
+
+        Column {
+            id: column
+            width: pageScroll.width
+
+            Item {
+                width: 1
+                height: shell.wide ? Theme.xxl : Theme.xl
+            }
+
+            // Only this route's page is made, so the HTML the build
+            // writes for a route holds that page and no other. The
+            // landing and demos pages load by route; a docs page
+            // stands here directly, its page bound as it is made, so
+            // a prerender — which writes the page as it first stands —
+            // holds it whole.
+            Loader {
+                id: pageLoader
+                visible: !shell.docsRoute
+                Accessible.role: Accessible.Section
+                Accessible.name: shell.route === "/demos/" ? "Live demos" : "Home"
+                active: !shell.docsRoute
+                width: Math.min(pageScroll.measure, pageScroll.width - 2 * shell.gutter)
+                x: Math.round((pageScroll.width - width) / 2)
+                sourceComponent: shell.route === "/" ? landingPage : shell.route === "/demos/" ? demosPage : emptyPage
+            }
+            DocPage {
+                id: docItem
+                visible: shell.docsRoute
+                Accessible.role: Accessible.Section
+                Accessible.name: docItem.page ? docItem.page.title : ""
+                width: Math.min(pageScroll.measure, pageScroll.width - 2 * shell.gutter)
+                x: Math.round((pageScroll.width - width) / 2)
+                route: shell.docsRoute ? shell.route : ""
+                scroller: pageScroll
+                onFollowed: (href) => shell.follow(href)
+            }
+
+            Item {
+                width: 1
+                height: Theme.xxxl
+            }
+            Footer {
+                width: pageScroll.width
+                route: shell.route
+                gutter: shell.gutter
+                measure: pageScroll.measure
+            }
         }
     }
 
     Component {
         id: landingPage
-        Landing {}
+        Landing {
+            scroller: pageScroll
+            wide: shell.wide
+        }
     }
     Component {
         id: demosPage
-        DemosPage {}
+        DemosPage {
+            scroller: pageScroll
+            wide: shell.wide
+        }
     }
     Component {
         id: emptyPage
         Item {}
     }
 
-    // On this page: the headings of the page being read, each a
-    // press that lands on it without leaving the page.
+    // On this page: the headings of the page being read, each a link
+    // that lands on it without leaving the page.
     Flickable {
         id: tocScroll
-        visible: shell.docsRoute && shell.page !== null
+        visible: shell.tocShown
+        Accessible.role: Accessible.ComplementaryContent
+        Accessible.name: "On this page"
         anchors.right: parent.right
         anchors.top: header.bottom
-        anchors.bottom: footer.top
-        width: 228
+        anchors.bottom: parent.bottom
+        width: Theme.tocWidth
         contentWidth: width
-        contentHeight: toc.implicitHeight + 32
+        contentHeight: toc.implicitHeight + Theme.xxl
         clip: true
 
         Column {
             id: toc
-            x: 8
-            y: 24
-            width: 204
-            spacing: 7
+            x: Theme.l
+            y: Theme.xxl
+            width: Theme.tocWidth - Theme.l - shell.gutter
+            spacing: Theme.xs
 
             Text {
                 text: "On this page"
-                color: Theme.muted
+                color: Theme.textMuted
                 font.family: Theme.sans
-                font.pixelSize: 12
-                font.bold: true
+                font.pixelSize: Theme.captionSize
+                font.weight: Font.DemiBold
+                lineHeightMode: Text.FixedHeight
+                lineHeight: Theme.captionLine
             }
             Repeater {
-                model: shell.page ? shell.page.headings : []
+                model: shell.tocShown ? shell.page.headings : []
 
-                Item {
+                Text {
                     required property var modelData
 
-                    width: 204
-                    height: tocWords.implicitHeight + 2
-                    activeFocusOnTab: true
-                    Accessible.role: Accessible.Link
-                    Accessible.name: modelData.plain
-                    Accessible.onPressAction: () => docItem.scrollToAnchor(modelData.anchor)
-                    Keys.onPressed: (event) => {
-                        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
-                            docItem.scrollToAnchor(modelData.anchor);
-                            event.accepted = true;
-                        }
-                    }
-
-                    Text {
-                        id: tocWords
-                        x: modelData.level > 2 ? 14 : 0
-                        width: parent.width - x
-                        text: modelData.plain
-                        color: Theme.ink
-                        font.family: Theme.sans
-                        font.pixelSize: 13
-                        wrapMode: Text.Wrap
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        Accessible.ignored: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: docItem.scrollToAnchor(modelData.anchor)
-                    }
+                    x: modelData.level > 2 ? Theme.s : 0
+                    width: toc.width - x
+                    textFormat: Text.RichText
+                    text: Nav.anchor("#" + modelData.anchor, modelData.plain, hoveredLink !== "")
+                    color: Theme.textMuted
+                    linkColor: Theme.textMuted
+                    font.family: Theme.sans
+                    font.pixelSize: Theme.captionSize + 1
+                    lineHeightMode: Text.FixedHeight
+                    lineHeight: Theme.captionLine
+                    wrapMode: Text.Wrap
+                    onLinkActivated: (to) => docItem.scrollToAnchor(modelData.anchor)
                 }
             }
         }
     }
-    Rectangle {
-        visible: tocScroll.visible
-        anchors.right: tocScroll.left
-        anchors.top: header.bottom
-        anchors.bottom: footer.top
-        width: 1
-        color: Theme.border
-    }
 
+    // The narrow layout's menu: search, where to go, and the docs.
     Rectangle {
-        id: footer
+        id: menu
+        z: 2
+        Accessible.role: Accessible.Section
+        Accessible.name: "Menu"
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        height: 40
-        color: Theme.panel
-        border.color: Theme.border
-        border.width: 1
+        y: header.height + (shell.menuOpen ? 0 : -Theme.travel)
+        height: parent.height - header.height
+        visible: !shell.wide && opacity > 0
+        opacity: shell.menuOpen ? 1 : 0
+        color: Theme.canvas
+        Behavior on opacity {
+            NumberAnimation {
+                duration: shell.menuOpen ? Theme.enterPanel : Theme.exitSmall
+                easing.type: Easing.OutCubic
+            }
+        }
+        Behavior on y {
+            NumberAnimation {
+                duration: shell.menuOpen ? Theme.enterPanel : Theme.exitSmall
+                easing.type: Easing.OutCubic
+            }
+        }
 
-        Text {
-            anchors.centerIn: parent
-            text: "Ljós — malleable software, everywhere · MIT · This site is a Ljós page, prerendered by ljos-web"
-            color: Theme.muted
-            font.family: Theme.sans
-            font.pixelSize: 12
+        Flickable {
+            anchors.fill: parent
+            contentWidth: width
+            contentHeight: menuColumn.implicitHeight + Theme.xxl
+            clip: true
+
+            Column {
+                id: menuColumn
+                x: shell.gutter
+                y: Theme.l
+                width: parent.width - 2 * shell.gutter
+                spacing: Theme.l
+
+                Search {
+                    z: 2
+                    width: parent.width
+                    height: 44
+                    onPicked: (href) => shell.follow(href)
+                }
+                Column {
+                    width: parent.width
+                    spacing: Theme.s
+
+                    NavLink {
+                        label: "Docs"
+                        href: "/start/"
+                        current: shell.docsRoute
+                        size: Theme.subtitleSize
+                        line: Theme.subtitleLine
+                    }
+                    NavLink {
+                        label: "Demos"
+                        href: "/demos/"
+                        current: shell.route === "/demos/"
+                        size: Theme.subtitleSize
+                        line: Theme.subtitleLine
+                    }
+                    NavLink {
+                        label: "GitHub"
+                        href: "https://github.com/hal-c2/ljos-ui"
+                        size: Theme.subtitleSize
+                        line: Theme.subtitleLine
+                    }
+                }
+                Rectangle {
+                    width: parent.width
+                    height: 1
+                    color: Theme.divider
+                }
+                DocsMap {
+                    width: parent.width
+                    route: shell.route
+                }
+            }
         }
     }
 }

@@ -25,11 +25,14 @@ test("the site reads a block's packed colouring as the runtime does", () => {
   }
 });
 
-// A press lands on the MouseArea over the words, as a reader's does:
-// press there, not on the text.
+// A press lands where a reader's does: on the words' first line (a
+// link that wraps leaves its box's middle between its lines).
 async function press(page, locator) {
-  const box = await locator.boundingBox();
-  expect(box, "the words to press are on the page").toBeTruthy();
+  await expect(locator, "the words to press are on the page").toBeVisible();
+  const box = await locator.evaluate((element) => {
+    const { x, y, width, height } = element.getClientRects()[0];
+    return { x, y, width, height };
+  });
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
 }
 
@@ -70,9 +73,16 @@ async function codeEditor(page, name) {
 // A26 — hydration settles the exact numbers in place).
 const BUILD_SIZE = { width: 1440, height: 900 };
 
+// What the reader is shown: a page is prerendered at more than one size
+// and in both schemes, and with no script every render stays in the
+// page, all but one hidden by its stylesheet.
+const shown = (locator) => locator.filter({ visible: true });
+
 test("the landing page leads with your own shell, and never pitches compatibility", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByText("Ljós — malleable software, everywhere", { exact: true })).toBeVisible();
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  // The footer says the same words, smaller, at the page's end.
+  await expect(page.getByText("Ljós — malleable software, everywhere", { exact: true }).first()).toBeInViewport();
   // The page's own words: the code in a field is the reader's to
   // edit, and an `import QtQuick` there pitches nothing.
   const words = await page.locator("#app").evaluate((app) => {
@@ -97,15 +107,15 @@ test("a docs page reads with JavaScript off: title, prose, table, code, sidebar 
   try {
     const page = await context.newPage();
     await page.goto("/start/mcp/");
-    await expect(page.getByText("MCP Servers for Agents", { exact: false }).first()).toBeVisible();
-    await expect(page.getByText("Two servers, one model", { exact: true }).first()).toBeVisible();
+    await expect(shown(page.getByText("MCP Servers for Agents", { exact: false })).first()).toBeVisible();
+    await expect(shown(page.getByText("Two servers, one model", { exact: true })).first()).toBeVisible();
     // A table's cell, a fenced block's code, the sidebar's order and
     // the page's own contents list are the page's, not a script's.
-    await expect(page.getByText("Authoring server", { exact: false }).first()).toBeVisible();
-    await expect(page.getByText("ljos mcp --project .", { exact: false }).first()).toBeVisible();
-    await expect(page.getByText("What is Ljós?", { exact: true }).first()).toBeVisible();
-    await expect(page.getByText("On this page", { exact: true })).toBeVisible();
-    await expect(page.getByText("Search the docs…", { exact: true })).toBeVisible();
+    await expect(shown(page.getByText("Authoring server", { exact: false })).first()).toBeVisible();
+    await expect(shown(page.getByText("ljos mcp --project .", { exact: false })).first()).toBeVisible();
+    await expect(shown(page.getByText("What is Ljós?", { exact: true })).first()).toBeVisible();
+    await expect(shown(page.getByText("On this page", { exact: true }))).toBeVisible();
+    await expect(shown(page.getByText("Search the docs…", { exact: true }))).toBeVisible();
   } finally {
     await context.close();
   }
@@ -129,7 +139,7 @@ test("the demos page names what stands there, flagship first, readable with no s
     expect(words.indexOf("A shell you rewrite")).toBeLessThan(words.indexOf("3D you can orbit"));
     // The flagship stands in its place as written: its app's own
     // shell, prerendered, until hydration takes it over.
-    await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible();
+    await expect(shown(page.getByText("The Corner Pantry", { exact: true }))).toBeVisible();
     await expect(page.getByText("This demo mounts here.")).toHaveCount(0);
   } finally {
     await context.close();
@@ -153,7 +163,7 @@ test("with script, the sidebar navigates and the contents list lands on its head
   expect(errors).toEqual([]);
 });
 
-test("a code block runs beside its code, edits keep its state, and a broken edit keeps the last good result", async ({ page }) => {
+test("a code block runs once edited, edits keep its state, and a broken edit keeps the last good result", async ({ page }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   // Tall enough that the first block's editor and its result stand
@@ -163,14 +173,18 @@ test("a code block runs beside its code, edits keep its state, and a broken edit
   // web; the first app's counter waits on Ljos.Controls there.
   await page.goto("/language/overview/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
-  await expect(page.getByText("Pressed 0 times").first()).toBeVisible({ timeout: 30_000 });
-  await pressWords(page, "Pressed 0 times");
-  await expect(page.getByText("Pressed 1 times").first()).toBeVisible({ timeout: 30_000 });
-  // Edit the code in its editor: the result takes the edit and
-  // keeps its state.
+  // The first runnable block is the counter. As written it is its
+  // picture; an edit compiles it, and its result runs.
   const editor = await codeEditor(page, "Edit Main.qml");
   await page.keyboard.press("Control+Home");
   await page.keyboard.type("// edited\n");
+  await expect(page.getByText("Pressed 0 times").first()).toBeVisible({ timeout: 30_000 });
+  await pressWords(page, "Pressed 0 times");
+  await expect(page.getByText("Pressed 1 times").first()).toBeVisible({ timeout: 30_000 });
+  // The next edit: the result takes it and keeps its state.
+  await editor.click();
+  await page.keyboard.press("Control+Home");
+  await page.keyboard.type("// again\n");
   await expect(page.getByText("Pressed 1 times").first()).toBeVisible({ timeout: 30_000 });
   // A broken edit says why, and the last good result still stands.
   await page.keyboard.press("Control+Home");
@@ -239,6 +253,31 @@ test("a reader who moves on while the editor loads keeps their focus where they 
   expect(await page.evaluate(() => document.activeElement === window.away)).toBe(true);
 });
 
+// The compiler is 4 MB of wasm, and the text a reader is first shown is
+// what the page already holds compiled (the Pantry's own shell) or
+// pictured (a code block's result): it is fetched once a reader edits,
+// and not before.
+for (const [route, fallback, name] of [
+  ["/demos/", "The Corner Pantry", "Edit the Pantry's Shell.qml"],
+  ["/language/overview/", null, "Edit Main.qml"],
+]) {
+  test(`${route} fetches the compiler only once a reader edits`, async ({ page }) => {
+    const compilers = [];
+    page.on("request", (request) => /ljos_web_compiler[^/]*\.wasm$/.test(new URL(request.url()).pathname) && compilers.push(request.url()));
+    await page.setViewportSize({ width: 1440, height: 1600 });
+    await page.goto(route);
+    await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+    if (fallback) await expect(page.getByText(fallback, { exact: true })).toBeVisible();
+    // Past the debounce of any edit the page might think it had.
+    await page.waitForTimeout(1500);
+    expect(compilers, "the compiler, before an edit").toEqual([]);
+    await codeEditor(page, name);
+    await page.keyboard.press("Control+End");
+    await page.keyboard.type("\n// mine\n");
+    await expect.poll(() => compilers.length, { message: "the compiler, once edited", timeout: 30_000 }).toBeGreaterThan(0);
+  });
+}
+
 test("with JavaScript off a runnable block is its code beside a picture of its result", async ({ browser }) => {
   const context = await browser.newContext({ javaScriptEnabled: false, viewport: BUILD_SIZE });
   try {
@@ -248,7 +287,7 @@ test("with JavaScript off a runnable block is its code beside a picture of its r
     await expect(page.getByRole("textbox", { name: "Edit Main.qml" }).first()).toContainText("property int count: 0");
     // The stage's picture: the example's prerendered result as an
     // image in the page, not words promising one.
-    const pictured = page.locator('img[src*="Examples/"][src$=".png"]').first();
+    const pictured = shown(page.locator('img[src*="Examples/"][src$=".png"]')).first();
     await expect(pictured).toBeVisible();
     expect(await pictured.evaluate((img) => img.complete && img.naturalWidth > 0)).toBe(true);
   } finally {
@@ -257,15 +296,16 @@ test("with JavaScript off a runnable block is its code beside a picture of its r
 });
 
 test("light and dark are the reader's", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "light" });
   await page.goto("/start/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
   // The header's own ground, at a point nothing else covers.
   const ground = () => page.evaluate(() => getComputedStyle(document.elementFromPoint(700, 28)).backgroundColor);
   const before = await ground();
   expect(before).not.toBe("rgba(0, 0, 0, 0)");
-  await press(page, page.getByText("Dark", { exact: true }));
-  await expect(page.getByText("Light", { exact: true })).toBeVisible();
-  expect(await ground()).not.toBe(before);
+  await page.getByRole("button", { name: "Use the dark theme" }).click();
+  await expect(page.getByRole("button", { name: "Use the light theme" })).toBeVisible();
+  await expect.poll(ground).not.toBe(before);
 });
 
 // How many shells the Pantry demo has applied: its pantry-live.js
@@ -429,11 +469,11 @@ test("Reset applies the app's shell once over the visitor's, keeps the basket, a
     await page.goto("/demos/");
     await shownInHeldTime(page, page.locator('#app[data-ljos-hydrated="true"]'));
     await shownInHeldTime(page, page.getByText("The Corner Pantry", { exact: true }));
-    // Loading the demo applies its shell once, and its own writing
-    // into the editor arms nothing: past the debounce it is still
-    // one.
+    // Loading the demo applies nothing: the app's own shell stands
+    // compiled, and the demo's own writing into the editor arms
+    // nothing, past the debounce too.
     await pastDebounce(page);
-    expect(await applies(page), "loading the demo applies its shell once").toBe(1);
+    expect(await applies(page), "loading the demo applies no shell").toBe(0);
     await (await stageButton(page, "Add tea")).click();
     await shownInHeldTime(page, page.getByText("1 in the basket · £3.50").first());
 
@@ -527,14 +567,16 @@ test("Reset applies the app's shell once over the visitor's, keeps the basket, a
 });
 
 // The count is the test's, never the visitor's: a page loaded with
-// no `__ljosTest` put there first runs the demo, applies its shell,
-// and holds no global of the demo's.
+// no `__ljosTest` put there first runs the demo, applies a shell, and
+// holds no global of the demo's.
 test("a visitor's demos page holds no test hook", async ({ page }) => {
   await page.goto("/demos/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
-  // The basket answers only once the shell has applied.
   await (await stageButton(page, "Add tea")).click();
   await expect(page.getByText("1 in the basket · £3.50").first()).toBeVisible();
+  // An edit applies a shell, the path that would count.
+  await (await codeEditor(page, "Edit the Pantry's Shell.qml")).fill(MY_SHELL);
+  await expect(page.getByText("My Pantry", { exact: true })).toBeVisible({ timeout: 30_000 });
   expect(await page.evaluate(() => ["__ljosTest", "ljosPantryApplies"].filter((name) => name in globalThis))).toEqual([]);
 });
 
@@ -542,16 +584,28 @@ test("every showcase demo stands in its slot, on the landing and the demos page"
   await page.goto("/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
   await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible();
-  expect(await page.locator("canvas").count()).toBeGreaterThan(0);
+  // The landing's showcase is made as the reader nears it: its scene
+  // where the browser can draw it, its picture where it cannot.
+  await page.getByText("See it run", { exact: true }).scrollIntoViewIfNeeded();
+  await expect.poll(() => page.locator('canvas, img[src$="demo-orbit.webp"]').count(), { timeout: 30_000 }).toBeGreaterThan(0);
 
   await page.goto("/demos/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
-  for (const words of ["A shell you rewrite", "3D you can orbit", "A shader effect", "A whole app", "Motion"])
-    await expect(page.getByText(words, { exact: true })).toBeVisible();
-  await expect(page.getByText("Drag to orbit · scroll or pinch to zoom")).toBeVisible();
-  await expect(page.getByText("Move to stir the light · tap for other colours")).toBeVisible();
-  await expect(page.getByText("Field guide")).toBeVisible();
-  await expect(page.getByText("Shuffle the tiles")).toBeVisible();
+  // Each demo but the flagship is made once its frame comes near the
+  // screen, so the reader scrolls to it, as a reader would.
+  const demos = [
+    ["A shell you rewrite", null],
+    ["3D you can orbit", "Drag to orbit · scroll or pinch to zoom"],
+    ["A shader effect", "Move to stir the light · tap for other colours"],
+    ["A whole app", "Field guide"],
+    ["Motion", "Shuffle the tiles"],
+  ];
+  for (const [title, inside] of demos) {
+    const heading = page.getByText(title, { exact: true });
+    await heading.scrollIntoViewIfNeeded();
+    await expect(heading).toBeVisible();
+    if (inside) await expect(page.getByText(inside).first()).toBeAttached({ timeout: 30_000 });
+  }
   // The other demos did not take the flagship's place away.
   await stageButton(page, "Add bread");
 });
@@ -561,9 +615,9 @@ test("the demos page reads with JavaScript off: the app's shell and words stand"
   try {
     const page = await context.newPage();
     await page.goto("/demos/");
-    await expect(page.getByText("Live demos", { exact: true }).first()).toBeVisible();
-    await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible();
-    await expect(page.getByText(/complete Ljós app that passes ljos check/)).toBeVisible();
+    await expect(shown(page.getByText("Live demos", { exact: true })).first()).toBeVisible();
+    await expect(shown(page.getByText("The Corner Pantry", { exact: true }))).toBeVisible();
+    await expect(shown(page.getByText(/complete Ljós app that passes ljos check/))).toBeVisible();
   } finally {
     await context.close();
   }

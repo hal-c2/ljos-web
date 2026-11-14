@@ -28,6 +28,63 @@ and is built and tested, never deployed.
   build's, where it stands), each page's HTML carries its title
   and headings, and every internal link resolves.
 
+## Design
+
+One place holds each decision; everything else reads it.
+
+- **Colour: `bundle/tokens.js`.** Light and dark, as roles:
+  `canvas`, `surface` (raised, hover, pressed, selected), `border`
+  (a control's edge, 3:1), `divider` (a hairline that means
+  nothing), `focus`, `accent` (hover, pressed, and the text on
+  it), `text`, `textMuted`, `link`, `danger`, `scrim`. It also holds
+  a code theme with a colour for every highlight tag (`keyword`,
+  `string`, `typeName`, …) and for the block's parts (`bg`, `fg`,
+  `selection`, `gutter`, `diagnostic-error`,
+  `diagnostic-warning`). `Site/Theme.qml` gives the roles to every
+  page. The build writes the same table into each page's head as
+  `--ljos-<role>` and `--ljos-code-<tag>` custom properties, with
+  `.tok-<tag>` rules, for the HTML around the app and for
+  highlighted code. Change a colour in tokens.js and both follow.
+- **Type, space, shape and motion: `Site/Theme.qml`.**
+  - Type: a 16/24 body, and steps of about a fifth up to a 56/64
+    hero, every line height on a 4 px grid. The system UI face for
+    words and `ui-monospace` for code: no web font to wait for or
+    swap in.
+  - Space: 4 to 64 on the same grid.
+  - Radii: 6, 10 and 16.
+  - Motion: 100 to 250 ms with a strong ease-out.
+- **Contrast is a test.** `tests/design.spec.js` holds every pair
+  read together to WCAG AA in both schemes: text on each surface,
+  text on the accent, every code tag on the code background, and
+  borders and focus at 3:1. It also checks that the page head says
+  the same colours.
+- **Light and dark** follow the browser's `prefers-color-scheme`
+  until the reader picks one with the header's toggle, which is
+  kept. `scheme.js` writes the choice on the page's root before
+  the body is read, so the first paint is already in it. The build
+  prerenders both schemes at both widths, so nothing changes when
+  the script arrives.
+- **The mark** (`assets/ljos-mark.svg`) is a lit window: a frame and
+  a light in it, drawn to read at 16 px. The build copies it as the
+  favicon, beside the touch icon and the social picture
+  (`assets/*.png`) drawn from it.
+- **No jank:**
+  - Every demo stands in a frame of its own size from the first
+    paint (`Site/DemoFrame.qml`), showing a picture of the demo
+    and its words. The demo is made only near the screen, fades in
+    over the picture, and runs only while it is on screen.
+  - A browser without WebGPU or wasm keeps the picture and says
+    why.
+  - Layout shift on the landing, demos and a docs page is held
+    under 0.01 by a test.
+- **Reduced motion** reduces movement and never removes feedback.
+  What would slide or grow only fades, and the demos run gently.
+- **Phones:**
+  - Under 1000 px the sidebar folds into a menu that holds the
+    search.
+  - Under 1200 px the "On this page" list goes away.
+  - The reading column is 720 px at most.
+
 Build and read it:
 
 ```sh

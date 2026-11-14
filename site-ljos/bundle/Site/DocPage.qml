@@ -9,13 +9,11 @@ import "../nav.js" as Nav
 // them. Every block is made whether or not it is on screen, so a
 // prerendered page holds the whole text for a reader with no script.
 //
-// Each block's delegate carries every kind's face and shows its
-// own, all of it bound where it stands. A `Loader` whose component
-// is itself a binding loads after the delegate is made, which a
-// browser settles over its frames and a prerender — writing the
-// page as it first stands — does not: the page would read whole
-// only with script. Bound where they stand, the blocks are there
-// as the page is made, on either side of hydration alike.
+// Each block makes only its own kind's face: a Repeater of one for
+// that kind, none for the others. A Repeater makes its delegates as
+// it is made, so the block is there as the page is made, in a
+// prerender as in a browser; a `Loader` whose component is a binding
+// would load a frame later, after a prerender has written the page.
 Column {
     id: doc
 
@@ -29,11 +27,14 @@ Column {
         }
         return null;
     }
-    property int textWidth: width
+    readonly property bool narrow: width < 600
 
     // The flickable that holds this column, named by the shell so a
     // contents press can land on its heading.
     property var scroller: null
+
+    // A link in the page's text, for the shell to follow.
+    signal followed(string href)
 
     function scrollToAnchor(anchor) {
         if (!doc.scroller)
@@ -42,51 +43,57 @@ Column {
             var item = blocks.itemAt(i);
             if (item && item.anchor === anchor) {
                 var at = item.mapToItem(doc.scroller.contentItem, 0, 0);
-                doc.scroller.contentY = Math.max(0, at.y - 12);
+                doc.scroller.contentY = Math.max(0, Math.min(at.y - Theme.l, doc.scroller.contentHeight - doc.scroller.height));
                 return;
             }
         }
     }
 
-    function follow(link) {
-        var hash = link.indexOf("#");
-        var route = hash >= 0 ? link.slice(0, hash) : link;
-        var anchor = hash >= 0 ? link.slice(hash + 1) : "";
-        if (anchor && (route === "" || (doc.page && route === doc.page.route))) {
-            doc.scrollToAnchor(anchor);
-            return;
+    spacing: Theme.m
+
+    Text {
+        width: parent.width
+        visible: !doc.page && doc.route !== ""
+        textFormat: Text.RichText
+        text: "There is no page at this address. The docs begin at " + Nav.anchor("/start/", "What is Ljós?", true) + "."
+        color: Theme.text
+        linkColor: Theme.link
+        font.family: Theme.sans
+        font.pixelSize: Theme.bodySize
+        lineHeightMode: Text.FixedHeight
+        lineHeight: Theme.bodyLine
+        wrapMode: Text.Wrap
+        onLinkActivated: (link) => doc.followed(link)
+    }
+    Column {
+        width: parent.width
+        visible: doc.page !== null
+        spacing: Theme.s
+        bottomPadding: Theme.s
+
+        Text {
+            width: parent.width
+            text: doc.page ? doc.page.title : ""
+            color: Theme.text
+            font.family: Theme.sans
+            font.pixelSize: doc.narrow ? Theme.compactDisplaySize : Theme.displaySize
+            font.weight: Font.Bold
+            lineHeightMode: Text.FixedHeight
+            lineHeight: doc.narrow ? Theme.compactDisplayLine : Theme.displayLine
+            wrapMode: Text.Wrap
+            Accessible.role: Accessible.Heading
         }
-        Nav.go(link);
-    }
-
-    spacing: 14
-
-    Text {
-        width: parent.width
-        visible: !doc.page
-        text: "There is no page at this address. The docs begin at What is Ljós?"
-        color: Theme.ink
-        font.family: Theme.sans
-        font.pixelSize: 15
-        wrapMode: Text.Wrap
-    }
-    Text {
-        width: parent.width
-        text: doc.page ? doc.page.title : ""
-        color: Theme.ink
-        font.family: Theme.serif
-        font.pixelSize: 34
-        font.bold: true
-        wrapMode: Text.Wrap
-    }
-    Text {
-        width: parent.width
-        visible: text !== ""
-        text: doc.page ? doc.page.description : ""
-        color: Theme.muted
-        font.family: Theme.sans
-        font.pixelSize: 15
-        wrapMode: Text.Wrap
+        Text {
+            width: parent.width
+            visible: text !== ""
+            text: doc.page ? (doc.page.description || "") : ""
+            color: Theme.textMuted
+            font.family: Theme.sans
+            font.pixelSize: Theme.subtitleSize
+            lineHeightMode: Text.FixedHeight
+            lineHeight: Theme.subtitleLine
+            wrapMode: Text.Wrap
+        }
     }
 
     Repeater {
@@ -102,135 +109,202 @@ Column {
             readonly property string kind: String(modelData.kind)
             readonly property string anchor: kind === "heading" ? String(modelData.anchor) : ""
 
-            width: doc.textWidth
+            width: doc.width
             spacing: 0
 
-            // A heading.
-            Text {
-                visible: kind === "heading"
-                width: doc.textWidth
-                text: kind === "heading" ? modelData.rich : ""
-                textFormat: Text.RichText
-                color: Theme.ink
-                font.family: (modelData.level || 2) <= 2 ? Theme.serif : Theme.sans
-                font.pixelSize: modelData.level === 1 ? 30 : modelData.level === 2 ? 24 : modelData.level === 3 ? 19 : 16
-                font.bold: true
-                wrapMode: Text.Wrap
-                onLinkActivated: (link) => doc.follow(link)
-            }
-            // Prose.
-            Text {
-                visible: kind === "para"
-                width: doc.textWidth
-                text: kind === "para" ? modelData.rich : ""
-                textFormat: Text.RichText
-                color: Theme.ink
-                font.family: Theme.sans
-                font.pixelSize: 15
-                wrapMode: Text.Wrap
-                onLinkActivated: (link) => doc.follow(link)
-            }
-            // A list.
-            Column {
-                visible: kind === "list"
-                width: doc.textWidth
-                spacing: 6
-
-                Repeater {
-                    model: kind === "list" ? modelData.items : []
-                    Row {
-                        required property var modelData
-                        required property int index
-                        width: doc.textWidth
-                        spacing: 8
-
-                        Text {
-                            text: blockItem.modelData.ordered ? (index + 1) + "." : "•"
-                            color: Theme.accent
-                            font.family: Theme.sans
-                            font.pixelSize: 15
-                            font.bold: true
-                        }
-                        Text {
-                            width: doc.textWidth - 28
-                            text: modelData
-                            textFormat: Text.RichText
-                            color: Theme.ink
-                            font.family: Theme.sans
-                            font.pixelSize: 15
-                            wrapMode: Text.Wrap
-                            onLinkActivated: (link) => doc.follow(link)
-                        }
-                    }
+            // A heading: space above it, more for a bigger one.
+            Repeater {
+                model: blockItem.kind === "heading" ? 1 : 0
+                Text {
+                    readonly property int level: blockItem.modelData.level || 2
+                    width: doc.width
+                    topPadding: level <= 2 ? Theme.xl : Theme.m
+                    text: blockItem.modelData.rich
+                    textFormat: Text.RichText
+                    color: Theme.text
+                    linkColor: Theme.link
+                    font.family: Theme.sans
+                    font.pixelSize: level <= 2 ? Theme.headlineSize - (doc.narrow ? 4 : 0) : level === 3 ? Theme.subtitleSize : Theme.bodySize
+                    font.weight: level <= 3 ? Font.DemiBold : Font.Bold
+                    lineHeightMode: Text.FixedHeight
+                    lineHeight: level <= 2 ? Theme.headlineLine - (doc.narrow ? 4 : 0) : level === 3 ? Theme.subtitleLine : Theme.bodyLine
+                    wrapMode: Text.Wrap
+                    Accessible.role: Accessible.Heading
+                    onLinkActivated: (link) => doc.followed(link)
                 }
             }
-            // A table: its head row, then its rows, the columns
-            // sharing the page's width.
-            Column {
-                id: table
-                visible: kind === "table"
-                width: doc.textWidth
-                spacing: 0
+            // Prose.
+            Repeater {
+                model: blockItem.kind === "para" ? 1 : 0
+                Text {
+                    width: doc.width
+                    text: blockItem.modelData.rich
+                    textFormat: Text.RichText
+                    color: Theme.text
+                    linkColor: Theme.link
+                    font.family: Theme.sans
+                    font.pixelSize: Theme.bodySize
+                    lineHeightMode: Text.FixedHeight
+                    lineHeight: Theme.bodyLine + Theme.xxs
+                    wrapMode: Text.Wrap
+                    onLinkActivated: (link) => doc.followed(link)
+                }
+            }
+            // A list.
+            Repeater {
+                model: blockItem.kind === "list" ? 1 : 0
+                Column {
+                    width: doc.width
+                    spacing: Theme.xs
 
-                readonly property var head: kind === "table" ? modelData.head : []
-                readonly property var rows: kind === "table" ? modelData.rows : []
-                readonly property int cols: Math.max(1, head.length)
-                readonly property int cellWidth: Math.floor(width / cols)
-
-                Row {
                     Repeater {
-                        model: table.head
-                        Rectangle {
+                        model: blockItem.modelData.items
+                        Row {
                             required property var modelData
-                            width: table.cellWidth
-                            height: cellText.implicitHeight + 12
-                            color: Theme.panel
-                            border.color: Theme.border
-                            border.width: 1
+                            required property int index
+                            width: doc.width
+                            spacing: Theme.xs
+
                             Text {
-                                id: cellText
-                                anchors.left: parent.left
-                                anchors.right: parent.right
-                                anchors.top: parent.top
-                                anchors.margins: 6
+                                width: blockItem.modelData.ordered ? 24 : 16
+                                horizontalAlignment: Text.AlignRight
+                                text: blockItem.modelData.ordered ? (index + 1) + "." : "•"
+                                color: Theme.textMuted
+                                font.family: Theme.sans
+                                font.pixelSize: Theme.bodySize
+                                lineHeightMode: Text.FixedHeight
+                                lineHeight: Theme.bodyLine + Theme.xxs
+                                Accessible.ignored: true
+                            }
+                            Text {
+                                width: doc.width - (blockItem.modelData.ordered ? 24 : 16) - Theme.xs
                                 text: modelData
                                 textFormat: Text.RichText
-                                color: Theme.ink
+                                color: Theme.text
+                                linkColor: Theme.link
                                 font.family: Theme.sans
-                                font.pixelSize: 13
-                                font.bold: true
+                                font.pixelSize: Theme.bodySize
+                                lineHeightMode: Text.FixedHeight
+                                lineHeight: Theme.bodyLine + Theme.xxs
                                 wrapMode: Text.Wrap
-                                onLinkActivated: (link) => doc.follow(link)
+                                onLinkActivated: (link) => doc.followed(link)
                             }
                         }
                     }
                 }
-                Repeater {
-                    model: table.rows
-                    Row {
-                        required property var modelData
-                        Repeater {
-                            model: parent.modelData
-                            Rectangle {
-                                required property var modelData
-                                width: table.cellWidth
-                                height: bodyText.implicitHeight + 12
-                                color: Theme.bg
-                                border.color: Theme.border
-                                border.width: 1
-                                Text {
-                                    id: bodyText
-                                    anchors.left: parent.left
-                                    anchors.right: parent.right
-                                    anchors.top: parent.top
-                                    anchors.margins: 6
-                                    text: modelData
-                                    textFormat: Text.RichText
-                                    color: Theme.ink
-                                    font.family: Theme.sans
-                                    font.pixelSize: 13
-                                    wrapMode: Text.Wrap
-                                    onLinkActivated: (link) => doc.follow(link)
+            }
+            // A table: its head row, then its rows, the columns sharing
+            // the page's width; a narrow page scrolls it sideways.
+            Repeater {
+                model: blockItem.kind === "table" ? 1 : 0
+                Rectangle {
+                    id: tableFrame
+                    readonly property var head: blockItem.modelData.head
+                    readonly property var rows: blockItem.modelData.rows
+                    readonly property int cols: Math.max(1, head.length)
+                    readonly property int cellWidth: Math.max(140, Math.floor((doc.width - 2) / cols))
+
+                    width: doc.width
+                    height: table.height + 2
+                    radius: Theme.radius
+                    color: Theme.canvas
+                    border.color: Theme.divider
+                    border.width: 1
+                    clip: true
+
+                    Flickable {
+                        x: 1
+                        y: 1
+                        width: parent.width - 2
+                        height: table.height
+                        contentWidth: table.width
+                        contentHeight: table.height
+                        flickableDirection: Flickable.HorizontalFlick
+                        clip: true
+
+                        Column {
+                            id: table
+
+                            Row {
+                                Repeater {
+                                    model: tableFrame.head
+                                    Rectangle {
+                                        required property var modelData
+                                        width: tableFrame.cellWidth
+                                        height: headRow.height
+                                        color: Theme.surface
+                                        Text {
+                                            id: headCell
+                                            x: Theme.s
+                                            y: Theme.xs
+                                            width: parent.width - 2 * Theme.s
+                                            text: modelData
+                                            textFormat: Text.RichText
+                                            color: Theme.text
+                                            linkColor: Theme.link
+                                            font.family: Theme.sans
+                                            font.pixelSize: Theme.captionSize + 1
+                                            font.weight: Font.DemiBold
+                                            lineHeightMode: Text.FixedHeight
+                                            lineHeight: Theme.captionLine
+                                            wrapMode: Text.Wrap
+                                            onLinkActivated: (link) => doc.followed(link)
+                                        }
+                                    }
+                                }
+                                id: headRow
+                                height: {
+                                    var tallest = 0;
+                                    for (var i = 0; i < children.length; i++) {
+                                        var cell = children[i].children[0];
+                                        if (cell)
+                                            tallest = Math.max(tallest, cell.implicitHeight);
+                                    }
+                                    return tallest + 2 * Theme.xs;
+                                }
+                            }
+                            Repeater {
+                                model: tableFrame.rows
+                                Row {
+                                    id: bodyRow
+                                    required property var modelData
+                                    height: {
+                                        var tallest = 0;
+                                        for (var i = 0; i < children.length; i++) {
+                                            var cell = children[i].children[1];
+                                            if (cell)
+                                                tallest = Math.max(tallest, cell.implicitHeight);
+                                        }
+                                        return tallest + 2 * Theme.xs + 1;
+                                    }
+                                    Repeater {
+                                        model: bodyRow.modelData
+                                        Item {
+                                            required property var modelData
+                                            width: tableFrame.cellWidth
+                                            height: bodyRow.height
+                                            Rectangle {
+                                                width: parent.width
+                                                height: 1
+                                                color: Theme.divider
+                                            }
+                                            Text {
+                                                x: Theme.s
+                                                y: Theme.xs + 1
+                                                width: parent.width - 2 * Theme.s
+                                                text: modelData
+                                                textFormat: Text.RichText
+                                                color: Theme.text
+                                                linkColor: Theme.link
+                                                font.family: Theme.sans
+                                                font.pixelSize: Theme.captionSize + 1
+                                                lineHeightMode: Text.FixedHeight
+                                                lineHeight: Theme.captionLine
+                                                wrapMode: Text.Wrap
+                                                onLinkActivated: (link) => doc.followed(link)
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -239,71 +313,116 @@ Column {
             }
             // Code, through the site's one code-block face: plain,
             // or live where the build ran it.
-            CodeBlock {
-                visible: kind === "code" || kind === "live"
-                width: doc.textWidth
-                lang: (kind === "code" || kind === "live") ? (modelData.lang || "") : ""
-                code: kind === "code" ? (modelData.code || "") : ""
-                rich: (kind === "code" || kind === "live") ? (modelData.rich || "") : ""
-                harness: kind === "code" ? (modelData.harness || "") : ""
-                file: kind === "code" ? (modelData.file || "") : ""
-                group: kind === "code" ? (modelData.group || "") : ""
-                before: kind === "code" ? (modelData.before || false) : false
-                live: kind === "live" ? modelData.live : null
+            Repeater {
+                model: blockItem.kind === "code" || blockItem.kind === "live" ? 1 : 0
+                CodeBlock {
+                    readonly property bool isCode: blockItem.kind === "code"
+                    width: doc.width
+                    lang: blockItem.modelData.lang || ""
+                    code: isCode ? (blockItem.modelData.code || "") : ""
+                    rich: blockItem.modelData.rich || ""
+                    harness: isCode ? (blockItem.modelData.harness || "") : ""
+                    file: isCode ? (blockItem.modelData.file || "") : ""
+                    group: isCode ? (blockItem.modelData.group || "") : ""
+                    before: isCode ? (blockItem.modelData.before || false) : false
+                    live: isCode ? null : blockItem.modelData.live
+                }
             }
-            // A quote, or an admonition the Markdown named.
-            Rectangle {
-                visible: kind === "quote"
-                width: doc.textWidth
-                height: kind === "quote" ? quoteText.implicitHeight + 20 : 0
-                color: Theme.panel
-                border.color: Theme.accent
-                border.width: 1
+            // A quote, or an admonition the Markdown named: a bar of
+            // the accent beside it, and its kind said first.
+            Repeater {
+                model: blockItem.kind === "quote" ? 1 : 0
+                Rectangle {
+                    width: doc.width
+                    height: quoteWords.implicitHeight + 2 * Theme.m
+                    radius: Theme.radiusSmall
+                    color: Theme.surface
+                    border.color: Theme.divider
+                    border.width: 1
 
-                Text {
-                    id: quoteText
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.margins: 10
-                    text: kind === "quote" ? ((modelData.note ? String(modelData.note).toUpperCase() + " — " : "") + modelData.rich) : ""
-                    textFormat: Text.RichText
-                    color: Theme.ink
-                    font.family: Theme.sans
-                    font.pixelSize: 14
-                    wrapMode: Text.Wrap
-                    onLinkActivated: (link) => doc.follow(link)
+                    Rectangle {
+                        width: 4
+                        height: parent.height
+                        radius: 2
+                        color: Theme.accent
+                    }
+                    Column {
+                        id: quoteWords
+                        x: Theme.l
+                        y: Theme.m
+                        width: parent.width - Theme.l - Theme.m
+                        spacing: Theme.xxs
+
+                        Text {
+                            visible: !!blockItem.modelData.note
+                            text: blockItem.modelData.note ? String(blockItem.modelData.note).charAt(0).toUpperCase() + String(blockItem.modelData.note).slice(1) : ""
+                            color: Theme.link
+                            font.family: Theme.sans
+                            font.pixelSize: Theme.captionSize
+                            font.weight: Font.Bold
+                            lineHeightMode: Text.FixedHeight
+                            lineHeight: Theme.captionLine
+                        }
+                        Text {
+                            width: parent.width
+                            text: blockItem.modelData.rich
+                            textFormat: Text.RichText
+                            color: Theme.text
+                            linkColor: Theme.link
+                            font.family: Theme.sans
+                            font.pixelSize: Theme.bodySize
+                            lineHeightMode: Text.FixedHeight
+                            lineHeight: Theme.bodyLine
+                            wrapMode: Text.Wrap
+                            onLinkActivated: (link) => doc.followed(link)
+                        }
+                    }
                 }
             }
             // A picture, with the words that say what it is.
-            Column {
-                visible: kind === "image"
-                width: doc.textWidth
-                spacing: 6
+            Repeater {
+                model: blockItem.kind === "image" ? 1 : 0
+                Column {
+                    width: doc.width
+                    spacing: Theme.xs
 
-                Image {
-                    Accessible.name: kind === "image" ? (modelData.alt || "") : ""
-                    source: kind === "image" ? (modelData.src || "") : ""
-                    width: Math.min(implicitWidth > 0 ? implicitWidth : 320, doc.textWidth)
-                    height: implicitWidth > 0 ? width * implicitHeight / implicitWidth : 180
-                    fillMode: Image.PreserveAspectFit
-                }
-                Text {
-                    width: doc.textWidth
-                    visible: text !== ""
-                    text: kind === "image" ? (modelData.alt || "") : ""
-                    color: Theme.muted
-                    font.family: Theme.sans
-                    font.pixelSize: 12
-                    wrapMode: Text.Wrap
+                    // A picture with no words is decoration, left out
+                    // of what is read rather than read as nameless.
+                    Image {
+                        Accessible.role: blockItem.modelData.alt ? Accessible.Graphic : Accessible.NoRole
+                        Accessible.name: blockItem.modelData.alt || ""
+                        Accessible.ignored: !blockItem.modelData.alt
+                        source: blockItem.modelData.src || ""
+                        width: Math.min(implicitWidth > 0 ? implicitWidth : doc.width, doc.width)
+                        height: implicitWidth > 0 ? width * implicitHeight / implicitWidth : Math.round(doc.width * 9 / 16)
+                        fillMode: Image.PreserveAspectFit
+                    }
+                    Text {
+                        width: doc.width
+                        visible: text !== ""
+                        text: blockItem.modelData.alt || ""
+                        color: Theme.textMuted
+                        font.family: Theme.sans
+                        font.pixelSize: Theme.captionSize
+                        lineHeightMode: Text.FixedHeight
+                        lineHeight: Theme.captionLine
+                        wrapMode: Text.Wrap
+                    }
                 }
             }
             // A rule.
-            Rectangle {
-                visible: kind === "rule"
-                width: doc.textWidth
-                height: 1
-                color: Theme.border
+            Repeater {
+                model: blockItem.kind === "rule" ? 1 : 0
+                Item {
+                    width: doc.width
+                    height: Theme.l
+                    Rectangle {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: parent.width
+                        height: 1
+                        color: Theme.divider
+                    }
+                }
             }
         }
     }

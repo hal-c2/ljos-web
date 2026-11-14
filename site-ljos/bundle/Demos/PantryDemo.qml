@@ -56,15 +56,20 @@ Column {
         debounce.stop();
     }
 
+    // Before any edit has applied, the app's shell already stands
+    // (the fallback), so there is nothing to apply.
     function resetToAppShell() {
         writeOwn(PantryProject.shellText);
-        apply();
+        if (started)
+            apply();
     }
 
+    // The app's own shell stands as the stage's fallback, compiled
+    // with the page, so nothing is applied until a reader edits: the
+    // first apply fetches the compiler, megabytes of wasm.
     Component.onCompleted: {
         LivePantry.setProject(PantryProject.files, PantryProject.shellText);
         writeOwn(PantryProject.shellText);
-        apply();
     }
 
     Timer {
@@ -77,8 +82,13 @@ Column {
     // is a named group, so the app's controls are found as the app's,
     // apart from the editor's and the page's.
     Item {
+        id: stageBox
+        // The app is a 480 × 400 window, as its shell is written; on a
+        // screen narrower than that it is shown whole, smaller, never
+        // cut off at the page's edge.
+        readonly property real fit: Math.min(1, width / 480)
         width: parent.width
-        height: 400
+        height: Math.round(400 * fit)
         Accessible.role: Accessible.Grouping
         Accessible.name: "The Pantry, running"
 
@@ -86,7 +96,9 @@ Column {
             id: stage
             width: 480
             height: 400
-            x: Math.max(0, (parent.width - width) / 2)
+            scale: stageBox.fit
+            transformOrigin: Item.TopLeft
+            x: Math.max(0, (parent.width - width * stageBox.fit) / 2)
             fallback: appShell
         }
         Component {
@@ -153,8 +165,9 @@ Column {
         width: parent.width
         height: 300
         color: Theme.codeBg
-        border.color: Theme.border
-        border.width: 1
+        // The ring of the editor in it, which scrolls (Site/CodeEditor).
+        border.color: editor.activeFocus ? Theme.focusRing : Theme.border
+        border.width: editor.activeFocus ? 2 : 1
 
         Flickable {
             anchors.fill: parent

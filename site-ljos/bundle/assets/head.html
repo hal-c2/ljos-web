@@ -1,0 +1,56 @@
+<meta name="color-scheme" content="light dark" />
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="%LIGHT_CANVAS%" />
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="%DARK_CANVAS%" />
+<link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+<link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+<meta property="og:image" content="https://ljos.dev/og-image.png" />
+<meta property="og:site_name" content="Ljós" />
+<!-- The scheme the reader picked (Site/Theme.qml keeps it), on the root
+     before the body is read, so the first paint is already in it. -->
+<script>try{const s=JSON.parse(localStorage.getItem("ljos-web:ljos.dev/scheme"));if(s==="light"||s==="dark"){const r=document.documentElement;r.dataset.ljosScheme=s;r.style.colorScheme=s;for(const m of document.querySelectorAll('meta[name="theme-color"]'))m.content=s==="dark"?"%DARK_CANVAS%":"%LIGHT_CANVAS%"}}catch{}</script>
+<!-- The design tokens as the HTML around the app reads them: the
+     build writes tokens.js's colours here as `--ljos-<role>` and
+     `--ljos-code-<tag>` (which the code blocks' `.tok-<tag>` classes
+     read), for light, for dark as the browser asks, and for dark as
+     the reader picked. -->
+<style>
+%LJOS_TOKENS%
+  html, body { background: var(--ljos-canvas); color: var(--ljos-text); }
+  :focus-visible { outline: 2px solid var(--ljos-focus); outline-offset: 2px; }
+  /* A link's ring is its own words' colour, which already stands out
+     from whatever it is written on (a button's accent, too). */
+  #app a:focus-visible { outline-color: currentColor; }
+  ::selection { background: var(--ljos-code-selection); }
+  /* A code editor's text starts at its own edge, and the field clips
+     (or scrolls) code wider than it, so a ring of its own would cross
+     the first column or be cut off: the box around it draws the ring
+     (Site/CodeBlock.qml, Demos/PantryDemo.qml). */
+  #app .cm-editor.cm-focused { outline: none; }
+  /* Not under #app alone: the runtime measures where markup wraps in a
+     bench beside the app, which must set inline code the same way. */
+  .qq-markup code:not(pre code) {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "DejaVu Sans Mono", "Liberation Mono", monospace;
+    font-size: 0.875em;
+    padding: 0.1em 0.35em;
+    border-radius: 4px;
+    background: var(--ljos-code-bg);
+    color: var(--ljos-code-fg);
+  }
+  #app .qq-markup a { text-underline-offset: 0.15em; }
+  .tok-keyword { color: var(--ljos-code-keyword); }
+  .tok-string { color: var(--ljos-code-string); }
+  .tok-number { color: var(--ljos-code-number); }
+  .tok-bool { color: var(--ljos-code-bool); }
+  .tok-null { color: var(--ljos-code-null); }
+  .tok-regexp { color: var(--ljos-code-regexp); }
+  .tok-comment { color: var(--ljos-code-comment); font-style: italic; }
+  .tok-typeName { color: var(--ljos-code-typeName); }
+  .tok-propertyName { color: var(--ljos-code-propertyName); }
+  .tok-variableName { color: var(--ljos-code-variableName); }
+  .tok-function { color: var(--ljos-code-function); }
+  .tok-operator { color: var(--ljos-code-operator); }
+  .tok-punctuation { color: var(--ljos-code-punctuation); }
+  .tok-meta { color: var(--ljos-code-meta); }
+  .tok-invalid { color: var(--ljos-code-invalid); }
+  .tok-topic { color: var(--ljos-code-topic); }
+</style>

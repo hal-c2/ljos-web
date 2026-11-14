@@ -102,6 +102,11 @@ const ACCESSIBILITY = Object.freeze({
   contrastPreference: matchMedia("(prefers-contrast: more)").matches
     ? enums.ContrastPreference.HighContrast
     : enums.ContrastPreference.NoPreference,
+  // Qt 6.12's: a reader who asked for less movement is answered with
+  // less of it, not none — a fade where a slide was.
+  motionPreference: matchMedia("(prefers-reduced-motion: reduce)").matches
+    ? enums.MotionPreference.ReducedMotion
+    : enums.MotionPreference.NoPreference,
 });
 
 // Its numbers are Qt's own defaults: no browser says how far a drag starts.
@@ -138,14 +143,23 @@ const StyleHints = defineType("StyleHints", QtObject, {
     wheelScrollLines: 3,
   },
   setup(self) {
-    // The scheme the browser asks pages for, until the program sets its own.
+    // The scheme the browser asks pages for, until the program sets its
+    // own — or the page's own choice, where its root says one
+    // (`<html data-ljos-scheme="dark">`, the attribute a prerendered
+    // page in both schemes is shown by), so the page is made in the
+    // scheme it was first shown in.
     const dark = matchMedia("(prefers-color-scheme: dark)");
+    const root = document.documentElement;
+    const chosen = root?.getAttribute?.("data-ljos-scheme");
     const scheme = slot(self, "colorScheme");
-    scheme.provide(dark.matches ? ColorScheme.Dark : ColorScheme.Light);
-    listen(dark, "change", () => {
-      scheme.provide(dark.matches ? ColorScheme.Dark : ColorScheme.Light);
-      flush();
-    });
+    const asked = () => (dark.matches ? ColorScheme.Dark : ColorScheme.Light);
+    scheme.provide(chosen === "dark" ? ColorScheme.Dark : chosen === "light" ? ColorScheme.Light : asked());
+    if (chosen !== "dark" && chosen !== "light") {
+      listen(dark, "change", () => {
+        scheme.provide(asked());
+        flush();
+      });
+    }
   },
 });
 

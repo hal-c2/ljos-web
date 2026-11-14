@@ -373,10 +373,11 @@ async function load(self, state) {
     const stood = state.shown;
     const made = runWithOwner(state.owner, () => make(self, state, resolved, false));
     if (made.shown) {
-      // The reader may have used the shell that stood in (it is the
+      // The reader may have used the fallback, standing in while the
+      // source came or shown where there was none (it is the
       // application's own, and runs): the source takes over as a
       // reload does, with the state of what is in both.
-      if (stood?.standsIn && stood.object && made.shown.object) {
+      if (stood?.fallback && stood.object && made.shown.object) {
         try {
           const { carry } = await import("../../reload.js");
           if (turn !== state.turn) return void discard(made.shown);
@@ -487,10 +488,11 @@ async function reloaded(self) {
     if (!old) await showFallback(self, state, made.error, turn);
     return made.error;
   }
-  // What stood in while the first source came (or stayed when it
-  // failed) is the reader's too: a reload from it carries across, as
-  // the source's arrival would have.
-  if (old && (!old.fallback || old.standsIn) && old.object && made.shown.object) {
+  // A fallback shown, whether it stood in while the first source came,
+  // stayed when it failed, or stood where there was no source, is the
+  // reader's too: a reload from it carries across, as the source's
+  // arrival would have.
+  if (old && old.object && made.shown.object) {
     try {
       const { carry } = await import("../../reload.js");
       if (turn !== state.turn) {
@@ -498,15 +500,16 @@ async function reloaded(self) {
         discard(made.shown);
         return "";
       }
-      carry(old.object, old.Component, made.shown.object, made.shown.Component, { across: !!old.standsIn });
+      carry(old.object, old.Component, made.shown.object, made.shown.Component, { across: !!old.fallback });
     } catch (error) {
       // The old shell was only read from: it stays, and the new one goes.
       discard(made.shown);
       const why = describe(error, null, resolved.file);
       console.warn(`ShellLoader: reload: ${why}`);
-      // What stood in for the first load, which this turn took over,
-      // now stands as the fallback: the loader is done.
-      if (old.standsIn) {
+      // A fallback stays, and says why; what stood in for the first
+      // load, which this turn took over, now stands as the fallback:
+      // the loader is done.
+      if (old.fallback) {
         write(self, "error", why);
         write(self, "status", Fallback);
         settle();

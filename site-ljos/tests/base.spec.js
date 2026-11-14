@@ -54,7 +54,8 @@ for (const route of ["", "start/", "demos/"]) {
     });
     page.on("requestfailed", (request) => gaps.push(`${request.url()}: ${request.failure()?.errorText}`));
     await page.goto(`${base}${route}`);
-    await expect(page.getByText("Ljós", { exact: true }).first()).toBeVisible();
+    // Of the renders the page holds, the one the reader is shown.
+    await expect(page.getByText("Ljós", { exact: true }).filter({ visible: true }).first()).toBeVisible();
     // What the page fetches once it runs (a demo's wasm, a picture,
     // the in-page compiler on a first edit is not asked for here).
     await page.waitForLoadState("networkidle", { timeout: 30_000 }).catch(() => {});
@@ -64,10 +65,13 @@ for (const route of ["", "start/", "demos/"]) {
 
 test(`the header's links stay inside ${base}`, async ({ page }) => {
   await page.goto(`${base}start/`);
-  await press(page, page.getByText("Live demos", { exact: true }).first());
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  await press(page, page.getByText("Demos", { exact: true }).first());
   await expect(page).toHaveURL(`http://127.0.0.1:4471${base}demos/`);
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
   await press(page, page.getByText("Docs", { exact: true }).first());
   await expect(page).toHaveURL(`http://127.0.0.1:4471${base}start/`);
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
   await press(page, page.getByText("Ljós", { exact: true }).first());
   await expect(page).toHaveURL(`http://127.0.0.1:4471${base}`);
 });

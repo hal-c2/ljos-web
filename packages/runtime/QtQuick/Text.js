@@ -317,7 +317,10 @@ const ALIGNS = { 1: "left", 2: "right", 4: "center", 8: "justify" };
 // Plain text, with the letters at `marks` underlined: a label's mnemonics.
 function write(content, text, marks) {
   if (!marks) {
-    content.textContent = text;
+    // A page's prerendered text is already here: writing it again would
+    // make a new text node, which the browser paints (and counts as the
+    // page's largest paint) a second time.
+    if (content.childNodes.length !== 1 || content.firstChild.nodeType !== 3 || content.textContent !== text) content.textContent = text;
     return;
   }
   const pieces = [];
@@ -329,6 +332,16 @@ function write(content, text, marks) {
     from = at + 1;
   }
   content.replaceChildren(...pieces, text.slice(from));
+}
+
+// Whether the markup a page was prerendered with is the markup the item
+// shows: then hydration keeps it, as it keeps plain text (`write`).
+function same(content, fresh) {
+  const now = content.childNodes;
+  const made = fresh.childNodes;
+  if (now.length !== made.length) return false;
+  for (let index = 0; index < now.length; index++) if (!now[index].isEqualNode(made[index])) return false;
+  return true;
 }
 
 // Justified lines, one element each: the room a wrapped line leaves is
@@ -495,7 +508,13 @@ export const Text = defineType("Text", Item, {
       const linked = (event) => event.target.closest?.("a[data-link]")?.dataset.link;
       content.addEventListener("click", (event) => {
         const link = linked(event);
-        if (link !== undefined) self.linkActivated(link);
+        if (link === undefined) return;
+        // A link that also has an `href` is the program's to follow on
+        // a plain press, as in Qt; with a modifier (a new tab, a new
+        // window) it is the browser's.
+        if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+        event.preventDefault();
+        self.linkActivated(link);
       });
       content.addEventListener("mouseover", (event) => hover(linked(event) ?? ""));
       content.addEventListener("mouseout", () => hover(""));
@@ -532,7 +551,10 @@ export const Text = defineType("Text", Item, {
         const { made } = next;
         const style = content.style;
         if (made.kind) {
-          if (shown.kind !== made.kind || shown.text !== made.text || shown.inert !== made.inert) content.replaceChildren(elements(made.text));
+          if (shown.kind !== made.kind || shown.text !== made.text || shown.inert !== made.inert) {
+            const fresh = elements(made.text);
+            if (shown.kind !== undefined || !same(content, fresh)) content.replaceChildren(fresh);
+          }
           clothe(content, made.look);
           style.setProperty("--qq-link", next.link);
           style.textTransform = next.capitals;

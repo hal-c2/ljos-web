@@ -2164,6 +2164,38 @@ export function mount(Component, element, props = {}, options = {}) {
   return handle;
 }
 
+// What is no making in hydration's count, on either side (server/dom.js
+// numbers the same way): a canvas, whose measuring one is made at
+// whatever making first measures; a picture, film or sound, which a
+// type loads through an element made per load — one a prerender, which
+// is given none of them, makes again for each item that asks, and a
+// reader's browser, which has the first, does not; and what belongs in
+// a document's head, which no type makes but the bundler does,
+// mid-mount, as it preloads a chunk a type imports (a
+// `<link rel="modulepreload">`) — a prerender, which imports no chunk
+// that way, makes none.
+const UNNUMBERED = new Set(["canvas", "img", "video", "audio", "link", "script", "style", "meta"]);
+function unnumbered(tag) {
+  return UNNUMBERED.has(String(tag).toLowerCase()) || globalThis[OUTSIDE_THE_COUNT] === true;
+}
+
+// Nor is what the runtime makes for its own ends rather than a type's:
+// the copy of a text's markup, and what markup is measured in. Those are
+// made as often as a cache misses, which a prerender that has made other
+// pages before and a reader's fresh page do not agree on, and none of it
+// is ever taken over (a text's markup is its content's, kept or set again
+// whole). Held where the prerender's document reads it (`server/dom.js`).
+const OUTSIDE_THE_COUNT = Symbol.for("ljos-web.outside-the-count");
+export function outsideTheCount(make) {
+  const was = globalThis[OUTSIDE_THE_COUNT];
+  globalThis[OUTSIDE_THE_COUNT] = true;
+  try {
+    return make();
+  } finally {
+    globalThis[OUTSIDE_THE_COUNT] = was;
+  }
+}
+
 // Puts a component's object in the page over what a prerender of it
 // wrote there (`renderToString` of `ljos-web/server`), taking the
 // prerendered elements over instead of making the page again: while
@@ -2203,7 +2235,7 @@ export function hydrate(Component, element, props = {}, options = {}) {
   let made = 0;
   let told = false;
   const take = (tag) => {
-    if (String(tag).toLowerCase() === "canvas") return null;
+    if (unnumbered(tag)) return null;
     // Once the makings have parted, no later number can be trusted to
     // name the same making: the rest is made again, and what was
     // prerendered of it is taken out below.

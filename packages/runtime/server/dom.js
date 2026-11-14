@@ -27,6 +27,16 @@ const XHTML = "http://www.w3.org/1999/xhtml";
 // (`object.js`): read here as an element is made.
 const MAKING_KIND = Symbol.for("ljos-web.making-kind");
 const kindNow = () => globalThis[MAKING_KIND] ?? "";
+// What is no making in hydration's count, as `unnumbered` in object.js
+// has it (this module imports nothing of the runtime's): a canvas; a
+// picture, film or sound, loaded through an element made per load, as
+// often here as a load fails; and what belongs in a document's head,
+// which the bundler makes in a reader's browser as it preloads a chunk,
+// and nothing makes here. So is what the runtime makes while it says so
+// (`outsideTheCount`).
+const UNNUMBERED = new Set(["canvas", "img", "video", "audio", "link", "script", "style", "meta"]);
+const OUTSIDE_THE_COUNT = Symbol.for("ljos-web.outside-the-count");
+const unnumbered = (tag) => UNNUMBERED.has(String(tag).toLowerCase()) || globalThis[OUTSIDE_THE_COUNT] === true;
 
 // The numbering starts again: a render's elements are numbered from
 // its making, as the client's are from its hydration. The count is
@@ -724,6 +734,8 @@ export class ServerDocument {
     }
     this.documentElement.parentNode = this;
     this.activeElement = this.body;
+    // The page is made as its reader first sees it: shown, and theirs.
+    this.visibilityState = "visible";
     // No font is loaded here: what asks is told they are all in, of
     // the fallbacks the measurements are made with.
     this.fonts = {
@@ -741,6 +753,9 @@ export class ServerDocument {
     this.adoptedStyleSheets = [];
     this.styleSheets = [];
   }
+  hasFocus() {
+    return true;
+  }
   createElement(tag) {
     const custom = this._custom?.get(String(tag).toLowerCase());
     const element = custom ? new custom() : new Element(tag);
@@ -753,11 +768,12 @@ export class ServerDocument {
     // makes while it measures text is made at whatever making first
     // measures — no numbering names it the same on both sides. It is
     // no making in the count, here as in `hydrate`: hydration remakes
-    // it and takes the prerendered one out.
-    if (element.localName !== "canvas") {
+    // it and takes the prerendered one out. Nor is a head element.
+    if (!unnumbered(element.localName)) {
       element.$hk = ++this._sequence;
       element.$kind = kindNow();
-    } else {
+    }
+    if (element.localName === "canvas") {
       element.width = 300;
       element.height = 150;
     }
@@ -771,7 +787,7 @@ export class ServerDocument {
   createElementNS(namespace, tag) {
     const element = new Element(tag, namespace);
     element.ownerDocument = this;
-    if (element.localName !== "canvas") {
+    if (!unnumbered(element.localName)) {
       element.$hk = ++this._sequence;
       element.$kind = kindNow();
     }
@@ -876,7 +892,7 @@ function storage() {
 // looks for it. A render runs in a process of its own (the site
 // build's), so this takes the globals over rather than adding to a
 // page's.
-export function installPrerenderGlobals({ width = 1280, height = 720 } = {}) {
+export function installPrerenderGlobals({ width = 1280, height = 720, scheme } = {}) {
   const document = new ServerDocument();
   const globals = {
     document,
@@ -952,7 +968,18 @@ export function installPrerenderGlobals({ width = 1280, height = 720 } = {}) {
           },
         },
       ),
-    matchMedia: () => ({ matches: false, media: "", addEventListener() {}, removeEventListener() {} }),
+    // The window is told of no focus, blur or resize here: nothing
+    // happens to a page being made.
+    addEventListener() {},
+    removeEventListener() {},
+    // A page made for a colour scheme is told that scheme is the one
+    // asked for; nothing else here matches, as no reader is here.
+    matchMedia: (media) => ({
+      matches: scheme !== undefined && new RegExp(`\\(\\s*prefers-color-scheme\\s*:\\s*${scheme}\\s*\\)`).test(media),
+      media,
+      addEventListener() {},
+      removeEventListener() {},
+    }),
     Image: class {
       constructor() {
         // Not a `createElement`, in a browser or here.

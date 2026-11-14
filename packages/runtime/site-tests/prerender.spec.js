@@ -292,6 +292,44 @@ for (const kernel of ["solid", "wasm"]) {
       await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
       await expect(page.getByText("Count 1", { exact: true })).toBeVisible();
     });
+
+    test("a chunk the bundler preloads mid-hydration is no making: every prerendered node is kept", async ({ page }) => {
+      const warnings = [];
+      page.on("console", (message) => {
+        if (message.type() === "warning") warnings.push(message.text());
+      });
+      // As the bundler does when a type imports a chunk: a
+      // `<link rel="modulepreload">` made in the middle of the mount,
+      // while hydration answers the document's createElement. The
+      // prerender made no such element, so it must not take a number.
+      await page.addInitScript(() => {
+        const set = Element.prototype.setAttribute;
+        Element.prototype.setAttribute = function (...args) {
+          if (!globalThis.__preloaded && Object.hasOwn(document, "createElement")) {
+            globalThis.__preloaded = true;
+            const link = document.createElement("link");
+            link.rel = "modulepreload";
+            document.head.append(link);
+          }
+          return set.apply(this, args);
+        };
+      });
+      let release;
+      const held = new Promise((done) => (release = done));
+      await page.route("**/*.js", async (route) => {
+        await held;
+        await route.continue();
+      });
+      await page.goto(`${origin}/`, { waitUntil: "commit" });
+      await page.waitForSelector("#app [data-hk]");
+      const before = await page.evaluate(() => (window.__prerendered = [...document.querySelectorAll("#app [data-hk]")]).length);
+      release();
+      await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+      await page.unroute("**/*.js");
+      expect(await page.evaluate(() => globalThis.__preloaded), "a link was made mid-hydration").toBe(true);
+      expect(warnings.filter((text) => /hydration mismatch/.test(text))).toEqual([]);
+      expect(await page.evaluate(() => window.__prerendered.filter((element) => document.contains(element)).length)).toBe(before);
+    });
   });
 }
 
@@ -332,6 +370,39 @@ test("a site built without prerender keeps its empty page and mounts as before",
     expect(readFileSync(join(made.out, "index.html"), "utf8")).not.toContain("Prerendered heading");
     await page.goto(`http://127.0.0.1:${server.address().port}/`);
     await expect(page.getByText("Prerendered heading", { exact: true })).toBeVisible();
+  } finally {
+    await new Promise((done) => server.close(done));
+    made.remove();
+  }
+});
+
+test("a picture's load and a text's markup take no number: every prerendered node is kept", async ({ page }) => {
+  const made = bundle("prerender-loads");
+  const server = await buildSite({ dir: made.dir, out: made.out, qmlc, prerender: true }).then(() => serve(made.out));
+  try {
+    const warnings = [];
+    page.on("console", (message) => {
+      if (message.type() === "warning") warnings.push(message.text());
+    });
+    let release;
+    const held = new Promise((done) => (release = done));
+    await page.route("**/*.js", async (route) => {
+      await held;
+      await route.continue();
+    });
+    await page.goto(`http://127.0.0.1:${server.address().port}/`, { waitUntil: "commit" });
+    await page.waitForSelector("#app [data-hk]");
+    const before = await page.evaluate(() => (window.__prerendered = [...document.querySelectorAll("#app [data-hk]")]).length);
+    // Numbered without a gap: nothing the prerender made for itself
+    // took a number the page it wrote does not hold.
+    const numbers = await page.evaluate(() => window.__prerendered.map((element) => Number(element.getAttribute("data-hk").split(":")[0])).sort((a, b) => a - b));
+    expect(numbers).toEqual(numbers.map((_, index) => index + 1));
+    release();
+    await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+    await page.unroute("**/*.js");
+    await expect(page.getByText("After the pictures and the markup", { exact: true })).toBeVisible();
+    expect(warnings.filter((text) => /hydration mismatch/.test(text))).toEqual([]);
+    expect(await page.evaluate(() => window.__prerendered.filter((element) => document.contains(element)).length)).toBe(before);
   } finally {
     await new Promise((done) => server.close(done));
     made.remove();
