@@ -410,6 +410,7 @@ const own = (value) => (value !== null && typeof value === "object" && typeof va
 // objects would make them twice).
 function guarded(key, compute, pure = true, self) {
   let last;
+  let ran = false;
   let failed = null;
   const guard = () => {
     // Evaluated again, so not ended: what cleaned up was this. One kept for
@@ -420,7 +421,13 @@ function guarded(key, compute, pure = true, self) {
     guard.failing = false;
     const before = early;
     try {
-      return (last = own(compute()));
+      const value = own(compute());
+      // A binding that gives its object something new changed a property
+      // of it as a write does: a Controller there is told so
+      // (Ljos/Core/controller.js).
+      if (ran && !Object.is(value, last)) self?.$written?.();
+      ran = true;
+      return (last = value);
     } catch (error) {
       if (!(error instanceof TypeError)) {
         // Under a boundary it is the boundary's; a binding's throw would
@@ -509,6 +516,13 @@ export function bound(owner, compute, first) {
   return ringed(owner, compute, first, true);
 }
 
+// Where what an evaluation of the graph's makes is held: an owner that never
+// ends and so never ends it. The graph evaluates as a write reaches it, and
+// a layout writes where its items go in an effect's callback, where Solid's
+// development build refuses a root with no owner at all. Ended, a root is
+// taken off its owner, so nothing piles up here.
+const PARKED = WASM ? runWithOwner(null, () => createRoot(() => getOwner())) : null;
+
 // A binding on the wasm kernel's graph, which decides when it is out of
 // date and where a loop ends: one that asks for its own value while it is
 // computed gets what it had, as the graph gives any binding it is running.
@@ -530,7 +544,7 @@ function graphed(owner, compute, first, own = false) {
     if (spent) after(spent);
     evaluating = true;
     try {
-      held = runWithOwner(null, () =>
+      held = runWithOwner(PARKED, () =>
         createRoot((dispose) => {
           made = dispose;
           return compute();
@@ -917,6 +931,9 @@ class Slot {
   }
 
   changed() {
+    // A Controller that handles `updated` is told its host was written to
+    // (Ljos/Core/controller.js); nothing is asked of any other object.
+    this.self.$written?.();
     if (WASM) {
       if (this.cell !== undefined) touch(this.cell);
       return;
@@ -1242,9 +1259,9 @@ export function replace(self, handler, run) {
 
 // What a handler throws stops that handler and is told of, as Qt warns of
 // it: whoever emitted the signal goes on, and so do the handlers after it.
-function heard(handler, args = [], self) {
+export function heard(handler, args = [], self) {
   try {
-    handler(...args);
+    return handler(...args);
   } catch (error) {
     const boundary = self?.$fault;
     if (boundary) boundary(error, self);
@@ -1372,6 +1389,14 @@ export function whenComplete(work) {
 export function whenCompleted(work) {
   if (!completions) return untrack(work);
   (completions.first ??= []).push(() => untrack(work));
+}
+
+// Runs `work` as the objects being created are told that they are
+// complete, after the `Component.onCompleted` of whatever holds the object
+// being made now: a Controller is attached to a host that is complete.
+export function whenToldComplete(work) {
+  if (!completions) return untrack(work);
+  completions.push(() => untrack(work));
 }
 
 // Runs `work` once they exist and before anything that waits for that: what
@@ -2225,13 +2250,19 @@ export function hydrate(Component, element, props = {}, options = {}) {
 
 // What a component declares, put on its root object so that it can be
 // reached through it: `{ name: [get, set] }` for a property, a function for
-// a function or a signal.
+// a function or a signal. The properties' names are kept, as the type's
+// are, for a Controller that follows its host (Ljos/Core/controller.js).
 export function $define(self, members) {
   for (const [name, member] of Object.entries(members)) {
-    const descriptor = Array.isArray(member)
+    const property = Array.isArray(member);
+    const descriptor = property
       ? { get: member[0], set: member[1], enumerable: true, configurable: true }
       : { value: member, enumerable: true, configurable: true };
     Object.defineProperty(self, name, descriptor);
+    if (property) {
+      if (!Object.hasOwn(self, "$declares")) hidden(self, "$declares", []);
+      self.$declares.push(name);
+    }
   }
   return self;
 }

@@ -2224,6 +2224,139 @@ and column `ljos check` prints, and `qmlc` on a module.
 a `.lts` module on the page's sugar, gets the rename of a `.ts` module
 as a diagnostic, and pins the shape above.
 
+### A32. ERGO: runtime — Controller, Task, fetch and the homes of `Qt.*`
+
+The runtime gives a file of Ljós's API what ljos-ui gives it natively:
+the same members, the same order of what it is told, the same errors.
+ljos-ui's features are the specification (`features/components/controller.feature`,
+`features/platform/fetch.feature`, `features/language/no-qt-global.feature`),
+and each has a spec here that walks its scenarios on both kernels.
+
+**`Controller`** (`Ljos.Core`) is behaviour an item is given by declaring
+it inside. Its `host` is the item it is declared in; a Controller inside a
+Controller shares its host, one declared in a `Window` acts on the window,
+and one held by something that is no item has none. It is `attached(host)`
+once the host is complete, after the host's own `Component.onCompleted`
+(or at once, when it is put into an item that is), and `detached()` once,
+whichever comes first: the Controller destroyed, or what owns it ending (a
+Loader that unloads, a view's delegate that goes). It is `updated()` once
+after it is attached and then once at the end of each turn that changed a
+property of the host. A change is a write, a binding that gives the host
+something new, or what the host's type works out as it is read (an
+anchored item's geometry), which is never written and so is followed for as
+long as the Controller is. A property the host's file declares is followed
+the same way, since it is written and bound outside the type's slots. Two
+writes in a turn are one update. What a host's Controllers write in
+`updated` arms none of them, as on the desktop: a Controller cannot keep
+the page awake, and two Controllers of one host cannot keep arming each
+other. Only a Controller that handles `updated` listens (one that
+declares `onUpdated`, a module's `updated`, or a listener connected to
+`updated` at any time, which hears the next change): a host with none pays
+nothing for it.
+
+A Controller written as a module is the same object with its lifecycle
+given as functions:
+
+```ts
+import { controller } from "ljos-web/Ljos/Core";
+
+export const Breakpoint = controller({
+  properties: { at: 600 },
+  bindings: { wide: (host, self) => host.width > self.at },
+  attached(host) {
+    const told = () => console.log(`${host.width} wide`);
+    addEventListener("resize", told);
+    return () => removeEventListener("resize", told);
+  },
+  detached: () => console.log("gone"),
+});
+```
+
+A binding is a function of the host and the Controller, and what `attached`
+returns runs as the Controller is detached, before `detached` itself. What
+any of them throws is reported as a handler's throw is, and nothing else
+stops for it: the rest of the page is still made, and a throw in `updated`
+does not keep the next update away. A member it has not (`started`) is a
+`TypeError` that names those it has.
+
+The gestures (`Tap`, `Hover`, `Drag`, `Wheel`) are Controllers too: each
+has a `host` and is attached and detached as a Controller is (destroyed,
+it is detached and takes nothing more), and stays the handler it faces,
+listening on its host's element. A gesture in a
+Controller acts on the Controller's host; one in a `Window` acts on the
+window's content item, since it needs an element to listen on.
+
+**`Task`** (`Ljos.Core`) is a Controller that runs `run(...args, signal)`
+and keeps what it gave: `status` (`initial`, `pending`, `done`, `failed`),
+`value` (kept while a later run is pending) and `error`, with `done` and
+`failed` told as it settles. A change of `args` runs it again at the end of
+the turn, with the last `args` (two changes in a turn are one run), and
+the run in progress is aborted through its signal: nothing a superseded run
+gives is taken. A run that the aborted run's signal starts is asked for
+last, so it is the run, and the call it interrupted is not made.
+`autoRun: false` runs it only by `start(...)`; `abort()` fails the run in
+progress with its signal's reason; and the run goes with the item it is
+declared in.
+
+```qml
+Task {
+    id: weather
+    args: [root.city]
+    run: (city: string, signal: AbortSignal) => fetch(`/served/${city}.json`, { signal }).then((reply) => reply.json())
+}
+Text { text: weather.status === "done" ? weather.value.sky : weather.status }
+```
+
+**fetch** is the page's own. `fetch`, `Request`, `Response`, `Headers`,
+`AbortController`, `AbortSignal` and `DOMException` are the browser's, so
+they answer as fetch.feature asks with no code of the runtime's: a reply is
+a `Response` whatever its status, a body is read once, an unreachable server
+rejects with a `TypeError`, an aborted request with an `AbortError` or the
+signal's own reason, a timed-out one with a `TimeoutError`, and nothing polls
+while a request waits. `tests/fetch.spec.js` holds each scenario, run
+from a file of Ljós's API that `qmlc` compiles (`tests/scenes/fetching.qml`).
+
+**The homes of `Qt.*`.** A file of Ljós's API has no `Qt`; what Qt's `Qt`
+object held is each under its own name, imported from the module Ljós puts
+it in:
+
+| Qt | Ljós | Module |
+|---|---|---|
+| `Qt.point`, `size`, `rect`, `vector2d/3d/4d`, `quaternion`, `matrix4x4` | `point(…)`, `size(…)`, … | `Ljos.Core` |
+| `Qt.rgba`, `hsla`, `hsva`, `Qt.color` | `rgba(…)`, `hsla(…)`, `hsva(…)`, `Color.of(…)` | `Ljos.Core` |
+| `Qt.binding`, `Qt.callLater`, `Qt.resolvedUrl` | `bind(…)`, `later(…)`, `url(u, base)` | `Ljos.Core` |
+| `Qt.application`, `Qt.quit`, `Qt.exit` | `App` | `Ljos.Core` |
+| `Qt.locale()`, `Qt.locale(name)` | `Locale.current`, `Locale.named(name)` | `Ljos.Core` |
+| `Qt.font`, `Qt.fontFamilies` | `Font.of(…)`, `Font.families()` | `Ljos.Ui` |
+| `Qt.AlignHCenter`, `Qt.LeftButton`, `Qt.Key_Escape`, … | `Align.HCenter`, `MouseButton.Left`, `Key.Escape`, … | `Ljos.Ui` |
+
+`url` takes the base the compiler gives it, the file's own. `Font.families()`
+lists the families the page has loaded (`document.fonts`): the browser does
+not tell a page what is installed. `App.exit(code)` warns that the code does
+not reach a process, which a page has not.
+
+**One fix on the wasm kernel.** The graph evaluates a binding as a write
+reaches it, and a layout writes where its items go inside an effect's
+callback. What each evaluation made was a root with no owner at all, which
+Solid's development build refuses there, and the page stopped: a `Column`
+in an anchored `Rectangle` was enough. Those roots are now held by one
+owner that never ends; a root that ends is taken off it, so none piles up
+(`tests/kernel.spec.js`, `tests/scenes/placing.qml`).
+
+**Tests**, each on both kernels: `controller.spec.js`,
+`controllerwindow.spec.js` (a Controller and a `Tap` in a `Window`),
+`controllerfaults.spec.js` (what a module throws, a late `updated.connect`,
+a gesture destroyed), the two in `controller.spec.js` that use
+`tests/scenes/controllerpair.js` (two Controllers of one host that write
+to it, and a declared property), `task.spec.js`,
+`fetch.spec.js`, `ljoshomes.spec.js` (the names called from their
+modules, and a compiled file, `tests/scenes/ljoshomesfile.qml`, that
+reaches each with no `Qt`), and `ergoruntime.spec.js`, a card in
+Ljós's API compiled by `qmlc` (`tests/scenes/ergoruntime.qml`) with a
+Controller that keeps a label of its host's size as its anchors change it,
+a `Tap` that counts, and a `Task` that fetches what the city names. Its
+labels give their own `width`, which a `Ljos.Layout` `Column` keeps (A29).
+
 
 ## Part II — An application's own Rust types
 
