@@ -60,9 +60,10 @@ pub struct Shape {
     pub subsets: Vec<Subset>,
 }
 
-/// What of an `Instancing`'s table each build reads. Its numbers, twenty an
-/// entry as `instancing.js` keeps them, are [`Host::table_data`]: they cross
-/// only when they are new.
+/// What of an `Instancing`'s table a build reads, kept like any answer. Its
+/// numbers, twenty an entry as `instancing.js` keeps them, are
+/// [`Host::table_data`]: they cross only when they are new.
+#[derive(Clone, Copy)]
 pub struct Table {
     pub count: Option<usize>,
     pub transparent: bool,
@@ -787,7 +788,12 @@ impl<H: Host> SceneSource for Source<'_, H> {
             self.kept.tables.borrow_mut().let_go(table);
             return None;
         };
-        let t = self.host.table(table)?;
+        let Answer::Table(t) = self.kept.answers.answer(table, Kind::Table, 0, || {
+            Answer::Table(self.host.table(table))
+        }) else {
+            unreachable!("an answer is kept under its own kind")
+        };
+        let t = t?;
         let known = self.kept.tables.borrow_mut().take_up(table, id);
         let entries = known.unwrap_or_else(|| {
             let data = self.host.table_data(table);
@@ -1014,6 +1020,7 @@ mod tests {
         revision: Cell<Option<u32>>,
         component: Cell<u32>,
         table_reads: Cell<u32>,
+        tables: Cell<u32>,
         fragment: RefCell<String>,
         /// The format the picture's numbers are said to be, and the numbers.
         format: Cell<Option<i32>>,
@@ -1132,6 +1139,7 @@ mod tests {
             self.revision.get()
         }
         fn table(&self, _: u32) -> Option<Table> {
+            self.tables.set(self.tables.get() + 1);
             Some(Table {
                 count: Some(1),
                 transparent: false,
@@ -1323,7 +1331,7 @@ mod tests {
     }
 
     #[test]
-    fn a_tables_numbers_cross_only_when_they_are_new() {
+    fn a_table_and_its_numbers_cross_only_when_they_are_new() {
         let host = Fake::default();
         let kept = Rc::new(Kept::default());
         let source = Source {
@@ -1334,11 +1342,11 @@ mod tests {
         for _ in 0..3 {
             assert_eq!(source.instancing(CUBE).unwrap().count, Some(1));
         }
-        assert_eq!(host.table_reads.get(), 1);
+        assert_eq!((host.tables.get(), host.table_reads.get()), (1, 1));
         host.revision.set(Some(2));
         kept.answers.clear(&[CUBE]);
         source.instancing(CUBE).unwrap();
-        assert_eq!(host.table_reads.get(), 2);
+        assert_eq!((host.tables.get(), host.table_reads.get()), (2, 2));
     }
 
     #[test]
