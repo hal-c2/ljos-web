@@ -334,13 +334,29 @@ test("a live example that is a window stands in its block, not over the page", a
     const page = await context.newPage();
     await page.goto("/quality/color/");
     await page.waitForSelector('#app[data-ljos-hydrated="true"]');
-    const top = () =>
+    // The example runs once a reader edits it; until then its picture
+    // stands, and there is no window.
+    const code = page.getByRole("textbox", { name: "Edit Main.qml" }).filter({ hasText: "Delete draft" });
+    await code.click();
+    const editor = page.locator('.cm-content[aria-label="Edit Main.qml"]').filter({ hasText: "Delete draft" });
+    await expect(editor).toBeFocused({ timeout: 30_000 });
+    await page.keyboard.press("ControlOrMeta+End");
+    await page.keyboard.type("\n// edited");
+    // Where the page has it, not where the screen has it (the page
+    // scrolls in a flickable of its own, and the edit scrolled it), and
+    // how far under its code.
+    const place = () =>
       page.evaluate(() => {
         const held = [...document.querySelectorAll(".qq-window")].find((window) => !window.querySelector(".qq-window") && /Delete draft/.test(window.textContent));
-        return held ? Math.round(held.getBoundingClientRect().top) : null;
+        const code = [...document.querySelectorAll('.cm-content[aria-label="Edit Main.qml"]')].find((node) => /Delete draft/.test(node.textContent));
+        if (!held || !code) return null;
+        let scroller = held.parentElement;
+        while (scroller && !(scroller.scrollHeight > scroller.clientHeight && /auto|scroll/.test(getComputedStyle(scroller).overflowY))) scroller = scroller.parentElement;
+        const base = scroller ? scroller.getBoundingClientRect().top - scroller.scrollTop : -scrollY;
+        const top = held.getBoundingClientRect().top;
+        return { onPage: Math.round(top - base) > 900, underCode: top >= code.getBoundingClientRect().bottom };
       });
-    // Far down the page, which has not been scrolled.
-    await expect.poll(top, { timeout: 30_000 }).toBeGreaterThan(900);
+    await expect.poll(place, { timeout: 30_000 }).toEqual({ onPage: true, underCode: true });
   } finally {
     await context.close();
   }
