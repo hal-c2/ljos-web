@@ -258,6 +258,9 @@ Column {
             Column {
                 id: editorBox
                 width: parent.width
+                // The code's first and last lines clear the box's edges.
+                topPadding: 8
+                bottomPadding: 8
 
                 Repeater {
                     id: editors
@@ -296,10 +299,22 @@ Column {
             readonly property int pictureHeight: block.isLive && block.live.width > 0 ? pictureWidth * block.live.height / block.live.width : 0
             height: Math.max(pictureHeight, stage.implicitHeight)
 
+            // The stage's edge, under what it shows: an example that
+            // draws little (or nothing) still reads as a result, not
+            // as a gap in the page.
+            Rectangle {
+                anchors.fill: parent
+                anchors.topMargin: -1
+                color: "transparent"
+                border.color: Theme.divider
+                border.width: 1
+            }
+
+            // The picture stands until the result runs: a stage still
+            // compiling, or one that could not, holds only its empty
+            // fallback.
             Text {
-                // Until the result runs: the empty fallback only
-                // stands in while the code compiles (status Null).
-                visible: block.isLive && (!stage.item || stage.status === ShellLoader.Null)
+                visible: block.isLive && stage.status !== ShellLoader.Ready
                 textFormat: Text.RichText
                 text: block.isLive ? "<img src=\"" + block.live.picture + "\" width=\"" + stageBox.pictureWidth + "\" height=\"" + Math.round(stageBox.pictureHeight) + "\" alt=\"What this example draws\">" : ""
             }
@@ -312,6 +327,11 @@ Column {
             Component {
                 id: emptyStage
                 Item {}
+            }
+            WindowContainer {
+                width: stageBox.pictureWidth
+                height: stageBox.height
+                window: Live.windowOf(stage.item)
             }
         }
 

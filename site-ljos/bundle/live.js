@@ -107,3 +107,10 @@ function sourceFor(id) {
         return moduleFor(id);
     };
 }
+
+// The window a result's root is, or null: a live example may be a
+// whole (Application)Window, which the stage holds where its
+// picture stood rather than floating it over the page.
+function windowOf(item) {
+    return item && item.contentItem !== undefined && item.visibility !== undefined ? item : null;
+}
