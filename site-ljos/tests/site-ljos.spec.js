@@ -259,7 +259,7 @@ test("a reader who moves on while the editor loads keeps their focus where they 
 // and not before.
 for (const [route, fallback, name] of [
   ["/demos/", "The Corner Pantry", "Edit the Pantry's Shell.qml"],
-  ["/start/first-app/", null, "Edit Main.qml"],
+  ["/language/overview/", null, "Edit Main.qml"],
 ]) {
   test(`${route} fetches the compiler only once a reader edits`, async ({ page }) => {
     const compilers = [];
