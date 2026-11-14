@@ -68,17 +68,20 @@ async function moduleFor(id) {
     const parse = await import("ljos-web/codeblocks/parse");
     const files = parse.exampleFiles(example);
     const root = "ljos-example://" + id + "/";
-    // The files the last compile was given go with it: what this one's
-    // scripts ask for as they run, while it compiles, is said of these.
-    if (example.absent.length > 0) {
-        example.absent = [];
-        example.told("");
-    }
     const made = await compile({
         files: files.files,
         entry: files.entry,
         base: root,
         closed: true,
+        // What the last project was told goes when this compile gives the
+        // example its files, before its scripts run: a compile that fails
+        // sooner keeps what the example that still runs was told.
+        enclosed: function () {
+            if (example.absent.length > 0) {
+                example.absent = [];
+                example.told("");
+            }
+        },
         missing: function (name, url) {
             example.absent = example.absent.concat([parse.notThereLine(example.display, root, name, url)]);
             example.told(example.absent.join("\n"));

@@ -150,6 +150,7 @@ export async function compile(request, { modules, base }) {
       // One of its files made by address is made as these were, of these.
       { missing: request.missing, compile: (entry) => compile({ ...request, entry, inspect: true, closed: false }, { modules, base }) },
     );
+    request.enclosed?.();
   }
   for (const [file, text] of given) if (typeof text === "string" && !CODE.test(file)) provide(new URL(file, root).href, text);
   const files = new Map(answer.modules.map((module) => [module.file, module]));

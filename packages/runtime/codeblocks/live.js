@@ -304,12 +304,15 @@ export async function mountLiveCodeBlock(figure, data, options = {}) {
   async function apply() {
     const mine = ++turn;
     status.textContent = "Compiling…";
-    // The files the last compile was given go with it: what this one's
-    // scripts ask for as they run, while it compiles, is said of these.
-    absent = [];
-    shown();
     const { entry, files } = exampleFiles(current());
-    const made = await compile({ files, entry, base: root, closed: true, missing }).catch((error) => ({
+    // What the last project was told goes when this compile gives the
+    // example its files, before its scripts run: a compile that fails
+    // sooner keeps the example running as it was, and what it said.
+    const enclosed = () => {
+      absent = [];
+      shown();
+    };
+    const made = await compile({ files, entry, base: root, closed: true, missing, enclosed }).catch((error) => ({
       diagnostics: [{ file: entry, message: error?.message ?? String(error) }],
     }));
     if (mine !== turn) {
