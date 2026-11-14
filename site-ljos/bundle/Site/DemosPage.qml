@@ -82,6 +82,7 @@ Column {
                     width: demos.textWidth
                     scroller: demos.scroller
                     needs: "webgpu"
+                    route: "/demos/"
                     picture: "/pictures/demo-orbit.webp"
                     description: "A lit 3D scene of shapes on a floor, which a drag turns."
                     demo: Component {
@@ -105,6 +106,7 @@ Column {
                     width: demos.textWidth
                     scroller: demos.scroller
                     needs: "webgpu"
+                    route: "/demos/"
                     picture: "/pictures/demo-shader.webp"
                     description: "Light pooling over a card of text, following the pointer."
                     demo: Component {
@@ -128,6 +130,7 @@ Column {
                     width: demos.textWidth
                     scroller: demos.scroller
                     needs: "wasm"
+                    route: "/demos/"
                     picture: "/pictures/demo-app.webp"
                     description: "A field guide to birds: a list of species beside the one picked, with notes and a count of those seen."
                     demo: Component {
@@ -151,6 +154,7 @@ Column {
                     width: demos.textWidth
                     scroller: demos.scroller
                     needs: "wasm"
+                    route: "/demos/"
                     picture: "/pictures/demo-motion.webp"
                     description: "Tiles that shuffle and settle, driven by one eased value."
                     demo: Component {

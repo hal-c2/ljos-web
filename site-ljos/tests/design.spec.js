@@ -138,6 +138,50 @@ for (const route of PAGES) {
   });
 }
 
+// The pictures stand in the page as written: the mark in the header and
+// the footer, and each demo's picture, drawn before any script runs and
+// where none ever does, at the size the page gives them.
+for (const [route, demos] of [
+  ["/", 1],
+  ["/demos/", 4],
+]) {
+  test(`${route}'s mark and demo pictures are drawn with no script`, async ({ browser }) => {
+    for (const width of [390, 1440]) {
+      const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width, height: 900 } });
+      try {
+        const page = await context.newPage();
+        await page.goto(route);
+        // Every picture of the render shown, once each has loaded.
+        await page.waitForFunction(() => [...document.images].every((img) => img.complete));
+        const drawn = await page.evaluate(() =>
+          [...document.images]
+            // Seen: laid out, and neither hidden nor see-through.
+            .filter((img) => img.checkVisibility({ opacityProperty: true, visibilityProperty: true }))
+            .map((img) => {
+              const box = img.getBoundingClientRect();
+              return { file: img.src.split("/").pop(), loaded: img.naturalWidth > 0, width: Math.round(box.width), height: Math.round(box.height) };
+            }),
+        );
+        const marks = drawn.filter(({ file }) => file === "favicon.svg");
+        expect(marks, `the header's mark and the footer's at ${width}`).toEqual([
+          { file: "favicon.svg", loaded: true, width: 28, height: 28 },
+          { file: "favicon.svg", loaded: true, width: 20, height: 20 },
+        ]);
+        const pictures = drawn.filter(({ file }) => /^demo-.*\.webp$/.test(file));
+        expect(pictures.length, `the demo pictures at ${width}`).toBe(demos);
+        for (const picture of pictures) {
+          expect(picture.loaded, picture.file).toBe(true);
+          // Its frame's shape (420 by 720), inside the frame's edge.
+          expect(Math.abs(picture.height - Math.round(((picture.width + 2) * 420) / 720) + 2), picture.file).toBeLessThanOrEqual(1);
+          expect(picture.width, picture.file).toBeGreaterThan(300);
+        }
+      } finally {
+        await context.close();
+      }
+    }
+  });
+}
+
 // The first paint is the page: nothing moves as the script takes it
 // over, as a demo comes, or as pictures load.
 for (const route of ["/", "/demos/", "/start/first-app/"]) {
@@ -217,7 +261,7 @@ test("a browser with no WebGPU keeps each GPU demo's picture, and says why", asy
     await page.waitForSelector('#app[data-ljos-hydrated="true"]');
     // The picture, named for what it shows, stands where the 3D scene
     // would, with the reason beside it.
-    const picture = page.locator('[aria-label^="A lit 3D scene"]').first();
+    const picture = page.getByRole("img", { name: /^A lit 3D scene/ }).first();
     await picture.scrollIntoViewIfNeeded();
     await expect(picture).toBeVisible();
     await shown;

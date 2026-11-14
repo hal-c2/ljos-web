@@ -1,5 +1,6 @@
 import QtQuick
 import Site
+import "../nav.js" as Nav
 
 // Under every page: what Ljós is in a line, where to go, and its licence.
 Rectangle {
@@ -8,6 +9,9 @@ Rectangle {
 
     property int gutter: Theme.gutterWide
     property int measure: Theme.pageWidth
+    // The route of the page the footer closes, which the mark's address
+    // is written from.
+    property string route: "/"
 
     height: inner.implicitHeight + 2 * Theme.xl
     color: Theme.surface
@@ -28,12 +32,15 @@ Rectangle {
 
         Row {
             spacing: Theme.xs
-            Image {
+            // In the page as written, as the header's is (Nav.picture).
+            // Its size is given: a picture has none until it loads, and
+            // the row leaves out what has none.
+            Text {
                 width: 20
                 height: 20
                 anchors.verticalCenter: parent.verticalCenter
-                source: "../assets/ljos-mark.svg"
-                sourceSize: Qt.size(20, 20)
+                textFormat: Text.RichText
+                text: Nav.picture(footer.route, "/favicon.svg", 20, 20, "")
                 Accessible.ignored: true
             }
             Text {

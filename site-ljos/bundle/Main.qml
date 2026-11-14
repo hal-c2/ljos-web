@@ -106,13 +106,16 @@ Rectangle {
                 width: mark.width + Theme.xs + wordmark.implicitWidth
                 height: 40
 
-                Image {
+                // The mark is in the page as written, so it stands
+                // before the page runs and where it never does
+                // (Nav.picture): the site's icon, the same file.
+                Text {
                     id: mark
                     width: 28
                     height: 28
                     anchors.verticalCenter: parent.verticalCenter
-                    source: "assets/ljos-mark.svg"
-                    sourceSize: Qt.size(28, 28)
+                    textFormat: Text.RichText
+                    text: Nav.picture(shell.route, "/favicon.svg", 28, 28, "")
                     Accessible.ignored: true
                 }
                 Text {
@@ -268,6 +271,7 @@ Rectangle {
             }
             Footer {
                 width: pageScroll.width
+                route: shell.route
                 gutter: shell.gutter
                 measure: pageScroll.measure
             }

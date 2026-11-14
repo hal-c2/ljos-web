@@ -20,6 +20,26 @@ function within(href) {
     return base.slice(0, -1) + href;
 }
 
+// A file named from the site's root ("/favicon.svg"), as the page at
+// `route` reaches it: back up the route's depth, then down. Written so
+// in the HTML the build makes, it stands below any base the site is
+// put at, though the build names the base only once it has written the
+// page.
+function fromPage(route, href) {
+    var depth = String(route).split("/").filter(function (part) { return part !== ""; }).length;
+    var up = "";
+    for (var i = 0; i < depth; ++i)
+        up += "../";
+    return up + href.slice(1);
+}
+
+// A picture in rich text: written into the HTML the build makes, it is
+// drawn by the browser itself, before any script runs or where none
+// does. An Image paints only once its page runs.
+function picture(route, href, width, height, alt) {
+    return "<img src=\"" + escape(fromPage(route, href)) + "\" width=\"" + Math.round(width) + "\" height=\"" + Math.round(height) + "\" alt=\"" + escape(alt) + "\">";
+}
+
 // Words put into rich text as words, never as markup.
 function escape(text) {
     return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
