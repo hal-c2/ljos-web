@@ -13,8 +13,11 @@ if [ "$what" = all ] || [ "$what" = cli ]; then
   # ljos-ui is named by ssh in Cargo.lock; it is public, so https fetches it
   # without a key, for this command only.
   root_args=()
-  [ -n "${usage_root:-}" ] && root_args=(--root "$usage_root")
-  GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=url.https://github.com/.insteadOf GIT_CONFIG_VALUE_0=ssh://git@github.com/ \
+  # mise runs tasks from the repository's root; a relative DIR is the caller's.
+  [ -n "${usage_root:-}" ] && root_args=(--root "$(cd "${MISE_ORIGINAL_CWD:-$PWD}" && realpath -m -- "$usage_root")")
+  # Appended after any GIT_CONFIG_* entries the caller has, which stay.
+  n=${GIT_CONFIG_COUNT:-0}
+  env GIT_CONFIG_COUNT=$((n + 1)) "GIT_CONFIG_KEY_$n=url.https://github.com/.insteadOf" "GIT_CONFIG_VALUE_$n=ssh://git@github.com/" \
     CARGO_NET_GIT_FETCH_WITH_CLI=true \
     cargo install --path crates/ljos_web --bin qmlc --locked "${root_args[@]}"
 fi

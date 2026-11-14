@@ -12,5 +12,7 @@ pnpm = "12.8.1"
 SHARP_IGNORE_GLOBAL_LIBVIPS = "1"
 # The compiler the tasks build is where cargo put it: under CARGO_TARGET_DIR
 # when that is set. The tests, examples and sites read QMLC, and without it
-# look in ./target, so a build elsewhere was not found. A QMLC given wins.
-QMLC = "{% if env.QMLC %}{{ env.QMLC }}{% elif env.CARGO_TARGET_DIR %}{{ env.CARGO_TARGET_DIR }}/debug/qmlc{% else %}{{ config_root }}/target/debug/qmlc{% endif %}"
+# look in ./target, so a build elsewhere was not found. Cargo reads a
+# relative CARGO_TARGET_DIR from the root, where tasks run; the consumers run
+# elsewhere, so QMLC is always absolute. A QMLC given wins.
+QMLC = "{% if env.QMLC %}{{ env.QMLC }}{% elif env.CARGO_TARGET_DIR is starting_with(pat='/') %}{{ env.CARGO_TARGET_DIR }}/debug/qmlc{% elif env.CARGO_TARGET_DIR %}{{ config_root }}/{{ env.CARGO_TARGET_DIR }}/debug/qmlc{% else %}{{ config_root }}/target/debug/qmlc{% endif %}"

@@ -24,7 +24,9 @@ fi
 
 # ljos-ui is named by ssh in Cargo.lock; it is public, so https fetches it
 # without a key. Once in cargo's cache, builds need no rewrite.
-GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=url.https://github.com/.insteadOf GIT_CONFIG_VALUE_0=ssh://git@github.com/ \
+# Appended after any GIT_CONFIG_* entries the caller has, which stay.
+n=${GIT_CONFIG_COUNT:-0}
+env GIT_CONFIG_COUNT=$((n + 1)) "GIT_CONFIG_KEY_$n=url.https://github.com/.insteadOf" "GIT_CONFIG_VALUE_$n=ssh://git@github.com/" \
   CARGO_NET_GIT_FETCH_WITH_CLI=true cargo fetch --locked
 done_+=("Rust dependencies, ljos-ui's compiler front end among them (cargo fetch)")
 
