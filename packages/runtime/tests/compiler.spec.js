@@ -148,6 +148,28 @@ test("a match in an .lts module compiled in the page runs on the page's sugar", 
   })).toBe('TypeError: no arm of the `match` matches "huge"');
 });
 
+test("an export a module reassigns is read as it is now, by a file and by a module that import it", async ({ page }) => {
+  await opened(page);
+  const files = {
+    "Main.qml": 'import QtQuick\nimport "count.lts" as Count\nimport "tally.ts" as Tally\nItem {\n    function bump() { return Tally.bumped() }\n    function now() { return Count.count }\n}\n',
+    "count.lts": "export let count: number = 0;\nexport function inc(): void {\n  count += 1;\n}\n",
+    "tally.ts": 'import { count, inc } from "./count.lts";\nexport function bumped(): number {\n  inc();\n  return count;\n}\n',
+  };
+  expect(await show(page, { files, entry: "Main.qml" })).toMatchObject({ mounted: true });
+  expect(await page.evaluate(() => [window.scene.bump(), window.scene.bump(), window.scene.now()])).toEqual([1, 2, 2]);
+});
+
+test("modules that import each other run, each with the other's names", async ({ page }) => {
+  await opened(page);
+  const files = {
+    "Main.qml": 'import QtQuick\nimport "even.lts" as Even\nItem {\n    function parities() { return [Even.even(4), Even.even(7)] }\n}\n',
+    "even.lts": 'import { odd } from "./odd.lts";\nexport function even(n: number): boolean {\n  return n === 0 ? true : odd(n - 1);\n}\n',
+    "odd.lts": 'import { even } from "./even.lts";\nexport function odd(n: number): boolean {\n  return n === 0 ? false : even(n - 1);\n}\n',
+  };
+  expect(await show(page, { files, entry: "Main.qml" })).toMatchObject({ mounted: true });
+  expect(await page.evaluate(() => window.scene.parities())).toEqual([true, false]);
+});
+
 test("the new syntax in a .ts module is a diagnostic that names the rename", async ({ page }) => {
   await opened(page);
   const files = {

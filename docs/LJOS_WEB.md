@@ -689,7 +689,7 @@ Each is stated where it is argued; listed here for review:
 16. Same text is the same compiled declaration; an edited one wins over a run-time value (A13).
 17. Only a root mounted `reloadable` records its tree; on by itself in a dev server (A13).
 18. `reload(root, Component)` knows no build tool; Vite and the live drop both call it (A13).
-19. The compiler in the page is `qmlc`'s, with the full type table; compiled files link as blob modules over stand-ins (A15).
+19. The compiler in the page is `qmlc`'s, with the full type table; compiled files link as blob modules, through stand-ins only around a cycle (A15).
 20. Shell mode is part of the in-page compiler's front end: names resolved against a closed scope, `ljos_ir` out, a JS evaluator with a step budget (A9).
 21. The shell compiler runs in a module worker served with its own CSP (`'wasm-unsafe-eval'`); the page keeps `script-src 'self'` (A9).
 22. `liveShell` is opt-in; a page without it does not move and fetches nothing of it (A9).
@@ -913,13 +913,17 @@ module at a blob URL with its specifiers rewritten.
   than `qmlc`'s.
 - A project's files import each other in cycles, and a file may import
   itself (a component that names its own file). A blob URL is made
-  from a finished text, so two files cannot name each other's. So each
-  file also has a **stand-in**: a module with no imports that exports
-  the file's names as bindings, set once the file has run. Files import
-  each other's stand-ins; the linker runs them in the order they import
-  each other (cycles aside) and sets each stand-in before the next
-  runs, so what a file does as it runs (`Object.setPrototypeOf(Panel,
-  Base)`) has the files before it.
+  from a finished text, so two files cannot name each other's. So a
+  file is made after the files it imports and imports their blobs, whose
+  exports stay live (an `export let` the file reassigns is read as it is
+  now). Only an import back into a cycle, of a file not made yet, goes
+  to that file's **stand-in**: a module with no imports that exports
+  the file's names as bindings, set once the file has run. The linker
+  runs the files in the order they import each other (cycles aside) and
+  sets each stand-in before the next runs, so what a file does as it
+  runs (`Object.setPrototypeOf(Panel, Base)`) has the files before it.
+  Bindings through a stand-in are set once, so a reassigned export is
+  read live everywhere but across a cycle's back edge.
 - A module of the page's (`ljos-web/QtQuick`, `solid-js`) is a
   **bridge**: a module that re-exports what the page's own import of
   it gave. Compiled QML and the page's QML share one instance of each:
