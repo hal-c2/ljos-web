@@ -29,7 +29,13 @@ types.
 
 ## Checking
 
-`pnpm -r --if-present run typecheck` (CI's browser job runs it). The
+`pnpm -r --if-present run typecheck` (CI's browser job runs it).
+
+Each package that runs `tsc` pins `typescript` and `@types/node` itself,
+exactly, in its own `devDependencies`, and they are the same versions
+(`site-tests/typescript.spec.js` says so). They are not pinned at the
+workspace root: a root `typescript` is what the Astro site would then
+resolve its own optional peer to. The
 options shared by every package are in `tsconfig.base.json`: `strict`,
 `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`,
 `verbatimModuleSyntax` (a type is imported with `import type`), and the rest.
