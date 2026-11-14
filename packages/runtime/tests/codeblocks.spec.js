@@ -596,6 +596,54 @@ test.describe("a live code block in the page", () => {
     await expect.poll(() => textOf(editor)).toMatch(/ZRectangle/);
   });
 
+  test("typing held while the editor is on its way keeps its Enters and Backspaces", async ({ page }) => {
+    let release;
+    const held = new Promise((resolve) => (release = resolve));
+    await page.route(/codemirror|codeblocks\/editor\.js/, async (route) => {
+      await held;
+      await route.continue();
+    });
+    await opened(page, "?editor=on-demand");
+    const figure = counterFigure(page);
+    await live(figure);
+    const word = figure.locator("pre.ljos-code .tok-typeName").filter({ hasText: /^Rectangle$/ });
+    const { height } = await word.boundingBox();
+    await word.click({ position: { x: 1, y: height / 2 } });
+    await page.keyboard.type("ab");
+    await page.keyboard.press("Backspace");
+    await page.keyboard.press("Enter");
+    await page.keyboard.type("c");
+    release();
+    const editor = await editorOf(figure, /Main\.qml/);
+    await expect.poll(() => textOf(editor)).toMatch(/a\ncRectangle/);
+  });
+
+  test("typing held while the editor is on its way stays in the file it was typed in", async ({ page }) => {
+    let release;
+    const held = new Promise((resolve) => (release = resolve));
+    await page.route(/codemirror|codeblocks\/editor\.js/, async (route) => {
+      await held;
+      await route.continue();
+    });
+    await opened(page, "?editor=on-demand");
+    const figure = page.locator("[data-ljos-codeblock]").nth(2);
+    await live(figure);
+    const main = figure.getByRole("textbox", { name: /Main\.qml/ });
+    const panel = figure.getByRole("textbox", { name: /Panel\.qml/ });
+    await main.focus();
+    await page.keyboard.type("X");
+    await panel.focus();
+    await page.keyboard.type("Y");
+    await expect(figure.locator(".cm-editor")).toHaveCount(0);
+    release();
+    const mainEditor = await editorOf(figure, /Main\.qml/);
+    const panelEditor = await editorOf(figure, /Panel\.qml/);
+    await expect.poll(() => textOf(mainEditor)).toMatch(/^X/);
+    await expect.poll(() => textOf(panelEditor)).toMatch(/^Y/);
+    expect(await textOf(mainEditor)).not.toContain("Y");
+    await expect(panelEditor).toBeFocused();
+  });
+
   test.describe("with the network failing once", () => {
     // The failed load is the browser's to report, and only it.
     test.use({ told: [[/hydration mismatch/, /Failed to load resource: net::ERR_FAILED/], { option: true }] });

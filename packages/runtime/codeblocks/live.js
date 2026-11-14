@@ -58,6 +58,10 @@ const el = (tag, className, text) => {
   return made;
 };
 
+// Keys that move the caret or edit past it, which the code as it stands
+// cannot follow: once one is pressed, a file holds no more typing.
+const MOVES = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown", "Delete"]);
+
 let ids = 0;
 
 // The character offset a point of `pre` is at, so a click that brings
@@ -170,10 +174,16 @@ export async function mountLiveCodeBlock(figure, data, options = {}) {
   // where they clicked) to its editor; one they have left keeps none.
   let ready = null;
   // What the reader did while the editor was on its way, which it
-  // takes as if it had been there: where they last pressed (the file
-  // and the offset there), and the characters they typed.
+  // takes as if it had been there. `wanted` is the file they last
+  // pressed in, which gets the focus if they are still there. Each
+  // file keeps what was done in it: where the press put the caret, the
+  // characters, Enters and Backspaces typed there (`back` the ones
+  // that reach before the caret), and whether the reader did what the
+  // code cannot hold (an arrow, Delete, a second press after typing),
+  // after which nothing more is held for that file: what is held
+  // stays as typed, and nothing lands where the reader did not mean.
   let wanted = null;
-  let typed = "";
+  const held = data.display.map(() => ({ at: null, text: "", back: 0, closed: false }));
   const upgrade = () => {
     if (disposed || editors.length) return;
     const { createCodeEditor } = editorModule;
@@ -197,15 +207,17 @@ export async function mountLiveCodeBlock(figure, data, options = {}) {
       source.dataset.editor = "codemirror";
       editors[i] = editor;
       if (marks[i].length) editor.setDiagnostics(marks[i]);
-      const at = wanted?.index === i ? wanted.offset : null;
-      if (focused || wanted?.index === i) {
-        if (at !== null && at !== undefined) editor.view.dispatch({ selection: { anchor: Math.min(at, editor.view.state.doc.length) } });
-        editor.focus();
-        if (typed) editor.view.dispatch(editor.view.state.replaceSelection(typed));
+      const { at, text, back } = held[i];
+      const { view } = editor;
+      if (at !== null && at !== undefined) view.dispatch({ selection: { anchor: Math.min(at, view.state.doc.length) } });
+      if (text || back) {
+        const head = view.state.selection.main.head;
+        const from = Math.max(0, head - back);
+        view.dispatch({ changes: { from, to: head, insert: text }, selection: { anchor: from + text.length } });
       }
+      if (focused || wanted?.index === i) editor.focus();
     });
     wanted = null;
-    typed = "";
     figure.dataset.editor = "ready";
   };
   const bringIn = () => {
@@ -224,16 +236,24 @@ export async function mountLiveCodeBlock(figure, data, options = {}) {
   sources.forEach(({ pre }, index) => {
     pre.addEventListener("focus", () => bringIn());
     pre.addEventListener("keydown", (event) => {
-      // The code as it stands takes no typing: a character the reader
-      // types is held for the editor, the one that brings it in too.
-      if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
+      // The code as it stands takes no typing: what the reader types is
+      // held for the editor, the key that brings it in too.
+      const here = held[index];
+      const { key } = event;
+      const plain = !event.ctrlKey && !event.metaKey && !event.altKey;
+      if (!here.closed && plain && ([...key].length === 1 || key === "Enter" || key === "Backspace")) {
         event.preventDefault();
-        typed += event.key;
-      }
+        if (key !== "Backspace") here.text += key === "Enter" ? "\n" : key;
+        else if (here.text) here.text = [...here.text].slice(0, -1).join("");
+        else here.back++;
+      } else if (MOVES.has(key)) here.closed = true;
       bringIn();
     });
     pre.addEventListener("pointerdown", (event) => {
-      wanted = { index, offset: offsetAt(pre, event.clientX, event.clientY) };
+      const here = held[index];
+      if (here.text || here.back) here.closed = true;
+      else here.at = offsetAt(pre, event.clientX, event.clientY);
+      wanted = { index };
       // Same gesture: the editor is in before the browser places
       // focus, so the caret (and a phone's keyboard) land in it.
       if (editorModule) event.preventDefault();
