@@ -24,13 +24,10 @@ Rectangle {
     color: Theme.bg
 
     readonly property bool docsRoute: route !== "/" && route !== "/demos/"
-    readonly property var page: {
-        for (var i = 0; i < Content.pages.length; i++) {
-            if (Content.pages[i].route === route)
-                return Content.pages[i];
-        }
-        return null;
-    }
+    // A docs page's own reading (its title, headings and blocks), in
+    // the props the build made this route with: each page's HTML
+    // carries its own, so no page loads another page's text.
+    property var page: null
 
     // The scroller a docs page lands its headings in is named as
     // the page is made, below; only a press in a browser asks it.
@@ -271,6 +268,7 @@ Rectangle {
             width: Math.min(680, pageScroll.width - 48)
             x: Math.max(24, (pageScroll.width - width) / 2)
             route: shell.route
+            page: shell.page
             scroller: pageScroll
         }
     }
