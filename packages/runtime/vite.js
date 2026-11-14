@@ -750,6 +750,11 @@ export default function qml({
         if (carry && swayed(module)) query.set(FOR, carry);
         return `${VIRTUAL}${module}${query.size > 0 ? `?${query}` : ""}`;
       }
+      // Vite's dependency scan reads every page before one is asked for:
+      // a Qt module this machine's Qt does not have is no dependency to
+      // bundle, and failing to resolve it would skip bundling them all.
+      // The page that imports it is told when it does.
+      if (module && options?.scan) return { id: source, external: true };
       if (!importer || (!importer.split("?")[0].endsWith(".qml") && !isScript(importer))) return null;
       // A baked shader is made here, whether or not the file is there.
       if (source.endsWith(BAKED) && /^\.\.?\//.test(source)) return join(dirname(importer.split("?")[0]), source);
