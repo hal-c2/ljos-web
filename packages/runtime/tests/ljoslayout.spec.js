@@ -5,8 +5,10 @@
 // does. Each case of `scenes/ljoslayoutrule.qml` is held to what ljos-ui
 // does with the same file: `fixtures/ljoslayoutrule.json` is the file with
 // `Align` and `Direction` for the numbers and a `TestCase` that logs
-// `dump()` after 100 ms, after hiding `fFiller`, showing it again and
-// turning `gBox`, run by `ljos test` (ljos-ui c2443e15).
+// `dump()` after 100 ms, after hiding `fFiller`, showing it again,
+// turning `gBox`, then (`moved`) after `aaRow.big`, `abRow.told = false`
+// and moving `acA` to `acHome`, and (`measuredAgain`) after `aaRow.more`,
+// run by `ljos test` (ljos-ui c2443e15).
 //
 // Each child is [x, y, width, height, implicitWidth, implicitHeight].
 import { readFileSync } from "node:fs";
@@ -45,6 +47,7 @@ const cases = [
   ["a Row in a Column fills it", ["xCol", "xRow", "xFill", "xFixed"]],
   ["a child of a Column that says nothing of its width keeps it", ["yCol", "yA"]],
   ["two children of a Grid fill a row between them", ["zGrid", "zA", "zB"]],
+  ["children that span columns share the room by their columns, not their stretch factors", ["adGrid", "adA", "adB"]],
 ];
 
 for (const [title, names] of cases) {
@@ -76,4 +79,46 @@ test("a Box that turns lays the same children out the other way", async ({ page 
     window.flush();
   });
   expect(pick(await dump(page), names)).toEqual(pick(ljos.turned, names));
+});
+
+// Each is changed and flushed, then held to the oracle's dump after it.
+const after = (change) => async (page) => {
+  await page.evaluate(change);
+  return dump(page);
+};
+
+test("the width a file gives a child is the one first seen, when the row measures again", async ({ page }) => {
+  await open(page, "ljoslayoutrule");
+  const names = ["aaRow", "aaA", "aaB", "aaC"];
+  // ljos-ui shows the new binding until the row arranges again; the web
+  // keeps the placed width throughout, so only the measure after is held.
+  await after(() => {
+    window.scene.aaRowItem.big = true;
+    window.flush();
+  })(page);
+  const dumped = await after(() => {
+    window.scene.aaRowItem.more = true;
+    window.flush();
+  })(page);
+  expect(pick(dumped, names)).toEqual(pick(ljos.measuredAgain, names));
+});
+
+test("a child whose preferred width goes away keeps the width it was placed at", async ({ page }) => {
+  await open(page, "ljoslayoutrule");
+  const names = ["abRow", "abA", "abB"];
+  const dumped = await after(() => {
+    window.scene.abRowItem.told = false;
+    window.flush();
+  })(page);
+  expect(pick(dumped, names)).toEqual(pick(ljos.moved, names));
+});
+
+test("a child moved out of its row keeps the width it was placed at", async ({ page }) => {
+  await open(page, "ljoslayoutrule");
+  const names = ["acRow", "acA", "acB"];
+  const dumped = await after(() => {
+    window.scene.acAItem.parent = window.scene.acHomeItem;
+    window.flush();
+  })(page);
+  expect(pick(dumped, names)).toEqual(pick(ljos.moved, names));
 });

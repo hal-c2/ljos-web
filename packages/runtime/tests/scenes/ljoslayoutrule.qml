@@ -13,6 +13,10 @@ Item {
     // What the spec hides and turns.
     property alias fFillerItem: fFiller
     property alias gBoxItem: gBox
+    property alias aaRowItem: aaRow
+    property alias abRowItem: abRow
+    property alias acAItem: acA
+    property alias acHomeItem: acHome
     width: 1000
     height: 2000
 
@@ -44,7 +48,11 @@ Item {
         wRow, wA,
         xCol, xRow, xFill, xFixed,
         yCol, yA,
-        zGrid, zA, zB
+        zGrid, zA, zB,
+        aaRow, aaA, aaB, aaC,
+        abRow, abA, abB,
+        acRow, acA, acB,
+        adGrid, adA, adB
     ]
 
     function dump() {
@@ -267,5 +275,43 @@ Item {
         columnSpacing: 5; rowSpacing: 5; columns: 2; width: 200
         Rectangle { id: zA; objectName: "zA"; Layout.alignment: 128; implicitWidth: 30; implicitHeight: 10; Layout.fillWidth: true }
         Rectangle { id: zB; objectName: "zB"; Layout.alignment: 128; implicitWidth: 50; implicitHeight: 20; Layout.fillWidth: true }
+    }
+
+    // A width the file gives a child is the one the arrangement first saw:
+    // when the binding gives another, the child asks for the first again
+    // once the row measures again.
+    Row {
+        id: aaRow; objectName: "aaRow"; y: 1460; width: 300; height: 30
+        property bool big: false
+        property bool more: false
+        Rectangle { id: aaA; objectName: "aaA"; width: aaRow.big ? 200 : 100; height: 20; Layout.minimumWidth: 10 }
+        Rectangle { id: aaB; objectName: "aaB"; width: 40; height: 20; Layout.fillWidth: true }
+        Rectangle { id: aaC; objectName: "aaC"; width: 30; height: 20; Layout.preferredWidth: aaRow.more ? 31 : 30 }
+    }
+
+    // A preferred width that goes away: the child keeps the width it was
+    // last placed at.
+    Row {
+        id: abRow; objectName: "abRow"; y: 1500; width: 300; height: 30
+        property bool told: true
+        Rectangle { id: abA; objectName: "abA"; width: 50; height: 20; Layout.preferredWidth: abRow.told ? 80 : -1 }
+        Rectangle { id: abB; objectName: "abB"; width: 40; height: 20; Layout.fillWidth: true }
+    }
+
+    // One that fills, moved out of its row: it keeps the width it was
+    // placed at, and the row closes up.
+    Row {
+        id: acRow; objectName: "acRow"; y: 1540; width: 300; height: 30
+        Rectangle { id: acA; objectName: "acA"; width: 50; height: 20; Layout.fillWidth: true }
+        Rectangle { id: acB; objectName: "acB"; width: 40; height: 20; Layout.preferredWidth: 40 }
+    }
+    Item { id: acHome; objectName: "acHome"; y: 1580; width: 10; height: 10 }
+
+    // Children that span columns share the room by their columns, not by
+    // their stretch factors.
+    Grid {
+        id: adGrid; objectName: "adGrid"; y: 1600; width: 300; columns: 4
+        Rectangle { id: adA; objectName: "adA"; Layout.columnSpan: 2; Layout.fillWidth: true; Layout.preferredWidth: 0; Layout.horizontalStretchFactor: 1; implicitHeight: 10 }
+        Rectangle { id: adB; objectName: "adB"; Layout.columnSpan: 2; Layout.fillWidth: true; Layout.preferredWidth: 0; Layout.horizontalStretchFactor: 2; implicitHeight: 10 }
     }
 }
