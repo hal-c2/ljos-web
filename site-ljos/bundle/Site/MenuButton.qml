@@ -8,9 +8,9 @@ IconButton {
 
     property bool open: false
 
+    // The label says what a press does, so the state is said once:
+    // a button that also said it was checked would say it twice.
     label: open ? "Close the menu" : "Open the menu"
-    Accessible.checkable: true
-    Accessible.checked: open
 
     Repeater {
         model: 3

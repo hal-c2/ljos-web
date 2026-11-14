@@ -386,8 +386,12 @@ Column {
                     width: doc.width
                     spacing: Theme.xs
 
+                    // A picture with no words is decoration, left out
+                    // of what is read rather than read as nameless.
                     Image {
+                        Accessible.role: blockItem.modelData.alt ? Accessible.Graphic : Accessible.NoRole
                         Accessible.name: blockItem.modelData.alt || ""
+                        Accessible.ignored: !blockItem.modelData.alt
                         source: blockItem.modelData.src || ""
                         width: Math.min(implicitWidth > 0 ? implicitWidth : doc.width, doc.width)
                         height: implicitWidth > 0 ? width * implicitHeight / implicitWidth : Math.round(doc.width * 9 / 16)

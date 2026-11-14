@@ -122,7 +122,9 @@ Item {
         color: Theme.surfaceRaised
         border.color: Theme.border
         border.width: 1
-        Accessible.role: Accessible.List
+        // A list of none is no list: what stands then is the line
+        // that says nothing was found.
+        Accessible.role: search.results.length > 0 ? Accessible.List : Accessible.NoRole
         Accessible.name: "Search results"
 
         Column {

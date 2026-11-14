@@ -75,10 +75,13 @@ Rectangle {
 
     Keys.onEscapePressed: shell.menuOpen = false
 
-    // The header.
+    // The header. Each part of the shell is a landmark, so a reader
+    // goes to the page, the docs or the menu as a sighted one looks.
     Rectangle {
         id: header
         z: 3
+        Accessible.role: Accessible.Section
+        Accessible.name: "Ljós"
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.top: parent.top
@@ -181,6 +184,8 @@ Rectangle {
     Flickable {
         id: sidebarScroll
         visible: shell.sidebarShown
+        Accessible.role: Accessible.ComplementaryContent
+        Accessible.name: "The docs"
         anchors.left: parent.left
         anchors.top: header.bottom
         anchors.bottom: parent.bottom
@@ -238,6 +243,8 @@ Rectangle {
             Loader {
                 id: pageLoader
                 visible: !shell.docsRoute
+                Accessible.role: Accessible.Section
+                Accessible.name: shell.route === "/demos/" ? "Live demos" : "Home"
                 active: !shell.docsRoute
                 width: Math.min(pageScroll.measure, pageScroll.width - 2 * shell.gutter)
                 x: Math.round((pageScroll.width - width) / 2)
@@ -246,6 +253,8 @@ Rectangle {
             DocPage {
                 id: docItem
                 visible: shell.docsRoute
+                Accessible.role: Accessible.Section
+                Accessible.name: docItem.page ? docItem.page.title : ""
                 width: Math.min(pageScroll.measure, pageScroll.width - 2 * shell.gutter)
                 x: Math.round((pageScroll.width - width) / 2)
                 route: shell.docsRoute ? shell.route : ""
@@ -289,6 +298,8 @@ Rectangle {
     Flickable {
         id: tocScroll
         visible: shell.tocShown
+        Accessible.role: Accessible.ComplementaryContent
+        Accessible.name: "On this page"
         anchors.right: parent.right
         anchors.top: header.bottom
         anchors.bottom: parent.bottom
@@ -340,6 +351,8 @@ Rectangle {
     Rectangle {
         id: menu
         z: 2
+        Accessible.role: Accessible.Section
+        Accessible.name: "Menu"
         anchors.left: parent.left
         anchors.right: parent.right
         y: header.height + (shell.menuOpen ? 0 : -Theme.travel)

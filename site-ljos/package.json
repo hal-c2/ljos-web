@@ -11,6 +11,7 @@
     "ljos-web": "workspace:*"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.10.0",
     "@playwright/test": "^1.63.0"
   }
 }

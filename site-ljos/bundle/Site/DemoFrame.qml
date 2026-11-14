@@ -64,6 +64,7 @@ Item {
             // Named from the site's root; the site may stand below it.
             source: frame.picture === "" ? "" : Nav.within(frame.picture)
             fillMode: Image.PreserveAspectCrop
+            Accessible.role: Accessible.Graphic
             Accessible.name: frame.description
         }
 
