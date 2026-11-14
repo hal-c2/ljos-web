@@ -6,9 +6,10 @@ import "nav.js" as Nav
 // come, the source, light and dark), the docs' sidebar, the page,
 // what is on it, and a footer. Which page it shows is the `route`
 // the build prerendered it for (`/`, `/demos/`, or a docs route);
-// each route is its own page of HTML, and a press is a navigation
-// to it. The page a reader without script gets is this same shell,
-// as the build wrote it.
+// each route is its own page of HTML, its links the page's own. In a
+// browser running the shell, a press on one shows its route here,
+// with the address and the history kept (`nav.js`). The page a reader
+// without script gets is this same shell, as the build wrote it.
 Rectangle {
     id: shell
 
@@ -31,6 +32,39 @@ Rectangle {
 
     // The scroller a docs page lands its headings in is named as
     // the page is made, below; only a press in a browser asks it.
+
+    // A route of the site's, shown in place (Nav.follow), with its
+    // page's reading (null for the front page and the demos): at
+    // `offset` when going back or forward to it, else at its
+    // fragment, else at the top, as a page the browser loads.
+    function show(to, fragment, offset, reading) {
+        shell.page = reading;
+        if (to !== shell.route)
+            shell.route = to;
+        if (typeof offset === "number") {
+            // Once the page shown is laid out, so it is as tall as it was.
+            Qt.callLater(() => pageScroll.contentY = Math.max(0, Math.min(offset, pageScroll.contentHeight - pageScroll.height)));
+        } else if (fragment) {
+            // A heading's name as the page has it: an address carries
+            // what is not ASCII in it percent-encoded.
+            var anchor = fragment.slice(1);
+            try {
+                anchor = decodeURIComponent(anchor);
+            } catch (error) {}
+            Qt.callLater(() => docItem.scrollToAnchor(anchor));
+        } else {
+            pageScroll.contentY = 0;
+        }
+    }
+    Component.onCompleted: Nav.follow(Content.base, {
+        title: (to) => Nav.titled(Content.titles, Content.sidebar, Content.after, to),
+        // A docs page's reading stands beside its HTML (the build's
+        // page.json); the front page and the demos need none.
+        reading: (to) => to === "/" || to === "/demos/" ? null : Nav.at(Content.base, to) + "page.json",
+        page: () => shell.page,
+        show: (to, fragment, offset, reading) => shell.show(to, fragment, offset, reading),
+        offset: () => pageScroll.contentY
+    })
 
     // Named, never made: this page is built with Qt Quick Controls,
     // so a live block's compiler may be given them (A15).
@@ -56,15 +90,19 @@ Rectangle {
             spacing: 22
 
             Item {
+                id: home
+
+                property string href: Nav.at(Content.base, "/")
+
                 width: 28 + 8 + wordmark.implicitWidth
                 height: 32
                 activeFocusOnTab: true
                 Accessible.role: Accessible.Link
                 Accessible.name: "Ljós — front page"
-                Accessible.onPressAction: () => Nav.go("/")
+                Accessible.onPressAction: () => Nav.go(home.href)
                 Keys.onPressed: (event) => {
                     if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
-                        Nav.go("/");
+                        Nav.go(home.href);
                         event.accepted = true;
                     }
                 }
@@ -92,18 +130,18 @@ Rectangle {
                     anchors.fill: parent
                     Accessible.ignored: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: Nav.go("/")
+                    onClicked: Nav.go(home.href)
                 }
             }
             NavLink {
                 label: "Docs"
-                href: "/start/"
+                to: "/start/"
                 current: shell.docsRoute
                 height: 32
             }
             NavLink {
                 label: "Live demos"
-                href: "/demos/"
+                to: "/demos/"
                 current: shell.route === "/demos/"
                 height: 32
             }
@@ -136,7 +174,7 @@ Rectangle {
             }
             NavLink {
                 label: "GitHub"
-                href: "https://github.com/hal-c2/ljos-ui"
+                to: "https://github.com/hal-c2/ljos-ui"
                 height: 32
             }
             Item {
@@ -214,7 +252,7 @@ Rectangle {
                             required property var modelData
 
                             label: modelData.title
-                            href: modelData.route
+                            to: modelData.route
                             current: modelData.route === shell.route
                         }
                     }
@@ -222,7 +260,7 @@ Rectangle {
             }
             NavLink {
                 label: "Live demos"
-                href: "/demos/"
+                to: "/demos/"
                 current: shell.route === "/demos/"
             }
         }
@@ -246,6 +284,13 @@ Rectangle {
         contentWidth: width
         contentHeight: (shell.docsRoute ? docItem.height : pageLoader.height) + 48
         clip: true
+        // Where the reader leaves the page is kept once it is still.
+        onContentYChanged: keeping.restart()
+        Timer {
+            id: keeping
+            interval: 250
+            onTriggered: Nav.keep()
+        }
 
         // Only this route's page is made, so the HTML the build
         // writes for a route holds that page and no other. The
@@ -318,6 +363,9 @@ Rectangle {
 
                 Item {
                     required property var modelData
+                    // The heading's own address, so it can be kept or
+                    // opened apart; a press lands on it in place.
+                    property string href: Nav.at(Content.base, shell.route) + "#" + modelData.anchor
 
                     width: 204
                     height: tocWords.implicitHeight + 2

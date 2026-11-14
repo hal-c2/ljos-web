@@ -27,7 +27,11 @@ createServer((request, response) => {
   if (path.endsWith("/")) path += "index.html";
   const file = normalize(join(dir, path));
   if (!file.startsWith(dir) || !existsSync(file) || !statSync(file).isFile()) {
-    response.writeHead(404).end("not here\n");
+    // What Pages does for an address below the site that names no file:
+    // the site's own `404.html`, whatever the depth.
+    const missing = join(dir, "404.html");
+    if (existsSync(missing)) response.writeHead(404, { "content-type": "text/html" }).end(readFileSync(missing));
+    else response.writeHead(404).end("not here\n");
     return;
   }
   response.writeHead(200, { "content-type": TYPES[extname(file)] ?? "application/octet-stream" }).end(readFileSync(file));

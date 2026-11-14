@@ -72,16 +72,33 @@ test(`the header's links stay inside ${base}`, async ({ page }) => {
   await expect(page).toHaveURL(`http://127.0.0.1:4471${base}`);
 });
 
-// A link in a docs page's words goes to its page inside the base.
-// The click is the anchor's own event, the one Text listens for: a
-// real pointer's click is taken by the scene's pointer capture before
-// it reaches the anchor (QtQuick/pointer.js, at any base, reported
-// apart from this), and what is held here is where the link goes.
+// A link in a docs page's words goes to its page inside the base: the
+// build writes the base into the words' addresses, so the link the
+// page has, before any script runs, is already the one a press follows.
 test(`a link in a page's words stays inside ${base}`, async ({ page }) => {
   await page.goto(`${base}start/`);
-  const link = page.locator('#app a[data-link^="/"]').first();
-  await expect(link).toBeAttached();
-  const route = (await link.getAttribute("data-link")).split("#")[0];
-  await link.dispatchEvent("click");
-  await expect(page).toHaveURL(`http://127.0.0.1:4471${base}${route.slice(1)}`);
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  expect(await page.locator('#app a[data-link^="/"]').evaluateAll((links, base) => links.map((link) => link.getAttribute("href")).filter((href) => !href?.startsWith(base)), base)).toEqual([]);
+  // The page scrolls in the shell, not in the browser: a link below
+  // what is shown is brought up by the wheel, as a reader would.
+  const shown = () =>
+    page.locator(`#app a[data-link^="${base}start/"]`).evaluateAll((links) => {
+      for (const link of links) {
+        const { x, y, width, height } = link.getBoundingClientRect();
+        const at = width && height ? document.elementFromPoint(x + width / 2, y + height / 2) : null;
+        if (at && link.contains(at)) return { x: x + width / 2, y: y + height / 2, href: link.getAttribute("href"), said: link.dataset.link };
+      }
+      return null;
+    });
+  const { width, height } = page.viewportSize();
+  await page.mouse.move(width / 2, height / 2);
+  let link = await shown();
+  for (let turn = 0; !link && turn < 30; turn++) {
+    await page.mouse.wheel(0, 300);
+    link = await expect.poll(shown, { timeout: 1_000 }).toBeTruthy().then(shown, () => null);
+  }
+  expect(link, "a link in the page's words comes into view").toBeTruthy();
+  expect(link.href).toBe(link.said);
+  await page.mouse.click(link.x, link.y);
+  await expect(page).toHaveURL(`http://127.0.0.1:4471${link.href}`);
 });
