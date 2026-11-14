@@ -130,7 +130,8 @@ jobs:
       - run: pnpm --filter ljos-site-ljos exec playwright install --with-deps chromium
       # Built twice, once for each place it stands: at a domain's
       # root (ljos.dev), the whole suite; then below a project path
-      # (the github.io preview, /<repo>/), what the base decides.
+      # (the github.io preview, /<repo>/), what the base decides: the
+      # base itself, and every link and the 404 page at it.
       # Each build is kept for the deploy to pick from.
       - run: pnpm --filter ljos-site-ljos build
         env:
@@ -144,7 +145,7 @@ jobs:
         env:
           QMLC: ${{ github.workspace }}/target/debug/qmlc
           LJOS_SITE_BASE: /${{ github.event.repository.name }}/
-      - run: pnpm --filter ljos-site-ljos exec playwright test tests/base.spec.js
+      - run: pnpm --filter ljos-site-ljos exec playwright test tests/base.spec.js tests/links.spec.js
         env:
           LJOS_SITE_BASE: /${{ github.event.repository.name }}/
       - run: cp -r site-ljos/dist "$RUNNER_TEMP/site-ljos-project"
