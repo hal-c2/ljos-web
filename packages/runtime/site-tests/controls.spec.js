@@ -33,9 +33,11 @@ function serve(directory) {
 
 // Each part of a test is a step with a time of its own, so that one that
 // stops says which part it stopped in, and the report times each part:
-// a test timeout alone says only that the whole ran out.
-const BUILD = 80_000;
-const PART = 30_000;
+// a test timeout alone says only that the whole ran out. Together they
+// come to less than the test's own time (`playwright.config.js`), so a
+// step's time always runs out first.
+const BUILD = 60_000;
+const PART = 15_000;
 
 // Opens the site built at `out`, and fails on anything it logs as an error.
 async function opened(page, out, check) {
