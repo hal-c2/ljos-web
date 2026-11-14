@@ -282,6 +282,8 @@ for (const backend of ["webgpu", "webgl2"]) {
 
     test("a joint the view had not met, put in a skin's empty slot, builds the scene again", async ({ page }) => {
       await show(page, "wgpu_swapped");
+      // The scene asks for no file, so no build but this one's can come.
+      expect(await page.evaluate(() => performance.getEntriesByType("resource").some(({ name }) => /\.mesh(\?|$)/.test(name)))).toBe(false);
       const builds = () => page.evaluate(() => document.querySelector(".qq-view3d").$view3d.builds);
       const before = await builds();
       await set(page, () => (window.objects.skin.joints = [window.objects.skin.joints[0], window.objects.joint]));

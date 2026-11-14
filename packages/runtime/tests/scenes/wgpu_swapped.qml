@@ -51,9 +51,12 @@ Rectangle {
             id: skin
             joints: [first, null]
         }
+        // A shape of its own, not a file: nothing arrives later to build
+        // the scene again while the joint is put in.
         Model {
             x: 150
-            source: "../assets/bar.mesh"
+            scale: Qt.vector3d(0.5, 0.5, 1)
+            source: "#Rectangle"
             skin: skin
             materials: PrincipledMaterial {
                 lighting: PrincipledMaterial.NoLighting
