@@ -79,6 +79,8 @@ test("what is said is what ARIA allows on the role it is said with", async ({ pa
   expect(said.entry).toEqual({ role: "menuitemcheckbox", "aria-label": "Wrap", "aria-checked": "false" });
   // ARIA's heading has a level; one no author gives is its own default.
   expect(said.title).toEqual({ role: "heading", "aria-level": "2" });
+  // One whose author gives a level says it, and follows it.
+  expect(said.subtitle).toEqual({ role: "heading", "aria-level": "3" });
   // A name on an element with no role is no name at all to ARIA:
   // the item is a named group, as native Ljós tells it.
   expect(said.named).toEqual({ role: "group", "aria-label": "A lit scene" });
@@ -94,6 +96,8 @@ test("what is said is what ARIA allows on the role it is said with", async ({ pa
   // A control of a value says it, and where it lies; a slider with no
   // value to say is none to ARIA, which asks one of it.
   expect(said.progress).toEqual({ role: "progressbar", "aria-valuenow": "0.25", "aria-valuemin": "0", "aria-valuemax": "1" });
+  // A progress bar under way at a pace it cannot tell says no value.
+  expect(said.busy).toEqual({ role: "progressbar" });
   expect(said.spin).toEqual({ role: "spinbutton", "aria-valuenow": "3", "aria-valuemin": "1", "aria-valuemax": "9" });
   expect(said.puck).toEqual({ role: "group", "aria-label": "Lead the puck" });
   // ARIA has no selected list item: the one chosen is the list's current.
@@ -107,5 +111,7 @@ test("what is said is what ARIA allows on the role it is said with", async ({ pa
   expect(said.bold["aria-pressed"]).toBe("true");
   expect(said.entry["aria-checked"]).toBe("true");
   expect(said.progress["aria-valuenow"]).toBe("0.75");
+  expect(said.subtitle["aria-level"]).toBe("4");
+  expect(said.busy).toEqual({ role: "progressbar", "aria-valuenow": "0.5", "aria-valuemin": "0", "aria-valuemax": "1" });
   expect(said.result).toEqual({ role: "listitem", "aria-label": "Result", "aria-current": "true" });
 });
