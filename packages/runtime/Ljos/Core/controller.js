@@ -44,7 +44,7 @@ function attach(self) {
   if (self.$life || self.$ended) return;
   const host = untrack(() => self.host);
   if (!host) return;
-  const life = { host, cleanups: [], armed: false, quiet: false, gone: false, following: false };
+  const life = { host, cleanups: [], armed: false, gone: false, following: false };
   hidden(self, "$life", life);
   // A module's step throws as a handler does: reported, and nothing else
   // made with it stops.
@@ -85,9 +85,10 @@ function listen(host, self, life) {
   }
   listening.set(self, life);
   // What the host's type works out as it is read (an item's anchored
-  // geometry, its visibility through its parent) is never written: it is
-  // followed instead, for as long as the Controller is.
-  const resolved = [...new Set(host.$type.chain.flatMap((type) => Object.keys(type.spec.resolve ?? {})))];
+  // geometry, its visibility through its parent) is never written, and
+  // what its file declares is written and bound outside the slots: both
+  // are followed instead, for as long as the Controller is.
+  const resolved = [...new Set([...host.$type.chain.flatMap((type) => Object.keys(type.spec.resolve ?? {})), ...(host.$declares ?? [])])];
   if (!resolved.length) return;
   let seen = null;
   runWithOwner(self.$owner ?? null, () =>
@@ -105,7 +106,7 @@ function listen(host, self, life) {
 // end of the turn is where all of what it wrote is known. The browser's
 // frame is never asked for it.
 function arm(self, life) {
-  if (life.armed || life.quiet || life.gone) return;
+  if (life.armed || life.gone || life.host.$telling) return;
   // What connected to `updated` may have disconnected since: then nobody
   // would hear it.
   if (!handlesUpdated(self)) return;
@@ -116,17 +117,22 @@ function arm(self, life) {
   });
 }
 
-// What `updated` writes does not arm it again, so it cannot keep the page
-// awake. A handler told while a flush is on runs after this returns, so the
-// Controller stays quiet until it has.
+// What `updated` writes to the host arms none of its Controllers, as
+// ljos_quick tells a host's Controllers: it cannot keep the page awake, and
+// two Controllers of one host cannot keep arming each other. A handler told
+// while a flush is on runs after this returns, so the host stays quiet
+// until it has. A count, so that one Controller's quiet ending late does
+// not end another's.
 function update(self, life) {
-  life.quiet = true;
+  const host = life.host;
+  if (!Object.hasOwn(host, "$telling")) hidden(host, "$telling", 0);
+  host.$telling++;
   try {
-    for (const run of steps(self, "updated")) heard(run, [life.host, self], self);
+    for (const run of steps(self, "updated")) heard(run, [host, self], self);
     self.updated();
   } finally {
-    if (flushing()) queueMicrotask(() => (life.quiet = false));
-    else life.quiet = false;
+    if (flushing()) queueMicrotask(() => host.$telling--);
+    else host.$telling--;
   }
 }
 

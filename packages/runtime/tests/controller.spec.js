@@ -38,6 +38,34 @@ test("updated runs once after attached, and once a turn that wrote the host", as
   expect(await log(page)).toEqual([]);
 });
 
+test("two Controllers that write to their host in updated do not update each other again", async ({ page }) => {
+  await open(page, "controllerpair");
+  await page.evaluate(() => new Promise((done) => setTimeout(done, 50)));
+  // As ljos_quick tells a host's Controllers: what they write as they are
+  // told does not make the host due again.
+  expect(await page.evaluate(() => [window.objects.ones, window.objects.twos])).toEqual([1, 1]);
+  await page.evaluate(() => {
+    window.objects.root.width = 300;
+    window.flush();
+  });
+  await page.evaluate(() => new Promise((done) => setTimeout(done, 50)));
+  expect(await page.evaluate(() => [window.objects.ones, window.objects.twos])).toEqual([2, 2]);
+});
+
+test("a property the host's file declares updates it as it is written, and what updated writes to one does not", async ({ page }) => {
+  await open(page, "controllerpair");
+  await page.evaluate(() => new Promise((done) => setTimeout(done, 20)));
+  expect(await log(page)).toEqual(["moved 0"]);
+  await page.evaluate(() => {
+    window.objects.root.moved = 5;
+    window.flush();
+  });
+  await page.evaluate(() => new Promise((done) => setTimeout(done, 50)));
+  // `counted`, which updated writes, is declared too: it is one update.
+  expect(await log(page)).toEqual(["moved 5"]);
+  expect(await page.evaluate(() => window.objects.root.counted)).toBe(2);
+});
+
 test("a binding that gives the host something new updates it, as a write does", async ({ page }) => {
   await open(page, "controller");
   expect((await log(page)).filter((told) => told.startsWith("following"))).toEqual(["following 100"]);

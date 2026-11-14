@@ -2250,13 +2250,19 @@ export function hydrate(Component, element, props = {}, options = {}) {
 
 // What a component declares, put on its root object so that it can be
 // reached through it: `{ name: [get, set] }` for a property, a function for
-// a function or a signal.
+// a function or a signal. The properties' names are kept, as the type's
+// are, for a Controller that follows its host (Ljos/Core/controller.js).
 export function $define(self, members) {
   for (const [name, member] of Object.entries(members)) {
-    const descriptor = Array.isArray(member)
+    const property = Array.isArray(member);
+    const descriptor = property
       ? { get: member[0], set: member[1], enumerable: true, configurable: true }
       : { value: member, enumerable: true, configurable: true };
     Object.defineProperty(self, name, descriptor);
+    if (property) {
+      if (!Object.hasOwn(self, "$declares")) hidden(self, "$declares", []);
+      self.$declares.push(name);
+    }
   }
   return self;
 }

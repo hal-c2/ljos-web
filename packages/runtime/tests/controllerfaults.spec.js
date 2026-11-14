@@ -34,9 +34,16 @@ test("a module's updated that throws is updated again the next turn", async ({ p
 });
 
 test("a module's detached that throws is reported, and the Controller is still detached once", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => message.type() === "error" && errors.push(message.text()));
   await open(page, "controllerfaults");
-  await page.evaluate(() => window.objects.throws.destroy());
+  await page.evaluate(() => {
+    window.objects.throws.destroy();
+    window.objects.throws.destroy();
+  });
   await settle(page);
+  expect(errors.filter((error) => error.includes("thrown in detached"))).toHaveLength(1);
   await write(page, 300);
   await settle(page);
   expect(await page.evaluate(() => window.objects.updates)).toBe(1);
