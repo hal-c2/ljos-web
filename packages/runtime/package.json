@@ -79,7 +79,7 @@
     "./QtQml": "./QtQml/index.ts",
     "./QtQml/Models": "./QtQml/Models/index.ts",
     "./QtQml/XmlListModel": "./QtQml/XmlListModel/index.ts",
-    "./QtCore": "./QtCore/index.js",
+    "./QtCore": "./QtCore/index.ts",
     "./QtWebSockets": "./QtWebSockets/index.js",
     "./QtCharts": "./QtCharts/index.js",
     "./QtGraphs": "./QtGraphs/index.js",
