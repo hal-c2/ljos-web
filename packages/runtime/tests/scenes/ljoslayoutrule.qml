@@ -23,6 +23,10 @@ Item {
     property alias ahBItem: ahB
     property alias ahHomeItem: ahHome
     property alias ajRowItem: ajRow
+    property alias akRowItem: akRow
+    property alias akAItem: akA
+    property alias akOtherItem: akOther
+    property alias akPlainItem: akPlain
     width: 1000
     height: 2000
 
@@ -64,7 +68,8 @@ Item {
         agRow, agA, agB,
         ahRow, ahA, ahB,
         aiCol, aiRow, aiA, aiB,
-        ajRow, ajA, ajB
+        ajRow, ajA, ajB,
+        akRow, akA, akB, akOther, akC
     ]
 
     function dump() {
@@ -385,4 +390,20 @@ Item {
         Rectangle { id: ajA; objectName: "ajA"; implicitWidth: ajRow.content; implicitHeight: 10 }
         Rectangle { id: ajB; objectName: "ajB"; implicitWidth: 10; implicitHeight: 10; Layout.alignment: 32 }
     }
+
+    // A child the row gave the width its content gave it, moved to
+    // another Row that is a layout, still follows its content there; in an
+    // Item it keeps its width, and back in a layout it follows again, as
+    // in Qt's layouts.
+    Row {
+        id: akRow; objectName: "akRow"; y: 1870; width: 300; height: 20
+        property real content: 20.5
+        Rectangle { id: akA; objectName: "akA"; implicitWidth: akRow.content; implicitHeight: 10 }
+        Rectangle { id: akB; objectName: "akB"; implicitWidth: 10; implicitHeight: 10; Layout.alignment: 32 }
+    }
+    Row {
+        id: akOther; objectName: "akOther"; y: 1900; width: 300; height: 20
+        Rectangle { id: akC; objectName: "akC"; implicitWidth: 10; implicitHeight: 10; Layout.alignment: 32 }
+    }
+    Item { id: akPlain; objectName: "akPlain"; y: 1930; width: 10; height: 10 }
 }

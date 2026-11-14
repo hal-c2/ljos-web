@@ -2080,14 +2080,16 @@ kernels: each case of `tests/scenes/ljoslayoutrule.qml` (explicit,
 preferred, minimum and maximum sizes, filling and stretch, padding,
 margins, alignment, right to left, packing, `Grid` counts, flows and
 spans) is placed to the pixel as `ljos test` places the same file
-(`tests/fixtures/ljoslayoutrule.json`, ljos-ui c2443e15), and again
+(`tests/fixtures/ljoslayoutrule.json`, ljos-ui 94770e9b2), and again
 after a child that fills is hidden and shown, after a `Box` turns,
 after a preferred width goes away, after a child that fills moves to
 another parent, after a row whose child's bound width changed
 measures again, after the only child of a row with a `Layout`
 leaves, its width changes and it comes back, and after the only child
 with a `Layout` of a row whose others take their size from their
-content leaves.
+content leaves, and after a child a row gave the width its content gave
+it moves to another row that is a layout (it still follows its
+content), to an item (it keeps its width) and back.
 
 `tests/ljosui.spec.js` holds it, on both kernels: each face by its
 dialect names, beside the QtQuick specs, and a whole dialect file
