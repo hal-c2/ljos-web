@@ -2,7 +2,7 @@
 // Flickable scrolls when there are more of them than it has room for.
 import { defineType, derived, effect, QtObject, slot } from "../../object.ts";
 import { Rect } from "../../QtQml/values.ts";
-import { lazy, sized } from "../compute.js";
+import { lazy, sized } from "../compute.ts";
 import { advance, describe, metrics } from "../font.js";
 import { TextEdit } from "../TextInput.js";
 import { methods, properties, resolve, setup, signals } from "./field.js";

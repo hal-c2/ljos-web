@@ -6,7 +6,7 @@
 import { onCleanup } from "solid-js";
 import { defineType, derived, effect, QtObject, slot, whenComplete } from "../object.ts";
 import { activeItem, forceActiveFocus, keyWindow, tab, whenOpened, windowOf } from "./focus.js";
-import { AltModifier, chord, chordMatches, chordText, ControlModifier, Key, keyOf, modifiersOf, ShiftModifier, textOf } from "./keycodes.js";
+import { AltModifier, chord, chordMatches, chordText, ControlModifier, Key, keyOf, modifiersOf, ShiftModifier, textOf } from "./keycodes.ts";
 import { untrack } from "#kernel";
 
 // The one event there is at a time: Qt's `KeyEvent`.

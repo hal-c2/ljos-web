@@ -2,7 +2,7 @@
 // transform function list, about its own origin; Item puts them together.
 import { defineType, group, QtObject } from "../object.ts";
 
-const about = (x, y, css) => (x || y ? `translate(${x}px,${y}px) ${css} translate(${-x}px,${-y}px)` : css);
+const about = (x: number, y: number, css: string): string => (x || y ? `translate(${x}px,${y}px) ${css} translate(${-x}px,${-y}px)` : css);
 
 export const Rotation = defineType("Rotation", QtObject, {
   properties: {

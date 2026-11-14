@@ -3,10 +3,12 @@
 import { createSignal, getObserver, runWithOwner } from "solid-js";
 import { version, WASM } from "#kernel";
 import { looped, slot } from "../object.ts";
+import type { Bound, QObject } from "../object.ts";
+import type { Anchored } from "./compute.ts";
 
 const WRITABLE = { ownedWrite: true };
-const next = (version) => version + 1;
-const whole = (result) => result;
+const next = (version: number): number => version + 1;
+const whole = <T>(result: T): T => result;
 
 // What an object works out from its children, which one of them may ask for
 // while it is being worked out: `width: parent.width` in a Column that is as
@@ -16,8 +18,19 @@ const whole = (result) => result;
 //
 // `part` is what of the result an early reader sees, for a result that is
 // more than that: a layout's sizes, of everything it measured.
-export class Settling {
-  constructor(self, compute, initial, part = whole) {
+export class Settling<S extends QObject, R, P = R> {
+  declare self: S;
+  declare compute: (self: S, last: R) => R;
+  declare part: (result: R) => P;
+  declare last: R;
+  declare told: P;
+  declare running: boolean;
+  declare memo: Bound<R> | null;
+  declare readers: WeakSet<object> | null;
+  declare track: (() => void) | null;
+  declare bump: ((next: (version: number) => number) => unknown) | null;
+
+  constructor(self: S, compute: (self: S, last: R) => R, initial: R, part: (result: R) => P = whole as (result: R) => P) {
     this.self = self;
     this.compute = compute;
     this.part = part;
@@ -32,7 +45,7 @@ export class Settling {
 
   // Whether what is reading now reads from inside the computation, as it
   // does every time once it has.
-  early() {
+  early(): boolean {
     // On the wasm kernel the graph's own reader is not Solid's observer:
     // whoever reads while it runs follows the result, and is run again
     // when there is a new one.
@@ -52,7 +65,7 @@ export class Settling {
     return true;
   }
 
-  read() {
+  read(): R {
     if (this.early()) return this.last;
     this.memo ??= looped(this.self.$owner, () => {
       this.running = true;
@@ -68,7 +81,7 @@ export class Settling {
 
   // From an effect's apply, when the result was used: those who read it
   // early are told of a new one.
-  settle() {
+  settle(): void {
     const result = this.part(this.last);
     if (this.told === result) return;
     this.told = result;
@@ -79,8 +92,9 @@ export class Settling {
 // What a property was assigned, bound or given, under what was placed over
 // it: a Column moves an item from the `x` it has, a layout prefers the
 // `width` it was declared with. Undefined when nothing set it.
-export function given(item, name) {
-  const property = slot(item, name);
+export function given(item: QObject, name: string): unknown {
+  // Every property an item is asked for here is one it has.
+  const property = slot(item, name)!;
   property.explicit();
   if (property.assigned) return property.value;
   return property.bound ? property.bound() : property.given;
@@ -88,16 +102,16 @@ export function given(item, name) {
 
 // Whether the item itself is visible. One that an ancestor hides keeps its
 // place, as in Qt: only its own `visible` takes it out.
-export function shown(item) {
-  const visible = slot(item, "visible");
+export function shown(item: QObject): boolean {
+  const visible = slot(item, "visible")!;
   visible.explicit();
   return Boolean(visible.own());
 }
 
 // Whether a size is one the item was given, by itself, by its anchors or by
 // what places it, rather than its implicit one. Qt's `widthValid`.
-export function sized(item, name) {
-  const size = slot(item, name);
+export function sized(item: Anchored, name: string): boolean {
+  const size = slot(item, name)!;
   if (size.explicit() || size.placed !== undefined) return true;
   const anchors = item.anchors;
   if (anchors.fill) return true;
@@ -106,13 +120,13 @@ export function sized(item, name) {
 
 // Hides an item and what is in it without touching `visible`, which stays
 // what its QML says. Qt culls what a positioner leaves out the same way.
-export function cull(item, culled) {
+export function cull(item: QObject & { $culled?: boolean }, culled: boolean): void {
   if (Boolean(item.$culled) === culled) return;
   item.$culled = culled;
-  item.$node.style.visibility = culled ? "hidden" : "";
+  item.$node!.style.visibility = culled ? "hidden" : "";
 }
 
-export function alike(a, b) {
+export function alike(a: ArrayLike<unknown>, b: ArrayLike<unknown>): boolean {
   if (a.length !== b.length) return false;
   for (let index = 0; index < a.length; index++) if (a[index] !== b[index]) return false;
   return true;

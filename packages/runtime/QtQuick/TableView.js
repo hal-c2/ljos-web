@@ -18,9 +18,9 @@ import { changed, depend, make, resized, SAME, Table } from "./cells.js";
 import { Flickable } from "./Flickable.js";
 import { forceActiveFocus } from "./focus.js";
 import { TapHandler } from "./handlers.js";
-import { ControlModifier } from "./keycodes.js";
+import { ControlModifier } from "./keycodes.ts";
 import { modelIndex, touch, track } from "./model.js";
-import { cull } from "./placing.js";
+import { cull } from "./placing.ts";
 import { signal, untrack } from "#kernel";
 
 const next = (version) => version + 1;

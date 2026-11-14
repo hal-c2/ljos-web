@@ -32,7 +32,7 @@ import { Quaternion, Vector2d, Vector3d, Vector4d } from "../../QtQml/values.ts"
 import { contents, defineType, derived, effect, flush, gather, group, inside, located, QtObject, whenComplete } from "../../object.ts";
 import { curve } from "../animation/easing.js";
 import { Property } from "../animation/property.js";
-import { lazy } from "../compute.js";
+import { lazy } from "../compute.ts";
 import { kindOf, NOTHING } from "./between.js";
 import { keyframes as stored, sort } from "./keyframes.js";
 import { signal, untrack } from "#kernel";

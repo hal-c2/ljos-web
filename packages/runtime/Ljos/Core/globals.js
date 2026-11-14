@@ -7,7 +7,7 @@ import { application, inputMethod, styleHints } from "../../QtQml/application.ts
 import { Locale as Formats, locale } from "../../QtQml/locale.ts";
 import { settle } from "../../object.ts";
 import { Qt } from "../../QtQml/Qt.ts";
-import { hsla as hslaOf, hsva as hsvaOf, rgba as rgbaOf } from "../../QtQuick/color.js";
+import { hsla as hslaOf, hsva as hsvaOf, rgba as rgbaOf } from "../../QtQuick/color.ts";
 
 export const point = (...args) => Qt.point(...args);
 export const size = (...args) => Qt.size(...args);

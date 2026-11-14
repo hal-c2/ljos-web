@@ -1,7 +1,7 @@
 // Whether the page may make sound. A browser refuses it until the user has
 // done something with the page, unless it was told otherwise; it does not
 // say which, so the first to ask plays a moment of silence to find out.
-import { atNextGesture } from "../QtQuick/activation.js";
+import { atNextGesture } from "../QtQuick/activation.ts";
 
 // A WAV of eight silent samples.
 const SILENCE = "data:audio/wav;base64,UklGRiwAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQgAAACAgICAgICAgA==";

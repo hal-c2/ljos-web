@@ -13,8 +13,8 @@ import { onCleanup } from "solid-js";
 import { Rect, Size } from "../QtQml/values.ts";
 import { defineType, derived, effect, settle, slot } from "../object.ts";
 import { clock } from "./animation/clock.js";
-import { css } from "./color.js";
-import { rules } from "./compute.js";
+import { css } from "./color.ts";
+import { rules } from "./compute.ts";
 import { Item } from "./Item.js";
 
 rules(".qq-canvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; }");

@@ -8,8 +8,8 @@
 // again when something they are placed by changes.
 import { defineType, derived, effect, instantiate, slot } from "../object.ts";
 import { box, draw, svg } from "../QtCharts/plot.js";
-import { color, css, equal } from "../QtQuick/color.js";
-import { lazy, rules } from "../QtQuick/compute.js";
+import { color, css, equal } from "../QtQuick/color.ts";
+import { lazy, rules } from "../QtQuick/compute.ts";
 import { Item } from "../QtQuick/Item.js";
 import { Rectangle } from "../QtQuick/Rectangle.js";
 import { Text } from "../QtQuick/Text.js";

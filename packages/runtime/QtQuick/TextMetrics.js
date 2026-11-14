@@ -1,7 +1,7 @@
 // TextMetrics, FontMetrics: how big a string is in a font, for whoever lays
 // something out around it.
 import { $string, defineType, derived, QtObject } from "../object.ts";
-import { lazy } from "./compute.js";
+import { lazy } from "./compute.ts";
 import { advance, describe, elided, font, fonts, inked, letters, metrics } from "./font.js";
 
 // The font's own box around the string: from its ascent to its descent.

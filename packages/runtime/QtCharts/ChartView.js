@@ -7,8 +7,8 @@
 // effect each draws them again when something they are drawn from changes.
 import { runWithOwner } from "solid-js";
 import { defineType, derived, effect, group, onChange, QtObject, slot, whenComplete } from "../object.ts";
-import { colorValue, css } from "../QtQuick/color.js";
-import { lazy, rules } from "../QtQuick/compute.js";
+import { colorValue, css } from "../QtQuick/color.ts";
+import { lazy, rules } from "../QtQuick/compute.ts";
 import { describe, fonts, metrics } from "../QtQuick/font.js";
 import { Item } from "../QtQuick/Item.js";
 import { Rect } from "../QtQml/values.ts";

@@ -7,9 +7,9 @@
 import { onCleanup } from "solid-js";
 import { defineType, derived, effect, inside, instantiate, QtObject, slot } from "../../object.ts";
 import { Item } from "../Item.js";
-import { LeftButton } from "../keycodes.js";
+import { LeftButton } from "../keycodes.ts";
 import { CancelGrabExclusive, cursorOf, gone, hoverable, receive, UngrabExclusive } from "../pointer.js";
-import { settle } from "../settle.js";
+import { settle } from "../settle.ts";
 import { containerOf, Container } from "./Container.js";
 import { drive, driven, reads } from "./driven.js";
 import { signal, untrack } from "#kernel";

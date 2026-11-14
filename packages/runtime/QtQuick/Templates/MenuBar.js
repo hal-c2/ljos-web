@@ -5,7 +5,7 @@
 // items are, and what the bar's delegate makes for each Menu declared in it.
 import { defineType, effect, inside, instantiate, settle, slot } from "../../object.ts";
 import { forceActiveFocus, OtherFocusReason, setFocus } from "../focus.js";
-import { Key, LeftButton } from "../keycodes.js";
+import { Key, LeftButton } from "../keycodes.ts";
 import { Shortcut } from "../Keys.js";
 import { AbstractButton } from "./AbstractButton.js";
 import { Container } from "./Container.js";

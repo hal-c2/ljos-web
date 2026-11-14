@@ -9,7 +9,7 @@
 import { onCleanup } from "solid-js";
 import { defineType, effect, QtObject, slot } from "../object.ts";
 import { AbstractListModel, modelIndex } from "./model.js";
-import { settle } from "./settle.js";
+import { settle } from "./settle.ts";
 import { signal, untrack } from "#kernel";
 
 const next = (version) => version + 1;

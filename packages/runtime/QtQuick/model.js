@@ -8,7 +8,7 @@
 // never to start again: the delegate of a row lives as long as the row does.
 import { runWithOwner } from "solid-js";
 import { contents, defineType, derived, inside, instantiate, QtObject, slot } from "../object.ts";
-import { settle } from "./settle.js";
+import { settle } from "./settle.ts";
 import { followed, signal, untrack } from "#kernel";
 
 const next = (version) => version + 1;

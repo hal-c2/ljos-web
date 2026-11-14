@@ -3,8 +3,8 @@
 // as it is: it is parsed apart from it, and the elements Qt knows are built
 // again with nothing in them that loads a script or leaves the page.
 import { shellShown } from "../guard.js";
-import { css } from "./color.js";
-import { rules } from "./compute.js";
+import { css } from "./color.ts";
+import { rules } from "./compute.ts";
 import { dress, fonts, metrics, resized } from "./font.js";
 import { flush } from "../object.ts";
 import { signal, untrack } from "#kernel";

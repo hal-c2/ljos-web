@@ -7,8 +7,8 @@
 // neighbours); who they are sent to is decided in pointer.js.
 import { onCleanup } from "solid-js";
 import { defineType, derived, effect, group, QtObject, settle, slot } from "../object.ts";
-import { itemToScene, origin, sceneToItem } from "./geometry.js";
-import { KeyboardModifierMask, LeftButton, NoButton } from "./keycodes.js";
+import { itemToScene, origin, sceneToItem } from "./geometry.ts";
+import { KeyboardModifierMask, LeftButton, NoButton } from "./keycodes.ts";
 import {
   after,
   cancel,

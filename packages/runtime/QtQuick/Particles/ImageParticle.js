@@ -12,8 +12,8 @@
 // draws them (see glow.js), where the browser can.
 import { sourced } from "../../guard.js";
 import { defineType, effect, settle, slot } from "../../object.ts";
-import { colorValue } from "../color.js";
-import { rules } from "../compute.js";
+import { colorValue } from "../color.ts";
+import { rules } from "../compute.ts";
 import { between, ORIGINS, outermost } from "./geometry.js";
 import { lights, lit, shine } from "./glow.js";
 import { ParticlePainter } from "./painter.js";

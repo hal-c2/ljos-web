@@ -3,7 +3,7 @@
 // where their bars are and what colours they have.
 import { onCleanup, runWithOwner } from "solid-js";
 import { contents, defineType, derived, effect, QtObject, settle, slot } from "../object.ts";
-import { color, colorValue } from "../QtQuick/color.js";
+import { color, colorValue } from "../QtQuick/color.ts";
 import { untrack } from "#kernel";
 
 const next = (version) => version + 1;

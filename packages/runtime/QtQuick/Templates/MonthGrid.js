@@ -7,7 +7,7 @@ import { onCleanup, runWithOwner } from "solid-js";
 import { defineType, derived, effect, last, settle, slot } from "../../object.ts";
 import { styleHints } from "../../QtQml/application.ts";
 import { Locale } from "../../QtQml/locale.ts";
-import { LeftButton } from "../keycodes.js";
+import { LeftButton } from "../keycodes.ts";
 import { AbstractListModel } from "../model.js";
 import { after, cancel } from "../pointer.js";
 import { day } from "./Calendar.js";

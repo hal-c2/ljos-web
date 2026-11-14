@@ -3,7 +3,7 @@
 // painted is what Qt's painter is told (`qquickfusionbusyindicator.cpp`,
 // `…dial.cpp`, `…knob.cpp`), said to a canvas.
 import { defineType } from "../../../../object.ts";
-import { colorValue } from "../../../color.js";
+import { colorValue } from "../../../color.ts";
 import { Item } from "../../../Item.js";
 import { arc, hiding, pictured } from "../../painting.js";
 import { darker, degrees, eight, hsv, lighter } from "../shades.js";
