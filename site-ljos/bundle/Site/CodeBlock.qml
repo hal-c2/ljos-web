@@ -37,6 +37,8 @@ Column {
     readonly property bool isLive: live !== null
     property int currentFile: 0
     property string said: ""
+    // What the running example asked for and does not have.
+    property string absent: ""
     property bool started: false
 
     width: parent ? parent.width : 640
@@ -70,7 +72,9 @@ Column {
     Component.onCompleted: {
         if (!isLive)
             return;
-        Live.setExample(live.hash, live.display, live.entry, live.harnessTemplate || "", live.harnessFile || "");
+        Live.setExample(live.hash, live.display, live.entry, live.harnessTemplate || "", live.harnessFile || "", function (lines) {
+            block.absent = lines;
+        });
         apply();
     }
 
@@ -313,9 +317,9 @@ Column {
 
         Text {
             id: told
-            visible: (block.said || stage.error) !== ""
+            visible: text !== ""
             width: parent.width
-            text: block.said || stage.error
+            text: [block.said || stage.error, block.absent].filter(function (line) { return line !== ""; }).join("\n")
             color: Theme.accent
             font.family: Theme.mono
             font.pixelSize: 12

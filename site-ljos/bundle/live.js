@@ -10,6 +10,11 @@
 // `ljos-web/codeblocks/parse` assembles them, harness spliced), and
 // ShellLoader.reload() after an edit resolves it again and carries
 // the running result's state across (A21, A13).
+//
+// Each example is a project of only its own files (`closed`), at a
+// root of its own: what it names by a relative address is among its
+// fences and its harness, and what it names and does not have is not
+// there, told to the block as lines it shows, never asked of a server.
 
 var examples = {};
 var compiler = null;
@@ -23,12 +28,16 @@ function diagnosticsFor(id, index) {
     return lists && lists[index] ? lists[index] : [];
 }
 
-function setExample(id, display, entry, harnessTemplate, harnessFile) {
+// `told(lines)`: what the running example asked for and does not have,
+// one line each, as it changes.
+function setExample(id, display, entry, harnessTemplate, harnessFile, told) {
     examples[id] = {
         display: display,
         entry: entry,
         harnessTemplate: harnessTemplate || undefined,
-        harnessFile: harnessFile || undefined
+        harnessFile: harnessFile || undefined,
+        told: told || function () {},
+        absent: []
     };
 }
 
@@ -58,8 +67,22 @@ async function moduleFor(id) {
     const compile = await compileWith();
     const parse = await import("ljos-web/codeblocks/parse");
     const files = parse.exampleFiles(example);
-    const made = await compile({ files: files.files, entry: files.entry });
+    const root = "ljos-example://" + id + "/";
+    const made = await compile({
+        files: files.files,
+        entry: files.entry,
+        base: root,
+        closed: true,
+        missing: function (name, url) {
+            example.absent = example.absent.concat([parse.notThereLine(example.display, root, name, url)]);
+            example.told(example.absent.join("\n"));
+        }
+    });
     said[id] = {};
+    if (!made.diagnostics && example.absent.length > 0) {
+        example.absent = [];
+        example.told("");
+    }
     if (made.diagnostics) {
         made.diagnostics.forEach(function (d) {
             const at = parse.displayPosition(example, d);
