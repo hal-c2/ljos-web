@@ -12,6 +12,11 @@ function near(actual, expected, path = "", within = 0.006) {
   } else expect(actual, path).toBe(expected);
 }
 
+// What these draw is folded from a picture of everything round the scene,
+// which takes software GL 15–26 s on four CPUs: past the test's 30 s on
+// CI's runner, which has no GPU. CI leaves them out by this tag.
+const SURROUNDINGS = { tag: "@surroundings" };
+
 test("a node in space is where Qt has it, and a camera sees it there", async ({ page }) => {
   await open(page, "node3d");
   near(await page.evaluate(() => window.scene.read()), {
@@ -392,7 +397,7 @@ test("a Repeater3D makes a node for every row, inside itself", async ({ page }) 
   expect(await page.evaluate(() => window.scene.swap())).toEqual({ count: 2, x: -100 });
 });
 
-test("a picture of everything round a scene is seen behind it", async ({ page }) => {
+test("a picture of everything round a scene is seen behind it", SURROUNDINGS, async ({ page }) => {
   await open(page, "sky3d");
   // Looking each of four ways: the corners of the view, and between them
   // and its middle, above the horizon, on it and below. The picture shows
@@ -492,7 +497,7 @@ test("a picture of everything round a scene is seen behind it", async ({ page })
   }
 });
 
-test("a picture that lights the scene is read by a material as the material says", async ({ page }) => {
+test("a picture that lights the scene is read by a material as the material says", SURROUNDINGS, async ({ page }) => {
   await open(page, "probemap3d");
   // The picture is repeated across, twice, and read from its nearest texel,
   // though the light it gives is folded from it read between texels and to
@@ -507,7 +512,7 @@ test("a picture that lights the scene is read by a material as the material says
   near(await painted(page, points), points.map(([, colour]) => colour), "read", 3);
 });
 
-test("a scene is lit by a picture of everything round it", async ({ page }) => {
+test("a scene is lit by a picture of everything round it", SURROUNDINGS, async ({ page }) => {
   await open(page, "probe3d");
   // Of each ball: its middle and four places off it. The cube the picture
   // is folded into is blurred by the same sums as Qt's, and read by another
@@ -667,7 +672,7 @@ test("a scene is lit by a picture of everything round it", async ({ page }) => {
   ]);
 });
 
-test("the sky QtQuick3D.Helpers makes is the one Qt makes", async ({ page }) => {
+test("the sky QtQuick3D.Helpers makes is the one Qt makes", SURROUNDINGS, async ({ page }) => {
   await open(page, "procedural3d");
   // Looking away, to the left, behind, at the sun, down and up: the view
   // all over, and down its middle, where the sky meets the ground.
@@ -919,7 +924,7 @@ test.describe("a picture with a depth", () => {
   });
 });
 
-test("a Radiance picture lights a scene and is drawn as Qt has it", async ({ page }) => {
+test("a Radiance picture lights a scene and is drawn as Qt has it", SURROUNDINGS, async ({ page }) => {
   await open(page, "hdr3d");
   const points = [
     // Behind: red and green above, each four times as bright as white and
@@ -1809,7 +1814,7 @@ test("a model mirrors what is round a ReflectionProbe, as Qt has it mirror", asy
 });
 
 // And here.
-test("a ReflectionProbe sees the scene as it is lit, and the nearest whose box a model is in is its probe", async ({ page }) => {
+test("a ReflectionProbe sees the scene as it is lit, and the nearest whose box a model is in is its probe", SURROUNDINGS, async ({ page }) => {
   await open(page, "mirrored3d");
   const mirror = [BROWN, RED, GREEN, BLUE, YELLOW, BLACK, BLACK, BEHIND];
   const points = spotted([
@@ -1881,7 +1886,7 @@ test("a vector's members are set one by one, and assigning it as one unbinds the
   }
 });
 
-test("with the surroundings behind them, the nearer of two shapes is over the further", async ({ page }) => {
+test("with the surroundings behind them, the nearer of two shapes is over the further", SURROUNDINGS, async ({ page }) => {
   await open(page, "behind3d");
   const points = [
     // The nearer square, both where they are, the further one, and the
