@@ -33,10 +33,12 @@ Rectangle {
     // The scroller a docs page lands its headings in is named as
     // the page is made, below; only a press in a browser asks it.
 
-    // A route of the site's, shown in place (Nav.follow): at `offset`
-    // when going back or forward to it, else at its fragment, else at
-    // the top, as a page the browser loads.
-    function show(to, fragment, offset) {
+    // A route of the site's, shown in place (Nav.follow), with its
+    // page's reading (null for the front page and the demos): at
+    // `offset` when going back or forward to it, else at its
+    // fragment, else at the top, as a page the browser loads.
+    function show(to, fragment, offset, reading) {
+        shell.page = reading;
         if (to !== shell.route)
             shell.route = to;
         if (typeof offset === "number") {
@@ -50,7 +52,11 @@ Rectangle {
     }
     Component.onCompleted: Nav.follow(Content.base, {
         title: (to) => Content.titles[to] === undefined ? null : Content.titles[to],
-        show: (to, fragment, offset) => shell.show(to, fragment, offset),
+        // A docs page's reading stands beside its HTML (the build's
+        // page.json); the front page and the demos need none.
+        reading: (to) => to === "/" || to === "/demos/" ? null : Nav.at(Content.base, to) + "page.json",
+        page: () => shell.page,
+        show: (to, fragment, offset, reading) => shell.show(to, fragment, offset, reading),
         offset: () => pageScroll.contentY
     })
 

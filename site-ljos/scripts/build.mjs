@@ -459,6 +459,11 @@ const notFound = `<!doctype html>
 `;
 writeFileSync(join(out, "404.html"), notFound);
 
+// Each docs page's reading, beside its HTML: what a shell already
+// running reads to show that page in place (bundle/nav.js), the same
+// data the page's own HTML was made with.
+site.pages.forEach((page, i) => writeFileSync(join(out, page.route.slice(1), "page.json"), JSON.stringify(slim[i])));
+
 // The brand files a browser asks for by name are the site's, whichever
 // builder wrote the pages.
 for (const name of ["favicon.svg", "apple-touch-icon.png", "og-image.png"]) {

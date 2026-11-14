@@ -50,9 +50,37 @@ function titleOf(route) {
 
 // The shell, standing in a browser, says how it shows a route:
 // `title(route)` names its page, or gives null for one it has none
-// for; `show(route, fragment, offset)` shows it, scrolled to `offset`
-// when one is given, else to the fragment, else to the top; and
-// `offset()` is how far down the page shown is scrolled.
+// for; `reading(route)` is the address of what that page reads, or
+// null for a page that reads nothing; `page()` is what the page shown
+// now read; `show(route, fragment, offset, reading)` shows a route
+// with its reading, scrolled to `offset` when one is given, else to
+// the fragment, else to the top; and `offset()` is how far down the
+// page shown is scrolled.
+//
+// Each page's HTML holds its own reading and no other page's, so a
+// page shown in place is read from the server first, once; a page
+// whose reading cannot be had is loaded as any page is.
+var readings = {};
+// The last way the reader asked to go: an answer for an earlier one,
+// come late, shows nothing.
+var asked = 0;
+
+function readingOf(route) {
+    var address = shell.reading(route);
+    if (address === null)
+        return Promise.resolve(null);
+    if (!(address in readings)) {
+        readings[address] = globalThis.fetch(address).then(function (response) {
+            if (!response.ok)
+                throw new Error(address + ": " + response.status);
+            return response.json();
+        });
+        readings[address].catch(function () {
+            delete readings[address];
+        });
+    }
+    return readings[address];
+}
 //
 // Back and forward come to a page where the reader left it, as with
 // the browser's own pages. Each entry of the history the shell shows
@@ -79,6 +107,10 @@ function follow(base, given) {
     entry = state && state.entry ? state.entry : named();
     if (!state || state.entry !== entry)
         history.replaceState({ entry: entry, offset: state && typeof state.offset === "number" ? state.offset : 0 }, "");
+    var here = routeOf(new URL(globalThis.location.href));
+    var address = here === null ? null : shell.reading(here);
+    if (address !== null && shell.page())
+        readings[address] = Promise.resolve(shell.page());
     globalThis.addEventListener("popstate", function (event) {
         var location = globalThis.location;
         var route = routeOf(new URL(location.href));
@@ -91,13 +123,26 @@ function follow(base, given) {
         var state = event.state;
         entry = state && state.entry ? state.entry : named();
         var offset = entry in offsets ? offsets[entry] : state && typeof state.offset === "number" ? state.offset : null;
-        shell.show(route, location.hash, offset);
-        globalThis.document.title = title;
+        var hash = location.hash;
+        var mine = ++asked;
+        readingOf(route).then(
+            function (reading) {
+                if (mine !== asked)
+                    return;
+                shell.show(route, hash, offset, reading);
+                globalThis.document.title = title;
+            },
+            function () {
+                if (mine === asked)
+                    location.reload();
+            },
+        );
     });
 }
 
-// Go to an address, as `at` writes it (the base already in it): its
-// entry is pushed first, the page shown after, as on going back.
+// Go to an address, as `at` writes it (the base already in it): once
+// its page's reading is had, its entry is pushed first and the page
+// shown after, as on going back.
 function go(address) {
     var location = globalThis.location;
     var url = new URL(address, location.href);
@@ -107,14 +152,25 @@ function go(address) {
         location.href = url.href;
         return;
     }
-    var history = globalThis.history;
-    var offset = shell.offset();
-    offsets[entry] = offset;
-    history.replaceState({ entry: entry, offset: offset }, "");
-    if (url.href !== location.href) {
-        entry = named();
-        history.pushState({ entry: entry }, "", url.href);
-    }
-    shell.show(route, url.hash, null);
-    globalThis.document.title = title;
+    var mine = ++asked;
+    readingOf(route).then(
+        function (reading) {
+            if (mine !== asked)
+                return;
+            var history = globalThis.history;
+            var offset = shell.offset();
+            offsets[entry] = offset;
+            history.replaceState({ entry: entry, offset: offset }, "");
+            if (url.href !== location.href) {
+                entry = named();
+                history.pushState({ entry: entry }, "", url.href);
+            }
+            shell.show(route, url.hash, null, reading);
+            globalThis.document.title = title;
+        },
+        function () {
+            if (mine === asked)
+                location.href = url.href;
+        },
+    );
 }

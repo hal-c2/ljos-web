@@ -48,7 +48,10 @@ Feature: The site's links are the page's own links
     When they press "Docs" in the header
     Then the address is the docs' first page and its title is the tab's
     And the page was not loaded again
-    When they go back
+    When they press a link to another docs page
+    Then that page is shown, read from the reading the build wrote beside its HTML
+    And the page was still not loaded again
+    When they go back twice
     Then the front page is shown, and the page was still not loaded again
 
   Scenario: With script, back comes to where the reader was on the page

@@ -76,6 +76,16 @@ test(`every page names its icon at ${base}, and the build wrote it`, () => {
   expect(existsSync(join(dist, "favicon.svg"))).toBe(true);
 });
 
+test("every docs page's reading stands beside its HTML, for a shell that shows it in place", () => {
+  const docs = pages.filter(({ at }) => at !== base && at !== `${base}demos/`);
+  expect(docs.length).toBeGreaterThan(50);
+  const unread = docs.filter(({ file, at }) => {
+    const reading = join(dirname(file), "page.json");
+    return !existsSync(reading) || `${base}${JSON.parse(readFileSync(reading, "utf8")).route.slice(1)}` !== at;
+  });
+  expect(unread.map(({ at }) => at)).toEqual([]);
+});
+
 test("every link of every page goes to a page the build wrote", () => {
   const broken = [];
   let followed = 0;
@@ -151,6 +161,10 @@ test("with script, a plain press shows the page in place, and back shows the one
   await expect(page.getByRole("link", { name: /^Next: / })).toBeAttached();
   await press(page, page.getByRole("link", { name: "Your first app" }).first());
   await expect(page).toHaveURL(`${origin}${base}start/first-app/`);
+  // The page shown is the one pressed, read from beside its HTML: it
+  // leads back where that page's own HTML does.
+  const before = pages.find(({ at }) => at === `${base}start/first-app/`).links.find(({ name }) => name.startsWith("Previous: "));
+  await expect(page.getByRole("link", { name: before.name, exact: true })).toHaveAttribute("href", before.href);
   expect(await page.evaluate(() => globalThis.stillHere)).toBe(true);
   await page.goBack();
   await expect(page).toHaveURL(`${origin}${base}start/`);
