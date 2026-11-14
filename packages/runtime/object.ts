@@ -707,16 +707,28 @@ function guarded(key: string, compute: () => unknown, pure = true, self?: QObjec
   return guard;
 }
 
+// Where what is made apart from the computation that asks for it is held: an
+// owner that never ends and so never ends it. The graph evaluates as a write
+// reaches it, and a layout writes where its items go in an effect's
+// callback, where Solid's development build refuses a root with no owner at
+// all. Ended, a root is taken off its owner, so nothing piles up here.
+const PARKED: Owner | null = runWithOwner(null, () => createRoot(() => getOwner())) ?? null;
+
 // The objects a property is given (`background: Rectangle {}`) are made once,
 // by a binding that reads nothing. Solid would still evaluate it again: what
 // is made reads, outside a flush, values written since the last one, and
 // whatever computation that happens under is run again by the flush that
 // carries them. So they are made under an owner of their own, which is no
 // computation, and end when the binding does.
+//
+// That owner is held under `PARKED`, not under none: a binding first taken in
+// an effect's callback (a Loader's item made once the page is up) is first
+// evaluated there, where Solid's development build refuses a root with no
+// owner at all.
 export function apart<T>(make: () => T): () => T {
   return () => {
     const owner = getOwner();
-    return runWithOwner(null, () =>
+    return runWithOwner(owner ? PARKED : null, () =>
       createRoot((dispose) => {
         if (owner) runWithOwner(owner, () => onCleanup(dispose));
         return make();
@@ -752,13 +764,6 @@ export function looped<T>(owner: Owner | null, compute: () => T, first?: T): Bou
 export function bound<T>(owner: Owner | null, compute: () => T, first?: T): Bound<T> {
   return ringed(owner, compute, first, true);
 }
-
-// Where what an evaluation of the graph's makes is held: an owner that never
-// ends and so never ends it. The graph evaluates as a write reaches it, and
-// a layout writes where its items go in an effect's callback, where Solid's
-// development build refuses a root with no owner at all. Ended, a root is
-// taken off its owner, so nothing piles up here.
-const PARKED: Owner | null = WASM ? (runWithOwner(null, () => createRoot(() => getOwner())) ?? null) : null;
 
 // A binding on the wasm kernel's graph, which decides when it is out of
 // date and where a loop ends: one that asks for its own value while it is

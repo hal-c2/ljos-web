@@ -12,6 +12,11 @@ function near(actual, expected, path = "", within = 0.006) {
   } else expect(actual, path).toBe(expected);
 }
 
+// What these draw is folded from a picture of everything round the scene,
+// which takes software GL 15–26 s on four CPUs: past the test's 30 s on
+// CI's runner, which has no GPU. CI leaves them out by this tag.
+const SURROUNDINGS = { tag: "@surroundings" };
+
 test("a node in space is where Qt has it, and a camera sees it there", async ({ page }) => {
   await open(page, "node3d");
   near(await page.evaluate(() => window.scene.read()), {
@@ -392,7 +397,7 @@ test("a Repeater3D makes a node for every row, inside itself", async ({ page }) 
   expect(await page.evaluate(() => window.scene.swap())).toEqual({ count: 2, x: -100 });
 });
 
-test("a picture of everything round a scene is seen behind it", async ({ page }) => {
+test("a picture of everything round a scene is seen behind it", SURROUNDINGS, async ({ page }) => {
   await open(page, "sky3d");
   // Looking each of four ways: the corners of the view, and between them
   // and its middle, above the horizon, on it and below. The picture shows
@@ -492,7 +497,7 @@ test("a picture of everything round a scene is seen behind it", async ({ page })
   }
 });
 
-test("a picture that lights the scene is read by a material as the material says", async ({ page }) => {
+test("a picture that lights the scene is read by a material as the material says", SURROUNDINGS, async ({ page }) => {
   await open(page, "probemap3d");
   // The picture is repeated across, twice, and read from its nearest texel,
   // though the light it gives is folded from it read between texels and to
@@ -507,7 +512,7 @@ test("a picture that lights the scene is read by a material as the material says
   near(await painted(page, points), points.map(([, colour]) => colour), "read", 3);
 });
 
-test("a scene is lit by a picture of everything round it", async ({ page }) => {
+test("a scene is lit by a picture of everything round it", SURROUNDINGS, async ({ page }) => {
   await open(page, "probe3d");
   // Of each ball: its middle and four places off it. The cube the picture
   // is folded into is blurred by the same sums as Qt's, and read by another
@@ -667,7 +672,7 @@ test("a scene is lit by a picture of everything round it", async ({ page }) => {
   ]);
 });
 
-test("the sky QtQuick3D.Helpers makes is the one Qt makes", async ({ page }) => {
+test("the sky QtQuick3D.Helpers makes is the one Qt makes", SURROUNDINGS, async ({ page }) => {
   await open(page, "procedural3d");
   // Looking away, to the left, behind, at the sun, down and up: the view
   // all over, and down its middle, where the sky meets the ground.
@@ -919,7 +924,7 @@ test.describe("a picture with a depth", () => {
   });
 });
 
-test("a Radiance picture lights a scene and is drawn as Qt has it", async ({ page }) => {
+test("a Radiance picture lights a scene and is drawn as Qt has it", SURROUNDINGS, async ({ page }) => {
   await open(page, "hdr3d");
   const points = [
     // Behind: red and green above, each four times as bright as white and
@@ -1021,7 +1026,11 @@ test("a Targa file is a picture, by the rows it says it begins with and by runs"
   const dark = [60, 60, 60];
   const at = [...quarters(80), ...quarters(200), ...quarters(320)];
   const wanted = [red, green, blue, grey, red, green, blue, grey, dark, dark, blue, grey];
-  near(await painted(page, at.map((point) => [point])), wanted, "", 3);
+  // Every quarter read, and how often the view drew: a sheet upside down
+  // and one not drawn yet fail the same first channel.
+  const got = await painted(page, at.map((point, index) => [point, wanted[index]]));
+  const frames = await page.evaluate(() => document.querySelector(".qq-view3d").$view3d.frames);
+  near(got, wanted, `${JSON.stringify(got)} in ${frames} frames `, 3);
 });
 
 test("a material's gl_FragCoord is where its fragment is, on the view and in depth", async ({ page }) => {
@@ -1805,7 +1814,7 @@ test("a model mirrors what is round a ReflectionProbe, as Qt has it mirror", asy
 });
 
 // And here.
-test("a ReflectionProbe sees the scene as it is lit, and the nearest whose box a model is in is its probe", async ({ page }) => {
+test("a ReflectionProbe sees the scene as it is lit, and the nearest whose box a model is in is its probe", SURROUNDINGS, async ({ page }) => {
   await open(page, "mirrored3d");
   const mirror = [BROWN, RED, GREEN, BLUE, YELLOW, BLACK, BLACK, BEHIND];
   const points = spotted([
@@ -1877,7 +1886,7 @@ test("a vector's members are set one by one, and assigning it as one unbinds the
   }
 });
 
-test("with the surroundings behind them, the nearer of two shapes is over the further", async ({ page }) => {
+test("with the surroundings behind them, the nearer of two shapes is over the further", SURROUNDINGS, async ({ page }) => {
   await open(page, "behind3d");
   const points = [
     // The nearer square, both where they are, the further one, and the
@@ -2470,4 +2479,49 @@ test("a View3D says how fast it draws", async ({ page }) => {
 test("a CustomMaterial's max and min are as GLSL says they are, of what is no number too", async ({ page }) => {
   await open(page, "undefinedmax3d");
   await expect.poll(async () => (await pixels(page, [[50, 50]]))[0]).toBe("255 255 255");
+});
+
+test("a View3D a Loader makes once the page is up draws, and so does what a Repeater3D in it adds", async ({ page }) => {
+  await open(page, "late3d");
+  const red = [255, 0, 0];
+  const none = [32, 32, 32];
+  await page.evaluate(() => {
+    window.objects.loader.active = true;
+    window.flush();
+  });
+  await expect.poll(() => page.evaluate(() => document.querySelector(".qq-view3d")?.$view3d?.frames ?? 0)).toBeGreaterThan(0);
+  near(await painted(page, [[[40, 150], red], [[120, 150], red], [[360, 150], none]]), [red, red, none], "", 3);
+  await page.evaluate(() => {
+    window.objects.shown = 5;
+    window.flush();
+  });
+  near(await painted(page, [[[40, 150], red], [[360, 150], red]]), [red, red], "", 3);
+});
+
+// Each draw of one is a new picture for the other: they go round once an
+// animation frame, and the page paints, where in microtasks they would go
+// round without end.
+test("two views that show each other's picture draw once a frame, each showing the other", async ({ page }) => {
+  await open(page, "wgpu_mutual");
+  const { frames, drawn } = await page.evaluate(
+    () =>
+      new Promise((done) => {
+        const views = [...document.querySelectorAll(".qq-view3d")].map((canvas) => canvas.$view3d);
+        const draws = () => views.reduce((all, view) => all + view.frames, 0);
+        const from = draws();
+        const start = performance.now();
+        let frames = 0;
+        const tick = () => {
+          frames++;
+          if (performance.now() - start < 500) requestAnimationFrame(tick);
+          else done({ frames, drawn: draws() - from });
+        };
+        requestAnimationFrame(tick);
+      }),
+  );
+  expect(frames).toBeGreaterThan(10);
+  expect(drawn).toBeGreaterThan(0);
+  expect(drawn, `${drawn} drawn in ${frames} animation frames`).toBeLessThanOrEqual(2 * (frames + 1));
+  // Each square shows the other view, its clear colour at the corners.
+  near(await painted(page, [[[55, 105], [0, 0, 0x40]], [[255, 105], [0x40, 0, 0]]]), [[0, 0, 0x40], [0x40, 0, 0]], "", 3);
 });

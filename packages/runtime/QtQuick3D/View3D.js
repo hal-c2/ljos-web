@@ -22,7 +22,7 @@ import { inside, Node } from "./Node.js";
 import { met } from "./pick.js";
 import { draw } from "./render.js";
 import { SceneEnvironment } from "./scene.js";
-import { drawOn, renderer } from "./wgpu.js";
+import { drawOn, gave, gaveNow, renderer } from "./wgpu.js";
 import { signal, untrack } from "#kernel";
 import { getOwner, onCleanup } from "solid-js";
 
@@ -308,6 +308,18 @@ export const View3D = defineType("View3D", Item, {
     // (`drawOn`): `probe` is told of each sight taken ("sync") and each
     // picture drawn ("draw").
     const state = (canvas.$view3d = { renderer: "js", backend: "webgl2", frames: 0, builds: 0, error: null, probe: null });
+    // Drawn once what asked for it has settled, in the same task; one that
+    // gave its picture on in this task waits for the next frame, as the
+    // wgpu renderer's does (`gaveNow`).
+    let waiting = 0;
+    const soon = () => {
+      if (!gaveNow.has(state)) return void queueMicrotask(drawn);
+      waiting = requestAnimationFrame(() => {
+        waiting = 0;
+        drawn();
+      });
+    };
+    if (getOwner()) onCleanup(() => waiting && cancelAnimationFrame(waiting));
     const drawn = () => {
       const from = performance.now();
       // A timer may ring a little early.
@@ -316,7 +328,10 @@ export const View3D = defineType("View3D", Item, {
       due = null;
       draw(scene, canvas, paper, ways);
       last = scene;
-      if (ways) setTimes((times) => times + 1);
+      if (ways) {
+        gave(state);
+        setTimes((times) => times + 1);
+      }
       const ended = performance.now();
       frame(from, ended);
       state.frames++;
@@ -342,7 +357,7 @@ export const View3D = defineType("View3D", Item, {
       if (!(ways & way)) {
         ways |= way;
         if (!due && last) {
-          queueMicrotask(drawn);
+          soon();
           due = last;
         }
       }
@@ -365,7 +380,7 @@ export const View3D = defineType("View3D", Item, {
         // A camera maps to the view it was last seen through.
         first = seen.camera;
         if (seen.camera) Object.assign(seen.camera, { $width: seen.width, $height: seen.height });
-        if (!due) queueMicrotask(drawn);
+        if (!due) soon();
         due = { ...seen, camera: seen.eye };
       },
     );
