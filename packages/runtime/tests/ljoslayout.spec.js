@@ -7,8 +7,9 @@
 // `Align` and `Direction` for the numbers and a `TestCase` that logs
 // `dump()` after 100 ms, after hiding `fFiller`, showing it again,
 // turning `gBox`, then (`moved`) after `aaRow.big`, `abRow.told = false`
-// and moving `acA` to `acHome`, and (`measuredAgain`) after `aaRow.more`,
-// run by `ljos test` (ljos-ui c2443e15).
+// and moving `acA` to `acHome`, (`measuredAgain`) after `aaRow.more`,
+// and (`returned`) after `aeA` goes to `aeHome`, `aeRow.big` and `aeA`
+// comes back, run by `ljos test` (ljos-ui c2443e15).
 //
 // Each child is [x, y, width, height, implicitWidth, implicitHeight].
 import { readFileSync } from "node:fs";
@@ -121,4 +122,24 @@ test("a child moved out of its row keeps the width it was placed at", async ({ p
     window.flush();
   })(page);
   expect(pick(dumped, names)).toEqual(pick(ljos.moved, names));
+});
+
+test("a child that leaves a row it alone sized comes back asking for the width its file gives it then", async ({ page }) => {
+  await open(page, "ljoslayoutrule");
+  const names = ["aeRow", "aeA", "aeB"];
+  // Flushed between steps, so that the row packs as a line while `aeA` is
+  // away, as it does in ljos-ui.
+  await after(() => {
+    window.scene.aeAItem.parent = window.scene.aeHomeItem;
+    window.flush();
+  })(page);
+  await after(() => {
+    window.scene.aeRowItem.big = true;
+    window.flush();
+  })(page);
+  const dumped = await after(() => {
+    window.scene.aeAItem.parent = window.scene.aeRowItem;
+    window.flush();
+  })(page);
+  expect(pick(dumped, names)).toEqual(pick(ljos.returned, names));
 });

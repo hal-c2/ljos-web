@@ -17,6 +17,9 @@ Item {
     property alias abRowItem: abRow
     property alias acAItem: acA
     property alias acHomeItem: acHome
+    property alias aeRowItem: aeRow
+    property alias aeAItem: aeA
+    property alias aeHomeItem: aeHome
     width: 1000
     height: 2000
 
@@ -52,7 +55,8 @@ Item {
         aaRow, aaA, aaB, aaC,
         abRow, abA, abB,
         acRow, acA, acB,
-        adGrid, adA, adB
+        adGrid, adA, adB,
+        aeRow, aeA, aeB
     ]
 
     function dump() {
@@ -314,4 +318,15 @@ Item {
         Rectangle { id: adA; objectName: "adA"; Layout.columnSpan: 2; Layout.fillWidth: true; Layout.preferredWidth: 0; Layout.horizontalStretchFactor: 1; implicitHeight: 10 }
         Rectangle { id: adB; objectName: "adB"; Layout.columnSpan: 2; Layout.fillWidth: true; Layout.preferredWidth: 0; Layout.horizontalStretchFactor: 2; implicitHeight: 10 }
     }
+
+    // The only child with a Layout leaves, so the row packs as a line
+    // while it is away; it comes back asking for the width its file gives
+    // it then, not the one the row first saw.
+    Row {
+        id: aeRow; objectName: "aeRow"; y: 1640; width: 300; height: 30
+        property bool big: false
+        Rectangle { id: aeA; objectName: "aeA"; width: aeRow.big ? 200 : 100; height: 20; Layout.minimumWidth: 10 }
+        Rectangle { id: aeB; objectName: "aeB"; width: 40; height: 20 }
+    }
+    Item { id: aeHome; objectName: "aeHome"; y: 1680; width: 10; height: 10 }
 }
