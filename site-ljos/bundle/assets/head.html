@@ -21,6 +21,11 @@
      from whatever it is written on (a button's accent, too). */
   #app a:focus-visible { outline-color: currentColor; }
   ::selection { background: var(--ljos-code-selection); }
+  /* A code editor's text starts at its own edge, and the field clips
+     (or scrolls) code wider than it, so a ring of its own would cross
+     the first column or be cut off: the box around it draws the ring
+     (Site/CodeBlock.qml, Demos/PantryDemo.qml). */
+  #app .cm-editor.cm-focused { outline: none; }
   /* Not under #app alone: the runtime measures where markup wraps in a
      bench beside the app, which must set inline code the same way. */
   .qq-markup code:not(pre code) {

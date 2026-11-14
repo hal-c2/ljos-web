@@ -165,8 +165,9 @@ Column {
         width: parent.width
         height: 300
         color: Theme.codeBg
-        border.color: Theme.border
-        border.width: 1
+        // The ring of the editor in it, which scrolls (Site/CodeEditor).
+        border.color: editor.activeFocus ? Theme.focusRing : Theme.border
+        border.width: editor.activeFocus ? 2 : 1
 
         Flickable {
             anchors.fill: parent

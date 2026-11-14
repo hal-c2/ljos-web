@@ -40,6 +40,8 @@ Column {
     // What the running example asked for and does not have.
     property string absent: ""
     property bool started: false
+    // A reader is in one of the editors: its box says so.
+    property bool editing: false
 
     width: parent ? parent.width : 640
     spacing: 0
@@ -270,8 +272,8 @@ Column {
             width: parent.width
             height: editorBox.implicitHeight
             color: Theme.codeBg
-            border.color: Theme.divider
-            border.width: 1
+            border.color: block.editing ? Theme.focusRing : Theme.divider
+            border.width: block.editing ? 2 : 1
 
             Column {
                 id: editorBox
@@ -299,6 +301,7 @@ Column {
                         label: "Edit " + modelData.name
                         errors: told
                         onTextChanged: debounce.restart()
+                        onActiveFocusChanged: block.editing = activeFocus
                     }
                 }
             }

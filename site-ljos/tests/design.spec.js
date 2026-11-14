@@ -44,6 +44,8 @@ function pairs(tone) {
     all.push([`code ${tag}`, "code bg", colour, tone.code.bg, 4.5]);
   }
   all.push(["code fg", "code selection", tone.code.fg, tone.code.selection, 4.5]);
+  // A code editor's box rings it, against the code inside.
+  all.push(["focus", "code bg", tone.focus, tone.code.bg, 3]);
   return all;
 }
 
@@ -295,6 +297,82 @@ for (const viewport of [
       expect(await hint.count(), "not made in the first view").toBe(0);
       await heading.scrollIntoViewIfNeeded();
       await expect(hint.first()).toBeAttached({ timeout: 30_000 });
+    } finally {
+      await context.close();
+    }
+  });
+}
+
+// The editor shows where the reader is with one ring, around its box,
+// clear of the code: a ring around the text itself would cross the
+// first column.
+for (const [route, name, colorScheme, width] of [
+  ["/quality/color/", "Edit Main.qml", "light", 1440],
+  ["/quality/color/", "Edit Main.qml", "dark", 390],
+  ["/demos/", "Edit the Pantry's Shell.qml", "dark", 1440],
+  ["/demos/", "Edit the Pantry's Shell.qml", "light", 390],
+]) {
+  test(`${route}'s code editor's focus ring stands clear of its code at ${width} in ${colorScheme}`, async ({ browser }) => {
+    const context = await browser.newContext({ viewport: { width, height: 900 }, colorScheme });
+    try {
+      const page = await context.newPage();
+      await page.goto(route);
+      await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+      const field = page.getByRole("textbox", { name }).first();
+      // Wholly on screen, so only a box that clips its ring can cut it:
+      // the page scrolls, and the editor's own scroller stays at its top.
+      await field.evaluate((node) => {
+        let page = null;
+        for (let up = node.parentElement; up; up = up.parentElement) {
+          const overflow = getComputedStyle(up).overflowY;
+          if ((overflow === "auto" || overflow === "scroll") && up.scrollHeight > up.clientHeight) page = up;
+        }
+        page.scrollTop += node.getBoundingClientRect().top - 120;
+      });
+      // Near its first line: the middle of a long file is out of sight,
+      // and a click there would scroll the editor to it.
+      await field.click({ position: { x: 24, y: 12 } });
+      await page.waitForSelector(".cm-content:focus", { timeout: 30_000 });
+      // A ring is an outline, or a box's edge (a Rectangle's border, an
+      // inset shadow) in the focus colour.
+      const rings = await page.evaluate(() => {
+        const focus = getComputedStyle(document.documentElement).getPropertyValue("--ljos-focus").trim().toLowerCase();
+        const rgb = (hex) => `rgb(${[1, 3, 5].map((at) => parseInt(hex.slice(at, at + 2), 16)).join(", ")})`;
+        const content = document.querySelector(".cm-content:focus");
+        const line = document.createRange();
+        line.setStart(content.querySelector(".cm-line").firstChild, 0);
+        line.setEnd(content.querySelector(".cm-line").firstChild, 1);
+        const text = line.getBoundingClientRect();
+        const found = [];
+        for (let node = content; node && node !== document.body; node = node.parentElement) {
+          const style = getComputedStyle(node);
+          let inner, outer;
+          if (style.outlineStyle !== "none" && parseFloat(style.outlineWidth) > 0) {
+            inner = parseFloat(style.outlineOffset);
+            outer = inner + parseFloat(style.outlineWidth);
+          } else {
+            const edge = style.boxShadow.match(/^(rgb\([^)]*\)) 0px 0px 0px (\d+(?:\.\d+)?)px inset$/);
+            if (!edge || edge[1] !== rgb(focus)) continue;
+            inner = -parseFloat(edge[2]);
+            outer = 0;
+          }
+          const box = node.getBoundingClientRect();
+          // An ancestor that clips cuts the ring off where it reaches.
+          let clipped = null;
+          for (let up = node.parentElement; up && up !== document.body; up = up.parentElement) {
+            if (getComputedStyle(up).overflow === "visible") continue;
+            const edge = up.getBoundingClientRect();
+            if (box.left - outer < edge.left || box.top - outer < edge.top || box.right + outer > edge.right || box.bottom + outer > edge.bottom) clipped = String(up.className);
+          }
+          // How far inside the ring's inner edge the code starts.
+          found.push({ left: Math.round(text.left - (box.left - inner)), top: Math.round(text.top - (box.top - inner)), clipped });
+        }
+        return found;
+      });
+      expect(rings.length, "one ring").toBe(1);
+      expect(rings[0].left, "clear of the first column").toBeGreaterThanOrEqual(4);
+      expect(rings[0].top, "clear of the first line").toBeGreaterThanOrEqual(4);
+      expect(rings[0].clipped, "drawn whole").toBeNull();
     } finally {
       await context.close();
     }
