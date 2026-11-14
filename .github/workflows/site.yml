@@ -3,15 +3,17 @@ name: site
 on:
   # A pull request builds and tests, and never deploys. The paths are
   # everything the build reads: a file left out here is a merge that
-  # changes the site and never deploys it.
+  # changes the site and never deploys it. The freshness guard reads
+  # the same list from .github/scripts/site-paths.txt; a test holds
+  # the three equal.
   pull_request:
-    paths: ["site/**", "site-ljos/**", "packages/**", "crates/**", "vendor/**", "mise-tasks/**", "mise.toml", "Cargo.toml", "Cargo.lock", ".cargo/**", "pnpm-workspace.yaml", "pnpm-lock.yaml", "package.json", ".github/workflows/site.yml"]
+    paths: ["site/**", "site-ljos/**", "packages/**", "crates/**", "vendor/**", "mise-tasks/**", "mise.toml", "Cargo.toml", "Cargo.lock", ".cargo/**", "pnpm-workspace.yaml", "pnpm-lock.yaml", "package.json", ".github/workflows/site.yml", ".github/scripts/**"]
   # A merge to main is live: it deploys to the repository's Pages
   # custom domain (ljos.dev). The same paths as pull_request, so what
   # a pull request was held to is what deploys.
   push:
     branches: [main]
-    paths: ["site/**", "site-ljos/**", "packages/**", "crates/**", "vendor/**", "mise-tasks/**", "mise.toml", "Cargo.toml", "Cargo.lock", ".cargo/**", "pnpm-workspace.yaml", "pnpm-lock.yaml", "package.json", ".github/workflows/site.yml"]
+    paths: ["site/**", "site-ljos/**", "packages/**", "crates/**", "vendor/**", "mise-tasks/**", "mise.toml", "Cargo.toml", "Cargo.lock", ".cargo/**", "pnpm-workspace.yaml", "pnpm-lock.yaml", "package.json", ".github/workflows/site.yml", ".github/scripts/**"]
   workflow_dispatch:
     inputs:
       deploy:
@@ -22,6 +24,10 @@ on:
         description: "Build for the repository's Pages custom domain, at its root, and ship its CNAME (only once DNS and the domain are set; see site-ljos/README.md)"
         type: boolean
         default: false
+      rollback:
+        description: "Deploy an older commit of main on purpose, although a newer one has changed the site (dispatch from a branch at it; see site-ljos/README.md)"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -29,19 +35,33 @@ permissions:
 # A newer push supersedes a pull request's run. A deploying run (a push
 # to main in hal-c2/ljos-web, or a dispatch with deploy on) is never
 # cancelled once running, so a deploy it asked for is not lost. Every
-# deploying run on main shares one group, so they build and deploy in
-# the order they were made and an older commit never lands after a
-# newer one; a deploy still waiting is replaced by a newer one from
-# main, which is the deploy wanted anyway. A deploying dispatch from
-# another branch stands alone, so it never replaces a merge's waiting
-# deploy: it can only deploy the github.io preview, while Pages has no
-# custom domain (the pages step refuses anything else). A dispatch
-# that only builds stands alone too, and a fork's push to its main,
-# which never deploys, is superseded like a pull request. The group is
-# decided before any job runs, so it says "deploys" in the words the
-# build job's SITE_DEPLOYS says it in.
+# deploying run on main shares one group, so one at a time builds and
+# deploys. The group does not keep them in order: it holds one run
+# waiting, which a newer one to wait replaces (a re-run of an old run
+# included), and GitHub does not promise to start waiting runs in the
+# order they were made. What keeps an older commit from landing after
+# a newer one is the freshness guard (.github/scripts/fresh-head.sh):
+# right before upload, and again right before deploy-pages, it fails
+# the run when a commit since its own on its branch changes a path the
+# site is built from (site-paths.txt, the same list as the filters
+# above). A commit that changes none of them starts no run, so the
+# run's build is still the newest site and deploys. A dispatch with
+# rollback on passes it for a commit main holds, to put an older
+# commit of main live on purpose. A
+# re-run of an old run that replaced a newer waiting one fails the
+# guard, and the newer commit goes live with the next merge or a
+# dispatch from main.
+# A deploying dispatch from another branch stands alone, so it never
+# replaces a merge's waiting deploy: it can only deploy the github.io
+# preview, while Pages has no custom domain (the pages step refuses
+# anything else), unless it is a rollback to the custom domain, which
+# takes its turn among main's deploys. A dispatch that only builds
+# stands alone too, and a fork's push to its main, which never
+# deploys, is superseded like a pull request. The group is decided
+# before any job runs, so it says "deploys" in the words the build
+# job's SITE_DEPLOYS says it in.
 concurrency:
-  group: ${{ (github.ref == 'refs/heads/main' && ((github.event_name == 'push' && github.repository == 'hal-c2/ljos-web') || (github.event_name == 'workflow_dispatch' && inputs.deploy))) && 'site-deploy' || (github.event_name == 'workflow_dispatch' && format('site-dispatch-{0}', github.run_id) || format('site-{0}', github.ref)) }}
+  group: ${{ ((github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'hal-c2/ljos-web') || (github.event_name == 'workflow_dispatch' && inputs.deploy && (github.ref == 'refs/heads/main' || (inputs.rollback && inputs.custom_domain)))) && 'site-deploy' || (github.event_name == 'workflow_dispatch' && format('site-dispatch-{0}', github.run_id) || format('site-{0}', github.ref)) }}
   cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' && !(github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'hal-c2/ljos-web') }}
 
 env:
@@ -85,9 +105,20 @@ jobs:
           for demo in site/src/demos/*/ site-ljos/bundle; do
             ljos-ui/target/debug/ljos check --quiet "$demo"
           done
+  # The freshness guard and the decisions above, checked: the guard
+  # against a stubbed gh, and the workflow's expressions for every way
+  # a run can start. The deploy waits on it.
+  guard:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - run: bash .github/scripts/fresh-head.test.sh
+      - run: node --test .github/scripts/site-expressions.test.mjs
+      - run: node .github/scripts/site-expressions.test.mjs table >> "$GITHUB_STEP_SUMMARY"
   build:
     runs-on: ubuntu-24.04
     permissions:
+      # The checkout, and the freshness guard's read of its branch's head.
       contents: read
       # The deploy step reads the repository's Pages domain.
       pages: read
@@ -204,13 +235,16 @@ jobs:
       # disagrees with it fails instead of deploying: a merge, or a
       # dispatch with custom_domain, with no domain set; a preview
       # dispatch once one is. The CNAME names the setting, so a fork
-      # never claims ljos.dev.
+      # never claims ljos.dev. A rollback may deploy a branch's build
+      # to the domain: that is how an older commit goes live there,
+      # and the freshness guard holds it to a commit main holds.
       - name: The site Pages serves
         if: ${{ env.SITE_DEPLOYS == 'true' }}
         id: pages
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
+          ROLLBACK: ${{ github.event_name == 'workflow_dispatch' && inputs.rollback }}
         run: |
           # A 404 is a repository whose Pages is not set up yet: no domain.
           if domain=$(gh api "repos/$REPO/pages" --jq '.cname // ""' 2>"$RUNNER_TEMP/pages.err"); then
@@ -222,8 +256,8 @@ jobs:
             exit 1
           fi
           if [ "$SITE_CUSTOM_DOMAIN" = "true" ]; then
-            if [ "$GITHUB_REF" != "refs/heads/main" ]; then
-              echo "::error::only main deploys to the Pages custom domain, and this run is on $GITHUB_REF: dispatch from main, or deploy the github.io preview with custom_domain off"
+            if [ "$GITHUB_REF" != "refs/heads/main" ] && [ "$ROLLBACK" != "true" ]; then
+              echo "::error::only main deploys to the Pages custom domain, and this run is on $GITHUB_REF: dispatch from main, deploy the github.io preview with custom_domain off, or turn rollback on to put this branch's commit live on purpose"
               exit 1
             fi
             if [ -z "$domain" ]; then
@@ -240,26 +274,54 @@ jobs:
             dir="$RUNNER_TEMP/site-ljos-project"
           fi
           echo "dir=$dir" >> "$GITHUB_OUTPUT"
+      # As late as it can be before upload: a newer merge that changes
+      # the site may have landed while this run built.
+      - name: Still the head of its branch
+        if: ${{ env.SITE_DEPLOYS == 'true' }}
+        id: fresh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ROLLBACK: ${{ github.event_name == 'workflow_dispatch' && inputs.rollback }}
+        run: .github/scripts/fresh-head.sh
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         if: ${{ env.SITE_DEPLOYS == 'true' }}
         with:
           path: ${{ steps.pages.outputs.dir }}
   deploy:
     if: ${{ needs.build.outputs.deploy == 'true' }}
-    # Nothing is published that `ljos check` refused.
-    needs: [build, check]
+    # Nothing is published that `ljos check` refused, or while the
+    # freshness guard fails its own test.
+    needs: [build, check, guard]
     runs-on: ubuntu-24.04
-    # One deploy at a time, and one in flight is never cancelled; the
-    # workflow's own group already keeps deploying runs in order.
+    # One deploy at a time, and one in flight is never cancelled. A
+    # waiting one may be replaced here too; the freshness guard below
+    # is what keeps an older commit from landing after a newer one.
     concurrency:
       group: pages
       cancel-in-progress: false
     permissions:
+      # The freshness guard's checkout, and its branch's head.
+      contents: read
       pages: write
       id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+      # Again, right before deploy-pages: a newer merge that changes the
+      # site may have landed while this run waited its turn, or this
+      # re-runs only the deploy of an older run.
+      - name: Still the head of its branch
+        id: fresh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ROLLBACK: ${{ github.event_name == 'workflow_dispatch' && inputs.rollback }}
+        run: .github/scripts/fresh-head.sh
       - id: deployment
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
