@@ -16,6 +16,7 @@ import { allowedStyle } from "../guard.js";
 import { colorValue, css } from "./color.js";
 import { toScene } from "./geometry.js";
 import { Item } from "./Item.js";
+import { paletteOf } from "./Palette.js";
 import { signal, untrack } from "#kernel";
 
 const sheet = new CSSStyleSheet();
@@ -426,4 +427,13 @@ export const Window = defineType("Window", QtObject, {
     for (const child of made) content.$add(child);
   },
   attached: WindowAttached,
+});
+
+// `palette`: the one the items inside a window follow.
+Object.defineProperty(Window.proto, "palette", {
+  get() {
+    return paletteOf(this);
+  },
+  enumerable: true,
+  configurable: true,
 });

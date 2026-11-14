@@ -3,6 +3,22 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "sideEffects": [
+    "**/*.css",
+    "./QtQml/Qt.*",
+    "./QtQuick/Item.*",
+    "./QtQuick/style.*",
+    "./QtQuick/font.*",
+    "./QtQuick/Keys.*",
+    "./QtQuick/Flickable.*",
+    "./QtQuick/Window.*",
+    "./QtQuick/ShaderEffect.*",
+    "./QtQuick3D/View3D.*",
+    "./QtQuick/Controls/*/index.*",
+    "./Ljos/Blocks/shell-worker.*",
+    "./codeblocks/prerender-run.*",
+    "./files.*"
+  ],
   "bin": {
     "ljos-web": "./bin/ljos-web.js"
   },

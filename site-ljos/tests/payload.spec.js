@@ -40,6 +40,19 @@ test("no page's static first load holds the editor, the compiler, PhysX or sql.j
   expect(wasm).toEqual([]);
 });
 
+// The in-page compiler's table of modules, and the whole namespaces it
+// hands compiled QML (every type `QtQuick` has), come with a reader's
+// first edit: a page's own QML takes only the types it names.
+test("no page's first load holds the compiler's modules or a whole namespace", () => {
+  expect(reaching(["modules-", "QtQuick-"])).toEqual({});
+  // The whole namespace is a chunk of its own, fetched later: folded
+  // back into a page's first chunk, it would not be named and the line
+  // above would pass with it there.
+  const later = new Set(report.flatMap(({ later }) => later.files.map((entry) => entry.file)));
+  expect([...later].some((file) => named(file, "QtQuick-")), "a QtQuick-* chunk the compiler's modules fetch").toBe(true);
+  expect([...later].some((file) => named(file, "modules-")), "a modules-* chunk").toBe(true);
+});
+
 // A docs page's reading is its own: in its HTML's props, not in a
 // script every page loads. Another page's headings are in none of
 // a page's first-load files.
@@ -61,7 +74,7 @@ test("a docs page's first load holds no other page's reading", () => {
 // The ceiling stands at what a page loads now, its own HTML with it,
 // and comes down as code a page does not use leaves its first load.
 // It never goes up.
-const CEILING_KB = 435;
+const CEILING_KB = 395;
 
 test(`no page's first load is over ${CEILING_KB} kB gzip`, () => {
   const over = report.filter(({ first }) => first.total.gzip > CEILING_KB * 1024).map(({ route, first }) => `${route}: ${kB(first.total.gzip)} kB`);
