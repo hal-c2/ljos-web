@@ -23,8 +23,13 @@ import { met } from "./pick.js";
 import { draw } from "./render.js";
 import { SceneEnvironment } from "./scene.js";
 import { drawOn, renderer } from "./wgpu.js";
+import { early } from "./early.js";
 import { signal, untrack } from "#kernel";
 import { getOwner, onCleanup } from "solid-js";
+
+// A page that has a View3D drawn on wgpu has this module before it makes
+// its document, and so asks for the renderer before the first view.
+if (renderer() === "wgpu") early();
 
 const sheet = new CSSStyleSheet();
 sheet.replaceSync(`.qq-view3d { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }`);
