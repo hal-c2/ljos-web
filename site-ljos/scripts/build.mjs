@@ -343,13 +343,16 @@ writeFileSync(
 );
 
 // A page's description is its front matter's, else the start of its
-// first paragraph: every page says what it is to a search result.
+// first paragraph: every page says what it is to a search result, in
+// no more than a search result shows (a front matter's too is cut).
 const plain = (rich) => String(rich ?? "").replace(/<[^>]+>/g, "").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&").replace(/\s+/g, " ").trim();
 function describe(page) {
-  if (page.description) return page.description;
-  const first = plain(page.blocks.find((block) => block.kind === "para")?.rich);
+  const first = page.description ? String(page.description).replace(/\s+/g, " ").trim() : plain(page.blocks.find((block) => block.kind === "para")?.rich);
   if (!first) return `${page.title}, in the Ljós docs.`;
-  return first.length <= 160 ? first : `${first.slice(0, first.lastIndexOf(" ", 157))}…`;
+  if (first.length <= 160) return first;
+  // Cut at the last word that fits, or mid-word where one word is longer.
+  const space = first.lastIndexOf(" ", 157);
+  return `${first.slice(0, space > 0 ? space : 157)}…`;
 }
 const pages = [
   {
@@ -520,7 +523,7 @@ const notFound = `<!doctype html>
       <a class="home" href="${base}" aria-label="Ljós — front page"><img src="${base}favicon.svg" width="28" height="28" alt="">Ljós</a>
       <nav aria-label="Site">
         <a href="${base}start/">Docs</a>
-        <a href="${base}demos/">Live demos</a>
+        <a href="${base}demos/">Demos</a>
         <a href="https://github.com/hal-c2/ljos-ui">GitHub</a>
       </nav>
     </header>

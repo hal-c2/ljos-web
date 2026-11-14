@@ -30,9 +30,10 @@ for (const route of PINNED_PAGES) {
     const title = titleIn(readFileSync(built, "utf8"));
     expect(title, `${route} has its title`).toBeTruthy();
     // The sidebar of another page has it as a link to it, named by its
-    // title: a real <a href>, so it is followed with no script too.
+    // title: a real <a href>, so it is followed with no script too. Its
+    // words may stand in an element of their own inside it.
     const start = readFileSync(join(here, "dist/start/index.html"), "utf8");
     const quoted = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    expect(start).toMatch(new RegExp(`<a [^>]*href="${quoted(route)}"[^>]*>${quoted(title)}</a>`));
+    expect(start).toMatch(new RegExp(`<a [^>]*href="${quoted(route)}"[^>]*>(?:\\s|<[^>]*>)*${quoted(title)}(?:\\s|<[^>]*>)*</a>`));
   });
 }

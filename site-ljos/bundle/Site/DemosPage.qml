@@ -9,7 +9,7 @@ import Demos
 // page holds it as first made and hydration takes it over in place.
 // The others stand in a frame their own size from the first paint,
 // a picture of each in it, and are made once the reader nears them;
-// a browser without wasm or WebGPU keeps the picture, and its words
+// a browser without wasm or WebGL 2 keeps the picture, and its words
 // say what it shows. Nothing on this page is needed to read it. The
 // sections are written out, not repeated over a model: a Slot's
 // delegate is made by the Slot, in the Slot's place, and a
@@ -39,11 +39,12 @@ Column {
             lineHeightMode: Text.FixedHeight
             lineHeight: demos.wide ? Theme.displayLine : Theme.compactDisplayLine
             wrapMode: Text.Wrap
+            readonly property int headingLevel: 1
             Accessible.role: Accessible.Heading
         }
         Text {
             width: Math.min(parent.width, Theme.measure)
-            text: "Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in the page. The page reads with no script; where a demo cannot run — no wasm, no WebGPU — its picture and its words stand in its place."
+            text: "Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in the page. The page reads with no script; where a demo cannot run — no wasm, no WebGL 2 — its picture and its words stand in its place."
             color: Theme.textMuted
             font.family: Theme.sans
             font.pixelSize: Theme.subtitleSize - 1
@@ -73,7 +74,7 @@ Column {
         width: demos.textWidth
         wide: demos.wide
         title: "3D you can orbit"
-        body: "A Quick3D scene on wgpu, in the browser: drag to orbit it. The same scene runs natively under the same engine."
+        body: "A Quick3D scene in the browser: drag to orbit it. The same scene runs natively under the same engine."
 
         Slot {
             name: "demo-orbit"
@@ -81,7 +82,7 @@ Column {
                 DemoFrame {
                     width: demos.textWidth
                     scroller: demos.scroller
-                    needs: "webgpu"
+                    needs: "webgl2"
                     route: "/demos/"
                     picture: "/pictures/demo-orbit.webp"
                     description: "A lit 3D scene of shapes on a floor, which a drag turns."
@@ -105,7 +106,7 @@ Column {
                 DemoFrame {
                     width: demos.textWidth
                     scroller: demos.scroller
-                    needs: "webgpu"
+                    needs: "webgl2"
                     route: "/demos/"
                     picture: "/pictures/demo-shader.webp"
                     description: "Light pooling over a card of text, following the pointer."

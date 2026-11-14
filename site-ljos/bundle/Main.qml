@@ -40,12 +40,13 @@ Rectangle {
     // carries its own, so no page loads another page's text.
     property var page: null
 
-    // A link within the site: a heading on this page is landed on
-    // without leaving it; anything else is a navigation.
+    // A link within the site, as `Nav.at` writes it: a heading on this
+    // page is landed on without leaving it; anything else is gone to
+    // (`Nav.go`).
     function follow(href) {
         var hash = href.indexOf("#");
         var to = hash >= 0 ? href.slice(0, hash) : href;
-        if (hash >= 0 && shell.docsRoute && (to === "" || to === shell.route)) {
+        if (hash >= 0 && shell.docsRoute && (to === "" || to === Nav.at(Content.base, shell.route))) {
             shell.menuOpen = false;
             docItem.scrollToAnchor(href.slice(hash + 1));
             return;
@@ -120,10 +121,25 @@ Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             spacing: Theme.l
 
-            // The name, a link to the front page.
+            // The name, a link to the front page: one link, the mark
+            // and the word in it, named for where it goes.
             Item {
+                id: home
+
+                readonly property string href: Nav.at(Content.base, "/")
+
                 width: mark.width + Theme.xs + wordmark.implicitWidth
                 height: 40
+                activeFocusOnTab: true
+                Accessible.role: Accessible.Link
+                Accessible.name: "Ljós — front page"
+                Accessible.onPressAction: () => Nav.go(home.href)
+                Keys.onPressed: (event) => {
+                    if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                        Nav.go(home.href);
+                        event.accepted = true;
+                    }
+                }
 
                 // The mark is in the page as written, so it stands
                 // before the page runs and where it never does
@@ -141,18 +157,14 @@ Rectangle {
                     id: wordmark
                     x: mark.width + Theme.xs
                     anchors.verticalCenter: parent.verticalCenter
-                    textFormat: Text.RichText
-                    text: Nav.anchor("/", "Ljós", false)
+                    text: "Ljós"
                     color: Theme.text
-                    linkColor: Theme.text
                     font.family: Theme.sans
                     font.pixelSize: 22
                     font.weight: Font.Bold
-                    onLinkActivated: (to) => Nav.go(to)
                 }
                 MouseArea {
-                    width: mark.width
-                    height: parent.height
+                    anchors.fill: parent
                     Accessible.ignored: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: Nav.go(home.href)
@@ -169,7 +181,7 @@ Rectangle {
                 visible: shell.wide
                 anchors.verticalCenter: parent.verticalCenter
                 label: "Demos"
-                href: "/demos/"
+                to: "/demos/"
                 current: shell.route === "/demos/"
             }
         }
@@ -190,7 +202,7 @@ Rectangle {
                 visible: shell.wide
                 anchors.verticalCenter: parent.verticalCenter
                 label: "GitHub"
-                href: "https://github.com/hal-c2/ljos-ui"
+                to: "https://github.com/hal-c2/ljos-ui"
             }
             ThemeToggle {}
             MenuButton {
@@ -432,23 +444,68 @@ Rectangle {
 
                     NavLink {
                         label: "Docs"
-                        href: "/start/"
+                        to: "/start/"
                         current: shell.docsRoute
                         size: Theme.subtitleSize
                         line: Theme.subtitleLine
                     }
                     NavLink {
                         label: "Demos"
-                        href: "/demos/"
+                        to: "/demos/"
                         current: shell.route === "/demos/"
                         size: Theme.subtitleSize
                         line: Theme.subtitleLine
                     }
                     NavLink {
                         label: "GitHub"
-                        href: "https://github.com/hal-c2/ljos-ui"
+                        to: "https://github.com/hal-c2/ljos-ui"
                         size: Theme.subtitleSize
                         line: Theme.subtitleLine
+                    }
+                }
+                // On this page, as the wide layout has it beside the
+                // page: each heading, landed on from here.
+                Column {
+                    visible: shell.docsRoute && shell.page !== null && shell.page.headings.length > 0
+                    width: parent.width
+                    spacing: Theme.xs
+                    Accessible.role: Accessible.Section
+                    Accessible.name: "On this page"
+
+                    Rectangle {
+                        width: parent.width
+                        height: 1
+                        color: Theme.divider
+                    }
+                    Text {
+                        topPadding: Theme.s
+                        text: "On this page"
+                        color: Theme.textMuted
+                        font.family: Theme.sans
+                        font.pixelSize: Theme.captionSize
+                        font.weight: Font.DemiBold
+                        lineHeightMode: Text.FixedHeight
+                        lineHeight: Theme.captionLine
+                    }
+                    Repeater {
+                        model: !shell.wide && shell.docsRoute && shell.page !== null ? shell.page.headings : []
+
+                        Text {
+                            required property var modelData
+
+                            x: modelData.level > 2 ? Theme.m : 0
+                            width: parent.width - x
+                            textFormat: Text.RichText
+                            text: Nav.anchor("#" + modelData.anchor, modelData.plain, hoveredLink !== "")
+                            color: Theme.textMuted
+                            linkColor: Theme.textMuted
+                            font.family: Theme.sans
+                            font.pixelSize: Theme.bodySize
+                            lineHeightMode: Text.FixedHeight
+                            lineHeight: Theme.bodyLine
+                            wrapMode: Text.Wrap
+                            onLinkActivated: (to) => shell.follow("#" + modelData.anchor)
+                        }
                     }
                 }
                 Rectangle {

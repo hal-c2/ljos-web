@@ -57,6 +57,7 @@ Column {
             lineHeightMode: Text.FixedHeight
             lineHeight: landing.wide ? Theme.heroLine : Theme.compactHeroLine
             wrapMode: Text.Wrap
+            readonly property int headingLevel: 1
             Accessible.role: Accessible.Heading
         }
         Text {
@@ -108,6 +109,7 @@ Column {
             lineHeightMode: Text.FixedHeight
             lineHeight: landing.wide ? Theme.headlineLine + 4 : Theme.headlineLine - 4
             wrapMode: Text.Wrap
+            readonly property int headingLevel: 2
             Accessible.role: Accessible.Heading
         }
         Text {
@@ -231,6 +233,7 @@ Column {
             lineHeightMode: Text.FixedHeight
             lineHeight: landing.wide ? Theme.headlineLine + 4 : Theme.headlineLine - 4
             wrapMode: Text.Wrap
+            readonly property int headingLevel: 2
             Accessible.role: Accessible.Heading
         }
         // The showcase mounts here: a 3D scene to orbit, made once the
@@ -246,7 +249,7 @@ Column {
                     DemoFrame {
                         width: parent.width
                         scroller: landing.scroller
-                        needs: "webgpu"
+                        needs: "webgl2"
                         picture: "/pictures/demo-orbit.webp"
                         description: "A lit 3D scene of shapes on a floor, which a drag turns."
                         demo: Component {
@@ -263,7 +266,7 @@ Column {
                         lineHeightMode: Text.FixedHeight
                         lineHeight: Theme.bodyLine
                         wrapMode: Text.Wrap
-                        text: "The <a href=\"/demos/\">live demos</a> run in this page: a shell you rewrite, a 3D scene you can orbit, a shader effect, a whole app, and motion — each a complete Ljós app, each with a picture and its words where wasm or WebGPU is missing."
+                        text: Nav.linked(Content.base, "The <a href=\"/demos/\">live demos</a> run in this page: a shell you rewrite, a 3D scene you can orbit, a shader effect, a whole app, and motion — each a complete Ljós app, each with a picture and its words where wasm or WebGL 2 is missing.")
                         onLinkActivated: (link) => landing.follow(link)
                     }
                 }
@@ -287,6 +290,7 @@ Column {
             lineHeightMode: Text.FixedHeight
             lineHeight: landing.wide ? Theme.headlineLine + 4 : Theme.headlineLine - 4
             wrapMode: Text.Wrap
+            readonly property int headingLevel: 2
             Accessible.role: Accessible.Heading
         }
         Grid {

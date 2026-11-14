@@ -23,6 +23,7 @@ Column {
         lineHeightMode: Text.FixedHeight
         lineHeight: Theme.titleLine + 4
         wrapMode: Text.Wrap
+        readonly property int headingLevel: 2
         Accessible.role: Accessible.Heading
     }
     Text {

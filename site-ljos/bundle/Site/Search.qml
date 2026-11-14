@@ -26,7 +26,7 @@ Item {
         var href = results[index].href;
         open = false;
         field.text = "";
-        search.picked(href);
+        search.picked(Nav.at(Content.base, href));
     }
 
     Rectangle {
@@ -155,10 +155,30 @@ Item {
                     width: found.width
                     height: words.implicitHeight + 2 * Theme.xs
                     radius: Theme.radiusSmall
-                    color: index === search.chosen ? Theme.surfaceSelected : row.containsMouse ? Theme.surfaceHover : "transparent"
+                    color: index === search.chosen ? Theme.surfaceSelected : over.hovered ? Theme.surfaceHover : "transparent"
                     Accessible.role: Accessible.ListItem
                     Accessible.name: modelData.where ? modelData.title + ", in " + modelData.where : modelData.title
                     Accessible.selected: index === search.chosen
+
+                    // Over the words too: hover is the row's, whatever in it
+                    // the mouse is over.
+                    HoverHandler {
+                        id: over
+                        cursorShape: Qt.PointingHandCursor
+                        onHoveredChanged: if (hovered) search.chosen = index
+                    }
+                    // Under the words, not over them: the result's link is
+                    // then the topmost thing in the page where it stands,
+                    // so a modified click on it is the browser's (a new
+                    // tab, a new window), and the rest of the row goes
+                    // there in this one.
+                    MouseArea {
+                        anchors.fill: parent
+                        Accessible.ignored: true
+                        // Off the link, a modified press is not for this tab.
+                        onPressed: (mouse) => mouse.accepted = (mouse.modifiers & (Qt.ControlModifier | Qt.MetaModifier | Qt.ShiftModifier)) === 0
+                        onClicked: search.go(index)
+                    }
 
                     Column {
                         id: words
@@ -169,7 +189,7 @@ Item {
                         Text {
                             width: parent.width
                             textFormat: Text.RichText
-                            text: Nav.anchor(modelData.href, modelData.title, false)
+                            text: Nav.anchor(Nav.at(Content.base, modelData.href), modelData.title, false)
                             color: Theme.text
                             linkColor: Theme.text
                             font.family: Theme.sans
@@ -191,15 +211,6 @@ Item {
                             lineHeight: Theme.captionLine
                             elide: Text.ElideRight
                         }
-                    }
-                    MouseArea {
-                        id: row
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        Accessible.ignored: true
-                        cursorShape: Qt.PointingHandCursor
-                        onEntered: search.chosen = index
-                        onClicked: search.go(index)
                     }
                 }
             }

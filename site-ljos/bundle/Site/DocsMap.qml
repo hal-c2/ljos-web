@@ -49,7 +49,7 @@ Column {
                         y: Theme.xxs
                         width: parent.width - 2 * Theme.xs
                         label: modelData.title
-                        href: modelData.route
+                        to: modelData.route
                         current: parent.current
                         muted: !parent.current
                         size: Theme.captionSize + 1
