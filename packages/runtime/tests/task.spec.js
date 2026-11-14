@@ -134,6 +134,39 @@ test("abort fails the run in progress with its signal's reason", async ({ page }
   expect(await page.evaluate(() => window.objects.runs[0].signal.aborted)).toBe(true);
 });
 
+test("a run started by what the aborted run's signal told is the run, and the call it interrupted is not made", async ({ page }) => {
+  await open(page, "task");
+  await page.evaluate(() => {
+    const { root, runs, weather } = window.objects;
+    runs[0].signal.addEventListener("abort", () => weather.start("Tromsø"));
+    root.city = "Bergen";
+    window.flush();
+  });
+  await turn(page);
+  // One run is in progress, and it is the one asked for last.
+  const runs = await page.evaluate(() => window.objects.runs.map((run) => [run.args[0], run.signal.aborted]));
+  expect(runs).toEqual([
+    ["Oslo", true],
+    ["Tromsø", false],
+  ]);
+  await settle(page, 1, "resolve", "Snow in Tromsø");
+  expect(await parts(page, "weather")).toEqual({ status: "done", value: "Snow in Tromsø", error: null });
+});
+
+test("abort, when the aborted run's signal starts another, leaves that run in progress", async ({ page }) => {
+  await open(page, "task");
+  await log(page);
+  await page.evaluate(() => {
+    const { runs, weather } = window.objects;
+    runs[0].signal.addEventListener("abort", () => weather.start("Tromsø"));
+    weather.abort();
+  });
+  expect((await parts(page, "weather")).status).toBe("pending");
+  expect(await log(page)).toEqual([]);
+  await settle(page, 1, "resolve", "Snow in Tromsø");
+  expect(await parts(page, "weather")).toEqual({ status: "done", value: "Snow in Tromsø", error: null });
+});
+
 test("a run that throws at once fails", async ({ page }) => {
   await open(page, "task");
   await turn(page);

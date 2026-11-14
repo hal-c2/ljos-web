@@ -50,6 +50,11 @@ function call(self, args) {
   self.$queued = false;
   if (self.$ended) return;
   stop(self);
+  // What the aborted run's signal told may have started a run: it was
+  // asked for after this one, so it is the Task's run, and this one is
+  // superseded before it was called. Nothing is aborted again, so a
+  // listener that starts a run each time cannot make this loop.
+  if (self.$running) return;
   const number = ++self.$number;
   const control = new AbortController();
   self.$running = control;
@@ -107,7 +112,9 @@ export const Task = defineType("Task", Controller, {
     abort() {
       this.$queued = false;
       const running = stop(this);
-      if (!running) return;
+      // A run its signal's listeners started is in progress now: the Task
+      // has not failed.
+      if (!running || this.$running) return;
       const reason = running.signal.reason;
       become(this, { status: "failed", error: reason, value: untrack(() => this.state).value });
       this.failed(reason);
