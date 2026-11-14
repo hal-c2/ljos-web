@@ -269,6 +269,34 @@ for (const backend of ["webgpu", "webgl2"]) {
       expect(await over(300)).toEqual({ asks: 0, frames: 0 });
     });
 
+    // Each draw is a new picture for the other view, without end: what paces
+    // them is the animation frame, so the page still paints.
+    test("two views showing each other's picture go round once an animation frame, and the page paints", async ({ page }) => {
+      await show(page, "wgpu_mutual");
+      const { frames, drawn } = await page.evaluate(
+        () =>
+          new Promise((done) => {
+            const views = [...document.querySelectorAll(".qq-view3d")].map((canvas) => canvas.$view3d);
+            const draws = () => views.reduce((all, view) => all + view.frames, 0);
+            const from = draws();
+            const start = performance.now();
+            let frames = 0;
+            const tick = () => {
+              frames++;
+              if (performance.now() - start < 500) requestAnimationFrame(tick);
+              else done({ frames, drawn: draws() - from });
+            };
+            requestAnimationFrame(tick);
+          }),
+      );
+      expect(frames).toBeGreaterThan(10);
+      expect(drawn).toBeGreaterThan(0);
+      expect(drawn, `${drawn} drawn in ${frames} animation frames`).toBeLessThanOrEqual(2 * (frames + 1));
+      // Each square shows the other view, its clear colour at the corners.
+      near(await at(page, 55, 105), [0, 0, 0x40]);
+      near(await at(page, 255, 105), [0x40, 0, 0]);
+    });
+
     test("the view maps the scene, and a node maps through its parents", async ({ page }) => {
       await show(page, "wgpu_mapping");
       const got = await page.evaluate(() => {
