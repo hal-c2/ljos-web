@@ -51,7 +51,7 @@ Rectangle {
         }
     }
     Component.onCompleted: Nav.follow(Content.base, {
-        title: (to) => Content.titles[to] === undefined ? null : Content.titles[to],
+        title: (to) => Nav.titled(Content.titles, Content.sidebar, Content.after, to),
         // A docs page's reading stands beside its HTML (the build's
         // page.json); the front page and the demos need none.
         reading: (to) => to === "/" || to === "/demos/" ? null : Nav.at(Content.base, to) + "page.json",

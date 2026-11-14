@@ -164,6 +164,22 @@ function keep() {
         globalThis.history.replaceState({ entry: entry, offset: shell.offset() }, "");
 }
 
+// The title a route's page gives the tab: one of the site's own pages
+// is named in `own`; a docs page as the sidebar names it, and `after`
+// it; null for a route the site has no page for.
+function titled(own, sidebar, after, route) {
+    if (own[route] !== undefined)
+        return own[route];
+    for (var i = 0; i < sidebar.length; i++) {
+        var pages = sidebar[i].pages;
+        for (var j = 0; j < pages.length; j++) {
+            if (pages[j].route === route)
+                return pages[j].title + after;
+        }
+    }
+    return null;
+}
+
 // Go to an address, as `at` writes it (the base already in it): once
 // its page's reading is had, its entry is pushed first and the page
 // shown after, as on going back.
