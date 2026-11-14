@@ -41,6 +41,7 @@
     "./codeblocks/remark": "./codeblocks/remark.js",
     "./compiler": "./compiler/index.js",
     "./wasm-check": "./wasm-check.js",
+    "./early3d": "./QtQuick3D/early.js",
     "./compiler/modules": "./compiler/modules.js",
     "./compiler/sugar": "./compiler/sugar.js",
     "./inspect": "./inspect.js",

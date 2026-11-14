@@ -21,12 +21,8 @@ import { handed, text } from "./effects.js";
 import { inside } from "./Node.js";
 import { Format } from "./TextureData.js";
 
-const asked = new URLSearchParams(globalThis.location?.search ?? "").get("view3d");
-
-// DECISION: which renderer a View3D has, until `render.js` goes: the page's
-// `?view3d=`, else what the build said (`VITE_LJOS_VIEW3D`), else the
-// JavaScript one, as long as that alone passes all of `quick3d.spec.js`.
-export const renderer = () => asked ?? import.meta.env?.VITE_LJOS_VIEW3D ?? "js";
+// Which renderer a View3D has is said where the page asks for it early.
+export { renderer } from "./early.js";
 
 // A glob, as an import of a file a build of JavaScript alone has not got
 // would fail, for the renderer it does not ask for.

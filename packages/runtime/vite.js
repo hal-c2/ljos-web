@@ -356,6 +356,10 @@ function told(file, send) {
 /** What a program reads as data rather than shows. */
 const DATA = /\.(?:json|txt|csv|xml)$/i;
 
+// A compiled document's import of a type that is drawn in space: a View3D,
+// or a graph in space, which is one.
+const SPACE = /^import \{[^}]*\b(?:View3D|Bars3D|Scatter3D|Surface3D)\b[^}]*\} from "ljos-web\/Qt(?:Quick3D|Graphs)";$/m;
+
 // The compiler as what is run from anywhere: it is run from other directories,
 // where a path the caller gave would mean something else. A bare name is left
 // for the PATH.
@@ -927,6 +931,10 @@ export default function qml({
       if (result.status !== 0) this.error(result.stderr.trim());
       if (own) compiled.set(file, result.stdout);
       let code = result.stdout;
+      // A document that names a type drawn in space asks for the wgpu
+      // renderer first thing as it is run, before its first view is made
+      // (`QtQuick3D/early.js`); on the JavaScript renderer it asks nothing.
+      if (SPACE.test(code)) code = `import { early as $$early3d } from "ljos-web/early3d";\n$$early3d();\n${code}`;
       const component = !own && /^export default (?:function\s+|class\s+)?([A-Za-z_$][\w$]*)/m.exec(code)?.[1];
       if (!component) return { code, map: null };
       const live = typeof liveShell === "function" ? liveShell(file) : liveShell;
