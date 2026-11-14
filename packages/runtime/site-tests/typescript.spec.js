@@ -53,9 +53,16 @@ test("every package of the workspace that typechecks pins the same TypeScript an
 });
 
 // What a namespace re-exports of its native module are the module's values:
-// a name only a type has would be an import the browser cannot find.
-test("a ported module's exports are its values, not its types", () => {
-  const context = { addWatchFile() {}, parse: (code, options) => parseAst(code, options) };
+// a name only a type has would be an import the browser cannot find. The
+// bundler's own parser is never asked: the site builds on Vite 6, whose
+// `this.parse` is Rollup's and reads no TypeScript, so it is this one.
+test("a ported module's exports are its values, not its types, whatever parser the bundler has", () => {
+  const context = {
+    addWatchFile() {},
+    parse() {
+      throw new Error("Expected ',', got '{'");
+    },
+  };
   const names = exported(context, join(import.meta.dirname, "fixtures", "exported", "index.ts"));
   expect([...names].sort()).toEqual(["More", "Value", "make", "value"]);
 });

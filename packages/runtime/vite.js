@@ -12,7 +12,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, delimiter, dirname, isAbsolute, join, relative, resolve as resolvePath, sep } from "node:path";
 import { inflateSync } from "node:zlib";
-import { searchForWorkspaceRoot } from "vite";
+import { parseAst, searchForWorkspaceRoot } from "vite";
 import { CONTROLS } from "./controls.js";
 import { heldShader } from "./QtQuick/baked.js";
 import { forBrowser } from "./QtQuick/qsb.js";
@@ -315,9 +315,11 @@ export function exported(context, file, names = new Set(), seen = new Set()) {
   seen.add(file);
   context.addWatchFile(file);
   // A module ported to TypeScript is parsed as TypeScript: its `import type`
-  // is not JavaScript.
+  // is not JavaScript. The runtime's files are parsed with the runtime's own
+  // Vite, not the bundler's `this.parse`: a site on an older Vite parses with
+  // Rollup, which reads JavaScript only and says nothing of `lang`.
   const lang = file.endsWith(".ts") ? "ts" : "js";
-  for (const node of context.parse(readFileSync(file, "utf8"), { lang }).body) {
+  for (const node of parseAst(readFileSync(file, "utf8"), { lang }).body) {
     if (node.exportKind === "type") continue;
     if (node.type === "ExportAllDeclaration") {
       if (node.exported) names.add(node.exported.name ?? node.exported.value);
