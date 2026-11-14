@@ -34,6 +34,9 @@ Item {
             Accessible.checked: root.on
         }
         Text { id: title; text: "Title"; Accessible.role: Accessible.Heading }
+        // Qt's roles carry no level: an author who gives one gives it as
+        // the heading's own `headingLevel`.
+        Text { id: subtitle; text: "Subtitle"; property int headingLevel: root.on ? 4 : 3; Accessible.role: Accessible.Heading }
         Rectangle { id: named; width: 40; height: 40; Accessible.name: "A lit scene" }
         Image { id: picture; width: 40; height: 40; Accessible.role: Accessible.Graphic; Accessible.name: "A lit scene" }
         Rectangle { id: blank; width: 40; height: 40; Accessible.role: Accessible.Whitespace }
@@ -42,6 +45,7 @@ Item {
         Rectangle { id: aside; width: 40; height: 40; Accessible.role: Accessible.ComplementaryContent; Accessible.name: "On this page" }
         Rectangle { id: footer; width: 40; height: 40; Accessible.role: Accessible.Footer }
         T.ProgressBar { id: progress; width: 80; height: 10; value: root.on ? 0.75 : 0.25 }
+        T.ProgressBar { id: busy; width: 80; height: 10; value: 0.5; indeterminate: !root.on }
         T.SpinBox { id: spin; width: 80; height: 20; from: 1; to: 9; value: 3 }
         Rectangle {
             width: 80; height: 20
@@ -53,7 +57,7 @@ Item {
     }
 
     function items() {
-        return { menu, bold, plain, entry, title, named, picture, blank, caret, section, aside, footer, progress, spin, puck, result }
+        return { menu, bold, plain, entry, title, subtitle, named, picture, blank, caret, section, aside, footer, progress, busy, spin, puck, result }
     }
 
     function step() {

@@ -114,18 +114,26 @@ const states = [
 // Where Qt's words and ARIA's part. ARIA allows `aria-checked` on few
 // roles: a button that checks is a toggle, said with `aria-pressed`, and
 // a menu item that checks is a role of its own. A heading has a level,
-// which Qt's roles do not carry: one no author gives is ARIA's own
+// which Qt's roles do not carry: an author gives it as the heading's own
+// `headingLevel` property, and one no author gives is ARIA's own
 // default. A name on an element with no role is no name to ARIA, so a
 // named item whose role says nothing is a named group, as native Ljós
 // tells it. A control of a value says it and where it lies, as Qt's
 // value interface does; a slider or scroll bar with none to say is no
 // slider to ARIA, which asks one of it, and is a group too. ARIA has no
-// selected list item: the one chosen is its list's current.
+// selected list item: the one chosen is its list's current. A progress
+// bar under way at a pace it cannot tell has no value to say, as ARIA
+// asks of one.
 const HEADING_LEVEL = "2";
+function levelOf(item) {
+  const level = Number(item?.headingLevel);
+  return Number.isInteger(level) && level >= 1 ? String(level) : HEADING_LEVEL;
+}
 const VALUED = new Set(["slider", "spinbutton", "progressbar", "scrollbar"]);
 const OWES_VALUE = new Set(["slider", "scrollbar"]);
 function valueOf(item, role) {
   if (!VALUED.has(role) || !item) return null;
+  if (role === "progressbar" && item.indeterminate) return null;
   const [now, min, max] = [item.value, item.from, item.to].map(Number);
   if ([now, min, max].every(Number.isFinite)) return [now, Math.min(min, max), Math.max(min, max)].map(String);
   // A scroll bar's value is how far along it is, of all it can go.
@@ -134,7 +142,7 @@ function valueOf(item, role) {
     return [String(size >= 1 ? 0 : Math.round((100 * position) / (1 - size))), "0", "100"];
   return null;
 }
-function worded(role, name, told, value) {
+function worded(item, role, name, told, value) {
   const at = (state) => states.findIndex(([own]) => own === state);
   const checked = told[at("checked")];
   if (role === "button" && checked !== null) {
@@ -149,7 +157,7 @@ function worded(role, name, told, value) {
   }
   if (OWES_VALUE.has(role) && !value) role = null;
   if (!role && name) role = "group";
-  return [role, role === "heading" ? HEADING_LEVEL : null, current];
+  return [role, role === "heading" ? levelOf(item) : null, current];
 }
 
 // The attributes of an item's element, from its `Accessible` object when it
@@ -161,7 +169,7 @@ function aria(self, item) {
   const told = states.map(([state, , has]) => (has(own) ? (state === "checked" && own("checkStateMixed") ? "mixed" : String(own(state))) : null));
   const asked = self?.searchEdit ? "searchbox" : (ARIA[self ? self.role : roleOf(item)] ?? null);
   const value = valueOf(item, asked);
-  const [role, level, current] = worded(asked, name, told, value);
+  const [role, level, current] = worded(item, asked, name, told, value);
   const [now, min, max] = value ?? [null, null, null];
   return [role, name, self?.description ?? "", self?.ignored ?? false, named(self?.labelledBy), level, current, now, min, max, ...told];
 }
