@@ -79,11 +79,26 @@ test(`a link in a page's words stays inside ${base}`, async ({ page }) => {
   await page.goto(`${base}start/`);
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
   expect(await page.locator('#app a[data-link^="/"]').evaluateAll((links, base) => links.map((link) => link.getAttribute("href")).filter((href) => !href?.startsWith(base)), base)).toEqual([]);
-  const link = page.locator(`#app a[data-link^="${base}start/"]`).first();
-  await link.scrollIntoViewIfNeeded();
-  const href = await link.getAttribute("href");
-  expect(href).toBe(await link.getAttribute("data-link"));
-  const box = await link.boundingBox();
-  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-  await expect(page).toHaveURL(`http://127.0.0.1:4471${href}`);
+  // The page scrolls in the shell, not in the browser: a link below
+  // what is shown is brought up by the wheel, as a reader would.
+  const shown = () =>
+    page.locator(`#app a[data-link^="${base}start/"]`).evaluateAll((links) => {
+      for (const link of links) {
+        const { x, y, width, height } = link.getBoundingClientRect();
+        const at = width && height ? document.elementFromPoint(x + width / 2, y + height / 2) : null;
+        if (at && link.contains(at)) return { x: x + width / 2, y: y + height / 2, href: link.getAttribute("href"), said: link.dataset.link };
+      }
+      return null;
+    });
+  const { width, height } = page.viewportSize();
+  await page.mouse.move(width / 2, height / 2);
+  let link = await shown();
+  for (let turn = 0; !link && turn < 30; turn++) {
+    await page.mouse.wheel(0, 300);
+    link = await expect.poll(shown, { timeout: 1_000 }).toBeTruthy().then(shown, () => null);
+  }
+  expect(link, "a link in the page's words comes into view").toBeTruthy();
+  expect(link.href).toBe(link.said);
+  await page.mouse.click(link.x, link.y);
+  await expect(page).toHaveURL(`http://127.0.0.1:4471${link.href}`);
 });
