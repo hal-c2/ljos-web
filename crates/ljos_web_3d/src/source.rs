@@ -738,13 +738,18 @@ impl<H: Host> SceneSource for Source<'_, H> {
     }
 
     fn mesh_file(&self, _view: u32, model: u32) -> Option<Arc<MeshFile>> {
-        self.arrivals(model);
         let url = self.url(model, Prop3d::Source)?;
         self.kept.name(model, Some(&url));
+        // Only a model still waiting for its file follows what arrives: one
+        // whose file is in is not asked again for every file after it.
         match self.kept.meshes.borrow().get(&url) {
             Some(Asked::Ready(file)) => return Some(file.clone()),
-            Some(_) => return None,
-            None => {}
+            Some(Asked::Failed(_)) => return None,
+            Some(Asked::Loading) => {
+                self.arrivals(model);
+                return None;
+            }
+            None => self.arrivals(model),
         }
         self.kept
             .meshes
@@ -944,7 +949,6 @@ impl<H: Host> SceneSource for Source<'_, H> {
         if !self.is(loader, Type3d::RuntimeLoader) {
             return None;
         }
-        self.arrivals(loader);
         let url = self
             .url(loader, Prop3d::Source)
             .filter(|url| !url.is_empty());
@@ -963,6 +967,8 @@ impl<H: Host> SceneSource for Source<'_, H> {
             return None;
         }
         let Some(asset) = asset else {
+            // Followed only while it waits, as a model's mesh file is.
+            self.arrivals(loader);
             self.host.loader_status(loader, LoaderStatus::Empty, "");
             let asked = self
                 .kept
@@ -1021,6 +1027,8 @@ mod tests {
         reads: Cell<u32>,
         /// The view no longer holds the cube.
         dropped: Cell<bool>,
+        /// Which objects followed what arrives, in order.
+        waits: RefCell<Vec<u32>>,
     }
 
     impl Host for Fake {
@@ -1152,7 +1160,9 @@ mod tests {
         fn passes(&self, _: u32) -> Option<Passes> {
             None
         }
-        fn arrivals(&self, _: u32) {}
+        fn arrivals(&self, o: u32) {
+            self.waits.borrow_mut().push(o);
+        }
         fn load(&self, url: &str, _: &Rc<Kept>) {
             self.loads.borrow_mut().push(url.to_owned());
         }
@@ -1500,6 +1510,38 @@ mod tests {
         kept.forget(&[LOADER]);
         kept.arrive_mesh("bad.mesh", Asked::Failed("late".to_owned()));
         assert!(kept.meshes.borrow().is_empty());
+    }
+
+    #[test]
+    fn only_what_waits_for_a_file_follows_what_arrives() {
+        let host = Fake::default();
+        let kept = Rc::new(Kept::default());
+        let source = Source {
+            host: &host,
+            kept: &kept,
+        };
+        let waits = || std::mem::take(&mut *host.waits.borrow_mut());
+        *host.source.borrow_mut() = "a.mesh".to_owned();
+        assert!(source.mesh_file(VIEW, LOADER).is_none());
+        assert_eq!(waits(), [LOADER]);
+        // Built again while it loads, it still waits.
+        kept.answers.clear(&[LOADER]);
+        assert!(source.mesh_file(VIEW, LOADER).is_none());
+        assert_eq!(waits(), [LOADER]);
+        // The page marks what waited changed when a file arrives: in or
+        // failed, nothing more arrives for it.
+        kept.arrive_mesh("a.mesh", Asked::Failed("404".to_owned()));
+        kept.answers.clear(&[LOADER]);
+        assert!(source.mesh_file(VIEW, LOADER).is_none());
+        assert!(waits().is_empty());
+        *host.source.borrow_mut() = "a.gltf".to_owned();
+        kept.answers.clear(&[LOADER]);
+        assert!(source.loaded(LOADER).is_none());
+        assert_eq!(waits(), [LOADER]);
+        kept.arrive("a.gltf", Asked::Failed("404".to_owned()));
+        kept.answers.clear(&[LOADER]);
+        assert!(source.loaded(LOADER).is_none());
+        assert!(waits().is_empty());
     }
 
     #[test]

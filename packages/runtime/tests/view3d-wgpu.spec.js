@@ -313,6 +313,20 @@ for (const backend of ["webgpu", "webgl2"]) {
       near(await at(page, 320 + 25, 150 + 25), [255, 255, 255]);
     });
 
+    test("a file arriving for one loader asks nothing again of another whose file is in", async ({ page }) => {
+      await show(page, "wgpu_twoloaders");
+      await expect.poll(() => at(page, 100, 150)).toEqual([255, 0, 0]);
+      // What a build asks of one loader, all of it.
+      await set(page, () => (window.objects.first.x = -90));
+      const one = (await counts(page)).reads;
+      expect(one).toBeGreaterThan(0);
+      await set(page, () => (window.objects.second.source = "scenes/wgpu_models/square.gltf"));
+      await expect.poll(() => at(page, 300, 150)).toEqual([255, 0, 0]);
+      expect(await page.evaluate(() => window.objects.loaded)).toBe(true);
+      // The build the arrival made asked of the second loader alone.
+      expect((await counts(page)).reads).toBeLessThanOrEqual(one);
+    });
+
     test.describe("a file that cannot be read", () => {
       test.use({ told: [/gone\.gltf|404/] });
       test("says why on the loader, and is read again when the loader names it again", async ({ page }) => {

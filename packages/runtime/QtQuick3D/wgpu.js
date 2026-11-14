@@ -594,6 +594,15 @@ export function drawOn(self, canvas, told) {
       host.unsteady.clear();
       const marked = Uint32Array.from(changed);
       changed.clear();
+      // What changed is followed for what this build asks of it, as the wasm
+      // asks it all again: what it read before and no longer does (a file it
+      // waited for that is in) is not followed any more.
+      const before = new Map();
+      for (const o of marked) {
+        const asked = host.asked.get(o);
+        if (asked) before.set(o, asked);
+        host.asked.delete(o);
+      }
       let left;
       own = true;
       try {
@@ -603,9 +612,14 @@ export function drawOn(self, canvas, told) {
       }
       state.builds++;
       state.reads = host.crossed;
+      // One asked just what it was before is followed as it was.
+      for (const [o, asked] of before) {
+        const now = host.asked.get(o);
+        if (now?.size === asked.size && [...now].every((key) => asked.has(key))) host.grown.delete(o);
+      }
       const grown = [...host.grown];
       host.grown.clear();
-      return { from, left, grown };
+      return { from, left, grown, marked };
     },
     (built) => {
       if (!built) return;
@@ -614,6 +628,9 @@ export function drawOn(self, canvas, told) {
         host.drop(handle);
       }
       for (const handle of built.grown) follow(handle);
+      // What changed and this build passed by is asked again, and followed,
+      // when a build reaches it.
+      for (const handle of built.marked) if (!host.asked.has(handle)) unfollow(handle);
       state.probe?.("sync", built.from, performance.now());
     },
   );
