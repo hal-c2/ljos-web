@@ -104,16 +104,17 @@ function state() {
   return document.hasFocus() ? ApplicationState.ApplicationActive : ApplicationState.ApplicationInactive;
 }
 
-const ACCESSIBILITY = Object.freeze({
-  contrastPreference: matchMedia("(prefers-contrast: more)").matches
-    ? enums.ContrastPreference.HighContrast
-    : enums.ContrastPreference.NoPreference,
-  // Qt 6.12's: a reader who asked for less movement is answered with
-  // less of it, not none — a fade where a slide was.
-  motionPreference: matchMedia("(prefers-reduced-motion: reduce)").matches
-    ? enums.MotionPreference.ReducedMotion
-    : enums.MotionPreference.NoPreference,
-});
+// What a reader asked their browser for: the browser tells when they
+// change their mind, and the hints follow, as the scheme does.
+const MORE_CONTRAST = matchMedia("(prefers-contrast: more)");
+// Qt 6.12's: a reader who asked for less movement is answered with
+// less of it, not none — a fade where a slide was.
+const LESS_MOTION = matchMedia("(prefers-reduced-motion: reduce)");
+const accessibilityAsked = () =>
+  Object.freeze({
+    contrastPreference: MORE_CONTRAST.matches ? enums.ContrastPreference.HighContrast : enums.ContrastPreference.NoPreference,
+    motionPreference: LESS_MOTION.matches ? enums.MotionPreference.ReducedMotion : enums.MotionPreference.NoPreference,
+  });
 
 // What of the browser's virtual keyboard a page can use, where there is one.
 interface VirtualKeyboard extends EventTarget {
@@ -128,7 +129,7 @@ const virtualKeyboard = (): VirtualKeyboard | undefined =>
 const StyleHints = defineType("StyleHints", QtObject, {
   properties: {
     // What a style draws stronger edges for: the browser knows.
-    accessibility: derived(() => ACCESSIBILITY),
+    accessibility: derived(() => accessibilityAsked()),
     colorScheme: ColorScheme.Light,
     cursorFlashTime: 1000,
     fontSmoothingGamma: 1.7,
@@ -158,6 +159,13 @@ const StyleHints = defineType("StyleHints", QtObject, {
     wheelScrollLines: 3,
   },
   setup(self) {
+    const accessibility = slot(self, "accessibility");
+    for (const query of [MORE_CONTRAST, LESS_MOTION]) {
+      listen(query, "change", () => {
+        accessibility.provide(accessibilityAsked());
+        flush();
+      });
+    }
     // The scheme the browser asks pages for, until the program sets its
     // own — or the page's own choice, where its root says one
     // (`<html data-ljos-scheme="dark">`, the attribute a prerendered
