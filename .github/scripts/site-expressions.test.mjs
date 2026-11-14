@@ -321,6 +321,18 @@ test("main's deploys and a rollback to the domain take turns in one group; other
   assert.equal(group("push to a fork's main"), "site-refs/heads/main");
 });
 
+test("both path filters are the guard's list of what the site is built from", () => {
+  const listed = readFileSync(new URL("./site-paths.txt", import.meta.url), "utf8")
+    .split("\n")
+    .filter((l) => l !== "" && !l.startsWith("#"));
+  const filters = lines.filter((l) => /^ {4}paths: \[/.test(l)).map((l) => JSON.parse(l.trim().slice("paths: ".length)));
+  assert.equal(filters.length, 2, "site.yml has a path filter on pull_request and on push");
+  for (const filter of filters) assert.deepEqual(filter, listed);
+  // fresh-head.sh matches a directory by prefix and a file exactly;
+  // any other glob it would misread.
+  for (const path of listed) assert.match(path, /^[^*?[\]!]+(\/\*\*)?$/, `fresh-head.sh cannot match ${path}`);
+});
+
 // --- the table -------------------------------------------------------------
 
 const yes = (b) => (b ? "yes" : "no");

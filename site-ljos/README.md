@@ -89,15 +89,20 @@ were made. So the turns alone do not keep an older commit from
 landing after a newer one, or a re-run of an old run from putting
 its old build live: the freshness guard (`.github/scripts/fresh-head.sh`)
 does. Right before the Pages artifact is uploaded, and again right
-before `deploy-pages`, it fails the run unless the run's commit is
-still the head of its branch. A re-run of an old run that replaced
+before `deploy-pages`, it fails the run when a commit has landed on
+its branch since the run's own that changes a path the site is built
+from. Commits that change none of them start no run of the workflow,
+so the run's build is still the newest site there is, and it
+deploys. A re-run of an old run that replaced
 a newer waiting one fails the guard, and the newer commit goes live
 with the next merge or a dispatch from main. The workflow runs for
 every path the build reads (`site/`, `site-ljos/`, `packages/`,
 `crates/`, `vendor/`, `mise-tasks/`, `mise.toml`, the Cargo and pnpm
 manifests and locks, `.cargo/`, and the workflow and its
-`.github/scripts/`); a path missing from that list would be a merge
-that changes the site and never deploys it.
+`.github/scripts/`, listed once more in
+`.github/scripts/site-paths.txt` for the guard, and held equal to
+it by the guard job's test); a path missing from that list would be
+a merge that changes the site and never deploys it.
 
 A manual dispatch (Actions → site → Run workflow) still deploys
 when `deploy` is ticked:
@@ -105,26 +110,35 @@ when `deploy` is ticked:
 | Run | `deploy` | `custom_domain` | `rollback` | What Pages gets |
 |---|---|---|---|---|
 | pull request | — | — | — | nothing: the build and its tests only |
-| push to main | — | — | — | the root build with a `CNAME` naming the repository's Pages domain, for `https://ljos.dev/`, if its commit is still main's head |
+| push to main | — | — | — | the root build with a `CNAME` naming the repository's Pages domain, for `https://ljos.dev/`, unless a newer commit on main has changed the site |
 | dispatch | off | (any) | (any) | nothing: the build and its tests only |
-| dispatch | on | off (default) | off (default) | the preview, built for `/ljos-web/`, at `https://hal-c2.github.io/ljos-web/`, if its commit is still its branch's head |
+| dispatch | on | off (default) | off (default) | the preview, built for `/ljos-web/`, at `https://hal-c2.github.io/ljos-web/`, unless a newer commit on its branch has changed the site |
 | dispatch from main | on | on | off | the root build with its `CNAME`, as a merge deploys it |
 | dispatch from another branch | on | on | off | nothing: the run fails, as only main deploys to the custom domain |
-| dispatch from any branch | on | (any) | on | the build for that branch's commit, whether or not it is still the head: a rollback |
+| dispatch from any branch | on | (any) | on | the build for that branch's commit, newer site or not, if main holds the commit: a rollback; nothing, and the run fails, for a commit main does not hold |
 
-Every deploying run's freshness guard fails it when its commit is
-no longer the head of its branch: a newer merge landed while it
-built or waited, or it re-runs an older run. A re-run keeps its
-run's inputs, so it can never turn `rollback` on.
+Every deploying run's freshness guard fails it when a newer commit
+on its branch has changed the site: one landed while it built or
+waited, or it re-runs an older run. A re-run keeps its run's
+inputs, so it can never turn `rollback` on.
 
-To put an older commit live on ljos.dev on purpose, push a branch
-at it (`git push origin <commit>:refs/heads/rollback`), then
+To put an older commit of main live on ljos.dev on purpose, push a
+branch at it (`git push origin <commit>:refs/heads/rollback`), then
 dispatch from that branch with `deploy`, `custom_domain` and
-`rollback` on. The guard warns and lets it through, the pages step
-lets a rollback deploy a branch's build to the domain, and the run
-takes its turn among main's deploys. It stays live until the next
-merge to main deploys. A rollback from main itself only lets a
-dispatch deploy although main moved on while it built.
+`rollback` on. The guard checks that main holds the commit, so only
+what was reviewed and merged can go live this way, then warns and
+lets it through; the pages step lets a rollback deploy a branch's
+build to the domain, and the run takes its turn among main's
+deploys. It stays live until the next merge to main deploys. A
+rollback from main itself only lets a dispatch deploy although main
+moved on while it built.
+
+A dispatch runs the workflow as it stands at the dispatched commit,
+so this works only for a commit whose `site.yml` has the `rollback`
+input: this change and every commit after it. An older commit's
+workflow has no `rollback`, and refuses `custom_domain` anywhere
+but main. To go back to such a commit, revert what came after it in
+a pull request: its merge deploys the reverted site like any other.
 
 The deploy step reads the repository's Pages custom domain and
 fails when the run's build disagrees with it: a merge to main, or a

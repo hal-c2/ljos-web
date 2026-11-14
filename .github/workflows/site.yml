@@ -3,7 +3,9 @@ name: site
 on:
   # A pull request builds and tests, and never deploys. The paths are
   # everything the build reads: a file left out here is a merge that
-  # changes the site and never deploys it.
+  # changes the site and never deploys it. The freshness guard reads
+  # the same list from .github/scripts/site-paths.txt; a test holds
+  # the three equal.
   pull_request:
     paths: ["site/**", "site-ljos/**", "packages/**", "crates/**", "vendor/**", "mise-tasks/**", "mise.toml", "Cargo.toml", "Cargo.lock", ".cargo/**", "pnpm-workspace.yaml", "pnpm-lock.yaml", "package.json", ".github/workflows/site.yml", ".github/scripts/**"]
   # A merge to main is live: it deploys to the repository's Pages
@@ -23,7 +25,7 @@ on:
         type: boolean
         default: false
       rollback:
-        description: "Deploy even though this commit is not its branch's head any more: to put an older commit live on purpose (see site-ljos/README.md)"
+        description: "Deploy an older commit of main on purpose, although a newer one has changed the site (dispatch from a branch at it; see site-ljos/README.md)"
         type: boolean
         default: false
 
@@ -40,8 +42,12 @@ permissions:
 # order they were made. What keeps an older commit from landing after
 # a newer one is the freshness guard (.github/scripts/fresh-head.sh):
 # right before upload, and again right before deploy-pages, it fails
-# the run unless its commit is still its branch's head. A dispatch with
-# rollback on passes it, to put an older commit live on purpose. A
+# the run when a commit since its own on its branch changes a path the
+# site is built from (site-paths.txt, the same list as the filters
+# above). A commit that changes none of them starts no run, so the
+# run's build is still the newest site and deploys. A dispatch with
+# rollback on passes it for a commit main holds, to put an older
+# commit of main live on purpose. A
 # re-run of an old run that replaced a newer waiting one fails the
 # guard, and the newer commit goes live with the next merge or a
 # dispatch from main.
@@ -230,7 +236,8 @@ jobs:
       # dispatch with custom_domain, with no domain set; a preview
       # dispatch once one is. The CNAME names the setting, so a fork
       # never claims ljos.dev. A rollback may deploy a branch's build
-      # to the domain: that is how an older commit goes live there.
+      # to the domain: that is how an older commit goes live there,
+      # and the freshness guard holds it to a commit main holds.
       - name: The site Pages serves
         if: ${{ env.SITE_DEPLOYS == 'true' }}
         id: pages
@@ -267,8 +274,8 @@ jobs:
             dir="$RUNNER_TEMP/site-ljos-project"
           fi
           echo "dir=$dir" >> "$GITHUB_OUTPUT"
-      # As late as it can be before upload: a newer merge may have
-      # landed while this run built.
+      # As late as it can be before upload: a newer merge that changes
+      # the site may have landed while this run built.
       - name: Still the head of its branch
         if: ${{ env.SITE_DEPLOYS == 'true' }}
         id: fresh
@@ -306,9 +313,9 @@ jobs:
         with:
           sparse-checkout: .github/scripts
           persist-credentials: false
-      # Again, right before deploy-pages: a newer merge may have landed
-      # while this run waited its turn, or this re-runs only the deploy
-      # of an older run.
+      # Again, right before deploy-pages: a newer merge that changes the
+      # site may have landed while this run waited its turn, or this
+      # re-runs only the deploy of an older run.
       - name: Still the head of its branch
         id: fresh
         env:
