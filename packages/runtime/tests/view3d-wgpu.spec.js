@@ -468,6 +468,22 @@ for (const backend of ["webgpu", "webgl2"]) {
       near(await at(page, 300, 150), CLEAR);
     });
 
+    // A canvas is drawn on with nothing to follow: what a build passed by
+    // (a hidden model's material) is asked again when it is reached again,
+    // however many builds passed it by.
+    test("a canvas's picture on a model hidden for a while is the canvas's as it is now", async ({ page }) => {
+      await show(page, "wgpu_livehidden");
+      near(await at(page, ...CENTRE), [255, 0, 0]);
+      await set(page, () => (window.scene.drawn = false));
+      near(await at(page, ...CENTRE), CLEAR);
+      await set(page, () => (window.scene.elsewhere = 120));
+      await set(page, () => (window.scene.faceColor = "#0000ff"));
+      await set(page, () => (window.scene.elsewhere = 150));
+      near(await at(page, 350, 150), [0, 255, 0]);
+      await set(page, () => (window.scene.drawn = true));
+      near(await at(page, ...CENTRE), [0, 0, 255]);
+    });
+
     test("one sprite system in two views is toned by each view's own surroundings", async ({ page }) => {
       await show(page, "wgpu_twotoned");
       await page.waitForFunction(() => [...document.querySelectorAll(".qq-view3d")].every((c) => c.$view3d.frames > 0));
