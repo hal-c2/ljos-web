@@ -20,6 +20,17 @@ Item {
     property alias aeRowItem: aeRow
     property alias aeAItem: aeA
     property alias aeHomeItem: aeHome
+    property alias ahBItem: ahB
+    property alias ahHomeItem: ahHome
+    property alias ajRowItem: ajRow
+    property alias akRowItem: akRow
+    property alias akAItem: akA
+    property alias akOtherItem: akOther
+    property alias akPlainItem: akPlain
+    property alias alRowItem: alRow
+    property alias alAItem: alA
+    property alias alPosItem: alPos
+    property alias alLayItem: alLay
     width: 1000
     height: 2000
 
@@ -56,7 +67,13 @@ Item {
         abRow, abA, abB,
         acRow, acA, acB,
         adGrid, adA, adB,
-        aeRow, aeA, aeB
+        aeRow, aeA, aeB,
+        afRow, afA, afB, afC,
+        agRow, agA, agB,
+        ahRow, ahA, ahB,
+        aiCol, aiRow, aiA, aiB,
+        ajRow, ajA, ajB,
+        akRow, akA, akB, akOther, akC
     ]
 
     function dump() {
@@ -329,4 +346,86 @@ Item {
         Rectangle { id: aeB; objectName: "aeB"; width: 40; height: 20 }
     }
     Item { id: aeHome; objectName: "aeHome"; y: 1680; width: 10; height: 10 }
+
+    // A child that takes its size from its content is placed at a whole
+    // pixel in a Row that is a layout; one the author sized, or told a
+    // preferred size, is placed as told.
+    Row {
+        id: afRow; objectName: "afRow"; y: 1700; width: 300; height: 30
+        Rectangle { id: afA; objectName: "afA"; implicitWidth: 20.5; implicitHeight: 10.25; Layout.alignment: 128 }
+        Rectangle { id: afB; objectName: "afB"; width: 30.5; height: 10; Layout.alignment: 128 }
+        Rectangle { id: afC; objectName: "afC"; implicitWidth: 10.5; implicitHeight: 10; Layout.preferredWidth: 12.5 }
+    }
+
+    // A Row none of whose children has a Layout is a positioner: it
+    // places a child at the fraction its content gives it.
+    Row {
+        id: agRow; objectName: "agRow"; y: 1740; width: 300
+        Rectangle { id: agA; objectName: "agA"; implicitWidth: 20.5; implicitHeight: 10.25 }
+        Rectangle { id: agB; objectName: "agB"; width: 10; height: 10 }
+    }
+
+    // The only child with a Layout leaves: the row packs as a line, and
+    // gives the other back the fraction its content gives it.
+    Row {
+        id: ahRow; objectName: "ahRow"; y: 1760; width: 300; height: 20
+        Rectangle { id: ahA; objectName: "ahA"; implicitWidth: 20.5; implicitHeight: 10 }
+        Rectangle { id: ahB; objectName: "ahB"; width: 10; height: 10; Layout.minimumWidth: 5 }
+    }
+    Item { id: ahHome; objectName: "ahHome"; y: 1790; width: 10; height: 10 }
+
+    // A Row in a Column that fills it is no narrower than its children
+    // need: their smallest widths, its spacing and its padding.
+    Column {
+        id: aiCol; objectName: "aiCol"; y: 1800; width: 30
+        Row {
+            id: aiRow; objectName: "aiRow"; Layout.fillWidth: true; spacing: 5; padding: 2
+            Rectangle { id: aiA; objectName: "aiA"; Layout.fillWidth: true; Layout.minimumWidth: 20; height: 10 }
+            Rectangle { id: aiB; objectName: "aiB"; Layout.fillWidth: true; Layout.minimumWidth: 20; height: 10 }
+        }
+    }
+
+    // A child the row gave the width its content gave it: given 0 when
+    // its content is empty, it is left out at that width, and is back
+    // once its content grows.
+    Row {
+        id: ajRow; objectName: "ajRow"; y: 1840; width: 300; height: 20
+        property real content: 20.5
+        Rectangle { id: ajA; objectName: "ajA"; implicitWidth: ajRow.content; implicitHeight: 10 }
+        Rectangle { id: ajB; objectName: "ajB"; implicitWidth: 10; implicitHeight: 10; Layout.alignment: 32 }
+    }
+
+    // A child the row gave the width its content gave it, moved to
+    // another Row that is a layout, still follows its content there; in an
+    // Item it keeps its width, and back in a layout it follows again, as
+    // in Qt's layouts.
+    Row {
+        id: akRow; objectName: "akRow"; y: 1870; width: 300; height: 20
+        property real content: 20.5
+        Rectangle { id: akA; objectName: "akA"; implicitWidth: akRow.content; implicitHeight: 10 }
+        Rectangle { id: akB; objectName: "akB"; implicitWidth: 10; implicitHeight: 10; Layout.alignment: 32 }
+    }
+    Row {
+        id: akOther; objectName: "akOther"; y: 1900; width: 300; height: 20
+        Rectangle { id: akC; objectName: "akC"; implicitWidth: 10; implicitHeight: 10; Layout.alignment: 32 }
+    }
+    Item { id: akPlain; objectName: "akPlain"; y: 1930; width: 10; height: 10 }
+
+    // A child a Row that is a layout sized from its content keeps that size
+    // in a Row that is a positioner, also once its content is gone, and
+    // follows it again in a Row that is a layout.
+    Row {
+        id: alRow; objectName: "alRow"; y: 1950; width: 300; height: 20
+        property real content: 20.5
+        Rectangle { id: alA; objectName: "alA"; implicitWidth: alRow.content; implicitHeight: 10 }
+        Rectangle { implicitWidth: 10; implicitHeight: 10; Layout.alignment: 32 }
+    }
+    Row {
+        id: alPos; objectName: "alPos"; y: 1970
+        Rectangle { objectName: "alP"; width: 10; height: 10 }
+    }
+    Row {
+        id: alLay; objectName: "alLay"; y: 1990; width: 300; height: 20
+        Rectangle { implicitWidth: 10; implicitHeight: 10; Layout.alignment: 32 }
+    }
 }

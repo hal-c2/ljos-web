@@ -50,7 +50,7 @@ function sizes(last, minWidth, minHeight, prefWidth, prefHeight, maxWidth, maxHe
 
 // The least, the preferred and the most a layout can be. A child that asks
 // while they are being worked out gets the last ones (see Settling).
-function hints(self) {
+export function hints(self) {
   const measured = self.$measured;
   if (measured.early()) return measured.last.sizes;
   self.$sizes ??= looped(self.$owner, () => measured.read().sizes);
