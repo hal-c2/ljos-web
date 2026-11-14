@@ -12,6 +12,7 @@ import { declared, forceActiveFocus, nextItemInFocusChain, reachable, setFocus, 
 import { methods as geometry } from "./geometry.js";
 import { navigable } from "./Keys.js";
 import { layer, layered } from "./layer.js";
+import { addressed, tagOf } from "./link.js";
 import { mirrored } from "./LayoutMirroring.js";
 import { stateful } from "./states.js";
 import "./style.js";
@@ -381,7 +382,7 @@ export const Item = defineType("Item", QtObject, {
     },
   },
   setup(self, props) {
-    const node = document.createElement("div");
+    const node = document.createElement(tagOf(props));
     node.className = "qq";
     self.$node = node;
     self.$static = EMPTY;
@@ -406,6 +407,7 @@ export const Item = defineType("Item", QtObject, {
       },
     );
     layered(self, props);
+    addressed(self, node);
     if ("focus" in props) declared(self, props);
     if ("activeFocusOnTab" in props) reachable(self);
     navigable(self, props);

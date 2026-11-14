@@ -195,6 +195,40 @@ for (const kernel of ["solid", "wasm"]) {
       expect(await page.evaluate(() => window.__prerendered.every((element) => document.contains(element)))).toBe(true);
     });
 
+    test("an item that is a link is an a in the HTML, followed with no script and taken over by hydration", async ({ browser, page }) => {
+      const html = readFileSync(join(made.out, "index.html"), "utf8");
+      expect(html).toMatch(/<a [^>]*href="\/elsewhere\/"/);
+      const context = await browser.newContext({ javaScriptEnabled: false });
+      try {
+        const still = await context.newPage();
+        await still.goto(`${origin}/`);
+        const link = still.getByRole("link", { name: "Go elsewhere" });
+        await expect(link).toHaveAttribute("href", "/elsewhere/");
+        await link.click();
+        await still.waitForURL(`${origin}/elsewhere/`);
+      } finally {
+        await context.close();
+      }
+      // Hydrated, it is the same element, and a plain press is the
+      // program's: the page counts and stays where it is.
+      let release;
+      const held = new Promise((done) => (release = done));
+      await page.route("**/*.js", async (route) => {
+        await held;
+        await route.continue();
+      });
+      await page.goto(`${origin}/`, { waitUntil: "commit" });
+      await page.waitForSelector('#app a[href="/elsewhere/"]');
+      await page.evaluate(() => (window.__link = document.querySelector('#app a[href="/elsewhere/"]')));
+      release();
+      await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+      await page.unroute("**/*.js");
+      expect(await page.evaluate(() => document.contains(window.__link) && window.__link === document.querySelector('#app a[href="/elsewhere/"]'))).toBe(true);
+      await page.getByRole("link", { name: "Go elsewhere" }).click();
+      await expect(page.getByText("Followed 1", { exact: true })).toBeVisible();
+      expect(page.url()).toBe(`${origin}/`);
+    });
+
     test("a page that was not made as it was prerendered is made again from where they part", async ({ page }) => {
       const warnings = [];
       page.on("console", (message) => {
