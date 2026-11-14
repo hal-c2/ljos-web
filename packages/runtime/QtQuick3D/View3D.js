@@ -326,15 +326,19 @@ export const View3D = defineType("View3D", Item, {
       if (rested - from > 1) return void setTimeout(drawn, rested - from);
       const scene = due;
       due = null;
-      draw(scene, canvas, paper, ways);
+      const drew = draw(scene, canvas, paper, ways);
       last = scene;
       if (ways) {
         gave(state);
         setTimes((times) => times + 1);
       }
       const ended = performance.now();
-      frame(from, ended);
-      state.frames++;
+      // A picture never drawn is no frame, so what waits for the first
+      // (a still picture standing in for the view) goes on waiting.
+      if (drew) {
+        frame(from, ended);
+        state.frames++;
+      }
       state.probe?.("draw", from, ended);
       const took = ended - from;
       rested = slow && took > SLOW ? ended + Math.min(took, REST) : 0;
@@ -455,7 +459,9 @@ function counted(stats) {
   let frames = 0;
   let longest = 0;
   let second = 0;
-  let since = 0;
+  // The first frame's times are said at once, however soon it comes:
+  // what waits for a view's first picture hears of it.
+  let since = TOLD;
   return (began, ended) => {
     const took = ended - last;
     last = ended;
