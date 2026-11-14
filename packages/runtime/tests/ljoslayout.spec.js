@@ -10,8 +10,10 @@
 // and moving `acA` to `acHome`, (`measuredAgain`) after `aaRow.more`,
 // (`returned`) after `aeA` goes to `aeHome`, `aeRow.big` and `aeA` comes
 // back, (`lined`) after `ahB` goes to `ahHome`, and (`emptied`, `grown`)
-// after `ajRow.content` is 0, then 30.25, run by `ljos test`
-// (ljos-ui LJOS_UI_SHA).
+// after `ajRow.content` is 0, then 30.25, and (`movedOn`, `parked`,
+// `movedBack`) after `akA` goes to `akOther` and `akRow.content` is 30.25,
+// to `akPlain` and it is 40.5, and back to `akOther`, run by `ljos test`
+// (ljos-ui 94770e9b2).
 //
 // Each child is [x, y, width, height, implicitWidth, implicitHeight].
 import { readFileSync } from "node:fs";
@@ -173,4 +175,28 @@ test("a child the row gave the width its content gave it is left out at 0, and b
     window.flush();
   })(page);
   expect(pick(grown, names)).toEqual(pick(ljos.grown, names));
+});
+
+test("a child moved from one row that is a layout to another still follows its content, and keeps its width in an item", async ({ page }) => {
+  await open(page, "ljoslayoutrule");
+  const names = ["akRow", "akA", "akB", "akOther", "akC"];
+  const movedOn = await after(() => {
+    window.scene.akAItem.parent = window.scene.akOtherItem;
+    window.flush();
+    window.scene.akRowItem.content = 30.25;
+    window.flush();
+  })(page);
+  expect(pick(movedOn, names)).toEqual(pick(ljos.movedOn, names));
+  const parked = await after(() => {
+    window.scene.akAItem.parent = window.scene.akPlainItem;
+    window.flush();
+    window.scene.akRowItem.content = 40.5;
+    window.flush();
+  })(page);
+  expect(pick(parked, names)).toEqual(pick(ljos.parked, names));
+  const back = await after(() => {
+    window.scene.akAItem.parent = window.scene.akOtherItem;
+    window.flush();
+  })(page);
+  expect(pick(back, names)).toEqual(pick(ljos.movedBack, names));
 });
