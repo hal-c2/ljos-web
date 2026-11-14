@@ -9,10 +9,10 @@ import "code-editor.js" as Editor
 // an editor per file, and a stage the result stands in. As the page
 // is first written — and for a reader with no script — the stage
 // holds a picture of the result as the build prerendered it, and so
-// does a browser's until the reader reaches for the block (a focus or
-// a press in its code, or a press on its picture): only then is the
-// compiler fetched, and the stage's ShellLoader compiles the code in
-// the page and takes the stage over. Every edit recompiles and
+// does a browser's until the reader runs the block (a press on its
+// picture, or a first edit of its code; a focus in the code fetches
+// only the editor): only then is the compiler fetched, and the stage's
+// ShellLoader compiles the code in the page and takes the stage over. Every edit recompiles and
 // reloads with its state kept. A broken edit says why beside the
 // code, and the last good result keeps running. A block that does not run is
 // its code, coloured at build time, in a panel of its own.
@@ -291,7 +291,6 @@ Column {
                         lang: modelData.lang || "qml"
                         label: "Edit " + modelData.name
                         errors: told
-                        onReached: block.started || block.apply()
                         onTextChanged: if (block.started || text !== code) debounce.restart()
                     }
                 }

@@ -119,6 +119,9 @@ for (const route of ["language/overview/", "demos/"]) {
     expect(forEdit(), "before the reader reaches for the code").toEqual([]);
     await page.getByRole("textbox", { name: /^Edit / }).first().click();
     await page.waitForSelector(".cm-content");
+    await page.waitForLoadState("networkidle");
+    // Reaching for the code brings the editor, and runs nothing yet.
+    expect(forEdit().filter((file) => file.startsWith("ljos_web_compiler")), "once the editor is in, before an edit").toEqual([]);
     await page.keyboard.press("Control+Home");
     await page.keyboard.type("// edited\n");
     await expect.poll(() => forEdit().some((file) => file.startsWith("attach-")), { timeout: 30_000 }).toBe(true);
