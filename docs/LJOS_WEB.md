@@ -2089,7 +2089,11 @@ leaves, its width changes and it comes back, and after the only child
 with a `Layout` of a row whose others take their size from their
 content leaves, and after a child a row gave the width its content gave
 it moves to another row that is a layout (it still follows its
-content), to an item (it keeps its width) and back.
+content), to an item (it keeps its width) and back. A row that is a
+positioner keeps the width another row that is a layout gave a child,
+also once its content is gone, and only a size it gave itself follows
+the content: those numbers are Qt 6.11's, as ljos-ui's fixture has no
+such case.
 
 `tests/ljosui.spec.js` holds it, on both kernels: each face by its
 dialect names, beside the QtQuick specs, and a whole dialect file

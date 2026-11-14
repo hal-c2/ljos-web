@@ -78,10 +78,18 @@ function hasLayout(child) {
 // One with no width or height is left out, as a positioner leaves it,
 // unless it asks the arrangement for a size. Along an axis it follows its
 // implicit size, that is the one read: the width the arrangement placed
-// is the one it gave, and a child given none would never come back.
-const skipped = (child) =>
+// is the one it gave, and a child given none would never come back. A
+// positioner (`own`, the axes it gave each child) reads that only where
+// it gave the size itself: a child a layout sized keeps that size there,
+// also once its content is gone, as Qt 6.11's Row keeps it.
+const skipped = (child, own) =>
   !hasLayout(child) &&
-  [H, V].some((axis) => (Number.isNaN(stated(child, axis)) ? child[IMPLICIT[axis]] : child[SIZE[axis]]) === 0);
+  [H, V].some(
+    (axis) =>
+      (Number.isNaN(stated(child, axis)) && (!own || own.get(child)?.[axis])
+        ? child[IMPLICIT[axis]]
+        : child[SIZE[axis]]) === 0,
+  );
 
 // What a `Layout.name` was given by the author, else what the item a
 // LayoutItemProxy stands for was. A value only the type works out (a
@@ -341,9 +349,10 @@ function measurePlan(self, items, grid, vertical, last) {
   const wants = [];
   const first = firstSeen(self, items);
   const gave = gaveOf(self);
-  // An arrangement that plans is a layout when a child has a `Layout`: it
-  // rounds an implicit size up. A grid of children that have none places
-  // them at their sizes.
+  // An arrangement that plans is a layout: it gives a child that follows
+  // its content that size, as ljos-ui's does. A `Grid` plans even when no
+  // child has a `Layout`, as ljos-ui's is never a positioner. It rounds
+  // the implicit size up only when one has, as Qt's layouts do.
   const round = items.some(hasLayout);
   for (const [index, child] of items.entries()) {
     const a = attached(child);
@@ -517,14 +526,18 @@ function arrangement(name, spec) {
       $measure(last) {
         forgetLeft(this);
         const shown = this.children.filter(laidOut);
-        const items = shown.filter((child) => !skipped(child));
-        const left = leftOutSizes(this, shown.filter(skipped));
         const grid = spec.grid === true;
+        // A child left out has no `Layout`, so the shown children say
+        // whether this is a positioner before any is left out.
+        const line = !grid && !shown.some(hasLayout);
+        const own = line ? gaveOf(this) : undefined;
+        const out = (child) => skipped(child, own);
+        const items = shown.filter((child) => !out(child));
+        const left = leftOutSizes(this, shown.filter(out));
         const vertical = grid ? false : spec.vertical(this);
-        const measured =
-          !grid && !items.some(hasLayout)
-            ? measureLine(this, items, vertical, last)
-            : measurePlan(this, items, grid, vertical, last);
+        const measured = line
+          ? measureLine(this, items, vertical, last)
+          : measurePlan(this, items, grid, vertical, last);
         measured.left = left;
         return measured;
       },

@@ -27,6 +27,10 @@ Item {
     property alias akAItem: akA
     property alias akOtherItem: akOther
     property alias akPlainItem: akPlain
+    property alias alRowItem: alRow
+    property alias alAItem: alA
+    property alias alPosItem: alPos
+    property alias alLayItem: alLay
     width: 1000
     height: 2000
 
@@ -406,4 +410,22 @@ Item {
         Rectangle { id: akC; objectName: "akC"; implicitWidth: 10; implicitHeight: 10; Layout.alignment: 32 }
     }
     Item { id: akPlain; objectName: "akPlain"; y: 1930; width: 10; height: 10 }
+
+    // A child a Row that is a layout sized from its content keeps that size
+    // in a Row that is a positioner, also once its content is gone, and
+    // follows it again in a Row that is a layout.
+    Row {
+        id: alRow; objectName: "alRow"; y: 1950; width: 300; height: 20
+        property real content: 20.5
+        Rectangle { id: alA; objectName: "alA"; implicitWidth: alRow.content; implicitHeight: 10 }
+        Rectangle { implicitWidth: 10; implicitHeight: 10; Layout.alignment: 32 }
+    }
+    Row {
+        id: alPos; objectName: "alPos"; y: 1970
+        Rectangle { objectName: "alP"; width: 10; height: 10 }
+    }
+    Row {
+        id: alLay; objectName: "alLay"; y: 1990; width: 300; height: 20
+        Rectangle { implicitWidth: 10; implicitHeight: 10; Layout.alignment: 32 }
+    }
 }
