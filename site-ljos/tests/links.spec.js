@@ -240,6 +240,13 @@ test("with script, a page opened at a heading's fragment is at that heading", as
   await expect.poll(() => down(heading(page))).toBeLessThan(height / 3);
 });
 
+test("with script, a page opened at a heading whose name is not all ASCII is at that heading", async ({ page }) => {
+  const heading = () => page.getByText("Where Ljós and Qt differ", { exact: true }).first();
+  await page.goto(`${base}language/porting-from-qt/#${encodeURIComponent("where-ljós-and-qt-differ")}`);
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  await expect.poll(() => down(heading())).toBeLessThan(page.viewportSize().height / 3);
+});
+
 test("with script, a page loaded again is where the reader left it", async ({ page }) => {
   await page.goto(`${base}start/`);
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');

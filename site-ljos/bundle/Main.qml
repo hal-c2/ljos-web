@@ -45,7 +45,13 @@ Rectangle {
             // Once the page shown is laid out, so it is as tall as it was.
             Qt.callLater(() => pageScroll.contentY = Math.max(0, Math.min(offset, pageScroll.contentHeight - pageScroll.height)));
         } else if (fragment) {
-            Qt.callLater(() => docItem.scrollToAnchor(fragment.slice(1)));
+            // A heading's name as the page has it: an address carries
+            // what is not ASCII in it percent-encoded.
+            var anchor = fragment.slice(1);
+            try {
+                anchor = decodeURIComponent(anchor);
+            } catch (error) {}
+            Qt.callLater(() => docItem.scrollToAnchor(anchor));
         } else {
             pageScroll.contentY = 0;
         }
