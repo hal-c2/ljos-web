@@ -29,8 +29,10 @@ for (const route of PINNED_PAGES) {
     expect(existsSync(built), `${route} is built`).toBe(true);
     const title = titleIn(readFileSync(built, "utf8"));
     expect(title, `${route} has its title`).toBeTruthy();
-    // The sidebar of another page has it as a link named by its title.
+    // The sidebar of another page has it as a link to it, named by its
+    // title: a real <a href>, so it is followed with no script too.
     const start = readFileSync(join(here, "dist/start/index.html"), "utf8");
-    expect(start).toContain(`role="link" aria-label="${title}"`);
+    const quoted = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    expect(start).toMatch(new RegExp(`<a [^>]*href="${quoted(route)}"[^>]*>${quoted(title)}</a>`));
   });
 }
