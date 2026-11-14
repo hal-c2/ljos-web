@@ -308,8 +308,9 @@ function conf(file) {
   return groups;
 }
 
-// The names a module of the runtime's exports, its `export *` followed.
-function exported(context, file, names = new Set(), seen = new Set()) {
+// The names a module of the runtime's exports, its `export *` followed. A
+// type it exports is not one: it is gone once the types are stripped.
+export function exported(context, file, names = new Set(), seen = new Set()) {
   if (seen.has(file) || !existsSync(file)) return names;
   seen.add(file);
   context.addWatchFile(file);
@@ -317,11 +318,14 @@ function exported(context, file, names = new Set(), seen = new Set()) {
   // is not JavaScript.
   const lang = file.endsWith(".ts") ? "ts" : "js";
   for (const node of context.parse(readFileSync(file, "utf8"), { lang }).body) {
+    if (node.exportKind === "type") continue;
     if (node.type === "ExportAllDeclaration") {
       if (node.exported) names.add(node.exported.name ?? node.exported.value);
       else if (/^\.\.?\//.test(node.source.value)) exported(context, join(dirname(file), node.source.value), names, seen);
     } else if (node.type === "ExportNamedDeclaration") {
-      for (const specifier of node.specifiers) names.add(specifier.exported.name ?? specifier.exported.value);
+      for (const specifier of node.specifiers) {
+        if (specifier.exportKind !== "type") names.add(specifier.exported.name ?? specifier.exported.value);
+      }
       if (node.declaration?.id) names.add(node.declaration.id.name);
       for (const declarator of node.declaration?.declarations ?? []) names.add(declarator.id.name);
     }
