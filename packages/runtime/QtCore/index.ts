@@ -7,14 +7,30 @@ import { defineType, onChange, QtObject, settle, slot, whenComplete } from "../o
 import { application } from "../QtQml/application.ts";
 import { Color, color } from "../QtQuick/color.js";
 import { untrack } from "#kernel";
+import type { QObject } from "../object.ts";
+
+// A Settings object: its own properties, and every one its QML declares,
+// which are what it stores.
+interface Store extends QObject {
+  category: string;
+  location: string;
+  fileName: string;
+  $key(name: string): string;
+  [name: string]: unknown;
+}
+
+interface Permission extends QObject {
+  status: number;
+  accuracy: number;
+}
 
 // What was written since the page loaded, as it was written: Qt answers
 // `value()` with that, and with text for what it read from storage.
-const written = new Map();
+const written = new Map<string, unknown>();
 
 // Qt keeps settings as text: a number comes back as "4", a colour as its
 // name, a list as a list of those.
-function text(value) {
+function text(value: unknown): unknown {
   if (typeof value === "number" || typeof value === "boolean") return String(value);
   if (value instanceof Color) return value.toString();
   if (value instanceof Date) return value.toISOString();
@@ -24,7 +40,7 @@ function text(value) {
 
 // A stored value as the kind of thing the property holds now: what its
 // declared type does in Qt.
-function typed(stored, current) {
+function typed(stored: unknown, current: unknown): unknown {
   if (typeof stored !== "string") return stored;
   if (typeof current === "number") return Number(stored);
   if (typeof current === "boolean") return stored === "true";
@@ -33,9 +49,9 @@ function typed(stored, current) {
   return stored;
 }
 
-function read(key) {
+function read(key: string): unknown {
   if (written.has(key)) return written.get(key);
-  let stored;
+  let stored: string | null;
   try {
     stored = localStorage.getItem(key);
   } catch {
@@ -50,7 +66,7 @@ function read(key) {
   }
 }
 
-function write(key, value) {
+function write(key: string, value: unknown): void {
   written.set(key, value);
   // It may be a dropped shell's string, which the next page would act on with
   // no guard up: it lasts as long as this page.
@@ -64,10 +80,10 @@ function write(key, value) {
 
 // The properties an object declares beyond its type's: the ones its QML
 // gives it, which is what a Settings object stores.
-function declared(self) {
+function declared(self: Store): string[] {
   const names = Object.keys(self).filter((name) => {
     const descriptor = Object.getOwnPropertyDescriptor(self, name);
-    return descriptor.get && descriptor.set;
+    return descriptor!.get && descriptor!.set;
   });
   for (const name in self.$type.slots) {
     if (!(name in Settings.slots) && !name.includes("$")) names.push(name);
@@ -84,24 +100,24 @@ export const Settings = defineType("Settings", QtObject, {
     fileName: "",
   },
   methods: {
-    value(key, fallback) {
+    value(this: Store, key: string, fallback?: unknown): unknown {
       return read(this.$key(key)) ?? fallback;
     },
-    setValue(key, value) {
+    setValue(this: Store, key: string, value: unknown): void {
       write(this.$key(key), value);
     },
     // Every property is written when it changes, so this has nothing to
     // wait for: it writes them all.
-    sync() {
+    sync(this: Store): void {
       for (const name of declared(this)) write(this.$key(name), this[name]);
     },
-    $key(name) {
+    $key(this: Store, name: string): string {
       const { organization, name: program } = application();
       const where = [this.location || this.fileName, organization, program, this.category].filter(Boolean);
       return `ljos-web:${[...where, name].join("/")}`;
     },
   },
-  setup(self) {
+  setup(self: Store) {
     // Once the object has its properties and their bindings: what is stored
     // replaces what the QML says, and what the QML says is stored if
     // nothing was.
@@ -162,18 +178,18 @@ const DENIED = 2;
 // LocationPermission there is says the same.
 let answer = UNDETERMINED;
 let watched = false;
-const permissions = new Set();
+const permissions = new Set<Permission>();
 
-function answered(status) {
+function answered(status: number): void {
   answer = status;
   for (const self of permissions) slot(self, "status").write(status);
   settle();
 }
 
-const states = { granted: GRANTED, denied: DENIED, prompt: UNDETERMINED };
+const states: Record<PermissionState, number> = { granted: GRANTED, denied: DENIED, prompt: UNDETERMINED };
 
 // The answer the browser has already, and every one it comes to later.
-function watch() {
+function watch(): void {
   if (watched) return;
   watched = true;
   if (!navigator.geolocation) return answered(DENIED);
@@ -196,7 +212,7 @@ export const LocationPermission = defineType("LocationPermission", QtObject, {
   enums: { Approximate: 0, Precise: 1, WhenInUse: 0, Always: 1 },
   methods: {
     // Asking where the page is is how a browser is asked whether it may.
-    request() {
+    request(this: Permission): void {
       if (untrack(() => this.status) !== UNDETERMINED || !navigator.geolocation) return;
       navigator.geolocation.getCurrentPosition(
         () => answered(GRANTED),
@@ -206,7 +222,7 @@ export const LocationPermission = defineType("LocationPermission", QtObject, {
       );
     },
   },
-  setup(self) {
+  setup(self: Permission) {
     permissions.add(self);
     onCleanup(() => permissions.delete(self));
     slot(self, "status").write(answer);
