@@ -1,5 +1,7 @@
 # The QML types of Qt 6.11, as its qmldir and qmltypes files describe them.
-# Written by `mise run types` (crates/qmltypes), read by ljos_web through qt_types. Not edited by hand.
+# Written by `mise run types` (crates/qmltypes), read by ljos_web through qt_types. Not edited by hand,
+# but for Qt 6.12's MenuItemIconLabel (QtQuick.Controls.impl), which 6.12's styles' MenuItem.qml
+# uses: until the table is written from 6.12, the four lines of it that 6.12's qmltypes give.
 module QML
 	Component QQmlComponent
 	Easing QQmlEasing
@@ -10697,6 +10699,7 @@ module QtQuick.Controls.impl
 	IconLabel QQuickIconLabel
 	ImageSelector QQuickImageSelector
 	ItemGroup QQuickItemGroup
+	MenuItemIconLabel QQuickMenuItemIconLabel
 	MnemonicLabel QQuickMnemonicLabel
 	NinePatchImage QQuickNinePatchImage
 	NinePatchImageSelector QQuickNinePatchImageSelector
@@ -10773,6 +10776,10 @@ module QtQuick.Controls.impl
 		signal sourceChanged
 	type QQuickItemGroup ItemGroup
 		prototype QQuickImplicitSizeItem
+	type QQuickMenuItemIconLabel MenuItemIconLabel
+		prototype QQuickIconLabel
+		prop menuItem QQuickMenuItem pointer
+		signal menuItemChanged
 	type QQuickMnemonicLabel MnemonicLabel
 		prototype QQuickText
 		prop text QString
