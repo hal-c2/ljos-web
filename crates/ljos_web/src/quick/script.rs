@@ -285,6 +285,19 @@ struct Script<'a, 's> {
 }
 
 impl<'a> VisitMut<'a> for Script<'a, '_> {
+    // `import("./Page.qml")` asks for the file's module once the program
+    // gets there. Put a component in the path's place and the file would
+    // be imported with this module, which a dynamic import is written not
+    // to do; so the path stays what it says, for the bundler to split.
+    fn visit_import_expression(&mut self, import: &mut ImportExpression<'a>) {
+        if !matches!(import.source, Expression::StringLiteral(_)) {
+            self.visit_expression(&mut import.source);
+        }
+        if let Some(options) = &mut import.options {
+            self.visit_expression(options);
+        }
+    }
+
     fn visit_expression(&mut self, expression: &mut Expression<'a>) {
         self.paths.rewrite(self.b, self.kernel, expression, None);
         walk_mut::walk_expression(self, expression);
