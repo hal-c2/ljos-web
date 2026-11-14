@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#MISE description="Install the tooling: Rust (with the wasm target), Node and pnpm, at the versions in mise.toml"
+set -euo pipefail
+mise install

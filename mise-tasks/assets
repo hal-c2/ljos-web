@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 #MISE description="Download what an example's build downloads (its pictures, meshes, fonts) into the cache: mise run assets ID... (without an ID, says which examples have such assets)"
-#MISE depends=["install"]
+#MISE depends=["tools"]
 set -euo pipefail
 exec node corpus/assets.mjs "$@"

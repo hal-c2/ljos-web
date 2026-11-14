@@ -1,4 +1,26 @@
 #!/usr/bin/env bash
-#MISE description="Install the tooling: Rust, Node and pnpm, at the versions in mise.toml"
+#MISE description="Install what this repository makes: qmlc on PATH (cargo install), and a dry run of packing the npm packages (never published)"
+#MISE depends=["tools"]
+#USAGE arg "[what]" default="all" help="What to install: the qmlc CLI, a pack dry run of the npm packages, or both" {
+#USAGE   choices "all" "cli" "packages"
+#USAGE }
+#USAGE flag "--root <dir>" help="Where cargo install puts qmlc (DIR/bin); default cargo's own, ~/.cargo/bin"
 set -euo pipefail
-mise install
+
+what=${usage_what:-all}
+
+if [ "$what" = all ] || [ "$what" = cli ]; then
+  # ljos-ui is named by ssh in Cargo.lock; it is public, so https fetches it
+  # without a key, for this command only.
+  root_args=()
+  [ -n "${usage_root:-}" ] && root_args=(--root "$usage_root")
+  GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=url.https://github.com/.insteadOf GIT_CONFIG_VALUE_0=ssh://git@github.com/ \
+    CARGO_NET_GIT_FETCH_WITH_CLI=true \
+    cargo install --path crates/ljos_web --bin qmlc --locked "${root_args[@]}"
+fi
+
+if [ "$what" = all ] || [ "$what" = packages ]; then
+  # A dry run only: publishing is the maintainers' step, by hand.
+  pnpm --filter ljos-web pack --dry-run
+  pnpm --filter lezer-ljos pack --dry-run
+fi

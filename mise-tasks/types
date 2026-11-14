@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Regenerate the table of Qt's types from the Qt installed here and what QML_IMPORT_PATH names (--qt DIRECTORY for another, more than once for several)"
-#MISE depends=["install"]
+#MISE depends=["tools"]
 set -euo pipefail
 # The generator is Ljós's `qmltypes`, at the rev the compiler's front end
 # is taken from: one generator, in its home repository.

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Build View3D's renderer as wasm, for QtQuick3D/wgpu.js to load when a page first makes a View3D"
-#MISE depends=["install"]
+#MISE depends=["tools"]
 set -euo pipefail
 
 bindgen="$(mise-tasks/tool/wasm-bindgen)"

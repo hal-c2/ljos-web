@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Fetch the JavaScript packages"
-#MISE depends=["install"]
+#MISE depends=["tools"]
 #MISE sources=["package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "packages/*/package.json", "examples/*/package.json"]
 #MISE outputs=["node_modules/.modules.yaml"]
 set -euo pipefail

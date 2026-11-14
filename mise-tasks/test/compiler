@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 #MISE description="Parser, compiler and snapshot tests"
-#MISE depends=["install"]
+#MISE depends=["tools"]
 set -euo pipefail
 cargo test "$@"
