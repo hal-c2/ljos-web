@@ -247,6 +247,23 @@ test("with script, a page opened at a heading whose name is not all ASCII is at 
   await expect.poll(() => down(heading())).toBeLessThan(page.viewportSize().height / 3);
 });
 
+// A heading names itself in its page's HTML as its anchor, so its
+// address lands on it with the browser's own scrolling. (One near the
+// end of its page comes up only as far as the page scrolls.)
+test("with no script, a page opened at a heading's fragment is at that heading", async ({ browser }) => {
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+  const heading = () => page.getByText("Check and format the file", { exact: true }).first();
+  await page.goto(`${base}start/first-app/`);
+  expect(await down(heading()), "below the first screen at the top").toBeGreaterThan(page.viewportSize().height);
+  await page.goto(`${base}start/first-app/#check-and-format-the-file`);
+  await expect.poll(() => down(heading())).toBeLessThan(page.viewportSize().height / 3);
+  await page.goto(`${base}language/porting-from-qt/#${encodeURIComponent("where-ljós-and-qt-differ")}`);
+  const other = page.getByText("Where Ljós and Qt differ", { exact: true }).first();
+  await expect.poll(() => down(other)).toBeLessThan(page.viewportSize().height / 3);
+  await context.close();
+});
+
 test("with script, a page loaded again is where the reader left it", async ({ page }) => {
   await page.goto(`${base}start/`);
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');

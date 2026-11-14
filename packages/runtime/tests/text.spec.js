@@ -682,6 +682,22 @@ test("a link to a page is followable, and a script's is not", async ({ page }) =
   ]);
 });
 
+// An anchor's name is a place in the text: an address's fragment that
+// names it is where the browser scrolls, with no script to ask.
+test("an anchor's name stands in the markup, with or without an address", async ({ page }) => {
+  await boxes(page, "markup");
+  const anchors = await page.evaluate(() => {
+    const { linked } = window.objects;
+    linked.text = '<a name="intro"></a>Intro <a name="more" href="/more/">more</a>';
+    window.flush();
+    return [...linked.$markup.querySelectorAll("a")].map((a) => [a.getAttribute("name"), a.getAttribute("href")]);
+  });
+  expect(anchors).toEqual([
+    ["intro", null],
+    ["more", "/more/"],
+  ]);
+});
+
 test("a text changes between plain and markup, and is justified or set from the right", async ({ page }) => {
   await boxes(page, "markup");
   const read = await page.evaluate(() => {

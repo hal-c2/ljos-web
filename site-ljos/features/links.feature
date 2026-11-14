@@ -43,6 +43,14 @@ Feature: The site's links are the page's own links
     When they go back
     Then they are on the front page
 
+  Scenario: An address of a heading lands on that heading, with or without script
+    Given a docs page whose heading is below the first screen
+    When a reader with no script opens the page at that heading's address
+    Then the heading is near the top of the screen
+    When a reader with script opens it there
+    Then the heading is near the top of the screen
+    And so it is for a heading whose name is not all ASCII
+
   Scenario: With script, a plain press shows the page in place
     Given a reader on the front page with script
     When they press "Docs" in the header

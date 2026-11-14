@@ -102,11 +102,12 @@ Column {
             width: doc.textWidth
             spacing: 0
 
-            // A heading.
+            // A heading, named by its anchor, so its address lands on
+            // it in a page with no script too.
             Text {
                 visible: kind === "heading"
                 width: doc.textWidth
-                text: kind === "heading" ? modelData.rich : ""
+                text: kind === "heading" ? "<a name=\"" + anchor + "\"></a>" + modelData.rich : ""
                 textFormat: Text.RichText
                 color: Theme.ink
                 font.family: (modelData.level || 2) <= 2 ? Theme.serif : Theme.sans

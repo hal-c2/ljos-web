@@ -172,6 +172,9 @@ function copy(from, to, name, inert) {
   } else if (name === "center") style.textAlign = "center";
   else if (name === "nobr") style.whiteSpace = "nowrap";
   else if (name === "a") {
+    // An anchor's name is a place in the text an address can name: the
+    // browser scrolls a fragment to it, as Qt's `scrollToAnchor` does.
+    if (read("name")) to.setAttribute("name", read("name"));
     if (!inert && from.hasAttribute("href")) {
       to.dataset.link = read("href");
       // A link to a page is one a crawler, a reader's "open in a new
