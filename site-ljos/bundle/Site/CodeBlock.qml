@@ -40,6 +40,9 @@ Column {
     // What the running example asked for and does not have.
     property string absent: ""
     property bool started: false
+    // False where the browser runs no WebAssembly: there is no compiler,
+    // so the block stays the build's picture and says why.
+    property bool runs: true
 
     width: parent ? parent.width : 640
     spacing: 0
@@ -54,12 +57,22 @@ Column {
     }
 
     function apply() {
-        if (!isLive)
+        if (!isLive || !runs)
             return;
         Live.setFiles(live.hash, display());
         if (!started) {
             started = true;
+            // The source is given at once, as the page is made: a
+            // check that answered first would leave the stage empty
+            // until it did. Where the compile cannot run, what the
+            // block says is why, not how the compile failed.
             stage.source = Live.sourceFor(live.hash);
+            Live.needsWasm().then(function (why) {
+                if (why) {
+                    block.runs = false;
+                    block.said = why;
+                }
+            });
             return;
         }
         stage.reload().then(function (why) {
@@ -298,8 +311,9 @@ Column {
 
             Text {
                 // Until the result runs: the empty fallback only
-                // stands in while the code compiles (status Null).
-                visible: block.isLive && (!stage.item || stage.status === ShellLoader.Null)
+                // stands in while the code compiles (status Null),
+                // and never where there is no compiler (`runs`).
+                visible: block.isLive && (!block.runs || !stage.item || stage.status === ShellLoader.Null)
                 textFormat: Text.RichText
                 text: block.isLive ? "<img src=\"" + block.live.picture + "\" width=\"" + stageBox.pictureWidth + "\" height=\"" + Math.round(stageBox.pictureHeight) + "\" alt=\"What this example draws\">" : ""
             }
