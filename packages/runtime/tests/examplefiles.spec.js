@@ -88,6 +88,18 @@ test.describe("an example's files", () => {
     expect(server.refused).toEqual([]);
   });
 
+  test("a name with a % that starts no escape, and a character that is escaped, is the file the example has", async ({ page }) => {
+    const server = watched(page);
+    const figure = await mounted(page, "mixed");
+    await expect(figure).toHaveAttribute("data-state", "live", { timeout: 30000 });
+    await expect(figure.locator(".ljos-codeblock__stage")).toContainText("picture 12", { timeout: 15000 });
+    // Painted from what the example was given.
+    await expect(figure.locator(".qq-image")).toHaveCSS("background-image", /^url\("blob:/);
+    await expect(figure.getByRole("alert")).toBeHidden();
+    expect(server.named()).toEqual([]);
+    expect(server.refused).toEqual([]);
+  });
+
   test("a file a script asks for as the example compiles, and does not have, is said to be not there", async ({ page }) => {
     const server = watched(page);
     const figure = await mounted(page, "early");

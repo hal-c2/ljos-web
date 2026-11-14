@@ -3,7 +3,7 @@
 // The browser loads and paints it. What QML reads of it is computed here as
 // Qt computes it: the size it would have been loaded at, which is the item's
 // implicit size, and the rectangle it is painted in.
-import { guardedFetch, sourced } from "../guard.js";
+import { allowedUrl, guardedFetch, sourced } from "../guard.js";
 import { signal } from "#kernel";
 import { defineType, derived, effect, flush, group, located } from "../object.js";
 import { given, lazy, rules, sized } from "./compute.js";
@@ -342,7 +342,13 @@ export function geometry(self) {
   }
 }
 
-const address = (url) => `url(${JSON.stringify(url)})`;
+// What a style paints `url` from: where the browser can load it (a file a
+// live example was given, from where it was given), its fragment kept.
+const address = (url) => {
+  const hash = url.indexOf("#");
+  const to = allowedUrl(hash < 0 ? url : url.slice(0, hash));
+  return `url(${JSON.stringify(to && hash >= 0 ? to + url.slice(hash) : to)})`;
+};
 // A drawing fills what it is painted in, as the picture Qt makes of it does:
 // left to itself the browser would keep its shape.
 export const drawn = (record) =>

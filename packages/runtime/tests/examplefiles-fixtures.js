@@ -146,6 +146,27 @@ Rectangle {
 }
 `;
 
+// A name with a `%` that starts no escape and a character the URL
+// parser escapes: a file the example has, under its own name.
+export const MIXED = `import QtQuick
+
+Rectangle {
+    width: 200
+    height: 80
+    color: "#20242e"
+    Image {
+        id: logo
+        source: "my 100%.svg"
+    }
+    Text {
+        color: "#e8eaf0"
+        text: logo.status === Image.Ready ? "picture " + logo.implicitWidth : "picture " + logo.status
+    }
+}
+`;
+
+const SQUARE = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12"><rect width="12" height="12" fill="#9ec1ff"/></svg>\n';
+
 // A script that asks for a file the example does not have as it runs,
 // which is while the example compiles.
 export const EARLY_MAIN = `import QtQuick
@@ -180,8 +201,9 @@ export const EXAMPLES = {
   picture: figure([qml("Main.qml", PICTURE)]),
   read: figure([qml("Main.qml", READ), { name: "data.json", code: '{ "greeting": "hello" }\n', lang: "json" }]),
   percent: figure([qml("Main.qml", PERCENT)]),
+  mixed: figure([qml("Main.qml", MIXED), { name: "my 100%.svg", code: SQUARE, lang: "svg" }]),
   early: figure([qml("Main.qml", EARLY_MAIN), { name: "early.js", code: EARLY_SCRIPT, lang: "js" }]),
 };
 
 // What may not be asked of the server: every file the examples name.
-export const NAMED = /(?:^|\/)(?:(?:shell|AppShell|Shell|Missing|Gone)\.qml|logo\.png|100%(?:25)?\.png|(?:data|notes|early)\.json)$/;
+export const NAMED = /(?:^|\/)(?:(?:shell|AppShell|Shell|Missing|Gone)\.qml|logo\.png|100%(?:25)?\.png|my(?: |%20)100%(?:25)?\.svg|(?:data|notes|early)\.json)$/;

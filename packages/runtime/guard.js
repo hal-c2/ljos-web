@@ -87,13 +87,17 @@ export function own(url) {
 }
 
 // A name as its file is called. The URL parser keeps a `%` that starts no
-// escape as it is (`100%.png`), and such a name is its own.
+// escape as it is and escapes what is around it (`my 100%.png` is
+// `my%20100%.png`), so each run of escapes is read where it stands and
+// such a `%` is the name's own.
 function unescaped(path) {
-  try {
-    return decodeURIComponent(path);
-  } catch {
-    return path;
-  }
+  return path.replace(/(?:%[\da-f]{2})+/gi, (run) => {
+    try {
+      return decodeURIComponent(run);
+    } catch {
+      return run;
+    }
+  });
 }
 
 // Why `found` is not there, told once to whoever its project tells.
