@@ -374,9 +374,10 @@ async function load(self, state) {
     const made = runWithOwner(state.owner, () => make(self, state, resolved, false));
     if (made.shown) {
       // The reader may have used the shell that stood in (it is the
-      // application's own, and runs): the source takes over as a
+      // application's own, and runs), or the one that stood while
+      // there was no source at all: the source takes over as a
       // reload does, with the state of what is in both.
-      if (stood?.standsIn && stood.object && made.shown.object) {
+      if ((stood?.standsIn || stood?.unasked) && stood.object && made.shown.object) {
         try {
           const { carry } = await import("../../reload.js");
           if (turn !== state.turn) return void discard(made.shown);
@@ -443,6 +444,9 @@ async function showFallback(self, state, why, turn, standsIn = false) {
   const made = resolved.component ? runWithOwner(state.owner, () => make(self, state, resolved, true)) : resolved;
   if (made.shown) {
     made.shown.from = fallback;
+    // Shown for no source, not for one that failed: what it holds is
+    // the reader's, and the first source given carries it.
+    made.shown.unasked = !why;
     put(self, state, made.shown);
     write(self, "error", why);
     write(self, "status", Fallback);
