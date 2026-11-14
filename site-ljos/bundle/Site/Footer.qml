@@ -56,10 +56,10 @@ Rectangle {
             width: parent.width
             spacing: Theme.l
 
-            NavLink { label: "Docs"; href: "/start/"; muted: true; size: Theme.captionSize + 1; line: Theme.captionLine }
-            NavLink { label: "Demos"; href: "/demos/"; muted: true; size: Theme.captionSize + 1; line: Theme.captionLine }
-            NavLink { label: "Your first app"; href: "/start/first-app/"; muted: true; size: Theme.captionSize + 1; line: Theme.captionLine }
-            NavLink { label: "GitHub"; href: "https://github.com/hal-c2/ljos-ui"; muted: true; size: Theme.captionSize + 1; line: Theme.captionLine }
+            NavLink { label: "Docs"; to: "/start/"; muted: true; size: Theme.captionSize + 1; line: Theme.captionLine }
+            NavLink { label: "Demos"; to: "/demos/"; muted: true; size: Theme.captionSize + 1; line: Theme.captionLine }
+            NavLink { label: "Your first app"; to: "/start/first-app/"; muted: true; size: Theme.captionSize + 1; line: Theme.captionLine }
+            NavLink { label: "GitHub"; to: "https://github.com/hal-c2/ljos-ui"; muted: true; size: Theme.captionSize + 1; line: Theme.captionLine }
         }
         Text {
             width: parent.width

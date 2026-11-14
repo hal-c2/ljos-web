@@ -17,6 +17,9 @@ Rectangle {
     property bool active: true
     property bool calm: false
     readonly property bool turning: active && !calm
+    // Drawn once the view has said the time of a frame: a page that
+    // shows a picture until then (Site/DemoFrame.qml) keeps it till.
+    readonly property bool ready: view.renderStats.frameTime > 0
 
     // One clock turns everything, each binding at its own whole
     // multiple of it, so the loop wraps without a jump.

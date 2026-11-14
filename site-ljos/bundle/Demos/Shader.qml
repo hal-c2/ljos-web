@@ -14,6 +14,9 @@ Rectangle {
 
     property bool active: true
     property bool calm: false
+    // Drawn once its shader is: a page that shows a picture until then
+    // (Site/DemoFrame.qml) keeps it till.
+    readonly property bool ready: effect.status === ShaderEffect.Compiled
 
     Keys.onPressed: (event) => {
         if (event.key === Qt.Key_Space || event.key === Qt.Key_Return) {

@@ -62,7 +62,7 @@ test(`every page's header links to the front page, the docs and the demos, at ${
     for (const [name, href] of [
       ["Ljós — front page", base],
       ["Docs", `${base}start/`],
-      ["Live demos", `${base}demos/`],
+      ["Demos", `${base}demos/`],
     ]) {
       if (!links.some((link) => link.name === name && link.href === href)) missing.push(`${at}: no link "${name}" to ${href}`);
     }
@@ -144,10 +144,10 @@ test("with no script, a link is followed, and back is the browser's", async ({ b
   await page.goto(base);
   await page.getByRole("link", { name: "What is Ljós?" }).first().click();
   await expect(page).toHaveURL(`${origin}${base}start/`);
-  await expect(page.getByRole("link", { name: "Docs" })).toHaveAttribute("href", `${base}start/`);
+  await expect(page.getByRole("link", { name: "Docs" }).first()).toHaveAttribute("href", `${base}start/`);
   await page.goBack();
   await expect(page).toHaveURL(`${origin}${base}`);
-  await page.getByRole("link", { name: "Live demos" }).first().click();
+  await page.getByRole("link", { name: "Demos", exact: true }).first().click();
   await expect(page).toHaveURL(`${origin}${base}demos/`);
   await context.close();
 });
@@ -164,7 +164,7 @@ test("with script, a plain press shows the page in place, and back shows the one
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
   // Gone with the page, if the page is loaded again.
   await page.evaluate(() => (globalThis.stillHere = true));
-  await press(page, page.getByRole("link", { name: "Docs", exact: true }));
+  await press(page, page.getByRole("link", { name: "Docs", exact: true }).first());
   await expect(page).toHaveURL(`${origin}${base}start/`);
   await expect(page).toHaveTitle("What is Ljós? — Ljós");
   await expect(page.getByRole("link", { name: /^Next: / })).toBeAttached();
@@ -329,7 +329,7 @@ test("with script, a middle press opens the link in a new tab", async ({ page, c
   await page.goto(base);
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
   const opened = context.waitForEvent("page");
-  await press(page, page.getByRole("link", { name: "Docs", exact: true }), { button: "middle" });
+  await press(page, page.getByRole("link", { name: "Docs", exact: true }).first(), { button: "middle" });
   const tab = await opened;
   await tab.waitForLoadState("commit");
   expect(new URL(tab.url()).pathname).toBe(`${base}start/`);

@@ -26,13 +26,13 @@ Rectangle {
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
         Accessible.ignored: true
-        onClicked: Nav.go(button.href)
+        onClicked: Nav.go(Nav.at(Content.base, button.href))
     }
     Text {
         id: words
         anchors.centerIn: parent
         textFormat: Text.RichText
-        text: Nav.anchor(button.href, button.label, false)
+        text: Nav.anchor(Nav.at(Content.base, button.href), button.label, false)
         color: button.primary ? Theme.textOnAccent : Theme.text
         linkColor: color
         font.family: Theme.sans

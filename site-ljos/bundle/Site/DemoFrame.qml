@@ -8,7 +8,11 @@ import "../nav.js" as Nav
 // browser once the frame is near the screen, fades in over its picture,
 // and runs only while it is on screen (`active`), gently where the
 // reader asks for less motion (`calm`). A browser without what the demo
-// needs (WebGPU, wasm) keeps the picture, and says why.
+// needs (WebGL 2, WebGPU, wasm) keeps the picture, and says why.
+//
+// Made is not drawn: a demo whose drawing starts after it is made (a
+// renderer that starts, a shader that compiles) says so as `ready`, and
+// its picture stands until it is, and for good where it never is.
 Item {
     id: frame
 
@@ -19,7 +23,8 @@ Item {
     // The route of the page the frame stands on, which the picture's
     // address is written from.
     property string route: "/"
-    // What the demo needs that a browser may not have: "webgpu", "wasm".
+    // What the demo needs that a browser may not have: "webgl2",
+    // "webgpu", "wasm".
     property string needs: ""
     // The flickable the page scrolls in, so the frame knows when it is
     // near the screen and when it is on it.
@@ -49,6 +54,7 @@ Item {
     readonly property bool near: !scroller || (top < scroller.height + ahead && top + height > -ahead)
     readonly property bool onScreen: !scroller || (top < scroller.height && top + height > 0)
     property bool started: false
+    readonly property bool drawn: loader.status === Loader.Ready && loader.item !== null && loader.item.ready !== false
 
     Timer {
         interval: 0
@@ -72,7 +78,7 @@ Item {
             y: 1
             width: frame.width - 2
             height: frame.height - 2
-            visible: frame.picture !== "" && !(loader.status === Loader.Ready && loader.opacity === 1)
+            visible: frame.picture !== "" && !(frame.drawn && loader.opacity === 1)
             textFormat: Text.RichText
             text: frame.picture === "" ? "" : Nav.picture(frame.route, frame.picture, frame.width - 2, frame.height - 2, frame.description)
         }
@@ -95,7 +101,7 @@ Item {
                 x: Theme.s
                 y: Theme.xs
                 width: parent.width - 2 * Theme.s
-                text: "A picture of the demo: it runs in a browser with " + (frame.needs.indexOf("webgpu") >= 0 ? "WebGPU" : "WebAssembly") + ", which this one does not offer."
+                text: "A picture of the demo: it runs in a browser with " + (frame.needs.indexOf("webgl2") >= 0 ? "WebGL 2" : frame.needs.indexOf("webgpu") >= 0 ? "WebGPU" : "WebAssembly") + ", which this one does not offer."
                 color: Theme.text
                 font.family: Theme.sans
                 font.pixelSize: Theme.captionSize
@@ -111,7 +117,7 @@ Item {
         anchors.fill: parent
         active: frame.runnable && (frame.near || frame.started)
         sourceComponent: frame.demo
-        opacity: status === Loader.Ready ? 1 : 0
+        opacity: frame.drawn ? 1 : 0
         Behavior on opacity {
             NumberAnimation {
                 duration: Theme.enterPanel

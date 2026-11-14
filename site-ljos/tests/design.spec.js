@@ -3,7 +3,7 @@
 // the very colours the app draws with, every page has what a reader and
 // a crawler need before any script runs, the first paint does not move
 // when the page comes to life, and what a reader picks is kept.
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
@@ -51,9 +51,10 @@ function pairs(tone) {
 
 for (const scheme of ["light", "dark"]) {
   test(`every colour read on another meets WCAG AA in ${scheme}`, () => {
+    // Compared as it is, rounded only to be read: 4.499 is short of 4.5.
     const short = pairs(tokens[scheme])
-      .map(([fg, bg, a, b, least]) => ({ pair: `${fg} on ${bg}`, ratio: Math.round(contrast(a, b) * 100) / 100, least }))
-      .filter(({ ratio, least }) => ratio < least);
+      .filter(([, , a, b, least]) => contrast(a, b) < least)
+      .map(([fg, bg, a, b, least]) => ({ pair: `${fg} on ${bg}`, ratio: Math.round(contrast(a, b) * 1000) / 1000, least }));
     expect(short).toEqual([]);
   });
 }
@@ -139,6 +140,56 @@ for (const route of PAGES) {
     }
   });
 }
+
+// Every page's description fits a search result: cut at a word, or
+// mid-word where one word runs past the limit.
+test("every page's description is at most 160 characters and an ellipsis", () => {
+  const dist = join(here, "../dist");
+  const long = [];
+  const walk = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (entry.isDirectory()) walk(join(dir, entry.name));
+      else if (entry.name === "index.html") {
+        const said = /<meta name="description" content="([^"]*)"/.exec(readFileSync(join(dir, entry.name), "utf8"))?.[1] ?? "";
+        const plain = said.replace(/&(amp|lt|gt|quot|#39);/g, "&");
+        if (plain.length > 161) long.push([join(dir, entry.name), plain.length]);
+      }
+    }
+  };
+  walk(dist);
+  expect(long).toEqual([]);
+});
+
+// A page's outline, as a reader moving by heading hears it: its title
+// is the one heading of the first level, and each heading below it is
+// at most one level deeper than the one before.
+for (const route of ["/", "/demos/", "/start/", "/controls/overview/"]) {
+  test(`${route} is an outline under one title`, async ({ page }) => {
+    await page.goto(route);
+    await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+    const levels = await page.evaluate(() =>
+      [...document.querySelectorAll('#app [role="heading"]')]
+        .filter((heading) => heading.checkVisibility())
+        .map((heading) => [Number(heading.getAttribute("aria-level")), heading.textContent.trim().slice(0, 40)]),
+    );
+    expect(levels.filter(([level]) => level === 1).length, JSON.stringify(levels)).toBe(1);
+    expect(levels[0][0]).toBe(1);
+    const skips = levels.filter(([level], i) => i > 0 && level > levels[i - 1][0] + 1);
+    expect(skips).toEqual([]);
+  });
+}
+
+// The numbers of an ordered list are its steps' order, and are heard;
+// a bullet is only a mark, and is not.
+test("an ordered list's numbers are said, a bullet is not", async ({ page }) => {
+  await page.goto("/controls/overview/");
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  const number = page.getByText("1.", { exact: true }).first();
+  await expect(number).toBeVisible();
+  expect(await number.evaluate((node) => node.closest('[aria-hidden="true"]') === null)).toBe(true);
+  const bullet = page.getByText("•", { exact: true }).first();
+  expect(await bullet.evaluate((node) => node.closest('[aria-hidden="true"]') !== null)).toBe(true);
+});
 
 // The pictures stand in the page as written: the mark in the header and
 // the footer, and each demo's picture, drawn before any script runs and
@@ -251,12 +302,86 @@ test("on a phone the menu holds the docs, and search finds a page", async ({ bro
   }
 });
 
-test("a browser with no WebGPU keeps each GPU demo's picture, and says why", async ({ browser }) => {
+// Both GPU demos draw with WebGL 2 (the 3D scene's renderer as the site
+// is built, and ShaderEffect's), so a browser without WebGPU runs them.
+// A result is a link: a modified press is the browser's (a new tab),
+// not the row's, which would go there in this one.
+test("a result opened in a new tab leaves the page where it was", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  try {
+    const page = await context.newPage();
+    await page.goto("/");
+    await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+    await page.getByRole("button", { name: "Open the menu" }).click();
+    await page.getByRole("textbox", { name: "Search the docs" }).click();
+    await page.keyboard.type("mcp servers");
+    const result = page.getByRole("list", { name: "Search results" }).getByRole("link", { name: "MCP Servers for Agents" });
+    await expect(result).toBeVisible();
+    const opened = context.waitForEvent("page");
+    await result.click({ modifiers: ["ControlOrMeta"] });
+    const tab = await opened;
+    await tab.waitForLoadState("domcontentloaded");
+    expect(new URL(tab.url()).pathname).toBe("/start/mcp/");
+    // A moment for a navigation the row would have started.
+    await page.waitForTimeout(500);
+    expect(new URL(page.url()).pathname).toBe("/");
+  } finally {
+    await context.close();
+  }
+});
+
+// Below the width the contents stand beside the page, the menu holds
+// them: each heading of the page being read, landed on from there.
+test("on a phone the menu holds the page's headings", async ({ browser }) => {
+  const pages = JSON.parse(readFileSync(join(bundle, "Site/Content.qml"), "utf8").match(/readonly property var pages: (.*)\n/)[1]);
+  const { headings } = pages.find((page) => page.route === "/start/mcp/");
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  try {
+    const page = await context.newPage();
+    await page.goto("/start/mcp/");
+    await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+    await page.getByRole("button", { name: "Open the menu" }).click();
+    const menu = page.getByRole("region", { name: "Menu" });
+    const contents = menu.getByRole("region", { name: "On this page" });
+    for (const { plain } of headings) await expect(contents.getByRole("link", { name: plain, exact: true })).toBeAttached();
+    const last = headings.at(-1);
+    await contents.getByRole("link", { name: last.plain, exact: true }).click();
+    await expect(page.getByRole("button", { name: "Open the menu" })).toBeVisible();
+    await expect(page.locator("#app [role=heading]").filter({ hasText: last.plain }).filter({ visible: true }).first()).toBeInViewport();
+  } finally {
+    await context.close();
+  }
+});
+
+test("a browser with no WebGPU runs the 3D scene and the shader", async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   try {
     const page = await context.newPage();
     await page.addInitScript(() => {
       delete Navigator.prototype.gpu;
+    });
+    await page.goto("/demos/");
+    await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+    for (const [heading, picture] of [
+      ["3D you can orbit", /^A lit 3D scene/],
+      ["A shader effect", /^Light pooling over a card/],
+    ]) {
+      await page.getByText(heading, { exact: true }).scrollIntoViewIfNeeded();
+      // The demo, drawn, stands where its picture stood.
+      await expect(page.getByRole("img", { name: picture }), heading).toBeHidden({ timeout: 30_000 });
+    }
+    await expect(page.getByText(/A picture of the demo: it runs in a browser with/).filter({ visible: true })).toHaveCount(0);
+  } finally {
+    await context.close();
+  }
+});
+
+test("a browser with no WebGL 2 keeps each GPU demo's picture, and says why", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  try {
+    const page = await context.newPage();
+    await page.addInitScript(() => {
+      delete globalThis.WebGL2RenderingContext;
     });
     const shown = page.waitForResponse((response) => response.url().endsWith("/pictures/demo-orbit.webp") && response.ok());
     await page.goto("/demos/");
@@ -267,7 +392,34 @@ test("a browser with no WebGPU keeps each GPU demo's picture, and says why", asy
     await picture.scrollIntoViewIfNeeded();
     await expect(picture).toBeVisible();
     await shown;
-    await expect(page.getByText(/A picture of the demo: it runs in a browser with WebGPU/).first()).toBeVisible();
+    await expect(page.getByText(/A picture of the demo: it runs in a browser with WebGL 2/).filter({ visible: true })).toHaveCount(2);
+  } finally {
+    await context.close();
+  }
+});
+
+// A demo is made before it has drawn: its renderer starts after, and
+// may fail to. Its picture stands until it has drawn, and stays where
+// it never does, so a frame is never left empty.
+test("a demo whose renderer cannot start keeps its picture", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  try {
+    const page = await context.newPage();
+    // WebGL 2 is offered, but gives no context to draw with.
+    await page.addInitScript(() => {
+      const given = OffscreenCanvas.prototype.getContext;
+      OffscreenCanvas.prototype.getContext = function (kind, ...rest) {
+        return kind === "webgl2" ? null : given.call(this, kind, ...rest);
+      };
+    });
+    await page.goto("/demos/");
+    await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+    await page.getByText("3D you can orbit", { exact: true }).scrollIntoViewIfNeeded();
+    // The scene is made (its own words are in the page) ...
+    await expect(page.getByText("Drag to orbit · scroll or pinch to zoom").first()).toBeAttached({ timeout: 30_000 });
+    // ... and, past the time it would take to fade in, has drawn nothing.
+    await page.waitForTimeout(1500);
+    await expect(page.getByRole("img", { name: /^A lit 3D scene/ })).toBeVisible();
   } finally {
     await context.close();
   }

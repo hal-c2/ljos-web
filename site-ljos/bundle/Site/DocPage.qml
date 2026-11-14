@@ -21,6 +21,9 @@ Column {
     // The page this route names, as the shell was made with it: known
     // as the page is made, in a prerender as in a browser.
     property var page: null
+    // The pages before and after this one, in the sidebar's order.
+    readonly property var previous: page ? page.previous : null
+    readonly property var next: page ? page.next : null
     readonly property bool narrow: width < 600
 
     // The flickable that holds this column, named by the shell so a
@@ -49,7 +52,7 @@ Column {
         width: parent.width
         visible: !doc.page && doc.route !== ""
         textFormat: Text.RichText
-        text: "There is no page at this address. The docs begin at " + Nav.anchor("/start/", "What is Ljós?", true) + "."
+        text: "There is no page at this address. The docs begin at " + Nav.anchor(Nav.at(Content.base, "/start/"), "What is Ljós?", true) + "."
         color: Theme.text
         linkColor: Theme.link
         font.family: Theme.sans
@@ -75,6 +78,8 @@ Column {
             lineHeightMode: Text.FixedHeight
             lineHeight: doc.narrow ? Theme.compactDisplayLine : Theme.displayLine
             wrapMode: Text.Wrap
+            // The page's title is its outline's one first-level heading.
+            readonly property int headingLevel: 1
             Accessible.role: Accessible.Heading
         }
         Text {
@@ -125,6 +130,9 @@ Column {
                     lineHeightMode: Text.FixedHeight
                     lineHeight: level <= 2 ? Theme.headlineLine - (doc.narrow ? 4 : 0) : level === 3 ? Theme.subtitleLine : Theme.bodyLine
                     wrapMode: Text.Wrap
+                    // Said at the level the docs wrote it: their sections
+                    // are second level, under the page's title.
+                    readonly property int headingLevel: Math.max(2, level)
                     Accessible.role: Accessible.Heading
                     onLinkActivated: (link) => doc.followed(link)
                 }
@@ -170,7 +178,9 @@ Column {
                                 font.pixelSize: Theme.bodySize
                                 lineHeightMode: Text.FixedHeight
                                 lineHeight: Theme.bodyLine + Theme.xxs
-                                Accessible.ignored: true
+                                // A step's number is its order, which the
+                                // reader hears; a bullet is only a mark.
+                                Accessible.ignored: !blockItem.modelData.ordered
                             }
                             Text {
                                 width: doc.width - (blockItem.modelData.ordered ? 24 : 16) - Theme.xs

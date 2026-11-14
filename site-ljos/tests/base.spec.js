@@ -32,6 +32,29 @@ test(`every page names the base it was built for (${base})`, () => {
   expect(wrong.map((file) => file.slice(here.length + 1))).toEqual([]);
 });
 
+// A link to a page of the site goes inside the base however it is
+// followed: by the browser with no script, or in a new tab with one.
+test(`every link to a page of the site is written inside ${base}`, () => {
+  const outside = pagesUnder(join(here, "dist")).flatMap((file) =>
+    [...readFileSync(file, "utf8").matchAll(/<a [^>]*href="(\/(?!\/)[^"]*)"/g)]
+      .map(([, href]) => href)
+      .filter((href) => !href.startsWith(base))
+      .map((href) => `${file.slice(here.length + 1)}: ${href}`),
+  );
+  expect(outside.slice(0, 10)).toEqual([]);
+});
+
+test(`a link the page writes once it runs is inside ${base} too`, async ({ page }) => {
+  await page.goto(`${base}start/`);
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  // A hover underlines a nav link: its page has run.
+  const link = page.getByRole("link", { name: "Your first app" }).filter({ visible: true }).first();
+  await link.hover();
+  await expect.poll(() => link.evaluate((a) => [a, ...a.querySelectorAll("*")].map((node) => getComputedStyle(node).textDecorationLine).join(" "))).toContain("underline");
+  const outside = await page.evaluate((base) => [...document.querySelectorAll('#app a[href^="/"]')].map((a) => a.getAttribute("href")).filter((href) => !href.startsWith("//") && !href.startsWith(base)), base);
+  expect(outside).toEqual([]);
+});
+
 // Pages sends the bare project path on to the base; so does the
 // local server, or a reader who types it sees a false "not here".
 test(`${base.slice(0, -1) || "/"} is sent on to ${base}`, async ({ request }) => {

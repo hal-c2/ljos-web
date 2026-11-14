@@ -50,7 +50,7 @@ Rectangle {
         Text {
             width: parent.width
             textFormat: card.href !== "" ? Text.RichText : Text.PlainText
-            text: card.href !== "" ? Nav.anchor(card.href, card.title, area.containsMouse) : card.title
+            text: card.href !== "" ? Nav.anchor(Nav.at(Content.base, card.href), card.title, area.containsMouse) : card.title
             color: card.href !== "" ? Theme.link : Theme.text
             linkColor: color
             font.family: Theme.sans
@@ -59,13 +59,15 @@ Rectangle {
             lineHeightMode: Text.FixedHeight
             lineHeight: Theme.titleLine
             wrapMode: Text.Wrap
+            // A card stands under its section's heading.
+            readonly property int headingLevel: 3
             Accessible.role: Accessible.Heading
             onLinkActivated: (link) => card.followed(link)
         }
         Text {
             width: parent.width
             textFormat: Text.RichText
-            text: card.body
+            text: Nav.linked(Content.base, card.body)
             color: Theme.textMuted
             linkColor: Theme.link
             font.family: Theme.sans

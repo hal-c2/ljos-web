@@ -245,9 +245,10 @@ function escape(text) {
 }
 
 // A link as rich text: a real `<a href>`, so a crawler, "open in a
-// new tab" and a screen reader's list of links all find it.
-function anchor(href, label, underline) {
-    return "<a href=\"" + escape(href) + "\" style=\"text-decoration:" + (underline ? "underline" : "none") + "\">" + escape(label) + "</a>";
+// new tab" and a screen reader's list of links all find it. Its address
+// is as `at` writes it, the base already in it.
+function anchor(address, label, underline) {
+    return "<a href=\"" + escape(address) + "\" style=\"text-decoration:" + (underline ? "underline" : "none") + "\">" + escape(label) + "</a>";
 }
 
 // Whether this is a reader's browser, not the build writing the page:
@@ -265,6 +266,11 @@ function canRun(needs) {
     if (needs.indexOf("wasm") >= 0 && typeof globalThis.WebAssembly !== "object")
         return false;
     if (needs.indexOf("webgpu") >= 0 && !(globalThis.navigator && globalThis.navigator.gpu))
+        return false;
+    // That the browser offers it, not that a context is to be had: making
+    // one to ask would cost a GPU context for a demo never scrolled to. A
+    // demo that gets none keeps its picture (DemoFrame).
+    if (needs.indexOf("webgl2") >= 0 && (typeof globalThis.WebGL2RenderingContext !== "function" || typeof globalThis.OffscreenCanvas !== "function"))
         return false;
     return true;
 }
