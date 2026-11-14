@@ -492,9 +492,9 @@ async function reloaded(self) {
     return made.error;
   }
   // What stood in while the first source came (or stayed when it
-  // failed) is the reader's too: a reload from it carries across, as
-  // the source's arrival would have.
-  if (old && (!old.fallback || old.standsIn) && old.object && made.shown.object) {
+  // failed), or was shown for want of a source, is the reader's too: a
+  // reload from it carries across, as the source's arrival would have.
+  if (old && (!old.fallback || old.standsIn || old.unasked) && old.object && made.shown.object) {
     try {
       const { carry } = await import("../../reload.js");
       if (turn !== state.turn) {
@@ -502,7 +502,7 @@ async function reloaded(self) {
         discard(made.shown);
         return "";
       }
-      carry(old.object, old.Component, made.shown.object, made.shown.Component, { across: !!old.standsIn });
+      carry(old.object, old.Component, made.shown.object, made.shown.Component, { across: !!(old.standsIn || old.unasked) });
     } catch (error) {
       // The old shell was only read from: it stays, and the new one goes.
       discard(made.shown);
