@@ -73,16 +73,21 @@ async function moduleFor(id) {
         entry: files.entry,
         base: root,
         closed: true,
+        // What the last project was told goes when this compile gives the
+        // example its files, before its scripts run: a compile that fails
+        // sooner keeps what the example that still runs was told.
+        enclosed: function () {
+            if (example.absent.length > 0) {
+                example.absent = [];
+                example.told("");
+            }
+        },
         missing: function (name, url) {
             example.absent = example.absent.concat([parse.notThereLine(example.display, root, name, url)]);
             example.told(example.absent.join("\n"));
         }
     });
     said[id] = {};
-    if (!made.diagnostics && example.absent.length > 0) {
-        example.absent = [];
-        example.told("");
-    }
     if (made.diagnostics) {
         made.diagnostics.forEach(function (d) {
             const at = parse.displayPosition(example, d);

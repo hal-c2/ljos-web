@@ -211,7 +211,8 @@ jobs:
           path: ${{ steps.pages.outputs.dir }}
   deploy:
     if: ${{ inputs.deploy == true }}
-    needs: build
+    # Nothing is published that `ljos check` refused.
+    needs: [build, check]
     runs-on: ubuntu-24.04
     # One deploy at a time, and one in flight is never cancelled; the
     # workflow's own group already keeps deploying runs in order.

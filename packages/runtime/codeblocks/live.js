@@ -182,6 +182,18 @@ export async function mountLiveCodeBlock(figure, data, options = {}) {
     shown();
   };
 
+  // What the block's compiles gave the page (its files, the addresses
+  // they are loaded from, the text its files read) goes with it.
+  const releaseProject = () =>
+    Promise.all([import("../guard.js"), import("../files.js")]).then(([{ release }, { withdraw }]) => {
+      for (const url of release(root, missing)) withdraw(url);
+    });
+  // Compiles on their way: one that is linking still needs its files to
+  // be the example's, so the last of them to land lets them go, and
+  // settles what `idle()` answered at dispose.
+  let compiling = 0;
+  let letGo = null;
+
   const current = () => ({ ...data, display: data.display.map((file, i) => ({ ...file, code: texts[i] })) });
 
   const edited = () => {
@@ -301,12 +313,22 @@ export async function mountLiveCodeBlock(figure, data, options = {}) {
     const mine = ++turn;
     status.textContent = "Compiling…";
     const { entry, files } = exampleFiles(current());
-    const made = await compile({ files, entry, base: root, closed: true, missing }).catch((error) => ({
+    // What the last project was told goes when this compile gives the
+    // example its files, before its scripts run: a compile that fails
+    // sooner keeps the example running as it was, and what it said.
+    const enclosed = () => {
+      absent = [];
+      shown();
+    };
+    compiling++;
+    const made = await compile({ files, entry, base: root, closed: true, missing, enclosed }).catch((error) => ({
       diagnostics: [{ file: entry, message: error?.message ?? String(error) }],
     }));
-    if (mine !== turn) return;
-    // What runs now is what this compile made, with the files it was given.
-    if (!made.diagnostics) absent = [];
+    compiling--;
+    if (mine !== turn) {
+      if (disposed && compiling === 0) letGo?.(releaseProject());
+      return;
+    }
     if (made.diagnostics) {
       diagnose(made.diagnostics);
       status.textContent = handle ? "" : "This code does not compile; what it drew as written is still shown.";
@@ -358,11 +380,17 @@ export async function mountLiveCodeBlock(figure, data, options = {}) {
       return editors;
     },
     dispose: () => {
+      // Disposed once: a second dispose would take the place of what the
+      // first had `idle()` answer, which a compile landing then settles.
+      if (disposed) return;
       disposed = true;
       turn++;
       clearTimeout(timer);
       editors.forEach((editor) => editor.destroy());
       handle?.root?.dispose?.();
+      // `idle()` settles once the files are gone, which for a compile on
+      // its way is when the last of them lands.
+      pending = compiling === 0 ? releaseProject() : new Promise((resolve) => (letGo = resolve));
     },
   };
 }

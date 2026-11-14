@@ -65,6 +65,20 @@ export function enclose(root, files, { missing, compile } = {}) {
   enclosed.set(at, { root: at, files: new Map(files), missing, compile, told: new Set(), blobs: new Map() });
 }
 
+// The project at `root` goes, with the addresses its files were given at,
+// when it is still the one whose `missing` that is: a block disposed does
+// not take a project another block has since been given there. Answers
+// the addresses of the files it had (none when it was not this one's),
+// for what else holds them by address to let go of.
+export function release(root, missing) {
+  const at = new URL(".", root).href;
+  const project = enclosed.get(at);
+  if (!project || project.missing !== missing) return [];
+  for (const url of project.blobs.values()) URL.revokeObjectURL(url);
+  enclosed.delete(at);
+  return [...project.files.keys()].map((name) => new URL(name, at).href);
+}
+
 // The project `url` is in, and the name of the file there it is (`text`
 // undefined where the project has no such file); null for an address of no
 // such project's.
@@ -87,13 +101,17 @@ export function own(url) {
 }
 
 // A name as its file is called. The URL parser keeps a `%` that starts no
-// escape as it is (`100%.png`), and such a name is its own.
+// escape as it is and escapes what is around it (`my 100%.png` is
+// `my%20100%.png`), so each run of escapes is read where it stands and
+// such a `%` is the name's own.
 function unescaped(path) {
-  try {
-    return decodeURIComponent(path);
-  } catch {
-    return path;
-  }
+  return path.replace(/(?:%[\da-f]{2})+/gi, (run) => {
+    try {
+      return decodeURIComponent(run);
+    } catch {
+      return run;
+    }
+  });
 }
 
 // Why `found` is not there, told once to whoever its project tells.

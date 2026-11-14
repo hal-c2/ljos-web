@@ -21,7 +21,7 @@ import { buildSite } from "ljos-web/site";
 import { checkExamples, hashExample, loadHarnesses, loadPrerenders, renderPrerenders } from "ljos-web/codeblocks";
 import { assemble, tagged } from "ljos-web/codeblocks/parse";
 import { packRich } from "ljos-web/codeblock/rich";
-import { exampleKeys, listedEverywhere, pageOfRoute, pageRecords, readLedger } from "../../site/scripts/codeblocks-ledger.mjs";
+import { keysByHash, listedEverywhere, pageOfRoute, pageRecords, readLedger } from "../../site/scripts/codeblocks-ledger.mjs";
 
 const here = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 // Where the site stands below its address's root: `/` at a domain of
@@ -105,31 +105,32 @@ const liveAt = new Map(); // a page's code block -> its live payload
   }
   const cacheDir = join(here, ".codeblock-prerenders");
   const checked = checkExamples(gathered.map(({ example }) => example), { qmlc });
-  const refused = new Map(checked.map(({ example, diagnostics }) => [example, diagnostics]));
+  // An example is its hash: one on two pages is made once, and what is
+  // said of the copy made is said of every place it stands.
+  const refused = new Map(checked.map(({ example, diagnostics }) => [hashExample(example), diagnostics]));
   // As in site/scripts/codeblock-prerenders.mjs: an example the ledger
   // lists everywhere it stands is plain by the docs' own word.
   const ledger = readLedger();
-  const keysOf = new Map();
-  for (const { page, fences, examples } of onPages)
-    for (const { example, key } of exampleKeys(page, fences, examples)) keysOf.set(example, [...(keysOf.get(example) ?? []), key]);
-  const mustRun = ({ example }) => example.blocks.some(tagged) && !listedEverywhere(keysOf.get(example) ?? [], ledger);
+  const keysOf = keysByHash(onPages, hashExample);
+  const named = (example) => (keysOf.get(hashExample(example)) ?? []).join(", ");
+  const mustRun = ({ example }) => example.blocks.some(tagged) && !listedEverywhere(keysOf.get(hashExample(example)) ?? [], ledger);
   const claimed = checked.filter(mustRun);
   if (claimed.length) {
     console.error(`site-ljos: ${claimed.length} example(s) claim to run and do not compile:`);
-    for (const { example, diagnostics } of claimed) console.error(`  ${keysOf.get(example)?.join(", ")}:\n    ${diagnostics.join("\n    ")}`);
+    for (const { example, diagnostics } of claimed) console.error(`  ${named(example)}:\n    ${diagnostics.join("\n    ")}`);
     process.exit(1);
   }
-  const runnable = gathered.filter(({ example }) => !refused.has(example));
+  const runnable = gathered.filter(({ example }) => !refused.has(hashExample(example)));
   const { failures } = await renderPrerenders(runnable.map(({ example }) => example), { cacheDir, qmlc });
-  const unrun = new Map(failures.map(({ example, diagnostics }) => [example, diagnostics]));
+  const unrun = new Map(failures.map(({ example, diagnostics }) => [hashExample(example), diagnostics]));
   const claimedUnrun = failures.filter(mustRun);
   if (claimedUnrun.length) {
     console.error(`site-ljos: ${claimedUnrun.length} example(s) claim to run and did not run:`);
-    for (const { example, diagnostics } of claimedUnrun) console.error(`  ${keysOf.get(example)?.join(", ")}:\n    ${diagnostics.join("\n    ")}`);
+    for (const { example, diagnostics } of claimedUnrun) console.error(`  ${named(example)}:\n    ${diagnostics.join("\n    ")}`);
     process.exit(1);
   }
   const prerendered = loadPrerenders(cacheDir);
-  const live = runnable.filter(({ example }) => !unrun.has(example) && prerendered[hashExample(example)]?.html);
+  const live = runnable.filter(({ example }) => !unrun.has(hashExample(example)) && prerendered[hashExample(example)]?.html);
   // A picture of each live example's prerendered result, drawn by
   // the browser from the prerender's own HTML, cached by hash: the
   // stage a reader without script (and every reader, before the
@@ -184,8 +185,9 @@ const liveAt = new Map(); // a page's code block -> its live payload
   // to the ledger of plain examples (site/scripts/codeblocks-ledger.mjs).
   const liveSet = new Set(live.map(({ example }) => example));
   const outcome = (example) => {
-    if (refused.has(example)) return { state: "not compiling", diagnostics: refused.get(example) };
-    if (unrun.has(example)) return { state: "not running", diagnostics: unrun.get(example) };
+    const hash = hashExample(example);
+    if (refused.has(hash)) return { state: "not compiling", diagnostics: refused.get(hash) };
+    if (unrun.has(hash)) return { state: "not running", diagnostics: unrun.get(hash) };
     return liveSet.has(example) ? { state: "live" } : { state: "not running", diagnostics: ["no prerender was made"] };
   };
   const report = onPages.flatMap(({ page, fences, examples }) => pageRecords(page, fences, examples, outcome, tagged));

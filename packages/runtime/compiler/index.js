@@ -26,6 +26,9 @@ export function createCompiler({ modules = runtime, base } = {}) {
     // what it names is looked for among them and never fetched, and what
     // is not among them is not there (`missing(name, url)` is told of each
     // asked for), as a live code block's example is all its files.
+    // `enclosed()` is called once the project is these files: what was
+    // said not there before is asked anew from then, and a compile that
+    // fails sooner leaves the project, and what it was told, as it was.
     compile: async (request) => (await compiler()).compile(request, { modules, base }),
     // The same, unlinked: each file's module as `qmlc` prints it.
     translate: async (request) => (await compiler()).translate(request, { modules }),

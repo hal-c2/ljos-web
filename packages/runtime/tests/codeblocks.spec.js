@@ -695,7 +695,13 @@ plain("on a phone the code is 16px, a tap puts the caret in the editor, and noth
   const figure = counterFigure(page);
   await live(figure);
   // Below 16px a phone zooms into a field on focus.
-  expect(parseFloat(await figure.locator("pre.ljos-code, .ljos-codeblock__editor").first().evaluate((el) => getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(16);
+  // The code is swapped for its editor once the page is idle, so a read
+  // can land on the one just taken out; that one is read again.
+  await expect
+    .poll(() => figure.locator("pre.ljos-code, .ljos-codeblock__editor").first().evaluate((el) => (el.isConnected ? parseFloat(getComputedStyle(el).fontSize) : "taken out as it was read")), {
+      message: "the code's font size",
+    })
+    .toBeGreaterThanOrEqual(16);
   const editor = await editorOf(figure, /Main\.qml/);
   expect(parseFloat(await editor.evaluate((el) => getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(16);
   await editor.locator(".cm-line").nth(2).tap();

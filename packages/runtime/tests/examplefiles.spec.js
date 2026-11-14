@@ -87,6 +87,128 @@ test.describe("an example's files", () => {
     expect(server.named()).toEqual([]);
     expect(server.refused).toEqual([]);
   });
+
+  test("a name with a % that starts no escape, and a character that is escaped, is the file the example has", async ({ page }) => {
+    const server = watched(page);
+    const figure = await mounted(page, "mixed");
+    await expect(figure).toHaveAttribute("data-state", "live", { timeout: 30000 });
+    await expect(figure.locator(".ljos-codeblock__stage")).toContainText("picture 12", { timeout: 15000 });
+    // Painted from what the example was given.
+    await expect(figure.locator(".qq-image")).toHaveCSS("background-image", /^url\("blob:/);
+    await expect(figure.getByRole("alert")).toBeHidden();
+    expect(server.named()).toEqual([]);
+    expect(server.refused).toEqual([]);
+  });
+
+  test("a file a script asks for as the example compiles, and does not have, is said to be not there", async ({ page }) => {
+    const server = watched(page);
+    const figure = await mounted(page, "early");
+    await expect(figure).toHaveAttribute("data-state", "live", { timeout: 30000 });
+    await expect(figure.locator(".ljos-codeblock__stage")).toContainText("asked true", { timeout: 15000 });
+    await expect(figure.getByRole("alert")).toContainText("early.js:3: early.json: No such file or directory");
+    expect(server.named()).toEqual([]);
+    expect(server.refused).toEqual([]);
+  });
+});
+
+test.describe("an example's edit that does not compile", () => {
+  test("keeps what the example still running said it does not have", async ({ page }) => {
+    const server = watched(page);
+    const figure = await mounted(page, "read");
+    const errors = figure.getByRole("alert");
+    await expect(errors).toContainText("Main.qml:19: notes.json: No such file or directory", { timeout: 30000 });
+    // The edit is compiled and refused; the example as it was keeps
+    // running, and what it asked for is still not there.
+    await expect(figure).toHaveAttribute("data-editor", "ready", { timeout: 30000 });
+    const editor = figure.getByRole("textbox", { name: "Edit Main.qml" }).and(figure.locator(".cm-content"));
+    await editor.focus();
+    await editor.press("ControlOrMeta+End");
+    await page.keyboard.insertText("\n}");
+    await expect(errors).toContainText(/Main\.qml:\d+:\d+: /, { timeout: 15000 });
+    await expect(errors).toContainText("Main.qml:19: notes.json: No such file or directory");
+    await expect(figure.locator(".ljos-codeblock__stage")).toContainText("200 hello");
+    expect(server.named()).toEqual([]);
+    expect(server.refused).toEqual([]);
+  });
+});
+
+test.describe("an example's block disposed", () => {
+  // What an address it was loaded from is asked for once it has gone.
+  test.use({ told: [/^Failed to load resource: net::ERR_FILE_NOT_FOUND$/] });
+
+  test("takes the example's files with it, and the addresses they were loaded from", async ({ page }) => {
+    const figure = await mounted(page, "read");
+    await expect(figure.locator(".ljos-codeblock__stage")).toContainText("200 hello", { timeout: 30000 });
+    const before = await page.evaluate(() => window.enclosed());
+    const [root] = Object.keys(before);
+    expect(before[root].length).toBeGreaterThan(0);
+    expect(await page.evaluate(() => window.provided())).toEqual([`${root}data.json`]);
+    await page.evaluate(() => window.disposeExample("read"));
+    expect(await page.evaluate(() => window.enclosed())).toEqual({});
+    // Nor is the text it was given to read kept.
+    expect(await page.evaluate(() => window.provided())).toEqual([]);
+    // An address a file was loaded from loads nothing now.
+    const loads = await page.evaluate(
+      (urls) => Promise.all(urls.map((url) => fetch(url).then(() => true, () => false))),
+      before[root],
+    );
+    expect(loads.every((loaded) => !loaded)).toBe(true);
+  });
+
+  test("while its first compile is on its way takes the project that compile gives", async ({ page }) => {
+    await page.goto("/examplefiles.html");
+    await page.waitForFunction(() => window.ready);
+    await page.evaluate(() => window.mountExample("chosen", false));
+    await page.evaluate(() => window.disposeExample("chosen"));
+    expect(await page.evaluate(() => window.enclosed())).toEqual({});
+  });
+
+  test("while its compile links its files keeps them its own until the compile is done", async ({ page }) => {
+    const server = watched(page);
+    // The compile is held where it waits for a module of the page's, its
+    // files given and not yet linked.
+    let letGo;
+    const held = new Promise((resolve) => (letGo = resolve));
+    let asked = false;
+    await page.route(/\/QtQuick\/Timeline\//, async (route) => {
+      asked = true;
+      await held;
+      await route.continue();
+    });
+    await page.goto("/examplefiles.html");
+    await page.waitForFunction(() => window.ready);
+    await page.evaluate(() => window.mountExample("gated", false));
+    await expect.poll(() => asked, { timeout: 30000 }).toBe(true);
+    expect(Object.keys(await page.evaluate(() => window.enclosed()))).toHaveLength(1);
+    await page.evaluate(() => window.disposeNow("gated"));
+    letGo();
+    await page.evaluate(() => window.idleExample("gated"));
+    // What its script asked for as it ran was not there, not the page's.
+    expect(server.named()).toEqual([]);
+    expect(await page.evaluate(() => window.enclosed())).toEqual({});
+    expect(await page.evaluate(() => window.provided())).toEqual([]);
+  });
+
+  test("twice while its compile links settles what it was waited on for at the first", async ({ page }) => {
+    let letGo;
+    const held = new Promise((resolve) => (letGo = resolve));
+    let asked = false;
+    await page.route(/\/QtQuick\/Timeline\//, async (route) => {
+      asked = true;
+      await held;
+      await route.continue();
+    });
+    await page.goto("/examplefiles.html");
+    await page.waitForFunction(() => window.ready);
+    await page.evaluate(() => window.mountExample("gated", false));
+    await expect.poll(() => asked, { timeout: 30000 }).toBe(true);
+    await page.evaluate(() => window.disposeTwice("gated"));
+    letGo();
+    await page.evaluate(() => window.idleExample("gated"));
+    // The block's last idle() has settled, so the first one has too, or never will.
+    expect(await page.evaluate(() => window.settledFirst())).toBe(true);
+    expect(await page.evaluate(() => window.enclosed())).toEqual({});
+  });
 });
 
 test.describe("an example's shell reloaded", () => {

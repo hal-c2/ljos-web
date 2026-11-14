@@ -1823,8 +1823,19 @@ turns a Markdown page's fenced blocks into live ones, for any site:
   of `guard.js` (`guardedFetch`, `sourced`, `allowedUrl`, `mayFetch`)
   are where an address of such a project is answered, so every loader
   that goes through them behaves so; a socket to one is refused, as an
-  example has no server. Absolute URLs, and the page's own
-  addresses outside code blocks, are as before.
+  example has no server. What paints a picture paints it from where it
+  was given, so a picture the example has shows. A name is read as its
+  file is called: a `%` that starts no escape is the name's own, and
+  what the URL parser escaped around it is read back (`my 100%.svg`).
+  What a compile's scripts ask for as they run is said of that compile:
+  what the last project was told goes when the compile gives the example
+  its files (`enclosed()`), so an edit that does not compile keeps the
+  running example's lines. A block disposed takes its project with it:
+  the addresses its files were given at and the text its files read
+  (`release`). Disposed while a compile links, the files stay the
+  example's until that compile is done with them, so what its scripts
+  ask for is still among them, never asked of the server. Absolute URLs, and
+  the page's own addresses outside code blocks, are as before.
 
 **DECISION:** the feature is general, the site is its first user: the
 Astro site wires the remark plugin and a small hydrator island, and
@@ -1862,7 +1873,12 @@ user's shell keeping the app's state, lazy mounting, exempt code
 plain. `packages/runtime/tests/examplefiles.spec.js`: a shell and a
 fallback an example does not have said to be not there at their lines,
 a shell named only at run time found among its files, a picture it does
-not have not there — none of them asked of the server. `site/tests/codeblocks.e2e.js` (its own config) holds the same
+not have not there, a picture it has painted under a name with a bare `%`
+and a space, a file a script asks for while the example compiles said
+to be not there, an edit that does not compile keeping what the running
+example was told — none of them asked of the server — and a disposed block's
+project gone, its addresses revoked and its text withdrawn, also when
+disposed mid-compile, and while a compile links, once or twice. `site/tests/codeblocks.e2e.js` (its own config) holds the same
 on a site built from fixture docs, strictly.
 
 Known limits, as the pieces stand: a `ShellLoader` loads its shell as
