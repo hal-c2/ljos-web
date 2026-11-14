@@ -5,7 +5,7 @@ import { color, colorValue } from "../../color.ts";
 import { lazy } from "../../compute.ts";
 import { font } from "../../font.js";
 import { Item } from "../../Item.js";
-import { chord, chordText } from "../../keycodes.js";
+import { chord, chordText } from "../../keycodes.ts";
 import { Text } from "../../Text.js";
 import { IconImage } from "./images.js";
 import { MnemonicLabel } from "./texts.js";
