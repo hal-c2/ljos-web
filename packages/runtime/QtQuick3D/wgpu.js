@@ -14,6 +14,7 @@ import { createRenderEffect, createRoot, getOwner, runWithOwner } from "solid-js
 import { flush, located, slot, effect } from "../object.js";
 import { color } from "../QtQuick/color.js";
 import { guardedFetch } from "../guard.js";
+import { made } from "./early.js";
 import { signal, untrack } from "#kernel";
 import { CustomMaterial } from "./CustomMaterial.js";
 import { handed, text } from "./effects.js";
@@ -41,7 +42,9 @@ async function chunk() {
   ({ drawnModels } = await import("./Particles3D/drawn.js"));
   // Kept only once it works: a next view asks again after a failed fetch.
   const loaded = await load();
-  ({ memory } = await loaded.default());
+  // What the page compiled as it loaded, so the wasm is fetched once.
+  const compiled = await made();
+  ({ memory } = await loaded.default(compiled && { module_or_path: compiled }));
   NAMES = loaded.propNames();
   module = loaded;
 }
