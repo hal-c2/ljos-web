@@ -47,7 +47,7 @@ test("a docs page's first load holds no other page's reading", () => {
   const propsOf = (route) => {
     const html = readFileSync(join(dist, route, "index.html"), "utf8");
     const json = html.match(/<script type="application\/json" id="ljos-props">([\s\S]*?)<\/script>/)?.[1];
-    return json ? JSON.parse(json.replaceAll("<\\/script", "</script")) : null;
+    return json ? JSON.parse(json) : null;
   };
   const other = propsOf("start/install");
   expect(other?.page?.headings?.length, "/start/install/ carries its own headings").toBeGreaterThan(0);

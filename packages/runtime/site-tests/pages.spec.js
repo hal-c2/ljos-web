@@ -43,7 +43,10 @@ test.describe("a site built as pages", () => {
       prerender: {
         pages: [
           { route: "/", title: "Home — Pages", props: { route: "/" } },
-          { route: "/docs/", title: "Docs — Pages", props: { route: "/docs/" } },
+          // Props as a docs page's reading may be: markup that would end
+          // or reopen their script element, and more than one argument
+          // of a process may hold.
+          { route: "/docs/", title: "Docs — Pages", props: { route: "/docs/", sample: "<!-- <script>", reading: "x".repeat(200_000) } },
         ],
       },
     });
@@ -93,6 +96,10 @@ test.describe("a site built as pages", () => {
     await page.waitForSelector('#app[data-ljos-hydrated="true"]');
     await expect(page.getByText("Docs page words", { exact: true })).toBeVisible();
     await expect(page.getByText("Route /docs/", { exact: true })).toBeVisible();
+    // The props came through whole, and ended where the build ended them.
+    const props = await page.evaluate(() => JSON.parse(document.getElementById("ljos-props").textContent));
+    expect(props.sample).toBe("<!-- <script>");
+    expect(props.reading.length).toBe(200_000);
     expect(errors).toEqual([]);
   });
 });
