@@ -9,9 +9,9 @@
 import { defineType, derived, effect, instantiate, QtObject, slot, whenComplete } from "../../object.ts";
 import { Property } from "../animation/property.js";
 import { STOPPED } from "../animation/jobs.js";
-import { sized } from "../compute.js";
+import { sized } from "../compute.ts";
 import { arrived, departing, setFocus } from "../focus.js";
-import { settle } from "../settle.js";
+import { settle } from "../settle.ts";
 import { Control } from "./Control.js";
 import { untrack } from "#kernel";
 

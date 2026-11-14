@@ -3,7 +3,7 @@
 // out.
 import { defineType, derived, QtObject, settle, slot } from "../object.ts";
 import { distinct } from "../QtCharts/axes.js";
-import { colorValue } from "../QtQuick/color.js";
+import { colorValue } from "../QtQuick/color.ts";
 import { untrack } from "#kernel";
 
 export const AbstractAxis = defineType("AbstractAxis", QtObject, {

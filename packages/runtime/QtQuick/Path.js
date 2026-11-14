@@ -5,7 +5,7 @@
 // again when an element changes.
 import { Point, Size } from "../QtQml/values.ts";
 import { contents, defineType, derived, effect, QtObject, settle, slot } from "../object.ts";
-import { lazy } from "./compute.js";
+import { lazy } from "./compute.ts";
 import { Outline, svgPath } from "./outline.js";
 import { signal } from "#kernel";
 

@@ -3,8 +3,8 @@
 // has, its own or those of what it is in, and every colour and measure the
 // style's QML asks for. The numbers are Qt's (`qquickmaterialstyle.cpp`).
 import { defineType, derived, QtObject } from "../../../object.ts";
-import { color as colour, hsla, rgba } from "../../color.js";
-import { lazy } from "../../compute.js";
+import { color as colour, hsla, rgba } from "../../color.ts";
+import { lazy } from "../../compute.ts";
 import { themed } from "../../Templates/theme.js";
 import { around, chosenColour, fromArgb, preferred, said, Theme, themeOf } from "../attached.js";
 import { configured } from "../settings.js";

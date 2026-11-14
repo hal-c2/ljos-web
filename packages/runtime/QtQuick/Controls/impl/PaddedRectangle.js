@@ -3,8 +3,8 @@
 // other two fall outside what is clipped.
 import { defineType, derived, effect, slot } from "../../../object.ts";
 import { allowedStyle } from "../../../guard.js";
-import { css } from "../../color.js";
-import { rules } from "../../compute.js";
+import { css } from "../../color.ts";
+import { rules } from "../../compute.ts";
 import { Rectangle } from "../../Rectangle.js";
 
 // The item paints nothing itself: what a Rectangle would is painted by an

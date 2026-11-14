@@ -11,7 +11,7 @@ import { $component, defineType, derived, effect, settle, slot } from "../../obj
 import { parts } from "./parts.js";
 import { DelegateModel } from "../DelegateModel.js";
 import { BacktabFocusReason, forceActiveFocus, MouseFocusReason, setFocus, TabFocusReason, windowOf } from "../focus.js";
-import { Key, LeftButton } from "../keycodes.js";
+import { Key, LeftButton } from "../keycodes.ts";
 import { modelOf } from "../model.js";
 import { TextInput } from "../TextInput.js";
 import { AbstractButton } from "./AbstractButton.js";

@@ -13,7 +13,7 @@
 import { onCleanup } from "solid-js";
 import { defineType, derived, effect, group, inside, instantiate, QtObject } from "../../object.ts";
 import { Quaternion, Vector3d, Vector4d } from "../../QtQml/values.ts";
-import { rgba } from "../../QtQuick/color.js";
+import { rgba } from "../../QtQuick/color.ts";
 import * as math from "../math.js";
 import { kept, Object3D } from "../Node.js";
 import { enrol, enrolled, three, vectors, within } from "./core.js";

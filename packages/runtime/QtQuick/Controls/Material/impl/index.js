@@ -7,7 +7,7 @@ import { onCleanup } from "solid-js";
 import { defineType, effect } from "../../../../object.ts";
 import { clock } from "../../../animation/clock.js";
 import { curve } from "../../../animation/easing.js";
-import { colorValue, css } from "../../../color.js";
+import { colorValue, css } from "../../../color.ts";
 import { Item } from "../../../Item.js";
 import { arc, canvas, hiding, looped, part, shown } from "../../painting.js";
 

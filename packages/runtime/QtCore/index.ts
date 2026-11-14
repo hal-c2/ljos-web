@@ -5,7 +5,7 @@ import { onCleanup } from "solid-js";
 import { mayKeep } from "../guard.js";
 import { defineType, onChange, QtObject, settle, slot, whenComplete } from "../object.ts";
 import { application } from "../QtQml/application.ts";
-import { Color, color } from "../QtQuick/color.js";
+import { Color, color } from "../QtQuick/color.ts";
 import { untrack } from "#kernel";
 import type { QObject } from "../object.ts";
 

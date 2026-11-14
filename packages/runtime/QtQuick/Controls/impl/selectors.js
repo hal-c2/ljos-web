@@ -14,7 +14,7 @@
 // the pictures a style of Qt's keeps in its plugin.
 import { onCleanup } from "solid-js";
 import { defineType, derived, QtObject, resources, whenComplete } from "../../../object.ts";
-import { lazy } from "../../compute.js";
+import { lazy } from "../../compute.ts";
 import { Property } from "../../animation/property.js";
 import { signal, untrack } from "#kernel";
 

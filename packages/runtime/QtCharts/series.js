@@ -3,7 +3,7 @@
 // the chart gives it the axes, the colours of its theme and a place.
 import { runWithOwner } from "solid-js";
 import { contents, defineType, derived, QtObject, settle, slot, whenComplete } from "../object.ts";
-import { color, colorValue, css, equal, hsva, rgba } from "../QtQuick/color.js";
+import { color, colorValue, css, equal, hsva, rgba } from "../QtQuick/color.ts";
 import { Point } from "../QtQml/values.ts";
 import { apart, box, curved, stroke } from "./plot.js";
 import { untrack } from "#kernel";

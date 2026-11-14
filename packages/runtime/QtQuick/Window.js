@@ -13,8 +13,8 @@ import { $string, contents, defineType, derived, effect, flush, inside, onChange
 import { application, listen, singleton } from "../QtQml/application.ts";
 import { enums } from "../QtQml/namespace.ts";
 import { allowedStyle } from "../guard.js";
-import { colorValue, css } from "./color.js";
-import { toScene } from "./geometry.js";
+import { colorValue, css } from "./color.ts";
+import { toScene } from "./geometry.ts";
 import { Item } from "./Item.js";
 import { paletteOf } from "./Palette.js";
 import { signal, untrack } from "#kernel";

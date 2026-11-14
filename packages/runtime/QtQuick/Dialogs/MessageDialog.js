@@ -4,7 +4,7 @@
 // rejects it.
 import { onCleanup } from "solid-js";
 import { defineType, effect } from "../../object.ts";
-import { rules } from "../compute.js";
+import { rules } from "../compute.ts";
 import { Dialog } from "./Dialog.js";
 import { untrack } from "#kernel";
 

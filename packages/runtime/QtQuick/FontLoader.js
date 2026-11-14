@@ -4,7 +4,7 @@
 // weight and slant of the face, so that `font.bold` finds the bold file.
 import { guardedFetch } from "../guard.js";
 import { defineType, derived, effect, flush, located, QtObject } from "../object.ts";
-import { lazy } from "./compute.js";
+import { lazy } from "./compute.ts";
 import { fontsChanged } from "./font.js";
 import { signal } from "#kernel";
 

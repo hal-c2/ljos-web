@@ -11,7 +11,7 @@ import { defineType, derived, effect, instantiate, slot } from "../object.ts";
 import { Flickable } from "./Flickable.js";
 import { Item } from "./Item.js";
 import { delegateOf, modelOf, moved, Rows, size } from "./model.js";
-import { settle } from "./settle.js";
+import { settle } from "./settle.ts";
 import { signal, untrack } from "#kernel";
 
 const next = (version) => version + 1;

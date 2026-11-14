@@ -11,7 +11,7 @@
 // `createComponent(Rectangle, { color: "red" })`, and nothing here interprets
 // QML: names and scopes were settled when the file was compiled.
 import { createEffect, createMemo, createRenderEffect, createRoot, createSignal, flush as drain, getObserver, getOwner, onCleanup, runWithOwner } from "solid-js";
-import { Color, color } from "./QtQuick/color.js";
+import { Color, color } from "./QtQuick/color.ts";
 // Which graph is under the slots: Solid's signals, or Ljós's own graph in
 // wasm (`kernel/wasm.js`), as the build's `ljos-wasm-kernel` condition says.
 import { WASM, binding, cell, followed, read as follow, placed as typeOwn, signal as counted, touch, untrack } from "#kernel";
@@ -192,7 +192,7 @@ export interface Kind {
 }
 
 // What ends a computation's run in a value: a binding, as the slots hold one.
-interface Bound<T = unknown> {
+export interface Bound<T = unknown> {
   (): T;
   start(): () => T;
   begin(): () => T;

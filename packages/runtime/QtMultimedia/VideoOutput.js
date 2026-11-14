@@ -6,7 +6,7 @@
 // frame is painted in.
 import { defineType, derived, effect, settle } from "../object.ts";
 import { Rect } from "../QtQml/values.ts";
-import { lazy, rules } from "../QtQuick/compute.js";
+import { lazy, rules } from "../QtQuick/compute.ts";
 import { Item } from "../QtQuick/Item.js";
 import { signal, untrack } from "#kernel";
 

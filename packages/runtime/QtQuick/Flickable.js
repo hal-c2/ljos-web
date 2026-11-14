@@ -8,9 +8,9 @@
 import { onCleanup, runWithOwner } from "solid-js";
 import { contents, defineType, derived, effect, inside, QtObject, slot } from "../object.ts";
 import { Item } from "./Item.js";
-import { LeftButton } from "./keycodes.js";
+import { LeftButton } from "./keycodes.ts";
 import { CancelGrabExclusive, CancelGrabPassive, canTake, receive, takeExclusive } from "./pointer.js";
-import { settle } from "./settle.js";
+import { settle } from "./settle.ts";
 import { untrack } from "#kernel";
 
 const sheet = new CSSStyleSheet();

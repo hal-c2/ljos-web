@@ -9,7 +9,7 @@
 // with a seed is the same table here.
 import { defineType, effect, inside as within, slot } from "../../object.ts";
 import { Vector3d } from "../../QtQml/values.ts";
-import { color, hsla, hsva, rgba } from "../../QtQuick/color.js";
+import { color, hsla, hsva, rgba } from "../../QtQuick/color.ts";
 import { AbstractListModel, reset } from "../../QtQuick/model.js";
 import { ENTRY, enter, Instancing } from "../instancing.js";
 import * as math from "../math.js";

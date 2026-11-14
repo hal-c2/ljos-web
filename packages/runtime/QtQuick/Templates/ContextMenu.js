@@ -4,7 +4,7 @@
 import { onCleanup } from "solid-js";
 import { defineType, QtObject, settle } from "../../object.ts";
 import { Point } from "../../QtQml/values.ts";
-import { globalToScene, sceneToItem } from "../geometry.js";
+import { globalToScene, sceneToItem } from "../geometry.ts";
 import { untrack } from "#kernel";
 
 // Qt's `qRound`.

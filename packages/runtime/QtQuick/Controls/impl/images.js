@@ -2,8 +2,8 @@
 // indicators and a button's icon are.
 import { allowedUrl } from "../../../guard.js";
 import { defineType, derived, effect } from "../../../object.ts";
-import { colorValue, equal } from "../../color.js";
-import { rules } from "../../compute.js";
+import { colorValue, equal } from "../../color.ts";
+import { rules } from "../../compute.ts";
 import { drawn, geometry, Image } from "../../Image.js";
 
 // The colour is what is painted, and the picture what lets it through: the

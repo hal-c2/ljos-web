@@ -3,8 +3,8 @@
 import { Vector2d } from "../../QtQml/values.ts";
 import { defineType, derived, effect } from "../../object.ts";
 import { allowedStyle } from "../../guard.js";
-import { colorValue, css } from "../color.js";
-import { rules } from "../compute.js";
+import { colorValue, css } from "../color.ts";
+import { rules } from "../compute.ts";
 import { Item } from "../Item.js";
 
 rules(".qq-shadow { position: absolute; pointer-events: none; }");

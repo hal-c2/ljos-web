@@ -11,8 +11,8 @@
 import { onCleanup } from "solid-js";
 import { defineType, derived, effect, looped, QtObject, slot } from "../../object.ts";
 import { Item } from "../Item.js";
-import { mirrored } from "../LayoutMirroring.js";
-import { given, Settling, shown } from "../placing.js";
+import { mirrored } from "../LayoutMirroring.ts";
+import { given, Settling, shown } from "../placing.ts";
 import { arrange, FLT_MAX, itemBox, measure } from "./engine.js";
 import { untrack } from "#kernel";
 

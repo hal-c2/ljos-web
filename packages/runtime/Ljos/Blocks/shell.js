@@ -14,7 +14,7 @@
 import { createComponent } from "solid-js";
 import { $bool, $color, $int, $object, $real, $string, slot } from "../../object.ts";
 import * as Quick from "../../QtQuick/index.js";
-import { Color } from "../../QtQuick/color.js";
+import { Color } from "../../QtQuick/color.ts";
 import { Qt, qsTr, qsTrId, qsTranslate } from "../../QtQml/Qt.ts";
 
 // Steps one run may take: far more than any binding a person writes, far

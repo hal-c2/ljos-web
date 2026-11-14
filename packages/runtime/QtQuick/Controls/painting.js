@@ -5,7 +5,7 @@
 import { onCleanup } from "solid-js";
 import { effect, slot } from "../../object.ts";
 import { clock } from "../animation/clock.js";
-import { rules } from "../compute.js";
+import { rules } from "../compute.ts";
 
 rules(`
 .qq-pictured { position: absolute; left: 0; top: 0; }

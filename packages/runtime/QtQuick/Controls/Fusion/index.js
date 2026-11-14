@@ -3,7 +3,7 @@
 // its controls are drawn in. The arithmetic is Qt's (`qquickfusionstyle.cpp`),
 // on whole numbers as QColor does it, so that the colours are Qt's exactly.
 import { styleHints } from "../../../QtQml/application.ts";
-import { color as colour, hsva, rgba } from "../../color.js";
+import { color as colour, hsva, rgba } from "../../color.ts";
 import { themed } from "../../Templates/theme.js";
 import { preferred } from "../attached.js";
 import { darker, degrees, eight, hsl, hsv, lighter } from "./shades.js";
