@@ -159,24 +159,24 @@ test("a code block runs beside its code, edits keep its state, and a broken edit
   // Tall enough that the first block's editor and its result stand
   // together without scrolling the page's own Flickable.
   await page.setViewportSize({ width: 1440, height: 1600 });
-  await page.goto("/start/first-app/");
+  // The language overview's first block is a counter that runs on the
+  // web; the first app's counter waits on Ljos.Controls there.
+  await page.goto("/language/overview/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
-  // The first runnable block is the counter: its result runs.
-  // (Exactly: the code says "Count: " too.)
-  await expect(page.getByText("Count: 0", { exact: true }).first()).toBeVisible({ timeout: 30_000 });
-  await pressWords(page, "Increment");
-  await expect(page.getByText("Count: 1", { exact: true }).first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("Pressed 0 times").first()).toBeVisible({ timeout: 30_000 });
+  await pressWords(page, "Pressed 0 times");
+  await expect(page.getByText("Pressed 1 times").first()).toBeVisible({ timeout: 30_000 });
   // Edit the code in its editor: the result takes the edit and
   // keeps its state.
   const editor = await codeEditor(page, "Edit Main.qml");
   await page.keyboard.press("Control+Home");
   await page.keyboard.type("// edited\n");
-  await expect(page.getByText("Count: 1", { exact: true }).first()).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText("Pressed 1 times").first()).toBeVisible({ timeout: 30_000 });
   // A broken edit says why, and the last good result still stands.
   await page.keyboard.press("Control+Home");
   await page.keyboard.type("Broken {");
   await expect(page.getByText(/Main\.qml:\d+/).first()).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByText("Count: 1", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("Pressed 1 times").first()).toBeVisible();
   // The editor marks where, and says it is wrong to a screen reader,
   // pointing at the words that say why.
   await expect(editor.locator(".cm-lintRange-error").first()).toBeVisible();
@@ -204,7 +204,8 @@ test("an editor goes with its page: the next page keeps none of its views or lis
   });
   const listening = () => page.evaluate(() => globalThis.__selectionListeners.size);
   await page.setViewportSize({ width: 1440, height: 1600 });
-  await page.goto("/start/first-app/");
+  // A page whose blocks run on the web, as the one above.
+  await page.goto("/language/overview/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
   const before = await listening();
   await codeEditor(page, "Edit Main.qml");
@@ -224,7 +225,8 @@ test("a reader who moves on while the editor loads keeps their focus where they 
     await route.continue();
   });
   await page.setViewportSize({ width: 1440, height: 1600 });
-  await page.goto("/start/first-app/");
+  // A page whose blocks run on the web, as the one above.
+  await page.goto("/language/overview/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
   // In with a press, and on with Tab before the editor has come.
   await page.getByRole("textbox", { name: "Edit Main.qml" }).first().click();
@@ -241,7 +243,7 @@ test("with JavaScript off a runnable block is its code beside a picture of its r
   const context = await browser.newContext({ javaScriptEnabled: false, viewport: BUILD_SIZE });
   try {
     const page = await context.newPage();
-    await page.goto("/start/first-app/");
+    await page.goto("/language/overview/");
     // The code stands in its editor field, readable as written.
     await expect(page.getByRole("textbox", { name: "Edit Main.qml" }).first()).toContainText("property int count: 0");
     // The stage's picture: the example's prerendered result as an

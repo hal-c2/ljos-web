@@ -21,6 +21,7 @@ import { buildSite } from "ljos-web/site";
 import { checkExamples, hashExample, loadHarnesses, loadPrerenders, renderPrerenders } from "ljos-web/codeblocks";
 import { assemble, tagged } from "ljos-web/codeblocks/parse";
 import { packRich } from "ljos-web/codeblock/rich";
+import { exampleKeys, listedEverywhere, pageOfRoute, pageRecords, readLedger } from "../../site/scripts/codeblocks-ledger.mjs";
 
 const here = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 // Where the site stands below its address's root: `/` at a domain of
@@ -84,6 +85,7 @@ const harnesses = loadHarnesses(join(docs, "harness"));
 const liveAt = new Map(); // a page's code block -> its live payload
 {
   const gathered = [];
+  const onPages = [];
   for (const page of site.pages) {
     const fences = page.blocks.filter((block) => block.kind === "code");
     if (!fences.length) continue;
@@ -98,24 +100,32 @@ const liveAt = new Map(); // a page's code block -> its live payload
       of: block,
     }));
     const { examples } = assemble(said, { harnesses });
+    onPages.push({ page: pageOfRoute(page.route), fences: said, examples });
     for (const example of examples) gathered.push({ page, example });
   }
   const cacheDir = join(here, ".codeblock-prerenders");
   const checked = checkExamples(gathered.map(({ example }) => example), { qmlc });
   const refused = new Map(checked.map(({ example, diagnostics }) => [example, diagnostics]));
-  const claimed = checked.filter(({ example }) => example.blocks.some(tagged));
+  // As in site/scripts/codeblock-prerenders.mjs: an example the ledger
+  // lists everywhere it stands is plain by the docs' own word.
+  const ledger = readLedger();
+  const keysOf = new Map();
+  for (const { page, fences, examples } of onPages)
+    for (const { example, key } of exampleKeys(page, fences, examples)) keysOf.set(example, [...(keysOf.get(example) ?? []), key]);
+  const mustRun = ({ example }) => example.blocks.some(tagged) && !listedEverywhere(keysOf.get(example) ?? [], ledger);
+  const claimed = checked.filter(mustRun);
   if (claimed.length) {
     console.error(`site-ljos: ${claimed.length} example(s) claim to run and do not compile:`);
-    for (const { diagnostics } of claimed) console.error(`  ${diagnostics.join("\n  ")}`);
+    for (const { example, diagnostics } of claimed) console.error(`  ${keysOf.get(example)?.join(", ")}:\n    ${diagnostics.join("\n    ")}`);
     process.exit(1);
   }
   const runnable = gathered.filter(({ example }) => !refused.has(example));
   const { failures } = await renderPrerenders(runnable.map(({ example }) => example), { cacheDir, qmlc });
   const unrun = new Map(failures.map(({ example, diagnostics }) => [example, diagnostics]));
-  const claimedUnrun = failures.filter(({ example }) => example.blocks.some(tagged));
+  const claimedUnrun = failures.filter(mustRun);
   if (claimedUnrun.length) {
     console.error(`site-ljos: ${claimedUnrun.length} example(s) claim to run and did not run:`);
-    for (const { diagnostics } of claimedUnrun) console.error(`  ${diagnostics.join("\n  ")}`);
+    for (const { example, diagnostics } of claimedUnrun) console.error(`  ${keysOf.get(example)?.join(", ")}:\n    ${diagnostics.join("\n    ")}`);
     process.exit(1);
   }
   const prerendered = loadPrerenders(cacheDir);
@@ -170,6 +180,16 @@ const liveAt = new Map(); // a page's code block -> its live payload
       height,
     });
   }
+  // Every example, page by page, as it stands: what the suite holds
+  // to the ledger of plain examples (site/scripts/codeblocks-ledger.mjs).
+  const liveSet = new Set(live.map(({ example }) => example));
+  const outcome = (example) => {
+    if (refused.has(example)) return { state: "not compiling", diagnostics: refused.get(example) };
+    if (unrun.has(example)) return { state: "not running", diagnostics: unrun.get(example) };
+    return liveSet.has(example) ? { state: "live" } : { state: "not running", diagnostics: ["no prerender was made"] };
+  };
+  const report = onPages.flatMap(({ page, fences, examples }) => pageRecords(page, fences, examples, outcome, tagged));
+  writeFileSync(join(cacheDir, "report.json"), `${JSON.stringify(report, null, 2)}\n`);
   console.log(
     `site-ljos: ${live.length} live code blocks ` +
       `(${gathered.length - live.length} left plain: ${checked.length} not compiling, ${failures.length} not running)`,

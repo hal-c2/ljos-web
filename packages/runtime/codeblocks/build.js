@@ -116,9 +116,10 @@ const prerenderSize = (html) => {
 // around its words (lezer-ljos), coloured by codeblock.css's
 // `--ljos-code-*` properties, so a reader without JavaScript sees the
 // colours the editor shows. A language the grammar does not read is
-// written escaped, as it was.
-export function renderCode(code, lang) {
-  return `<pre class="ljos-code"><code class="language-${esc(lang ?? "")}">${highlightToHtml(String(code).replace(/\n$/, ""), lang ?? "")}</code></pre>`;
+// written escaped, as it was. `focusable` gives the `<pre>` a tab stop,
+// for a column that can be narrower than its longest line.
+export function renderCode(code, lang, { focusable = false } = {}) {
+  return `<pre class="ljos-code"${focusable ? ' tabindex="0"' : ""}><code class="language-${esc(lang ?? "")}">${highlightToHtml(String(code).replace(/\n$/, ""), lang ?? "")}</code></pre>`;
 }
 
 // The static half of a block: the code, readable as code (a search
@@ -131,12 +132,14 @@ export function renderCode(code, lang) {
 export function renderStatic(example, { prerender } = {}) {
   const fragment = typeof prerender === "string" ? prerender : prerender?.html;
   const size = prerender && typeof prerender === "object" && prerender.width ? prerender : fragment ? prerenderSize(fragment) : {};
+  // The source column can be narrower than its longest line, and a
+  // region that scrolls must be reachable from the keyboard.
   const files = example.display
     .map(
       (file) =>
         `<div class="ljos-codeblock__source" data-file="${esc(file.name)}">` +
         (example.display.length > 1 ? `<p class="ljos-codeblock__file">${esc(file.name)}</p>` : "") +
-        `${renderCode(file.code, file.lang)}</div>`,
+        `${renderCode(file.code, file.lang, { focusable: true })}</div>`,
     )
     .join("");
   const stage = fragment ?? `<p class="ljos-codeblock__norun">This example runs in the page, with JavaScript on.</p>`;

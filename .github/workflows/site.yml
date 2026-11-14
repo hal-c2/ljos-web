@@ -32,6 +32,42 @@ env:
   CARGO_PROFILE_DEV_DEBUG: "0"
 
 jobs:
+  # Every QML file both sites show is checked by `ljos check` at the
+  # pinned revision: the demos, and the docs' blocks through ljos-ui's
+  # own docs_site test, which knows each fence's harness and what is
+  # still listed as missing. A job of its own so it runs beside the
+  # long build rather than after it.
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - id: pin
+        run: echo "sha=$(cat site/ljos-ui.sha)" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          repository: hal-c2/ljos-ui
+          ref: ${{ steps.pin.outputs.sha }}
+          path: ljos-ui
+      # The workspace names filmcraft's crates by path, so cargo needs
+      # the submodule to read the workspace even where ljos does not use it.
+      - run: git -C ljos-ui submodule update --init --depth 1 third_party/filmcraft
+      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
+        with:
+          version: 2026.9.9
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+        with:
+          workspaces: ljos-ui
+      # Font discovery links fontconfig and the audio sink ALSA.
+      - run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev libasound2-dev pkg-config
+      - run: cargo test -p ljos_cli --test docs_site --locked
+        working-directory: ljos-ui
+      - run: cargo build -p ljos_cli --bin ljos --locked
+        working-directory: ljos-ui
+      # The bundle is one project: its demos import Pantry from beside them.
+      - run: |
+          for demo in site/src/demos/*/ site-ljos/bundle; do
+            ljos-ui/target/debug/ljos check --quiet "$demo"
+          done
   build:
     runs-on: ubuntu-24.04
     permissions:

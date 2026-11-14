@@ -7,6 +7,7 @@ import { defineConfig } from "astro/config";
 import { loadHarnesses, loadPrerenders } from "ljos-web/codeblocks";
 import { liveCodeBlocks } from "ljos-web/codeblocks/remark";
 import qml from "ljos-web/vite";
+import { holdPlain, readHeld } from "./scripts/codeblocks-held.mjs";
 
 const path = (r) => fileURLToPath(new URL(r, import.meta.url));
 
@@ -73,7 +74,9 @@ export default defineConfig({
   markdown: {
     remarkPlugins: [
       [
-        liveCodeBlocks,
+        // What codeblock-prerenders let stand plain by the ledger's
+        // word stays plain here too, rather than stopping the page.
+        holdPlain(liveCodeBlocks, readHeld(prerendersAt)),
         {
           harnesses: loadHarnesses(harnessDir),
           qmlc: process.env.QMLC ?? path("../target/debug/qmlc"),
@@ -81,7 +84,7 @@ export default defineConfig({
           prerenders: loadPrerenders(prerendersAt),
           onLegacy: (count, file) => {
             legacyBlocks += count;
-            console.warn(`codeblocks: ${count} untagged block(s) left plain in ${file?.path ?? "a page"} (${legacyBlocks} so far)`);
+            console.warn(`codeblocks: ${count} block(s) left plain, untagged or listed in the ledger, in ${file?.path ?? "a page"} (${legacyBlocks} so far)`);
           },
         },
       ],

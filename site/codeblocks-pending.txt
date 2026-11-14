@@ -1,0 +1,79 @@
+# The QML examples of the pinned docs that stand on ljos.dev as plain
+# code, and why: `<page> <n> <reason> [note…]`, where <page> is the
+# page's path under docs/site and <n> counts its `qml` fences from 1,
+# as ljos-ui's crates/ljos_cli/tests/docs_site.txt counts them (a
+# group by its root, the `qml` fence without `file=`). Read
+# by site/scripts/codeblocks-ledger.mjs; both sites' suites fail on a
+# plain example missing here and on an entry that runs now, so this
+# list only shrinks.
+#
+# Reasons:
+#   host-types      it uses what a Rust program registers (types,
+#                   modules, context objects); no page can run it
+#   shows-findings  it shows what the checks find, so it is meant not
+#                   to compile; ljos-ui lists it so too
+#   web:<gap>       it runs in Ljós, not yet on the web; <gap> names
+#                   what ljos-web lacks
+#   docs:<gap>      it is not whole as the page writes it: ljos check
+#                   only warns, and the page should give it what it
+#                   reads (ljos-ui's docs to change)
+
+controls/accessibility.md 1 web:ljos-controls Ljos.Controls is not in ljos-web yet
+controls/accessibility.md 2 web:ljos-controls Ljos.Controls is not in ljos-web yet
+controls/accessibility.md 3 web:ljos-controls Ljos.Controls is not in ljos-web yet
+controls/buttons-and-toggles.md 1 web:ljos-controls Ljos.Controls is not in ljos-web yet
+controls/buttons-and-toggles.md 2 web:ljos-controls Ljos.Controls is not in ljos-web yet
+controls/buttons-and-toggles.md 3 web:ljos-controls Ljos.Controls is not in ljos-web yet
+controls/containers-and-popups.md 1 web:ljos-controls Ljos.Controls is not in ljos-web yet
+controls/containers-and-popups.md 2 web:ljos-controls Ljos.Controls is not in ljos-web yet
+controls/containers-and-popups.md 3 web:ljos-controls Ljos.Controls is not in ljos-web yet
+controls/containers-and-popups.md 4 web:ljos-module the Ljos module itself is not in ljos-web yet
+controls/containers-and-popups.md 5 web:ljos-controls Ljos.Controls is not in ljos-web yet
+controls/localisation.md 1 web:ljos-controls Ljos.Controls is not in ljos-web yet
+controls/localisation.md 3 web:ljos-controls Ljos.Controls is not in ljos-web yet
+controls/overview.md 1 web:ljos-controls Ljos.Controls is not in ljos-web yet
+controls/overview.md 3 web:ljos-controls Ljos.Controls is not in ljos-web yet
+controls/overview.md 4 web:ljos-controls Ljos.Controls is not in ljos-web yet
+controls/value-inputs.md 2 web:ljos-controls Ljos.Controls is not in ljos-web yet
+controls/value-inputs.md 3 web:ljos-controls Ljos.Controls is not in ljos-web yet
+controls/value-inputs.md 4 web:ljos-controls Ljos.Controls is not in ljos-web yet
+controls/windows.md 2 web:ljos-controls Ljos.Controls is not in ljos-web yet
+data/list-and-grid-views.md 1 web:ljos-models ListElement is not in ljos-web's Ljos.Models yet
+data/models.md 1 web:ljos-models ListElement is not in ljos-web's Ljos.Models yet
+data/models.md 4 web:ljos-models ObjectModel is not in ljos-web's Ljos.Models yet
+data/models.md 5 web:ljos-models ListElement is not in ljos-web's Ljos.Models yet
+data/other-views.md 3 web:treeview TreeView is not in ljos-web yet
+data/repeater-and-delegates.md 2 web:delegatechooser DelegateChooser is not in ljos-web yet
+data/repeater-and-delegates.md 3 web:ljos-models Instantiator is not in ljos-web's Ljos.Models yet
+data/tasks.md 1 web:ljos-controls Ljos.Controls is not in ljos-web yet
+data/tasks.md 2 web:ljos-controls Ljos.Controls is not in ljos-web yet
+language/controllers.md 5 web:ts-controller a Controller written as a .ts module, controller({...}), is no type to the web's compiler
+language/javascript.md 2 web:js-library-file a grouped javascript file is left out of the page's bundle
+language/modules-and-imports.md 2 web:ljos-core-object Object is not in ljos-web's Ljos.Core yet
+language/modules-and-imports.md 3 docs:ungrouped it reads the Theme singleton of the block before it, which is not in its group
+language/overview.md 3 web:outer-assign the web's compiler refuses an inline delegate assigning to its enclosing component's properties
+language/pipe.md 1 web:pipe-chain a chain of |> with a topic in each step fails before it runs
+language/pipe.md 2 web:pipe-chain a chain of |> with a topic in each step fails before it runs
+language/states-and-transitions.md 2 web:ljos-core-object Object is not in ljos-web's Ljos.Core yet
+quality/accessibility.md 2 web:ljos-controls Ljos.Controls is not in ljos-web yet
+quality/color.md 1 web:ljos-design Ljos.Design is not in ljos-web yet
+quality/color.md 2 web:ljos-controls Ljos.Controls is not in ljos-web yet
+quality/color.md 3 web:ljos-controls Ljos.Controls is not in ljos-web yet
+quality/color.md 5 web:ljos-controls Ljos.Controls is not in ljos-web yet
+quality/design-guardrails.md 1 web:ljos-design Ljos.Design is not in ljos-web yet
+quality/motion.md 1 web:ljos-controls Ljos.Controls is not in ljos-web yet
+quality/motion.md 3 web:ljos-controls Ljos.Controls is not in ljos-web yet
+quality/principles.md 1 web:ljos-controls Ljos.Controls is not in ljos-web yet
+rust/models.md 1 host-types titlesModel is a model the Rust program sets
+rust/multimedia.md 1 web:media-pause a media element has no pause() on the web yet
+rust/native-types.md 1 host-types the Example module is the Rust program's
+rust/overview.md 1 web:ljos-module the Ljos module itself is not in ljos-web yet
+rust/platforms.md 1 web:networkinformation NetworkInformation is not in ljos-web yet
+rust/singletons-and-windows.md 1 host-types io.qt.filenameprovider is a module the Rust program registers
+rust/testing-rust.md 1 web:qttest the test types are not in ljos-web yet
+rust/threads-and-uihandle.md 1 web:xmlhttprequest XMLHttpRequest from Component.onCompleted throws on the web
+start/first-app.md 1 web:ljos-controls Ljos.Controls is not in ljos-web yet
+start/first-app.md 2 web:ljos-controls Ljos.Controls is not in ljos-web yet
+start/hot-reload.md 2 web:component-reloaded Component.onReloaded is no signal on the web
+start/testing.md 1 web:qttest the test types are not in ljos-web yet
+start/your-own-shell.md 1 web:ljos-controls Ljos.Controls is not in ljos-web yet

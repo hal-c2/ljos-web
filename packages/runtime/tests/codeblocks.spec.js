@@ -242,8 +242,9 @@ plain("static HTML shows code and the prerendered result and carries the payload
     expect(payload.entry).toBe("Main.qml");
     expect(payload.prerendered).toBe(true);
     expect(payload.display[0].code).toContain("Count: ");
-    // The code is highlighted by the build, with the grammar's classes.
-    expect(html).toContain('<pre class="ljos-code"><code class="language-qml">');
+    // The code is highlighted by the build, with the grammar's classes,
+    // and its column, which can scroll, is a tab stop.
+    expect(html).toContain('<pre class="ljos-code" tabindex="0"><code class="language-qml">');
     expect(html).toMatch(/<span class="tok-typeName">Text<\/span>/);
     expect(html).toMatch(/<span class="tok-string">&quot;Count: &quot;<\/span>/);
     // A before block is labelled as the old half.
