@@ -8,8 +8,8 @@
 // followed on its own, by reading again what the mapping read of it, and what
 // one of those reads changes marks that object and builds. The build itself
 // reads untracked. An unset member answers nothing, so that the defaults are
-// the mapping's own. A build that draws the same asks for no frame; one that
-// draws differently asks for one. Nothing here runs otherwise.
+// the mapping's own. A build that draws the same draws nothing; one that
+// draws differently is drawn once it settles. Nothing here runs otherwise.
 import { createRenderEffect, createRoot, getOwner, runWithOwner } from "solid-js";
 import { flush, located, slot, effect } from "../object.js";
 import { color } from "../QtQuick/color.js";
@@ -462,6 +462,25 @@ class Host {
   }
 }
 
+// The views that gave a new picture to what shows it in this task. One
+// asked to draw again in it waits for the next animation frame: views that
+// take each other's picture, each draw a new picture for the other, then go
+// round once a frame and the page paints, where in microtasks they would go
+// round without end.
+const gaveNow = new Set();
+let ending = null;
+const gave = (view) => {
+  gaveNow.add(view);
+  if (ending) return;
+  ending = new MessageChannel();
+  ending.port1.onmessage = () => {
+    gaveNow.clear();
+    ending.port1.close();
+    ending = null;
+  };
+  ending.port2.postMessage(0);
+};
+
 // Draws `self` on `canvas`. What a test or a tool may ask (the backend, how
 // many frames and builds, how many reads the last build asked of the page,
 // how many objects the view holds) is on the canvas, and so is `probe`: what
@@ -480,6 +499,7 @@ export function drawOn(self, canvas, told) {
   // made while a build applies, where Solid has no owner to give it.
   const followers = new Map();
   const following = runWithOwner(self.$owner ?? null, () => createRoot((end) => ({ owner: getOwner(), end })));
+  let due = false;
   let frame = 0;
   let gone = false;
   let wanted = false;
@@ -502,23 +522,35 @@ export function drawOn(self, canvas, told) {
     if (!canvas.$drawn) request();
     return own ? 0 : draws();
   };
-  const request = () =>
-    (frame ||= requestAnimationFrame(() => {
-      frame = 0;
-      const from = performance.now();
-      if (made()?.frame()) {
-        state.frames++;
-        const to = performance.now();
-        told(from, to);
-        state.probe?.("draw", from, to);
-        // The picture leaves the surface for the page once drawn: what
-        // takes this view as a texture is handed a copy made before it does.
-        if (wanted) {
-          canvas.$drawn = readPixels(canvas);
-          setDraws((times) => times + 1);
-        }
+  const draw = () => {
+    due = false;
+    frame = 0;
+    if (gone) return;
+    const from = performance.now();
+    if (made()?.frame()) {
+      state.frames++;
+      const to = performance.now();
+      told(from, to);
+      state.probe?.("draw", from, to);
+      // The picture leaves the surface for the page once drawn: what
+      // takes this view as a texture is handed a copy made before it does.
+      if (wanted) {
+        canvas.$drawn = readPixels(canvas);
+        gave(state);
+        setDraws((times) => times + 1);
       }
-    }));
+    }
+  };
+  // Drawn once what asked for it has settled, in the same task: a build in
+  // an animation frame is drawn in that frame, as the JavaScript renderer's
+  // is, and asks for no frame of its own. One that gave its picture on in
+  // this task waits for the next frame.
+  const request = () => {
+    if (due) return;
+    due = true;
+    if (gaveNow.has(state)) frame = requestAnimationFrame(draw);
+    else queueMicrotask(draw);
+  };
   const host = new Host(self, setArrivals, arrivals, request);
 
   // Follows what the wasm asked of `o`: a change to any of it marks `o` and

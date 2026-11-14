@@ -89,8 +89,8 @@ for (const backend of ["webgpu", "webgl2"]) {
       expect(await page.evaluate(() => document.querySelector(".qq-view3d").$view3d.backend)).toBe(backend);
       await still(page);
     }
-    // Until the frame asked for by what was just set has come. A frame is
-    // asked for in a task, and drawn in the next animation frame.
+    // Until what was just set is drawn, and two animation frames have
+    // passed for what draws from it in turn.
     const still = (page) =>
       page.evaluate(async () => {
         window.flush();
@@ -211,6 +211,117 @@ for (const backend of ["webgpu", "webgl2"]) {
       near(await at(page, 20, 65), CLEAR);
       near(await at(page, 60, 65), [255, 0, 0]);
       expect((await counts(page)).objects).toBe(all);
+    });
+
+    // What an animation frame changes is drawn in that frame, as the
+    // animations' clock settles what it moved before the frame ends: not in
+    // the frame after.
+    test("a change made in an animation frame is drawn in it", async ({ page }) => {
+      await show(page, "wgpu_moving");
+      const drawnBy = await page.evaluate(
+        () =>
+          new Promise((done) => {
+            const state = document.querySelector(".qq-view3d").$view3d;
+            requestAnimationFrame(() => {
+              const before = state.frames;
+              // Asked for before the change: the first callback of the next frame.
+              requestAnimationFrame(() => done(state.frames - before));
+              window.objects.square.x = 100;
+              window.flush();
+            });
+          }),
+      );
+      expect(drawnBy, "frames drawn before the next animation frame began").toBe(1);
+      near(await at(page, ...CENTRE), CLEAR);
+      near(await at(page, 300, 150), [255, 0, 0]);
+    });
+
+    test("a moving scene asks for one animation frame for each it draws, and none once it stops", async ({ page }) => {
+      await page.addInitScript(() => {
+        window.frameAsks = 0;
+        const asked = window.requestAnimationFrame;
+        window.requestAnimationFrame = (callback) => (window.frameAsks++, asked.call(window, callback));
+      });
+      await show(page, "wgpu_moving");
+      // Timed by timers: Playwright's own waiting asks for animation frames.
+      const over = (ms) =>
+        page.evaluate(
+          (ms) =>
+            new Promise((done) => {
+              const state = document.querySelector(".qq-view3d").$view3d;
+              const from = { asks: window.frameAsks, frames: state.frames };
+              setTimeout(() => done({ asks: window.frameAsks - from.asks, frames: state.frames - from.frames }), ms);
+            }),
+          ms,
+        );
+      await page.evaluate(() => {
+        window.objects.moving = true;
+        window.flush();
+      });
+      const moving = await over(1000);
+      expect(moving.frames).toBeGreaterThan(20);
+      expect(moving.asks / moving.frames, `${moving.asks} animation frames asked for ${moving.frames} drawn`).toBeLessThanOrEqual(1.1);
+      await page.evaluate(() => {
+        window.objects.moving = false;
+        window.flush();
+      });
+      await still(page);
+      expect(await over(300)).toEqual({ asks: 0, frames: 0 });
+    });
+
+    // Each draw is a new picture for the other view, without end: what paces
+    // them is the animation frame, so the page still paints.
+    test("two views showing each other's picture go round once an animation frame, and the page paints", async ({ page }) => {
+      await show(page, "wgpu_mutual");
+      const { frames, drawn } = await page.evaluate(
+        () =>
+          new Promise((done) => {
+            const views = [...document.querySelectorAll(".qq-view3d")].map((canvas) => canvas.$view3d);
+            const draws = () => views.reduce((all, view) => all + view.frames, 0);
+            const from = draws();
+            const start = performance.now();
+            let frames = 0;
+            const tick = () => {
+              frames++;
+              if (performance.now() - start < 500) requestAnimationFrame(tick);
+              else done({ frames, drawn: draws() - from });
+            };
+            requestAnimationFrame(tick);
+          }),
+      );
+      expect(frames).toBeGreaterThan(10);
+      expect(drawn).toBeGreaterThan(0);
+      expect(drawn, `${drawn} drawn in ${frames} animation frames`).toBeLessThanOrEqual(2 * (frames + 1));
+      // Each square shows the other view, its clear colour at the corners.
+      near(await at(page, 55, 105), [0, 0, 0x40]);
+      near(await at(page, 255, 105), [0x40, 0, 0]);
+    });
+
+    // Only a view that gave its picture on waits for the next animation
+    // frame to draw again: one that shows another's picture, and drew already
+    // in this frame, still draws the new picture in it.
+    test("a view showing another's picture draws its new picture in the frame it changed, though it drew already in it", async ({ page }) => {
+      await show(page, "wgpu_oneway");
+      const drawn = await page.evaluate(
+        () =>
+          new Promise((done) => {
+            const [giver, shower] = [...document.querySelectorAll(".qq-view3d")].map((canvas) => canvas.$view3d);
+            requestAnimationFrame(async () => {
+              const before = { giver: giver.frames, shower: shower.frames };
+              // Asked for before the changes: the first callback of the next frame.
+              requestAnimationFrame(() => done({ giver: giver.frames - before.giver, shower: shower.frames - before.shower }));
+              window.objects.own.x = 60;
+              window.flush();
+              for (let turn = 0; turn < 20 && shower.frames === before.shower; turn++) await null;
+              window.objects.moved.x = 60;
+              window.flush();
+            });
+          }),
+      );
+      expect(drawn, "frames drawn before the next animation frame began").toEqual({ giver: 1, shower: 2 });
+      // The right view's large square shows the left view, its red square moved right.
+      near(await at(page, 255, 105), [0x40, 0, 0]);
+      near(await at(page, 330, 150), [255, 0, 0]);
     });
 
     test("the view maps the scene, and a node maps through its parents", async ({ page }) => {
