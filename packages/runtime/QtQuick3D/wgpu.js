@@ -395,7 +395,10 @@ class Host {
 }
 
 // Draws `self` on `canvas`. What a test or a tool may ask (the backend, how
-// many frames and builds) is on the canvas.
+// many frames and builds) is on the canvas, and so is `probe`: what a tool
+// that times the view (tests/perf3d) puts there is told of each build
+// ("sync": the scene read into the renderer) and each frame drawn ("draw"),
+// from when until when. Unset, nothing is timed for it.
 export function drawOn(self, canvas, told) {
   const [made, setMade] = signal(null, self.$owner);
   const [arrivals, setArrivals] = signal(0, self.$owner);
@@ -404,7 +407,7 @@ export function drawOn(self, canvas, told) {
   let gone = false;
   let wanted = false;
   let own = false;
-  const state = (canvas.$view3d = { backend: null, frames: 0, builds: 0, error: null, memory: () => memory?.buffer.byteLength ?? 0 });
+  const state = (canvas.$view3d = { renderer: "wgpu", backend: null, frames: 0, builds: 0, error: null, probe: null, memory: () => memory?.buffer.byteLength ?? 0 });
   // A view that reads itself reads what it drew before and is not drawn again
   // for that.
   self.$view = () => {
@@ -418,7 +421,9 @@ export function drawOn(self, canvas, told) {
       const from = performance.now();
       if (made()?.frame()) {
         state.frames++;
-        told(from, performance.now());
+        const to = performance.now();
+        told(from, to);
+        state.probe?.("draw", from, to);
         // The picture leaves the surface for the page once drawn: what
         // takes this view as a texture is handed a copy made before it does.
         if (wanted) {
@@ -456,6 +461,7 @@ export function drawOn(self, canvas, told) {
     () => {
       const view = made();
       if (!view) return;
+      const from = state.probe ? performance.now() : 0;
       host.reading++;
       own = true;
       try {
@@ -466,6 +472,7 @@ export function drawOn(self, canvas, told) {
       state.builds++;
       const dropped = host.sweep();
       if (dropped.length > 0) view.forget(Uint32Array.from(dropped));
+      state.probe?.("sync", from, performance.now());
     },
     () => {},
   );

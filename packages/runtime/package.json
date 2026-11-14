@@ -89,7 +89,8 @@
   },
   "scripts": {
     "test": "playwright test -c tests",
-    "test:site": "playwright test -c site-tests"
+    "test:site": "playwright test -c site-tests",
+    "perf:3d": "playwright test -c tests/perf3d/playwright.config.js"
   },
   "peerDependencies": {
     "solid-js": "2.0.0-rc.13"

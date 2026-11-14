@@ -304,6 +304,10 @@ export const View3D = defineType("View3D", Item, {
       );
       return;
     }
+    // What a test or a tool may ask, as of the wgpu renderer's view
+    // (`drawOn`): `probe` is told of each sight taken ("sync") and each
+    // picture drawn ("draw").
+    const state = (canvas.$view3d = { renderer: "js", backend: "webgl2", frames: 0, builds: 0, error: null, probe: null });
     const drawn = () => {
       const from = performance.now();
       // A timer may ring a little early.
@@ -315,6 +319,8 @@ export const View3D = defineType("View3D", Item, {
       if (ways) setTimes((times) => times + 1);
       const ended = performance.now();
       frame(from, ended);
+      state.frames++;
+      state.probe?.("draw", from, ended);
       const took = ended - from;
       rested = slow && took > SLOW ? ended + Math.min(took, REST) : 0;
       slow = took > SLOW;
@@ -345,11 +351,14 @@ export const View3D = defineType("View3D", Item, {
 
     effect(
       () => {
+        const from = state.probe ? performance.now() : 0;
         own = true;
         try {
           return sight();
         } finally {
           own = false;
+          state.builds++;
+          state.probe?.("sync", from, performance.now());
         }
       },
       (seen) => {

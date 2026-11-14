@@ -8,3 +8,4 @@ packages/runtime/compiler/*.wasm
 packages/runtime/tests/scenes/saved/
 packages/runtime/QtQuick3D/wgpu/
 .tools/
+packages/runtime/tests/perf3d/results/
