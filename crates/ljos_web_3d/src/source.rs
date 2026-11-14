@@ -24,6 +24,7 @@ use ljos_3d::texture::{
 use ljos_3d::texture_data::TextureData;
 use ljos_3d::{CustomGeometry, CustomMaterial, Effect, Instance, InstanceTable, Instancing};
 
+use crate::answers::{Answer, Answers, Kind};
 use crate::names;
 
 /// The view itself, in every registry.
@@ -164,8 +165,9 @@ pub trait Host {
     fn table_data(&self, o: u32) -> Vec<f32>;
     fn snippets(&self, o: u32) -> Option<Snippets>;
     fn passes(&self, o: u32) -> Option<Passes>;
-    /// A tracked read of "another file arrived".
-    fn arrivals(&self);
+    /// A tracked read of "another file arrived", by `o`: the file `o` waits
+    /// for is what arrived, when `o` is asked again.
+    fn arrivals(&self, o: u32);
     /// Starts reading the file at `url`; [`Kept::arrive`] follows.
     fn load(&self, url: &str, kept: &Rc<Kept>);
     /// Starts reading the mesh file at `url`; [`Kept::arrive_mesh`] follows.
@@ -261,6 +263,8 @@ pub struct Kept {
     /// does, so one that failed is read again when one comes to name it again.
     named: RefCell<HashMap<u32, String>>,
     said: RefCell<HashSet<String>>,
+    /// What each object answered since it last changed.
+    pub answers: Answers,
 }
 
 impl Kept {
@@ -367,6 +371,33 @@ impl TexturePixels for Baked {
     }
 }
 
+/// One build of the view: what changed since the last is asked again, the
+/// rest is answered from what was kept. Returns the scene and the handles no
+/// longer in it, which [`Kept`] has let go of and the page may too.
+pub fn build<H: Host>(host: &H, kept: &Rc<Kept>, changed: &[u32]) -> (qml::Built<u32>, Vec<u32>) {
+    kept.answers.begin(changed);
+    let built = qml::build(&Source { host, kept }, VIEW);
+    let gone = kept.answers.finish();
+    kept.forget(&gone);
+    (built, gone)
+}
+
+/// A read of the page, answered from what `o` answered since it last
+/// changed.
+macro_rules! asked {
+    ($self:ident, $o:expr, $kind:ident, $p:expr, $read:ident) => {
+        asked!($self, $o, $kind, $p, $read, std::convert::identity)
+    };
+    ($self:ident, $o:expr, $kind:ident, $p:expr, $read:ident, $into:expr) => {
+        match $self.kept.answers.answer($o, Kind::$kind, $p as u32, || {
+            Answer::$kind($into($self.host.$read($o, $p as u32)))
+        }) {
+            Answer::$kind(answer) => answer,
+            _ => unreachable!("an answer is kept under its own kind"),
+        }
+    };
+}
+
 /// The graph one build reads.
 pub struct Source<'a, H> {
     pub host: &'a H,
@@ -398,6 +429,28 @@ impl<H: Host> Source<'_, H> {
         };
         self.kept.programs.borrow_mut().insert(key, made.clone());
         made
+    }
+
+    fn arrivals(&self, o: u32) {
+        self.kept.answers.answer(o, Kind::Arrivals, 0, || {
+            self.host.arrivals(o);
+            Answer::Arrivals
+        });
+    }
+
+    /// Which picture, shape or table `o` is now: kept like any answer, as
+    /// the page marks `o` changed when it is another, and marks it in every
+    /// build where it can be another unseen (a canvas drawn on since).
+    fn revision(&self, o: u32, kind: Kind) -> Option<u32> {
+        let answer = self.kept.answers.answer(o, kind, 0, || match kind {
+            Kind::PictureId => Answer::PictureId(self.host.picture_id(o)),
+            Kind::GeometryId => Answer::GeometryId(self.host.geometry_id(o)),
+            _ => Answer::TableId(self.host.table_id(o)),
+        });
+        match answer {
+            Answer::PictureId(id) | Answer::GeometryId(id) | Answer::TableId(id) => id,
+            _ => unreachable!("an answer is kept under its own kind"),
+        }
     }
 
     /// What a page rewrites says the same each time: once is enough.
@@ -562,33 +615,33 @@ impl<H: Host> SceneSource for Source<'_, H> {
     }
 
     fn number(&self, o: u32, p: Prop3d) -> Option<f64> {
-        self.host.number(o, p as u32)
+        asked!(self, o, Number, p, number)
     }
 
     fn int(&self, o: u32, p: Prop3d) -> Option<i32> {
-        names::enumeration(p, self.host.number(o, p as u32)? as i32)
+        names::enumeration(p, self.number(o, p)? as i32)
     }
 
     fn boolean(&self, o: u32, p: Prop3d) -> Option<bool> {
-        self.host.boolean(o, p as u32)
+        asked!(self, o, Boolean, p, boolean)
     }
 
     fn color(&self, o: u32, p: Prop3d) -> Option<[f32; 4]> {
-        self.host.color(o, p as u32)
+        asked!(self, o, Color, p, color)
     }
 
     fn vector3d(&self, o: u32, p: Prop3d) -> Option<Vec3> {
-        let [x, y, z] = self.host.vector(o, p as u32)?;
+        let [x, y, z] = asked!(self, o, Vector, p, vector)?;
         Some(Vec3::new(x, y, z))
     }
 
     fn quaternion(&self, o: u32, p: Prop3d) -> Option<Quat> {
-        let [x, y, z, w] = self.host.quaternion(o, p as u32)?;
+        let [x, y, z, w] = asked!(self, o, Quaternion, p, quaternion)?;
         Some(Quat { x, y, z, w })
     }
 
     fn url(&self, o: u32, p: Prop3d) -> Option<String> {
-        let url = self.host.url(o, p as u32);
+        let url = asked!(self, o, Url, p, url);
         // A model on a built-in shape or none is never asked for a file, so
         // this is where it comes to stop naming one.
         if p == Prop3d::Source && url.as_ref().is_none_or(|url| url.contains('#')) {
@@ -598,27 +651,27 @@ impl<H: Host> SceneSource for Source<'_, H> {
     }
 
     fn object(&self, o: u32, p: Prop3d) -> Option<u32> {
-        self.host.object(o, p as u32)
+        asked!(self, o, Object, p, object)
     }
 
     fn objects(&self, o: u32, p: Prop3d) -> Vec<u32> {
-        self.host.objects(o, p as u32)
+        asked!(self, o, Objects, p, objects, Into::into).to_vec()
     }
 
     fn authored(&self, o: u32, p: Prop3d) -> bool {
-        self.host.authored(o, p as u32)
+        asked!(self, o, Authored, p, authored)
     }
 
     fn object_slots(&self, o: u32, p: Prop3d) -> Vec<Option<u32>> {
-        let slots = self.host.slots(o, p as u32);
+        let slots = asked!(self, o, Slots, p, slots, Into::into);
         slots
-            .into_iter()
-            .map(|s| (s != NO_OBJECT).then_some(s))
+            .iter()
+            .map(|&s| (s != NO_OBJECT).then_some(s))
             .collect()
     }
 
     fn matrices(&self, o: u32, p: Prop3d) -> Vec<Mat4> {
-        let numbers = self.host.matrices(o, p as u32);
+        let numbers = asked!(self, o, Matrices, p, matrices, Into::into);
         numbers
             .as_chunks::<16>()
             .0
@@ -632,7 +685,7 @@ impl<H: Host> SceneSource for Source<'_, H> {
     }
 
     fn texture_image(&self, _view: u32, texture: u32) -> Option<TextureImage> {
-        let Some(id) = self.host.picture_id(texture) else {
+        let Some(id) = self.revision(texture, Kind::PictureId) else {
             self.kept.pictures.borrow_mut().let_go(texture);
             return None;
         };
@@ -685,7 +738,7 @@ impl<H: Host> SceneSource for Source<'_, H> {
     }
 
     fn mesh_file(&self, _view: u32, model: u32) -> Option<Arc<MeshFile>> {
-        self.host.arrivals();
+        self.arrivals(model);
         let url = self.url(model, Prop3d::Source)?;
         self.kept.name(model, Some(&url));
         match self.kept.meshes.borrow().get(&url) {
@@ -702,7 +755,7 @@ impl<H: Host> SceneSource for Source<'_, H> {
     }
 
     fn geometry(&self, geometry: u32) -> Option<Arc<CustomGeometry>> {
-        let Some(id) = self.host.geometry_id(geometry) else {
+        let Some(id) = self.revision(geometry, Kind::GeometryId) else {
             self.kept.shapes.borrow_mut().let_go(geometry);
             return None;
         };
@@ -725,7 +778,7 @@ impl<H: Host> SceneSource for Source<'_, H> {
     }
 
     fn instancing(&self, table: u32) -> Option<Instancing> {
-        let Some(id) = self.host.table_id(table) else {
+        let Some(id) = self.revision(table, Kind::TableId) else {
             self.kept.tables.borrow_mut().let_go(table);
             return None;
         };
@@ -751,7 +804,12 @@ impl<H: Host> SceneSource for Source<'_, H> {
     }
 
     fn custom_material(&self, view: u32, material: u32) -> Option<CustomMaterial> {
-        let s = self.host.snippets(material)?;
+        let s = self.kept.answers.answer(material, Kind::Snippets, 0, || {
+            Answer::Snippets(self.host.snippets(material).map(Rc::new))
+        });
+        let Answer::Snippets(Some(s)) = s else {
+            return None;
+        };
         let uniforms = declared(&s.uniforms);
         let samplers: Vec<String> = s.textures.iter().map(|(name, _)| name.clone()).collect();
         let key = format!(
@@ -797,7 +855,12 @@ impl<H: Host> SceneSource for Source<'_, H> {
     }
 
     fn effect(&self, view: u32, effect: u32) -> Option<Effect> {
-        let told = self.host.passes(effect)?;
+        let told = self.kept.answers.answer(effect, Kind::Passes, 0, || {
+            Answer::Passes(self.host.passes(effect).map(Rc::new))
+        });
+        let Answer::Passes(Some(told)) = told else {
+            return None;
+        };
         let uniforms = declared(&told.uniforms);
         let mut made = Effect {
             buffers: told
@@ -881,7 +944,7 @@ impl<H: Host> SceneSource for Source<'_, H> {
         if !self.is(loader, Type3d::RuntimeLoader) {
             return None;
         }
-        self.host.arrivals();
+        self.arrivals(loader);
         let url = self
             .url(loader, Prop3d::Source)
             .filter(|url| !url.is_empty());
@@ -954,6 +1017,10 @@ mod tests {
         loads: RefCell<Vec<String>>,
         reports: RefCell<Vec<String>>,
         status: RefCell<Option<(LoaderStatus, String)>>,
+        /// Every read of a member, to count what crosses.
+        reads: Cell<u32>,
+        /// The view no longer holds the cube.
+        dropped: Cell<bool>,
     }
 
     impl Host for Fake {
@@ -970,6 +1037,7 @@ mod tests {
             names.iter().map(|n| (*n).to_owned()).collect()
         }
         fn number(&self, o: u32, p: u32) -> Option<f64> {
+            self.reads.set(self.reads.get() + 1);
             match (o, Prop3d::ALL[p as usize]) {
                 (CUBE, Prop3d::X) => self.x.get(),
                 (MATERIAL, Prop3d::CullMode) => Some(3.0),
@@ -1002,7 +1070,9 @@ mod tests {
             None
         }
         fn objects(&self, o: u32, p: u32) -> Vec<u32> {
+            self.reads.set(self.reads.get() + 1);
             match (o, Prop3d::ALL[p as usize]) {
+                (VIEW, Prop3d::Data) if self.dropped.get() => vec![CAMERA],
                 (VIEW, Prop3d::Data) => vec![CUBE, CAMERA],
                 (CUBE, Prop3d::Materials) => vec![MATERIAL],
                 _ => Vec::new(),
@@ -1082,7 +1152,7 @@ mod tests {
         fn passes(&self, _: u32) -> Option<Passes> {
             None
         }
-        fn arrivals(&self) {}
+        fn arrivals(&self, _: u32) {}
         fn load(&self, url: &str, _: &Rc<Kept>) {
             self.loads.borrow_mut().push(url.to_owned());
         }
@@ -1124,28 +1194,64 @@ mod tests {
     fn an_unset_member_is_the_mappings_default_and_a_set_one_its_value() {
         let host = Fake::default();
         let kept = Rc::new(Kept::default());
-        let source = Source {
-            host: &host,
-            kept: &kept,
-        };
-        assert_eq!(cube_x(&qml::build(&source, VIEW)), 0.0);
+        assert_eq!(cube_x(&build(&host, &kept, &[]).0), 0.0);
         host.x.set(Some(7.0));
-        assert_eq!(cube_x(&qml::build(&source, VIEW)), 7.0);
+        assert_eq!(cube_x(&build(&host, &kept, &[CUBE]).0), 7.0);
     }
 
     #[test]
     fn the_same_objects_build_a_scene_that_draws_the_same() {
         let host = Fake::default();
         let kept = Rc::new(Kept::default());
-        let source = Source {
-            host: &host,
-            kept: &kept,
-        };
-        let a = qml::build(&source, VIEW);
-        let b = qml::build(&source, VIEW);
+        let a = build(&host, &kept, &[]).0;
+        let b = build(&host, &kept, &[]).0;
         assert!(a.scene.same_as(&b.scene));
         host.x.set(Some(1.0));
-        assert!(!a.scene.same_as(&qml::build(&source, VIEW).scene));
+        assert!(!a.scene.same_as(&build(&host, &kept, &[CUBE]).0.scene));
+    }
+
+    #[test]
+    fn a_build_with_nothing_changed_asks_the_page_nothing() {
+        let host = Fake::default();
+        let kept = Rc::new(Kept::default());
+        build(&host, &kept, &[]);
+        assert!(host.reads.get() > 0);
+        let asked = host.reads.get();
+        let (_, gone) = build(&host, &kept, &[]);
+        assert_eq!(host.reads.get(), asked);
+        assert!(gone.is_empty());
+    }
+
+    #[test]
+    fn a_changed_object_alone_is_asked_again() {
+        let host = Fake::default();
+        let kept = Rc::new(Kept::default());
+        build(&host, &kept, &[]);
+        let all = kept.answers.crossed();
+        host.x.set(Some(3.0));
+        // What did not say it changed is answered as it was.
+        assert_eq!(cube_x(&build(&host, &kept, &[CAMERA]).0), 0.0);
+        let asked = host.reads.get();
+        assert_eq!(cube_x(&build(&host, &kept, &[CUBE]).0), 3.0);
+        assert!(host.reads.get() > asked);
+        assert!(kept.answers.crossed() < all);
+    }
+
+    #[test]
+    fn a_model_the_view_lets_go_of_is_gone_with_its_material() {
+        let host = Fake::default();
+        let kept = Rc::new(Kept::default());
+        build(&host, &kept, &[]);
+        host.dropped.set(true);
+        let (built, mut gone) = build(&host, &kept, &[VIEW]);
+        gone.sort_unstable();
+        assert_eq!(gone, [CUBE, MATERIAL]);
+        assert!(!built.ids.contains_key(&CUBE));
+        assert!(!kept.types.borrow().contains_key(&CUBE));
+        // The handles left are still answered from what was kept.
+        let asked = host.reads.get();
+        assert!(build(&host, &kept, &[]).1.is_empty());
+        assert_eq!(host.reads.get(), asked);
     }
 
     #[test]
@@ -1169,6 +1275,8 @@ mod tests {
         let mut oldest = None;
         for revision in 1..=COMMITTED {
             host.revision.set(Some(revision));
+            // As the page says each time.
+            kept.answers.clear(&[CUBE]);
             let shape = source.geometry(CUBE).unwrap();
             oldest.get_or_insert_with(|| Arc::downgrade(&shape));
             source.instancing(CUBE).unwrap();
@@ -1197,6 +1305,7 @@ mod tests {
         let b = source.geometry(CAMERA).unwrap();
         assert!(Arc::ptr_eq(&a, &b));
         host.revision.set(Some(2));
+        kept.answers.clear(&[CUBE, CAMERA]);
         source.geometry(CUBE).unwrap();
         assert_eq!(kept.shapes.borrow().made.len(), 2);
         source.geometry(CAMERA).unwrap();
@@ -1217,6 +1326,7 @@ mod tests {
         }
         assert_eq!(host.table_reads.get(), 1);
         host.revision.set(Some(2));
+        kept.answers.clear(&[CUBE]);
         source.instancing(CUBE).unwrap();
         assert_eq!(host.table_reads.get(), 2);
     }
@@ -1252,6 +1362,7 @@ mod tests {
         host.component.set(2);
         for revision in 2..5 {
             host.revision.set(Some(revision));
+            kept.answers.clear(&[CUBE]);
             assert!(source.geometry(CUBE).is_none());
             assert!(source.geometry(CUBE).is_none());
         }
@@ -1328,7 +1439,11 @@ mod tests {
             host: &host,
             kept: &kept,
         };
-        let names = |url: &str| *host.source.borrow_mut() = url.to_owned();
+        // The page says a loader changed when what it names does.
+        let names = |url: &str| {
+            *host.source.borrow_mut() = url.to_owned();
+            kept.answers.clear(&[LOADER, OTHER_LOADER]);
+        };
         let status = || host.status.borrow().clone().unwrap();
         names("bad.gltf");
         assert!(source.loaded(LOADER).is_none());
@@ -1364,7 +1479,10 @@ mod tests {
             host: &host,
             kept: &kept,
         };
-        let names = |url: &str| *host.source.borrow_mut() = url.to_owned();
+        let names = |url: &str| {
+            *host.source.borrow_mut() = url.to_owned();
+            kept.answers.clear(&[LOADER]);
+        };
         names("bad.mesh");
         assert!(source.mesh_file(VIEW, LOADER).is_none());
         kept.arrive_mesh("bad.mesh", Asked::Failed("404".to_owned()));
