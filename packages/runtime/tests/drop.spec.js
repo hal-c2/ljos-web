@@ -313,6 +313,15 @@ test.describe("A shell's text names no URL, however it reaches a text", () => {
     expect(await page.evaluate(() => window.named("given").$node.querySelectorAll("[data-link]").length)).toBe(0);
   });
 
+  test("An item a shell makes a link has no address", async ({ page }) => {
+    await opened(page);
+    await dropped(page, over(`    Item { objectName: "given"; width: 40; height: 20; property string href: "${EVIL}"; Accessible.role: Accessible.Link; Accessible.name: "go" }`));
+    expect(await page.evaluate(() => {
+      const node = window.named("given").$node;
+      return { tag: node.localName, href: node.getAttribute("href") };
+    })).toEqual({ tag: "a", href: null });
+  });
+
   test("The site's own markup has its pictures again when its shell is back", async ({ page }) => {
     await opened(page);
     expect(await pictures(page, "note")).toBe(1);
