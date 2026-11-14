@@ -35,6 +35,9 @@ const ARIA = {
   [Role.Paragraph]: "paragraph", [Role.WebDocument]: "document", [Role.Notification]: "status", [Role.Switch]: "switch",
   [Role.Footer]: "contentinfo", [Role.Form]: "form", [Role.Heading]: "heading", [Role.Note]: "note",
   [Role.ComplementaryContent]: "complementary", [Role.BlockQuote]: "blockquote",
+  // A section is a part of the page, as ARIA's region is: a named one is a
+  // landmark a reader can go to, as Core-AAM maps it.
+  [Role.Section]: "region",
 };
 
 const Polite = 0;
@@ -108,35 +111,79 @@ const states = [
   ["multiLine", "aria-multiline", (own) => own("multiLine")],
 ];
 
+// Where Qt's words and ARIA's part. ARIA allows `aria-checked` on few
+// roles: a button that checks is a toggle, said with `aria-pressed`, and
+// a menu item that checks is a role of its own. A heading has a level,
+// which Qt's roles do not carry: one no author gives is ARIA's own
+// default. A name on an element with no role is no name to ARIA, so a
+// named item whose role says nothing is a named group, as native Ljós
+// tells it. A control of a value says it and where it lies, as Qt's
+// value interface does; a slider or scroll bar with none to say is no
+// slider to ARIA, which asks one of it, and is a group too. ARIA has no
+// selected list item: the one chosen is its list's current.
+const HEADING_LEVEL = "2";
+const VALUED = new Set(["slider", "spinbutton", "progressbar", "scrollbar"]);
+const OWES_VALUE = new Set(["slider", "scrollbar"]);
+function valueOf(item, role) {
+  if (!VALUED.has(role) || !item) return null;
+  const [now, min, max] = [item.value, item.from, item.to].map(Number);
+  if ([now, min, max].every(Number.isFinite)) return [now, Math.min(min, max), Math.max(min, max)].map(String);
+  // A scroll bar's value is how far along it is, of all it can go.
+  const [position, size] = [item.position, item.size].map(Number);
+  if (role === "scrollbar" && Number.isFinite(position) && Number.isFinite(size))
+    return [String(size >= 1 ? 0 : Math.round((100 * position) / (1 - size))), "0", "100"];
+  return null;
+}
+function worded(role, name, told, value) {
+  const at = (state) => states.findIndex(([own]) => own === state);
+  const checked = told[at("checked")];
+  if (role === "button" && checked !== null) {
+    told[at("pressed")] = checked;
+    told[at("checked")] = null;
+  }
+  if (role === "menuitem" && checked !== null) role = "menuitemcheckbox";
+  let current = null;
+  if (role === "listitem") {
+    current = told[at("selected")] === "true" ? "true" : null;
+    told[at("selected")] = null;
+  }
+  if (OWES_VALUE.has(role) && !value) role = null;
+  if (!role && name) role = "group";
+  return [role, role === "heading" ? HEADING_LEVEL : null, current];
+}
+
 // The attributes of an item's element, from its `Accessible` object when it
 // has one and from what its type says when it does not. A state the author
 // set is theirs; one they did not is the control's.
 function aria(self, item) {
   const own = (name) => (self && slot(self, name).explicit() ? Boolean(self[name]) : ofControl(item, name));
-  const role = self ? self.role : roleOf(item);
-  return [
-    self?.searchEdit ? "searchbox" : (ARIA[role] ?? null),
-    self ? self.name : (said(item, "name") ?? ""),
-    self?.description ?? "",
-    self?.ignored ?? false,
-    named(self?.labelledBy),
-    ...states.map(([name, , has]) => (has(own) ? (name === "checked" && own("checkStateMixed") ? "mixed" : String(own(name))) : null)),
-  ];
+  const name = self ? self.name : (said(item, "name") ?? "");
+  const told = states.map(([state, , has]) => (has(own) ? (state === "checked" && own("checkStateMixed") ? "mixed" : String(own(state))) : null));
+  const asked = self?.searchEdit ? "searchbox" : (ARIA[self ? self.role : roleOf(item)] ?? null);
+  const value = valueOf(item, asked);
+  const [role, level, current] = worded(asked, name, told, value);
+  const [now, min, max] = value ?? [null, null, null];
+  return [role, name, self?.description ?? "", self?.ignored ?? false, named(self?.labelledBy), level, current, now, min, max, ...told];
 }
 
-function show(node, [role, name, description, ignored, labelledBy, ...told]) {
+function show(node, [role, name, description, ignored, labelledBy, level, current, now, min, max, ...told]) {
   const set = (name, value) => (value === null || value === "" ? node.removeAttribute(name) : node.setAttribute(name, value));
   set("role", role);
   set("aria-label", name);
   set("aria-description", description);
   set("aria-hidden", ignored ? "true" : null);
   set("aria-labelledby", labelledBy);
+  set("aria-level", level);
+  set("aria-current", current);
+  set("aria-valuenow", now);
+  set("aria-valuemin", min);
+  set("aria-valuemax", max);
   states.forEach(([, attribute], index) => set(attribute, told[index]));
 }
 
 // What `show` wrote, taken off again: an attribute of no value is
 // none of them.
-const UNSPOKEN = [null, "", "", false, null, ...states.map(() => null)];
+const UNSPOKEN = [null, "", "", false, null, null, null, null, null, null, ...states.map(() => null)];
 
 // Where an item's saying goes: on its element, but a text box's is
 // its field — the form element inside it is what a reader edits,

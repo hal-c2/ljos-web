@@ -427,5 +427,6 @@ export const AbstractButton = defineType("AbstractButton", Control, {
 
 // A button is named by its text, without the marker of its mnemonic. A bare
 // one is whatever its author builds of it; a button is the closest to say.
+// One that checks says whether it is checked.
 const buttonText = (self) => unmarked(self.text);
-speaks(AbstractButton, "Button", buttonText);
+speaks(AbstractButton, "Button", buttonText, "checked");
