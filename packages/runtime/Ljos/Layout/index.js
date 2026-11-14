@@ -136,10 +136,9 @@ const managed = (a, axis) =>
   a.fill[axis] === true || a.pref[axis] !== undefined || a.min[axis] !== undefined || a.max[axis] !== undefined;
 
 // The size a child's file gives it along an axis, by itself or by its
-// anchors; NaN when it follows its implicit size. Read as it was when the
-// arrangement measured the child, as ljos-ui keeps what it first saw: the
-// size the arrangement places goes into the same property, and a measure
-// that followed it would be run again by its own placing.
+// anchors; NaN when it follows its implicit size. Read untracked: the size
+// the arrangement places goes into the same property, and a measure that
+// followed it would be run again by its own placing.
 function stated(child, axis) {
   return untrack(() => {
     const value = given(child, SIZE[axis]);
@@ -150,13 +149,13 @@ function stated(child, axis) {
   });
 }
 
-// What one child asks for along one axis: the one size rule.
-function hint(a, axis, child) {
+// What one child asks for along one axis: the one size rule. `file` is the
+// size its file gave it when the arrangement first saw it.
+function hint(a, axis, child, file) {
   if (!managed(a, axis)) {
     const current = child[SIZE[axis]];
     return { min: current, pref: current, max: current, stretch: -1 };
   }
-  const file = stated(child, axis);
   const asked = a.pref[axis] ?? (Number.isNaN(file) ? child[IMPLICIT[axis]] : file);
   const max = a.max[axis] ?? Infinity;
   const min = Math.min(a.min[axis] ?? 0, max);
@@ -258,15 +257,32 @@ function measureLine(self, items, vertical, last) {
   };
 }
 
+// The sizes each child's file gave it when the arrangement first saw it,
+// kept while it stays a child, as ljos-ui keeps them: once the arrangement
+// has placed a size, the property holds that, and a binding that gives
+// another later is not asked for until the child comes back.
+function firstSeen(self, items) {
+  const seen = (self.$seen ??= new Map());
+  const children = self.children;
+  for (const child of seen.keys()) if (!children.includes(child)) seen.delete(child);
+  return items.map((child) => {
+    let first = seen.get(child);
+    if (!first) seen.set(child, (first = [stated(child, H), stated(child, V)]));
+    return first;
+  });
+}
+
 // The cells, tracks and hints of every child.
 function measurePlan(self, items, grid, vertical, last) {
   const cells = [];
   const wants = [];
-  for (const child of items) {
+  const first = firstSeen(self, items);
+  for (const [index, child] of items.entries()) {
     const a = attached(child);
+    const file = first[index];
     cells.push({
       item: child,
-      hint: [hint(a, H, child), hint(a, V, child)],
+      hint: [hint(a, H, child, file[H]), hint(a, V, child, file[V])],
       managed: [managed(a, H), managed(a, V)],
       margins: a.margins,
       align: a.align,
@@ -437,18 +453,13 @@ function arrangement(name, spec) {
       },
       $place(arranged) {
         if (!arranged) return;
-        // Which axes of which children this arrangement gave a size: one
-        // it no longer manages goes back to its own.
-        const sized = (this.$sized ??= new WeakMap());
+        // A size goes only where the arrangement manages it. One it placed
+        // stays when the axis stops being managed or the child leaves, as
+        // in ljos-ui, whose arrangement writes every child's whole geometry.
         for (const { item, geometry, managed: own } of arranged) {
           slot(item, "x").place(geometry[0]);
           slot(item, "y").place(geometry[1]);
-          const was = sized.get(item) ?? [false, false];
-          for (const axis of [H, V]) {
-            if (own[axis]) slot(item, SIZE[axis]).place(geometry[2 + axis]);
-            else if (was[axis]) slot(item, SIZE[axis]).place(undefined);
-          }
-          sized.set(item, own);
+          for (const axis of [H, V]) if (own[axis]) slot(item, SIZE[axis]).place(geometry[2 + axis]);
         }
       },
     },

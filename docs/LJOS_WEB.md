@@ -1961,11 +1961,15 @@ on whole pixels with a half rounded up, a child sits at the start of
 its cell unless `Layout.alignment` moves it, room nobody takes is left
 at the end, and right to left mirrors it all. A `Grid`'s `columns` and
 `rows` are 0 until given, and with neither it is one line along its
-`flow`. The arrangement writes a child's width or height only along a
-sized axis, and gives back one it wrote when that axis stops being
-sized. The size a file gives a child is read as first given, not as
-the arrangement places it, so placing it never measures again, as
-ljos-ui keeps the first one it saw. `Pages` is a face of
+`flow`; a child that spans several columns or rows shares the room by
+them, not by its stretch factor, as natively. The arrangement writes a
+child's width or height only along a sized axis. One it wrote stays
+when that axis stops being sized or the child leaves, as natively,
+where the arrangement writes every child's whole geometry. The size a
+file gives a child is the one the arrangement first saw, kept while it
+stays a child, so placing a size never measures again and a binding
+that later gives another is not asked for, as ljos-ui keeps the first
+one it saw. `Pages` is a face of
 `StackLayout`, `Flow` is `QtQuick`'s, and `Layout` is the layouts'
 attached type.
 
@@ -1975,7 +1979,10 @@ preferred, minimum and maximum sizes, filling and stretch, padding,
 margins, alignment, right to left, packing, `Grid` counts, flows and
 spans) is placed to the pixel as `ljos test` places the same file
 (`tests/fixtures/ljoslayoutrule.json`, ljos-ui c2443e15), and again
-after a child that fills is hidden and shown and after a `Box` turns.
+after a child that fills is hidden and shown, after a `Box` turns,
+after a preferred width goes away, after a child that fills moves to
+another parent, and after a row whose child's bound width changed
+measures again.
 
 `tests/ljosui.spec.js` holds it, on both kernels: each face by its
 dialect names, beside the QtQuick specs, and a whole dialect file
