@@ -52,3 +52,9 @@ Feature: The site's links are the page's own links
     When they middle-press "Docs" in the header
     Then a new tab opens on the docs' first page
     And the front page stays where it was
+
+  Scenario: An address the site has no page for
+    When a reader asks for an address inside the base that names no page
+    Then the server answers 404 with the site's own page for it
+    And that page has the header, says the page was not found, and links to the front page
+    And every address on it starts at the base, whatever depth it was served at

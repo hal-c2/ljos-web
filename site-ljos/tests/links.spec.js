@@ -1,8 +1,9 @@
 // The site's links are the page's own (features/links.feature): every
 // built page, read from disk as a reader with no script gets it, has
 // its header's links, its own links all go to pages the build wrote,
-// and the front page leads on; with no script a link is followed, and
-// with script a plain press shows the page in place.
+// and the front page leads on; with no script a link is followed, with
+// script a plain press shows the page in place, and an address the
+// site has no page for is answered with the site's own 404 page.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -163,4 +164,35 @@ test("with script, a middle press opens the link in a new tab", async ({ page, c
   expect(new URL(tab.url()).pathname).toBe(`${base}start/`);
   await expect(page).toHaveURL(`${origin}${base}`);
   await tab.close();
+});
+
+test("the site's 404 page has the header, says so, and links home at the base", () => {
+  const file = join(dist, "404.html");
+  expect(existsSync(file)).toBe(true);
+  const html = readFileSync(file, "utf8");
+  expect(html).toContain("<style>");
+  expect(html).toContain("<header>");
+  expect(html).toMatch(/<h1>Page not found<\/h1>/);
+  const links = linksIn(html);
+  expect(links).toEqual(expect.arrayContaining([
+    { name: "Ljós — front page", href: base },
+    { name: "Docs", href: `${base}start/` },
+    { name: "Go to the front page", href: base },
+  ]));
+  // Served at any depth, so nothing in it is relative.
+  const relativeAddresses = [...html.matchAll(/\s(?:href|src)="([^"]*)"/g)].map(([, address]) => address).filter((address) => !address.startsWith(base) && !/^https:\/\//.test(address));
+  expect(relativeAddresses).toEqual([]);
+});
+
+test("an address the site has no page for is answered 404 with the site's page", async ({ request, page }) => {
+  for (const missing of [`${base}no-such-page/`, `${base}start/no-such-page/deeper/`, `${base}nothing.html`]) {
+    const response = await request.get(missing);
+    expect(response.status(), missing).toBe(404);
+    expect(await response.text()).toContain("Page not found");
+  }
+  // And it reads as the site, its links going home from any depth.
+  await page.goto(`${base}start/no-such-page/deeper/`);
+  await expect(page.getByRole("heading", { name: "Page not found" })).toBeVisible();
+  await page.getByRole("link", { name: "Go to the front page" }).click();
+  await expect(page).toHaveURL(`${origin}${base}`);
 });
