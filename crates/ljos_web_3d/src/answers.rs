@@ -113,6 +113,9 @@ struct Inner {
     last: Option<(u32, usize)>,
     build: u32,
     crossed: u32,
+    /// How many answers this build looked for, found or asked: the work a
+    /// build does, which a build that reads what changed alone keeps small.
+    looked: u32,
 }
 
 impl Inner {
@@ -180,6 +183,7 @@ impl Answers {
         let key = (kind as u32) << 24 | p;
         {
             let mut inner = self.inner.borrow_mut();
+            inner.looked += 1;
             let at = inner.see(o);
             if let Some(found) = inner.asked[at].find(key) {
                 let found = found.clone();
@@ -217,6 +221,7 @@ impl Answers {
         let mut inner = self.inner.borrow_mut();
         inner.build = inner.build.wrapping_add(1);
         inner.crossed = 0;
+        inner.looked = 0;
     }
 
     /// A build ended: what no answer kept names any more, from the view
@@ -273,6 +278,11 @@ impl Answers {
     /// How many reads crossed to the page in this build so far.
     pub fn crossed(&self) -> u32 {
         self.inner.borrow().crossed
+    }
+
+    /// How many answers this build looked for so far, kept or not.
+    pub fn looked(&self) -> u32 {
+        self.inner.borrow().looked
     }
 }
 

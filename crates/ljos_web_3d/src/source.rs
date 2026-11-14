@@ -1256,6 +1256,32 @@ mod tests {
     }
 
     #[test]
+    fn a_build_with_nothing_changed_reads_nothing() {
+        let host = Fake::default();
+        let kept = Rc::new(Kept::default());
+        build(&host, &kept, &[]);
+        assert!(kept.answers.looked() > 0);
+        build(&host, &kept, &[]);
+        assert_eq!(kept.answers.looked(), 0, "a still view is walked again");
+    }
+
+    #[test]
+    fn a_changed_object_reads_what_read_it_alone() {
+        let host = Fake::default();
+        let kept = Rc::new(Kept::default());
+        build(&host, &kept, &[]);
+        let all = kept.answers.looked();
+        host.x.set(Some(3.0));
+        assert_eq!(cube_x(&build(&host, &kept, &[CUBE]).0), 3.0);
+        // The cube and its material: not the camera, the loaders or the view.
+        let cube = kept.answers.looked();
+        assert!(cube > 0);
+        assert!(cube < all, "{cube} of {all} answers looked for");
+        build(&host, &kept, &[CAMERA]);
+        assert!(kept.answers.looked() < all);
+    }
+
+    #[test]
     fn a_model_the_view_lets_go_of_is_gone_with_its_material() {
         let host = Fake::default();
         let kept = Rc::new(Kept::default());

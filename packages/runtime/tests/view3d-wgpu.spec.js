@@ -215,6 +215,23 @@ for (const backend of ["webgpu", "webgl2"]) {
       near(await at(page, 60, 50), [255, 0, 0]);
     });
 
+    test("a change to one of many models reads that model's part of the scene alone", async ({ page }) => {
+      await show(page, "wgpu_many");
+      const pieces = () => page.evaluate(() => document.querySelector(".qq-view3d").$view3d.pieces);
+      await set(page, () => (window.objects.squares.objectAt(0).y = 80));
+      // Its own node: not the fifty-nine others, the view or its environment.
+      expect(await pieces()).toBe(1);
+      near(await at(page, 20, 70), [255, 0, 0]);
+      await set(page, () => (window.objects.shown = 30));
+      // The list of models the view holds, and none of the thirty it keeps.
+      expect(await pieces()).toBe(1);
+      near(await at(page, 380, 250), CLEAR);
+      await set(page, () => (window.objects.shown = 60));
+      // That list again, and the thirty that came back.
+      expect(await pieces()).toBe(31);
+      near(await at(page, 380, 250), [255, 0, 0]);
+    });
+
     test("models taken away leave the picture and the view, and come back", async ({ page }) => {
       await show(page, "wgpu_many");
       near(await at(page, 380, 250), [255, 0, 0]);
