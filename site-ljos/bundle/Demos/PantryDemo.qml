@@ -73,6 +73,9 @@ Column {
             apply();
     }
 
+    // The app's own shell stands as the stage's fallback, compiled
+    // with the page, so nothing is applied until a reader edits: the
+    // first apply fetches the compiler, megabytes of wasm.
     Component.onCompleted: {
         LivePantry.setProject(PantryProject.files, PantryProject.shellText);
         writeOwn(PantryProject.shellText);
