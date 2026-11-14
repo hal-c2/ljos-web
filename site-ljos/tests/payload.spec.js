@@ -58,9 +58,10 @@ test("a docs page's first load holds no other page's reading", () => {
   expect(holding.map((entry) => entry.file)).toEqual([]);
 });
 
-// The ceiling stands at what a page loads now, and comes down as code
-// a page does not use leaves its first load. It never goes up.
-const CEILING_KB = 390;
+// The ceiling stands at what a page loads now, its own HTML with it,
+// and comes down as code a page does not use leaves its first load.
+// It never goes up.
+const CEILING_KB = 435;
 
 test(`no page's first load is over ${CEILING_KB} kB gzip`, () => {
   const over = report.filter(({ first }) => first.total.gzip > CEILING_KB * 1024).map(({ route, first }) => `${route}: ${kB(first.total.gzip)} kB`);
