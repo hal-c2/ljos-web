@@ -325,6 +325,34 @@ for (const backend of ["webgpu", "webgl2"]) {
       near(await at(page, 255, 105), [0x40, 0, 0]);
     });
 
+    // A View3D a Loader makes after the page is up is made inside a
+    // computation's callback, where the one made at the start never is: what
+    // it and its Repeater3D make still has to be made, followed and drawn.
+    test("a View3D a Loader makes once the page is up draws, and so does what a Repeater3D in it adds", async ({ page }) => {
+      if (backend === "webgl2") await page.addInitScript(HIDDEN);
+      const errors = [];
+      page.on("pageerror", (error) => errors.push(error.message));
+      await page.goto("/?scene=late3d&view3d=wgpu");
+      await page.waitForFunction(() => window.ready);
+      await page.evaluate(() => {
+        window.objects.loader.active = true;
+        window.flush();
+      });
+      await page.waitForFunction(() => {
+        const state = document.querySelector(".qq-view3d")?.$view3d;
+        if (state?.error) throw new Error(state.error);
+        return state?.frames > 0;
+      });
+      await still(page);
+      expect(await page.evaluate(() => document.querySelector(".qq-view3d").$view3d.backend)).toBe(backend);
+      near(await at(page, 40, 150), [255, 0, 0]);
+      near(await at(page, 120, 150), [255, 0, 0]);
+      near(await at(page, 360, 150), [32, 32, 32]);
+      await set(page, () => (window.objects.shown = 5));
+      near(await at(page, 360, 150), [255, 0, 0]);
+      expect(errors).toEqual([]);
+    });
+
     // Only a view that gave its picture on waits for the next animation
     // frame to draw again: one that shows another's picture, and drew already
     // in this frame, still draws the new picture in it.

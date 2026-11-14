@@ -1021,7 +1021,11 @@ test("a Targa file is a picture, by the rows it says it begins with and by runs"
   const dark = [60, 60, 60];
   const at = [...quarters(80), ...quarters(200), ...quarters(320)];
   const wanted = [red, green, blue, grey, red, green, blue, grey, dark, dark, blue, grey];
-  near(await painted(page, at.map((point) => [point])), wanted, "", 3);
+  // Every quarter read, and how often the view drew: a sheet upside down
+  // and one not drawn yet fail the same first channel.
+  const got = await painted(page, at.map((point, index) => [point, wanted[index]]));
+  const frames = await page.evaluate(() => document.querySelector(".qq-view3d").$view3d.frames);
+  near(got, wanted, `${JSON.stringify(got)} in ${frames} frames `, 3);
 });
 
 test("a material's gl_FragCoord is where its fragment is, on the view and in depth", async ({ page }) => {
@@ -2470,4 +2474,49 @@ test("a View3D says how fast it draws", async ({ page }) => {
 test("a CustomMaterial's max and min are as GLSL says they are, of what is no number too", async ({ page }) => {
   await open(page, "undefinedmax3d");
   await expect.poll(async () => (await pixels(page, [[50, 50]]))[0]).toBe("255 255 255");
+});
+
+test("a View3D a Loader makes once the page is up draws, and so does what a Repeater3D in it adds", async ({ page }) => {
+  await open(page, "late3d");
+  const red = [255, 0, 0];
+  const none = [32, 32, 32];
+  await page.evaluate(() => {
+    window.objects.loader.active = true;
+    window.flush();
+  });
+  await expect.poll(() => page.evaluate(() => document.querySelector(".qq-view3d")?.$view3d?.frames ?? 0)).toBeGreaterThan(0);
+  near(await painted(page, [[[40, 150], red], [[120, 150], red], [[360, 150], none]]), [red, red, none], "", 3);
+  await page.evaluate(() => {
+    window.objects.shown = 5;
+    window.flush();
+  });
+  near(await painted(page, [[[40, 150], red], [[360, 150], red]]), [red, red], "", 3);
+});
+
+// Each draw of one is a new picture for the other: they go round once an
+// animation frame, and the page paints, where in microtasks they would go
+// round without end.
+test("two views that show each other's picture draw once a frame, each showing the other", async ({ page }) => {
+  await open(page, "wgpu_mutual");
+  const { frames, drawn } = await page.evaluate(
+    () =>
+      new Promise((done) => {
+        const views = [...document.querySelectorAll(".qq-view3d")].map((canvas) => canvas.$view3d);
+        const draws = () => views.reduce((all, view) => all + view.frames, 0);
+        const from = draws();
+        const start = performance.now();
+        let frames = 0;
+        const tick = () => {
+          frames++;
+          if (performance.now() - start < 500) requestAnimationFrame(tick);
+          else done({ frames, drawn: draws() - from });
+        };
+        requestAnimationFrame(tick);
+      }),
+  );
+  expect(frames).toBeGreaterThan(10);
+  expect(drawn).toBeGreaterThan(0);
+  expect(drawn, `${drawn} drawn in ${frames} animation frames`).toBeLessThanOrEqual(2 * (frames + 1));
+  // Each square shows the other view, its clear colour at the corners.
+  near(await painted(page, [[[55, 105], [0, 0, 0x40]], [[255, 105], [0x40, 0, 0]]]), [[0, 0, 0x40], [0x40, 0, 0]], "", 3);
 });
