@@ -272,6 +272,31 @@ test("a reader who moves on while the editor loads keeps their focus where they 
   expect(await page.evaluate(() => document.activeElement === window.away)).toBe(true);
 });
 
+// The compiler is 4 MB of wasm, and the text a reader is first shown is
+// what the page already holds compiled (the Pantry's own shell) or
+// pictured (a code block's result): it is fetched once a reader edits,
+// and not before.
+for (const [route, fallback, name] of [
+  ["/demos/", "The Corner Pantry", "Edit the Pantry's Shell.qml"],
+  ["/start/first-app/", null, "Edit Main.qml"],
+]) {
+  test(`${route} fetches the compiler only once a reader edits`, async ({ page }) => {
+    const compilers = [];
+    page.on("request", (request) => /ljos_web_compiler[^/]*\.wasm$/.test(new URL(request.url()).pathname) && compilers.push(request.url()));
+    await page.setViewportSize({ width: 1440, height: 1600 });
+    await page.goto(route);
+    await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+    if (fallback) await expect(page.getByText(fallback, { exact: true })).toBeVisible();
+    // Past the debounce of any edit the page might think it had.
+    await page.waitForTimeout(1500);
+    expect(compilers, "the compiler, before an edit").toEqual([]);
+    await codeEditor(page, name);
+    await page.keyboard.press("Control+End");
+    await page.keyboard.type("\n// mine\n");
+    await expect.poll(() => compilers.length, { message: "the compiler, once edited", timeout: 30_000 }).toBeGreaterThan(0);
+  });
+}
+
 test("with JavaScript off a runnable block is its code beside a picture of its result", async ({ browser }) => {
   const context = await browser.newContext({ javaScriptEnabled: false, viewport: BUILD_SIZE });
   try {
@@ -570,6 +595,9 @@ test("a visitor's demos page holds no test hook", async ({ page }) => {
   // The basket answers in the app's own shell, as the build made it.
   await (await stageButton(page, "Add tea")).click();
   await expect(page.getByText("1 in the basket · £3.50").first()).toBeVisible();
+  // An edit applies a shell, the path that would count.
+  await (await codeEditor(page, "Edit the Pantry's Shell.qml")).fill(MY_SHELL);
+  await expect(page.getByText("My Pantry", { exact: true })).toBeVisible({ timeout: 30_000 });
   expect(await page.evaluate(() => ["__ljosTest", "ljosPantryApplies"].filter((name) => name in globalThis))).toEqual([]);
 });
 
