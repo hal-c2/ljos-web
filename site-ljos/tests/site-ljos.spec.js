@@ -601,31 +601,49 @@ test("a visitor's demos page holds no test hook", async ({ page }) => {
   expect(await page.evaluate(() => ["__ljosTest", "ljosPantryApplies"].filter((name) => name in globalThis))).toEqual([]);
 });
 
+// What stands in a demo's frame: a scene it draws or its picture, shown
+// (the page keeps no hidden render once it runs, and a canvas of
+// another part does not count), between the demo's heading and what
+// comes after it on the page.
+async function demoIn(page, heading, picture, next) {
+  const top = (await heading.boundingBox()).y;
+  const bottom = next ? (await next.boundingBox()).y : Infinity;
+  const boxes = await shown(page.locator(`canvas, img[src$="${picture}"]`)).evaluateAll((all) => all.map((node) => node.getBoundingClientRect()).map((box) => ({ y: box.y, width: box.width, height: box.height })));
+  return boxes.filter((box) => box.y > top && box.y < bottom && box.width > 0 && box.height > 0).length;
+}
+
 test("every showcase demo stands in its slot, on the landing and the demos page", async ({ page }) => {
   await page.goto("/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
   await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible();
   // The landing's showcase is made as the reader nears it: its scene
   // where the browser can draw it, its picture where it cannot.
-  await page.getByText("See it run", { exact: true }).scrollIntoViewIfNeeded();
-  await expect.poll(() => page.locator('canvas, img[src$="demo-orbit.webp"]').count(), { timeout: 30_000 }).toBeGreaterThan(0);
+  const run = shown(page.getByText("See it run", { exact: true }));
+  await run.scrollIntoViewIfNeeded();
+  await expect.poll(() => demoIn(page, run, "demo-orbit.webp"), { timeout: 30_000 }).toBeGreaterThan(0);
 
   await page.goto("/demos/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
   // Each demo but the flagship is made once its frame comes near the
-  // screen, so the reader scrolls to it, as a reader would.
+  // screen, so the reader scrolls to it, as a reader would; what it
+  // shows is in its own frame, and what it says is on screen.
   const demos = [
-    ["A shell you rewrite", null],
-    ["3D you can orbit", "Drag to orbit · scroll or pinch to zoom"],
-    ["A shader effect", "Move to stir the light · tap for other colours"],
-    ["A whole app", "Field guide"],
-    ["Motion", "Shuffle the tiles"],
+    ["A shell you rewrite", null, null],
+    ["3D you can orbit", "demo-orbit.webp", "Drag to orbit · scroll or pinch to zoom"],
+    ["A shader effect", "demo-shader.webp", "Move to stir the light · tap for other colours"],
+    ["A whole app", "demo-app.webp", "Field guide"],
+    ["Motion", "demo-motion.webp", "Shuffle the tiles"],
   ];
-  for (const [title, inside] of demos) {
-    const heading = page.getByText(title, { exact: true });
+  const headingOf = (title) => shown(page.getByText(title, { exact: true }));
+  for (const [index, [title, picture, inside]] of demos.entries()) {
+    const heading = headingOf(title);
     await heading.scrollIntoViewIfNeeded();
     await expect(heading).toBeVisible();
-    if (inside) await expect(page.getByText(inside).first()).toBeAttached({ timeout: 30_000 });
+    if (!picture) continue;
+    const next = demos[index + 1] ? headingOf(demos[index + 1][0]) : null;
+    await expect.poll(() => demoIn(page, heading, picture, next), { timeout: 30_000, message: `${title} stands in its frame` }).toBeGreaterThan(0);
+    await shown(page.getByText(inside)).first().scrollIntoViewIfNeeded({ timeout: 30_000 });
+    await expect(shown(page.getByText(inside)).first()).toBeVisible();
   }
   // The other demos did not take the flagship's place away.
   await stageButton(page, "Add bread");
