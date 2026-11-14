@@ -302,6 +302,13 @@ test("a width the author gives is had at once: in an item, as it moves, and the 
     window.flush();
   });
   expect((await at("amAItem"))[1]).toBe(290);
+  // A NaN width is kept out, as in Qt: the child still has the one it
+  // fills, and has it still once it no longer fills.
+  await run(() => {
+    window.scene.amAItem.width = NaN;
+    window.flush();
+  });
+  expect((await at("amAItem"))[1]).toBe(290);
   await run(() => {
     window.scene.amRowItem.fill = false;
     window.flush();

@@ -1245,13 +1245,15 @@ class Slot {
   // which an animation makes every frame.
   write(value: unknown): boolean {
     if (isBinding(value)) return this.rebind(value);
-    const yielded = this.yielded();
     if (this.kind) {
       const made = value === undefined && !this.kind.any ? REFUSED : this.kind(value);
       if (made === KEPT) return false;
       if (made === REFUSED) throw Object.assign(new Error(`Cannot assign ${named(value)} to ${this.kind.type}`), { refused: true });
       value = made;
     }
+    // Only a write that is made takes off what was placed: a NaN size is
+    // kept out and leaves the arrangement's, as in Qt.
+    const yielded = this.yielded();
     // Where an object was put, it is until what laid it out puts it
     // somewhere else: a row that is dragged stays where it was dragged to
     // until its view lays its rows out again, as in Qt. (Qt puts every row
