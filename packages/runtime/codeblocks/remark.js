@@ -3,10 +3,9 @@
 // the fences that claim to run to compiling. It works on the mdast a
 // host hands it (Astro/Starlight, or any unified pipeline) and needs
 // nothing of the host but the tree. A fence that stays code (exempt, a
-// legacy snippet, the rest of a spread group) is highlighted at build
-// time when the grammar reads its language (QML, .lts, TS, JS), with
-// the same `tok-*` classes a live block's code has; any other fence is
-// left exactly as it is, for the host's own highlighting.
+// legacy snippet, the rest of a spread group) is left exactly as it is,
+// for the host's own highlighting, unless the host asks for the build's
+// (`highlight`).
 //
 // One example becomes one figure, wherever its fences sit. Docs
 // introduce a multi-file example's files one by one in prose, so the
@@ -32,7 +31,12 @@
 //   prerendered HTML by its content hash. An entry marked failed (it
 //   compiled for `qmlc` but did not run) keeps its block plain, by the
 //   same rule as a compile failure.
-// - `highlight`: `false` leaves every fence that stays code to the host.
+// - `highlight`: `true` highlights every fence that stays code whose
+//   language the grammar reads (QML, .lts, TS, JS) at build time, with
+//   the `tok-*` classes a live block's code has. A host that asks loads
+//   `ljos-web/codeblock.css` on every page, not only where a live block
+//   is, or those fences stand uncoloured. Off by default: a host's own
+//   highlighting (Expressive Code, say) keeps the fences it had.
 import { langOf } from "lezer-ljos";
 import { checkExamples, hashExample, renderCode, renderStatic } from "./build.js";
 import { assemble, parseMeta, tagged } from "./parse.js";
@@ -49,7 +53,7 @@ function highlightFences(node) {
 }
 
 export function liveCodeBlocks(options = {}) {
-  const { harnesses = {}, qmlc, strict = false, prerenders = {}, onLegacy, highlight = true } = options;
+  const { harnesses = {}, qmlc, strict = false, prerenders = {}, onLegacy, highlight = false } = options;
   // One compile per distinct example in a build, however many pages
   // repeat it: the answer is the code's, and its hash names it.
   const checked = new Map();

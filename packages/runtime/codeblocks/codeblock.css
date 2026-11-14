@@ -88,7 +88,7 @@
 .tok-bool { color: var(--ljos-code-bool, color-mix(in oklab, currentColor 62%, #c2571a)); }
 .tok-null { color: var(--ljos-code-null, color-mix(in oklab, currentColor 62%, #c2571a)); }
 .tok-regexp { color: var(--ljos-code-regexp, color-mix(in oklab, currentColor 62%, #b8326a)); }
-.tok-comment { color: var(--ljos-code-comment, color-mix(in oklab, currentColor 55%, transparent)); font-style: italic; }
+.tok-comment { color: var(--ljos-code-comment, color-mix(in oklab, currentColor 72%, transparent)); font-style: italic; }
 .tok-typeName { color: var(--ljos-code-typeName, color-mix(in oklab, currentColor 62%, #1d6fb8)); }
 .tok-propertyName { color: var(--ljos-code-propertyName, color-mix(in oklab, currentColor 75%, #0e7f86)); }
 .tok-variableName { color: var(--ljos-code-variableName, inherit); }

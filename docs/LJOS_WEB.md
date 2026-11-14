@@ -2020,7 +2020,9 @@ reader goes to change it, over the code and in its place.
   (`qml`, `lts`, `ts`, `js`, `mjs`; QML files read the dialect); one it does not read is plain.
 - **Highlighted by the build** (`lezer-ljos/html`, `highlightToHtml`):
   `<span class="tok-…">` runs, written into the HTML by the codeblock
-  build, by the remark plugin for every fence that stays code, and by
+  build, by the remark plugin for every fence that stays code where
+  the host asks (`highlight: true`, with `ljos-web/codeblock.css` on
+  every page), and by
   `markdown.js`'s `highlight` (a site's own pages) — the grammar's
   languages by the grammar, the others by a rough colouring of
   strings, numbers and comments. Rich text keeps a span's `class`, so
