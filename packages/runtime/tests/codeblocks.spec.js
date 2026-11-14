@@ -530,6 +530,26 @@ test.describe("a live code block in the page", () => {
     expect(fetched).toHaveLength(1);
   });
 
+  // A browser without WebAssembly has no compiler: there is no other one,
+  // so the block keeps what the build made and says why it is not live.
+  test("without WebAssembly a block keeps its prerendered result and says live editing needs it", async ({ page }) => {
+    const fetched = [];
+    page.on("request", (request) => {
+      if (/ljos_web_compiler\.wasm/.test(request.url())) fetched.push(request.url());
+    });
+    await page.addInitScript(() => delete globalThis.WebAssembly);
+    await opened(page);
+    const figure = counterFigure(page);
+    await figure.scrollIntoViewIfNeeded();
+    await expect(figure).toHaveAttribute("data-state", "needs-wasm");
+    await expect(figure.getByRole("note")).toHaveText(/^Live editing needs WebAssembly/);
+    await expect(figure.locator(".ljos-codeblock__stage")).toContainText("Count: 0");
+    await expect(figure.locator("pre code")).toContainText("Count: ");
+    await expect(figure.locator(".cm-editor, [contenteditable]")).toHaveCount(0);
+    await page.waitForLoadState("networkidle");
+    expect(fetched).toEqual([]);
+  });
+
   test("the editor loads only when a reader reaches for the code, and takes over without moving a line", async ({ page }) => {
     const editorRequests = [];
     page.on("request", (request) => {

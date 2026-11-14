@@ -13,9 +13,13 @@
 // and the page's own share one instance of each.
 import { provide } from "../files.js";
 import { enclose, own } from "../guard.js";
+import { NEEDS_WASM, wasmWorks } from "../wasm-check.js";
 
+// The compiler is Rust, and there is no other: where the page cannot run
+// WebAssembly nothing is fetched, and every compile answers that it
+// cannot, so what the build prerendered stays shown.
 const url = new URL("./ljos_web_compiler.wasm", import.meta.url);
-const wasm = WebAssembly.compileStreaming(fetch(url));
+const wasm = wasmWorks() ? WebAssembly.compileStreaming(fetch(url)) : null;
 let instance;
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -24,6 +28,7 @@ const decoder = new TextDecoder();
 // memory as it was then, so the next compile starts a new instance of the
 // module fetched once.
 async function ask(request) {
+  if (!wasm) return { diagnostics: [whole(NEEDS_WASM, request.entry)] };
   instance ??= await WebAssembly.instantiate(await wasm);
   const { memory, alloc, free, compile, answer_len } = instance.exports;
   const bytes = encoder.encode(JSON.stringify(request));

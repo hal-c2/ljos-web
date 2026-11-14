@@ -66,6 +66,14 @@ jobs:
       # Each whatever came before it, so one run shows which kernel a failure is on.
       - if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
         run: pnpm --filter ljos-web test:site
+      - name: the kernel a page runs, by default
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
+        run: pnpm --filter ljos-web exec playwright test -c tests kernelchoice
+      - name: the opt-in wasm kernel, with WebAssembly and without
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
+        env:
+          LJOS_KERNEL: wasm
+        run: pnpm --filter ljos-web exec playwright test -c tests kernelchoice
       - name: drop, on the Solid kernel
         if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
         run: pnpm --filter ljos-web exec playwright test -c tests drop live.spec

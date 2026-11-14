@@ -125,7 +125,8 @@ Non-goals:
 | `qmlc` (`crates/ljos_web`) | ljos-web | QML → Solid JSX, over `qml_front`/`qt_types` | `vite.js` plugin; unchanged by this part |
 | `packages/runtime` | ljos-web | QtQuick on the DOM; defines types (`defineType`), keeps values in `Slot`s | imports the kernel only through `#kernel` |
 | `#kernel` (seam K) | ljos-web | The property/binding kernel, chosen at build time | `cell`, `binding`, `read`, `touch`, `version`, `signal`, `followed`, `live`, `WASM` |
-| `kernel/solid.js` | ljos-web | Adapter: Solid's own signals (the runtime as it was) | seam K |
+| `kernel/solid.js` | ljos-web | Adapter: Solid's own signals: the default kernel | seam K |
+| `kernel/checked.js` | ljos-web | The opt-in wasm kernel (`LJOS_KERNEL=wasm`): `wasm.js` where `wasm-check.js` finds WebAssembly runs and the wasm loads, else `solid.js` | seam K |
 | `kernel/wasm.js` | ljos-web | Adapter: raw wasm imports/exports, faces, rethrow | seam K above, seam W below |
 | seam W | — | `ljos` import module: `evaluate(u32)->u32`, `changed(u32)`; exports `ljos_cell/binding/read/pull/bump/follow/dispose/live` | numbers only |
 | `ljos_web_kernel` | ljos-web now, ljos-ui later | Owns the graph: `Kernel` over `Graph<u32>` + a `Host` trait | seam W; `Host` for native tests |
@@ -136,9 +137,29 @@ Non-goals:
 `packages/runtime/package.json`'s `imports` (`"#kernel"`, condition
 `ljos-wasm-kernel`; Vite's `resolve.conditions` from
 `LJOS_KERNEL=wasm`). No runtime branch on the hot path beyond a
-constant, both kernels testable from one tree, and the Solid one is
-deleted when the `@web` ledger holds the same scenarios on the wasm
-one (milestone W10).
+constant, and both kernels testable from one tree.
+
+**DECISION (TREESHAKE B2):** everything that can be HTML renders through
+Solid into the real DOM, and Solid's signals stay the default kernel;
+they are not deleted at W10. `ljos_web_kernel` computes the dependency
+graph and hands results to Solid: it neither renders nor lays out, so it
+buys no rendering and stays opt-in (`LJOS_KERNEL=wasm`, condition
+`ljos-wasm-kernel` → `kernel/checked.js`), not promoted. Should it ever
+grow rendering or layout of its own, that is a reason to remove it, not
+to make it the default. wasm in a page is for application logic written
+in Rust: the compiler (live code blocks, a dropped shell) and an app's
+own Rust models.
+
+**DECISION (TREESHAKE B2):** `wasm-check.js` is the one WebAssembly check:
+it compiles and calls a module of a few bytes (never the user agent) and
+keeps the answer. The compiler's loaders (`compiler/link.js`,
+`Ljos/Blocks/shell-worker.js`, `codeblocks/live.js`) and
+`kernel/checked.js` ask it. There is no compiler but the wasm one, and
+none is written in TS: where WebAssembly does not run (Safari's Lockdown
+Mode, a policy without `'wasm-unsafe-eval'`), a live code block keeps the
+build's prerendered result and says "Live editing needs WebAssembly"
+(`data-state="needs-wasm"`), and a compile answers that as its
+diagnostic. Rendering never asks.
 
 **DECISION:** `ljos_web_kernel` lives in ljos-web for the spike and
 moves to ljos-ui as `crates/ljos_web` (section 13 item 3) when the

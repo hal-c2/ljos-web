@@ -17,6 +17,7 @@
 // reader focuses, touches or types in it, or the page is idle, and the
 // editor then takes its place in the same box, the same font and the
 // same colours, so nothing on the page moves.
+import { NEEDS_WASM, wasmWorks } from "../wasm-check.js";
 import { displayPosition, exampleFiles, notThereLine } from "./parse.js";
 
 // A page may compile with modules of its own (the styles of Qt Quick
@@ -89,6 +90,10 @@ function offsetAt(pre, x, y) {
 // editors }`: `idle()` settles when the compile an edit set off has
 // landed, and `editors()` when the code is in the editor.
 export async function mountLiveCodeBlock(figure, data, options = {}) {
+  // The compiler is Rust in wasm, and there is no other: without
+  // WebAssembly the figure stays as the build wrote it, code and drawn
+  // result, and says why it cannot be edited.
+  if (!wasmWorks()) return staticOnly(figure);
   const [{ hydrate, mount }, { reload }] = await Promise.all([import("../object.js"), import("../reload.js")]);
   const compile = await compilerOf(options);
   const delay = options.delay ?? 300;
@@ -392,6 +397,20 @@ export async function mountLiveCodeBlock(figure, data, options = {}) {
       // its way is when the last of them lands.
       pending = compiling === 0 ? releaseProject() : new Promise((resolve) => (letGo = resolve));
     },
+  };
+}
+
+function staticOnly(figure) {
+  const note = el("p", "ljos-codeblock__note", NEEDS_WASM);
+  note.setAttribute("role", "note");
+  const head = figure.querySelector(".ljos-codeblock__head");
+  if (head) head.after(note);
+  else figure.prepend(note);
+  figure.dataset.state = "needs-wasm";
+  return {
+    idle: async () => {},
+    editors: async () => [],
+    dispose: () => note.remove(),
   };
 }
 

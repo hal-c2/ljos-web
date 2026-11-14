@@ -3,7 +3,10 @@
 // `script-src 'self'` may not compile WebAssembly itself, while this
 // script may be served with a policy of its own that lets it
 // (`'wasm-unsafe-eval'`), and nothing it makes can reach the page but the
-// answer it posts.
+// answer it posts. The worker checks for WebAssembly itself, as its policy
+// is not the page's.
+import { NEEDS_WASM, wasmWorks } from "../../wasm-check.js";
+
 let wasm;
 // A load that failed is not kept: the next drop fetches it again.
 const loaded = () =>
@@ -16,6 +19,7 @@ const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
 async function ask(request) {
+  if (!wasmWorks()) return { diagnostics: [{ message: NEEDS_WASM }] };
   instance ??= await WebAssembly.instantiate(await loaded());
   const { memory, alloc, free, compile, answer_len } = instance.exports;
   const bytes = encoder.encode(JSON.stringify(request));

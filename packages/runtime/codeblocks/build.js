@@ -241,7 +241,7 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
           resolve: {
             alias: {
               "codeblock:server": join(runtime, "server.js"),
-              "#kernel": join(runtime, env.LJOS_KERNEL === "wasm" ? "kernel/wasm.js" : "kernel/solid.js"),
+              "#kernel": join(runtime, env.LJOS_KERNEL === "wasm" ? "kernel/checked.js" : "kernel/solid.js"),
             },
             dedupe: ["solid-js", "@solidjs/web", "@solidjs/signals"],
           },
