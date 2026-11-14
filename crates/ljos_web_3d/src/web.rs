@@ -404,6 +404,7 @@ pub struct View3d {
     view: RefCell<SurfaceView<'static>>,
     slot: RefCell<SceneSlot>,
     resized: Cell<bool>,
+    pieces: Cell<u32>,
 }
 
 #[wasm_bindgen]
@@ -433,6 +434,7 @@ impl View3d {
             view: RefCell::new(view),
             slot: RefCell::new(slot),
             resized: Cell::new(false),
+            pieces: Cell::new(0),
         })
     }
 
@@ -446,13 +448,22 @@ impl View3d {
     }
 
     /// Reads the scene from the page, asking again only of the objects in
-    /// `changed`: the page follows each object's reads on its own and says
-    /// which changed. Returns the handles no longer in the scene, which the
-    /// page lets go of.
+    /// `changed` and reading again only the pieces of the view that read
+    /// them: the page follows each object's reads on its own and says which
+    /// changed. Returns the handles no longer in the scene, which the page
+    /// lets go of.
     pub fn build(&self, changed: Vec<u32>) -> Vec<u32> {
-        let (built, gone) = crate::source::build(&self.host, &self.kept, &changed);
-        self.slot.borrow_mut().offer(built.scene);
-        gone
+        let built = crate::source::build(&self.host, &self.kept, &changed);
+        self.pieces
+            .set(u32::try_from(built.read).unwrap_or(u32::MAX));
+        // The scene is patched, and knows whether it changed: no compare.
+        self.slot.borrow_mut().offer_shared(built.scene);
+        built.gone
+    }
+
+    /// How many pieces of the view the last build read.
+    pub fn pieces(&self) -> u32 {
+        self.pieces.get()
     }
 
     pub fn resize(&self, width: u32, height: u32) {

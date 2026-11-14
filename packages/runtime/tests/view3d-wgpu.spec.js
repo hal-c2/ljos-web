@@ -223,12 +223,14 @@ for (const backend of ["webgpu", "webgl2"]) {
       expect(await pieces()).toBe(1);
       near(await at(page, 20, 70), [255, 0, 0]);
       await set(page, () => (window.objects.shown = 30));
-      // The list of models the view holds, and none of the thirty it keeps.
-      expect(await pieces()).toBe(1);
+      // A Repeater3D given another number makes all of them anew, as Qt's
+      // does: the list of models the view holds and the thirty new ones,
+      // and nothing of the sixty gone.
+      expect(await pieces()).toBe(31);
       near(await at(page, 380, 250), CLEAR);
       await set(page, () => (window.objects.shown = 60));
-      // That list again, and the thirty that came back.
-      expect(await pieces()).toBe(31);
+      // That list again, and the sixty new ones.
+      expect(await pieces()).toBe(61);
       near(await at(page, 380, 250), [255, 0, 0]);
     });
 

@@ -6,8 +6,11 @@
 // wasm reads through it. The wasm keeps each object's answers, and a build
 // asks only of the objects that changed since the last: each object is
 // followed on its own, by reading again what the mapping read of it, and what
-// one of those reads changes marks that object and builds. The build itself
-// reads untracked. An unset member answers nothing, so that the defaults are
+// one of those reads changes marks that object and builds. The build reads
+// again only the pieces of the view (a node, the view's own members, its
+// environment) that read a marked object, and patches the scene where they
+// changed, so a model moved among a thousand costs that model. It reads
+// untracked. An unset member answers nothing, so that the defaults are
 // the mapping's own. A build that draws the same draws nothing; one that
 // draws differently is drawn once it settles. Nothing here runs otherwise.
 import { createRenderEffect, createRoot, getOwner, runWithOwner } from "solid-js";
@@ -481,8 +484,9 @@ const gave = (view) => {
 };
 
 // Draws `self` on `canvas`. What a test or a tool may ask (the backend, how
-// many frames and builds, how many reads the last build asked of the page,
-// how many objects the view holds) is on the canvas, and so is `probe`: what
+// many frames and builds, how many reads the last build asked of the page
+// and how many pieces of the view it read again, how many objects the view
+// holds) is on the canvas, and so is `probe`: what
 // a tool that times the view (tests/perf3d) puts there is told of each build
 // ("sync": the scene read into the renderer) and each frame drawn ("draw"),
 // from when until when. Unset, nothing is timed for it.
@@ -509,6 +513,7 @@ export function drawOn(self, canvas, told) {
     frames: 0,
     builds: 0,
     reads: 0,
+    pieces: 0,
     objects: () => host.objectsBy.size,
     error: null,
     probe: null,
@@ -643,6 +648,7 @@ export function drawOn(self, canvas, told) {
       }
       state.builds++;
       state.reads = host.crossed;
+      state.pieces = view.pieces();
       // One asked just what it was before is followed as it was.
       for (const [o, asked] of before) {
         const now = host.asked.get(o);

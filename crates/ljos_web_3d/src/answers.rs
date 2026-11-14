@@ -9,11 +9,19 @@
 //!
 //! What an object answers is kept in the order it was asked, and the next
 //! build asks in the same order, so finding an answer is one comparison.
+//!
+//! A build reads the view in `ljos_3d`'s pieces ([`Piece`]): each object's
+//! node, the view's own members, its environment. Each answer is noted as
+//! read by the piece that asked for it, so an object that changed says which
+//! pieces to read again: a material shared by a thousand models reads the
+//! thousand, a model moved reads that model.
 
 use std::cell::RefCell;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::hash::{BuildHasherDefault, Hasher};
 use std::rc::Rc;
+
+use ljos_3d::qml::Piece;
 
 use crate::source::{NO_OBJECT, Passes, Snippets, Table, VIEW};
 
@@ -89,6 +97,27 @@ struct Asked {
     /// Where the next answer in the order they were asked is.
     next: usize,
     answers: Vec<(u32, Answer)>,
+    /// The pieces that asked for its answers since it last changed: what
+    /// is read again when it does. One that no longer asks stays until
+    /// then, and is read once more for nothing.
+    readers: Vec<Piece<u32>>,
+}
+
+impl Asked {
+    fn read_by(&mut self, piece: Piece<u32>) {
+        // A piece asks for its answers one after another.
+        if self.readers.last() == Some(&piece) {
+            return;
+        }
+        self.readers.push(piece);
+        // A piece read again after another asked is noted again: kept to
+        // as many as there are, in a list a shared material makes long.
+        let n = self.readers.len();
+        if n >= 16 && n.is_power_of_two() {
+            let mut seen = HashSet::with_capacity(n);
+            self.readers.retain(|p| seen.insert(*p));
+        }
+    }
 }
 
 impl Asked {
@@ -116,6 +145,11 @@ struct Inner {
     /// How many answers this build looked for, found or asked: the work a
     /// build does, which a build that reads what changed alone keeps small.
     looked: u32,
+    /// The piece being read, which what is asked now is read by.
+    reading: Option<Piece<u32>>,
+    /// An answer that named objects was let go of since the last build
+    /// ended: only then can an object have left.
+    unnamed: bool,
 }
 
 impl Inner {
@@ -185,6 +219,9 @@ impl Answers {
             let mut inner = self.inner.borrow_mut();
             inner.looked += 1;
             let at = inner.see(o);
+            if let Some(piece) = inner.reading {
+                inner.asked[at].read_by(piece);
+            }
             if let Some(found) = inner.asked[at].find(key) {
                 let found = found.clone();
                 inner.see_named(&found);
@@ -204,24 +241,48 @@ impl Answers {
     }
 
     /// Forgets what `changed` answered: the next build asks them again.
-    pub fn clear(&self, changed: &[u32]) {
+    /// Returns the pieces that had read it, each once.
+    pub fn clear(&self, changed: &[u32]) -> Vec<Piece<u32>> {
         let mut inner = self.inner.borrow_mut();
+        let Inner {
+            places,
+            asked,
+            unnamed,
+            ..
+        } = &mut *inner;
+        let mut pieces = Vec::new();
+        let mut seen = HashSet::new();
         for o in changed {
-            if let Some(&at) = inner.places.get(o) {
-                let asked = &mut inner.asked[at];
+            if let Some(&at) = places.get(o) {
+                let asked = &mut asked[at];
+                let mut names = false;
+                for (_, answer) in &asked.answers {
+                    named(answer, |_| names = true);
+                }
+                *unnamed |= names;
                 asked.answers.clear();
                 asked.next = 0;
+                // Read again, each piece notes itself again.
+                pieces.extend(asked.readers.drain(..).filter(|p| seen.insert(*p)));
             }
         }
+        pieces
     }
 
-    /// A build starts: what changed is asked again.
-    pub fn begin(&self, changed: &[u32]) {
-        self.clear(changed);
+    /// A build starts: what changed is asked again. Returns the pieces
+    /// that read what changed, for the build to read again.
+    pub fn begin(&self, changed: &[u32]) -> Vec<Piece<u32>> {
+        let pieces = self.clear(changed);
         let mut inner = self.inner.borrow_mut();
         inner.build = inner.build.wrapping_add(1);
         inner.crossed = 0;
         inner.looked = 0;
+        pieces
+    }
+
+    /// What is asked from now on is read by `piece`; by none for `None`.
+    pub fn reading(&self, piece: Option<Piece<u32>>) {
+        self.inner.borrow_mut().reading = piece;
     }
 
     /// A build ended: what no answer kept names any more, from the view
@@ -234,12 +295,18 @@ impl Answers {
     /// did not read everything.
     pub fn finish(&self) -> Vec<u32> {
         let mut inner = self.inner.borrow_mut();
+        inner.last = None;
+        // Every object is named by an answer the view reaches, or was until
+        // one of those was let go of: none, and none has left. A build that
+        // moved a model follows nothing.
+        if !std::mem::take(&mut inner.unnamed) {
+            return Vec::new();
+        }
         let build = inner.build;
         let Inner {
             places,
             asked,
             free,
-            last,
             ..
         } = &mut *inner;
         let mut live: Vec<bool> = asked.iter().map(|a| a.seen == build).collect();
@@ -271,7 +338,6 @@ impl Answers {
             free.push(at);
             false
         });
-        *last = None;
         gone
     }
 
