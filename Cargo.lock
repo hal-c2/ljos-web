@@ -848,12 +848,12 @@ dependencies = [
  "blake3",
  "ljos_design",
  "ljos_ir",
+ "ljos_oxc_parser",
  "oxc_allocator",
  "oxc_ast",
  "oxc_ast_visit",
  "oxc_codegen",
  "oxc_diagnostics",
- "oxc_parser",
  "oxc_semantic",
  "oxc_span",
  "oxc_str",
@@ -1306,30 +1306,6 @@ checksum = "191884bee6c3744909a51acc7d78d4ae370d817b25875b10642f632327b6296e"
 dependencies = [
  "nonmax",
  "serde",
-]
-
-[[package]]
-name = "oxc_parser"
-version = "0.144.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d13016de81370106ea4065cfabe4a278dc09e82523cfe22bb6a8ab8e993b4c3a"
-dependencies = [
- "bitflags",
- "cow-utils",
- "memchr",
- "num-bigint",
- "num-traits",
- "oxc_allocator",
- "oxc_ast",
- "oxc_data_structures",
- "oxc_diagnostics",
- "oxc_ecmascript",
- "oxc_regular_expression",
- "oxc_span",
- "oxc_str",
- "oxc_syntax",
- "rustc-hash 2.1.3",
- "seq-macro",
 ]
 
 [[package]]
@@ -1905,13 +1881,13 @@ version = "0.0.0"
 dependencies = [
  "html5ever",
  "htmlize",
+ "ljos_oxc_parser",
  "markup5ever_rcdom",
  "napi-build",
  "oxc_allocator",
  "oxc_ast",
  "oxc_ast_visit",
  "oxc_codegen",
- "oxc_parser",
  "oxc_semantic",
  "oxc_span",
  "oxc_str",

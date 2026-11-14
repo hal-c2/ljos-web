@@ -25,7 +25,10 @@ oxc_ast = "0.144"
 oxc_ast_visit = "0.144"
 oxc_codegen = "0.144"
 oxc_diagnostics = "0.144"
-oxc_parser = "0.144"
+# oxc_parser 0.144.0 as Ljós forks it for QML (ljos-ui vendor/FORK.md): a
+# plain parse is unchanged, and the compiler's wasm then holds one copy of
+# oxc's parser where qml_syntax brought a second. Same rev as ljos-ui above.
+oxc_parser = { package = "ljos_oxc_parser", git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "c2443e1593f56acfbf97d9f7f7fde921f3984f5d" }
 oxc_semantic = "0.144"
 oxc_span = "0.144"
 oxc_str = "0.144"

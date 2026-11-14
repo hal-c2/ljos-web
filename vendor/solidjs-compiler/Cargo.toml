@@ -23,7 +23,12 @@ oxc_allocator = "0.144"
 oxc_ast = "0.144"
 oxc_ast_visit = "0.144"
 oxc_codegen = "0.144"
-oxc_parser = "0.144"
+# Ljós's fork of oxc_parser 0.144.0, the one ljos_web reads QML with, so a
+# build has one JS parser; a plain parse is the published crate's. The rev
+# must equal crates/ljos_web/Cargo.toml's (vendor/ is outside the workspace,
+# so no workspace dependency can share it); crates/ljos_web/tests/one_parser.rs
+# fails when Cargo.lock holds a second oxc parser.
+oxc_parser = { package = "ljos_oxc_parser", git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "c2443e1593f56acfbf97d9f7f7fde921f3984f5d" }
 oxc_semantic = "0.144"
 oxc_span = "0.144"
 oxc_str = "0.144"

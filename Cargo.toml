@@ -8,7 +8,8 @@ edition = "2024"
 license = "MIT"
 
 # The QML parser is Ljós's `qml_syntax` (its oxc fork lives there, never
-# here); `oxc_parser` from crates.io remains only for plain JavaScript.
+# here). Plain JavaScript is read by that same fork (`ljos_oxc_parser`,
+# library `oxc_parser`), so there is one copy of oxc's parser.
 
 [profile.dev]
 debug = "line-tables-only"
