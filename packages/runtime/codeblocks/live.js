@@ -300,13 +300,15 @@ export async function mountLiveCodeBlock(figure, data, options = {}) {
   async function apply() {
     const mine = ++turn;
     status.textContent = "Compiling…";
+    // The files the last compile was given go with it: what this one's
+    // scripts ask for as they run, while it compiles, is said of these.
+    absent = [];
+    shown();
     const { entry, files } = exampleFiles(current());
     const made = await compile({ files, entry, base: root, closed: true, missing }).catch((error) => ({
       diagnostics: [{ file: entry, message: error?.message ?? String(error) }],
     }));
     if (mine !== turn) return;
-    // What runs now is what this compile made, with the files it was given.
-    if (!made.diagnostics) absent = [];
     if (made.diagnostics) {
       diagnose(made.diagnostics);
       status.textContent = handle ? "" : "This code does not compile; what it drew as written is still shown.";

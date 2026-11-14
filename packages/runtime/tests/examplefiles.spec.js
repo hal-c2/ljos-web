@@ -87,6 +87,41 @@ test.describe("an example's files", () => {
     expect(server.named()).toEqual([]);
     expect(server.refused).toEqual([]);
   });
+
+  test("a file a script asks for as the example compiles, and does not have, is said to be not there", async ({ page }) => {
+    const server = watched(page);
+    const figure = await mounted(page, "early");
+    await expect(figure).toHaveAttribute("data-state", "live", { timeout: 30000 });
+    await expect(figure.locator(".ljos-codeblock__stage")).toContainText("asked true", { timeout: 15000 });
+    await expect(figure.getByRole("alert")).toContainText("early.js:3: early.json: No such file or directory");
+    expect(server.named()).toEqual([]);
+    expect(server.refused).toEqual([]);
+  });
+});
+
+  test("takes the example's files with it, and the addresses they were loaded from", async ({ page }) => {
+    const figure = await mounted(page, "read");
+    await expect(figure.locator(".ljos-codeblock__stage")).toContainText("200 hello", { timeout: 30000 });
+    const before = await page.evaluate(() => window.enclosed());
+    const [root] = Object.keys(before);
+    expect(before[root].length).toBeGreaterThan(0);
+    await page.evaluate(() => window.disposeExample("read"));
+    expect(await page.evaluate(() => window.enclosed())).toEqual({});
+    // An address a file was loaded from loads nothing now.
+    const loads = await page.evaluate(
+      (urls) => Promise.all(urls.map((url) => fetch(url).then(() => true, () => false))),
+      before[root],
+    );
+    expect(loads.every((loaded) => !loaded)).toBe(true);
+  });
+
+  test("while its first compile is on its way takes the project that compile gives", async ({ page }) => {
+    await page.goto("/examplefiles.html");
+    await page.waitForFunction(() => window.ready);
+    await page.evaluate(() => window.mountExample("chosen", false));
+    await page.evaluate(() => window.disposeExample("chosen"));
+    expect(await page.evaluate(() => window.enclosed())).toEqual({});
+  });
 });
 
 test.describe("an example's shell reloaded", () => {

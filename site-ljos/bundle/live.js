@@ -68,6 +68,12 @@ async function moduleFor(id) {
     const parse = await import("ljos-web/codeblocks/parse");
     const files = parse.exampleFiles(example);
     const root = "ljos-example://" + id + "/";
+    // The files the last compile was given go with it: what this one's
+    // scripts ask for as they run, while it compiles, is said of these.
+    if (example.absent.length > 0) {
+        example.absent = [];
+        example.told("");
+    }
     const made = await compile({
         files: files.files,
         entry: files.entry,
@@ -79,10 +85,6 @@ async function moduleFor(id) {
         }
     });
     said[id] = {};
-    if (!made.diagnostics && example.absent.length > 0) {
-        example.absent = [];
-        example.told("");
-    }
     if (made.diagnostics) {
         made.diagnostics.forEach(function (d) {
             const at = parse.displayPosition(example, d);

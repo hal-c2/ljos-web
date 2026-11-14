@@ -146,6 +146,29 @@ Rectangle {
 }
 `;
 
+// A script that asks for a file the example does not have as it runs,
+// which is while the example compiles.
+export const EARLY_MAIN = `import QtQuick
+import "early.js" as Early
+
+Rectangle {
+    width: 200
+    height: 80
+    color: "#20242e"
+    Text {
+        color: "#e8eaf0"
+        text: "asked " + Early.asked
+    }
+}
+`;
+
+export const EARLY_SCRIPT = `.pragma library
+const request = new XMLHttpRequest();
+request.open("GET", "early.json");
+request.send();
+var asked = true;
+`;
+
 const figure = (display, more = {}) => ({ v: 1, entry: "Main.qml", before: false, display, prerendered: false, ...more });
 const qml = (name, code) => ({ name, code, lang: "qml" });
 
@@ -157,7 +180,8 @@ export const EXAMPLES = {
   picture: figure([qml("Main.qml", PICTURE)]),
   read: figure([qml("Main.qml", READ), { name: "data.json", code: '{ "greeting": "hello" }\n', lang: "json" }]),
   percent: figure([qml("Main.qml", PERCENT)]),
+  early: figure([qml("Main.qml", EARLY_MAIN), { name: "early.js", code: EARLY_SCRIPT, lang: "js" }]),
 };
 
 // What may not be asked of the server: every file the examples name.
-export const NAMED = /(?:^|\/)(?:(?:shell|AppShell|Shell|Missing|Gone)\.qml|logo\.png|100%(?:25)?\.png|(?:data|notes)\.json)$/;
+export const NAMED = /(?:^|\/)(?:(?:shell|AppShell|Shell|Missing|Gone)\.qml|logo\.png|100%(?:25)?\.png|(?:data|notes|early)\.json)$/;
