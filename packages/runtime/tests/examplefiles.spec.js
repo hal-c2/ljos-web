@@ -111,6 +111,10 @@ test.describe("an example's files", () => {
   });
 });
 
+test.describe("an example's block disposed", () => {
+  // What an address it was loaded from is asked for once it has gone.
+  test.use({ told: [/^Failed to load resource: net::ERR_FILE_NOT_FOUND$/] });
+
   test("takes the example's files with it, and the addresses they were loaded from", async ({ page }) => {
     const figure = await mounted(page, "read");
     await expect(figure.locator(".ljos-codeblock__stage")).toContainText("200 hello", { timeout: 30000 });

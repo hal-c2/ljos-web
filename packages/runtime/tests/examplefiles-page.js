@@ -6,13 +6,31 @@ import "../style.css";
 import { mountLiveCodeBlock } from "../codeblocks/live.js";
 import { EXAMPLES } from "./examplefiles-fixtures.js";
 
-window.mountExample = async (name) => {
+// The blocks mounted, by example, for a test to dispose.
+const blocks = {};
+// The projects the page has enclosed, by root, and the addresses each
+// one's files are loaded from.
+window.enclosed = () =>
+  Object.fromEntries([...(globalThis[Symbol.for("ljos-web/enclosed")]?.values() ?? [])].map((project) => [project.root, [...project.blobs.values()]]));
+
+// `waits` false: mounted and not waited for, its first compile still on
+// its way.
+window.mountExample = async (name, waits = true) => {
   const figure = document.createElement("figure");
   figure.className = "ljos-codeblock";
   figure.dataset.ljosCodeblock = "";
   figure.dataset.example = name;
   document.body.append(figure);
   const block = await mountLiveCodeBlock(figure, EXAMPLES[name], { delay: 0 });
+  blocks[name] = block;
+  if (waits) await block.idle();
+};
+
+window.disposeExample = async (name) => {
+  const block = blocks[name];
+  block.dispose();
   await block.idle();
+  // The project goes once the guard is in, a turn after.
+  await new Promise((resolve) => setTimeout(resolve, 0));
 };
 window.ready = true;

@@ -182,6 +182,10 @@ export async function mountLiveCodeBlock(figure, data, options = {}) {
     shown();
   };
 
+  // What the block's compiles gave the page (its files, the addresses
+  // they are loaded from) goes with it.
+  const releaseProject = () => import("../guard.js").then(({ release }) => release(root, missing));
+
   const current = () => ({ ...data, display: data.display.map((file, i) => ({ ...file, code: texts[i] })) });
 
   const edited = () => {
@@ -308,7 +312,12 @@ export async function mountLiveCodeBlock(figure, data, options = {}) {
     const made = await compile({ files, entry, base: root, closed: true, missing }).catch((error) => ({
       diagnostics: [{ file: entry, message: error?.message ?? String(error) }],
     }));
-    if (mine !== turn) return;
+    if (mine !== turn) {
+      // A compile the block was disposed during gave its project after
+      // the block let it go.
+      if (disposed) releaseProject();
+      return;
+    }
     if (made.diagnostics) {
       diagnose(made.diagnostics);
       status.textContent = handle ? "" : "This code does not compile; what it drew as written is still shown.";
@@ -365,6 +374,7 @@ export async function mountLiveCodeBlock(figure, data, options = {}) {
       clearTimeout(timer);
       editors.forEach((editor) => editor.destroy());
       handle?.root?.dispose?.();
+      releaseProject();
     },
   };
 }
