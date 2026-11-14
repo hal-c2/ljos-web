@@ -1431,8 +1431,9 @@ export function override(self: QObject, key: string, content: LayerContent): Ove
 
 // The slot of a property (`slot(item, "x")`, `slot(item, "anchors$fill")`):
 // for types that animate, place or provide it. A property the object's type
-// says it has has one; any other name may not.
-export function slot<T extends QObject>(self: T, key: Exclude<keyof T & string, `$${string}`>): Slot;
+// says it has has one; any other name may not, nor a method or a signal.
+type Property<T> = { [K in keyof T]: T[K] extends (...args: never[]) => unknown ? never : K }[keyof T];
+export function slot<T extends QObject>(self: T, key: Exclude<Property<T> & string, `$${string}`>): Slot;
 export function slot(self: QObject, key: string): Slot | undefined;
 export function slot(self: QObject, key: string): Slot | undefined {
   return self.$slots[key] ?? self.$type.slots[key]?.(self);
