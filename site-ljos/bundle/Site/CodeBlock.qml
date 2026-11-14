@@ -273,6 +273,9 @@ Column {
             Column {
                 id: editorBox
                 width: parent.width
+                // The code's first and last lines clear the box's edges.
+                topPadding: 8
+                bottomPadding: 8
 
                 Repeater {
                     id: editors
@@ -311,6 +314,17 @@ Column {
             readonly property int pictureHeight: block.isLive && block.live.width > 0 ? pictureWidth * block.live.height / block.live.width : 0
             height: Math.max(pictureHeight, stage.implicitHeight)
 
+            // The stage's edge, under what it shows: an example that
+            // draws little (or nothing) still reads as a result, not
+            // as a gap in the page.
+            Rectangle {
+                anchors.fill: parent
+                anchors.topMargin: -1
+                color: "transparent"
+                border.color: Theme.divider
+                border.width: 1
+            }
+
             Text {
                 // Until the result runs (Ready): before the reader
                 // reaches for the block, while its code compiles, after
@@ -340,6 +354,11 @@ Column {
             Component {
                 id: emptyStage
                 Item {}
+            }
+            WindowContainer {
+                width: stageBox.pictureWidth
+                height: stageBox.height
+                window: Live.windowOf(stage.item)
             }
         }
 
