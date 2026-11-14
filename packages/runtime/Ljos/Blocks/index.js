@@ -9,7 +9,7 @@
 // out. Contributions find their Slots by name through a registry of the
 // page's, so anything in the application (a page, a plugin a Loader brings
 // in, the site around a user's shell) adds to a place it does not hold.
-import { guardedFetch, own } from "../../guard.js";
+import { guardedFetch, own, sayNotThere, whyNot } from "../../guard.js";
 import { getOwner, onCleanup, runWithOwner } from "solid-js";
 import { bounded, defineType, derived, effect, instantiate, QtObject, slot, whenMade } from "../../object.js";
 import { Item } from "../../QtQuick/Item.js";
@@ -181,10 +181,10 @@ async function compiled(url) {
   const address = new URL(url, document.baseURI);
   const ours = own(address);
   if (ours) {
-    if (ours.text === undefined) {
-      // Asked as anything is, so the project is told; said as natively.
-      return { error: await guardedFetch(address).then(() => "", (error) => error.message) };
-    }
+    // Said as natively. The project is told when this is used (`used`),
+    // not when it is asked for: a fallback that only stood in while the
+    // source came says nothing.
+    if (ours.text === undefined) return { error: whyNot(address), absent: address.href };
     return finished(ours.name, () => ours.project.compile(ours.name));
   }
   const file = decodeURIComponent(address.pathname.split("/").pop() || "Shell.qml");
@@ -200,6 +200,12 @@ async function compiled(url) {
     const { createCompiler } = await import("../../compiler/index.js");
     return createCompiler({ base: new URL(".", address).href }).compile({ files: { [file]: text }, entry: file, inspect: true });
   });
+}
+
+// What a source or fallback resolved to, now that the loader uses it: a
+// file of an example that is not there is told to the example then.
+function used(resolved) {
+  if (resolved?.absent) sayNotThere(resolved.absent);
 }
 
 // What `compile()` made of `file`, or why it made nothing.
@@ -360,6 +366,7 @@ async function load(self, state) {
   if (!state.shown && arrives(source) && untrack(() => self.fallback) != null) void showFallback(self, state, "", turn, true);
   const resolved = await resolve(source);
   if (turn !== state.turn) return;
+  used(resolved);
   state.arrived = turn;
   let why = "";
   if (resolved?.component) {
@@ -426,6 +433,7 @@ async function showFallback(self, state, why, turn, standsIn = false) {
     }
     return;
   }
+  used(resolved);
   if (!resolved) {
     write(self, "error", why);
     write(self, "status", why ? Failed : Null);

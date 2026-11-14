@@ -146,6 +146,14 @@ export function mayFetch(url) {
 
 const refusal = (url) => new Error(`${url} is not fetched while a dropped shell is shown`);
 
+// Tells the enclosed project that `url`, one of its files it does not
+// have, is not there, once: for a loader that asked for it quietly and
+// now uses what it asked for.
+export function sayNotThere(url) {
+  const found = own(url);
+  if (found && found.text === undefined) notThere(found);
+}
+
 // Why `url` is not loaded, where `allowedUrl` gave nothing for it: a file its
 // project does not have is not there, and anything else was held back.
 export function whyNot(url) {
