@@ -8,8 +8,8 @@
 // followed on its own, by reading again what the mapping read of it, and what
 // one of those reads changes marks that object and builds. The build itself
 // reads untracked. An unset member answers nothing, so that the defaults are
-// the mapping's own. A build that draws the same asks for no frame; one that
-// draws differently asks for one. Nothing here runs otherwise.
+// the mapping's own. A build that draws the same draws nothing; one that
+// draws differently is drawn once it settles. Nothing here runs otherwise.
 import { createRenderEffect, createRoot, getOwner, runWithOwner } from "solid-js";
 import { flush, located, slot, effect } from "../object.js";
 import { color } from "../QtQuick/color.js";
@@ -480,7 +480,7 @@ export function drawOn(self, canvas, told) {
   // made while a build applies, where Solid has no owner to give it.
   const followers = new Map();
   const following = runWithOwner(self.$owner ?? null, () => createRoot((end) => ({ owner: getOwner(), end })));
-  let frame = 0;
+  let due = false;
   let gone = false;
   let wanted = false;
   let own = false;
@@ -502,9 +502,15 @@ export function drawOn(self, canvas, told) {
     if (!canvas.$drawn) request();
     return own ? 0 : draws();
   };
-  const request = () =>
-    (frame ||= requestAnimationFrame(() => {
-      frame = 0;
+  // Drawn once what asked for it has settled, in the same task: a build in
+  // an animation frame is drawn in that frame, as the JavaScript renderer's
+  // is, and asks for no frame of its own.
+  const request = () => {
+    if (due) return;
+    due = true;
+    queueMicrotask(() => {
+      due = false;
+      if (gone) return;
       const from = performance.now();
       if (made()?.frame()) {
         state.frames++;
@@ -518,7 +524,8 @@ export function drawOn(self, canvas, told) {
           setDraws((times) => times + 1);
         }
       }
-    }));
+    });
+  };
   const host = new Host(self, setArrivals, arrivals, request);
 
   // Follows what the wasm asked of `o`: a change to any of it marks `o` and
@@ -640,8 +647,6 @@ export function drawOn(self, canvas, told) {
     for (const end of followers.values()) end();
     followers.clear();
     following.end();
-    if (frame) cancelAnimationFrame(frame);
-    frame = 0;
     const view = made();
     if (view) {
       setMade(null);
