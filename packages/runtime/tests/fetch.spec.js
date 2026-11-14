@@ -32,8 +32,14 @@ test.use({ told: [/status of 404 \(Not Found\)|net::ERR_CONNECTION_REFUSED/] });
 
 const read = (page, name) => page.evaluate((name) => window.objects.got[name], name);
 
+// The bodies the page posted, counted from before the scene is made: what
+// it asks for as it completes is counted too.
+let posted;
+
 test.beforeEach(async ({ page }) => {
   await serve(page);
+  posted = [];
+  page.on("request", (request) => request.url().endsWith("/served/echo") && posted.push(request.postData()));
   await open(page, "fetching");
 });
 
@@ -70,14 +76,12 @@ test.describe("an aborted signal stops the request, and the fetch rejects with i
   });
 
   test("a signal aborted with a reason rejects with that reason, before anything is sent", async ({ page }) => {
-    let posted = 0;
-    page.on("request", (request) => request.url().endsWith("/served/echo") && request.postData() === "never" && (posted += 1));
     await expect.poll(() => read(page, "reason")).toBe("abort gone gone");
-    expect(posted).toBe(0);
+    expect(posted).not.toContain("never");
   });
 
   test("a signal that times out rejects with a TimeoutError", async ({ page }) => {
-    expect(await read(page, "timedOut")).toBe("false");
+    // "false" is what the signal was as it was made: not aborted yet.
     await expect.poll(() => read(page, "timedOut")).toBe("false TimeoutError 23");
     await expect.poll(() => read(page, "later")).toBe("TimeoutError");
   });
