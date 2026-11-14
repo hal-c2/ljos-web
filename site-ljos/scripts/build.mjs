@@ -378,7 +378,11 @@ for (const file of htmlUnder(out)) {
 }
 
 // Each page's address on the site's home, from the pages the build
-// was given: in its head, and in the sitemap robots.txt names.
+// was given: in its head, and in the sitemap robots.txt names. Its icon
+// is named in its head too, at the base: a page that names none is asked
+// `/favicon.ico` of the address's root, which below a project's base is
+// not the site's, and is not there.
+const icons = `<link rel="icon" href="${base}favicon.svg" type="image/svg+xml">\n    <link rel="apple-touch-icon" href="${base}apple-touch-icon.png">`;
 const escapeXml = (text) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
 const addressOf = (route) => `${origin}${route}`;
 for (const { route } of pages) {
@@ -389,7 +393,7 @@ for (const { route } of pages) {
   const at = html.indexOf("</head>");
   if (at < 0) throw new Error(`site-ljos: ${file} has no </head> to name its address in`);
   const address = escapeXml(addressOf(route));
-  writeFileSync(file, `${html.slice(0, at)}  <link rel="canonical" href="${address}">\n    <meta property="og:url" content="${address}">\n  ${html.slice(at)}`);
+  writeFileSync(file, `${html.slice(0, at)}  ${icons}\n    <link rel="canonical" href="${address}">\n    <meta property="og:url" content="${address}">\n  ${html.slice(at)}`);
 }
 writeFileSync(
   join(out, "sitemap.xml"),
@@ -415,7 +419,7 @@ const notFound = `<!doctype html>
     <meta name="robots" content="noindex">
     <meta name="description" content="There is no page at this address on ljos.dev.">
     <title>Page not found — Ljós</title>
-    <link rel="icon" href="${base}favicon.svg" type="image/svg+xml">
+    ${icons}
     <style>
       :root { color-scheme: light dark; --bg: #fdfbf6; --panel: #f6f1e6; --ink: #2b251d; --muted: #6b5f4c; --accent: #9a6210; --border: #ddd2bd; --on-accent: #ffffff; }
       @media (prefers-color-scheme: dark) { :root { --bg: #1a1712; --panel: #241f19; --ink: #ece5d8; --muted: #b3a892; --accent: #e0a43c; --border: #453a2d; --on-accent: #1a1712; } }
