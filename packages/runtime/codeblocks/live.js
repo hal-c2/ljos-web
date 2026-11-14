@@ -380,6 +380,9 @@ export async function mountLiveCodeBlock(figure, data, options = {}) {
       return editors;
     },
     dispose: () => {
+      // Disposed once: a second dispose would take the place of what the
+      // first had `idle()` answer, which a compile landing then settles.
+      if (disposed) return;
       disposed = true;
       turn++;
       clearTimeout(timer);
