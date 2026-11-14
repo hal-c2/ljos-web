@@ -43,6 +43,7 @@ Item {
     Accessible.description: "Tab indents. Press Escape, then Tab, to leave this editor."
 
     Component.onCompleted: Editor.whenIdle()
+    Component.onDestruction: Editor.dispose(field)
     onActiveFocusChanged: activeFocus ? Editor.bringIn(field, shown, true) : Editor.left(field)
     onTextChanged: Editor.textChanged(field)
     onDiagnosticsChanged: Editor.diagnosticsChanged(field)

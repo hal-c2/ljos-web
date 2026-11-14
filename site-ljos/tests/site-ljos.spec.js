@@ -186,6 +186,36 @@ test("a code block runs beside its code, edits keep its state, and a broken edit
   expect(errors).toEqual([]);
 });
 
+test("an editor goes with its page: the next page keeps none of its views or listeners", async ({ page }) => {
+  // CodeMirror listens on the document until its view is destroyed:
+  // the count of those listeners is what a view left behind would show.
+  await page.addInitScript(() => {
+    const live = (globalThis.__selectionListeners = new Set());
+    const add = Document.prototype.addEventListener;
+    const remove = Document.prototype.removeEventListener;
+    Document.prototype.addEventListener = function (type, listener, options) {
+      if (type === "selectionchange") live.add(listener);
+      return add.call(this, type, listener, options);
+    };
+    Document.prototype.removeEventListener = function (type, listener, options) {
+      if (type === "selectionchange") live.delete(listener);
+      return remove.call(this, type, listener, options);
+    };
+  });
+  const listening = () => page.evaluate(() => globalThis.__selectionListeners.size);
+  await page.setViewportSize({ width: 1440, height: 1600 });
+  await page.goto("/start/first-app/");
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  const before = await listening();
+  await codeEditor(page, "Edit Main.qml");
+  expect(await listening()).toBeGreaterThan(before);
+  await press(page, page.getByText("MCP Servers for Agents", { exact: true }).first());
+  await page.waitForURL("**/start/mcp/");
+  await expect(page.getByText("Two servers, one model", { exact: true }).first()).toBeVisible();
+  await expect(page.locator(".cm-editor")).toHaveCount(0);
+  await expect.poll(listening).toBe(before);
+});
+
 test("with JavaScript off a runnable block is its code beside a picture of its result", async ({ browser }) => {
   const context = await browser.newContext({ javaScriptEnabled: false, viewport: BUILD_SIZE });
   try {

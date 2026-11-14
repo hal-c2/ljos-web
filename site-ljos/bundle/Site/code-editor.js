@@ -9,6 +9,9 @@ var attaching = null;
 var waiting = false;
 // Each field's editor, once it has one.
 var editors = new WeakMap();
+// Fields gone from the page: one that goes while its editor is still
+// being fetched gets none.
+var gone = new WeakSet();
 
 function module() {
     if (!attaching)
@@ -46,6 +49,8 @@ async function bringIn(field, shown, focus, local) {
         return null;
     if (!editors.has(field)) {
         var made = await module();
+        if (gone.has(field))
+            return null;
         if (!editors.has(field)) {
             editors.set(field, made.attachCodeEditor(field, {
                 lang: field.lang,
@@ -61,6 +66,18 @@ async function bringIn(field, shown, focus, local) {
     if (focus)
         editors.get(field).focus();
     return editors.get(field);
+}
+
+// The field is going: its editor goes with it. CodeMirror listens on
+// the window and the document, and the editor watches the field's
+// size, until it is destroyed, so a field that left its editor behind
+// would keep it, and its listeners, for as long as the page is open.
+function dispose(field) {
+    gone.add(field);
+    var editor = editors.get(field);
+    if (editor)
+        editor.destroy();
+    editors.delete(field);
 }
 
 function left(field) {
