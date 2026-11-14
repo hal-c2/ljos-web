@@ -1,7 +1,8 @@
 # The QML examples of the pinned docs that stand on ljos.dev as plain
 # code, and why: `<page> <n> <reason> [note…]`, where <page> is the
 # page's path under docs/site and <n> counts its `qml` fences from 1,
-# as ljos-ui's crates/ljos_cli/tests/docs_site.txt counts them. Read
+# as ljos-ui's crates/ljos_cli/tests/docs_site.txt counts them (a
+# group by its root, the `qml` fence without `file=`). Read
 # by site/scripts/codeblocks-ledger.mjs; both sites' suites fail on a
 # plain example missing here and on an entry that runs now, so this
 # list only shrinks.
@@ -31,7 +32,7 @@ controls/containers-and-popups.md 5 web:ljos-controls Ljos.Controls is not in lj
 controls/localisation.md 1 web:ljos-controls Ljos.Controls is not in ljos-web yet
 controls/localisation.md 3 web:ljos-controls Ljos.Controls is not in ljos-web yet
 controls/overview.md 1 web:ljos-controls Ljos.Controls is not in ljos-web yet
-controls/overview.md 2 web:ljos-controls Ljos.Controls is not in ljos-web yet
+controls/overview.md 3 web:ljos-controls Ljos.Controls is not in ljos-web yet
 controls/overview.md 4 web:ljos-controls Ljos.Controls is not in ljos-web yet
 controls/value-inputs.md 2 web:ljos-controls Ljos.Controls is not in ljos-web yet
 controls/value-inputs.md 3 web:ljos-controls Ljos.Controls is not in ljos-web yet

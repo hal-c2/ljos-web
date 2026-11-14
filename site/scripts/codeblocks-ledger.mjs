@@ -38,7 +38,12 @@ export function exampleKeys(page, fences, examples) {
   const ordinals = new Map();
   for (const fence of fences) if (fence.lang === "qml") ordinals.set(fence, ordinals.size + 1);
   return examples.map((example) => {
-    const n = Math.min(...example.blocks.map((block) => ordinals.get(block)).filter((k) => k !== undefined));
+    // docs_site.rs names a group by its root, the one `qml` fence with
+    // no `file=`, even where the page shows another of its files first.
+    const root = example.blocks.find((block) => block.lang === "qml" && !block.file);
+    const n = root
+      ? ordinals.get(root)
+      : Math.min(...example.blocks.map((block) => ordinals.get(block)).filter((k) => k !== undefined));
     return { example, n, key: `${page} ${n}` };
   });
 }

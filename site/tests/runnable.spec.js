@@ -39,6 +39,17 @@ test.describe("an example the ledger lists may stand plain", () => {
     ]);
   });
 
+  // docs_site.rs names a group by its root, the `qml` fence with no
+  // `file=`, however many of the group's files the page shows first.
+  test("a group by its root, even after its other files", () => {
+    const fences = [{ lang: "qml", file: "Badge.qml", group: "b" }, { lang: "qml", group: "b" }, { lang: "qml" }];
+    const examples = [{ blocks: [fences[0], fences[1]] }, { blocks: [fences[2]] }];
+    expect(exampleKeys("controls/overview.md", fences, examples).map(({ key }) => key)).toEqual([
+      "controls/overview.md 2",
+      "controls/overview.md 3",
+    ]);
+  });
+
   test("when every page that shows it lists it", () => {
     expect(listedEverywhere(["language/controllers.md 1"], ledger)).toBe(true);
     expect(listedEverywhere(["language/controllers.md 1", "start/index.md 2"], ledger)).toBe(false);
