@@ -434,6 +434,73 @@ function rendersSheet(renders, sizes) {
   return `<style>\n      [data-ljos-render] { display: none; width: 100%; height: 100%; }\n      ${rules.join("\n      ")}\n    </style>`;
 }
 
+// A page's light and dark renders at one size that differ only in the
+// colours their styles say are one render: each colour that differs is a
+// custom property, the light one where the reader is shown light and the
+// dark one where they are shown dark (as `rendersSheet` decides it, so a
+// reader's own pick on the root wins the same way). A render is about as
+// large as a page's reading, and two of a page do not share gzip's window:
+// two renders a page need not carry are most of what it would first load.
+// Anything else that differs (a word, an attribute, an element) keeps the
+// two renders, each shown in its own scheme. Once hydrated, the page's
+// own bindings write every colour as it always did.
+const STYLED = /(style="[^"]*"|<style>[\s\S]*?<\/style>)/;
+const COLOUR = /#[0-9a-fA-F]{3,8}\b|(?:rgb|hsl)a?\([^)]*\)/g;
+
+// The render cut where its styles say a colour: what is not a colour,
+// and the colours between.
+function colourParts(html) {
+  const words = [];
+  const colours = [];
+  let open = "";
+  for (const [index, part] of html.split(STYLED).entries()) {
+    if (index % 2 === 0) {
+      open += part;
+      continue;
+    }
+    const pieces = part.split(COLOUR);
+    const found = part.match(COLOUR) ?? [];
+    for (const [at, piece] of pieces.entries()) {
+      open += piece;
+      if (at < found.length) {
+        words.push(open);
+        open = "";
+        colours.push(found[at]);
+      }
+    }
+  }
+  words.push(open);
+  return { words, colours };
+}
+
+// The one render the light and dark ones are, with what each differing
+// colour is named in `named` (light and dark, by name), or null where
+// they differ in more than colour.
+function shareSchemes(light, dark, named) {
+  const ours = colourParts(light);
+  const theirs = colourParts(dark);
+  if (ours.words.length !== theirs.words.length || ours.words.some((word, index) => word !== theirs.words[index])) return null;
+  let shared = ours.words[0];
+  for (const [index, colour] of ours.colours.entries()) {
+    const other = theirs.colours[index];
+    let value = colour;
+    if (colour !== other) {
+      const key = `${colour}\n${other}`;
+      if (!named.has(key)) named.set(key, { name: `--ljos-scheme-${named.size}`, light: colour, dark: other });
+      value = `var(${named.get(key).name})`;
+    }
+    shared += value + ours.words[index + 1];
+  }
+  return shared;
+}
+
+// The colours `shareSchemes` named, as the scheme shown says them.
+function schemesSheet(named) {
+  if (named.size === 0) return "";
+  const say = (scheme) => [...named.values()].map((colour) => `${colour.name}: ${colour[scheme]};`).join(" ");
+  return `<style>\n      :root { ${say("light")} }\n      @media (prefers-color-scheme: dark) { :root:not([data-ljos-scheme]) { ${say("dark")} } }\n      :root[data-ljos-scheme="dark"] { ${say("dark")} }\n    </style>`;
+}
+
 // The head a page is written with: what the site gives every page, and
 // the page's own description.
 const escapeText = (text) => text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
@@ -577,9 +644,8 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
       shell = startAfterPaint(shell);
       // Every size in every scheme, narrowest first and light before dark.
       const made = sizes.flatMap((_, size) => schemes.map((scheme) => ({ size, scheme })));
-      if (made.length > 1) shell = shell.replace("  </head>", () => `    ${rendersSheet(made, sizes)}\n  </head>`);
       for (const page of pages ?? [{ route: "/" }]) {
-        const renders = made.map(({ size, scheme }) => {
+        const each = made.map(({ size, scheme }) => {
           const { width, height } = sizes[size];
           const options = {
             ...(width !== undefined ? { width } : {}),
@@ -599,8 +665,22 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
           if (ran.error) throw new SiteError(`could not prerender ${page.route}${at}: ${ran.error.message}`);
           if (ran.status !== 0) throw new SiteError(`${page.route} could not be prerendered${at}:\n${(ran.stderr || ran.stdout).trim()}`);
           if (ran.stderr) console.warn(ran.stderr.trimEnd());
-          return ran.stdout;
+          return { size, scheme, html: ran.stdout };
         });
+        // A size's light and dark renders made one where only their
+        // colours differ, each size on its own.
+        const named = new Map();
+        const kept = [];
+        for (const [size] of sizes.entries()) {
+          const own = each.filter((render) => render.size === size);
+          const light = own.find((render) => render.scheme === "light");
+          const dark = own.find((render) => render.scheme === "dark");
+          const shared = light && dark ? shareSchemes(light.html, dark.html, named) : null;
+          if (shared === null) kept.push(...own);
+          else kept.push({ size, scheme: undefined, html: shared });
+        }
+        const renders = kept.map((render) => render.html);
+        const sheet = [kept.length > 1 ? rendersSheet(kept, sizes) : "", schemesSheet(named)].filter(Boolean).join("\n    ");
         // The rules every render gives the page by a sheet are said once,
         // before the sizes, however many sizes say them.
         const sheets = [];
@@ -614,7 +694,7 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
         // its own depth, carries the props it was made with for its
         // script to hydrate it by, and is titled as its own page.
         const depth = page.route.split("/").filter(Boolean).length;
-        let html = shell;
+        let html = sheet ? shell.replace("  </head>", () => `    ${sheet}\n  </head>`) : shell;
         // Any attribute the shell or the site's head gives as `./` (the
         // start script's own `data-ljos-start` too), in either quotes.
         if (depth > 0) html = html.replace(/(=["'])\.\//g, `$1${"../".repeat(depth)}`);
