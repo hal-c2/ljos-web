@@ -20,7 +20,7 @@
 // state is the block's. The shell's id names the instance itself, so a binding
 // of the shell that reads `basket.count` reads the block's.
 import { getOwner, onCleanup, runWithOwner } from "solid-js";
-import { connect, currentParent, defineType, inherit, inside, instantiate, madeOnDemand, override, QtObject, slot } from "../../object.js";
+import { connect, currentParent, defineType, inherit, inside, instantiate, madeOnDemand, override, QtObject, slot } from "../../object.ts";
 import { untrack } from "#kernel";
 
 const hide = (self, name, value) => Object.defineProperty(self, name, { value, writable: true, configurable: true });

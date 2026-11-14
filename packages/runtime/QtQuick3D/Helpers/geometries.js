@@ -11,7 +11,7 @@
 // A shape is here as soon as it is asked for, whatever `asynchronous` says,
 // so `status` is never `Loading`, and nothing says that one has changed
 // (`geometryChanged`).
-import { defineType, derived } from "../../object.js";
+import { defineType, derived } from "../../object.ts";
 import { Size } from "../../QtQml/values.js";
 import { EMPTY, Geometry } from "../Geometry.js";
 import { kept, Object3D } from "../Node.js";

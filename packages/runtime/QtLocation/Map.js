@@ -7,7 +7,7 @@
 // a tile is an element for as long as it is in view, and the element of one
 // that left is the next one's.
 import { allowedStyle, sourced } from "../guard.js";
-import { defineType, derived, effect, slot } from "../object.js";
+import { defineType, derived, effect, slot } from "../object.ts";
 import { coordinate, fromMercator, INVALID, latitudeAt, mercatorX, mercatorY } from "../QtPositioning/coordinate.js";
 import { Point } from "../QtQml/values.js";
 import { colorValue, css } from "../QtQuick/color.js";

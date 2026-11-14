@@ -1,6 +1,6 @@
 // The animations of a property: from a value to a value over a time and along
 // a curve, or on a spring, or at a velocity.
-import { defineType, group } from "../../object.js";
+import { defineType, group } from "../../object.ts";
 import { Animation } from "./Animation.js";
 import { curve } from "./easing.js";
 import { ActionJob, AnimatorJob, ContinuingJob, put, SmoothedJob, SpringJob } from "./jobs.js";

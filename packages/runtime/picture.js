@@ -18,7 +18,7 @@
 // Nothing is kept: each picture is read when it is asked for, and nothing
 // waits or watches between two.
 import { allowedUrl, own } from "./guard.js";
-import { flush } from "./object.js";
+import { flush } from "./object.ts";
 import { described, loads, stem } from "./QtQuick/FontLoader.js";
 
 const XHTML = "http://www.w3.org/1999/xhtml";

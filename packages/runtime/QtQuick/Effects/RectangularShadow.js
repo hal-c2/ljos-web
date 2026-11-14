@@ -1,7 +1,7 @@
 // RectangularShadow: the shadow a rectangle would cast, without the
 // rectangle. A box in the shadow's colour, blurred by CSS.
 import { Vector2d } from "../../QtQml/values.js";
-import { defineType, derived, effect } from "../../object.js";
+import { defineType, derived, effect } from "../../object.ts";
 import { allowedStyle } from "../../guard.js";
 import { colorValue, css } from "../color.js";
 import { rules } from "../compute.js";

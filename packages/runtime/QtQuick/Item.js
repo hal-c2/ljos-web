@@ -5,7 +5,7 @@
 // so they are computed here, anchors included, and the element is only told
 // the result.
 import { onCleanup, runWithOwner } from "solid-js";
-import { contents, defineType, derived, effect, flush, group, inside, kinds, parental, parented, QtObject, settle, typed } from "../object.js";
+import { contents, defineType, derived, effect, flush, group, inside, kinds, parental, parented, QtObject, settle, typed } from "../object.ts";
 import { Rect } from "../QtQml/values.js";
 import { drawing, drawn } from "./drawn.js";
 import { declared, forceActiveFocus, nextItemInFocusChain, reachable, setFocus, under } from "./focus.js";

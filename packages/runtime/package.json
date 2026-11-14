@@ -25,7 +25,7 @@
   "exports": {
     "./runtime": "./index.js",
     "./runtime.css": "./style.css",
-    "./object": "./object.js",
+    "./object": "./object.ts",
     "./web/face": "./web/face.js",
     "./web/visual": "./web/visual.js",
     "./faces": "./web/faces.js",

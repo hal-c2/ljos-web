@@ -1,7 +1,7 @@
 // ItemParticle: an item for each particle of its groups, made from the
 // delegate when the particle is emitted, moved with it, and destroyed when
 // it is gone.
-import { defineType, effect, instantiate, QtObject, slot } from "../../object.js";
+import { defineType, effect, instantiate, QtObject, slot } from "../../object.ts";
 import { between } from "./geometry.js";
 import { ParticlePainter } from "./painter.js";
 import { heard, LIFE, position, STRIDE, T, X, Y } from "./system.js";

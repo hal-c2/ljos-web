@@ -5,7 +5,7 @@
 // What runs on it is a job: `advance(delta)` moves it on by that many
 // milliseconds, `idle()` says how long it only has to wait (0: it needs
 // every frame). What a frame wrote is settled once, when all have run.
-import { flush } from "../../object.js";
+import { flush } from "../../object.ts";
 
 const jobs = new Set();
 // When the jobs were last advanced, and what is pending to do it again.

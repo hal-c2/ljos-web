@@ -2,7 +2,7 @@
 // 45, 0)`), which the `quaternion` value has no way to say of itself. There
 // is one of it, and it is read through its type.
 import { singleton } from "../QtQml/application.js";
-import { defineType, QtObject } from "../object.js";
+import { defineType, QtObject } from "../object.ts";
 import * as math from "./math.js";
 
 const RADIANS = Math.PI / 180;

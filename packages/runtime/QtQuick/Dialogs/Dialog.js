@@ -6,7 +6,7 @@
 // order that a dialog closed and how it ended, and a handler finds the
 // dialog as it is at that point.
 import { onCleanup } from "solid-js";
-import { contents, defineType, effect, QtObject, settle } from "../../object.js";
+import { contents, defineType, effect, QtObject, settle } from "../../object.ts";
 import { signal, untrack } from "#kernel";
 
 const REJECTED = 0;

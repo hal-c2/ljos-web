@@ -4,7 +4,7 @@
 // where Qt has it at every moment. The rest of the module is QML, and Qt's
 // own files.
 import { onCleanup } from "solid-js";
-import { defineType, effect } from "../../../../object.js";
+import { defineType, effect } from "../../../../object.ts";
 import { clock } from "../../../animation/clock.js";
 import { curve } from "../../../animation/easing.js";
 import { colorValue, css } from "../../../color.js";

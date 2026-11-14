@@ -1,6 +1,6 @@
 // ItemGroup: items one over the other, each as big as the group, which is
 // as big as the biggest of them wants to be.
-import { defineType, derived, effect, slot } from "../../../object.js";
+import { defineType, derived, effect, slot } from "../../../object.ts";
 import { Item } from "../../Item.js";
 
 const most = (name) => derived((self) => self.children.reduce((size, child) => Math.max(size, child[name]), 0));

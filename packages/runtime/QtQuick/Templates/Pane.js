@@ -1,6 +1,6 @@
 // Pane, and what is one with something added: Frame, GroupBox, Page and
 // ToolBar. What is declared in a pane is in its content item.
-import { contents, defineType, derived, effect, inside, slot, whenComplete } from "../../object.js";
+import { contents, defineType, derived, effect, inside, slot, whenComplete } from "../../object.ts";
 import { parts } from "./parts.js";
 import { Item } from "../Item.js";
 import { Control, keeps } from "./Control.js";

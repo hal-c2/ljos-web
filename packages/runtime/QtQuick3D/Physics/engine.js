@@ -10,7 +10,7 @@
 // Not here: more than one thread. The engine runs on the page's own.
 import glue from "physx-js-webidl/physx-js-webidl.mjs?url";
 import wasm from "physx-js-webidl/physx-js-webidl.wasm?url";
-import { awaited } from "../../object.js";
+import { awaited } from "../../object.ts";
 
 let PhysX = null;
 let loading = null;

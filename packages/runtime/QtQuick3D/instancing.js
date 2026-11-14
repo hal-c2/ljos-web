@@ -12,7 +12,7 @@
 //
 // Not here: the bounds a table gives its shadows, and the `.bin` file Qt
 // reads instead of an XML one that has one beside it, which says the same.
-import { defineType, derived, effect, located } from "../object.js";
+import { defineType, derived, effect, located } from "../object.ts";
 import { Quaternion, Vector3d, Vector4d } from "../QtQml/values.js";
 import { color, colorValue, rgba } from "../QtQuick/color.js";
 import * as math from "./math.js";

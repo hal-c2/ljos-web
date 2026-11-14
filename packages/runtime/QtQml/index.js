@@ -1,5 +1,5 @@
 // `import QtQml`, and what QML puts in every file's scope without an import.
-export { QtObject } from "../object.js";
+export { QtObject } from "../object.ts";
 export { Timer } from "../QtQuick/animation/Timer.js";
 export { Binding } from "../QtQuick/Binding.js";
 export { Connections } from "../QtQuick/Connections.js";

@@ -7,7 +7,7 @@
 // particle's row so that it goes on from where it is with another velocity
 // or acceleration.
 import { sourced } from "../../guard.js";
-import { defineType, derived, effect } from "../../object.js";
+import { defineType, derived, effect } from "../../object.ts";
 import { Item } from "../Item.js";
 import { between } from "./geometry.js";
 import { Particle } from "./particle.js";

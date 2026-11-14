@@ -24,7 +24,7 @@
 import { allowedStyle, allowedUrl } from "../../guard.js";
 import { onCleanup } from "solid-js";
 import { Rect } from "../../QtQml/values.js";
-import { defineType, derived, effect, slot } from "../../object.js";
+import { defineType, derived, effect, slot } from "../../object.ts";
 import { colorValue } from "../color.js";
 import { rules } from "../compute.js";
 import { Item } from "../Item.js";

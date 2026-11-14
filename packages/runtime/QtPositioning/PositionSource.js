@@ -5,7 +5,7 @@
 // `updateInterval` is how old the one it gives may be. What it knows nothing
 // of (how fast the device climbs, where the compass points) is never valid.
 import { onCleanup } from "solid-js";
-import { defineType, derived, QtObject, settle, slot, whenComplete } from "../object.js";
+import { defineType, derived, QtObject, settle, slot, whenComplete } from "../object.ts";
 import { coordinate, INVALID } from "./coordinate.js";
 import { untrack } from "#kernel";
 

@@ -2,7 +2,7 @@
 //
 // Of the shapes Qt has (rectangles, circles, paths, polygons) there are
 // none here, nor addresses and satellites.
-import { defineType, QtObject } from "../object.js";
+import { defineType, QtObject } from "../object.ts";
 import { coordinate, fromMercator, INVALID, toMercator } from "./coordinate.js";
 
 export { Position, PositionSource } from "./PositionSource.js";

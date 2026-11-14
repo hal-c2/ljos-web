@@ -2,7 +2,7 @@
 // OpenGL ES 3.0, and shaders are handed over as Qt bakes them: so `api` is
 // OpenGL as it is where Qt draws with that, and a program that asks which
 // way up a picture comes is answered as it is there.
-import { defineType, QtObject } from "../object.js";
+import { defineType, QtObject } from "../object.ts";
 
 const OpenGL = 3;
 const RhiShader = 3;

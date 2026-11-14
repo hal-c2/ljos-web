@@ -8,7 +8,7 @@
 // itself: the row is, as in Qt, and passes the press on to what is under the
 // pointer once it is open.
 import { onCleanup } from "solid-js";
-import { defineType, effect, group, instantiate, onChange, QtObject, settle, signal, slot } from "../../object.js";
+import { defineType, effect, group, instantiate, onChange, QtObject, settle, signal, slot } from "../../object.ts";
 import { styleHints } from "../../QtQml/application.js";
 import { Property } from "../animation/property.js";
 import { CancelGrabExclusive, takeExclusive } from "../pointer.js";

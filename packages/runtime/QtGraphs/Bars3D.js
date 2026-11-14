@@ -7,7 +7,7 @@
 // Not here: the other shapes a bar can be drawn as (`mesh`: Qt's own has
 // its edges cut, and this one has not), turning each (`meshAngle`), and
 // what is selected.
-import { defineType, group, inside, settle, slot } from "../object.js";
+import { defineType, group, inside, settle, slot } from "../object.ts";
 import { kept } from "../QtQuick3D/Node.js";
 import { linear } from "../QtQuick3D/scene.js";
 import { Category3DAxis, Value3DAxis } from "./axes3d.js";

@@ -3,7 +3,7 @@
 // and an animation of the same length end in the same frame, and a test
 // moves them with the same hand.
 import { createEffect, createMemo, createRenderEffect, onCleanup } from "solid-js";
-import { defineType, flush, QtObject, slot, whenComplete } from "../../object.js";
+import { defineType, flush, QtObject, slot, whenComplete } from "../../object.ts";
 import { follow } from "./Animation.js";
 import { clock, drain } from "./clock.js";
 import { PauseJob } from "./jobs.js";

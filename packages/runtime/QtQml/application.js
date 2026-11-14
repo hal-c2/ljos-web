@@ -2,7 +2,7 @@
 // `Qt.application`), its style hints and the input method. On the web the
 // program is the page, so these read the document and the browser.
 import { createRoot, onCleanup, runWithOwner } from "solid-js";
-import { defineType, derived, flush, inside, QtObject, slot } from "../object.js";
+import { defineType, derived, flush, inside, QtObject, slot } from "../object.ts";
 import { locale } from "./locale.js";
 import { enums } from "./namespace.js";
 import { Rect } from "./values.js";

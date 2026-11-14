@@ -1,6 +1,6 @@
 // QML's XMLHttpRequest: the browser's, asked as a QML program asks it.
 import { allowedUrl, whyNot } from "../guard.js";
-import { located } from "../object.js";
+import { located } from "../object.ts";
 
 // Headers a program may not set, which Qt drops without a word. A browser
 // drops them too, and a few more, but says so aloud each time.

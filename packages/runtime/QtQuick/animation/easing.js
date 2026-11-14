@@ -1,7 +1,7 @@
 // Qt's easing curves: `easing.type: Easing.OutBounce` and the rest. The
 // functions are Robert Penner's, with the constants Qt gives them, so that an
 // animation is where Qt's would be at every frame.
-import { defineType } from "../../object.js";
+import { defineType } from "../../object.ts";
 
 const NAMES = [
   "Linear",

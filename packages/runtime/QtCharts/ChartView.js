@@ -6,7 +6,7 @@
 // what their labels need of what is left, and the series the rest. An
 // effect each draws them again when something they are drawn from changes.
 import { runWithOwner } from "solid-js";
-import { defineType, derived, effect, group, onChange, QtObject, slot, whenComplete } from "../object.js";
+import { defineType, derived, effect, group, onChange, QtObject, slot, whenComplete } from "../object.ts";
 import { colorValue, css } from "../QtQuick/color.js";
 import { lazy, rules } from "../QtQuick/compute.js";
 import { describe, fonts, metrics } from "../QtQuick/font.js";

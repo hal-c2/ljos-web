@@ -9,7 +9,7 @@
 // A Window is not an item. Its items are the children of its `contentItem`,
 // which is what `parent` is for them (as in Qt).
 import { onCleanup, runWithOwner } from "solid-js";
-import { $string, contents, defineType, derived, effect, flush, inside, onChange, QtObject, slot } from "../object.js";
+import { $string, contents, defineType, derived, effect, flush, inside, onChange, QtObject, slot } from "../object.ts";
 import { application, listen, singleton } from "../QtQml/application.js";
 import { enums } from "../QtQml/namespace.js";
 import { allowedStyle } from "../guard.js";

@@ -1,6 +1,6 @@
 // TextField: a line of text to edit, as a style dresses it: with a
 // background, and a placeholder where there is no text yet.
-import { defineType } from "../../object.js";
+import { defineType } from "../../object.ts";
 import { advance, capitalized, metrics } from "../font.js";
 import { TextInput } from "../TextInput.js";
 import { methods, properties, resolve, setup, signals } from "./field.js";

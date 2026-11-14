@@ -1,7 +1,7 @@
 // GraphsTheme: the colours, widths and fonts a graph is drawn with. Each is
 // what the colour scheme and the theme say until it is given, and the
 // numbers are the ones Qt's own theme reads as.
-import { alone, defineType, derived, group, QtObject } from "../object.js";
+import { alone, defineType, derived, group, QtObject } from "../object.ts";
 import { fontNamed } from "../QtCharts/plot.js";
 import { styleHints } from "../QtQml/application.js";
 import { color, colorValue } from "../QtQuick/color.js";

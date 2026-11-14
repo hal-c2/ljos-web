@@ -5,7 +5,7 @@
 // the drag threshold, and from then on says how far, how much turned and
 // where the middle is. Fingers on what is inside the area count too.
 import { onCleanup } from "solid-js";
-import { defineType, group, settle, slot } from "../object.js";
+import { defineType, group, settle, slot } from "../object.ts";
 import { itemToScene, sceneToItem } from "./geometry.js";
 import { Item } from "./Item.js";
 import { CancelGrabExclusive, CancelGrabPassive, gather, gone, receive, takeExclusive } from "./pointer.js";

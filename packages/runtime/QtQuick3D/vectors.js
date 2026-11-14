@@ -5,7 +5,7 @@
 //
 // Assigning the vector assigns its members, whatever they were bound to,
 // as in Qt.
-import { settle, slot } from "../object.js";
+import { settle, slot } from "../object.ts";
 import { Vector3d } from "../QtQml/values.js";
 
 const AXES = ["x", "y", "z"];

@@ -14,7 +14,7 @@
 // mass 1, which is what one pushed in `Component.onCompleted` is when it
 // goes by the world's density.
 import { onCleanup } from "solid-js";
-import { defineType, derived, effect, inside as within, QtObject, settle, slot } from "../../object.js";
+import { defineType, derived, effect, inside as within, QtObject, settle, slot } from "../../object.ts";
 import { Vector3d } from "../../QtQml/values.js";
 import * as math from "../math.js";
 import { Node } from "../Node.js";

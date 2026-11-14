@@ -2,7 +2,7 @@
 //
 // It is an item over the whole map, and its delegates' items are in it.
 import { onCleanup } from "solid-js";
-import { defineType, derived, effect } from "../object.js";
+import { defineType, derived, effect } from "../object.ts";
 import { lazy } from "../QtQuick/compute.js";
 import { Item } from "../QtQuick/Item.js";
 import { delegateOf, modelOf, Rows, size } from "../QtQuick/model.js";

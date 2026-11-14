@@ -3,7 +3,7 @@
 // the browser's to give.
 import { onCleanup } from "solid-js";
 import { mayKeep } from "../guard.js";
-import { defineType, onChange, QtObject, settle, slot, whenComplete } from "../object.js";
+import { defineType, onChange, QtObject, settle, slot, whenComplete } from "../object.ts";
 import { application } from "../QtQml/application.js";
 import { Color, color } from "../QtQuick/color.js";
 import { untrack } from "#kernel";

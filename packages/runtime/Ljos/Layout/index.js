@@ -24,7 +24,7 @@
 // of their own. `Flow` is `QtQuick`'s positioner as it is, `Layout` the
 // layouts' attached type, and `Pages` a face of `StackLayout`: it shows
 // one child at a time, and arranges none.
-import { defineType, derived, slot } from "../../object.js";
+import { defineType, derived, slot } from "../../object.ts";
 import { mirrored } from "../../QtQuick/LayoutMirroring.js";
 import { Layout, StackLayout } from "../../QtQuick/Layouts/index.js";
 import { given, shown } from "../../QtQuick/placing.js";

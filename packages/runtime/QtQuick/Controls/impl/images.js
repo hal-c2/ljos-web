@@ -1,7 +1,7 @@
 // ColorImage, IconImage: a picture painted in one colour, as a style's
 // indicators and a button's icon are.
 import { allowedUrl } from "../../../guard.js";
-import { defineType, derived, effect } from "../../../object.js";
+import { defineType, derived, effect } from "../../../object.ts";
 import { colorValue, equal } from "../../color.js";
 import { rules } from "../../compute.js";
 import { drawn, geometry, Image } from "../../Image.js";

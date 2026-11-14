@@ -4,7 +4,7 @@
 // large as its `sourceItem`, which it keeps in an item of its own: that one
 // fades the item in as the map zooms in and, for an item of a zoom level
 // (`zoomLevel`), is enlarged and turned with the map.
-import { defineType, effect, group, inside, settle, slot } from "../object.js";
+import { defineType, effect, group, inside, settle, slot } from "../object.ts";
 import { INVALID } from "../QtPositioning/coordinate.js";
 import { Item } from "../QtQuick/Item.js";
 import { across, down, Map } from "./Map.js";

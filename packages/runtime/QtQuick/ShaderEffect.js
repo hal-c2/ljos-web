@@ -16,7 +16,7 @@
 // false`, and a texture that follows a Canvas as it is painted.
 import { guardedFetch, sourced } from "../guard.js";
 import { onCleanup } from "solid-js";
-import { defineType, effect, flush, located, QtObject, slot } from "../object.js";
+import { defineType, effect, flush, located, QtObject, slot } from "../object.ts";
 import { Size } from "../QtQml/values.js";
 import { Color, color } from "./color.js";
 import { heldShader } from "./baked.js";

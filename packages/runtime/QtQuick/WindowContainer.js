@@ -5,7 +5,7 @@
 // C++. Here it is a Window of this runtime: its element goes inside the
 // item's.
 import { onCleanup } from "solid-js";
-import { defineType, effect, slot } from "../object.js";
+import { defineType, effect, slot } from "../object.ts";
 import { Item } from "./Item.js";
 import { untrack } from "#kernel";
 

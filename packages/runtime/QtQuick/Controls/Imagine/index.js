@@ -3,7 +3,7 @@
 // are, for an object and everything in it. The colours are what Qt 6.11
 // answers with the style, read from `qml6` (`qquickimaginetheme.cpp` sets
 // some of them over Qt's own).
-import { defineType, derived, QtObject } from "../../../object.js";
+import { defineType, derived, QtObject } from "../../../object.ts";
 import { lazy } from "../../compute.js";
 import { colours } from "../../Palette.js";
 import { themed } from "../../Templates/theme.js";

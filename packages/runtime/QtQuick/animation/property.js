@@ -9,7 +9,7 @@
 // A property a component declares (`property real progress`) is an accessor
 // on its object and no more: it can be read and assigned to, which is how it
 // is animated.
-import { slot as slotOf } from "../../object.js";
+import { slot as slotOf } from "../../object.ts";
 import { css } from "../color.js";
 import { untrack } from "#kernel";
 

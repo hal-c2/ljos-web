@@ -2,7 +2,7 @@
 // right button or the menu key. It is attached to the item, and its menu is
 // made when first asked for: a style gives every field one.
 import { onCleanup } from "solid-js";
-import { defineType, QtObject, settle } from "../../object.js";
+import { defineType, QtObject, settle } from "../../object.ts";
 import { Point } from "../../QtQml/values.js";
 import { globalToScene, sceneToItem } from "../geometry.js";
 import { untrack } from "#kernel";

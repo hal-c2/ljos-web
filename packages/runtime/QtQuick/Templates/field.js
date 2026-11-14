@@ -4,7 +4,7 @@
 // the reason they have focus.
 import { onCleanup } from "solid-js";
 import { described } from "../Accessible.js";
-import { derived, effect, settle } from "../../object.js";
+import { derived, effect, settle } from "../../object.ts";
 import { parts } from "./parts.js";
 import { styleHints } from "../../QtQml/application.js";
 import { PauseJob } from "../animation/jobs.js";

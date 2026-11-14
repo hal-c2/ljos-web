@@ -1,5 +1,5 @@
 // Which way a particle sets off, and how fast: an emitter's `velocity`.
-import { defineType, group, QtObject } from "../../object.js";
+import { defineType, group, QtObject } from "../../object.ts";
 import { MAGNITUDE, spread, TARGET, three, vectors, VELOCITY } from "./core.js";
 
 export const Direction3D = defineType("Direction3D", QtObject, {});

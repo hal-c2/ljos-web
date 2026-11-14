@@ -1,7 +1,7 @@
 // Action: something a program does, whatever is used to do it: a button, a
 // menu item, a key. ActionGroup: actions of which one is checked at a time.
 import { onCleanup } from "solid-js";
-import { contents, defineType, effect, group, inside, QtObject, settle, slot, whenComplete } from "../../object.js";
+import { contents, defineType, effect, group, inside, QtObject, settle, slot, whenComplete } from "../../object.ts";
 import { colorValue } from "../color.js";
 import { Shortcut } from "../Keys.js";
 import { untrack } from "#kernel";

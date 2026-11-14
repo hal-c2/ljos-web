@@ -1,7 +1,7 @@
 // RangeSlider: two values between `from` and `to`, each with a handle on
 // the same groove. `first` and `second` are objects with what a slider has
 // for its one handle; the first never passes the second.
-import { defineType, derived, effect, QtObject, settle, slot } from "../../object.js";
+import { defineType, derived, effect, QtObject, settle, slot } from "../../object.ts";
 import { parts } from "./parts.js";
 import { forceActiveFocus, MouseFocusReason, windowOf } from "../focus.js";
 import { Key, LeftButton } from "../keycodes.js";

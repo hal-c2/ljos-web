@@ -1,6 +1,6 @@
 // CheckLabel, MnemonicLabel, ClippedText, PlaceholderText: the texts a
 // style's controls are written with.
-import { defineType, effect, slot } from "../../../object.js";
+import { defineType, effect, slot } from "../../../object.ts";
 import { lazy, rules } from "../../compute.js";
 import { capitalized } from "../../font.js";
 import { mightBeRichText } from "../../richtext.js";

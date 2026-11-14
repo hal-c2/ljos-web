@@ -11,7 +11,7 @@
 // the mapping's own. A build that draws the same draws nothing; one that
 // draws differently is drawn once it settles. Nothing here runs otherwise.
 import { createRenderEffect, createRoot, getOwner, runWithOwner } from "solid-js";
-import { flush, located, slot, effect } from "../object.js";
+import { flush, located, slot, effect } from "../object.ts";
 import { color } from "../QtQuick/color.js";
 import { guardedFetch } from "../guard.js";
 import { signal, untrack } from "#kernel";

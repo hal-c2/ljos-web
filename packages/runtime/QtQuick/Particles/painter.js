@@ -1,7 +1,7 @@
 // What shows a system's particles: an ImageParticle paints a picture for
 // each, an ItemParticle moves an item with each. A painter shows the groups
 // it names, or the one without a name.
-import { defineType } from "../../object.js";
+import { defineType } from "../../object.ts";
 import { Item } from "../Item.js";
 import { belongs, found, names } from "./system.js";
 

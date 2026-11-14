@@ -16,7 +16,7 @@
 // a Behavior, a state or an animation that names `fill` moves what
 // `color` reads. The dialect's font size, `font.size`, is a second name
 // for `pixelSize` on every font (`QtQuick/font.js`), as natively.
-import { defineType, derived, QtObject, slot } from "../../object.js";
+import { defineType, derived, QtObject, slot } from "../../object.ts";
 import { destroying, hostOf, live } from "../Core/controller.js";
 import { Accessible } from "../../QtQuick/Accessible.js";
 import { Animation, ParallelAnimation, PauseAnimation, ScriptAction, SequentialAnimation } from "../../QtQuick/animation/Animation.js";

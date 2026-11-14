@@ -2,7 +2,7 @@
 // fonts of its controls, and `Material`: the theme and the colours an object
 // has, its own or those of what it is in, and every colour and measure the
 // style's QML asks for. The numbers are Qt's (`qquickmaterialstyle.cpp`).
-import { defineType, derived, QtObject } from "../../../object.js";
+import { defineType, derived, QtObject } from "../../../object.ts";
 import { color as colour, hsla, rgba } from "../../color.js";
 import { lazy } from "../../compute.js";
 import { themed } from "../../Templates/theme.js";

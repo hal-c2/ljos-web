@@ -1,7 +1,7 @@
 // ApplicationWindow: a window with a background, a menu bar and a header
 // over what is in it and a footer under, and the font and colours of the
 // style for the controls in it.
-import { contents, defineType, derived, effect, inside, QtObject, slot } from "../../object.js";
+import { contents, defineType, derived, effect, inside, QtObject, slot } from "../../object.ts";
 import { parts } from "./parts.js";
 import { locale } from "../../QtQml/locale.js";
 import { Item } from "../Item.js";

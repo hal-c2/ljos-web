@@ -26,7 +26,7 @@
 // - Qt reads the file at once; here it is fetched, and until it is there the
 //   VectorImage is what it was before.
 import { guardedFetch, sourced } from "../../guard.js";
-import { defineType, derived, effect, group, inside, located } from "../../object.js";
+import { defineType, derived, effect, group, inside, located } from "../../object.ts";
 import { lazy, rules } from "../compute.js";
 import { measured, picture, shared } from "../Image.js";
 import { Item } from "../Item.js";

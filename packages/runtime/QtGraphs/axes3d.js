@@ -2,7 +2,7 @@
 // Category3DAxis names the rows or the columns of bars. An axis says what
 // its range and its labels are; the graph it is in draws them, and tells an
 // axis that follows the data what the data is.
-import { defineType, derived, inside, QtObject, settle, slot } from "../object.js";
+import { defineType, derived, inside, QtObject, settle, slot } from "../object.ts";
 import { untrack } from "#kernel";
 
 const next = (version) => version + 1;

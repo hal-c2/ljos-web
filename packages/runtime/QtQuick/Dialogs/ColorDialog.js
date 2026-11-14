@@ -6,7 +6,7 @@
 // picker is closed on the colour it opened with: the dialog learns of that
 // from the user's next press on the page, which the picker was over.
 import { onCleanup } from "solid-js";
-import { defineType, effect, settle, slot } from "../../object.js";
+import { defineType, effect, settle, slot } from "../../object.ts";
 import { atNextGesture } from "../activation.js";
 import { colorValue } from "../color.js";
 import { Dialog } from "./Dialog.js";

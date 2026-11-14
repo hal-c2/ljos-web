@@ -7,7 +7,7 @@
 // What is current is said by an index or by a value, whichever was given
 // last: the other follows it.
 import { onCleanup, runWithOwner } from "solid-js";
-import { $component, defineType, derived, effect, settle, slot } from "../../object.js";
+import { $component, defineType, derived, effect, settle, slot } from "../../object.ts";
 import { parts } from "./parts.js";
 import { DelegateModel } from "../DelegateModel.js";
 import { BacktabFocusReason, forceActiveFocus, MouseFocusReason, setFocus, TabFocusReason, windowOf } from "../focus.js";

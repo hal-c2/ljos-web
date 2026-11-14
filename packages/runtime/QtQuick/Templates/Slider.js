@@ -1,7 +1,7 @@
 // Slider: a value between `from` and `to`, chosen by dragging a handle
 // along a groove, by the arrow keys or by the wheel. `position` is where the
 // handle is, from 0 to 1: a style puts the handle there.
-import { defineType, derived, effect, settle, slot } from "../../object.js";
+import { defineType, derived, effect, settle, slot } from "../../object.ts";
 import { parts } from "./parts.js";
 import { styleHints } from "../../QtQml/application.js";
 import { Key, LeftButton } from "../keycodes.js";

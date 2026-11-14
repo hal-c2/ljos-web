@@ -7,7 +7,7 @@
 // change says only what differs, so the delegates of the rows that stayed
 // are kept; JSON it cannot use leaves the rows as they were and says why.
 import { getOwner, onCleanup, runWithOwner } from "solid-js";
-import { defineType, onChange, settle, slot, whenCompleted } from "../../object.js";
+import { defineType, onChange, settle, slot, whenCompleted } from "../../object.ts";
 import { AbstractListModel, modelIndex, track, touch } from "../../QtQuick/model.js";
 import { read as readFile, watch } from "../../files.js";
 import { untrack } from "#kernel";

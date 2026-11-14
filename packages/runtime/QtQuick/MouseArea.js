@@ -4,7 +4,7 @@
 // order Qt does it (`qquickmousearea.cpp`); who they are sent to is decided
 // in pointer.js.
 import { onCleanup } from "solid-js";
-import { defineType, derived, effect, gather, group, onChange, settle, signal, slot } from "../object.js";
+import { defineType, derived, effect, gather, group, onChange, settle, signal, slot } from "../object.ts";
 import { itemToScene, sceneToItem } from "./geometry.js";
 import { Item } from "./Item.js";
 import { LeftButton, NoButton } from "./keycodes.js";

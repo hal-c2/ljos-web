@@ -10,7 +10,7 @@
 // a folder has nothing in it, but for the one folder a browser does let a
 // page look in: one the user picked in a FolderDialog.
 import { onCleanup } from "solid-js";
-import { defineType, derived, effect, settle, slot } from "../../../object.js";
+import { defineType, derived, effect, settle, slot } from "../../../object.ts";
 import { filesIn, pickedFile, pickedFolder } from "../../../QtQuick/Dialogs/files.js";
 import { ready } from "../../../QtQuick/Image.js";
 import { AbstractListModel, reset } from "../../../QtQuick/model.js";

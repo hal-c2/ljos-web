@@ -1,6 +1,6 @@
 // SwipeView: a container whose items are pages, each as big as the view,
 // one beside the next. The style's ListView is what is swiped.
-import { defineType, derived, effect, QtObject, slot } from "../../object.js";
+import { defineType, derived, effect, QtObject, slot } from "../../object.ts";
 import { reachable } from "../focus.js";
 import { containerOf, Container, indexOf } from "./Container.js";
 import { untrack } from "#kernel";

@@ -6,7 +6,7 @@
 // like to be (`implicitContentWidth`, `implicitBackgroundWidth`): a style
 // computes `implicitWidth` from those.
 import { onCleanup } from "solid-js";
-import { defineType, derived, effect, settle, slot } from "../../object.js";
+import { defineType, derived, effect, settle, slot } from "../../object.ts";
 import { parts } from "./parts.js";
 import { locale } from "../../QtQml/locale.js";
 import { styleHints } from "../../QtQml/application.js";

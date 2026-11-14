@@ -1,5 +1,5 @@
 // `import QtQuick`.
-export { QtObject } from "../object.js";
+export { QtObject } from "../object.ts";
 // QtQuick brings QtQml with it.
 export { Component } from "../QtQml/Component.js";
 export { Locale } from "../QtQml/locale.js";

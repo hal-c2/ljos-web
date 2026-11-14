@@ -1,5 +1,5 @@
 // What several types ask of an object beyond its properties.
-import { looped, slot } from "../object.js";
+import { looped, slot } from "../object.ts";
 
 // A value computed from the object's properties when first asked for, and
 // again only when one of them changes: a text's layout, an image's size.

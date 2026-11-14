@@ -12,7 +12,7 @@
 // Views that follow another through `syncView` are updated after it, from
 // the one none of them follows: its columns and their widths are theirs.
 import { onCleanup } from "solid-js";
-import { defineType, derived, effect, flush, flushing, instantiate, memo, QtObject, settle, slot } from "../object.js";
+import { defineType, derived, effect, flush, flushing, instantiate, memo, QtObject, settle, slot } from "../object.ts";
 import { Point } from "../QtQml/values.js";
 import { changed, depend, make, resized, SAME, Table } from "./cells.js";
 import { Flickable } from "./Flickable.js";

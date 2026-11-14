@@ -21,7 +21,7 @@
 //
 // Nothing here knows of a build tool: the Vite plugin calls `$reloaded` on a
 // save, and a page that compiles QML itself calls `reload`.
-import { $hot, flush, made, mounted, slot } from "./object.js";
+import { $hot, flush, made, mounted, slot } from "./object.ts";
 import { keepTheme } from "./theme.js";
 
 // What `reload` gave up on: the new component, made, threw.

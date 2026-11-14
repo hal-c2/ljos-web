@@ -1,7 +1,7 @@
 // Prerendering: a component made where there is no browser, written
 // out as the HTML a page is served with, for the page to be read
 // before (or without) its script and taken over by it when it runs
-// (`hydrate`, in `./object.js`).
+// (`hydrate`, in `./object.ts`).
 //
 // The compiled QML is the same on both sides — `qmlc`'s output names
 // no DOM, only components over this runtime — so a prerender runs the
@@ -22,7 +22,7 @@
 //   const html = await renderToString(Entry);
 //
 // and puts `html` in the element its page hydrates.
-import { flush, mount } from "./object.js";
+import { flush, mount } from "./object.ts";
 import { installPrerenderGlobals, renumber, serialize } from "./server/dom.js";
 
 export { installPrerenderGlobals };

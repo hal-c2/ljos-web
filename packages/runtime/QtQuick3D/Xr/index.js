@@ -11,7 +11,7 @@
 // anchors, passthrough, and `rayPick`, which finds what View3D's `pick`
 // finds: nothing.
 import { onCleanup } from "solid-js";
-import { defineType, derived, effect, flush, inside as within, QtObject, slot } from "../../object.js";
+import { defineType, derived, effect, flush, inside as within, QtObject, slot } from "../../object.ts";
 import * as math from "../math.js";
 import { inside, Node } from "../Node.js";
 import { Camera, Model } from "../scene.js";

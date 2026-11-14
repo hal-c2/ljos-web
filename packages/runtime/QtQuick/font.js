@@ -1,7 +1,7 @@
 // Fonts: QML's `font` group as CSS, and how wide and how tall text set in
 // one is. Text is measured here, on a canvas, and not by laying out
 // elements: a binding reads `implicitWidth` before anything is in the page.
-import { alone, derived, flush, group, kinds, typed } from "../object.js";
+import { alone, derived, flush, group, kinds, typed } from "../object.ts";
 import { given } from "./compute.js";
 import { signal } from "#kernel";
 

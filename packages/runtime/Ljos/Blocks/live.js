@@ -14,7 +14,7 @@
 // name; Reset forgets it and reloads the page, as nothing less takes all the
 // shell handed the blocks off the page (`guard.js`). `publish`, when the site gives one, is told the
 // shell and what it uses: where it goes is the site's to say.
-import { mount, settle } from "../../object.js";
+import { mount, settle } from "../../object.ts";
 import { reload } from "../../reload.js";
 import { zoneShows } from "../../guard.js";
 

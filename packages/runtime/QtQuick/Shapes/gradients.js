@@ -4,7 +4,7 @@
 // The first two are SVG's own, in the coordinates of the path. SVG has no
 // conical gradient and CSS has, so a path filled with one shows a box with
 // that background through its own outline (`Shape.js`).
-import { defineType, effect } from "../../object.js";
+import { defineType, effect } from "../../object.ts";
 import { css } from "../color.js";
 import { Gradient } from "../Rectangle.js";
 

@@ -2,7 +2,7 @@
 // What it does is what Qt Quick 3D's Repeater3D does with nodes, so both are
 // made here.
 import { signal, untrack } from "#kernel";
-import { defineType, effect, slot } from "../object.js";
+import { defineType, effect, slot } from "../object.ts";
 import { Item } from "./Item.js";
 import { delegateOf, modelOf, Rows, size } from "./model.js";
 

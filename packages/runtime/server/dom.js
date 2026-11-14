@@ -15,7 +15,7 @@
 // below). The two are its hydration key: the client, making the same
 // page again in the same order, takes the element of that number and
 // type out of the prerendered HTML instead of making another
-// (`hydrate` in `../object.js`) — the type because most elements are
+// (`hydrate` in `../object.ts`) — the type because most elements are
 // <div>s, and a count alone cannot tell a shifted one from its own.
 
 const VOID = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"]);
@@ -24,7 +24,7 @@ const VOID = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input"
 const BLOCKS = new Set(["address", "blockquote", "caption", "dd", "div", "dl", "dt", "h1", "h2", "h3", "h4", "h5", "h6", "li", "ol", "p", "pre", "table", "tr", "ul"]);
 const XHTML = "http://www.w3.org/1999/xhtml";
 // Where the runtime says what type it is making, while it makes it
-// (`object.js`): read here as an element is made.
+// (`object.ts`): read here as an element is made.
 const MAKING_KIND = Symbol.for("ljos-web.making-kind");
 const kindNow = () => globalThis[MAKING_KIND] ?? "";
 

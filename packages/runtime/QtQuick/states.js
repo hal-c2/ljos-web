@@ -7,7 +7,7 @@
 // a Behavior, and reads as what the transition's animations show until they
 // are done.
 import { createEffect, createMemo, createRoot, runWithOwner } from "solid-js";
-import { bound, contents, defineType, flush, group, QtObject, replace, slot, whenComplete } from "../object.js";
+import { bound, contents, defineType, flush, group, QtObject, replace, slot, whenComplete } from "../object.ts";
 import { follow, parallel } from "./animation/Animation.js";
 import { drain, later } from "./animation/clock.js";
 import { display, Property } from "./animation/property.js";

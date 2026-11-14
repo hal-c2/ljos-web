@@ -6,7 +6,7 @@
 // the popup is open and nowhere otherwise. Most of what a popup is asked, its
 // size, its padding, its font, is that item's, and is kept there.
 import { onCleanup, runWithOwner } from "solid-js";
-import { defineType, derived, effect, group, inside, instantiate, last, QtObject, settle, signal, slot, whenComplete } from "../../object.js";
+import { defineType, derived, effect, group, inside, instantiate, last, QtObject, settle, signal, slot, whenComplete } from "../../object.ts";
 import { STOPPED } from "../animation/jobs.js";
 import { Property } from "../animation/property.js";
 import {

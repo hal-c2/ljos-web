@@ -407,7 +407,7 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
       resolve: {
         alias: {
           "ljos-site:entry": join(dir, manifest.entry),
-          "ljos-site:object": join(runtime, "object.js"),
+          "ljos-site:object": join(runtime, "object.ts"),
           "ljos-site:server": join(runtime, "server.js"),
           "ljos-site:css": join(runtime, "style.css"),
           ...Object.fromEntries(css.map((path, at) => [`ljos-site:sheet-${at}`, resolve(path)])),

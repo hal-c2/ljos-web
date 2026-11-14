@@ -8,7 +8,7 @@
 // of two to the other along a curve, and round the sun the sun's colour is
 // laid over the sky's, less the further from it. It is a map of everything
 // round a place, twice as wide as high, in linear light.
-import { defineType } from "../../object.js";
+import { defineType } from "../../object.ts";
 import { color } from "../../QtQuick/color.js";
 import { kept } from "../Node.js";
 import { Format, picture, TextureData } from "../TextureData.js";

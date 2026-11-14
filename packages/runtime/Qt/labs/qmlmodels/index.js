@@ -4,7 +4,7 @@
 // As in Qt (qqmltablemodel.cpp, qqmlabstractcolumnmodel.cpp): the roles a
 // column has, and the type of what each holds, are learnt from the first row
 // the model is given, and a row given later has to be like it.
-import { contents, defineType, effect, QtObject, slot, whenComplete } from "../../../object.js";
+import { contents, defineType, effect, QtObject, slot, whenComplete } from "../../../object.ts";
 import { modelIndex } from "../../../QtQuick/model.js";
 import { settle } from "../../../QtQuick/settle.js";
 import { signal, untrack } from "#kernel";

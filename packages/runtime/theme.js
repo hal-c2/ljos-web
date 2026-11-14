@@ -9,7 +9,7 @@
 //   setTheme(null)                        // the module's own roles again
 //   await applyTheme(text, { file, check }) // { ok: true } | { diagnostics }
 
-import { override, watchSingletons } from "./object.js";
+import { override, watchSingletons } from "./object.ts";
 
 const MODULE = "Ljos.Design";
 

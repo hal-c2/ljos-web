@@ -3,7 +3,7 @@
 // The file says what it is called; the browser is told that name, and the
 // weight and slant of the face, so that `font.bold` finds the bold file.
 import { guardedFetch } from "../guard.js";
-import { defineType, derived, effect, flush, located, QtObject } from "../object.js";
+import { defineType, derived, effect, flush, located, QtObject } from "../object.ts";
 import { lazy } from "./compute.js";
 import { fontsChanged } from "./font.js";
 import { signal } from "#kernel";

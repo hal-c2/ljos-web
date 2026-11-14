@@ -6,7 +6,7 @@
 //
 // This follows Qt's `QQuickStackView` step by step, down to the order its
 // signals come in: QML written for it leans on that.
-import { defineType, derived, effect, instantiate, QtObject, slot, whenComplete } from "../../object.js";
+import { defineType, derived, effect, instantiate, QtObject, slot, whenComplete } from "../../object.ts";
 import { Property } from "../animation/property.js";
 import { STOPPED } from "../animation/jobs.js";
 import { sized } from "../compute.js";

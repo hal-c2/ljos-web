@@ -1,7 +1,7 @@
 // What the types of the module share: the list of everything a particle
 // system may own, vectors a program binds member by member, and chance.
 import { onCleanup } from "solid-js";
-import { slot } from "../../object.js";
+import { slot } from "../../object.ts";
 import { Vector3d } from "../../QtQml/values.js";
 import * as math from "../math.js";
 import { signal } from "#kernel";

@@ -3,7 +3,7 @@
 // Its left anchors become right ones, a positioner or layout runs the other
 // way, and text asked to the left is set to the right. `childrenInherit`
 // says the same of everything inside the item that does not say otherwise.
-import { defineType, QtObject, slot } from "../object.js";
+import { defineType, QtObject, slot } from "../object.ts";
 import { lazy } from "./compute.js";
 import { signal } from "#kernel";
 

@@ -3,7 +3,7 @@
 // What the user picks reaches QML as URLs: a `blob:` one for a file, which
 // `Image.source` and `MediaPlayer.source` take, and one made up for a
 // folder, whose files `filesIn` lists (see files.js).
-import { defineType, derived, group, slot } from "../../object.js";
+import { defineType, derived, group, slot } from "../../object.ts";
 import { Dialog } from "./Dialog.js";
 import { fileUrl, folderUrl, pickedFolder } from "./files.js";
 import { picker } from "./picker.js";

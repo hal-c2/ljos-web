@@ -1,7 +1,7 @@
 // IntValidator, DoubleValidator, RegularExpressionValidator: what a
 // TextInput may hold. Each says of a string whether it is wrong (0), could
 // still become right (1) or is right (2), as Qt's `validate` does.
-import { defineType, QtObject } from "../object.js";
+import { defineType, QtObject } from "../object.ts";
 
 const INVALID = 0;
 const INTERMEDIATE = 1;

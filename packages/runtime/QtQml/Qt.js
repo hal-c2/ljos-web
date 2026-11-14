@@ -1,7 +1,7 @@
 // The `Qt` object every QML file can see, and the functions that are there
 // beside it: `qsTr`, `print`, `"%1".arg()`.
 import { allowedUrl } from "../guard.js";
-import { failed } from "../object.js";
+import { failed } from "../object.ts";
 import { color, equal, hsla, hsva, rgba } from "../QtQuick/color.js";
 import { application, font, inputMethod, styleHints } from "./application.js";
 import { formatDate, formatDateTimeOf, formatTime, locale } from "./locale.js";

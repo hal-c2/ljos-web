@@ -6,7 +6,7 @@
 // than the model's, are not done: every row is in `items`, in the model's
 // order, and in no other group.
 import { runWithOwner } from "solid-js";
-import { defineType, derived, QtObject } from "../object.js";
+import { defineType, derived, QtObject } from "../object.ts";
 import { modelIndex, modelOf, size } from "./model.js";
 import { untrack } from "#kernel";
 

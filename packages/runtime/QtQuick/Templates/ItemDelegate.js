@@ -1,6 +1,6 @@
 // The buttons that are rows of a view or of a menu: ItemDelegate and the
 // ones with a check box, a radio button or a switch in them.
-import { defineType } from "../../object.js";
+import { defineType } from "../../object.ts";
 import { AbstractButton } from "./AbstractButton.js";
 import { checking } from "./CheckBox.js";
 import { switching } from "./Switch.js";

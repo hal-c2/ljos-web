@@ -24,7 +24,7 @@
 //
 // Not here: `emitMode` and `depthBias` are kept and do nothing: a particle
 // sets off as `velocity` says whatever surface it starts on.
-import { defineType, derived, group, QtObject } from "../../object.js";
+import { defineType, derived, group, QtObject } from "../../object.ts";
 import { color } from "../../QtQuick/color.js";
 import * as math from "../math.js";
 import { Node } from "../Node.js";

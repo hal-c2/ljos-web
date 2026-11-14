@@ -1,7 +1,7 @@
 // PaddedRectangle: a rectangle painted inside its item, or beyond it where a
 // padding is negative: a style rounds two corners of four by letting the
 // other two fall outside what is clipped.
-import { defineType, derived, effect, slot } from "../../../object.js";
+import { defineType, derived, effect, slot } from "../../../object.ts";
 import { allowedStyle } from "../../../guard.js";
 import { css } from "../../color.js";
 import { rules } from "../../compute.js";

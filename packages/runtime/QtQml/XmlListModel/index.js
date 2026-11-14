@@ -2,7 +2,7 @@
 // document, fetched from where `source` says.
 import { guardedFetch } from "../../guard.js";
 import { onCleanup } from "solid-js";
-import { contents, defineType, effect, QtObject, settle, slot } from "../../object.js";
+import { contents, defineType, effect, QtObject, settle, slot } from "../../object.ts";
 import { AbstractListModel, reset } from "../../QtQuick/model.js";
 import { untrack } from "#kernel";
 

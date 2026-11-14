@@ -1,7 +1,7 @@
 // LookAtNode: a node that keeps facing another, wherever either goes. It
 // turns up and down and to the side and never rolls: how far it is rolled
 // is left as it was.
-import { defineType, effect } from "../../object.js";
+import { defineType, effect } from "../../object.ts";
 import { Vector3d } from "../../QtQml/values.js";
 import { Node } from "../Node.js";
 import { untrack } from "#kernel";

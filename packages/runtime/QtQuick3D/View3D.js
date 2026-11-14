@@ -13,7 +13,7 @@
 // nearest a place, and the items in a scene, of which none is picked; the
 // picture is drawn in the item whatever `renderMode` says, and of the ways
 // of smoothing edges there is one.
-import { defineType, effect, inside as within, QtObject, settle, slot } from "../object.js";
+import { defineType, effect, inside as within, QtObject, settle, slot } from "../object.ts";
 import { Vector2d, Vector3d } from "../QtQml/values.js";
 import { lazy } from "../QtQuick/compute.js";
 import { Item } from "../QtQuick/Item.js";

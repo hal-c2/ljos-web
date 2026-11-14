@@ -2,7 +2,7 @@
 // it. `function onFoo(a) {}` arrives as the prop `onFoo`; the object is
 // `target`, the Connections' parent when it names none.
 import { createEffect, createMemo, createRenderEffect, createRoot, onCleanup, runWithOwner } from "solid-js";
-import { defineType, QtObject, slot, whenComplete, whenCompleted } from "../object.js";
+import { defineType, QtObject, slot, whenComplete, whenCompleted } from "../object.ts";
 import { Component } from "../QtQml/Component.js";
 import { untrack } from "#kernel";
 

@@ -9,7 +9,7 @@
 // A system is a job on the clock the animations are on, and only while it
 // has something to do: a live particle, or an emitter that is emitting.
 import { onCleanup } from "solid-js";
-import { defineType, derived, effect, slot } from "../../object.js";
+import { defineType, derived, effect, slot } from "../../object.ts";
 import { clock } from "../animation/clock.js";
 import { Item } from "../Item.js";
 import { generator } from "./random.js";

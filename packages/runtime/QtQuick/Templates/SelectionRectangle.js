@@ -6,7 +6,7 @@
 // puts a TapHandler and a DragHandler in the view's content, and the view
 // is asked which cells a place is at. The handles are the style's.
 import { onCleanup } from "solid-js";
-import { defineType, effect, instantiate, memo, QtObject, settle, slot } from "../../object.js";
+import { defineType, effect, instantiate, memo, QtObject, settle, slot } from "../../object.ts";
 import { clock } from "../animation/clock.js";
 import { Flickable } from "../Flickable.js";
 import { DragHandler, HoverHandler, PointerDevice, TapHandler } from "../handlers.js";

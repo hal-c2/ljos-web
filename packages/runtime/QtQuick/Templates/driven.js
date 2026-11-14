@@ -4,7 +4,7 @@
 // where it is, and the property is whichever of the two changed last. A
 // slot's assignment would end the binding, so the value is kept here and the
 // slot only says what the QML gives.
-import { effect, settle, slot } from "../../object.js";
+import { effect, settle, slot } from "../../object.ts";
 import { signal } from "#kernel";
 
 const next = (version) => version + 1;

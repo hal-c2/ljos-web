@@ -4,7 +4,7 @@
 // is let go. The times and the order of things are Qt's
 // (`qquickmaterialripple.cpp`), its oddities with them.
 import { onCleanup } from "solid-js";
-import { defineType, effect } from "../../../../object.js";
+import { defineType, effect } from "../../../../object.ts";
 import { clock } from "../../../animation/clock.js";
 import { colorValue, css } from "../../../color.js";
 import { rules } from "../../../compute.js";
