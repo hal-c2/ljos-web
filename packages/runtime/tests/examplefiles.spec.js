@@ -142,8 +142,11 @@ test.describe("an example's block disposed", () => {
     const before = await page.evaluate(() => window.enclosed());
     const [root] = Object.keys(before);
     expect(before[root].length).toBeGreaterThan(0);
+    expect(await page.evaluate(() => window.provided())).toEqual([`${root}data.json`]);
     await page.evaluate(() => window.disposeExample("read"));
     expect(await page.evaluate(() => window.enclosed())).toEqual({});
+    // Nor is the text it was given to read kept.
+    expect(await page.evaluate(() => window.provided())).toEqual([]);
     // An address a file was loaded from loads nothing now.
     const loads = await page.evaluate(
       (urls) => Promise.all(urls.map((url) => fetch(url).then(() => true, () => false))),
@@ -158,6 +161,32 @@ test.describe("an example's block disposed", () => {
     await page.evaluate(() => window.mountExample("chosen", false));
     await page.evaluate(() => window.disposeExample("chosen"));
     expect(await page.evaluate(() => window.enclosed())).toEqual({});
+  });
+
+  test("while its compile links its files keeps them its own until the compile is done", async ({ page }) => {
+    const server = watched(page);
+    // The compile is held where it waits for a module of the page's, its
+    // files given and not yet linked.
+    let letGo;
+    const held = new Promise((resolve) => (letGo = resolve));
+    let asked = false;
+    await page.route(/\/QtQuick\/Timeline\//, async (route) => {
+      asked = true;
+      await held;
+      await route.continue();
+    });
+    await page.goto("/examplefiles.html");
+    await page.waitForFunction(() => window.ready);
+    await page.evaluate(() => window.mountExample("gated", false));
+    await expect.poll(() => asked, { timeout: 30000 }).toBe(true);
+    expect(Object.keys(await page.evaluate(() => window.enclosed()))).toHaveLength(1);
+    await page.evaluate(() => window.disposeNow("gated"));
+    letGo();
+    await page.evaluate(() => window.idleExample("gated"));
+    // What its script asked for as it ran was not there, not the page's.
+    expect(server.named()).toEqual([]);
+    expect(await page.evaluate(() => window.enclosed())).toEqual({});
+    expect(await page.evaluate(() => window.provided())).toEqual([]);
   });
 });
 

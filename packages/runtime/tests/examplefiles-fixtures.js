@@ -190,6 +190,28 @@ request.send();
 var asked = true;
 `;
 
+// EARLY_MAIN with a module of the runtime's no other example imports, so
+// a test can hold the compile while it waits for that module, after the
+// example's files are given and before they are linked.
+export const GATED_MAIN = `import QtQuick
+import QtQuick.Timeline
+import "early.js" as Early
+
+Rectangle {
+    width: 200
+    height: 80
+    color: "#20242e"
+    Timeline {
+        startFrame: 0
+        endFrame: 10
+    }
+    Text {
+        color: "#e8eaf0"
+        text: "asked " + Early.asked
+    }
+}
+`;
+
 const figure = (display, more = {}) => ({ v: 1, entry: "Main.qml", before: false, display, prerendered: false, ...more });
 const qml = (name, code) => ({ name, code, lang: "qml" });
 
@@ -203,6 +225,7 @@ export const EXAMPLES = {
   percent: figure([qml("Main.qml", PERCENT)]),
   mixed: figure([qml("Main.qml", MIXED), { name: "my 100%.svg", code: SQUARE, lang: "svg" }]),
   early: figure([qml("Main.qml", EARLY_MAIN), { name: "early.js", code: EARLY_SCRIPT, lang: "js" }]),
+  gated: figure([qml("Main.qml", GATED_MAIN), { name: "early.js", code: EARLY_SCRIPT, lang: "js" }]),
 };
 
 // What may not be asked of the server: every file the examples name.

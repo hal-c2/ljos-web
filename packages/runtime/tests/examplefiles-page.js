@@ -13,6 +13,9 @@ const blocks = {};
 window.enclosed = () =>
   Object.fromEntries([...(globalThis[Symbol.for("ljos-web/enclosed")]?.values() ?? [])].map((project) => [project.root, [...project.blobs.values()]]));
 
+// The text files of examples the page was given to read, by address.
+window.provided = () => [...(globalThis[Symbol.for("ljos-web/files")]?.given.keys() ?? [])].filter((url) => url.startsWith("ljos-example:"));
+
 // `waits` false: mounted and not waited for, its first compile still on
 // its way.
 window.mountExample = async (name, waits = true) => {
@@ -30,7 +33,8 @@ window.disposeExample = async (name) => {
   const block = blocks[name];
   block.dispose();
   await block.idle();
-  // The project goes once the guard is in, a turn after.
-  await new Promise((resolve) => setTimeout(resolve, 0));
 };
+// Disposed now, its compile let alone; `idleExample` waits for it.
+window.disposeNow = (name) => blocks[name].dispose();
+window.idleExample = (name) => blocks[name].idle();
 window.ready = true;
