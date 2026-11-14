@@ -465,10 +465,11 @@ class Host {
 // asked to draw again in it waits for the next animation frame: views that
 // take each other's picture, each draw a new picture for the other, then go
 // round once a frame and the page paints, where in microtasks they would go
-// round without end.
-const gaveNow = new Set();
+// round without end. The JavaScript renderer's views are paced by it too
+// (View3D.js), so a view of either kind showing one of the other is.
+export const gaveNow = new Set();
 let ending = null;
-const gave = (view) => {
+export const gave = (view) => {
   gaveNow.add(view);
   if (ending) return;
   ending = new MessageChannel();
