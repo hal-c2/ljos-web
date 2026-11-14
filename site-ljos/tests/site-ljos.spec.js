@@ -194,6 +194,21 @@ test("a code block is its picture until the reader reaches for it, then runs bes
   expect(errors).toEqual([]);
 });
 
+test("a block whose first edit does not compile stays its picture and says why", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1600 });
+  await page.goto("/language/overview/");
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  const picture = page.locator('img[src*="Examples/"][src$=".png"]').first();
+  await expect(picture).toBeVisible();
+  // The first thing the reader does is break it: nothing has run, so
+  // there is no last good result, and the build's picture stands.
+  await codeEditor(page, "Edit Main.qml");
+  await page.keyboard.press("Control+Home");
+  await page.keyboard.type("Broken {");
+  await expect(page.getByText(/Main\.qml:\d+/).first()).toBeVisible({ timeout: 30_000 });
+  await expect(picture).toBeVisible();
+});
+
 test("an editor goes with its page: the next page keeps none of its views or listeners", async ({ page }) => {
   // CodeMirror listens on the document until its view is destroyed:
   // the count of those listeners is what a view left behind would show.
