@@ -69,6 +69,9 @@ const LIVE = `
 `;
 const CENTRE = [200, 150];
 const CLEAR = [0x20, 0x20, 0x20];
+// The most a model whose y changed may ask of the page in the build that
+// follows: what is read of one model, never what is read of sixty.
+const MODEL_READS = 40;
 
 for (const backend of ["webgpu", "webgl2"]) {
   test.describe(backend, () => {
@@ -157,6 +160,57 @@ for (const backend of ["webgpu", "webgl2"]) {
       await set(page, () => (window.objects.unlit.baseColor = "#00ff00"));
       expect(await builds()).toBe(before + 1);
       near(await at(page, ...CENTRE), [0, 255, 0]);
+    });
+
+    // What one build asked of the page, and how many objects the view holds.
+    const counts = (page) =>
+      page.evaluate(() => {
+        const { builds, frames, reads, objects } = document.querySelector(".qq-view3d").$view3d;
+        return { builds, frames, reads, objects: objects() };
+      });
+
+    test("a change to one of many models asks the page of that model alone, and is drawn", async ({ page }) => {
+      await show(page, "wgpu_many");
+      near(await at(page, 20, 50), [255, 0, 0]);
+      const before = await counts(page);
+      await page.waitForTimeout(300);
+      expect(await counts(page), "a still scene builds nothing and draws nothing").toEqual(before);
+      await set(page, () => (window.objects.squares.objectAt(0).y = 80));
+      const after = await counts(page);
+      expect(after.builds).toBe(before.builds + 1);
+      expect(after.frames).toBe(before.frames + 1);
+      // The model's y, and nothing of the other fifty-nine or their materials.
+      expect(after.reads).toBeGreaterThan(0);
+      expect(after.reads).toBeLessThanOrEqual(MODEL_READS);
+      near(await at(page, 20, 50), CLEAR);
+      near(await at(page, 20, 70), [255, 0, 0]);
+      near(await at(page, 60, 50), [255, 0, 0]);
+    });
+
+    test("models taken away leave the picture and the view, and come back", async ({ page }) => {
+      await show(page, "wgpu_many");
+      near(await at(page, 380, 250), [255, 0, 0]);
+      const all = (await counts(page)).objects;
+      await set(page, () => (window.objects.shown = 30));
+      near(await at(page, 380, 250), CLEAR);
+      near(await at(page, 380, 130), [255, 0, 0]);
+      // Thirty models; the material they share stays.
+      expect((await counts(page)).objects).toBe(all - 30);
+      await set(page, () => (window.objects.shown = 60));
+      near(await at(page, 380, 250), [255, 0, 0]);
+      expect((await counts(page)).objects).toBe(all);
+    });
+
+    test("a model given another parent among many is drawn where that one puts it", async ({ page }) => {
+      await show(page, "wgpu_many");
+      const all = (await counts(page)).objects;
+      await set(page, () => (window.objects.squares.objectAt(0).parent = window.objects.holder));
+      near(await at(page, 20, 50), CLEAR);
+      near(await at(page, 20, 65), [255, 0, 0]);
+      await set(page, () => (window.objects.holder.x = 40));
+      near(await at(page, 20, 65), CLEAR);
+      near(await at(page, 60, 65), [255, 0, 0]);
+      expect((await counts(page)).objects).toBe(all);
     });
 
     test("the view maps the scene, and a node maps through its parents", async ({ page }) => {
