@@ -5,7 +5,7 @@
 // one telling when the outermost call into Rust returns. Nothing polls.
 import { onCleanup } from "solid-js";
 import { untrack } from "#kernel";
-import { defineType, group, kinds, onChange, QtObject, settle, slot, typed, whenCompleted } from "../object.js";
+import { defineType, group, kinds, onChange, QtObject, settle, slot, typed, whenCompleted } from "../object.ts";
 
 const initial = (kind, value) => {
   const of = kinds[kind];

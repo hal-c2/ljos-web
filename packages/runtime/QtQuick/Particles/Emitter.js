@@ -5,7 +5,7 @@
 // The arithmetic is Qt's `emitWindow`, kept as it is: particles are emitted
 // at the instants they were due since the last frame, not all at the frame's,
 // so that a slow frame leaves no gap in a stream.
-import { defineType } from "../../object.js";
+import { defineType } from "../../object.ts";
 import { Item } from "../Item.js";
 import { between } from "./geometry.js";
 import { Particle } from "./particle.js";

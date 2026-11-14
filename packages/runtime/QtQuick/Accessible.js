@@ -1,7 +1,7 @@
 // Accessible: what an item is to someone who does not see it. A page says
 // that with ARIA attributes on the item's element, and so does this: what
 // reads the page aloud reads a QML program as it reads any other.
-import { defineType, derived, effect, QtObject, slot } from "../object.js";
+import { defineType, derived, effect, QtObject, slot } from "../object.ts";
 
 // prettier-ignore
 const Role = {

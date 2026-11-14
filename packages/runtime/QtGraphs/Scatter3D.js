@@ -3,7 +3,7 @@
 // Not here: the other shapes a point can be drawn as (`mesh`), turning each
 // (`rotationRole`), and selecting one with the mouse: the one a program
 // selects is drawn in the colour of what is selected.
-import { defineType, slot } from "../object.js";
+import { defineType, slot } from "../object.ts";
 import { kept } from "../QtQuick3D/Node.js";
 import { linear } from "../QtQuick3D/scene.js";
 import { Value3DAxis } from "./axes3d.js";

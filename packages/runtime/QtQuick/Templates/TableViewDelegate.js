@@ -1,7 +1,7 @@
 // The delegates a style has for the cells of a TableView and of its header
 // views: an ItemDelegate that knows the view it is in and what the view's
 // selection says of its cell.
-import { defineType, derived, instantiate } from "../../object.js";
+import { defineType, derived, instantiate } from "../../object.ts";
 import { making } from "../cells.js";
 import { TapHandler } from "../handlers.js";
 import { ItemDelegate } from "./ItemDelegate.js";

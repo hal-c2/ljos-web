@@ -15,7 +15,7 @@
 // effects before it: depth of field, and the light and the reflections
 // worked out from the picture (DepthOfFieldEffect, SsgiEnvEffect,
 // SsrEnvEffect), which are held and do nothing.
-import { defineType, effect } from "../../../object.js";
+import { defineType, effect } from "../../../object.ts";
 import { Effect } from "../../effects.js";
 import { linear, SceneEnvironment } from "../../scene.js";
 import { signal } from "#kernel";

@@ -5,7 +5,7 @@
 // which is the order Qt 6.11 does.
 import { sourced } from "../guard.js";
 import { onCleanup } from "solid-js";
-import { defineType, effect, QtObject, settle, slot } from "../object.js";
+import { defineType, effect, QtObject, settle, slot } from "../object.ts";
 import { Size } from "../QtQml/values.js";
 import { clock } from "../QtQuick/animation/clock.js";
 import { audible, whenAudible } from "./audible.js";

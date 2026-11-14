@@ -3,7 +3,7 @@
 // Ljós's own engine draws them. Only that renderer's chunk imports this: a
 // page on the other one does not carry these shaders.
 
-import { defineType, derived, inside } from "../../object.js";
+import { defineType, derived, inside } from "../../object.ts";
 import { CustomMaterial } from "../CustomMaterial.js";
 import { TextureInput } from "../effects.js";
 import { Node, Object3D } from "../Node.js";

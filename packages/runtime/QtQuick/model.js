@@ -7,7 +7,7 @@
 // what happened to them. A view is told of rows inserted, removed and moved,
 // never to start again: the delegate of a row lives as long as the row does.
 import { runWithOwner } from "solid-js";
-import { contents, defineType, derived, inside, instantiate, QtObject, slot } from "../object.js";
+import { contents, defineType, derived, inside, instantiate, QtObject, slot } from "../object.ts";
 import { settle } from "./settle.js";
 import { followed, signal, untrack } from "#kernel";
 

@@ -11,7 +11,7 @@
 // in, the site around a user's shell) adds to a place it does not hold.
 import { guardedFetch, own, sayNotThere, whyNot } from "../../guard.js";
 import { getOwner, onCleanup, runWithOwner } from "solid-js";
-import { bounded, defineType, derived, effect, instantiate, QtObject, slot, whenMade } from "../../object.js";
+import { bounded, defineType, derived, effect, instantiate, QtObject, slot, whenMade } from "../../object.ts";
 import { Item } from "../../QtQuick/Item.js";
 import { fit, given, implicit } from "../../QtQuick/Loader.js";
 import { settle } from "../../QtQuick/settle.js";

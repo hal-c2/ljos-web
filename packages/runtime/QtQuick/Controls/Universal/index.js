@@ -2,7 +2,7 @@
 // The fonts of its controls, and `Universal`: the theme and the colours an
 // object has, its own or those of what it is in. The numbers are Qt's
 // (`qquickuniversalstyle.cpp`).
-import { chosen, defineType, derived, QtObject } from "../../../object.js";
+import { chosen, defineType, derived, QtObject } from "../../../object.ts";
 import { color as colour } from "../../color.js";
 import { lazy } from "../../compute.js";
 import { themed } from "../../Templates/theme.js";

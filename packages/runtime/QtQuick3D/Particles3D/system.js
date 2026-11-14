@@ -19,7 +19,7 @@
 // here, and from the old one in Qt. And `time` reads as what it was
 // declared to be until it is changed, where Qt's reads as nought.
 import { onCleanup } from "solid-js";
-import { defineType, derived, effect, inside, last, QtObject, settle, slot } from "../../object.js";
+import { defineType, derived, effect, inside, last, QtObject, settle, slot } from "../../object.ts";
 import { clock } from "../../QtQuick/animation/clock.js";
 import { kept, Node } from "../Node.js";
 import { enrolled } from "./core.js";

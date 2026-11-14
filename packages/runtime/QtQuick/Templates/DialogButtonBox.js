@@ -2,7 +2,7 @@
 // them. It makes one from its `delegate` for each of its `standardButtons`,
 // shares its width among them, and says what a click on one means by the
 // role of the button: `accepted`, `rejected`, `applied` and so on.
-import { defineType, derived, effect, instantiate, last, onChange, QtObject, settle, slot, whenComplete } from "../../object.js";
+import { defineType, derived, effect, instantiate, last, onChange, QtObject, settle, slot, whenComplete } from "../../object.ts";
 import { setFocus } from "../focus.js";
 import { AbstractButton } from "./AbstractButton.js";
 import { Button } from "./Button.js";

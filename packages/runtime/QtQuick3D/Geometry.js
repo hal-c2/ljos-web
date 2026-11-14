@@ -13,7 +13,7 @@
 // Not here: what a morph target moves (the `Target` attributes are taken
 // and not drawn), and a row in which a part does not start at a multiple of
 // what its numbers are long, which OpenGL does not read.
-import { defineType, flush } from "../object.js";
+import { defineType, flush } from "../object.ts";
 import * as math from "./math.js";
 import { Triangles } from "./mesh.js";
 import { Object3D } from "./Node.js";

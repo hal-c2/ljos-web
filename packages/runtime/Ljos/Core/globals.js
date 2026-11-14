@@ -5,7 +5,7 @@
 // value passes between a Ljós file and a kept Qt file unchanged.
 import { application, inputMethod, styleHints } from "../../QtQml/application.js";
 import { Locale as Formats, locale } from "../../QtQml/locale.js";
-import { settle } from "../../object.js";
+import { settle } from "../../object.ts";
 import { Qt } from "../../QtQml/Qt.js";
 import { hsla as hslaOf, hsva as hsvaOf, rgba as rgbaOf } from "../../QtQuick/color.js";
 

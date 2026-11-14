@@ -7,7 +7,7 @@
 // comes later. Anything else is the URL it was given, for which there is
 // nothing to load: QML is not interpreted here.
 import { createEffect, runWithOwner } from "solid-js";
-import { defineType, derived, effect, instantiate, last, slot, whenComplete, whenMade } from "../object.js";
+import { defineType, derived, effect, instantiate, last, slot, whenComplete, whenMade } from "../object.ts";
 import { Item } from "./Item.js";
 import { settle } from "./settle.js";
 import { signal, untrack } from "#kernel";

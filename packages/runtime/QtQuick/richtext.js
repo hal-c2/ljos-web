@@ -6,7 +6,7 @@ import { shellShown } from "../guard.js";
 import { css } from "./color.js";
 import { rules } from "./compute.js";
 import { dress, fonts, metrics, resized } from "./font.js";
-import { flush } from "../object.js";
+import { flush } from "../object.ts";
 import { signal, untrack } from "#kernel";
 
 // Qt's line is its font's height rounded up, which CSS computes per element

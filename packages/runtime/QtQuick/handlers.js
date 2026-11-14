@@ -6,7 +6,7 @@
 // move and a release is what Qt's does (`qquicktaphandler.cpp` and its
 // neighbours); who they are sent to is decided in pointer.js.
 import { onCleanup } from "solid-js";
-import { defineType, derived, effect, group, QtObject, settle, slot } from "../object.js";
+import { defineType, derived, effect, group, QtObject, settle, slot } from "../object.ts";
 import { itemToScene, origin, sceneToItem } from "./geometry.js";
 import { KeyboardModifierMask, LeftButton, NoButton } from "./keycodes.js";
 import {

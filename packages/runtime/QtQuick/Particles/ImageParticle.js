@@ -11,7 +11,7 @@
 // colour is brighter than its alpha; particles that may be are drawn as Qt
 // draws them (see glow.js), where the browser can.
 import { sourced } from "../../guard.js";
-import { defineType, effect, settle, slot } from "../../object.js";
+import { defineType, effect, settle, slot } from "../../object.ts";
 import { colorValue } from "../color.js";
 import { rules } from "../compute.js";
 import { between, ORIGINS, outermost } from "./geometry.js";

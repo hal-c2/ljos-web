@@ -11,7 +11,7 @@
 import { allowedStyle, sourced } from "../guard.js";
 import { onCleanup } from "solid-js";
 import { Rect, Size } from "../QtQml/values.js";
-import { defineType, derived, effect, settle, slot } from "../object.js";
+import { defineType, derived, effect, settle, slot } from "../object.ts";
 import { clock } from "./animation/clock.js";
 import { css } from "./color.js";
 import { rules } from "./compute.js";

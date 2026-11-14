@@ -6,7 +6,7 @@
 // the axis' `labelDelegate` and the series' `barDelegate` make. Where each
 // is comes from Qt's own arithmetic, and an effect each puts them there
 // again when something they are placed by changes.
-import { defineType, derived, effect, instantiate, slot } from "../object.js";
+import { defineType, derived, effect, instantiate, slot } from "../object.ts";
 import { box, draw, svg } from "../QtCharts/plot.js";
 import { color, css, equal } from "../QtQuick/color.js";
 import { lazy, rules } from "../QtQuick/compute.js";

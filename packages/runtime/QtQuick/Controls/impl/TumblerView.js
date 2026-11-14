@@ -3,7 +3,7 @@
 // wrapping: a PathView along `path` for one that does, a ListView for one
 // that does not.
 import { onCleanup } from "solid-js";
-import { defineType, effect, instantiate, slot } from "../../../object.js";
+import { defineType, effect, instantiate, slot } from "../../../object.ts";
 import { Item } from "../../Item.js";
 import { ListView } from "../../ListView.js";
 import { PathView } from "../../PathView.js";

@@ -2,7 +2,7 @@
 // What plays it is another type's business: an ImageParticle gives each
 // particle one.
 import { sourced } from "../guard.js";
-import { defineType, effect, flush, QtObject } from "../object.js";
+import { defineType, effect, flush, QtObject } from "../object.ts";
 import { signal } from "#kernel";
 
 export const Sprite = defineType("Sprite", QtObject, {

@@ -1,7 +1,7 @@
 // What a scroll bar and a scroll indicator share: a handle in a groove that
 // says how much of some content is seen and from where, as fractions of it,
 // and the attached object that makes one follow a Flickable.
-import { derived, effect, slot } from "../../object.js";
+import { derived, effect, slot } from "../../object.ts";
 import { assignable, drive, driven, reads } from "./driven.js";
 import { untrack } from "#kernel";
 

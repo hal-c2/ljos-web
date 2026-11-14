@@ -3,7 +3,7 @@
 // nodes of their own; here a canvas where a painter is the only way, and
 // elements otherwise. What moves is moved by the clock.
 import { onCleanup } from "solid-js";
-import { effect, slot } from "../../object.js";
+import { effect, slot } from "../../object.ts";
 import { clock } from "../animation/clock.js";
 import { rules } from "../compute.js";
 

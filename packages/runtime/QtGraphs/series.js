@@ -2,7 +2,7 @@
 // model's cells. A series keeps its sets; the GraphsView it is in works out
 // where their bars are and what colours they have.
 import { onCleanup, runWithOwner } from "solid-js";
-import { contents, defineType, derived, effect, QtObject, settle, slot } from "../object.js";
+import { contents, defineType, derived, effect, QtObject, settle, slot } from "../object.ts";
 import { color, colorValue } from "../QtQuick/color.js";
 import { untrack } from "#kernel";
 

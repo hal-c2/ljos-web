@@ -3,7 +3,7 @@
 // is checkable is toggled by a click, and of those that exclude each other
 // one is checked at a time. A style gives it what it looks like.
 import { onCleanup } from "solid-js";
-import { defineType, derived, effect, group, settle, signal, slot } from "../../object.js";
+import { defineType, derived, effect, group, settle, signal, slot } from "../../object.ts";
 import { parts } from "./parts.js";
 import { styleHints } from "../../QtQml/application.js";
 import { PauseJob } from "../animation/jobs.js";

@@ -12,7 +12,7 @@
 // run has a budget of steps: a binding that would run forever is stopped,
 // warned of, and keeps the value it had.
 import { createComponent } from "solid-js";
-import { $bool, $color, $int, $object, $real, $string, slot } from "../../object.js";
+import { $bool, $color, $int, $object, $real, $string, slot } from "../../object.ts";
 import * as Quick from "../../QtQuick/index.js";
 import { Color } from "../../QtQuick/color.js";
 import { Qt, qsTr, qsTrId, qsTranslate } from "../../QtQml/Qt.js";

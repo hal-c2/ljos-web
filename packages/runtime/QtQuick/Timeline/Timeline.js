@@ -29,7 +29,7 @@
 import { guardedFetch } from "../../guard.js";
 import { onCleanup, runWithOwner } from "solid-js";
 import { Quaternion, Vector2d, Vector3d, Vector4d } from "../../QtQml/values.js";
-import { contents, defineType, derived, effect, flush, gather, group, inside, located, QtObject, whenComplete } from "../../object.js";
+import { contents, defineType, derived, effect, flush, gather, group, inside, located, QtObject, whenComplete } from "../../object.ts";
 import { curve } from "../animation/easing.js";
 import { Property } from "../animation/property.js";
 import { lazy } from "../compute.js";

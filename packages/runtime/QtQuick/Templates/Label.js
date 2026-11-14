@@ -1,5 +1,5 @@
 // Label: text set in the font of the control it is in, with a background.
-import { defineType, derived } from "../../object.js";
+import { defineType, derived } from "../../object.ts";
 import { parts } from "./parts.js";
 import { Text } from "../Text.js";
 import { backed, insets, methods } from "./Control.js";

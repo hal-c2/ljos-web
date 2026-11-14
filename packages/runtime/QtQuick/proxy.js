@@ -7,7 +7,7 @@
 // role a filter or a sorter read changes, and when a filter or a sorter is
 // set another way; what views are told is the difference.
 import { onCleanup } from "solid-js";
-import { defineType, effect, QtObject, slot } from "../object.js";
+import { defineType, effect, QtObject, slot } from "../object.ts";
 import { AbstractListModel, modelIndex } from "./model.js";
 import { settle } from "./settle.js";
 import { signal, untrack } from "#kernel";

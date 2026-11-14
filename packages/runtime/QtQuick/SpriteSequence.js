@@ -2,7 +2,7 @@
 // it names. It has no size of its own: the frame is stretched to what it is
 // given, and nothing is shown of one that is given none.
 import { onCleanup } from "solid-js";
-import { contents, defineType, effect, onChange, settle, slot } from "../object.js";
+import { contents, defineType, effect, onChange, settle, slot } from "../object.ts";
 import { clock } from "./animation/clock.js";
 import { Item } from "./Item.js";
 import { painted, Player } from "./sprites.js";

@@ -5,7 +5,7 @@
 // taken to be as long as the average of those there is one for. The rows
 // laid out hang from the first of them, which stays where it is while rows
 // come and go around it.
-import { defineType, derived, group, QtObject, slot } from "../object.js";
+import { defineType, derived, group, QtObject, slot } from "../object.ts";
 import { attachedProperties, clamp, create, drop, ItemView, length, place } from "./ItemView.js";
 import { untrack } from "#kernel";
 

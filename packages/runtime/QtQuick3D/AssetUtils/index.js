@@ -2,7 +2,7 @@
 // The file's nodes and meshes belong to the renderer's scene, so only the
 // renderer that reads such files shows them (`wgpu.js`): the JavaScript one
 // draws what is declared and has no reader of glTF.
-import { defineType } from "../../object.js";
+import { defineType } from "../../object.ts";
 import { Node } from "../Node.js";
 
 export const RuntimeLoader = defineType("RuntimeLoader", Node, {

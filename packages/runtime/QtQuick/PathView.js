@@ -11,7 +11,7 @@
 // `cacheItemCount` (a row off the path has no delegate), and what Qt does
 // with the highlight when the range is not enforced, where it moves it by
 // its own clock: here it is where the current row is.
-import { defineType, derived, effect, instantiate, QtObject, settle, slot } from "../object.js";
+import { defineType, derived, effect, instantiate, QtObject, settle, slot } from "../object.ts";
 import { clock } from "./animation/clock.js";
 import { Item } from "./Item.js";
 import { LeftButton } from "./keycodes.js";

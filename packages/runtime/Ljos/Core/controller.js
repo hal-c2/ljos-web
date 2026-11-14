@@ -9,7 +9,7 @@
 // Controller written as a module (`controller({ … })`) is the same object
 // with its lifecycle given as functions.
 import { onCleanup, runWithOwner } from "solid-js";
-import { contents, defineType, derived, effect, flushing, heard, QtObject, whenToldComplete } from "../../object.js";
+import { contents, defineType, derived, effect, flushing, heard, QtObject, whenToldComplete } from "../../object.ts";
 import { untrack } from "#kernel";
 
 const hidden = (object, key, value) => Object.defineProperty(object, key, { value, writable: true, configurable: true });

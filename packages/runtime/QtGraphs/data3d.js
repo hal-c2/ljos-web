@@ -10,7 +10,7 @@
 // with, and `multiMatchBehavior`: of two rows that say the same cell the
 // last one is it, which is what Qt does until told otherwise.
 import { onCleanup } from "solid-js";
-import { contents, defineType, derived, effect, inside, QtObject, settle, slot } from "../object.js";
+import { contents, defineType, derived, effect, inside, QtObject, settle, slot } from "../object.ts";
 import { Point } from "../QtQml/values.js";
 import { color, colorValue } from "../QtQuick/color.js";
 import { columnsOf, rowsOf } from "../QtQuick/model.js";

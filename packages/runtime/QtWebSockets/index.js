@@ -6,7 +6,7 @@
 // which it answers and never sends.
 import { mayFetch, own } from "../guard.js";
 import { onCleanup } from "solid-js";
-import { defineType, QtObject, settle, slot, whenComplete } from "../object.js";
+import { defineType, QtObject, settle, slot, whenComplete } from "../object.ts";
 import { untrack } from "#kernel";
 
 const CONNECTING = 0;

@@ -1,6 +1,6 @@
 // ScrollIndicator: a handle that shows where a Flickable is in its content,
 // and that nothing can be done to.
-import { defineType, QtObject } from "../../object.js";
+import { defineType, QtObject } from "../../object.ts";
 import { Control } from "./Control.js";
 import { drive } from "./driven.js";
 import { assignables, follows, inside, properties, resolve, setup } from "./scrolling.js";

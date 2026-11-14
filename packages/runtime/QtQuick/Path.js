@@ -4,7 +4,7 @@
 // items along one. What it gives either is its outline (`$outline()`), made
 // again when an element changes.
 import { Point, Size } from "../QtQml/values.js";
-import { contents, defineType, derived, effect, QtObject, settle, slot } from "../object.js";
+import { contents, defineType, derived, effect, QtObject, settle, slot } from "../object.ts";
 import { lazy } from "./compute.js";
 import { Outline, svgPath } from "./outline.js";
 import { signal } from "#kernel";

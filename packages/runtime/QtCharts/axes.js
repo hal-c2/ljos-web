@@ -1,7 +1,7 @@
 // The axes of a chart: how much room each asks for beside the plot, where its
 // ticks are, and what is drawn of it. The numbers are Qt's, taken from
 // ChartValueAxisX/Y, ChartBarCategoryAxisX and Horizontal/VerticalAxis.
-import { defineType, derived, QtObject, settle, slot } from "../object.js";
+import { defineType, derived, QtObject, settle, slot } from "../object.ts";
 import { colorValue, css } from "../QtQuick/color.js";
 import { describe } from "../QtQuick/font.js";
 import { fontNamed, label, line, tall, truncated, wide } from "./plot.js";

@@ -1,5 +1,5 @@
 // Video: a VideoOutput with a MediaPlayer and an AudioOutput of its own.
-import { defineType, derived } from "../object.js";
+import { defineType, derived } from "../object.ts";
 import { AudioOutput } from "./devices.js";
 import { MediaPlayer } from "./MediaPlayer.js";
 import { VideoOutput } from "./VideoOutput.js";

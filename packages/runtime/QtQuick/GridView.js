@@ -2,7 +2,7 @@
 //
 // Where a row is follows from its index alone, so nothing is estimated: the
 // rows with delegates are those of the lines near what is shown.
-import { defineType, derived, QtObject, slot } from "../object.js";
+import { defineType, derived, QtObject, slot } from "../object.ts";
 import { attachedProperties, clamp, ItemView, length, place } from "./ItemView.js";
 import { untrack } from "#kernel";
 

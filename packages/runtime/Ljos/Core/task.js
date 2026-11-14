@@ -9,7 +9,7 @@
 // one value; `status`, `value` and `error` are its parts, so each changes
 // once a step and a binding of two of them once. A Task is a Controller:
 // when the item it is declared in goes, its run is aborted.
-import { defineType, derived, effect, settle, slot } from "../../object.js";
+import { defineType, derived, effect, settle, slot } from "../../object.ts";
 import { Controller } from "./controller.js";
 import { untrack } from "#kernel";
 

@@ -9,7 +9,7 @@
 // nothing, and an Attractor3D's `useCachedPositions` and `positionsAmount`,
 // there being nothing to cache: a particle's place in the shape is its own
 // whenever it is asked for.
-import { defineType, derived, group } from "../../object.js";
+import { defineType, derived, group } from "../../object.ts";
 import * as math from "../math.js";
 import { Node } from "../Node.js";
 import { ATTRACT, enrol, list, random, seenFrom, spread, three, vectors, WANDER, within } from "./core.js";

@@ -7,7 +7,7 @@
 //
 // Not here: the lines of a surface's mesh (`DrawWireframe`), its texture,
 // and what is selected.
-import { defineType, slot } from "../object.js";
+import { defineType, slot } from "../object.ts";
 import { Value3DAxis } from "./axes3d.js";
 import { Surface3DSeries } from "./data3d.js";
 import { ambient, GraphsItem3D, valued } from "./graph3d.js";

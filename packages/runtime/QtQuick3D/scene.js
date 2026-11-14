@@ -14,7 +14,7 @@
 // (`baseColorSingleChannelEnabled` and the like), and the colours of a
 // mesh's corners mask nothing.
 import { guardedFetch, sourced } from "../guard.js";
-import { awaited, defineType, derived, effect, flush, group, located } from "../object.js";
+import { awaited, defineType, derived, effect, flush, group, located } from "../object.ts";
 import { Vector3d } from "../QtQml/values.js";
 import { color } from "../QtQuick/color.js";
 import { ktx } from "./ktx.js";
