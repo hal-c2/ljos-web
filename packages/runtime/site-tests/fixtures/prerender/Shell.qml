@@ -41,7 +41,7 @@ Column {
             lineHeightMode: Text.FixedHeight
             lineHeight: 18
             textFormat: Text.RichText
-            text: '<div>a block</div><div>a block below it</div>'
+            text: '<div>a block</div> <div>a block below it</div>'
         }
         Text { text: "Under the blocks" }
     }

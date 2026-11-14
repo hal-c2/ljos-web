@@ -570,24 +570,28 @@ class Element {
   // The text it holds as the lines a `<br>` breaks it into, and a
   // block (rich text's `<div>`, `<p>`, `<li>`) starts and ends. These
   // are hard lines: text that does not wrap still has them. A last
-  // break ends a line and starts none, as in a browser.
+  // break ends a line and starts none, as in a browser. Spaces that
+  // start a line (between two blocks, say) collapse and make none,
+  // unless white space is kept there (`<pre>`, `white-space: pre`).
   _lines() {
     const lines = [""];
     const end = () => {
       if (lines.at(-1) !== "") lines.push("");
     };
-    const walk = (node) => {
+    const kept = (node) => node.localName === "pre" || /^(pre|pre-wrap|break-spaces)$/.test(node.style?.getPropertyValue?.("white-space") ?? "");
+    const walk = (node, keep) => {
       for (const child of node.childNodes ?? []) {
-        if (child.nodeType === 3) lines[lines.length - 1] += child.data;
-        else if (child.localName === "br") lines.push("");
+        if (child.nodeType === 3) {
+          if (keep || lines.at(-1) !== "" || child.data.trim() !== "") lines[lines.length - 1] += child.data;
+        } else if (child.localName === "br") lines.push("");
         else if (child.nodeType === 1 && BLOCKS.has(child.localName)) {
           end();
-          walk(child);
+          walk(child, keep || kept(child));
           end();
-        } else if (child.nodeType === 1) walk(child);
+        } else if (child.nodeType === 1) walk(child, keep || kept(child));
       }
     };
-    walk(this);
+    walk(this, kept(this));
     if (lines.length > 1 && lines.at(-1) === "") lines.pop();
     return lines;
   }
