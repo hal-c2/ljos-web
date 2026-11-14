@@ -8,11 +8,13 @@ import "code-editor.js" as Editor
 // docs/LJOS_WEB.md A27/A28) is the code beside its running result:
 // an editor per file, and a stage the result stands in. As the page
 // is first written — and for a reader with no script — the stage
-// holds a picture of the result as the build prerendered it; in a
-// browser the stage's ShellLoader compiles the code in the page
-// and takes the stage over, and every edit recompiles and reloads
-// with its state kept. A broken edit says why beside the code, and
-// the last good result keeps running. A block that does not run is
+// holds a picture of the result as the build prerendered it, and so
+// does a browser's until the reader reaches for the block (a focus or
+// a press in its code, or a press on its picture): only then is the
+// compiler fetched, and the stage's ShellLoader compiles the code in
+// the page and takes the stage over. Every edit recompiles and
+// reloads with its state kept. A broken edit says why beside the
+// code, and the last good result keeps running. A block that does not run is
 // its code, coloured at build time, in a panel of its own.
 //
 // This component is the one face every fence goes through: plain
@@ -88,7 +90,6 @@ Column {
         Live.setExample(live.hash, live.display, live.entry, live.harnessTemplate || "", live.harnessFile || "", function (lines) {
             block.absent = lines;
         });
-        apply();
     }
 
     Timer {
@@ -290,7 +291,8 @@ Column {
                         lang: modelData.lang || "qml"
                         label: "Edit " + modelData.name
                         errors: told
-                        onTextChanged: debounce.restart()
+                        onReached: block.started || block.apply()
+                        onTextChanged: if (block.started || text !== code) debounce.restart()
                     }
                 }
             }
@@ -310,12 +312,21 @@ Column {
             height: Math.max(pictureHeight, stage.implicitHeight)
 
             Text {
-                // Until the result runs: the empty fallback only
-                // stands in while the code compiles (status Null),
-                // and never where there is no compiler (`runs`).
-                visible: block.isLive && (!block.runs || !stage.item || stage.status === ShellLoader.Null)
+                // Until the result runs: before the reader reaches for
+                // the block, while the code compiles (status Null),
+                // and always where there is no compiler (`runs`).
+                visible: block.isLive && (!block.runs || !block.started || !stage.item || stage.status === ShellLoader.Null)
                 textFormat: Text.RichText
                 text: block.isLive ? "<img src=\"" + block.live.picture + "\" width=\"" + stageBox.pictureWidth + "\" height=\"" + Math.round(stageBox.pictureHeight) + "\" alt=\"What this example draws\">" : ""
+            }
+            // A press on the picture runs what it is a picture of, where it can run.
+            MouseArea {
+                visible: block.isLive && block.runs && !block.started
+                width: stageBox.pictureWidth
+                height: stageBox.pictureHeight
+                Accessible.ignored: true
+                cursorShape: Qt.PointingHandCursor
+                onPressed: block.apply()
             }
             ShellLoader {
                 id: stage

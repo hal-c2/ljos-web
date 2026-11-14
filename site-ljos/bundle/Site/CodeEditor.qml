@@ -34,6 +34,10 @@ Item {
     // reader is in.
     property bool editing: false
 
+    // The reader reached for the code (a focus or a press): what an
+    // edit needs may be fetched now.
+    signal reached()
+
     implicitWidth: shown.implicitWidth
     implicitHeight: shown.implicitHeight
     clip: true
@@ -42,9 +46,13 @@ Item {
     Accessible.name: label
     Accessible.description: "Tab indents. Press Escape, then Tab, to leave this editor."
 
-    Component.onCompleted: Editor.whenIdle()
     Component.onDestruction: Editor.dispose(field)
-    onActiveFocusChanged: activeFocus ? Editor.bringIn(field, shown, true) : Editor.left(field)
+    onActiveFocusChanged: {
+        if (!activeFocus)
+            return Editor.left(field);
+        field.reached();
+        Editor.bringIn(field, shown, true);
+    }
     onTextChanged: Editor.textChanged(field)
     onDiagnosticsChanged: Editor.diagnosticsChanged(field)
 
@@ -68,6 +76,7 @@ Item {
         // the press was; the field then has focus, and a reader who
         // moves on before the editor has come is not pulled back.
         onPressed: (mouse) => {
+            field.reached();
             Editor.bringIn(field, shown, true, { "x": mouse.x, "y": mouse.y });
             field.forceActiveFocus();
         }

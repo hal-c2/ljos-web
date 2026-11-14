@@ -99,3 +99,29 @@ test("a page with nothing to run asks for nothing past its first load", async ({
   await page.waitForLoadState("networkidle");
   expect(asked.filter((file) => !expected.has(file))).toEqual([]);
 });
+
+// A page whose code blocks run asks for what an edit needs (the
+// compiler, its wasm and modules, the editor) only once the reader
+// reaches for a block's code and edits it: a reader who only reads
+// fetches none.
+for (const route of ["language/overview/", "demos/"]) {
+  test(`/${route} fetches the compiler and the editor for the reader's first edit, not before`, async ({ page }) => {
+    const asked = [];
+    page.on("requestfinished", (request) => {
+      const url = new URL(request.url());
+      if (url.protocol === "http:" && /\.(?:js|mjs|wasm)$/.test(url.pathname)) asked.push(url.pathname.split("/").pop());
+    });
+    const forEdit = () => asked.filter((file) => file.endsWith(".wasm") || ["attach-", "modules-", "compiler-", "ljos_web_compiler"].some((prefix) => file.startsWith(prefix)));
+    await page.setViewportSize({ width: 1440, height: 1600 });
+    await page.goto(`${base}${route}`);
+    await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+    await page.waitForLoadState("networkidle");
+    expect(forEdit(), "before the reader reaches for the code").toEqual([]);
+    await page.getByRole("textbox", { name: /^Edit / }).first().click();
+    await page.waitForSelector(".cm-content");
+    await page.keyboard.press("Control+Home");
+    await page.keyboard.type("// edited\n");
+    await expect.poll(() => forEdit().some((file) => file.startsWith("attach-")), { timeout: 30_000 }).toBe(true);
+    await expect.poll(() => forEdit().some((file) => file.startsWith("ljos_web_compiler") && file.endsWith(".wasm")), { timeout: 30_000 }).toBe(true);
+  });
+}

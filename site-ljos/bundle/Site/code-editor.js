@@ -1,12 +1,12 @@
 .pragma library
 // What a CodeEditor brings in when it is used: CodeMirror over the
 // field (`ljos-web/codeblock/attach`), imported on the reader's first
-// focus or press and, before that, when the page is idle. Nothing of
-// it is in the page's first load, and a page prerendered for a reader
-// with no script shows the field's Text, highlighted by the build.
+// focus or press, and not before: nothing of it is in the page's first
+// load or fetched while the reader only reads, and a page prerendered
+// for a reader with no script shows the field's Text, highlighted by
+// the build.
 
 var attaching = null;
-var waiting = false;
 // Each field's editor, once it has one.
 var editors = new WeakMap();
 // Fields gone from the page: one that goes while its editor is still
@@ -20,19 +20,6 @@ function module() {
     if (!attaching)
         attaching = import("ljos-web/codeblock/attach");
     return attaching;
-}
-
-// Once the page has nothing else to do: so the first press finds the
-// editor ready. Where there is no idle time to wait for (a prerender),
-// nothing is fetched.
-function whenIdle() {
-    var idle = globalThis.requestIdleCallback;
-    if (waiting || typeof idle !== "function")
-        return;
-    waiting = true;
-    idle(function () {
-        module();
-    }, { timeout: 4000 });
 }
 
 // Where a press at `local` (the field's own coordinates) is on the page.
