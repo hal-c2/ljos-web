@@ -18,6 +18,9 @@ import { expect, test } from "@playwright/test";
 const HELD_AT = Date.UTC(2026, 0, 1);
 // Pages without a live block, then pages with them.
 const PAGES = ["/", "/start/install/", "/rust/overview/", "/demos/", "/start/", "/start/first-app/", "/controls/buttons-and-toggles/", "/ui/animation/", "/data/models/"];
+// The pages that hold the Pantry, whose own shell is compiled live too:
+// without WebAssembly its fallback shell runs and says why, once.
+const PANTRY = new Set(["/", "/demos/"]);
 // `ljos-web/wasm-check.js`'s NEEDS_WASM, as a reader reads it.
 const NEEDS_WASM = /^Live editing needs WebAssembly/;
 const PICTURE = 'img[alt="What this example draws"]';
@@ -51,6 +54,7 @@ async function opened(browser, path, wasm) {
     const now = await page.evaluate(() => document.body.innerText);
     [said, still] = [now, now === said ? still + 1 : 0];
   }
+  expect(still, `${path} ${wasm ? "with" : "without"} WebAssembly stopped changing`).toBeGreaterThanOrEqual(10);
   await page.evaluate(() => document.fonts.ready);
   return { context, page, fetched };
 }
@@ -164,7 +168,8 @@ for (const path of PAGES) {
       // is moved below the note; with it, none says so.
       const notes = async (page) => (await page.evaluate(() => document.body.innerText)).split("\n").filter((line) => NEEDS_WASM.test(line.trim())).length;
       expect(await notes(on.page), "with WebAssembly nothing says it is needed").toBe(0);
-      const live = withIt.length > 0 || (await notes(off.page)) > 0;
+      expect(await notes(off.page), "without it each block, and the Pantry, says it is needed").toBe(without.length + (PANTRY.has(path) ? 1 : 0));
+      const live = withIt.length > 0 || PANTRY.has(path);
 
       // Outside the blocks: the same words, the same elements; placed
       // the same wherever nothing above them is a block.
