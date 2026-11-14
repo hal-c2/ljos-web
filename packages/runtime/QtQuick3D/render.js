@@ -2463,14 +2463,15 @@ function reflected(probe, scene, environment, surroundings) {
 
 // Draws `scene` (`{ width, height, environment, projection, camera, models,
 // lights, probes }`) and hands the picture to `paper`, the context of
-// `canvas`.
+// `canvas`. False where there was nothing to draw or nothing to draw it
+// with.
 export function draw(scene, canvas, paper, ways = 0) {
   const ratio = window.devicePixelRatio || 1;
   const width = Math.round(scene.width * ratio);
   const height = Math.round(scene.height * ratio);
   if (width <= 0 || height <= 0 || !context()) {
     canvas.width = canvas.height = 0;
-    return;
+    return false;
   }
   if (surface.width !== width) surface.width = width;
   if (surface.height !== height) surface.height = height;
@@ -2577,4 +2578,5 @@ export function draw(scene, canvas, paper, ways = 0) {
   if (ways) retained(canvas, width, height, ways);
   // The picture leaves the surface for the canvas: nothing is copied.
   paper.transferFromImageBitmap(surface.transferToImageBitmap());
+  return true;
 }

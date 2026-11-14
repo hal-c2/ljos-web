@@ -2474,8 +2474,25 @@ test("a View3D says how fast it draws", async ({ page }) => {
   expect(later.turning.renderTime).toBeGreaterThan(0);
   expect(later.turning.renderTime).toBeLessThanOrEqual(later.turning.frameTime);
   expect(later.turning.maxFrameTime).toBeGreaterThan(0);
-  // The one drawn once has not had a second of frames.
+  // The one drawn once has not had a second of frames, but has said
+  // the time of the one it drew: what waits for a first picture hears.
   expect(later.still).toMatchObject({ fps: 0, maxFrameTime: 0 });
+  expect(later.still.frameTime).toBeGreaterThan(0);
+});
+
+// A view in a browser that gives it no context draws nothing, and a
+// picture it never drew is no frame: it says no time of one.
+test("a View3D with no context to draw with says it drew no frame", async ({ page }) => {
+  await page.addInitScript(() => {
+    const given = OffscreenCanvas.prototype.getContext;
+    OffscreenCanvas.prototype.getContext = function (kind, ...rest) {
+      return kind === "webgl2" ? null : given.call(this, kind, ...rest);
+    };
+  });
+  await open(page, "stats3d");
+  // A turning view would have said a second's frames by now.
+  await page.waitForTimeout(1500);
+  expect(await page.evaluate(() => [window.scene.turning.frameTime, window.scene.turning.fps, window.scene.still.frameTime])).toEqual([0, 0, 0]);
 });
 
 test("a CustomMaterial's max and min are as GLSL says they are, of what is no number too", async ({ page }) => {
