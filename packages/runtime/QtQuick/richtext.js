@@ -184,7 +184,8 @@ function copy(from, to, name, inert) {
     }
   } else if (name === "img") {
     if (!inert && read("src")) to.src = read("src"); // guarded
-    if (read("alt")) to.alt = read("alt");
+    // Empty, it says the picture is decoration: kept, not dropped.
+    if (from.hasAttribute("alt")) to.alt = read("alt");
     if (pixels(read("width") ?? "")) style.width = pixels(read("width"));
     if (pixels(read("height") ?? "")) style.height = pixels(read("height"));
     const align = read("align");
