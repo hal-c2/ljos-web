@@ -26,11 +26,13 @@ export function tagOf(props) {
 // What the item's `href` says, while it says something a page can
 // follow; anything else (a script, data) leaves the link without one,
 // as rich text's links are left (richtext.js), and so does a shell a
-// visitor dropped being shown: what it wrote is followed by nobody.
+// visitor dropped being shown: what it wrote is followed by nobody. A
+// link that is not enabled goes nowhere either: nothing in it holds a
+// press then, and a press nobody holds is the browser's to follow.
 export function addressed(self, node) {
   if (node.localName !== "a") return;
   effect(
-    () => (shellShown() || self.href === undefined || self.href === null ? "" : String(self.href)),
+    () => (shellShown() || !self.enabled || self.href === undefined || self.href === null ? "" : String(self.href)),
     (href) => {
       if (href && followable(href)) node.setAttribute("href", href); // guarded
       else node.removeAttribute("href");

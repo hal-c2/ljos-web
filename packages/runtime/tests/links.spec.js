@@ -29,7 +29,11 @@ test("an item that is a link is an a, with its address and its name", async ({ p
     button: { tag: "div", href: null, role: "button", name: "Press" },
     // What would run a script is no address.
     script: { tag: "a", href: null, role: "link", name: "Script" },
+    // A link that is not enabled has no address until it is.
+    off: { tag: "a", href: null, role: "link", name: "Off" },
   });
+  await page.evaluate(() => window.scene.enable());
+  await expect(page.getByRole("link", { name: "Off" })).toHaveAttribute("href", "/off/");
   await expect(page.getByRole("link", { name: "Start here" })).toHaveAttribute("href", "/start/");
   // The address follows what the item's `href` says.
   await page.evaluate(() => window.scene.step());
@@ -43,6 +47,34 @@ test("a plain press a MouseArea in the link holds is the program's, and the page
   await page.mouse.click(at.x, at.y);
   expect(await page.evaluate(() => window.scene.log)).toEqual(["held"]);
   await page.waitForTimeout(100);
+  expect(page.url()).toBe(before);
+});
+
+// A press that is held is captured by its scene, so it is let go over
+// the scene, not the link. Where a browser sends the click to the link
+// it was pressed on, the page still does not go to its address.
+test("the click after a press the program held is not the link's to follow", async ({ page }) => {
+  await open(page, "links");
+  await page.evaluate(() => {
+    const link = window.scene.items().held.$node;
+    window.clicked = [];
+    // After the scene has heard the press let go: the click a browser
+    // would send to the link, then.
+    window.addEventListener(
+      "pointerup",
+      () => {
+        const click = new MouseEvent("click", { bubbles: true, cancelable: true, detail: 1 });
+        link.dispatchEvent(click);
+        window.clicked.push(click.defaultPrevented);
+      },
+      { once: true },
+    );
+  });
+  const before = page.url();
+  const at = await centre(page, "held");
+  await page.mouse.click(at.x, at.y);
+  expect(await page.evaluate(() => window.clicked)).toEqual([true]);
+  expect(await page.evaluate(() => window.scene.log)).toEqual(["held"]);
   expect(page.url()).toBe(before);
 });
 

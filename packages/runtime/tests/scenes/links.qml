@@ -52,8 +52,24 @@ Item {
         Accessible.name: "Script"
     }
 
+    // Not enabled: nothing in it holds a press, and it goes nowhere.
+    Item {
+        id: off
+        property string href: "/off/"
+        y: 160
+        width: 120
+        height: 30
+        enabled: false
+        Accessible.role: Accessible.Link
+        Accessible.name: "Off"
+    }
+
     function items() {
-        return { held: held, bare: bare, button: button, script: script }
+        return { held: held, bare: bare, button: button, script: script, off: off }
+    }
+
+    function enable() {
+        off.enabled = true
     }
 
     function step() {

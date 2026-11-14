@@ -474,6 +474,8 @@ const elsewhere = (event) => event.button === 1 || event.ctrlKey || event.metaKe
 // The link whose click is the program's: the last press on it was held
 // by an item when it was let go (a MouseArea in the link, a Flickable
 // that took a drag over it). A press nobody held is the link's own.
+// The link is the one pressed: a press that is held is captured by its
+// scene, so what it is let go over is the scene, not the link.
 let kept = null;
 
 // The press a second one makes a double click with, while there is time.
@@ -494,6 +496,7 @@ function onDown(event) {
   const point = pointOf(event);
   if (point.down) return;
   point.scene = scene;
+  point.link = linkOf(event.target, scene);
   place(point, event);
   point.button = buttonOf(event);
   point.down = true;
@@ -568,7 +571,7 @@ function onUp(event) {
   point.button = buttonOf(event);
   point.moving = false;
   point.down = false;
-  if (point.primary) kept = point.claimed && point.exclusive ? linkOf(event.target, point.scene) : null;
+  if (point.primary) kept = point.claimed && point.exclusive ? point.link : null;
   if (point.claimed) {
     deliver(point, "$release");
     ungrab(point, false);
