@@ -1,7 +1,7 @@
 // Rectangle: a colour, rounded corners, a border, a gradient.
 import { contents, defineType, effect, group, QtObject, slot } from "../object.ts";
 import { allowedStyle } from "../guard.js";
-import { colorValue, css } from "./color.js";
+import { colorValue, css } from "./color.ts";
 import { Item } from "./Item.js";
 
 export const GradientStop = defineType("GradientStop", QtObject, {

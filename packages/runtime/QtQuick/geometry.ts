@@ -5,19 +5,52 @@
 // goes to (a x + c y + e, b x + d y + f). An item's is what Item gives its
 // element as a transform, so a point maps where it is seen.
 
-const translate = (m, x, y) => {
+// `[a, b, c, d, e, f]`.
+export type Matrix = [number, number, number, number, number, number];
+export interface Point {
+  x: number;
+  y: number;
+}
+export interface Rect extends Point {
+  width: number;
+  height: number;
+}
+// What a transform in an item's `transform` list gives.
+interface Transform {
+  $css(): string;
+}
+// What the coordinates of an item are worked out from.
+export interface Spatial {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  scale: number;
+  rotation: number;
+  transformOrigin: number;
+  transform?: Transform | readonly Transform[] | null;
+  parent?: Spatial | null;
+  children: Spatial[];
+  visible: boolean;
+  contains(point: Point): boolean;
+  $node?: HTMLElement | SVGElement | null;
+}
+// `(x, y)`, `(point)`, `(x, y, width, height)` or `(rect)`.
+type Mapping = [first?: number | Point | Rect, y?: number, width?: number, height?: number];
+
+const translate = (m: Matrix, x: number, y: number): void => {
   m[4] += m[0] * x + m[2] * y;
   m[5] += m[1] * x + m[3] * y;
 };
 
-const scale = (m, by) => {
+const scale = (m: Matrix, by: number): void => {
   m[0] *= by;
   m[1] *= by;
   m[2] *= by;
   m[3] *= by;
 };
 
-const rotate = (m, degrees) => {
+const rotate = (m: Matrix, degrees: number): void => {
   const angle = (degrees * Math.PI) / 180;
   const cos = Math.cos(angle);
   const sin = Math.sin(angle);
@@ -28,7 +61,7 @@ const rotate = (m, degrees) => {
   m[3] = d * cos - b * sin;
 };
 
-const multiply = (m, a, b, c, d, e, f) => {
+const multiply = (m: Matrix, a: number, b: number, c: number, d: number, e: number, f: number): void => {
   const [ma, mb, mc, md] = m;
   m[0] = ma * a + mc * b;
   m[1] = mb * a + md * b;
@@ -39,20 +72,20 @@ const multiply = (m, a, b, c, d, e, f) => {
 };
 
 // The point `rotation` and `scale` are about, in the item.
-export function origin(item) {
+export function origin(item: Spatial): Point {
   const at = item.transformOrigin;
   return { x: ((at % 3) / 2) * item.width, y: (Math.floor(at / 3) / 2) * item.height };
 }
 
 // Takes `m` from the coordinates of the item's parent to the item's own.
-function enter(m, item) {
+function enter(m: Matrix, item: Spatial): void {
   translate(m, item.x, item.y);
   const list = item.transform;
   if (list) {
-    const all = Array.isArray(list) ? list : [list];
+    const all: readonly Transform[] = Array.isArray(list) ? list : [list];
     for (let index = all.length - 1; index >= 0; index--) {
       // A rotation about another axis is seen flat, as it is hit.
-      const { a, b, c, d, e, f } = new DOMMatrix(all[index].$css());
+      const { a, b, c, d, e, f } = new DOMMatrix(all[index]!.$css());
       multiply(m, a, b, c, d, e, f);
     }
   }
@@ -69,26 +102,26 @@ function enter(m, item) {
 
 // The matrix from an item's coordinates to the scene's, into `m`. With no
 // item it is the scene itself.
-export function toScene(item, m = [1, 0, 0, 1, 0, 0]) {
+export function toScene(item: Spatial | null | undefined, m: Matrix = [1, 0, 0, 1, 0, 0]): Matrix {
   m[0] = m[3] = 1;
   m[1] = m[2] = m[4] = m[5] = 0;
   if (item) descend(m, item);
   return m;
 }
 
-function descend(m, item) {
+function descend(m: Matrix, item: Spatial): void {
   const parent = item.parent;
   if (parent?.$node) descend(m, parent);
   enter(m, item);
 }
 
-export function apply(m, x, y) {
+export function apply(m: Matrix, x: number, y: number): Point {
   return { x: m[0] * x + m[2] * y + m[4], y: m[1] * x + m[3] * y + m[5] };
 }
 
 // The point that `m` takes to (x, y). An item scaled to nothing has none:
 // everything in it is at one point.
-export function unapply(m, x, y) {
+export function unapply(m: Matrix, x: number, y: number): Point {
   const determinant = m[0] * m[3] - m[1] * m[2];
   if (determinant === 0) return { x: 0, y: 0 };
   const dx = x - m[4];
@@ -97,13 +130,13 @@ export function unapply(m, x, y) {
 }
 
 // One matrix for the calls below, which finish with it before they return.
-const scratch = [1, 0, 0, 1, 0, 0];
+const scratch: Matrix = [1, 0, 0, 1, 0, 0];
 
-export const itemToScene = (item, x, y) => apply(toScene(item, scratch), x, y);
-export const sceneToItem = (item, x, y) => unapply(toScene(item, scratch), x, y);
+export const itemToScene = (item: Spatial | null | undefined, x: number, y: number): Point => apply(toScene(item, scratch), x, y);
+export const sceneToItem = (item: Spatial | null | undefined, x: number, y: number): Point => unapply(toScene(item, scratch), x, y);
 
 // The item at the top of the tree `item` is in: what a window shows.
-export function topOf(item) {
+export function topOf(item: Spatial): Spatial {
   let top = item;
   for (let parent = top.parent; parent?.$node; parent = top.parent) top = parent;
   return top;
@@ -111,44 +144,45 @@ export function topOf(item) {
 
 // Where a scene is in the page, and how much the page has scaled it. The
 // scene is the element the top item was mounted in.
-export function frameOf(element) {
+export function frameOf(element: HTMLElement | null | undefined): { left: number; top: number; zoom: number } {
   if (!element) return { left: 0, top: 0, zoom: 1 };
   const box = element.getBoundingClientRect();
   const zoom = element.offsetWidth > 0 ? box.width / element.offsetWidth : 1;
   return { left: box.left + element.clientLeft * zoom, top: box.top + element.clientTop * zoom, zoom };
 }
 
-const frame = (item) => frameOf(topOf(item).$node.parentElement);
+// A shown item has an element, and so has the top it is in.
+const frame = (item: Spatial) => frameOf(topOf(item).$node!.parentElement);
 
 // Global coordinates are the page's: where `clientX` and `clientY` measure.
-export function sceneToGlobal(item, x, y) {
+export function sceneToGlobal(item: Spatial, x: number, y: number): Point {
   const { left, top, zoom } = frame(item);
   return { x: left + x * zoom, y: top + y * zoom };
 }
 
-export function globalToScene(item, x, y) {
+export function globalToScene(item: Spatial, x: number, y: number): Point {
   const { left, top, zoom } = frame(item);
   return { x: (x - left) / zoom, y: (y - top) / zoom };
 }
 
 // `mapToItem(item, x, y)`, `(item, point)`, `(item, x, y, width, height)` and
 // `(item, rect)`: Qt takes all four.
-function mapped(from, to, args) {
+function mapped(from: Spatial | null | undefined, to: Spatial | null | undefined, args: Mapping): Point | Rect {
   const first = args[0];
-  const given = typeof first === "object" && first !== null ? first : null;
-  const x = given ? given.x : (first ?? 0);
+  const given = typeof first === "object" && first !== null ? (first as Point & Partial<Rect>) : null;
+  const x = given ? given.x : ((first as number | undefined) ?? 0);
   const y = given ? given.y : (args[1] ?? 0);
   const width = given ? given.width : args[2];
   const height = given ? given.height : args[3];
-  const out = [...toScene(from, scratch)];
+  const out: Matrix = [...toScene(from, scratch)];
   const back = toScene(to, scratch);
-  const point = (px, py) => {
+  const point = (px: number, py: number): Point => {
     const scene = apply(out, px, py);
     return unapply(back, scene.x, scene.y);
   };
   if (width === undefined) return point(x, y);
   // A rectangle maps to the one around its four corners.
-  const corners = [point(x, y), point(x + width, y), point(x, y + height), point(x + width, y + height)];
+  const corners = [point(x, y), point(x + width, y), point(x, y + height!), point(x + width, y + height!)];
   const xs = corners.map((corner) => corner.x);
   const ys = corners.map((corner) => corner.y);
   const left = Math.min(...xs);
@@ -156,35 +190,35 @@ function mapped(from, to, args) {
   return { x: left, y: top, width: Math.max(...xs) - left, height: Math.max(...ys) - top };
 }
 
-const pointOf = (x, y) => (typeof x === "object" && x !== null ? x : { x: x ?? 0, y: y ?? 0 });
+const pointOf = (x: number | Point | undefined, y: number | undefined): Point => (typeof x === "object" && x !== null ? x : { x: x ?? 0, y: y ?? 0 });
 
 // Item's coordinate functions, with the item as `this`.
 export const methods = {
-  mapToItem(item, ...args) {
+  mapToItem(this: Spatial, item: Spatial | null, ...args: Mapping): Point | Rect {
     return mapped(this, item, args);
   },
-  mapFromItem(item, ...args) {
+  mapFromItem(this: Spatial, item: Spatial | null, ...args: Mapping): Point | Rect {
     return mapped(item, this, args);
   },
-  mapToGlobal(x, y) {
+  mapToGlobal(this: Spatial, x: number | Point, y?: number): Point {
     const point = pointOf(x, y);
     const scene = itemToScene(this, point.x, point.y);
     return sceneToGlobal(this, scene.x, scene.y);
   },
-  mapFromGlobal(x, y) {
+  mapFromGlobal(this: Spatial, x: number | Point, y?: number): Point {
     const point = pointOf(x, y);
     const scene = globalToScene(this, point.x, point.y);
     return sceneToItem(this, scene.x, scene.y);
   },
   // Its right and bottom edges are outside an item.
-  contains(point) {
+  contains(this: Spatial, point: Point): boolean {
     return point.x >= 0 && point.y >= 0 && point.x < this.width && point.y < this.height;
   },
   // The last of the children the point is in, whatever their `z`.
-  childAt(x, y) {
+  childAt(this: Spatial, x: number, y: number): Spatial | null {
     const children = this.children;
     for (let index = children.length - 1; index >= 0; index--) {
-      const child = children[index];
+      const child = children[index]!;
       if (child.visible && child.contains(mapped(this, child, [x, y]))) return child;
     }
     return null;

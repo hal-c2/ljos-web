@@ -9,7 +9,7 @@
 import { createEffect, runWithOwner } from "solid-js";
 import { defineType, derived, effect, instantiate, last, slot, whenComplete, whenMade } from "../object.ts";
 import { Item } from "./Item.js";
-import { settle } from "./settle.js";
+import { settle } from "./settle.ts";
 import { signal, untrack } from "#kernel";
 
 const Null = 0;

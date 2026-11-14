@@ -5,7 +5,7 @@
 // of a tile, and "itemsoverlay", a map of nothing for items to be on. Of what
 // a provider does besides maps (routes, addresses, places) there is none.
 import { contents, defineType, derived, effect, QtObject, slot } from "../object.ts";
-import { lazy } from "../QtQuick/compute.js";
+import { lazy } from "../QtQuick/compute.ts";
 
 const EMPTY = Object.freeze([]);
 

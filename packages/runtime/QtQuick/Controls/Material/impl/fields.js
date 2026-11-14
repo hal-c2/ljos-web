@@ -5,7 +5,7 @@
 // `qquickmaterialplaceholdertext.cpp`).
 import { defineType, derived, effect, slot } from "../../../../object.ts";
 import { curve } from "../../../animation/easing.js";
-import { colorValue, css } from "../../../color.js";
+import { colorValue, css } from "../../../color.ts";
 import { Item } from "../../../Item.js";
 import { PlaceholderText } from "../../impl/texts.js";
 import { arc, given, pictured, timed } from "../../painting.js";

@@ -16,7 +16,7 @@
 import { guardedFetch, sourced } from "../guard.js";
 import { awaited, defineType, derived, effect, flush, group, located } from "../object.ts";
 import { Vector3d } from "../QtQml/values.ts";
-import { color } from "../QtQuick/color.js";
+import { color } from "../QtQuick/color.ts";
 import { ktx } from "./ktx.js";
 import { tga } from "./tga.js";
 import * as math from "./math.js";

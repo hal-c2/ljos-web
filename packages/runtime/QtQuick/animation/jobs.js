@@ -6,7 +6,7 @@
 //
 // Times are milliseconds. A job in a group is driven by the group; one on
 // its own is on the clock.
-import { draw, drawing } from "../drawn.js";
+import { draw, drawing } from "../drawn.ts";
 import { clock } from "./clock.js";
 import { mix, rgba } from "./property.js";
 

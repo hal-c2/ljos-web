@@ -4,7 +4,7 @@
 import { defineType, derived, effect, QtObject, settle, slot } from "../../object.ts";
 import { parts } from "./parts.js";
 import { forceActiveFocus, MouseFocusReason, windowOf } from "../focus.js";
-import { Key, LeftButton } from "../keycodes.js";
+import { Key, LeftButton } from "../keycodes.ts";
 import { Control, keeps, loose, put } from "./Control.js";
 import { along, clamp, close, dragged, Horizontal, keep, nothing, now, round, scaled, SnapMode, snapPosition, step, Vertical } from "./Slider.js";
 import { untrack } from "#kernel";

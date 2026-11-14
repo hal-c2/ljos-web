@@ -5,7 +5,7 @@
 // read from `qml6`: a browser has no palette to ask for.
 import { runWithOwner } from "solid-js";
 import { defineType, derived, group, QtObject, slot } from "../object.ts";
-import { color, colorValue } from "./color.js";
+import { color, colorValue } from "./color.ts";
 import { untrack } from "#kernel";
 
 const ACTIVE = {

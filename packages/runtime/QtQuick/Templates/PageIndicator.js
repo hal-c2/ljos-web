@@ -2,7 +2,7 @@
 // The dots are the style's: a Repeater of `delegate` over `count`, in the
 // content item. When `interactive`, a press of a dot makes its page current.
 import { $component, defineType, settle } from "../../object.ts";
-import { LeftButton } from "../keycodes.js";
+import { LeftButton } from "../keycodes.ts";
 import { touch, track } from "../model.js";
 import { Control, put, within } from "./Control.js";
 import { untrack } from "#kernel";

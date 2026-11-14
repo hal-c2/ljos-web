@@ -2,7 +2,7 @@
 // one is. Text is measured here, on a canvas, and not by laying out
 // elements: a binding reads `implicitWidth` before anything is in the page.
 import { alone, derived, flush, group, kinds, typed } from "../object.ts";
-import { given } from "./compute.js";
+import { given } from "./compute.ts";
 import { signal } from "#kernel";
 
 // `Font.Bold`, `Font.AllUppercase`: the enums of the `font` value type.

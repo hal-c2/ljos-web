@@ -6,9 +6,9 @@ import { getOwner, onCleanup } from "solid-js";
 import { signal as counted, untrack } from "#kernel";
 import { sourced } from "../guard.js";
 import { effect, settle } from "../object.ts";
-import { rules } from "../QtQuick/compute.js";
+import { rules } from "../QtQuick/compute.ts";
 import { Item } from "../QtQuick/Item.js";
-import { sceneToItem } from "../QtQuick/geometry.js";
+import { sceneToItem } from "../QtQuick/geometry.ts";
 import { CancelGrabExclusive, gone, hoverable, receive, wheels } from "../QtQuick/pointer.js";
 
 const PAINT = 1;

@@ -4,8 +4,8 @@
 // it at every moment.
 import { defineType } from "../../../../object.ts";
 import { curve } from "../../../animation/easing.js";
-import { colorValue, css } from "../../../color.js";
-import { rules } from "../../../compute.js";
+import { colorValue, css } from "../../../color.ts";
+import { rules } from "../../../compute.ts";
 import { Item } from "../../../Item.js";
 import { clipping, looped, part, pictured, shown } from "../../painting.js";
 

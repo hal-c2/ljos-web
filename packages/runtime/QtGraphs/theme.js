@@ -4,8 +4,8 @@
 import { alone, defineType, derived, group, QtObject } from "../object.ts";
 import { fontNamed } from "../QtCharts/plot.js";
 import { styleHints } from "../QtQml/application.ts";
-import { color, colorValue } from "../QtQuick/color.js";
-import { given } from "../QtQuick/compute.js";
+import { color, colorValue } from "../QtQuick/color.ts";
+import { given } from "../QtQuick/compute.ts";
 
 const LIGHT = { background: "#f2f2f2", plot: "#fcfcfc", main: "#545151", sub: "#afafaf", text: "#6a6a6a", label: "#e7e7e7", single: "#ccdc00", multi: "#22d47b" };
 const DARK = { background: "#262626", plot: "#1f1f1f", main: "#aeabab", sub: "#6a6a6a", text: "#aeaeae", label: "#2e2e2e", single: "#dbeb00", multi: "#22d489" };

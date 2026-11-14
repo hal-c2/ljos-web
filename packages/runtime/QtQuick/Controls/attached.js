@@ -4,7 +4,7 @@
 // an object is its own and that of everything inside it.
 import { chosen, slot } from "../../object.ts";
 import { styleHints } from "../../QtQml/application.ts";
-import { Color, color } from "../color.js";
+import { Color, color } from "../color.ts";
 import { Item } from "../Item.js";
 import { windowOf } from "../Window.js";
 

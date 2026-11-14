@@ -1,8 +1,8 @@
 // IconLabel: an icon and a text, beside or under one another: what a button
 // has inside it. Its implicit size is what makes the button's.
 import { defineType, derived, effect, group, inside, slot } from "../../../object.ts";
-import { color, colorValue } from "../../color.js";
-import { lazy } from "../../compute.js";
+import { color, colorValue } from "../../color.ts";
+import { lazy } from "../../compute.ts";
 import { font } from "../../font.js";
 import { Item } from "../../Item.js";
 import { IconImage } from "./images.js";

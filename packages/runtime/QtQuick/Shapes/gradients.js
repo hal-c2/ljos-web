@@ -5,7 +5,7 @@
 // conical gradient and CSS has, so a path filled with one shows a box with
 // that background through its own outline (`Shape.js`).
 import { defineType, effect } from "../../object.ts";
-import { css } from "../color.js";
+import { css } from "../color.ts";
 import { Gradient } from "../Rectangle.js";
 
 const SVG = "http://www.w3.org/2000/svg";

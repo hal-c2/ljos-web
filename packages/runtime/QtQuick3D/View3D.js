@@ -15,7 +15,7 @@
 // of smoothing edges there is one.
 import { defineType, effect, inside as within, QtObject, settle, slot } from "../object.ts";
 import { Vector2d, Vector3d } from "../QtQml/values.ts";
-import { lazy } from "../QtQuick/compute.js";
+import { lazy } from "../QtQuick/compute.ts";
 import { Item } from "../QtQuick/Item.js";
 import * as math from "./math.js";
 import { inside, Node } from "./Node.js";

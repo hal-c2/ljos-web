@@ -110,7 +110,7 @@ export const Key = {
 };
 
 // `KeyboardEvent.key`, for the keys that type nothing, as Qt's.
-const NAMED = {
+const NAMED: Record<string, number> = {
   Escape: Key.Key_Escape,
   Tab: Key.Key_Tab,
   Backspace: Key.Key_Backspace,
@@ -185,17 +185,17 @@ const NAMED = {
 
 // The key that types `text`: the code point of its upper case, which is
 // where Qt puts the letters and all of Latin-1.
-function typed(text) {
+function typed(text: string): number {
   const upper = text.toUpperCase();
   // `ß` has no upper case of one character and is a key of its own.
   const one = upper.codePointAt(0);
-  return upper.length === String.fromCodePoint(one).length ? one : text.codePointAt(0);
+  return upper.length === String.fromCodePoint(one!).length ? one! : text.codePointAt(0)!;
 }
 
-const single = (text) => text.length === 1 || (text.length === 2 && text.codePointAt(0) > 0xffff);
+const single = (text: string): boolean => text.length === 1 || (text.length === 2 && text.codePointAt(0)! > 0xffff);
 
 // A DOM key event's `Qt::Key`.
-export function keyOf(event) {
+export function keyOf(event: KeyboardEvent): number {
   const key = event.key;
   if (single(key)) return typed(key);
   if (key === "Tab" && event.shiftKey) return Key.Key_Backtab;
@@ -204,15 +204,15 @@ export function keyOf(event) {
   const named = NAMED[key];
   if (named !== undefined) return named;
   const f = /^F(\d+)$/.exec(key);
-  if (f && f[1] >= 1 && f[1] <= 35) return Key.Key_F1 + Number(f[1]) - 1;
+  if (f && +f[1]! >= 1 && +f[1]! <= 35) return Key.Key_F1 + Number(f[1]) - 1;
   return Key.Key_unknown;
 }
 
-const CONTROLS = { Enter: "\r", Tab: "\t", Backspace: "\b", Escape: "\x1b", Delete: "\x7f" };
+const CONTROLS: Record<string, string> = { Enter: "\r", Tab: "\t", Backspace: "\b", Escape: "\x1b", Delete: "\x7f" };
 
 // What the key types, as Qt's `text`: with Control held, a letter is its
 // control character.
-export function textOf(event) {
+export function textOf(event: KeyboardEvent): string {
   const key = event.key;
   if (!single(key)) return CONTROLS[key] ?? "";
   if (event.ctrlKey && !event.altKey && /^[a-z@[\\\]^_]$/i.test(key)) {
@@ -222,20 +222,20 @@ export function textOf(event) {
 }
 
 // A DOM key, mouse or wheel event's `Qt::KeyboardModifiers`.
-export function modifiersOf(event) {
+export function modifiersOf(event: KeyboardEvent | MouseEvent): number {
   let modifiers = 0;
   if (event.shiftKey) modifiers |= ShiftModifier;
   if (event.ctrlKey) modifiers |= ControlModifier;
   if (event.altKey) modifiers |= AltModifier;
   if (event.metaKey) modifiers |= MetaModifier;
-  if (event.location === 3) modifiers |= KeypadModifier;
+  if ((event as Partial<KeyboardEvent>).location === 3) modifiers |= KeypadModifier;
   return modifiers;
 }
 
 // `MouseEvent.button` as a `Qt::MouseButton`. The DOM counts the middle
 // button before the right one; its `buttons` mask is already Qt's.
 const BUTTONS = [LeftButton, MiddleButton, RightButton, BackButton, ForwardButton];
-export const buttonOf = (event) => BUTTONS[event.button] ?? NoButton;
+export const buttonOf = (event: MouseEvent): number => BUTTONS[event.button] ?? NoButton;
 
 // `QKeySequence::StandardKey`.
 export const StandardKey = Object.fromEntries(
@@ -364,12 +364,12 @@ const WRITTEN = {
   "Media Pause": Key.Key_MediaPause,
 };
 const READ = { ...WRITTEN, Escape: Key.Key_Escape, Insert: Key.Key_Insert, Delete: Key.Key_Delete };
-const BY_LOWER = Object.fromEntries(Object.keys(READ).map((name) => [name.toLowerCase(), READ[name]]));
+const BY_LOWER = Object.fromEntries(Object.keys(READ).map((name) => [name.toLowerCase(), READ[name as keyof typeof READ]]));
 const NAMES = Object.fromEntries(Object.entries(WRITTEN).map(([name, key]) => [key, name]));
 
-const MODIFIERS = { ctrl: ControlModifier, shift: ShiftModifier, alt: AltModifier, meta: MetaModifier, num: KeypadModifier };
+const MODIFIERS: Record<string, number> = { ctrl: ControlModifier, shift: ShiftModifier, alt: AltModifier, meta: MetaModifier, num: KeypadModifier };
 // The order `QKeySequence` writes them in.
-const ORDER = [
+const ORDER: [modifier: number, name: string][] = [
   [MetaModifier, "Meta+"],
   [ControlModifier, "Ctrl+"],
   [AltModifier, "Alt+"],
@@ -379,7 +379,13 @@ const ORDER = [
 
 // One chord, `"Ctrl+Shift+Z"`, as a key and its modifiers; a standard key
 // (a number) is its binding. Nothing for what is not a chord of one key.
-export function chord(sequence) {
+// A key and the modifiers held with it.
+export interface Chord {
+  key: number;
+  modifiers: number;
+}
+
+export function chord(sequence: unknown): Chord | null {
   if (typeof sequence === "number") sequence = STANDARD[sequence] ?? "";
   if (typeof sequence !== "string") return null;
   let rest = sequence.trim();
@@ -399,7 +405,7 @@ export function chord(sequence) {
   let key = BY_LOWER[rest.toLowerCase()];
   if (key === undefined) {
     const f = /^F(\d+)$/i.exec(rest);
-    if (f && f[1] >= 1 && f[1] <= 35) key = Key.Key_F1 + Number(f[1]) - 1;
+    if (f && +f[1]! >= 1 && +f[1]! <= 35) key = Key.Key_F1 + Number(f[1]) - 1;
     else if (single(rest)) key = typed(rest);
     else return null;
   }
@@ -407,7 +413,7 @@ export function chord(sequence) {
 }
 
 // A chord as `QKeySequence` writes it.
-export function chordText({ key, modifiers }) {
+export function chordText({ key, modifiers }: Chord): string {
   let text = "";
   for (const [modifier, name] of ORDER) if (modifiers & modifier) text += name;
   if (NAMES[key]) return text + NAMES[key];
@@ -418,10 +424,10 @@ export function chordText({ key, modifiers }) {
 // Whether a key event is the chord. Shift with Tab is Backtab to Qt, under
 // either name; a character typed with Shift is that character with or
 // without it, since the sequence `Ctrl++` cannot know the layout.
-export function chordMatches(wanted, key, modifiers) {
+export function chordMatches(wanted: Chord, key: number, modifiers: number): boolean {
   const held = modifiers & ~KeypadModifier;
   const asked = wanted.modifiers & ~KeypadModifier;
-  const tab = (code) => (code === Key.Key_Backtab ? Key.Key_Tab : code);
+  const tab = (code: number): number => (code === Key.Key_Backtab ? Key.Key_Tab : code);
   if (tab(wanted.key) !== tab(key)) return false;
   if (held === asked) return true;
   if (!(held & ShiftModifier) || (held & ~ShiftModifier) !== asked) return false;

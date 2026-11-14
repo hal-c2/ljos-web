@@ -7,10 +7,10 @@
 import { onCleanup } from "solid-js";
 import { contents, defineType, derived, effect, group, instantiate, last, settle, slot } from "../../object.ts";
 import { parts } from "./parts.js";
-import { colorValue } from "../color.js";
+import { colorValue } from "../color.ts";
 import { BacktabFocusReason, departing, forceActiveFocus, OtherFocusReason, setFocus, TabFocusReason } from "../focus.js";
-import { globalToScene, itemToScene, sceneToItem } from "../geometry.js";
-import { Key } from "../keycodes.js";
+import { globalToScene, itemToScene, sceneToItem } from "../geometry.ts";
+import { Key } from "../keycodes.ts";
 import { ObjectModel } from "../model.js";
 import { after, cancel, cursor, rehover } from "../pointer.js";
 import { AbstractButton } from "./AbstractButton.js";

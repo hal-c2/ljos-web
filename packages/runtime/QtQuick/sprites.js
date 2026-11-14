@@ -5,7 +5,7 @@
 // sprite ends when its time is up and the next is one of those it names, by
 // their weights, or the one on the shortest way to a goal.
 import { allowedUrl } from "../guard.js";
-import { rules } from "./compute.js";
+import { rules } from "./compute.ts";
 
 rules(
   ".qq-sprite { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background-repeat: no-repeat; pointer-events: none; }",

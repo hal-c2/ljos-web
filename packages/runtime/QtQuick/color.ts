@@ -16,21 +16,24 @@ const INVALID = 0;
 const RGB = 1;
 const HSV = 2;
 const HSL = 3;
+// The model a colour was made in.
+type Spec = typeof INVALID | typeof RGB | typeof HSV | typeof HSL;
+type Channels = [number, number, number];
 
 const MAX = 0xffff;
 // No hue: a grey.
 const NONE = MAX;
 const f = Math.fround;
 // Qt's qRound, of a float that is never negative here.
-const round = (value) => Math.trunc(f(value + 0.5));
-const unit = (value) => f(value / MAX);
-const scaled = (value) => round(f(value * MAX));
-const clamp = (value) => (value > 1 ? 1 : value > 0 ? value : 0);
+const round = (value: number): number => Math.trunc(f(value + 0.5));
+const unit = (value: number): number => f(value / MAX);
+const scaled = (value: number): number => round(f(value * MAX));
+const clamp = (value: number): number => (value > 1 ? 1 : value > 0 ? value : 0);
 
 // The hue of a colour that has one, in hundredths of a degree. The channels
 // are whole numbers, and `max` is one of them.
-function hue(r, g, b, max, chroma) {
-  let sixth;
+function hue(r: number, g: number, b: number, max: number, chroma: number): number {
+  let sixth: number;
   if (max === r) {
     sixth = f((g - b) / chroma);
     if (sixth < 0) sixth = f(sixth + 6);
@@ -39,14 +42,14 @@ function hue(r, g, b, max, chroma) {
   return round(f(sixth * 6000));
 }
 
-function rgbToHsv(r, g, b) {
+function rgbToHsv(r: number, g: number, b: number): Channels {
   const max = Math.max(r, g, b);
   const chroma = max - Math.min(r, g, b);
   if (chroma === 0) return [NONE, 0, max];
   return [hue(r, g, b, max, chroma), scaled(f(chroma / max)), max];
 }
 
-function rgbToHsl(r, g, b) {
+function rgbToHsl(r: number, g: number, b: number): Channels {
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
   const chroma = max - min;
@@ -56,7 +59,7 @@ function rgbToHsl(r, g, b) {
   return [hue(r, g, b, max, chroma), scaled(saturation), round(lightness)];
 }
 
-function hsvToRgb(hue, saturation, value) {
+function hsvToRgb(hue: number, saturation: number, value: number): Channels {
   if (saturation === 0 || hue === NONE) return [value, value, value];
   const h = hue === 36000 ? 0 : f(hue / 6000);
   const s = unit(saturation);
@@ -67,18 +70,20 @@ function hsvToRgb(hue, saturation, value) {
   // The channel between the other two: falling in an odd sector, rising in
   // an even one.
   const q = sector & 1 ? f(v * f(1 - f(s * within))) : f(v * f(1 - f(s * f(1 - within))));
-  const [r, g, b] = [
-    [v, q, p],
-    [q, v, p],
-    [p, v, q],
-    [p, q, v],
-    [q, p, v],
-    [v, p, q],
-  ][sector];
+  const [r, g, b] = (
+    [
+      [v, q, p],
+      [q, v, p],
+      [p, v, q],
+      [p, q, v],
+      [q, p, v],
+      [v, p, q],
+    ] as Channels[]
+  )[sector]!;
   return [scaled(r), scaled(g), scaled(b)];
 }
 
-function hslToRgb(hue, saturation, lightness) {
+function hslToRgb(hue: number, saturation: number, lightness: number): Channels {
   if (saturation === 0 || hue === NONE) return [lightness, lightness, lightness];
   if (lightness === 0) return [0, 0, 0];
   const h = hue === 36000 ? 0 : f(hue / 36000);
@@ -87,11 +92,11 @@ function hslToRgb(hue, saturation, lightness) {
   const high = l < 0.5 ? f(l * f(1 + s)) : f(f(l + s) - f(l * s));
   const low = f(f(2 * l) - high);
   const third = f(1 / 3);
-  const channel = (turn) => {
+  const channel = (turn: number): number => {
     if (turn < 0) turn = f(turn + 1);
     else if (turn > 1) turn = f(turn - 1);
     const six = f(turn * 6);
-    let value;
+    let value: number;
     if (six < 1) value = f(low + f(f(high - low) * six));
     else if (f(turn * 2) < 1) value = high;
     else if (f(turn * 3) < 2) value = f(low + f(f(f(high - low) * f(f(2 / 3) - turn)) * 6));
@@ -133,9 +138,9 @@ const TABLE =
   "steelblue:4682b4,tan:d2b48c,teal:008080,thistle:d8bfd8,tomato:ff6347,turquoise:40e0d0," +
   "violet:ee82ee,wheat:f5deb3,white:ffffff,whitesmoke:f5f5f5,yellow:ffff00,yellowgreen:9acd32";
 
-let names = null;
+let names: Map<string, number> | null = null;
 
-function named(text) {
+function named(text: string): number | undefined {
   if (!names) {
     names = new Map();
     for (const entry of TABLE.split(",")) names.set(entry.slice(0, -7), parseInt(entry.slice(-6), 16));
@@ -145,7 +150,7 @@ function named(text) {
 }
 
 // `digits` hexadecimal digits of `text` from `at`, as sixteen bits.
-function hex(text, at, digits) {
+function hex(text: string, at: number, digits: number): number {
   const value = parseInt(text.slice(at, at + digits), 16);
   switch (digits) {
     case 1:
@@ -160,8 +165,9 @@ function hex(text, at, digits) {
 }
 
 // What a string says, in the colour it was kept in.
-function parse(color) {
-  const text = color.source;
+function parse(color: Color): void {
+  // Only a colour made from a string is parsed.
+  const text = color.source!;
   color.ca = MAX;
   color.c0 = color.c1 = color.c2 = 0;
   color.spec = INVALID;
@@ -190,17 +196,17 @@ function parse(color) {
   }
 }
 
-const parsed = (color) => {
+const parsed = (color: Color): Color => {
   if (color.spec === undefined) parse(color);
   return color;
 };
 
 // A colour's channels in one model, whatever model it is in. An invalid
 // colour is black in each.
-const ZERO = [0, 0, 0];
-const own = (color) => [color.c0, color.c1, color.c2];
+const ZERO: Channels = [0, 0, 0];
+const own = (color: Color): Channels => [color.c0, color.c1, color.c2];
 
-function rgb(color) {
+function rgb(color: Color): Channels {
   switch (parsed(color).spec) {
     case RGB:
       return own(color);
@@ -213,23 +219,23 @@ function rgb(color) {
   }
 }
 
-function hsv(color) {
+function hsv(color: Color): Channels {
   if (parsed(color).spec === HSV) return own(color);
   return color.spec === INVALID ? ZERO : rgbToHsv(...rgb(color));
 }
 
-function hsl(color) {
+function hsl(color: Color): Channels {
   if (parsed(color).spec === HSL) return own(color);
   return color.spec === INVALID ? ZERO : rgbToHsl(...rgb(color));
 }
 
-const turns = (hue) => (hue === NONE ? -1 : f(hue / 36000));
+const turns = (hue: number): number => (hue === NONE ? -1 : f(hue / 36000));
 
 // Sixteen bits as eight: Qt's rounded division by 257.
-const eight = (value) => (value + 128 - ((value + 128) >> 8)) >> 8;
+const eight = (value: number): number => (value + 128 - ((value + 128) >> 8)) >> 8;
 
 // Eight bits of each channel in one number, `0xAARRGGBB`: what is painted.
-function packed(color) {
+function packed(color: Color): number {
   if (color.argb === undefined) {
     const [r, g, b] = rgb(color);
     color.argb = ((eight(color.ca) << 24) | (eight(r) << 16) | (eight(g) << 8) | eight(b)) >>> 0;
@@ -237,10 +243,10 @@ function packed(color) {
   return color.argb;
 }
 
-const digits = (value, count) => value.toString(16).padStart(count, "0");
+const digits = (value: number, count: number): string => value.toString(16).padStart(count, "0");
 
 // An HSV colour in the model `spec`: what `lighter` and `darker` give back.
-function fromHsv(spec, alpha, hue, saturation, value) {
+function fromHsv(spec: Spec, alpha: number, hue: number, saturation: number, value: number): Color {
   if (spec === HSV) return new Color(null, HSV, alpha, hue, saturation, value);
   const [r, g, b] = hsvToRgb(hue, saturation, value);
   if (spec === RGB) return new Color(null, RGB, alpha, r, g, b);
@@ -248,14 +254,25 @@ function fromHsv(spec, alpha, hue, saturation, value) {
 }
 
 export class Color {
-  constructor(source, spec, alpha, c0, c1, c2) {
+  declare source: string | null;
+  // Undefined until a string is looked into, and the channels with it.
+  declare spec: Spec | undefined;
+  declare ca: number;
+  declare c0: number;
+  declare c1: number;
+  declare c2: number;
+  declare argb: number | undefined;
+  declare painted: string | undefined;
+
+  constructor(source: string);
+  constructor(source: null, spec: Spec, alpha: number, c0: number, c1: number, c2: number);
+  constructor(source: string | null, spec?: Spec, alpha?: number, c0?: number, c1?: number, c2?: number) {
     this.source = source;
-    // Undefined until a string is looked into.
     this.spec = spec;
-    this.ca = alpha;
-    this.c0 = c0;
-    this.c1 = c1;
-    this.c2 = c2;
+    this.ca = alpha as number;
+    this.c0 = c0 as number;
+    this.c1 = c1 as number;
+    this.c2 = c2 as number;
     this.argb = undefined;
     this.painted = undefined;
   }
@@ -296,7 +313,7 @@ export class Color {
 
   // `#rrggbb`, or `#aarrggbb` when it is not opaque. Comparing a colour
   // with a string compares this, as in QML: equal to "#ff0000", not to "red".
-  toString() {
+  toString(): string {
     const argb = packed(this);
     return argb >>> 24 === 255 ? `#${digits(argb & 0xffffff, 6)}` : `#${digits(argb, 8)}`;
   }
@@ -308,11 +325,11 @@ export class Color {
 
   // The CSS colour: the string it came from if it came from one. What this
   // worked out before a shell was shown is asked about as well, once one is.
-  css() {
+  css(): string {
     return allowedColour(this.written());
   }
 
-  written() {
+  written(): string {
     if (this.painted === undefined) {
       if (this.source !== null) this.painted = written(this.source);
       else {
@@ -324,26 +341,26 @@ export class Color {
     return this.painted;
   }
 
-  alpha(value) {
+  alpha(value: number): Color {
     parsed(this);
-    return new Color(null, this.spec, scaled(clamp(f(value))), this.c0, this.c1, this.c2);
+    return new Color(null, this.spec!, scaled(clamp(f(value))), this.c0, this.c1, this.c2);
   }
 
-  lighter(factor = 1.5) {
+  lighter(factor = 1.5): Color {
     return lighter(this, Math.floor(factor * 100 + 0.5));
   }
 
-  darker(factor = 2) {
+  darker(factor = 2): Color {
     return darker(this, Math.floor(factor * 100 + 0.5));
   }
 
   // `Color.of(c).equals("#ff0000")` (Ljos.Core): `Qt.colorEqual`.
-  equals(other) {
+  equals(other: unknown): boolean {
     return equal(this, other);
   }
 
   // This colour seen through `over`, by how opaque that is.
-  tint(over) {
+  tint(over: unknown): Color {
     const tint = color(over);
     const cover = packed(tint) >>> 24;
     if (cover === 255) return tint;
@@ -363,7 +380,7 @@ export class Color {
 
 // QColor::lighter, by a percentage: the value is multiplied, and what does
 // not fit comes out of the saturation.
-function lighter(color, percent) {
+function lighter(color: Color, percent: number): Color {
   if (!color.valid || !(percent > 0)) return color;
   if (percent < 100) return darker(color, Math.trunc(10000 / percent));
   let [hue, saturation, value] = hsv(color);
@@ -372,23 +389,23 @@ function lighter(color, percent) {
     saturation = Math.max(0, saturation - (value - MAX));
     value = MAX;
   }
-  return fromHsv(color.spec, color.ca, hue, saturation, value);
+  return fromHsv(color.spec!, color.ca, hue, saturation, value);
 }
 
-function darker(color, percent) {
+function darker(color: Color, percent: number): Color {
   if (!color.valid || !(percent > 0)) return color;
   if (percent < 100) return lighter(color, Math.trunc(10000 / percent));
   const [hue, saturation, value] = hsv(color);
-  return fromHsv(color.spec, color.ca, hue, saturation, Math.trunc((value * 100) / percent));
+  return fromHsv(color.spec!, color.ca, hue, saturation, Math.trunc((value * 100) / percent));
 }
 
 const invalid = new Color("");
 // A literal is looked up, not made again: the same string is the same value.
-const interned = new Map();
+const interned = new Map<string, Color>();
 
 // The colour value of what a `color` property was given: a string, or a
 // colour already.
-export function color(value) {
+export function color(value: unknown): Color {
   if (value instanceof Color) return value;
   if (typeof value !== "string") return invalid;
   let made = interned.get(value);
@@ -402,13 +419,13 @@ export function color(value) {
 
 // For a type's `resolve`: `resolve: { color: colorValue }` makes the
 // property read as a colour value, whatever it was given.
-export const colorValue = (self, own) => color(own());
+export const colorValue = (self: unknown, own: () => unknown): Color => color(own());
 
 // A QML colour as a CSS one. Most of what a shell can write ends up here, and
 // `background` takes a picture as readily as a colour (docs/LJOS_WEB.md A9).
-export const css = (value) => allowedColour(written(value));
+export const css = (value: unknown): string => allowedColour(written(value));
 
-function written(value) {
+function written(value: unknown): string {
   if (value == null || value === "") return "transparent";
   if (typeof value !== "string") return value instanceof Color ? value.written() : String(value);
   if (value.charCodeAt(0) !== 35) return value;
@@ -420,26 +437,26 @@ function written(value) {
 }
 
 // `Qt.rgba`: channels from 0 to 1, clamped.
-export function rgba(r, g, b, a = 1) {
+export function rgba(r: number, g: number, b: number, a = 1): Color {
   return new Color(null, RGB, scaled(clamp(f(a))), scaled(clamp(f(r))), scaled(clamp(f(g))), scaled(clamp(f(b))));
 }
 
 // A hue of -1 is no hue; one full turn is the same hue as none.
-const degrees = (h) => (h === -1 ? NONE : round(f(clamp(f(h)) * 36000)));
+const degrees = (h: number): number => (h === -1 ? NONE : round(f(clamp(f(h)) * 36000)));
 
-export function hsla(h, s, l, a = 1) {
+export function hsla(h: number, s: number, l: number, a = 1): Color {
   const hue = degrees(h);
   return new Color(null, HSL, scaled(clamp(f(a))), hue === 36000 ? 0 : hue, scaled(clamp(f(s))), scaled(clamp(f(l))));
 }
 
-export function hsva(h, s, v, a = 1) {
+export function hsva(h: number, s: number, v: number, a = 1): Color {
   return new Color(null, HSV, scaled(clamp(f(a))), degrees(h), scaled(clamp(f(s))), scaled(clamp(f(v))));
 }
 
 // Whether two colours are the same colour, as QColor compares them: in the
 // same model, channel by channel. (`==` on two colour values compares the
 // objects; against a string it compares `toString()`.)
-export function equal(a, b) {
+export function equal(a: unknown, b: unknown): boolean {
   const one = parsed(color(a));
   const other = parsed(color(b));
   if (one.spec !== other.spec || one.ca !== other.ca) return false;
@@ -447,7 +464,7 @@ export function equal(a, b) {
   return first && one.c1 === other.c1 && one.c2 === other.c2;
 }
 
-const between = (from, to, shift, t) => {
+const between = (from: number, to: number, shift: number, t: number): number => {
   const start = (from >>> shift) & 255;
   const value = Math.trunc(start + (((to >>> shift) & 255) - start) * t);
   return (value > 255 ? 255 : value > 0 ? value : 0) * 0x101;
@@ -455,7 +472,7 @@ const between = (from, to, shift, t) => {
 
 // The colour `t` of the way from one to another, as Qt's animations
 // interpolate: each of the eight-bit channels on its own, alpha included.
-export function mix(from, to, t) {
+export function mix(from: unknown, to: unknown, t: number): Color {
   const start = packed(color(from));
   const end = packed(color(to));
   return new Color(null, RGB, between(start, end, 24, t), between(start, end, 16, t), between(start, end, 8, t), between(start, end, 0, t));

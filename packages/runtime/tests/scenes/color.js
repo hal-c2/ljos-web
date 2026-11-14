@@ -10,7 +10,7 @@
 import { $object } from "ljos-web/object";
 import { Qt } from "ljos-web/QtQml";
 import { Item, Rectangle } from "ljos-web/QtQuick";
-import { mix } from "../../QtQuick/color.js";
+import { mix } from "../../QtQuick/color.ts";
 import { make } from "../scene.js";
 
 export const objects = { Qt, mix };

@@ -1,6 +1,6 @@
 // The arithmetic of the Fusion style's colours: QColor's, on whole numbers,
 // so that a colour made here is the one Qt makes.
-import { hsla, hsva } from "../../color.js";
+import { hsla, hsva } from "../../color.ts";
 
 // A channel as QColor gives it from 0 to 255, and a hue in whole degrees
 // (-1 for a grey, which has none).

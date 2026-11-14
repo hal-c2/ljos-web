@@ -2,7 +2,7 @@
 // elements, each described by what it is to be and changed only where that
 // differs from what it is.
 import { alone, derived, group } from "../object.ts";
-import { given, rules } from "../QtQuick/compute.js";
+import { given, rules } from "../QtQuick/compute.ts";
 import { advance, dress, metrics } from "../QtQuick/font.js";
 
 const SVG = "http://www.w3.org/2000/svg";

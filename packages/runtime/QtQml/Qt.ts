@@ -2,7 +2,7 @@
 // beside it: `qsTr`, `print`, `"%1".arg()`.
 import { allowedUrl } from "../guard.js";
 import { failed } from "../object.ts";
-import { color, equal, hsla, hsva, rgba } from "../QtQuick/color.js";
+import { color, equal, hsla, hsva, rgba } from "../QtQuick/color.ts";
 import { application, font, inputMethod, styleHints } from "./application.ts";
 import { formatDate, formatDateTimeOf, formatTime, locale } from "./locale.ts";
 import { enums } from "./namespace.ts";
@@ -85,15 +85,15 @@ type Bound = ((this: unknown) => unknown) & { [BINDING]?: boolean };
 const methods = {
   rgba(...args: unknown[]) {
     need(args, 3);
-    return rgba(...args);
+    return rgba(...(args as Parameters<typeof rgba>));
   },
   hsla(...args: unknown[]) {
     need(args, 3);
-    return hsla(...args);
+    return hsla(...(args as Parameters<typeof hsla>));
   },
   hsva(...args: unknown[]) {
     need(args, 3);
-    return hsva(...args);
+    return hsva(...(args as Parameters<typeof hsva>));
   },
   color(name: unknown) {
     const made = color(name);

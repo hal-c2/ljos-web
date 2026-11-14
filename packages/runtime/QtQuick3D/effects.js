@@ -21,7 +21,7 @@
 // only what the renderer itself does (`Helpers/impl`).
 import { defineType, kinds, located, slot } from "../object.ts";
 import { Matrix4x4, Point, Quaternion, Rect, Size, Vector2d, Vector3d, Vector4d } from "../QtQml/values.ts";
-import { Color } from "../QtQuick/color.js";
+import { Color } from "../QtQuick/color.ts";
 import { Object3D } from "./Node.js";
 import { file, linear } from "./scene.js";
 import { mentioned } from "./shaders.js";

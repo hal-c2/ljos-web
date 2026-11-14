@@ -14,7 +14,7 @@ import { getOwner, onCleanup, runWithOwner } from "solid-js";
 import { bounded, defineType, derived, effect, instantiate, QtObject, slot, whenMade } from "../../object.ts";
 import { Item } from "../../QtQuick/Item.js";
 import { fit, given, implicit } from "../../QtQuick/Loader.js";
-import { settle } from "../../QtQuick/settle.js";
+import { settle } from "../../QtQuick/settle.ts";
 import { signal, untrack } from "#kernel";
 
 const Append = 0;

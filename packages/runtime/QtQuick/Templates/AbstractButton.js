@@ -7,9 +7,9 @@ import { defineType, derived, effect, group, settle, signal, slot } from "../../
 import { parts } from "./parts.js";
 import { styleHints } from "../../QtQml/application.ts";
 import { PauseJob } from "../animation/jobs.js";
-import { colorValue } from "../color.js";
+import { colorValue } from "../color.ts";
 import { forceActiveFocus, MouseFocusReason } from "../focus.js";
-import { Key, LeftButton } from "../keycodes.js";
+import { Key, LeftButton } from "../keycodes.ts";
 import { after, cancel } from "../pointer.js";
 import { check, ICON, trigger, uses } from "./Action.js";
 import { Control, keeps, loose, put, within } from "./Control.js";

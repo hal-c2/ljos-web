@@ -1,7 +1,7 @@
 // TabBar: a container of tab buttons, of which the current one is the one
 // checked. It shares its width among those that say none.
 import { defineType, derived, effect, QtObject, slot } from "../../object.ts";
-import { sized } from "../compute.js";
+import { sized } from "../compute.ts";
 import { receive, wheels } from "../pointer.js";
 import { containerOf, Container, indexOf } from "./Container.js";
 import { drive } from "./driven.js";

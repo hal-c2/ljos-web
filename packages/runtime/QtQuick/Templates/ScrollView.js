@@ -2,7 +2,7 @@
 // it or one of its own, with the scroll bars its style attaches to it.
 import { contents, defineType, derived, effect, inside, settle, slot, whenComplete } from "../../object.ts";
 import { Flickable } from "../Flickable.js";
-import { Key } from "../keycodes.js";
+import { Key } from "../keycodes.ts";
 import { receive, wheels } from "../pointer.js";
 import { Pane } from "./Pane.js";
 import { AlwaysOff, interact, ScrollBar } from "./ScrollBar.js";

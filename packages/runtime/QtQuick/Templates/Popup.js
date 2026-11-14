@@ -19,10 +19,10 @@ import {
   tab,
   windowOf as focusWindow,
 } from "../focus.js";
-import { frameOf, itemToScene, sceneToItem } from "../geometry.js";
+import { frameOf, itemToScene, sceneToItem } from "../geometry.ts";
 import { Item } from "../Item.js";
 import { Rectangle } from "../Rectangle.js";
-import { AllButtons, buttonOf, Key, RightButton, ShiftModifier } from "../keycodes.js";
+import { AllButtons, buttonOf, Key, RightButton, ShiftModifier } from "../keycodes.ts";
 import { gone, hoverable, overhear, receive, wheels } from "../pointer.js";
 import { windowOf } from "../Window.js";
 import { Page } from "./Pane.js";

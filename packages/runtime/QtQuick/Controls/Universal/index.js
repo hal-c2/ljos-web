@@ -3,8 +3,8 @@
 // object has, its own or those of what it is in. The numbers are Qt's
 // (`qquickuniversalstyle.cpp`).
 import { chosen, defineType, derived, QtObject } from "../../../object.ts";
-import { color as colour } from "../../color.js";
-import { lazy } from "../../compute.js";
+import { color as colour } from "../../color.ts";
+import { lazy } from "../../compute.ts";
 import { themed } from "../../Templates/theme.js";
 import { around, chosenColour, fromArgb, preferred, said, Theme, themeOf } from "../attached.js";
 import { configured } from "../settings.js";

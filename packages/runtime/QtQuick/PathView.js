@@ -14,9 +14,9 @@
 import { defineType, derived, effect, instantiate, QtObject, settle, slot } from "../object.ts";
 import { clock } from "./animation/clock.js";
 import { Item } from "./Item.js";
-import { LeftButton } from "./keycodes.js";
+import { LeftButton } from "./keycodes.ts";
 import { delegateOf, modelOf, Rows, size } from "./model.js";
-import { cull } from "./placing.js";
+import { cull } from "./placing.ts";
 import { canTake, CancelGrabExclusive, CancelGrabPassive, receive, takeExclusive } from "./pointer.js";
 import { signal, untrack } from "#kernel";
 
