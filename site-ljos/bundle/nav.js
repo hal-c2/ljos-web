@@ -85,9 +85,13 @@ function readingOf(route) {
 // Back and forward come to a page where the reader left it, as with
 // the browser's own pages. Each entry of the history the shell shows
 // has a name in its state; the offset it was left at is kept by that
-// name, and written into the entry's state too when going on from it,
-// so it is still known once the page is loaded again.
+// name, and written into the entry's state too when going on from it
+// or once the reader stops moving the page (`keep`), so it is still
+// known once the page is loaded again. `entry` is the entry whose page is shown; `current` the one
+// the browser is at, which is ahead of it while a page gone back or
+// forward to is still being read.
 var entry = null;
+var current = null;
 var offsets = {};
 var made = 0;
 
@@ -104,13 +108,20 @@ function follow(base, given) {
     var history = globalThis.history;
     history.scrollRestoration = "manual";
     var state = history.state;
-    entry = state && state.entry ? state.entry : named();
+    var left = state && typeof state.offset === "number" ? state.offset : null;
+    entry = current = state && state.entry ? state.entry : named();
     if (!state || state.entry !== entry)
-        history.replaceState({ entry: entry, offset: state && typeof state.offset === "number" ? state.offset : 0 }, "");
+        history.replaceState({ entry: entry, offset: left === null ? 0 : left }, "");
     var here = routeOf(new URL(globalThis.location.href));
     var address = here === null ? null : shell.reading(here);
     if (address !== null && shell.page())
         readings[address] = Promise.resolve(shell.page());
+    // A page loaded again (a reload, or back to it from another site)
+    // is where the reader left it; one opened at a fragment is at its
+    // heading, as the browser would scroll an element with that id.
+    var hash = globalThis.location.hash;
+    if (here !== null && (left || hash))
+        shell.show(here, hash, left || null, shell.page());
     globalThis.addEventListener("popstate", function (event) {
         var location = globalThis.location;
         var route = routeOf(new URL(location.href));
@@ -119,16 +130,20 @@ function follow(base, given) {
             location.reload();
             return;
         }
+        // The page still shown is the one left, though another entry
+        // may have been gone to while it was being read.
         offsets[entry] = shell.offset();
         var state = event.state;
-        entry = state && state.entry ? state.entry : named();
-        var offset = entry in offsets ? offsets[entry] : state && typeof state.offset === "number" ? state.offset : null;
+        var to = state && state.entry ? state.entry : named();
+        current = to;
+        var offset = to in offsets ? offsets[to] : state && typeof state.offset === "number" ? state.offset : null;
         var hash = location.hash;
         var mine = ++asked;
         readingOf(route).then(
             function (reading) {
                 if (mine !== asked)
                     return;
+                entry = to;
                 shell.show(route, hash, offset, reading);
                 globalThis.document.title = title;
             },
@@ -138,6 +153,15 @@ function follow(base, given) {
             },
         );
     });
+}
+
+// The page shown has come to rest where the reader moved it: its entry
+// keeps that offset, so the page loaded again is there. Kept as it
+// stops, not as the page is left: what a page writes into its history
+// as it is unloaded is not kept by every browser.
+function keep() {
+    if (shell && current === entry)
+        globalThis.history.replaceState({ entry: entry, offset: shell.offset() }, "");
 }
 
 // Go to an address, as `at` writes it (the base already in it): once
@@ -160,9 +184,13 @@ function go(address) {
             var history = globalThis.history;
             var offset = shell.offset();
             offsets[entry] = offset;
-            history.replaceState({ entry: entry, offset: offset }, "");
-            if (url.href !== location.href) {
-                entry = named();
+            // The entry the browser is at keeps the offset only when its
+            // page is the one shown: one gone back to and not yet read
+            // keeps its own.
+            if (current === entry)
+                history.replaceState({ entry: entry, offset: offset }, "");
+            if (url.href !== location.href || current !== entry) {
+                entry = current = named();
                 history.pushState({ entry: entry }, "", url.href);
             }
             shell.show(route, url.hash, null, reading);

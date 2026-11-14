@@ -228,6 +228,70 @@ test("with script, a page pressed to is shown from its top, and back and forward
   await expect.poll(() => down(back)).toBe(later);
 });
 
+test("with script, a page opened at a heading's fragment is at that heading", async ({ page }) => {
+  const heading = (at) => at.getByText("Render a picture without a window", { exact: true }).first();
+  await page.goto(`${base}start/first-app/`);
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  const { height } = page.viewportSize();
+  expect(await down(heading(page)), "below the first screen at the top").toBeGreaterThan(height);
+
+  await page.goto(`${base}start/first-app/#render-a-picture-without-a-window`);
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  await expect.poll(() => down(heading(page))).toBeLessThan(height / 3);
+});
+
+test("with script, a page loaded again is where the reader left it", async ({ page }) => {
+  await page.goto(`${base}start/`);
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  const next = page.getByRole("link", { name: /^Next: / });
+  const unscrolled = await down(next);
+  const { width, height } = page.viewportSize();
+  await page.mouse.move(width / 2, height / 2);
+  await page.mouse.wheel(0, 600);
+  await expect.poll(() => down(next)).toBeLessThan(unscrolled - 300);
+  const left = await rest(next);
+
+  await page.reload();
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  await expect.poll(() => down(next)).toBe(left);
+});
+
+test("with script, back pressed again while a page is still read keeps each page's place", async ({ page }) => {
+  await page.goto(`${base}start/`);
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  await press(page, page.getByRole("link", { name: "Your first app" }).first());
+  await expect(page).toHaveURL(`${origin}${base}start/first-app/`);
+  const back = page.getByRole("link", { name: /^Previous: / });
+  const top = await rest(back);
+  const { width, height } = page.viewportSize();
+  await page.mouse.move(width / 2, height / 2);
+  await page.mouse.wheel(0, 300);
+  await expect.poll(() => down(back)).toBeLessThan(top - 100);
+  const later = await rest(back);
+  // On to another page, by the sidebar, which stays where it is.
+  await press(page, page.getByRole("link", { name: "Install Ljós", exact: true }).first());
+  await expect(page).toHaveURL(`${origin}${base}start/install/`);
+
+  // Loaded again, the shell has read no other page; the one back is
+  // slow to come, and back is pressed again before it has.
+  await page.reload();
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  let slow = true;
+  await page.route(`**${base}start/first-app/page.json`, async (route) => {
+    if (slow) await new Promise((done) => setTimeout(done, 1500));
+    await route.continue();
+  });
+  await page.goBack();
+  await page.goBack();
+  await expect(page).toHaveURL(`${origin}${base}start/`);
+  await expect(page).toHaveTitle("What is Ljós? — Ljós");
+  slow = false;
+
+  await page.goForward();
+  await expect(page).toHaveURL(`${origin}${base}start/first-app/`);
+  await expect.poll(() => down(back)).toBe(later);
+});
+
 test("with script, a middle press opens the link in a new tab", async ({ page, context }) => {
   await page.goto(base);
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');

@@ -278,6 +278,13 @@ Rectangle {
         contentWidth: width
         contentHeight: (shell.docsRoute ? docItem.height : pageLoader.height) + 48
         clip: true
+        // Where the reader leaves the page is kept once it is still.
+        onContentYChanged: keeping.restart()
+        Timer {
+            id: keeping
+            interval: 250
+            onTriggered: Nav.keep()
+        }
 
         // Only this route's page is made, so the HTML the build
         // writes for a route holds that page and no other. The
