@@ -6,11 +6,11 @@ on:
   pull_request:
   workflow_dispatch:
 
-# A branch's newer push replaces its older run. Every run of main is kept to its end, so main
-# is never left without a verdict: each main commit has a group of its own, because a group
+# A pull request's newer push replaces its older run. Every run of main is kept to its end, so
+# main is never left without a verdict: each main run has a group of its own, because a group
 # that holds one running run and one pending run drops the pending one when a third arrives.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_id || github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 # ljos-ui is public, but Cargo.lock names it by ssh, and a runner has no key.
