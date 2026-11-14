@@ -2,14 +2,17 @@ import QtQuick
 import Site
 import "../nav.js" as Nav
 
-// One link of the shell: its words, the page it names a full
-// navigation away. The page the reader is on is the strong one. A
+// One link of the shell: its words, and the page it names, `to`, from
+// the site's root or as another site's address. Its role makes it the
+// page's own link (an `a` whose address is `href`), so it is followed
+// with no script too. The page the reader is on is the strong one. A
 // keyboard reaches it as a pointer does.
 Item {
     id: link
 
     property string label: ""
-    property string href: "/"
+    property string to: "/"
+    property string href: Nav.at(Content.base, to)
     property bool current: false
     property int size: 14
 

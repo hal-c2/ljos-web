@@ -46,16 +46,20 @@ Column {
         spacing: 12
 
         Rectangle {
+            id: startLink
+
+            property string href: Nav.at(Content.base, "/start/")
+
             width: startWords.implicitWidth + 28
             height: 40
             color: Theme.accent
             activeFocusOnTab: true
             Accessible.role: Accessible.Link
             Accessible.name: "What is Ljós?"
-            Accessible.onPressAction: () => Nav.go("/start/")
+            Accessible.onPressAction: () => Nav.go(startLink.href)
             Keys.onPressed: (event) => {
                 if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
-                    Nav.go("/start/");
+                    Nav.go(startLink.href);
                     event.accepted = true;
                 }
             }
@@ -73,10 +77,14 @@ Column {
                 anchors.fill: parent
                 Accessible.ignored: true
                 cursorShape: Qt.PointingHandCursor
-                onClicked: Nav.go("/start/")
+                onClicked: Nav.go(startLink.href)
             }
         }
         Rectangle {
+            id: firstLink
+
+            property string href: Nav.at(Content.base, "/start/first-app/")
+
             width: firstWords.implicitWidth + 28
             height: 40
             color: Theme.bg
@@ -85,10 +93,10 @@ Column {
             activeFocusOnTab: true
             Accessible.role: Accessible.Link
             Accessible.name: "Your first app"
-            Accessible.onPressAction: () => Nav.go("/start/first-app/")
+            Accessible.onPressAction: () => Nav.go(firstLink.href)
             Keys.onPressed: (event) => {
                 if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
-                    Nav.go("/start/first-app/");
+                    Nav.go(firstLink.href);
                     event.accepted = true;
                 }
             }
@@ -106,7 +114,7 @@ Column {
                 anchors.fill: parent
                 Accessible.ignored: true
                 cursorShape: Qt.PointingHandCursor
-                onClicked: Nav.go("/start/first-app/")
+                onClicked: Nav.go(firstLink.href)
             }
         }
     }
@@ -178,7 +186,7 @@ Column {
         font.family: Theme.sans
         font.pixelSize: 15
         wrapMode: Text.Wrap
-        text: "Interfaces are declarative; scripts are typed TypeScript, checked before anything runs. Handlers, functions and bindings carry their types, and the compiler says so where they do not add up. Application logic, models and native types can stay in Rust, registered with the engine and driven from the interface like anything else on the page. Existing QML runs as a way in — <a href=\"/language/porting-from-qt/\">bringing an app along</a> has its own page, out of the main path."
+        text: Nav.linked(Content.base, "Interfaces are declarative; scripts are typed TypeScript, checked before anything runs. Handlers, functions and bindings carry their types, and the compiler says so where they do not add up. Application logic, models and native types can stay in Rust, registered with the engine and driven from the interface like anything else on the page. Existing QML runs as a way in — <a href=\"/language/porting-from-qt/\">bringing an app along</a> has its own page, out of the main path.")
         onLinkActivated: (link) => landing.follow(link)
     }
 
@@ -198,7 +206,7 @@ Column {
         font.family: Theme.sans
         font.pixelSize: 15
         wrapMode: Text.Wrap
-        text: "Every part of a running app can be observed and driven. <code>ljos observe</code> opens on its live objects, properties, bindings, frames and wakes, and sends real input; a coding agent gets the same view over <a href=\"/start/mcp/\">MCP</a>, static checking before the run and the live inspector during it. What an agent can reshape, it can also check."
+        text: Nav.linked(Content.base, "Every part of a running app can be observed and driven. <code>ljos observe</code> opens on its live objects, properties, bindings, frames and wakes, and sends real input; a coding agent gets the same view over <a href=\"/start/mcp/\">MCP</a>, static checking before the run and the live inspector during it. What an agent can reshape, it can also check.")
         onLinkActivated: (link) => landing.follow(link)
     }
 
@@ -253,7 +261,7 @@ Column {
                     font.family: Theme.sans
                     font.pixelSize: 14
                     wrapMode: Text.Wrap
-                    text: "The <a href=\"/demos/\">live demos</a> run in this page: a shell you rewrite, a 3D scene you can orbit, a shader effect, a whole app, and motion — each a complete Ljós app, each with a picture and its words where wasm or WebGPU is missing."
+                    text: Nav.linked(Content.base, "The <a href=\"/demos/\">live demos</a> run in this page: a shell you rewrite, a 3D scene you can orbit, a shader effect, a whole app, and motion — each a complete Ljós app, each with a picture and its words where wasm or WebGPU is missing.")
                     onLinkActivated: (link) => landing.follow(link)
                 }
             }
@@ -276,7 +284,7 @@ Column {
         font.family: Theme.sans
         font.pixelSize: 15
         wrapMode: Text.Wrap
-        text: "<a href=\"/start/\">What is Ljós?</a> — the map of these docs.<br><a href=\"/start/first-app/\">Your first app</a> — a file, a window, live edits.<br><a href=\"/demos/\">Live demos</a> — every embedded example in one place.<br><a href=\"/quality/principles/\">Goals and principles</a> — what Ljós does, what it leaves out, and why."
+        text: Nav.linked(Content.base, "<a href=\"/start/\">What is Ljós?</a> — the map of these docs.<br><a href=\"/start/first-app/\">Your first app</a> — a file, a window, live edits.<br><a href=\"/demos/\">Live demos</a> — every embedded example in one place.<br><a href=\"/quality/principles/\">Goals and principles</a> — what Ljós does, what it leaves out, and why.")
         onLinkActivated: (link) => landing.follow(link)
     }
 }

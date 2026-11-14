@@ -23,6 +23,9 @@ Column {
     // The page this route names, as the shell was made with it: known
     // as the page is made, in a prerender as in a browser.
     property var page: null
+    // The pages before and after this one, in the sidebar's order.
+    readonly property var previous: page ? page.previous : null
+    readonly property var next: page ? page.next : null
     property int textWidth: width
 
     // The flickable that holds this column, named by the shell so a
@@ -46,7 +49,7 @@ Column {
         var hash = link.indexOf("#");
         var route = hash >= 0 ? link.slice(0, hash) : link;
         var anchor = hash >= 0 ? link.slice(hash + 1) : "";
-        if (anchor && (route === "" || (doc.page && route === doc.page.route))) {
+        if (anchor && (route === "" || (doc.page && route === Nav.at(Content.base, doc.page.route)))) {
             doc.scrollToAnchor(anchor);
             return;
         }
@@ -299,6 +302,34 @@ Column {
                 height: 1
                 color: Theme.border
             }
+        }
+    }
+
+    // Where reading goes on: the page before this one and the page
+    // after, each a link of the page's own, one to a line so a long
+    // title has the width.
+    Column {
+        visible: doc.page !== null
+        width: parent.width
+        spacing: 10
+
+        Rectangle {
+            width: parent.width
+            height: 1
+            color: Theme.border
+        }
+        NavLink {
+            visible: doc.previous !== null
+            label: doc.previous ? "← " + doc.previous.title : ""
+            to: doc.previous ? doc.previous.route : "/"
+            Accessible.name: doc.previous ? "Previous: " + doc.previous.title : ""
+        }
+        NavLink {
+            visible: doc.next !== null
+            x: parent.width - width
+            label: doc.next ? doc.next.title + " →" : ""
+            to: doc.next ? doc.next.route : "/"
+            Accessible.name: doc.next ? "Next: " + doc.next.title : ""
         }
     }
 }
