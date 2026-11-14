@@ -30,7 +30,7 @@ test("Ljós's style says what each control is to a reader", async ({ page }) => 
   expect(said.go).toEqual({ role: "button", "aria-label": "Go" });
   expect(said.check).toMatchObject({ role: "checkbox", "aria-checked": "false" });
   expect(said.toggle).toEqual({ role: "switch", "aria-label": "Lights", "aria-checked": "false" });
-  expect(said.slider).toEqual({ role: "slider" });
+  expect(said.slider).toEqual({ role: "slider", "aria-valuenow": "0", "aria-valuemin": "0", "aria-valuemax": "1" });
   expect(said.combo).toMatchObject({ role: "combobox", "aria-label": "One" });
   // What is typed into is the field's text, the page's own text box.
   await expect(page.getByRole("textbox")).toHaveCount(1);
