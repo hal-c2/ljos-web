@@ -776,3 +776,48 @@ test("a page whose View3D draws on wgpu fetches the renderer once, however late 
   });
   expect(asked).toBe(1);
 });
+
+test("a page of graphs in the plane on wgpu fetches none of the renderer, though its module has the 3D graphs", async ({ page }) => {
+  const fetched = [];
+  page.on("request", (request) => fetched.push(request.url()));
+  await page.goto("/?scene=graphbars&view3d=wgpu");
+  await page.waitForFunction(() => window.ready);
+  await page.waitForTimeout(100);
+  expect(fetched.filter((url) => WASM.test(url))).toEqual([]);
+});
+
+test("a page of graphs in space on wgpu asks for the renderer before its first graph is made", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.viewMade = null;
+    new MutationObserver((_, observer) => {
+      if (!document.querySelector(".qq-view3d")) return;
+      window.viewMade = performance.now();
+      observer.disconnect();
+    }).observe(document, { childList: true, subtree: true });
+  });
+  await page.goto("/?scene=graph3dbars&view3d=wgpu");
+  await page.waitForFunction(() => window.ready);
+  await page.waitForFunction(() => [...document.querySelectorAll(".qq-view3d")].some(({ $view3d }) => $view3d?.frames > 0));
+  const { made, asked } = await page.evaluate((wasm) => ({
+    made: window.viewMade,
+    asked: performance.getEntriesByType("resource").find(({ name }) => new RegExp(wasm).test(name))?.startTime,
+  }), WASM.source);
+  expect(made).not.toBeNull();
+  expect(asked).toBeLessThan(made);
+});
+
+test("a page whose View3D draws on wgpu fetches the renderer once, though a server says it is not wasm", async ({ page }) => {
+  let asked = 0;
+  await page.route(WASM, async (route) => {
+    asked += 1;
+    const response = await route.fetch();
+    await route.fulfill({ response, headers: { ...response.headers(), "content-type": "application/octet-stream" } });
+  });
+  await page.goto("/?scene=wgpu_two&view3d=wgpu");
+  await page.waitForFunction(() => window.ready);
+  await page.waitForFunction(() => {
+    const views = [...document.querySelectorAll(".qq-view3d")];
+    return views.length === 2 && views.every(({ $view3d }) => $view3d.frames > 0);
+  });
+  expect(asked).toBe(1);
+});
