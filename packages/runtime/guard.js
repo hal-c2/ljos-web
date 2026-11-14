@@ -80,10 +80,20 @@ export function own(url) {
   at.search = "";
   for (const project of enclosed.values()) {
     if (!at.href.startsWith(project.root)) continue;
-    const name = decodeURIComponent(at.href.slice(project.root.length));
+    const name = unescaped(at.href.slice(project.root.length));
     return { project, name, url: at.href, text: project.files.get(name) };
   }
   return null;
+}
+
+// A name as its file is called. The URL parser keeps a `%` that starts no
+// escape as it is (`100%.png`), and such a name is its own.
+function unescaped(path) {
+  try {
+    return decodeURIComponent(path);
+  } catch {
+    return path;
+  }
 }
 
 // Why `found` is not there, told once to whoever its project tells.
@@ -108,7 +118,7 @@ function given(found) {
 
 // Whether `url` may be fetched now. A file of a project that has only the
 // files it was given is not fetched: `guardedFetch` and `sourced` give it
-// as it was given.
+// as it was given, and `allowedUrl` an address it can be loaded from.
 export function mayFetch(url) {
   const found = own(url);
   if (found) {
@@ -135,6 +145,13 @@ export function mayFetch(url) {
 }
 
 const refusal = (url) => new Error(`${url} is not fetched while a dropped shell is shown`);
+
+// Why `url` is not loaded, where `allowedUrl` gave nothing for it: a file its
+// project does not have is not there, and anything else was held back.
+export function whyNot(url) {
+  const found = own(url);
+  return found ? `${found.name}: No such file or directory` : refusal(url).message;
+}
 
 export function guardedFetch(url, init) {
   const found = own(url);

@@ -17,7 +17,7 @@
 //
 // Nothing is kept: each picture is read when it is asked for, and nothing
 // waits or watches between two.
-import { mayFetch } from "./guard.js";
+import { allowedUrl, own } from "./guard.js";
 import { flush } from "./object.js";
 import { described, loads, stem } from "./QtQuick/FontLoader.js";
 
@@ -351,10 +351,11 @@ async function data(url) {
 }
 
 async function fetched(url) {
-  if (!mayFetch(url)) throw "is not fetched while a dropped shell is shown";
+  const to = allowedUrl(url);
+  if (!to) throw own(url) ? "is not there" : "is not fetched while a dropped shell is shown";
   let response;
   try {
-    response = await fetch(url); // guarded
+    response = await fetch(to); // guarded
   } catch {
     throw "is from another origin that does not let this page read it";
   }
