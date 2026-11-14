@@ -551,6 +551,16 @@ test("the application is the page, and quitting is said, not done", async ({ pag
   // The scheme is the browser's, and follows it.
   await page.emulateMedia({ colorScheme: "dark" });
   await page.waitForFunction(() => window.objects.Qt.styleHints.colorScheme === window.objects.Qt.Dark);
+  // So are less motion and more contrast, asked for while the page is open.
+  const accessibility = () => page.evaluate(() => {
+    const { motionPreference, contrastPreference } = window.objects.Qt.styleHints.accessibility;
+    return [motionPreference, contrastPreference];
+  });
+  expect(await accessibility()).toEqual([0, 0]);
+  await page.emulateMedia({ reducedMotion: "reduce", contrast: "more" });
+  await expect.poll(accessibility).toEqual([1, 1]);
+  await page.emulateMedia({ reducedMotion: "no-preference", contrast: "no-preference" });
+  await expect.poll(accessibility).toEqual([0, 0]);
 });
 
 test("callLater calls once, with the last arguments", async ({ page }) => {
