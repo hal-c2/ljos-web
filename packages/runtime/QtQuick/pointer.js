@@ -462,6 +462,20 @@ export function cursor() {
 // it is left undone.
 let claimed = false;
 
+// A link of the page's in a scene: an item that is one (link.js) or a
+// link in rich text.
+const linkOf = (target, scene) => {
+  const link = target?.closest?.("a[href]");
+  return link && scene.contains(link) ? link : null;
+};
+// What opens a link somewhere else, in every browser: the middle button,
+// or a button with a modifier (a new tab, a new window, a download).
+const elsewhere = (event) => event.button === 1 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey;
+// The link whose click is the program's: the last press on it was held
+// by an item when it was let go (a MouseArea in the link, a Flickable
+// that took a drag over it). A press nobody held is the link's own.
+let kept = null;
+
 // The press a second one makes a double click with, while there is time.
 const last = { button: NoButton, scene: null, x: 0, y: 0, job: new PauseJob(0) };
 const forgotten = () => void (last.button = NoButton);
@@ -469,6 +483,13 @@ const forgotten = () => void (last.button = NoButton);
 function onDown(event) {
   const scene = sceneOf(event.target);
   if (!scene) return;
+  if (event.isPrimary) kept = null;
+  // The browser's, not the program's: nothing in the scene hears it, so
+  // the link opens where the reader asked.
+  if (elsewhere(event) && linkOf(event.target, scene)) {
+    if (event.isPrimary) claimed = false;
+    return;
+  }
   if (waiting.length) gathered();
   const point = pointOf(event);
   if (point.down) return;
@@ -547,6 +568,7 @@ function onUp(event) {
   point.button = buttonOf(event);
   point.moving = false;
   point.down = false;
+  if (point.primary) kept = point.claimed && point.exclusive ? linkOf(event.target, point.scene) : null;
   if (point.claimed) {
     deliver(point, "$release");
     ungrab(point, false);
@@ -584,6 +606,16 @@ function onMouseDown(event) {
 
 function onContextMenu(event) {
   if (claimed && sceneOf(event.target)) event.preventDefault();
+}
+
+// A link's click after a press the program held is the program's: it
+// went where the program said (or nowhere, after a drag), and the page
+// does not go to the link's address as well. A click with no press
+// (Enter on a link the browser focused) is the link's.
+function onClick(event) {
+  if (!kept || event.detail === 0) return;
+  if (event.target?.closest?.("a[href]") === kept) event.preventDefault();
+  kept = null;
 }
 
 // Qt counts the wheel in eighths of a degree, 120 to a notch, and up as
@@ -624,6 +656,7 @@ function listen() {
   document.documentElement.addEventListener("pointerleave", onLeave);
   document.addEventListener("mousedown", onMouseDown);
   document.addEventListener("contextmenu", onContextMenu);
+  document.addEventListener("click", onClick);
   for (const type of ["touchstart", "touchmove", "touchend", "touchcancel"]) {
     document.addEventListener(type, gathered, { passive: true });
   }
