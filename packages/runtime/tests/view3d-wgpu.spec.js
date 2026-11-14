@@ -500,8 +500,12 @@ for (const backend of ["webgpu", "webgl2"]) {
         await page.goto("/?scene=wgpu_two&view3d=wgpu");
         await page.waitForFunction(() => window.ready);
         const states = () => page.evaluate(() => [...document.querySelectorAll(".qq-view3d")].map(({ $view3d: { error, frames } }) => ({ error, drew: frames > 0 })));
-        await expect.poll(async () => (await states()).filter(({ drew }) => drew).length).toBe(2);
-        expect((await states()).filter(({ error }) => error)).toEqual([]);
+        // Each view as it stands, so a view that never draws says why: its
+        // error, or that it still waits. Two first frames, each after the
+        // renderer's compile, take longer than a poll's default on a busy
+        // machine.
+        const said = async () => (await states()).map(({ error, drew }) => error ?? (drew ? "drew" : "waiting"));
+        await expect.poll(said, { timeout: 20_000 }).toEqual(["drew", "drew"]);
       });
     });
 
