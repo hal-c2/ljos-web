@@ -2,8 +2,9 @@
 //! `qmlc [--types FILE.json]... FILE.qml...`
 //! `qmlc --types|--qml-types URI...`
 //!
-//! Compiles each QML file to a JavaScript module, and each `.js` file as the
-//! script a QML file imports. Without `--out-dir` the output goes to stdout. A file is compiled with the QML files next to it
+//! Compiles each QML file to a JavaScript module, each `.js` file as the
+//! script a QML file imports, and each `.ts` or `.lts` file as the module it
+//! is with its types erased. Without `--out-dir` the output goes to stdout. A file is compiled with the QML files next to it
 //! and in the directories they import, which is where the components it
 //! names are and where it is used, and with the modules of the project it
 //! is in: what the `qmldir` and `CMakeLists.txt` files under `--root` say
@@ -189,7 +190,9 @@ fn listed_imports(files: &[String]) -> ExitCode {
                 return ExitCode::FAILURE;
             }
         };
-        let read = if file.ends_with(".js") {
+        let read = if ljos_web::is_module(file) {
+            ljos_web::module_imports(&text, file)
+        } else if file.ends_with(".js") {
             ljos_web::script_imports(&text)
         } else {
             ljos_web::imports(&text)
@@ -403,12 +406,20 @@ fn main() -> ExitCode {
             .and_then(|stem| stem.to_str())
             .unwrap_or("Component");
         let is_script = path.extension().is_some_and(|extension| extension == "js");
+        let file_name = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or_default();
         match done.result {
             Ok(output) => {
                 compiled += 1;
                 match &out_dir {
                     Some(dir) => {
-                        let name = if is_script {
+                        // `size.lts.js`, as `Main.qml.js`: a server gives
+                        // it as JavaScript, which it is.
+                        let name = if ljos_web::is_module(file_name) {
+                            format!("{file_name}.js")
+                        } else if is_script {
                             format!("{stem}.js")
                         } else {
                             format!("{stem}.qml.js")

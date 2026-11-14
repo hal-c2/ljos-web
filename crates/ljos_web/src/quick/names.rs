@@ -19,7 +19,7 @@ use std::collections::HashSet;
 
 use oxc_allocator::TakeIn;
 use oxc_ast::ast::*;
-use oxc_ast_visit::{VisitMut, walk_mut};
+use oxc_ast_visit::{Visit, VisitMut, walk, walk_mut};
 use oxc_semantic::SemanticBuilder;
 use oxc_span::{GetSpan, Span};
 use oxc_syntax::{operator::BinaryOperator, scope::ScopeFlags};
@@ -33,6 +33,36 @@ use super::{
 };
 use crate::{Error, build::B, project::Source};
 
+/// Which of Ljós's API the file is written in (docs/DIALECT.md): what
+/// `ljos check` reads it by.
+#[derive(Clone, Copy, Default)]
+pub(crate) struct Dialect {
+    /// It imports `Ljos.Ui`: it has no `Qt`.
+    pub(crate) ljos_ui: bool,
+    /// And its scripts are typed, not `pragma Scripts: JavaScript`: a name
+    /// that is nothing has no type.
+    pub(crate) typed: bool,
+}
+
+impl Dialect {
+    pub(crate) fn of(document: &qml_syntax::ast::QmlDocument<'_>) -> Self {
+        let ljos_ui = document.imports.iter().any(|import| {
+            matches!(&import.source, qml_syntax::ast::QmlImportSource::Module(name) if name.to_string() == UI)
+        });
+        let javascript = document
+            .pragmas
+            .iter()
+            .any(|pragma| pragma.name == "Scripts" && pragma.value == Some("JavaScript"));
+        Self {
+            ljos_ui,
+            typed: ljos_ui && !javascript,
+        }
+    }
+}
+
+/// The module that makes a file one of Ljós's API.
+const UI: &str = "Ljos.Ui";
+
 #[allow(clippy::too_many_arguments)]
 pub(crate) fn resolve<'a>(
     b: B<'a>,
@@ -41,10 +71,25 @@ pub(crate) fn resolve<'a>(
     types: Types<'_>,
     own: &str,
     dynamic: &HashSet<String>,
+    dialect: Dialect,
     uses: &mut Uses,
     errors: &mut Vec<Error>,
 ) {
-    let free = free_references(program, own);
+    let (mut free, sugar) = free_references(program, own);
+    uses.sugar.extend(sugar);
+    if dialect.ljos_ui {
+        // Before anything reads `Qt.member` as Qt's: in a file of Ljós's
+        // API it is nothing, and what it is to Qt would only add errors.
+        let mut qt = QtGlobal {
+            free: &free,
+            found: Vec::new(),
+        };
+        qt.visit_program(program);
+        for (member, start) in qt.found {
+            free.remove(&start);
+            errors.push(qt_global(member.as_deref(), start));
+        }
+    }
     let mut resolver = Resolver {
         b,
         tree,
@@ -52,6 +97,7 @@ pub(crate) fn resolve<'a>(
         own,
         dynamic,
         free,
+        typed: dialect.typed,
         functions: 0,
         uses,
         errors,
@@ -63,11 +109,68 @@ pub(crate) fn resolve<'a>(
     .visit_program(program);
 }
 
+/// `Qt.member` and `Qt` in a file of Ljós's API: an error that says where
+/// the member is now, in `ljos check`'s words (docs/DIALECT.md §4.3.1, §5.1).
+fn qt_global(member: Option<&str>, start: u32) -> Error {
+    let message = match member {
+        None => {
+            "`Qt` is not in a Ljós file: each of its members has a home in Ljos.Core or Ljos.Ui"
+                .to_owned()
+        }
+        Some(member) => match qml_compat::where_is(member) {
+            qml_compat::Where::Home { text, module } => {
+                format!("`Qt.{member}` is not in a Ljós file: use `{text}` ({module})")
+            }
+            qml_compat::Where::Colour { text } => format!(
+                "`Qt.{member}` is not in a Ljós file: use `{text}` where it goes to a `color`"
+            ),
+            qml_compat::Where::Nowhere => format!(
+                "`Qt.{member}` is not in a Ljós file, and Ljós's API has no home for it yet: write the file in Qt's QML"
+            ),
+        },
+    };
+    Error::coded(message, Span::new(start, start + 2), "qt-global")
+}
+
+/// Each free `Qt` of the file, with the member it is read for.
+struct QtGlobal<'s> {
+    free: &'s HashSet<u32>,
+    found: Vec<(Option<String>, u32)>,
+}
+
+impl QtGlobal<'_> {
+    fn is_qt(&self, identifier: &IdentifierReference<'_>) -> bool {
+        identifier.name == "Qt"
+            && identifier.span.end > identifier.span.start
+            && self.free.contains(&identifier.span.start)
+    }
+}
+
+impl<'a> Visit<'a> for QtGlobal<'_> {
+    fn visit_static_member_expression(&mut self, member: &StaticMemberExpression<'a>) {
+        if let Expression::Identifier(object) = &member.object
+            && self.is_qt(object)
+        {
+            self.found
+                .push((Some(member.property.name.to_string()), object.span.start));
+            return;
+        }
+        walk::walk_static_member_expression(self, member);
+    }
+
+    fn visit_identifier_reference(&mut self, identifier: &IdentifierReference<'a>) {
+        if self.is_qt(identifier) {
+            self.found.push((None, identifier.span.start));
+        }
+    }
+}
+
 /// The authored identifiers no JavaScript binding resolves, by span start.
 /// What the lowering built has no span, and its names all have a `$`, which a
 /// QML id or property cannot: whatever JavaScript does resolve is an id or a
-/// local of the script.
-fn free_references(program: &Program<'_>, own: &str) -> HashSet<u32> {
+/// local of the script. With them, the helpers of the runtime's that what
+/// `match` and `is` are lowered to call, which nothing declares.
+fn free_references(program: &Program<'_>, own: &str) -> (HashSet<u32>, Vec<&'static str>) {
     let semantic = SemanticBuilder::new()
         .with_build_nodes(true)
         .build(program)
@@ -83,7 +186,14 @@ fn free_references(program: &Program<'_>, own: &str) -> HashSet<u32> {
             free.insert(span.start);
         }
     };
-    for references in scoping.root_unresolved_references().values() {
+    let mut sugar = Vec::new();
+    for (name, references) in scoping.root_unresolved_references() {
+        if let Some(helper) = SUGAR_GLOBALS
+            .iter()
+            .find(|helper| **helper == name.as_str())
+        {
+            sugar.push(*helper);
+        }
         references.iter().copied().for_each(&mut add);
     }
     // The module binds the file's own name, to the component. To QML a name
@@ -98,7 +208,7 @@ fn free_references(program: &Program<'_>, own: &str) -> HashSet<u32> {
             .copied()
             .for_each(&mut add);
     }
-    free
+    (free, sugar)
 }
 
 struct Resolver<'a, 's, 'p> {
@@ -114,6 +224,8 @@ struct Resolver<'a, 's, 'p> {
     /// [`Project::dynamic_names`]: crate::project::Project::dynamic_names
     dynamic: &'s HashSet<String>,
     free: HashSet<u32>,
+    /// See [`Dialect::typed`].
+    typed: bool,
     /// How many functions what is being read is written in: `this` is the
     /// function's own there.
     functions: u32,
@@ -185,10 +297,15 @@ impl<'a> Resolver<'a, '_, '_> {
         let (aimed, roles, target) = match resolution {
             Some(resolution) => {
                 if let Some(qml_front::names::Target::Global(global)) = &resolution.target {
-                    if *global == qml_front::names::Global::Qml
-                        && let Some(global) = QML_GLOBALS.iter().find(|global| **global == name)
-                    {
-                        self.uses.globals.insert(global);
+                    match global {
+                        qml_front::names::Global::Qml => {
+                            if let Some(global) = QML_GLOBALS.iter().find(|global| **global == name)
+                            {
+                                self.uses.globals.insert(global);
+                            }
+                        }
+                        qml_front::names::Global::Core => self.core(name),
+                        qml_front::names::Global::Js => {}
                     }
                     return None;
                 }
@@ -258,10 +375,31 @@ impl<'a> Resolver<'a, '_, '_> {
             });
         }
         if read.is_none() {
-            self.errors
-                .push(Error::new(format!("`{name}` is not defined"), span));
+            self.undefined(name, span);
         }
         read
+    }
+
+    /// A name that is nothing. In a typed file of Ljós's API `ljos check`
+    /// says so of its type, and the page says what it says.
+    fn undefined(&mut self, name: &str, span: Span) {
+        self.errors.push(if self.typed {
+            Error::coded(
+                format!("`{name}` has no type: it is not in scope"),
+                span,
+                "ts-no-any",
+            )
+        } else {
+            Error::new(format!("`{name}` is not defined"), span)
+        });
+    }
+
+    /// What `Ljos.Core` gives in place of Qt's `Qt`, taken from its module
+    /// of the page: no global of the page's has it.
+    fn core(&mut self, name: &str) {
+        if let Some(core) = CORE_GLOBALS.iter().find(|core| **core == name) {
+            self.uses.core.insert(core);
+        }
     }
 
     /// JavaScript's `console`, when the output says where things are
@@ -304,9 +442,15 @@ impl<'a> Resolver<'a, '_, '_> {
                 self.uses.origin(name, &found.origin);
                 Some(found.kind)
             }
+            // A type of the project's of the name comes first, as it does
+            // to `ljos check` ([`qml_front::names`]).
+            None if CORE_GLOBALS.contains(&name) && self.types.front().imports(CORE) => {
+                self.core(name);
+                None
+            }
+            None if FETCH_GLOBALS.contains(&name) => None,
             None => {
-                self.errors
-                    .push(Error::new(format!("`{name}` is not defined"), span));
+                self.undefined(name, span);
                 None
             }
         }
@@ -837,20 +981,28 @@ impl<'a> VisitMut<'a> for Pruner<'_> {
     }
 }
 
-pub(crate) use qml_front::names::{JS_GLOBALS, QML_GLOBALS};
+pub(crate) use qml_front::names::{
+    CORE, CORE_GLOBALS, FETCH_GLOBALS, JS_GLOBALS, QML_GLOBALS, SUGAR_GLOBALS,
+};
 
 /// What `import "lib.js" as Lib` or `import QtQuick.Controls as C` is to the
 /// module: a namespace import of `source`, under `prefix` for a Qt module.
 pub(crate) fn namespace_source(source: &Source, prefix: &str) -> Option<String> {
     match source {
         Source::Module(uri) => Some(format!("{prefix}/{}", uri.replace('.', "/"))),
-        Source::Path(path) if path.ends_with(".js") || path.ends_with(".mjs") => Some(
-            if path.starts_with("./") || path.starts_with("../") || path.starts_with('/') {
-                path.clone()
-            } else {
-                format!("./{path}")
-            },
-        ),
+        Source::Path(path)
+            if path.ends_with(".js")
+                || path.ends_with(".mjs")
+                || super::module::is_module(path) =>
+        {
+            Some(
+                if path.starts_with("./") || path.starts_with("../") || path.starts_with('/') {
+                    path.clone()
+                } else {
+                    format!("./{path}")
+                },
+            )
+        }
         Source::Path(_) => None,
     }
 }

@@ -66,15 +66,38 @@ struct Link {
     module: Option<String>,
 }
 
+/// What an editor underlines: the span `ljos check` prints, 1-based, columns
+/// in characters. A problem with no place in a file is at 1:1 of the file
+/// it is of, or of `""` when it is of none.
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
 struct Diagnostic {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    file: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    line: Option<usize>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    column: Option<usize>,
     message: String,
+    file: String,
+    line: usize,
+    column: usize,
+    end_line: usize,
+    end_column: usize,
+    severity: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    code: Option<String>,
+}
+
+impl From<given::Diagnostic> for Diagnostic {
+    fn from(diagnostic: given::Diagnostic) -> Self {
+        let line = diagnostic.line.unwrap_or(1);
+        let column = diagnostic.column.unwrap_or(1);
+        Self {
+            message: diagnostic.message,
+            file: diagnostic.file.unwrap_or_default(),
+            line,
+            column,
+            end_line: diagnostic.end_line.unwrap_or(line),
+            end_column: diagnostic.end_column.unwrap_or(column),
+            severity: "error",
+            code: diagnostic.code,
+        }
+    }
 }
 
 /// A shell a visitor dropped, and the contracts of the blocks it may use.
@@ -102,12 +125,15 @@ pub fn compile(json: &str) -> String {
     }
     let response = match serde_json::from_str::<Request>(json) {
         Err(error) => Response::Refused {
-            diagnostics: vec![Diagnostic {
+            diagnostics: vec![Diagnostic::from(given::Diagnostic {
                 file: None,
                 line: None,
                 column: None,
+                end_line: None,
+                end_column: None,
                 message: format!("not a compile: {error}"),
-            }],
+                code: None,
+            })],
         },
         Ok(request) => answer(request),
     };
@@ -163,15 +189,7 @@ fn answer(request: Request) -> Response {
             warnings: compiled.warnings,
         },
         Err(diagnostics) => Response::Refused {
-            diagnostics: diagnostics
-                .into_iter()
-                .map(|diagnostic| Diagnostic {
-                    file: diagnostic.file,
-                    line: diagnostic.line,
-                    column: diagnostic.column,
-                    message: diagnostic.message,
-                })
-                .collect(),
+            diagnostics: diagnostics.into_iter().map(Diagnostic::from).collect(),
         },
     }
 }
@@ -286,5 +304,45 @@ mod tests {
                 .unwrap()
                 .starts_with("not a compile")
         );
+    }
+
+    #[test]
+    fn a_refused_compile_says_where_as_ljos_check_does() {
+        // `ljos check` prints `Main.qml:3:26: error: … [qt-global]` here.
+        let request = serde_json::json!({
+            "files": {
+                "Main.qml": "import Ljos.Ui\nRectangle {\n    color: \"red\"; width: Qt.platform.os === \"ios\" ? 1 : 2\n}\n"
+            },
+            "entry": "Main.qml",
+        });
+        let answer: serde_json::Value =
+            serde_json::from_str(&super::compile(&request.to_string())).unwrap();
+        let diagnostic = &answer["diagnostics"][0];
+        assert_eq!(diagnostic["file"], "Main.qml");
+        assert_eq!(diagnostic["line"], 3);
+        assert_eq!(diagnostic["column"], 26);
+        assert_eq!(diagnostic["endLine"], 3);
+        assert_eq!(diagnostic["endColumn"], 28);
+        assert_eq!(diagnostic["severity"], "error");
+        assert_eq!(diagnostic["code"], "qt-global");
+        assert!(
+            diagnostic["message"]
+                .as_str()
+                .unwrap()
+                .contains("`Qt.platform`")
+        );
+    }
+
+    #[test]
+    fn a_diagnostic_of_no_file_is_at_its_start() {
+        let answer: serde_json::Value = serde_json::from_str(&super::compile("{}")).unwrap();
+        let diagnostic = &answer["diagnostics"][0];
+        assert_eq!(diagnostic["file"], "");
+        assert_eq!(
+            (&diagnostic["line"], &diagnostic["column"]),
+            (&1.into(), &1.into())
+        );
+        assert_eq!(diagnostic["severity"], "error");
+        assert!(diagnostic.get("code").is_none());
     }
 }

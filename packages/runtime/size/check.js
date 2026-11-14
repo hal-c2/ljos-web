@@ -9,12 +9,14 @@ import { gzipSync } from "node:zlib";
 
 const PAGE = 250_000;
 const KERNEL = 30_000;
-// DECISION: the compiler's wasm within 1,200 kB gzip and its JS within 5 kB.
+// DECISION: the compiler's wasm within 1,300 kB gzip and its JS within 5 kB.
 // It is fetched once, on a page's first compile, and no frame waits on it;
-// the budget is what it is (1,085 kB) with room for Qt's type table to
+// the budget is what it is (1,246 kB with the Ljós dialect: ljos-ui's
+// desugar at its pin, the TypeScript erasure, and the table of where Qt's
+// members went that the `Qt` error names) with room for Qt's type table to
 // grow, so that what would add to it (another parser, a table twice) is
 // seen when it comes.
-const COMPILER_WASM = 1_200_000;
+const COMPILER_WASM = 1_300_000;
 const COMPILER_JS = 5_000;
 const COMPILER = /ljos_web_compiler/;
 // DECISION: View3D's renderer within 1,400 kB gzip of wasm and 30 kB of its

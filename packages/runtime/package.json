@@ -25,6 +25,7 @@
     "./codeblocks/remark": "./codeblocks/remark.js",
     "./compiler": "./compiler/index.js",
     "./compiler/modules": "./compiler/modules.js",
+    "./compiler/sugar": "./compiler/sugar.js",
     "./inspect": "./inspect.js",
     "./picture": "./picture.js",
     "./files": "./files.js",

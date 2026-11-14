@@ -187,7 +187,7 @@ impl<'f> Load<'f> {
     }
 
     /// Compiles `path` as `qmlc` does: a `.js` file as the script a QML file
-    /// imports, a QML file with its project unless `alone`. `lowered` gives
+    /// imports, a `.ts` or `.lts` file as the module it is, a QML file with its project unless `alone`. `lowered` gives
     /// the tree handed to Solid instead of Solid's output.
     pub fn compile(
         &self,
@@ -202,7 +202,12 @@ impl<'f> Load<'f> {
             .file_stem()
             .and_then(|stem| stem.to_str())
             .unwrap_or("Component");
-        let is_script = path.extension().is_some_and(|extension| extension == "js");
+        let file_name = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or_default();
+        let is_module = crate::is_module(file_name);
+        let is_script = is_module || path.extension().is_some_and(|extension| extension == "js");
         options.name = stem.to_string();
         options.project =
             (!alone && !is_script).then(|| self.project(path, &options.qt_imports, &mut warnings));
@@ -228,7 +233,11 @@ impl<'f> Load<'f> {
             );
             pictures
         });
-        let result = if is_script {
+        let result = if is_module {
+            let renamed = path.with_file_name(crate::quick::module::lts_name(file_name));
+            let taken = !crate::quick::module::is_lts(file_name) && self.files.is_file(&renamed);
+            crate::compile_module(&source, file_name, taken, options)
+        } else if is_script {
             compile_script(&source, options)
         } else if lowered {
             lowered_source(&source, options).map(|code| Output { code, map: None })

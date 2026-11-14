@@ -398,7 +398,7 @@ build gains a cleaner layering from every item.
 |---|---|---|
 | First useful page, gzip, JS + wasm | ≤ 250 kB | W8, every QtQuick type + runtime (`test:size`): 149.1 kB JS (Solid kernel); 149.1 kB JS + 26.9 kB wasm = 176.0 kB (wasm kernel) |
 | Kernel wasm | ≤ 30 kB gzip until value kinds move; every later move must remove more JS than it adds wasm, or say why | W8: 68,531 B raw / 26,916 B gzip (`opt-level=2`, LTO, one CGU, `panic=abort`, strip; no `wasm-opt` installed). At 2 the read path is inlined, which folds away more than it copies; "z" and "s" were larger |
-| Compiler in the page (A15), fetched on a page's first compile only | ≤ 1,200 kB gzip wasm, ≤ 5 kB gzip JS | W9.1: 3,717,395 B raw / 1,085,222 B gzip wasm (`opt-level="z"`); 4,061 B gzip JS as written. A page that does not compile: unchanged, byte for byte |
+| Compiler in the page (A15), fetched on a page's first compile only | ≤ 1,300 kB gzip wasm, ≤ 5 kB gzip JS | W9.1: 3,717,395 B raw / 1,085,222 B gzip wasm (`opt-level="z"`); 4,061 B gzip JS as written. With the Ljós dialect (A31): 4,327,487 B raw / 1,247,112 B gzip wasm, 4,916 B gzip JS. A page that does not compile: unchanged, byte for byte |
 | Tracked clean read | ≤ 2× Solid's before the Solid kernel is deleted | W8: 18 ns against Solid's 3.5 (9.5 against 1.5 warmed), from 40.5; not met (A4) |
 | Write → DOM | one Solid flush per write batch, zero polling | holds (faces) |
 | Idle | 0 % CPU | holds (nothing ticks; graph is push on write) |
@@ -689,7 +689,7 @@ Each is stated where it is argued; listed here for review:
 16. Same text is the same compiled declaration; an edited one wins over a run-time value (A13).
 17. Only a root mounted `reloadable` records its tree; on by itself in a dev server (A13).
 18. `reload(root, Component)` knows no build tool; Vite and the live drop both call it (A13).
-19. The compiler in the page is `qmlc`'s, with the full type table; compiled files link as blob modules over stand-ins (A15).
+19. The compiler in the page is `qmlc`'s, with the full type table; compiled files link as blob modules, through stand-ins only around a cycle (A15).
 20. Shell mode is part of the in-page compiler's front end: names resolved against a closed scope, `ljos_ir` out, a JS evaluator with a step budget (A9).
 21. The shell compiler runs in a module worker served with its own CSP (`'wasm-unsafe-eval'`); the page keeps `script-src 'self'` (A9).
 22. `liveShell` is opt-in; a page without it does not move and fetches nothing of it (A9).
@@ -838,7 +838,7 @@ the page already has: what a program that edits QML as it runs needs
 ```js
 import { compile, createCompiler, translate } from "ljos-web/compiler";
 const made = await compile({ files: { "Main.qml": text, "Panel.qml": other }, entry: "Main.qml", aliases: [] });
-// { component, module, warnings } or { diagnostics: [{ file, line, column, message }] }
+// { component, module, warnings } or { diagnostics: [{ message, file, line, column, endLine, endColumn, severity, code? }] } (A31)
 mount(made.component, element);
 ```
 
@@ -896,9 +896,12 @@ where it gets smaller.
 budget (A8): a page that never compiles never fetches it (`index.js`
 imports `link.js`, which fetches the wasm, only inside `compile`), and
 `test:size` fails a page bundle that has it. It has its own line,
-1,200 kB gzip for the wasm and 5 kB for its JS: what it is, with room
+1,300 kB gzip for the wasm and 5 kB for its JS: what it is, with room
 for Qt's table to grow, so that what would add to it (another parser,
-a table twice) is seen when it comes. `opt-level = "z"` (its own
+a table twice) is seen when it comes. It was 1,200 kB until the Ljós
+dialect (A31): ljos-ui's front end at its pin is 29 kB more (1,185 kB
+to 1,214 kB), and the dialect 32 kB (the TypeScript erasure and checks,
+and the table of where Qt's members went, which the `Qt` error names). `opt-level = "z"` (its own
 profile, `compiler`): 1,084 kB gzip against 1,251 kB at "s" and
 1,366 kB at 2; a compile runs once per edit, off any frame's path.
 
@@ -910,13 +913,17 @@ module at a blob URL with its specifiers rewritten.
   than `qmlc`'s.
 - A project's files import each other in cycles, and a file may import
   itself (a component that names its own file). A blob URL is made
-  from a finished text, so two files cannot name each other's. So each
-  file also has a **stand-in**: a module with no imports that exports
-  the file's names as bindings, set once the file has run. Files import
-  each other's stand-ins; the linker runs them in the order they import
-  each other (cycles aside) and sets each stand-in before the next
-  runs, so what a file does as it runs (`Object.setPrototypeOf(Panel,
-  Base)`) has the files before it.
+  from a finished text, so two files cannot name each other's. So a
+  file is made after the files it imports and imports their blobs, whose
+  exports stay live (an `export let` the file reassigns is read as it is
+  now). Only an import back into a cycle, of a file not made yet, goes
+  to that file's **stand-in**: a module with no imports that exports
+  the file's names as bindings, set once the file has run. The linker
+  runs the files in the order they import each other (cycles aside) and
+  sets each stand-in before the next runs, so what a file does as it
+  runs (`Object.setPrototypeOf(Panel, Base)`) has the files before it.
+  Bindings through a stand-in are set once, so a reassigned export is
+  read live everywhere but across a cycle's back edge.
 - A module of the page's (`ljos-web/QtQuick`, `solid-js`) is a
   **bridge**: a module that re-exports what the page's own import of
   it gave. Compiled QML and the page's QML share one instance of each:
@@ -2129,6 +2136,93 @@ prerendered as hydrated, coloured by class) and
 `site-ljos/tests/site-ljos.spec.js` (a live block and the Pantry
 edited in CodeMirror, a broken edit squiggled while the basket is
 kept).
+
+### A31. ERGO: compiler — the Ljós dialect in `qmlc` and in the page
+
+`qmlc` and the compiler in the page (A15) take what `ljos check` takes
+at the ljos-ui pin (`c2443e1593f56acfbf97d9f7f7fde921f3984f5d`), with its
+meaning, its errors and its desugaring. Neither has a second parser: each
+file goes through ljos-ui's `qml_syntax::desugar` before anything else
+reads it, and every span is mapped back through its `SpanMap`, so an
+error names the place in the text that was written, not the lowered one.
+
+- **`match` (TC39) and the Hack pipe `|>` with `%`**, in a QML file's
+  bindings, functions and handlers and in a `.lts` module. A match is
+  lowered to what ljos-ui lowers it to; when that needs its helpers,
+  `$is` and `$nomatch` are imported from `ljos-web/compiler/sugar`, which
+  has them as ljos-ui's runtime does, so a match no arm fits throws
+  ljos-ui's `TypeError` (``no arm of the `match` matches "huge"``). A pipe
+  needs nothing at run time. An error of either is ljos-ui's, with code
+  `syntax`: a body that never uses `%`, an arrow, conditional, assignment
+  or `yield` as a body without parentheses, an extractor, a relational
+  pattern, `and` and `or` mixed without parentheses.
+- **`.ts` and `.lts` modules.** A QML file imports one by its path
+  (`import "size.lts" as Size`) and modules import each other's values
+  and types (`import { type Width, width } from "./width.lts"`). Types are
+  erased by blanking, as ljos-ui erases them, so the JavaScript keeps the
+  module's own lines and columns; an import read only as a type is
+  dropped, as TypeScript drops it, and a side-effect import stays. What
+  TypeScript cannot erase (an `enum`, a `namespace`, a parameter
+  property, a default import or export, `export =`, `export *`, an import
+  of a file not by its path) is ljos-ui's `ts-forbidden` error, which says what to
+  write instead. `match` or `|>` in a `.ts` file is `ts-lts-syntax`, which
+  names the rename to `.lts`, or says the `.lts` of that name is in the
+  way. `qmlc size.lts` prints the module; `qmlc --out-dir` writes it as
+  `size.lts.js`, and `qmlc --imports` lists what it imports. An import
+  keeps the name it was written with (`./size.lts`), as a compiled QML
+  file imports `./Foo.qml` that is written as `Foo.qml.js`: what serves
+  the files (the Vite plugin, the page's linker) maps the one to the
+  other.
+- **No `Qt` global in `import Ljos.Ui` code.** In a file that imports
+  `Ljos.Ui`, `Qt` is error `qt-global`, spanning the name, and the message
+  says where the member went (`Qt.rgba` → `rgba` of `Ljos.Core`, a
+  colour's name, or nowhere). A file that imports QtQuick keeps `Qt`. What
+  `Ljos.Core` gives as globals (`App`, `Color`, `later`, `rgba`, `bind`, …)
+  is imported from `ljos-web/Ljos/Core` only by a file that uses one, and
+  a property of the same name is the property's.
+- **TypeScript script blocks and handlers.** In a Ljós file whose script
+  is TypeScript, a name nothing declares is `ts-no-any`
+  (`` `x` has no type: it is not in scope ``), as it is in a module; other
+  QML keeps JavaScript's `is not defined`.
+
+Not here, and left to `ljos check`: what only its checker says (the
+`tsconfig-lts` warning, `module-clash` for `size.ts` beside `size.lts`, and
+type errors beyond the scope check). A page that compiles reports what
+stops a compile; an editor runs `ljos check` for the rest.
+
+**Diagnostics.** Every error the compiler in the page answers with is one
+shape, which an editor puts on its text as it is (A30's
+`setDiagnostics` takes it unchanged):
+
+```ts
+type Diagnostic = {
+  message: string;   // ljos check's wording
+  file: string;      // the project path; "" when the fault has no file
+  line: number;      // 1-based, where the fault starts
+  column: number;    // 1-based, in characters as ljos check counts them
+  endLine: number;   // 1-based
+  endColumn: number; // 1-based and exclusive: `Qt` at column 31 ends at 33
+  severity: "error";
+  code?: string;     // "syntax", "qt-global", "ts-lts-syntax", "ts-forbidden", "ts-no-any"; absent when ljos check has none
+};
+```
+
+The span is the one `ljos check` prints, from the same `Span`. Columns
+count characters (Unicode scalar values), so an editor that counts UTF-16
+units shifts by one for each character outside the BMP before the column
+on that line. A fault
+the compiler cannot place (the wasm failing, a page module that does not
+load, a module that throws as it runs) is at `1:1` to `1:1` of its file.
+Warnings stay strings, as `qmlc` prints them. `qmlc` prints the same
+errors as `{file}:{line}:{column}: {message}` on stderr, as it did.
+
+**Scenarios.** `crates/ljos_web/tests/ergo.rs` holds ljos-ui's
+`features/language` scenarios (`qt-global`, `pipe`, `match`,
+`lts-modules`, `typescript-modules`) as compiles, with the text, line
+and column `ljos check` prints, and `qmlc` on a module.
+`packages/runtime/tests/compiler.spec.js` (both kernels) runs a match in
+a `.lts` module on the page's sugar, gets the rename of a `.ts` module
+as a diagnostic, and pins the shape above.
 
 
 ## Part II — An application's own Rust types

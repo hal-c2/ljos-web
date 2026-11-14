@@ -31,6 +31,14 @@ function serve(directory) {
   return new Promise((done) => server.listen(0, "127.0.0.1", () => done(server)));
 }
 
+// Each part of a test is a step with a time of its own, so that one that
+// stops says which part it stopped in, and the report times each part:
+// a test timeout alone says only that the whole ran out. Together they
+// come to less than the test's own time (`playwright.config.js`), so a
+// step's time always runs out first.
+const BUILD = 60_000;
+const PART = 15_000;
+
 // Opens the site built at `out`, and fails on anything it logs as an error.
 async function opened(page, out, check) {
   const server = await serve(out);
@@ -38,11 +46,14 @@ async function opened(page, out, check) {
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
     page.on("console", (message) => message.type() === "error" && errors.push(message.text()));
-    await page.goto(`http://127.0.0.1:${server.address().port}/`);
-    await check();
+    await test.step("open the site", () => page.goto(`http://127.0.0.1:${server.address().port}/`), { timeout: PART });
+    await test.step("check the page", check, { timeout: PART });
     expect(errors).toEqual([]);
   } finally {
-    await new Promise((done) => server.close(done));
+    // `close` waits for every connection to end, and the browser may hold
+    // one open: closed here, a failed check is told as itself.
+    server.closeAllConnections();
+    await test.step("stop serving it", () => new Promise((done) => server.close(done)), { timeout: PART });
   }
 }
 
@@ -85,7 +96,7 @@ function qt5(root) {
 test("a site that imports QtQuick.Controls builds where no Qt is installed, with Ljós's controls at Ljós's sizes", async ({ page }) => {
   const made = bundle("controls");
   try {
-    await withoutQt(() => buildSite({ dir: made.dir, out: made.out, qmlc }));
+    await test.step("build the site", () => withoutQt(() => buildSite({ dir: made.dir, out: made.out, qmlc })), { timeout: BUILD });
     await opened(page, made.out, async () => {
       await expect(page.getByText(LJOS, { exact: true })).toBeVisible();
       const go = page.getByRole("button", { name: "Go" });

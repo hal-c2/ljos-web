@@ -5,9 +5,10 @@
 // added to once the page has loaded a module, and a registry the runtime
 // gave would make compiled QML other code than `qmlc`'s. Files of a project
 // import each other in cycles (a file may import itself), which blob URLs,
-// each made from its finished text, cannot: so each file also gets a stand-in
-// module that exports its names as bindings the linker sets once the file
-// has run, and files import each other's stand-ins. The runtime's modules
+// each made from its finished text, cannot. So a file is made after those it
+// imports and imports their blobs, live; an import back into a cycle goes to
+// a stand-in, which exports the file's names as bindings the linker sets once
+// the file has run. The runtime's modules
 // are each one module that re-exports what the page loaded, so compiled QML
 // and the page's own share one instance of each.
 import { provide } from "../files.js";
@@ -35,9 +36,13 @@ async function ask(request) {
     return JSON.parse(text);
   } catch (error) {
     instance = undefined;
-    return { diagnostics: [{ file: request.entry, message: `the compiler failed: ${error.message}` }] };
+    return { diagnostics: [whole(`the compiler failed: ${error.message}`, request.entry)] };
   }
 }
+
+// A fault of no place in a file: it has the shape the compiler's have, at
+// the file's start, as the compiler says of what it cannot place.
+const whole = (message, file = "") => ({ message, file, line: 1, column: 1, endLine: 1, endColumn: 1, severity: "error" });
 
 // The QML modules a page has that are not Qt's or the runtime's own by
 // name: `ljos-web/Qt5Compat/GraphicalEffects` given makes that module one
@@ -75,7 +80,7 @@ const bridges = new WeakMap();
 const blob = (code) => URL.createObjectURL(new Blob([code], { type: "text/javascript" }));
 const LINK = "ljos-web link";
 // What a compile reads itself, and nothing reads at run time.
-const CODE = /(?:\.(?:qml|js|mjs)|(?:^|\/)qmldir)$/;
+const CODE = /(?:\.(?:qml|js|mjs|ts|lts)|(?:^|\/)qmldir)$/;
 
 // A module whose exports are those of `namespace`, which the page loaded.
 function bridge(namespace) {
@@ -123,18 +128,22 @@ export async function compile(request, { modules, base }) {
   try {
     await Promise.all([...specifiers].map(async (specifier) => namespaces.set(specifier, await modules[specifier]())));
   } catch (error) {
-    return { diagnostics: [{ message: `a module of the page's did not load: ${error.message}` }] };
+    return { diagnostics: [whole(`a module of the page's did not load: ${error.message}`)] };
   }
 
-  const standIns = new Map(answer.modules.map((module) => [module.file, standIn(module.exports)]));
+  const standIns = new Map();
   const made = new Map();
-  for (const module of answer.modules) {
+  const make = (module) => {
     const address = new URL(module.file, root).href;
     const edits = [
       ...module.links.map(({ start, end, file, module }) => ({
         start,
         end,
-        text: JSON.stringify(file !== undefined ? standIns.get(file) : bridge(namespaces.get(module))),
+        text: JSON.stringify(
+          file === undefined
+            ? bridge(namespaces.get(module))
+            : (made.get(file) ?? standIns.get(file) ?? standIns.set(file, standIn(files.get(file).exports)).get(file)),
+        ),
       })),
       // `import.meta.url` is the file's address, not the blob's, so a path
       // the file names is taken from where the file is.
@@ -143,7 +152,7 @@ export async function compile(request, { modules, base }) {
     let code = module.code;
     for (const { start, end, text } of edits) code = code.slice(0, start) + text + code.slice(end);
     made.set(module.file, blob(`${code}\n//# sourceURL=${address}\n`));
-  }
+  };
 
   // Each file runs after those it imports, except around a cycle, and
   // its stand-in is set before the next runs: what a file does as it runs
@@ -154,19 +163,21 @@ export async function compile(request, { modules, base }) {
     if (visited.has(file)) return;
     visited.add(file);
     for (const link of files.get(file).links) if (link.file !== undefined) visit(link.file);
+    make(files.get(file));
     order.push(file);
   };
   visit(answer.modules[0].file);
   for (const module of answer.modules) visit(module.file);
 
+  // A revoked blob a later file imports is in the module map by then.
   const namespacesOf = new Map();
   for (const file of order) {
     try {
       const namespace = await import(/* @vite-ignore */ made.get(file));
-      (await import(/* @vite-ignore */ standIns.get(file)))[LINK](namespace);
+      if (standIns.has(file)) (await import(/* @vite-ignore */ standIns.get(file)))[LINK](namespace);
       namespacesOf.set(file, namespace);
     } catch (error) {
-      return { diagnostics: [{ file, message: error.message }] };
+      return { diagnostics: [whole(error.message, file)] };
     } finally {
       URL.revokeObjectURL(made.get(file));
     }

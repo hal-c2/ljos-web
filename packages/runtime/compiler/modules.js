@@ -16,6 +16,7 @@ export const modules = {
   "ljos-web/web/face": () => import("ljos-web/web/face"),
   "ljos-web/web/visual": () => import("ljos-web/web/visual"),
   "ljos-web/reload": () => import("ljos-web/reload"),
+  "ljos-web/compiler/sugar": () => import("ljos-web/compiler/sugar"),
   "ljos-web/theme": () => import("ljos-web/theme"),
   "ljos-web/QtQuick": () => import("ljos-web/QtQuick"),
   "ljos-web/Ljos/Blocks": () => import("ljos-web/Ljos/Blocks"),

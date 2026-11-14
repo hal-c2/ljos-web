@@ -1,7 +1,7 @@
 {
   "repository": "https://github.com/hal-c2/ljos-ui",
   "path": "crates/ljos_controls/qml",
-  "rev": "2d725000e02f496072063adace4064c205fcb5cd",
+  "rev": "c2443e1593f56acfbf97d9f7f7fde921f3984f5d",
   "files": {
     "QtQuick/Controls/Basic/ApplicationWindow.qml": "01abfabc1541be99c236914853d2b34b1c672fb4df75eda9e559588e0a05468a",
     "QtQuick/Controls/Basic/BusyIndicator.qml": "22523d690df065e2126ea1a0bb773f6b5e71f8b78349f0221397d3ac115f5c62",
