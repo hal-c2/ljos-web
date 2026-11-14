@@ -7,7 +7,7 @@ import { application, inputMethod, styleHints } from "../../QtQml/application.js
 import { Locale as Formats, locale } from "../../QtQml/locale.js";
 import { settle } from "../../object.js";
 import { Qt } from "../../QtQml/Qt.js";
-import { color, hsla as hslaOf, hsva as hsvaOf, rgba as rgbaOf } from "../../QtQuick/color.js";
+import { hsla as hslaOf, hsva as hsvaOf, rgba as rgbaOf } from "../../QtQuick/color.js";
 
 export const point = (...args) => Qt.point(...args);
 export const size = (...args) => Qt.size(...args);
@@ -24,8 +24,8 @@ export const hsva = (h, s, v, a) => hsvaOf(h, s, v, a);
 
 // `Color.of(x)` is the colour `x` names, whose `darker`, `lighter`,
 // `alpha`, `tint` and `equals` are Qt's `darker`, `lighter`, `alpha`,
-// `tint` and `colorEqual`.
-export const Color = Object.freeze({ of: (value) => color(value) });
+// `tint` and `colorEqual`. What names no colour throws, as `Qt.color` does.
+export const Color = Object.freeze({ of: (value) => Qt.color(value) });
 
 // `bind(() => …)`: assigned to a property, binds it again.
 export const bind = (compute) => Qt.binding(compute);

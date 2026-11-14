@@ -18,6 +18,14 @@ test("colours, fonts, a binding, the application, a locale and enum keys come fr
     return {
       dark: `${Color.of(c).darker(2)}`,
       same: Color.of("red").equals("#ff0000"),
+      // What names no colour throws, as `Qt.color` does.
+      named: (() => {
+        try {
+          return `${Color.of("nonsense")}`;
+        } catch (error) {
+          return error.message;
+        }
+      })(),
       px: Font.of({ family: "Sans", pixelSize: 20 }).pixelSize,
       listed: Array.isArray(Font.families()),
       m11: matrix4x4(2, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1).m11,
@@ -38,6 +46,7 @@ test("colours, fonts, a binding, the application, a locale and enum keys come fr
   expect(answers).toEqual({
     dark: "#66331a",
     same: true,
+    named: '"nonsense" is not a valid color name',
     px: 20,
     listed: true,
     m11: 2,
