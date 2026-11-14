@@ -36,9 +36,17 @@
 //         wrapMode: Text.WordWrap; horizontalAlignment: Text.AlignJustify
 //     }
 //     Boxed { id: arabic; x: 200; y: 180; width: 100; text: "مرحبا" }
+//     MouseArea {
+//         x: 200; y: 240; width: 200; height: 20
+//         onClicked: log.push("area clicked")
+//         Boxed {
+//             id: covered; text: "ab <a href=\"inside\">in</a>"
+//             onLinkActivated: (link) => log.push("activated " + link)
+//         }
+//     }
 // }
 import { $object } from "ljos-web/object";
-import { FontLoader, Item, Text } from "ljos-web/QtQuick";
+import { FontLoader, Item, MouseArea, Text } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 export const objects = { log: [] };
@@ -95,5 +103,8 @@ export default function Markup() {
       horizontalAlignment: Text.AlignJustify,
     }),
     boxed("arabic", { x: 200, y: 180, width: 100, text: "مرحبا" }),
+    make(MouseArea, { x: 200, y: 240, width: 200, height: 20, onClicked: () => log.push("area clicked") }, () => [
+      boxed("covered", { text: 'ab <a href="inside">in</a>', onLinkActivated: (link) => log.push(`activated ${link}`) }),
+    ]),
   ]);
 }

@@ -75,8 +75,11 @@ const CURSORS = [
 export const cursorOf = (shape) => CURSORS[shape] ?? "";
 
 // What the page itself answers a press on: under one of these nothing is
-// asked.
-const NATIVE = "input,textarea,select,button,[contenteditable]";
+// asked. A text's link is one, as in Qt, where the text takes a press
+// that lands on a link: what stands under it (a MouseArea, a
+// Flickable) never takes the link's press, nor captures the pointer
+// away from the link's own click.
+const NATIVE = "input,textarea,select,button,[contenteditable],a[data-link]";
 // And what it turns itself with the wheel: a field of one line does nothing
 // with it, and what the field is in has it, as in Qt.
 const SCROLLED = "textarea,select,[contenteditable]";
