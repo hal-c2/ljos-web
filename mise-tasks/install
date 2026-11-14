@@ -24,7 +24,7 @@ if [ "$what" = all ] || [ "$what" = cli ]; then
   n=${GIT_CONFIG_COUNT:-0}
   env GIT_CONFIG_COUNT=$((n + 1)) "GIT_CONFIG_KEY_$n=url.https://github.com/.insteadOf" "GIT_CONFIG_VALUE_$n=ssh://git@github.com/" \
     CARGO_NET_GIT_FETCH_WITH_CLI=true \
-    cargo install --path crates/ljos_web --bin qmlc --locked "${root_args[@]}"
+    cargo install --path crates/ljos_web --bin qmlc --locked ${root_args[@]+"${root_args[@]}"}
 fi
 
 if [ "$what" = all ] || [ "$what" = packages ]; then
