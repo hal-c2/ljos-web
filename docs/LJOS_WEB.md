@@ -398,7 +398,7 @@ build gains a cleaner layering from every item.
 |---|---|---|
 | First useful page, gzip, JS + wasm | ≤ 250 kB | W8, every QtQuick type + runtime (`test:size`): 149.1 kB JS (Solid kernel); 149.1 kB JS + 26.9 kB wasm = 176.0 kB (wasm kernel) |
 | Kernel wasm | ≤ 30 kB gzip until value kinds move; every later move must remove more JS than it adds wasm, or say why | W8: 68,531 B raw / 26,916 B gzip (`opt-level=2`, LTO, one CGU, `panic=abort`, strip; no `wasm-opt` installed). At 2 the read path is inlined, which folds away more than it copies; "z" and "s" were larger |
-| Compiler in the page (A15), fetched on a page's first compile only | ≤ 1,300 kB gzip wasm, ≤ 5 kB gzip JS | W9.1: 3,717,395 B raw / 1,085,222 B gzip wasm (`opt-level="z"`); 4,061 B gzip JS as written. With the Ljós dialect (A30): 4,325,664 B raw / 1,246,374 B gzip wasm, 4,916 B gzip JS. A page that does not compile: unchanged, byte for byte |
+| Compiler in the page (A15), fetched on a page's first compile only | ≤ 1,300 kB gzip wasm, ≤ 5 kB gzip JS | W9.1: 3,717,395 B raw / 1,085,222 B gzip wasm (`opt-level="z"`); 4,061 B gzip JS as written. With the Ljós dialect (A31): 4,327,487 B raw / 1,247,112 B gzip wasm, 4,916 B gzip JS. A page that does not compile: unchanged, byte for byte |
 | Tracked clean read | ≤ 2× Solid's before the Solid kernel is deleted | W8: 18 ns against Solid's 3.5 (9.5 against 1.5 warmed), from 40.5; not met (A4) |
 | Write → DOM | one Solid flush per write batch, zero polling | holds (faces) |
 | Idle | 0 % CPU | holds (nothing ticks; graph is push on write) |
@@ -838,7 +838,7 @@ the page already has: what a program that edits QML as it runs needs
 ```js
 import { compile, createCompiler, translate } from "ljos-web/compiler";
 const made = await compile({ files: { "Main.qml": text, "Panel.qml": other }, entry: "Main.qml", aliases: [] });
-// { component, module, warnings } or { diagnostics: [{ message, file, line, column, endLine, endColumn, severity, code? }] } (A30)
+// { component, module, warnings } or { diagnostics: [{ message, file, line, column, endLine, endColumn, severity, code? }] } (A31)
 mount(made.component, element);
 ```
 
@@ -899,7 +899,7 @@ imports `link.js`, which fetches the wasm, only inside `compile`), and
 1,300 kB gzip for the wasm and 5 kB for its JS: what it is, with room
 for Qt's table to grow, so that what would add to it (another parser,
 a table twice) is seen when it comes. It was 1,200 kB until the Ljós
-dialect (A30): ljos-ui's front end at its pin is 29 kB more (1,185 kB
+dialect (A31): ljos-ui's front end at its pin is 29 kB more (1,185 kB
 to 1,214 kB), and the dialect 32 kB (the TypeScript erasure and checks,
 and the table of where Qt's members went, which the `Qt` error names). `opt-level = "z"` (its own
 profile, `compiler`): 1,084 kB gzip against 1,251 kB at "s" and
