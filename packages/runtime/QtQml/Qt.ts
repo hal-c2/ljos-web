@@ -234,7 +234,12 @@ const methods = {
 
 // `Qt` is filled in below: its enums, by name and each on its own, and
 // what it reads from the application.
+type Enums = typeof enums;
+// Every member of every enum, as `Qt.AlignLeft` is: the enums' union made one.
+type Members = { [K in keyof Enums]: (members: Enums[K]) => void }[keyof Enums] extends (members: infer All) => void ? All : never;
 type QtNamespace = typeof methods & {
+  readonly [K in keyof Enums]: Readonly<Enums[K]>;
+} & Readonly<Members> & {
   LoadingMode: Readonly<{ Asynchronous: number; Synchronous: number }>;
   readonly platform: Readonly<{ os: string; pluginName: string }>;
   readonly application: ReturnType<typeof application>;

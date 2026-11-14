@@ -21,7 +21,14 @@ interface Request
   abort(): void;
   setRequestHeader(name: string, value: string): void;
 }
-const Base: { new (): Request; readonly DONE: 4; readonly UNSENT: 0 } =
+const Base: {
+  new (): Request;
+  readonly UNSENT: 0;
+  readonly OPENED: 1;
+  readonly HEADERS_RECEIVED: 2;
+  readonly LOADING: 3;
+  readonly DONE: 4;
+} =
   globalThis.XMLHttpRequest ?? (class {} as unknown as typeof globalThis.XMLHttpRequest);
 
 export class XMLHttpRequest extends Base {

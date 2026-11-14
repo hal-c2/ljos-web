@@ -476,7 +476,10 @@ export class Matrix4x4 {
     this.translate(new Vector3d(-eye.x, -eye.y, -eye.z));
   }
   // By a number, a matrix, or a vector (a column).
-  times(by: number | Matrix4x4 | Vector3d | Vector4d) {
+  times(by: number | Matrix4x4): Matrix4x4;
+  times(by: Vector3d): Vector3d;
+  times(by: Vector4d): Vector4d;
+  times(by: number | Matrix4x4 | Vector3d | Vector4d): Matrix4x4 | Vector3d | Vector4d {
     const m = cells(this);
     if (typeof by === "number") return new Matrix4x4(m.map((cell) => cell * by));
     if (by instanceof Matrix4x4) return new Matrix4x4(product(m, cells(by)));
