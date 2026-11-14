@@ -3,6 +3,7 @@
 //! canvas. The objects stay in the page's runtime; `source` is the
 //! `SceneSource` over them and `web` the wasm boundary.
 
+pub mod answers;
 pub mod names;
 pub mod source;
 #[cfg(target_arch = "wasm32")]

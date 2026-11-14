@@ -3,11 +3,14 @@
 // time a page makes such a view, so a page with none fetches nothing of it.
 //
 // The objects stay here. `Host` is a view's registry of them, and what the
-// wasm reads through it: its reads are of slots, inside the one effect that
-// builds, so the effect follows exactly what the mapping read and runs when
-// one of those changes. An unset member answers nothing, so that the defaults
-// are the mapping's own. A build that draws the same asks for no frame;
-// one that draws differently asks for one. Nothing here runs otherwise.
+// wasm reads through it. The wasm keeps each object's answers, and a build
+// asks only of the objects that changed since the last: each object is
+// followed on its own, by reading again what the mapping read of it, and what
+// one of those reads changes marks that object and builds. The build itself
+// reads untracked. An unset member answers nothing, so that the defaults are
+// the mapping's own. A build that draws the same asks for no frame; one that
+// draws differently asks for one. Nothing here runs otherwise.
+import { createRenderEffect, createRoot, getOwner, runWithOwner } from "solid-js";
 import { flush, located, slot, effect } from "../object.js";
 import { color } from "../QtQuick/color.js";
 import { guardedFetch } from "../guard.js";
@@ -49,6 +52,13 @@ let NAMES = null;
 let queue = Promise.resolve();
 
 const NOTHING = 0xffffffff;
+
+// What the wasm asks of an object, by the reader that answers: what reading an
+// object again to follow it calls. Pixels and a shape's numbers are not: what
+// names them is, and they are new when that is.
+const READS = ["number", "boolean", "color", "vector", "quaternion", "url", "object", "objects", "slots", "authored", "matrices", "pictureId", "geometryId", "tableId", "table", "snippets", "passes", "arrivals"];
+const READ = Object.fromEntries(READS.map((name, kind) => [name, kind]));
+const MEMBERS = 0x10000;
 const GROUP = (name, o) => ["x", "y", "z"].some((axis) => slot(o, `${name}$${axis}`)?.explicit());
 const said = (o, name) => Boolean(slot(o, name)?.explicit()) || GROUP(name, o);
 const isList = (v) => v && typeof v.length === "number" && typeof v !== "string" && !v.$type;
@@ -121,34 +131,71 @@ class Host {
     this.ask = ask;
     this.handles = new Map([[view, 0]]);
     this.objectsBy = new Map([[0, view]]);
-    this.reads = new WeakMap();
+    this.pixelReads = new WeakMap();
     this.reading = 0;
     this.next = 1;
-    this.touched = new Set();
+    // What the wasm asked of each object, as kind and member, and the
+    // objects asked something new in this build.
+    this.asked = new Map();
+    this.grown = new Set();
+    // Textures whose picture may be another by the next build unseen.
+    this.unsteady = new Set();
+    // How many reads crossed in this build.
+    this.crossed = 0;
+    this.again = false;
+  }
+  // A read of what `o` is asked of `kind`, by the wasm or again to follow it.
+  note(o, kind, p = 0) {
+    if (this.again) return;
+    this.crossed++;
+    let asked = this.asked.get(o);
+    if (!asked) this.asked.set(o, (asked = new Set()));
+    const key = kind * MEMBERS + p;
+    if (!asked.has(key)) {
+      asked.add(key);
+      this.grown.add(o);
+    }
+  }
+  // Reads again all that the wasm asked of `o`, so that what runs this does
+  // follow it. A read that throws (of an object on its way out) is still
+  // followed up to where it threw.
+  readAgain(o) {
+    const asked = this.asked.get(o);
+    if (!asked) return;
+    this.again = true;
+    try {
+      for (const key of asked) {
+        try {
+          this[READS[Math.floor(key / MEMBERS)]](o, key % MEMBERS);
+        } catch {
+          // Followed as far as it read.
+        }
+      }
+    } finally {
+      this.again = false;
+    }
   }
   handle(object) {
     let handle = this.handles.get(object);
     if (handle === undefined) {
+      // Read again to follow, an object new to the view is not made one:
+      // the build that follows meets it.
+      if (this.again) return NOTHING;
       handle = this.next++;
       this.handles.set(object, handle);
       this.objectsBy.set(handle, object);
     }
-    this.touched.add(handle);
     return handle;
   }
-  // What the last build did not reach is gone from the scene: it is let go,
-  // and the handles of what is made later are others.
-  sweep() {
-    const gone = [];
-    for (const [handle, object] of this.objectsBy) {
-      if (handle !== 0 && !this.touched.has(handle)) {
-        gone.push(handle);
-        this.objectsBy.delete(handle);
-        this.handles.delete(object);
-      }
-    }
-    this.touched.clear();
-    return gone;
+  // What a build no longer reached is gone from the scene: it is let go, and
+  // the handles of what is made later are others.
+  drop(handle) {
+    const object = this.objectsBy.get(handle);
+    this.objectsBy.delete(handle);
+    this.handles.delete(object);
+    this.asked.delete(handle);
+    this.grown.delete(handle);
+    this.unsteady.delete(handle);
   }
   chain(o) {
     const names = this.objectsBy.get(o).$type.chain.map((type) => type.typeName);
@@ -157,6 +204,7 @@ class Host {
     return names.includes("SceneEffectEnvironment") ? [...names, "ExtendedSceneEnvironment"] : names;
   }
   number(o, p) {
+    this.note(o, READ.number, p);
     const object = this.objectsBy.get(o);
     const name = NAMES[p];
     // A node's x is a part of its position, whichever of them was said.
@@ -172,12 +220,14 @@ class Host {
     return Number.isNaN(value) ? undefined : value;
   }
   boolean(o, p) {
+    this.note(o, READ.boolean, p);
     const object = this.objectsBy.get(o);
     if (written(object)) return NAMES[p] in object ? Boolean(object[NAMES[p]]) : undefined;
     const own = slot(object, NAMES[p]);
     return own?.explicit() ? Boolean(own.get()) : undefined;
   }
   color(o, p) {
+    this.note(o, READ.color, p);
     const object = this.objectsBy.get(o);
     if (written(object)) {
       if (!(NAMES[p] in object)) return undefined;
@@ -190,6 +240,7 @@ class Host {
     return Float32Array.of(r, g, b, a);
   }
   vector(o, p) {
+    this.note(o, READ.vector, p);
     const object = this.objectsBy.get(o);
     const name = NAMES[p];
     // The mapping takes x, y and z where it is not told a position.
@@ -198,22 +249,26 @@ class Host {
     return Float32Array.of(x, y, z);
   }
   quaternion(o, p) {
+    this.note(o, READ.quaternion, p);
     const own = slot(this.objectsBy.get(o), NAMES[p]);
     if (!own?.explicit()) return undefined;
     const { x, y, z, scalar } = own.get();
     return Float32Array.of(x, y, z, scalar);
   }
   url(o, p) {
+    this.note(o, READ.url, p);
     const own = slot(this.objectsBy.get(o), NAMES[p]);
     if (!own?.explicit()) return undefined;
     const value = own.get();
     return value == null ? undefined : String(value);
   }
   object(o, p) {
+    this.note(o, READ.object, p);
     const value = slot(this.objectsBy.get(o), NAMES[p])?.get();
     return value?.$type ? this.handle(value) : undefined;
   }
   objects(o, p) {
+    this.note(o, READ.objects, p);
     const object = this.objectsBy.get(o);
     const name = NAMES[p];
     let all;
@@ -235,20 +290,22 @@ class Host {
     return (this.view.camera ?? first(inside(this.view.$scene)))?.$world() ?? null;
   }
   slots(o, p) {
+    this.note(o, READ.slots, p);
     const all = listed(slot(this.objectsBy.get(o), NAMES[p])?.get());
     return Uint32Array.from(all.map((each) => (each?.$type ? this.handle(each) : NOTHING)));
   }
   authored(o, p) {
+    this.note(o, READ.authored, p);
     return said(this.objectsBy.get(o), NAMES[p]);
   }
   matrices(o, p) {
+    this.note(o, READ.matrices, p);
     const all = listed(slot(this.objectsBy.get(o), NAMES[p])?.get());
     return Float32Array.from(all.flatMap((m) => (m ? [m.m11, m.m21, m.m31, m.m41, m.m12, m.m22, m.m32, m.m42, m.m13, m.m23, m.m33, m.m43, m.m14, m.m24, m.m34, m.m44] : [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1])));
   }
   // What a Texture shows, where that is pixels: what a view last drew is here
   // once it has drawn.
-  shown(o) {
-    const texture = this.objectsBy.get(o).$texture?.();
+  shown(o, texture = this.objectsBy.get(o).$texture?.()) {
     if (!texture || (texture.view && !texture.element.$drawn)) return null;
     // An element of no size has no picture yet: reading it throws, where
     // the JavaScript renderer uploads the empty canvas and draws on.
@@ -263,16 +320,21 @@ class Host {
   // Each way up of what a view drew is a picture, and so is what an item has
   // on it each time this scene is read, as it says nothing of being drawn on.
   pictureId(o) {
-    const texture = this.shown(o);
+    this.note(o, READ.pictureId);
+    const made = this.objectsBy.get(o).$texture?.();
+    // What an item or a view has on it changes with nothing to follow: it
+    // is asked again in each build.
+    if (!this.again && (made?.live || made?.view)) this.unsteady.add(o);
+    const texture = this.shown(o, made);
     if (!texture) return undefined;
     if (texture.view) return serialOf(texture.down ? flipped(texture.element.$drawn) : texture.element.$drawn);
     return texture.live ? serialOf(this.liveRead(texture.element)) : serialOf(texture.data ?? texture.element);
   }
   liveRead(element) {
-    const read = this.reads.get(element);
+    const read = this.pixelReads.get(element);
     if (read?.reading === this.reading) return read;
     const made = { ...readPixels(element), reading: this.reading };
-    this.reads.set(element, made);
+    this.pixelReads.set(element, made);
     return made;
   }
   picture(o) {
@@ -291,6 +353,7 @@ class Host {
     return { ...pixelsOf(texture.element), opaque: !texture.sheer };
   }
   geometryId(o) {
+    this.note(o, READ.geometryId);
     const held = this.objectsBy.get(o).$held?.();
     return held?.stride > 0 ? serialOf(held) : undefined;
   }
@@ -298,10 +361,12 @@ class Host {
     return this.objectsBy.get(o).$held?.();
   }
   tableId(o) {
+    this.note(o, READ.tableId);
     const table = this.objectsBy.get(o).$table?.();
     return table ? serialOf(table.data) : undefined;
   }
   table(o) {
+    this.note(o, READ.table);
     return this.objectsBy.get(o).$table?.();
   }
   // Samplers, each with what it shows.
@@ -315,6 +380,7 @@ class Host {
       });
   }
   snippets(o) {
+    this.note(o, READ.snippets);
     const material = this.objectsBy.get(o);
     const piece = (file, code) => (String(file ?? "") ? text(file, material) : String(code ?? ""));
     const vertex = piece(material.vertexShader, material.__vertexShaderCode);
@@ -336,6 +402,7 @@ class Host {
     };
   }
   passes(o) {
+    this.note(o, READ.passes);
     const effect = this.objectsBy.get(o);
     const { uniforms, passes, waiting } = effect.$passes();
     if (waiting) return undefined;
@@ -364,7 +431,8 @@ class Host {
       buffers,
     };
   }
-  arrivals() {
+  arrivals(o) {
+    this.note(o, READ.arrivals);
     this.count();
   }
   arrived() {
@@ -395,19 +463,38 @@ class Host {
 }
 
 // Draws `self` on `canvas`. What a test or a tool may ask (the backend, how
-// many frames and builds) is on the canvas, and so is `probe`: what a tool
-// that times the view (tests/perf3d) puts there is told of each build
+// many frames and builds, how many reads the last build asked of the page,
+// how many objects the view holds) is on the canvas, and so is `probe`: what
+// a tool that times the view (tests/perf3d) puts there is told of each build
 // ("sync": the scene read into the renderer) and each frame drawn ("draw"),
 // from when until when. Unset, nothing is timed for it.
 export function drawOn(self, canvas, told) {
   const [made, setMade] = signal(null, self.$owner);
   const [arrivals, setArrivals] = signal(0, self.$owner);
   const [draws, setDraws] = signal(0, self.$owner);
+  // Objects whose reads changed since the last build, and a count that says
+  // there are some.
+  const changed = new Set();
+  const [changes, setChanges] = signal(0, self.$owner);
+  // Each object's follower, by handle, and what owns them: a follower is
+  // made while a build applies, where Solid has no owner to give it.
+  const followers = new Map();
+  const following = runWithOwner(self.$owner ?? null, () => createRoot((end) => ({ owner: getOwner(), end })));
   let frame = 0;
   let gone = false;
   let wanted = false;
   let own = false;
-  const state = (canvas.$view3d = { renderer: "wgpu", backend: null, frames: 0, builds: 0, error: null, probe: null, memory: () => memory?.buffer.byteLength ?? 0 });
+  const state = (canvas.$view3d = {
+    renderer: "wgpu",
+    backend: null,
+    frames: 0,
+    builds: 0,
+    reads: 0,
+    objects: () => host.objectsBy.size,
+    error: null,
+    probe: null,
+    memory: () => memory?.buffer.byteLength ?? 0,
+  });
   // A view that reads itself reads what it drew before and is not drawn again
   // for that.
   self.$view = () => {
@@ -434,6 +521,41 @@ export function drawOn(self, canvas, told) {
     }));
   const host = new Host(self, setArrivals, arrivals, request);
 
+  // Follows what the wasm asked of `o`: a change to any of it marks `o` and
+  // builds. Its own root, apart from whatever ran the build, ends when `o`
+  // leaves the view or the view goes; one that was asked something new is
+  // made again to follow that too.
+  const follow = (o) => {
+    followers.get(o)?.();
+    const end = runWithOwner(following.owner, () =>
+      createRoot((end) => {
+        let runs = 0;
+        createRenderEffect(
+          () => {
+            own = true;
+            try {
+              host.readAgain(o);
+            } finally {
+              own = false;
+            }
+            return ++runs;
+          },
+          (run) => {
+            if (run === 1) return;
+            changed.add(o);
+            setChanges((count) => count + 1);
+          },
+        );
+        return end;
+      }),
+    );
+    followers.set(o, end);
+  };
+  const unfollow = (o) => {
+    followers.get(o)?.();
+    followers.delete(o);
+  };
+
   const size = (width, height) => [Math.max(1, Math.round(width * devicePixelRatio)), Math.max(1, Math.round(height * devicePixelRatio))];
   [canvas.width, canvas.height] = untrack(() => size(self.width, self.height));
   queue = queue
@@ -457,28 +579,67 @@ export function drawOn(self, canvas, told) {
       if (view) view.resize(...size(width, height));
     },
   );
+  // The build reads in the compute, untracked, as what it reads may make
+  // what it reads (a member's binding) and that needs an owner; what it let
+  // go of and what it asked anew are handled after.
   effect(
     () => {
       const view = made();
-      if (!view) return;
+      changes();
+      if (!view) return null;
       const from = state.probe ? performance.now() : 0;
       host.reading++;
+      host.crossed = 0;
+      for (const o of host.unsteady) changed.add(o);
+      host.unsteady.clear();
+      const marked = Uint32Array.from(changed);
+      changed.clear();
+      // What changed is followed for what this build asks of it, as the wasm
+      // asks it all again: what it read before and no longer does (a file it
+      // waited for that is in) is not followed any more.
+      const before = new Map();
+      for (const o of marked) {
+        const asked = host.asked.get(o);
+        if (asked) before.set(o, asked);
+        host.asked.delete(o);
+      }
+      let left;
       own = true;
       try {
-        view.build();
+        left = untrack(() => view.build(marked));
       } finally {
         own = false;
       }
       state.builds++;
-      const dropped = host.sweep();
-      if (dropped.length > 0) view.forget(Uint32Array.from(dropped));
-      state.probe?.("sync", from, performance.now());
+      state.reads = host.crossed;
+      // One asked just what it was before is followed as it was.
+      for (const [o, asked] of before) {
+        const now = host.asked.get(o);
+        if (now?.size === asked.size && [...now].every((key) => asked.has(key))) host.grown.delete(o);
+      }
+      const grown = [...host.grown];
+      host.grown.clear();
+      return { from, left, grown, marked };
     },
-    () => {},
+    (built) => {
+      if (!built) return;
+      for (const handle of built.left) {
+        unfollow(handle);
+        host.drop(handle);
+      }
+      for (const handle of built.grown) follow(handle);
+      // What changed and this build passed by is asked again, and followed,
+      // when a build reaches it.
+      for (const handle of built.marked) if (!host.asked.has(handle)) unfollow(handle);
+      state.probe?.("sync", built.from, performance.now());
+    },
   );
 
   return () => {
     gone = true;
+    for (const end of followers.values()) end();
+    followers.clear();
+    following.end();
     if (frame) cancelAnimationFrame(frame);
     frame = 0;
     const view = made();

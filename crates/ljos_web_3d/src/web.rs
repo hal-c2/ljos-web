@@ -11,7 +11,7 @@ use ljos_3d::fetch::{Fetch, Reply};
 use ljos_3d::geometry::Subset;
 use ljos_3d::math::Vec3;
 use ljos_3d::mesh_file::MeshFile;
-use ljos_3d::qml::{self, Prop3d};
+use ljos_3d::qml::Prop3d;
 use ljos_3d::{Gpu, SceneSlot, SurfaceView};
 use wasm_bindgen::prelude::*;
 use wasm_bindgen_futures::{JsFuture, spawn_local};
@@ -19,7 +19,7 @@ use web_sys::HtmlCanvasElement;
 
 use crate::source::{
     Asked, Host, Kept, LoaderStatus, PassBuffer, PassShaders, Passes, Picture, Shape, Snippets,
-    Source, Table, Uniform,
+    Table, Uniform,
 };
 
 #[wasm_bindgen]
@@ -68,7 +68,7 @@ extern "C" {
     #[wasm_bindgen(method)]
     fn passes(this: &JsHost, o: u32) -> JsValue;
     #[wasm_bindgen(method)]
-    fn arrivals(this: &JsHost);
+    fn arrivals(this: &JsHost, o: u32);
     #[wasm_bindgen(method)]
     fn arrived(this: &JsHost);
     #[wasm_bindgen(method)]
@@ -306,8 +306,8 @@ impl Host for JsHost {
                 .collect(),
         })
     }
-    fn arrivals(&self) {
-        JsHost::arrivals(self);
+    fn arrivals(&self, o: u32) {
+        JsHost::arrivals(self, o);
     }
     fn load(&self, url: &str, kept: &Rc<Kept>) {
         let (kept, host, owned) = (kept.clone(), self.clone(), url.to_owned());
@@ -445,20 +445,14 @@ impl View3d {
         }
     }
 
-    /// Reads the scene from the page. The page calls this in the effect
-    /// that tracks what it reads, so that it runs again when any of that
-    /// changes and at no other time.
-    pub fn build(&self) {
-        let source = Source {
-            host: &self.host,
-            kept: &self.kept,
-        };
-        let built = qml::build(&source, crate::source::VIEW);
+    /// Reads the scene from the page, asking again only of the objects in
+    /// `changed`: the page follows each object's reads on its own and says
+    /// which changed. Returns the handles no longer in the scene, which the
+    /// page lets go of.
+    pub fn build(&self, changed: Vec<u32>) -> Vec<u32> {
+        let (built, gone) = crate::source::build(&self.host, &self.kept, &changed);
         self.slot.borrow_mut().offer(built.scene);
-    }
-
-    pub fn forget(&self, handles: Vec<u32>) {
-        self.kept.forget(&handles);
+        gone
     }
 
     pub fn resize(&self, width: u32, height: u32) {
