@@ -8,10 +8,10 @@ import "code-editor.js" as Editor
 // docs/LJOS_WEB.md A27/A28) is the code beside its running result:
 // an editor per file, and a stage the result stands in. As the page
 // is first written — and for a reader with no script — the stage
-// holds a picture of the result as the build prerendered it; in a
-// browser the stage's ShellLoader compiles the code in the page
-// and takes the stage over, and every edit recompiles and reloads
-// with its state kept. A broken edit says why beside the code, and
+// holds a picture of the result as the build prerendered it; once a
+// reader edits, the stage's ShellLoader compiles the code in the
+// page and takes the stage over, and every later edit recompiles and
+// reloads with its state kept. A broken edit says why beside the code, and
 // the last good result keeps running. A block that does not run is
 // its code, coloured at build time, in a panel of its own.
 //
@@ -53,8 +53,23 @@ Column {
         return files;
     }
 
+    // Whether every editor holds the example as written: what the
+    // picture shows, so nothing to compile while nothing has run.
+    function unedited() {
+        for (var i = 0; i < editors.count; i++) {
+            var area = editors.itemAt(i);
+            if (area && area.text !== live.display[i].code)
+                return false;
+        }
+        return true;
+    }
+
     function apply() {
         if (!isLive)
+            return;
+        // An editor's first text is heard as a change too, and so is a
+        // Reset before any edit: neither is the reader's own.
+        if (!started && unedited())
             return;
         Live.setFiles(live.hash, display());
         if (!started) {
@@ -69,13 +84,16 @@ Column {
         });
     }
 
+    // Only told of the example: the stage stays its picture until a
+    // reader edits, and the first edit's apply compiles. The text as
+    // written is what the picture shows, and compiling it would fetch
+    // the compiler (megabytes of wasm) for every reader of the page.
     Component.onCompleted: {
         if (!isLive)
             return;
         Live.setExample(live.hash, live.display, live.entry, live.harnessTemplate || "", live.harnessFile || "", function (lines) {
             block.absent = lines;
         });
-        apply();
     }
 
     Timer {

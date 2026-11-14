@@ -163,7 +163,7 @@ test("with script, the sidebar navigates and the contents list lands on its head
   expect(errors).toEqual([]);
 });
 
-test("a code block runs beside its code, edits keep its state, and a broken edit keeps the last good result", async ({ page }) => {
+test("a code block runs once edited, edits keep its state, and a broken edit keeps the last good result", async ({ page }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   // Tall enough that the first block's editor and its result stand
@@ -173,14 +173,18 @@ test("a code block runs beside its code, edits keep its state, and a broken edit
   // web; the first app's counter waits on Ljos.Controls there.
   await page.goto("/language/overview/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
-  await expect(page.getByText("Pressed 0 times").first()).toBeVisible({ timeout: 30_000 });
-  await pressWords(page, "Pressed 0 times");
-  await expect(page.getByText("Pressed 1 times").first()).toBeVisible({ timeout: 30_000 });
-  // Edit the code in its editor: the result takes the edit and
-  // keeps its state.
+  // The first runnable block is the counter. As written it is its
+  // picture; an edit compiles it, and its result runs.
   const editor = await codeEditor(page, "Edit Main.qml");
   await page.keyboard.press("Control+Home");
   await page.keyboard.type("// edited\n");
+  await expect(page.getByText("Pressed 0 times").first()).toBeVisible({ timeout: 30_000 });
+  await pressWords(page, "Pressed 0 times");
+  await expect(page.getByText("Pressed 1 times").first()).toBeVisible({ timeout: 30_000 });
+  // The next edit: the result takes it and keeps its state.
+  await editor.click();
+  await page.keyboard.press("Control+Home");
+  await page.keyboard.type("// again\n");
   await expect(page.getByText("Pressed 1 times").first()).toBeVisible({ timeout: 30_000 });
   // A broken edit says why, and the last good result still stands.
   await page.keyboard.press("Control+Home");
@@ -248,6 +252,31 @@ test("a reader who moves on while the editor loads keeps their focus where they 
   await expect(editor).not.toBeFocused();
   expect(await page.evaluate(() => document.activeElement === window.away)).toBe(true);
 });
+
+// The compiler is 4 MB of wasm, and the text a reader is first shown is
+// what the page already holds compiled (the Pantry's own shell) or
+// pictured (a code block's result): it is fetched once a reader edits,
+// and not before.
+for (const [route, fallback, name] of [
+  ["/demos/", "The Corner Pantry", "Edit the Pantry's Shell.qml"],
+  ["/start/first-app/", null, "Edit Main.qml"],
+]) {
+  test(`${route} fetches the compiler only once a reader edits`, async ({ page }) => {
+    const compilers = [];
+    page.on("request", (request) => /ljos_web_compiler[^/]*\.wasm$/.test(new URL(request.url()).pathname) && compilers.push(request.url()));
+    await page.setViewportSize({ width: 1440, height: 1600 });
+    await page.goto(route);
+    await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+    if (fallback) await expect(page.getByText(fallback, { exact: true })).toBeVisible();
+    // Past the debounce of any edit the page might think it had.
+    await page.waitForTimeout(1500);
+    expect(compilers, "the compiler, before an edit").toEqual([]);
+    await codeEditor(page, name);
+    await page.keyboard.press("Control+End");
+    await page.keyboard.type("\n// mine\n");
+    await expect.poll(() => compilers.length, { message: "the compiler, once edited", timeout: 30_000 }).toBeGreaterThan(0);
+  });
+}
 
 test("with JavaScript off a runnable block is its code beside a picture of its result", async ({ browser }) => {
   const context = await browser.newContext({ javaScriptEnabled: false, viewport: BUILD_SIZE });
@@ -440,11 +469,11 @@ test("Reset applies the app's shell once over the visitor's, keeps the basket, a
     await page.goto("/demos/");
     await shownInHeldTime(page, page.locator('#app[data-ljos-hydrated="true"]'));
     await shownInHeldTime(page, page.getByText("The Corner Pantry", { exact: true }));
-    // Loading the demo applies its shell once, and its own writing
-    // into the editor arms nothing: past the debounce it is still
-    // one.
+    // Loading the demo applies nothing: the app's own shell stands
+    // compiled, and the demo's own writing into the editor arms
+    // nothing, past the debounce too.
     await pastDebounce(page);
-    expect(await applies(page), "loading the demo applies its shell once").toBe(1);
+    expect(await applies(page), "loading the demo applies no shell").toBe(0);
     await (await stageButton(page, "Add tea")).click();
     await shownInHeldTime(page, page.getByText("1 in the basket · £3.50").first());
 
@@ -538,14 +567,16 @@ test("Reset applies the app's shell once over the visitor's, keeps the basket, a
 });
 
 // The count is the test's, never the visitor's: a page loaded with
-// no `__ljosTest` put there first runs the demo, applies its shell,
-// and holds no global of the demo's.
+// no `__ljosTest` put there first runs the demo, applies a shell, and
+// holds no global of the demo's.
 test("a visitor's demos page holds no test hook", async ({ page }) => {
   await page.goto("/demos/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
-  // The basket answers only once the shell has applied.
   await (await stageButton(page, "Add tea")).click();
   await expect(page.getByText("1 in the basket · £3.50").first()).toBeVisible();
+  // An edit applies a shell, the path that would count.
+  await (await codeEditor(page, "Edit the Pantry's Shell.qml")).fill(MY_SHELL);
+  await expect(page.getByText("My Pantry", { exact: true })).toBeVisible({ timeout: 30_000 });
   expect(await page.evaluate(() => ["__ljosTest", "ljosPantryApplies"].filter((name) => name in globalThis))).toEqual([]);
 });
 
