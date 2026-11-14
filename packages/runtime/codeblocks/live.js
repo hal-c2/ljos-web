@@ -315,6 +315,9 @@ export async function mountLiveCodeBlock(figure, data, options = {}) {
   }
 
   reset.addEventListener("click", () => {
+    // What was held for an editor still on its way goes too: Reset is
+    // the code as the page wrote it.
+    for (const here of held) Object.assign(here, { at: null, text: "", back: 0, closed: false });
     texts.splice(0, texts.length, ...original);
     editors.forEach((editor, i) => editor.setText(original[i]));
     pending = apply();

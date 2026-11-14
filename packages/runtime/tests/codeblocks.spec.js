@@ -618,6 +618,25 @@ test.describe("a live code block in the page", () => {
     await expect.poll(() => textOf(editor)).toMatch(/a\ncRectangle/);
   });
 
+  test("Reset while the editor is on its way drops what was typed for it", async ({ page }) => {
+    let release;
+    const held = new Promise((resolve) => (release = resolve));
+    await page.route(/codemirror|codeblocks\/editor\.js/, async (route) => {
+      await held;
+      await route.continue();
+    });
+    await opened(page, "?editor=on-demand");
+    const figure = counterFigure(page);
+    await live(figure);
+    const before = await figure.locator("pre.ljos-code").textContent();
+    await figure.locator("pre.ljos-code .tok-typeName").filter({ hasText: /^Rectangle$/ }).click();
+    await page.keyboard.type("Z");
+    await figure.getByRole("button", { name: "Reset" }).click();
+    release();
+    const editor = await editorOf(figure, /Main\.qml/);
+    await expect.poll(() => textOf(editor)).toBe(before);
+  });
+
   test("typing held while the editor is on its way stays in the file it was typed in", async ({ page }) => {
     let release;
     const held = new Promise((resolve) => (release = resolve));
