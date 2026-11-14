@@ -38,8 +38,146 @@ import { mirrored } from "../../QtQuick/LayoutMirroring.js";
 import { hints as layoutSizes, Layout, StackLayout } from "../../QtQuick/Layouts/index.js";
 import { given, shown } from "../../QtQuick/placing.js";
 import { Flow } from "../../QtQuick/positioners.js";
-import { distribute, edges, place, roundHalfUp, total, tracks } from "./distribute.js";
+import { distribute, edges, place, roundHalfUp, total, tracks } from "./distribute.ts";
 import { untrack } from "#kernel";
+import type { QObject } from "../../object.ts";
+import type { Cell as Slot, Track, Want } from "./distribute.ts";
+
+type Pair<T> = [T, T];
+// Left, top, right and bottom.
+type Quad = [number, number, number, number];
+type Axis = typeof H | typeof V;
+
+// What an arrangement reads of a child, and the `Layout` attached to one.
+interface Child extends QObject {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  implicitWidth: number;
+  implicitHeight: number;
+  anchors?: { fill?: unknown; left?: unknown; right?: unknown; top?: unknown; bottom?: unknown };
+  $repeat?: unknown;
+  $proxied?: () => Child | null | undefined;
+  // Set on a child that is a layout itself.
+  $measured?: unknown;
+}
+interface Info extends QObject {
+  $item: Child;
+  alignment: number;
+  rowSpan: number;
+  columnSpan: number;
+  leftMargin: number;
+  topMargin: number;
+  rightMargin: number;
+  bottomMargin: number;
+  horizontalStretchFactor: number;
+  verticalStretchFactor: number;
+}
+interface Arrangement extends Child {
+  children: Child[];
+  spacing: number;
+  padding: number;
+  leftPadding: number;
+  topPadding: number;
+  rightPadding: number;
+  bottomPadding: number;
+  layoutDirection: number;
+  direction: number;
+  columns: number;
+  rows: number;
+  columnSpacing: number;
+  rowSpacing: number;
+  flow: number;
+  $seen?: Map<Child, Pair<number>>;
+  $gave?: Map<Child, Pair<boolean>>;
+}
+
+// Everything a child said through `Layout`, by axis where it has one.
+interface Said {
+  fill: Pair<boolean | undefined>;
+  pref: Pair<number | undefined>;
+  min: Pair<number | undefined>;
+  max: Pair<number | undefined>;
+  stretch: Pair<number>;
+  align: number;
+  row: number | undefined;
+  column: number | undefined;
+  rowSpan: number;
+  columnSpan: number;
+  margins: Quad;
+}
+interface Hint {
+  min: number;
+  pref: number;
+  max: number;
+  stretch: number;
+}
+interface Extent {
+  min: number;
+  pref: number;
+  max: number;
+}
+// An arrangement's own least, preferred and most size, by axis.
+interface Sizes {
+  min: Pair<number>;
+  pref: Pair<number>;
+  max: Pair<number>;
+}
+interface Cell {
+  item: Child;
+  hint: Pair<Hint>;
+  managed: Pair<boolean>;
+  margins: Quad;
+  align: number;
+  slot: Slot;
+}
+// A line of children that keep their sizes, or a plan of cells and tracks.
+interface Line {
+  line: true;
+  items: Child[];
+  extents: Pair<number>[];
+  gives: Pair<boolean>[];
+  vertical: boolean;
+  pad: Quad;
+  spacing: number;
+  rtl: boolean;
+  sizes: Sizes;
+}
+interface Plan {
+  line: false;
+  grid: boolean;
+  cells: Cell[];
+  tracks: Pair<Track[]>;
+  spacing: Pair<number>;
+  vertical: boolean;
+  pad: Quad;
+  rtl: boolean;
+  sizes: Sizes;
+}
+// A size given back to a child left out: the child, the axis and the size.
+type Given = [Child, Axis, number];
+type Measured = (Line | Plan) & { left?: Given[] };
+// What a layout measured last; before its first measure, only its sizes.
+type Last = Measured | { sizes: Sizes; line?: undefined; left?: Given[] };
+// A child's position, and its size where the arrangement manages it.
+interface Placed {
+  item: Child;
+  geometry: number[];
+  managed: Pair<boolean>;
+}
+// What an arrangement places: the sizes given back to children left out,
+// and the geometry of the others, if it has a size.
+interface Arranged {
+  left: Given[];
+  items: Placed[] | null;
+}
+interface Spec {
+  properties?: Record<string, unknown>;
+  enums?: Record<string, number>;
+  grid?: boolean;
+  vertical?: (self: Arrangement) => boolean;
+}
 
 const H = 0;
 const V = 1;
@@ -47,13 +185,13 @@ const RightToLeft = 1;
 const TopToBottom = 1;
 const MAX_CELLS = 1024;
 
-const SIZE = ["width", "height"];
-const IMPLICIT = ["implicitWidth", "implicitHeight"];
-const FILL = ["fillWidth", "fillHeight"];
-const PREFERRED = ["preferredWidth", "preferredHeight"];
-const MINIMUM = ["minimumWidth", "minimumHeight"];
-const MAXIMUM = ["maximumWidth", "maximumHeight"];
-const STRETCH = ["horizontalStretchFactor", "verticalStretchFactor"];
+const SIZE = ["width", "height"] as const;
+const IMPLICIT = ["implicitWidth", "implicitHeight"] as const;
+const FILL = ["fillWidth", "fillHeight"] as const;
+const PREFERRED = ["preferredWidth", "preferredHeight"] as const;
+const MINIMUM = ["minimumWidth", "minimumHeight"] as const;
+const MAXIMUM = ["maximumWidth", "maximumHeight"] as const;
+const STRETCH = ["horizontalStretchFactor", "verticalStretchFactor"] as const;
 
 // Alignment flags, as `Align` numbers them.
 const ALIGN_RIGHT = 0x2;
@@ -66,13 +204,13 @@ const FAR = 2;
 
 // The children an arrangement places: all but those that hide themselves,
 // and a Repeater, which is there only to make the others.
-const laidOut = (child) => shown(child) && !child.$repeat;
+const laidOut = (child: Child): boolean => shown(child) && !child.$repeat;
 
 // Whether a child was given a `Layout`: written in its file, or asked for
 // since.
-function hasLayout(child) {
+function hasLayout(child: Child): boolean {
   if (child.$attached?.Layout) return true;
-  return Boolean(child.$props?.$attach?.some((type) => type.attached === Layout.attached));
+  return Boolean(child.$props?.$attach?.some((type) => (type as { attached?: unknown }).attached === Layout.attached));
 }
 
 // One with no width or height is left out, as a positioner leaves it,
@@ -82,9 +220,9 @@ function hasLayout(child) {
 // positioner (`own`, the axes it gave each child) reads that only where
 // it gave the size itself: a child a layout sized keeps that size there,
 // also once its content is gone, as Qt 6.11's Row keeps it.
-const skipped = (child, own) =>
+const skipped = (child: Child, own?: Map<Child, Pair<boolean>>): boolean =>
   !hasLayout(child) &&
-  [H, V].some(
+  ([H, V] as const).some(
     (axis) =>
       (Number.isNaN(stated(child, axis)) && (!own || own.get(child)?.[axis])
         ? child[IMPLICIT[axis]]
@@ -94,28 +232,28 @@ const skipped = (child, own) =>
 // What a `Layout.name` was given by the author, else what the item a
 // LayoutItemProxy stands for was. A value only the type works out (a
 // layout's own minimum) is not one.
-function told(info, name) {
+function told(info: Info, name: string): unknown {
   const value = given(info, name);
   if (value !== undefined) return value;
   const target = info.$item.$proxied?.();
   return target?.$attached?.Layout ? given(target.$attached.Layout, name) : undefined;
 }
 
-function size(info, name) {
+function size(info: Info, name: string): number | undefined {
   const value = told(info, name);
   return value !== undefined && Number(value) >= 0 ? Number(value) : undefined;
 }
 
-function cellIndex(info, name) {
+function cellIndex(info: Info, name: string): number | undefined {
   const value = size(info, name);
   return value === undefined ? undefined : Math.trunc(Math.min(value, MAX_CELLS));
 }
 
-const span = (value) => Math.trunc(Math.min(Math.max(Number(value) || 0, 1), MAX_CELLS));
+const span = (value: unknown): number => Math.trunc(Math.min(Math.max(Number(value) || 0, 1), MAX_CELLS));
 
 // Everything a child said through `Layout`; nothing for one that said
 // nothing, without making it a `Layout` it was never given.
-function attached(child) {
+function attached(child: Child): Said {
   if (!hasLayout(child)) {
     return {
       fill: [undefined, undefined],
@@ -131,12 +269,15 @@ function attached(child) {
       margins: [0, 0, 0, 0],
     };
   }
-  const info = Layout.attached(child);
-  const flag = (name) => {
+  const info = Layout.attached!(child) as Info;
+  const flag = (name: string): boolean | undefined => {
     const value = told(info, name);
     return value === undefined ? undefined : Boolean(value);
   };
-  const axes = (names, read) => [read(info, names[H]), read(info, names[V])];
+  const axes = (names: readonly [string, string], read: (info: Info, name: string) => number | undefined): Pair<number | undefined> => [
+    read(info, names[H]),
+    read(info, names[V]),
+  ];
   return {
     fill: [flag(FILL[H]), flag(FILL[V])],
     pref: axes(PREFERRED, size),
@@ -153,14 +294,14 @@ function attached(child) {
 }
 
 // Whether a child says anything through `Layout` about one axis.
-const managed = (a, axis) =>
+const managed = (a: Said, axis: Axis): boolean =>
   a.fill[axis] === true || a.pref[axis] !== undefined || a.min[axis] !== undefined || a.max[axis] !== undefined;
 
 // The size a child's file gives it along an axis, by itself or by its
 // anchors; NaN when it follows its implicit size. Read untracked: the size
 // the arrangement places goes into the same property, and a measure that
 // followed it would be run again by its own placing.
-function stated(child, axis) {
+function stated(child: Child, axis: Axis): number {
   return untrack(() => {
     const value = given(child, SIZE[axis]);
     if (typeof value === "number") return value;
@@ -174,13 +315,20 @@ function stated(child, axis) {
 // whole pixel. ljos-ui measured this of Qt's RowLayout and ColumnLayout (a
 // Text of implicit width 67.734375 is 68 wide in one); Row and Column, the
 // positioners, place it at the fraction.
-const whole = (implicit) => Math.ceil(implicit);
+const whole = (implicit: number): number => Math.ceil(implicit);
 
 // What one child asks for along one axis: the one size rule. `current` is
 // its width or height now, `file` the one its file gave it when the
 // arrangement first saw it (NaN when it followed its implicit size), and
 // `least` a nested layout's smallest size, its children's.
-function hint(a, axis, current, file, implicit, least) {
+function hint(
+  a: Said,
+  axis: Axis,
+  current: number,
+  file: number,
+  implicit: number,
+  least: number | undefined,
+): Hint {
   if (!managed(a, axis)) return { min: current, pref: current, max: current, stretch: -1 };
   const asked = a.pref[axis] ?? (Number.isNaN(file) ? implicit : file);
   const max = a.max[axis] ?? Infinity;
@@ -191,11 +339,11 @@ function hint(a, axis, current, file, implicit, least) {
 }
 
 // Left, top, right and bottom.
-const paddings = (self) => [self.leftPadding, self.topPadding, self.rightPadding, self.bottomPadding];
+const paddings = (self: Arrangement): Quad => [self.leftPadding, self.topPadding, self.rightPadding, self.bottomPadding];
 
 // The same sizes as before are the same object: what read them is not run
 // again.
-function sizes(last, [width, height]) {
+function sizes(last: Sizes, [width, height]: Pair<Extent>): Sizes {
   const { min, pref, max } = last;
   const same =
     min[0] === width.min &&
@@ -209,11 +357,11 @@ function sizes(last, [width, height]) {
     : { min: [width.min, height.min], pref: [width.pref, height.pref], max: [width.max, height.max] };
 }
 
-const runsRightToLeft = (self) => (self.layoutDirection === RightToLeft) !== mirrored(self);
+const runsRightToLeft = (self: Arrangement): boolean => (self.layoutDirection === RightToLeft) !== mirrored(self);
 
 // At the start unless the child says otherwise, as in a positioner; a row
 // right to left starts at the right.
-function alignOf(flags, axis, rtl) {
+function alignOf(flags: number, axis: Axis, rtl: boolean): number {
   const [far, center] = axis === H ? [ALIGN_RIGHT, ALIGN_H_CENTER] : [ALIGN_BOTTOM, ALIGN_V_CENTER];
   const align = flags & far ? FAR : flags & center ? CENTER : NEAR;
   if (rtl && axis === H && align !== CENTER) return align === NEAR ? FAR : NEAR;
@@ -221,7 +369,7 @@ function alignOf(flags, axis, rtl) {
 }
 
 // A child in `start..end` with margins: its position and size.
-function fit(start, end, before, after, h, align) {
+function fit(start: number, end: number, before: number, after: number, h: Hint, align: number): Pair<number> {
   const room = Math.max(end - start - before - after, 0);
   const length = Math.max(Math.min(room, h.max), h.min);
   const free = room - length;
@@ -231,7 +379,7 @@ function fit(start, end, before, after, h, align) {
 }
 
 // Where each track starts and ends in `content` along an axis.
-function lines(t, spacing, content) {
+function lines(t: Track[], spacing: number, content: number): Pair<number>[] {
   const used = t.filter((k) => k.used);
   const most = used.reduce((all, k) => all + k.max, 0) + spacing * Math.max(used.length - 1, 0);
   // Room nobody can take is left at the end, not shared out.
@@ -241,8 +389,8 @@ function lines(t, spacing, content) {
   if (t.some((k, i) => k.used && sized[i] !== k.pref)) return edges(t, sized, spacing);
   let at = 0;
   return t.map((k, i) => {
-    const line = [at, at + sized[i]];
-    if (k.used) at += sized[i] + spacing;
+    const line: Pair<number> = [at, at + sized[i]!];
+    if (k.used) at += sized[i]! + spacing;
     return line;
   });
 }
@@ -250,9 +398,9 @@ function lines(t, spacing, content) {
 // A row, column or box with no child that has a `Layout`: each keeps its
 // size, and they are packed along the main axis as a positioner packs
 // them.
-function measureLine(self, items, vertical, last) {
+function measureLine(self: Arrangement, items: Child[], vertical: boolean, last: Last): Line {
   const main = vertical ? V : H;
-  const cross = 1 - main;
+  const cross = (1 - main) as Axis;
   const pad = paddings(self);
   const spacing = self.spacing;
   // A child the arrangement gave a size while it was a layout holds it:
@@ -261,7 +409,10 @@ function measureLine(self, items, vertical, last) {
   const gave = gaveOf(self);
   const gives = items.map((child) => {
     const had = gave.get(child);
-    const again = [H, V].map((axis) => Boolean(had?.[axis]) && Number.isNaN(stated(child, axis)));
+    const again: Pair<boolean> = [
+      Boolean(had?.[H]) && Number.isNaN(stated(child, H)),
+      Boolean(had?.[V]) && Number.isNaN(stated(child, V)),
+    ];
     if (again[H] || again[V]) gave.set(child, again);
     else gave.delete(child);
     return again;
@@ -270,16 +421,19 @@ function measureLine(self, items, vertical, last) {
   let widest = 0;
   const extents = items.map((child, index) => {
     if (index > 0) along += spacing;
-    const extent = [H, V].map((axis) => (gives[index][axis] ? child[IMPLICIT[axis]] : child[SIZE[axis]]));
+    const extent: Pair<number> = [
+      gives[index]![H] ? child[IMPLICIT[H]] : child[SIZE[H]],
+      gives[index]![V] ? child[IMPLICIT[V]] : child[SIZE[V]],
+    ];
     along += extent[main];
     widest = Math.max(widest, extent[cross]);
     return extent;
   });
-  const content = [0, 0];
+  const content: Pair<number> = [0, 0];
   content[main] = along;
   content[cross] = widest;
-  const fixed = (axis) => {
-    const value = content[axis] + pad[axis] + pad[axis + 2];
+  const fixed = (axis: Axis): Extent => {
+    const value = content[axis] + pad[axis] + pad[axis + 2]!;
     return { min: value, pref: value, max: value };
   };
   return {
@@ -299,17 +453,17 @@ function measureLine(self, items, vertical, last) {
 // kept while it stays a child, as ljos-ui keeps them: once the arrangement
 // has placed a size, the property holds that, and a binding that gives
 // another later is not asked for until the child comes back.
-const seenOf = (self) => (self.$seen ??= new Map());
+const seenOf = (self: Arrangement): Map<Child, Pair<number>> => (self.$seen ??= new Map());
 
 // The axes along which the arrangement last gave a child its implicit
 // size, as a layout rounds it, where the child says nothing about the axis
 // and its file gives it no size.
-const gaveOf = (self) => (self.$gave ??= new Map());
+const gaveOf = (self: Arrangement): Map<Child, Pair<boolean>> => (self.$gave ??= new Map());
 
 // Forgets the children that have left, at every measure, line or plan: one
 // that left while the others were packed as a line comes back asking for
 // the size its file gives it then, as in ljos-ui.
-function forgetLeft(self) {
+function forgetLeft(self: Arrangement): void {
   const seen = seenOf(self);
   const gave = gaveOf(self);
   if (!seen.size && !gave.size) return;
@@ -322,13 +476,13 @@ function forgetLeft(self) {
 // its implicit size: along each axis it still follows, it is given its
 // implicit size again (an emptied one is 0 wide, as in ljos-ui, and is
 // measured from its content when it comes back). The axes stay given.
-function leftOutSizes(self, left) {
+function leftOutSizes(self: Arrangement, left: Child[]): Given[] {
   const gave = gaveOf(self);
-  const sizes = [];
+  const sizes: Given[] = [];
   for (const child of left) {
     const had = gave.get(child);
     if (!had) continue;
-    for (const axis of [H, V])
+    for (const axis of [H, V] as const)
       if (had[axis] && Number.isNaN(stated(child, axis))) sizes.push([child, axis, child[IMPLICIT[axis]]]);
   }
   return sizes;
@@ -339,11 +493,11 @@ function leftOutSizes(self, left) {
 // arrangement placed (`Slot.place(size, true)`): in ljos-ui an author's
 // write replaces what a box wrote, and the box asks for the size after,
 // or sizes the child again where the size is its own to say.
-function heed(children) {
-  for (const child of children) for (const axis of [H, V]) slot(child, SIZE[axis]).explicit();
+function heed(children: Child[]): void {
+  for (const child of children) for (const axis of [H, V] as const) slot(child, SIZE[axis]).explicit();
 }
 
-function firstSeen(self, items) {
+function firstSeen(self: Arrangement, items: Child[]): Pair<number>[] {
   const seen = seenOf(self);
   return items.map((child) => {
     let first = seen.get(child);
@@ -353,9 +507,9 @@ function firstSeen(self, items) {
 }
 
 // The cells, tracks and hints of every child.
-function measurePlan(self, items, grid, vertical, last) {
-  const cells = [];
-  const wants = [];
+function measurePlan(self: Arrangement, items: Child[], grid: boolean, vertical: boolean, last: Last): Plan {
+  const cells: Cell[] = [];
+  const wants: Want[] = [];
   const first = firstSeen(self, items);
   const gave = gaveOf(self);
   // An arrangement that plans is a layout: it gives a child that follows
@@ -365,18 +519,23 @@ function measurePlan(self, items, grid, vertical, last) {
   const round = items.some(hasLayout);
   for (const [index, child] of items.entries()) {
     const a = attached(child);
-    const file = first[index];
-    const follows = [H, V].map((axis) => Number.isNaN(stated(child, axis)));
-    const implicit = [H, V].map((axis) => (round ? whole(child[IMPLICIT[axis]]) : child[IMPLICIT[axis]]));
-    const current = [H, V].map((axis) => (follows[axis] ? implicit[axis] : child[SIZE[axis]]));
-    const gives = [H, V].map((axis) => follows[axis] && !managed(a, axis));
+    const file = first[index]!;
+    const follows = ([H, V] as const).map((axis) => Number.isNaN(stated(child, axis)));
+    const implicit = ([H, V] as const).map((axis) =>
+      round ? whole(child[IMPLICIT[axis]]) : child[IMPLICIT[axis]],
+    );
+    const current = ([H, V] as const).map((axis) => (follows[axis] ? implicit[axis]! : child[SIZE[axis]]));
+    const gives: Pair<boolean> = [follows[H]! && !managed(a, H), follows[V]! && !managed(a, V)];
     if (gives[H] || gives[V]) gave.set(child, gives);
     else gave.delete(child);
-    const least = child.$measured ? layoutSizes(child).min : [undefined, undefined];
-    const own = [managed(a, H), managed(a, V)];
+    const least: Pair<number | undefined> = child.$measured ? layoutSizes(child).min : [undefined, undefined];
+    const own: Pair<boolean> = [managed(a, H), managed(a, V)];
     cells.push({
       item: child,
-      hint: [H, V].map((axis) => hint(a, axis, current[axis], file[axis], implicit[axis], least[axis])),
+      hint: [
+        hint(a, H, current[H]!, file[H], implicit[H]!, least[H]),
+        hint(a, V, current[V]!, file[V], implicit[V]!, least[V]),
+      ],
       managed: [own[H] || gives[H], own[V] || gives[V]],
       margins: a.margins,
       align: a.align,
@@ -384,12 +543,12 @@ function measurePlan(self, items, grid, vertical, last) {
     });
     wants.push({ row: a.row, column: a.column, rowSpan: a.rowSpan, columnSpan: a.columnSpan });
   }
-  let spacing;
+  let spacing: Pair<number>;
   if (grid) {
     spacing = [self.columnSpacing, self.rowSpacing];
     const slots = place(wants, ...gridLimits(self, wants.length));
     cells.forEach((cell, index) => {
-      cell.slot = slots[index];
+      cell.slot = slots[index]!;
     });
   } else {
     spacing = vertical ? [0, self.spacing] : [self.spacing, 0];
@@ -398,9 +557,9 @@ function measurePlan(self, items, grid, vertical, last) {
       else cell.slot.column = index;
     });
   }
-  const axis = (axis) => {
+  const axis = (axis: Axis): Track[] => {
     const spans = cells.map((cell) => {
-      const extra = cell.margins[axis] + cell.margins[axis + 2];
+      const extra = cell.margins[axis] + cell.margins[axis + 2]!;
       const h = cell.hint[axis];
       const [start, len] = axis === H ? [cell.slot.column, cell.slot.columnSpan] : [cell.slot.row, cell.slot.rowSpan];
       return { start, len, min: h.min + extra, pref: h.pref + extra, max: h.max + extra, stretch: h.stretch };
@@ -408,10 +567,10 @@ function measurePlan(self, items, grid, vertical, last) {
     const count = spans.reduce((most, s) => Math.max(most, s.start + s.len), 0);
     return tracks(count, spans, spacing[axis]);
   };
-  const t = [axis(H), axis(V)];
+  const t: Pair<Track[]> = [axis(H), axis(V)];
   const pad = paddings(self);
-  const padded = (axis) => {
-    const extra = pad[axis] + pad[axis + 2];
+  const padded = (axis: Axis): Extent => {
+    const extra = pad[axis] + pad[axis + 2]!;
     const { min, pref, max } = total(t[axis], spacing[axis]);
     return { min: min + extra, pref: pref + extra, max: max + extra };
   };
@@ -432,40 +591,41 @@ function measurePlan(self, items, grid, vertical, last) {
 // limits them, and whether it fills columns first. A count it is given
 // bounds its line; given the other one only, it is what the children need
 // in that many lines.
-function gridLimits(self, count) {
-  const limit = (value) => (Math.trunc(value) > 0 ? Math.trunc(value) : undefined);
+function gridLimits(self: Arrangement, count: number): [rows: number, columns: number, topToBottom: boolean] {
+  const limit = (value: number): number | undefined => (Math.trunc(value) > 0 ? Math.trunc(value) : undefined);
   const topToBottom = self.flow === TopToBottom;
   let rows = limit(self.rows);
   let columns = limit(self.columns);
   if (rows !== undefined && columns === undefined && !topToBottom) columns = Math.max(Math.ceil(count / rows), 1);
   else if (columns !== undefined && rows === undefined && topToBottom) rows = Math.max(Math.ceil(count / columns), 1);
-  return [rows, columns, topToBottom];
+  // `place` reads an undefined bound as no bound at all.
+  return [rows as number, columns as number, topToBottom];
 }
 
 // The geometry of every child of a line `width` wide: positions, and the
 // sizes it gives back.
-function arrangeLine(measured, width) {
+function arrangeLine(measured: Line, width: number): Placed[] {
   const { items, extents, gives, vertical, pad, spacing, rtl } = measured;
   const main = vertical ? V : H;
-  const cross = 1 - main;
+  const cross = (1 - main) as Axis;
   const room = Math.max(width - pad[0] - pad[2], 0);
   let at = 0;
   return items.map((item, index) => {
-    const extent = extents[index];
-    const geometry = [0, 0, extent[H], extent[V]];
+    const extent = extents[index]!;
+    const geometry: number[] = [0, 0, extent[H], extent[V]];
     geometry[main] = (rtl ? room - at - extent[main] : at) + pad[main];
     geometry[cross] = pad[cross];
     at += extent[main] + spacing;
-    return { item, geometry, managed: gives[index] };
+    return { item, geometry, managed: gives[index]! };
   });
 }
 
 // The geometry of every child of a plan `width` by `height`.
-function arrangePlan(measured, width, height) {
+function arrangePlan(measured: Plan, width: number, height: number): Placed[] {
   const { cells, tracks: t, spacing, pad, rtl, grid, vertical } = measured;
-  const extent = [width, height];
-  const content = (axis) => Math.max(extent[axis] - pad[axis] - pad[axis + 2], 0);
-  const placed = (cell, axis, start, end) => {
+  const extent: Pair<number> = [width, height];
+  const content = (axis: Axis): number => Math.max(extent[axis] - pad[axis] - pad[axis + 2]!, 0);
+  const placed = (cell: Cell, axis: Axis, start: number, end: number): Pair<number> => {
     let [from, to] = [start, end];
     const backwards = rtl && axis === H;
     if (backwards) [from, to] = [content(H) - end, content(H) - start];
@@ -473,25 +633,25 @@ function arrangePlan(measured, width, height) {
       from,
       to,
       cell.margins[axis],
-      cell.margins[axis + 2],
+      cell.margins[axis + 2]!,
       cell.hint[axis],
       alignOf(cell.align, axis, backwards),
     );
   };
   if (grid) {
-    const all = [H, V].map((axis) => lines(t[axis], spacing[axis], content(axis)));
+    const all = ([H, V] as const).map((axis) => lines(t[axis], spacing[axis], content(axis)));
     // From the first to the last track the child covers that has a size:
     // the others under a span take no room.
-    const cover = (axis, start, len) => {
-      const used = [];
-      for (let i = start; i < start + len; i++) if (t[axis][i]?.used && all[axis][i]) used.push(all[axis][i]);
+    const cover = (axis: Axis, start: number, len: number): Pair<number> => {
+      const used: Pair<number>[] = [];
+      for (let i = start; i < start + len; i++) if (t[axis][i]?.used && all[axis]![i]) used.push(all[axis]![i]!);
       const first = used[0] ?? [0, 0];
       const last = used.at(-1) ?? first;
       return [first[0], last[1]];
     };
     return cells.map((cell) => {
-      const geometry = [0, 0, 0, 0];
-      for (const axis of [H, V]) {
+      const geometry: number[] = [0, 0, 0, 0];
+      for (const axis of [H, V] as const) {
         const [start, len] = axis === H ? [cell.slot.column, cell.slot.columnSpan] : [cell.slot.row, cell.slot.rowSpan];
         const [at, length] = placed(cell, axis, ...cover(axis, start, len));
         geometry[axis] = pad[axis] + at;
@@ -501,12 +661,12 @@ function arrangePlan(measured, width, height) {
     });
   }
   const main = vertical ? V : H;
-  const cross = 1 - main;
+  const cross = (1 - main) as Axis;
   const along = lines(t[main], spacing[main], content(main));
   return cells.map((cell) => {
     const index = main === H ? cell.slot.column : cell.slot.row;
-    const geometry = [0, 0, 0, 0];
-    const [atMain, lengthMain] = placed(cell, main, ...along[index]);
+    const geometry: number[] = [0, 0, 0, 0];
+    const [atMain, lengthMain] = placed(cell, main, ...along[index]!);
     const [atCross, lengthCross] = placed(cell, cross, 0, content(cross));
     geometry[main] = pad[main] + atMain;
     geometry[cross] = pad[cross] + atCross;
@@ -516,7 +676,7 @@ function arrangePlan(measured, width, height) {
   });
 }
 
-const side = derived((self) => self.padding);
+const side = derived((self) => self.padding as number);
 const PADDING = {
   padding: 0,
   leftPadding: side,
@@ -527,12 +687,13 @@ const PADDING = {
 
 // What `Row`, `Column`, `Box` and `Grid` have alike: `vertical` says
 // whether a line runs down, `grid` whether children sit in cells.
-function arrangement(name, spec) {
+function arrangement(name: string, spec: Spec) {
   return defineType(name, Layout, {
     properties: { spacing: 0, ...PADDING, layoutDirection: 0, ...spec.properties },
-    enums: spec.enums,
+    // A type with no enums of its own gives none.
+    enums: spec.enums as Record<string, number>,
     methods: {
-      $measure(last) {
+      $measure(this: Arrangement, last: Last): Measured {
         forgetLeft(this);
         const shown = this.children.filter(laidOut);
         heed(shown);
@@ -541,17 +702,17 @@ function arrangement(name, spec) {
         // whether this is a positioner before any is left out.
         const line = !grid && !shown.some(hasLayout);
         const own = line ? gaveOf(this) : undefined;
-        const out = (child) => skipped(child, own);
+        const out = (child: Child): boolean => skipped(child, own);
         const items = shown.filter((child) => !out(child));
         const left = leftOutSizes(this, shown.filter(out));
-        const vertical = grid ? false : spec.vertical(this);
-        const measured = line
+        const vertical = grid ? false : spec.vertical!(this);
+        const measured: Measured = line
           ? measureLine(this, items, vertical, last)
           : measurePlan(this, items, grid, vertical, last);
         measured.left = left;
         return measured;
       },
-      $arrange(measured) {
+      $arrange(this: Arrangement, measured: Measured | Last): Arranged {
         const width = this.width;
         const height = this.height;
         const left = measured.left ?? [];
@@ -559,7 +720,7 @@ function arrangement(name, spec) {
         if (!(width >= 0 && height >= 0) || !measured.sizes || measured.line === undefined) return { left, items: null };
         return { left, items: measured.line ? arrangeLine(measured, width) : arrangePlan(measured, width, height) };
       },
-      $place({ left, items: arranged }) {
+      $place(this: Arrangement, { left, items: arranged }: Arranged): void {
         for (const [item, axis, size] of left) slot(item, SIZE[axis]).place(size, true);
         if (!arranged) return;
         // A size goes only where the arrangement manages it or gives the
@@ -569,7 +730,7 @@ function arrangement(name, spec) {
         for (const { item, geometry, managed: own } of arranged) {
           slot(item, "x").place(geometry[0]);
           slot(item, "y").place(geometry[1]);
-          for (const axis of [H, V]) if (own[axis]) slot(item, SIZE[axis]).place(geometry[2 + axis], true);
+          for (const axis of [H, V] as const) if (own[axis]) slot(item, SIZE[axis]).place(geometry[2 + axis], true);
         }
       },
     },
@@ -584,13 +745,13 @@ export const Column = arrangement("Column", { vertical: () => true });
 export const Box = arrangement("Box", {
   properties: { direction: 0 },
   enums: { Row: 0, Column: 1 },
-  vertical: (self) => self.direction === 1,
+  vertical: (self: Arrangement) => self.direction === 1,
 });
 
 // Children in cells, along the flow. A count of columns (or rows) bounds a
 // line; with neither, the children are one line along the flow. Between
 // two columns (and rows) is `spacing` until a spacing of its own is given.
-const gap = derived((self) => self.spacing);
+const gap = derived((self) => self.spacing as number);
 export const Grid = arrangement("Grid", {
   grid: true,
   properties: { columns: 0, rows: 0, columnSpacing: gap, rowSpacing: gap, flow: 0 },
