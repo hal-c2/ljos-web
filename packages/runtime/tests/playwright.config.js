@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { defineConfig } from "@playwright/test";
-import { compilerAt } from "../vite.js";
+import { compilerAt, kernelNamed } from "../vite.js";
 
 // The server and the tests run from elsewhere than where it was named from.
 if (process.env.QMLC) process.env.QMLC = compilerAt(process.env.QMLC);
@@ -24,7 +24,7 @@ if (process.env.QMLC) process.env.QMLC = compilerAt(process.env.QMLC);
     missing.push("the compiler (`cargo build --bin qmlc`, or QMLC naming one)");
   if (!existsSync(join(runtime, "compiler/ljos_web_compiler.wasm")))
     missing.push("the compiler in the page (`mise run build:wasm-compiler`)");
-  if (process.env.LJOS_KERNEL === "wasm" && !existsSync(join(runtime, "kernel/ljos_web_kernel.wasm")))
+  if (kernelNamed() === "wasm" && !existsSync(join(runtime, "kernel/ljos_web_kernel.wasm")))
     missing.push("the wasm kernel (`mise run build:kernel`)");
   if (missing.length)
     throw new Error(`these specs need built first: ${missing.join(", ")} — or run them as \`mise run test:runtime\`, which builds them`);

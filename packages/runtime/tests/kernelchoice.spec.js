@@ -4,9 +4,10 @@
 // wherever a real check finds WebAssembly working, and Solid's signals
 // where it does not or where the wasm does not come down. Each way the page
 // is the same page, and a browser on the wasm kernel never fetches Solid's.
+import { kernelNamed } from "../vite.js";
 import { expect, open, test } from "./open.js";
 
-const OPTED_IN = process.env.LJOS_KERNEL === "wasm";
+const OPTED_IN = kernelNamed() === "wasm";
 
 const WASM_KERNEL = /ljos_web_kernel\.wasm/;
 const SOLID_KERNEL = /kernel\/solid\.js/;

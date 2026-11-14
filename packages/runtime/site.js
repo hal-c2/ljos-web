@@ -17,7 +17,7 @@ import { dirname, isAbsolute, join, posix, resolve } from "node:path";
 import { build } from "vite";
 import { findTheme } from "./find-theme.js";
 import { provided } from "./modules.js";
-import qml, { compilerAt, hasControls, installed } from "./vite.js";
+import qml, { compilerAt, hasControls, installed, kernelNamed } from "./vite.js";
 import { CLIENT_CONDITIONS } from "./server/conditions.js";
 
 const runtime = import.meta.dirname;
@@ -397,7 +397,7 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
     // check, `kernel/checked.js`), as everywhere else in this
     // repository. The prerender below is made with the same one, so
     // what it writes is what the page would make.
-    const kernel = process.env.LJOS_KERNEL === "wasm" ? join(runtime, "kernel/checked.js") : join(runtime, "kernel/solid.js");
+    const kernel = kernelNamed() === "wasm" ? join(runtime, "kernel/checked.js") : join(runtime, "kernel/solid.js");
     const shared = {
       configFile: false,
       root: stage,

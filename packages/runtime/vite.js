@@ -110,6 +110,20 @@ export function installed() {
 // that stands in for it with them.
 export const hasControls = (root) => existsSync(join(root, "QtQuick/Controls/qmldir"));
 
+// The kernel a build's graph runs on: Solid's signals, the default, or
+// Ljós's graph compiled to wasm where `LJOS_KERNEL=wasm` opts in. Any
+// other value is refused rather than read as the default, so a suite
+// meant for the wasm kernel never passes on Solid's.
+export function kernelNamed(env = process.env) {
+  const named = env.LJOS_KERNEL ?? "";
+  if (named === "" || named === "solid") return "solid";
+  if (named === "wasm") return "wasm";
+  throw new Error(`LJOS_KERNEL is ${JSON.stringify(named)}; it is "wasm", "solid" or unset`);
+}
+
+// The resolve conditions that pick that kernel through `#kernel`.
+export const kernelConditions = (env = process.env) => (kernelNamed(env) === "wasm" ? ["ljos-wasm-kernel"] : []);
+
 // `qrc:/qt-project.org/imports/QtQuick/Controls/Basic/images/check.png`:
 // where a module of Qt's keeps the pictures its QML names, inside the plugin
 // that is the module. They are read out of it by Qt's own `qml` tool, into

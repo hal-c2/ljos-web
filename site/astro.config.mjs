@@ -6,7 +6,7 @@ import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
 import { loadHarnesses, loadPrerenders } from "ljos-web/codeblocks";
 import { liveCodeBlocks } from "ljos-web/codeblocks/remark";
-import qml from "ljos-web/vite";
+import qml, { kernelConditions } from "ljos-web/vite";
 import { holdPlain, readHeld } from "./scripts/codeblocks-held.mjs";
 
 const path = (r) => fileURLToPath(new URL(r, import.meta.url));
@@ -116,7 +116,7 @@ export default defineConfig({
       // `LJOS_KERNEL=wasm` builds the same site over Ljós's own
       // reactive graph instead of Solid's, as the runtime's specs
       // run on both kernels; needs `mise run build:kernel` first.
-      conditions: process.env.LJOS_KERNEL === "wasm" ? ["ljos-wasm-kernel"] : [],
+      conditions: kernelConditions(),
     },
   },
 });

@@ -10,8 +10,8 @@ import { compile } from "./load.js";
 async function choose() {
   if (wasmWorks()) {
     // Fetching the bytes while the chunk that uses them is fetched.
-    compile().catch(() => {});
     try {
+      compile().catch(() => {});
       return await import("./wasm.js");
     } catch (error) {
       console.warn(`ljos-web: the wasm kernel did not load (${error?.message ?? error}); running on Solid's signals`);
