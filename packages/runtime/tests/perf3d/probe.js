@@ -134,6 +134,8 @@ export function probe({ count = false, gpu = false } = {}) {
     const sized = (args) => {
       for (const arg of args) {
         if (ArrayBuffer.isView(arg) || arg instanceof ArrayBuffer) return arg.byteLength;
+        // A uniform may be given its numbers as a list, which goes over as 32-bit ones.
+        if (Array.isArray(arg)) return arg.length * 4;
         if (arg && typeof arg === "object" && "width" in arg && "height" in arg && !("depthOrArrayLayers" in arg)) return arg.width * arg.height * 4;
       }
       return typeof args[1] === "number" && typeof args[0] === "number" ? args[1] : 0;
