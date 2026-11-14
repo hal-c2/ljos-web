@@ -1,6 +1,8 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
+import { parseAst } from "vite";
+import { exported } from "../vite.js";
 
 const packages = join(import.meta.dirname, "..", "..");
 
@@ -30,4 +32,12 @@ test("every package that typechecks pins the same TypeScript and @types/node, ex
   }
   const [first] = pins;
   for (const pin of pins) expect({ ...pin, name: first.name }).toEqual(first);
+});
+
+// What a namespace re-exports of its native module are the module's values:
+// a name only a type has would be an import the browser cannot find.
+test("a ported module's exports are its values, not its types", () => {
+  const context = { addWatchFile() {}, parse: (code, options) => parseAst(code, options) };
+  const names = exported(context, join(import.meta.dirname, "fixtures", "exported", "index.ts"));
+  expect([...names].sort()).toEqual(["More", "Value", "make", "value"]);
 });
