@@ -76,6 +76,42 @@ for (const renderer of RENDERERS) {
   });
 }
 
+// An upload counts what it carries: the part of its data it was told to
+// take, in elements of a typed array or bytes of a plain buffer, not all of
+// the array it was handed.
+test("an upload counts the bytes of the range it writes, not of the whole array", async ({ page }) => {
+  await show(page, "perf3d_still", RENDERERS[0], { count: true });
+  // The scene's own first frames settle first: after them it uploads nothing.
+  await page.waitForTimeout(500);
+  const bytes = await page.evaluate(async () => {
+    const P = window.perf3d;
+    const framed = (work) =>
+      new Promise((done) => {
+        P.reset();
+        requestAnimationFrame(async () => {
+          await work();
+          requestAnimationFrame(() => requestAnimationFrame(() => done(P.frames.reduce((total, frame) => total + frame.bytes, 0))));
+        });
+      });
+    const gl = new OffscreenCanvas(4, 4).getContext("webgl2");
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    const found = {
+      bufferData: await framed(() => gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(1024), gl.STATIC_DRAW, 0, 16)),
+      bufferDataToEnd: await framed(() => gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(1024), gl.STATIC_DRAW, 1000)),
+      bufferSubData: await framed(() => gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(1024), 4, 8)),
+    };
+    const device = await (await navigator.gpu?.requestAdapter())?.requestDevice();
+    if (device) {
+      const buffer = device.createBuffer({ size: 4096, usage: GPUBufferUsage.COPY_DST });
+      found.writeBuffer = await framed(() => device.queue.writeBuffer(buffer, 0, new Float32Array(1024), 0, 16));
+      found.writeBufferBytes = await framed(() => device.queue.writeBuffer(buffer, 0, new ArrayBuffer(4096), 1024));
+    }
+    return found;
+  });
+  expect(bytes).toMatchObject({ bufferData: 64, bufferDataToEnd: 96, bufferSubData: 32 });
+  if ("writeBuffer" in bytes) expect(bytes).toMatchObject({ writeBuffer: 64, writeBufferBytes: 3072 });
+});
+
 // A run's table is of that run: what an earlier one measured is taken away
 // before it starts, so a run of one scene does not show another's old rows
 // as new. qml6's numbers, measured on their own by `qml6.js`, stay.

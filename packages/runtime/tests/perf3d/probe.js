@@ -130,8 +130,22 @@ export function probe({ count = false, gpu = false } = {}) {
     : null;
 
   if (count) {
-    // How many bytes an upload carries, from whatever it was given.
-    const sized = (args) => {
+    // The bytes of the part of `data` from `offset` for `length`, which a
+    // typed array counts in its elements and a plain buffer in bytes.
+    const ranged = (data, offset = 0, length) => {
+      const unit = ArrayBuffer.isView(data) ? (data.BYTES_PER_ELEMENT ?? 1) : 1;
+      return (length ?? data.byteLength / unit - offset) * unit;
+    };
+    // How many bytes an upload carries, from whatever it was given: for a
+    // buffer, the range of its data it was told to take.
+    const sized = (name, args) => {
+      const data = (at) => ArrayBuffer.isView(args[at]) || args[at] instanceof ArrayBuffer;
+      // writeBuffer(buffer, offset, data, dataOffset?, size?)
+      if (name === "writeBuffer" && data(2)) return ranged(args[2], args[3], args[4]);
+      // bufferData(target, data, usage, srcOffset?, length?); a length of 0 is the rest.
+      if (name === "bufferData" && data(1)) return ranged(args[1], args[3], args[4] || undefined);
+      // bufferSubData(target, dstOffset, data, srcOffset?, length?)
+      if (name === "bufferSubData" && data(2)) return ranged(args[2], args[3], args[4] || undefined);
       for (const arg of args) {
         if (ArrayBuffer.isView(arg) || arg instanceof ArrayBuffer) return arg.byteLength;
         if (arg && typeof arg === "object" && "width" in arg && "height" in arg && !("depthOrArrayLayers" in arg)) return arg.width * arg.height * 4;
@@ -151,7 +165,7 @@ export function probe({ count = false, gpu = false } = {}) {
         const upload = UPLOADS.test(name);
         proto[name] = function (...args) {
           acc.calls[key] = (acc.calls[key] ?? 0) + 1;
-          if (upload) acc.bytes += sized(args);
+          if (upload) acc.bytes += sized(name, args);
           return called.apply(this, args);
         };
       }
