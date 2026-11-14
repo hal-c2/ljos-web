@@ -578,7 +578,7 @@ export const Text = defineType("Text", Item, {
         style.textAlign = next.align;
         style.color = next.color;
         style.textShadow = next.shadow;
-        shown = { kind: made.kind, text: made.text, font: made.font, pitch: made.pitch, justified: next.justified, marks: next.marks };
+        shown = { kind: made.kind, text: made.text, inert: made.inert, font: made.font, pitch: made.pitch, justified: next.justified, marks: next.marks };
       },
     );
   },
