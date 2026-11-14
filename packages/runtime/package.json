@@ -87,7 +87,7 @@
   },
   "imports": {
     "#kernel": {
-      "ljos-wasm-kernel": "./kernel/wasm.js",
+      "ljos-wasm-kernel": "./kernel/checked.js",
       "default": "./kernel/solid.js"
     }
   },

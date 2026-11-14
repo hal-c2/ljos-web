@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { defaultClientConditions, defineConfig } from "vite";
-import qml from "../vite.js";
+import qml, { kernelConditions } from "../vite.js";
 
 export default defineConfig({
   root: import.meta.dirname,
@@ -37,6 +37,6 @@ export default defineConfig({
   resolve: {
     dedupe: ["solid-js", "@solidjs/web", "@solidjs/signals"],
     // `LJOS_KERNEL=wasm`: the same specs over Ljós's graph (`kernel/wasm.js`).
-    conditions: process.env.LJOS_KERNEL === "wasm" ? ["ljos-wasm-kernel", ...defaultClientConditions] : defaultClientConditions,
+    conditions: [...kernelConditions(), ...defaultClientConditions],
   },
 });

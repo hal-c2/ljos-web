@@ -18,6 +18,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { highlightToHtml } from "lezer-ljos/html";
 import { CLIENT_CONDITIONS } from "../server/conditions.js";
+import { kernelNamed } from "../vite.js";
 import { assemble, exampleFiles } from "./parse.js";
 
 export { assemble };
@@ -241,7 +242,7 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
           resolve: {
             alias: {
               "codeblock:server": join(runtime, "server.js"),
-              "#kernel": join(runtime, env.LJOS_KERNEL === "wasm" ? "kernel/wasm.js" : "kernel/solid.js"),
+              "#kernel": join(runtime, kernelNamed(env) === "wasm" ? "kernel/checked.js" : "kernel/solid.js"),
             },
             dedupe: ["solid-js", "@solidjs/web", "@solidjs/signals"],
           },

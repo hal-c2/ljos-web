@@ -36,3 +36,8 @@ export function createCompiler({ modules = runtime, base } = {}) {
 }
 
 export const { compile, translate } = createCompiler();
+
+// Whether this page can compile at all, and what to say where it cannot:
+// the compiler is wasm, so a page without WebAssembly shows what its build
+// prerendered and says so.
+export { NEEDS_WASM, wasmWorks } from "../wasm-check.js";

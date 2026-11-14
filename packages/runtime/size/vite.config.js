@@ -1,7 +1,8 @@
 import { fileURLToPath } from "node:url";
 import { defaultClientConditions, defineConfig } from "vite";
+import { kernelNamed } from "../vite.js";
 
-const kernel = process.env.LJOS_KERNEL === "wasm" ? "wasm" : "solid";
+const kernel = kernelNamed();
 
 export default defineConfig({
   root: fileURLToPath(new URL(".", import.meta.url)),

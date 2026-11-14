@@ -17,6 +17,7 @@
 // reader focuses, touches or types in it, or the page is idle, and the
 // editor then takes its place in the same box, the same font and the
 // same colours, so nothing on the page moves.
+import { NEEDS_WASM, wasmWorks } from "../wasm-check.js";
 import { displayPosition, exampleFiles, notThereLine } from "./parse.js";
 
 // A page may compile with modules of its own (the styles of Qt Quick
@@ -89,6 +90,10 @@ function offsetAt(pre, x, y) {
 // editors }`: `idle()` settles when the compile an edit set off has
 // landed, and `editors()` when the code is in the editor.
 export async function mountLiveCodeBlock(figure, data, options = {}) {
+  // The compiler is Rust in wasm, and there is no other: without
+  // WebAssembly the figure stays as the build wrote it, code and drawn
+  // result, and says why it cannot be edited.
+  if (!wasmWorks()) return staticOnly(figure, data);
   const [{ hydrate, mount }, { reload }] = await Promise.all([import("../object.js"), import("../reload.js")]);
   const compile = await compilerOf(options);
   const delay = options.delay ?? 300;
@@ -122,15 +127,7 @@ export async function mountLiveCodeBlock(figure, data, options = {}) {
   // Each file's surface: the build's `<pre>`, focusable and named as
   // the editor it becomes, until the editor is in.
   const sources = data.display.map((file) => {
-    let source = [...code.querySelectorAll(".ljos-codeblock__source")].find((s) => s.dataset.file === file.name);
-    if (!source) {
-      source = el("div", "ljos-codeblock__source");
-      source.dataset.file = file.name;
-      const pre = el("pre", "ljos-code");
-      pre.append(el("code", `language-${file.lang}`, file.code.replace(/\n$/, "")));
-      source.append(pre);
-      code.append(source);
-    }
+    const source = sourceOf(code, file);
     const pre = source.querySelector("pre");
     pre.tabIndex = 0;
     pre.setAttribute("role", "textbox");
@@ -392,6 +389,40 @@ export async function mountLiveCodeBlock(figure, data, options = {}) {
       // its way is when the last of them lands.
       pending = compiling === 0 ? releaseProject() : new Promise((resolve) => (letGo = resolve));
     },
+  };
+}
+
+// A file's code as the build writes it, `<pre>` in its source; made
+// where the figure came without it.
+function sourceOf(code, file) {
+  const found = [...code.querySelectorAll(".ljos-codeblock__source")].find((s) => s.dataset.file === file.name);
+  if (found) return found;
+  const source = el("div", "ljos-codeblock__source");
+  source.dataset.file = file.name;
+  const pre = el("pre", "ljos-code");
+  pre.append(el("code", `language-${file.lang}`, file.code.replace(/\n$/, "")));
+  source.append(pre);
+  code.append(source);
+  return source;
+}
+
+function staticOnly(figure, data) {
+  // A figure made without the build's code (one a page mounts itself)
+  // is given it, as an editor would have been: the code is never lost
+  // for want of WebAssembly.
+  const code = figure.querySelector(".ljos-codeblock__code") ?? el("div", "ljos-codeblock__code");
+  for (const file of data?.display ?? []) sourceOf(code, file);
+  if (!figure.contains(code)) figure.append(code);
+  const note = el("p", "ljos-codeblock__note", NEEDS_WASM);
+  note.setAttribute("role", "note");
+  const head = figure.querySelector(".ljos-codeblock__head");
+  if (head) head.after(note);
+  else figure.prepend(note);
+  figure.dataset.state = "needs-wasm";
+  return {
+    idle: async () => {},
+    editors: async () => [],
+    dispose: () => note.remove(),
   };
 }
 

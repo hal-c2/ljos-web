@@ -36,6 +36,13 @@
 }
 .ljos-codeblock__reset { margin-left: auto; }
 .ljos-codeblock__status { opacity: 0.75; }
+/* Where the page has no WebAssembly, and so no compiler (codeblocks/live.js). */
+.ljos-codeblock__note {
+  margin: 0;
+  padding: 0.35em 0.6em;
+  border-bottom: 1px solid var(--ljos-codeblock-border, color-mix(in srgb, currentColor 22%, transparent));
+  font-size: 0.85em;
+}
 .ljos-codeblock__body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;

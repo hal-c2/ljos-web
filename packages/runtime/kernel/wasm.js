@@ -7,6 +7,7 @@
 // it follows through a signal of its own (a face), which the graph tells
 // when the node changes.
 import { createMemo, createSignal, getObserver, onCleanup, runWithOwner, untrack as unfollowed } from "solid-js";
+import { compile } from "./load.js";
 
 export const WASM = true;
 
@@ -63,8 +64,7 @@ const imports = {
   },
 };
 
-const url = new URL("./ljos_web_kernel.wasm", import.meta.url);
-const { instance } = await WebAssembly.instantiateStreaming(fetch(url), imports);
+const instance = await WebAssembly.instantiate(await compile(), imports);
 const k = instance.exports;
 
 function rethrow() {
