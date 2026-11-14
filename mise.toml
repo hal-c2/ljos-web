@@ -15,4 +15,4 @@ SHARP_IGNORE_GLOBAL_LIBVIPS = "1"
 # look in ./target, so a build elsewhere was not found. Cargo reads a
 # relative CARGO_TARGET_DIR from the root, where tasks run; the consumers run
 # elsewhere, so QMLC is always absolute. A QMLC given wins.
-QMLC = "{% if env.QMLC %}{{ env.QMLC }}{% elif env.CARGO_TARGET_DIR is starting_with(pat='/') %}{{ env.CARGO_TARGET_DIR }}/debug/qmlc{% elif env.CARGO_TARGET_DIR %}{{ config_root }}/{{ env.CARGO_TARGET_DIR }}/debug/qmlc{% else %}{{ config_root }}/target/debug/qmlc{% endif %}"
+QMLC = "{% if env.QMLC %}{{ env.QMLC }}{% elif env.CARGO_TARGET_DIR %}{% if env.CARGO_TARGET_DIR is starting_with(pat='/') %}{{ env.CARGO_TARGET_DIR }}{% else %}{{ config_root }}/{{ env.CARGO_TARGET_DIR }}{% endif %}/debug/qmlc{% else %}{{ config_root }}/target/debug/qmlc{% endif %}"
