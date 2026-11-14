@@ -95,8 +95,7 @@ test("a dialect file compiled by qmlc draws what its compat twin draws", async (
     await page.mouse.click(10, 10);
     return page.evaluate(() => {
       const { theBox: box, theLabel: label, taps } = window.scene;
-      // To the pixel: a layout rounds a text's fractional measure up,
-      // a positioner keeps it, as Qt's own layouts and positioners do.
+      // To the pixel: a text's measure is fractional in the browser.
       const at = (item) => {
         const { x, y, width, height } = item.$node.getBoundingClientRect();
         return [x, y, width, height].map(Math.round);

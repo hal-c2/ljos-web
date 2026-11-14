@@ -1941,18 +1941,46 @@ companions — Ljós keeps as they are, so they are the runtime's types
 exported from this module too. `Ljos.Core` is `Timer`, `Binding`,
 `Connections`, `Component`, `Locale` and `QtObject` likewise.
 
-`Ljos.Layout`'s `Row`, `Column`, `Box` and `Grid` are faces of the
-runtime's layouts, which are the arrangement's arithmetic already,
-with the arrangement's defaults (no spacing until it is given) and
-its `padding`, inside which the layouts' own engine measures,
-arranges and places. `Pages` is a face of `StackLayout`, `Flow` is
-`QtQuick`'s, and `Layout` is the layouts' attached type.
+`Ljos.Layout`'s `Row`, `Column`, `Box` and `Grid` are ljos-ui's
+arrangement (its `arrangement.rs`, `layouts/distribute.rs` and
+`layouts/place.rs`, DIALECT.md §4.6), ported step for step to
+`Ljos/Layout/index.js` and `distribute.js`, not the Qt layouts'
+arithmetic with other defaults. The one rule, per axis: a child that
+says nothing about an axis through `Layout` (no `fill…`, no
+`preferred…`, `minimum…` or `maximum…`) keeps its size along it and
+is never sized there; one that does asks for its `Layout.preferred…`,
+else the size its file gives it, else its implicit size (not rounded
+up), held between its minimum (0 unless given) and maximum, and fills
+from there only if it says `fill…`. When no shown child of a `Row`,
+`Column` or `Box` has a `Layout`, they are packed as a positioner
+packs them, along the axis from the padding and at the start of the
+other; a child with no width or height is left out. Otherwise the
+rows and columns are planned: room is shared as `distribute` shares
+it (stretch factors, then preferred sizes, then maximums), edges fall
+on whole pixels with a half rounded up, a child sits at the start of
+its cell unless `Layout.alignment` moves it, room nobody takes is left
+at the end, and right to left mirrors it all. A `Grid`'s `columns` and
+`rows` are 0 until given, and with neither it is one line along its
+`flow`. The arrangement writes a child's width or height only along a
+sized axis, and gives back one it wrote when that axis stops being
+sized. The size a file gives a child is read as first given, not as
+the arrangement places it, so placing it never measures again, as
+ljos-ui keeps the first one it saw. `Pages` is a face of
+`StackLayout`, `Flow` is `QtQuick`'s, and `Layout` is the layouts'
+attached type.
+
+`tests/ljoslayout.spec.js` holds the arrangement to ljos-ui, on both
+kernels: each case of `tests/scenes/ljoslayoutrule.qml` (explicit,
+preferred, minimum and maximum sizes, filling and stretch, padding,
+margins, alignment, right to left, packing, `Grid` counts, flows and
+spans) is placed to the pixel as `ljos test` places the same file
+(`tests/fixtures/ljoslayoutrule.json`, ljos-ui c2443e15), and again
+after a child that fills is hidden and shown and after a `Box` turns.
 
 `tests/ljosui.spec.js` holds it, on both kernels: each face by its
 dialect names, beside the QtQuick specs, and a whole dialect file
 compiled by qmlc (`tests/scenes/ljosuidialect.qml`) drawing what its
-compat twin draws, to the pixel (a layout rounds a text's fractional
-measure up, as Qt's own layouts do beside its positioners). On the
+compat twin draws, to the pixel. On the
 site (A28) nothing changes in the count at the docs pin — the same
 138 live and 21 plain (10 not compiling, 11 not running), checked
 with the build's own gathering: none of the 21 is plain for want of
@@ -1970,8 +1998,7 @@ either API; nothing is made of the name); a `ListView`'s
 `enter` and `exit` (the runtime's views have no `add`/`remove`
 transitions in either API to rename); `Screen.points(…)` (not in
 Ljós's API yet either: a file that sets `font.pointSize` is kept by
-migrate, so none is written); a `Grid`'s unset `columns`/`rows` read
-as the layout's −1, not the arrangement's 0; and the dialect modules
+migrate, so none is written); and the dialect modules
 beyond these three — `Ljos.Controls…` and a 3D module Ljós has not
 yet — which no file can import here until they are carried as these
 were.
