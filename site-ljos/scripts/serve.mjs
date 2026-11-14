@@ -10,7 +10,7 @@ import { extname, join, normalize, resolve } from "node:path";
 const dir = resolve(process.argv[2] ?? "dist");
 const port = Number(process.argv[3] ?? 4471);
 const base = process.argv[4] ?? process.env.LJOS_SITE_BASE ?? "/";
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png", ".json": "application/json", ".wasm": "application/wasm" };
+const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png", ".json": "application/json", ".wasm": "application/wasm", ".xml": "application/xml", ".txt": "text/plain" };
 
 createServer((request, response) => {
   let path = decodeURIComponent(new URL(request.url, "http://site").pathname);

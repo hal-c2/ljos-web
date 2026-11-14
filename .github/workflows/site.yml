@@ -1,8 +1,17 @@
 name: site
 
 on:
+  # A pull request builds and tests, and never deploys. The paths are
+  # everything the build reads: a file left out here is a merge that
+  # changes the site and never deploys it.
   pull_request:
-    paths: ["site/**", "site-ljos/**", "packages/**", "crates/**", "pnpm-workspace.yaml", "pnpm-lock.yaml", "package.json", ".github/workflows/site.yml"]
+    paths: ["site/**", "site-ljos/**", "packages/**", "crates/**", "vendor/**", "mise-tasks/**", "mise.toml", "Cargo.toml", "Cargo.lock", ".cargo/**", "pnpm-workspace.yaml", "pnpm-lock.yaml", "package.json", ".github/workflows/site.yml"]
+  # A merge to main is live: it deploys to the repository's Pages
+  # custom domain (ljos.dev). The same paths as pull_request, so what
+  # a pull request was held to is what deploys.
+  push:
+    branches: [main]
+    paths: ["site/**", "site-ljos/**", "packages/**", "crates/**", "vendor/**", "mise-tasks/**", "mise.toml", "Cargo.toml", "Cargo.lock", ".cargo/**", "pnpm-workspace.yaml", "pnpm-lock.yaml", "package.json", ".github/workflows/site.yml"]
   workflow_dispatch:
     inputs:
       deploy:
@@ -17,15 +26,23 @@ on:
 permissions:
   contents: read
 
-# A newer push supersedes a pull request's run. A dispatch is never
+# A newer push supersedes a pull request's run. A deploying run (a push
+# to main in hal-c2/ljos-web, or a dispatch with deploy on) is never
 # cancelled once running, so a deploy it asked for is not lost. Every
-# deploying dispatch shares one group, so they build and deploy in the
-# order they were made and an older commit never lands after a newer
-# one; a deploy still waiting is replaced by a newer one, which is the
-# deploy wanted anyway. A dispatch that only builds stands alone.
+# deploying run on main shares one group, so they build and deploy in
+# the order they were made and an older commit never lands after a
+# newer one; a deploy still waiting is replaced by a newer one from
+# main, which is the deploy wanted anyway. A deploying dispatch from
+# another branch stands alone, so it never replaces a merge's waiting
+# deploy: it can only deploy the github.io preview, while Pages has no
+# custom domain (the pages step refuses anything else). A dispatch
+# that only builds stands alone too, and a fork's push to its main,
+# which never deploys, is superseded like a pull request. The group is
+# decided before any job runs, so it says "deploys" in the words the
+# build job's SITE_DEPLOYS says it in.
 concurrency:
-  group: ${{ github.event_name != 'workflow_dispatch' && format('site-{0}', github.ref) || (inputs.deploy && 'site-deploy' || format('site-dispatch-{0}', github.run_id)) }}
-  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
+  group: ${{ (github.ref == 'refs/heads/main' && ((github.event_name == 'push' && github.repository == 'hal-c2/ljos-web') || (github.event_name == 'workflow_dispatch' && inputs.deploy))) && 'site-deploy' || (github.event_name == 'workflow_dispatch' && format('site-dispatch-{0}', github.run_id) || format('site-{0}', github.ref)) }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' && !(github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'hal-c2/ljos-web') }}
 
 env:
   CARGO_NET_GIT_FETCH_WITH_CLI: "true"
@@ -74,6 +91,16 @@ jobs:
       contents: read
       # The deploy step reads the repository's Pages domain.
       pages: read
+    # Whether this run deploys, and to the custom domain, said once:
+    # a push to main in hal-c2/ljos-web deploys the domain build; a
+    # dispatch deploys as its inputs ask. A pull request has no
+    # inputs and is not a push, so both are false there. The deploy
+    # steps read these, and the deploy job reads `deploy` below.
+    env:
+      SITE_DEPLOYS: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'hal-c2/ljos-web') || (github.event_name == 'workflow_dispatch' && inputs.deploy) }}
+      SITE_CUSTOM_DOMAIN: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'hal-c2/ljos-web') || (github.event_name == 'workflow_dispatch' && inputs.custom_domain) }}
+    outputs:
+      deploy: ${{ env.SITE_DEPLOYS }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - name: Docs, at the pinned ljos-ui revision
@@ -144,7 +171,7 @@ jobs:
         env:
           QMLC: ${{ github.workspace }}/target/debug/qmlc
           LJOS_SITE_BASE: /${{ github.event.repository.name }}/
-      - run: pnpm --filter ljos-site-ljos exec playwright test tests/base.spec.js
+      - run: pnpm --filter ljos-site-ljos exec playwright test tests/base.spec.js tests/canonical.spec.js
         env:
           LJOS_SITE_BASE: /${{ github.event.repository.name }}/
       - run: cp -r site-ljos/dist "$RUNNER_TEMP/site-ljos-project"
@@ -162,22 +189,26 @@ jobs:
           name: site-dist
           path: site/dist
       # DECISION: Pages serves site-ljos (the Ljós-built site), never
-      # the Astro reference. Only a manual dispatch that asks for it
-      # deploys: by default the github.io preview, under the project
-      # path; with custom_domain, the root build and a CNAME naming
-      # the domain. The domain itself is the repository's Pages
-      # setting, set by hand once DNS is in place (GitHub ignores a
-      # CNAME file in an Actions deploy; the file records the intent).
-      # Pages serves the deploy wherever that setting says, and a
-      # build for the other place breaks every link, so a dispatch
-      # whose custom_domain disagrees with it fails instead of
-      # deploying. The CNAME names the setting, so a fork never
-      # claims ljos.dev.
+      # the Astro reference. Every merge to main deploys, in
+      # hal-c2/ljos-web only: the root build and a CNAME naming the
+      # domain, for ljos.dev. A manual dispatch deploys when it asks
+      # to: by default the github.io preview, under the project path;
+      # with custom_domain, the root build and CNAME as a merge does,
+      # from main only: the custom domain serves main, and a branch's
+      # build there would stay live until the next merge.
+      # The domain itself is the repository's Pages setting, set by
+      # hand once DNS is in place (GitHub ignores a CNAME file in an
+      # Actions deploy; the file records the intent). Pages serves the
+      # deploy wherever that setting says, and a build for the other
+      # place breaks every link, so a run whose custom domain
+      # disagrees with it fails instead of deploying: a merge, or a
+      # dispatch with custom_domain, with no domain set; a preview
+      # dispatch once one is. The CNAME names the setting, so a fork
+      # never claims ljos.dev.
       - name: The site Pages serves
-        if: ${{ inputs.deploy == true }}
+        if: ${{ env.SITE_DEPLOYS == 'true' }}
         id: pages
         env:
-          CUSTOM_DOMAIN: ${{ inputs.custom_domain }}
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
         run: |
@@ -190,9 +221,13 @@ jobs:
             cat "$RUNNER_TEMP/pages.err" >&2
             exit 1
           fi
-          if [ "$CUSTOM_DOMAIN" = "true" ]; then
+          if [ "$SITE_CUSTOM_DOMAIN" = "true" ]; then
+            if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+              echo "::error::only main deploys to the Pages custom domain, and this run is on $GITHUB_REF: dispatch from main, or deploy the github.io preview with custom_domain off"
+              exit 1
+            fi
             if [ -z "$domain" ]; then
-              echo "::error::custom_domain is on, but $REPO has no Pages custom domain: set it first (site-ljos/README.md, steps 1-4)"
+              echo "::error::this run deploys to the Pages custom domain (a push to main, or custom_domain on), but $REPO has no Pages custom domain: set it first (site-ljos/README.md, steps 1-4)"
               exit 1
             fi
             dir="$RUNNER_TEMP/site-ljos-root"
@@ -206,11 +241,11 @@ jobs:
           fi
           echo "dir=$dir" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
-        if: ${{ inputs.deploy == true }}
+        if: ${{ env.SITE_DEPLOYS == 'true' }}
         with:
           path: ${{ steps.pages.outputs.dir }}
   deploy:
-    if: ${{ inputs.deploy == true }}
+    if: ${{ needs.build.outputs.deploy == 'true' }}
     # Nothing is published that `ljos check` refused.
     needs: [build, check]
     runs-on: ubuntu-24.04

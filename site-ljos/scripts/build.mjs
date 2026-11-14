@@ -34,6 +34,16 @@ if (!/^\/(?:[A-Za-z0-9._~-]+\/)*$/.test(base)) {
   console.error(`site-ljos: LJOS_SITE_BASE is ${JSON.stringify(base)}; it is a path that starts and ends with "/" (such as "/" or "/ljos-web/")`);
   process.exit(1);
 }
+// DECISION (site3 deploy): ljos.dev is the site's canonical home, so
+// every build names each page's address there, the github.io preview
+// at its project path too: origin + route, never origin + base +
+// route. One constant, so a page's canonical link, its og:url, the
+// sitemap and robots.txt cannot disagree.
+const origin = process.env.LJOS_SITE_ORIGIN ?? "https://ljos.dev";
+if (!/^https?:\/\/[A-Za-z0-9.-]+(?::\d+)?$/.test(origin)) {
+  console.error(`site-ljos: LJOS_SITE_ORIGIN is ${JSON.stringify(origin)}; it is a scheme and host with no path or trailing "/" (such as "https://ljos.dev")`);
+  process.exit(1);
+}
 const repo = resolve(here, "..");
 const bundle = join(here, "bundle");
 const out = join(here, "dist");
@@ -339,6 +349,26 @@ for (const file of htmlUnder(out)) {
   if (at < 0) throw new Error(`site-ljos: ${file} has no <head> to name the base in`);
   writeFileSync(file, `${html.slice(0, at + 6)}\n    <meta name="ljos-base" content="${base}">${html.slice(at + 6)}`);
 }
+
+// Each page's address on the site's home, from the pages the build
+// was given: in its head, and in the sitemap robots.txt names.
+const escapeXml = (text) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+const addressOf = (route) => `${origin}${route}`;
+for (const { route } of pages) {
+  const file = join(out, route.slice(1), "index.html");
+  const html = readFileSync(file, "utf8");
+  // At the head's end, after the charset: nothing reads them while
+  // the page loads.
+  const at = html.indexOf("</head>");
+  if (at < 0) throw new Error(`site-ljos: ${file} has no </head> to name its address in`);
+  const address = escapeXml(addressOf(route));
+  writeFileSync(file, `${html.slice(0, at)}  <link rel="canonical" href="${address}">\n    <meta property="og:url" content="${address}">\n  ${html.slice(at)}`);
+}
+writeFileSync(
+  join(out, "sitemap.xml"),
+  `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${pages.map(({ route }) => `  <url><loc>${escapeXml(addressOf(route))}</loc></url>\n`).join("")}</urlset>\n`,
+);
+writeFileSync(join(out, "robots.txt"), `User-agent: *\nAllow: /\n\nSitemap: ${origin}/sitemap.xml\n`);
 
 // The brand files a browser asks for by name are the site's, whichever
 // builder wrote the pages.
