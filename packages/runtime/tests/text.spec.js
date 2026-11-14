@@ -671,6 +671,19 @@ test("markup cannot run a script or bring a frame into the page", async ({ page 
   ]);
 });
 
+// A picture's words are kept as written, and so is an empty `alt`: it
+// says the picture is decoration, which a reader is not told of.
+test("a picture's alt is kept, an empty one too", async ({ page }) => {
+  await boxes(page, "markup");
+  const alts = await page.evaluate(() => {
+    const { unsafe } = window.objects;
+    unsafe.text = '<img src="data:image/png;base64,AAAA" alt="A mark"><img src="data:image/png;base64,AAAA" alt=""><img src="data:image/png;base64,AAAA">';
+    window.flush();
+    return [...unsafe.$markup.querySelectorAll("img")].map((img) => img.getAttribute("alt"));
+  });
+  expect(alts).toEqual(["A mark", "", null]);
+});
+
 // A link to a page carries its `href`, for a crawler and a new tab;
 // one whose scheme could run a script, however it is hidden, does not.
 test("a link to a page is followable, and a script's is not", async ({ page }) => {
