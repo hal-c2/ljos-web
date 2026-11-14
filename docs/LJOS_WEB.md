@@ -2244,9 +2244,12 @@ after it is attached and then once at the end of each turn that changed a
 property of the host. A change is a write, a binding that gives the host
 something new, or what the host's type works out as it is read (an
 anchored item's geometry), which is never written and so is followed for as
-long as the Controller is. Two writes in a turn are one update, and what
-`updated` writes does not arm it again, so a Controller cannot keep the
-page awake. Only a Controller that handles `updated` listens (one that
+long as the Controller is. A property the host's file declares is followed
+the same way, since it is written and bound outside the type's slots. Two
+writes in a turn are one update. What a host's Controllers write in
+`updated` arms none of them, as on the desktop: a Controller cannot keep
+the page awake, and two Controllers of one host cannot keep arming each
+other. Only a Controller that handles `updated` listens (one that
 declares `onUpdated`, a module's `updated`, or a listener connected to
 `updated` at any time, which hears the next change): a host with none pays
 nothing for it.
@@ -2289,9 +2292,11 @@ and keeps what it gave: `status` (`initial`, `pending`, `done`, `failed`),
 `failed` told as it settles. A change of `args` runs it again at the end of
 the turn, with the last `args` (two changes in a turn are one run), and
 the run in progress is aborted through its signal: nothing a superseded run
-gives is taken. `autoRun: false` runs it only by `start(...)`; `abort()`
-fails the run in progress with its signal's reason; and the run goes with
-the item it is declared in.
+gives is taken. A run that the aborted run's signal starts is asked for
+last, so it is the run, and the call it interrupted is not made.
+`autoRun: false` runs it only by `start(...)`; `abort()` fails the run in
+progress with its signal's reason; and the run goes with the item it is
+declared in.
 
 ```qml
 Task {
@@ -2341,7 +2346,9 @@ owner that never ends; a root that ends is taken off it, so none piles up
 **Tests**, each on both kernels: `controller.spec.js`,
 `controllerwindow.spec.js` (a Controller and a `Tap` in a `Window`),
 `controllerfaults.spec.js` (what a module throws, a late `updated.connect`,
-a gesture destroyed), `task.spec.js`,
+a gesture destroyed), the two in `controller.spec.js` that use
+`tests/scenes/controllerpair.js` (two Controllers of one host that write
+to it, and a declared property), `task.spec.js`,
 `fetch.spec.js`, `ljoshomes.spec.js` (the names called from their
 modules, and a compiled file, `tests/scenes/ljoshomesfile.qml`, that
 reaches each with no `Qt`), and `ergoruntime.spec.js`, a card in
