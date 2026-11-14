@@ -598,8 +598,8 @@ function gridLimits(self: Arrangement, count: number): [rows: number, columns: n
   let columns = limit(self.columns);
   if (rows !== undefined && columns === undefined && !topToBottom) columns = Math.max(Math.ceil(count / rows), 1);
   else if (columns !== undefined && rows === undefined && topToBottom) rows = Math.max(Math.ceil(count / columns), 1);
-  // `place` reads an undefined bound as no bound at all.
-  return [rows as number, columns as number, topToBottom];
+  // `place` reads a bound of 0 as no bound at all.
+  return [rows ?? 0, columns ?? 0, topToBottom];
 }
 
 // The geometry of every child of a line `width` wide: positions, and the
