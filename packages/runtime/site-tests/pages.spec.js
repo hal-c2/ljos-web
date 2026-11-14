@@ -212,7 +212,7 @@ test.describe("a site prerendered at more than one size", () => {
       dir: made.dir,
       out: made.out,
       qmlc,
-      head: '<link rel="icon" href="./mark.svg" type="image/svg+xml" />',
+      head: `<link rel="icon" href="./mark.svg" type="image/svg+xml" />\n<link rel='apple-touch-icon' href='./touch.png' />`,
       prerender: {
         sizes: [
           { width: 390, height: 844 },
@@ -242,6 +242,11 @@ test.describe("a site prerendered at more than one size", () => {
     expect(home).toContain('<link rel="icon" href="./mark.svg"');
     // A nested page asks for what the head names from its own depth.
     expect(docs).toContain('<link rel="icon" href="../mark.svg"');
+    expect(docs).toContain("<link rel='apple-touch-icon' href='../touch.png'");
+    // Each size is shown up to where the next begins, and no gap is left
+    // between them for a window whose width falls between two pixels.
+    expect(home).toContain("@media (width < 800px)");
+    expect(home).not.toMatch(/max-width: 799\.9/);
     // The script is asked for once the page is painted, not by the parser.
     for (const html of [home, docs]) {
       expect(html).not.toMatch(/<script type="module"/);

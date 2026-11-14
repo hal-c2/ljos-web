@@ -413,7 +413,9 @@ function rendersSheet(renders, sizes) {
   for (const [index, { size, scheme }] of renders.entries()) {
     const { from } = sizes[size];
     const up = sizes[size + 1]?.from;
-    const below = up === undefined ? "" : `(max-width: ${up - 0.02}px)`;
+    // Up to the next size's start and not including it, so no width
+    // between two whole pixels (a zoomed window's) falls between them.
+    const below = up === undefined ? "" : `(width < ${up}px)`;
     const above = size === 0 ? "" : `(min-width: ${from}px)`;
     const when = [above, below].filter(Boolean);
     const at = (media, rule) => (media.length ? `@media ${media.join(" and ")} { ${rule} }` : rule);
@@ -613,7 +615,9 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
         // script to hydrate it by, and is titled as its own page.
         const depth = page.route.split("/").filter(Boolean).length;
         let html = shell;
-        if (depth > 0) html = html.replaceAll('="./', `="${"../".repeat(depth)}`);
+        // Any attribute the shell or the site's head gives as `./` (the
+        // start script's own `data-ljos-start` too), in either quotes.
+        if (depth > 0) html = html.replace(/(=["'])\.\//g, `$1${"../".repeat(depth)}`);
         if (page.title !== undefined) html = html.replace("<title>Ljós site</title>", () => `<title>${escapeText(page.title)}</title>`);
         if (page.description !== undefined) html = html.replace(/(<title>[^<]*<\/title>)/, (title) => `${title}\n    <meta name="description" content="${escapeAttribute(page.description)}" />`);
         if (page.props) {
