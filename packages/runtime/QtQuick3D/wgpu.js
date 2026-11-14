@@ -159,6 +159,9 @@ class Host {
     // How many reads crossed in this build.
     this.crossed = 0;
     this.again = false;
+    // The handle each object new to the view is to have, given when it was
+    // read again to follow before the build met it.
+    this.unmet = new WeakMap();
   }
   // A read of what `o` is asked of `kind`, by the wasm or again to follow it.
   note(o, kind, p = 0) {
@@ -196,14 +199,20 @@ class Host {
   }
   handle(object) {
     let handle = this.handles.get(object);
+    if (handle !== undefined) return handle;
+    // Read again to follow, an object new to the view is not made one: the
+    // build that follows meets it. It is told by the handle it is to have,
+    // so that it is never the same as another new one or a hole, and is the
+    // same once the build has made it.
+    handle = this.unmet.get(object);
     if (handle === undefined) {
-      // Read again to follow, an object new to the view is not made one:
-      // the build that follows meets it.
-      if (this.again) return NOTHING;
       handle = this.next++;
-      this.handles.set(object, handle);
-      this.objectsBy.set(handle, object);
+      if (this.again) this.unmet.set(object, handle);
     }
+    if (this.again) return handle;
+    this.unmet.delete(object);
+    this.handles.set(object, handle);
+    this.objectsBy.set(handle, object);
     return handle;
   }
   // What a build no longer reached is gone from the scene: it is let go, and
