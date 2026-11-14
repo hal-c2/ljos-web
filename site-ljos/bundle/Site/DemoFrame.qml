@@ -16,6 +16,10 @@ import "../nav.js" as Nav
 Item {
     id: frame
 
+    // The demo, as a function that imports its module (Demos/later.js),
+    // so what it draws with is fetched only for a demo that runs; or as
+    // a component the page has already.
+    property var source: undefined
     property Component demo: null
     // A picture of the demo running, and what it shows, in words.
     property string picture: ""
@@ -117,6 +121,7 @@ Item {
         anchors.fill: parent
         active: frame.runnable && (frame.near || frame.started)
         sourceComponent: frame.demo
+        source: frame.demo ? undefined : frame.source
         opacity: frame.drawn ? 1 : 0
         Behavior on opacity {
             NumberAnimation {

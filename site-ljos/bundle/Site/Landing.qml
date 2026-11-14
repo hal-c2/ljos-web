@@ -2,6 +2,7 @@ import QtQuick
 import Ljos.Blocks
 import Site
 import Demos
+import "../Demos/later.js" as Later
 import "../nav.js" as Nav
 
 // The front page. It leads with what malleable means here: the
@@ -252,9 +253,7 @@ Column {
                         needs: "webgl2"
                         picture: "/pictures/demo-orbit.webp"
                         description: "A lit 3D scene of shapes on a floor, which a drag turns."
-                        demo: Component {
-                            Orbit {}
-                        }
+                        source: Later.orbit
                     }
                     Text {
                         width: Math.min(parent.width, Theme.measure)

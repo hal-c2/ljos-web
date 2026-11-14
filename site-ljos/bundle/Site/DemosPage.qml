@@ -2,6 +2,7 @@ import QtQuick
 import Ljos.Blocks
 import Site
 import Demos
+import "../Demos/later.js" as Later
 
 // The demos page: complete Ljós apps running in the page, flagship
 // first. Each demo stands in its named Slot as the slot's own
@@ -86,9 +87,7 @@ Column {
                     route: "/demos/"
                     picture: "/pictures/demo-orbit.webp"
                     description: "A lit 3D scene of shapes on a floor, which a drag turns."
-                    demo: Component {
-                        Orbit {}
-                    }
+                    source: Later.orbit
                 }
             }
         }
@@ -110,9 +109,7 @@ Column {
                     route: "/demos/"
                     picture: "/pictures/demo-shader.webp"
                     description: "Light pooling over a card of text, following the pointer."
-                    demo: Component {
-                        Shader {}
-                    }
+                    source: Later.shader
                 }
             }
         }
@@ -134,9 +131,7 @@ Column {
                     route: "/demos/"
                     picture: "/pictures/demo-app.webp"
                     description: "A field guide to birds: a list of species beside the one picked, with notes and a count of those seen."
-                    demo: Component {
-                        FieldGuide {}
-                    }
+                    source: Later.fieldGuide
                 }
             }
         }
@@ -158,9 +153,7 @@ Column {
                     route: "/demos/"
                     picture: "/pictures/demo-motion.webp"
                     description: "Tiles that shuffle and settle, driven by one eased value."
-                    demo: Component {
-                        Motion {}
-                    }
+                    source: Later.motion
                 }
             }
         }
