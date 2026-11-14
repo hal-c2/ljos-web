@@ -297,6 +297,33 @@ for (const backend of ["webgpu", "webgl2"]) {
       near(await at(page, 255, 105), [0x40, 0, 0]);
     });
 
+    // Only a view that gave its picture on waits for the next animation
+    // frame to draw again: one that shows another's picture, and drew already
+    // in this frame, still draws the new picture in it.
+    test("a view showing another's picture draws its new picture in the frame it changed, though it drew already in it", async ({ page }) => {
+      await show(page, "wgpu_oneway");
+      const drawn = await page.evaluate(
+        () =>
+          new Promise((done) => {
+            const [giver, shower] = [...document.querySelectorAll(".qq-view3d")].map((canvas) => canvas.$view3d);
+            requestAnimationFrame(async () => {
+              const before = { giver: giver.frames, shower: shower.frames };
+              // Asked for before the changes: the first callback of the next frame.
+              requestAnimationFrame(() => done({ giver: giver.frames - before.giver, shower: shower.frames - before.shower }));
+              window.objects.own.x = 60;
+              window.flush();
+              for (let turn = 0; turn < 20 && shower.frames === before.shower; turn++) await null;
+              window.objects.moved.x = 60;
+              window.flush();
+            });
+          }),
+      );
+      expect(drawn, "frames drawn before the next animation frame began").toEqual({ giver: 1, shower: 2 });
+      // The right view's large square shows the left view, its red square moved right.
+      near(await at(page, 255, 105), [0x40, 0, 0]);
+      near(await at(page, 330, 150), [255, 0, 0]);
+    });
+
     test("the view maps the scene, and a node maps through its parents", async ({ page }) => {
       await show(page, "wgpu_mapping");
       const got = await page.evaluate(() => {
