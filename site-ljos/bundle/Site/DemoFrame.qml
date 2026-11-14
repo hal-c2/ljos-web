@@ -16,6 +16,9 @@ Item {
     // A picture of the demo running, and what it shows, in words.
     property string picture: ""
     property string description: ""
+    // The route of the page the frame stands on, which the picture's
+    // address is written from.
+    property string route: "/"
     // What the demo needs that a browser may not have: "webgpu", "wasm".
     property string needs: ""
     // The flickable the page scrolls in, so the frame knows when it is
@@ -57,15 +60,17 @@ Item {
         border.width: 1
         clip: true
 
-        Image {
-            anchors.fill: parent
-            anchors.margins: 1
+        // The picture is in the page as written (Nav.picture), so it
+        // stands before the page runs and where it never does. It is
+        // the frame's shape, so it fills the frame as it is.
+        Text {
+            x: 1
+            y: 1
+            width: frame.width - 2
+            height: frame.height - 2
             visible: frame.picture !== "" && !(loader.status === Loader.Ready && loader.opacity === 1)
-            // Named from the site's root; the site may stand below it.
-            source: frame.picture === "" ? "" : Nav.within(frame.picture)
-            fillMode: Image.PreserveAspectCrop
-            Accessible.role: Accessible.Graphic
-            Accessible.name: frame.description
+            textFormat: Text.RichText
+            text: frame.picture === "" ? "" : Nav.picture(frame.route, frame.picture, frame.width - 2, frame.height - 2, frame.description)
         }
 
         // Said where the demo cannot run here.
