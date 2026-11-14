@@ -632,6 +632,18 @@ test("a link is activated by a click and reported while the pointer is over it",
   expect(page.url()).toBe(before);
 });
 
+// As in Qt, a text takes a press that lands on one of its links: what
+// stands under it (a MouseArea, a Flickable) does not take it from the link.
+test("a link over a MouseArea is the link's to follow, and beside it the area's", async ({ page }) => {
+  await boxes(page, "markup");
+  const log = () => page.evaluate(() => window.objects.log.filter((line) => !line.startsWith("hovered")));
+  // "ab in": the link is the 4th and 5th letters, 8 pixels each.
+  await page.mouse.click(200 + 28, 248);
+  expect(await log()).toEqual(["activated inside"]);
+  await page.mouse.click(200 + 4, 248);
+  expect(await log()).toEqual(["activated inside", "area clicked"]);
+});
+
 test("markup cannot run a script or bring a frame into the page", async ({ page }) => {
   await boxes(page, "markup");
   await page.mouse.click(204, 68);
