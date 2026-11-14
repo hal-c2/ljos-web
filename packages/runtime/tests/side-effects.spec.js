@@ -37,6 +37,10 @@ function scripts(dir = root, found = []) {
   return found;
 }
 
+// Read from bare imports only (`import "./x.js"`). A file that does
+// work at its top level and is imported for an export as well (Keys.js,
+// Material/index.js, QtQml/locale.js) is listed by hand, and nothing
+// here fails when one is left off.
 plain(
   "a file imported for what it does is listed, with the file that imports it",
   () => {

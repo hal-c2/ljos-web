@@ -45,6 +45,12 @@ test("no page's static first load holds the editor, the compiler, PhysX or sql.j
 // first edit: a page's own QML takes only the types it names.
 test("no page's first load holds the compiler's modules or a whole namespace", () => {
   expect(reaching(["modules-", "QtQuick-"])).toEqual({});
+  // The whole namespace is a chunk of its own, fetched later: folded
+  // back into a page's first chunk, it would not be named and the line
+  // above would pass with it there.
+  const later = new Set(report.flatMap(({ later }) => later.files.map((entry) => entry.file)));
+  expect([...later].some((file) => named(file, "QtQuick-")), "a QtQuick-* chunk the compiler's modules fetch").toBe(true);
+  expect([...later].some((file) => named(file, "modules-")), "a modules-* chunk").toBe(true);
 });
 
 // A docs page's reading is its own: in its HTML's props, not in a
