@@ -8,7 +8,7 @@ import { defineType, derived, effect, onChange, QtObject, settle, slot } from ".
 import { parts } from "./parts.js";
 import { PauseJob } from "../animation/jobs.js";
 import { forceActiveFocus, MouseFocusReason, windowOf } from "../focus.js";
-import { Key, LeftButton } from "../keycodes.js";
+import { Key, LeftButton } from "../keycodes.ts";
 import { after, cancel } from "../pointer.js";
 import { TextInput } from "../TextInput.js";
 import { Control, keeps, loose, put } from "./Control.js";

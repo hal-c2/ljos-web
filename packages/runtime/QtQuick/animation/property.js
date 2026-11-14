@@ -10,7 +10,7 @@
 // on its object and no more: it can be read and assigned to, which is how it
 // is animated.
 import { slot as slotOf } from "../../object.ts";
-import { css } from "../color.js";
+import { css } from "../color.ts";
 import { untrack } from "#kernel";
 
 // What a slot reads as while something animates it.

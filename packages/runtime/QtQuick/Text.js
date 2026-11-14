@@ -6,8 +6,8 @@
 // is given the lines. Markup is the browser's to set: it is measured in an
 // element off the page.
 import { $string, defineType, derived, effect, flush, kinds, slot, typed } from "../object.ts";
-import { color, css } from "./color.js";
-import { given, lazy, sized } from "./compute.js";
+import { color, css } from "./color.ts";
+import { given, lazy, sized } from "./compute.ts";
 import {
   advance,
   capitalized,
@@ -23,7 +23,7 @@ import {
   resized,
 } from "./font.js";
 import { Item } from "./Item.js";
-import { alignment } from "./LayoutMirroring.js";
+import { alignment } from "./LayoutMirroring.ts";
 import { clothe, elements, mightBeRichText, survey } from "./richtext.js";
 
 const MANY = 2147483647;

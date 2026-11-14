@@ -6,8 +6,8 @@
 import { Rect } from "../../QtQml/values.ts";
 import { defineType, derived, effect } from "../../object.ts";
 import { allowedStyle } from "../../guard.js";
-import { color, colorValue, css } from "../color.js";
-import { rules } from "../compute.js";
+import { color, colorValue, css } from "../color.ts";
+import { rules } from "../compute.ts";
 import { Item } from "../Item.js";
 import { Path } from "../Path.js";
 

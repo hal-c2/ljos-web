@@ -10,7 +10,7 @@ import { defineType, effect, instantiate, memo, QtObject, settle, slot } from ".
 import { clock } from "../animation/clock.js";
 import { Flickable } from "../Flickable.js";
 import { DragHandler, HoverHandler, PointerDevice, TapHandler } from "../handlers.js";
-import { ControlModifier, ShiftModifier } from "../keycodes.js";
+import { ControlModifier, ShiftModifier } from "../keycodes.ts";
 import {
   hasSelection,
   normalizeSelection,

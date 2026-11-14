@@ -25,9 +25,9 @@
 // layouts' attached type, and `Pages` a face of `StackLayout`: it shows
 // one child at a time, and arranges none.
 import { defineType, derived, slot } from "../../object.ts";
-import { mirrored } from "../../QtQuick/LayoutMirroring.js";
+import { mirrored } from "../../QtQuick/LayoutMirroring.ts";
 import { Layout, StackLayout } from "../../QtQuick/Layouts/index.js";
-import { given, shown } from "../../QtQuick/placing.js";
+import { given, shown } from "../../QtQuick/placing.ts";
 import { Flow } from "../../QtQuick/positioners.js";
 import { distribute, edges, place, roundHalfUp, total, tracks } from "./distribute.ts";
 import { untrack } from "#kernel";

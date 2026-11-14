@@ -4,7 +4,7 @@
 // answers with the style, read from `qml6` (`qquickimaginetheme.cpp` sets
 // some of them over Qt's own).
 import { defineType, derived, QtObject } from "../../../object.ts";
-import { lazy } from "../../compute.js";
+import { lazy } from "../../compute.ts";
 import { colours } from "../../Palette.js";
 import { themed } from "../../Templates/theme.js";
 import { around, preferred, said } from "../attached.js";

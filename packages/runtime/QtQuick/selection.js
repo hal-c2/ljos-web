@@ -3,7 +3,7 @@
 import { onCleanup } from "solid-js";
 import { defineType, effect, QtObject, slot } from "../object.ts";
 import { columnsOf, modelIndex, moved, rowsOf } from "./model.js";
-import { settle } from "./settle.js";
+import { settle } from "./settle.ts";
 import { untrack } from "#kernel";
 
 const NO_UPDATE = 0;

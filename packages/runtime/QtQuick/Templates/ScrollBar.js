@@ -3,7 +3,7 @@
 // move and a release is what Qt's does (`qquickscrollbar.cpp`).
 import { onCleanup } from "solid-js";
 import { defineType, effect, QtObject, settle, slot } from "../../object.ts";
-import { LeftButton } from "../keycodes.js";
+import { LeftButton } from "../keycodes.ts";
 import { CancelGrabExclusive, cursorOf, drop, gone, hoverable, receive, UngrabExclusive } from "../pointer.js";
 import { Control } from "./Control.js";
 import { drive, reads } from "./driven.js";

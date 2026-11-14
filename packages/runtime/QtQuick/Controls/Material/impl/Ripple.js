@@ -6,8 +6,8 @@
 import { onCleanup } from "solid-js";
 import { defineType, effect } from "../../../../object.ts";
 import { clock } from "../../../animation/clock.js";
-import { colorValue, css } from "../../../color.js";
-import { rules } from "../../../compute.js";
+import { colorValue, css } from "../../../color.ts";
+import { rules } from "../../../compute.ts";
 import { Item } from "../../../Item.js";
 import { part } from "../../painting.js";
 import { untrack } from "#kernel";

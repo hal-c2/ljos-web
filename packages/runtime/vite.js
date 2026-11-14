@@ -14,7 +14,7 @@ import { basename, delimiter, dirname, isAbsolute, join, relative, resolve as re
 import { inflateSync } from "node:zlib";
 import { searchForWorkspaceRoot } from "vite";
 import { CONTROLS } from "./controls.js";
-import { heldShader } from "./QtQuick/baked.js";
+import { heldShader } from "./QtQuick/baked.ts";
 import { forBrowser } from "./QtQuick/qsb.js";
 import { QUICK3D } from "./quick3d.js";
 

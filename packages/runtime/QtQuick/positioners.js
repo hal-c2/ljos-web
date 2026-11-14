@@ -7,8 +7,8 @@
 // the children their places.
 import { defineType, derived, effect, flush, QtObject, slot } from "../object.ts";
 import { Item } from "./Item.js";
-import { mirrored } from "./LayoutMirroring.js";
-import { alike, cull, given, Settling, shown, sized } from "./placing.js";
+import { mirrored } from "./LayoutMirroring.ts";
+import { alike, cull, given, Settling, shown, sized } from "./placing.ts";
 import { untrack } from "#kernel";
 
 const LeftToRight = 0;

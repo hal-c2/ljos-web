@@ -4,7 +4,7 @@
 // page. A dialog opened at any other time stays open, as QML sees it, and
 // its picker comes up at the user's next press or key.
 import { onCleanup } from "solid-js";
-import { atNextGesture } from "../activation.js";
+import { atNextGesture } from "../activation.ts";
 
 // How a browser says that it will not open a picker now: no gesture, or
 // another picker is open.

@@ -7,8 +7,8 @@
 // from the user's next press on the page, which the picker was over.
 import { onCleanup } from "solid-js";
 import { defineType, effect, settle, slot } from "../../object.ts";
-import { atNextGesture } from "../activation.js";
-import { colorValue } from "../color.js";
+import { atNextGesture } from "../activation.ts";
+import { colorValue } from "../color.ts";
 import { Dialog } from "./Dialog.js";
 import { field, reveal } from "./picker.js";
 

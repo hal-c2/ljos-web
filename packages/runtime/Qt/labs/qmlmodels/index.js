@@ -6,7 +6,7 @@
 // the model is given, and a row given later has to be like it.
 import { contents, defineType, effect, QtObject, slot, whenComplete } from "../../../object.ts";
 import { modelIndex } from "../../../QtQuick/model.js";
-import { settle } from "../../../QtQuick/settle.js";
+import { settle } from "../../../QtQuick/settle.ts";
 import { signal, untrack } from "#kernel";
 
 const next = (version) => version + 1;

@@ -7,15 +7,15 @@
 import { onCleanup, runWithOwner } from "solid-js";
 import { contents, defineType, derived, effect, flush, group, inside, kinds, parental, parented, QtObject, settle, typed } from "../object.ts";
 import { Rect } from "../QtQml/values.ts";
-import { drawing, drawn } from "./drawn.js";
+import { drawing, drawn } from "./drawn.ts";
 import { declared, forceActiveFocus, nextItemInFocusChain, reachable, setFocus, under } from "./focus.js";
-import { methods as geometry } from "./geometry.js";
+import { methods as geometry } from "./geometry.ts";
 import { navigable } from "./Keys.js";
 import { layer, layered } from "./layer.js";
-import { mirrored } from "./LayoutMirroring.js";
+import { mirrored } from "./LayoutMirroring.ts";
 import { paletteOf } from "./Palette.js";
 import { stateful } from "./states.js";
-import "./style.js";
+import "./style.ts";
 import { signal } from "#kernel";
 
 const EMPTY = Object.freeze([]);

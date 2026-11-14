@@ -4,7 +4,7 @@
 import { defineType, effect, settle, slot } from "../../object.ts";
 import { parts } from "./parts.js";
 import { styleHints } from "../../QtQml/application.ts";
-import { Key, LeftButton } from "../keycodes.js";
+import { Key, LeftButton } from "../keycodes.ts";
 import { Control, keeps, loose, put } from "./Control.js";
 import { bounded, clamp, close, fitted, keep, nothing, now, scaled, SnapMode, snapPosition, step } from "./Slider.js";
 import { untrack } from "#kernel";

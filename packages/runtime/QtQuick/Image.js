@@ -6,7 +6,7 @@
 import { allowedUrl, guardedFetch, sourced } from "../guard.js";
 import { signal } from "#kernel";
 import { defineType, derived, effect, flush, group, located } from "../object.ts";
-import { given, lazy, rules, sized } from "./compute.js";
+import { given, lazy, rules, sized } from "./compute.ts";
 import { Rect } from "../QtQml/values.ts";
 import { Item } from "./Item.js";
 

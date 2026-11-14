@@ -1,13 +1,22 @@
 import { signal } from "#kernel";
+import type { Dynamic, QObject } from "../object.ts";
 // What is drawn of an object while an animator has it. Qt's animators move
 // an item where the scene is drawn and tell the property where it got to
 // only when they end, so whatever draws one of these properties asks here
 // first: an item's place, scale, turn and opacity, a shader's uniforms.
 
-const next = (version) => version + 1;
+const next = (version: number): number => version + 1;
+
+type Values = Record<string, unknown>;
+interface Drawn {
+  values: Values | null;
+  track: () => unknown;
+  touch: (next: (version: number) => number) => unknown;
+}
+type Drawable = QObject & { $drawn?: Drawn };
 
 // All that is drawn otherwise than the properties say, or nothing.
-export function drawing(self) {
+export function drawing(self: Drawable): Values | null {
   self.$track();
   const drawn = self.$drawn;
   if (!drawn) return null;
@@ -16,13 +25,13 @@ export function drawing(self) {
 }
 
 // What is drawn for a property: what an animator shows, or what it says.
-export function drawn(self, key) {
+export function drawn(self: Drawable, key: string): unknown {
   const value = drawing(self)?.[key];
-  return value === undefined ? self[key] : value;
+  return value === undefined ? (self as Dynamic)[key] : value;
 }
 
 // Draws `value` for a property, or with none what the property says again.
-export function draw(self, key, value) {
+export function draw(self: Drawable, key: string, value: unknown): void {
   let drawn = self.$drawn;
   if (!drawn) {
     if (value === undefined) return;

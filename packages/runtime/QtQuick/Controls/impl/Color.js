@@ -1,5 +1,5 @@
 // Color: the two things a style does to a colour.
-import { color, rgba } from "../../color.js";
+import { color, rgba } from "../../color.ts";
 
 const byte = (channel) => Math.round(channel * 255);
 // Qt's qRound: a half goes up.

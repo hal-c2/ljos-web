@@ -27,10 +27,10 @@
 //   VectorImage is what it was before.
 import { guardedFetch, sourced } from "../../guard.js";
 import { defineType, derived, effect, group, inside, located } from "../../object.ts";
-import { lazy, rules } from "../compute.js";
+import { lazy, rules } from "../compute.ts";
 import { measured, picture, shared } from "../Image.js";
 import { Item } from "../Item.js";
-import { Scale } from "../transforms.js";
+import { Scale } from "../transforms.ts";
 import { untrack } from "#kernel";
 
 rules(`

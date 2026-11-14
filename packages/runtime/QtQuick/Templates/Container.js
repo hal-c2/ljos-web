@@ -7,7 +7,7 @@ import { contents, defineType, derived, effect, slot } from "../../object.ts";
 import { departing } from "../focus.js";
 import { Item } from "../Item.js";
 import { ObjectModel } from "../model.js";
-import { settle } from "../settle.js";
+import { settle } from "../settle.ts";
 import { Control } from "./Control.js";
 import { assignable, drive, driven, reads } from "./driven.js";
 import { untrack } from "#kernel";

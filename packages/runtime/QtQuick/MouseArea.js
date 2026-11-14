@@ -5,9 +5,9 @@
 // in pointer.js.
 import { onCleanup } from "solid-js";
 import { defineType, derived, effect, gather, group, onChange, settle, signal, slot } from "../object.ts";
-import { itemToScene, sceneToItem } from "./geometry.js";
+import { itemToScene, sceneToItem } from "./geometry.ts";
 import { Item } from "./Item.js";
-import { LeftButton, NoButton } from "./keycodes.js";
+import { LeftButton, NoButton } from "./keycodes.ts";
 import {
   after,
   cancel,

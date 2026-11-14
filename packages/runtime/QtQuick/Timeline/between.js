@@ -14,7 +14,7 @@
 // - a property with no value yet (a `property color` nothing was given)
 //   jumps from keyframe to keyframe.
 import { Point, Quaternion, Rect, Size, Vector2d, Vector3d, Vector4d } from "../../QtQml/values.ts";
-import { Color, color, equal, mix } from "../color.js";
+import { Color, color, equal, mix } from "../color.ts";
 
 const f = Math.fround;
 

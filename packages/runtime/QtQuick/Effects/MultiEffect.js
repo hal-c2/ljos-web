@@ -25,8 +25,8 @@ import { allowedStyle, allowedUrl } from "../../guard.js";
 import { onCleanup } from "solid-js";
 import { Rect } from "../../QtQml/values.ts";
 import { defineType, derived, effect, slot } from "../../object.ts";
-import { colorValue } from "../color.js";
-import { rules } from "../compute.js";
+import { colorValue } from "../color.ts";
+import { rules } from "../compute.ts";
 import { Item } from "../Item.js";
 import { Rectangle } from "../Rectangle.js";
 

@@ -9,8 +9,8 @@
 // what is seen there is what is hit.
 import { PauseJob } from "./animation/jobs.js";
 import { activate } from "./focus.js";
-import { frameOf, sceneToItem } from "./geometry.js";
-import { buttonOf, modifiersOf, NoButton } from "./keycodes.js";
+import { frameOf, sceneToItem } from "./geometry.ts";
+import { buttonOf, modifiersOf, NoButton } from "./keycodes.ts";
 
 // What waits (a long press, the time a second click may take) waits on the
 // clock everything timed is on, so a test moves it with the same hand.

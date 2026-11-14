@@ -2,7 +2,7 @@
 // ticks are, and what is drawn of it. The numbers are Qt's, taken from
 // ChartValueAxisX/Y, ChartBarCategoryAxisX and Horizontal/VerticalAxis.
 import { defineType, derived, QtObject, settle, slot } from "../object.ts";
-import { colorValue, css } from "../QtQuick/color.js";
+import { colorValue, css } from "../QtQuick/color.ts";
 import { describe } from "../QtQuick/font.js";
 import { fontNamed, label, line, tall, truncated, wide } from "./plot.js";
 

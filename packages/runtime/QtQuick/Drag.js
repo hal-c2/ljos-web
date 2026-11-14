@@ -8,7 +8,7 @@
 // done here.
 import { defineType, effect, group, QtObject, settle, slot } from "../object.ts";
 import { later } from "./animation/clock.js";
-import { itemToScene, sceneToGlobal, sceneToItem, topOf } from "./geometry.js";
+import { itemToScene, sceneToGlobal, sceneToItem, topOf } from "./geometry.ts";
 import { Item } from "./Item.js";
 import { signal, untrack } from "#kernel";
 

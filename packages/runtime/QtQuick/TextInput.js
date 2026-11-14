@@ -3,14 +3,14 @@
 // undo and the input methods. What QML reads of them (the text, where the
 // cursor is, how large the text is) is kept as properties.
 import { $string, defineType, derived, effect, flush, kinds, onChange, settle as settleAll, slot, typed } from "../object.ts";
-import { color, css } from "./color.js";
-import { lazy, rules, sized } from "./compute.js";
+import { color, css } from "./color.ts";
+import { lazy, rules, sized } from "./compute.ts";
 import { speaks } from "./Accessible.js";
 import { forceActiveFocus, setFocus } from "./focus.js";
 import { advance, capitalized, describe, dress, font, fonts, metrics, overhang } from "./font.js";
 import { Item } from "./Item.js";
-import { alignment } from "./LayoutMirroring.js";
-import { AltModifier, ControlModifier, Key, MetaModifier } from "./keycodes.js";
+import { alignment } from "./LayoutMirroring.ts";
+import { AltModifier, ControlModifier, Key, MetaModifier } from "./keycodes.ts";
 import { arrange } from "./Text.js";
 import { untrack } from "#kernel";
 

@@ -6,7 +6,7 @@
 // where the middle is. Fingers on what is inside the area count too.
 import { onCleanup } from "solid-js";
 import { defineType, group, settle, slot } from "../object.ts";
-import { itemToScene, sceneToItem } from "./geometry.js";
+import { itemToScene, sceneToItem } from "./geometry.ts";
 import { Item } from "./Item.js";
 import { CancelGrabExclusive, CancelGrabPassive, gather, gone, receive, takeExclusive } from "./pointer.js";
 

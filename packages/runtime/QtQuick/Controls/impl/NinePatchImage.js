@@ -10,7 +10,7 @@
 // an Image's.
 import { sourced } from "../../../guard.js";
 import { defineType, derived, effect } from "../../../object.ts";
-import { lazy, rules } from "../../compute.js";
+import { lazy, rules } from "../../compute.ts";
 import { Image, picture } from "../../Image.js";
 import { signal } from "#kernel";
 

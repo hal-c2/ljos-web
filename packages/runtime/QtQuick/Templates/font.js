@@ -3,7 +3,7 @@
 // a Pane with `font.pixelSize: 20` is that big, and as bold as the style
 // makes buttons.
 import { alone, derived, group, kinds, typed } from "../../object.ts";
-import { given, lazy } from "../compute.js";
+import { given, lazy } from "../compute.ts";
 import { font as styled } from "./theme.js";
 
 // The nearest object around one that has such a font: a control, a label,

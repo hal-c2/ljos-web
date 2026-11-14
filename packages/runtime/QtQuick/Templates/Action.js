@@ -2,7 +2,7 @@
 // menu item, a key. ActionGroup: actions of which one is checked at a time.
 import { onCleanup } from "solid-js";
 import { contents, defineType, effect, group, inside, QtObject, settle, slot, whenComplete } from "../../object.ts";
-import { colorValue } from "../color.js";
+import { colorValue } from "../color.ts";
 import { Shortcut } from "../Keys.js";
 import { untrack } from "#kernel";
 
