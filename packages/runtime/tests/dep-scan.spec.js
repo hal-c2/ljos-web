@@ -26,7 +26,12 @@ for (const config of ["vite.config.js", "qtless.config.js"]) {
       optimizeDeps: { force: true },
     });
     try {
-      await server.environments.client.depsOptimizer?.scanProcessing;
+      // Without the optimizer, or before its scan has started, there would
+      // be nothing to listen to and the check below would pass on silence.
+      const optimizer = server.environments.client.depsOptimizer;
+      expect(optimizer?.scanProcessing).toBeDefined();
+      await optimizer.scanProcessing;
+      expect(Object.keys(optimizer.metadata.discovered)).not.toEqual([]);
       expect(said.filter((message) => /dependency scan|is not exported|Failed to resolve/.test(message))).toEqual([]);
     } finally {
       await server.close();
