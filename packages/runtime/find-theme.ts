@@ -5,9 +5,13 @@
 // host with no compiler in the page and for the site builder, which holds a
 // bundle to the files it lists. Apart from `theme.js` so that Node can have
 // it without the runtime.
-export function findTheme(names, entry, { project = "" } = {}) {
-  const has = names instanceof Set ? (name) => names.has(name) : (name) => names.includes(name);
-  const parts = (path) => path.split("/").filter((part) => part !== "" && part !== ".");
+export function findTheme(
+  names: ReadonlySet<string> | readonly string[],
+  entry: string,
+  { project = "" }: { project?: string } = {},
+): string | null {
+  const has = (name: string): boolean => ("has" in names ? names.has(name) : names.includes(name));
+  const parts = (path: string): string[] => path.split("/").filter((part) => part !== "" && part !== ".");
   const top = parts(project);
   const dir = parts(entry).slice(0, -1);
   for (;;) {

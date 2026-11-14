@@ -15,7 +15,7 @@ import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, rea
 import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, posix, resolve } from "node:path";
 import { build } from "vite";
-import { findTheme } from "./find-theme.js";
+import { findTheme } from "./find-theme.ts";
 import { provided } from "./modules.js";
 import qml, { compilerAt, hasControls, installed, kernelNamed } from "./vite.js";
 import { CLIENT_CONDITIONS } from "./server/conditions.js";

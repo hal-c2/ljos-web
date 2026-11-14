@@ -126,4 +126,4 @@ export function keepTheme() {
 
 // The theme file an entry reads when none is named, among the files a host
 // holds: the same search `ljos_web::theme::nearest` makes.
-export { findTheme } from "./find-theme.js";
+export { findTheme } from "./find-theme.ts";

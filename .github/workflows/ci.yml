@@ -60,6 +60,10 @@ jobs:
           mise run build:wasm-compiler
           mise run build:kernel
           pnpm --filter ljos-web exec playwright install --with-deps chromium
+      # The ported modules' types, before anything runs them.
+      - name: the types
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
+        run: pnpm -r --if-present run typecheck
       - name: the code grammar
         if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
         run: pnpm --filter lezer-ljos test
