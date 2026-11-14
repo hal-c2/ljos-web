@@ -49,7 +49,8 @@ export async function visit(dist, routes) {
       const page = await browser.newPage({ viewport: { width: 1440, height: 1600 } });
       let phase = [];
       // A body is read after its request finished: each read goes to the
-      // phase it finished in, and a phase is summed once its reads are in.
+      // phase it finished in, and a phase is summed once its reads are in,
+      // those that began while the earlier ones were read too.
       let reading = [];
       page.on("requestfinished", (request) => {
         const url = new URL(request.url());
@@ -67,8 +68,11 @@ export async function visit(dist, routes) {
         );
       });
       const read = async () => {
-        await Promise.all(reading);
-        reading = [];
+        while (reading.length) {
+          const pending = reading;
+          reading = [];
+          await Promise.all(pending);
+        }
       };
       await page.goto(`${origin}${route}`);
       await page.waitForSelector('#app[data-ljos-hydrated="true"]', { timeout: 30_000 }).catch(() => {});
