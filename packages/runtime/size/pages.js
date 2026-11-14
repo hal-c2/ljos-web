@@ -6,7 +6,8 @@
 // take), each raw and gzip. Read from the files alone: no browser, so it
 // is what the build wrote, not what one visit happened to ask for.
 //
-// usage: node size/pages.js <site dist> [--json] [--files]
+// usage: node size/pages.js <site dist> [--base /path/] [--json] [--files]
+//   --base   where the site stands, for addresses from the root (`/`)
 //   --json   the report as JSON, for a test or a before/after table
 //   --files  each page's files by name under its line
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
@@ -34,12 +35,18 @@ function pagesUnder(dir, at = dir, found = []) {
   return found.sort((a, b) => a.route.localeCompare(b.route));
 }
 
-// A local file a page or chunk names, resolved beside it; null for a
-// URL elsewhere, a data URL or a file that is not there.
+// Where the site stands below its address's root (`/`, `/ljos-web/`):
+// an address from the root names a file below the dist from there.
+let site = { dist: "/", base: "/" };
+
+// A local file a page or chunk names, resolved beside it (or, from the
+// root, at the site's base); null for a URL elsewhere, a data URL or a
+// file that is not there.
 function local(from, href) {
   if (!href || /^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(href)) return null;
   const clean = href.split(/[?#]/)[0];
-  const path = resolve(dirname(from), clean);
+  if (clean.startsWith("/") && !clean.startsWith(site.base)) return null;
+  const path = clean.startsWith("/") ? join(site.dist, clean.slice(site.base.length)) : resolve(dirname(from), clean);
   return existsSync(path) && statSync(path).isFile() ? path : null;
 }
 
@@ -107,8 +114,9 @@ function summed(files, dist) {
   return { total: total(list), js: total(kind(".js")), css: total(kind(".css")), wasm: total(kind(".wasm")), files: list };
 }
 
-export function pageReport(dist) {
+export function pageReport(dist, { base = "/" } = {}) {
   dist = resolve(dist);
+  site = { dist, base: base.endsWith("/") ? base : `${base}/` };
   return pagesUnder(dist).map(({ route, file }) => {
     const first = closure(htmlAssets(file));
     // Everything reachable later, through any number of dynamic imports.
@@ -141,10 +149,11 @@ export function pageTable(report, { files = false } = {}) {
 if (import.meta.url === `file://${process.argv[1]}`) {
   const [dist, ...flags] = process.argv.slice(2);
   if (!dist) {
-    console.error("usage: node size/pages.js <site dist> [--json] [--files]");
+    console.error("usage: node size/pages.js <site dist> [--base /path/] [--json] [--files]");
     process.exit(2);
   }
-  const report = pageReport(dist);
+  const at = flags.indexOf("--base");
+  const report = pageReport(dist, at >= 0 ? { base: flags[at + 1] } : {});
   if (flags.includes("--json")) console.log(JSON.stringify(report, null, 2));
   else console.log(pageTable(report, { files: flags.includes("--files") }));
 }

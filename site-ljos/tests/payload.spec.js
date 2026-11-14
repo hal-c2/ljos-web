@@ -10,7 +10,7 @@ import { pageReport } from "../../packages/runtime/size/pages.js";
 
 const dist = join(resolve(dirname(fileURLToPath(import.meta.url)), ".."), "dist");
 const base = process.env.LJOS_SITE_BASE ?? "/";
-const report = pageReport(dist);
+const report = pageReport(dist, { base });
 const kB = (bytes) => Math.round(bytes / 1024);
 const named = (file, prefix) => file.split("/").pop().startsWith(prefix);
 
