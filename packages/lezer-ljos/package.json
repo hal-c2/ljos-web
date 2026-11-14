@@ -6,12 +6,13 @@
   "type": "module",
   "license": "MIT",
   "exports": {
-    ".": "./src/index.js",
-    "./html": "./src/html.js"
+    ".": "./src/index.ts",
+    "./html": "./src/html.ts"
   },
   "scripts": {
     "build": "lezer-generator src/ljos.grammar -o src/parser.js",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.ts",
+    "typecheck": "tsc -p ."
   },
   "dependencies": {
     "@lezer/common": "1.5.5",
@@ -19,6 +20,8 @@
     "@lezer/lr": "1.4.12"
   },
   "devDependencies": {
-    "@lezer/generator": "1.8.1"
+    "@lezer/generator": "1.8.1",
+    "@types/node": "24.19.2",
+    "typescript": "7.0.2"
   }
 }

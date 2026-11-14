@@ -1,6 +1,6 @@
 import { highlightTree, tagHighlighter, tags as t } from "@lezer/highlight";
-import { parserFor, langOf } from "./index.js";
-import { topic } from "./highlight.js";
+import { parserFor, langOf } from "./index.ts";
+import { topic } from "./highlight.ts";
 
 // One class per role, so a page's theme decides every colour through
 // `--ljos-code-<role>` and the editor and the static page agree.
@@ -23,15 +23,18 @@ export const classHighlighter = tagHighlighter([
   { tag: t.invalid, class: "tok-invalid" },
 ]);
 
-const ESC = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" };
-const esc = (s) => s.replace(/[&<>"]/g, (c) => ESC[c]);
+const ESC: Readonly<Record<string, string>> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" };
+const esc = (s: string): string => s.replace(/[&<>"]/g, (c) => ESC[c] ?? c);
+
+/** A run of `code`, `[from, to, classes]`: unstyled text has empty classes. */
+export type Run = [from: number, to: number, classes: string];
 
 /**
  * Highlighted HTML for `code`: escaped text with `<span class="tok-…">`
  * around each token. A fence tag or file name the grammar doesn't read
  * comes back escaped and unstyled.
  */
-export function highlightToHtml(code, tagOrFile) {
+export function highlightToHtml(code: string, tagOrFile: unknown): string {
   if (!langOf(tagOrFile)) return esc(code);
   let out = "";
   for (const [from, to, cls] of highlightRanges(code, tagOrFile)) {
@@ -47,9 +50,9 @@ export function highlightToHtml(code, tagOrFile) {
  * it looks like, so a broken line shows where it breaks before anything
  * compiles it.
  */
-export function highlightRanges(code, tagOrFile) {
+export function highlightRanges(code: string, tagOrFile: unknown): Run[] {
   const tree = parserFor(tagOrFile).parse(code);
-  const runs = [];
+  const runs: Run[] = [];
   let at = 0;
   highlightTree(tree, classHighlighter, (from, to, classes) => {
     if (from > at) runs.push([at, from, ""]);
@@ -58,7 +61,7 @@ export function highlightRanges(code, tagOrFile) {
   });
   if (at < code.length) runs.push([at, code.length, ""]);
 
-  const broken = [];
+  const broken: [from: number, to: number][] = [];
   tree.iterate({
     enter(n) {
       if (!n.type.isError || n.from == n.to) return;
@@ -69,12 +72,12 @@ export function highlightRanges(code, tagOrFile) {
   });
   if (!broken.length) return runs;
 
-  const out = [];
+  const out: Run[] = [];
   let b = 0;
   for (let [from, to, cls] of runs) {
     while (from < to) {
-      while (b < broken.length && broken[b][1] <= from) b++;
-      const err = broken[b];
+      let err = broken[b];
+      while (err && err[1] <= from) err = broken[++b];
       if (!err || err[0] >= to) { out.push([from, to, cls]); break; }
       if (err[0] > from) { out.push([from, err[0], cls]); from = err[0]; continue; }
       const end = Math.min(to, err[1]);

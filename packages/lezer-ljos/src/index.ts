@@ -1,7 +1,8 @@
+import type { LRParser, ParserConfig } from "@lezer/lr";
 import { parser } from "./parser.js";
 
 export { parser };
-export { topic } from "./highlight.js";
+export { topic } from "./highlight.ts";
 
 // Which top rule and dialect each fence or file extension reads with. QML
 // and `.lts` are always typed; a `.js` file stays plain JavaScript so that
@@ -14,19 +15,22 @@ const LANGS = {
   js: { top: "Script", dialect: "" },
   mjs: { top: "Script", dialect: "" },
   javascript: { top: "Script", dialect: "" },
-};
+} as const satisfies Record<string, ParserConfig>;
 
-const configured = new Map();
+/** A fence tag or file extension the grammar reads. */
+export type Lang = keyof typeof LANGS;
+
+const configured = new Map<Lang, LRParser>();
 
 /** The language a fence tag or file name reads as, or null. */
-export function langOf(tagOrFile) {
+export function langOf(tagOrFile: unknown): Lang | null {
   const s = String(tagOrFile ?? "").toLowerCase();
   const ext = s.includes(".") ? s.slice(s.lastIndexOf(".") + 1) : s;
-  return ext in LANGS ? ext : null;
+  return Object.hasOwn(LANGS, ext) ? (ext as Lang) : null;
 }
 
 /** The parser for a fence tag or file name; QML when it names none. */
-export function parserFor(tagOrFile) {
+export function parserFor(tagOrFile: unknown): LRParser {
   const lang = langOf(tagOrFile) ?? "qml";
   let p = configured.get(lang);
   if (!p) {

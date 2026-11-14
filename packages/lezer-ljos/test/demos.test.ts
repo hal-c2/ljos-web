@@ -3,7 +3,7 @@
 import { globSync, readFileSync } from "node:fs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parserFor } from "../src/index.js";
+import { parserFor } from "../src/index.ts";
 
 const root = new URL("../../../", import.meta.url).pathname;
 const files = globSync(
@@ -16,7 +16,7 @@ test("the site has demos to read", () => assert.ok(files.length > 20, files.join
 for (const file of files) {
   test(file, () => {
     const code = readFileSync(root + file, "utf8");
-    const errors = [];
+    const errors: string[] = [];
     parserFor(file).parse(code).iterate({
       enter(n) {
         if (n.type.isError) errors.push(`${code.slice(0, n.from).split("\n").length}: ${code.slice(n.from, n.from + 40)}`);

@@ -692,17 +692,17 @@ intersectionOp[@name=LogicOp] { "&" }
 
 @skip { spaces | newline | LineComment | BlockComment }
 
-@context trackNewline from "./tokens.js"
+@context trackNewline from "./tokens.ts"
 
 // A binding's `{` opens a block, except where a quoted key and a colon follow:
 // `to: { "end": 1 }` is an object, as QML documents write it.
-@external tokens uiLiteral from "./tokens.js" { uiLiteralOpen[@name="{"] }
+@external tokens uiLiteral from "./tokens.ts" { uiLiteralOpen[@name="{"] }
 
-@external tokens noSemicolon from "./tokens.js" { noSemi }
+@external tokens noSemicolon from "./tokens.ts" { noSemi }
 
-@external tokens noSemicolonType from "./tokens.js" { noSemiType }
+@external tokens noSemicolonType from "./tokens.ts" { noSemiType }
 
-@external tokens operatorToken from "./tokens.js" {
+@external tokens operatorToken from "./tokens.ts" {
  incdec[@name=ArithOp],
  incdecPrefix[@name=ArithOp]
  questionDot[@name="?."]
@@ -803,8 +803,8 @@ intersectionOp[@name=LogicOp] { "&" }
   tsAngleOpen[@dialect=ts,@name="<"] { "<" }
 }
 
-@external tokens insertSemicolon from "./tokens.js" { insertSemi }
+@external tokens insertSemicolon from "./tokens.ts" { insertSemi }
 
-@external propSource jsHighlight from "./highlight.js"
+@external propSource jsHighlight from "./highlight.ts"
 
 @detectDelim
