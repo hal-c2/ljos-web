@@ -12,7 +12,7 @@
 // gradients and slicing.
 import { runWithOwner } from "solid-js";
 import { defineType, derived, effect, inside, settle, slot } from "../object.ts";
-import { Point, Vector3d } from "../QtQml/values.js";
+import { Point, Vector3d } from "../QtQml/values.ts";
 import { colorValue, css, rgba } from "../QtQuick/color.js";
 import { advance, describe, fonts, metrics } from "../QtQuick/font.js";
 import { kept, Node } from "../QtQuick3D/Node.js";

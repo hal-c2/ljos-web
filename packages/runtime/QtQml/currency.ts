@@ -19,19 +19,19 @@ const USED =
 const WHOLE = "AFN ALL BIF CLP COP DJF GNF HUF IDR IQD IRR ISK JPY KMF KPW KRW LAK LBP MGA MMK PKR PYG RWF SOS SYP UGX VND XAF XOF XPF YER";
 const THOUSANDTHS = "BHD JOD KWD LYD OMR TND";
 
-let currencies;
+let currencies: Map<string, string> | undefined;
 
 // The ISO 4217 code of a territory's currency: "" where Qt knows none.
-export function currencyOf(territory) {
+export function currencyOf(territory: string): string {
   if (!currencies) {
     currencies = new Map();
     for (const row of USED.split("|")) {
       const [code, ...territories] = row.split(" ");
-      for (const each of territories) currencies.set(each, code);
+      for (const each of territories) currencies.set(each, code!);
     }
   }
   return currencies.get(territory) ?? "";
 }
 
 // How many decimals an amount of it is written with.
-export const decimalsOf = (code) => (WHOLE.includes(code) ? 0 : THOUSANDTHS.includes(code) ? 3 : 2);
+export const decimalsOf = (code: string): number => (WHOLE.includes(code) ? 0 : THOUSANDTHS.includes(code) ? 3 : 2);

@@ -3,7 +3,7 @@
 // A Shape is one `<svg>` and each of its ShapePaths a `<path>` in it, whose
 // `d` is the path's outline. Qt strokes and fills the same outline, so what
 // is left to SVG is the painting.
-import { Rect } from "../../QtQml/values.js";
+import { Rect } from "../../QtQml/values.ts";
 import { defineType, derived, effect } from "../../object.ts";
 import { allowedStyle } from "../../guard.js";
 import { color, colorValue, css } from "../color.js";

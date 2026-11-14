@@ -23,7 +23,7 @@
 //   Qt draws of the item, where the item is: all of it is done to the item.
 import { allowedStyle, allowedUrl } from "../../guard.js";
 import { onCleanup } from "solid-js";
-import { Rect } from "../../QtQml/values.js";
+import { Rect } from "../../QtQml/values.ts";
 import { defineType, derived, effect, slot } from "../../object.ts";
 import { colorValue } from "../color.js";
 import { rules } from "../compute.js";

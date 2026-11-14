@@ -3,7 +3,7 @@
 // its window has, a window what the window it belongs to has. What was set on
 // an object is its own and that of everything inside it.
 import { chosen, slot } from "../../object.ts";
-import { styleHints } from "../../QtQml/application.js";
+import { styleHints } from "../../QtQml/application.ts";
 import { Color, color } from "../color.js";
 import { Item } from "../Item.js";
 import { windowOf } from "../Window.js";

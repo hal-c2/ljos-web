@@ -1,7 +1,7 @@
 // The sums of a scene in space: matrices of four by four, as sixteen
 // numbers column by column (what OpenGL takes), vectors as three, and
 // turns as quaternions `[scalar, x, y, z]`.
-import { Matrix4x4, Quaternion, Vector3d } from "../QtQml/values.js";
+import { Matrix4x4, Quaternion, Vector3d } from "../QtQml/values.ts";
 
 export const IDENTITY = Object.freeze([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
 

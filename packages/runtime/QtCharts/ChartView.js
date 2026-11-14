@@ -11,7 +11,7 @@ import { colorValue, css } from "../QtQuick/color.js";
 import { lazy, rules } from "../QtQuick/compute.js";
 import { describe, fonts, metrics } from "../QtQuick/font.js";
 import { Item } from "../QtQuick/Item.js";
-import { Rect } from "../QtQml/values.js";
+import { Rect } from "../QtQml/values.ts";
 import { BarCategoryAxis, BOTTOM, HORIZONTAL, LEFT, RIGHT, scaled, TOP, ValueAxis, VERTICAL } from "./axes.js";
 import { box, draw, fontNamed, label, line, oval, svg, tall, truncated, wide, window } from "./plot.js";
 import { bar, plotted, themeBars, themeLine, XYSeries } from "./series.js";

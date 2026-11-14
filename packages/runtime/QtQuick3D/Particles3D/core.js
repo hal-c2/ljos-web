@@ -2,7 +2,7 @@
 // system may own, vectors a program binds member by member, and chance.
 import { onCleanup } from "solid-js";
 import { slot } from "../../object.ts";
-import { Vector3d } from "../../QtQml/values.js";
+import { Vector3d } from "../../QtQml/values.ts";
 import * as math from "../math.js";
 import { signal } from "#kernel";
 

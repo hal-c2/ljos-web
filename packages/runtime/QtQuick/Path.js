@@ -3,7 +3,7 @@
 // A path is not drawn by itself: a ShapePath draws one, a PathView puts its
 // items along one. What it gives either is its outline (`$outline()`), made
 // again when an element changes.
-import { Point, Size } from "../QtQml/values.js";
+import { Point, Size } from "../QtQml/values.ts";
 import { contents, defineType, derived, effect, QtObject, settle, slot } from "../object.ts";
 import { lazy } from "./compute.js";
 import { Outline, svgPath } from "./outline.js";

@@ -3,7 +3,7 @@
 // Two of the same place are one object: `a === b` says what it says in QML,
 // and a property given the place it has has not changed. A place is not
 // changed, another is made: `center.latitude = 5` is refused.
-import { general, Point } from "../QtQml/values.js";
+import { general, Point } from "../QtQml/values.ts";
 
 // Qt's mean radius of the Earth, in metres.
 const RADIUS = 6371007.2;

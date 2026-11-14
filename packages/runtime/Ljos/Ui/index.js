@@ -33,7 +33,7 @@ import {
 } from "../../QtQuick/animation/PropertyAnimation.js";
 import { Drag as DragAttachedSource, DropArea } from "../../QtQuick/Drag.js";
 import { Flickable } from "../../QtQuick/Flickable.js";
-import { font } from "../../QtQml/application.js";
+import { font } from "../../QtQml/application.ts";
 import { Font as FontEnums } from "../../QtQuick/font.js";
 import { DragHandler, HoverHandler, PointerDevice, TapHandler, WheelHandler } from "../../QtQuick/handlers.js";
 import { Image } from "../../QtQuick/Image.js";

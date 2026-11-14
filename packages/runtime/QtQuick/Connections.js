@@ -3,7 +3,7 @@
 // `target`, the Connections' parent when it names none.
 import { createEffect, createMemo, createRenderEffect, createRoot, onCleanup, runWithOwner } from "solid-js";
 import { defineType, QtObject, slot, whenComplete, whenCompleted } from "../object.ts";
-import { Component } from "../QtQml/Component.js";
+import { Component } from "../QtQml/Component.ts";
 import { untrack } from "#kernel";
 
 const SYNC = { sync: true };

@@ -15,7 +15,7 @@
 // page does with an element in any case.
 import { onCleanup } from "solid-js";
 import { defineType, effect, group, inside, instantiate, QtObject, settle, slot, whenHeld } from "../object.ts";
-import { Rect, Size } from "../QtQml/values.js";
+import { Rect, Size } from "../QtQml/values.ts";
 import { untrack } from "#kernel";
 
 export const layer = group({

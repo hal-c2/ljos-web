@@ -6,28 +6,28 @@
 // these: `Qt.vector2d(1, 2).length()` is Qt's number, not JavaScript's.
 const f = Math.fround;
 
-const strip = (text) => (text.includes(".") ? text.replace(/\.?0+$/, "") : text);
+const strip = (text: string): string => (text.includes(".") ? text.replace(/\.?0+$/, "") : text);
 
 // A number as Qt writes one (C's `%g`): six significant digits, and an
 // exponent of at least two when it takes one.
-export function general(value, precision = 6) {
+export function general(value: number, precision = 6): string {
   if (!Number.isFinite(value)) return Number.isNaN(value) ? "nan" : value > 0 ? "inf" : "-inf";
   if (value === 0) return "0";
   const [mantissa, exponent] = value.toExponential(precision - 1).split("e");
   const power = Number(exponent);
   if (power < -4 || power >= precision) {
-    return `${strip(mantissa)}e${power < 0 ? "-" : "+"}${String(Math.abs(power)).padStart(2, "0")}`;
+    return `${strip(mantissa!)}e${power < 0 ? "-" : "+"}${String(Math.abs(power)).padStart(2, "0")}`;
   }
   return strip(value.toFixed(precision - 1 - power));
 }
 
 // Qt's qHypot, in single precision: scaled by the largest member so far, so
 // lengths come out as Qt's to the last bit.
-function hypot(...members) {
-  let scale = Math.abs(members[0]);
+function hypot(...members: number[]): number {
+  let scale = Math.abs(members[0]!);
   let total = 1;
   for (let index = 1; index < members.length; index++) {
-    const next = Math.abs(members[index]);
+    const next = Math.abs(members[index]!);
     if (next > scale) {
       const ratio = f(scale / next);
       total = f(f(f(total * ratio) * ratio) + 1);
@@ -40,11 +40,13 @@ function hypot(...members) {
   return f(scale * f(Math.sqrt(total)));
 }
 
-const list = (name, values) => `${name}(${values.map((value) => general(value)).join(", ")})`;
-const near = (a, b, epsilon) => Math.abs(a - b) <= epsilon;
+const list = (name: string, values: number[]): string => `${name}(${values.map((value) => general(value)).join(", ")})`;
+const near = (a: number, b: number, epsilon: number): boolean => Math.abs(a - b) <= epsilon;
 
 export class Point {
-  constructor(x, y) {
+  declare x: number;
+  declare y: number;
+  constructor(x: number, y: number) {
     this.x = x;
     this.y = y;
   }
@@ -54,7 +56,9 @@ export class Point {
 }
 
 export class Size {
-  constructor(width, height) {
+  declare width: number;
+  declare height: number;
+  constructor(width: number, height: number) {
     this.width = width;
     this.height = height;
   }
@@ -64,7 +68,11 @@ export class Size {
 }
 
 export class Rect {
-  constructor(x, y, width, height) {
+  declare x: number;
+  declare y: number;
+  declare width: number;
+  declare height: number;
+  constructor(x: number, y: number, width: number, height: number) {
     this.x = x;
     this.y = y;
     this.width = width;
@@ -92,21 +100,23 @@ export class Rect {
 }
 
 export class Vector2d {
-  constructor(x, y) {
+  declare x: number;
+  declare y: number;
+  constructor(x: number, y: number) {
     this.x = f(x);
     this.y = f(y);
   }
-  dotProduct(other) {
+  dotProduct(other: Vector2d): number {
     return f(this.x * other.x + this.y * other.y);
   }
   // By a number, or by a vector member by member.
-  times(by) {
+  times(by: number | Vector2d) {
     return typeof by === "number" ? new Vector2d(this.x * by, this.y * by) : new Vector2d(this.x * by.x, this.y * by.y);
   }
-  plus(other) {
+  plus(other: Vector2d): Vector2d {
     return new Vector2d(this.x + other.x, this.y + other.y);
   }
-  minus(other) {
+  minus(other: Vector2d): Vector2d {
     return new Vector2d(this.x - other.x, this.y - other.y);
   }
   normalized() {
@@ -122,7 +132,7 @@ export class Vector2d {
   toVector4d() {
     return new Vector4d(this.x, this.y, 0, 0);
   }
-  fuzzyEquals(other, epsilon = 0.00001) {
+  fuzzyEquals(other: Vector2d, epsilon = 0.00001) {
     return near(this.x, other.x, epsilon) && near(this.y, other.y, epsilon);
   }
   toString() {
@@ -131,23 +141,26 @@ export class Vector2d {
 }
 
 export class Vector3d {
-  constructor(x, y, z) {
+  declare x: number;
+  declare y: number;
+  declare z: number;
+  constructor(x: number, y: number, z: number) {
     this.x = f(x);
     this.y = f(y);
     this.z = f(z);
   }
-  crossProduct(other) {
+  crossProduct(other: Vector3d): Vector3d {
     return new Vector3d(
       this.y * other.z - this.z * other.y,
       this.z * other.x - this.x * other.z,
       this.x * other.y - this.y * other.x,
     );
   }
-  dotProduct(other) {
+  dotProduct(other: Vector3d): number {
     return f(this.x * other.x + this.y * other.y + this.z * other.z);
   }
   // By a number, by a vector member by member, or (a row) by a matrix.
-  times(by) {
+  times(by: number | Vector3d | Matrix4x4) {
     if (typeof by === "number") return new Vector3d(this.x * by, this.y * by, this.z * by);
     if (!(by instanceof Matrix4x4)) return new Vector3d(this.x * by.x, this.y * by.y, this.z * by.z);
     const { x, y, z } = this;
@@ -159,10 +172,10 @@ export class Vector3d {
       (x * by.m13 + y * by.m23 + z * by.m33 + by.m43) * scale,
     );
   }
-  plus(other) {
+  plus(other: Vector3d): Vector3d {
     return new Vector3d(this.x + other.x, this.y + other.y, this.z + other.z);
   }
-  minus(other) {
+  minus(other: Vector3d): Vector3d {
     return new Vector3d(this.x - other.x, this.y - other.y, this.z - other.z);
   }
   normalized() {
@@ -178,7 +191,7 @@ export class Vector3d {
   toVector4d() {
     return new Vector4d(this.x, this.y, this.z, 0);
   }
-  fuzzyEquals(other, epsilon = 0.00001) {
+  fuzzyEquals(other: Vector3d, epsilon = 0.00001) {
     return near(this.x, other.x, epsilon) && near(this.y, other.y, epsilon) && near(this.z, other.z, epsilon);
   }
   toString() {
@@ -187,16 +200,20 @@ export class Vector3d {
 }
 
 export class Vector4d {
-  constructor(x, y, z, w) {
+  declare x: number;
+  declare y: number;
+  declare z: number;
+  declare w: number;
+  constructor(x: number, y: number, z: number, w: number) {
     this.x = f(x);
     this.y = f(y);
     this.z = f(z);
     this.w = f(w);
   }
-  dotProduct(other) {
+  dotProduct(other: Vector4d): number {
     return f(this.x * other.x + this.y * other.y + this.z * other.z + this.w * other.w);
   }
-  times(by) {
+  times(by: number | Vector4d | Matrix4x4) {
     if (typeof by === "number") return new Vector4d(this.x * by, this.y * by, this.z * by, this.w * by);
     if (!(by instanceof Matrix4x4)) return new Vector4d(this.x * by.x, this.y * by.y, this.z * by.z, this.w * by.w);
     const { x, y, z, w } = this;
@@ -207,10 +224,10 @@ export class Vector4d {
       x * by.m14 + y * by.m24 + z * by.m34 + w * by.m44,
     );
   }
-  plus(other) {
+  plus(other: Vector4d): Vector4d {
     return new Vector4d(this.x + other.x, this.y + other.y, this.z + other.z, this.w + other.w);
   }
-  minus(other) {
+  minus(other: Vector4d): Vector4d {
     return new Vector4d(this.x - other.x, this.y - other.y, this.z - other.z, this.w - other.w);
   }
   normalized() {
@@ -227,7 +244,7 @@ export class Vector4d {
   toVector3d() {
     return new Vector3d(this.x, this.y, this.z);
   }
-  fuzzyEquals(other, epsilon = 0.00001) {
+  fuzzyEquals(other: Vector4d, epsilon = 0.00001) {
     return (
       near(this.x, other.x, epsilon) &&
       near(this.y, other.y, epsilon) &&
@@ -243,17 +260,23 @@ export class Vector4d {
 const DEGREES = 180 / Math.PI;
 
 export class Quaternion {
-  constructor(scalar, x, y, z) {
+  declare scalar: number;
+  declare x: number;
+  declare y: number;
+  declare z: number;
+  constructor(scalar: number, x: number, y: number, z: number) {
     this.scalar = f(scalar);
     this.x = f(x);
     this.y = f(y);
     this.z = f(z);
   }
-  dotProduct(other) {
+  dotProduct(other: Quaternion): number {
     return f(this.scalar * other.scalar + this.x * other.x + this.y * other.y + this.z * other.z);
   }
   // By a number, by another quaternion, or a vector turned by this one.
-  times(by) {
+  times(by: number | Quaternion): Quaternion;
+  times(by: Vector3d): Vector3d;
+  times(by: number | Quaternion | Vector3d): Quaternion | Vector3d {
     const { scalar: w, x, y, z } = this;
     if (typeof by === "number") return new Quaternion(w * by, x * by, y * by, z * by);
     if (by instanceof Quaternion) {
@@ -267,10 +290,10 @@ export class Quaternion {
     const turned = this.times(new Quaternion(0, by.x, by.y, by.z)).times(this.conjugated());
     return new Vector3d(turned.x, turned.y, turned.z);
   }
-  plus(other) {
+  plus(other: Quaternion): Quaternion {
     return new Quaternion(this.scalar + other.scalar, this.x + other.x, this.y + other.y, this.z + other.z);
   }
-  minus(other) {
+  minus(other: Quaternion): Quaternion {
     return new Quaternion(this.scalar - other.scalar, this.x - other.x, this.y - other.y, this.z - other.z);
   }
   normalized() {
@@ -310,7 +333,7 @@ export class Quaternion {
   toVector4d() {
     return new Vector4d(this.x, this.y, this.z, this.scalar);
   }
-  fuzzyEquals(other, epsilon = 0.00001) {
+  fuzzyEquals(other: Quaternion, epsilon = 0.00001) {
     return (
       near(this.scalar, other.scalar, epsilon) &&
       near(this.x, other.x, epsilon) &&
@@ -324,17 +347,18 @@ export class Quaternion {
 }
 
 // `m23` is row 2, column 3.
-const CELLS = [];
-for (let row = 1; row <= 4; row++) for (let column = 1; column <= 4; column++) CELLS.push(`m${row}${column}`);
+type Cell = `m${1 | 2 | 3 | 4}${1 | 2 | 3 | 4}`;
+const CELLS: Cell[] = [];
+for (let row = 1; row <= 4; row++) for (let column = 1; column <= 4; column++) CELLS.push(`m${row}${column}` as Cell);
 
-const cells = (matrix) => CELLS.map((name) => matrix[name]);
+const cells = (matrix: Matrix4x4): number[] => CELLS.map((name) => matrix[name]);
 
-function product(a, b) {
-  const out = new Array(16);
+function product(a: number[], b: number[]): number[] {
+  const out: number[] = new Array(16);
   for (let row = 0; row < 4; row++) {
     for (let column = 0; column < 4; column++) {
       let sum = 0;
-      for (let k = 0; k < 4; k++) sum += a[row * 4 + k] * b[k * 4 + column];
+      for (let k = 0; k < 4; k++) sum += a[row * 4 + k]! * b[k * 4 + column]!;
       out[row * 4 + column] = sum;
     }
   }
@@ -342,10 +366,10 @@ function product(a, b) {
 }
 
 // The matrix with one row and one column left out, as a determinant.
-function minor(m, row, column) {
+function minor(m: number[], row: number, column: number): number {
   const rows = [0, 1, 2, 3].filter((each) => each !== row);
   const columns = [0, 1, 2, 3].filter((each) => each !== column);
-  const at = (r, c) => m[rows[r] * 4 + columns[c]];
+  const at = (r: number, c: number): number => m[rows[r]! * 4 + columns[c]!]!;
   return (
     at(0, 0) * (at(1, 1) * at(2, 2) - at(1, 2) * at(2, 1)) -
     at(0, 1) * (at(1, 0) * at(2, 2) - at(1, 2) * at(2, 0)) +
@@ -353,26 +377,42 @@ function minor(m, row, column) {
   );
 }
 
-function determinant(m) {
+function determinant(m: number[]): number {
   let sum = 0;
-  for (let column = 0; column < 4; column++) sum += (column & 1 ? -1 : 1) * m[column] * minor(m, 0, column);
+  for (let column = 0; column < 4; column++) sum += (column & 1 ? -1 : 1) * m[column]! * minor(m, 0, column);
   return sum;
 }
 
 const IDENTITY = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
 
 export class Matrix4x4 {
-  constructor(values = IDENTITY) {
+  declare m11: number;
+  declare m12: number;
+  declare m13: number;
+  declare m14: number;
+  declare m21: number;
+  declare m22: number;
+  declare m23: number;
+  declare m24: number;
+  declare m31: number;
+  declare m32: number;
+  declare m33: number;
+  declare m34: number;
+  declare m41: number;
+  declare m42: number;
+  declare m43: number;
+  declare m44: number;
+  constructor(values: readonly number[] = IDENTITY) {
     this.$set(values);
   }
-  $set(values) {
-    for (let index = 0; index < 16; index++) this[CELLS[index]] = f(values[index]);
+  $set(values: readonly number[]): void {
+    for (let index = 0; index < 16; index++) this[CELLS[index]!] = f(values[index]!);
   }
   // These three change the matrix they are called on, as in QML.
-  translate(by) {
+  translate(by: Vector3d): void {
     this.$set(product(cells(this), [1, 0, 0, by.x, 0, 1, 0, by.y, 0, 0, 1, by.z, 0, 0, 0, 1]));
   }
-  rotate(angle, axis) {
+  rotate(angle: number, axis: Vector3d): void {
     const length = Math.hypot(axis.x, axis.y, axis.z);
     if (length === 0) return;
     const x = axis.x / length;
@@ -380,8 +420,8 @@ export class Matrix4x4 {
     const z = axis.z / length;
     // Quarter turns are exact, as in Qt.
     const quarter = angle % 90 === 0 ? ((angle / 90) % 4 + 4) % 4 : -1;
-    const sine = quarter < 0 ? Math.sin(angle / DEGREES) : [0, 1, 0, -1][quarter];
-    const cosine = quarter < 0 ? Math.cos(angle / DEGREES) : [1, 0, -1, 0][quarter];
+    const sine = quarter < 0 ? Math.sin(angle / DEGREES) : [0, 1, 0, -1][quarter]!;
+    const cosine = quarter < 0 ? Math.cos(angle / DEGREES) : [1, 0, -1, 0][quarter]!;
     const rest = 1 - cosine;
     this.$set(
       product(cells(this), [
@@ -405,12 +445,12 @@ export class Matrix4x4 {
     );
   }
   // By one factor, by three, or by a vector's.
-  scale(x, y, z) {
+  scale(x: number | Vector3d, y?: number, z?: number): void {
     if (typeof x !== "number") ({ x, y, z } = x);
     else if (y === undefined) y = z = x;
     this.$set(product(cells(this), [x, 0, 0, 0, 0, y, 0, 0, 0, 0, z ?? 1, 0, 0, 0, 0, 1]));
   }
-  lookAt(eye, center, up) {
+  lookAt(eye: Vector3d, center: Vector3d, up: Vector3d): void {
     const forward = center.minus(eye).normalized();
     const side = forward.crossProduct(up).normalized();
     const above = side.crossProduct(forward);
@@ -436,30 +476,30 @@ export class Matrix4x4 {
     this.translate(new Vector3d(-eye.x, -eye.y, -eye.z));
   }
   // By a number, a matrix, or a vector (a column).
-  times(by) {
+  times(by: number | Matrix4x4 | Vector3d | Vector4d) {
     const m = cells(this);
     if (typeof by === "number") return new Matrix4x4(m.map((cell) => cell * by));
     if (by instanceof Matrix4x4) return new Matrix4x4(product(m, cells(by)));
     const column = by instanceof Vector4d ? [by.x, by.y, by.z, by.w] : [by.x, by.y, by.z, 1];
-    const out = [0, 1, 2, 3].map((row) => column.reduce((sum, value, k) => sum + m[row * 4 + k] * value, 0));
+    const out = [0, 1, 2, 3].map((row) => column.reduce((sum, value, k) => sum + m[row * 4 + k]! * value, 0)) as [number, number, number, number];
     if (by instanceof Vector4d) return new Vector4d(...out);
     const scale = out[3] === 1 ? 1 : 1 / out[3];
     return new Vector3d(out[0] * scale, out[1] * scale, out[2] * scale);
   }
-  plus(other) {
+  plus(other: Matrix4x4): Matrix4x4 {
     const b = cells(other);
-    return new Matrix4x4(cells(this).map((cell, index) => cell + b[index]));
+    return new Matrix4x4(cells(this).map((cell, index) => cell + b[index]!));
   }
-  minus(other) {
+  minus(other: Matrix4x4): Matrix4x4 {
     const b = cells(other);
-    return new Matrix4x4(cells(this).map((cell, index) => cell - b[index]));
+    return new Matrix4x4(cells(this).map((cell, index) => cell - b[index]!));
   }
-  row(index) {
-    return new Vector4d(...cells(this).slice(index * 4, index * 4 + 4));
+  row(index: number): Vector4d {
+    return new Vector4d(...(cells(this).slice(index * 4, index * 4 + 4) as [number, number, number, number]));
   }
-  column(index) {
+  column(index: number): Vector4d {
     const m = cells(this);
-    return new Vector4d(m[index], m[4 + index], m[8 + index], m[12 + index]);
+    return new Vector4d(m[index]!, m[4 + index]!, m[8 + index]!, m[12 + index]!);
   }
   determinant() {
     return f(determinant(cells(this)));
@@ -469,7 +509,7 @@ export class Matrix4x4 {
     const m = cells(this);
     const whole = determinant(m);
     if (whole === 0) return new Matrix4x4();
-    const out = new Array(16);
+    const out: number[] = new Array(16);
     for (let row = 0; row < 4; row++) {
       for (let column = 0; column < 4; column++) {
         out[column * 4 + row] = (((row + column) & 1 ? -1 : 1) * minor(m, row, column)) / whole;
@@ -479,9 +519,9 @@ export class Matrix4x4 {
   }
   transposed() {
     const m = cells(this);
-    return new Matrix4x4(m.map((_, index) => m[(index % 4) * 4 + (index >> 2)]));
+    return new Matrix4x4(m.map((_, index) => m[(index % 4) * 4 + (index >> 2)]!));
   }
-  map(point) {
+  map(point: { x: number; y: number }): Point {
     const { x, y } = point;
     const w = this.m41 * x + this.m42 * y + this.m44;
     const scale = w === 1 ? 1 : 1 / w;
@@ -491,7 +531,7 @@ export class Matrix4x4 {
     );
   }
   // The rectangle around where the four corners go.
-  mapRect(rect) {
+  mapRect(rect: Rect): Rect {
     const corners = [
       this.map(new Point(rect.left, rect.top)),
       this.map(new Point(rect.right, rect.top)),
@@ -504,9 +544,9 @@ export class Matrix4x4 {
     const top = Math.min(...ys);
     return new Rect(left, top, Math.max(...xs) - left, Math.max(...ys) - top);
   }
-  fuzzyEquals(other, epsilon = 0.00001) {
+  fuzzyEquals(other: Matrix4x4, epsilon = 0.00001) {
     const b = cells(other);
-    return cells(this).every((cell, index) => near(cell, b[index], epsilon));
+    return cells(this).every((cell, index) => near(cell, b[index]!, epsilon));
   }
   toString() {
     return list("QMatrix4x4", cells(this));
