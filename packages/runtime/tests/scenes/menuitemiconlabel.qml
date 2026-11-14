@@ -34,6 +34,9 @@ Item {
     // Items whose action has a shortcut, and one whose action has none.
     T.MenuItem { id: keyed; visible: false; action: T.Action { text: "Hello"; shortcut: "Ctrl+S" } }
     T.MenuItem { id: lower; visible: false; action: T.Action { text: "Hello"; shortcut: "ctrl+shift+q" } }
+    T.MenuItem { id: chords; visible: false; action: T.Action { text: "Hello"; shortcut: "Ctrl+E,Ctrl+W" } }
+    T.MenuItem { id: spacedChords; visible: false; action: T.Action { text: "Hello"; shortcut: "ctrl+k, ctrl+c" } }
+    T.MenuItem { id: unread; visible: false; action: T.Action { text: "Hello"; shortcut: "Ctrl+Nope" } }
     T.MenuItem { id: unkeyed; visible: false; action: T.Action { text: "Hello" } }
 
     // Told their item once the font is there: Qt makes the shortcut's text
@@ -48,6 +51,12 @@ Item {
     Boxed { id: keyMirrored; width: 200; height: 40; mirrored: true; text: "Hello"; icon.source: "../assets/flag.png"; spacing: 6; alignment: Qt.AlignLeft }
     Boxed { id: keyRed; width: 200; height: 20; color: "#ff0000"; text: "Hello"; icon.source: "../assets/flag.png"; spacing: 6; alignment: Qt.AlignLeft }
     Boxed { id: keyLower; width: 200; height: 20; text: "Hello"; spacing: 6; display: MenuItemIconLabel.TextOnly }
+    // By itself, the text keeps the spacing from the shortcut twice.
+    Boxed { id: keyTextTight; width: 100; height: 20; text: "Hello"; spacing: 6; display: MenuItemIconLabel.TextOnly }
+    Boxed { id: keyTextFits; width: 101; height: 20; text: "Hello"; spacing: 6; display: MenuItemIconLabel.TextOnly }
+    Boxed { id: keyChords; width: 400; height: 20; text: "Hello"; icon.source: "../assets/flag.png"; spacing: 6 }
+    Boxed { id: keySpacedChords; width: 400; height: 20; text: "Hello"; icon.source: "../assets/flag.png"; spacing: 6 }
+    Boxed { id: keyUnread; width: 400; height: 20; text: "Hello"; icon.source: "../assets/flag.png"; spacing: 6 }
     Boxed { id: keyNone; text: "Hello"; icon.source: "../assets/flag.png"; spacing: 6 }
 
     Plain { id: plainBoth; text: "Hello"; icon.source: "../assets/flag.png"; spacing: 6 }
@@ -55,10 +64,11 @@ Item {
 
     readonly property var labels: [both, under, noIcon, roomy, mirrored, sized, coloured, uncoloured, tied, plainBoth, plainRoomy]
     readonly property var keyedLabels: [keyBeside, keyText, keyUnder, keyIcon, keyFits, keyTight, keyPadded, keyMirrored, keyRed]
+    readonly property var laterLabels: [keyTextTight, keyTextFits, keyChords, keySpacedChords, keyUnread]
 
     function ready() {
         if (boxes.status !== FontLoader.Ready) return false
-        for (const label of labels.concat(keyedLabels, [keyLower, keyNone])) {
+        for (const label of labels.concat(keyedLabels, [keyLower, keyNone], laterLabels)) {
             for (const child of label.children)
                 if (child.objectName === "image" && child.source != "" && child.status !== Image.Ready) return false
         }
@@ -116,6 +126,13 @@ Item {
         keyFits.menuItem = null
         rows.push(keys(keyBeside))
         rows.push(keys(keyFits))
+
+        keyTextTight.menuItem = keyed
+        keyTextFits.menuItem = keyed
+        keyChords.menuItem = chords
+        keySpacedChords.menuItem = spacedChords
+        keyUnread.menuItem = unread
+        for (const label of laterLabels) rows.push(keys(label))
         return rows
     }
 }
