@@ -1029,6 +1029,55 @@ let shaded;
 // light probe is where it can.
 let fractions = false;
 
+// A program keeps what each of its uniforms was last given, and a place
+// of a uniform belongs to one program: so what is the same as last time is
+// not handed over again. Every uniform of this file's programs is given
+// through these, or what they remember would be wrong. What was given is
+// kept on the place itself, which is quicker to look up for each part of a
+// scene of many than a map of places is.
+function one(where, value) {
+  if (where == null || where.given === value) return false;
+  where.given = value;
+  return true;
+}
+function many(where, values) {
+  if (where == null) return false;
+  const was = where.given;
+  if (was?.length === values.length) {
+    // A list and a run of numbers are each read in a loop of their own,
+    // which then reads one kind of thing quickly.
+    const index = Array.isArray(values) ? same(was, values) : run(was, values);
+    if (index === values.length) return false;
+    for (let at = index; at < values.length; at++) was[at] = values[at];
+    return true;
+  }
+  where.given = Float64Array.from(values);
+  return true;
+}
+// How many of `values` are what `was` holds, from the first.
+function same(was, values) {
+  let index = 0;
+  while (index < values.length && was[index] === values[index]) index++;
+  return index;
+}
+function run(was, values) {
+  let index = 0;
+  while (index < values.length && was[index] === values[index]) index++;
+  return index;
+}
+const uniform = {
+  f: (where, value) => one(where, value) && gl.uniform1f(where, value),
+  i: (where, value) => one(where, value) && gl.uniform1i(where, value),
+  fv: (where, values) => many(where, values) && gl.uniform1fv(where, values),
+  f2: (where, values) => many(where, values) && gl.uniform2fv(where, values),
+  f3: (where, values) => many(where, values) && gl.uniform3fv(where, values),
+  f4: (where, values) => many(where, values) && gl.uniform4fv(where, values),
+  i2: (where, values) => many(where, values) && gl.uniform2iv(where, values),
+  i4: (where, values) => many(where, values) && gl.uniform4iv(where, values),
+  m3: (where, values) => many(where, values) && gl.uniformMatrix3fv(where, false, values),
+  m4: (where, values) => many(where, values) && gl.uniformMatrix4fv(where, false, values),
+};
+
 // A program, and where each of its uniforms is. Null when it does not link.
 function program(vertex, fragment, names) {
   const made = gl.createProgram();
@@ -1063,12 +1112,12 @@ function context() {
   fractions = Boolean(gl.getExtension("EXT_color_buffer_float"));
   gl.useProgram(shaded.program);
   at = shaded.at;
-  gl.uniform1i(at.u_map, 0);
-  gl.uniform1i(at.u_bones, 1);
-  gl.uniform1i(at.u_morphed, MORPHS);
-  gl.uniform1i(at.u_probe, PROBE);
-  gl.uniform1i(at.u_mirror, MIRROR);
-  SAMPLERS.forEach((name, index) => name && gl.uniform1i(at[name], UNITS[index]));
+  uniform.i(at.u_map, 0);
+  uniform.i(at.u_bones, 1);
+  uniform.i(at.u_morphed, MORPHS);
+  uniform.i(at.u_probe, PROBE);
+  uniform.i(at.u_mirror, MIRROR);
+  SAMPLERS.forEach((name, index) => name && uniform.i(at[name], UNITS[index]));
   // A cube there is always, for a program that could read one: of nothing,
   // where the scene has no surroundings, or nothing mirrors by a probe.
   nothing = gl.createTexture();
@@ -1197,7 +1246,7 @@ function bound(map, unit = 0) {
   const from = map.element ?? map.data;
   let made = map.view ? viewed(map) : textures.get(from);
   const fresh = !made;
-  if (fresh) textures.set(from, (made = { texture: gl.createTexture(), mipped: false, turn: 0 }));
+  if (fresh) textures.set(from, (made = { texture: gl.createTexture(), mipped: false, turn: 0, smaller: undefined, larger: undefined, across: undefined, down: undefined }));
   gl.activeTexture(gl.TEXTURE0 + unit);
   gl.bindTexture(gl.TEXTURE_2D, made.texture);
   if (map.view) {
@@ -1221,10 +1270,18 @@ function bound(map, unit = 0) {
   }
   const near = map.min === 1;
   const smaller = map.mip === 0 ? (near ? gl.NEAREST : gl.LINEAR) : map.mip === 1 ? (near ? gl.NEAREST_MIPMAP_NEAREST : gl.LINEAR_MIPMAP_NEAREST) : near ? gl.NEAREST_MIPMAP_LINEAR : gl.LINEAR_MIPMAP_LINEAR;
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, smaller);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, map.mag === 1 ? gl.NEAREST : gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, WRAPS[map.horizontal] ?? gl.REPEAT);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, WRAPS[map.vertical] ?? gl.REPEAT);
+  const larger = map.mag === 1 ? gl.NEAREST : gl.LINEAR;
+  const across = WRAPS[map.horizontal] ?? gl.REPEAT;
+  const down = WRAPS[map.vertical] ?? gl.REPEAT;
+  // A picture keeps how it is read, and is told again only when that
+  // changes: but for one another view drew, which that view may make anew.
+  if (map.view || made.smaller !== smaller || made.larger !== larger || made.across !== across || made.down !== down) {
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, smaller);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, larger);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, across);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, down);
+    if (!map.view) Object.assign(made, { smaller, larger, across, down });
+  }
   if (unit) gl.activeTexture(gl.TEXTURE0);
 }
 
@@ -1307,7 +1364,7 @@ function sides(onto, level, across, at) {
   gl.viewport(0, 0, across, across);
   for (let side = 0; side < 6; side++) {
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_CUBE_MAP_POSITIVE_X + side, onto, level);
-    gl.uniform1i(at.u_side, side);
+    uniform.i(at.u_side, side);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   }
 }
@@ -1319,12 +1376,12 @@ function blurred(from, into, size, levels) {
   gl.activeTexture(gl.TEXTURE0 + MAKING);
   gl.bindTexture(gl.TEXTURE_CUBE_MAP, from);
   gl.useProgram(blur.program);
-  gl.uniform1i(blur.at.u_from, MAKING);
-  gl.uniform1i(blur.at.u_ways, WAYS);
-  gl.uniform1f(blur.at.u_resolution, size);
+  uniform.i(blur.at.u_from, MAKING);
+  uniform.i(blur.at.u_ways, WAYS);
+  uniform.f(blur.at.u_resolution, size);
   for (let level = 0; level < levels; level++) {
-    gl.uniform1f(blur.at.u_roughness, level / (levels - 2));
-    gl.uniform1i(blur.at.u_round, level === levels - 1 ? 1 : 0);
+    uniform.f(blur.at.u_roughness, level / (levels - 2));
+    uniform.i(blur.at.u_round, level === levels - 1 ? 1 : 0);
     sides(into, level, size >> level, blur.at);
   }
 }
@@ -1366,19 +1423,19 @@ function glossed(from, into, size, levels) {
   gl.activeTexture(gl.TEXTURE0 + MAKING);
   gl.bindTexture(gl.TEXTURE_CUBE_MAP, from);
   gl.useProgram(gloss.program);
-  gl.uniform1i(gloss.at.u_from, MAKING);
+  uniform.i(gloss.at.u_from, MAKING);
   for (let level = 0; level < levels - 1; level++) {
     const ways = few(level / (levels - 2), size);
-    gl.uniform4fv(gloss.at["u_few[0]"], ways);
-    gl.uniform1i(gloss.at.u_count, ways.length / 4);
+    uniform.f4(gloss.at["u_few[0]"], ways);
+    uniform.i(gloss.at.u_count, ways.length / 4);
     sides(into, level, size >> level, gloss.at);
   }
   gl.useProgram(blur.program);
-  gl.uniform1i(blur.at.u_from, MAKING);
-  gl.uniform1i(blur.at.u_ways, size / 4);
-  gl.uniform1f(blur.at.u_resolution, size);
-  gl.uniform1f(blur.at.u_roughness, 0);
-  gl.uniform1i(blur.at.u_round, 1);
+  uniform.i(blur.at.u_from, MAKING);
+  uniform.i(blur.at.u_ways, size / 4);
+  uniform.f(blur.at.u_resolution, size);
+  uniform.f(blur.at.u_roughness, 0);
+  uniform.i(blur.at.u_round, 1);
   if (!whole) {
     whole = gl.createSampler();
     gl.samplerParameteri(whole, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
@@ -1441,14 +1498,17 @@ function probed(map) {
   // The picture, folded: read between its pixels, and not past its edges.
   const folded = cube(size, Math.floor(Math.log2(size)) + 1);
   bound(map, MAKING);
+  // Read here otherwise than a material reads it, which is said again then.
+  const read = textures.get(from);
+  if (read) read.smaller = undefined;
   gl.activeTexture(gl.TEXTURE0 + MAKING);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   gl.useProgram(fold.program);
-  gl.uniform1i(fold.at.u_from, MAKING);
-  gl.uniform1i(fold.at.u_screen, map.data?.linear ? 0 : 1);
+  uniform.i(fold.at.u_from, MAKING);
+  uniform.i(fold.at.u_screen, map.data?.linear ? 0 : 1);
   sides(folded, 0, size, fold.at);
   gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
 
@@ -1472,13 +1532,13 @@ function backdrop(probe, environment, projection, eye, tonemap) {
   if (!back) return;
   covering();
   gl.useProgram(sky.program);
-  gl.uniform1i(sky.at.u_from, PROBE);
-  gl.uniformMatrix4fv(sky.at.u_back, false, back);
-  gl.uniformMatrix3fv(sky.at.u_eye, false, [eye[0], eye[1], eye[2], eye[4], eye[5], eye[6], eye[8], eye[9], eye[10]]);
-  gl.uniformMatrix3fv(sky.at.u_turn, false, environment.probe.turn);
-  gl.uniform1f(sky.at.u_level, environment.blur * (probe.levels - 2));
-  gl.uniform1f(sky.at.u_exposure, environment.probe.exposure);
-  gl.uniform1i(sky.at.u_tonemap, tonemap);
+  uniform.i(sky.at.u_from, PROBE);
+  uniform.m4(sky.at.u_back, back);
+  uniform.m3(sky.at.u_eye, [eye[0], eye[1], eye[2], eye[4], eye[5], eye[6], eye[8], eye[9], eye[10]]);
+  uniform.m3(sky.at.u_turn, environment.probe.turn);
+  uniform.f(sky.at.u_level, environment.blur * (probe.levels - 2));
+  uniform.f(sky.at.u_exposure, environment.probe.exposure);
+  uniform.i(sky.at.u_tonemap, tonemap);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
   gl.useProgram(shaded.program);
 }
@@ -1560,13 +1620,13 @@ function finished(grade, from) {
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   gl.useProgram(graded.program);
   gl.bindTexture(gl.TEXTURE_2D, from);
-  gl.uniform1i(graded.at.u_from, 0);
-  gl.uniform1i(graded.at.u_tonemap, grade.tonemap);
-  gl.uniform4f(graded.at.u_grade, grade.exposure, grade.white, grade.sharpness, 0);
-  gl.uniform2i(graded.at.u_fine, grade.smooth ? 1 : 0, grade.dither ? 1 : 0);
-  gl.uniform4f(graded.at.u_adjust, grade.adjust ? 1 : 0, ...(grade.adjust ?? [1, 1, 1]));
-  gl.uniform4f(graded.at.u_vignette, ...(grade.vignette?.slice(0, 3) ?? [0, 0, 0]), grade.vignette ? 1 : 0);
-  gl.uniform2f(graded.at.u_vignetting, grade.vignette?.[3] ?? 0, grade.vignette?.[4] ?? 0);
+  uniform.i(graded.at.u_from, 0);
+  uniform.i(graded.at.u_tonemap, grade.tonemap);
+  uniform.f4(graded.at.u_grade, [grade.exposure, grade.white, grade.sharpness, 0]);
+  uniform.i2(graded.at.u_fine, [grade.smooth ? 1 : 0, grade.dither ? 1 : 0]);
+  uniform.f4(graded.at.u_adjust, [grade.adjust ? 1 : 0, ...(grade.adjust ?? [1, 1, 1])]);
+  uniform.f4(graded.at.u_vignette, [...(grade.vignette?.slice(0, 3) ?? [0, 0, 0]), grade.vignette ? 1 : 0]);
+  uniform.f2(graded.at.u_vignetting, [grade.vignette?.[3] ?? 0, grade.vignette?.[4] ?? 0]);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
   gl.bindTexture(gl.TEXTURE_2D, null);
   gl.depthMask(true);
@@ -1656,6 +1716,17 @@ function farthestFirst(data, count, way) {
 }
 
 const UNTURNED = [1, 0, 0, 0, 1, 0, 0, 0, 1];
+// Whether a part mirrors a probe's cube, and whether by where it is in its box.
+const MIRRORINGS = [
+  [0, 0],
+  [0, 1],
+  [1, 0],
+  [1, 1],
+];
+// How each picture of a part's material is read, and where on it: said
+// again for each part, and the same for most.
+const reads = new Float32Array(MAPS.length * 3);
+const places = new Float32Array(MAPS.length * 9);
 
 // The lights a part is lit by, which are the scene's unless one of them is
 // for some of it only: said again when they are others than the last
@@ -1667,14 +1738,14 @@ function shone(all) {
   const lights = all.slice(0, LIGHTS);
   const ambient = [0, 0, 0];
   for (const light of all) for (let index = 0; index < 3; index++) ambient[index] += light.ambient[index];
-  gl.uniform3fv(at.u_ambient, ambient);
-  gl.uniform1i(at.u_count, lights.length);
+  uniform.f3(at.u_ambient, ambient);
+  uniform.i(at.u_count, lights.length);
   if (!lights.length) return;
-  gl.uniform3fv(at.u_lightColor, lights.flatMap((light) => light.color));
-  gl.uniform4fv(at.u_lightPlace, lights.flatMap((light) => [...light.position, light.kind]));
-  gl.uniform3fv(at.u_lightWay, lights.flatMap((light) => light.direction));
-  gl.uniform3fv(at.u_lightFade, lights.flatMap((light) => light.fade));
-  gl.uniform2fv(at.u_lightCone, lights.flatMap((light) => [light.cone, light.inner]));
+  uniform.f3(at.u_lightColor, lights.flatMap((light) => light.color));
+  uniform.f4(at.u_lightPlace, lights.flatMap((light) => [...light.position, light.kind]));
+  uniform.f3(at.u_lightWay, lights.flatMap((light) => light.direction));
+  uniform.f3(at.u_lightFade, lights.flatMap((light) => light.fade));
+  uniform.f2(at.u_lightCone, lights.flatMap((light) => [light.cone, light.inner]));
 }
 
 // What every program is told once for a picture: of the eye, of the
@@ -1682,22 +1753,22 @@ function shone(all) {
 // it first draws in it.
 let telling = null;
 function tell() {
-  gl.uniform4fv(at.u_probing, telling.probing);
-  gl.uniformMatrix3fv(at.u_probeTurn, false, telling.probeTurn);
-  gl.uniform3fv(at.u_eye, telling.eye);
-  gl.uniform4fv(at.u_fog, telling.fog);
-  gl.uniform4fv(at.u_fogDepth, telling.fogDepth);
-  gl.uniform4fv(at.u_fogHeight, telling.fogHeight);
-  gl.uniform2fv(at.u_fogLet, telling.fogLet);
-  gl.uniform1f(at.u_far, telling.far);
-  gl.uniform1i(at.u_tonemap, telling.tonemap);
+  uniform.f4(at.u_probing, telling.probing);
+  uniform.m3(at.u_probeTurn, telling.probeTurn);
+  uniform.f3(at.u_eye, telling.eye);
+  uniform.f4(at.u_fog, telling.fog);
+  uniform.f4(at.u_fogDepth, telling.fogDepth);
+  uniform.f4(at.u_fogHeight, telling.fogHeight);
+  uniform.f2(at.u_fogLet, telling.fogLet);
+  uniform.f(at.u_far, telling.far);
+  uniform.i(at.u_tonemap, telling.tonemap);
   if (!("u_view" in at)) return;
-  gl.uniformMatrix4fv(at.u_view, false, telling.view);
-  gl.uniformMatrix4fv(at.u_projection, false, telling.projection);
-  gl.uniformMatrix4fv(at.u_seen, false, telling.seen);
-  gl.uniformMatrix4fv(at.u_unprojected, false, telling.unprojected);
-  gl.uniform3fv(at.u_looking, telling.looking);
-  gl.uniform2fv(at.u_clips, telling.clips);
+  uniform.m4(at.u_view, telling.view);
+  uniform.m4(at.u_projection, telling.projection);
+  uniform.m4(at.u_seen, telling.seen);
+  uniform.m4(at.u_unprojected, telling.unprojected);
+  uniform.f3(at.u_looking, telling.looking);
+  uniform.f2(at.u_clips, telling.clips);
 }
 
 // What the shaders of a CustomMaterial are told besides, and where what
@@ -1747,16 +1818,16 @@ function tailor(source) {
     const where = (name) => gl.getUniformLocation(own.program, name);
     made = { program: own.program, at: Object.fromEntries([...UNIFORMS, ...MORE].map((name) => [name, where(`qt_${name}`)])), own: new Map(), told: null, shining: null };
     gl.useProgram(made.program);
-    gl.uniform1i(made.at.u_map, 0);
-    gl.uniform1i(made.at.u_bones, 1);
-    gl.uniform1i(made.at.u_morphed, MORPHS);
-    gl.uniform1i(made.at.u_probe, PROBE);
-    gl.uniform1i(made.at.u_mirror, MIRROR);
-    SAMPLERS.forEach((name, index) => name && gl.uniform1i(made.at[name], UNITS[index]));
-    gl.uniform1i(made.at.u_screen, SCREEN);
-    gl.uniform1i(made.at.u_depth, DEPTH);
-    gl.uniform1i(made.at.u_white, WHITE);
-    source.samplers.forEach((name, index) => gl.uniform1i(where(name), OWN + index));
+    uniform.i(made.at.u_map, 0);
+    uniform.i(made.at.u_bones, 1);
+    uniform.i(made.at.u_morphed, MORPHS);
+    uniform.i(made.at.u_probe, PROBE);
+    uniform.i(made.at.u_mirror, MIRROR);
+    SAMPLERS.forEach((name, index) => name && uniform.i(made.at[name], UNITS[index]));
+    uniform.i(made.at.u_screen, SCREEN);
+    uniform.i(made.at.u_depth, DEPTH);
+    uniform.i(made.at.u_white, WHITE);
+    source.samplers.forEach((name, index) => uniform.i(where(name), OWN + index));
     gl.useProgram(shaded.program);
     pictured(WHITE, flat(255, 255, 255, 255));
   }
@@ -1778,12 +1849,12 @@ function handed(own, uniforms) {
     let where = own.own.get(name);
     if (where === undefined) own.own.set(name, (where = gl.getUniformLocation(own.program, name)));
     if (!where) continue;
-    if (type === "float") gl.uniform1f(where, value);
-    else if (type === "int" || type === "bool") gl.uniform1i(where, value);
-    else if (type === "vec2") gl.uniform2fv(where, value);
-    else if (type === "vec3") gl.uniform3fv(where, value);
-    else if (type === "vec4") gl.uniform4fv(where, value);
-    else if (type === "mat4") gl.uniformMatrix4fv(where, false, value);
+    if (type === "float") uniform.f(where, value);
+    else if (type === "int" || type === "bool") uniform.i(where, value);
+    else if (type === "vec2") uniform.f2(where, value);
+    else if (type === "vec3") uniform.f3(where, value);
+    else if (type === "vec4") uniform.f4(where, value);
+    else if (type === "mat4") uniform.m4(where, value);
   }
 }
 
@@ -1807,6 +1878,8 @@ function part(piece) {
   }
   shining = own.shining;
   handed(own, custom.uniforms);
+  // What it is handed may be under a name the material's own is said by.
+  worn = null;
   if (custom.blend) {
     gl.enable(gl.BLEND);
     gl.blendFuncSeparate(...custom.blend.map((factor) => FACTORS[factor]));
@@ -1819,21 +1892,27 @@ function part(piece) {
 }
 
 let morphing = null;
+// The material the last part was drawn with, by which program: one drawn
+// with the same again has all of it said already. Forgotten for each
+// picture, as a material may be another by then.
+let worn = null;
+let wearing = null;
+const facing = new Float32Array(9);
 function drawn(piece) {
   const { shape, subset, world, material, opacity } = piece;
   const made = held(shape);
   shone(piece.lights);
   gl.bindVertexArray(made.array);
-  gl.uniformMatrix4fv(at.u_all, false, piece.all);
-  gl.uniformMatrix4fv(at.u_world, false, world);
-  gl.uniformMatrix3fv(at.u_facing, false, piece.bones ? UNTURNED : math.normal(world));
+  uniform.m4(at.u_all, piece.all);
+  uniform.m4(at.u_world, world);
+  uniform.m3(at.u_facing, piece.bones ? UNTURNED : math.normalInto(facing, world));
   const skinned = Boolean(piece.bones) && made.jointed;
-  gl.uniform1i(at.u_skinned, skinned ? 1 : 0);
+  uniform.i(at.u_skinned, skinned ? 1 : 0);
   if (skinned) jointed(piece.bones);
   // What it goes towards, and by how much: a target the model has no
   // weight for is not gone towards at all.
   const { morphs } = made;
-  gl.uniform1i(at.u_morphs, morphs ? morphs.count : 0);
+  uniform.i(at.u_morphs, morphs ? morphs.count : 0);
   if (morphs !== morphing) {
     morphing = morphs;
     gl.activeTexture(gl.TEXTURE0 + MORPHS);
@@ -1843,50 +1922,32 @@ function drawn(piece) {
   if (morphs) {
     const by = new Float32Array(MOST);
     (piece.weights ?? []).slice(0, morphs.count).forEach((weight, index) => (by[index] = weight));
-    gl.uniform4iv(at.u_morphAt, morphs.at);
-    gl.uniform1fv(at.u_morphBy, by);
+    uniform.i4(at.u_morphAt, morphs.at);
+    uniform.fv(at.u_morphBy, by);
   }
-  gl.uniform1f(at.u_point, material.point);
-  gl.uniform4fv(at.u_color, material.color);
-  gl.uniform1f(at.u_opacity, opacity * material.opacity);
-  gl.uniform3fv(at.u_emissive, material.emissive);
-  gl.uniform1i(at.u_lit, material.lit ? 1 : 0);
+  uniform.f(at.u_opacity, opacity * material.opacity);
+  if (material !== worn || at !== wearing) {
+    worn = material;
+    wearing = at;
+    dressed(material);
+  }
   // An entry of a table colours what it draws whether the material looks
   // at the colours of the corners or not; how far it is seen through shows
   // only where the table says something of it is.
   const { instances } = piece;
-  gl.uniform1i(at.u_instanced, instances ? 1 : 0);
-  if (instances) gl.uniformMatrix4fv(at.u_above, false, instances.above);
-  gl.uniform1i(at.u_colors, (material.colors && made.colors) || instances ? 1 : 0);
-  gl.uniform1i(at.u_principled, material.principled ? 1 : 0);
-  gl.uniform1i(at.u_solid, material.solid || (instances && !piece.sheer) ? 1 : 0);
-  gl.uniform1f(at.u_cutoff, material.cutoff);
-  gl.uniform1f(at.u_specular, material.specular);
-  gl.uniform1f(at.u_shine, material.shine ?? 1);
-  gl.uniform1f(at.u_roughness, material.roughness ?? 0);
-  gl.uniform1f(at.u_metalness, material.metalness);
-  gl.uniform1f(at.u_ior, material.ior);
-  gl.uniform1f(at.u_fresnel, material.fresnel);
-  gl.uniform1i(at.u_framed, made.framed ? 1 : 0);
-  gl.uniform1i(at.u_inverted, material.inverted ? 1 : 0);
-  gl.uniform1f(at.u_bump, material.bump ?? 1);
-  gl.uniform1f(at.u_occlusion, material.occlusion ?? 1);
-  gl.uniform1f(at.u_coat, material.coat ?? 0);
-  gl.uniform1f(at.u_coatRoughness, material.coatRoughness ?? 0);
-  gl.uniform1f(at.u_coatBump, material.coatBump ?? 1);
-  gl.uniform3fv(at.u_coatEdge, material.coatEdge ?? [5, 1, 0]);
-  gl.uniform3fv(at.u_tint, material.tint ?? [1, 1, 1]);
-  gl.uniform1i(at.u_shiny, material.shiny === false ? 0 : 1);
-  gl.uniform1i(at.u_glint, material.glint ? 1 : 0);
-  gl.uniform2fv(at.u_edge, material.edge ?? [1, 0]);
+  uniform.i(at.u_instanced, instances ? 1 : 0);
+  if (instances) uniform.m4(at.u_above, instances.above);
+  uniform.i(at.u_colors, (material.colors && made.colors) || instances ? 1 : 0);
+  uniform.i(at.u_solid, material.solid || (instances && !piece.sheer) ? 1 : 0);
+  uniform.i(at.u_framed, made.framed ? 1 : 0);
   // What is round the reflection probe it is near, where it is near one.
   const { mirror } = piece;
   const round = (mirror && cubes.get(mirror.key)?.cube) || nothing;
-  gl.uniform2f(at.u_mirroring, round === nothing ? 0 : 1, mirror?.parallax ? 1 : 0);
+  uniform.f2(at.u_mirroring, MIRRORINGS[(round === nothing ? 0 : 2) + (mirror?.parallax ? 1 : 0)]);
   if (round !== nothing) {
-    gl.uniform3fv(at.u_mirrorAt, mirror.at);
-    gl.uniform3fv(at.u_mirrorMin, mirror.min);
-    gl.uniform3fv(at.u_mirrorMax, mirror.max);
+    uniform.f3(at.u_mirrorAt, mirror.at);
+    uniform.f3(at.u_mirrorMin, mirror.min);
+    uniform.f3(at.u_mirrorMax, mirror.max);
   }
   if (round !== reflecting) {
     reflecting = round;
@@ -1894,22 +1955,18 @@ function drawn(piece) {
     gl.bindTexture(gl.TEXTURE_CUBE_MAP, round);
     gl.activeTexture(gl.TEXTURE0);
   }
-  const reads = new Float32Array(MAPS.length * 3);
-  const places = new Float32Array(MAPS.length * 9);
-  MAPS.forEach((name, index) => {
-    const map = name === "map" ? material.map : material.maps?.[name];
-    if (!map) return;
-    bound(map, UNITS[index]);
-    reads.set([map.data?.linear ? 2 : 1, map.channel ?? 0, map.index ? 1 : 0], index * 3);
-    const m = map.transform;
-    places.set([m[0], m[1], 0, m[4], m[5], 0, m[12], m[13], 1], index * 9);
-  });
-  gl.uniform3fv(at.u_reads, reads);
-  gl.uniformMatrix3fv(at.u_places, false, places);
+  // A material with no pictures reads none, which the program is told
+  // once until one with pictures is drawn by it.
+  const bare = !material.map && !material.maps;
+  if (!bare || !at.bare) {
+    at.bare = bare;
+    pictures(material);
+    uniform.f3(at.u_reads, reads);
+    uniform.m3(at.u_places, places);
+  }
   // Which side of a triangle is its front is the other one in a mirror.
   const anticlockwise = (shape.winding !== 1) !== math.mirrors(piece.placed ?? world);
   gl.frontFace(anticlockwise ? gl.CCW : gl.CW);
-  gl.uniform1i(at.u_sided, material.cull === 3 ? 1 : 0);
   if (material.cull === 3) gl.disable(gl.CULL_FACE);
   else {
     gl.enable(gl.CULL_FACE);
@@ -1926,6 +1983,63 @@ function drawn(piece) {
   // The shape is held once, for what draws it once as well.
   for (let row = 0; row < ROWS; row++) gl.disableVertexAttribArray(9 + row);
 }
+
+// Where each picture of a material is read from, and how, into `reads` and
+// `places`; and each picture bound for it.
+function pictures(material) {
+  reads.fill(0);
+  places.fill(0);
+  for (let index = 0; index < MAPS.length; index++) {
+    const name = MAPS[index];
+    const map = name === "map" ? material.map : material.maps?.[name];
+    if (!map) continue;
+    bound(map, UNITS[index]);
+    const read = index * 3;
+    reads[read] = map.data?.linear ? 2 : 1;
+    reads[read + 1] = map.channel ?? 0;
+    reads[read + 2] = map.index ? 1 : 0;
+    const m = map.transform;
+    const place = index * 9;
+    places[place] = m[0];
+    places[place + 1] = m[1];
+    places[place + 3] = m[4];
+    places[place + 4] = m[5];
+    places[place + 6] = m[12];
+    places[place + 7] = m[13];
+    places[place + 8] = 1;
+  }
+}
+
+// What is said of a material alone, for the program in use.
+function dressed(material) {
+  uniform.f(at.u_point, material.point);
+  uniform.f4(at.u_color, material.color);
+  uniform.f3(at.u_emissive, material.emissive);
+  uniform.i(at.u_lit, material.lit ? 1 : 0);
+  uniform.i(at.u_principled, material.principled ? 1 : 0);
+  uniform.f(at.u_cutoff, material.cutoff);
+  uniform.f(at.u_specular, material.specular);
+  uniform.f(at.u_shine, material.shine ?? 1);
+  uniform.f(at.u_roughness, material.roughness ?? 0);
+  uniform.f(at.u_metalness, material.metalness);
+  uniform.f(at.u_ior, material.ior);
+  uniform.f(at.u_fresnel, material.fresnel);
+  uniform.i(at.u_inverted, material.inverted ? 1 : 0);
+  uniform.f(at.u_bump, material.bump ?? 1);
+  uniform.f(at.u_occlusion, material.occlusion ?? 1);
+  uniform.f(at.u_coat, material.coat ?? 0);
+  uniform.f(at.u_coatRoughness, material.coatRoughness ?? 0);
+  uniform.f(at.u_coatBump, material.coatBump ?? 1);
+  uniform.f3(at.u_coatEdge, material.coatEdge ?? COAT_EDGE);
+  uniform.f3(at.u_tint, material.tint ?? UNTINTED);
+  uniform.i(at.u_shiny, material.shiny === false ? 0 : 1);
+  uniform.i(at.u_glint, material.glint ? 1 : 0);
+  uniform.f2(at.u_edge, material.edge ?? UNEDGED);
+  uniform.i(at.u_sided, material.cull === 3 ? 1 : 0);
+}
+const COAT_EDGE = [5, 1, 0];
+const UNTINTED = [1, 1, 1];
+const UNEDGED = [1, 0];
 
 // Whether something is seen through what a material draws.
 // A picture to draw into, of a size and a kind: the one held, where that is
@@ -1964,9 +2078,9 @@ function passed(source) {
     const where = (name) => gl.getUniformLocation(own.program, name);
     made = { program: own.program, at: Object.fromEntries(SEEN.map((name) => [name, where(`qt_${name}`)])), own: new Map() };
     gl.useProgram(made.program);
-    gl.uniform1i(made.at.u_input, 0);
-    gl.uniform1i(made.at.u_depth, DEPTH);
-    source.samplers.forEach((name, index) => gl.uniform1i(where(name), OWN + index));
+    uniform.i(made.at.u_input, 0);
+    uniform.i(made.at.u_depth, DEPTH);
+    source.samplers.forEach((name, index) => uniform.i(where(name), OWN + index));
   }
   passing.set(source, made);
   return made;
@@ -2050,12 +2164,12 @@ function affected(effects, from, width, height, scene, view) {
       gl.clearColor(0, 0, 0, 1);
       gl.clear(gl.COLOR_BUFFER_BIT);
       gl.bindTexture(gl.TEXTURE_2D, read.texture);
-      gl.uniform2f(own.at.u_inputSize, read.width, read.height);
-      gl.uniform2f(own.at.u_outputSize, into.width, into.height);
-      gl.uniform1f(own.at.u_frame, frames);
-      gl.uniform2f(own.at.u_clips, scene.near ?? 0, scene.far ?? 0);
-      gl.uniformMatrix4fv(own.at.u_projection, false, projection);
-      gl.uniformMatrix4fv(own.at.u_unprojected, false, unprojected);
+      uniform.f2(own.at.u_inputSize, [read.width, read.height]);
+      uniform.f2(own.at.u_outputSize, [into.width, into.height]);
+      uniform.f(own.at.u_frame, frames);
+      uniform.f2(own.at.u_clips, [scene.near ?? 0, scene.far ?? 0]);
+      uniform.m4(own.at.u_projection, projection);
+      uniform.m4(own.at.u_unprojected, unprojected);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       if (into === out) wrote = true;
     }
@@ -2097,8 +2211,8 @@ function shown(from, tonemap) {
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   gl.useProgram(showing.program);
   gl.bindTexture(gl.TEXTURE_2D, from);
-  gl.uniform1i(showing.at.u_from, 0);
-  gl.uniform1i(showing.at.u_tonemap, tonemap);
+  uniform.i(showing.at.u_from, 0);
+  uniform.i(showing.at.u_tonemap, tonemap);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
   gl.bindTexture(gl.TEXTURE_2D, null);
   gl.depthMask(true);
@@ -2153,6 +2267,26 @@ function near(probes, placed, { min, max }) {
   return chosen;
 }
 
+// How far along the eye's z the middle of `subset` is, where `placed` puts
+// it: what `math.point` says, with nothing made for each part of a scene.
+function ahead(view, placed, { min, max }) {
+  const x = (min[0] + max[0]) / 2;
+  const y = (min[1] + max[1]) / 2;
+  const z = (min[2] + max[2]) / 2;
+  let px = placed[0] * x + placed[4] * y + placed[8] * z + placed[12];
+  let py = placed[1] * x + placed[5] * y + placed[9] * z + placed[13];
+  let pz = placed[2] * x + placed[6] * y + placed[10] * z + placed[14];
+  const pw = placed[3] * x + placed[7] * y + placed[11] * z + placed[15];
+  if (pw !== 1 && pw !== 0) {
+    px /= pw;
+    py /= pw;
+    pz /= pw;
+  }
+  const along = view[2] * px + view[6] * py + view[10] * pz + view[14];
+  const w = view[3] * px + view[7] * py + view[11] * pz + view[15];
+  return w === 1 || w === 0 ? along : along / w;
+}
+
 // What there is to draw, as `told` has it seen: each part of each shape
 // with a material is a thing to draw. A shape with fewer materials than
 // parts has the last for the rest; one with none is not drawn. What nothing
@@ -2191,19 +2325,20 @@ function listed(scene, { view, seen, looking }, mirrored) {
       const way = math.normalized(math.point(math.inverse(model.world) ?? math.IDENTITY, ...looking));
       instances = { ...instances, data: farthestFirst(instances.data, instances.count, way), fresh: true };
     }
-    shape.subsets.forEach((subset, index) => {
+    const { subsets } = shape;
+    for (let index = 0; index < subsets.length; index++) {
+      const subset = subsets[index];
       const material = materials[Math.min(index, materials.length - 1)];
-      if (!material || material.waiting) return;
-      const middle = math.point(placed, ...subset.min.map((least, axis) => (least + subset.max[axis]) / 2));
+      if (!material || material.waiting) continue;
       // How far in front of the eye it is: the eye looks down its own z.
-      const distance = -math.point(view, ...middle)[2] + Math.sign(bias) * bias * bias;
+      const distance = -ahead(view, placed, subset) + Math.sign(bias) * bias * bias;
       const through = sheer(material, opacity) || Boolean(instances?.sheer);
       const reads = Boolean(material.custom?.source.screen);
       const depth = material.custom ? material.custom.depth : material.depth;
       const hides = through && !reads ? depth === 1 : depth !== 2;
       const mirror = model.mirrors && probes.length ? near(probes, placed, subset) : null;
       (reads ? reading : through ? clear : solid).push({ shape, subset, world, all, material, opacity, distance, bones, weights, lights, instances, placed, sheer: through, hides, mirror });
-    });
+    }
   }
   // What nodes draw by themselves (`paints`), each with a program of its
   // own, is among what is seen through: as far away as the node is.
@@ -2342,6 +2477,7 @@ export function draw(scene, canvas, paper, ways = 0) {
   if (surface.width !== width) surface.width = width;
   if (surface.height !== height) surface.height = height;
   turn++;
+  worn = null;
   const { environment } = scene;
   const probe = environment.probe ? probed(environment.probe.map) : null;
   // What an effect brings to the screen afterwards is drawn in linear

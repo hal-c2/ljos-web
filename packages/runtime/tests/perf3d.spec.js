@@ -65,6 +65,25 @@ for (const renderer of RENDERERS) {
       expect(drawn.reduce((total, { sync, draw }) => total + sync + draw, 0)).toBeGreaterThan(0);
     });
 
+    if (!renderer.wasm)
+      test("a frame of many models hands over once what is the same for each", async ({ page }) => {
+        await show(page, "perf3d_many", renderer, { count: true });
+        await page.waitForFunction(() => window.perf3d.frames.filter(({ drawn }) => drawn).length >= 5);
+        const frames = await page.evaluate(() => window.perf3d.frames);
+        const drawn = frames.filter(({ drawn }) => drawn).slice(1);
+        expect(drawn.length).toBeGreaterThan(0);
+        for (const frame of drawn) {
+          const made = kinds(frame.calls);
+          expect(made.draws, "draw calls").toBe(64);
+          // A uniform keeps its value in its program: what is the same for
+          // every model (the eye, the lights, the material) is handed over
+          // once a frame at most, and each model's draw says only where it
+          // is. A light moves, so the lights are said each frame.
+          const told = Object.fromEntries(Object.entries(frame.calls).filter(([key]) => /^WebGL2\.uniform/.test(key)));
+          expect(made.uniforms, `uniform calls for ${made.draws} draws: ${JSON.stringify(told)}`).toBeLessThanOrEqual(3 * made.draws + 32);
+        }
+      });
+
     test("a still scene asks for no frame once it is drawn", async ({ page }) => {
       await show(page, "perf3d_still", renderer, {});
       // What it fetched and made settles first.
