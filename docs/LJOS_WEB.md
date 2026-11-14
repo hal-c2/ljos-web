@@ -1830,8 +1830,11 @@ turns a Markdown page's fenced blocks into live ones, for any site:
   What a compile's scripts ask for as they run is said of that compile:
   what the last project was told goes when the compile gives the example
   its files (`enclosed()`), so an edit that does not compile keeps the
-  running example's lines. A block disposed takes its project with it, and the addresses its
-  files were given at (`release`), even mid-compile. Absolute URLs, and
+  running example's lines. A block disposed takes its project with it:
+  the addresses its files were given at and the text its files read
+  (`release`). Disposed while a compile links, the files stay the
+  example's until that compile is done with them, so what its scripts
+  ask for is still among them, never asked of the server. Absolute URLs, and
   the page's own addresses outside code blocks, are as before.
 
 **DECISION:** the feature is general, the site is its first user: the
@@ -1874,7 +1877,8 @@ not have not there, a picture it has painted under a name with a bare `%`
 and a space, a file a script asks for while the example compiles said
 to be not there, an edit that does not compile keeping what the running
 example was told — none of them asked of the server — and a disposed block's
-project gone, its addresses revoked, also when disposed mid-compile. `site/tests/codeblocks.e2e.js` (its own config) holds the same
+project gone, its addresses revoked and its text withdrawn, also when
+disposed mid-compile, and while a compile links. `site/tests/codeblocks.e2e.js` (its own config) holds the same
 on a site built from fixture docs, strictly.
 
 Known limits, as the pieces stand: a `ShellLoader` loads its shell as
