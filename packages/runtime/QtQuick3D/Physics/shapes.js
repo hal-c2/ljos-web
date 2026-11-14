@@ -18,7 +18,7 @@
 // shape; and a HeightFieldShape's `image`.
 import { guardedFetch } from "../../guard.js";
 import { awaited, defineType, derived, located } from "../../object.ts";
-import { Vector3d } from "../../QtQml/values.js";
+import { Vector3d } from "../../QtQml/values.ts";
 import * as math from "../math.js";
 import { column, read } from "../mesh.js";
 import { Node } from "../Node.js";

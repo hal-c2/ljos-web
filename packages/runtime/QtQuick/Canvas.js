@@ -10,7 +10,7 @@
 // finer for a screen that has more of them.
 import { allowedStyle, sourced } from "../guard.js";
 import { onCleanup } from "solid-js";
-import { Rect, Size } from "../QtQml/values.js";
+import { Rect, Size } from "../QtQml/values.ts";
 import { defineType, derived, effect, settle, slot } from "../object.ts";
 import { clock } from "./animation/clock.js";
 import { css } from "./color.js";

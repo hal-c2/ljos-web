@@ -1,6 +1,6 @@
 // PlatformTheme: what the platform a program runs on prefers. A browser
 // says little of it; what it does say is what `Qt.styleHints` has.
-import { styleHints } from "../../../QtQml/application.js";
+import { styleHints } from "../../../QtQml/application.ts";
 
 const HINTS = [
   "CursorFlashTime",

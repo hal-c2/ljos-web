@@ -3,8 +3,8 @@ export { QtObject } from "../object.ts";
 export { Timer } from "../QtQuick/animation/Timer.js";
 export { Binding } from "../QtQuick/Binding.js";
 export { Connections } from "../QtQuick/Connections.js";
-export { Component } from "./Component.js";
-export { Locale } from "./locale.js";
+export { Component } from "./Component.ts";
+export { Locale } from "./locale.ts";
 export {
   gc,
   print,
@@ -18,7 +18,7 @@ export {
   QT_TR_NOOP,
   QT_TRANSLATE_NOOP,
   QT_TRID_NOOP,
-} from "./Qt.js";
-export { XMLHttpRequest } from "./request.js";
+} from "./Qt.ts";
+export { XMLHttpRequest } from "./request.ts";
 // What it has by importing `QtQml.Models`.
-export * from "./Models/index.js";
+export * from "./Models/index.ts";

@@ -3,10 +3,10 @@
 // `Locale`. A file of Ljós's API has no `Qt`; it imports these by name
 // from `Ljos.Core`. Each is what the `Qt` member it replaces does, so a
 // value passes between a Ljós file and a kept Qt file unchanged.
-import { application, inputMethod, styleHints } from "../../QtQml/application.js";
-import { Locale as Formats, locale } from "../../QtQml/locale.js";
+import { application, inputMethod, styleHints } from "../../QtQml/application.ts";
+import { Locale as Formats, locale } from "../../QtQml/locale.ts";
 import { settle } from "../../object.ts";
-import { Qt } from "../../QtQml/Qt.js";
+import { Qt } from "../../QtQml/Qt.ts";
 import { hsla as hslaOf, hsva as hsvaOf, rgba as rgbaOf } from "../../QtQuick/color.js";
 
 export const point = (...args) => Qt.point(...args);

@@ -3,7 +3,7 @@
 // style for the controls in it.
 import { contents, defineType, derived, effect, inside, QtObject, slot } from "../../object.ts";
 import { parts } from "./parts.js";
-import { locale } from "../../QtQml/locale.js";
+import { locale } from "../../QtQml/locale.ts";
 import { Item } from "../Item.js";
 import { Window, windowOf } from "../Window.js";
 import { fitted, keeps, methods } from "./Control.js";

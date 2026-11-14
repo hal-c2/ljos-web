@@ -13,7 +13,7 @@ import { lazy, rules } from "../QtQuick/compute.js";
 import { Item } from "../QtQuick/Item.js";
 import { Rectangle } from "../QtQuick/Rectangle.js";
 import { Text } from "../QtQuick/Text.js";
-import { Rect } from "../QtQml/values.js";
+import { Rect } from "../QtQml/values.ts";
 import { BarCategoryAxis, ValueAxis } from "./axes.js";
 import { bars } from "./series.js";
 import { GraphsTheme } from "./theme.js";

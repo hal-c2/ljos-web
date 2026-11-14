@@ -1,7 +1,7 @@
 // TextArea: lines of text to edit, as a style dresses them, and what a
 // Flickable scrolls when there are more of them than it has room for.
 import { defineType, derived, effect, QtObject, slot } from "../../object.ts";
-import { Rect } from "../../QtQml/values.js";
+import { Rect } from "../../QtQml/values.ts";
 import { lazy, sized } from "../compute.js";
 import { advance, describe, metrics } from "../font.js";
 import { TextEdit } from "../TextInput.js";

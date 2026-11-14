@@ -17,7 +17,7 @@
 import { guardedFetch, sourced } from "../guard.js";
 import { onCleanup } from "solid-js";
 import { defineType, effect, flush, located, QtObject, slot } from "../object.ts";
-import { Size } from "../QtQml/values.js";
+import { Size } from "../QtQml/values.ts";
 import { Color, color } from "./color.js";
 import { heldShader } from "./baked.js";
 import { drawn as shown } from "./drawn.js";

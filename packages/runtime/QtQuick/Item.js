@@ -6,7 +6,7 @@
 // the result.
 import { onCleanup, runWithOwner } from "solid-js";
 import { contents, defineType, derived, effect, flush, group, inside, kinds, parental, parented, QtObject, settle, typed } from "../object.ts";
-import { Rect } from "../QtQml/values.js";
+import { Rect } from "../QtQml/values.ts";
 import { drawing, drawn } from "./drawn.js";
 import { declared, forceActiveFocus, nextItemInFocusChain, reachable, setFocus, under } from "./focus.js";
 import { methods as geometry } from "./geometry.js";

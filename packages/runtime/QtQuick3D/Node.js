@@ -9,7 +9,7 @@
 // Not here: `layers` and `staticFlags` do nothing.
 import { runWithOwner } from "solid-js";
 import { contents, defineType, derived, group, memo, parental, parented, QtObject, settle, slot } from "../object.ts";
-import { Vector3d } from "../QtQml/values.js";
+import { Vector3d } from "../QtQml/values.ts";
 import { stateful } from "../QtQuick/states.js";
 import * as math from "./math.js";
 

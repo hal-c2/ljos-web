@@ -11,7 +11,7 @@
 // last one is it, which is what Qt does until told otherwise.
 import { onCleanup } from "solid-js";
 import { contents, defineType, derived, effect, inside, QtObject, settle, slot } from "../object.ts";
-import { Point } from "../QtQml/values.js";
+import { Point } from "../QtQml/values.ts";
 import { color, colorValue } from "../QtQuick/color.js";
 import { columnsOf, rowsOf } from "../QtQuick/model.js";
 import { kept } from "../QtQuick3D/Node.js";
