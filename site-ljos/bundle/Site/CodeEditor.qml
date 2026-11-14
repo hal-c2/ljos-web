@@ -64,6 +64,12 @@ Item {
         enabled: !field.editing
         Accessible.ignored: true
         cursorShape: Qt.IBeamCursor
-        onPressed: (mouse) => Editor.bringIn(field, shown, true, { "x": mouse.x, "y": mouse.y })
+        // The press asks first, so the editor comes with its caret where
+        // the press was; the field then has focus, and a reader who
+        // moves on before the editor has come is not pulled back.
+        onPressed: (mouse) => {
+            Editor.bringIn(field, shown, true, { "x": mouse.x, "y": mouse.y });
+            field.forceActiveFocus();
+        }
     }
 }

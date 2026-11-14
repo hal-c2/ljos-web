@@ -216,6 +216,27 @@ test("an editor goes with its page: the next page keeps none of its views or lis
   await expect.poll(listening).toBe(before);
 });
 
+test("a reader who moves on while the editor loads keeps their focus where they took it", async ({ page }) => {
+  let release;
+  const held = new Promise((resolve) => (release = resolve));
+  await page.route(/\/assets\/attach-[^/]*\.js$/, async (route) => {
+    await held;
+    await route.continue();
+  });
+  await page.setViewportSize({ width: 1440, height: 1600 });
+  await page.goto("/start/first-app/");
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  // In with a press, and on with Tab before the editor has come.
+  await page.getByRole("textbox", { name: "Edit Main.qml" }).first().click();
+  await page.keyboard.press("Tab");
+  await page.evaluate(() => (window.away = document.activeElement));
+  release();
+  const editor = page.locator('.cm-content[aria-label="Edit Main.qml"]');
+  await expect(editor).toHaveCount(1, { timeout: 30_000 });
+  await expect(editor).not.toBeFocused();
+  expect(await page.evaluate(() => document.activeElement === window.away)).toBe(true);
+});
+
 test("with JavaScript off a runnable block is its code beside a picture of its result", async ({ browser }) => {
   const context = await browser.newContext({ javaScriptEnabled: false, viewport: BUILD_SIZE });
   try {

@@ -12,6 +12,9 @@ var editors = new WeakMap();
 // Fields gone from the page: one that goes while its editor is still
 // being fetched gets none.
 var gone = new WeakSet();
+// Fields the reader is moving into: one they leave while its editor
+// is on its way keeps their focus where they took it.
+var entering = new WeakSet();
 
 function module() {
     if (!attaching)
@@ -47,6 +50,8 @@ function pagePoint(field, local) {
 async function bringIn(field, shown, focus, local) {
     if (!field.$node || !globalThis.document)
         return null;
+    if (focus)
+        entering.add(field);
     if (!editors.has(field)) {
         var made = await module();
         if (gone.has(field))
@@ -63,8 +68,9 @@ async function bringIn(field, shown, focus, local) {
             editors.get(field).setDiagnostics(field.diagnostics || []);
         }
     }
-    if (focus)
+    if (focus && entering.has(field))
         editors.get(field).focus();
+    entering.delete(field);
     return editors.get(field);
 }
 
@@ -81,6 +87,7 @@ function dispose(field) {
 }
 
 function left(field) {
+    entering.delete(field);
     var editor = editors.get(field);
     if (editor)
         editor.blur();
