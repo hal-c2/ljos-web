@@ -3,8 +3,10 @@
 //
 // The numbers are what Qt 6.11 answers with its own (Fusion) light palette,
 // read from `qml6`: a browser has no palette to ask for.
+import { runWithOwner } from "solid-js";
 import { defineType, derived, group, QtObject, slot } from "../object.js";
 import { color, colorValue } from "./color.js";
+import { untrack } from "#kernel";
 
 const ACTIVE = {
   alternateBase: "#f7f7f7",
@@ -74,7 +76,7 @@ function said(self, name, role) {
 
 // A group's colour: its own, else the palette's for every group, else what
 // the palette this one follows was given (an item's follows its parent's:
-// `$from` is set by `palettes.js`, which gives items a palette), else the
+// `$from` is set by `paletteOf`, which gives items a palette), else the
 // colours of whatever has the palette (`$base`: a control's are its
 // style's), else Qt's.
 const part = (name) =>
@@ -135,3 +137,23 @@ export const SystemPalette = defineType("SystemPalette", QtObject, {
   },
   enums: { Active: 0, Disabled: 1, Inactive: 2 },
 });
+
+// The `palette` of an item or a window (Item.js and Window.js give each
+// theirs), made once from the roles somebody set on it: the object's
+// `palette$button` is its palette's `button`. What nobody set comes
+// `from` its parent's, or from what the item is (`$colours`).
+const PREFIX = "palette$";
+
+export function paletteOf(self, from, group) {
+  if (self.$palette) return self.$palette;
+  const props = {};
+  for (const key of Object.keys(self.$props)) {
+    if (key.startsWith(PREFIX)) Object.defineProperty(props, key.slice(PREFIX.length), Object.getOwnPropertyDescriptor(self.$props, key));
+  }
+  const made = runWithOwner(self.$owner, () => untrack(() => Palette(props)));
+  made.$from = from;
+  made.$group = group;
+  made.$base = () => self.$colours?.();
+  Object.defineProperty(self, "$palette", { value: made });
+  return made;
+}

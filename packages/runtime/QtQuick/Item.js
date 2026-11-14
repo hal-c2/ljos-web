@@ -13,6 +13,7 @@ import { methods as geometry } from "./geometry.js";
 import { navigable } from "./Keys.js";
 import { layer, layered } from "./layer.js";
 import { mirrored } from "./LayoutMirroring.js";
+import { paletteOf } from "./Palette.js";
 import { stateful } from "./states.js";
 import "./style.js";
 import { signal } from "#kernel";
@@ -427,6 +428,15 @@ Object.defineProperty(Item.proto, "focus", {
 
 // Assigning `parent` puts it among that one's children.
 parental(Item);
+
+// `palette`: what nobody set on the item is its parent's, or its window's.
+Object.defineProperty(Item.proto, "palette", {
+  get() {
+    return paletteOf(this, () => (this.parent ?? this.$window)?.palette, () => (this.enabled ? "active" : "disabled"));
+  },
+  enumerable: true,
+  configurable: true,
+});
 
 // `state` reads as the state the item is in, and assigning it enters one.
 Object.defineProperties(Item.proto, Object.getOwnPropertyDescriptors(stateful.methods));

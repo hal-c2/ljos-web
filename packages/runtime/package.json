@@ -6,7 +6,7 @@
   "sideEffects": [
     "**/*.css",
     "./QtQml/Qt.*",
-    "./QtQuick/palettes.*",
+    "./QtQuick/Item.*",
     "./QtQuick/style.*",
     "./QtQuick/font.*",
     "./QtQuick/Keys.*",

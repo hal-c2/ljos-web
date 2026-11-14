@@ -2,7 +2,6 @@
 // C++, each with a painter: a busy indicator, a dial and its knob. What is
 // painted is what Qt's painter is told (`qquickfusionbusyindicator.cpp`,
 // `…dial.cpp`, `…knob.cpp`), said to a canvas.
-import "../../../palettes.js";
 import { defineType } from "../../../../object.js";
 import { colorValue } from "../../../color.js";
 import { Item } from "../../../Item.js";

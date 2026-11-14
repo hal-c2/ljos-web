@@ -47,7 +47,6 @@ export { MouseArea } from "./MouseArea.js";
 export { Column, Flow, Grid, Positioner, Row } from "./positioners.js";
 export { ColorGroup, Palette, SystemPalette } from "./Palette.js";
 export { Pinch, PinchArea } from "./PinchArea.js";
-import "./palettes.js";
 export { SafeArea } from "./SafeArea.js";
 export {
   Path,
