@@ -1878,7 +1878,7 @@ and a space, a file a script asks for while the example compiles said
 to be not there, an edit that does not compile keeping what the running
 example was told — none of them asked of the server — and a disposed block's
 project gone, its addresses revoked and its text withdrawn, also when
-disposed mid-compile, and while a compile links. `site/tests/codeblocks.e2e.js` (its own config) holds the same
+disposed mid-compile, and while a compile links, once or twice. `site/tests/codeblocks.e2e.js` (its own config) holds the same
 on a site built from fixture docs, strictly.
 
 Known limits, as the pieces stand: a `ShellLoader` loads its shell as
