@@ -333,8 +333,8 @@ test("a result opened in a new tab leaves the page where it was", async ({ brows
 // Below the width the contents stand beside the page, the menu holds
 // them: each heading of the page being read, landed on from there.
 test("on a phone the menu holds the page's headings", async ({ browser }) => {
-  const pages = JSON.parse(readFileSync(join(bundle, "Site/Content.qml"), "utf8").match(/readonly property var pages: (.*)\n/)[1]);
-  const { headings } = pages.find((page) => page.route === "/start/mcp/");
+  const html = readFileSync(join(here, "../dist/start/mcp/index.html"), "utf8");
+  const { headings } = JSON.parse(html.match(/<script type="application\/json" id="ljos-props">([\s\S]*?)<\/script>/)[1]).page;
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   try {
     const page = await context.newPage();

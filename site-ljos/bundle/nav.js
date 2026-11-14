@@ -275,6 +275,25 @@ function canRun(needs) {
     return true;
 }
 
+// Every docs page's title and headings, for the search: fetched the
+// first time a reader searches, as no page's first load carries the
+// other pages' reading (each page's own is in its props). A fetch
+// that fails is asked again the next time.
+var index = null;
+function searchIndex(base) {
+    if (index === null) {
+        index = globalThis.fetch(at(base, "/search.json")).then(function (response) {
+            if (!response.ok)
+                throw new Error("search.json: " + response.status);
+            return response.json();
+        });
+        index.catch(function () {
+            index = null;
+        });
+    }
+    return index;
+}
+
 // What the site search finds: page titles first, then the headings on
 // them, each word of the query somewhere in what it matches.
 function search(pages, query, limit) {

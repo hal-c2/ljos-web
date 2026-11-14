@@ -12,13 +12,28 @@ Item {
     // page being read without leaving it.
     signal picked(string href)
 
-    readonly property var results: Nav.search(Content.pages, field.text, 8)
-    readonly property bool showing: field.text.trim() !== "" && open
+    // What it searches, once fetched (Nav.searchIndex), and what is said
+    // where it could not be.
+    property var pages: null
+    property string trouble: ""
+    readonly property var results: pages ? Nav.search(pages, field.text, 8) : []
+    readonly property bool showing: field.text.trim() !== "" && open && (pages !== null || trouble !== "")
     property int chosen: 0
     property bool open: false
 
     implicitWidth: 280
     implicitHeight: 40
+
+    function load() {
+        if (pages !== null || !Nav.inBrowser())
+            return;
+        Nav.searchIndex(Content.base).then(function (all) {
+            search.trouble = "";
+            search.pages = all;
+        }, function () {
+            search.trouble = "The search could not be loaded. Try again in a moment.";
+        });
+    }
 
     function go(index) {
         if (index < 0 || index >= results.length)
@@ -86,9 +101,11 @@ Item {
             clip: true
             Accessible.role: Accessible.EditableText
             Accessible.name: "Search the docs"
+            onActiveFocusChanged: if (activeFocus) search.load()
             onTextChanged: {
                 search.chosen = 0;
                 search.open = true;
+                search.load();
             }
             Keys.onPressed: (event) => {
                 if (event.key === Qt.Key_Down) {
@@ -139,7 +156,7 @@ Item {
                 leftPadding: Theme.s
                 topPadding: Theme.xs
                 bottomPadding: Theme.xs
-                text: "Nothing in the docs matches “" + field.text.trim() + "”."
+                text: search.pages === null ? search.trouble : "Nothing in the docs matches “" + field.text.trim() + "”."
                 color: Theme.textMuted
                 font.family: Theme.sans
                 font.pixelSize: Theme.bodySize
