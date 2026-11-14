@@ -1,10 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { highlightToHtml } from "../src/html.js";
+import { highlightToHtml } from "../src/html.ts";
 
-const unesc = (s) => s.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
-const spans = (html) => [...html.matchAll(/<span class="([^"]+)">([^<]*)<\/span>/g)].map((m) => [m[1], unesc(m[2])]);
-const classOf = (html, text) => spans(html).find(([, t]) => t === text)?.[0];
+const unesc = (s: string): string => s.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
+const spans = (html: string): [string, string][] => [...html.matchAll(/<span class="([^"]+)">([^<]*)<\/span>/g)].map((m) => [m[1] ?? "", unesc(m[2] ?? "")]);
+const classOf = (html: string, text: string): string | undefined => spans(html).find(([, t]) => t === text)?.[0];
 
 test("QML names, keywords and values each carry their role", () => {
   const html = highlightToHtml(

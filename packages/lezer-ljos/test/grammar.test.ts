@@ -3,7 +3,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import { fileTests } from "@lezer/generator/test";
-import { parser } from "../src/index.js";
+import { parser } from "../src/index.ts";
 
 const dir = new URL(".", import.meta.url);
 

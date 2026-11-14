@@ -2,7 +2,7 @@
    cannot express. Forked from @lezer/javascript 1.5.6 (MIT); the JSX
    tokenizer is gone with JSX. */
 
-import {ExternalTokenizer, ContextTracker} from "@lezer/lr"
+import {ExternalTokenizer, ContextTracker, type InputStream} from "@lezer/lr"
 import {uiLiteralOpen, insertSemi, noSemi, noSemiType, incdec, incdecPrefix, questionDot,
         spaces, newline, BlockComment, LineComment} from "./parser.terms.js"
 
@@ -12,7 +12,7 @@ const space = [9, 10, 11, 12, 13, 32, 133, 160, 5760, 8192, 8193, 8194, 8195, 81
 const braceR = 125, semicolon = 59, slash = 47, star = 42, plus = 43, minus = 45,
       question = 63, dot = 46, bracketL = 91
 
-export const trackNewline = new ContextTracker({
+export const trackNewline = new ContextTracker<boolean>({
   start: false,
   shift(context, term) {
     return term == LineComment || term == BlockComment || term == spaces ? context : term == newline
@@ -58,7 +58,7 @@ const braceL = 123, colon = 58, backslash = 92, quoteD = 34, quoteS = 39
 
 // The offset past the spaces and comments from `i` on, which the
 // grammar skips between any two tokens; -1 at an unclosed comment.
-function trivia(input, i) {
+function trivia(input: InputStream, i: number): number {
   for (;;) {
     let ch = input.peek(i)
     if (space.indexOf(ch) > -1) { i++; continue }
