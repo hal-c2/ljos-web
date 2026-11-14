@@ -196,7 +196,7 @@ test("on a phone the menu holds the docs, and search finds a page", async ({ bro
     const search = page.getByRole("textbox", { name: "Search the docs" });
     await search.click();
     await page.keyboard.type("mcp servers");
-    await expect(page.getByText("MCP Servers for Agents", { exact: true }).first()).toBeVisible();
+    await expect(page.getByRole("list", { name: "Search results" }).getByText("MCP Servers for Agents", { exact: true })).toBeVisible();
     await page.keyboard.press("Enter");
     await page.waitForURL("**/start/mcp/");
     expect(errors).toEqual([]);
@@ -222,6 +222,51 @@ test("a browser with no WebGPU keeps each GPU demo's picture, and says why", asy
     await expect(picture).toBeVisible();
     await shown;
     await expect(page.getByText(/A picture of the demo: it runs in a browser with WebGPU/).first()).toBeVisible();
+  } finally {
+    await context.close();
+  }
+});
+
+// The box of the one match the reader is shown, or null.
+const shownBox = (locator) => async () => {
+  const shown = locator.filter({ visible: true });
+  return (await shown.count()) ? shown.first().boundingBox() : null;
+};
+
+// The Pantry is a 480-wide app as its shell is written; on a phone it
+// is shown whole, smaller, not cut off at the page's edge.
+test("on a phone the Pantry stands whole inside the page", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  try {
+    const page = await context.newPage();
+    await page.goto("/demos/");
+    await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+    // The Pantry's own shell, once it is made in the page.
+    const jam = shownBox(page.getByText(/^Jam · £/));
+    const tea = shownBox(page.getByText(/^Tea · £/));
+    await expect.poll(async () => (await jam()) !== null, { timeout: 30_000 }).toBe(true);
+    expect((await tea()).x).toBeGreaterThanOrEqual(20);
+    expect((await jam()).x + (await jam()).width).toBeLessThanOrEqual(370);
+  } finally {
+    await context.close();
+  }
+});
+
+// A live example may be a whole ApplicationWindow: it runs in its
+// block, where its picture stood, never floating over the page's top.
+test("a live example that is a window stands in its block, not over the page", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  try {
+    const page = await context.newPage();
+    await page.goto("/quality/color/");
+    await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+    const top = () =>
+      page.evaluate(() => {
+        const held = [...document.querySelectorAll(".qq-window")].find((window) => !window.querySelector(".qq-window") && /Delete draft/.test(window.textContent));
+        return held ? Math.round(held.getBoundingClientRect().top) : null;
+      });
+    // Far down the page, which has not been scrolled.
+    await expect.poll(top, { timeout: 30_000 }).toBeGreaterThan(900);
   } finally {
     await context.close();
   }
