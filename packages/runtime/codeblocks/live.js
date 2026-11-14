@@ -93,7 +93,7 @@ export async function mountLiveCodeBlock(figure, data, options = {}) {
   // The compiler is Rust in wasm, and there is no other: without
   // WebAssembly the figure stays as the build wrote it, code and drawn
   // result, and says why it cannot be edited.
-  if (!wasmWorks()) return staticOnly(figure);
+  if (!wasmWorks()) return staticOnly(figure, data);
   const [{ hydrate, mount }, { reload }] = await Promise.all([import("../object.js"), import("../reload.js")]);
   const compile = await compilerOf(options);
   const delay = options.delay ?? 300;
@@ -127,15 +127,7 @@ export async function mountLiveCodeBlock(figure, data, options = {}) {
   // Each file's surface: the build's `<pre>`, focusable and named as
   // the editor it becomes, until the editor is in.
   const sources = data.display.map((file) => {
-    let source = [...code.querySelectorAll(".ljos-codeblock__source")].find((s) => s.dataset.file === file.name);
-    if (!source) {
-      source = el("div", "ljos-codeblock__source");
-      source.dataset.file = file.name;
-      const pre = el("pre", "ljos-code");
-      pre.append(el("code", `language-${file.lang}`, file.code.replace(/\n$/, "")));
-      source.append(pre);
-      code.append(source);
-    }
+    const source = sourceOf(code, file);
     const pre = source.querySelector("pre");
     pre.tabIndex = 0;
     pre.setAttribute("role", "textbox");
@@ -400,7 +392,27 @@ export async function mountLiveCodeBlock(figure, data, options = {}) {
   };
 }
 
-function staticOnly(figure) {
+// A file's code as the build writes it, `<pre>` in its source; made
+// where the figure came without it.
+function sourceOf(code, file) {
+  const found = [...code.querySelectorAll(".ljos-codeblock__source")].find((s) => s.dataset.file === file.name);
+  if (found) return found;
+  const source = el("div", "ljos-codeblock__source");
+  source.dataset.file = file.name;
+  const pre = el("pre", "ljos-code");
+  pre.append(el("code", `language-${file.lang}`, file.code.replace(/\n$/, "")));
+  source.append(pre);
+  code.append(source);
+  return source;
+}
+
+function staticOnly(figure, data) {
+  // A figure made without the build's code (one a page mounts itself)
+  // is given it, as an editor would have been: the code is never lost
+  // for want of WebAssembly.
+  const code = figure.querySelector(".ljos-codeblock__code") ?? el("div", "ljos-codeblock__code");
+  for (const file of data?.display ?? []) sourceOf(code, file);
+  if (!figure.contains(code)) figure.append(code);
   const note = el("p", "ljos-codeblock__note", NEEDS_WASM);
   note.setAttribute("role", "note");
   const head = figure.querySelector(".ljos-codeblock__head");

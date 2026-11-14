@@ -224,3 +224,20 @@ test.describe("an example's shell reloaded", () => {
     expect(server.refused).toEqual([]);
   });
 });
+
+// A block a page mounts itself has no code the build wrote; without
+// WebAssembly it still shows each of the example's files, and says why
+// they cannot be edited.
+test("without WebAssembly a block mounted without the build's code shows each file's code", async ({ page }) => {
+  await page.addInitScript(() => delete globalThis.WebAssembly);
+  const server = watched(page);
+  const figure = await mounted(page, "chosen");
+  await expect(figure).toHaveAttribute("data-state", "needs-wasm");
+  await expect(figure.getByRole("note")).toHaveText(/^Live editing needs WebAssembly/);
+  const files = figure.locator(".ljos-codeblock__source");
+  await expect(files).toHaveCount(2);
+  await expect(files.nth(0)).toHaveAttribute("data-file", "Main.qml");
+  await expect(files.nth(1)).toHaveAttribute("data-file", "user/Shell.qml");
+  await expect(files.nth(1).locator("pre code")).toContainText("My shell");
+  expect(server.refused).toEqual([]);
+});
