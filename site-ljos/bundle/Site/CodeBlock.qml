@@ -312,10 +312,13 @@ Column {
             height: Math.max(pictureHeight, stage.implicitHeight)
 
             Text {
-                // Until the result runs: before the reader reaches for
-                // the block, while the code compiles (status Null),
-                // and always where there is no compiler (`runs`).
-                visible: block.isLive && (!block.runs || !block.started || !stage.item || stage.status === ShellLoader.Null)
+                // Until the result runs (Ready): before the reader
+                // reaches for the block, while its code compiles, after
+                // a first edit that did not compile (the empty fallback
+                // stands, status Fallback), and always where there is no
+                // compiler. Once Ready a failed edit keeps the last good
+                // result, so the picture never comes back over it.
+                visible: block.isLive && stage.status !== ShellLoader.Ready
                 textFormat: Text.RichText
                 text: block.isLive ? "<img src=\"" + block.live.picture + "\" width=\"" + stageBox.pictureWidth + "\" height=\"" + Math.round(stageBox.pictureHeight) + "\" alt=\"What this example draws\">" : ""
             }
