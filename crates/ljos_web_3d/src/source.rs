@@ -17,7 +17,8 @@ use ljos_3d::gltf::Asset;
 use ljos_3d::math::{Mat4, Quat, Vec3};
 use ljos_3d::mesh_file::MeshFile;
 use ljos_3d::qml::enums::{cull, depth_draw};
-use ljos_3d::qml::{self, Loaded, Prop3d, SceneSource, Type3d};
+use ljos_3d::qml::{self, Loaded, Prop3d, SceneSource, SceneSync, Type3d};
+use ljos_3d::scene::Scene;
 use ljos_3d::texture::{
     BakedCube, Filter, PixelEncoding, TextureImage, TexturePixels, Tiling, fresh_pixels_id,
 };
@@ -266,6 +267,8 @@ pub struct Kept {
     said: RefCell<HashSet<String>>,
     /// What each object answered since it last changed.
     pub answers: Answers,
+    /// The scene, patched where the pieces that read what changed say.
+    pub scene: RefCell<SceneSync<u32>>,
 }
 
 impl Kept {
@@ -372,15 +375,49 @@ impl TexturePixels for Baked {
     }
 }
 
-/// One build of the view: what changed since the last is asked again, the
-/// rest is answered from what was kept. Returns the scene and the handles no
-/// longer in it, which [`Kept`] has let go of and the page may too.
-pub fn build<H: Host>(host: &H, kept: &Rc<Kept>, changed: &[u32]) -> (qml::Built<u32>, Vec<u32>) {
-    kept.answers.begin(changed);
-    let built = qml::build(&Source { host, kept }, VIEW);
+/// What one build made.
+pub struct Built {
+    /// The scene now: the one before where nothing it draws changed.
+    pub scene: Arc<Scene>,
+    /// How many pieces of the view were read for it.
+    pub read: usize,
+    /// The handles no longer in it, which [`Kept`] has let go of and the
+    /// page may too.
+    pub gone: Vec<u32>,
+}
+
+/// One build of the view: the pieces that read what changed since the
+/// last are read again, what changed asked again and the rest answered from
+/// what was kept, and the scene patched where they differ. The first reads
+/// every piece.
+pub fn build<H: Host>(host: &H, kept: &Rc<Kept>, changed: &[u32]) -> Built {
+    build_changed(host, kept, changed, &[])
+}
+
+/// As [`build`], with the members the page said changed (an object and an
+/// answer's [`crate::answers::key`]) of objects otherwise as they were: a
+/// node that turned is asked its turn and nothing else.
+pub fn build_changed<H: Host>(
+    host: &H,
+    kept: &Rc<Kept>,
+    changed: &[u32],
+    members: &[(u32, u32)],
+) -> Built {
+    let pieces = kept.answers.begin_members(changed, members);
+    let source = Source { host, kept };
+    let synced = kept.scene.borrow_mut().sync(pieces, |piece| {
+        kept.answers.reading(Some(piece));
+        let read = qml::read(&source, VIEW, piece);
+        kept.answers.reading(None);
+        read
+    });
     let gone = kept.answers.finish();
     kept.forget(&gone);
-    (built, gone)
+    Built {
+        scene: synced.scene,
+        read: synced.read,
+        gone,
+    }
 }
 
 /// A read of the page, answered from what `o` answered since it last
@@ -1185,8 +1222,8 @@ mod tests {
         }
     }
 
-    fn cube_x(built: &qml::Built<u32>) -> f32 {
-        let id = built.ids[&CUBE];
+    fn cube_x(kept: &Kept, built: &Built) -> f32 {
+        let id = kept.scene.borrow().ids()[&CUBE];
         built.scene.node(id).unwrap().transform.position.x
     }
 
@@ -1212,20 +1249,20 @@ mod tests {
     fn an_unset_member_is_the_mappings_default_and_a_set_one_its_value() {
         let host = Fake::default();
         let kept = Rc::new(Kept::default());
-        assert_eq!(cube_x(&build(&host, &kept, &[]).0), 0.0);
+        assert_eq!(cube_x(&kept, &build(&host, &kept, &[])), 0.0);
         host.x.set(Some(7.0));
-        assert_eq!(cube_x(&build(&host, &kept, &[CUBE]).0), 7.0);
+        assert_eq!(cube_x(&kept, &build(&host, &kept, &[CUBE])), 7.0);
     }
 
     #[test]
     fn the_same_objects_build_a_scene_that_draws_the_same() {
         let host = Fake::default();
         let kept = Rc::new(Kept::default());
-        let a = build(&host, &kept, &[]).0;
-        let b = build(&host, &kept, &[]).0;
+        let a = build(&host, &kept, &[]);
+        let b = build(&host, &kept, &[]);
         assert!(a.scene.same_as(&b.scene));
         host.x.set(Some(1.0));
-        assert!(!a.scene.same_as(&build(&host, &kept, &[CUBE]).0.scene));
+        assert!(!a.scene.same_as(&build(&host, &kept, &[CUBE]).scene));
     }
 
     #[test]
@@ -1235,7 +1272,7 @@ mod tests {
         build(&host, &kept, &[]);
         assert!(host.reads.get() > 0);
         let asked = host.reads.get();
-        let (_, gone) = build(&host, &kept, &[]);
+        let gone = build(&host, &kept, &[]).gone;
         assert_eq!(host.reads.get(), asked);
         assert!(gone.is_empty());
     }
@@ -1248,11 +1285,76 @@ mod tests {
         let all = kept.answers.crossed();
         host.x.set(Some(3.0));
         // What did not say it changed is answered as it was.
-        assert_eq!(cube_x(&build(&host, &kept, &[CAMERA]).0), 0.0);
+        assert_eq!(cube_x(&kept, &build(&host, &kept, &[CAMERA])), 0.0);
         let asked = host.reads.get();
-        assert_eq!(cube_x(&build(&host, &kept, &[CUBE]).0), 3.0);
+        assert_eq!(cube_x(&kept, &build(&host, &kept, &[CUBE])), 3.0);
         assert!(host.reads.get() > asked);
         assert!(kept.answers.crossed() < all);
+    }
+
+    #[test]
+    fn a_member_said_changed_alone_crosses_and_the_rest_is_kept() {
+        let host = Fake::default();
+        let kept = Rc::new(Kept::default());
+        build(&host, &kept, &[]);
+        host.x.set(Some(3.0));
+        let asked = host.reads.get();
+        let x = crate::answers::key(Kind::Number, Prop3d::X as u32);
+        let built = build_changed(&host, &kept, &[], &[(CUBE, x)]);
+        assert_eq!(cube_x(&kept, &built), 3.0);
+        assert_eq!(built.read, 1, "the cube's node alone");
+        assert_eq!(host.reads.get() - asked, 1, "its x alone crosses");
+    }
+
+    #[test]
+    fn a_build_with_nothing_changed_reads_nothing() {
+        let host = Fake::default();
+        let kept = Rc::new(Kept::default());
+        build(&host, &kept, &[]);
+        assert!(kept.answers.looked() > 0);
+        build(&host, &kept, &[]);
+        assert_eq!(kept.answers.looked(), 0, "a still view is walked again");
+    }
+
+    #[test]
+    fn a_changed_object_reads_what_read_it_alone() {
+        let host = Fake::default();
+        let kept = Rc::new(Kept::default());
+        build(&host, &kept, &[]);
+        let all = kept.answers.looked();
+        host.x.set(Some(3.0));
+        assert_eq!(cube_x(&kept, &build(&host, &kept, &[CUBE])), 3.0);
+        // The cube and its material: not the camera, the loaders or the view.
+        let cube = kept.answers.looked();
+        assert!(cube > 0);
+        assert!(cube < all, "{cube} of {all} answers looked for");
+        build(&host, &kept, &[CAMERA]);
+        assert!(kept.answers.looked() < all);
+    }
+
+    #[test]
+    fn the_patched_scene_is_the_one_a_whole_build_makes() {
+        let host = Fake::default();
+        let kept = Rc::new(Kept::default());
+        let drift = || {
+            let source = Source {
+                host: &host,
+                kept: &kept,
+            };
+            kept.scene.borrow().drift(&source, VIEW)
+        };
+        build(&host, &kept, &[]);
+        assert_eq!(drift(), None);
+        host.x.set(Some(5.0));
+        assert_eq!(build(&host, &kept, &[CUBE]).read, 1);
+        assert_eq!(drift(), None);
+        host.dropped.set(true);
+        build(&host, &kept, &[VIEW]);
+        assert_eq!(drift(), None);
+        host.dropped.set(false);
+        build(&host, &kept, &[VIEW]);
+        assert_eq!(drift(), None);
+        assert_eq!(cube_x(&kept, &build(&host, &kept, &[])), 5.0);
     }
 
     #[test]
@@ -1261,14 +1363,14 @@ mod tests {
         let kept = Rc::new(Kept::default());
         build(&host, &kept, &[]);
         host.dropped.set(true);
-        let (built, mut gone) = build(&host, &kept, &[VIEW]);
+        let mut gone = build(&host, &kept, &[VIEW]).gone;
         gone.sort_unstable();
         assert_eq!(gone, [CUBE, MATERIAL]);
-        assert!(!built.ids.contains_key(&CUBE));
+        assert!(!kept.scene.borrow().ids().contains_key(&CUBE));
         assert!(!kept.types.borrow().contains_key(&CUBE));
         // The handles left are still answered from what was kept.
         let asked = host.reads.get();
-        assert!(build(&host, &kept, &[]).1.is_empty());
+        assert!(build(&host, &kept, &[]).gone.is_empty());
         assert_eq!(host.reads.get(), asked);
     }
 

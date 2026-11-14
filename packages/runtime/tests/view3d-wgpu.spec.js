@@ -215,6 +215,36 @@ for (const backend of ["webgpu", "webgl2"]) {
       near(await at(page, 60, 50), [255, 0, 0]);
     });
 
+    test("a model moved among many is asked again what moved alone", async ({ page }) => {
+      await show(page, "wgpu_many");
+      await set(page, () => (window.objects.squares.objectAt(0).y = 80));
+      // Its y: not its x, scale, materials or anything else it was asked.
+      expect((await counts(page)).reads).toBe(1);
+      near(await at(page, 20, 70), [255, 0, 0]);
+      await set(page, () => (window.objects.squares.objectAt(0).y = 120));
+      expect((await counts(page)).reads).toBe(1);
+      near(await at(page, 20, 70), CLEAR);
+    });
+
+    test("a change to one of many models reads that model's part of the scene alone", async ({ page }) => {
+      await show(page, "wgpu_many");
+      const pieces = () => page.evaluate(() => document.querySelector(".qq-view3d").$view3d.pieces);
+      await set(page, () => (window.objects.squares.objectAt(0).y = 80));
+      // Its own node: not the fifty-nine others, the view or its environment.
+      expect(await pieces()).toBe(1);
+      near(await at(page, 20, 70), [255, 0, 0]);
+      await set(page, () => (window.objects.shown = 30));
+      // A Repeater3D given another number makes all of them anew, as Qt's
+      // does: the list of models the view holds and the thirty new ones,
+      // and nothing of the sixty gone.
+      expect(await pieces()).toBe(31);
+      near(await at(page, 380, 250), CLEAR);
+      await set(page, () => (window.objects.shown = 60));
+      // That list again, and the sixty new ones.
+      expect(await pieces()).toBe(61);
+      near(await at(page, 380, 250), [255, 0, 0]);
+    });
+
     test("models taken away leave the picture and the view, and come back", async ({ page }) => {
       await show(page, "wgpu_many");
       near(await at(page, 380, 250), [255, 0, 0]);
@@ -227,6 +257,37 @@ for (const backend of ["webgpu", "webgl2"]) {
       await set(page, () => (window.objects.shown = 60));
       near(await at(page, 380, 250), [255, 0, 0]);
       expect((await counts(page)).objects).toBe(all);
+    });
+
+    // An object the view has not met is told apart from another such and
+    // from nothing when the page follows what the wasm asked: each one put
+    // in place is drawn, the second as the first.
+    test("a material, then another, the view had not met is each drawn", async ({ page }) => {
+      await show(page, "wgpu_swapped");
+      near(await at(page, ...CENTRE), [255, 0, 0]);
+      await set(page, () => (window.objects.cube.materials = [window.objects.blue]));
+      near(await at(page, ...CENTRE), [0, 0, 255]);
+      await set(page, () => (window.objects.cube.materials = [window.objects.green]));
+      near(await at(page, ...CENTRE), [0, 255, 0]);
+    });
+
+    test("an environment, then another, the view had not met is each drawn", async ({ page }) => {
+      await show(page, "wgpu_swapped");
+      near(await at(page, 10, 10), CLEAR);
+      await set(page, () => (window.objects.view.environment = window.objects.teal));
+      near(await at(page, 10, 10), [0, 0x80, 0x80]);
+      await set(page, () => (window.objects.view.environment = window.objects.purple));
+      near(await at(page, 10, 10), [0x80, 0, 0x80]);
+    });
+
+    test("a joint the view had not met, put in a skin's empty slot, builds the scene again", async ({ page }) => {
+      await show(page, "wgpu_swapped");
+      // The scene asks for no file, so no build but this one's can come.
+      expect(await page.evaluate(() => performance.getEntriesByType("resource").some(({ name }) => /\.mesh(\?|$)/.test(name)))).toBe(false);
+      const builds = () => page.evaluate(() => document.querySelector(".qq-view3d").$view3d.builds);
+      const before = await builds();
+      await set(page, () => (window.objects.skin.joints = [window.objects.skin.joints[0], window.objects.joint]));
+      expect(await builds()).toBe(before + 1);
     });
 
     test("a model given another parent among many is drawn where that one puts it", async ({ page }) => {
