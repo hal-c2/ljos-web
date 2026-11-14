@@ -367,8 +367,9 @@ const drawsInSpace = (code) =>
   SPACE_NAMED.test(code) ||
   [...code.matchAll(SPACE_MODULE)].some(([, name]) => new RegExp(`(?<![\\w$.])${name.replaceAll("$", "\\$")}\\.(?:${SPACE_TYPES})\\b`).test(code));
 // Where a compiled document's component begins, which is run each time one
-// is made.
-const MADE = /^export default function [A-Za-z_$][\w$]*\([^)]*\) \{$/m;
+// is made: a document's, or a singleton's (`function Name$component(`,
+// exported apart as what makes it once).
+const MADE = /^(?:export default function [A-Za-z_$][\w$]*|function [A-Za-z_$][\w$]*\$component)\([^)]*\) \{$/m;
 // Such a document asks for the wgpu renderer first thing as one is made,
 // before its first view is (`QtQuick3D/early.js`); on the JavaScript
 // renderer it asks nothing. As it is made, not as its module is run: an
@@ -377,10 +378,16 @@ const MADE = /^export default function [A-Za-z_$][\w$]*\([^)]*\) \{$/m;
 // default (the dev server, a build for wgpu) the renderer's address comes
 // with the ask; a build for the JavaScript renderer holds it apart, so no
 // page names the renderer in what it loads first (`early-held.js`).
-const askingEarly = (code, atOnce) =>
-  drawsInSpace(code) && MADE.test(code)
-    ? `import { early as $$early3d } from "ljos-web/${atOnce ? "early3d" : "early3d-held"}";\n${code.replace(MADE, (start) => `${start}\n\t$$early3d();`)}`
-    : code;
+// A document that draws in space and has no such start is said: its view
+// still draws, fetching the renderer itself, but the ask is lost.
+function askingEarly(code, atOnce, warn) {
+  if (!drawsInSpace(code)) return code;
+  if (!MADE.test(code)) {
+    warn("draws in space, but where its component begins is not known, so it does not ask for the wgpu renderer early");
+    return code;
+  }
+  return `import { early as $$early3d } from "ljos-web/${atOnce ? "early3d" : "early3d-held"}";\n${code.replace(MADE, (start) => `${start}\n\t$$early3d();`)}`;
+}
 
 // The compiler as what is run from anywhere: it is run from other directories,
 // where a path the caller gave would mean something else. A bare name is left
@@ -956,7 +963,7 @@ export default function qml({
       if (result.error) this.error(`could not run ${qmlc}: ${result.error.message}`);
       if (result.status !== 0) this.error(result.stderr.trim());
       // Kept with its ask, so what is kept of Qt's own QML asks too.
-      let code = askingEarly(result.stdout, wgpuAtOnce);
+      let code = askingEarly(result.stdout, wgpuAtOnce, (message) => this.warn(`${relative(base, file)}: ${message}`));
       if (own) compiled.set(file, code);
       const component = !own && /^export default (?:function\s+|class\s+)?([A-Za-z_$][\w$]*)/m.exec(code)?.[1];
       if (!component) return { code, map: null };

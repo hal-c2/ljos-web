@@ -797,6 +797,20 @@ test("a page that holds a document drawing in space, and does not make it, fetch
   expect(fetched.filter((url) => WASM.test(url))).toEqual([]);
 });
 
+// qmlc starts a singleton's component as `function Name$component(`, not
+// as a document's `export default function Name(`. Its own View3D fetches
+// the renderer as it is made either way, so what is read is what the
+// server compiled.
+test("a singleton that draws in space asks for the renderer first thing as it is made", async ({ page }) => {
+  await page.goto("/?scene=wgpu_singleton&view3d=wgpu");
+  await page.waitForFunction(() => window.ready);
+  const compiled = await page.evaluate(async () => {
+    const entry = performance.getEntriesByType("resource").find(({ name }) => /\/Space3D\.qml(?:\?|$)/.test(name));
+    return entry ? (await fetch(entry.name)).text() : null;
+  });
+  expect(compiled).toMatch(/function Space3D\$component\(\$props\)\s*\{\s*\$\$early3d\(\);/);
+});
+
 test("a page whose View3D is in a document inside its own, on wgpu, asks for the renderer before its first view is made", async ({ page }) => {
   await page.addInitScript(MARK_FIRST_VIEW);
   await page.goto("/?scene=wgpu_nested&view3d=wgpu");
