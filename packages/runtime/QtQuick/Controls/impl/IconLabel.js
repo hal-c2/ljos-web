@@ -255,3 +255,9 @@ export const IconLabel = defineType("IconLabel", Item, {
     );
   },
 });
+
+// MenuItemIconLabel (Qt 6.12): the IconLabel in a menu item, told which item
+// it is in. Measured under qml6 6.12, being told changes nothing it shows.
+export const MenuItemIconLabel = defineType("MenuItemIconLabel", IconLabel, {
+  properties: { menuItem: null },
+});

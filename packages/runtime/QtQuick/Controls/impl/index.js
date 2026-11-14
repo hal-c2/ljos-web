@@ -1,6 +1,6 @@
 // `import QtQuick.Controls.impl`: what the styles' QML is written with.
 export { Color } from "./Color.js";
-export { IconLabel } from "./IconLabel.js";
+export { IconLabel, MenuItemIconLabel } from "./IconLabel.js";
 export { ColorImage, IconImage } from "./images.js";
 export { ItemGroup } from "./ItemGroup.js";
 export { NinePatchImage } from "./NinePatchImage.js";
