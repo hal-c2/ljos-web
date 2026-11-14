@@ -12,10 +12,13 @@
 //   --files  each page's files by name under its line
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { gzipSync } from "node:zlib";
 
 const ASSET = /\.(?:js|mjs|css|wasm)$/;
 
+// Read once per report: a later report of a dist built again reads
+// its files afresh.
 const gzipped = new Map();
 function sized(file) {
   if (!gzipped.has(file)) {
@@ -117,6 +120,8 @@ function summed(files, dist) {
 export function pageReport(dist, { base = "/" } = {}) {
   dist = resolve(dist);
   site = { dist, base: base.endsWith("/") ? base : `${base}/` };
+  gzipped.clear();
+  edges.clear();
   return pagesUnder(dist).map(({ route, file }) => {
     const first = closure(htmlAssets(file));
     // Everything reachable later, through any number of dynamic imports.
@@ -146,7 +151,7 @@ export function pageTable(report, { files = false } = {}) {
   return lines.join("\n");
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const [dist, ...flags] = process.argv.slice(2);
   if (!dist) {
     console.error("usage: node size/pages.js <site dist> [--base /path/] [--json] [--files]");

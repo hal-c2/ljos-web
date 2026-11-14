@@ -29,8 +29,11 @@ test("the report reads every page the build wrote", () => {
   for (const { route, first } of report) expect(first.js.count, `${route} loads its script`).toBeGreaterThan(0);
 });
 
-// What only an edit, a 3D physics scene or a database needs.
-test("no page's first load holds the editor, the compiler, PhysX or sql.js", () => {
+// What only an edit, a 3D physics scene or a database needs, in what
+// the build makes every page load: its HTML's files and their static
+// imports. A page's script may still import these at once as it runs;
+// what a visit asks for is pinned in a browser.
+test("no page's static first load holds the editor, the compiler, PhysX or sql.js", () => {
   expect(reaching(["attach-", "ljos_web_compiler", "physx-", "sql-wasm"])).toEqual({});
   const wasm = report.filter(({ first }) => first.wasm.count > 0).map(({ route, first }) => `${route}: ${first.files.filter((entry) => entry.file.endsWith(".wasm")).map((entry) => entry.file)}`);
   expect(wasm).toEqual([]);
