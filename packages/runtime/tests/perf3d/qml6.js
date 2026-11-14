@@ -41,8 +41,12 @@ function run(file, { warm, seconds, picture }) {
     qml6 "$1" 2> "$2.log" &
     pid=$!
     cpu() { awk '{ print $14 + $15 }' /proc/$pid/stat; }
+    # qml6 gone before it was measured (a QML error, say) is a failed run,
+    # not one of no frames.
+    alive() { kill -0 $pid 2> /dev/null || { echo "qml6 exited while $1; its log: $2.log" >&2; exit 3; }; }
     sleep ${warm}
-    a=$(cpu); sleep ${seconds}; b=$(cpu)
+    alive "warming up" "$2"
+    a=$(cpu); sleep ${seconds}; alive "measured" "$2"; b=$(cpu)
     rss=$(awk '/VmRSS/ { print $2 }' /proc/$pid/status)
     if [ -n "\${3:-}" ]; then
       for socket in "$XDG_RUNTIME_DIR"/wayland-*; do [ -S "$socket" ] && break; done
@@ -55,7 +59,9 @@ function run(file, { warm, seconds, picture }) {
   // Paths go in as arguments, never into the script's text.
   const done = spawnSync(RUN[0], [...RUN.slice(1), "bash", "-c", script, "qml6", file, base, picture ?? ""], { encoding: "utf8" });
   if (done.status !== 0) throw new Error(`qml6 ${file}: ${done.stderr}`);
-  const [a, b, rss, tick] = done.stdout.trim().split("\n").pop().split(" ").map(Number);
+  const said = done.stdout.trim().split("\n").pop().split(" ").map(Number);
+  const [a, b, rss, tick] = said;
+  if (said.length !== 4 || !said.every(Number.isFinite) || b < a || tick <= 0) throw new Error(`qml6 ${file}: no measurement in ${JSON.stringify(done.stdout)}`);
   return { log: readFileSync(`${base}.log`, "utf8"), cpu: (b - a) / tick, rss: rss * 1024 };
 }
 
@@ -84,6 +90,7 @@ function measure(name) {
   // The window floats on a black screen at the size it asked for.
   if (existsSync(picture)) spawnSync("magick", [picture, "-trim", "+repage", picture]);
   const all = frames(log);
+  if (!all.length) throw new Error(`qml6 ${name}: no frame was logged (${join(OUT, `qml6-${name}.log`)})`);
   // The first frame that drew anything: the 3D scene's first, as Quick3D
   // makes its pipelines in it.
   const first = all.find(({ render }) => render > 0) ?? all[1];
