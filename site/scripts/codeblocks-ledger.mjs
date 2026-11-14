@@ -49,6 +49,22 @@ export function exampleKeys(page, fences, examples) {
 }
 
 /**
+ * Each example's names everywhere it stands, by `hash(example)`
+ * (`hashExample`). A build makes one example on two pages once, and
+ * tells of whichever copy it made, so what the ledger is asked of it is
+ * every place it stands, not the copy's page.
+ */
+export function keysByHash(onPages, hash) {
+  const keys = new Map();
+  for (const { page, fences, examples } of onPages)
+    for (const { example, key } of exampleKeys(page, fences, examples)) {
+      const at = hash(example);
+      keys.set(at, [...(keys.get(at) ?? []), key]);
+    }
+  return keys;
+}
+
+/**
  * One page's examples as the report holds them. `outcome(example)`
  * says `live`, `not compiling` or `not running`, with the diagnostics.
  */

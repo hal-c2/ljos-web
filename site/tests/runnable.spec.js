@@ -8,7 +8,7 @@ import { hashExample } from "ljos-web/codeblocks";
 import { assemble, parseMeta } from "ljos-web/codeblocks/parse";
 import { liveCodeBlocks } from "ljos-web/codeblocks/remark";
 import { holdPlain } from "../scripts/codeblocks-held.mjs";
-import { exampleKeys, listedEverywhere, readLedger, unmarked } from "../scripts/codeblocks-ledger.mjs";
+import { exampleKeys, keysByHash, listedEverywhere, readLedger, unmarked } from "../scripts/codeblocks-ledger.mjs";
 
 const REPORT = ".codeblock-prerenders/report.json";
 
@@ -55,6 +55,22 @@ test.describe("an example the ledger lists may stand plain", () => {
     expect(listedEverywhere(["language/controllers.md 1", "start/index.md 2"], ledger)).toBe(false);
     expect(listedEverywhere(["language/controllers.md 3"], ledger)).toBe(false);
     expect(listedEverywhere([], ledger)).toBe(false);
+  });
+
+  // A build makes an example once however many pages show it, and is
+  // told of it once: every place it stands is its, whichever copy it
+  // was told of.
+  test("on two pages by its names on both, whichever page's copy is asked of", () => {
+    const one = [{ lang: "qml", code: "Item {}" }];
+    const two = [{ lang: "markdown" }, { lang: "qml", code: "Item {}" }];
+    const pages = [
+      { page: "language/controllers.md", fences: one, examples: [{ blocks: [one[0]] }] },
+      { page: "start/index.md", fences: two, examples: [{ blocks: [two[1]] }] },
+    ];
+    const hash = (example) => example.blocks.map((block) => block.code).join("\n");
+    const keys = keysByHash(pages, hash);
+    expect([...keys]).toEqual([["Item {}", ["language/controllers.md 1", "start/index.md 1"]]]);
+    for (const { examples } of pages) expect(listedEverywhere(keys.get(hash(examples[0])), ledger)).toBe(false);
   });
 });
 

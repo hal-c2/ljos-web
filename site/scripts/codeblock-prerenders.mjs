@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 import { checkExamples, hashExample, loadHarnesses, renderPrerenders } from "ljos-web/codeblocks";
 import { assemble, extractBlocks, tagged } from "ljos-web/codeblocks/parse";
 import { writeHeld } from "./codeblocks-held.mjs";
-import { exampleKeys, listedEverywhere, pageRecords, readLedger } from "./codeblocks-ledger.mjs";
+import { keysByHash, listedEverywhere, pageRecords, readLedger } from "./codeblocks-ledger.mjs";
 
 const siteRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const candidates = [
@@ -55,12 +55,7 @@ const claimed = (example) => strict || example.blocks.some(tagged);
 // docs' own word, so it does not stop the build; the suite holds the
 // report to the ledger. Every other claim to run is kept.
 const ledger = readLedger();
-const keysOf = new Map();
-for (const { page, fences, examples: shown } of onPages)
-  for (const { example, key } of exampleKeys(page, fences, shown)) {
-    const hash = hashExample(example);
-    keysOf.set(hash, [...(keysOf.get(hash) ?? []), key]);
-  }
+const keysOf = keysByHash(onPages, hashExample);
 const mustRun = (example) => claimed(example) && !listedEverywhere(keysOf.get(hashExample(example)) ?? [], ledger);
 // Named as the ledger names it, so what cannot run on the web yet can
 // be listed there with why.
