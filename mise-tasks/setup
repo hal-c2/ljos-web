@@ -51,8 +51,9 @@ fi
 if ! pkg-config --exists fontconfig 2>/dev/null; then
   skipped+=("fontconfig's headers not found (pkg-config fontconfig): test:wasm-counter and test:wasm-gauge build a desktop app with them (install libfontconfig1-dev or fontconfig-devel)")
 fi
+# Where site/scripts/sync-docs.mjs looks, from the repository's root.
 docs=""
-for candidate in "${LJOS_DOCS_DIR:-}" ../ljos-ui/docs/site ../../ljos-ui/docs/site "$HOME/dev/ljos-ui/docs/site"; do
+for candidate in "${LJOS_DOCS_DIR:-}" ljos-ui/docs/site ../ljos-ui/docs/site "$HOME/dev/ljos-ui/docs/site"; do
   if [ -n "$candidate" ] && [ -d "$candidate" ]; then docs=$candidate; break; fi
 done
 if [ -z "$docs" ]; then
