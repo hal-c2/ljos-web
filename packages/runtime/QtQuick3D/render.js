@@ -1878,8 +1878,6 @@ function part(piece) {
   }
   shining = own.shining;
   handed(own, custom.uniforms);
-  // What it is handed may be under a name the material's own is said by.
-  worn = null;
   if (custom.blend) {
     gl.enable(gl.BLEND);
     gl.blendFuncSeparate(...custom.blend.map((factor) => FACTORS[factor]));

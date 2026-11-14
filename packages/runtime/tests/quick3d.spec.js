@@ -492,6 +492,21 @@ test("a picture of everything round a scene is seen behind it", async ({ page })
   }
 });
 
+test("a picture that lights the scene is read by a material as the material says", async ({ page }) => {
+  await open(page, "probemap3d");
+  // The picture is repeated across, twice, and read from its nearest texel,
+  // though the light it gives is folded from it read between texels and to
+  // its edges. Each band of it twice over, and a place by a band's edge
+  // where reading between texels would blend two.
+  const bands = [
+    [110, ["255 0 0", "0 255 0", "0 0 255", "255 255 0"]],
+    [150, ["128 128 128", "255 255 255", "0 255 255", "255 0 255"]],
+  ];
+  const points = bands.flatMap(([y, colours]) => [42, 87, 132, 177, 222, 267, 312, 357].map((x, at) => [[x, y], colours[at % 4].split(" ").map(Number)]));
+  points.push([[64, 150], [128, 128, 128]]);
+  near(await painted(page, points), points.map(([, colour]) => colour), "read", 3);
+});
+
 test("a scene is lit by a picture of everything round it", async ({ page }) => {
   await open(page, "probe3d");
   // Of each ball: its middle and four places off it. The cube the picture
