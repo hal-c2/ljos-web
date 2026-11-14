@@ -1981,8 +1981,9 @@ spans) is placed to the pixel as `ljos test` places the same file
 (`tests/fixtures/ljoslayoutrule.json`, ljos-ui c2443e15), and again
 after a child that fills is hidden and shown, after a `Box` turns,
 after a preferred width goes away, after a child that fills moves to
-another parent, and after a row whose child's bound width changed
-measures again.
+another parent, after a row whose child's bound width changed
+measures again, and after the only child of a row with a `Layout`
+leaves, its width changes and it comes back.
 
 `tests/ljosui.spec.js` holds it, on both kernels: each face by its
 dialect names, beside the QtQuick specs, and a whole dialect file

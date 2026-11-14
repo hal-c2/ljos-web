@@ -261,10 +261,20 @@ function measureLine(self, items, vertical, last) {
 // kept while it stays a child, as ljos-ui keeps them: once the arrangement
 // has placed a size, the property holds that, and a binding that gives
 // another later is not asked for until the child comes back.
+const seenOf = (self) => (self.$seen ??= new Map());
+
+// Forgets the children that have left, at every measure, line or plan: one
+// that left while the others were packed as a line comes back asking for
+// the size its file gives it then, as in ljos-ui.
+function forgetLeft(self) {
+  const seen = seenOf(self);
+  if (!seen.size) return;
+  const children = new Set(self.children);
+  for (const child of seen.keys()) if (!children.has(child)) seen.delete(child);
+}
+
 function firstSeen(self, items) {
-  const seen = (self.$seen ??= new Map());
-  const children = self.children;
-  for (const child of seen.keys()) if (!children.includes(child)) seen.delete(child);
+  const seen = seenOf(self);
   return items.map((child) => {
     let first = seen.get(child);
     if (!first) seen.set(child, (first = [stated(child, H), stated(child, V)]));
@@ -438,6 +448,7 @@ function arrangement(name, spec) {
     enums: spec.enums,
     methods: {
       $measure(last) {
+        forgetLeft(this);
         const items = this.children.filter((child) => laidOut(child) && !skipped(child));
         const grid = spec.grid === true;
         const vertical = grid ? false : spec.vertical(this);
