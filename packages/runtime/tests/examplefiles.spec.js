@@ -188,6 +188,27 @@ test.describe("an example's block disposed", () => {
     expect(await page.evaluate(() => window.enclosed())).toEqual({});
     expect(await page.evaluate(() => window.provided())).toEqual([]);
   });
+
+  test("twice while its compile links settles what it was waited on for at the first", async ({ page }) => {
+    let letGo;
+    const held = new Promise((resolve) => (letGo = resolve));
+    let asked = false;
+    await page.route(/\/QtQuick\/Timeline\//, async (route) => {
+      asked = true;
+      await held;
+      await route.continue();
+    });
+    await page.goto("/examplefiles.html");
+    await page.waitForFunction(() => window.ready);
+    await page.evaluate(() => window.mountExample("gated", false));
+    await expect.poll(() => asked, { timeout: 30000 }).toBe(true);
+    await page.evaluate(() => window.disposeTwice("gated"));
+    letGo();
+    await page.evaluate(() => window.idleExample("gated"));
+    // The block's last idle() has settled, so the first one has too, or never will.
+    expect(await page.evaluate(() => window.settledFirst())).toBe(true);
+    expect(await page.evaluate(() => window.enclosed())).toEqual({});
+  });
 });
 
 test.describe("an example's shell reloaded", () => {

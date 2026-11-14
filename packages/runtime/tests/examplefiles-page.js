@@ -37,4 +37,17 @@ window.disposeExample = async (name) => {
 // Disposed now, its compile let alone; `idleExample` waits for it.
 window.disposeNow = (name) => blocks[name].dispose();
 window.idleExample = (name) => blocks[name].idle();
+// Disposed twice, with what `idle()` answered between the two disposes
+// watched; `settledFirst` says whether that one settled.
+window.disposeTwice = (name) => {
+  const block = blocks[name];
+  block.dispose();
+  window.firstSettled = false;
+  block.idle().then(() => (window.firstSettled = true));
+  block.dispose();
+};
+window.settledFirst = async () => {
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  return window.firstSettled;
+};
 window.ready = true;
