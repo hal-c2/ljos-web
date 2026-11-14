@@ -7,6 +7,7 @@ import QtQuick
 Column {
     id: page
     property int count: 0
+    property int followed: 0
     // What a page says as it is made is not the page: none of this may
     // land in the HTML a prerender writes.
     Component.onCompleted: console.log("a page logging <while> it is made")
@@ -54,4 +55,17 @@ Column {
             Text { required property string modelData; text: modelData }
         }
     }
+    // An item that is a link, as a site's nav and calls to action are:
+    // an `a` with its address in the HTML, which a reader with no
+    // script follows; once hydrated, a plain press is the MouseArea's.
+    Item {
+        property string href: "/elsewhere/"
+        width: 160
+        height: 30
+        Accessible.role: Accessible.Link
+        Accessible.name: "Go elsewhere"
+        Text { text: "Go elsewhere" }
+        MouseArea { anchors.fill: parent; onClicked: page.followed++ }
+    }
+    Text { text: "Followed " + page.followed }
 }
