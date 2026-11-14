@@ -2168,7 +2168,11 @@ error names the place in the text that was written, not the lowered one.
   write instead. `match` or `|>` in a `.ts` file is `ts-lts-syntax`, which
   names the rename to `.lts`, or says the `.lts` of that name is in the
   way. `qmlc size.lts` prints the module; `qmlc --out-dir` writes it as
-  `size.lts.js`, and `qmlc --imports` lists what it imports.
+  `size.lts.js`, and `qmlc --imports` lists what it imports. An import
+  keeps the name it was written with (`./size.lts`), as a compiled QML
+  file imports `./Foo.qml` that is written as `Foo.qml.js`: what serves
+  the files (the Vite plugin, the page's linker) maps the one to the
+  other.
 - **No `Qt` global in `import Ljos.Ui` code.** In a file that imports
   `Ljos.Ui`, `Qt` is error `qt-global`, spanning the name, and the message
   says where the member went (`Qt.rgba` → `rgba` of `Ljos.Core`, a
