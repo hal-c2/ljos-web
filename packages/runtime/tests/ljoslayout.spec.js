@@ -230,3 +230,40 @@ test("a child a layout sized keeps that size in a positioner, also once its cont
   });
   expect((await at("alAItem"))[1]).toBe(41);
 });
+
+// As in ljos-ui, where an author's write replaces the size a box wrote and
+// the box asks for it after, and as before a layout gave content-sized
+// children their sizes.
+test("a width the author gives a child a layout sized from its content is the one it asks for", async ({ page }) => {
+  await open(page, "ljoslayoutrule");
+  const at = (name) => page.evaluate((name) => [window.scene[name].x, window.scene[name].width], name);
+  const run = (f) => page.evaluate(f);
+  await run(() => {
+    window.scene.akAItem.width = 50;
+    window.flush();
+  });
+  expect(await at("akAItem")).toEqual([0, 50]);
+  expect((await dump(page)).akB[0]).toBe(50);
+  await run(() => {
+    window.scene.akRowItem.content = 30.25;
+    window.flush();
+  });
+  expect(await at("akAItem")).toEqual([0, 50]);
+  await run(() => {
+    window.scene.akAItem.width = 60;
+    window.flush();
+  });
+  expect((await dump(page)).akB[0]).toBe(60);
+  // In a positioner, over the width the layout it came from gave it.
+  await run(() => {
+    window.scene.alAItem.parent = window.scene.alPosItem;
+    window.flush();
+  });
+  expect(await at("alAItem")).toEqual([10, 21]);
+  await run(() => {
+    window.scene.alAItem.width = 40;
+    window.flush();
+  });
+  expect(await at("alAItem")).toEqual([10, 40]);
+  expect((await at("alPosItem"))[1]).toBe(50);
+});
