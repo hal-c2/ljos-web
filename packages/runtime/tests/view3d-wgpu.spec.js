@@ -73,6 +73,34 @@ const CLEAR = [0x20, 0x20, 0x20];
 // follows: what is read of one model, never what is read of sixty.
 const MODEL_READS = 40;
 
+// The renderer's wasm itself, and not the module that says its address,
+// which a dev server serves under the same name.
+const WASM = /ljos_web_3d_bg[^/?]*\.wasm$/;
+
+// When the first view is put in its item, taken as it is: not as an
+// observer of the page is told, a microtask later, by when an ask made in
+// the same task would already have started.
+const MARK_FIRST_VIEW = () => {
+  window.viewMade = null;
+  const mark = (nodes) => {
+    if (window.viewMade !== null) return;
+    if (nodes.some((node) => node instanceof Element && node.classList.contains("qq-view3d"))) window.viewMade = performance.now();
+  };
+  for (const [kind, name] of [[Element, "append"], [Element, "prepend"], [Node, "appendChild"], [Node, "insertBefore"]]) {
+    const put = kind.prototype[name];
+    kind.prototype[name] = function (...nodes) {
+      mark(nodes);
+      return put.apply(this, nodes);
+    };
+  }
+};
+// That moment, and when the first of what `asked` matches was asked for,
+// once it has arrived: a resource is timed only then.
+async function madeAndAsked(page, asked) {
+  const at = await page.waitForFunction((source) => performance.getEntriesByType("resource").find(({ name }) => new RegExp(source).test(name))?.startTime, asked.source);
+  return { made: await page.evaluate(() => window.viewMade), asked: await at.jsonValue() };
+}
+
 for (const backend of ["webgpu", "webgl2"]) {
   test.describe(backend, () => {
     async function show(page, scene) {
@@ -473,8 +501,9 @@ for (const backend of ["webgpu", "webgl2"]) {
     test.describe("a chunk that did not arrive", () => {
       test.use({ told: [/View3D: |net::ERR_FAILED/] });
       test("is asked for again by the next view, which draws", async ({ page }) => {
-        let refusals = 1;
-        await page.route(/ljos_web_3d_bg/, (route) => (refusals-- > 0 ? route.abort() : route.fallback()));
+        // The page's own ask, before its first view, and the first view's.
+        let refusals = 2;
+        await page.route(WASM, (route) => (refusals-- > 0 ? route.abort() : route.fallback()));
         if (backend === "webgl2") await page.addInitScript(HIDDEN);
         await page.goto("/?scene=wgpu_two&view3d=wgpu");
         await page.waitForFunction(() => window.ready);
@@ -483,6 +512,24 @@ for (const backend of ["webgpu", "webgl2"]) {
         const failed = (await states()).filter(({ error }) => error);
         expect(failed.length).toBe(1);
         expect(failed[0].error).not.toMatch(/undefined|not a function|Cannot read/);
+      });
+    });
+
+    test.describe("a chunk that did not arrive while the page loaded", () => {
+      test.use({ told: [/net::ERR_FAILED/] });
+      test("is asked for again by the first view, and every view draws", async ({ page }) => {
+        let refusals = 1;
+        await page.route(WASM, (route) => (refusals-- > 0 ? route.abort() : route.fallback()));
+        if (backend === "webgl2") await page.addInitScript(HIDDEN);
+        await page.goto("/?scene=wgpu_two&view3d=wgpu");
+        await page.waitForFunction(() => window.ready);
+        const states = () => page.evaluate(() => [...document.querySelectorAll(".qq-view3d")].map(({ $view3d: { error, frames } }) => ({ error, drew: frames > 0 })));
+        // Each view as it stands, so a view that never draws says why: its
+        // error, or that it still waits. Two first frames, each after the
+        // renderer's compile, take longer than a poll's default on a busy
+        // machine.
+        const said = async () => (await states()).map(({ error, drew }) => error ?? (drew ? "drew" : "waiting"));
+        await expect.poll(said, { timeout: 20_000 }).toEqual(["drew", "drew"]);
       });
     });
 
@@ -708,5 +755,131 @@ test("a page with a View3D on the JavaScript renderer fetches none of the wgpu o
   await page.goto("/?scene=shaded3d");
   await page.waitForFunction(() => window.ready);
   await page.waitForTimeout(100);
-  expect(fetched.filter((url) => /ljos_web_3d/.test(url))).toEqual([]);
+  // A dev server serves the wasm's address as a module of its own, which is
+  // a string and none of the renderer; a build writes it into the page's.
+  expect(fetched.filter((url) => /ljos_web_3d/.test(url) && !/\.wasm\?import&url$/.test(url))).toEqual([]);
+});
+
+test("a page whose View3D draws on wgpu asks for the renderer before its first view is made", async ({ page }) => {
+  await page.addInitScript(MARK_FIRST_VIEW);
+  await page.goto("/?scene=wgpu_two&view3d=wgpu");
+  await page.waitForFunction(() => window.ready);
+  await page.waitForFunction(() => {
+    const views = [...document.querySelectorAll(".qq-view3d")];
+    return views.length === 2 && views.every(({ $view3d }) => $view3d.frames > 0);
+  });
+  const { made, asked } = await madeAndAsked(page, WASM);
+  expect(made).not.toBeNull();
+  expect(asked).toBeLessThan(made);
+});
+
+test("the first view's moment is when it is put in, so an ask in the same task after it comes after it", async ({ page }) => {
+  await page.addInitScript(MARK_FIRST_VIEW);
+  await page.goto("/?scene=rectangle");
+  await page.waitForFunction(() => window.ready);
+  await page.evaluate(async () => {
+    const canvas = document.createElement("canvas");
+    canvas.className = "qq-view3d";
+    document.body.append(canvas);
+    await fetch("/?asked=after");
+  });
+  const { made, asked } = await madeAndAsked(page, /\?asked=after$/);
+  expect(made).not.toBeNull();
+  expect(asked).toBeGreaterThanOrEqual(made);
+});
+
+test("a page that holds a document drawing in space, and does not make it, fetches none of the renderer on wgpu", async ({ page }) => {
+  const fetched = [];
+  page.on("request", (request) => fetched.push(request.url()));
+  await page.goto("/?scene=wgpu_held&view3d=wgpu");
+  await page.waitForFunction(() => window.ready);
+  await page.waitForTimeout(100);
+  expect(fetched.filter((url) => WASM.test(url))).toEqual([]);
+});
+
+// qmlc starts a singleton's component as `function Name$component(`, not
+// as a document's `export default function Name(`. Its own View3D fetches
+// the renderer as it is made either way, so what is read is what the
+// server compiled.
+test("a singleton that draws in space asks for the renderer first thing as it is made", async ({ page }) => {
+  await page.goto("/?scene=wgpu_singleton&view3d=wgpu");
+  await page.waitForFunction(() => window.ready);
+  const compiled = await page.evaluate(async () => {
+    const entry = performance.getEntriesByType("resource").find(({ name }) => /\/Space3D\.qml(?:\?|$)/.test(name));
+    return entry ? (await fetch(entry.name)).text() : null;
+  });
+  expect(compiled).toMatch(/function Space3D\$component\(\$props\)\s*\{\s*\$\$early3d\(\);/);
+});
+
+test("a page whose View3D is in a document inside its own, on wgpu, asks for the renderer before its first view is made", async ({ page }) => {
+  await page.addInitScript(MARK_FIRST_VIEW);
+  await page.goto("/?scene=wgpu_nested&view3d=wgpu");
+  await page.waitForFunction(() => window.ready);
+  await page.waitForFunction(() => document.querySelector(".qq-view3d")?.$view3d?.frames > 0);
+  const { made, asked } = await madeAndAsked(page, WASM);
+  expect(made).not.toBeNull();
+  expect(asked).toBeLessThan(made);
+});
+
+test("a page that names View3D through its module's name, on wgpu, asks for the renderer before its first view is made", async ({ page }) => {
+  await page.addInitScript(MARK_FIRST_VIEW);
+  await page.goto("/?scene=wgpu_named&view3d=wgpu");
+  await page.waitForFunction(() => window.ready);
+  await page.waitForFunction(() => document.querySelector(".qq-view3d")?.$view3d?.frames > 0);
+  const { made, asked } = await madeAndAsked(page, WASM);
+  expect(made).not.toBeNull();
+  expect(asked).toBeLessThan(made);
+});
+
+test("a page whose View3D draws on wgpu fetches the renderer once, however late the page's own ask arrives", async ({ page }) => {
+  // The first view's chunk is there before the page's own ask has compiled,
+  // so it is the first view that waits for that ask and not one of its own.
+  let asked = 0;
+  await page.route(WASM, async (route) => {
+    asked += 1;
+    if (asked === 1) await new Promise((arrived) => setTimeout(arrived, 1500));
+    await route.fallback();
+  });
+  await page.goto("/?scene=wgpu_two&view3d=wgpu");
+  await page.waitForFunction(() => window.ready);
+  await page.waitForFunction(() => {
+    const views = [...document.querySelectorAll(".qq-view3d")];
+    return views.length === 2 && views.every(({ $view3d }) => $view3d.frames > 0);
+  });
+  expect(asked).toBe(1);
+});
+
+test("a page of graphs in the plane on wgpu fetches none of the renderer, though its module has the 3D graphs", async ({ page }) => {
+  const fetched = [];
+  page.on("request", (request) => fetched.push(request.url()));
+  await page.goto("/?scene=graphbars&view3d=wgpu");
+  await page.waitForFunction(() => window.ready);
+  await page.waitForTimeout(100);
+  expect(fetched.filter((url) => WASM.test(url))).toEqual([]);
+});
+
+test("a page of graphs in space on wgpu asks for the renderer before its first graph is made", async ({ page }) => {
+  await page.addInitScript(MARK_FIRST_VIEW);
+  await page.goto("/?scene=graph3dbars&view3d=wgpu");
+  await page.waitForFunction(() => window.ready);
+  await page.waitForFunction(() => [...document.querySelectorAll(".qq-view3d")].some(({ $view3d }) => $view3d?.frames > 0));
+  const { made, asked } = await madeAndAsked(page, WASM);
+  expect(made).not.toBeNull();
+  expect(asked).toBeLessThan(made);
+});
+
+test("a page whose View3D draws on wgpu fetches the renderer once, though a server says it is not wasm", async ({ page }) => {
+  let asked = 0;
+  await page.route(WASM, async (route) => {
+    asked += 1;
+    const response = await route.fetch();
+    await route.fulfill({ response, headers: { ...response.headers(), "content-type": "application/octet-stream" } });
+  });
+  await page.goto("/?scene=wgpu_two&view3d=wgpu");
+  await page.waitForFunction(() => window.ready);
+  await page.waitForFunction(() => {
+    const views = [...document.querySelectorAll(".qq-view3d")];
+    return views.length === 2 && views.every(({ $view3d }) => $view3d.frames > 0);
+  });
+  expect(asked).toBe(1);
 });

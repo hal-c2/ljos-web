@@ -14,18 +14,15 @@ import { createRenderEffect, createRoot, getOwner, runWithOwner } from "solid-js
 import { flush, located, slot, effect } from "../object.js";
 import { color } from "../QtQuick/color.js";
 import { guardedFetch } from "../guard.js";
+import { made } from "./early.js";
 import { signal, untrack } from "#kernel";
 import { CustomMaterial } from "./CustomMaterial.js";
 import { handed, text } from "./effects.js";
 import { inside } from "./Node.js";
 import { Format } from "./TextureData.js";
 
-const asked = new URLSearchParams(globalThis.location?.search ?? "").get("view3d");
-
-// DECISION: which renderer a View3D has, until `render.js` goes: the page's
-// `?view3d=`, else what the build said (`VITE_LJOS_VIEW3D`), else the
-// JavaScript one, as long as that alone passes all of `quick3d.spec.js`.
-export const renderer = () => asked ?? import.meta.env?.VITE_LJOS_VIEW3D ?? "js";
+// Which renderer a View3D has is said where the page asks for it early.
+export { renderer } from "./early.js";
 
 // A glob, as an import of a file a build of JavaScript alone has not got
 // would fail, for the renderer it does not ask for.
@@ -41,7 +38,9 @@ async function chunk() {
   ({ drawnModels } = await import("./Particles3D/drawn.js"));
   // Kept only once it works: a next view asks again after a failed fetch.
   const loaded = await load();
-  ({ memory } = await loaded.default());
+  // What the page compiled as it loaded, so the wasm is fetched once.
+  const compiled = await made();
+  ({ memory } = await loaded.default(compiled && { module_or_path: compiled }));
   NAMES = loaded.propNames();
   module = loaded;
 }
