@@ -177,26 +177,52 @@ jobs:
           path: ~/.cache/ms-playwright
           key: ${{ steps.browsers.outputs.cache-primary-key }}
       # The code blocks' prerenders and pictures, kept between runs.
-      # Each entry names the compiler, runtime and lockfile that made
-      # it (prerenderStamp), and one made by others is made again, so
-      # an older run's cache is only ever a head start: what the build
-      # embeds is what a build from nothing would. The pictures are
-      # drawn with the runner's fonts, so a runner image of its own
-      # starts from nothing. The key moves with everything a block
-      # can be made from, so a run that made nothing new saves nothing.
+      # Each entry names the compiler, runtime, lockfile and kernel that
+      # made it (prerenderStamp), and one made by others is made again,
+      # so an older run's cache is only ever a head start: what the
+      # build embeds is what a build from nothing would. The pictures
+      # are drawn with the runner's fonts, so a runner image of its own
+      # starts from nothing. The key moves with everything a block can
+      # be made from, so a run that made nothing new saves nothing.
+      # Three caches, each saved right after the build that fills it,
+      # so a failure after it never loses it: the Astro site's
+      # prerenders, the Ljós site's pictures on the default kernel, and
+      # its prerenders and pictures on the wasm kernel. (No key is a
+      # prefix of another's, so no restore-keys answers for another.)
       - id: image
-        run: echo "name=$ImageOS-$ImageVersion" >> "$GITHUB_OUTPUT"
-      - id: prerenders
+        env:
+          INPUTS: ${{ hashFiles('packages/runtime/**', 'crates/**', 'vendor/**', 'Cargo.lock', 'pnpm-lock.yaml', 'site/ljos-ui.sha', 'site/tests/fixtures/**', '!**/node_modules/**') }}
+        run: |
+          echo "name=$ImageOS-$ImageVersion" >> "$GITHUB_OUTPUT"
+          echo "inputs=$INPUTS" >> "$GITHUB_OUTPUT"
+      - id: astro-prerenders
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: site/.codeblock-prerenders
+          key: codeblocks-astro-${{ steps.image.outputs.name }}-${{ steps.image.outputs.inputs }}
+          restore-keys: codeblocks-astro-${{ steps.image.outputs.name }}-
+      - id: ljos-prerenders
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
-            site/.codeblock-prerenders
             site-ljos/.codeblock-prerenders
-          key: codeblock-prerenders-${{ steps.image.outputs.name }}-${{ hashFiles('packages/runtime/**', 'crates/**', 'vendor/**', 'Cargo.lock', 'pnpm-lock.yaml', 'site/ljos-ui.sha', 'site/tests/fixtures/**', '!**/node_modules/**') }}
-          restore-keys: codeblock-prerenders-${{ steps.image.outputs.name }}-
+            !site-ljos/.codeblock-prerenders/wasm
+          key: codeblocks-ljos-${{ steps.image.outputs.name }}-${{ steps.image.outputs.inputs }}
+          restore-keys: codeblocks-ljos-${{ steps.image.outputs.name }}-
+      - id: wasm-prerenders
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: site-ljos/.codeblock-prerenders/wasm
+          key: codeblocks-wasm-ljos-${{ steps.image.outputs.name }}-${{ steps.image.outputs.inputs }}
+          restore-keys: codeblocks-wasm-ljos-${{ steps.image.outputs.name }}-
       # Prerenders each live block (and fails on one that claims to
       # run and does not) before the build embeds them.
       - run: pnpm --filter ljos-site codeblock-prerenders
+      - if: steps.astro-prerenders.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: site/.codeblock-prerenders
+          key: ${{ steps.astro-prerenders.outputs.cache-primary-key }}
       # Starlight runs Pagefind through a shell (DEP0190): its warning,
       # not ours, and one this build cannot act on.
       - run: pnpm --filter ljos-site build
@@ -241,17 +267,15 @@ jobs:
         env:
           QMLC: ${{ github.workspace }}/target/debug/qmlc
           LJOS_SITE_BASE: /
-      # Saved once both sites have made what they make (the pictures
-      # are this build's), before any of their tests can fail the job
-      # and lose it. A step that failed before here saves nothing: a
-      # key is never saved twice, so it must not be saved half-made.
-      - if: steps.prerenders.outputs.cache-hit != 'true'
+      # A step that failed before here saves nothing: a key is never
+      # saved twice, so it must not be saved half-made.
+      - if: steps.ljos-prerenders.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
-            site/.codeblock-prerenders
             site-ljos/.codeblock-prerenders
-          key: ${{ steps.prerenders.outputs.cache-primary-key }}
+            !site-ljos/.codeblock-prerenders/wasm
+          key: ${{ steps.ljos-prerenders.outputs.cache-primary-key }}
       - run: pnpm --filter ljos-site-ljos test
         env:
           LJOS_SITE_BASE: /
@@ -269,6 +293,11 @@ jobs:
           QMLC: ${{ github.workspace }}/target/debug/qmlc
           LJOS_SITE_BASE: /
           LJOS_KERNEL: wasm
+      - if: steps.wasm-prerenders.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: site-ljos/.codeblock-prerenders/wasm
+          key: ${{ steps.wasm-prerenders.outputs.cache-primary-key }}
       - run: pnpm --filter ljos-site-ljos test:e2e
         env:
           LJOS_SITE_BASE: /
