@@ -273,6 +273,40 @@ Column {
         }
     }
 
+    // How the project means to work together.
+    Column {
+        width: parent.width
+        topPadding: Theme.xxxl
+        spacing: Theme.m
+
+        Text {
+            width: parent.width
+            text: "Built together"
+            color: Theme.text
+            font.family: Theme.sans
+            font.pixelSize: landing.wide ? Theme.headlineSize + 4 : Theme.headlineSize - 2
+            font.weight: Font.Bold
+            lineHeightMode: Text.FixedHeight
+            lineHeight: landing.wide ? Theme.headlineLine + 4 : Theme.headlineLine - 4
+            wrapMode: Text.Wrap
+            readonly property int headingLevel: 2
+            Accessible.role: Accessible.Heading
+        }
+        Text {
+            width: Math.min(parent.width, Theme.measure)
+            textFormat: Text.RichText
+            color: Theme.textMuted
+            linkColor: Theme.link
+            font.family: Theme.sans
+            font.pixelSize: Theme.bodySize
+            lineHeightMode: Text.FixedHeight
+            lineHeight: Theme.bodyLine
+            wrapMode: Text.Wrap
+            text: "Ljós strives to follow the <a href=\"https://community-software.org/\">Community Software</a> principles: we build it together, as peers, in the open.<br><br>Everyone is welcome.<br>We are peers.<br>Every contribution counts.<br>Influence grows from participation.<br>Be kind to people, rigorous with ideas.<br>“No” and “not yet” are valid answers.<br>Look after yourself and each other.<br><br>Code is one way to help. Testing, writing docs, design, translation and accessibility reviews count just as much, and questions from newcomers are welcome."
+            onLinkActivated: (link) => landing.follow(link)
+        }
+    }
+
     // Where to read next.
     Column {
         width: parent.width
