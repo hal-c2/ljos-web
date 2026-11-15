@@ -13,8 +13,10 @@ function near(actual, expected, path = "", within = 0.006) {
 }
 
 // What these draw is folded from a picture of everything round the scene,
-// which takes software GL 15–26 s on four CPUs: past the test's 30 s on
-// CI's runner, which has no GPU. CI leaves them out by this tag.
+// which takes software GL 15–26 s on four CPUs: past the 30 s a test is
+// given beside the others on CI's runner, which has no GPU. CI runs
+// them by this tag as a step of their own, after the others, one at a time,
+// each given 120 s (--grep @surroundings --workers=1 --timeout=120000).
 const SURROUNDINGS = { tag: "@surroundings" };
 
 test("a node in space is where Qt has it, and a camera sees it there", async ({ page }) => {
