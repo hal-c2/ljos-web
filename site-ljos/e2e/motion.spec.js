@@ -63,10 +63,16 @@ test("with reduced motion the puck still travels; it does not jump", async ({ pa
   // A jump goes there between one frame and the next; travel takes
   // time. Timed, not counted in frames: a busy machine draws fewer
   // frames of the same travel.
-  const left = samples.find(([, x]) => x < start - 2);
-  const there = samples.find(([t, x]) => t >= (left?.[0] ?? 0) && Math.abs(x - end) <= 2);
-  expect(samples.some(([, x]) => x < start - 2 && x > end + 2), `on its way it is seen between where it was and where it goes (${seen})`).toBe(true);
-  expect(there[0] - left[0], `it takes time to get there; it does not jump (${seen})`).toBeGreaterThanOrEqual(100);
+  // Only frames where the puck was found: a frame that lost it says
+  // nothing about where it was. Timed from the last frame still at the
+  // start, so sparse frames do not cut off the beginning of the travel.
+  const drawn = samples.filter(([, x]) => x !== null);
+  const moved = drawn.findIndex(([, x]) => x < start - 2);
+  expect(moved, `it leaves where it was (${seen})`).toBeGreaterThan(0);
+  const onset = drawn[moved - 1];
+  const there = drawn.find(([t, x]) => t >= drawn[moved][0] && Math.abs(x - end) <= 2);
+  expect(drawn.some(([, x]) => x < start - 2 && x > end + 2), `on its way it is seen between where it was and where it goes (${seen})`).toBe(true);
+  expect(there[0] - onset[0], `it takes time to get there; it does not jump (${seen})`).toBeGreaterThanOrEqual(100);
 });
 
 test("with reduced motion the puck's travel is softened: no overshoot", async ({ page, wasm }) => {
