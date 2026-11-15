@@ -161,7 +161,7 @@ jobs:
       - id: playwright
         run: echo "version=$(sed -n 's/^  playwright@\([0-9.]*\):$/\1/p' pnpm-lock.yaml | head -n1)" >> "$GITHUB_OUTPUT"
       - id: browsers
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
@@ -169,6 +169,13 @@ jobs:
         run: pnpm --filter ljos-site exec playwright install --with-deps chromium
       - if: steps.browsers.outputs.cache-hit == 'true'
         run: pnpm --filter ljos-site exec playwright install-deps chromium
+      # Saved as soon as it is installed: a cache saved at the job's end
+      # is lost to any failing test after it.
+      - if: steps.browsers.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ steps.browsers.outputs.cache-primary-key }}
       # The code blocks' prerenders and pictures, kept between runs.
       # Each entry names the compiler, runtime and lockfile that made
       # it (prerenderStamp), and one made by others is made again, so
@@ -179,7 +186,8 @@ jobs:
       # can be made from, so a run that made nothing new saves nothing.
       - id: image
         run: echo "name=$ImageOS-$ImageVersion" >> "$GITHUB_OUTPUT"
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - id: prerenders
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             site/.codeblock-prerenders
@@ -233,6 +241,17 @@ jobs:
         env:
           QMLC: ${{ github.workspace }}/target/debug/qmlc
           LJOS_SITE_BASE: /
+      # Saved once both sites have made what they make (the pictures
+      # are this build's), before any of their tests can fail the job
+      # and lose it. A step that failed before here saves nothing: a
+      # key is never saved twice, so it must not be saved half-made.
+      - if: steps.prerenders.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            site/.codeblock-prerenders
+            site-ljos/.codeblock-prerenders
+          key: ${{ steps.prerenders.outputs.cache-primary-key }}
       - run: pnpm --filter ljos-site-ljos test
         env:
           LJOS_SITE_BASE: /
