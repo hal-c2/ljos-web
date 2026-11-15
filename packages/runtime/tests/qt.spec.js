@@ -668,6 +668,13 @@ test("settings are kept in the page's storage, as text", async ({ page }) => {
       return [() => st.value("count")];
     }),
   ).toEqual([4]);
+  // What an earlier runtime kept under the location and the application's
+  // name is found there once, and moved to the location's own key.
+  await page.evaluate(() => localStorage.setItem("ljos-web:moved/Other/Renamed/main/count", '"9"'));
+  expect(await answers(page, () => [() => (st.location = "moved"), () => st.value("count")])).toEqual(["moved", "9"]);
+  expect(
+    await page.evaluate(() => [localStorage.getItem("ljos-web:moved/main/count"), localStorage.getItem("ljos-web:moved/Other/Renamed/main/count")]),
+  ).toEqual(['"9"', null]);
 });
 
 test("a page has no standard paths", async ({ page }) => {
