@@ -96,6 +96,25 @@ test("a mouse does not drag what a ScrollView scrolls", async ({ page }) => {
   expect(await page.evaluate(() => window.scene.scrolled.contentItem.contentY)).toBe(0);
 });
 
+// Qt 6.9's `acceptedButtons`: the buttons a mouse drags the content with.
+// With none, a mouse drag is the press of what is in it all the way, and
+// the content still scrolls by the wheel (a page that scrolls as a web
+// page does: wheel, bars and touch, not mouse drags).
+test("a Flickable that accepts no button is not dragged by a mouse, and the wheel still scrolls it", async ({ page }) => {
+  await open(page, "mouseflick");
+  expect(await page.evaluate(() => window.scene.flickable.acceptedButtons)).toBe(1);
+  await page.evaluate(() => (window.scene.flickable.acceptedButtons = 0));
+  expect(await drag(page, 50, 200, 100, 10, 0)).toEqual([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+  const told = await said(page);
+  expect(told).toContain("m pressed");
+  expect(told).toContain("m released");
+  expect(told).not.toContain("m canceled");
+  expect(told.some((line) => /^dragStarted|^movementStarted/.test(line))).toBe(false);
+  await page.mouse.move(50, 150);
+  await page.mouse.wheel(0, 120);
+  await expect.poll(() => at(page)).toBeGreaterThan(0);
+});
+
 // A drag along the list, twenty pixels at a time.
 async function swipe(page, from, to, rest) {
   await page.mouse.move(from, 50);
