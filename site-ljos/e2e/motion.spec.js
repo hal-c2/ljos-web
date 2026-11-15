@@ -56,8 +56,9 @@ test("with reduced motion the puck still travels; it does not jump", async ({ pa
   test.skip(!wasm, "the same on both; held once");
   const { start, target, samples, end } = await pressAndWatch(page);
   // Every failure says what was seen: [ms, x] for each frame read.
-  const seen = `start ${start}, target ${target}; seen ${JSON.stringify(samples.map(([t, x]) => [t, Math.round(x)]))}`;
+  const seen = `start ${start}, target ${target}; seen ${JSON.stringify(samples.map(([t, x]) => [t, x === null ? null : Math.round(x)]))}`;
   expect(start - target, `the press is far enough away to watch it travel (${seen})`).toBeGreaterThan(50);
+  expect(end, `the puck is still drawn when it arrives (${seen})`).not.toBeNull();
   expect(Math.abs(end - target), `it ends where the reader pressed (${seen})`).toBeLessThanOrEqual(3);
   // A jump goes there between one frame and the next; travel takes
   // time. Timed, not counted in frames: a busy machine draws fewer
