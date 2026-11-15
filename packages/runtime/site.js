@@ -650,7 +650,9 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
     await build({
       ...shared,
       plugins: [plugin()],
-      build: { outDir: join(stage, "dist"), emptyOutDir: true, target: "esnext", chunkSizeWarningLimit: 4000 },
+      // Each file is compiled by qmlc in the plugin's load, so nearly all
+      // of a build's time is in callbacks; that is expected, not a warning.
+      build: { outDir: join(stage, "dist"), emptyOutDir: true, target: "esnext", chunkSizeWarningLimit: 4000, rollupOptions: { checks: { bundlerTimings: false } } },
       // The live shell's compiler runs in a module worker.
       worker: { format: "es" },
     });
@@ -676,7 +678,7 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
           emptyOutDir: true,
           target: "esnext",
           chunkSizeWarningLimit: 4000,
-          rollupOptions: { output: { format: "es", entryFileNames: "server-entry.mjs" } },
+          rollupOptions: { output: { format: "es", entryFileNames: "server-entry.mjs" }, checks: { bundlerTimings: false } },
         },
         // The browser's builds of what the page is made with: Node's own
         // build of solid-js renders once and never again, so a root sized
