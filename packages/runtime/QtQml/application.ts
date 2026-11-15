@@ -1,7 +1,7 @@
 // What there is one of for a whole program: `Application` (which is
 // `Qt.application`), its style hints and the input method. On the web the
 // program is the page, so these read the document and the browser.
-import { createRoot, onCleanup, runWithOwner } from "solid-js";
+import { createRoot, getOwner, onCleanup, runWithOwner } from "solid-js";
 import { defineType, derived, flush, inside, QtObject, slot } from "../object.ts";
 import { locale } from "./locale.ts";
 import type { LocaleValue } from "./locale.ts";
@@ -10,12 +10,18 @@ import { Rect } from "./values.ts";
 import { untrack } from "#kernel";
 import type { QObject, QmlType } from "../object.ts";
 
-// An object made when first asked for, and owned by nobody: it lasts as
+// The owner of every singleton: made as this module loads, which is never
+// inside an effect, and never disposed. A singleton is first asked for
+// wherever QML first reads it, a `Connections`' effect among them, and
+// Solid refuses a root with no owner there.
+const PAGE = createRoot(() => getOwner());
+
+// An object made when first asked for, and owned by the page: it lasts as
 // long as the page does. QML reads a singleton through its type
 // (`Application.font`), so the type has the object's members too.
 export function singleton<I extends QObject>(Type: QmlType<I>): () => I {
   let made: I | undefined;
-  const get = (): I => (made ??= runWithOwner(null, () => createRoot(() => untrack(() => inside(null, () => Type({}))))));
+  const get = (): I => (made ??= runWithOwner(PAGE, () => createRoot(() => untrack(() => inside(null, () => Type({}))))));
   for (const key in Type.proto) {
     Object.defineProperty(Type, key, {
       get: () => (get() as Record<string, unknown>)[key],
