@@ -418,6 +418,18 @@ Item {
 }
 
 #[test]
+fn a_role_written_in_a_delegate_stays_assignable_when_a_global_shares_its_name() {
+    let code = lowered(
+        r#"import QtQuick
+Repeater {
+    model: 2
+    delegate: Text { Component.onCompleted: parseInt = 3 }
+}"#,
+    );
+    assert_contains(&code, "$data.parseInt = 3");
+}
+
+#[test]
 fn a_global_in_a_delegate_is_the_global_unless_the_model_has_the_role() {
     let code = lowered(
         r#"import QtQuick

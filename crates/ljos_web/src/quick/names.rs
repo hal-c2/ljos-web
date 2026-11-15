@@ -297,11 +297,13 @@ impl<'a> Resolver<'a, '_, '_> {
             // A delegate's model may have a role of any name, so a global's
             // name in a delegate comes back as the outermost model's role,
             // with nothing behind it. QML finds the global where no model
-            // has the role: it is what is read when none does.
+            // has the role: it is what is read when none does. What is
+            // assigned to has to be one place, and is the role, as before.
             if let Some(qml_front::names::Target::Context {
                 context,
                 name: role,
             }) = &resolution.target
+                && !written
                 && !matches!(role.as_str(), "index" | "model" | "modelData")
                 && let Some(global) = qml_front::names::global(name)
             {
