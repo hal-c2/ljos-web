@@ -124,7 +124,11 @@ export default defineConfig({
       // `LJOS_KERNEL=wasm` builds the same site over Ljós's own
       // reactive graph instead of Solid's, as the runtime's specs
       // run on both kernels; needs `mise run build:kernel` first.
-      conditions: kernelConditions(),
+      // Conditions given here replace the browser's own, so they are
+      // named again (Vite's defaultClientConditions, as the runtime's
+      // test configs spread them): without `browser` a package with a
+      // build for each, as sql.js has, is bundled for Node.
+      conditions: [...kernelConditions(), "module", "browser", "development|production"],
     },
   },
 });
