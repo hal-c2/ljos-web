@@ -1,7 +1,9 @@
 // The demos: the front page's Pantry and Orbit, and /demos/' five,
 // each driven by the input it is for. A demo is the slot under its
-// heading; it runs without a press.
-import { centre, centreOf, drag, expect, expectFramesAdvance, open, pageScroll, pinch, press, signature, test, unexpected } from "./fixtures.js";
+// heading. The Pantry runs with the page, as a plain example would: it
+// holds still, and its shell is the one compiled with the page. The
+// others wait for their Run, and then run.
+import { centre, centreOf, drag, expect, expectFramesAdvance, open, pageScroll, pinch, press, runButton, signature, test, unexpected } from "./fixtures.js";
 import { demo as known, sourceView } from "./known.js";
 
 function headingOf(page, heading) {
@@ -27,6 +29,26 @@ async function settled(page, route) {
   await page.waitForTimeout(800);
 }
 
+// Each demo's Run button, by the demo's heading; the Pantry has none.
+const RUN = {
+  "3D you can orbit": "Run the 3D demo",
+  "A shader effect": "Run the shader demo",
+  "A whole app": "Run the field guide",
+  Motion: "Run the motion demo",
+};
+
+// The demo under `heading`, started as a reader starts it: brought into
+// view, and its Run pressed where it has one.
+async function started(page, heading) {
+  const slot = demo(page, heading);
+  await centre(slot);
+  if (!RUN[heading]) return slot;
+  const button = runButton(slot, RUN[heading]);
+  await press(button);
+  await expect(button, `${heading} runs once its Run is pressed`).toBeHidden();
+  return slot;
+}
+
 test.describe("/demos/", () => {
   test("loads with nothing in its console", async ({ page, errors }) => {
     await settled(page, "/demos/");
@@ -36,8 +58,7 @@ test.describe("/demos/", () => {
 
   test("the Pantry answers a press and keys", async ({ page, errors }) => {
     await settled(page, "/demos/");
-    const pantry = demo(page, "A shell you rewrite");
-    await centre(pantry);
+    const pantry = await started(page, "A shell you rewrite");
     const before = await signature(pantry);
     await press(pantry.getByRole("button").first());
     await page.keyboard.press("Space");
@@ -47,20 +68,18 @@ test.describe("/demos/", () => {
 
   test("Orbit keeps drawing frames", async ({ page }) => {
     await settled(page, "/demos/");
-    const orbit = await reach(page, "3D you can orbit");
-    await centre(orbit);
+    const orbit = await started(page, "3D you can orbit");
     await expectFramesAdvance(orbit.locator("canvas").first());
     await expect.poll(() => orbit.locator("canvas.qq-view3d").evaluate((canvas) => canvas.$view3d?.frames ?? 0)).toBeGreaterThan(10);
   });
 
-  test("Orbit is drawn by the renderer the page names", async ({ page }) => {
+  test("Orbit is drawn by the renderer the page names", async ({ page, wasm }) => {
     await settled(page, "/demos/");
-    const orbit = await reach(page, "3D you can orbit");
-    // wgpu is every View3D's renderer; a browser with no WebGPU adapter
-    // to give it, as a headless one on a machine without a GPU, has it
-    // drawn by the JS renderer instead.
-    const adapter = await page.evaluate(async () => !!(await globalThis.navigator.gpu?.requestAdapter().catch(() => null)));
-    await expect.poll(() => orbit.locator("canvas.qq-view3d").evaluate((canvas) => canvas.$view3d?.renderer)).toBe(adapter ? "wgpu" : "js");
+    const orbit = await started(page, "3D you can orbit");
+    // wgpu draws on WebGPU where the browser has it, else on WebGL2; a
+    // browser without WebAssembly draws with the JavaScript renderer.
+    await expect.poll(() => orbit.locator("canvas.qq-view3d").evaluate((canvas) => canvas.$view3d?.renderer)).toBe(wasm ? "wgpu" : "js");
+    expect(await orbit.locator("canvas.qq-view3d").evaluate((canvas) => canvas.$view3d.error)).toBeNull();
   });
 
   test("Orbit turns under a sideways drag and zooms under a pinch", async ({ page, errors }) => {
@@ -69,7 +88,7 @@ test.describe("/demos/", () => {
     // its own: what moves then is what the drag moved.
     await page.clock.install();
     await settled(page, "/demos/");
-    const canvas = (await reach(page, "3D you can orbit")).locator("canvas.qq-view3d");
+    const canvas = (await started(page, "3D you can orbit")).locator("canvas.qq-view3d");
     await centre(canvas);
     const { x, y } = await centreOf(canvas);
     await page.clock.pauseAt(await page.evaluate(() => Date.now() + 500));
@@ -88,7 +107,7 @@ test.describe("/demos/", () => {
     // page's scroll staying put says the page did not take it.
     await page.clock.install();
     await settled(page, "/demos/");
-    const canvas = (await reach(page, "3D you can orbit")).locator("canvas.qq-view3d");
+    const canvas = (await started(page, "3D you can orbit")).locator("canvas.qq-view3d");
     await centre(canvas);
     const { x, y } = await centreOf(canvas);
     const scrolled = await pageScroll(page);
@@ -103,8 +122,7 @@ test.describe("/demos/", () => {
 
   test("the shader effect keeps drawing frames", async ({ page, errors }) => {
     await settled(page, "/demos/");
-    const shader = await reach(page, "A shader effect");
-    await centre(shader);
+    const shader = await started(page, "A shader effect");
     await expectFramesAdvance(shader);
     expect(unexpected(errors)).toEqual([]);
   });
@@ -129,8 +147,7 @@ test.describe("/demos/", () => {
   test("the field guide shows the species a reader picks, and marks it seen", async ({ page, errors, wasm }) => {
     test.skip(!wasm, "the field guide needs WebAssembly; the test above holds what it shows without");
     await settled(page, "/demos/");
-    const guide = await reach(page, "A whole app");
-    await centre(guide);
+    const guide = await started(page, "A whole app");
     await press(guide.getByRole("button", { name: "Arctic tern" }));
     await expect(guide, "its page opens on the right").toContainText("Sterna paradisaea · breeding");
     await press(guide.getByRole("checkbox").first());
@@ -142,8 +159,7 @@ test.describe("/demos/", () => {
     test.skip(!wasm, "the field guide needs WebAssembly");
     test.fail(true, known.fieldGuideSearch);
     await settled(page, "/demos/");
-    const guide = await reach(page, "A whole app");
-    await centre(guide);
+    const guide = await started(page, "A whole app");
     await press(guide.getByRole("textbox", { name: /Search/ }));
     await page.keyboard.type("gannet");
     await expect(guide.getByRole("button")).toHaveCount(1);
@@ -154,7 +170,7 @@ test.describe("/demos/", () => {
     await settled(page, "/demos/");
     // The tray has no value to say, so it is a named group, not a slider
     // (ARIA asks a slider for its value).
-    const tray = (await reach(page, "Motion")).getByRole("group", { name: /Spring tray/ });
+    const tray = (await started(page, "Motion")).getByRole("group", { name: /Spring tray/ });
     await centre(tray);
     const before = await signature(demo(page, "Motion"));
     const { box } = await centreOf(tray);
@@ -182,6 +198,9 @@ test.describe("/demos/", () => {
 test.describe("the front page", () => {
   test("loads with nothing in its console; the Pantry and Orbit run", async ({ page, errors }) => {
     await settled(page, "/");
+    const button = runButton(page, "Run the 3D demo");
+    await press(button);
+    await expect(button, "Run starts Orbit").toBeHidden();
     await expect(page.getByLabel("The Pantry, running")).toBeVisible();
     // Orbit is made as the reader nears the showcase under this heading.
     await centre(headingOf(page, "See it run"));

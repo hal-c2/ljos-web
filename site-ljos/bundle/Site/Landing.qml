@@ -238,7 +238,7 @@ Column {
             Accessible.role: Accessible.Heading
         }
         // The showcase mounts here: a 3D scene to orbit, made once the
-        // reader nears it, its picture standing until then — and for
+        // reader presses its Run, its picture standing until then — and for
         // good where the browser cannot run it.
         Slot {
             name: "showcase"
@@ -253,6 +253,7 @@ Column {
                         needs: "webgl2"
                         picture: "/pictures/demo-orbit.webp"
                         pictureDark: "/pictures/demo-orbit-dark.webp"
+                        label: "Run the 3D demo"
                         description: "A lit 3D scene of shapes on a floor, which a drag turns."
                         source: Later.orbit
                     }

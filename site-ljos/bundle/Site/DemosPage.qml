@@ -9,12 +9,15 @@ import "../Demos/later.js" as Later
 // delegate. The flagship is made with the page, so the prerendered
 // page holds it as first made and hydration takes it over in place.
 // The others stand in a frame their own size from the first paint,
-// a picture of each in it, and are made once the reader nears them;
-// a browser without wasm or WebGL 2 keeps the picture, and its words
-// say what it shows. Nothing on this page is needed to read it. The
-// sections are written out, not repeated over a model: a Slot's
-// delegate is made by the Slot, in the Slot's place, and a
-// Repeater's model is not its to give.
+// a picture of each in it, and are made once the reader presses its
+// Run; a browser without wasm or WebGL 2 keeps the picture, and its
+// words say what it shows. Each of those waits for its Run (Runner):
+// what runs on a page is the reader's to start, and at most three run
+// at once. The flagship has no Run: it holds still until pressed, as a
+// plain example does, and its shell is the one compiled with the page. Nothing on this page is needed to read it. The sections
+// are written out, not repeated over a model: a Slot's delegate is
+// made by the Slot, in the Slot's place, and a Repeater's model is
+// not its to give.
 Column {
     id: demos
 
@@ -87,6 +90,7 @@ Column {
                     route: "/demos/"
                     picture: "/pictures/demo-orbit.webp"
                     pictureDark: "/pictures/demo-orbit-dark.webp"
+                    label: "Run the 3D demo"
                     description: "A lit 3D scene of shapes on a floor, which a drag turns."
                     source: Later.orbit
                 }
@@ -110,6 +114,7 @@ Column {
                     route: "/demos/"
                     picture: "/pictures/demo-shader.webp"
                     pictureDark: "/pictures/demo-shader-dark.webp"
+                    label: "Run the shader demo"
                     description: "Light pooling over a card of text, following the pointer."
                     source: Later.shader
                 }
@@ -133,6 +138,7 @@ Column {
                     route: "/demos/"
                     picture: "/pictures/demo-app.webp"
                     pictureDark: "/pictures/demo-app-dark.webp"
+                    label: "Run the field guide"
                     description: "A field guide to birds: a list of species beside the one picked, with notes and a count of those seen."
                     source: Later.fieldGuide
                 }
@@ -156,6 +162,7 @@ Column {
                     route: "/demos/"
                     picture: "/pictures/demo-motion.webp"
                     pictureDark: "/pictures/demo-motion-dark.webp"
+                    label: "Run the motion demo"
                     description: "Tiles that shuffle and settle, driven by one eased value."
                     source: Later.motion
                 }

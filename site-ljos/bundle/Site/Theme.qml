@@ -1,5 +1,6 @@
 pragma Singleton
 import QtQuick
+import "../motion.js" as Motion
 import "../scheme.js" as Scheme
 import "../tokens.js" as Tokens
 
@@ -29,8 +30,19 @@ QtObject {
     }
 
     // Reduced motion reduces movement: what slides or grows only fades,
-    // and what fades still fades.
-    readonly property bool calm: Application.styleHints.accessibility.motionPreference === Qt.MotionPreference.ReducedMotion
+    // and what fades still fades; a demo moves slower and softer, never
+    // stops. It is the browser's prefers-reduced-motion until the reader
+    // says otherwise for this site in the header, which is kept.
+    readonly property bool systemCalm: Application.styleHints.accessibility.motionPreference === Qt.MotionPreference.ReducedMotion
+    // "calm", "full", or "" for the browser's own (motion.js).
+    property string motion: Motion.picked()
+    readonly property bool calm: motion === "calm" || (motion !== "full" && systemCalm)
+
+    function setCalm(wanted) {
+        // Back to following the browser when the choice agrees with it.
+        motion = wanted === systemCalm ? "" : (wanted ? "calm" : "full");
+        Motion.keep(motion);
+    }
 
     // Colour roles: the scheme's own, from the one table both the
     // pages and the page's head read (tokens.js).

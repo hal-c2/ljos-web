@@ -9,9 +9,10 @@ import "code-editor.js" as Editor
 // an editor per file, and a stage the result stands in. As the page
 // is first written — and for a reader with no script — the stage
 // holds a picture of the result as the build prerendered it, and so
-// does a browser's until the reader runs the block (a press on its
-// picture, or a first edit of its code; a focus in the code fetches
-// only the editor): only then is the compiler fetched, and the stage's
+// does a browser's until the block runs: a plain one once it is
+// scrolled into view, one that is a window, 3D or moves on its own
+// once the reader presses Run or first edits its code (Runner; a focus
+// in the code fetches only the editor). Only then is the compiler fetched, and the stage's
 // ShellLoader compiles the code in the page and takes the stage over. Every edit recompiles and
 // reloads with its state kept. A broken edit says why beside the
 // code, and the last good result keeps running. A block that does not run is
@@ -47,6 +48,8 @@ Column {
     property bool runs: true
     // A reader is in one of the editors: its box says so.
     property bool editing: false
+    // Whether that has been asked yet: nothing runs before it is known.
+    property bool checked: false
 
     width: parent ? parent.width : 640
     spacing: 0
@@ -64,11 +67,10 @@ Column {
         if (!isLive || !runs)
             return;
         Live.setFiles(live.hash, display());
+        // Not running: an edit asks it to run, and it does once it may
+        // (in view, within the page's budget: Runner).
         if (!started) {
-            started = true;
-            // The source is given at once: a compile that answered
-            // first would leave the stage empty until it did.
-            stage.source = Live.sourceFor(live.hash);
+            runner.run();
             return;
         }
         stage.reload().then(function (why) {
@@ -76,6 +78,20 @@ Column {
             for (var i = 0; i < editors.count; i++)
                 editors.itemAt(i).diagnostics = Live.diagnosticsFor(live.hash, i);
         });
+    }
+
+    // The source is given at once: a compile that answered first
+    // would leave the stage empty until it did.
+    function start() {
+        started = true;
+        stage.source = Live.sourceFor(live.hash);
+    }
+    // Stopped (it left the view, the tab was hidden, or one more
+    // started): the picture stands again, and the edits are kept for
+    // when it runs again.
+    function stop() {
+        started = false;
+        stage.source = "";
     }
 
     Component.onCompleted: {
@@ -88,6 +104,7 @@ Column {
         // compile cannot run, the block says so before it is reached
         // for, and what it says is why, not how the compile failed.
         Live.needsWasm().then(function (why) {
+            block.checked = true;
             if (why) {
                 block.runs = false;
                 block.said = why;
@@ -337,16 +354,7 @@ Column {
                 // result, so the picture never comes back over it.
                 visible: block.isLive && stage.status !== ShellLoader.Ready
                 textFormat: Text.RichText
-                text: block.isLive ? "<img src=\"" + block.live.picture + "\" width=\"" + stageBox.pictureWidth + "\" height=\"" + Math.round(stageBox.pictureHeight) + "\" alt=\"What this example draws\">" : ""
-            }
-            // A press on the picture runs what it is a picture of, where it can run.
-            MouseArea {
-                visible: block.isLive && block.runs && !block.started
-                width: stageBox.pictureWidth
-                height: stageBox.pictureHeight
-                Accessible.ignored: true
-                cursorShape: Qt.PointingHandCursor
-                onPressed: block.apply()
+                text: block.isLive ? "<img src=\"" + (Theme.dark && block.live.pictureDark ? block.live.pictureDark : block.live.picture) + "\" width=\"" + stageBox.pictureWidth + "\" height=\"" + Math.round(stageBox.pictureHeight) + "\" alt=\"What this example draws\">" : ""
             }
             ShellLoader {
                 id: stage
@@ -366,6 +374,17 @@ Column {
                 width: stageBox.pictureWidth
                 height: stageBox.height
                 window: Live.windowOf(stage.item)
+            }
+            // Whether it runs: a plain example once it is in view, one
+            // that is a window, 3D or moves on its own once its Run is
+            // pressed (a press on the picture, or the button on it).
+            Runner {
+                id: runner
+                width: stageBox.pictureWidth
+                height: stageBox.height
+                gated: block.isLive && Live.gated(block.live.display)
+                can: block.isLive && block.runs && block.checked
+                onRunningChanged: running ? block.start() : block.stop()
             }
         }
 

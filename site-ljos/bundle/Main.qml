@@ -204,6 +204,7 @@ Rectangle {
                 label: "GitHub"
                 to: "https://github.com/hal-c2/ljos-ui"
             }
+            MotionToggle {}
             ThemeToggle {}
             MenuButton {
                 visible: !shell.wide
@@ -263,7 +264,22 @@ Rectangle {
         contentHeight: column.height
         clip: true
         // Where the reader leaves the page is kept once it is still.
-        onContentYChanged: keeping.restart()
+        onContentYChanged: {
+            keeping.restart();
+            Running.moved();
+        }
+        // What runs on the page runs only in the band of it the reader
+        // sees (Running): told where that is, and told again whenever
+        // the view or the page under it moves.
+        function view() {
+            Running.viewTop = pageScroll.y;
+            Running.viewBottom = pageScroll.y + pageScroll.height;
+            Running.moved();
+        }
+        onYChanged: view()
+        onHeightChanged: view()
+        onContentHeightChanged: Running.moved()
+        Component.onCompleted: view()
         Timer {
             id: keeping
             interval: 250
