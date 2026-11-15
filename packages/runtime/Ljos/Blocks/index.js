@@ -251,8 +251,8 @@ export const ShellLoader = defineType("ShellLoader", Item, {
     error: "",
     item: null,
     status: Null,
-    implicitWidth: derived((self) => implicit(self, "width", "implicitWidth")),
-    implicitHeight: derived((self) => implicit(self, "height", "implicitHeight")),
+    implicitWidth: derived((self) => held(self)?.[0] ?? implicit(self, "width", "implicitWidth")),
+    implicitHeight: derived((self) => held(self)?.[1] ?? implicit(self, "height", "implicitHeight")),
   },
   enums: { Null, Ready, Fallback, Error: Failed },
   methods: {
@@ -319,14 +319,25 @@ function make(self, state, resolved, fallback) {
   return { shown };
 }
 
+// A shell whose root is a Window or an ApplicationWindow is held in the
+// loader's place, of the loader's size, as a WindowContainer holds one:
+// the shell is what the loader shows, so it never floats as a window of
+// its own over what is around the loader.
 function put(self, state, shown) {
   state.puts++;
   state.shown = shown;
   const item = shown.object;
   fit(item, ...given(self));
   if (item?.$node) self.$add(item);
+  else item?.$hold?.(self);
   write(self, "item", item ?? null);
 }
+
+// The size a held window asks for, which the loader is unless it is given one.
+const held = (self) => {
+  const item = self.item;
+  return item && !item.$node && item.$asked ? item.$asked() : null;
+};
 
 // Takes away the shell shown.
 function drop(self, state) {

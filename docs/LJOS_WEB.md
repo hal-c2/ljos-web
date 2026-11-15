@@ -1318,7 +1318,12 @@ scenarios: ljos-ui's `features/blocks/slots.feature` and
   the source again and answers why it failed or `""`: one that fails
   leaves the shell that runs; one that works takes its place and keeps
   the state of what is in both (`reload.js`'s `carry`, by id, name,
-  row, or type and place, A13).
+  row, or type and place, A13). A shell whose root is a `Window` or an
+  `ApplicationWindow` is held in the loader's place, of its size, as a
+  `WindowContainer` holds one, and the loader is as large as the window
+  asks to be unless it is given a size: a shell is what the loader
+  shows, so it never floats as a window of its own over the page
+  around it (a docs block's example, a user's own window shell).
 
 DECISION: where a throw in a shell compiled in the page is said is the
 line of the object whose handler threw, not of the `throw`: compiled

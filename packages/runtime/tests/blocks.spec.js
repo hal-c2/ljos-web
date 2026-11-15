@@ -375,6 +375,44 @@ test.describe("A ShellLoader shows a user's shell, or the application's own when
 
     // What stands in is there for the wait, not part of it: the user's
     // shell that comes first is shown, and the fallback after it is not.
+    // A shell is what the loader shows, wherever the loader stands: one
+    // whose root is a Window or an ApplicationWindow is held there, of
+    // the loader's size, and never floats over the page as a window of
+    // its own (a docs block's example, a user's ApplicationWindow shell).
+    // An ApplicationWindow is a Window and is held the same way; it needs
+    // Qt Quick Controls, which this page is built without, so the site's
+    // e2e holds it (site-ljos/e2e/windows.spec.js).
+    test("A user's shell whose root is a Window is held in the loader's place", async ({ page }) => {
+      await serve(page, {
+        "Shell.qml": 'import QtQuick\nWindow { objectName: "user-shell"; width: 120; height: 40; color: "teal"; Text { text: "held" } }\n',
+      });
+      await opened(page, "shellsfetched");
+      await settled(page);
+      expect(await read(page, "loader", "status")).toBe(1);
+      expect(await read(page, "loader", "item.objectName")).toBe("user-shell");
+      const where = await page.evaluate(() => {
+        const loader = window.named("loader");
+        const element = loader.item.$element;
+        const box = (at) => at.getBoundingClientRect().toJSON();
+        return {
+          inside: loader.$node.contains(element),
+          layers: document.querySelectorAll(".qq-layer").length,
+          loader: box(loader.$node),
+          window: box(element),
+          visible: getComputedStyle(element).visibility,
+        };
+      });
+      expect(where.inside, "the window's element is in the loader's").toBe(true);
+      expect(where.layers, "no window floats over the page").toBe(0);
+      expect(where.visible).toBe("visible");
+      // The loader is as large as the window asks to be, and the
+      // window as large as the loader.
+      expect(await read(page, "loader", "width")).toBe(120);
+      expect(await read(page, "loader", "height")).toBe(40);
+      for (const side of ["x", "y", "width", "height"]) expect(where.window[side], side).toBeCloseTo(where.loader[side], 0);
+      await expect(page.getByText("held")).toBeVisible();
+    });
+
     test("A fallback slower to come than the user's shell does not hold it back", async ({ page }) => {
       await serve(page, { "Shell.qml": 'import QtQuick\nRectangle { objectName: "user-shell"; width: 50; height: 20 }\n' });
       // The fallback is fetched too, and never comes.
