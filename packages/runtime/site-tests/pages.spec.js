@@ -237,6 +237,9 @@ test.describe("a site prerendered at more than one size", () => {
     const docs = readFileSync(join(made.out, "docs/index.html"), "utf8");
     expect(home).toContain("Narrow layout");
     expect(home).toContain("Wide layout");
+    // The widest first, so a heading's address opened with script off on
+    // a desktop finds the anchor in the render it shows.
+    expect(home.indexOf("Wide layout")).toBeLessThan(home.indexOf("Narrow layout"));
     expect(home).toContain('<meta name="description" content="What a &lt;home&gt; says &amp; shows" />');
     expect(docs).not.toContain('name="description"');
     expect(home).toContain('<link rel="icon" href="./mark.svg"');
@@ -460,7 +463,7 @@ test.describe("a site whose schemes differ only in how they are drawn", () => {
 
   test("the page holds one render per size, its colours named by scheme", () => {
     const home = readFileSync(join(made.out, "index.html"), "utf8");
-    expect(home.match(/<div data-ljos-render="\d+">/g)).toEqual(['<div data-ljos-render="0">', '<div data-ljos-render="1">']);
+    expect(home.match(/<div data-ljos-render="\d+">/g)).toEqual(['<div data-ljos-render="1">', '<div data-ljos-render="0">']);
     expect(home.match(/>Narrow</g)).toHaveLength(1);
     expect(home).toMatch(/var\(--ljos-scheme-\d+\)/);
     // Named once in the head, for light and for dark.
