@@ -17,7 +17,8 @@ async function pressAndWatch(page) {
   const tray = page.getByRole("slider", { name: /Spring tray/ });
   await centre(tray);
   const box = await tray.boundingBox();
-  const start = await tray.evaluate((area) => {
+  const PRESS = 20;
+  const { start, target } = await tray.evaluate((area, press) => {
     const host = area.parentElement;
     const puck = () =>
       [...host.querySelectorAll("*")].find((element) => {
@@ -35,19 +36,26 @@ async function pressAndWatch(page) {
       if (performance.now() - t0 < 2_500) requestAnimationFrame(frame);
     };
     requestAnimationFrame(frame);
-    return read();
-  });
+    // Where the press sends it, as Motion.qml's lead() puts it: the
+    // puck's middle under the pointer, kept inside the tray.
+    const round = puck();
+    const width = round ? round.getBoundingClientRect().width : 0;
+    const own = host.getBoundingClientRect();
+    const pointer = area.getBoundingClientRect().x - own.x + press;
+    return { start: read(), target: Math.max(0, Math.min(own.width - width, pointer - width / 2)) };
+  }, PRESS);
   expect(start, "the puck is drawn").not.toBeNull();
-  await page.mouse.click(box.x + 20, box.y + box.height / 2);
+  await page.mouse.click(box.x + PRESS, box.y + box.height / 2);
   await page.waitForTimeout(2_700);
   const xs = await page.evaluate(() => window.__puck);
-  return { start, xs, end: xs.at(-1) };
+  return { start, target, xs, end: xs.at(-1) };
 }
 
 test("with reduced motion the puck still travels; it does not jump", async ({ page, wasm }) => {
   test.skip(!wasm, "the same on both; held once");
-  const { start, xs, end } = await pressAndWatch(page);
-  expect(end, "it ends near where the reader pressed").toBeLessThan(start - 50);
+  const { start, target, xs, end } = await pressAndWatch(page);
+  expect(start - target, "the press is far enough away to watch it travel").toBeGreaterThan(50);
+  expect(Math.abs(end - target), "it ends where the reader pressed").toBeLessThanOrEqual(3);
   const between = new Set(xs.filter((x) => x < start - 2 && x > end + 2).map((x) => Math.round(x)));
   expect(between.size, "on its way it is seen between where it was and where it goes").toBeGreaterThanOrEqual(2);
 });
