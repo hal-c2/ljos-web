@@ -78,6 +78,34 @@ function write(key: string, value: unknown): void {
   }
 }
 
+function forget(key: string): void {
+  written.delete(key);
+  if (!mayKeep()) return;
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // Storage a page may not use has nothing to forget.
+  }
+}
+
+// What a Settings keeps under `name`. A runtime before this one kept a
+// located Settings under the application's name too: what it left there
+// is found once and moved to the location's own key.
+function stored(self: Store, name: string): unknown {
+  const key = self.$key(name);
+  const found = read(key);
+  const location = self.location || self.fileName;
+  if (found !== undefined || !location) return found;
+  const { organization, name: program } = application();
+  const before = `ljos-web:${[location, organization, program, self.category, name].filter(Boolean).join("/")}`;
+  if (before === key) return undefined;
+  const moved = read(before);
+  if (moved === undefined) return undefined;
+  write(key, moved);
+  forget(before);
+  return moved;
+}
+
 // The properties an object declares beyond its type's: the ones its QML
 // gives it, which is what a Settings object stores.
 function declared(self: Store): string[] {
@@ -101,7 +129,7 @@ export const Settings = defineType("Settings", QtObject, {
   },
   methods: {
     value(this: Store, key: string, fallback?: unknown): unknown {
-      return read(this.$key(key)) ?? fallback;
+      return stored(this, key) ?? fallback;
     },
     setValue(this: Store, key: string, value: unknown): void {
       write(this.$key(key), value);
@@ -129,9 +157,9 @@ export const Settings = defineType("Settings", QtObject, {
       untrack(() => {
         for (const name of declared(self)) {
           const key = self.$key(name);
-          const stored = read(key);
-          if (stored === undefined) write(key, self[name]);
-          else self[name] = typed(stored, self[name]);
+          const kept = stored(self, name);
+          if (kept === undefined) write(key, self[name]);
+          else self[name] = typed(kept, self[name]);
           onChange(self, name, () => write(key, self[name]));
         }
       }),
