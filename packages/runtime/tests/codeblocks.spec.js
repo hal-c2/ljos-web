@@ -273,6 +273,15 @@ Item {
     pruneCache(cacheDir, { keep: new Set(), pattern: /^[0-9a-f]{16}-[0-9a-f]{12}\.png$/ });
     expect(existsSync(join(cacheDir, "0123456789abcdef-0123456789ab.png"))).toBe(false);
     expect(existsSync(join(cacheDir, "manifest.json"))).toBe(true);
+    // A refusal that named no example is asked again, not served: the
+    // example runs now, and its prerender takes the refusal's place.
+    const kept = JSON.parse(readFileSync(join(cacheDir, "manifest.json"), "utf8"));
+    const { stamp } = kept[hashExample(counter)];
+    kept[hashExample(counter)] = { failed: true, diagnostics: ["the bundler ran out of files"], stamp, again: true };
+    writeFileSync(join(cacheDir, "manifest.json"), JSON.stringify(kept));
+    const asked = await renderPrerenders([counter], { cacheDir, qmlc });
+    expect(asked.failures).toEqual([]);
+    expect(loadPrerenders(cacheDir)[hashExample(counter)].html).toContain("Count: 0");
   } finally {
     rmSync(cacheDir, { recursive: true, force: true });
   }
