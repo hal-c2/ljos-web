@@ -2,7 +2,8 @@ import QtQuick
 import Site
 import "../nav.js" as Nav
 
-// Under every page: what Ljós is in a line, where to go, and its licence.
+// Under every page: what Ljós is in a line, where to go, the principles
+// it follows, and its licence.
 Rectangle {
     id: footer
     Accessible.role: Accessible.Footer
@@ -60,6 +61,8 @@ Rectangle {
             NavLink { label: "Demos"; to: "/demos/"; muted: true; size: Theme.captionSize + 1; line: Theme.captionLine }
             NavLink { label: "Your first app"; to: "/start/first-app/"; muted: true; size: Theme.captionSize + 1; line: Theme.captionLine }
             NavLink { label: "GitHub"; to: "https://github.com/hal-c2/ljos-ui"; muted: true; size: Theme.captionSize + 1; line: Theme.captionLine }
+            // How the project means to work together, on every page.
+            NavLink { label: "Community principles"; to: "https://community-software.org/"; muted: true; size: Theme.captionSize + 1; line: Theme.captionLine }
         }
         Text {
             width: parent.width
