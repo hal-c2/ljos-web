@@ -650,7 +650,9 @@ test("settings are kept in the page's storage, as text", async ({ page }) => {
     ]),
   ).toEqual([4, "changed", false, 1.5, '["1","2"]', 10, "4", "false", "1.5", "5", "1,2"]);
 
-  // The application's name and the settings' location say which settings.
+  // The application's name says which settings, until the settings name
+  // a location of their own: those are kept there, whatever the
+  // application is called, as a native Settings keeps its file.
   expect(
     await answers(page, () => {
       Application.organization = "Org";
@@ -658,7 +660,14 @@ test("settings are kept in the page's storage, as text", async ({ page }) => {
       return [() => st.value("count"), () => (st.location = "elsewhere"), () => st.value("count", "none"), () => st.sync(), () => st.value("count")];
     }),
   ).toEqual([undefined, "elsewhere", "none", undefined, 4]);
-  expect(await page.evaluate(() => localStorage.getItem("ljos-web:elsewhere/Org/App/main/count"))).toBe('"4"');
+  expect(await page.evaluate(() => localStorage.getItem("ljos-web:elsewhere/main/count"))).toBe('"4"');
+  expect(
+    await answers(page, () => {
+      Application.organization = "Other";
+      Application.name = "Renamed";
+      return [() => st.value("count")];
+    }),
+  ).toEqual([4]);
 });
 
 test("a page has no standard paths", async ({ page }) => {
