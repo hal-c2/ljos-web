@@ -189,9 +189,14 @@ jobs:
       # prerenders, the Ljós site's pictures on the default kernel, and
       # its prerenders and pictures on the wasm kernel. (No key is a
       # prefix of another's, so no restore-keys answers for another.)
+      # The fixture docs' blocks (test:codeblocks) are not in any key:
+      # they are made after the Astro cache is saved, into the same
+      # directory, so it never holds them and they are made each run
+      # (one small batch). A key that moved with them would save the
+      # same pinned-docs prerenders again under a new name.
       - id: image
         env:
-          INPUTS: ${{ hashFiles('packages/runtime/**', 'crates/**', 'vendor/**', 'Cargo.lock', 'pnpm-lock.yaml', 'site/ljos-ui.sha', 'site/tests/fixtures/**', '!**/node_modules/**') }}
+          INPUTS: ${{ hashFiles('packages/runtime/**', 'crates/**', 'vendor/**', 'Cargo.lock', 'pnpm-lock.yaml', 'site/ljos-ui.sha', '!**/node_modules/**') }}
         run: |
           echo "name=$ImageOS-$ImageVersion" >> "$GITHUB_OUTPUT"
           echo "inputs=$INPUTS" >> "$GITHUB_OUTPUT"
