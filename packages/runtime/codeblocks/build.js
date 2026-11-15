@@ -283,6 +283,9 @@ const run = (command, args, env) =>
 // `checkExamples`. The kernel is the build's (`LJOS_KERNEL=wasm` for
 // Ljós's graph), as a prerendered site's is. `LJOS_PRERENDER_JOBS`
 // says how many batches are made at once (at most 4 by default).
+// A `cacheDir` holds one stamp's answers, and drops the rest: a
+// caller that prerenders under several (each kernel, say) gives each
+// its own.
 export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280, height = 720, checked = false, env = process.env } = {}) {
   mkdirSync(cacheDir, { recursive: true });
   const at = join(cacheDir, "manifest.json");
@@ -301,13 +304,16 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
   // compiler's and runtime's answer as a prerender, and finding which
   // example of a batch refuses costs several bundles: it is kept, and
   // told again, not found again.
-  const fail = (example, diagnostics) => {
+  // A refusal no example is named in (a bundler that ran out of
+  // memory or files as readily as one that met a bad block) is this
+  // run's answer, and the next run asks again.
+  const fail = (example, diagnostics, { again = false } = {}) => {
     failures.push({ example, diagnostics });
-    manifest[hashExample(example)] = { failed: true, diagnostics, stamp };
+    manifest[hashExample(example)] = { failed: true, diagnostics, stamp, ...(again ? { again } : {}) };
   };
   let missing = [...byHash].filter(([hash, example]) => {
     const had = manifest[hash];
-    if (had?.failed) {
+    if (had?.failed && !had.again) {
       failures.push({ example, diagnostics: had.diagnostics ?? [] });
       return false;
     }
@@ -429,11 +435,14 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
         }
         if (batch.length === 1) {
           const [, example] = batch[0];
-          fail(example, [`${example.entry}: the prerender bundle could not be built: ${plain(error.message).split("\n").slice(0, 4).join(" ")}`]);
+          fail(example, [`${example.entry}: the prerender bundle could not be built: ${plain(error.message).split("\n").slice(0, 4).join(" ")}`], { again: true });
           return;
         }
+        // One half, then the other, within this batch's lane: halves
+        // made at once would fan out past the lanes, a bundle each.
         const half = Math.ceil(batch.length / 2);
-        await Promise.all([attempt(batch.slice(0, half)), attempt(batch.slice(half))]);
+        await attempt(batch.slice(0, half));
+        await attempt(batch.slice(half));
         return;
       }
       const ran = await run(process.execPath, [join(import.meta.dirname, "prerender-run.js"), join(stage, "server/entries.mjs"), JSON.stringify({ width, height })], env);
