@@ -21,13 +21,19 @@ const asked = new URLSearchParams(globalThis.location?.search ?? "").get("view3d
 // `?view3d=`, else what the build said (`VITE_LJOS_VIEW3D`), else wgpu where
 // the browser has WebGPU, which draws Qt's pictures as the JavaScript one
 // does (`quick3d.spec.js`, `graphs3d.spec.js` on `tests/wgpu.config.js`).
-// `js` still has the JavaScript one, as does a browser without WebGPU.
-export const renderer = () => chosen() ?? (globalThis.navigator?.gpu ? "wgpu" : "js");
+// `js` still has the JavaScript one, as does a browser without WebGPU, or
+// without WebAssembly, which cannot run the wgpu renderer: there it draws
+// with the JavaScript one instead of nothing.
+const wasm = typeof WebAssembly === "object";
+export const renderer = () => chosen() ?? (wasm && globalThis.navigator?.gpu ? "wgpu" : "js");
 
 // The renderer the page or the build asked for, if either did: a view on
 // the one taken for want of an ask is drawn by the JavaScript renderer when
 // WebGPU gives it no adapter (`adapted`), where one asked for says why not.
-export const chosen = () => asked ?? import.meta.env?.VITE_LJOS_VIEW3D;
+// What the build said is a default a browser without WebAssembly passes
+// over; a page that asks by its address gets what it asked.
+const built = () => (wasm ? import.meta.env?.VITE_LJOS_VIEW3D : undefined);
+export const chosen = () => asked ?? built();
 
 // Whether WebGPU has an adapter for this page, asked once: a browser may
 // have WebGPU and no GPU it lets it use.
