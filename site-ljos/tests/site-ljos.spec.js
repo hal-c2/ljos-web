@@ -601,14 +601,16 @@ test("a visitor's demos page holds no test hook", async ({ page }) => {
   expect(await page.evaluate(() => ["__ljosTest", "ljosPantryApplies"].filter((name) => name in globalThis))).toEqual([]);
 });
 
-// What stands in a demo's frame: a scene it draws or its picture, shown
-// (the page keeps no hidden render once it runs, and a canvas of
+// What stands in a demo's frame: a scene it draws, its picture, or for a
+// demo drawn as the page is (`drawn`, its own words) the app itself,
+// shown (the page keeps no hidden render once it runs, and a canvas of
 // another part does not count), between the demo's heading and what
 // comes after it on the page.
-async function demoIn(page, heading, picture, next) {
+async function demoIn(page, heading, picture, next, drawn = null) {
   const top = (await heading.boundingBox()).y;
   const bottom = next ? (await next.boundingBox()).y : Infinity;
-  const boxes = await shown(page.locator(`canvas, img[src$="${picture}"]`)).evaluateAll((all) => all.map((node) => node.getBoundingClientRect()).map((box) => ({ y: box.y, width: box.width, height: box.height })));
+  const stands = page.locator(`canvas, img[src$="${picture}"]`);
+  const boxes = await shown(drawn ? stands.or(page.getByText(drawn, { exact: true })) : stands).evaluateAll((all) => all.map((node) => node.getBoundingClientRect()).map((box) => ({ y: box.y, width: box.width, height: box.height })));
   return boxes.filter((box) => box.y > top && box.y < bottom && box.width > 0 && box.height > 0).length;
 }
 
@@ -626,22 +628,25 @@ test("every showcase demo stands in its slot, on the landing and the demos page"
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
   // Each demo but the flagship is made once its frame comes near the
   // screen, so the reader scrolls to it, as a reader would; what it
-  // shows is in its own frame, and what it says is on screen.
+  // shows is in its own frame, and what it says is on screen. The
+  // whole app and the motion demo draw as the page does, so once one
+  // runs its frame holds its own words, not a canvas, and its picture
+  // is gone.
   const demos = [
     ["A shell you rewrite", null, null],
     ["3D you can orbit", "demo-orbit.webp", "Drag to orbit · scroll or pinch to zoom"],
     ["A shader effect", "demo-shader.webp", "Move to stir the light · tap for other colours"],
-    ["A whole app", "demo-app.webp", "Field guide"],
-    ["Motion", "demo-motion.webp", "Shuffle the tiles"],
+    ["A whole app", "demo-app.webp", "Field guide", "Field guide"],
+    ["Motion", "demo-motion.webp", "Shuffle the tiles", "Press and move — the puck springs after you"],
   ];
   const headingOf = (title) => shown(page.getByText(title, { exact: true }));
-  for (const [index, [title, picture, inside]] of demos.entries()) {
+  for (const [index, [title, picture, inside, drawn]] of demos.entries()) {
     const heading = headingOf(title);
     await heading.scrollIntoViewIfNeeded();
     await expect(heading).toBeVisible();
     if (!picture) continue;
     const next = demos[index + 1] ? headingOf(demos[index + 1][0]) : null;
-    await expect.poll(() => demoIn(page, heading, picture, next), { timeout: 30_000, message: `${title} stands in its frame` }).toBeGreaterThan(0);
+    await expect.poll(() => demoIn(page, heading, picture, next, drawn), { timeout: 30_000, message: `${title} stands in its frame` }).toBeGreaterThan(0);
     await shown(page.getByText(inside)).first().scrollIntoViewIfNeeded({ timeout: 30_000 });
     await expect(shown(page.getByText(inside)).first()).toBeVisible();
   }
