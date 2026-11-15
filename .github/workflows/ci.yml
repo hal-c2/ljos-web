@@ -55,14 +55,29 @@ jobs:
           else
             echo "::notice::site-tests and drop.spec.js are not on this branch yet: nothing run in this job"
           fi
+      # Chromium, kept between runs by Playwright's version (one in the
+      # lockfile); what it needs of the system is installed each run.
+      - id: playwright
+        run: echo "version=$(sed -n 's/^  playwright@\([0-9.]*\):$/\1/p' pnpm-lock.yaml | head -n1)" >> "$GITHUB_OUTPUT"
+      - id: browsers
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
       - id: setup
         if: steps.stack.outputs.present == 'true'
+        env:
+          BROWSERS_KEPT: ${{ steps.browsers.outputs.cache-hit }}
         run: |
           pnpm install --frozen-lockfile
           cargo build --bin qmlc --locked
           mise run build:wasm-compiler
           mise run build:kernel
-          pnpm --filter ljos-web exec playwright install --with-deps chromium
+          if [ "$BROWSERS_KEPT" = "true" ]; then
+            pnpm --filter ljos-web exec playwright install-deps chromium
+          else
+            pnpm --filter ljos-web exec playwright install --with-deps chromium
+          fi
       # The ported modules' types, before anything runs them.
       - name: the types
         if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
@@ -113,7 +128,22 @@ jobs:
       - run: git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
       # The example's Rust is also a desktop application, whose text finds fonts by fontconfig.
       - run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
-      - run: |
+      # Chromium, kept between runs by Playwright's version (one in the
+      # lockfile); what it needs of the system is installed each run.
+      - id: playwright
+        run: echo "version=$(sed -n 's/^  playwright@\([0-9.]*\):$/\1/p' pnpm-lock.yaml | head -n1)" >> "$GITHUB_OUTPUT"
+      - id: browsers
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - env:
+          BROWSERS_KEPT: ${{ steps.browsers.outputs.cache-hit }}
+        run: |
           pnpm install --frozen-lockfile
-          pnpm --filter ljos-web exec playwright install --with-deps chromium
+          if [ "$BROWSERS_KEPT" = "true" ]; then
+            pnpm --filter ljos-web exec playwright install-deps chromium
+          else
+            pnpm --filter ljos-web exec playwright install --with-deps chromium
+          fi
       - run: mise run test:wasm-counter
