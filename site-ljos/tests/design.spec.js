@@ -466,8 +466,8 @@ for (const viewport of [
 // clear of the code: a ring around the text itself would cross the
 // first column.
 for (const [route, name, colorScheme, width] of [
-  ["/quality/color/", "Edit Main.qml", "light", 1440],
-  ["/quality/color/", "Edit Main.qml", "dark", 390],
+  ["/quality/motion/", "Edit Main.qml", "light", 1440],
+  ["/quality/motion/", "Edit Main.qml", "dark", 390],
   ["/demos/", "Edit the Pantry's Shell.qml", "dark", 1440],
   ["/demos/", "Edit the Pantry's Shell.qml", "light", 390],
 ]) {
@@ -569,13 +569,13 @@ test("a live example that is a window stands in its block, not over the page", a
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   try {
     const page = await context.newPage();
-    await page.goto("/quality/color/");
+    await page.goto("/quality/motion/");
     await page.waitForSelector('#app[data-ljos-hydrated="true"]');
     // The example runs once a reader edits it; until then its picture
     // stands, and there is no window.
-    const code = page.getByRole("textbox", { name: "Edit Main.qml" }).filter({ hasText: "Delete draft" });
+    const code = page.getByRole("textbox", { name: "Edit Main.qml" }).filter({ hasText: "Fades in without moving" });
     await code.click();
-    const editor = page.locator('.cm-content[aria-label="Edit Main.qml"]').filter({ hasText: "Delete draft" });
+    const editor = page.locator('.cm-content[aria-label="Edit Main.qml"]').filter({ hasText: "Fades in without moving" });
     await expect(editor).toBeFocused({ timeout: 30_000 });
     await page.keyboard.press("ControlOrMeta+End");
     await page.keyboard.type("\n// edited");
@@ -584,8 +584,8 @@ test("a live example that is a window stands in its block, not over the page", a
     // how far under its code.
     const place = () =>
       page.evaluate(() => {
-        const held = [...document.querySelectorAll(".qq-window")].find((window) => !window.querySelector(".qq-window") && /Delete draft/.test(window.textContent));
-        const code = [...document.querySelectorAll('.cm-content[aria-label="Edit Main.qml"]')].find((node) => /Delete draft/.test(node.textContent));
+        const held = [...document.querySelectorAll(".qq-window")].find((window) => !window.querySelector(".qq-window") && /Fades in without moving/.test(window.textContent));
+        const code = [...document.querySelectorAll('.cm-content[aria-label="Edit Main.qml"]')].find((node) => /Fades in without moving/.test(node.textContent));
         if (!held || !code) return null;
         let scroller = held.parentElement;
         while (scroller && !(scroller.scrollHeight > scroller.clientHeight && /auto|scroll/.test(getComputedStyle(scroller).overflowY))) scroller = scroller.parentElement;

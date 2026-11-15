@@ -49,6 +49,8 @@ export function livePages() {
         entry: block.live.entry,
         code: (block.live.display.find((file) => file.name === block.live.entry) ?? block.live.display[0]).code,
         files: block.live.display.map(({ name, code }) => ({ name, code })),
+        // The site's own files the example names (files=), by name.
+        given: Object.keys(block.live.given ?? {}),
       }));
     pages.push({ route: page.route, examples });
   }

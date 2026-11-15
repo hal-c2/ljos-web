@@ -57,3 +57,40 @@ test.describe("canvas, shader and Canvas items keep drawing", () => {
     });
   }
 });
+
+// An example that names a picture the site ships (files=) draws it: the
+// picture arrives, decoded, where a missing one would leave its place
+// empty and say nothing.
+test.describe("an example's own pictures are drawn", () => {
+  test.skip(({ wasm }) => !wasm, "a block runs only with WebAssembly");
+
+  for (const example of live.filter(({ given }) => given.some((name) => /\.(png|jpe?g|gif|webp|avif|svg)$/.test(name)))) {
+    test(`${example.route}#${example.index} draws ${example.given.join(", ")}`, async ({ page, errors }) => {
+      // What the audit found broken in an example (known.js) is never its
+      // pictures: they are held drawn whatever else it does.
+      await open(page, example.route);
+      const block = await run(page, example.index);
+      const pictures = example.given.filter((name) => /\.(png|jpe?g|gif|webp|avif|svg)$/.test(name));
+      // An Image draws as an element's background, so each address the
+      // example draws from, an img's or a background's, is decoded anew.
+      const decoded = () =>
+        block.running.evaluate(async (root) => {
+          const addresses = new Set();
+          for (const element of [root, ...root.querySelectorAll("*")]) {
+            if (element instanceof HTMLImageElement && element.src) addresses.add(element.src);
+            for (const [, address] of getComputedStyle(element).backgroundImage.matchAll(/url\("?([^")]+)"?\)/g)) addresses.add(address);
+          }
+          const shown = await Promise.all(
+            [...addresses].map((address) => {
+              const image = new Image();
+              image.src = address;
+              return image.decode().then(() => image.naturalWidth > 0, () => false);
+            }),
+          );
+          return shown.filter(Boolean).length;
+        });
+      await expect.poll(decoded, { message: `${pictures.join(" and ")} decoded` }).toBeGreaterThanOrEqual(pictures.length);
+      expect(unexpected(errors)).toEqual([]);
+    });
+  }
+});
