@@ -9,7 +9,7 @@
 // is wider than most examples, which stand at its left edge); `expect`
 // is what changes once the reader has acted: "text" (its words),
 // "look" (its signature: elements, words, styles), or a function
-// checking it outright. `fixme` names the audit's reason it fails now.
+// checking it outright. `fails` names the audit's reason it fails now (it runs as `test.fail`).
 import { drag, pinch, press } from "./fixtures.js";
 
 // A press where a finger lands: the example's own press areas lie over
@@ -49,7 +49,7 @@ export const interactions = {
     // The box dragged onto the drop area says so.
     act: async ({ page, at }) => drag(page, await at(0.066, 0.066), await at(0.7, 0.7), 16),
     expect: (text) => /entered|dropped/.test(text),
-    fixme: "audit: a mouse drag on the box scrolls the page instead (the page Flickable takes mouse drags, as on the Orbit scene); DropArea never says 'entered'",
+    fails: "audit: a mouse drag on the box scrolls the page instead (the page Flickable takes mouse drags, as on the Orbit scene); DropArea never says 'entered'",
   },
   "/data/pointer-input/#4": {
     act: async ({ page, at }) => {
@@ -62,7 +62,7 @@ export const interactions = {
     // A drag up in the Flickable moves its content, not the page.
     act: async ({ page, at }) => drag(page, await at(0.5, 0.8), await at(0.5, 0.2)),
     expect: "look",
-    fixme: "audit: a mouse drag in the example's Flickable scrolls the page Flickable instead; the wheel does reach it",
+    fails: "audit: a mouse drag in the example's Flickable scrolls the page Flickable instead; the wheel does reach it",
   },
   "/language/controllers/#1": {
     // The Wheel controller's rotation moves the distance the text shows.
@@ -72,7 +72,6 @@ export const interactions = {
       await page.mouse.wheel(0, 240);
     },
     expect: "text",
-    fixme: "audit: a wheel over the Orbit controller example scrolls the page; its Wheel never turns, the text stays 'at 50.0'",
   },
 };
 

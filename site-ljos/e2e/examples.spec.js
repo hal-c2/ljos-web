@@ -6,9 +6,10 @@
 // its own keeps moving. Without WebAssembly the block says so and
 // keeps its picture.
 //
-// An example the audit found broken is `test.fixme` with the audit's
-// reason (known.js), so the suite stays green while it is broken and
-// tells on it the day it starts to pass.
+// An example the audit found broken is `test.fail` with the audit's
+// reason (known.js): its test still runs, stays green while it fails,
+// and turns red the day it passes, so the change that fixes it must
+// take it out of known.js.
 import { NEEDS_WASM, centre, centreOf, classify, drag, expect, expectFramesAdvance, livePages, liveBlock, open, pinch, press, run, signature, test, unexpected } from "./fixtures.js";
 import { interactions, invisible, still } from "./interactions.js";
 import { brokenExample, windowRoot } from "./known.js";
@@ -38,9 +39,9 @@ for (const { route, examples } of pages) {
         test.skip(!wasm, "without WebAssembly a block does not run; the next test holds what it says");
         const key = `${route}#${example.index}`;
         const broken = brokenExample(route, example.index) ?? (kind.window ? windowRoot : null);
-        test.fixme(Boolean(broken), broken ?? "");
+        test.fail(Boolean(broken), broken ?? "");
         const scripted = interactions[key];
-        test.fixme(Boolean(scripted?.fixme), scripted?.fixme ?? "");
+        test.fail(Boolean(scripted?.fails), scripted?.fails ?? "");
         await open(page, route);
         const block = await run(page, example.index);
         const told = (await block.told.innerText().catch(() => "")).trim();

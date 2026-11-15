@@ -21,7 +21,7 @@ test.describe("video", () => {
   for (const example of videos) {
     test(`${example.route}#${example.index} plays its video`, async ({ page, errors }) => {
       const broken = brokenExample(example.route, example.index) ?? (example.kind.window ? windowRoot : null);
-      test.fixme(Boolean(broken), broken ?? "");
+      test.fail(Boolean(broken), broken ?? "");
       await open(page, example.route);
       const block = await run(page, example.index);
       await expectVideoPlays(block.running);
@@ -36,7 +36,7 @@ test.describe("canvas, shader and Canvas items keep drawing", () => {
   for (const example of live.filter((example) => /\b(ShaderEffect|Canvas|ParticleSystem)\s*\{/.test(example.code))) {
     test(`${example.route}#${example.index} draws into its canvas`, async ({ page, errors }) => {
       const broken = brokenExample(example.route, example.index) ?? (example.kind.window ? windowRoot : null);
-      test.fixme(Boolean(broken), broken ?? "");
+      test.fail(Boolean(broken), broken ?? "");
       await open(page, example.route);
       const block = await run(page, example.index);
       const canvas = block.running.locator("canvas").first();
