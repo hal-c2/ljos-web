@@ -5,22 +5,13 @@
 
 // An example the audit found broken, by page and its place on it (the
 // docs are pinned, site/ljos-ui.sha): the reason, as the audit says it.
-const missing = (files) => `audit: the example names ${files}, which the docs page does not ship; the block says 'No such file or directory'`;
-const cors = "audit: the example fetches example.org, which sends no Access-Control-Allow-Origin, so the browser blocks it (CORS) and the model stays empty";
 const covered = "audit: a press on its Controls text field lands on an element over the field's input (one holding an empty .qq-text), so the input never takes focus and what the reader types goes nowhere";
 const BROKEN = {
-  "/start/#0": missing("shell.qml and AppShell.qml"),
-  "/ui/items/#3": missing("photo.jpg"),
-  "/ui/shapes-and-effects/#3": missing("logo.svg"),
-  "/data/models/#2": missing("feed.xml"),
-  "/data/models/#3": missing("rows.json"),
-  "/data/fetching/#0": cors,
-  "/data/fetching/#1": cors,
-  "/language/overview/#2": "audit: does not run: 'TypeError: Cannot read properties of undefined (reading 'ticks')'; the Timer's handler reads parent.ticks, and a Timer's parent is not the Item that holds it",
-  "/quality/accessibility/#1": missing("status-ok.svg and decorative-wave.svg"),
-  "/rust/multimedia/#0": missing("beep.wav"),
-  "/quality/accessibility/#3": covered,
-  "/quality/layout-and-typography/#0": covered,
+  // Its pictures now ship (files=); what is left is its field, which
+  // the MOTION lane's window frame (site5/window-frame) takes out from
+  // under the element over it.
+  "/quality/accessibility/#0": `${covered}; waits on site5/window-frame (SITE-5 MOTION)`,
+  "/quality/accessibility/#1": `${covered}; waits on site5/window-frame (SITE-5 MOTION)`,
 };
 
 export function brokenExample(route, index) {

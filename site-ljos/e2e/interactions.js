@@ -15,10 +15,27 @@ import { drag, pinch, press } from "./fixtures.js";
 // A press where a finger lands: the example's own press areas lie over
 // its controls, so a click aimed at the element would be refused.
 const button = (name) => async ({ stage }) => press(stage.getByRole("button", { name }));
+// A tap on the example's own middle: a Tap controller has no element
+// of its own to aim at.
+const tap = async ({ page, at }) => {
+  const { x, y } = await at(0.5, 0.5);
+  await page.mouse.click(x, y);
+};
+// An example whose point is the value it draws: nothing to do but read.
+const reads = async () => {};
 
 export const interactions = {
   "/start/hot-reload/#0": { act: button("Change label"), expect: "text" },
   "/ui/layouts/#3": { act: button("Second"), expect: "look" },
+  "/ui/text-input/#1": {
+    // A double-click selects a word of the read-only field, and the
+    // line below it says which.
+    act: async ({ page, at }) => {
+      const { x, y } = await at(0.1, 0.12);
+      await page.mouse.dblclick(x, y);
+    },
+    expect: (text) => /Selected: \S/.test(text),
+  },
   "/ui/text-input/#2": {
     act: async ({ page, stage }) => {
       await press(stage.locator("input").first());
@@ -63,6 +80,32 @@ export const interactions = {
     act: async ({ page, at }) => drag(page, await at(0.5, 0.8), await at(0.5, 0.2)),
     expect: "look",
   },
+  "/language/controllers/#0": {
+    act: tap,
+    expect: (text) => /^320 wide, compact/m.test(text),
+    // The stage sizes the example's root to its picture, as a sized
+    // Loader sizes its item, and keeps it so. Whether an item's own write
+    // may take over a size its Loader gave it, ljos-ui's loader.feature
+    // does not say yet.
+    fails: "the stage keeps the root at the picture's width, so the tap's write to page.width does not hold",
+  },
+  "/language/controllers/#2": { act: tap, expect: (text) => /^1 taps/m.test(text) },
+  "/language/match/#6": { act: tap, expect: (text) => /^Next: \S/m.test(text) },
+  // The handler's pipe resolves a promise: 12 doubled, in pixels.
+  "/language/pipe/#3": { act: tap, expect: (text) => text.includes("24 px") },
+  // A typed TypeScript module's answer, drawn: only("b") is 3.
+  "/start/#1": { act: reads, expect: (text) => text.includes('Logic.only("b") is 3') },
+  // An .lts module's typed widths, added: 1 and 3.
+  "/start/editors/#0": { act: reads, expect: (text) => text.includes("A thin and a thick line are 4 wide") },
+  // The files beside an example are what it reads (json/xml group=).
+  "/data/models/#2": { act: reads, expect: (text) => text.includes("a1 First") && text.includes("a2 Second") },
+  "/data/models/#3": { act: reads, expect: (text) => text.includes("Bread") && text.includes("Honey") },
+  "/data/fetching/#0": { act: reads, expect: (text) => text.includes("Walk to the lighthouse") },
+  "/data/fetching/#1": { act: reads, expect: (text) => /^POST \S+\/names$/m.test(text) && text.includes("content-type: application/json") },
+  // Aborted as soon as it is made: the file beside it is never read.
+  "/data/fetching/#2": { act: reads, expect: (text) => text.includes("stopped") },
+  // The chime the site ships (beep.wav), played on a press.
+  "/rust/multimedia/#0": { act: button("Play chime"), expect: (text) => text.includes("Played 1") },
   "/language/controllers/#1": {
     // The Wheel controller's rotation moves the distance the text shows.
     act: async ({ page, at }) => {
@@ -80,21 +123,7 @@ export const interactions = {
 // audit's row says "makes no sense"; the suite holds only that they
 // run without errors.
 export const invisible = new Set([
-  "/language/porting-from-qt/#0",
-  "/language/porting-from-qt/#1",
-  "/data/pointer-input/#0",
-  "/ui/text-input/#1", // read-only: a press selects, and selection is not drawn as state
-  "/controls/styles/#2",
-  "/controls/localisation/#0",
-  "/data/fetching/#2",
-  "/language/modules-and-imports/#0",
-  "/language/controllers/#0",
-  "/language/controllers/#2",
-  "/language/match/#6", // a tap sets `action`, which nothing draws
-  "/language/pipe/#3", // a tap sets `shown`, which nothing draws
-  "/start/#1", // a bare Item: its value is never shown
-  "/start/editors/#0", // a bare Item: its value is never shown
-  "/quality/accessibility/#2", // the row pressed is already the current one; its Delete does nothing
+  "/controls/localisation/#0", // its Back and Next have no handler: a press shows nothing once released
   "/quality/color/#1", // its buttons have no handler: a press shows nothing once released
   "/quality/layout-and-typography/#2", // its one button is disabled until a result is picked
 ]);
