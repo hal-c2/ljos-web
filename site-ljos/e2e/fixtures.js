@@ -206,10 +206,14 @@ export async function expectFramesAdvance(locator, { within = 3_000, message = "
     expect(width > 0 && height > 0, "the region is on screen").toBe(true);
     return { x, y, width, height };
   };
-  const first = await page.screenshot({ clip: await clip() });
-  await expect
-    .poll(async () => Buffer.compare(first, await page.screenshot({ clip: await clip() })) !== 0, { message, timeout: within, intervals: [130, 170, 230] })
-    .toBe(true);
+  // Twice, each from a fresh picture: a region that changed once and
+  // then stopped does not pass on its one change.
+  for (const time of ["first", "again"]) {
+    const from = await page.screenshot({ clip: await clip() });
+    await expect
+      .poll(async () => Buffer.compare(from, await page.screenshot({ clip: await clip() })) !== 0, { message: `${message} (${time})`, timeout: within, intervals: [130, 170, 230] })
+      .toBe(true);
+  }
 }
 
 // A `<video>` in the region plays: its time moves on by more than a
