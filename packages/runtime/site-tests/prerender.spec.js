@@ -462,3 +462,13 @@ test("a page with faces that paint prerenders as the elements they paint into", 
     made.remove();
   }
 });
+
+// A page is made as its reader first sees it, shown and theirs: a
+// `Loader.active: Qt.application.active` prerenders its content. Two
+// `hasFocus` in the document's class body would let the later win.
+test("the prerender's document has the focus, and says so once", async () => {
+  const { ServerDocument } = await import("../server/dom.js");
+  expect(new ServerDocument().hasFocus()).toBe(true);
+  const said = readFileSync(join(import.meta.dirname, "../server/dom.js"), "utf8").match(/^  hasFocus\(\)/gm) ?? [];
+  expect(said).toHaveLength(1);
+});
