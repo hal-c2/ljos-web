@@ -88,6 +88,15 @@ test.describe("an example's files", () => {
     expect(server.refused).toEqual([]);
   });
 
+  test("a request for a file the example has is stopped by its signal", async ({ page }) => {
+    const server = watched(page);
+    const figure = await mounted(page, "aborted");
+    await expect(figure).toHaveAttribute("data-state", "live", { timeout: 30000 });
+    await expect(figure.locator(".ljos-codeblock__stage")).toContainText("AbortError / AbortError", { timeout: 15000 });
+    expect(server.named()).toEqual([]);
+    expect(server.refused).toEqual([]);
+  });
+
   test("a picture the site gave the example as bytes is shown, and a file in a directory is imported", async ({ page }) => {
     const server = watched(page);
     const figure = await mounted(page, "given");
