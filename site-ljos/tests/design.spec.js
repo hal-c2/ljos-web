@@ -270,6 +270,13 @@ test("the reader's pick of light or dark is kept, and is the first paint next ti
     await page.getByRole("button", { name: "Use the dark theme" }).click();
     await expect(page.getByRole("button", { name: "Use the light theme" })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.dataset.ljosScheme)).toBe("dark");
+    // Kept under the one key the head's script reads, and no other.
+    const asked = /localStorage\.getItem\(("[^"]+")\)/.exec(await (await page.request.get("/start/mcp/")).text());
+    expect(asked, "the head reads a key").not.toBeNull();
+    const kept = await page.evaluate(() => Object.fromEntries(Object.entries(localStorage)));
+    const key = JSON.parse(asked[1]);
+    expect(kept[key]).toBe("dark");
+    expect(Object.keys(kept).filter((name) => /scheme/i.test(name))).toEqual([key]);
     // The next page is dark before its script is asked for.
     await page.route("**/*.js", (route) => route.abort());
     await page.goto("/start/mcp/");

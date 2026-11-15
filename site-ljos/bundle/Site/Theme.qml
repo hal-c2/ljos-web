@@ -1,6 +1,5 @@
 pragma Singleton
 import QtQuick
-import QtCore
 import "../scheme.js" as Scheme
 import "../tokens.js" as Tokens
 
@@ -12,21 +11,20 @@ import "../tokens.js" as Tokens
 //
 // Light and dark are the reader's: the browser's
 // prefers-color-scheme, until they pick one in the header, which is
-// kept (Settings, `ljos-web:ljos.dev/scheme`) and said on the page's
-// root before the body is read, so the page is first painted in it.
+// kept (scheme.js, under the one key the head's script reads) and said
+// on the page's root before the body is read, so the page is first
+// painted in it.
 QtObject {
     id: theme
 
     // "light", "dark", or "" for the browser's own.
-    readonly property Settings kept: Settings {
-        category: "ljos.dev"
-        property string scheme: ""
-    }
-    readonly property bool dark: kept.scheme === "dark" || (kept.scheme !== "light" && Application.styleHints.colorScheme === Qt.ColorScheme.Dark)
+    property string picked: Scheme.picked()
+    readonly property bool dark: picked === "dark" || (picked !== "light" && Application.styleHints.colorScheme === Qt.ColorScheme.Dark)
 
     function toggle() {
         var next = dark ? "light" : "dark";
-        kept.scheme = next;
+        picked = next;
+        Scheme.keep(next);
         Scheme.mark(next, next === "dark" ? Tokens.dark.canvas : Tokens.light.canvas);
     }
 
