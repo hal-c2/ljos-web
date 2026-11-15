@@ -281,6 +281,7 @@ jobs:
       - run: pnpm --filter ljos-site-ljos build
         env:
           QMLC: ${{ github.workspace }}/target/debug/qmlc
+          VITE_LJOS_VIEW3D: wgpu
           LJOS_SITE_BASE: /
       # A step that failed before here saves nothing: a key is never
       # saved twice, so it must not be saved half-made.
@@ -306,6 +307,7 @@ jobs:
       - run: pnpm --filter ljos-site-ljos build
         env:
           QMLC: ${{ github.workspace }}/target/debug/qmlc
+          VITE_LJOS_VIEW3D: wgpu
           LJOS_SITE_BASE: /
           LJOS_KERNEL: wasm
       - if: steps.wasm-prerenders.outputs.cache-hit != 'true'
@@ -319,6 +321,7 @@ jobs:
       - run: pnpm --filter ljos-site-ljos build
         env:
           QMLC: ${{ github.workspace }}/target/debug/qmlc
+          VITE_LJOS_VIEW3D: wgpu
           LJOS_SITE_BASE: /${{ github.event.repository.name }}/
       - run: pnpm --filter ljos-site-ljos exec playwright test tests/base.spec.js tests/links.spec.js tests/canonical.spec.js
         env:
