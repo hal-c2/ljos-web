@@ -1,12 +1,13 @@
 import { existsSync } from "node:fs";
 import { homedir } from "node:os";
-import { join, resolve } from "node:path";
+import { join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
 import { loadHarnesses, loadPrerenders } from "ljos-web/codeblocks";
 import { liveCodeBlocks } from "ljos-web/codeblocks/remark";
 import qml, { kernelConditions } from "ljos-web/vite";
+import { giveFiles, readGiven } from "./scripts/codeblock-files.mjs";
 import { holdPlain, readHeld } from "./scripts/codeblocks-held.mjs";
 
 const path = (r) => fileURLToPath(new URL(r, import.meta.url));
@@ -31,6 +32,8 @@ const docsDir = docsCandidates.find((c) => existsSync(join(c, "start/index.md"))
 const harnessDir = docsDir ? join(docsDir, "harness") : undefined;
 const prerendersAt = path(".codeblock-prerenders");
 let legacyBlocks = 0;
+const given = readGiven();
+const docsAt = path("src/content/docs");
 
 const SITE = "https://ljos.dev";
 
@@ -82,6 +85,10 @@ export default defineConfig({
           qmlc: process.env.QMLC ?? path("../target/debug/qmlc"),
           strict: process.env.LJOS_CODEBLOCKS_STRICT === "1",
           prerenders: loadPrerenders(prerendersAt),
+          // The files an example reads and its page does not show, as
+          // codeblock-prerenders gave them, so its hash and its page's
+          // live project are the prerender's.
+          examples: (examples, { file, blocks }) => file?.path && giveFiles(relative(docsAt, file.path), blocks, examples, given),
           onLegacy: (count, file) => {
             legacyBlocks += count;
             console.warn(`codeblocks: ${count} block(s) left plain, untagged or listed in the ledger, in ${file?.path ?? "a page"} (${legacyBlocks} so far)`);

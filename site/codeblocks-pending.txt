@@ -16,7 +16,8 @@
 #                   what ljos-web lacks
 #   docs:<gap>      it is not whole as the page writes it: ljos check
 #                   only warns, and the page should give it what it
-#                   reads (ljos-ui's docs to change)
+#                   reads (ljos-ui's docs to change; until then
+#                   site/codeblock-files/<page>/<n>/ may give it)
 #   logs            it runs, and says something on the console as it
 #                   is made that the page means it to: it stays live,
 #                   and the note says what. Anything else a block says
@@ -46,7 +47,6 @@ data/list-and-grid-views.md 1 web:ljos-models ListElement is not in ljos-web's L
 data/models.md 1 web:ljos-models ListElement is not in ljos-web's Ljos.Models yet
 data/models.md 4 web:ljos-models ObjectModel is not in ljos-web's Ljos.Models yet
 data/models.md 5 web:ljos-models ListElement is not in ljos-web's Ljos.Models yet
-data/models.md 7 docs:rows-file the page shows rows.json as its own fence, not as the example's file= (JsonListModel: rows.json: 404)
 data/other-views.md 3 web:treeview TreeView is not in ljos-web yet
 data/repeater-and-delegates.md 2 web:delegatechooser DelegateChooser is not in ljos-web yet
 data/repeater-and-delegates.md 3 web:ljos-models Instantiator is not in ljos-web's Ljos.Models yet
@@ -80,8 +80,6 @@ rust/threads-and-uihandle.md 1 web:xmlhttprequest XMLHttpRequest from Component.
 start/first-app.md 1 web:ljos-controls Ljos.Controls is not in ljos-web yet
 start/first-app.md 2 web:ljos-controls Ljos.Controls is not in ljos-web yet
 start/hot-reload.md 2 web:component-reloaded Component.onReloaded is no signal on the web
-start/index.md 1 docs:shell-files a ShellLoader of shell.qml and AppShell.qml, and the page gives neither file
 start/testing.md 1 web:qttest the test types are not in ljos-web yet
 start/your-own-shell.md 1 web:ljos-controls Ljos.Controls is not in ljos-web yet
 ui/items.md 2 logs it prints `hit: under`, as the page says it does
-ui/shapes-and-effects.md 4 docs:logo-file a VectorImage of logo.svg, and the page gives no logo.svg
