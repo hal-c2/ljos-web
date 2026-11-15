@@ -7,6 +7,7 @@
 // docs are pinned, site/ljos-ui.sha): the reason, as the audit says it.
 const missing = (files) => `audit: the example names ${files}, which the docs page does not ship; the block says 'No such file or directory'`;
 const cors = "audit: the example fetches example.org, which sends no Access-Control-Allow-Origin, so the browser blocks it (CORS) and the model stays empty";
+const covered = "audit: a press on its Controls text field lands on an element over the field's input (one holding an empty .qq-text), so the input never takes focus and what the reader types goes nowhere";
 const BROKEN = {
   "/start/#0": missing("shell.qml and AppShell.qml"),
   "/ui/items/#3": missing("photo.jpg"),
@@ -18,19 +19,15 @@ const BROKEN = {
   "/language/overview/#2": "audit: does not run: 'TypeError: Cannot read properties of undefined (reading 'ticks')'; the Timer's handler reads parent.ticks, and a Timer's parent is not the Item that holds it",
   "/quality/accessibility/#1": missing("status-ok.svg and decorative-wave.svg"),
   "/rust/multimedia/#0": missing("beep.wav"),
+  "/quality/accessibility/#3": covered,
+  "/quality/layout-and-typography/#0": covered,
 };
 
 export function brokenExample(route, index) {
   return BROKEN[`${route}#${index}`] ?? null;
 }
 
-export const windowRoot =
-  "audit (a): a Window/ApplicationWindow root is put in a .qq-layer at the window's 0,0 over the whole site (z-index 2147483000), leaving its stage empty; ShellLoader does not hold a Window in the block's frame";
-
 export const sourceView = "SOURCE lane: a demo has no 'show source' yet";
-
-export const calmNotWired =
-  "audit: nothing on the web reads prefers-reduced-motion; DemosPage never sets Motion.calm, so a reader who asks for reduced motion gets the full spring";
 
 export const demo = {
   orbitRenderer:

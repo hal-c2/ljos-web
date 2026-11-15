@@ -109,16 +109,17 @@ export async function centreOf(locator) {
 
 // A live example: its picture, and the stage the picture is drawn in;
 // once it runs, the running example, which is the one child of the
-// stage a reader sees (the stage keeps the picture's holder and the
-// prerendered copy beside it, hidden); after the stage, the line where
-// the block says what went wrong.
+// stage a reader sees that holds anything (the stage keeps the
+// picture's holder and the prerendered copy beside it, hidden, and its
+// edge, an empty frame drawn under the result, shown); after the stage,
+// the line where the block says what went wrong.
 export function liveBlock(page, index) {
   const picture = page.locator(PICTURE).nth(index);
   const stage = picture.locator("xpath=../../..");
   return {
     picture,
     stage,
-    running: stage.locator("xpath=./*").filter({ visible: true }).first(),
+    running: stage.locator("xpath=./*[*]").filter({ visible: true }).first(),
     told: stage.locator("xpath=following-sibling::*[1]"),
     block: stage.locator("xpath=.."),
   };

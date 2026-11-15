@@ -4,7 +4,6 @@
 // can follow, only without the spring's overshoot. Every other spec
 // runs with no preference, which is full motion.
 import { centre, expect, open, test } from "./fixtures.js";
-import { calmNotWired } from "./known.js";
 
 test.use({ reducedMotion: "reduce" });
 
@@ -14,7 +13,12 @@ test.use({ reducedMotion: "reduce" });
 // make the test look away while the puck travels.
 async function pressAndWatch(page) {
   await open(page, "/demos/");
-  const tray = page.getByRole("slider", { name: /Spring tray/ });
+  // The motion demo is made once its frame nears the screen (DemoFrame),
+  // as a reader scrolls to it.
+  await centre(page.locator("#app div.qq-text").filter({ hasText: /^Motion$/ }).first());
+  // A named group, not a slider: it has no value to say, which ARIA
+  // asks of a slider.
+  const tray = page.getByRole("group", { name: /Spring tray/ });
   await centre(tray);
   const box = await tray.boundingBox();
   const PRESS = 20;
@@ -77,7 +81,6 @@ test("with reduced motion the puck still travels; it does not jump", async ({ pa
 
 test("with reduced motion the puck's travel is softened: no overshoot", async ({ page, wasm }) => {
   test.skip(!wasm, "the same on both; held once");
-  test.fail(true, calmNotWired);
   const { xs, end } = await pressAndWatch(page);
   expect(Math.min(...xs), "it never passes its goal").toBeGreaterThanOrEqual(end - 2);
 });

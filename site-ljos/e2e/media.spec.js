@@ -4,7 +4,7 @@
 // show no video yet (SITE-4 part 7b), so the video test stands as a
 // fixme until a page shows one; it then holds the first.
 import { centre, classify, expectFramesAdvance, expectVideoPlays, livePages, open, run, test, unexpected, expect } from "./fixtures.js";
-import { brokenExample, windowRoot } from "./known.js";
+import { brokenExample } from "./known.js";
 
 const live = livePages().flatMap(({ route, examples }) => examples.map((example) => ({ route, ...example, kind: classify(example.code) })));
 const videos = live.filter((example) => example.kind.video);
@@ -20,7 +20,7 @@ test.describe("video", () => {
 
   for (const example of videos) {
     test(`${example.route}#${example.index} plays its video`, async ({ page, errors }) => {
-      const broken = brokenExample(example.route, example.index) ?? (example.kind.window ? windowRoot : null);
+      const broken = brokenExample(example.route, example.index);
       test.fail(Boolean(broken), broken ?? "");
       await open(page, example.route);
       const block = await run(page, example.index);
@@ -35,7 +35,7 @@ test.describe("canvas, shader and Canvas items keep drawing", () => {
 
   for (const example of live.filter((example) => /\b(ShaderEffect|Canvas|ParticleSystem)\s*\{/.test(example.code))) {
     test(`${example.route}#${example.index} draws into its canvas`, async ({ page, errors }) => {
-      const broken = brokenExample(example.route, example.index) ?? (example.kind.window ? windowRoot : null);
+      const broken = brokenExample(example.route, example.index);
       test.fail(Boolean(broken), broken ?? "");
       await open(page, example.route);
       const block = await run(page, example.index);
