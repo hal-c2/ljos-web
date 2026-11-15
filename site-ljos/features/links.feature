@@ -20,6 +20,11 @@ Feature: The site's links are the page's own links
     Then the header has a link to the front page, to the docs and to the live demos
     And each link's address starts at the base
 
+  Scenario: Every page links to the community principles the project follows
+    When a reader with no script opens any page
+    Then its footer has a link "Community principles" to https://community-software.org/
+    And the front page says Ljós strives to follow them, with a link "Community Software" there
+
   Scenario: Every page names its icon at the base
     When any built page is read as HTML
     Then its head links the site's icon at the base, which the build wrote
