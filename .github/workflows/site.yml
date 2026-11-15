@@ -151,10 +151,41 @@ jobs:
       # renders with the same compiler built ahead of time.
       - run: mise run build:wasm-compiler
       # The showcase's 3D demo is drawn by the wgpu renderer, and
-      # the showcase suite runs again over Ljós's own kernel.
+      # the showcase suite runs again over Ljós's own kernel. Each
+      # artefact is built once here and read by every step after it.
       - run: mise run build:wasm-3d
       - run: mise run build:kernel
-      - run: pnpm --filter ljos-site exec playwright install --with-deps chromium
+      # One Chromium for both sites' suites and the build's pictures,
+      # kept between runs by Playwright's version (one in the lockfile).
+      # What it needs of the system is installed each run either way.
+      - id: playwright
+        run: echo "version=$(sed -n 's/^  playwright@\([0-9.]*\):$/\1/p' pnpm-lock.yaml | head -n1)" >> "$GITHUB_OUTPUT"
+      - id: browsers
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - if: steps.browsers.outputs.cache-hit != 'true'
+        run: pnpm --filter ljos-site exec playwright install --with-deps chromium
+      - if: steps.browsers.outputs.cache-hit == 'true'
+        run: pnpm --filter ljos-site exec playwright install-deps chromium
+      # The code blocks' prerenders and pictures, kept between runs.
+      # Each entry names the compiler, runtime and lockfile that made
+      # it (prerenderStamp), and one made by others is made again, so
+      # an older run's cache is only ever a head start: what the build
+      # embeds is what a build from nothing would. The pictures are
+      # drawn with the runner's fonts, so a runner image of its own
+      # starts from nothing. The key moves with everything a block
+      # can be made from, so a run that made nothing new saves nothing.
+      - id: image
+        run: echo "name=$ImageOS-$ImageVersion" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            site/.codeblock-prerenders
+            site-ljos/.codeblock-prerenders
+          key: codeblock-prerenders-${{ steps.image.outputs.name }}-${{ hashFiles('packages/runtime/**', 'crates/**', 'vendor/**', 'Cargo.lock', 'pnpm-lock.yaml', 'site/ljos-ui.sha', 'site/tests/fixtures/**', '!**/node_modules/**') }}
+          restore-keys: codeblock-prerenders-${{ steps.image.outputs.name }}-
       # Prerenders each live block (and fails on one that claims to
       # run and does not) before the build embeds them.
       - run: pnpm --filter ljos-site codeblock-prerenders
@@ -164,6 +195,9 @@ jobs:
         env:
           VITE_LJOS_VIEW3D: wgpu
           NODE_OPTIONS: --disable-warning=DEP0190
+      # The artifact is this ordinary build, kept aside before the
+      # wasm-kernel build below takes site/dist.
+      - run: cp -r site/dist "$RUNNER_TEMP/site-dist"
       - run: pnpm --filter ljos-site check-links
       - run: pnpm --filter ljos-site test
       # The same suite over Ljós's reactive graph (A22): a second
@@ -174,12 +208,6 @@ jobs:
           LJOS_KERNEL: wasm
           NODE_OPTIONS: --disable-warning=DEP0190
       - run: pnpm --filter ljos-site exec playwright test tests/showcase.spec.js tests/site.spec.js
-      # The artifact (and a dispatch's deploy) is the ordinary build
-      # again, not the wasm-kernel one the tests just ran on.
-      - run: pnpm --filter ljos-site build
-        env:
-          VITE_LJOS_VIEW3D: wgpu
-          NODE_OPTIONS: --disable-warning=DEP0190
       # The live blocks on a site built from fixture docs, strictly.
       # After the ordinary suite: its setup syncs the fixture's pages.
       - run: pnpm --filter ljos-site test:codeblocks
@@ -188,11 +216,14 @@ jobs:
       # The same site as Ljós pages, beside the Astro one: built and
       # held to parity with it, uploaded as its own artifact, and what
       # Pages deploys (the Astro site/dist is the reference, never
-      # deployed). The wasm compiler is built above, for the Astro
-      # build's blocks.
-      - run: mise run build:kernel
-      # The build draws each live block's picture in a browser.
-      - run: pnpm --filter ljos-site-ljos exec playwright install --with-deps chromium
+      # deployed). The wasm compiler, the kernel and the browser are
+      # the ones above. Its blocks are the Astro build's: the same
+      # examples, compiler, runtime and kernel make the same
+      # prerenders, so they are made once, there; what it adds is
+      # their pictures.
+      - run: |
+          mkdir -p site-ljos/.codeblock-prerenders
+          cp -r site/.codeblock-prerenders/. site-ljos/.codeblock-prerenders/
       # Built twice, once for each place it stands: at a domain's
       # root (ljos.dev), the whole suite; then below a project path
       # (the github.io preview, /<repo>/), what the base decides: the
@@ -242,7 +273,7 @@ jobs:
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: site-dist
-          path: site/dist
+          path: ${{ runner.temp }}/site-dist
       # DECISION: Pages serves site-ljos (the Ljós-built site), never
       # the Astro reference. Every merge to main deploys, in
       # hal-c2/ljos-web only: the root build and a CNAME naming the
