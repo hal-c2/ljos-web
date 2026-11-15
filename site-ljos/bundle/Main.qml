@@ -419,8 +419,12 @@ Rectangle {
         border.color: Theme.border
         border.width: 1
 
+        // Kept clear of the link at the edge, at any width.
         Text {
             anchors.centerIn: parent
+            width: parent.width - 2 * (principlesLink.width + 40)
+            horizontalAlignment: Text.AlignHCenter
+            elide: Text.ElideRight
             text: "Ljós — malleable software, everywhere · MIT · This site is a Ljós page, prerendered by ljos-web"
             color: Theme.muted
             font.family: Theme.sans
@@ -430,6 +434,7 @@ Rectangle {
         // stands at the edge, so its place never depends on how wide
         // the words beside it are measured.
         NavLink {
+            id: principlesLink
             anchors.right: parent.right
             anchors.rightMargin: 20
             anchors.verticalCenter: parent.verticalCenter
