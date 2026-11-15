@@ -80,6 +80,11 @@
       "needs": []
     },
     {
+      "module": "QtNetwork",
+      "from": "runtime",
+      "needs": []
+    },
+    {
       "module": "QtPositioning",
       "from": "runtime",
       "needs": []

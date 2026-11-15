@@ -81,7 +81,6 @@ rust/models.md 1 host-types titlesModel is a model the Rust program sets
 rust/multimedia.md 1 web:media-pause a media element has no pause() on the web yet
 rust/native-types.md 1 host-types the Example module is the Rust program's
 rust/overview.md 1 web:ljos-module the Ljos module itself is not in ljos-web yet
-rust/platforms.md 1 web:networkinformation NetworkInformation is not in ljos-web yet
 rust/singletons-and-windows.md 1 host-types io.qt.filenameprovider is a module the Rust program registers
 rust/testing-rust.md 1 web:qttest the test types are not in ljos-web yet
 rust/threads-and-uihandle.md 1 web:xmlhttprequest XMLHttpRequest from Component.onCompleted throws on the web
