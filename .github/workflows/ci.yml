@@ -92,11 +92,14 @@ jobs:
       # The 3D scenes on the JavaScript renderer, which asks for no GPU of its
       # own (Chromium draws its WebGL2 in software here). A View3D made late,
       # as a Loader makes one, is among them. Those lit by a picture of their
-      # surroundings take software GL longer than a test is given: they run
-      # where there is a GPU.
+      # surroundings take software GL longer than a test is given beside the
+      # others: they run after, one at a time, each given longer.
       - name: Quick3D, on the Solid kernel
         if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
         run: pnpm --filter ljos-web exec playwright test -c tests quick3d.spec --grep-invert @surroundings
+      - name: Quick3D lit by its surroundings, one at a time, on the Solid kernel
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
+        run: pnpm --filter ljos-web exec playwright test -c tests quick3d.spec --grep @surroundings --workers=1 --timeout=120000
 
   # Its own job, as what it needs of ljos-ui is not what the others need.
   examples:
