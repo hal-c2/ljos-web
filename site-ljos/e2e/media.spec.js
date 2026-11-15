@@ -3,7 +3,7 @@
 // (an animation, a timer, a shader, 3D) keeps drawing frames. The docs
 // show no video yet (SITE-4 part 7b), so the video test stands as a
 // fixme until a page shows one; it then holds the first.
-import { classify, expectFramesAdvance, expectVideoPlays, livePages, open, run, test, unexpected, expect } from "./fixtures.js";
+import { centre, classify, expectFramesAdvance, expectVideoPlays, livePages, open, run, test, unexpected, expect } from "./fixtures.js";
 import { brokenExample, windowRoot } from "./known.js";
 
 const live = livePages().flatMap(({ route, examples }) => examples.map((example) => ({ route, ...example, kind: classify(example.code) })));
@@ -42,7 +42,17 @@ test.describe("canvas, shader and Canvas items keep drawing", () => {
       const canvas = block.running.locator("canvas").first();
       await expect(canvas, "the example draws into a canvas").toBeAttached();
       if (example.kind.moves) await expectFramesAdvance(canvas);
-      else expect(await canvas.evaluate((element) => element.width * element.height), "the canvas has pixels").toBeGreaterThan(0);
+      else {
+        // It drew something: its place looks different with the canvas
+        // hidden. A canvas with a size but nothing drawn looks the same.
+        await centre(canvas);
+        const clip = await canvas.boundingBox();
+        const drawn = await page.screenshot({ clip });
+        await canvas.evaluate((element) => (element.style.visibility = "hidden"));
+        const without = await page.screenshot({ clip });
+        await canvas.evaluate((element) => (element.style.visibility = ""));
+        expect(Buffer.compare(drawn, without) !== 0, "the canvas holds a picture").toBe(true);
+      }
       expect(unexpected(errors)).toEqual([]);
     });
   }

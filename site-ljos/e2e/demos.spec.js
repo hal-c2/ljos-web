@@ -49,14 +49,20 @@ test.describe("/demos/", () => {
   });
 
   test("Orbit turns under a sideways drag and zooms under a pinch", async ({ page, errors }) => {
+    // The scene turns on its own, so a changed picture proves nothing
+    // about the drag. With the page's clock stopped nothing moves on
+    // its own: what moves then is what the drag moved.
+    await page.clock.install();
     await settled(page, "/demos/");
     const canvas = demo(page, "3D you can orbit").locator("canvas.qq-view3d");
     await centre(canvas);
     const { x, y } = await centreOf(canvas);
+    await page.clock.pauseAt(await page.evaluate(() => Date.now() + 500));
     const shot = () => canvas.screenshot();
     const before = await shot();
+    expect(Buffer.compare(before, await shot()), "with the clock stopped the scene holds still").toBe(0);
     await drag(page, { x: x - 80, y }, { x: x + 80, y });
-    expect(Buffer.compare(before, await shot()) !== 0, "the scene turned").toBe(true);
+    await expect.poll(async () => Buffer.compare(before, await shot()) !== 0, { message: "the scene turned" }).toBe(true);
     await pinch(page, x, y);
     expect(unexpected(errors)).toEqual([]);
   });
