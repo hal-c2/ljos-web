@@ -111,6 +111,50 @@ pnpm --filter ljos-site-ljos test
 pnpm --filter ljos-site-ljos test:e2e  # serves dist/ itself
 ```
 
+The 3D demos are drawn by wgpu's renderer, as CI builds them
+(`VITE_LJOS_VIEW3D=wgpu`, after `mise run build:wasm-3d`); without
+it they are drawn by the JavaScript one. Either way a browser
+without WebGPU draws them on WebGL2.
+
+## What runs, and when
+
+DECISION: the rule of thumb for what a page runs.
+
+- Nothing runs until the reader asks. A plain example (one that draws
+  and answers input, and holds still otherwise) has no Run button: it
+  runs when its picture is pressed, the press going on to what it
+  draws, or when its code is edited. The Pantry, the flagship, is
+  drawn with the page as one: it holds still, and its shell is the one
+  compiled with the page until the reader's first edit, so it has no
+  Run and does not count among the three below.
+- One whose root is a `Window` or an `ApplicationWindow`, one that
+  draws in 3D, one that keeps moving on its own (a `Timer`, a running
+  or looping animation, an `AnimatedSprite`, media), and every other
+  demo (Orbit on the front page, and `/demos/`' other four) shows its
+  picture with a Run button and runs once the reader presses it: the
+  button, Return or Space on it, or a screen reader's press. `bundle/live.js`
+  `gated()` reads that from the code.
+- A demo is made when its Run is pressed, not as it nears the screen:
+  one the reader never asks for costs them no GPU device
+  (`Site/DemoFrame.qml`).
+- At most three run at once. A fourth stops one: one that is off
+  screen first, else the one that started first. A stopped one waits
+  for Run again (a demo is unmade, and gives its device back); a plain
+  one runs again when next pressed or edited.
+- One that leaves the view pauses, and so does everything while the
+  tab is hidden; back in view, it resumes. A demo pauses in place (its
+  `active` is false, its state kept); an example goes back to its
+  picture, keeping the reader's edits, and runs them again.
+- An example's picture follows the site's light or dark: each is drawn
+  on both papers.
+
+Motion is full by default. A reader whose system asks for reduced
+motion, or who checks the header's "Reduce motion" toggle (kept in
+this browser, and back to the system's when it agrees with it), gets it
+softened, never stopped: `Theme.calm` is set, so the motion
+demo's springs settle without overshoot and the 3D and shader demos
+turn at a third of their speed.
+
 ## Where it stands: the base
 
 The site stands at a base: `/` at a domain of its own (ljos.dev),

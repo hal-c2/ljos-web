@@ -4,11 +4,14 @@ import "../nav.js" as Nav
 
 // Where a live demo stands: a frame its own size from the first paint,
 // holding a picture of the demo and the words for it, so nothing below
-// moves when the demo comes. The demo itself is made in a reader's
-// browser once the frame is near the screen, fades in over its picture,
-// and runs only while it is on screen (`active`), gently where the
-// reader asks for less motion (`calm`). A browser without what the demo
-// needs (WebGL 2, WebGPU, wasm) keeps the picture, and says why.
+// moves when the demo comes. The picture is the demo's poster, with a
+// Run button on it (Runner): the demo is made in a reader's browser
+// once they press it, fades in over its picture, and runs only while
+// it is on screen and its tab is shown (`active`), gently where the
+// reader asks for less motion (`calm`). One more demo or example
+// started past the page's budget (Running) stops it: it is unmade, and
+// its poster waits for Run again. A browser without what the demo needs
+// (WebGL 2, WebGPU, wasm) keeps the picture, and says why.
 //
 // Made is not drawn: a demo whose drawing starts after it is made (a
 // renderer that starts, a shader that compiles) says so as `ready`, and
@@ -28,6 +31,8 @@ Item {
     property string picture: ""
     property string pictureDark: ""
     property string description: ""
+    // The Run button's name, for a screen reader: "Run the 3D demo".
+    property string label: "Run this demo"
     // The route of the page the frame stands on, which the picture's
     // address is written from.
     property string route: "/"
@@ -55,13 +60,7 @@ Item {
         return y;
     }
     readonly property real top: scroller ? offset() - scroller.contentY : 0
-    // A quarter of a screen ahead is time enough to make a demo before
-    // it is seen, and no more: a frame two screens down, under a reader
-    // who never scrolls to it, would cost them a GPU device for nothing.
-    readonly property real ahead: scroller ? scroller.height / 4 : 0
-    readonly property bool near: !scroller || (top < scroller.height + ahead && top + height > -ahead)
     readonly property bool onScreen: !scroller || (top < scroller.height && top + height > 0)
-    property bool started: false
     readonly property bool drawn: loader.status === Loader.Ready && loader.item !== null && loader.item.ready !== false
 
     Timer {
@@ -131,7 +130,10 @@ Item {
     Loader {
         id: loader
         anchors.fill: parent
-        active: frame.runnable && (frame.near || frame.started)
+        // DECISION: made when the reader presses Run, not as the frame
+        // nears the screen: a demo the reader never asks for costs them
+        // no GPU device, and one the budget stops gives its device back.
+        active: frame.runnable && runner.started
         sourceComponent: frame.demo
         source: frame.demo ? undefined : frame.source
         opacity: frame.drawn ? 1 : 0
@@ -142,10 +144,15 @@ Item {
             }
         }
         onLoaded: {
-            frame.started = true;
-            // A hidden tab is off screen too: nobody sees its frames.
-            item.active = Qt.binding(() => frame.onScreen && Qt.application.state !== Qt.ApplicationHidden && Qt.application.state !== Qt.ApplicationSuspended);
+            item.active = Qt.binding(() => runner.running);
             item.calm = Qt.binding(() => Theme.calm);
         }
+    }
+
+    Runner {
+        id: runner
+        anchors.fill: parent
+        can: frame.runnable
+        label: frame.label
     }
 }

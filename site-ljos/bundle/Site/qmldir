@@ -1,6 +1,7 @@
 module Site
 singleton Theme 1.0 Theme.qml
 singleton Content 1.0 Content.qml
+singleton Running 1.0 Running.qml
 DocPage 1.0 DocPage.qml
 CodeBlock 1.0 CodeBlock.qml
 CodeEditor 1.0 CodeEditor.qml
@@ -17,4 +18,6 @@ DemoSection 1.0 DemoSection.qml
 DocsMap 1.0 DocsMap.qml
 Footer 1.0 Footer.qml
 LinkButton 1.0 LinkButton.qml
+MotionToggle 1.0 MotionToggle.qml
 FeatureCard 1.0 FeatureCard.qml
+Runner 1.0 Runner.qml

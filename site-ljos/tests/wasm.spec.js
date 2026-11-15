@@ -94,6 +94,8 @@ const read = (page, placed) =>
         // that stands as its picture (DemoFrame).
         if (style.display === "none") return;
         const said = node.innerText.replace(/\s+/g, " ").trim();
+        // A demo's Run button stands only where it can run.
+        if (node.getAttribute("role") === "button" && /^Run /.test(node.getAttribute("aria-label") ?? "")) return;
         if (/^Live editing needs WebAssembly[^.]*\.$/.test(said) || (/^A picture of the demo: it runs in a browser with [^,.]+, which this one does not offer\.$/.test(said) && !node.querySelector("img"))) return;
         const box = node.getBoundingClientRect();
         const at = placed ? ` ${Math.round(box.x)},${Math.round(box.y)} ${Math.round(box.width)}x${Math.round(box.height)}` : "";

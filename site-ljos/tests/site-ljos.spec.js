@@ -606,6 +606,14 @@ test("a visitor's demos page holds no test hook", async ({ page }) => {
 // shown (the page keeps no hidden render once it runs, and a canvas of
 // another part does not count), between the demo's heading and what
 // comes after it on the page.
+// A demo's Run pressed, as a reader presses it.
+async function runDemo(page, name) {
+  const button = page.getByRole("button", { name });
+  await button.scrollIntoViewIfNeeded();
+  await button.click();
+  await expect(button).toBeHidden({ timeout: 30_000 });
+}
+
 async function demoIn(page, heading, picture, next, drawn = null) {
   const top = (await heading.boundingBox()).y;
   const bottom = next ? (await next.boundingBox()).y : Infinity;
@@ -618,33 +626,37 @@ test("every showcase demo stands in its slot, on the landing and the demos page"
   await page.goto("/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
   await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible();
-  // The landing's showcase is made as the reader nears it: its scene
-  // where the browser can draw it, its picture where it cannot.
+  // The landing's showcase is made once the reader presses its Run:
+  // its scene where the browser can draw it, its picture where it
+  // cannot, and its picture, with the button on it, until then.
   const run = shown(page.getByText("See it run", { exact: true }));
   await run.scrollIntoViewIfNeeded();
+  await expect.poll(() => demoIn(page, run, "demo-orbit.webp"), { timeout: 30_000 }).toBeGreaterThan(0);
+  await runDemo(page, "Run the 3D demo");
   await expect.poll(() => demoIn(page, run, "demo-orbit.webp"), { timeout: 30_000 }).toBeGreaterThan(0);
 
   await page.goto("/demos/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
-  // Each demo but the flagship is made once its frame comes near the
-  // screen, so the reader scrolls to it, as a reader would; what it
+  // Each demo but the flagship is made once its Run is pressed, so the
+  // reader scrolls to it and presses it, as a reader would; what it
   // shows is in its own frame, and what it says is on screen. The
   // whole app and the motion demo draw as the page does, so once one
   // runs its frame holds its own words, not a canvas, and its picture
   // is gone.
   const demos = [
     ["A shell you rewrite", null, null],
-    ["3D you can orbit", "demo-orbit.webp", "Drag to orbit · scroll or pinch to zoom"],
-    ["A shader effect", "demo-shader.webp", "Move to stir the light · tap for other colours"],
-    ["A whole app", "demo-app.webp", "Field guide", "Field guide"],
-    ["Motion", "demo-motion.webp", "Shuffle the tiles", "Press and move — the puck springs after you"],
+    ["3D you can orbit", "demo-orbit.webp", "Drag to orbit · scroll or pinch to zoom", null, "Run the 3D demo"],
+    ["A shader effect", "demo-shader.webp", "Move to stir the light · tap for other colours", null, "Run the shader demo"],
+    ["A whole app", "demo-app.webp", "Field guide", "Field guide", "Run the field guide"],
+    ["Motion", "demo-motion.webp", "Shuffle the tiles", "Press and move — the puck springs after you", "Run the motion demo"],
   ];
   const headingOf = (title) => shown(page.getByText(title, { exact: true }));
-  for (const [index, [title, picture, inside, drawn]] of demos.entries()) {
+  for (const [index, [title, picture, inside, drawn, label]] of demos.entries()) {
     const heading = headingOf(title);
     await heading.scrollIntoViewIfNeeded();
     await expect(heading).toBeVisible();
     if (!picture) continue;
+    await runDemo(page, label);
     const next = demos[index + 1] ? headingOf(demos[index + 1][0]) : null;
     await expect.poll(() => demoIn(page, heading, picture, next, drawn), { timeout: 30_000, message: `${title} stands in its frame` }).toBeGreaterThan(0);
     await shown(page.getByText(inside)).first().scrollIntoViewIfNeeded({ timeout: 30_000 });

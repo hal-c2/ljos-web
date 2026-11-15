@@ -369,11 +369,12 @@ test("a browser with no WebGPU runs the 3D scene and the shader", async ({ brows
     });
     await page.goto("/demos/");
     await page.waitForSelector('#app[data-ljos-hydrated="true"]');
-    for (const [heading, picture] of [
-      ["3D you can orbit", /^A lit 3D scene/],
-      ["A shader effect", /^Light pooling over a card/],
+    for (const [heading, picture, run] of [
+      ["3D you can orbit", /^A lit 3D scene/, "Run the 3D demo"],
+      ["A shader effect", /^Light pooling over a card/, "Run the shader demo"],
     ]) {
       await page.getByText(heading, { exact: true }).scrollIntoViewIfNeeded();
+      await page.getByRole("button", { name: run }).click();
       // The demo, drawn, stands where its picture stood.
       await expect(page.getByRole("img", { name: picture }), heading).toBeHidden({ timeout: 30_000 });
     }
@@ -412,16 +413,23 @@ test("a demo whose renderer cannot start keeps its picture", async ({ browser })
   const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
   try {
     const page = await context.newPage();
-    // WebGL 2 is offered, but gives no context to draw with.
+    // WebGL 2 is offered, but gives no context to draw with, on any
+    // canvas, and there is no WebGPU: neither renderer (the JavaScript
+    // one draws on an OffscreenCanvas, wgpu's on the page's canvas)
+    // can start.
     await page.addInitScript(() => {
-      const given = OffscreenCanvas.prototype.getContext;
-      OffscreenCanvas.prototype.getContext = function (kind, ...rest) {
-        return kind === "webgl2" ? null : given.call(this, kind, ...rest);
-      };
+      for (const Canvas of [OffscreenCanvas, HTMLCanvasElement]) {
+        const given = Canvas.prototype.getContext;
+        Canvas.prototype.getContext = function (kind, ...rest) {
+          return kind === "webgl2" || kind === "webgpu" ? null : given.call(this, kind, ...rest);
+        };
+      }
+      Object.defineProperty(Navigator.prototype, "gpu", { configurable: true, get: () => undefined });
     });
     await page.goto("/demos/");
     await page.waitForSelector('#app[data-ljos-hydrated="true"]');
     await page.getByText("3D you can orbit", { exact: true }).scrollIntoViewIfNeeded();
+    await page.getByRole("button", { name: "Run the 3D demo" }).click();
     // The scene is made (its own words are in the page) ...
     await expect(page.getByText("Drag to orbit · scroll or pinch to zoom").first()).toBeAttached({ timeout: 30_000 });
     // ... and, past the time it would take to fade in, has drawn nothing.
@@ -433,13 +441,14 @@ test("a demo whose renderer cannot start keeps its picture", async ({ browser })
 });
 
 // A 3D scene costs a GPU device and its frames, so on /demos/ it is made
-// only once a reader scrolls to it, not for a reader who reads the
-// flagship and leaves. Its own words stand in the page only once it is.
+// only once a reader asks for it with its Run, not for a reader who reads
+// the flagship and leaves, nor for one who scrolls past it. Its own words
+// stand in the page only once it is.
 for (const viewport of [
   { width: 390, height: 844 },
   { width: 1440, height: 900 },
 ]) {
-  test(`on /demos/ at ${viewport.width} the 3D scene is made only once a reader nears it`, async ({ browser }) => {
+  test(`on /demos/ at ${viewport.width} the 3D scene is made only once a reader runs it`, async ({ browser }) => {
     const context = await browser.newContext({ viewport });
     try {
       const page = await context.newPage();
@@ -455,6 +464,9 @@ for (const viewport of [
       const hint = page.getByText("Drag to orbit · scroll or pinch to zoom");
       expect(await hint.count(), "not made in the first view").toBe(0);
       await heading.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(1000);
+      expect(await hint.count(), "not made as it is scrolled to").toBe(0);
+      await page.getByRole("button", { name: "Run the 3D demo" }).click();
       await expect(hint.first()).toBeAttached({ timeout: 30_000 });
     } finally {
       await context.close();

@@ -3,7 +3,7 @@
 // motion demo's puck travel to where they pressed, in steps a person
 // can follow, only without the spring's overshoot. Every other spec
 // runs with no preference, which is full motion.
-import { centre, expect, open, test } from "./fixtures.js";
+import { centre, expect, open, press, runButton, test } from "./fixtures.js";
 
 test.use({ reducedMotion: "reduce" });
 
@@ -21,11 +21,9 @@ const STILL = 100;
 const SETTLE = 2_000;
 async function pressAndWatch(page) {
   await open(page, "/demos/");
-  // The motion demo is made once its frame nears the screen (DemoFrame),
-  // as a reader scrolls to it.
-  await centre(page.locator("#app div.qq-text").filter({ hasText: /^Motion$/ }).first());
-  // A named group, not a slider: it has no value to say, which ARIA
-  // asks of a slider.
+  const run = runButton(page, "Run the motion demo");
+  await press(run);
+  await expect(run).toBeHidden();
   const tray = page.getByRole("group", { name: /Spring tray/ });
   await centre(tray);
   const box = await tray.boundingBox();

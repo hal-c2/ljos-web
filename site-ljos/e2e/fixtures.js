@@ -138,8 +138,18 @@ export async function press(locator) {
   await locator.page().mouse.click(x, y);
 }
 
-// Press the picture, as a reader starts an example, and wait until the
-// example runs in its place.
+// Two frames: what a scroll or a press set going has been heard.
+export function frames(page) {
+  return page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+}
+
+// The Run button of a block or a demo (Runner).
+export function runButton(locator, name = "Run this example") {
+  return locator.getByRole("button", { name });
+}
+
+// Press the picture, as a reader starts an example (on its Run button,
+// where it has one), and wait until the example runs in its place.
 export async function run(page, index) {
   const block = liveBlock(page, index);
   await press(block.picture);
