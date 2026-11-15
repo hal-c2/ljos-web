@@ -21,6 +21,7 @@ import { highlight, readMarkdownSite } from "ljos-web/markdown";
 import { buildSite } from "ljos-web/site";
 import { checkExamples, hashExample, loadHarnesses, loadPrerenders, pruneCache, renderPrerenders, siteFiles } from "ljos-web/codeblocks";
 import { assemble, packGiven, tagged } from "ljos-web/codeblocks/parse";
+import { kernelNamed } from "ljos-web/vite";
 import { packRich } from "ljos-web/codeblock/rich";
 import { giveFiles, readGiven } from "../../site/scripts/codeblock-files.mjs";
 import { keysByHash, listedEverywhere, pageOfRoute, pageRecords, readLedger, saysEverywhere } from "../../site/scripts/codeblocks-ledger.mjs";
@@ -120,7 +121,12 @@ const liveAt = new Map(); // a page's code block -> its live payload
     onPages.push({ page: pageOfRoute(page.route), fences: said, examples });
     for (const example of examples) gathered.push({ page, example });
   }
-  const cacheDir = join(here, ".codeblock-prerenders");
+  // One stamp's answers to a directory, and this site is built on
+  // either kernel: the default's stand at the top (seeded from the
+  // Astro build's), another's beside them, so neither build drops or
+  // makes again what the other made.
+  const kernel = kernelNamed();
+  const cacheDir = kernel === kernelNamed({}) ? join(here, ".codeblock-prerenders") : join(here, ".codeblock-prerenders", kernel);
   const checked = checkExamples(gathered.map(({ example }) => example), { qmlc });
   // An example is its hash: one on two pages is made once, and what is
   // said of the copy made is said of every place it stands.
