@@ -9,6 +9,7 @@
 // yet is there all the same, to say so when it is used: a style names every
 // control, and a program that uses three of them needs those three.
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { basename, delimiter, dirname, isAbsolute, join, relative, resolve as resolvePath, sep } from "node:path";
 import { inflateSync } from "node:zlib";
@@ -568,9 +569,14 @@ export default function qml({
     else if (named) query.set("file", resolvePath(base, named));
     else query.set("entry", file), query.set("project", projectOf(file));
     if (hue !== undefined) query.set("hue", String(hue));
-    // By number: an id with the theme's path in it would be taken for JSON.
+    // By a digest: an id with the theme's path in it would be taken for
+    // JSON, and one numbered in compile order names the same theme
+    // differently from build to build, so no two builds' chunks match.
+    // Paths are hashed from the root, so the id does not depend on where
+    // the project is checked out.
     const asked = String(query);
-    if (!numbered.has(asked)) numbered.set(asked, `${THEME}${numbered.size}`);
+    const stable = new URLSearchParams([...query].map(([key, value]) => [key, isAbsolute(value) ? relative(base, value) : value]));
+    if (!numbered.has(asked)) numbered.set(asked, `${THEME}${createHash("sha256").update(String(stable)).digest("hex").slice(0, 16)}`);
     return numbered.get(asked);
   };
   // What `qmlc --theme` says of the theme a theme module is: its overrides
