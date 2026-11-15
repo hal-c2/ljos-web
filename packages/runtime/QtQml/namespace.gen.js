@@ -118,6 +118,19 @@ for (const [, name] of text.matchAll(/Q_(?:ENUM|FLAG)_NS\((\w+)\)/g)) {
   registered[name] = members;
 }
 
+// What Ljós has ahead of this header, as `[name, members, after]`: Qt
+// 6.12 documents `MotionPreference` beside `ContrastPreference`, and a
+// header that lacks it must not take it from the runtime.
+const AHEAD = [["MotionPreference", { NoPreference: 0, ReducedMotion: 1 }, "ContrastPreference"]];
+for (const [name, members, after] of AHEAD) {
+  if (registered[name]) continue;
+  const entries = Object.entries(registered);
+  const at = entries.findIndex(([known]) => known === after);
+  entries.splice(at < 0 ? entries.length : at + 1, 0, [name, members]);
+  for (const key of Object.keys(registered)) delete registered[key];
+  Object.assign(registered, Object.fromEntries(entries));
+}
+
 const number = (value) => (value >= 0x100 && value % 0x100 === 0 ? `0x${value.toString(16)}` : String(value));
 const lines = Object.entries(registered).map(([name, members]) => {
   const body = Object.entries(members).map(([member, value]) => `${member}: ${number(value)}`);
