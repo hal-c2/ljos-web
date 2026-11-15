@@ -4,7 +4,7 @@ import { join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
-import { loadHarnesses, loadPrerenders } from "ljos-web/codeblocks";
+import { loadHarnesses, loadPrerenders, siteFiles } from "ljos-web/codeblocks";
 import { liveCodeBlocks } from "ljos-web/codeblocks/remark";
 import qml, { kernelConditions } from "ljos-web/vite";
 import { giveFiles, readGiven } from "./scripts/codeblock-files.mjs";
@@ -82,6 +82,7 @@ export default defineConfig({
         holdPlain(liveCodeBlocks, readHeld(prerendersAt)),
         {
           harnesses: loadHarnesses(harnessDir),
+          files: siteFiles(docsDir ? join(docsDir, "files") : undefined),
           qmlc: process.env.QMLC ?? path("../target/debug/qmlc"),
           strict: process.env.LJOS_CODEBLOCKS_STRICT === "1",
           prerenders: loadPrerenders(prerendersAt),

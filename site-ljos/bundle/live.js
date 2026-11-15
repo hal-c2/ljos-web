@@ -29,9 +29,11 @@ function diagnosticsFor(id, index) {
 }
 
 // `told(lines)`: what the running example asked for and does not have,
-// one line each, as it changes.
-function setExample(id, display, entry, harnessTemplate, harnessFile, told) {
+// one line each, as it changes. `given`: the site's files the example
+// was given, as its payload carries them (`parse.packGiven`).
+function setExample(id, display, entry, harnessTemplate, harnessFile, told, given) {
     examples[id] = {
+        packed: given || undefined,
         display: display,
         entry: entry,
         harnessTemplate: harnessTemplate || undefined,
@@ -75,6 +77,8 @@ async function moduleFor(id) {
         throw new Error("no example " + id);
     const compile = await compileWith();
     const parse = await import("ljos-web/codeblocks/parse");
+    if (example.packed && !example.given)
+        example.given = parse.unpackGiven(example.packed);
     const files = parse.exampleFiles(example);
     const root = "ljos-example://" + id + "/";
     const made = await compile({

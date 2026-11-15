@@ -18,8 +18,8 @@ import { chromium } from "@playwright/test";
 import { createRequire } from "node:module";
 import { highlight, readMarkdownSite } from "ljos-web/markdown";
 import { buildSite } from "ljos-web/site";
-import { checkExamples, hashExample, loadHarnesses, loadPrerenders, renderPrerenders } from "ljos-web/codeblocks";
-import { assemble, tagged } from "ljos-web/codeblocks/parse";
+import { checkExamples, hashExample, loadHarnesses, loadPrerenders, renderPrerenders, siteFiles } from "ljos-web/codeblocks";
+import { assemble, packGiven, tagged } from "ljos-web/codeblocks/parse";
 import { packRich } from "ljos-web/codeblock/rich";
 import { giveFiles, readGiven } from "../../site/scripts/codeblock-files.mjs";
 import { keysByHash, listedEverywhere, pageOfRoute, pageRecords, readLedger, saysEverywhere } from "../../site/scripts/codeblocks-ledger.mjs";
@@ -94,6 +94,7 @@ const qmlc = process.env.QMLC ?? join(repo, "target/debug/qmlc");
 // code and is counted; the site never shows a block as live that
 // is not.
 const harnesses = loadHarnesses(join(docs, "harness"));
+const siteHeld = siteFiles(join(docs, "files"));
 const liveAt = new Map(); // a page's code block -> its live payload
 {
   const gathered = [];
@@ -109,10 +110,11 @@ const liveAt = new Map(); // a page's code block -> its live payload
       ...(block.harness ? { harness: block.harness } : {}),
       ...(block.file ? { file: block.file } : {}),
       ...(block.group ? { group: block.group } : {}),
+      ...(block.files ? { files: block.files } : {}),
       ...(block.before ? { before: true } : {}),
       of: block,
     }));
-    const { examples } = assemble(said, { harnesses });
+    const { examples } = assemble(said, { harnesses, files: siteHeld });
     giveFiles(pageOfRoute(page.route), said, examples, given);
     onPages.push({ page: pageOfRoute(page.route), fences: said, examples });
     for (const example of examples) gathered.push({ page, example });
@@ -201,7 +203,7 @@ const liveAt = new Map(); // a page's code block -> its live payload
       // Each file highlighted as its fence is: what the editor shows
       // until the reader is in it.
       display: example.display.map((file) => ({ ...file, rich: packRich(highlight(file.code, file.lang ?? "qml")) })),
-      ...(example.given ? { given: example.given } : {}),
+      ...(example.given ? { given: packGiven(example.given) } : {}),
       picture,
       width,
       height,

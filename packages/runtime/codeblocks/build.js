@@ -13,13 +13,13 @@
 // content hash; an example whose code did not change is not made again.
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { highlightToHtml } from "lezer-ljos/html";
 import { CLIENT_CONDITIONS } from "../server/conditions.js";
 import { kernelNamed } from "../vite.js";
-import { assemble, exampleFiles } from "./parse.js";
+import { assemble, exampleFiles, packGiven } from "./parse.js";
 
 export { assemble };
 
@@ -35,7 +35,13 @@ export function hashExample(example) {
   const { entry, files } = exampleFiles(example);
   const hash = createHash("sha256");
   hash.update(`ljos-codeblock-prerender:2\n${entry}\n`);
-  for (const name of Object.keys(files).sort()) hash.update(`${name}\n${files[name]}\n`);
+  // A text is hashed as it always was, so a page whose examples hold
+  // no site files keeps every prerender it had.
+  for (const name of Object.keys(files).sort()) {
+    const content = files[name];
+    if (typeof content === "string") hash.update(`${name}\n${content}\n`);
+    else hash.update(`${name}\n`).update(content).update("\n");
+  }
   return hash.digest("hex");
 }
 
@@ -51,6 +57,19 @@ export function loadHarnesses(dir) {
     harnesses[file.slice(0, -4)] = text;
   }
   return harnesses;
+}
+
+// The reader `assemble` asks for a root's `files=`: the bytes of a file
+// of `dir` (a docs tree's `files/`), or nothing where it has no such
+// file. `assemble` has already refused a name that leaves `dir`.
+export function siteFiles(dir) {
+  return (name) => {
+    if (!dir) return undefined;
+    const at = join(dir, name);
+    if (!existsSync(at) || !statSync(at).isFile()) return undefined;
+    const read = readFileSync(at);
+    return new Uint8Array(read.buffer, read.byteOffset, read.byteLength);
+  };
 }
 
 // Every example that does not compile, with `qmlc`'s words about it,
@@ -99,7 +118,7 @@ const payload = (example, prerendered) =>
     before: example.before,
     ...(example.harness ? { harness: example.harness, harnessTemplate: example.harnessTemplate, harnessFile: example.harnessFile } : {}),
     display: example.display,
-    ...(example.given ? { given: example.given } : {}),
+    ...(example.given ? { given: packGiven(example.given) } : {}),
     prerendered,
   }).replaceAll("<", "\\u003c");
 
