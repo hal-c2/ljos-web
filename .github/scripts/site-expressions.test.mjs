@@ -34,12 +34,15 @@ function job(name) {
   return block(start, 2);
 }
 
-// A step of a job, found by its `id:` or `name:`.
+// A step of a job, found by its `id:` or `name:`, or by the action it
+// `uses:` when the value ends at its `@`: whichever version it is
+// pinned to, it is the same step.
 function step([from, to], key, value) {
+  const named = (said) => (value.endsWith("@") ? said.startsWith(`${key}: ${value}`) : said === `${key}: ${value}`);
   for (let i = from; i < to; i++) {
     if (!/^ {6}- /.test(lines[i])) continue;
     const [s, e] = block(i, 6);
-    if (lines.slice(s, e).some((l) => l.replace(/^ {6}- /, "        ").trim() === `${key}: ${value}`)) {
+    if (lines.slice(s, e).some((l) => named(l.replace(/^ {6}- /, "        ").trim()))) {
       return [s, e];
     }
   }
@@ -68,7 +71,7 @@ const at = {
   domain: expr(build, "SITE_CUSTOM_DOMAIN", 6),
   buildGuard: step(build, "id", "fresh"),
   pages: step(build, "id", "pages"),
-  upload: step(build, "uses", "actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3"),
+  upload: step(build, "uses", "actions/upload-pages-artifact@"),
   deployIf: expr(deploy, "if", 4),
   deployGuard: step(deploy, "id", "fresh"),
 };
