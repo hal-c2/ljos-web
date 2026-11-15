@@ -76,10 +76,13 @@ One place holds each decision; everything else reads it.
   the body is read, so the first paint is already in it. The build
   prerenders both schemes at both widths, so nothing changes when
   the script arrives.
-- **The mark** (`assets/ljos-mark.svg`) is a lit window: a frame and
-  a light in it, drawn to read at 16 px. The build copies it as the
-  favicon, beside the touch icon and the social picture
-  (`assets/*.png`) drawn from it.
+- **The mark** (`assets/ljos-mark.svg`) is the user's: interlocking
+  violet and amber panels with a yellow overlap, one mark for both
+  schemes (ljos-ui #274). It is the Astro site's
+  `site/src/assets/ljos-mark.svg` byte for byte, and reads at 16 px
+  as it is. The build copies it as the favicon, beside the touch icon
+  and the social picture (`assets/*.png`, the Astro site's own).
+  `tests/brand.spec.js` fails on any other mark.
 - **No jank:**
   - Every demo stands in a frame of its own size from the first
     paint (`Site/DemoFrame.qml`), showing a picture of the demo
