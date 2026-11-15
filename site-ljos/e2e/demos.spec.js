@@ -22,6 +22,35 @@ async function reach(page, heading) {
   return demo(page, heading);
 }
 
+// How far down a canvas the scene stands: the mean row of the pixels
+// that are not its background (the colour of its top-left corner), read
+// from the picture the screen shows.
+async function heightOfScene(canvas) {
+  const picture = (await canvas.screenshot()).toString("base64");
+  return canvas.page().evaluate(async (data) => {
+    const image = new Image();
+    image.src = `data:image/png;base64,${data}`;
+    await image.decode();
+    const board = new OffscreenCanvas(image.width, image.height);
+    const context = board.getContext("2d");
+    context.drawImage(image, 0, 0);
+    const { data: pixels, width, height } = context.getImageData(0, 0, image.width, image.height);
+    const [r, g, b] = pixels;
+    let rows = 0;
+    let count = 0;
+    for (let row = 0; row < height; row++) {
+      for (let column = 0; column < width; column++) {
+        const at = (row * width + column) * 4;
+        if (Math.abs(pixels[at] - r) + Math.abs(pixels[at + 1] - g) + Math.abs(pixels[at + 2] - b) > 48) {
+          rows += row;
+          count++;
+        }
+      }
+    }
+    return count ? rows / count : height / 2;
+  }, picture);
+}
+
 async function settled(page, route) {
   await open(page, route);
   await page.waitForTimeout(800);
@@ -80,14 +109,20 @@ test.describe("/demos/", () => {
   });
 
   test("Orbit takes an up-and-down drag; the page does not", async ({ page }) => {
-    test.fail(true, known.orbitVerticalDrag);
     await settled(page, "/demos/");
     const canvas = (await reach(page, "3D you can orbit")).locator("canvas.qq-view3d");
     await centre(canvas);
     const { x, y } = await centreOf(canvas);
     const scrolled = await pageScroll(page);
-    await drag(page, { x, y: y - 60 }, { x, y: y + 60 });
+    const before = await heightOfScene(canvas);
+    await drag(page, { x, y: y - 100 }, { x, y: y + 100 });
     expect(await pageScroll(page), "the page stayed where it was").toBe(scrolled);
+    // The drag is the controller's: the camera tilts, so the scene moves
+    // up or down in the picture. Its turn about the vertical axis, which
+    // goes on beside the drag, leaves its height where it was.
+    const after = await heightOfScene(canvas);
+    const { box } = await centreOf(canvas);
+    expect(Math.abs(after - before), "the scene tilted").toBeGreaterThan(box.height * 0.03);
   });
 
   test("the shader effect keeps drawing frames", async ({ page, errors }) => {

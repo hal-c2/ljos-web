@@ -32,8 +32,6 @@ export const sourceView = "SOURCE lane: a demo has no 'show source' yet";
 export const demo = {
   orbitRenderer:
     "audit (b): site-ljos builds without VITE_LJOS_VIEW3D=wgpu, so Orbit is drawn by the JS WebGL2 renderer ($view3d.backend 'webgl2') while the page says it is drawn on wgpu",
-  orbitVerticalDrag:
-    "audit (d): the page Flickable takes a vertical mouse drag that starts on the Orbit scene (Flickable.js) and scrolls the page; a sideways drag turns the scene",
   fieldGuideSearch:
     "audit: a mouse press on the field guide's search field leaves focus on the page body, so what the reader types goes nowhere; typing after focus() does filter the list",
 };
