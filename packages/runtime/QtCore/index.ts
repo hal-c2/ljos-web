@@ -111,9 +111,13 @@ export const Settings = defineType("Settings", QtObject, {
     sync(this: Store): void {
       for (const name of declared(this)) write(this.$key(name), this[name]);
     },
+    // Settings that name a location are kept there, whatever the
+    // application is called, as a native Settings keeps its own file;
+    // those that name none are the application's.
     $key(this: Store, name: string): string {
+      const location = this.location || this.fileName;
       const { organization, name: program } = application();
-      const where = [this.location || this.fileName, organization, program, this.category].filter(Boolean);
+      const where = [...(location ? [location] : [organization, program]), this.category].filter(Boolean);
       return `ljos-web:${[...where, name].join("/")}`;
     },
   },
