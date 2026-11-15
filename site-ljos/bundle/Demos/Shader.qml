@@ -41,12 +41,12 @@ Rectangle {
 
         NumberAnimation on time {
             // Four whole turns of every wave in the shader, so the
-            // loop wraps seamlessly. Stopped off screen; held still
-            // (but still stirrable) when calm is asked for.
-            running: root.active && !root.calm
+            // loop wraps seamlessly. Stopped off screen; slower, never
+            // still, when calm is asked for.
+            running: root.active
             from: 0
             to: 12.5663706
-            duration: 24000
+            duration: root.calm ? 72000 : 24000
             loops: Animation.Infinite
         }
     }

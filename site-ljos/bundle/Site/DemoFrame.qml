@@ -131,7 +131,8 @@ Item {
         }
         onLoaded: {
             frame.started = true;
-            item.active = Qt.binding(() => frame.onScreen);
+            // A hidden tab is off screen too: nobody sees its frames.
+            item.active = Qt.binding(() => frame.onScreen && Qt.application.state !== Qt.ApplicationHidden && Qt.application.state !== Qt.ApplicationSuspended);
             item.calm = Qt.binding(() => Theme.calm);
         }
     }
