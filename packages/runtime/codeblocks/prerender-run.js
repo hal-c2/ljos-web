@@ -4,7 +4,8 @@
 // given server bundle holds every example's entry over this runtime,
 // and each is made over the prerender document and written out, one
 // JSON line per example — `{ hash, html }`, or `{ hash, error }` for
-// one that did not run, with the page's words.
+// one that did not run, with the page's words, and `logged`, what the
+// example said on the console as it was made.
 //
 //   node prerender-run.js ENTRIES-BUNDLE '{"width":1280,"height":720}'
 import { readFile } from "node:fs/promises";
@@ -42,15 +43,34 @@ globalThis.fetch = async (url, init) => {
 };
 
 installPrerenderGlobals(options);
-for (const name of ["log", "info", "debug"]) console[name] = (...args) => console.error(...args);
+// What an example says as it is made is that example's, and goes back
+// with it (`logged`) for the build's report, rather than onto the
+// build's own output among every other example's: the build says what
+// it decided, the report what each block said. What is said before
+// the first example or after the last is the runner's, on stderr.
+let logged = null;
+const spoken = (args) =>
+  args.map((arg) => (typeof arg === "string" ? arg : arg instanceof Error ? (arg.stack ?? arg.message) : String(arg))).join(" ");
+for (const name of ["log", "info", "debug", "warn", "error"]) {
+  const own = console[name].bind(console);
+  console[name] = (...args) => (logged ? logged.push(spoken(args)) : name === "log" || name === "info" || name === "debug" ? console.error(...args) : own(...args));
+}
 const { pages, renderToString } = await import(pathToFileURL(resolve(bundle)).href);
 for (const [hash, Component] of Object.entries(pages)) {
+  const own = [];
+  logged = own;
+  let answer;
   try {
-    process.stdout.write(`${JSON.stringify({ hash, html: await renderToString(Component, options) })}\n`);
+    answer = { hash, html: await renderToString(Component, options) };
   } catch (error) {
-    process.stdout.write(`${JSON.stringify({ hash, error: error?.message ?? String(error) })}\n`);
+    answer = { hash, error: error?.message ?? String(error) };
   }
+  // A timer the example left may still speak during the next one's
+  // making; it is told with that one, as near as a process can tell.
+  if (own.length) answer.logged = own;
+  process.stdout.write(`${JSON.stringify(answer)}\n`);
 }
+logged = null;
 // An example's animations and timers would keep this process: the
 // renders are what it was run for, and it ends with them.
 process.exit(0);

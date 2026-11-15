@@ -810,7 +810,12 @@ export default function qml({
         const found = await this.resolve(source, importer, { ...options, skipSelf: true }).catch(() => null);
         if (found) return found;
         const own = natives()[source.replace(/^ljos-web(?=\/)/, ".")];
-        return own ? join(runtime, own) : this.resolve(source, join(runtime, "index.js"), { ...options, skipSelf: true });
+        if (own) return join(runtime, own);
+        // Asked again from the runtime, which says what it lacks: the
+        // file that asked is named with it, as with any import it has.
+        return this.resolve(source, join(runtime, "index.js"), { ...options, skipSelf: true }).catch((error) =>
+          this.error({ message: `${source} is not in ljos-web: ${String(error?.message ?? error).split("\n")[0]}`, id: importer.split("?")[0] }),
+        );
       }
       // What Qt's own QML has next to it is of the same program.
       if (source.endsWith(".qml") && /^\.\.?\//.test(source) && carried(importer)) {

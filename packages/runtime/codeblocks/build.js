@@ -157,6 +157,34 @@ export function renderStatic(example, { prerender } = {}) {
   );
 }
 
+// An example's words name the stage it ran in, a directory made for
+// that run: said without it, they are the same from run to run.
+const unstaged = (line) => String(line).replace(/file:\/\/[^\s'"]*?\/ljos-codeblock-prerender-[^/\s'"]+\/server\//g, "");
+
+// A bundler's words, without its colours or where the stage stood: an
+// example's file is named as the example names it.
+const plain = (said) =>
+  String(said)
+    .replace(/\x1b\[[0-9;]*m/g, "")
+    .replace(/[^\s'"`(]*ljos-codeblock-prerender-[^/\s'"]+\/examples\/[0-9a-f]{16}\//g, "");
+
+// The examples a bundle's refusal names, each with what was said of
+// it: every error Rolldown gives with the file it is in. A refusal of
+// which any error names no example's file is no one's to blame.
+const blame = (error, batch) => {
+  const blamed = new Map();
+  const errors = error?.errors?.length ? error.errors : [error];
+  const ours = new Map(batch.map(([hash]) => [hash.slice(0, 16), hash]));
+  for (const each of errors) {
+    const at = [each?.id, each?.loc?.file].find((file) => typeof file === "string" && /\/examples\/[0-9a-f]{16}\//.test(file));
+    const hash = at && ours.get(at.match(/\/examples\/([0-9a-f]{16})\//)[1]);
+    if (!hash) return new Map();
+    const said = plain(each.message).split("\n").find((line) => line.trim()) ?? "";
+    blamed.set(hash, [...(blamed.get(hash) ?? []), said.trim()]);
+  }
+  return blamed;
+};
+
 // A prerender of every example that has none under `cacheDir`, made as
 // a prerendered page is made (A26): the examples are written as one
 // small project, built once into a server bundle by the same Vite
@@ -174,30 +202,46 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
   mkdirSync(cacheDir, { recursive: true });
   const at = join(cacheDir, "manifest.json");
   const manifest = existsSync(at) ? JSON.parse(readFileSync(at, "utf8")) : {};
+  const save = () => writeFileSync(at, `${JSON.stringify(manifest, null, 2)}\n`);
   const byHash = new Map(examples.map((example) => [hashExample(example), example]));
+  const failures = [];
+  // Said in the manifest, so the build that embeds them leaves the
+  // block plain instead of promising it live; a failure is made again
+  // next time, as a missing prerender is.
+  const fail = (example, diagnostics) => {
+    failures.push({ example, diagnostics });
+    manifest[hashExample(example)] = { failed: true, diagnostics };
+  };
   let missing = [...byHash].filter(([hash]) => {
     const had = manifest[hash];
     return !had?.file || !existsSync(join(cacheDir, had.file));
   });
-  const failures = [];
-  if (missing.length === 0) return { manifest, failures };
+  if (missing.length === 0) {
+    save();
+    return { manifest, failures };
+  }
 
   // What qmlc refuses never reaches the bundle, where one refusal
   // would refuse them all unnamed.
   if (qmlc) {
     const refused = checkExamples(missing.map(([, example]) => example), { qmlc, env });
-    failures.push(...refused);
+    for (const { example, diagnostics } of refused) fail(example, diagnostics);
     const bad = new Set(refused.map(({ example }) => hashExample(example)));
     missing = missing.filter(([hash]) => !bad.has(hash));
-    if (missing.length === 0) return { manifest, failures };
+    if (missing.length === 0) {
+      save();
+      return { manifest, failures };
+    }
   }
 
   const [{ build }, { default: qml }] = await Promise.all([import("vite"), import("../vite.js")]);
 
   // One bundle for a batch, rendered in one Node process. A bundle
-  // that will not build is split and tried again, down to the one
-  // example whose refusal it is: a poisoned batch must name its own
-  // block, not refuse them all.
+  // that will not build names the files it refused, and so the
+  // examples whose refusal it is: they are failed with its words and
+  // the rest built again without them. Only a refusal that names no
+  // example splits the batch, down to the one it is: a poisoned batch
+  // must name its own block, not refuse them all.
   const attempt = async (batch) => {
     const stage = mkdtempSync(join(env.TMPDIR ?? tmpdir(), "ljos-codeblock-prerender-"));
     try {
@@ -237,7 +281,10 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
         await build({
           configFile: false,
           root: stage,
-          logLevel: "error",
+          // A batch that will not build is split until the example
+          // that refuses is alone, and its words are kept with it:
+          // each refusal on the way is no news, and said by no one.
+          logLevel: "silent",
           cacheDir: join(runtime, "node_modules/.vite/ljos-codeblocks"),
           resolve: {
             alias: {
@@ -261,16 +308,25 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
             emptyOutDir: true,
             target: "esnext",
             chunkSizeWarningLimit: 4000,
-            rollupOptions: { output: { format: "es", entryFileNames: "entries.mjs" } },
+            rollupOptions: { output: { format: "es", entryFileNames: "entries.mjs" }, checks: { bundlerTimings: false } },
           },
           ssr: { noExternal: true, resolve: { conditions: CLIENT_CONDITIONS } },
           environments: { ssr: { resolve: { noExternal: true, conditions: CLIENT_CONDITIONS } } },
         });
       } catch (error) {
+        const blamed = blame(error, batch);
+        if (blamed.size > 0) {
+          for (const [hash, words] of blamed) {
+            const example = byHash.get(hash);
+            fail(example, words.map((said) => `${example.entry}: the prerender bundle could not be built: ${said}`));
+          }
+          const rest = batch.filter(([hash]) => !blamed.has(hash));
+          if (rest.length > 0) await attempt(rest);
+          return;
+        }
         if (batch.length === 1) {
-          const [hash, example] = batch[0];
-          failures.push({ example, diagnostics: [`${example.entry}: the prerender bundle could not be built: ${String(error.message).split("\n").slice(0, 4).join(" ")}`] });
-          void hash;
+          const [, example] = batch[0];
+          fail(example, [`${example.entry}: the prerender bundle could not be built: ${plain(error.message).split("\n").slice(0, 4).join(" ")}`]);
           return;
         }
         const half = Math.ceil(batch.length / 2);
@@ -286,22 +342,23 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
       });
       if (ran.error) throw new Error(`could not prerender the code blocks: ${ran.error.message}`);
       if (ran.status !== 0) throw new Error(`the code blocks could not be prerendered:\n${(ran.stderr || ran.stdout).trim()}`);
+      // What the process said outside an example (each example's own
+      // words come back with it) is the runner's, and news.
       if (ran.stderr) console.warn(ran.stderr.trimEnd());
       const answered = new Set();
       for (const line of ran.stdout.split("\n").filter(Boolean)) {
-        const { hash, html, error } = JSON.parse(line);
+        const { hash, html, error, logged } = JSON.parse(line);
         answered.add(hash);
         const example = byHash.get(hash);
-        if (error !== undefined) failures.push({ example, diagnostics: [`${example.entry}:1: ${error}`] });
+        if (error !== undefined) fail(example, [`${example.entry}:1: ${error}`, ...(logged ?? []).map(unstaged)]);
         else {
           const file = `${hash.slice(0, 16)}.html`;
           writeFileSync(join(cacheDir, file), html);
-          manifest[hash] = { file, ...prerenderSize(html) };
+          manifest[hash] = { file, ...prerenderSize(html), ...(logged?.length ? { logged: logged.map(unstaged) } : {}) };
         }
       }
-      for (const [hash, example] of batch)
-        if (!answered.has(hash)) failures.push({ example, diagnostics: [`${example.entry}:1: the prerender gave no answer for it`] });
-      writeFileSync(at, `${JSON.stringify(manifest, null, 2)}\n`);
+      for (const [, example] of batch) if (!answered.has(hashExample(example))) fail(example, [`${example.entry}:1: the prerender gave no answer for it`]);
+      save();
     } finally {
       rmSync(stage, { recursive: true, force: true });
     }
@@ -320,7 +377,7 @@ export function loadPrerenders(cacheDir) {
   const loaded = {};
   for (const [hash, had] of Object.entries(manifest)) {
     if (had?.file && existsSync(join(cacheDir, had.file)))
-      loaded[hash] = { html: readFileSync(join(cacheDir, had.file), "utf8"), width: had.width, height: had.height };
+      loaded[hash] = { html: readFileSync(join(cacheDir, had.file), "utf8"), width: had.width, height: had.height, ...(had.logged ? { logged: had.logged } : {}) };
     else if (had?.failed) loaded[hash] = had;
   }
   return loaded;

@@ -423,7 +423,9 @@ export const ShaderEffect = defineType("ShaderEffect", Item, {
       ([made, width, height, values, across, down, cullMode, asked]) => {
         slot(self, "status").provide(!made ? Uncompiled : made.program ? Compiled : Failed);
         slot(self, "log").provide(made?.log ?? "");
-        if (made && !made.program && shader.said !== made.log) console.warn(`ShaderEffect: ${(shader.said = made.log)}`);
+        // A prerender has no GPU by design and paints the element alone.
+        const unasked = !gl && globalThis[Symbol.for("ljos.prerender")];
+        if (made && !made.program && !unasked && shader.said !== made.log) console.warn(`ShaderEffect: ${(shader.said = made.log)}`);
         const ratio = window.devicePixelRatio || 1;
         const w = Math.round(width * ratio);
         const h = Math.round(height * ratio);

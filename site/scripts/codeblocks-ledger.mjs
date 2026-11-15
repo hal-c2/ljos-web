@@ -22,7 +22,7 @@ export const LEDGER = join(resolve(dirname(fileURLToPath(import.meta.url)), ".."
 // ledger where the reason is the docs' own, `web:` for what runs in
 // Ljós but not yet on the web, and `docs:` for an example the page
 // leaves without what it reads, which ljos check only warns about.
-const REASONS = /^(host-types|shows-findings|(web|docs):[a-z0-9-]+)$/;
+const REASONS = /^(host-types|shows-findings|logs|(web|docs):[a-z0-9-]+)$/;
 
 /** The docs page a site route is read from: `/start/` is `start/index.md`. */
 export function pageOfRoute(route) {
@@ -70,7 +70,7 @@ export function keysByHash(onPages, hash) {
  */
 export function pageRecords(page, fences, examples, outcome, tagged) {
   return exampleKeys(page, fences, examples).map(({ example, n }) => {
-    const { state, diagnostics = [] } = outcome(example);
+    const { state, diagnostics = [], logged } = outcome(example);
     return {
       page,
       n,
@@ -78,6 +78,9 @@ export function pageRecords(page, fences, examples, outcome, tagged) {
       claimed: example.blocks.some(tagged),
       state,
       diagnostics: diagnostics.slice(0, 3),
+      // What a live block said on the console as it was made: kept
+      // here, where it is read, rather than in the build's output.
+      ...(logged?.length ? { logged: logged.slice(0, 5) } : {}),
     };
   });
 }
@@ -90,6 +93,16 @@ export function pageRecords(page, fences, examples, outcome, tagged) {
  */
 export function listedEverywhere(keys, ledger) {
   return keys.length > 0 && keys.every((key) => ledger.entries.has(key));
+}
+
+/**
+ * Whether what a live example says as it is made is its page's point:
+ * the ledger lists it `logs` on every page that shows it. Anything else
+ * an example says is news, and it stands plain, as one that does not
+ * run does, until the ledger says why.
+ */
+export function saysEverywhere(keys, ledger) {
+  return keys.length > 0 && keys.every((key) => ledger.entries.get(key)?.reason === "logs");
 }
 
 export function readLedger(text = readFileSync(LEDGER, "utf8")) {
@@ -120,8 +133,15 @@ export function unmarked(records, ledger) {
     if (!Number.isFinite(record.n)) continue;
     seen.add(key);
     const listed = ledger.entries.get(key);
-    if (record.state === "live" && listed)
+    const logs = listed?.reason === "logs";
+    if (record.state === "live" && listed && !logs)
       problems.push(`${listed.at}: ${key} runs now (${listed.reason}); take it off the list`);
+    if (record.state === "live" && logs && !record.logged?.length)
+      problems.push(`${listed.at}: ${key} says nothing now as it is made; take it off the list`);
+    if (record.state === "live" && !listed && record.logged?.length)
+      problems.push(`docs/site/${record.page}:${record.line}: ${key} says as it is made, and is not listed:\n    ${record.logged.join("\n    ")}`);
+    if (record.state !== "live" && logs)
+      problems.push(`${listed.at}: ${key} is listed as saying as it is made, and is ${record.state}:\n    ${record.diagnostics.join("\n    ")}`);
     if (record.state !== "live" && !listed)
       problems.push(
         `docs/site/${record.page}:${record.line}: ${key} is ${record.state} and not listed as plain:\n    ${record.diagnostics.join("\n    ")}`,

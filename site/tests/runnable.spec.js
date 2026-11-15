@@ -8,7 +8,7 @@ import { hashExample } from "ljos-web/codeblocks";
 import { assemble, parseMeta } from "ljos-web/codeblocks/parse";
 import { liveCodeBlocks } from "ljos-web/codeblocks/remark";
 import { holdPlain } from "../scripts/codeblocks-held.mjs";
-import { exampleKeys, keysByHash, listedEverywhere, readLedger, unmarked } from "../scripts/codeblocks-ledger.mjs";
+import { exampleKeys, keysByHash, listedEverywhere, readLedger, saysEverywhere, unmarked } from "../scripts/codeblocks-ledger.mjs";
 
 const REPORT = ".codeblock-prerenders/report.json";
 
@@ -71,6 +71,30 @@ test.describe("an example the ledger lists may stand plain", () => {
     const keys = keysByHash(pages, hash);
     expect([...keys]).toEqual([["Item {}", ["language/controllers.md 1", "start/index.md 1"]]]);
     for (const { examples } of pages) expect(listedEverywhere(keys.get(hash(examples[0])), ledger)).toBe(false);
+  });
+});
+
+// What a live block says as it is made is news, unless the ledger
+// says it is the page's point (`logs`): then it stays live, and the
+// entry goes when the block stops saying it.
+test.describe("a block that says something as it is made", () => {
+  const ledger = readLedger("ui/items.md 2 logs it prints `hit: under`\nui/items.md 3 docs:logo-file no logo.svg\n");
+  const record = (n, state, extra = {}) => ({ page: "ui/items.md", n, line: 1, claimed: false, state, diagnostics: [], ...extra });
+
+  test("is the page's point only where every page lists it `logs`", () => {
+    expect(saysEverywhere(["ui/items.md 2"], ledger)).toBe(true);
+    expect(saysEverywhere(["ui/items.md 3"], ledger)).toBe(false);
+    expect(saysEverywhere(["ui/items.md 2", "ui/other.md 1"], ledger)).toBe(false);
+  });
+
+  test("is held to the ledger both ways", () => {
+    expect(unmarked([record(2, "live", { logged: ["hit: under"] }), record(3, "not running")], ledger)).toEqual([]);
+    expect(unmarked([record(2, "live"), record(3, "not running")], ledger)).toEqual([
+      "codeblocks-pending.txt:1: ui/items.md 2 says nothing now as it is made; take it off the list",
+    ]);
+    expect(unmarked([record(2, "live", { logged: ["hit: under"] }), record(3, "not running"), record(4, "live", { logged: ["oops"] })], ledger)).toEqual([
+      "docs/site/ui/items.md:1: ui/items.md 4 says as it is made, and is not listed:\n    oops",
+    ]);
   });
 });
 
