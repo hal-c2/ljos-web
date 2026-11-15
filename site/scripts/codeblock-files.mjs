@@ -37,6 +37,7 @@ export function readGiven(dir = GIVEN, env = process.env) {
     }
   };
   walk("");
+  given.stray.sort();
   return given;
 }
 

@@ -2,7 +2,9 @@
 // plain examples says so, and why (scripts/codeblocks-ledger.mjs). The
 // report is what codeblock-prerenders.mjs found, the step whose
 // manifest the build embeds.
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { expect, test } from "@playwright/test";
 import { hashExample } from "ljos-web/codeblocks";
 import { assemble, exampleFiles, parseMeta } from "ljos-web/codeblocks/parse";
@@ -125,6 +127,25 @@ test.describe("the files a page does not show", () => {
 
   test("for no example are told", () => {
     expect(unused(given, ["data/models.md 2"])).toEqual(["site/codeblock-files: data/models.md 9 is no example's now; move or remove its files"]);
+  });
+
+  test("outside any <page>/<n>/ are told", () => {
+    const dir = mkdtempSync(join(tmpdir(), "codeblock-files-"));
+    try {
+      mkdirSync(join(dir, "data/models.md/2"), { recursive: true });
+      writeFileSync(join(dir, "data/models.md/2/rows.json"), "[]\n");
+      writeFileSync(join(dir, "data/models.md/orphan.json"), "{}\n");
+      writeFileSync(join(dir, "loose.qml"), "Item {}\n");
+      const read = readGiven(dir, {});
+      expect([...read.keys()]).toEqual(["data/models.md 2"]);
+      expect(read.stray.sort()).toEqual(["data/models.md/orphan.json", "loose.qml"]);
+      expect(unused(read, ["data/models.md 2"])).toEqual([
+        "site/codeblock-files/data/models.md/orphan.json is under no `<page>/<n>/`; move it into its example's directory",
+        "site/codeblock-files/loose.qml is under no `<page>/<n>/`; move it into its example's directory",
+      ]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   test("stand in site/codeblock-files, each for an example the docs have", () => {
