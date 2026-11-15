@@ -58,7 +58,10 @@ const claimed = (example) => strict || example.blocks.some(tagged);
 // An example the ledger lists everywhere it stands is plain by the
 // docs' own word, so it does not stop the build; the suite holds the
 // report to the ledger. Every other claim to run is kept.
-const ledger = readLedger();
+// Docs other than the pinned ones (the fixture's) are not the ledger's:
+// none of their blocks is let stand plain by it.
+const unledgered = process.env.LJOS_CODEBLOCKS_LEDGER === "none";
+const ledger = unledgered ? readLedger("") : readLedger();
 const keysOf = keysByHash(onPages, hashExample);
 const mustRun = (example) => claimed(example) && !listedEverywhere(keysOf.get(hashExample(example)) ?? [], ledger);
 // Named as the ledger names it, so what cannot run on the web yet can
@@ -129,8 +132,7 @@ writeFileSync(join(cacheDir, "report.json"), `${JSON.stringify(report, null, 2)}
 // The ledger is the step's to keep: a block that does not run, or says
 // what no one meant it to, and is not listed, stops it here, and so
 // does an entry for a block that runs quietly now.
-// Docs other than the pinned ones (the fixture's) are not the ledger's.
-const problems = process.env.LJOS_CODEBLOCKS_LEDGER === "none" ? [] : [...unmarked(report, ledger), ...unused(given, gave)];
+const problems = unledgered ? [] : [...unmarked(report, ledger), ...unused(given, gave)];
 if (problems.length) {
   console.error(`codeblock-prerenders: the report and site/codeblocks-pending.txt disagree:\n  ${problems.join("\n  ")}`);
   process.exit(1);

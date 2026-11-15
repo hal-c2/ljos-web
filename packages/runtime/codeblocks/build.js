@@ -27,13 +27,14 @@ const runtime = join(import.meta.dirname, "..");
 
 // What an example is, for a cache: the files that compile, by name, and
 // which is the entry, under the prerender format's version — a change
-// in how a prerender numbers its elements must not be served from a
-// cache the old numbering wrote. An edit anywhere changes it; nothing
+// in how a prerender numbers its elements, or in what its entry keeps
+// (2: what it said, `logged`), must not be served from a cache the old
+// format wrote. An edit anywhere changes it; nothing
 // else does.
 export function hashExample(example) {
   const { entry, files } = exampleFiles(example);
   const hash = createHash("sha256");
-  hash.update(`ljos-codeblock-prerender:1\n${entry}\n`);
+  hash.update(`ljos-codeblock-prerender:2\n${entry}\n`);
   for (const name of Object.keys(files).sort()) hash.update(`${name}\n${files[name]}\n`);
   return hash.digest("hex");
 }
@@ -343,9 +344,6 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
       });
       if (ran.error) throw new Error(`could not prerender the code blocks: ${ran.error.message}`);
       if (ran.status !== 0) throw new Error(`the code blocks could not be prerendered:\n${(ran.stderr || ran.stdout).trim()}`);
-      // What the process said outside an example (each example's own
-      // words come back with it) is the runner's, and news.
-      if (ran.stderr) console.warn(ran.stderr.trimEnd());
       const answered = new Set();
       for (const line of ran.stdout.split("\n").filter(Boolean)) {
         const { hash, html, error, logged } = JSON.parse(line);
@@ -360,11 +358,18 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
       }
       for (const [, example] of batch) if (!answered.has(hashExample(example))) fail(example, [`${example.entry}:1: the prerender gave no answer for it`]);
       save();
+      // Each example's own words come back with it; what the process
+      // said outside every example nothing expected, and it stops the
+      // build rather than scroll past.
+      if (ran.stderr.trim()) throw new Error(`the code block prerenderer said, outside any example:\n${ran.stderr.trimEnd()}`);
     } finally {
       rmSync(stage, { recursive: true, force: true });
     }
   };
   for (let i = 0; i < missing.length; i += 24) await attempt(missing.slice(i, i + 24));
+  // A batch whose bundle would not build records its failures and
+  // returns without a render to save; the manifest must still say so.
+  save();
   return { manifest, failures };
 }
 

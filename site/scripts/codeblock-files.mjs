@@ -18,7 +18,7 @@ export const GIVEN = join(resolve(dirname(fileURLToPath(import.meta.url)), "..")
  * (`LJOS_CODEBLOCKS_LEDGER=none`, as the fixture build says).
  */
 export function readGiven(dir = GIVEN, env = process.env) {
-  const given = new Map();
+  const given = Object.assign(new Map(), { stray: [] });
   if (env.LJOS_CODEBLOCKS_LEDGER === "none" || !existsSync(dir)) return given;
   const walk = (at) => {
     const names = readdirSync(join(dir, at));
@@ -28,7 +28,13 @@ export function readGiven(dir = GIVEN, env = process.env) {
       given.set(`${at.replace(/\/(\d+)$/, " $1")}`, files);
       return;
     }
-    for (const name of names) if (statSync(join(dir, at, name)).isDirectory()) walk(at ? `${at}/${name}` : name);
+    for (const name of names) {
+      const path = at ? `${at}/${name}` : name;
+      if (statSync(join(dir, path)).isDirectory()) walk(path);
+      // A file outside any `<page>/<n>/` is no example's: told, as an
+      // unused one is (`unused`), rather than passed over.
+      else given.stray.push(path);
+    }
   };
   walk("");
   return given;
@@ -53,5 +59,8 @@ export function giveFiles(page, fences, examples, given) {
 /** What `readGiven` has that no example took, as problems to tell. */
 export function unused(given, gave) {
   const took = new Set(gave);
-  return [...given.keys()].filter((key) => !took.has(key)).map((key) => `site/codeblock-files: ${key} is no example's now; move or remove its files`);
+  return [
+    ...[...given.keys()].filter((key) => !took.has(key)).map((key) => `site/codeblock-files: ${key} is no example's now; move or remove its files`),
+    ...(given.stray ?? []).map((path) => `site/codeblock-files/${path} is under no \`<page>/<n>/\`; move it into its example's directory`),
+  ];
 }
