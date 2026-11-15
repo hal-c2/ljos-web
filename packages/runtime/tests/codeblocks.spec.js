@@ -123,6 +123,83 @@ plain.describe("the fence contract", () => {
     expect(() => assemble(extractBlocks(abs), {})).toThrow(/not a name inside its example/);
   });
 
+  plain("a data or javascript block of a group is a file of its example, wherever it is written", () => {
+    const doc = [
+      "```json file=activity.json group=feed",
+      '{ "rows": [1, 2] }',
+      "```",
+      "",
+      "```qml group=feed",
+      "Rectangle {}",
+      "```",
+      "",
+      "```javascript file=lib/rules.js group=feed",
+      "export const a = 1;",
+      "```",
+      "",
+      "```qml file=parts/Badge.qml group=feed",
+      "Rectangle {}",
+      "```",
+      "",
+      "```xml file=feed.xml group=feed",
+      "<rss/>",
+      "```",
+      "",
+      "```json",
+      "{}",
+      "```",
+      "",
+      "```javascript",
+      "plain()",
+      "```",
+      "",
+    ].join("\n");
+    const { examples, plain: left } = assemble(extractBlocks(doc), {});
+    expect(examples).toHaveLength(1);
+    const [feed] = examples;
+    expect(feed.entry).toBe("Main.qml");
+    expect(feed.display.map((f) => [f.name, f.lang])).toEqual([
+      ["activity.json", "json"],
+      ["Main.qml", "qml"],
+      ["lib/rules.js", "javascript"],
+      ["parts/Badge.qml", "qml"],
+      ["feed.xml", "xml"],
+    ]);
+    expect(exampleFiles(feed).files["activity.json"]).toBe('{ "rows": [1, 2] }\n');
+    // Without group= and file= a data block is shown, not run.
+    expect(left.map((b) => b.lang)).toEqual(["json", "javascript"]);
+    // A data block of a group names its file.
+    expect(() => assemble(extractBlocks("```qml group=g\nRectangle {}\n```\n```json group=g\n{}\n```\n"), {})).toThrow(
+      /needs file=/,
+    );
+  });
+
+  plain("files= on a root gives the example the files the site holds, by name, as bytes", () => {
+    const held = { "photo.jpg": new Uint8Array([0xff, 0xd8, 0xff]), "icons/ok.svg": new TextEncoder().encode("<svg/>") };
+    const files = (name) => held[name];
+    const doc = "```qml files=photo.jpg,icons/ok.svg\nRectangle {}\n```\n";
+    const [example] = assemble(extractBlocks(doc), { files }).examples;
+    expect(parseInfo("qml files=a.png,b.wav")).toEqual({ lang: "qml", files: "a.png,b.wav" });
+    // Shown nowhere, compiled with the rest.
+    expect(example.display.map((f) => f.name)).toEqual(["Main.qml"]);
+    const compiled = exampleFiles(example).files;
+    expect(compiled["photo.jpg"]).toEqual(held["photo.jpg"]);
+    expect(compiled["icons/ok.svg"]).toEqual(held["icons/ok.svg"]);
+    // They are part of what it is: another picture is another example.
+    const other = assemble(extractBlocks(doc), { files: (name) => (name === "photo.jpg" ? new Uint8Array([1]) : held[name]) }).examples[0];
+    expect(hashExample(other)).not.toBe(hashExample(example));
+
+    const refused = (info, reader = files) => () => assemble(extractBlocks("```qml " + info + "\nRectangle {}\n```\n"), { files: reader });
+    expect(refused("files=../secret.txt")).toThrow(/not a name inside files/);
+    expect(refused("files=/etc/passwd")).toThrow(/not a name inside files/);
+    expect(refused("files=a\\b.png")).toThrow(/not a name inside files/);
+    expect(refused("files=missing.png")).toThrow(/files=missing.png is not among the site's files/);
+    // A host that holds no files.
+    expect(refused("files=photo.jpg", null)).toThrow(/files=photo.jpg is not among the site's files/);
+    expect(refused("files=Main.qml", () => new Uint8Array([1]))).toThrow(/two blocks are both Main.qml/);
+    expect(refused("file=Panel.qml group=g files=photo.jpg")).toThrow(/files= belongs on the example's root/);
+  });
+
   plain("unknown and bare tags are not silently runnable", () => {
     const { examples, plain: left, unknown } = assemble(extractBlocks("```\ncode\n```\n\n```cobol\nx\n```\n"), {});
     expect(examples).toEqual([]);

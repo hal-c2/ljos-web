@@ -51,7 +51,12 @@ export function giveFiles(page, fences, examples, given) {
   for (const { example, key } of exampleKeys(page, fences, examples)) {
     const files = given.get(key);
     if (!files) continue;
-    example.given = files;
+    // A root's `files=` may already have given it the site's own files;
+    // these join them, and one name given twice is an error, not a pick.
+    for (const name of Object.keys(files)) {
+      if (Object.hasOwn(example.given ?? {}, name)) throw new Error(`site/codeblock-files/${key.replace(" ", "/")}/${name}: ${key} is already given ${name} by files=`);
+    }
+    example.given = { ...example.given, ...files };
     gave.push(key);
   }
   return gave;

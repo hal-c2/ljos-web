@@ -10,7 +10,7 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { checkExamples, hashExample, loadHarnesses, renderPrerenders } from "ljos-web/codeblocks";
+import { checkExamples, hashExample, loadHarnesses, renderPrerenders, siteFiles } from "ljos-web/codeblocks";
 import { assemble, extractBlocks, tagged } from "ljos-web/codeblocks/parse";
 import { giveFiles, readGiven, unused } from "./codeblock-files.mjs";
 import { writeHeld } from "./codeblocks-held.mjs";
@@ -31,6 +31,7 @@ if (!src) {
 const harnessDir = join(src, "harness");
 const strict = process.env.LJOS_CODEBLOCKS_STRICT === "1";
 const harnesses = loadHarnesses(harnessDir);
+const files = siteFiles(join(src, "files"));
 const qmlc = process.env.QMLC ?? resolve(siteRoot, "../target/debug/qmlc");
 
 const pages = readdirSync(src, { recursive: true })
@@ -43,7 +44,7 @@ const gave = [];
 let legacy = 0;
 for (const page of pages) {
   const fences = extractBlocks(readFileSync(join(src, page), "utf8"));
-  const { examples, unknown } = assemble(fences, { harnesses });
+  const { examples, unknown } = assemble(fences, { harnesses, files });
   gave.push(...giveFiles(page, fences, examples, given));
   onPages.push({ page, fences, examples });
   if (strict && unknown.length > 0) {

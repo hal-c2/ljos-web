@@ -83,7 +83,7 @@ Column {
             return;
         Live.setExample(live.hash, live.display, live.entry, live.harnessTemplate || "", live.harnessFile || "", function (lines) {
             block.absent = lines;
-        });
+        }, live.given || null);
         // Asked as the page is made, not on the first edit: where the
         // compile cannot run, the block says so before it is reached
         // for, and what it says is why, not how the compile failed.

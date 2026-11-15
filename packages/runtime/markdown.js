@@ -155,7 +155,7 @@ function fenceInfo(info) {
     else if (/^[\w-]+=[^\s]+$/.test(token)) {
       const at = token.indexOf("=");
       const key = token.slice(0, at);
-      if (["harness", "file", "group"].includes(key)) parsed[key] = token.slice(at + 1);
+      if (["harness", "file", "group", "files"].includes(key)) parsed[key] = token.slice(at + 1);
     }
   }
   return parsed;

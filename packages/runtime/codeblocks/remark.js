@@ -57,7 +57,7 @@ function highlightFences(node) {
 }
 
 export function liveCodeBlocks(options = {}) {
-  const { harnesses = {}, qmlc, strict = false, prerenders = {}, onLegacy, highlight = false, examples: given } = options;
+  const { harnesses = {}, files, qmlc, strict = false, prerenders = {}, onLegacy, highlight = false, examples: given } = options;
   // One compile per distinct example in a build, however many pages
   // repeat it: the answer is the code's, and its hash names it.
   const checked = new Map();
@@ -92,7 +92,7 @@ export function liveCodeBlocks(options = {}) {
     const at = new Map(blocks.map((block, i) => [block, items[i]]));
     let outcome;
     try {
-      outcome = assemble(blocks, { harnesses });
+      outcome = assemble(blocks, { harnesses, files });
       given?.(outcome.examples, { file, blocks });
     } catch (error) {
       if (strict || blocks.some(tagged)) fail(error.message);

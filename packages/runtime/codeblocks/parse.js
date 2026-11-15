@@ -11,11 +11,15 @@
 //                               its one `//! snippet` line
 //   ```qml before               the old half of a before/after
 //   ```qml file=<F> group=<id>  one file of a multi-file example;
-//   ```ts  file=<F> group=<id>  scripts join the same way
+//   ```ts  file=<F> group=<id>  scripts join the same way, and so do
+//   ```json file=<F> group=<id> javascript, json, xml and text: a file
+//                               the example reads, shown with the rest
+//   ```qml files=<a>,<b>        a root that is given files the site
+//                               holds (pictures, sounds), shown nowhere
 //
 // Exempt tags (never runnable, shown as plain code): sh, rust, toml,
-// json, text, xml, gherkin, javascript, diff. A bare fence or any other
-// tag is unknown, not quietly plain.
+// json, text, xml, gherkin, javascript, diff, unless they are files of
+// a group. A bare fence or any other tag is unknown, not quietly plain.
 
 export const EXEMPT = new Set(["sh", "rust", "toml", "json", "text", "xml", "gherkin", "javascript", "diff"]);
 
@@ -23,7 +27,11 @@ export const EXEMPT = new Set(["sh", "rust", "toml", "json", "text", "xml", "ghe
 // part of an example with file=/group=; on its own it is shown plain.
 const SCRIPTS = new Set(["ts", "typescript", "js", "mjs"]);
 
-const KEYS = new Set(["harness", "file", "group"]);
+// Languages of the files an example reads rather than runs: they are
+// part of it only as a named file of a group, and plain anywhere else.
+const DATA = new Set(["javascript", "json", "xml", "text"]);
+
+const KEYS = new Set(["harness", "file", "group", "files"]);
 
 // `qml harness=window` to `{ lang: "qml", harness: "window" }`. Only
 // what the info string says is in the answer.
@@ -82,7 +90,10 @@ const ended = (code) => (code.endsWith("\n") ? code : `${code}\n`);
 // to compiling, where an unclaimed one may be a legacy snippet a docs
 // tree has not tagged yet.
 const runnable = (block) =>
-  block.lang === "qml" || (SCRIPTS.has(block.lang) && Boolean(block.file || block.group));
+  block.lang === "qml" || (SCRIPTS.has(block.lang) && Boolean(block.file || block.group)) || joins(block);
+// A data block is in a group only when it says so: a page shows a JSON
+// reply or a JavaScript library as prose does, and those run nowhere.
+const joins = (block) => DATA.has(block.lang) && Boolean(block.group);
 export const tagged = (block) => Boolean(block.harness || block.file || block.group || block.before);
 
 // The snippet in place of the harness's one `//! snippet` line, each of
@@ -109,14 +120,17 @@ export function spliceHarness(template, snippet) {
 // the fences it was made of, for a renderer placing it back into a
 // document. Blocks that share a `group=` are one example however far
 // apart they sit: docs introduce an example's files one by one, in
-// prose, and they are still one running example.
-export function assemble(blocks, { harnesses = {} } = {}) {
+// prose, and they are still one running example. `files(name)` gives the
+// bytes of a file the site holds for `files=` (undefined where it holds
+// none); a host with no such files gives nothing, and a block that asks
+// for one is refused.
+export function assemble(blocks, { harnesses = {}, files } = {}) {
   const examples = [];
   const plain = [];
   const unknown = [];
   const groups = new Map();
   for (const block of blocks) {
-    if (EXEMPT.has(block.lang) || (SCRIPTS.has(block.lang) && !runnable(block))) plain.push(block);
+    if ((EXEMPT.has(block.lang) && !joins(block)) || (SCRIPTS.has(block.lang) && !runnable(block))) plain.push(block);
     else if (!runnable(block)) unknown.push(block);
     else if (block.group) {
       if (!groups.has(block.group)) {
@@ -124,10 +138,10 @@ export function assemble(blocks, { harnesses = {} } = {}) {
         groups.set(block.group, example);
         examples.push(example);
       }
-      add(groups.get(block.group), block, harnesses);
+      add(groups.get(block.group), block, harnesses, files);
     } else {
       const example = { display: [], entry: "Main.qml", before: false, blocks: [] };
-      add(example, block, harnesses);
+      add(example, block, harnesses, files);
       examples.push(example);
     }
   }
@@ -135,18 +149,30 @@ export function assemble(blocks, { harnesses = {} } = {}) {
   return { examples, plain, unknown };
 }
 
-function add(example, block, harnesses) {
+function add(example, block, harnesses, files) {
   if (block.lang !== "qml" && !block.file)
     throw new Error(`line ${block.line}: a ${block.lang} block of an example needs file= to say which file it is`);
   const name = block.file ?? "Main.qml";
   // A file of an example stays in its project: a build writes these
   // names under a directory of its own, on a reader's machine and on
   // a build's alike.
-  if (name.startsWith("/") || name.split("/").includes(".."))
-    throw new Error(`line ${block.line}: file=${name} is not a name inside its example`);
-  if (example.display.some((file) => file.name === name))
-    throw new Error(`line ${block.line}: two blocks are both ${name} of one example`);
+  if (!inside(name)) throw new Error(`line ${block.line}: file=${name} is not a name inside its example`);
+  const taken = (named) => example.display.some((file) => file.name === named) || Object.hasOwn(example.given ?? {}, named);
+  if (taken(name)) throw new Error(`line ${block.line}: two blocks are both ${name} of one example`);
   example.display.push({ name, code: ended(block.code), lang: block.lang });
+  if (block.files) {
+    if (block.file) throw new Error(`line ${block.line}: files= belongs on the example's root, not on file=${block.file}`);
+    // The site's files are read from one directory of its own, so a name
+    // that climbs out of it, or that only one system reads as a path,
+    // would hand an example whatever is beside them.
+    for (const held of block.files.split(",")) {
+      if (!inside(held) || held.includes("\\")) throw new Error(`line ${block.line}: files=${held} is not a name inside files/`);
+      const bytes = files?.(held);
+      if (!bytes) throw new Error(`line ${block.line}: files=${held} is not among the site's files`);
+      if (taken(held)) throw new Error(`line ${block.line}: two blocks are both ${held} of one example`);
+      (example.given ??= {})[held] = bytes;
+    }
+  }
   example.blocks.push(block);
   if (block.before) example.before = true;
   if (block.harness) {
@@ -160,6 +186,8 @@ function add(example, block, harnesses) {
 
 // The entry is `Main.qml` when an example has one, else its first QML
 // file as written.
+const inside = (name) => name !== "" && !name.startsWith("/") && !name.split("/").includes("..");
+
 function finish(example) {
   const qml = example.display.filter((file) => file.lang === "qml");
   example.entry = qml.find((file) => file.name === "Main.qml")?.name ?? qml[0]?.name ?? "Main.qml";
@@ -167,9 +195,10 @@ function finish(example) {
 
 // What compiles, from what an editor shows: the files by name, with the
 // harness spliced around the snippet the editor was editing. `given`
-// (`{ [name]: text }`) are files the example reads and its page does
-// not show, such as the shell a ShellLoader loads or the JSON a model
-// reads: a site gives them, and a file the page shows is the page's.
+// (`{ [name]: text or bytes }`) are files the example reads and its
+// page does not show, such as the shell a ShellLoader loads, the JSON a
+// model reads, or the picture `files=` names: a site gives them, and a
+// file the page shows is the page's.
 export function exampleFiles(example) {
   const files = { ...example.given };
   for (const file of example.display) files[file.name] = ended(file.code);
@@ -178,6 +207,33 @@ export function exampleFiles(example) {
     files[at] = spliceHarness(example.harnessTemplate, files[at].replace(/\n$/, ""));
   }
   return { entry: example.entry, files };
+}
+
+// The files an example was given, as a payload carries them, and back:
+// a text (a shell, a model's JSON) as `{ text }`, so it stays a text the
+// compiler reads; the site's bytes (a picture `files=` names) as base64.
+// A page has them only from its payload: an example is all of itself
+// wherever its page is, as its fences are.
+export function packGiven(given) {
+  const packed = {};
+  for (const [name, content] of Object.entries(given)) {
+    if (typeof content === "string") {
+      packed[name] = { text: content };
+      continue;
+    }
+    let binary = "";
+    for (let at = 0; at < content.length; at += 0x8000) binary += String.fromCharCode(...content.subarray(at, at + 0x8000));
+    packed[name] = btoa(binary);
+  }
+  return packed;
+}
+
+export function unpackGiven(packed) {
+  const given = {};
+  for (const [name, content] of Object.entries(packed)) {
+    given[name] = typeof content === "string" ? Uint8Array.from(atob(content), (c) => c.charCodeAt(0)) : content.text;
+  }
+  return given;
 }
 
 // Where a diagnostic of what compiled stands in what an editor shows:

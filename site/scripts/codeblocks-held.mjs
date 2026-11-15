@@ -43,7 +43,7 @@ export function holdPlain(plugin, held) {
       try {
         ({ examples } = assemble(
           fences.map((fence) => fence.block),
-          { harnesses: options.harnesses ?? {} },
+          { harnesses: options.harnesses ?? {}, files: options.files },
         ));
       } catch {
         // A page that does not assemble is the plugin's to refuse.

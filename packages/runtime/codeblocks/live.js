@@ -18,7 +18,7 @@
 // editor then takes its place in the same box, the same font and the
 // same colours, so nothing on the page moves.
 import { NEEDS_WASM, wasmWorks } from "../wasm-check.js";
-import { displayPosition, exampleFiles, notThereLine } from "./parse.js";
+import { displayPosition, exampleFiles, notThereLine, unpackGiven } from "./parse.js";
 
 // A page may compile with modules of its own (the styles of Qt Quick
 // Controls, say): `options.compile` is then `createCompiler({...})`'s
@@ -191,7 +191,8 @@ export async function mountLiveCodeBlock(figure, data, options = {}) {
   let compiling = 0;
   let letGo = null;
 
-  const current = () => ({ ...data, display: data.display.map((file, i) => ({ ...file, code: texts[i] })) });
+  const given = data.given ? unpackGiven(data.given) : undefined;
+  const current = () => ({ ...data, given, display: data.display.map((file, i) => ({ ...file, code: texts[i] })) });
 
   const edited = () => {
     clearTimeout(timer);
