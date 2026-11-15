@@ -418,6 +418,27 @@ Item {
 }
 
 #[test]
+fn a_global_in_a_delegate_is_the_global_unless_the_model_has_the_role() {
+    let code = lowered(
+        r#"import QtQuick
+Repeater {
+    model: 2
+    delegate: Text { text: qsTr("Row %1").arg(index) + parseInt("3") }
+}"#,
+    );
+    // The model may have a role of the name, which QML would read first;
+    // where it has none, the global is what is read, never `undefined`.
+    assert_contains(
+        &code,
+        r#"("qsTr" in $data ? $data.qsTr : qsTr)("Row %1").arg($data.index)"#,
+    );
+    assert_contains(
+        &code,
+        r#"("parseInt" in $data ? $data.parseInt : parseInt)("3")"#,
+    );
+}
+
+#[test]
 fn a_delegate_is_given_what_its_type_requires() {
     // What Qt's type requires in C++, and what a style's requires in QML.
     let code = lowered(
