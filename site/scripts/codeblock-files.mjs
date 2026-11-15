@@ -12,10 +12,14 @@ import { exampleKeys } from "./codeblocks-ledger.mjs";
 
 export const GIVEN = join(resolve(dirname(fileURLToPath(import.meta.url)), ".."), "codeblock-files");
 
-/** Every `<page> <n>` there are files for, each with its files by name. */
-export function readGiven(dir = GIVEN) {
+/**
+ * Every `<page> <n>` there are files for, each with its files by name.
+ * None for docs other than the pinned ones the ledger is of
+ * (`LJOS_CODEBLOCKS_LEDGER=none`, as the fixture build says).
+ */
+export function readGiven(dir = GIVEN, env = process.env) {
   const given = new Map();
-  if (!existsSync(dir)) return given;
+  if (env.LJOS_CODEBLOCKS_LEDGER === "none" || !existsSync(dir)) return given;
   const walk = (at) => {
     const names = readdirSync(join(dir, at));
     if (/^\d+$/.test(at.split("/").pop()) && at.includes(".md/")) {

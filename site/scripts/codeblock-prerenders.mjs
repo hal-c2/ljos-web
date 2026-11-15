@@ -129,7 +129,8 @@ writeFileSync(join(cacheDir, "report.json"), `${JSON.stringify(report, null, 2)}
 // The ledger is the step's to keep: a block that does not run, or says
 // what no one meant it to, and is not listed, stops it here, and so
 // does an entry for a block that runs quietly now.
-const problems = [...unmarked(report, ledger), ...unused(given, gave)];
+// Docs other than the pinned ones (the fixture's) are not the ledger's.
+const problems = process.env.LJOS_CODEBLOCKS_LEDGER === "none" ? [] : [...unmarked(report, ledger), ...unused(given, gave)];
 if (problems.length) {
   console.error(`codeblock-prerenders: the report and site/codeblocks-pending.txt disagree:\n  ${problems.join("\n  ")}`);
   process.exit(1);
