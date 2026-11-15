@@ -293,7 +293,23 @@ impl<'a> Resolver<'a, '_, '_> {
             tree: &tree.front,
             types: self.types.front(),
         };
-        let resolution = names.lookup(name, span.start);
+        let resolution = names.lookup(name, span.start).map(|mut resolution| {
+            // A delegate's model may have a role of any name, so a global's
+            // name in a delegate comes back as the outermost model's role,
+            // with nothing behind it. QML finds the global where no model
+            // has the role: it is what is read when none does.
+            if let Some(qml_front::names::Target::Context {
+                context,
+                name: role,
+            }) = &resolution.target
+                && !matches!(role.as_str(), "index" | "model" | "modelData")
+                && let Some(global) = qml_front::names::global(name)
+            {
+                resolution.roles.push(*context);
+                resolution.target = Some(qml_front::names::Target::Global(global));
+            }
+            resolution
+        });
         let (aimed, roles, target) = match resolution {
             Some(resolution) => {
                 if let Some(qml_front::names::Target::Global(global)) = &resolution.target {
@@ -307,7 +323,9 @@ impl<'a> Resolver<'a, '_, '_> {
                         qml_front::names::Global::Core => self.core(name),
                         qml_front::names::Global::Js => {}
                     }
-                    return None;
+                    if resolution.roles.is_empty() {
+                        return None;
+                    }
                 }
                 (
                     resolution.aimed.is_some(),
