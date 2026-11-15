@@ -83,7 +83,7 @@ legacy += failures.length;
 const runnable = examples.filter((example) => !failed.has(hashExample(example)));
 
 const cacheDir = join(siteRoot, ".codeblock-prerenders");
-const { manifest, failures: unmade } = await renderPrerenders(runnable, { cacheDir, qmlc });
+const { manifest, failures: unmade } = await renderPrerenders(runnable, { cacheDir, qmlc, checked: true });
 for (const { example, diagnostics } of unmade) {
   if (mustRun(example)) {
     console.error(`codeblock-prerenders: ${named(example)} does not run:\n${diagnostics.join("\n")}`);

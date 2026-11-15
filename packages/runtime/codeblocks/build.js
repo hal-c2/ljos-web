@@ -11,11 +11,11 @@
 // writes is the block's first paint, and the page takes those very
 // nodes over with `hydrate` when it runs. Prerenders are cached by
 // content hash; an example whose code did not change is not made again.
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { availableParallelism, tmpdir } from "node:os";
+import { dirname, join, relative } from "node:path";
 import { highlightToHtml } from "lezer-ljos/html";
 import { CLIENT_CONDITIONS } from "../server/conditions.js";
 import { kernelNamed } from "../vite.js";
@@ -178,6 +178,44 @@ export function renderStatic(example, { prerender } = {}) {
   );
 }
 
+// What a prerender is made by, as one name: the compiler's own bytes,
+// this runtime's files and the workspace's lockfile (what it bundles
+// with), the Node that runs it, the kernel and the stage's size. A
+// prerender or a failure made under another is not this one's, so a
+// cache kept across builds (a CI cache, or a checkout's own) answers
+// only for what would make the same again. A compiler named only by
+// a command is known by that name.
+const STAMP_SKIPS = new Set(["node_modules", "tests", "site-tests", "type-tests"]);
+const stamps = new Map();
+export function prerenderStamp({ qmlc, width = 1280, height = 720, env = process.env } = {}) {
+  const made = JSON.stringify([width, height, kernelNamed(env)]);
+  const said = JSON.stringify([qmlc ?? "", made]);
+  if (stamps.has(said)) return stamps.get(said);
+  // The compiler by its bytes, not where it stands: two checkouts'
+  // builds of the same compiler are one.
+  const hash = createHash("sha256");
+  hash.update(`ljos-codeblock-prerender-stamp:1\n${process.version}\n${made}\n`);
+  hash.update(qmlc && existsSync(qmlc) ? readFileSync(qmlc) : `qmlc ${qmlc ?? "none"}`);
+  const files = [];
+  const walk = (dir) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (entry.isDirectory()) {
+        if (!(dir === runtime && STAMP_SKIPS.has(entry.name))) walk(join(dir, entry.name));
+      } else if (entry.isFile()) files.push(join(dir, entry.name));
+    }
+  };
+  walk(runtime);
+  for (const file of files.sort()) hash.update(`\n${relative(runtime, file)}\n`).update(readFileSync(file));
+  for (const lock of [join(runtime, "../../pnpm-lock.yaml"), join(runtime, "../pnpm-lock.yaml")])
+    if (existsSync(lock)) {
+      hash.update("\npnpm-lock.yaml\n").update(readFileSync(lock));
+      break;
+    }
+  const stamp = hash.digest("hex").slice(0, 32);
+  stamps.set(said, stamp);
+  return stamp;
+}
+
 // An example's words name the stage it ran in, a directory made for
 // that run: said without it, they are the same from run to run.
 const unstaged = (line) => String(line).replace(/file:\/\/[^\s'"]*?\/ljos-codeblock-prerender-[^/\s'"]+\/server\//g, "");
@@ -206,6 +244,31 @@ const blame = (error, batch) => {
   return blamed;
 };
 
+// A child process, awaited without holding the event loop the other
+// batches build on: `{ status, stdout, stderr, error }`, as spawnSync's.
+const run = (command, args, env) =>
+  new Promise((done) => {
+    const child = spawn(command, args, { env, stdio: ["ignore", "pipe", "pipe"] });
+    const out = [];
+    const err = [];
+    child.stdout.on("data", (chunk) => out.push(chunk));
+    child.stderr.on("data", (chunk) => err.push(chunk));
+    const timer = setTimeout(() => child.kill("SIGKILL"), 600_000);
+    child.on("error", (error) => {
+      clearTimeout(timer);
+      done({ status: null, stdout: "", stderr: "", error });
+    });
+    child.on("close", (status, signal) => {
+      clearTimeout(timer);
+      done({
+        status: signal ? null : status,
+        stdout: Buffer.concat(out).toString("utf8"),
+        stderr: Buffer.concat(err).toString("utf8"),
+        error: signal ? new Error(`killed by ${signal}`) : undefined,
+      });
+    });
+  });
+
 // A prerender of every example that has none under `cacheDir`, made as
 // a prerendered page is made (A26): the examples are written as one
 // small project, built once into a server bundle by the same Vite
@@ -218,23 +281,36 @@ const blame = (error, batch) => {
 // runs it, so this is the run half of the build-time check; which
 // failures fail a build is the caller's to say, as with
 // `checkExamples`. The kernel is the build's (`LJOS_KERNEL=wasm` for
-// Ljós's graph), as a prerendered site's is.
-export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280, height = 720, env = process.env } = {}) {
+// Ljós's graph), as a prerendered site's is. `LJOS_PRERENDER_JOBS`
+// says how many batches are made at once (at most 4 by default).
+export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280, height = 720, checked = false, env = process.env } = {}) {
   mkdirSync(cacheDir, { recursive: true });
   const at = join(cacheDir, "manifest.json");
-  const manifest = existsSync(at) ? JSON.parse(readFileSync(at, "utf8")) : {};
+  const stamp = prerenderStamp({ qmlc, width, height, env });
+  const manifest = {};
+  // What another compiler or runtime made is not this one's answer, a
+  // failure no more than a prerender: it is dropped, and made again
+  // when an example asks for it.
+  if (existsSync(at))
+    for (const [hash, had] of Object.entries(JSON.parse(readFileSync(at, "utf8")))) if (had?.stamp === stamp) manifest[hash] = had;
   const save = () => writeFileSync(at, `${JSON.stringify(manifest, null, 2)}\n`);
   const byHash = new Map(examples.map((example) => [hashExample(example), example]));
   const failures = [];
   // Said in the manifest, so the build that embeds them leaves the
-  // block plain instead of promising it live; a failure is made again
-  // next time, as a missing prerender is.
+  // block plain instead of promising it live. A failure is as much this
+  // compiler's and runtime's answer as a prerender, and finding which
+  // example of a batch refuses costs several bundles: it is kept, and
+  // told again, not found again.
   const fail = (example, diagnostics) => {
     failures.push({ example, diagnostics });
-    manifest[hashExample(example)] = { failed: true, diagnostics };
+    manifest[hashExample(example)] = { failed: true, diagnostics, stamp };
   };
-  let missing = [...byHash].filter(([hash]) => {
+  let missing = [...byHash].filter(([hash, example]) => {
     const had = manifest[hash];
+    if (had?.failed) {
+      failures.push({ example, diagnostics: had.diagnostics ?? [] });
+      return false;
+    }
     return !had?.file || !existsSync(join(cacheDir, had.file));
   });
   if (missing.length === 0) {
@@ -243,8 +319,9 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
   }
 
   // What qmlc refuses never reaches the bundle, where one refusal
-  // would refuse them all unnamed.
-  if (qmlc) {
+  // would refuse them all unnamed: unless the caller has just asked
+  // qmlc of these very examples (`checked`), and kept back its refusals.
+  if (qmlc && !checked) {
     const refused = checkExamples(missing.map(([, example]) => example), { qmlc, env });
     for (const { example, diagnostics } of refused) fail(example, diagnostics);
     const bad = new Set(refused.map(({ example }) => hashExample(example)));
@@ -351,16 +428,10 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
           return;
         }
         const half = Math.ceil(batch.length / 2);
-        await attempt(batch.slice(0, half));
-        await attempt(batch.slice(half));
+        await Promise.all([attempt(batch.slice(0, half)), attempt(batch.slice(half))]);
         return;
       }
-      const ran = spawnSync(process.execPath, [join(import.meta.dirname, "prerender-run.js"), join(stage, "server/entries.mjs"), JSON.stringify({ width, height })], {
-        encoding: "utf8",
-        maxBuffer: 1 << 28,
-        timeout: 600_000,
-        env,
-      });
+      const ran = await run(process.execPath, [join(import.meta.dirname, "prerender-run.js"), join(stage, "server/entries.mjs"), JSON.stringify({ width, height })], env);
       if (ran.error) throw new Error(`could not prerender the code blocks: ${ran.error.message}`);
       if (ran.status !== 0) throw new Error(`the code blocks could not be prerendered:\n${(ran.stderr || ran.stdout).trim()}`);
       // Each example's own words come back with it; what the process
@@ -377,7 +448,7 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
         else {
           const file = `${hash.slice(0, 16)}.html`;
           writeFileSync(join(cacheDir, file), html);
-          manifest[hash] = { file, ...prerenderSize(html), ...(logged?.length ? { logged: logged.map(unstaged) } : {}) };
+          manifest[hash] = { file, ...prerenderSize(html), ...(logged?.length ? { logged: logged.map(unstaged) } : {}), stamp };
         }
       }
       for (const [, example] of batch) if (!answered.has(hashExample(example))) fail(example, [`${example.entry}:1: the prerender gave no answer for it`]);
@@ -386,7 +457,16 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
       rmSync(stage, { recursive: true, force: true });
     }
   };
-  for (let i = 0; i < missing.length; i += 24) await attempt(missing.slice(i, i + 24));
+  // The batches are independent bundles and processes: a few at once,
+  // as many as the machine has room for, and never more than there are.
+  const batches = [];
+  for (let i = 0; i < missing.length; i += 24) batches.push(missing.slice(i, i + 24));
+  const lanes = Math.max(1, Math.min(batches.length, Number(env.LJOS_PRERENDER_JOBS) || Math.min(4, availableParallelism())));
+  await Promise.all(
+    Array.from({ length: lanes }, async () => {
+      while (batches.length > 0) await attempt(batches.shift());
+    }),
+  );
   // A batch whose bundle would not build records its failures and
   // returns without a render to save; the manifest must still say so.
   save();
@@ -403,7 +483,7 @@ export function loadPrerenders(cacheDir) {
   const loaded = {};
   for (const [hash, had] of Object.entries(manifest)) {
     if (had?.file && existsSync(join(cacheDir, had.file)))
-      loaded[hash] = { html: readFileSync(join(cacheDir, had.file), "utf8"), width: had.width, height: had.height, ...(had.logged ? { logged: had.logged } : {}) };
+      loaded[hash] = { html: readFileSync(join(cacheDir, had.file), "utf8"), width: had.width, height: had.height, stamp: had.stamp, ...(had.logged ? { logged: had.logged } : {}) };
     else if (had?.failed) loaded[hash] = had;
   }
   return loaded;
