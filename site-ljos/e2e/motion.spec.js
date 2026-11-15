@@ -9,8 +9,8 @@ import { calmNotWired } from "./known.js";
 test.use({ reducedMotion: "reduce" });
 
 // Where the puck is, read in the page on every animation frame for a
-// while after a press at the tray's left edge: its x, relative to the
-// tray. Read in the page, not from the test, so a busy machine cannot
+// while after a press at the tray's left edge: when (ms after the
+// first read) and its x, relative to the tray. Read in the page, not from the test, so a busy machine cannot
 // make the test look away while the puck travels.
 async function pressAndWatch(page) {
   await open(page, "/demos/");
@@ -32,7 +32,7 @@ async function pressAndWatch(page) {
     window.__puck = [];
     const t0 = performance.now();
     const frame = () => {
-      window.__puck.push(read());
+      window.__puck.push([Math.round(performance.now() - t0), read()]);
       if (performance.now() - t0 < 2_500) requestAnimationFrame(frame);
     };
     requestAnimationFrame(frame);
@@ -47,17 +47,25 @@ async function pressAndWatch(page) {
   expect(start, "the puck is drawn").not.toBeNull();
   await page.mouse.click(box.x + PRESS, box.y + box.height / 2);
   await page.waitForTimeout(2_700);
-  const xs = await page.evaluate(() => window.__puck);
-  return { start, target, xs, end: xs.at(-1) };
+  const samples = await page.evaluate(() => window.__puck);
+  const xs = samples.map(([, x]) => x);
+  return { start, target, samples, xs, end: xs.at(-1) };
 }
 
 test("with reduced motion the puck still travels; it does not jump", async ({ page, wasm }) => {
   test.skip(!wasm, "the same on both; held once");
-  const { start, target, xs, end } = await pressAndWatch(page);
-  expect(start - target, "the press is far enough away to watch it travel").toBeGreaterThan(50);
-  expect(Math.abs(end - target), "it ends where the reader pressed").toBeLessThanOrEqual(3);
-  const between = new Set(xs.filter((x) => x < start - 2 && x > end + 2).map((x) => Math.round(x)));
-  expect(between.size, "on its way it is seen between where it was and where it goes").toBeGreaterThanOrEqual(2);
+  const { start, target, samples, end } = await pressAndWatch(page);
+  // Every failure says what was seen: [ms, x] for each frame read.
+  const seen = `start ${start}, target ${target}; seen ${JSON.stringify(samples.map(([t, x]) => [t, Math.round(x)]))}`;
+  expect(start - target, `the press is far enough away to watch it travel (${seen})`).toBeGreaterThan(50);
+  expect(Math.abs(end - target), `it ends where the reader pressed (${seen})`).toBeLessThanOrEqual(3);
+  // A jump goes there between one frame and the next; travel takes
+  // time. Timed, not counted in frames: a busy machine draws fewer
+  // frames of the same travel.
+  const left = samples.find(([, x]) => x < start - 2);
+  const there = samples.find(([t, x]) => t >= (left?.[0] ?? 0) && Math.abs(x - end) <= 2);
+  expect(samples.some(([, x]) => x < start - 2 && x > end + 2), `on its way it is seen between where it was and where it goes (${seen})`).toBe(true);
+  expect(there[0] - left[0], `it takes time to get there; it does not jump (${seen})`).toBeGreaterThanOrEqual(100);
 });
 
 test("with reduced motion the puck's travel is softened: no overshoot", async ({ page, wasm }) => {
