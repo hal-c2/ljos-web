@@ -358,7 +358,11 @@ Column {
                 id: emptyStage
                 Item {}
             }
+            // Shown only when it holds a window: an empty one would lie
+            // over the example the stage runs and take a reader's press
+            // from its text fields.
             WindowContainer {
+                visible: window !== null
                 width: stageBox.pictureWidth
                 height: stageBox.height
                 window: Live.windowOf(stage.item)
