@@ -12,7 +12,7 @@
 // take it out of known.js.
 import { NEEDS_WASM, centre, centreOf, classify, drag, expect, expectFramesAdvance, livePages, liveBlock, open, pinch, press, run, signature, test, unexpected } from "./fixtures.js";
 import { interactions, invisible, still } from "./interactions.js";
-import { brokenExample, windowRoot } from "./known.js";
+import { brokenExample } from "./known.js";
 
 const CONTROL = '[role="button"],[role="checkbox"],[role="switch"],[role="radio"],[role="slider"],[role="tab"],[role="combobox"],[role="spinbutton"],[role="textbox"]:not([aria-label^="Edit "]),input,textarea';
 
@@ -44,7 +44,7 @@ for (const { route, examples } of pages) {
       test(`${name} runs, draws and answers the reader`, async ({ page, errors, wasm }) => {
         test.skip(!wasm, "without WebAssembly a block does not run; the next test holds what it says");
         const key = `${route}#${example.index}`;
-        const broken = brokenExample(route, example.index) ?? (kind.window ? windowRoot : null);
+        const broken = brokenExample(route, example.index);
         test.fail(Boolean(broken), broken ?? "");
         const scripted = interactions[key];
         test.fail(Boolean(scripted?.fails), scripted?.fails ?? "");

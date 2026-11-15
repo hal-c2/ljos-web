@@ -95,6 +95,9 @@ export const invisible = new Set([
   "/language/pipe/#3", // a tap sets `shown`, which nothing draws
   "/start/#1", // a bare Item: its value is never shown
   "/start/editors/#0", // a bare Item: its value is never shown
+  "/quality/accessibility/#2", // the row pressed is already the current one; its Delete does nothing
+  "/quality/color/#1", // its buttons have no handler: a press shows nothing once released
+  "/quality/layout-and-typography/#2", // its one button is disabled until a result is picked
 ]);
 
 // Examples whose code reads as moving on its own but that draw nothing
@@ -103,4 +106,5 @@ export const invisible = new Set([
 export const still = new Set([
   "/language/signals-and-handlers/#4", // the Timer counts ticks nothing draws
   "/ui/offscreen-and-cost/#2", // the spinner runs only while `busy`, which stays false
+  "/quality/performance/#0", // the pulse runs only while `syncing`, which stays false
 ]);
