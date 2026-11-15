@@ -125,6 +125,9 @@
   .ljos-codeblock__body { grid-template-columns: minmax(0, 1fr); }
   .ljos-codeblock__stage { border-left: 0; border-top: 1px solid var(--ljos-codeblock-border, color-mix(in srgb, currentColor 22%, transparent)); }
 }
+/* Reduced motion softens what moves; it never stops it: an example's own
+   transitions and animations run as it says (its Motion.calm is for it to
+   read). Only the page's own smooth scrolling is left out. */
 @media (prefers-reduced-motion: reduce) {
-  .ljos-codeblock * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+  .ljos-codeblock * { scroll-behavior: auto !important; }
 }
