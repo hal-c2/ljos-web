@@ -158,9 +158,12 @@ jobs:
       # Prerenders each live block (and fails on one that claims to
       # run and does not) before the build embeds them.
       - run: pnpm --filter ljos-site codeblock-prerenders
+      # Starlight runs Pagefind through a shell (DEP0190): its warning,
+      # not ours, and one this build cannot act on.
       - run: pnpm --filter ljos-site build
         env:
           VITE_LJOS_VIEW3D: wgpu
+          NODE_OPTIONS: --disable-warning=DEP0190
       - run: pnpm --filter ljos-site check-links
       - run: pnpm --filter ljos-site test
       # The same suite over Ljós's reactive graph (A22): a second
@@ -169,15 +172,19 @@ jobs:
         env:
           VITE_LJOS_VIEW3D: wgpu
           LJOS_KERNEL: wasm
+          NODE_OPTIONS: --disable-warning=DEP0190
       - run: pnpm --filter ljos-site exec playwright test tests/showcase.spec.js tests/site.spec.js
       # The artifact (and a dispatch's deploy) is the ordinary build
       # again, not the wasm-kernel one the tests just ran on.
       - run: pnpm --filter ljos-site build
         env:
           VITE_LJOS_VIEW3D: wgpu
+          NODE_OPTIONS: --disable-warning=DEP0190
       # The live blocks on a site built from fixture docs, strictly.
       # After the ordinary suite: its setup syncs the fixture's pages.
       - run: pnpm --filter ljos-site test:codeblocks
+        env:
+          NODE_OPTIONS: --disable-warning=DEP0190
       # The same site as Ljós pages, beside the Astro one: built and
       # held to parity with it, uploaded as its own artifact, and what
       # Pages deploys (the Astro site/dist is the reference, never
@@ -223,16 +230,16 @@ jobs:
         env:
           LJOS_SITE_BASE: /${{ github.event.repository.name }}/
       - run: cp -r site-ljos/dist "$RUNNER_TEMP/site-ljos-project"
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: ${{ failure() }}
         with:
           name: site-ljos-test-results
           path: site-ljos/test-results
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: site-ljos-dist
           path: ${{ runner.temp }}/site-ljos-project
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: site-dist
           path: site/dist
