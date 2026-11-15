@@ -26,7 +26,13 @@ for (const { route, examples } of pages) {
   test.describe(route, () => {
     test("loads with nothing in its console and every example's picture", async ({ page, errors }) => {
       await open(page, route);
-      await expect(page.locator('img[alt="What this example draws"]')).toHaveCount(examples.length);
+      const pictures = page.locator('img[alt="What this example draws"]');
+      await expect(pictures).toHaveCount(examples.length);
+      // Each picture is there and decoded, not only an element.
+      for (const picture of await pictures.all()) {
+        await expect(picture).toBeVisible();
+        await expect.poll(() => picture.evaluate((img) => img.complete && img.naturalWidth > 0), { message: "the picture decodes" }).toBe(true);
+      }
       await page.waitForTimeout(500);
       expect(unexpected(errors)).toEqual([]);
     });
@@ -115,12 +121,16 @@ for (const { route, examples } of pages) {
         await open(page, route);
         const block = liveBlock(page, example.index);
         // A block of several files shows the first and keeps the
-        // rest a tab away; each holds its own words.
-        const firstLine = (code) => code.split("\n").find((line) => line.trim().length > 0).trim();
+        // rest a tab away: a reader's press on a file's tab shows its
+        // editor, which holds that file's words, all of them. The
+        // editor draws spaces as no-break spaces; only line ends are
+        // left out of the comparison.
+        const words = (text) => text.replace(/\u00a0/g, " ").split("\n").map((line) => line.trimEnd()).join("\n").trim();
         for (const [i, file] of example.files.entries()) {
-          const editor = block.block.getByRole("textbox", { name: `Edit ${file.name}`, includeHidden: true });
-          if (i === 0) await expect(editor).toBeVisible();
-          await expect(editor).toContainText(firstLine(file.code));
+          if (i > 0) await press(block.block.getByRole("button", { name: `Edit ${file.name}`, exact: true }));
+          const editor = block.block.getByRole("textbox", { name: `Edit ${file.name}`, exact: true });
+          await expect(editor, `${file.name}'s editor is shown`).toBeVisible();
+          await expect.poll(async () => words(await editor.innerText()), { message: `${file.name}'s editor holds its source` }).toBe(words(file.code));
         }
       });
     }
