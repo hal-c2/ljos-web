@@ -235,11 +235,16 @@ function flicks(self, horizontal) {
   return (direction & (horizontal ? HorizontalFlick : VerticalFlick)) !== 0;
 }
 
-// Whether a press is one it drags by: the first button of a mouse, on one
-// that is not a ScrollView's, whose bars a mouse has instead.
+// Whether a press is one it drags by: a button of a mouse it accepts
+// (`acceptedButtons`, the first by default), on one that is not a
+// ScrollView's, whose bars a mouse has instead. One that accepts none is
+// not dragged by a mouse at all: the press is what is in it, and the
+// wheel, the bars and a finger still scroll it.
 function drags(self, point) {
-  if (point.type !== "mouse" || !point.primary || point.button !== LeftButton) return false;
-  return untrack(() => self.interactive && self.visible && self.parent?.$scrolled?.() !== self);
+  if (point.type !== "mouse" || !point.primary) return false;
+  return untrack(
+    () => (self.acceptedButtons & point.button) !== 0 && self.interactive && self.visible && self.parent?.$scrolled?.() !== self,
+  );
 }
 
 function pressed(self, point) {
@@ -437,6 +442,7 @@ export const Flickable = defineType("Flickable", Item, {
     bottomMargin: 0,
     flickableDirection: 0,
     interactive: true,
+    acceptedButtons: LeftButton,
     boundsBehavior: 3,
     flickDeceleration: 1500,
     maximumFlickVelocity: 2500,
