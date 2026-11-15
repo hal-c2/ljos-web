@@ -5,13 +5,13 @@
 // and writes static HTML (code + the prerendered result); the browser
 // side hydrates that HTML into an editor whose edits recompile in the
 // page and reload with state kept. Exempt blocks stay plain code.
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test as plain } from "@playwright/test";
 import { Text } from "@codemirror/state";
 import { assemble, displayPosition, exampleFiles, extractBlocks, parseInfo, spliceHarness } from "../codeblocks/parse.js";
-import { checkExamples, hashExample, loadPrerenders, renderCode, renderPrerenders, renderStatic } from "../codeblocks/build.js";
+import { checkExamples, hashExample, loadPrerenders, pruneCache, renderCode, renderPrerenders, renderStatic } from "../codeblocks/build.js";
 import { toDiagnostics } from "../codeblocks/editor.js";
 import { PACKED, packRich, unpackRich } from "../codeblocks/rich.js";
 import { highlight } from "../markdown.js";
@@ -259,10 +259,20 @@ Item {
     expect(failures).toHaveLength(1);
     expect(failures[0].example).toBe(throwing);
     expect(failures[0].diagnostics.join("\n")).toContain("Main.qml");
+    // An older run's answer the manifest no longer names is dropped; a
+    // file that is not a prerender's (a site's picture) is not its to drop.
+    writeFileSync(join(cacheDir, "0123456789abcdef.html"), "an older runtime's");
+    writeFileSync(join(cacheDir, "0123456789abcdef-0123456789ab.png"), "");
     // Cached: a second run makes nothing and answers the same manifest.
     const again = await renderPrerenders([counter], { cacheDir, qmlc });
     expect(again.failures).toEqual([]);
     expect(again.manifest[hashExample(counter)]).toEqual(manifest[hashExample(counter)]);
+    expect(existsSync(join(cacheDir, "0123456789abcdef.html"))).toBe(false);
+    expect(existsSync(join(cacheDir, manifest[hashExample(counter)].file))).toBe(true);
+    expect(existsSync(join(cacheDir, "0123456789abcdef-0123456789ab.png"))).toBe(true);
+    pruneCache(cacheDir, { keep: new Set(), pattern: /^[0-9a-f]{16}-[0-9a-f]{12}\.png$/ });
+    expect(existsSync(join(cacheDir, "0123456789abcdef-0123456789ab.png"))).toBe(false);
+    expect(existsSync(join(cacheDir, "manifest.json"))).toBe(true);
   } finally {
     rmSync(cacheDir, { recursive: true, force: true });
   }

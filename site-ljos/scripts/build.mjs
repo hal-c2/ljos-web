@@ -19,7 +19,7 @@ import { chromium } from "@playwright/test";
 import { createRequire } from "node:module";
 import { highlight, readMarkdownSite } from "ljos-web/markdown";
 import { buildSite } from "ljos-web/site";
-import { checkExamples, hashExample, loadHarnesses, loadPrerenders, renderPrerenders, siteFiles } from "ljos-web/codeblocks";
+import { checkExamples, hashExample, loadHarnesses, loadPrerenders, pruneCache, renderPrerenders, siteFiles } from "ljos-web/codeblocks";
 import { assemble, packGiven, tagged } from "ljos-web/codeblocks/parse";
 import { packRich } from "ljos-web/codeblock/rich";
 import { giveFiles, readGiven } from "../../site/scripts/codeblock-files.mjs";
@@ -191,6 +191,8 @@ const liveAt = new Map(); // a page's code block -> its live payload
       await browser.close();
     }
   }
+  // Pictures an older runtime or browser drew are never shown again.
+  pruneCache(cacheDir, { keep: new Set(live.map(({ example }) => kept(hashExample(example)))), pattern: /^[0-9a-f]{16}-[0-9a-f]{12}\.png$/ });
   for (const { example } of live) {
     const hash = hashExample(example);
     const picture = `${hash.slice(0, 16)}.png`;

@@ -313,10 +313,15 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
     }
     return !had?.file || !existsSync(join(cacheDir, had.file));
   });
-  if (missing.length === 0) {
+  // A cache restored from an older run holds what older compilers and
+  // runtimes made too: what this manifest does not name goes, so the
+  // cache is only ever this run's answers, not every run's.
+  const done = () => {
     save();
+    pruneCache(cacheDir, { keep: new Set(Object.values(manifest).map((had) => had.file)), pattern: /^[0-9a-f]{16}\.html$/ });
     return { manifest, failures };
-  }
+  };
+  if (missing.length === 0) return done();
 
   // What qmlc refuses never reaches the bundle, where one refusal
   // would refuse them all unnamed: unless the caller has just asked
@@ -469,8 +474,14 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
   );
   // A batch whose bundle would not build records its failures and
   // returns without a render to save; the manifest must still say so.
-  save();
-  return { manifest, failures };
+  return done();
+}
+
+// Removes each file of `cacheDir` that `pattern` names and `keep` does
+// not hold: a cache kept across runs (CI restores the newest one, made
+// by an older commit) otherwise grows by every answer it ever held.
+export function pruneCache(cacheDir, { keep, pattern }) {
+  for (const name of readdirSync(cacheDir)) if (pattern.test(name) && !keep.has(name)) rmSync(join(cacheDir, name), { force: true });
 }
 
 // What a manifest's cache holds, read back for the build that embeds
