@@ -6,7 +6,8 @@ import QtQuick3D.Helpers
 // to zoom. The lamp sweeps a spotlight across the water while three
 // unlike shapes circle the tower, so the scene is alive before it is
 // touched — and still when the page asks it to be (root.active), or
-// gentler when the visitor prefers reduced motion (root.calm).
+// slower, never stopped, when the visitor prefers reduced motion
+// (root.calm).
 Rectangle {
     id: root
     width: 720
@@ -16,7 +17,7 @@ Rectangle {
     // Driven by the page that embeds this file; harmless standalone.
     property bool active: true
     property bool calm: false
-    readonly property bool turning: active && !calm
+    readonly property bool turning: active
     // Drawn once the view has said the time of a frame: a page that
     // shows a picture until then (Site/DemoFrame.qml) keeps it till.
     readonly property bool ready: view.renderStats.frameTime > 0
@@ -28,7 +29,7 @@ Rectangle {
         running: root.turning
         from: 55
         to: 415
-        duration: 26000
+        duration: root.calm ? 78000 : 26000
         loops: Animation.Infinite
     }
 
