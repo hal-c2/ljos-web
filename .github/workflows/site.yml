@@ -301,10 +301,13 @@ jobs:
           REPO: ${{ github.repository }}
           ROLLBACK: ${{ github.event_name == 'workflow_dispatch' && inputs.rollback }}
         run: .github/scripts/fresh-head.sh
-      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
+      # Hidden files are kept, as v3 kept them: the tarball Pages
+      # serves holds what the directory does.
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         if: ${{ env.SITE_DEPLOYS == 'true' }}
         with:
           path: ${{ steps.pages.outputs.dir }}
+          include-hidden-files: true
   deploy:
     if: ${{ needs.build.outputs.deploy == 'true' }}
     # Nothing is published that `ljos check` refused, or while the
@@ -341,4 +344,4 @@ jobs:
           ROLLBACK: ${{ github.event_name == 'workflow_dispatch' && inputs.rollback }}
         run: .github/scripts/fresh-head.sh
       - id: deployment
-        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
