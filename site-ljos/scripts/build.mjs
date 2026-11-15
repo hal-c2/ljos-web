@@ -390,7 +390,12 @@ function siteHead() {
     `  @media (prefers-color-scheme: dark) { :root:not([data-ljos-scheme="light"]) { ${declarations(dark)} } }`,
     `  :root[data-ljos-scheme="dark"] { ${declarations(dark)} }`,
   ].join("\n");
+  // Where the app keeps the reader's scheme, read from the script that
+  // keeps it, so the head's script never asks for another.
+  const scheme = readFileSync(join(bundle, "scheme.js"), "utf8").replace(/^\.pragma library$/m, "");
+  const { key } = new Function(`${scheme}\nreturn { key };`)();
   return readFileSync(join(bundle, "assets/head.html"), "utf8")
+    .replace("%SCHEME_KEY%", () => JSON.stringify(key))
     .replace("%LJOS_TOKENS%", () => tokens)
     .replaceAll("%LIGHT_CANVAS%", light.canvas)
     .replaceAll("%DARK_CANVAS%", dark.canvas);
