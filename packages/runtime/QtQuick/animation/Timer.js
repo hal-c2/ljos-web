@@ -71,6 +71,11 @@ export const Timer = defineType("Timer", QtObject, {
   },
   signals: ["triggered"],
   methods: {
+    // The object it is declared in: what a handler moves along says
+    // `parent.x`, as it would in any other object it could be in.
+    get parent() {
+      return this.$parent;
+    },
     get running() {
       const timer = this.$timer;
       timer.version();

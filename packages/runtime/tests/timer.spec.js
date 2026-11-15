@@ -78,3 +78,9 @@ test("a frame animation tells the time of every frame", async ({ page }) => {
   await page.evaluate(() => window.objects.frames.stop());
   expect(await page.evaluate(() => window.objects.clock.running)).toBe(false);
 });
+
+test("a timer's parent is the object it is declared in", async ({ page }) => {
+  await open(page, "timer");
+  // A handler says `parent.x` of what the timer moves along.
+  expect(await page.evaluate(() => window.objects.bound.parent === window.objects.root)).toBe(true);
+});
