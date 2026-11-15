@@ -35,7 +35,7 @@ use oxc_span::{GetSpan, SourceType, Span};
 use qml_front::{QtTypeOracle, TypeOracle};
 
 use super::{
-    names::{JS_GLOBALS, QML_GLOBALS, namespace_source},
+    names::{JS_GLOBALS, PLACED_GLOBALS, QML_GLOBALS, namespace_source},
     paths::Paths,
 };
 use crate::{Error, Options, build::B, parse_errors, project::Source};
@@ -149,7 +149,7 @@ pub(crate) fn compile(source: &str, options: &Options) -> Result<String, Vec<Err
                     .kind()
                     .span()
             });
-            if QML_GLOBALS.contains(&name) {
+            if QML_GLOBALS.contains(&name) || PLACED_GLOBALS.contains(&name) {
                 free.extend(spans.map(|span| span.start));
             } else if !JS_GLOBALS.contains(&name) && !imports.iter().any(|(_, alias)| alias == name)
             {
@@ -308,6 +308,7 @@ impl<'a> VisitMut<'a> for Script<'a, '_> {
             && self.free.contains(&identifier.span.start)
             && let Some(global) = QML_GLOBALS
                 .iter()
+                .chain(PLACED_GLOBALS)
                 .find(|global| **global == identifier.name.as_str())
         {
             self.globals.insert(global);

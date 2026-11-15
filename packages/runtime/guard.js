@@ -80,8 +80,8 @@ export function release(root, missing) {
 }
 
 // The project `url` is in, and the name of the file there it is (`text`
-// undefined where the project has no such file); null for an address of no
-// such project's.
+// undefined where the project has no such file, and bytes where it was
+// given as bytes); null for an address of no such project's.
 export function own(url) {
   if (enclosed.size === 0) return null;
   let at;
@@ -124,7 +124,29 @@ function notThere(found) {
   return new Error(`${name}: No such file or directory`);
 }
 
-const TYPES = { svg: "image/svg+xml", json: "application/json", js: "text/javascript", mjs: "text/javascript", css: "text/css" };
+// What a browser needs told to show or play a file it is handed as a Blob:
+// a picture or a sound typed as text is not decoded.
+const TYPES = {
+  svg: "image/svg+xml",
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  gif: "image/gif",
+  webp: "image/webp",
+  avif: "image/avif",
+  wav: "audio/wav",
+  mp3: "audio/mpeg",
+  ogg: "audio/ogg",
+  oga: "audio/ogg",
+  m4a: "audio/mp4",
+  mp4: "video/mp4",
+  webm: "video/webm",
+  json: "application/json",
+  xml: "application/xml",
+  js: "text/javascript",
+  mjs: "text/javascript",
+  css: "text/css",
+};
 const typeOf = (name) => TYPES[/\.(\w+)$/.exec(name)?.[1]?.toLowerCase()] ?? "text/plain";
 
 // An address the browser can load a given file of a project's from.
@@ -179,13 +201,15 @@ export function whyNot(url) {
   return found ? `${found.name}: No such file or directory` : refusal(url).message;
 }
 
+// `url` may be a Request, which goes as it was made where it may go.
 export function guardedFetch(url, init) {
-  const found = own(url);
+  const address = typeof Request !== "undefined" && url instanceof Request ? url.url : url;
+  const found = own(address);
   if (found) {
     if (found.text === undefined) return Promise.reject(notThere(found));
     return Promise.resolve(new Response(found.text, { headers: { "content-type": typeOf(found.name) } }));
   }
-  return mayFetch(url) ? fetch(url, init) : Promise.reject(refusal(url));
+  return mayFetch(address) ? fetch(url, init) : Promise.reject(refusal(address));
 }
 
 // An element told to load `url`, or told it could not, as a browser tells.

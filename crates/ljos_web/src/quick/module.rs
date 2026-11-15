@@ -42,7 +42,7 @@ use oxc_parser::Parser;
 use oxc_semantic::SemanticBuilder;
 use oxc_span::{GetSpan, SourceType, Span};
 
-use super::names::{FETCH_GLOBALS, JS_GLOBALS, SUGAR_GLOBALS};
+use super::names::{FETCH_GLOBALS, JS_GLOBALS, PLACED_GLOBALS, SUGAR_GLOBALS};
 use crate::{Error, Options, build::B, parse_errors};
 
 /// The module that has the helpers `match` and `is` are lowered to.
@@ -244,6 +244,7 @@ fn javascript<'a>(
     }
     let mut program = parsed.program;
     let mut sugar = BTreeSet::new();
+    let mut placed = BTreeSet::new();
     let mut unread = HashSet::new();
     {
         let semantic = SemanticBuilder::new()
@@ -258,6 +259,8 @@ fn javascript<'a>(
                 sugar.insert(*helper);
             // `fetch` and its classes are the page's in a module too, as
             // `ljos check` has them (docs/DIALECT.md §4.19).
+            } else if let Some(global) = PLACED_GLOBALS.iter().find(|global| **global == name) {
+                placed.insert(*global);
             } else if !JS_GLOBALS.contains(&name) && !FETCH_GLOBALS.contains(&name) {
                 let first = references
                     .iter()
@@ -309,10 +312,14 @@ fn javascript<'a>(
             }
         }
     }
+    let b = B::new(allocator);
+    let prefix = &options.qt_module;
     if !sugar.is_empty() {
-        let b = B::new(allocator);
-        let prefix = &options.qt_module;
         let import = b.import_named(sugar.iter().copied(), &format!("{prefix}/{SUGAR}"));
+        program.body.insert(0, import);
+    }
+    if !placed.is_empty() {
+        let import = b.import_named(placed.iter().copied(), &format!("{prefix}/QtQml"));
         program.body.insert(0, import);
     }
     Ok(oxc_codegen::Codegen::new().build(&program).code)

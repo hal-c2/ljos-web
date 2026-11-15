@@ -20,5 +20,6 @@ export {
   QT_TRID_NOOP,
 } from "./Qt.ts";
 export { XMLHttpRequest } from "./request.ts";
+export { fetch } from "./fetch.ts";
 // What it has by importing `QtQml.Models`.
 export * from "./Models/index.ts";
