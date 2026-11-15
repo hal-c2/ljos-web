@@ -167,8 +167,8 @@ const PREFIX = "palette$";
 
 export function paletteOf(
   self: Owning,
-  from: (() => Paletted | null | undefined) | undefined,
-  group: (() => string) | undefined,
+  from?: () => Paletted | null | undefined,
+  group?: () => string,
 ): Paletted {
   if (self.$palette) return self.$palette;
   const props: Record<string, unknown> = {};
