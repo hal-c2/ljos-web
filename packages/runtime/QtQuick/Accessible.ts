@@ -350,9 +350,12 @@ const AccessibleAttached = defineType("AccessibleAttached", QtObject, {
   },
 });
 
-export const Accessible = defineType("Accessible", QtObject, {
-  enums: { ...Role, Polite, Assertive },
-  attached: AccessibleAttached,
-});
-// `Accessible.announce(...)` is said of the type as well as of an item.
-(Accessible as typeof Accessible & { announce: typeof announce }).announce = announce;
+// `Accessible.announce(...)` is said of the type as well as of an item,
+// and the exported type says so.
+export const Accessible = Object.assign(
+  defineType("Accessible", QtObject, {
+    enums: { ...Role, Polite, Assertive },
+    attached: AccessibleAttached,
+  }),
+  { announce },
+);

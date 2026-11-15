@@ -213,8 +213,10 @@ function intern(spec: FontSpec): FontSpec {
 // A font as what CSS and the canvas need to know. Equal fonts are the same
 // object, so a memo that returns one does not disturb what depends on it.
 export function describe(font: FontValue): FontSpec {
-  let weight = font.weight as number;
-  let italic = font.italic as boolean;
+  // A font value names only what it sets: what it leaves out is Qt's
+  // default font's, as `Font` fills it (QtQml/application.ts).
+  let weight = font.weight === undefined ? 400 : Number(font.weight);
+  let italic = Boolean(font.italic);
   const named = String(font.styleName ?? "").toLowerCase();
   if (named) {
     weight = WEIGHTS.find(([pattern]) => pattern.test(named))?.[1] ?? 400;
