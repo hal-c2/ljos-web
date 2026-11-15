@@ -344,6 +344,11 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
       });
       if (ran.error) throw new Error(`could not prerender the code blocks: ${ran.error.message}`);
       if (ran.status !== 0) throw new Error(`the code blocks could not be prerendered:\n${(ran.stderr || ran.stdout).trim()}`);
+      // Each example's own words come back with it; what the process
+      // said outside every example nothing expected, and it stops the
+      // build before any of this batch is kept, so the next run makes
+      // the batch again and is stopped again rather than served.
+      if (ran.stderr.trim()) throw new Error(`the code block prerenderer said, outside any example:\n${ran.stderr.trimEnd()}`);
       const answered = new Set();
       for (const line of ran.stdout.split("\n").filter(Boolean)) {
         const { hash, html, error, logged } = JSON.parse(line);
@@ -358,10 +363,6 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
       }
       for (const [, example] of batch) if (!answered.has(hashExample(example))) fail(example, [`${example.entry}:1: the prerender gave no answer for it`]);
       save();
-      // Each example's own words come back with it; what the process
-      // said outside every example nothing expected, and it stops the
-      // build rather than scroll past.
-      if (ran.stderr.trim()) throw new Error(`the code block prerenderer said, outside any example:\n${ran.stderr.trimEnd()}`);
     } finally {
       rmSync(stage, { recursive: true, force: true });
     }
