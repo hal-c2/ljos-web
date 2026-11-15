@@ -813,9 +813,13 @@ export default function qml({
         if (own) return join(runtime, own);
         // Asked again from the runtime, which says what it lacks: the
         // file that asked is named with it, as with any import it has.
-        return this.resolve(source, join(runtime, "index.js"), { ...options, skipSelf: true }).catch((error) =>
-          this.error({ message: `${source} is not in ljos-web: ${String(error?.message ?? error).split("\n")[0]}`, id: importer.split("?")[0] }),
+        // An unresolved answer is `null` rather than a refusal, and as
+        // much the runtime's lack.
+        const lacked = (why) => this.error({ message: `${source} is not in ljos-web: ${why}`, id: importer.split("?")[0] });
+        const fallback = await this.resolve(source, join(runtime, "index.js"), { ...options, skipSelf: true }).catch((error) =>
+          lacked(String(error?.message ?? error).split("\n")[0]),
         );
+        return fallback ?? lacked("nothing resolves it");
       }
       // What Qt's own QML has next to it is of the same program.
       if (source.endsWith(".qml") && /^\.\.?\//.test(source) && carried(importer)) {

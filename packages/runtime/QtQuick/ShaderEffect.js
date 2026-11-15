@@ -395,7 +395,7 @@ export const ShaderEffect = defineType("ShaderEffect", Item, {
       if (stages.some((stage) => !stage)) return null;
       const failed = stages.find((stage) => stage.error);
       if (failed) return { program: null, log: failed.error, uniforms: [] };
-      if (!context()) return { program: null, log: "the browser has no WebGL 2 to draw a shader with", uniforms: [] };
+      if (!context()) return { program: null, log: "the browser has no WebGL 2 to draw a shader with", uniforms: [], gpuless: true };
       const [vertex, fragment] = stages.map((stage) => stage.source);
       const level = version(vertex ?? fragment ?? "#version 300 es");
       return program(vertex ?? VERTEX[level], fragment ?? FRAGMENT[level]);
@@ -423,8 +423,9 @@ export const ShaderEffect = defineType("ShaderEffect", Item, {
       ([made, width, height, values, across, down, cullMode, asked]) => {
         slot(self, "status").provide(!made ? Uncompiled : made.program ? Compiled : Failed);
         slot(self, "log").provide(made?.log ?? "");
-        // A prerender has no GPU by design and paints the element alone.
-        const unasked = !gl && globalThis[Symbol.for("ljos.prerender")];
+        // A prerender has no GPU by design and paints the element alone;
+        // a shader it cannot read or compile is still said.
+        const unasked = made?.gpuless && globalThis[Symbol.for("ljos.prerender")];
         if (made && !made.program && !unasked && shader.said !== made.log) console.warn(`ShaderEffect: ${(shader.said = made.log)}`);
         const ratio = window.devicePixelRatio || 1;
         const w = Math.round(width * ratio);
