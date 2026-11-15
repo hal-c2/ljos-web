@@ -691,6 +691,23 @@ test("a located setting an earlier runtime kept is what the property loads, and 
   });
 });
 
+test("a located setting that cannot be moved is left where an earlier runtime kept it", async ({ page }) => {
+  await open(page, "settingsmoved");
+  // Storage refuses the new key: the value is this page's, and the old key
+  // is kept for the next page to move.
+  await page.evaluate(() => {
+    localStorage.setItem("ljos-web:moved/Org/App/main/extra", '"5"');
+    Storage.prototype.setItem = () => {
+      throw new DOMException("full", "QuotaExceededError");
+    };
+  });
+  expect(await answers(page, () => [() => st.value("extra"), () => st.value("extra")])).toEqual(["5", "5"]);
+  expect(await page.evaluate(() => [localStorage.getItem("ljos-web:moved/Org/App/main/extra"), localStorage.getItem("ljos-web:moved/main/extra")])).toEqual([
+    '"5"',
+    null,
+  ]);
+});
+
 test("a page has no standard paths", async ({ page }) => {
   await open(page, "settings");
   expect(

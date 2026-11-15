@@ -66,15 +66,18 @@ function read(key: string): unknown {
   }
 }
 
-function write(key: string, value: unknown): void {
+// Whether the value outlasts the page.
+function write(key: string, value: unknown): boolean {
   written.set(key, value);
   // It may be a dropped shell's string, which the next page would act on with
   // no guard up: it lasts as long as this page.
-  if (!mayKeep()) return;
+  if (!mayKeep()) return false;
   try {
     localStorage.setItem(key, JSON.stringify(text(value) ?? null));
+    return true;
   } catch {
     // Full or forbidden: the setting lasts as long as the page.
+    return false;
   }
 }
 
@@ -101,8 +104,8 @@ function stored(self: Store, name: string): unknown {
   if (before === key) return undefined;
   const moved = read(before);
   if (moved === undefined) return undefined;
-  write(key, moved);
-  forget(before);
+  // Until the new key is kept, the old one is all the next page has.
+  if (write(key, moved)) forget(before);
   return moved;
 }
 
