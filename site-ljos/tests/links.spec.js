@@ -70,6 +70,15 @@ test(`every page's header links to the front page, the docs and the demos, at ${
   expect(missing).toEqual([]);
 });
 
+test("every page's footer links to the community principles, and the front page names them", () => {
+  const principles = "https://community-software.org/";
+  const missing = pages.filter(({ links }) => !links.some((link) => link.name === "Community principles" && link.href === principles)).map(({ at }) => at);
+  expect(missing).toEqual([]);
+  const front = pages.find(({ at }) => at === base);
+  expect(front.links).toEqual(expect.arrayContaining([{ name: "Community Software", href: principles }]));
+  expect(readFileSync(front.file, "utf8")).toContain("strives to follow the");
+});
+
 test(`every page names its icon at ${base}, and the build wrote it`, () => {
   const unnamed = pages.filter(({ file }) => !readFileSync(file, "utf8").includes(`<link rel="icon" href="${base}favicon.svg"`)).map(({ at }) => at);
   expect(unnamed).toEqual([]);

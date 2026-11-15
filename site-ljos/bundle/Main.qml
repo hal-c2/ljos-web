@@ -426,5 +426,16 @@ Rectangle {
             font.family: Theme.sans
             font.pixelSize: 12
         }
+        // Every page says how the project means to work together. It
+        // stands at the edge, so its place never depends on how wide
+        // the words beside it are measured.
+        NavLink {
+            anchors.right: parent.right
+            anchors.rightMargin: 20
+            anchors.verticalCenter: parent.verticalCenter
+            label: "Community principles"
+            to: "https://community-software.org/"
+            size: 12
+        }
     }
 }

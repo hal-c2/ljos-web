@@ -270,6 +270,26 @@ Column {
 
     Text {
         width: parent.width
+        text: "Built together"
+        color: Theme.ink
+        font.family: Theme.serif
+        font.pixelSize: 26
+        font.bold: true
+        wrapMode: Text.Wrap
+    }
+    Text {
+        width: parent.width
+        textFormat: Text.RichText
+        color: Theme.ink
+        font.family: Theme.sans
+        font.pixelSize: 15
+        wrapMode: Text.Wrap
+        text: "Ljós strives to follow the <a href=\"https://community-software.org/\">Community Software</a> principles: we build it together, as peers, in the open.<br><br>Everyone is welcome.<br>We are peers.<br>Every contribution counts.<br>Influence grows from participation.<br>Be kind to people, rigorous with ideas.<br>“No” and “not yet” are valid answers.<br>Look after yourself and each other.<br><br>Code is one way to help. Testing, writing docs, design, translation and accessibility reviews count just as much, and questions from newcomers are welcome."
+        onLinkActivated: (link) => landing.follow(link)
+    }
+
+    Text {
+        width: parent.width
         text: "Start reading"
         color: Theme.ink
         font.family: Theme.serif
