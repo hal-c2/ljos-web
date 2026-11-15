@@ -31,6 +31,10 @@
 //   prerendered HTML by its content hash. An entry marked failed (it
 //   compiled for `qmlc` but did not run) keeps its block plain, by the
 //   same rule as a compile failure.
+// - `examples(examples, { file, blocks })`: told of a page's examples
+//   as they are assembled, before anything is checked or made, for a
+//   host to give one the files it reads and its page does not show
+//   (`given`, see `exampleFiles` in parse.js).
 // - `highlight`: `true` highlights every fence that stays code whose
 //   language the grammar reads (QML, .lts, TS, JS) at build time, with
 //   the `tok-*` classes a live block's code has. A host that asks loads
@@ -53,7 +57,7 @@ function highlightFences(node) {
 }
 
 export function liveCodeBlocks(options = {}) {
-  const { harnesses = {}, qmlc, strict = false, prerenders = {}, onLegacy, highlight = false } = options;
+  const { harnesses = {}, qmlc, strict = false, prerenders = {}, onLegacy, highlight = false, examples: given } = options;
   // One compile per distinct example in a build, however many pages
   // repeat it: the answer is the code's, and its hash names it.
   const checked = new Map();
@@ -89,6 +93,7 @@ export function liveCodeBlocks(options = {}) {
     let outcome;
     try {
       outcome = assemble(blocks, { harnesses });
+      given?.(outcome.examples, { file, blocks });
     } catch (error) {
       if (strict || blocks.some(tagged)) fail(error.message);
       onLegacy?.(items.length, file);

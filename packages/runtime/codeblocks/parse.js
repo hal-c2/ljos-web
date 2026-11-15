@@ -166,9 +166,12 @@ function finish(example) {
 }
 
 // What compiles, from what an editor shows: the files by name, with the
-// harness spliced around the snippet the editor was editing.
+// harness spliced around the snippet the editor was editing. `given`
+// (`{ [name]: text }`) are files the example reads and its page does
+// not show, such as the shell a ShellLoader loads or the JSON a model
+// reads: a site gives them, and a file the page shows is the page's.
 export function exampleFiles(example) {
-  const files = {};
+  const files = { ...example.given };
   for (const file of example.display) files[file.name] = ended(file.code);
   if (example.harnessTemplate) {
     const at = example.harnessFile ?? example.entry;

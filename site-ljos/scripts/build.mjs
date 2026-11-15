@@ -21,6 +21,7 @@ import { buildSite } from "ljos-web/site";
 import { checkExamples, hashExample, loadHarnesses, loadPrerenders, renderPrerenders } from "ljos-web/codeblocks";
 import { assemble, tagged } from "ljos-web/codeblocks/parse";
 import { packRich } from "ljos-web/codeblock/rich";
+import { giveFiles, readGiven } from "../../site/scripts/codeblock-files.mjs";
 import { keysByHash, listedEverywhere, pageOfRoute, pageRecords, readLedger, saysEverywhere } from "../../site/scripts/codeblocks-ledger.mjs";
 
 const here = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -97,6 +98,7 @@ const liveAt = new Map(); // a page's code block -> its live payload
 {
   const gathered = [];
   const onPages = [];
+  const given = readGiven();
   for (const page of site.pages) {
     const fences = page.blocks.filter((block) => block.kind === "code");
     if (!fences.length) continue;
@@ -111,6 +113,7 @@ const liveAt = new Map(); // a page's code block -> its live payload
       of: block,
     }));
     const { examples } = assemble(said, { harnesses });
+    giveFiles(pageOfRoute(page.route), said, examples, given);
     onPages.push({ page: pageOfRoute(page.route), fences: said, examples });
     for (const example of examples) gathered.push({ page, example });
   }
@@ -197,6 +200,7 @@ const liveAt = new Map(); // a page's code block -> its live payload
       // Each file highlighted as its fence is: what the editor shows
       // until the reader is in it.
       display: example.display.map((file) => ({ ...file, rich: packRich(highlight(file.code, file.lang ?? "qml")) })),
+      ...(example.given ? { given: example.given } : {}),
       picture,
       width,
       height,

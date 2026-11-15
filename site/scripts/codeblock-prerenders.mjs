@@ -12,6 +12,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { checkExamples, hashExample, loadHarnesses, renderPrerenders } from "ljos-web/codeblocks";
 import { assemble, extractBlocks, tagged } from "ljos-web/codeblocks/parse";
+import { giveFiles, readGiven, unused } from "./codeblock-files.mjs";
 import { writeHeld } from "./codeblocks-held.mjs";
 import { keysByHash, listedEverywhere, pageRecords, readLedger, saysEverywhere, unmarked } from "./codeblocks-ledger.mjs";
 
@@ -37,10 +38,13 @@ const pages = readdirSync(src, { recursive: true })
   .filter((f) => f.endsWith(".md") && !f.startsWith("harness"));
 const byHash = new Map();
 const onPages = [];
+const given = readGiven();
+const gave = [];
 let legacy = 0;
 for (const page of pages) {
   const fences = extractBlocks(readFileSync(join(src, page), "utf8"));
   const { examples, unknown } = assemble(fences, { harnesses });
+  gave.push(...giveFiles(page, fences, examples, given));
   onPages.push({ page, fences, examples });
   if (strict && unknown.length > 0) {
     console.error(`codeblock-prerenders: ${page}: ${unknown.length} bare or unknown fence(s), first at line ${unknown[0].line}`);
@@ -125,7 +129,7 @@ writeFileSync(join(cacheDir, "report.json"), `${JSON.stringify(report, null, 2)}
 // The ledger is the step's to keep: a block that does not run, or says
 // what no one meant it to, and is not listed, stops it here, and so
 // does an entry for a block that runs quietly now.
-const problems = unmarked(report, ledger);
+const problems = [...unmarked(report, ledger), ...unused(given, gave)];
 if (problems.length) {
   console.error(`codeblock-prerenders: the report and site/codeblocks-pending.txt disagree:\n  ${problems.join("\n  ")}`);
   process.exit(1);

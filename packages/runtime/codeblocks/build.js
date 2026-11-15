@@ -98,6 +98,7 @@ const payload = (example, prerendered) =>
     before: example.before,
     ...(example.harness ? { harness: example.harness, harnessTemplate: example.harnessTemplate, harnessFile: example.harnessFile } : {}),
     display: example.display,
+    ...(example.given ? { given: example.given } : {}),
     prerendered,
   }).replaceAll("<", "\\u003c");
 

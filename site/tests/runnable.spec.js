@@ -5,8 +5,9 @@
 import { existsSync, readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 import { hashExample } from "ljos-web/codeblocks";
-import { assemble, parseMeta } from "ljos-web/codeblocks/parse";
+import { assemble, exampleFiles, parseMeta } from "ljos-web/codeblocks/parse";
 import { liveCodeBlocks } from "ljos-web/codeblocks/remark";
+import { giveFiles, readGiven, unused } from "../scripts/codeblock-files.mjs";
 import { holdPlain } from "../scripts/codeblocks-held.mjs";
 import { exampleKeys, keysByHash, listedEverywhere, readLedger, saysEverywhere, unmarked } from "../scripts/codeblocks-ledger.mjs";
 
@@ -95,6 +96,40 @@ test.describe("a block that says something as it is made", () => {
     expect(unmarked([record(2, "live", { logged: ["hit: under"] }), record(3, "not running"), record(4, "live", { logged: ["oops"] })], ledger)).toEqual([
       "docs/site/ui/items.md:1: ui/items.md 4 says as it is made, and is not listed:\n    oops",
     ]);
+  });
+});
+
+// A file an example reads and its page does not show is given to it by
+// its ledger name, and is part of what it is (its hash, what compiles);
+// a file the page shows stays the page's, and files for no example are
+// told.
+test.describe("the files a page does not show", () => {
+  const fences = [
+    { lang: "qml", code: "Item {}\n", line: 1 },
+    { lang: "qml", code: "ListView { model: JsonListModel { source: \"rows.json\" } }\n", line: 5 },
+  ];
+  const given = new Map([
+    ["data/models.md 2", { "rows.json": "[]\n", "Main.qml": "Item {}\n" }],
+    ["data/models.md 9", { "x.json": "{}\n" }],
+  ]);
+
+  test("are given to the example the ledger names, and change its hash", () => {
+    const { examples } = assemble(fences);
+    const before = hashExample(examples[1]);
+    expect(giveFiles("data/models.md", fences, examples, given)).toEqual(["data/models.md 2"]);
+    expect(examples[0].given).toBeUndefined();
+    expect(hashExample(examples[1])).not.toBe(before);
+    expect(exampleFiles(examples[1]).files["rows.json"]).toBe("[]\n");
+    expect(exampleFiles(examples[1]).files["Main.qml"]).toContain("JsonListModel");
+  });
+
+  test("for no example are told", () => {
+    expect(unused(given, ["data/models.md 2"])).toEqual(["site/codeblock-files: data/models.md 9 is no example's now; move or remove its files"]);
+  });
+
+  test("stand in site/codeblock-files, each for an example the docs have", () => {
+    const keys = [...readGiven().keys()];
+    expect(keys).toEqual(expect.arrayContaining(["start/index.md 1", "ui/shapes-and-effects.md 4", "data/models.md 7"]));
   });
 });
 
