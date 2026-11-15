@@ -86,4 +86,5 @@ Feature: The site's links are the page's own links
     When a reader asks for an address inside the base that names no page
     Then the server answers 404 with the site's own page for it
     And that page has the header, says the page was not found, and links to the front page
+    And its footer links to the community principles
     And every address on it starts at the base, whatever depth it was served at

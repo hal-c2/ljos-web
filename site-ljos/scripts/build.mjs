@@ -462,7 +462,7 @@ const notFound = `<!doctype html>
       <p>There is no page at this address. It may have moved, or the link that brought you here may be mistyped.</p>
       <a class="go" href="${base}">Go to the front page</a><a class="docs" href="${base}start/">Read the docs</a>
     </main>
-    <footer>Ljós — malleable software, everywhere · MIT</footer>
+    <footer>Ljós — malleable software, everywhere · MIT · <a href="https://community-software.org/">Community principles</a></footer>
   </body>
 </html>
 `;

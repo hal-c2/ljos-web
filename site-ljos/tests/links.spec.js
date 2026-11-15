@@ -349,6 +349,7 @@ test("the site's 404 page has the header, says so, and links home at the base", 
     { name: "Ljós — front page", href: base },
     { name: "Docs", href: `${base}start/` },
     { name: "Go to the front page", href: base },
+    { name: "Community principles", href: "https://community-software.org/" },
   ]));
   // Served at any depth, so nothing in it is relative.
   const relativeAddresses = [...html.matchAll(/\s(?:href|src)="([^"]*)"/g)].map(([, address]) => address).filter((address) => !address.startsWith(base) && !/^https:\/\//.test(address));
