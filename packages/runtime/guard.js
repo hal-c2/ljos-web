@@ -201,13 +201,27 @@ export function whyNot(url) {
   return found ? `${found.name}: No such file or directory` : refusal(url).message;
 }
 
+// A file of the project as a server answers it: not before the caller has
+// gone on, so a signal aborted after the request was made still stops it.
+function answered(found, signal) {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) return reject(signal.reason);
+    const stop = () => reject(signal.reason);
+    signal?.addEventListener("abort", stop, { once: true });
+    queueMicrotask(() => {
+      signal?.removeEventListener("abort", stop);
+      if (!signal?.aborted) resolve(new Response(found.text, { headers: { "content-type": typeOf(found.name) } }));
+    });
+  });
+}
+
 // `url` may be a Request, which goes as it was made where it may go.
 export function guardedFetch(url, init) {
   const address = typeof Request !== "undefined" && url instanceof Request ? url.url : url;
   const found = own(address);
   if (found) {
     if (found.text === undefined) return Promise.reject(notThere(found));
-    return Promise.resolve(new Response(found.text, { headers: { "content-type": typeOf(found.name) } }));
+    return answered(found, init?.signal ?? (address === url ? undefined : url.signal));
   }
   return mayFetch(address) ? fetch(url, init) : Promise.reject(refusal(address));
 }

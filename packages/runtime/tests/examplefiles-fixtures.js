@@ -243,6 +243,26 @@ function rows(done) {
 }
 `;
 
+// A request for a file the example has is stopped by its signal as a
+// request to a server is: one aborted before it was made, and one aborted
+// after it was made but before it was answered.
+export const ABORTED_MAIN = `import QtQuick
+
+Text {
+    color: "#e8eaf0"
+    property string before: "…"
+    property string after: "…"
+    text: before + " / " + after
+    Component.onCompleted: {
+        const told = (name) => (e) => name === "before" ? before = e.name : after = e.name;
+        fetch("rows.json", { signal: AbortSignal.abort() }).then((r) => before = "read " + r.status, told("before"));
+        const user = new AbortController();
+        fetch("rows.json", { signal: user.signal }).then((r) => after = "read " + r.status, told("after"));
+        user.abort();
+    }
+}
+`;
+
 // A picture given as bytes (a site's files=): its Image loads it.
 export const GIVEN_MAIN = `import QtQuick
 import "parts"
@@ -296,6 +316,7 @@ export const EXAMPLES = {
     { name: "lib/load.js", code: FETCHED_SCRIPT, lang: "javascript" },
     { name: "lib/rows.json", code: '{ "rows": [1, 2, 3] }\n', lang: "json" },
   ]),
+  aborted: figure([qml("Main.qml", ABORTED_MAIN), { name: "rows.json", code: '{ "rows": [1, 2, 3] }\n', lang: "json" }]),
   given: figure([qml("Main.qml", GIVEN_MAIN), qml("parts/Badge.qml", GIVEN_BADGE)], { given: packGiven({ "photo.png": PNG }) }),
 };
 
