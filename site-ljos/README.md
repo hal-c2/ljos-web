@@ -29,6 +29,15 @@ and is built and tested, never deployed.
   build's, where it stands), each page's HTML carries its title
   and headings, and every internal link resolves; and each page's
   address on ljos.dev, in its head and in the sitemap.
+- `e2e/` — every live example and demo, driven as a reader drives
+  it, once in a browser with WebAssembly and once without: the
+  page says nothing in its console, the example's picture is
+  there, a press runs it and it draws, the reader's first move on
+  it does what it is for, what moves on its own keeps drawing
+  frames, and its source is shown. An example found broken is
+  `test.fixme` with the reason (`e2e/known.js`), so the suite
+  tells on the day it starts to work. Full motion is the default;
+  `e2e/motion.spec.js` asks for reduced motion on purpose.
 
 Build and read it:
 
@@ -38,6 +47,7 @@ pnpm install
 LJOS_DOCS_DIR=/path/to/ljos-ui/docs/site pnpm --filter ljos-site-ljos build
 pnpm --filter ljos-site-ljos serve    # http://127.0.0.1:4471/
 pnpm --filter ljos-site-ljos test
+pnpm --filter ljos-site-ljos test:e2e  # serves dist/ itself
 ```
 
 ## Where it stands: the base
