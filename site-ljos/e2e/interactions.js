@@ -49,7 +49,7 @@ export const interactions = {
     // The box dragged onto the drop area says so.
     act: async ({ page, at }) => drag(page, await at(0.066, 0.066), await at(0.7, 0.7), 16),
     expect: (text) => /entered|dropped/.test(text),
-    fails: "audit: a mouse drag on the box scrolls the page instead (the page Flickable takes mouse drags, as on the Orbit scene); DropArea never says 'entered'",
+    fails: "audit: the box has no drag target, so a drag never moves it and its hot spot never reaches the DropArea, which never says 'entered' (the docs example's, as in Qt); the page no longer takes the drag",
   },
   "/data/pointer-input/#4": {
     act: async ({ page, at }) => {
@@ -62,7 +62,6 @@ export const interactions = {
     // A drag up in the Flickable moves its content, not the page.
     act: async ({ page, at }) => drag(page, await at(0.5, 0.8), await at(0.5, 0.2)),
     expect: "look",
-    fails: "audit: a mouse drag in the example's Flickable scrolls the page Flickable instead; the wheel does reach it",
   },
   "/language/controllers/#1": {
     // The Wheel controller's rotation moves the distance the text shows.

@@ -217,6 +217,7 @@ Rectangle {
     // them, the reader's page the strong one.
     Flickable {
         id: sidebarScroll
+        acceptedButtons: Qt.NoButton
         visible: shell.sidebarShown
         Accessible.role: Accessible.ComplementaryContent
         Accessible.name: "The docs"
@@ -248,6 +249,11 @@ Rectangle {
     // The page itself, and the footer under it.
     Flickable {
         id: pageScroll
+        // A web page: the wheel, the scrollbar, a finger and the keys
+        // scroll it, a mouse drag does not. A drag that starts in a
+        // live example is the example's (an orbit, a slider, a drop),
+        // never the page's (SITE-4 H (d)).
+        acceptedButtons: Qt.NoButton
         anchors.left: shell.sidebarShown ? sidebarScroll.right : parent.left
         anchors.leftMargin: shell.sidebarShown ? 1 : 0
         anchors.right: shell.tocShown ? tocScroll.left : parent.right
@@ -340,6 +346,7 @@ Rectangle {
     // that lands on it without leaving the page.
     Flickable {
         id: tocScroll
+        acceptedButtons: Qt.NoButton
         visible: shell.tocShown
         Accessible.role: Accessible.ComplementaryContent
         Accessible.name: "On this page"
