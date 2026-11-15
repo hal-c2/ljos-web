@@ -21,7 +21,7 @@ import { buildSite } from "ljos-web/site";
 import { checkExamples, hashExample, loadHarnesses, loadPrerenders, renderPrerenders } from "ljos-web/codeblocks";
 import { assemble, tagged } from "ljos-web/codeblocks/parse";
 import { packRich } from "ljos-web/codeblock/rich";
-import { keysByHash, listedEverywhere, pageOfRoute, pageRecords, readLedger } from "../../site/scripts/codeblocks-ledger.mjs";
+import { keysByHash, listedEverywhere, pageOfRoute, pageRecords, readLedger, saysEverywhere } from "../../site/scripts/codeblocks-ledger.mjs";
 
 const here = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 // Where the site stands below its address's root: `/` at a domain of
@@ -132,7 +132,17 @@ const liveAt = new Map(); // a page's code block -> its live payload
     process.exit(1);
   }
   const runnable = gathered.filter(({ example }) => !refused.has(hashExample(example)));
-  const { failures } = await renderPrerenders(runnable.map(({ example }) => example), { cacheDir, qmlc });
+  const { manifest, failures } = await renderPrerenders(runnable.map(({ example }) => example), { cacheDir, qmlc });
+  // As in site/scripts/codeblock-prerenders.mjs: what a live example
+  // said as it was made is news unless the ledger says it is the
+  // page's point, and the example does not run as far as a reader is
+  // concerned.
+  for (const { example } of runnable) {
+    const hash = hashExample(example);
+    const said = manifest[hash]?.file ? manifest[hash].logged : undefined;
+    if (said?.length && !saysEverywhere(keysOf.get(hash) ?? [], ledger))
+      failures.push({ example, diagnostics: said.map((line) => `said as it was made: ${line}`) });
+  }
   const unrun = new Map(failures.map(({ example, diagnostics }) => [hashExample(example), diagnostics]));
   const claimedUnrun = failures.filter(mustRun);
   if (claimedUnrun.length) {
@@ -199,7 +209,8 @@ const liveAt = new Map(); // a page's code block -> its live payload
     const hash = hashExample(example);
     if (refused.has(hash)) return { state: "not compiling", diagnostics: refused.get(hash) };
     if (unrun.has(hash)) return { state: "not running", diagnostics: unrun.get(hash) };
-    return liveSet.has(example) ? { state: "live" } : { state: "not running", diagnostics: ["no prerender was made"] };
+    if (!liveSet.has(example)) return { state: "not running", diagnostics: ["no prerender was made"] };
+    return prerendered[hash]?.logged?.length ? { state: "live", logged: prerendered[hash].logged } : { state: "live" };
   };
   const report = onPages.flatMap(({ page, fences, examples }) => pageRecords(page, fences, examples, outcome, tagged));
   writeFileSync(join(cacheDir, "report.json"), `${JSON.stringify(report, null, 2)}\n`);

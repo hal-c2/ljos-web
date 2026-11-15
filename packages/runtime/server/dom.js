@@ -827,6 +827,11 @@ export class ServerDocument {
   querySelectorAll(selector) {
     return selectAll(this.documentElement, selector);
   }
+  // A page being prerendered has no reader in it yet, so nothing has
+  // the focus: what asks is told the window is not the active one.
+  hasFocus() {
+    return false;
+  }
   addEventListener() {}
   removeEventListener() {}
 }
@@ -972,6 +977,7 @@ export function installPrerenderGlobals({ width = 1280, height = 720, scheme } =
     // happens to a page being made.
     addEventListener() {},
     removeEventListener() {},
+    dispatchEvent: () => true,
     // A page made for a colour scheme is told that scheme is the one
     // asked for; nothing else here matches, as no reader is here.
     matchMedia: (media) => ({
@@ -994,6 +1000,10 @@ export function installPrerenderGlobals({ width = 1280, height = 720, scheme } =
   };
   globals.window = globalThis;
   globals.self = globalThis;
+  // Said where any copy of the runtime finds it (a server bundle has
+  // its own): what a prerender lacks on purpose, such as a GPU, is not
+  // worth a warning there.
+  globalThis[Symbol.for("ljos.prerender")] = true;
   for (const [name, value] of Object.entries(globals)) {
     try {
       Object.defineProperty(globalThis, name, { value, configurable: true, writable: true });
