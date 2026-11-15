@@ -196,7 +196,15 @@ export async function expectFramesAdvance(locator, { within = 3_000, message = "
     const box = await locator.boundingBox();
     expect(box, "the region is laid out").toBeTruthy();
     const viewport = page.viewportSize();
-    return { x: Math.max(0, box.x), y: Math.max(0, box.y), width: Math.min(box.width, viewport.width - Math.max(0, box.x)), height: Math.min(box.height, viewport.height - Math.max(0, box.y)) };
+    // Only the part of the region on screen: a part cut off at an edge
+    // is taken off its size, so the picture never takes in the page
+    // beside it.
+    const x = Math.max(0, box.x);
+    const y = Math.max(0, box.y);
+    const width = Math.min(box.x + box.width, viewport.width) - x;
+    const height = Math.min(box.y + box.height, viewport.height) - y;
+    expect(width > 0 && height > 0, "the region is on screen").toBe(true);
+    return { x, y, width, height };
   };
   const first = await page.screenshot({ clip: await clip() });
   await expect

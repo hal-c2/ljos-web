@@ -35,8 +35,9 @@ and is built and tested, never deployed.
   there, a press runs it and it draws, the reader's first move on
   it does what it is for, what moves on its own keeps drawing
   frames, and its source is shown. An example found broken is
-  `test.fixme` with the reason (`e2e/known.js`), so the suite
-  tells on the day it starts to work. Full motion is the default;
+  `test.fail` with the reason (`e2e/known.js`): it still runs,
+  and turns red the day it starts to work, so the fix takes it
+  out of `known.js`. Full motion is the default;
   `e2e/motion.spec.js` asks for reduced motion on purpose.
 
 Build and read it:

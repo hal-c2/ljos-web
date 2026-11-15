@@ -42,7 +42,7 @@ test.describe("/demos/", () => {
   });
 
   test("Orbit is drawn by the renderer the page names", async ({ page }) => {
-    test.fixme(true, known.orbitRenderer);
+    test.fail(true, known.orbitRenderer);
     await settled(page, "/demos/");
     const orbit = demo(page, "3D you can orbit");
     await expect.poll(() => orbit.locator("canvas.qq-view3d").evaluate((canvas) => canvas.$view3d?.backend)).toBe("wgpu");
@@ -62,7 +62,7 @@ test.describe("/demos/", () => {
   });
 
   test("Orbit takes an up-and-down drag; the page does not", async ({ page }) => {
-    test.fixme(true, known.orbitVerticalDrag);
+    test.fail(true, known.orbitVerticalDrag);
     await settled(page, "/demos/");
     const canvas = demo(page, "3D you can orbit").locator("canvas.qq-view3d");
     await centre(canvas);
@@ -92,7 +92,7 @@ test.describe("/demos/", () => {
   });
 
   test("the field guide's search takes what a reader types after pressing it", async ({ page }) => {
-    test.fixme(true, known.fieldGuideSearch);
+    test.fail(true, known.fieldGuideSearch);
     await settled(page, "/demos/");
     const guide = demo(page, "A whole app");
     await centre(guide);
@@ -114,10 +114,15 @@ test.describe("/demos/", () => {
 
   for (const heading of ["A shell you rewrite", "3D you can orbit", "A shader effect", "A whole app", "Motion"]) {
     test(`${heading}: show source opens its QML`, async ({ page }) => {
-      test.fixme(true, sourceView);
+      test.fail(true, sourceView);
       await settled(page, "/demos/");
       const slot = demo(page, heading);
-      await press(slot.getByRole("button", { name: /source/i }));
+      // Asked for first, so a demo without the button fails here in
+      // the expect timeout, as `test.fail` needs, rather than timing
+      // the test out in the press.
+      const show = slot.getByRole("button", { name: /source/i });
+      await expect(show, "the demo has a 'show source' button").toHaveCount(1);
+      await press(show);
       await expect(slot.getByRole("textbox")).toContainText("import");
     });
   }

@@ -54,7 +54,7 @@ test("with reduced motion the puck still travels; it does not jump", async ({ pa
 
 test("with reduced motion the puck's travel is softened: no overshoot", async ({ page, wasm }) => {
   test.skip(!wasm, "the same on both; held once");
-  test.fixme(true, calmNotWired);
+  test.fail(true, calmNotWired);
   const { xs, end } = await pressAndWatch(page);
   expect(Math.min(...xs), "it never passes its goal").toBeGreaterThanOrEqual(end - 2);
 });

@@ -1,6 +1,7 @@
-// What the SITE-4 audit found broken, with why, for `test.fixme`. A
-// fixed example comes out of here in the change that fixes it: the
-// suite then holds it working.
+// What the SITE-4 audit found broken, with why, for `test.fail`: the
+// test runs and must fail. A fixed example makes its test red, so it
+// comes out of here in the change that fixes it, and the suite then
+// holds it working.
 
 // An example the audit found broken, by page and its place on it (the
 // docs are pinned, site/ljos-ui.sha): the reason, as the audit says it.

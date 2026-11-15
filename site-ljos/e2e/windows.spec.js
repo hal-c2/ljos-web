@@ -9,7 +9,7 @@ const windows = livePages().flatMap(({ route, examples }) => examples.filter((ex
 for (const { route, example } of windows) {
   test(`${route} #${example.index} (${example.hash}): the window stays in its frame`, async ({ page, wasm }) => {
     test.skip(!wasm, "without WebAssembly the example does not run");
-    test.fixme(true, windowRoot);
+    test.fail(true, windowRoot);
     await open(page, route);
     const block = await run(page, example.index);
     const { box: stage } = await centreOf(block.stage);
