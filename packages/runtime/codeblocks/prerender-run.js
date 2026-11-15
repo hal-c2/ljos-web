@@ -62,13 +62,40 @@ installPrerenderGlobals(options);
 // with it (`logged`) for the build's report, rather than onto the
 // build's own output among every other example's: the build says what
 // it decided, the report what each block said. What is said before
-// the first example or after the last is the runner's, on stderr.
+// the first example or after the last is the runner's, on stderr,
+// which the build takes for a failure.
 let logged = null;
 const spoken = (args) =>
   args.map((arg) => (typeof arg === "string" ? arg : arg instanceof Error ? (arg.stack ?? arg.message) : String(arg))).join(" ");
 for (const name of ["log", "info", "debug", "warn", "error"]) {
   const own = console[name].bind(console);
   console[name] = (...args) => (logged ? logged.push(spoken(args)) : name === "log" || name === "info" || name === "debug" ? console.error(...args) : own(...args));
+}
+// A timer an example sets speaks as that example, and ends with its
+// making: a prerender is the first paint, so nothing it left running
+// may speak during the next example's and be blamed on that one.
+const timers = { set: [] };
+for (const [set, clear] of [
+  ["setTimeout", "clearTimeout"],
+  ["setInterval", "clearInterval"],
+  ["setImmediate", "clearImmediate"],
+]) {
+  const start = globalThis[set];
+  const stop = globalThis[clear];
+  globalThis[set] = (run, ...rest) => {
+    const by = logged;
+    const handle = start((...args) => {
+      const was = logged;
+      logged = by;
+      try {
+        return run(...args);
+      } finally {
+        logged = was;
+      }
+    }, ...rest);
+    if (by) timers.set.push(() => stop(handle));
+    return handle;
+  };
 }
 const { pages, renderToString } = await import(pathToFileURL(resolve(bundle)).href);
 for (const [hash, Component] of Object.entries(pages)) {
@@ -81,8 +108,7 @@ for (const [hash, Component] of Object.entries(pages)) {
   } catch (error) {
     answer = { hash, error: error?.message ?? String(error) };
   }
-  // A timer the example left may still speak during the next one's
-  // making; it is told with that one, as near as a process can tell.
+  for (const stop of timers.set.splice(0)) stop();
   if (own.length) answer.logged = own;
   process.stdout.write(`${JSON.stringify(answer)}\n`);
 }

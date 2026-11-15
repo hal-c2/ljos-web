@@ -124,7 +124,8 @@ const liveAt = new Map(); // a page's code block -> its live payload
   const refused = new Map(checked.map(({ example, diagnostics }) => [hashExample(example), diagnostics]));
   // As in site/scripts/codeblock-prerenders.mjs: an example the ledger
   // lists everywhere it stands is plain by the docs' own word.
-  const ledger = readLedger();
+  // The fixture's docs are not the ledger's (LJOS_CODEBLOCKS_LEDGER=none).
+  const ledger = process.env.LJOS_CODEBLOCKS_LEDGER === "none" ? readLedger("") : readLedger();
   const keysOf = keysByHash(onPages, hashExample);
   const named = (example) => (keysOf.get(hashExample(example)) ?? []).join(", ");
   const mustRun = ({ example }) => example.blocks.some(tagged) && !listedEverywhere(keysOf.get(hashExample(example)) ?? [], ledger);
