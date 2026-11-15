@@ -36,3 +36,25 @@ plain("a font takes no notice of a size that is none", async ({ page }) => {
   // `none`, `through`, `labelled` and, once it is asked to, `later`.
   expect(problems).toEqual(Array(4).fill("font.pixelSize: Unable to assign double to int"));
 });
+
+// A plain object handed in as a font, as a chart's `labelsFont` can be,
+// names only what it sets. What it leaves out is Qt's default font's:
+// weight 400 and upright, so the canvas is never given `undefined` as a
+// weight (an invalid font string it would ignore).
+plain("a font that names only its size is the default font at that size", async ({ page }) => {
+  await open(page, "fontsize");
+  const said = await page.evaluate(async () => {
+    // The page's own instance of the module, by the address it was loaded from.
+    const address = performance.getEntriesByType("resource").find(({ name }) => /\/QtQuick\/font\.ts/.test(name)).name;
+    const { describe } = await import(address);
+    const { css, weight, italic } = describe({ pixelSize: 12, family: "Ljos Test" });
+    const named = describe({ pixelSize: 12, family: "Ljos Test", styleName: "Bold Italic" });
+    return { css, weight, italic, named: named.css };
+  });
+  expect(said).toEqual({
+    css: '400 12px "Ljos Test", sans-serif',
+    weight: 400,
+    italic: false,
+    named: 'italic 700 12px "Ljos Test", sans-serif',
+  });
+});
