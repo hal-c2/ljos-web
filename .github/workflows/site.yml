@@ -198,7 +198,23 @@ jobs:
       - run: pnpm --filter ljos-site-ljos test
         env:
           LJOS_SITE_BASE: /
+      # Every live example and demo driven as a reader drives it, in a
+      # browser with WebAssembly and in one without (e2e/).
+      - run: pnpm --filter ljos-site-ljos test:e2e
+        env:
+          LJOS_SITE_BASE: /
       - run: cp -r site-ljos/dist "$RUNNER_TEMP/site-ljos-root"
+      # The same examples over Ljós's reactive graph (A22). This build
+      # is tested and dropped: the root build is already kept above,
+      # and the next build is the project-path one.
+      - run: pnpm --filter ljos-site-ljos build
+        env:
+          QMLC: ${{ github.workspace }}/target/debug/qmlc
+          LJOS_SITE_BASE: /
+          LJOS_KERNEL: wasm
+      - run: pnpm --filter ljos-site-ljos test:e2e
+        env:
+          LJOS_SITE_BASE: /
       - run: pnpm --filter ljos-site-ljos build
         env:
           QMLC: ${{ github.workspace }}/target/debug/qmlc

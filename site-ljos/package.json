@@ -5,7 +5,8 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "serve": "node scripts/serve.mjs dist",
-    "test": "playwright test"
+    "test": "playwright test",
+    "test:e2e": "playwright test -c e2e/playwright.config.js"
   },
   "dependencies": {
     "ljos-web": "workspace:*"
