@@ -892,6 +892,10 @@ function storage() {
 // looks for it. A render runs in a process of its own (the site
 // build's), so this takes the globals over rather than adding to a
 // page's.
+// Where a prerendered page stands: no reader's address, and one no
+// request can reach.
+const PLACE = "http://prerender.invalid/";
+
 export function installPrerenderGlobals({ width = 1280, height = 720, scheme } = {}) {
   const document = new ServerDocument();
   const globals = {
@@ -946,7 +950,18 @@ export function installPrerenderGlobals({ width = 1280, height = 720, scheme } =
     IntersectionObserver: Observer,
     MutationObserver: Observer,
     navigator: { userAgent: "ljos-web prerender", language: "en", platform: "" },
-    location: { href: "http://prerender.invalid/", origin: "http://prerender.invalid", pathname: "/" },
+    location: { href: PLACE, origin: new URL(PLACE).origin, pathname: "/" },
+    // A page reads a relative address against its document; Node's
+    // Request has no document and refuses one, so an example that
+    // only names an address would not be made at all.
+    Request: class extends Request {
+      constructor(input, init) {
+        super(typeof input === "string" || input instanceof URL ? new URL(input, PLACE) : input, init);
+      }
+    },
+    // What a page does with a throw nobody catches (a handler's, which
+    // stops that handler only): it is told of, and the page goes on.
+    reportError: (error) => console.error(error),
     screen: { width, height, availWidth: width, availHeight: height, orientation: null },
     devicePixelRatio: 1,
     innerWidth: width,

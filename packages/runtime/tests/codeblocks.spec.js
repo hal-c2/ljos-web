@@ -263,6 +263,48 @@ Item {
   }
 });
 
+plain("a prerender stands where a page stands: a Request is beside it, and a handler's throw is told of", async ({}, info) => {
+  info.setTimeout(180_000);
+  const one = (code) => assemble(extractBlocks("```qml\n" + code.trimEnd() + "\n```\n"), {}).examples[0];
+  // A relative address is read against the document, as a browser
+  // reads it, not refused for want of a base.
+  const request = one(`import Ljos.Ui
+import Ljos.Core
+
+Text {
+    id: root
+    text: ""
+    Component.onCompleted: {
+        const asked = new Request("names", { method: "POST" })
+        root.text = \`\${asked.method} \${new URL(asked.url).pathname}\`
+    }
+}
+`);
+  // What a handler throws stops that handler only: the example is
+  // made, as on a page, where the throw is reported.
+  const throwing = one(`import Ljos.Ui
+
+Text {
+    id: root
+    text: "made"
+    Component.onCompleted: {
+        root.text = "made anyway"
+        throw new Error("told of")
+    }
+}
+`);
+  const cacheDir = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "ljos-codeblock-test-"));
+  try {
+    const { failures } = await renderPrerenders([request, throwing], { cacheDir, qmlc });
+    expect(failures.map(({ diagnostics }) => diagnostics.join("\n"))).toEqual([]);
+    const loaded = loadPrerenders(cacheDir);
+    expect(loaded[hashExample(request)].html).toContain("POST /names");
+    expect(loaded[hashExample(throwing)].html).toContain("made anyway");
+  } finally {
+    rmSync(cacheDir, { recursive: true, force: true });
+  }
+});
+
 plain.describe("the build-time check and static HTML", () => {
   plain("qmlc passes the fixture examples and names a broken one", () => {
     const { examples } = assemble(extractBlocks(DOC), { harnesses: { window: WINDOW } });
