@@ -54,6 +54,7 @@ export const modules = {
   "ljos-web/QtQml/XmlListModel": () => import("./whole/QtQml/XmlListModel.js"),
   "ljos-web/QtCore": () => import("./whole/QtCore.js"),
   "ljos-web/QtWebSockets": () => import("./whole/QtWebSockets.js"),
+  "ljos-web/QtNetwork": () => import("./whole/QtNetwork.js"),
   "ljos-web/QtCharts": () => import("./whole/QtCharts.js"),
   "ljos-web/QtGraphs": () => import("./whole/QtGraphs.js"),
   "ljos-web/QtPositioning": () => import("./whole/QtPositioning.js"),
