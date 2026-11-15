@@ -677,6 +677,20 @@ test("settings are kept in the page's storage, as text", async ({ page }) => {
   ).toEqual(['"9"', null]);
 });
 
+test("a located setting an earlier runtime kept is what the property loads, and is moved", async ({ page }) => {
+  // An earlier runtime kept it under the location and the application's name.
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem("seeded")) return;
+    sessionStorage.setItem("seeded", "1");
+    localStorage.setItem("ljos-web:moved/Org/App/main/count", '"9"');
+  });
+  await open(page, "settingsmoved");
+  expect(await answers(page, () => [() => st.count])).toEqual([9]);
+  expect(await page.evaluate(() => Object.fromEntries(Object.entries(localStorage).filter(([key]) => key.includes("/count"))))).toEqual({
+    "ljos-web:moved/main/count": '"9"',
+  });
+});
+
 test("a page has no standard paths", async ({ page }) => {
   await open(page, "settings");
   expect(
