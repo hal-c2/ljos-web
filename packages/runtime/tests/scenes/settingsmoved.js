@@ -1,7 +1,8 @@
+// An application main() names Org/App before it loads:
+//
 // import QtCore
 // Item {
 //     id: root; width: 400; height: 300
-//     Component.onCompleted: { Application.organization = "Org"; Application.name = "App" }
 //     Settings {
 //         id: st
 //         location: "moved"
