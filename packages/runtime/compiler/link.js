@@ -62,8 +62,10 @@ const installed = (modules) =>
 // `ljostypes.json` of them when not given. `inspect`: each object says where
 // it is written (`$at`), as `qmlc --inspect` does, so what tells of a fault
 // in it can say the line.
+// A file given as bytes (a picture, a sound) is the project's at run time
+// only: the compiler reads texts.
 const asked = ({ files, entry, aliases = [], types, inspect = false }, modules) => ({
-  files: files instanceof Map ? Object.fromEntries(files) : files,
+  files: Object.fromEntries([...(files instanceof Map ? files : Object.entries(files ?? {}))].filter(([, text]) => typeof text === "string")),
   entry,
   aliases,
   ...(types ? { types } : {}),
@@ -151,7 +153,7 @@ export async function compile(request, { modules, base }) {
   if (request.closed) {
     enclose(
       root.href,
-      [...given].filter(([, text]) => typeof text === "string"),
+      [...given].filter(([, text]) => typeof text === "string" || text instanceof Uint8Array),
       // One of its files made by address is made as these were, of these.
       { missing: request.missing, compile: (entry) => compile({ ...request, entry, inspect: true, closed: false }, { modules, base }) },
     );

@@ -638,6 +638,8 @@ Item {
         "net.lts",
     );
     assert_contains(&code, "await fetch(u, { headers: new Headers() });");
+    // The runtime's `fetch`, which finds what beside the module names.
+    assert_contains(&code, r#"import { fetch } from "ljos-web/QtQml";"#);
 }
 
 /// What `ljos check` says of a `.ts` module with a `match` and a fault

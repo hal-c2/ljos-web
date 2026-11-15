@@ -323,7 +323,7 @@ impl<'a> Resolver<'a, '_, '_> {
                             }
                         }
                         qml_front::names::Global::Core => self.core(name),
-                        qml_front::names::Global::Js => {}
+                        qml_front::names::Global::Js => self.placed(name),
                     }
                     if resolution.roles.is_empty() {
                         return None;
@@ -444,6 +444,14 @@ impl<'a> Resolver<'a, '_, '_> {
         Some(self.b.call(self.b.id("$console"), [place]))
     }
 
+    /// A browser global the runtime has one of its own of, for a file
+    /// that names things by address.
+    fn placed(&mut self, name: &str) {
+        if let Some(global) = PLACED_GLOBALS.iter().find(|global| **global == name) {
+            self.uses.globals.insert(global);
+        }
+    }
+
     /// A capitalised name: a type, a namespace, or a global.
     fn type_name(&mut self, name: &str, span: Span) -> Option<Kind> {
         if let Some(global) = QML_GLOBALS.iter().find(|global| **global == name) {
@@ -468,7 +476,10 @@ impl<'a> Resolver<'a, '_, '_> {
                 self.core(name);
                 None
             }
-            None if FETCH_GLOBALS.contains(&name) => None,
+            None if FETCH_GLOBALS.contains(&name) => {
+                self.placed(name);
+                None
+            }
             None => {
                 self.undefined(name, span);
                 None
@@ -1017,6 +1028,12 @@ impl<'a> VisitMut<'a> for Pruner<'_> {
 pub(crate) use qml_front::names::{
     CORE, CORE_GLOBALS, FETCH_GLOBALS, JS_GLOBALS, QML_GLOBALS, SUGAR_GLOBALS,
 };
+
+/// The page's globals a file is given the runtime's of instead, from
+/// `QtQml`: `fetch` finds what a relative address names beside the file
+/// (a live example's files are not on any server), as QML's
+/// `XMLHttpRequest` does, and goes only where the page lets a request go.
+pub(crate) const PLACED_GLOBALS: &[&str] = &["fetch"];
 
 /// What `import "lib.js" as Lib` or `import QtQuick.Controls as C` is to the
 /// module: a namespace import of `source`, under `prefix` for a Qt module.

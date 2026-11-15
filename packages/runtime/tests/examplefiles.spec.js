@@ -78,6 +78,26 @@ test.describe("an example's files", () => {
     expect(server.refused).toEqual([]);
   });
 
+  test("fetch reads a file beside the file that asks, and one the example does not have is not there", async ({ page }) => {
+    const server = watched(page);
+    const figure = await mounted(page, "fetched");
+    await expect(figure).toHaveAttribute("data-state", "live", { timeout: 30000 });
+    await expect(figure.locator(".ljos-codeblock__stage")).toContainText("3 rows / failed", { timeout: 15000 });
+    await expect(figure.getByRole("alert")).toContainText("notes.json: No such file or directory");
+    expect(server.named()).toEqual([]);
+    expect(server.refused).toEqual([]);
+  });
+
+  test("a picture the site gave the example as bytes is shown, and a file in a directory is imported", async ({ page }) => {
+    const server = watched(page);
+    const figure = await mounted(page, "given");
+    await expect(figure).toHaveAttribute("data-state", "live", { timeout: 30000 });
+    await expect(figure.locator(".ljos-codeblock__stage")).toContainText("shown 2x1", { timeout: 15000 });
+    await expect(figure.getByRole("alert")).toBeHidden();
+    expect(server.named()).toEqual([]);
+    expect(server.refused).toEqual([]);
+  });
+
   test("a name with a % that starts no escape is looked for as written", async ({ page }) => {
     const server = watched(page);
     const figure = await mounted(page, "percent");

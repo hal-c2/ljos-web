@@ -1,3 +1,5 @@
+import { packGiven } from "../codeblocks/parse.js";
+
 // The examples examplefiles.spec.js runs: live code blocks whose QML
 // names files by relative address. An example is a project of its own
 // files (its fences, its harness), wherever its page is: what it names
@@ -212,6 +214,69 @@ Rectangle {
 }
 `;
 
+// `fetch` reads a file the example has, from a file in a directory of its
+// own (the address is beside that file), and one it does not have is not
+// there.
+export const FETCHED_MAIN = `import QtQuick
+import "lib/load.js" as Load
+
+Rectangle {
+    width: 280
+    height: 80
+    color: "#20242e"
+    property string has: "…"
+    property string lacks: "…"
+    Component.onCompleted: {
+        Load.rows((text) => has = text);
+        fetch("notes.json").then((r) => lacks = "read " + r.status, (e) => lacks = "failed");
+    }
+    Text {
+        color: "#e8eaf0"
+        text: has + " / " + lacks
+    }
+}
+`;
+
+export const FETCHED_SCRIPT = `.pragma library
+function rows(done) {
+    fetch("rows.json").then((r) => r.json()).then((j) => done(j.rows.length + " rows"));
+}
+`;
+
+// A picture given as bytes (a site's files=): its Image loads it.
+export const GIVEN_MAIN = `import QtQuick
+import "parts"
+
+Rectangle {
+    width: 200
+    height: 80
+    color: "#20242e"
+    Image {
+        id: photo
+        source: "photo.png"
+    }
+    Badge {
+        x: 100
+        label: photo.status === Image.Ready ? "shown " + photo.sourceSize.width + "x" + photo.sourceSize.height : "status " + photo.status
+    }
+}
+`;
+
+export const GIVEN_BADGE = `import QtQuick
+
+Text {
+    property string label
+    color: "#e8eaf0"
+    text: label
+}
+`;
+
+// A 2 x 1 PNG.
+export const PNG = Uint8Array.from(
+  atob("iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAIAAAB7QOjdAAAAD0lEQVR4nGP4z8DAwPAfAAcAAf9+CLHQAAAAAElFTkSuQmCC"),
+  (c) => c.charCodeAt(0),
+);
+
 const figure = (display, more = {}) => ({ v: 1, entry: "Main.qml", before: false, display, prerendered: false, ...more });
 const qml = (name, code) => ({ name, code, lang: "qml" });
 
@@ -226,7 +291,13 @@ export const EXAMPLES = {
   mixed: figure([qml("Main.qml", MIXED), { name: "my 100%.svg", code: SQUARE, lang: "svg" }]),
   early: figure([qml("Main.qml", EARLY_MAIN), { name: "early.js", code: EARLY_SCRIPT, lang: "js" }]),
   gated: figure([qml("Main.qml", GATED_MAIN), { name: "early.js", code: EARLY_SCRIPT, lang: "js" }]),
+  fetched: figure([
+    qml("Main.qml", FETCHED_MAIN),
+    { name: "lib/load.js", code: FETCHED_SCRIPT, lang: "javascript" },
+    { name: "lib/rows.json", code: '{ "rows": [1, 2, 3] }\n', lang: "json" },
+  ]),
+  given: figure([qml("Main.qml", GIVEN_MAIN), qml("parts/Badge.qml", GIVEN_BADGE)], { given: packGiven({ "photo.png": PNG }) }),
 };
 
 // What may not be asked of the server: every file the examples name.
-export const NAMED = /(?:^|\/)(?:(?:shell|AppShell|Shell|Missing|Gone)\.qml|logo\.png|100%(?:25)?\.png|my(?: |%20)100%(?:25)?\.svg|(?:data|notes|early)\.json)$/;
+export const NAMED = /(?:^|\/)(?:(?:shell|AppShell|Shell|Missing|Gone|Badge)\.qml|(?:logo|photo)\.png|100%(?:25)?\.png|my(?: |%20)100%(?:25)?\.svg|(?:data|notes|early|rows)\.json|load\.js)$/;

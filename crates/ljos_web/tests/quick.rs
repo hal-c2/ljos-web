@@ -291,6 +291,39 @@ Item {
 }
 
 #[test]
+fn fetch_is_the_runtimes_and_finds_what_beside_its_file_names() {
+    // `fetch("data.json")` in a file reads the `data.json` beside it, as
+    // an XMLHttpRequest does, and goes where the page lets a request go.
+    let code = lowered(
+        r#"import QtQuick
+Item {
+    function load() {
+        fetch("data.json").then(r => r.json())
+    }
+}"#,
+    );
+    assert_contains(&code, r#"import { fetch } from "ljos-web/QtQml";"#);
+    // A function of the file's own by the name is its own.
+    let own = lowered(
+        r#"import QtQuick
+Item {
+    function fetch(url) { return url }
+    function load() { return fetch("data.json") }
+}"#,
+    );
+    assert_lacks(&own, r#"from "ljos-web/QtQml""#);
+    let script = ljos_web::compile_script(
+        r#".pragma library
+function load(done) { fetch("rows.json").then(r => r.json()).then(done) }
+"#,
+        &Options::default(),
+    )
+    .unwrap_or_else(|errors| panic!("{errors:?}"))
+    .code;
+    assert_contains(&script, r#"import { fetch } from "ljos-web/QtQml";"#);
+}
+
+#[test]
 fn a_url_a_block_works_out_is_beside_its_file() {
     // `source: { if (red) "gfx/red.png"; else "gfx/blue.png" }` names files
     // beside the QML as `source: red ? "gfx/red.png" : "gfx/blue.png"` does.
