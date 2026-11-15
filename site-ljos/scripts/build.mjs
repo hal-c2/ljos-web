@@ -10,6 +10,7 @@
 // sync-docs has it: `LJOS_DOCS_DIR`, else the usual sibling layouts.
 // CI checks ljos-ui out at the pin and says where it put it.
 import { execSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -138,7 +139,7 @@ const liveAt = new Map(); // a page's code block -> its live payload
     process.exit(1);
   }
   const runnable = gathered.filter(({ example }) => !refused.has(hashExample(example)));
-  const { manifest, failures } = await renderPrerenders(runnable.map(({ example }) => example), { cacheDir, qmlc });
+  const { manifest, failures } = await renderPrerenders(runnable.map(({ example }) => example), { cacheDir, qmlc, checked: true });
   // As in site/scripts/codeblock-prerenders.mjs: what a live example
   // said as it was made is news unless the ledger says it is the
   // page's point, and the example does not run as far as a reader is
@@ -165,7 +166,12 @@ const liveAt = new Map(); // a page's code block -> its live payload
   const pictures = join(bundle, "Examples");
   rmSync(pictures, { recursive: true, force: true });
   mkdirSync(pictures, { recursive: true });
-  const shots = live.filter(({ example }) => !existsSync(join(cacheDir, `${hashExample(example).slice(0, 16)}.png`)));
+  // A picture is the prerender's, as this browser draws it: kept under
+  // both names, so a cache kept across builds never answers with one
+  // an older runtime or browser drew. The page names it by its hash.
+  const drawnBy = createHash("sha256").update(chromium.executablePath()).digest("hex").slice(0, 12);
+  const kept = (hash) => `${hash.slice(0, 16)}-${createHash("sha256").update(`${prerendered[hash].stamp ?? ""}\n${drawnBy}`).digest("hex").slice(0, 12)}.png`;
+  const shots = live.filter(({ example }) => !existsSync(join(cacheDir, kept(hashExample(example)))));
   if (shots.length) {
     const browser = await chromium.launch();
     try {
@@ -179,7 +185,7 @@ const liveAt = new Map(); // a page's code block -> its live payload
         const height = prerendered[hash].height > 0 ? prerendered[hash].height : 180;
         await page.setViewportSize({ width, height });
         await page.setContent(`<!doctype html><style>html,body{margin:0;background:#fdfbf6}</style><div id="app" style="position:relative;width:${width}px;height:${height}px">${html}</div>`);
-        await page.screenshot({ path: join(cacheDir, `${hash.slice(0, 16)}.png`), clip: { x: 0, y: 0, width, height } });
+        await page.screenshot({ path: join(cacheDir, kept(hash)), clip: { x: 0, y: 0, width, height } });
       }
     } finally {
       await browser.close();
@@ -188,8 +194,8 @@ const liveAt = new Map(); // a page's code block -> its live payload
   for (const { example } of live) {
     const hash = hashExample(example);
     const picture = `${hash.slice(0, 16)}.png`;
-    if (!existsSync(join(cacheDir, picture))) continue;
-    cpSync(join(cacheDir, picture), join(pictures, picture));
+    if (!existsSync(join(cacheDir, kept(hash)))) continue;
+    cpSync(join(cacheDir, kept(hash)), join(pictures, picture));
     const width = prerendered[hash].width > 0 ? prerendered[hash].width : 320;
     const height = prerendered[hash].height > 0 ? prerendered[hash].height : 180;
     // The figure stands at the example's entry fence; its other
