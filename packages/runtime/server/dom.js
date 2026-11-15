@@ -827,11 +827,6 @@ export class ServerDocument {
   querySelectorAll(selector) {
     return selectAll(this.documentElement, selector);
   }
-  // A page being prerendered has no reader in it yet, so nothing has
-  // the focus: what asks is told the window is not the active one.
-  hasFocus() {
-    return false;
-  }
   addEventListener() {}
   removeEventListener() {}
 }
