@@ -94,7 +94,19 @@ for (const demo of DEMOS) {
 
     test("in a hidden tab its clock holds, and shown again goes on from there", async ({ page }) => {
       await reach(page);
-      await expect.poll(async () => onFrom(demo.start, await clockOf(page)), { message: "the clock leaves its start" }).toBeGreaterThan(demo.period / 18);
+      // Held in the first half of its loop: a restart then lands more
+      // than half a loop ahead of where it held, which the resume bound
+      // below refuses. Read past halfway, it waits for the wrap: up to a
+      // whole loop at its pace.
+      await expect
+        .poll(
+          async () => {
+            const went = onFrom(demo.start, await clockOf(page));
+            return went > demo.period / 18 && went < demo.period / 2;
+          },
+          { message: "the clock leaves its start, in the first half of its loop", timeout: (demo.period / demo.fastest) * 1000 + 15_000 },
+        )
+        .toBe(true);
       await page.evaluate(() => {
         Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
         Object.defineProperty(document, "hidden", { configurable: true, get: () => true });

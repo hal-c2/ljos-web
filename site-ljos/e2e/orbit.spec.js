@@ -104,7 +104,18 @@ for (const renderer of ["js", "wgpu"]) {
     test("in a hidden tab it stops, and shown again it goes on from where it was", async ({ page }) => {
       await reach(page, route);
       expect(await framesOver(page, WINDOW), "drawn on screen").toBeGreaterThan(0);
-      await expect.poll(async () => onFrom(55, await turnOf(page)), { message: "the scene turns from its opening pose" }).toBeGreaterThan(20);
+      // Held in the first half of its turn, so a restart at 55 lands
+      // more than half a turn ahead and the bound below refuses it.
+      // Read past halfway, it waits for the wrap: up to one 26 s turn.
+      await expect
+        .poll(
+          async () => {
+            const went = onFrom(55, await turnOf(page));
+            return went > 20 && went < 180;
+          },
+          { message: "the scene turns from its opening pose, in the first half of its turn", timeout: 41_000 },
+        )
+        .toBe(true);
       await showTab(page, false);
       await page.waitForTimeout(SETTLE);
       expect(await framesOver(page, WINDOW), "nothing is drawn while the tab is hidden").toBe(0);
