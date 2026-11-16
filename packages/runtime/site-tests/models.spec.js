@@ -2,28 +2,11 @@
 // the site carries, fetched once as the page starts and again on
 // `reload()`. A site has no dev server to say a file changed, and nothing
 // asks the server whether one did.
-import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { createServer } from "node:http";
-import { extname, join, normalize } from "node:path";
-import { expect, test } from "@playwright/test";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { createRequire } from "node:module"; import { buildSite } from "../site.js";
 import { bundle, qmlc } from "./bundle.js";
-
-const port = Number(process.env.LJOS_SITE_PORT ?? 4480) + 5;
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json" };
-
-function serve(directory) {
-  const server = createServer((request, response) => {
-    const path = decodeURIComponent(new URL(request.url, "http://site").pathname);
-    const file = normalize(join(directory, path === "/" ? "index.html" : path));
-    if (!file.startsWith(directory) || !existsSync(file) || !statSync(file).isFile()) {
-      response.writeHead(404).end();
-      return;
-    }
-    response.writeHead(200, { "content-type": TYPES[extname(file)] ?? "application/octet-stream" }).end(readFileSync(file));
-  });
-  return new Promise((done) => server.listen(port, "127.0.0.1", () => done(server)));
-}
+import { expect, serve, test } from "./served.js";
 
 // The site's copy of the file, by what it holds.
 function carried(directory, text) {
@@ -43,7 +26,7 @@ test.describe("a JsonListModel in a built site", () => {
     server = await serve(made.out);
   });
   test.afterAll(async () => {
-    await new Promise((done) => server?.close(done));
+    await server?.stop();
     made?.remove();
   });
 
@@ -52,7 +35,7 @@ test.describe("a JsonListModel in a built site", () => {
     expect(files).toHaveLength(1);
     const asked = [];
     page.on("request", (request) => request.url().endsWith(".json") && asked.push(request.url()));
-    await page.goto(`http://127.0.0.1:${port}/`);
+    await page.goto(`${server.origin}/`);
     await expect(page.getByText("Ada", { exact: true })).toBeVisible();
     await expect(page.getByText("Grace", { exact: true })).toBeVisible();
     expect(asked).toHaveLength(1);
@@ -62,7 +45,7 @@ test.describe("a JsonListModel in a built site", () => {
     const [file] = carried(made.out, PEOPLE);
     const asked = [];
     page.on("request", (request) => request.url().endsWith(".json") && asked.push(request.url()));
-    await page.goto(`http://127.0.0.1:${port}/`);
+    await page.goto(`${server.origin}/`);
     await expect(page.getByText("Grace", { exact: true })).toBeVisible();
     writeFileSync(file, '[{"name": "Ada"}, {"name": "Hedy"}]\n');
     try {

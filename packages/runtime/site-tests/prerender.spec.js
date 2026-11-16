@@ -3,27 +3,11 @@
 // at all; with script, hydration takes those very nodes over rather
 // than making the page again, and the page then behaves as it always
 // did. Both kernels are built the same way and must give the same page.
-import { existsSync, readFileSync, statSync } from "node:fs";
-import { createServer } from "node:http";
-import { extname, join, normalize } from "node:path";
-import { expect, test } from "@playwright/test";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import { buildSite } from "../site.js";
 import { bundle, design, qmlc } from "./bundle.js";
-
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".json": "application/json", ".wasm": "application/wasm" };
-
-function serve(directory) {
-  const server = createServer((request, response) => {
-    const path = decodeURIComponent(new URL(request.url, "http://site").pathname);
-    const file = normalize(join(directory, path === "/" ? "index.html" : path));
-    if (!file.startsWith(directory) || !existsSync(file) || !statSync(file).isFile()) {
-      response.writeHead(404).end();
-      return;
-    }
-    response.writeHead(200, { "content-type": TYPES[extname(file)] ?? "application/octet-stream" }).end(readFileSync(file));
-  });
-  return new Promise((done) => server.listen(0, "127.0.0.1", () => done(server)));
-}
+import { expect, part, serve, test } from "./served.js";
 
 for (const kernel of ["solid", "wasm"]) {
   test.describe(`a prerendered site on the ${kernel} kernel`, () => {
@@ -46,10 +30,10 @@ for (const kernel of ["solid", "wasm"]) {
         else process.env.LJOS_KERNEL = was;
       }
       server = await serve(made.out);
-      origin = `http://127.0.0.1:${server.address().port}`;
+      origin = server.origin;
     });
     test.afterAll(async () => {
-      await new Promise((done) => server?.close(done));
+      await server?.stop();
       made?.remove();
     });
 
@@ -374,10 +358,10 @@ test("the project bundle prerenders too, and hydrates in its design colour", asy
   const made = bundle("project");
   let server;
   try {
-    await buildSite({ dir: made.dir, out: made.out, qmlc, with: [design], prerender: true });
+    await part("build the site", () => buildSite({ dir: made.dir, out: made.out, qmlc, with: [design], prerender: true }));
     expect(readFileSync(join(made.out, "index.html"), "utf8")).toContain("Stopped");
-    server = await serve(made.out);
-    const origin = `http://127.0.0.1:${server.address().port}`;
+    server = await part("serve it", () => serve(made.out));
+    const { origin } = server;
     const context = await browser.newContext({ javaScriptEnabled: false });
     try {
       const still = await context.newPage();
@@ -392,28 +376,32 @@ test("the project bundle prerenders too, and hydrates in its design colour", asy
     await expect(text).toBeVisible();
     expect(await text.evaluate((element) => getComputedStyle(element).color)).toBe("rgb(18, 52, 86)");
   } finally {
-    await new Promise((done) => server?.close(done));
+    await part("stop serving it", () => server?.stop());
     made.remove();
   }
 });
 
 test("a site built without prerender keeps its empty page and mounts as before", async ({ page }) => {
   const made = bundle("prerender");
-  const server = await buildSite({ dir: made.dir, out: made.out, qmlc }).then(() => serve(made.out));
+  let server;
   try {
+    await part("build the site", () => buildSite({ dir: made.dir, out: made.out, qmlc }));
+    server = await part("serve it", () => serve(made.out));
     expect(readFileSync(join(made.out, "index.html"), "utf8")).not.toContain("Prerendered heading");
-    await page.goto(`http://127.0.0.1:${server.address().port}/`);
+    await page.goto(`${server.origin}/`);
     await expect(page.getByText("Prerendered heading", { exact: true })).toBeVisible();
   } finally {
-    await new Promise((done) => server.close(done));
+    await part("stop serving it", () => server?.stop());
     made.remove();
   }
 });
 
 test("a picture's load and a text's markup take no number: every prerendered node is kept", async ({ page }) => {
   const made = bundle("prerender-loads");
-  const server = await buildSite({ dir: made.dir, out: made.out, qmlc, prerender: true }).then(() => serve(made.out));
+  let server;
   try {
+    await part("build the site", () => buildSite({ dir: made.dir, out: made.out, qmlc, prerender: true }));
+    server = await part("serve it", () => serve(made.out));
     const warnings = [];
     page.on("console", (message) => {
       if (message.type() === "warning") warnings.push(message.text());
@@ -424,7 +412,7 @@ test("a picture's load and a text's markup take no number: every prerendered nod
       await held;
       await route.continue();
     });
-    await page.goto(`http://127.0.0.1:${server.address().port}/`, { waitUntil: "commit" });
+    await page.goto(`${server.origin}/`, { waitUntil: "commit" });
     await page.waitForSelector("#app [data-hk]");
     const before = await page.evaluate(() => (window.__prerendered = [...document.querySelectorAll("#app [data-hk]")]).length);
     // Numbered without a gap: nothing the prerender made for itself
@@ -438,7 +426,7 @@ test("a picture's load and a text's markup take no number: every prerendered nod
     expect(warnings.filter((text) => /hydration mismatch/.test(text))).toEqual([]);
     expect(await page.evaluate(() => window.__prerendered.filter((element) => document.contains(element)).length)).toBe(before);
   } finally {
-    await new Promise((done) => server.close(done));
+    await part("stop serving it", () => server?.stop());
     made.remove();
   }
 });
@@ -448,17 +436,19 @@ test("a page with faces that paint prerenders as the elements they paint into", 
   // first; where there is no GPU that must not take the build
   // with it — the elements stand in the HTML, and the words do.
   const made = bundle("prerender-gpu");
-  const server = await buildSite({ dir: made.dir, out: made.out, qmlc, prerender: true }).then(() => serve(made.out));
+  let server;
   try {
+    await part("build the site", () => buildSite({ dir: made.dir, out: made.out, qmlc, prerender: true }));
+    server = await part("serve it", () => serve(made.out));
     const html = readFileSync(join(made.out, "index.html"), "utf8");
     expect(html).toContain("GPU faces prerendered");
     expect(html).toContain("Words beside what paints.");
     expect(html).toContain("<canvas");
-    await page.goto(`http://127.0.0.1:${server.address().port}/`);
+    await page.goto(`${server.origin}/`);
     await page.waitForSelector('#app[data-ljos-hydrated="true"]');
     await expect(page.getByText("GPU faces prerendered", { exact: true })).toBeVisible();
   } finally {
-    await new Promise((done) => server.close(done));
+    await part("stop serving it", () => server?.stop());
     made.remove();
   }
 });

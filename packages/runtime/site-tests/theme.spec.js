@@ -1,26 +1,12 @@
 // The theme a site reads (ljos-ui's `docs/theme.md`): which file, applied
 // how, and a refused one refusing the site.
-import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { createServer } from "node:http";
-import { extname, join, normalize } from "node:path";
-import { expect, test } from "@playwright/test";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { buildSite } from "../site.js";
 import { bundle, design, qmlc } from "./bundle.js";
+import { expect, part, serve, test } from "./served.js";
 
 test.describe.configure({ mode: "serial" });
-
-const port = Number(process.env.LJOS_SITE_PORT ?? 4480) + 1;
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".json": "application/json" };
-
-function serve(directory) {
-  const server = createServer((request, response) => {
-    const path = decodeURIComponent(new URL(request.url, "http://site").pathname);
-    const file = normalize(join(directory, path.slice(1) || "index.html"));
-    if (!file.startsWith(directory) || !existsSync(file) || !statSync(file).isFile()) return response.writeHead(404).end();
-    response.writeHead(200, { "content-type": TYPES[extname(file)] ?? "application/octet-stream" }).end(readFileSync(file));
-  });
-  return new Promise((done) => server.listen(port, "127.0.0.1", () => done(server)));
-}
 
 // What colour the entry's text is, in the site built from the fixture as
 // `change` leaves it.
@@ -28,14 +14,14 @@ async function shown(page, change) {
   const made = bundle("project", change);
   let server;
   try {
-    await buildSite({ dir: made.dir, out: made.out, qmlc, with: [design] });
-    server = await serve(made.out);
-    await page.goto(`http://127.0.0.1:${port}/`);
+    await part("build the site", () => buildSite({ dir: made.dir, out: made.out, qmlc, with: [design] }));
+    server = await part("serve it", () => serve(made.out));
+    await page.goto(`${server.origin}/`);
     const text = page.getByText("Stopped", { exact: true });
     await expect(text).toBeVisible();
     return await text.evaluate((element) => getComputedStyle(element).color);
   } finally {
-    await new Promise((done) => (server ? server.close(done) : done()));
+    await part("stop serving it", () => server?.stop());
     made.remove();
   }
 }

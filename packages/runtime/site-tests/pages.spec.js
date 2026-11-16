@@ -3,29 +3,12 @@
 // title and the words of the page the shell shows for that route —
 // readable with no script, and the page a reader hydrates is the page
 // that was prerendered for the address they asked for.
-import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { createServer } from "node:http";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { extname, join, normalize } from "node:path";
-import { expect, test } from "@playwright/test";
+import { join } from "node:path";
 import { buildSite } from "../site.js";
 import { bundle, qmlc } from "./bundle.js";
-
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".json": "application/json", ".wasm": "application/wasm" };
-
-function serve(directory) {
-  const server = createServer((request, response) => {
-    let path = decodeURIComponent(new URL(request.url, "http://site").pathname);
-    if (path.endsWith("/")) path += "index.html";
-    const file = normalize(join(directory, path));
-    if (!file.startsWith(directory) || !existsSync(file) || !statSync(file).isFile()) {
-      response.writeHead(404).end();
-      return;
-    }
-    response.writeHead(200, { "content-type": TYPES[extname(file)] ?? "application/octet-stream" }).end(readFileSync(file));
-  });
-  return new Promise((done) => server.listen(0, "127.0.0.1", () => done(server)));
-}
+import { expect, serve, test } from "./served.js";
 
 test.describe("a site built as pages", () => {
   test.describe.configure({ mode: "serial" });
@@ -51,10 +34,10 @@ test.describe("a site built as pages", () => {
       },
     });
     server = await serve(made.out);
-    origin = `http://127.0.0.1:${server.address().port}`;
+    origin = server.origin;
   });
   test.afterAll(async () => {
-    await new Promise((done) => server?.close(done));
+    await server?.stop();
     made?.remove();
   });
 
@@ -225,10 +208,10 @@ test.describe("a site prerendered at more than one size", () => {
       },
     });
     server = await serve(made.out);
-    origin = `http://127.0.0.1:${server.address().port}`;
+    origin = server.origin;
   });
   test.afterAll(async () => {
-    await new Promise((done) => server?.close(done));
+    await server?.stop();
     made?.remove();
   });
 
@@ -340,10 +323,10 @@ test.describe("a site prerendered in both colour schemes", () => {
       },
     });
     server = await serve(made.out);
-    origin = `http://127.0.0.1:${server.address().port}`;
+    origin = server.origin;
   });
   test.afterAll(async () => {
-    await new Promise((done) => server?.close(done));
+    await server?.stop();
     made?.remove();
   });
 
@@ -454,10 +437,10 @@ test.describe("a site whose schemes differ only in how they are drawn", () => {
       },
     });
     server = await serve(made.out);
-    origin = `http://127.0.0.1:${server.address().port}`;
+    origin = server.origin;
   });
   test.afterAll(async () => {
-    await new Promise((done) => server?.close(done));
+    await server?.stop();
     made?.remove();
   });
 

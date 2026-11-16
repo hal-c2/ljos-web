@@ -2,34 +2,21 @@
 // needs no Qt, and with an installed Qt's style only where one is asked for.
 // The sizes are what Ljós's native engine gives the same controls (ljos-ui's
 // features/controls at the commit `controls/` is copied from).
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { createServer } from "node:http";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { extname, join, normalize } from "node:path";
-import { expect, test } from "@playwright/test";
+import { join } from "node:path";
 import { build } from "vite";
 import { buildSite } from "../site.js";
 import { check, source } from "../controls.js";
 import qml, { installed } from "../vite.js";
 import { bundle, compilerFile as qmlc, fixtures } from "./bundle.js";
+import { expect, serve, test } from "./served.js";
 
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css" };
 // A stand-in for an installed Qt with Qt Quick Controls (`qt-styles/README.md`).
 const standin = join(fixtures, "qt-styles");
 // What the Basic style of Ljós makes of the fixture: Button, CheckBox,
 // Slider, TextField and ComboBox, each width and height.
 const LJOS = "100 40 46 40 200 40 200 40 140 40";
-
-function serve(directory) {
-  const server = createServer((request, response) => {
-    const path = decodeURIComponent(new URL(request.url, "http://site").pathname);
-    const file = normalize(join(directory, path === "/" ? "index.html" : path));
-    if (!file.startsWith(directory) || !existsSync(file) || !statSync(file).isFile()) return response.writeHead(404).end();
-    response.writeHead(200, { "content-type": TYPES[extname(file)] ?? "application/octet-stream" }).end(readFileSync(file));
-  });
-  // On a port of its own, so that the tests can run side by side.
-  return new Promise((done) => server.listen(0, "127.0.0.1", () => done(server)));
-}
 
 // Each part of a test is a step with a time of its own, so that one that
 // stops says which part it stopped in, and the report times each part:
@@ -46,14 +33,11 @@ async function opened(page, out, check) {
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
     page.on("console", (message) => message.type() === "error" && errors.push(message.text()));
-    await test.step("open the site", () => page.goto(`http://127.0.0.1:${server.address().port}/`), { timeout: PART });
+    await test.step("open the site", () => page.goto(`${server.origin}/`), { timeout: PART });
     await test.step("check the page", check, { timeout: PART });
     expect(errors).toEqual([]);
   } finally {
-    // `close` waits for every connection to end, and the browser may hold
-    // one open: closed here, a failed check is told as itself.
-    server.closeAllConnections();
-    await test.step("stop serving it", () => new Promise((done) => server.close(done)), { timeout: PART });
+    await test.step("stop serving it", () => server.stop(), { timeout: PART });
   }
 }
 
