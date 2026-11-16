@@ -13,10 +13,12 @@ export async function ready(page, scene) {
   // A picture is the graph once each view has drawn: the JavaScript
   // renderer draws as the scene is made, the wgpu one once its wasm and
   // its adapter are here. A view that cannot draws says why at once,
-  // rather than as the test's timeout.
+  // rather than as the test's timeout. One with no width or no height has
+  // nothing to draw and nothing of the picture to wait for.
   await page.waitForFunction(() =>
     [...document.querySelectorAll(".qq-view3d")].every((canvas) => {
       if (canvas.$view3d?.error) throw new Error(`View3D: ${canvas.$view3d.error}`);
+      if (!(canvas.clientWidth > 0 && canvas.clientHeight > 0)) return true;
       return canvas.$view3d?.frames > 0;
     }),
   );

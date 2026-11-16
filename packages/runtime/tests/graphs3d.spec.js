@@ -89,3 +89,15 @@ test("on the wgpu renderer, a graph's bars are drawn and not only its walls", as
   ]);
   expect(seen.map(most)).toEqual(["red", "green", "blue", "red", "green"]);
 });
+
+// A view no wider or no taller than nothing has no picture to draw, and a
+// scene is ready without one: the wait ends with the view that draws, on
+// either renderer, and not as the test's timeout does.
+for (const renderer of ["js", "wgpu"])
+  test(`a scene is ready though a view in it has no size, on the ${renderer} renderer`, async ({ page }) => {
+    if (renderer === "wgpu") await page.addInitScript(() => delete Navigator.prototype.gpu);
+    const late = new Promise((_, fail) => setTimeout(() => fail(new Error("still waiting for a view with no size to draw")), 5000));
+    const clip = await Promise.race([ready(page, `unsized3d&view3d=${renderer}`), late]);
+    expect(clip).toEqual({ x: 0, y: 0, width: 300, height: 100 });
+    expect(await page.evaluate(() => [...document.querySelectorAll(".qq-view3d")].at(-1).$view3d.frames)).toBeGreaterThan(0);
+  });
