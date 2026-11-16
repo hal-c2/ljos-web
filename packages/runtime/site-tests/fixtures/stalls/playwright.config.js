@@ -1,10 +1,12 @@
 import { defineConfig } from "@playwright/test";
 
-// A run of its own for stalls.spec.js: one hook that stalls, with little
-// time, so that what it says can be read.
+// A run of its own for stalls.spec.js: hooks that stall, with little
+// time, so that what they say can be read.
 export default defineConfig({
   testDir: ".",
-  testMatch: "hook.js",
+  testMatch: "hook*.js",
   reporter: "line",
+  fullyParallel: true,
+  workers: 2,
   timeout: 4_000,
 });
