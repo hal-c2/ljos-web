@@ -25,15 +25,17 @@ Rectangle {
     // One clock turns everything, each binding at its own whole
     // multiple of it, so the loop wraps without a jump.
     property real turn: 55
-    // Paused rather than stopped while it is not seen: a stopped
-    // animation starts again from `from`, and the scene would jump back.
-    NumberAnimation on turn {
+    // Degrees a second: a third as fast when calm is asked for.
+    readonly property real pace: calm ? 360 / 78 : 360 / 26
+    // Moved on each frame by its pace rather than animated from one
+    // value to another: a NumberAnimation takes a new duration only at
+    // its next loop, and one stopped starts again from `from`. This
+    // takes a new pace at once and, paused while not seen, goes on from
+    // where it was: never a snap.
+    FrameAnimation {
         running: true
         paused: !root.turning
-        from: 55
-        to: 415
-        duration: root.calm ? 78000 : 26000
-        loops: Animation.Infinite
+        onTriggered: root.turn = 55 + (root.turn - 55 + frameTime * root.pace) % 360
     }
 
     View3D {
