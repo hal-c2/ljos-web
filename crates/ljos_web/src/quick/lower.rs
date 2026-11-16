@@ -64,6 +64,9 @@ pub(crate) struct Uses {
     pub core: BTreeSet<&'static str>,
     /// The helpers `match` and `is` are lowered to call: `$is`, `$nomatch`.
     pub sugar: BTreeSet<&'static str>,
+    /// Whether the file reads `Symbol.customMatcher`, which the sugar
+    /// module defines: imported for that alone when no helper is.
+    pub matcher: bool,
 }
 
 impl Uses {

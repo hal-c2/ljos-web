@@ -359,6 +359,51 @@ Item {
     );
 }
 
+/// `Symbol.customMatcher` is the sugar module's where the browser has none,
+/// so a file that declares a matcher and lowers no `match` still imports
+/// it, before its key is read: a module that only declares one, imported
+/// before the one that matches with it, would otherwise key it `"undefined"`.
+#[test]
+fn a_file_that_reads_symbol_custom_matcher_imports_the_sugar_that_defines_it() {
+    let even = given(
+        r#"export class Even {
+  static [Symbol.customMatcher](n: number): boolean {
+    return n % 2 === 0;
+  }
+}"#,
+    );
+    let main = given(
+        r#"import QtQuick
+import "even.lts" as Even
+Item {
+  readonly property bool keyed: Even.Even[Symbol.customMatcher] !== undefined
+}"#,
+    );
+    let files = [("Main.qml", main), ("even.lts", even)];
+    let even = code_of(&files, "Main.qml", "even.lts");
+    assert_contains(&even, r#"import "ljos-web/compiler/sugar";"#);
+    let main = code_of(&files, "Main.qml", "Main.qml");
+    assert_contains(&main, r#"import "ljos-web/compiler/sugar";"#);
+}
+
+/// A `Symbol` of the file's own is not the page's, and needs nothing.
+#[test]
+fn a_symbol_of_the_modules_own_imports_no_sugar() {
+    let own = given(
+        r#"const Symbol = { customMatcher: "key" };
+export const key: string = Symbol.customMatcher;"#,
+    );
+    let main = given(
+        r#"import QtQuick
+import "own.lts" as Own
+Item {
+  readonly property string key: Own.key
+}"#,
+    );
+    let files = [("Main.qml", main), ("own.lts", own)];
+    assert_lacks(&code_of(&files, "Main.qml", "own.lts"), "compiler/sugar");
+}
+
 #[test]
 fn a_relational_pattern_and_a_sticky_expression_are_errors() {
     let gauge = given(

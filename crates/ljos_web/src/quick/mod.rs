@@ -273,6 +273,8 @@ fn lower_from<'a>(
             uses.sugar.iter().copied(),
             &format!("{prefix}/compiler/sugar"),
         ));
+    } else if uses.matcher {
+        imports.push(b.import_bare(&format!("{prefix}/compiler/sugar")));
     }
     for (name, file) in &uses.files {
         if *file == options.name {
