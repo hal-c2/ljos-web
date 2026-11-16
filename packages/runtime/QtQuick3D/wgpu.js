@@ -22,7 +22,7 @@ import { signal, untrack } from "#kernel";
 import { CustomMaterial } from "./CustomMaterial.js";
 import { handed, text } from "./effects.js";
 import { inside } from "./Node.js";
-import { done, paced, POLL } from "./paced.js";
+import { done, late, paced, POLL } from "./paced.js";
 import { fetched, taken } from "./scene.js";
 import { Format } from "./TextureData.js";
 
@@ -535,8 +535,9 @@ export const gave = (view) => {
 // and how many pieces of the view it read again, how many objects the view
 // holds) is on the canvas, and so is `probe`: what
 // a tool that times the view (tests/perf3d) puts there is told of each build
-// ("sync": the scene read into the renderer) and each frame drawn ("draw"),
-// from when until when. Unset, nothing is timed for it. Where WebGPU gives
+// ("sync": the scene read into the renderer), each frame drawn ("draw"),
+// and, on WebGL 2, each frame's GPU work ("gpu", until it was done, as the
+// view is paced by), from when until when. Unset, nothing is timed for it. Where WebGPU gives
 // the page no adapter, `instead`, if given, is called in place of drawing.
 export function drawOn(self, canvas, told, instead) {
   const [made, setMade] = signal(null, self.$owner);
@@ -630,25 +631,76 @@ export function drawOn(self, canvas, told, instead) {
       }
     }
     fence = gl?.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0) ?? null;
-    if (fence) finished(from, performance.now());
-    else pace.drew(from, performance.now());
+    if (fence) {
+      drawnFrom = from;
+      finished();
+    } else pace.drew(from, performance.now());
   };
   // The GPU is asked whether it is done, without waiting for it, a few
-  // milliseconds apart, only while a picture is with it. What else held the
-  // page meanwhile is not the picture's time (`done`).
-  const finished = (from, busy) => {
+  // milliseconds apart, only while a picture is with it, and again as each
+  // frame of the page's begins and once it is made (`watch`). What else
+  // held the page meanwhile is not the picture's time (`done`); the page's
+  // frame, made while the picture was with the GPU, is.
+  let drawnFrom = 0;
+  // When the GPU was last seen at work on the picture, and whether that was
+  // while a frame of the page's was being made.
+  let busy = 0;
+  let busyAtFrame = false;
+  const settled = () => gl.isContextLost() || gl.getSyncParameter(fence, gl.SYNC_STATUS) === gl.SIGNALED;
+  const finished = () => {
+    clearTimeout(finishing);
     finishing = 0;
     const now = performance.now();
-    if (!gl.isContextLost() && gl.getSyncParameter(fence, gl.SYNC_STATUS) !== gl.SIGNALED) {
-      finishing = setTimeout(() => finished(from, now), POLL);
+    if (!settled()) {
+      busy = now;
+      busyAtFrame = inFrame;
+      finishing = setTimeout(finished, POLL);
+      if (watching) watch();
       return;
     }
     gl.deleteSync(fence);
     fence = null;
-    pace.drew(from, done(busy, now));
+    const to = done(busy, now, busyAtFrame);
+    watching = late(busy, now);
+    state.probe?.("gpu", drawnFrom, to);
+    pace.drew(drawnFrom, to);
     // Drawn now if asked for meanwhile, unless an animation frame asked
     // for is still to come and draws it.
     if (due && !frame) draw();
+  };
+  // The browser makes the page's frame after its animation frame callbacks,
+  // and there waits for what the GPU still has to do for the canvas: no
+  // timer rings meanwhile, so a picture checked only by them was seen done
+  // after a gap the page seemed to fill, and counted quick however long the
+  // GPU held every frame of the page's. So once a picture was seen done
+  // late, and while the view draws, each frame says when it begins (an
+  // animation frame callback, which checks the picture too) and when it was
+  // made (a message posted there, the first task after it): a check in
+  // between, the picture's own drawn in an animation frame among them, is
+  // `inFrame`, and the next check after the gap is the message. A view
+  // whose pictures are seen done on time asks for no frames of its own.
+  let watching = false;
+  let framing = 0;
+  let inFrame = false;
+  // Pictures drawn by the last frame's start: a view drawing in animation
+  // frames may have none with the GPU, and none due, as one begins.
+  let framesSeen = 0;
+  const frameMade = new MessageChannel();
+  frameMade.port1.onmessage = () => {
+    inFrame = false;
+    if (fence) finished();
+  };
+  const watch = () => {
+    if (framing || gone) return;
+    framing = requestAnimationFrame(() => {
+      framing = 0;
+      inFrame = true;
+      frameMade.port2.postMessage(0);
+      if (fence) finished();
+      const drawing = fence || due || state.frames !== framesSeen;
+      framesSeen = state.frames;
+      if (watching && drawing) watch();
+    });
   };
   // Drawn once what asked for it has settled, in the same task: a build in
   // an animation frame is drawn in that frame, as the JavaScript renderer's
@@ -815,6 +867,9 @@ export function drawOn(self, canvas, told, instead) {
     resting = 0;
     clearTimeout(finishing);
     finishing = 0;
+    if (framing) cancelAnimationFrame(framing);
+    framing = 0;
+    frameMade.port1.close();
     if (fence) gl.deleteSync(fence);
     fence = null;
     const view = made();

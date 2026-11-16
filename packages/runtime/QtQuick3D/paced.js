@@ -36,7 +36,12 @@ const REST = 1000;
 // milliseconds apart: `POLL` apart, or later where something else held the
 // page. The GPU was last seen at work at `busy`; one asked again later than
 // `LATE` after that was held up by the page, not by the GPU, so the GPU is
-// taken to have finished by `busy + LATE` (`done`).
+// taken to have finished by `busy + LATE` (`done`). Unless it was seen at
+// work as a frame of the page's began to be made (`atFrame`): the browser
+// waits there for the GPU, so the gap is the GPU's, and it took until `now`.
 export const POLL = 4;
 const LATE = 8;
-export const done = (busy, now) => Math.min(now, busy + LATE);
+export const done = (busy, now, atFrame = false) => (atFrame ? now : Math.min(now, busy + LATE));
+// Whether a fence was seen done late: something held the page between the
+// last two checks, the page or the browser waiting for the GPU.
+export const late = (busy, now) => now - busy > LATE;
