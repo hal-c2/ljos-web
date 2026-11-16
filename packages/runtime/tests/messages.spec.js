@@ -303,6 +303,35 @@ test.describe("the application changes the language", () => {
   });
 });
 
+test.describe("a delegate's messages", () => {
+  test("a message in a delegate shows the model's values and follows the UI language", async ({ page }) => {
+    await shown(page, {
+      "Main.qml": qml(
+        "property var greeting: msg`Open`",
+        "Repeater {",
+        '  model: [{ name: "Ada", count: 1 }, { name: "Grace", count: 2 }]',
+        "  delegate: Item {",
+        "    property string name: modelData.name",
+        "    property int count: modelData.count",
+        "    Text { text: t`Hello ${name}` }",
+        '    Text { text: plural(count, { one: "# file", other: "# files" }) }',
+        "    Text { text: t(greeting) }",
+        "  }",
+        "}",
+      ),
+    });
+    await expect(page.getByText("Hello Ada", { exact: true })).toBeVisible();
+    await expect(page.getByText("2 files", { exact: true })).toBeVisible();
+    await expect(page.getByText("Open", { exact: true })).toHaveCount(2);
+    await language(page, "is");
+    await expect(page.getByText("Halló Ada", { exact: true })).toBeVisible();
+    await expect(page.getByText("Halló Grace", { exact: true })).toBeVisible();
+    await expect(page.getByText("1 skrá", { exact: true })).toBeVisible();
+    await expect(page.getByText("2 skrár", { exact: true })).toBeVisible();
+    await expect(page.getByText("Opna", { exact: true })).toHaveCount(2);
+  });
+});
+
 test.describe("messages live in modules too", () => {
   test("a module's function translates when a binding calls it", async ({ page }) => {
     await shown(page, {
