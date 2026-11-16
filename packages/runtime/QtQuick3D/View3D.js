@@ -22,7 +22,7 @@ import { inside, Node } from "./Node.js";
 import { met } from "./pick.js";
 import { draw } from "./render.js";
 import { SceneEnvironment } from "./scene.js";
-import { drawOn, gave, gaveNow, renderer } from "./wgpu.js";
+import { drawOn, gave, gaveNow, paced, renderer } from "./wgpu.js";
 import { signal, untrack } from "#kernel";
 import { getOwner, onCleanup } from "solid-js";
 
@@ -273,19 +273,8 @@ export const View3D = defineType("View3D", Item, {
     // one for a frame: when what changed it is done, and not for each thing
     // of several that a frame's animations and timers set.
     //
-    // Drawing holds the page up, where Qt draws on a thread of its own: so
-    // where pictures take long, one is not drawn again until as long has
-    // gone by as the last took, and the page has half its time for
-    // everything else, what it fetches and what is pressed among it. What
-    // changes meanwhile is in the picture that is drawn then.
-    //
-    // One slow picture is not pictures taking long: the first of a scene
-    // is slow for the programs that are made for it, and the next is
-    // drawn as soon as something changes, as every picture is of a scene
-    // that is quick to draw.
+    // Where pictures take long, they are paced (`paced`).
     let due = null;
-    let rested = 0;
-    let slow = false;
     const stats = (self.$stats = within(null, () => RenderStats({})));
     const frame = counted(stats);
     if (wgpu) {
@@ -313,6 +302,8 @@ export const View3D = defineType("View3D", Item, {
     // gave its picture on in this task waits for the next frame, as the
     // wgpu renderer's does (`gaveNow`).
     let waiting = 0;
+    let resting = 0;
+    const pace = paced();
     const soon = () => {
       if (!gaveNow.has(state)) return void queueMicrotask(drawn);
       waiting = requestAnimationFrame(() => {
@@ -320,11 +311,15 @@ export const View3D = defineType("View3D", Item, {
         drawn();
       });
     };
-    if (getOwner()) onCleanup(() => waiting && cancelAnimationFrame(waiting));
+    if (getOwner())
+      onCleanup(() => {
+        if (waiting) cancelAnimationFrame(waiting);
+        clearTimeout(resting);
+      });
     const drawn = () => {
       const from = performance.now();
-      // A timer may ring a little early.
-      if (rested - from > 1) return void setTimeout(drawn, rested - from);
+      const wait = pace.wait(from);
+      if (wait) return void (resting = setTimeout(drawn, wait));
       const scene = due;
       due = null;
       const drew = draw(scene, canvas, paper, ways);
@@ -341,9 +336,7 @@ export const View3D = defineType("View3D", Item, {
         state.frames++;
       }
       state.probe?.("draw", from, ended);
-      const took = ended - from;
-      rested = slow && took > SLOW ? ended + Math.min(took, REST) : 0;
-      slow = took > SLOW;
+      pace.drew(from, ended);
     };
 
     // The view is a picture to what takes it for one (a Texture's item),
@@ -411,11 +404,6 @@ export const View3D = defineType("View3D", Item, {
     }
   },
 });
-
-// A picture is slow that takes longer than this to draw, in milliseconds,
-// and the longest the page is left to itself after one.
-const SLOW = 50;
-const REST = 1000;
 
 // What a view says of how fast it draws. The times are of the frame drawn
 // last and are told five times a second; how many frames a second had and
