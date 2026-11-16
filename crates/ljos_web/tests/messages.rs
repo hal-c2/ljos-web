@@ -218,9 +218,12 @@ fn t_of_a_message_in_a_delegate_is_ljos_cores() {
     delegate: Text { text: t(greeting) }
   }"##,
     );
-    // A model with a role named `t` still gives it; any other gives
-    // Ljos.Core's.
-    assert_contains(&code, r#""t" in $data ? $data.t : t"#);
+    // A model with a role named `t` still gives it, called on its row; any
+    // other gives Ljos.Core's.
+    assert_contains(
+        &code,
+        r#""t" in $data ? $data.t("greeting" in $data ? $data.greeting : $1.greeting) : t("greeting" in $data ? $data.greeting : $1.greeting)"#,
+    );
     assert_contains(
         &code,
         r#"import { __ljos_msg, t } from "ljos-web/Ljos/Core";"#,
