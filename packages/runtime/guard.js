@@ -202,17 +202,46 @@ export function whyNot(url) {
 }
 
 // A file of the project as a server answers it: not before the caller has
-// gone on, so a signal aborted after the request was made still stops it.
+// gone on, so a signal aborted after the request was made still stops it,
+// and with a body the signal stops until it has been read.
 function answered(found, signal) {
+  const headers = { "content-type": typeOf(found.name) };
   return new Promise((resolve, reject) => {
     if (signal?.aborted) return reject(signal.reason);
-    const stop = () => reject(signal.reason);
+    let body = null; // the body's controller, once the caller has the response
+    const stop = () => (body ? body.error(signal.reason) : reject(signal.reason));
+    const done = () => signal?.removeEventListener("abort", stop);
     signal?.addEventListener("abort", stop, { once: true });
     queueMicrotask(() => {
-      signal?.removeEventListener("abort", stop);
-      if (!signal?.aborted) resolve(new Response(found.text, { headers: { "content-type": typeOf(found.name) } }));
+      if (signal?.aborted) return;
+      if (!signal) return resolve(new Response(found.text, { headers }));
+      const stream = new ReadableStream({
+        start(controller) {
+          body = controller;
+        },
+        async pull(controller) {
+          const bytes = new Uint8Array(await new Blob([found.text]).arrayBuffer());
+          if (signal.aborted) return;
+          controller.enqueue(bytes);
+          controller.close();
+          done();
+        },
+        cancel: done,
+      });
+      resolve(tied(new Response(stream, { headers }), signal));
     });
   });
+}
+
+// A browser reads a body its stream errored as "Failed to fetch"; one a
+// server sent and an abort stopped reads as the abort's reason.
+function tied(response, signal) {
+  for (const read of ["arrayBuffer", "blob", "bytes", "formData", "json", "text"]) {
+    const own = response[read];
+    if (typeof own !== "function") continue;
+    response[read] = () => own.call(response).catch((why) => Promise.reject(signal.aborted ? signal.reason : why));
+  }
+  return response;
 }
 
 // `url` may be a Request, which goes as it was made where it may go.
@@ -221,7 +250,8 @@ export function guardedFetch(url, init) {
   const found = own(address);
   if (found) {
     if (found.text === undefined) return Promise.reject(notThere(found));
-    return answered(found, init?.signal ?? (address === url ? undefined : url.signal));
+    // An explicit null is no signal, not the Request's.
+    return answered(found, init?.signal !== undefined ? init.signal : address === url ? undefined : url.signal);
   }
   return mayFetch(address) ? fetch(url, init) : Promise.reject(refusal(address));
 }

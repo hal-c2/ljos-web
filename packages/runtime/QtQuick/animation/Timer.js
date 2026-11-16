@@ -72,9 +72,11 @@ export const Timer = defineType("Timer", QtObject, {
   signals: ["triggered"],
   methods: {
     // The object it is declared in: what a handler moves along says
-    // `parent.x`, as it would in any other object it could be in.
+    // `parent.x`, as it would in any other object it could be in. One a
+    // nonvisual object holds as a property's value is made among no items
+    // (`$parent` is null) but is still declared in that object.
     get parent() {
-      return this.$parent;
+      return this.$parent ?? this.$declaredIn ?? null;
     },
     get running() {
       const timer = this.$timer;

@@ -62,6 +62,9 @@ export interface QObject {
   readonly $props: Props;
   readonly $owner: Owner | null;
   readonly $parent: QObject | null;
+  // The nonvisual object whose property's value this is (`property Timer
+  // pulse: Timer {}` in a QtObject), where `$parent` is null.
+  readonly $declaredIn?: QObject;
   readonly $slots: Record<string, Slot | undefined>;
   readonly $groups: Record<string, object | undefined>;
   readonly $signals: Record<string, Signal | undefined>;
@@ -1138,7 +1141,13 @@ class Slot {
     // A kind may make what it is given into its value inside the object
     // (`QtQuick/Templates/parts.js`).
     const given = kind?.made ? () => (kind.made as (value: unknown) => unknown)(props[key]) : () => props[key];
-    const make = () => complete(() => inside(self.$contentItem ?? (self.$node ? self : null), given));
+    // One a nonvisual object holds (`property Timer pulse: Timer {}` in a
+    // QtObject) is among no items, but still declared in it.
+    const make = () =>
+      complete(() => {
+        const visual = self.$contentItem ?? (self.$node ? self : null);
+        return inside(visual, visual ? given : () => declaredIn(self, given));
+      });
     const made = props.$made?.includes(key);
     const compute = descriptor?.get ? guarded(key, made ? apart(make) : make, !made, self) : null;
     this.bound = compute ? ringed(self.$owner, kind ? converted(key, kind, compute, this.given) : compute, undefined, true) : null;
@@ -1715,6 +1724,18 @@ let completions: (Works & { first?: Works }) | null = null;
 let holding: Works | null = null;
 // The item whose children are being created.
 let parent: QObject | null | undefined = null;
+// The nonvisual object whose property's value is being created: given to
+// the object made, not to what that object makes in turn.
+let declaring: QObject | null = null;
+function declaredIn<T>(holder: QObject, make: () => T): T {
+  const outer = declaring;
+  declaring = holder;
+  try {
+    return make();
+  } finally {
+    declaring = outer;
+  }
+}
 // How many creations are under way, one in the work of another, and the
 // bindings that could not be evaluated in them: told of when all are done.
 let creating = 0;
@@ -2009,6 +2030,8 @@ function create(Type: QmlType, props: Props): QObject {
   if (props.$declare) Type = derive(Type, props.$declare);
   const self = props.$self ?? $object();
   const outerKind = makingKind;
+  const holder = declaring;
+  declaring = null;
   kindNow(Type.typeName ?? "");
   try {
     return complete(() => {
@@ -2017,6 +2040,7 @@ function create(Type: QmlType, props: Props): QObject {
       hidden(self, "$props", props);
       hidden(self, "$owner", getOwner());
       hidden(self, "$parent", parent);
+      if (holder && !parent) hidden(self, "$declaredIn", holder);
       // What is made later inside an object bounded (a Repeater's delegate, a
       // Loader's item) is bounded as it is.
       const boundary = fault ?? parent?.$fault;
@@ -2088,6 +2112,7 @@ function create(Type: QmlType, props: Props): QObject {
     });
   } finally {
     kindNow(outerKind);
+    declaring = holder;
   }
 }
 

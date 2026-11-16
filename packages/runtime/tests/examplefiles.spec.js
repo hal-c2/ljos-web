@@ -97,6 +97,21 @@ test.describe("an example's files", () => {
     expect(server.refused).toEqual([]);
   });
 
+  test("a file the example has is stopped by its signal until it is read, and a null signal is no signal", async ({ page }) => {
+    const server = watched(page);
+    const figure = await mounted(page, "cancelled");
+    await expect(figure).toHaveAttribute("data-state", "live", { timeout: 30000 });
+    await expect(figure.locator(".ljos-codeblock__stage")).toContainText("AbortError / 3 rows", { timeout: 15000 });
+    expect(server.named()).toEqual([]);
+    expect(server.refused).toEqual([]);
+  });
+
+  test("a Timer a nonvisual object holds has that object for its parent", async ({ page }) => {
+    const figure = await mounted(page, "heldTimer");
+    await expect(figure).toHaveAttribute("data-state", "live", { timeout: 30000 });
+    await expect(figure.locator(".ljos-codeblock__stage")).toContainText("held", { timeout: 15000 });
+  });
+
   test("a picture the site gave the example as bytes is shown, and a file in a directory is imported", async ({ page }) => {
     const server = watched(page);
     const figure = await mounted(page, "given");

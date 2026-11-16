@@ -263,6 +263,39 @@ Text {
 }
 `;
 
+// What a request for a file the example has answers stays tied to its
+// signal until it is read, as a server's does; and a request given an
+// explicit null signal is not stopped by the one its Request had.
+export const CANCELLED_MAIN = `import QtQuick
+
+Text {
+    color: "#e8eaf0"
+    property string read: "…"
+    property string kept: "…"
+    text: read + " / " + kept
+    Component.onCompleted: {
+        const user = new AbortController();
+        fetch("rows.json", { signal: user.signal }).then((r) => { user.abort(); return r.text(); }).then(() => read = "read", (e) => read = e.name);
+        const asked = new Request(Qt.resolvedUrl("rows.json"), { signal: AbortSignal.abort() });
+        fetch(asked, { signal: null }).then((r) => r.json()).then((j) => kept = j.rows.length + " rows", (e) => kept = e.name);
+    }
+}
+`;
+
+// A Timer a nonvisual object holds as a property's value has that object
+// for its parent, as one declared among an item's children has the item.
+export const HELD_TIMER_MAIN = `import QtQuick
+
+Text {
+    color: "#e8eaf0"
+    QtObject {
+        id: holder
+        property Timer pulse: Timer {}
+    }
+    text: holder.pulse.parent === holder ? "held" : "parent " + holder.pulse.parent
+}
+`;
+
 // A picture given as bytes (a site's files=): its Image loads it.
 export const GIVEN_MAIN = `import QtQuick
 import "parts"
@@ -317,6 +350,8 @@ export const EXAMPLES = {
     { name: "lib/rows.json", code: '{ "rows": [1, 2, 3] }\n', lang: "json" },
   ]),
   aborted: figure([qml("Main.qml", ABORTED_MAIN), { name: "rows.json", code: '{ "rows": [1, 2, 3] }\n', lang: "json" }]),
+  cancelled: figure([qml("Main.qml", CANCELLED_MAIN), { name: "rows.json", code: '{ "rows": [1, 2, 3] }\n', lang: "json" }]),
+  heldTimer: figure([qml("Main.qml", HELD_TIMER_MAIN)]),
   given: figure([qml("Main.qml", GIVEN_MAIN), qml("parts/Badge.qml", GIVEN_BADGE)], { given: packGiven({ "photo.png": PNG }) }),
 };
 
