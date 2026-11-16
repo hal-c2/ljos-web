@@ -241,9 +241,12 @@ jobs:
           key: ${{ steps.astro-prerenders.outputs.cache-primary-key }}
       # Starlight runs Pagefind through a shell (DEP0190): its warning,
       # not ours, and one this build cannot act on.
+      # Stops if it would embed no prerender: the step above was run
+      # under another environment than this build's.
       - run: pnpm --filter ljos-site build
         env:
           VITE_LJOS_VIEW3D: wgpu
+          LJOS_PRERENDERS_REQUIRED: "1"
           NODE_OPTIONS: --disable-warning=DEP0190
       # The artifact is this ordinary build, kept aside before the
       # wasm-kernel build below takes site/dist.

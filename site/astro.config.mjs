@@ -47,8 +47,15 @@ const stamp = prerenderStamp({ qmlc });
 const loaded = Object.entries(loadPrerenders(prerendersAt));
 const prerenders = Object.fromEntries(loaded.filter(([, had]) => had.stamp === stamp));
 const otherwise = loaded.length - Object.keys(prerenders).length;
-if (otherwise > 0)
-  console.warn(`codeblocks: ${otherwise} prerender(s) in ${prerendersAt} were made for another build and are left out; run codeblock-prerenders with this build's environment to embed them`);
+const leftOut = `codeblocks: ${otherwise} prerender(s) in ${prerendersAt} were made for another build and are left out; run codeblock-prerenders with this build's environment to embed them`;
+// A build that is to embed them (the one published) stops rather than
+// ship every block unrendered when its environment and the prerender
+// step's drift apart; one that expects none (the wasm kernel's) leaves
+// LJOS_PRERENDERS_REQUIRED unset.
+if (process.env.LJOS_PRERENDERS_REQUIRED === "1") {
+  if (otherwise > 0) throw new Error(leftOut);
+  if (Object.keys(prerenders).length === 0) throw new Error(`codeblocks: no prerender in ${prerendersAt}; run codeblock-prerenders before this build`);
+} else if (otherwise > 0) console.warn(leftOut);
 let legacyBlocks = 0;
 const given = readGiven();
 const docsAt = path("src/content/docs");

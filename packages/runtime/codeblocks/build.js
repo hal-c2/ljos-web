@@ -188,7 +188,10 @@ export function renderStatic(example, { prerender } = {}) {
 // (VITE_LJOS_VIEW3D) is read as the page is bundled, so it is part of
 // what makes a prerender. Read afresh each time it is asked: the same
 // path can hold a rebuilt compiler, and the same runtime edited files.
-const STAMP_SKIPS = new Set(["node_modules", "tests", "site-tests", "type-tests"]);
+// Playwright's test-results/ is what a run of the tests left, not the
+// runtime: a test run between the prerender step and the build that
+// embeds it is no other build.
+const STAMP_SKIPS = new Set(["node_modules", "tests", "site-tests", "type-tests", "test-results"]);
 export function prerenderStamp({ qmlc, width = 1280, height = 720, env = process.env } = {}) {
   const made = JSON.stringify([width, height, kernelNamed(env), env.VITE_LJOS_VIEW3D ?? ""]);
   // The compiler by its bytes, not where it stands: two checkouts'
