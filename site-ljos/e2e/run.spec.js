@@ -108,6 +108,57 @@ test.describe("examples", () => {
     expect(unexpected(errors)).toEqual([]);
   });
 
+  test("an edit that does not compile says so, and its control offers the code", async ({ page, errors }) => {
+    await open(page, plain.route);
+    const block = liveBlock(page, plain.example.index);
+    await centre(block.picture);
+    const run = runButton(block.stage);
+    await expect(run).toBeVisible({ timeout: 30_000 });
+    await listen(run);
+    // The reader's first act is to break it: the edit asks it to run,
+    // and there is no last good result to keep.
+    await intoCode(block);
+    await page.keyboard.press("Control+Home");
+    await page.keyboard.type("Broken {");
+    await expect(runButton(block.stage, "Edit this example"), "its control offers the code").toBeVisible({ timeout: 30_000 });
+    const { names, said } = await heard(page);
+    expect(names, "the control's name, phase by phase").toEqual(["Run this example", "Loading this example", "Edit this example"]);
+    expect(said, "what a screen reader is told").toEqual(["Loading this example", "This example did not compile"]);
+    // The compile's own complaint is the one error expected.
+    expect(unexpected(errors).filter((text) => !/ShellLoader|Main\.qml/.test(text))).toEqual([]);
+  });
+
+  test("a finger that scrolls the page over a picture runs nothing; a tap on it runs it", async ({ page, errors }) => {
+    await open(page, plain.route);
+    const block = liveBlock(page, plain.example.index);
+    await centre(block.picture);
+    await expect(runButton(block.stage)).toBeVisible({ timeout: 30_000 });
+    const box = await block.picture.boundingBox();
+    const at = { x: box.x + box.width / 4, y: box.y + box.height / 2 };
+    const before = await pageScroll(page);
+    const cdp = await page.context().newCDPSession(page);
+    const touch = (type, y, x = at.x) => cdp.send("Input.dispatchTouchEvent", { type, touchPoints: y === undefined ? [] : [{ x, y, id: 1 }] });
+    // The session is let go even when a step fails, so it never outlives
+    // the test.
+    try {
+      await touch("touchStart", at.y);
+      for (let step = 1; step <= 8; step++) await touch("touchMove", at.y - 10 * step);
+      await touch("touchEnd");
+      await page.waitForTimeout(500);
+      await expect.poll(() => pageScroll(page), { message: "the swipe scrolled the page" }).not.toEqual(before);
+      await expect(runButton(block.stage), "a swipe over the picture leaves it its picture").toBeVisible();
+      await expect(block.picture).toBeVisible();
+      // The swipe moved the picture: the tap lands where it stands now.
+      const now = await block.picture.boundingBox();
+      await touch("touchStart", now.y + now.height / 2, now.x + now.width / 4);
+      await touch("touchEnd");
+    } finally {
+      await cdp.detach();
+    }
+    await expect(block.picture, "a tap runs it").toBeHidden({ timeout: 30_000 });
+    expect(unexpected(errors)).toEqual([]);
+  });
+
   test("a window example waits for Run, which the keyboard reaches and presses", async ({ page, errors }) => {
     await open(page, window.route);
     const block = liveBlock(page, window.example.index);

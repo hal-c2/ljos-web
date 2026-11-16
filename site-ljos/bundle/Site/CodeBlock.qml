@@ -70,27 +70,44 @@ Column {
         // Not running: an edit asks it to run, and it does once it may
         // (in view, within the page's budget: Runner).
         if (!started) {
-            runner.run();
+            runner.ask();
             return;
         }
         stage.reload().then(function (why) {
             block.said = why || "";
-            for (var i = 0; i < editors.count; i++)
-                editors.itemAt(i).diagnostics = Live.diagnosticsFor(live.hash, i);
+            block.marked();
         });
     }
 
     // The source is given at once: a compile that answered first
-    // would leave the stage empty until it did.
+    // would leave the stage empty until it did. What an earlier compile
+    // said goes: this one says its own (the stage's error, and the
+    // editors' marks once it has come). Only a block that can run
+    // starts, so what is cleared is never the reason it cannot.
     function start() {
         started = true;
+        said = "";
+        for (var i = 0; i < editors.count; i++)
+            editors.itemAt(i).diagnostics = [];
         stage.source = Live.sourceFor(live.hash);
     }
     // Stopped (one more started, past the page's budget): the picture
-    // stands again, and the edits are kept for when it runs again.
+    // stands again, and the edits are kept for when it runs again. An
+    // edit still waiting out its debounce is kept too, not applied:
+    // applied, it would ask the block to run again unasked, and stop
+    // another.
     function stop() {
         started = false;
+        if (debounce.running) {
+            debounce.stop();
+            Live.setFiles(live.hash, display());
+        }
         stage.source = "";
+    }
+    // The editors' marks, from the compile the stage last took.
+    function marked() {
+        for (var i = 0; i < editors.count; i++)
+            editors.itemAt(i).diagnostics = Live.diagnosticsFor(live.hash, i);
     }
 
     Component.onCompleted: {
@@ -369,6 +386,8 @@ Column {
                 width: stageBox.pictureWidth
                 height: Math.max(stageBox.pictureHeight, implicitHeight)
                 fallback: emptyStage
+                // A start's compile has come, or failed: its marks.
+                onStatusChanged: if (block.started && status !== ShellLoader.Null) block.marked()
             }
             Component {
                 id: emptyStage
