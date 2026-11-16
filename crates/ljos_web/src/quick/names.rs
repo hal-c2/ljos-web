@@ -17,7 +17,7 @@
 
 use std::collections::HashSet;
 
-use oxc_allocator::TakeIn;
+use oxc_allocator::{ArenaVec, CloneIn, TakeIn};
 use oxc_ast::ast::*;
 use oxc_ast_visit::{Visit, VisitMut, walk, walk_mut};
 use oxc_semantic::SemanticBuilder;
@@ -344,19 +344,27 @@ impl<'a> Resolver<'a, '_, '_> {
         let target = target.filter(|target| {
             !matches!(target, qml_front::names::Target::Id(object) if tree.objects[*object].context != tree.objects[inside].context)
         });
-        let mut read = target.map(|target| match target {
-            qml_front::names::Target::Id(object) => self.handle(object),
+        let read = target.map(|target| match target {
+            qml_front::names::Target::Id(object) => Some(self.handle(object)),
             qml_front::names::Target::Property { object, name } => {
-                b.member(self.handle(object), &name)
+                Some(b.member(self.handle(object), &name))
             }
             qml_front::names::Target::Context { context, name } => {
-                b.member(b.id(tree.data(context).unwrap_or("$data")), &name)
+                Some(b.member(b.id(tree.data(context).unwrap_or("$data")), &name))
             }
             // A lowercase name is none of these.
             qml_front::names::Target::Type(_)
             | qml_front::names::Target::Namespace(_)
-            | qml_front::names::Target::Global(_) => b.id(name),
+            | qml_front::names::Target::Global(_) => None,
         });
+        let read = match read {
+            Some(Some(read)) => Some(read),
+            // The global behind a role is the console that says where it
+            // is called, as it is where no model is.
+            Some(None) => Some(self.console_at(name, span).unwrap_or_else(|| b.id(name))),
+            None => None,
+        };
+        let mut read = read;
         if written && read.is_some() && roles.is_empty() {
             return read;
         }
@@ -426,7 +434,7 @@ impl<'a> Resolver<'a, '_, '_> {
     /// written: `$console([file, line, column])`, the console that says
     /// where its lines come from, as qml6 does of each.
     fn placed_console(&mut self, name: &str, span: Span) -> Option<Expression<'a>> {
-        let places = self.uses.places.as_ref().filter(|_| name == "console")?;
+        self.uses.places.as_ref().filter(|_| name == "console")?;
         let names = qml_front::names::Names {
             tree: &self.tree.front,
             types: self.types.front(),
@@ -439,6 +447,13 @@ impl<'a> Resolver<'a, '_, '_> {
         if !global {
             return None;
         }
+        self.console_at(name, span)
+    }
+
+    /// `$console(place)` for the global `console`, when the output says
+    /// where things are written.
+    fn console_at(&mut self, name: &str, span: Span) -> Option<Expression<'a>> {
+        let places = self.uses.places.as_ref().filter(|_| name == "console")?;
         let place = places.place(self.b, span.start);
         self.uses.inspect.insert("$console");
         Some(self.b.call(self.b.id("$console"), [place]))
@@ -449,6 +464,32 @@ impl<'a> Resolver<'a, '_, '_> {
     fn placed(&mut self, name: &str) {
         if let Some(global) = PLACED_GLOBALS.iter().find(|global| **global == name) {
             self.uses.globals.insert(global);
+        }
+    }
+
+    /// `test ? a(args) : b(args)` for `(test ? a : b)(args)`: each place
+    /// called as itself, a member on its object.
+    fn call_each(
+        &self,
+        callee: Expression<'a>,
+        arguments: &ArenaVec<'a, Argument<'a>>,
+    ) -> Expression<'a> {
+        match callee {
+            Expression::ConditionalExpression(conditional) => {
+                let conditional = conditional.unbox();
+                self.b.conditional(
+                    conditional.test,
+                    self.call_each(conditional.consequent, arguments),
+                    self.call_each(conditional.alternate, arguments),
+                )
+            }
+            callee => {
+                let mut call = self.b.call(callee, []);
+                if let Expression::CallExpression(call) = &mut call {
+                    call.arguments = arguments.clone_in(self.b.allocator());
+                }
+                call
+            }
         }
     }
 
@@ -883,6 +924,24 @@ impl<'a> VisitMut<'a> for Resolver<'a, '_, '_> {
                     *expression = console;
                 } else if let Some(read) = self.bare(name, span, false) {
                     *expression = read;
+                }
+            }
+            // A role is called on its row, and the global behind it as it
+            // is: `"f" in $data ? $data.f(x) : f(x)`, not a conditional
+            // callee, which would call the row's function with no `this`.
+            Expression::CallExpression(call)
+                if !call.optional
+                    && matches!(&call.callee, Expression::Identifier(identifier) if self.is_free(identifier)) =>
+            {
+                walk_mut::walk_expression(self, expression);
+                let Expression::CallExpression(call) = expression else {
+                    return;
+                };
+                if matches!(call.callee, Expression::ConditionalExpression(_)) {
+                    let allocator = self.b.allocator();
+                    let callee = call.callee.take_in(&allocator);
+                    let arguments = call.arguments.take_in(&allocator);
+                    *expression = self.call_each(callee, &arguments);
                 }
             }
             // In a binding or a handler `this` is the object it is written

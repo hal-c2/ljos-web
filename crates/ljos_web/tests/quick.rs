@@ -485,13 +485,14 @@ Repeater {
     );
     // The model may have a role of the name, which QML would read first;
     // where it has none, the global is what is read, never `undefined`.
+    // A role is called on its row, as QML calls it.
     assert_contains(
         &code,
-        r#"("qsTr" in $data ? $data.qsTr : qsTr)("Row %1").arg($data.index)"#,
+        r#"("qsTr" in $data ? $data.qsTr("Row %1") : qsTr("Row %1")).arg($data.index)"#,
     );
     assert_contains(
         &code,
-        r#"("parseInt" in $data ? $data.parseInt : parseInt)("3")"#,
+        r#""parseInt" in $data ? $data.parseInt("3") : parseInt("3")"#,
     );
 }
 
