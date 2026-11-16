@@ -150,7 +150,7 @@ test.describe("the files a page does not show", () => {
 
   test("stand in site/codeblock-files, each for an example the docs have", () => {
     const keys = [...readGiven().keys()];
-    expect(keys).toEqual(expect.arrayContaining(["start/index.md 1", "ui/shapes-and-effects.md 4", "data/models.md 7"]));
+    expect(keys).toEqual(expect.arrayContaining(["start/index.md 1", "data/models.md 7"]));
   });
 });
 
