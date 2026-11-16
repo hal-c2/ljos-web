@@ -361,8 +361,10 @@ test.describe("/demos/", () => {
       await expect(runButton(slot, "Pause the field guide")).toBeVisible({ timeout: 30_000 });
       // Pause is offered once the app is drawn, as it fades in over its
       // picture; its colours are its own once the fade is done and the
-      // picture gone, and before then axe reads them half blended.
-      await expect(slot.locator("img").first(), "the app has faded in over its picture").toBeHidden({ timeout: 10_000 });
+      // picture gone, and before then axe reads them half blended. A demo
+      // has a picture for each scheme, and the other scheme's is hidden
+      // all along, so it is the shown one that is waited for.
+      await expect(slot.locator("img:visible"), "the app has faded in over its picture").toHaveCount(0, { timeout: 10_000 });
       expect(await violations(page), `${scheme}, live, with Pause in its corner`).toEqual([]);
     }
   });
@@ -403,7 +405,7 @@ test.describe("with reduced motion", () => {
     // Drawn, and its picture gone: a first frame over the picture, or
     // the picture going, is not the shader moving.
     await expect.poll(() => shader.evaluate((canvas) => canvas.$effect?.$shader?.drawn() ?? 0), { message: "the shader draws", timeout: 30_000 }).toBeGreaterThan(0);
-    await expect(slot.locator("img").first(), "its picture is gone").toBeHidden({ timeout: 10_000 });
+    await expect(slot.locator("img:visible"), "its picture is gone").toHaveCount(0, { timeout: 10_000 });
     // Changing over two windows, one after the other: one frame painted
     // and then held would change the first at most.
     for (const window of ["first", "then"]) {
