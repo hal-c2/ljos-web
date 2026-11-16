@@ -152,7 +152,7 @@ export function assemble(blocks, { harnesses = {}, files } = {}) {
 function add(example, block, harnesses, files) {
   if (block.lang !== "qml" && !block.file)
     throw new Error(`line ${block.line}: a ${block.lang} block of an example needs file= to say which file it is`);
-  const name = block.file ?? "Main.qml";
+  const name = block.file == null ? "Main.qml" : spelled(block.file);
   // A file of an example stays in its project: a build writes these
   // names under a directory of its own, on a reader's machine and on
   // a build's alike.
@@ -165,8 +165,10 @@ function add(example, block, harnesses, files) {
     // The site's files are read from one directory of its own, so a name
     // that climbs out of it, or that only one system reads as a path,
     // would hand an example whatever is beside them.
-    for (const held of block.files.split(",")) {
-      if (!inside(held) || held.includes("\\")) throw new Error(`line ${block.line}: files=${held} is not a name inside files/`);
+    for (const written of block.files.split(",")) {
+      if (written.includes("\\")) throw new Error(`line ${block.line}: files=${written} is not a name inside files/`);
+      const held = spelled(written);
+      if (!inside(held)) throw new Error(`line ${block.line}: files=${written} is not a name inside files/`);
       const bytes = files?.(held);
       if (!bytes) throw new Error(`line ${block.line}: files=${held} is not among the site's files`);
       if (taken(held)) throw new Error(`line ${block.line}: two blocks are both ${held} of one example`);
@@ -184,10 +186,16 @@ function add(example, block, harnesses, files) {
   }
 }
 
-// The entry is `Main.qml` when an example has one, else its first QML
-// file as written.
+// A file's name as a request beside the example resolves it: `./a.png`
+// and `icons//ok.svg` are `a.png` and `icons/ok.svg`, so each file has one
+// name to be stored, found and told apart by.
+const spelled = (name) =>
+  name.startsWith("/") ? name : name.split("/").filter((part) => part !== "" && part !== ".").join("/");
+
 const inside = (name) => name !== "" && !name.startsWith("/") && !name.split("/").includes("..");
 
+// The entry is `Main.qml` when an example has one, else its first QML
+// file as written.
 function finish(example) {
   const qml = example.display.filter((file) => file.lang === "qml");
   example.entry = qml.find((file) => file.name === "Main.qml")?.name ?? qml[0]?.name ?? "Main.qml";

@@ -198,6 +198,11 @@ plain.describe("the fence contract", () => {
     expect(refused("files=photo.jpg", null)).toThrow(/files=photo.jpg is not among the site's files/);
     expect(refused("files=Main.qml", () => new Uint8Array([1]))).toThrow(/two blocks are both Main.qml/);
     expect(refused("file=Panel.qml group=g files=photo.jpg")).toThrow(/files= belongs on the example's root/);
+    // A name is the file's however it is spelled: `./photo.jpg` is the
+    // photo.jpg a request beside the file finds.
+    const [dotted] = assemble(extractBlocks("```qml files=./photo.jpg,icons//ok.svg\nRectangle {}\n```\n"), { files }).examples;
+    expect(Object.keys(dotted.given)).toEqual(["photo.jpg", "icons/ok.svg"]);
+    expect(refused("files=photo.jpg,./photo.jpg")).toThrow(/two blocks are both photo.jpg/);
   });
 
   plain("unknown and bare tags are not silently runnable", () => {
