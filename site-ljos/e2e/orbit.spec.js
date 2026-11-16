@@ -106,13 +106,12 @@ for (const renderer of ["js", "wgpu"]) {
       await page.waitForTimeout(1_000);
       expect(await turnOf(page), "hidden, the scene's clock holds still").toBe(held);
       await showTab(page, true);
-      await expect.poll(() => framesOver(page, WINDOW), { message: "drawn again once shown" }).toBeGreaterThan(0);
       // Paused, not stopped: a stopped animation starts again from
       // `from` (55), a snap back a reader sees. Shown again, the clock
-      // goes on forward from where it held, by the little time since.
-      const after = await turnOf(page);
-      expect(onFrom(held, after), "shown again, the scene goes on from where it was, not back at its start").toBeLessThan(90);
-      expect(onFrom(held, after), "and it goes on").toBeGreaterThan(0);
+      // goes on forward from where it held, read as soon as it moves.
+      await expect.poll(async () => onFrom(held, await turnOf(page)), { message: "shown again, the clock goes on" }).toBeGreaterThan(0);
+      expect(onFrom(held, await turnOf(page)), "shown again, the scene goes on from where it was, not back at its start").toBeLessThan(90);
+      await expect.poll(() => framesOver(page, WINDOW), { message: "drawn again once shown" }).toBeGreaterThan(0);
     });
   });
 }
