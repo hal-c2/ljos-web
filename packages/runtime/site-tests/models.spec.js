@@ -6,7 +6,7 @@ import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createRequire } from "node:module"; import { buildSite } from "../site.js";
 import { bundle, qmlc } from "./bundle.js";
-import { expect, serve, test } from "./served.js";
+import { expect, part, serve, shared, test } from "./served.js";
 
 // The site's copy of the file, by what it holds.
 function carried(directory, text) {
@@ -20,15 +20,15 @@ test.describe("a JsonListModel in a built site", () => {
   let made;
   let server;
 
-  test.beforeAll(async () => {
+  test.beforeAll(shared("build the site and serve it", async () => {
     made = bundle("models");
-    await buildSite({ dir: made.dir, out: made.out, qmlc });
-    server = await serve(made.out);
-  });
-  test.afterAll(async () => {
-    await server?.stop();
+    await part("build the site", () => buildSite({ dir: made.dir, out: made.out, qmlc }));
+    server = await part("serve it", () => serve(made.out));
+  }));
+  test.afterAll(shared("stop serving it and remove the bundle", async () => {
+    await part("stop serving it", () => server?.stop());
     made?.remove();
-  });
+  }));
 
   test("shows a row for each record of the file the site carries, fetched once", async ({ page }) => {
     const files = carried(made.out, PEOPLE);

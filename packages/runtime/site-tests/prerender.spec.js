@@ -7,7 +7,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { buildSite } from "../site.js";
 import { bundle, design, qmlc } from "./bundle.js";
-import { expect, part, serve, test } from "./served.js";
+import { expect, part, serve, shared, test } from "./served.js";
 
 for (const kernel of ["solid", "wasm"]) {
   test.describe(`a prerendered site on the ${kernel} kernel`, () => {
@@ -16,7 +16,7 @@ for (const kernel of ["solid", "wasm"]) {
     let server;
     let origin;
 
-    test.beforeAll(async () => {
+    test.beforeAll(shared("build the site and serve it", async () => {
       if (kernel === "wasm" && !existsSync(join(import.meta.dirname, "../kernel/ljos_web_kernel.wasm"))) {
         throw new Error("no wasm kernel beside the runtime: build it (`mise run build:kernel`)");
       }
@@ -24,18 +24,18 @@ for (const kernel of ["solid", "wasm"]) {
       const was = process.env.LJOS_KERNEL;
       process.env.LJOS_KERNEL = kernel;
       try {
-        await buildSite({ dir: made.dir, out: made.out, qmlc, prerender: true });
+        await part("build the site", () => buildSite({ dir: made.dir, out: made.out, qmlc, prerender: true }));
       } finally {
         if (was === undefined) delete process.env.LJOS_KERNEL;
         else process.env.LJOS_KERNEL = was;
       }
-      server = await serve(made.out);
+      server = await part("serve it", () => serve(made.out));
       origin = server.origin;
-    });
-    test.afterAll(async () => {
-      await server?.stop();
+    }));
+    test.afterAll(shared("stop serving it and remove the bundle", async () => {
+      await part("stop serving it", () => server?.stop());
       made?.remove();
-    });
+    }));
 
     test("the HTML the build wrote holds the page's text, link and count", () => {
       const html = readFileSync(join(made.out, "index.html"), "utf8");

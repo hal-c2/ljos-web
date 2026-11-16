@@ -9,8 +9,8 @@
 // requests still in flight and connections still open, what Node itself
 // still waits on, and how long Node's own work kept it from doing anything
 // else (a child process run to its end, as the compiler is, holds it).
-// A shared hook's parts, which no test watches, say so 2 s before the
-// hook's time runs out.
+// A shared hook, which no test watches, is given by `shared` and says so
+// 2 s before its time runs out, if it is still in a part.
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { createServer } from "node:http";
 import { extname, join, normalize } from "node:path";
@@ -32,10 +32,9 @@ const TYPES = {
 const NEAR = 2_000;
 
 // Every server listening, and what is watched now: a test's run, or a
-// shared hook's (`watch`).
+// shared hook's.
 const servers = new Set();
 let watched = null;
-const hooks = new WeakMap();
 
 // A static server of `directory` at `below`, on a port of its own, so that
 // tests run side by side. `headers(file)` gives a file's own headers.
@@ -88,13 +87,12 @@ export function serve(directory, { below = "/", headers = () => ({}) } = {}) {
   });
 }
 
-// One part of a test, as a step the report names and times. A part of a
-// shared hook (`beforeAll`, `afterAll`), which no test's fixture watches,
-// is watched by the hook's own watch.
+// One part of a test, or of a shared hook given by `shared`, as a step the
+// report names and times.
 export function part(title, run) {
-  const watch = watched ?? hookWatch();
+  if (!watched) throw new Error(`part "${title}" runs outside a test and outside a hook given by shared(): nothing would say where it stalled`);
   const at = { title, since: Date.now(), took: null };
-  watch.parts.push(at);
+  watched.parts.push(at);
   return test.step(title, async () => {
     try {
       return await run();
@@ -102,6 +100,23 @@ export function part(title, run) {
       at.took = Date.now() - at.since;
     }
   });
+}
+
+// A shared hook (`beforeAll`, `afterAll`), watched from its start: no
+// test's fixture runs around it, so it is its own. Its body is one part,
+// `title`, and the parts in it say which step it was in.
+export function shared(title, run) {
+  return async () => {
+    const was = watched;
+    const mine = (watched = watch(test.info(), { hook: true }));
+    try {
+      return await part(title, run);
+    } finally {
+      watched = was;
+      clearTimeout(mine.near);
+      mine.delay.disable();
+    }
+  };
 }
 
 // What runs for `info`: its parts, and how long Node's own work kept it
@@ -119,19 +134,10 @@ function watch(info, { hook = false } = {}) {
       if (hook && watch.parts.some(({ took }) => took === null)) {
         console.error(`${info.titlePath.join(" › ")}, a shared hook: ${NEAR / 1000} s before its time runs out\n${watch.late.join("\n")}`);
       }
-      if (hook) delay.disable();
     }, Math.max(info.timeout - NEAR, 0));
     watch.near.unref();
   }
   return watch;
-}
-
-// A hook's watch, from its first part, which is near when it starts.
-function hookWatch() {
-  const info = test.info();
-  let found = hooks.get(info);
-  if (!found) hooks.set(info, (found = watch(info, { hook: true })));
-  return found;
 }
 
 // What a test that did not pass was waiting for, as text.
