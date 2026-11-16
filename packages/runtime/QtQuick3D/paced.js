@@ -39,10 +39,13 @@ const REST = 1000;
 // taken to have finished by `busy + LATE` (`done`). Unless it was seen at
 // work once a frame of the page's was laid out: the browser waits there for
 // the GPU, so the gap is the GPU's, until that frame was made (`madeBy`),
-// where that was before `now`.
+// where that was before `now`. A frame begun before the GPU was last seen at
+// work may have begun before the picture was even drawn: the GPU was busy
+// until `busy` at least.
 export const POLL = 4;
 const LATE = 8;
-export const done = (busy, now, madeBy = null) => Math.min(now, madeBy ?? busy + LATE);
+export const done = (busy, now, madeBy = null) =>
+  Math.min(now, madeBy == null ? busy + LATE : Math.max(busy, madeBy));
 // Whether a fence was seen done late: something held the page between the
 // last two checks, the page or the browser waiting for the GPU.
 export const late = (busy, now) => now - busy > LATE;
