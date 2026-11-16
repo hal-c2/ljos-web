@@ -5,6 +5,7 @@
 import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { expect, test } from "./open.js";
+import { gpu, narrowed } from "./raster.js";
 
 const opened = async (page, scene = "inspectpictured") => {
   await page.goto(`/?scene=${scene}&inspect`);
@@ -12,8 +13,9 @@ const opened = async (page, scene = "inspectpictured") => {
 };
 
 // The root's picture and the page's own screenshot of the root, each read
-// at `points` (logical pixels of the root), and how many of all their
-// pixels are not alike.
+// at `points` (logical pixels of the root), how many of all their pixels
+// are not alike, and how many of those are not at an edge of the page's:
+// within a logical pixel of one of its pixels far from their own colour.
 async function compared(page, points, options = {}) {
   const box = await page.evaluate(() => {
     const { x, y, width, height } = window.scene.$node.getBoundingClientRect();
@@ -38,13 +40,27 @@ async function compared(page, points, options = {}) {
         const index = (Math.floor(y * scale) * image.width + Math.floor(x * scale)) * 4;
         return Array.from(image.data.slice(index, index + 3)).join(" ");
       };
+      const apart = (one, at, other, there) => [0, 1, 2].some((channel) => Math.abs(one.data[at + channel] - other.data[there + channel]) > 24);
+      const reach = Math.ceil(reference.width / window.scene.width);
+      const edge = (index) => {
+        const x = (index / 4) % reference.width;
+        const y = Math.floor(index / 4 / reference.width);
+        for (let dy = -reach; dy <= reach; dy++)
+          for (let dx = -reach; dx <= reach; dx++) {
+            const [nx, ny] = [x + dx, y + dy];
+            if (nx >= 0 && ny >= 0 && nx < reference.width && ny < reference.height && apart(reference, index, reference, (ny * reference.width + nx) * 4)) return true;
+          }
+        return false;
+      };
       let unlike = 0;
+      let offEdge = 0;
       if (picture.width === reference.width && picture.height === reference.height) {
-        for (let index = 0; index < picture.data.length; index += 4) {
-          const far = [0, 1, 2].some((channel) => Math.abs(picture.data[index + channel] - reference.data[index + channel]) > 24);
-          if (far) unlike++;
-        }
-      } else unlike = -1;
+        for (let index = 0; index < picture.data.length; index += 4)
+          if (apart(picture, index, reference, index)) {
+            unlike++;
+            if (!edge(index)) offEdge++;
+          }
+      } else unlike = offEdge = -1;
       return {
         png: [...taken.png.slice(0, 8)],
         width: taken.width,
@@ -54,6 +70,7 @@ async function compared(page, points, options = {}) {
         area: taken.area,
         decoded: [picture.width, picture.height],
         unlike: unlike / (picture.width * picture.height),
+        offEdge,
         picture: points.map((point) => at(picture, point)),
         page: points.map((point) => at(reference, point)),
       };
@@ -101,8 +118,13 @@ for (const deviceScaleFactor of [1, 2]) {
       const named = (pixels) => Object.fromEntries(DRAWN.map(([what], index) => [what, pixels[index]]));
       expect(named(taken.picture)).toEqual(named(taken.page));
       for (const [what, , colour] of DRAWN) if (colour) expect(named(taken.picture)[what], what).toBe(colour);
-      // And everywhere else: no pixel is far from the page's.
-      expect(taken.unlike).toBe(0);
+      // And everywhere else: no pixel is far from the page's. A GPU's
+      // compositor smooths the turned square's edge otherwise than a
+      // canvas does: there, only the pixels of an edge may differ.
+      expect(taken.offEdge).toBe(0);
+      const renderer = await gpu(page);
+      if (renderer && taken.unlike > 0) narrowed(test.info(), renderer, `${(taken.unlike * 100).toFixed(2)}% of the pixels, all at an edge, are smoothed otherwise than a canvas smooths them`);
+      else expect(taken.unlike).toBe(0);
     });
   });
 }
