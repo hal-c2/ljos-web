@@ -32,7 +32,8 @@ vec3 ramp(float v) {
         crest = vec3(0.92, 0.97, 0.78);
     } else if (which == 3) {
         // The light ones keep the darkest of what a ramp shows pale, so
-        // the dark words drawn over them stay readable.
+        // the dark words drawn over them stay readable: the muted caption
+        // (#3d4454) is at 5:1 or more on every stop of all three.
         deep = vec3(0.94, 0.95, 0.97);
         mid = vec3(0.66, 0.78, 0.92);
         crest = vec3(0.99, 0.82, 0.52);

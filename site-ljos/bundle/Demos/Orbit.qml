@@ -45,10 +45,13 @@ Rectangle {
         id: look
         readonly property bool dark: Application.styleHints.colorScheme === Qt.ColorScheme.Dark
         readonly property color canvas: dark ? "#12141b" : "#f6f4ee"
-        // The captions lie on the scene's ground, which is dark in either
-        // scheme: they keep the light they were drawn in.
-        readonly property color onGround: "#c9cfdd"
-        readonly property color onGroundMuted: "#8b93a7"
+        // The captions sit on pills of their own, dark in either scheme,
+        // because the reader can orbit or zoom until the sky or the lit
+        // water is behind them: light text on the pill stays at 4.5:1 or
+        // more whatever the scene shows through it.
+        readonly property color pill: "#e612141b"
+        readonly property color onPill: "#c9cfdd"
+        readonly property color onPillMuted: "#aeb6c9"
         readonly property color sky: dark ? "#14161f" : "#cfdae8"
     }
 
@@ -252,20 +255,36 @@ Rectangle {
         }
     }
 
-    Text {
+    Rectangle {
         anchors.left: parent.left
         anchors.bottom: parent.bottom
-        anchors.margins: 14
-        color: look.onGround
-        font.pixelSize: 14
-        text: qsTr("Drag to orbit · scroll or pinch to zoom")
+        anchors.margins: 10
+        width: hint.implicitWidth + 16
+        height: hint.implicitHeight + 8
+        radius: height / 2
+        color: look.pill
+        Text {
+            id: hint
+            anchors.centerIn: parent
+            color: look.onPill
+            font.pixelSize: 14
+            text: qsTr("Drag to orbit · scroll or pinch to zoom")
+        }
     }
-    Text {
+    Rectangle {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        anchors.margins: 14
-        color: look.onGroundMuted
-        font.pixelSize: 13
-        text: qsTr("One QML file, drawn by Ljós's 3D renderer")
+        anchors.margins: 10
+        width: credit.implicitWidth + 16
+        height: credit.implicitHeight + 8
+        radius: height / 2
+        color: look.pill
+        Text {
+            id: credit
+            anchors.centerIn: parent
+            color: look.onPillMuted
+            font.pixelSize: 13
+            text: qsTr("One QML file, drawn by Ljós's 3D renderer")
+        }
     }
 }
