@@ -65,11 +65,13 @@ export const Screen = defineType("Screen", QtObject, {
       if (b === ScreenOrientation.PrimaryOrientation) b = this.primaryOrientation;
       return ((((Math.log2(a) - Math.log2(b)) % 4) + 4) % 4) * 90;
     },
-    // The whole pixels for `n` points on this screen: a point is a 72nd of
-    // an inch, and the screen's logical inch holds `logicalPixelDensity`
-    // millimetres' worth of pixels. 12 points are 16 pixels at 96 to the inch.
+    // The pixels for `n` points on this screen, exact as ljos-ui's are: a
+    // point is a 72nd of an inch, and the screen's logical inch is
+    // `logicalPixelDensity` × 25.4 pixels, trimmed of float noise. 12 points
+    // are 16 pixels at 96 to the inch; a font given a size between two
+    // whole pixels rounds it itself.
     points(n) {
-      return Math.round((n * this.logicalPixelDensity * 25.4) / 72);
+      return (n * (Math.round(this.logicalPixelDensity * 25.4 * 1e6) / 1e6)) / 72;
     },
   },
   setup(self) {
