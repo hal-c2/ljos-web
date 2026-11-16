@@ -189,36 +189,46 @@ test("with script, a plain press shows the page in place, and back shows the one
 // pressed on its first line, not the middle of the box around both.
 // The drag is a finger's: a mouse drag never scrolls the page, so a
 // drag that starts in a live example stays the example's (da87b14).
-test("with script, a press on a link in a page's words shows that page, and a finger's drag from it scrolls", async ({ page }) => {
-  await page.goto(`${base}start/`);
-  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
-  const words = page.locator("a[data-link]", { hasText: "ljos observe" }).first();
-  const firstLine = async () => {
-    await words.scrollIntoViewIfNeeded();
-    return words.evaluate((link) => {
-      const { x, y, width, height } = link.getClientRects()[0];
-      return { x: x + width / 2, y: y + height / 2 };
-    });
-  };
-  const at = await firstLine();
-  await page.mouse.click(at.x, at.y);
-  await expect(page).toHaveURL(`${origin}${base}start/observe/`);
-  await page.goBack();
-  await expect(page).toHaveURL(`${origin}${base}start/`);
-  const from = await firstLine();
-  // Through the browser's own touch input, as a reader's finger: the
-  // page's scroll under a finger is the browser's, not the scene's.
-  const cdp = await page.context().newCDPSession(page);
-  const finger = (y) => [{ x: from.x, y, id: 1 }];
-  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: finger(from.y) });
-  for (let step = 1; step <= 8; step++) {
-    await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: finger(from.y - 10 * step) });
-    await page.waitForTimeout(16);
-  }
-  await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-  await cdp.detach();
-  await expect.poll(async () => (await words.evaluate((link) => link.getClientRects()[0].y))).toBeLessThan(from.y - 20);
-  await expect(page).toHaveURL(`${origin}${base}start/`);
+// Its context has touch, as a phone's has, so the browser takes the
+// finger as a reader's and not as touch it was never told it had.
+test.describe("with touch", () => {
+  test.use({ hasTouch: true });
+  test("with script, a press on a link in a page's words shows that page, and a finger's drag from it scrolls", async ({ page }) => {
+    await page.goto(`${base}start/`);
+    await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+    const words = page.locator("a[data-link]", { hasText: "ljos observe" }).first();
+    const firstLine = async () => {
+      await words.scrollIntoViewIfNeeded();
+      return words.evaluate((link) => {
+        const { x, y, width, height } = link.getClientRects()[0];
+        return { x: x + width / 2, y: y + height / 2 };
+      });
+    };
+    const at = await firstLine();
+    await page.mouse.click(at.x, at.y);
+    await expect(page).toHaveURL(`${origin}${base}start/observe/`);
+    await page.goBack();
+    await expect(page).toHaveURL(`${origin}${base}start/`);
+    const from = await firstLine();
+    // Through the browser's own touch input, as a reader's finger: the
+    // page's scroll under a finger is the browser's, not the scene's.
+    // The session is let go even when a step fails, so it never outlives
+    // the test.
+    const cdp = await page.context().newCDPSession(page);
+    try {
+      const finger = (y) => [{ x: from.x, y, id: 1 }];
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: finger(from.y) });
+      for (let step = 1; step <= 8; step++) {
+        await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: finger(from.y - 10 * step) });
+        await page.waitForTimeout(16);
+      }
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    } finally {
+      await cdp.detach();
+    }
+    await expect.poll(async () => (await words.evaluate((link) => link.getClientRects()[0].y))).toBeLessThan(from.y - 20);
+    await expect(page).toHaveURL(`${origin}${base}start/`);
+  });
 });
 
 // Where a link of the page is, down it: it moves up as the page is
