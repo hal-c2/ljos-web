@@ -272,10 +272,20 @@ Text {
     color: "#e8eaf0"
     property string read: "…"
     property string kept: "…"
-    text: read + " / " + kept
+    property string later: "…"
+    // Aborted on a timer, once the body has long been ready, then read.
+    property var waited: new AbortController()
+    property var held: null
+    Timer {
+        id: wait
+        interval: 50
+        onTriggered: { waited.abort(); held.text().then(() => later = "read", (e) => later = e.name); }
+    }
+    text: read + " / " + kept + " / " + later
     Component.onCompleted: {
         const user = new AbortController();
         fetch("rows.json", { signal: user.signal }).then((r) => { user.abort(); return r.text(); }).then(() => read = "read", (e) => read = e.name);
+        fetch("rows.json", { signal: waited.signal }).then((r) => { held = r; wait.start(); });
         const asked = new Request(Qt.resolvedUrl("rows.json"), { signal: AbortSignal.abort() });
         fetch(asked, { signal: null }).then((r) => r.json()).then((j) => kept = j.rows.length + " rows", (e) => kept = e.name);
     }
