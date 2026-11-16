@@ -49,6 +49,26 @@ async function started(page, heading) {
   return slot;
 }
 
+// What Orbit's view says of itself, for a check of its drawing that fails:
+// which renderer on what, how far it got, and any error.
+async function drawingOf(canvas) {
+  return canvas.evaluate((canvas) => {
+    const view = canvas.$view3d;
+    return `${view?.renderer} on ${view?.backend}: ${view?.frames} frames, error ${view?.error ?? "none"}`;
+  });
+}
+
+// The picture keeps changing, and if it does not, the failure says what
+// the view was doing.
+async function keepsDrawing(canvas) {
+  try {
+    await expectFramesAdvance(canvas);
+  } catch (error) {
+    error.message += `\n  Orbit: ${await drawingOf(canvas)}`;
+    throw error;
+  }
+}
+
 test.describe("/demos/", () => {
   test("loads with nothing in its console", async ({ page, errors }) => {
     await settled(page, "/demos/");
@@ -76,18 +96,20 @@ test.describe("/demos/", () => {
       .poll(() => orbit.locator("canvas.qq-view3d").evaluate((canvas) => canvas.$view3d?.frames ?? 0), { message: "Orbit has drawn", timeout: 30_000 })
       .toBeGreaterThan(0);
     await expect(orbit.locator("img:visible"), "its picture is gone").toHaveCount(0, { timeout: 10_000 });
-    await expectFramesAdvance(orbit.locator("canvas").first());
+    await keepsDrawing(orbit.locator("canvas.qq-view3d"));
     await expect.poll(() => orbit.locator("canvas.qq-view3d").evaluate((canvas) => canvas.$view3d?.frames ?? 0)).toBeGreaterThan(10);
   });
 
   test("Orbit is drawn by the renderer the page names", async ({ page, wasm }) => {
     await settled(page, "/demos/");
     const orbit = await started(page, "3D you can orbit");
-    // wgpu draws on WebGPU where the browser has it, else on WebGL2; a
-    // browser without WebAssembly draws with the JavaScript renderer.
+    // wgpu is every View3D's renderer where WebGPU gives it an adapter; a
+    // browser with none, as a headless one on a machine without a GPU, or
+    // without WebAssembly, has it drawn by the JavaScript renderer.
+    const adapter = await page.evaluate(async () => !!(await globalThis.navigator.gpu?.requestAdapter().catch(() => null)));
     await expect
-      .poll(() => orbit.locator("canvas.qq-view3d").evaluate((canvas) => canvas.$view3d?.renderer), { message: `the renderer, ${wasm ? "with" : "without"} WebAssembly` })
-      .toBe(wasm ? "wgpu" : "js");
+      .poll(() => orbit.locator("canvas.qq-view3d").evaluate((canvas) => canvas.$view3d?.renderer), { message: `the renderer, ${wasm ? "with" : "without"} WebAssembly, ${adapter ? "with" : "without"} a WebGPU adapter` })
+      .toBe(wasm && adapter ? "wgpu" : "js");
     // The renderer is named before it has started, so a failure to start
     // comes after: it has drawn, or failed, before its error says anything.
     // A failure is reported as itself, not as a wait that ran out.
@@ -221,7 +243,7 @@ test.describe("the front page", () => {
     await centre(headingOf(page, "See it run"));
     const canvas = page.locator("canvas.qq-view3d").first();
     await centre(canvas);
-    await expectFramesAdvance(canvas);
+    await keepsDrawing(canvas);
     expect(unexpected(errors)).toEqual([]);
   });
 });

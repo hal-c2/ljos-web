@@ -111,10 +111,10 @@ pnpm --filter ljos-site-ljos test
 pnpm --filter ljos-site-ljos test:e2e  # serves dist/ itself
 ```
 
-The 3D demos are drawn by wgpu's renderer, as CI builds them
-(`VITE_LJOS_VIEW3D=wgpu`, after `mise run build:wasm-3d`); without
-it they are drawn by the JavaScript one. Either way a browser
-without WebGPU draws them on WebGL2.
+The 3D demos are drawn by wgpu's renderer wherever the browser's
+WebGPU gives it an adapter (after `mise run build:wasm-3d`), and by
+the JavaScript one on WebGL2 where it does not, or where the browser
+has no WebAssembly. `?view3d=` or `VITE_LJOS_VIEW3D` asks for one.
 
 ## What runs, and when
 
