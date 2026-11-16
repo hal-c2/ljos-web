@@ -375,13 +375,25 @@ fn a_file_that_reads_symbol_custom_matcher_imports_the_sugar_that_defines_it() {
     let main = given(
         r#"import QtQuick
 import "even.lts" as Even
+import "odd.lts" as Odd
 Item {
   readonly property bool keyed: Even.Even[Symbol.customMatcher] !== undefined
+  readonly property bool odd: Odd.Odd !== undefined
 }"#,
     );
-    let files = [("Main.qml", main), ("even.lts", even)];
+    // The bracket spelling is the same read.
+    let odd = given(
+        r#"export class Odd {
+  static [Symbol["customMatcher"]](n: number): boolean {
+    return n % 2 === 1;
+  }
+}"#,
+    );
+    let files = [("Main.qml", main), ("even.lts", even), ("odd.lts", odd)];
     let even = code_of(&files, "Main.qml", "even.lts");
     assert_contains(&even, r#"import "ljos-web/compiler/sugar";"#);
+    let odd = code_of(&files, "Main.qml", "odd.lts");
+    assert_contains(&odd, r#"import "ljos-web/compiler/sugar";"#);
     let main = code_of(&files, "Main.qml", "Main.qml");
     assert_contains(&main, r#"import "ljos-web/compiler/sugar";"#);
 }
