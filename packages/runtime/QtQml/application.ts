@@ -169,19 +169,27 @@ const StyleHints = defineType("StyleHints", QtObject, {
     // The scheme the browser asks pages for, until the program sets its
     // own — or the page's own choice, where its root says one
     // (`<html data-ljos-scheme="dark">`, the attribute a prerendered
-    // page in both schemes is shown by), so the page is made in the
-    // scheme it was first shown in.
+    // page in both schemes is shown by, and a reader's pick is said
+    // with while the page is open), which wins over the browser's.
     const dark = matchMedia("(prefers-color-scheme: dark)");
     const root = document.documentElement;
-    const chosen = root?.getAttribute?.("data-ljos-scheme");
     const scheme = slot(self, "colorScheme");
-    const asked = () => (dark.matches ? ColorScheme.Dark : ColorScheme.Light);
-    scheme.provide(chosen === "dark" ? ColorScheme.Dark : chosen === "light" ? ColorScheme.Light : asked());
-    if (chosen !== "dark" && chosen !== "light") {
-      listen(dark, "change", () => {
-        scheme.provide(asked());
-        flush();
-      });
+    const said = () => {
+      const chosen = root?.getAttribute?.("data-ljos-scheme");
+      if (chosen === "dark") return ColorScheme.Dark;
+      if (chosen === "light") return ColorScheme.Light;
+      return dark.matches ? ColorScheme.Dark : ColorScheme.Light;
+    };
+    scheme.provide(said());
+    const follow = () => {
+      scheme.provide(said());
+      flush();
+    };
+    listen(dark, "change", follow);
+    if (root && typeof MutationObserver === "function") {
+      const watch = new MutationObserver(follow);
+      watch.observe(root, { attributes: true, attributeFilter: ["data-ljos-scheme"] });
+      onCleanup(() => watch.disconnect());
     }
   },
 });

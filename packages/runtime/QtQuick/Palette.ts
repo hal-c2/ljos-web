@@ -8,6 +8,7 @@ import { defineType, derived, group, QtObject, slot } from "../object.ts";
 import type { QObject, Resolve } from "../object.ts";
 import { color, colorValue } from "./color.ts";
 import { untrack } from "#kernel";
+import { styleHints } from "../QtQml/application.ts";
 
 type Role = keyof typeof ACTIVE;
 type Colours = Record<Role, string>;
@@ -61,9 +62,52 @@ const DISABLED = {
   accent: "#919191",
 };
 
+// Qt 6.11: Fusion's dark palette is not measured (the oracle cannot be put
+// in a dark scheme), so a dark scheme answers with Basic's dark colours,
+// as ljos-ui's palette does (ljos_quick palette.rs): a palette nobody set
+// follows the reader's scheme, and what is drawn with it stays readable.
+const DARK_ACTIVE: Colours = {
+  alternateBase: "#2b2b2b",
+  base: "#000000",
+  brightText: "#000000",
+  button: "#2f2f2f",
+  buttonText: "#d4d6d8",
+  dark: "#c8c9cb",
+  highlight: "#0d69f2",
+  highlightedText: "#fdfdfd",
+  light: "#1a1a1a",
+  link: "#2f86b1",
+  linkVisited: "#ff00ff",
+  mid: "#626262",
+  midlight: "#2c2c2c",
+  shadow: "#28282a",
+  text: "#eff0f2",
+  toolTipBase: "#000000",
+  toolTipText: "#ffffff",
+  window: "#000000",
+  windowText: "#d4d6d8",
+  placeholderText: "#88c8c9cb",
+  accent: "#308cc6",
+};
+
+const DARK_DISABLED: Colours = {
+  ...DARK_ACTIVE,
+  base: "#292929",
+  brightText: "#4d000000",
+  buttonText: "#4dd4d6d8",
+  highlight: "#01060f",
+  text: "#7fc8c9cb",
+  windowText: "#3f4040",
+  accent: "#919191",
+};
+
 const ROLES = Object.keys(ACTIVE) as Role[];
 // An inactive window is painted as an active one.
-const NUMBERS: Record<string, Colours> = { active: ACTIVE, inactive: ACTIVE, disabled: DISABLED };
+const LIGHT: Record<string, Colours> = { active: ACTIVE, inactive: ACTIVE, disabled: DISABLED };
+const DARK: Record<string, Colours> = { active: DARK_ACTIVE, inactive: DARK_ACTIVE, disabled: DARK_DISABLED };
+// The colours of the scheme in use (`Qt::ColorScheme::Dark` is 2), read
+// where a colour is, so it changes as the scheme does.
+const numbers = () => (styleHints().colorScheme === 2 ? DARK : LIGHT);
 
 const each = <T,>(make: (role: Role) => T): Record<Role, T> => Object.fromEntries(ROLES.map((role) => [role, make(role)])) as Record<Role, T>;
 
@@ -99,7 +143,7 @@ function said(self: Paletted | null | undefined, name: string, role: Role): unkn
 const part = (name: string) =>
   group(
     each((role) =>
-      derived((self: Paletted) => common(self, role) ?? said(self.$from?.(), name, role) ?? (self.$base?.() ?? NUMBERS)[name]![role]),
+      derived((self: Paletted) => common(self, role) ?? said(self.$from?.(), name, role) ?? (self.$base?.() ?? numbers())[name]![role]),
     ),
   );
 
@@ -112,7 +156,7 @@ const resolve: Record<string, Resolve> = each(
     (self) =>
       (self[(self as Paletted).$group?.() ?? "active"] as Colours)[role],
 );
-for (const name of Object.keys(NUMBERS)) {
+for (const name of Object.keys(LIGHT)) {
   for (const role of ROLES) resolve[`${name}$${role}`] = colorValue;
 }
 
@@ -153,7 +197,7 @@ export const SystemPalette = defineType("SystemPalette", QtObject, {
         "highlightedText",
         "placeholderText",
         "accent",
-      ].map((role) => [role, derived((self) => color(NUMBERS[GROUPS[self.colorGroup as number] ?? "active"]![role as Role]))]),
+      ].map((role) => [role, derived((self) => color(numbers()[GROUPS[self.colorGroup as number] ?? "active"]![role as Role]))]),
     ),
   },
   enums: { Active: 0, Disabled: 1, Inactive: 2 },
