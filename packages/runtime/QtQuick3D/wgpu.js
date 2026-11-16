@@ -23,7 +23,7 @@ import { CustomMaterial } from "./CustomMaterial.js";
 import { handed, text } from "./effects.js";
 import { inside } from "./Node.js";
 import { done, paced, POLL } from "./paced.js";
-import { fetched } from "./scene.js";
+import { fetched, taken } from "./scene.js";
 import { Format } from "./TextureData.js";
 
 // Which renderer a View3D has is said where the page asks for it early.
@@ -477,9 +477,12 @@ class Host {
   }
   // The page's own fetch, which what it makes of the file shares.
   async fetched(url) {
-    const file = fetched(located(url));
+    const address = located(url);
+    const file = fetched(address);
     await file.done;
     if (file.failed) throw file.failed.told ?? file.failed;
+    // The wasm keeps a copy of what this gives it.
+    taken(address, file);
     return new Uint8Array(file.bytes);
   }
   report(url, error) {
@@ -689,6 +692,9 @@ export function drawOn(self, canvas, told, instead) {
       // Before the renderer is fetched or the canvas taken, so what draws
       // instead has both.
       if (instead && !(await adapted())) {
+        // A view let go while WebGPU was asked has no owner left for what
+        // draws instead to live under.
+        if (gone) return;
         gone = true;
         instead();
         // What took the view's picture asks it again, of what draws now.

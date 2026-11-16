@@ -169,7 +169,10 @@ test("a model with a skin is bent by its joints as Qt bends it", async ({ page }
   await expect.poll(async () => (await pixels(page, [at[0]]))[0]).toBe("255 0 0");
   const painted = (await pixels(page, at)).map((colour) => colour.split(" ").map(Number));
   near(painted, points.map(([, colour]) => colour), "", 3);
-  // What it says its bounds are is the mesh's, bent or not.
+  // What it says its bounds are is the mesh's, bent or not. The page reads
+  // the mesh only once its bounds are asked, which may be after the wasm
+  // has drawn it and let its bytes go, so they come a fetch later.
+  await expect.poll(async () => (await page.evaluate(() => window.scene.read())).bounds[1][1]).toBe(200);
   near(await page.evaluate(() => window.scene.read()), { bounds: [[-20, 0, 0], [20, 200, 0]] });
 });
 

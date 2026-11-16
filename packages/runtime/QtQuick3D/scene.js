@@ -37,27 +37,45 @@ export function linear(value) {
 
 // A file's bytes, fetched once for both renderers: the wgpu one hands them
 // to its wasm, and what the page makes of them (a Model's bounds) is made
-// from the same fetch. The bytes are kept until the page has made something
-// of them, which it does at once if they are here when asked; one who
-// holds them still has them after. A failure is not kept: whoever asks
+// from the same fetch. The bytes are held only while one who asked has yet
+// to take them: the page once it has made something of them (`file`), the
+// wasm once it has its copy (`taken`), whichever is last. Most of what the
+// wasm reads (a texture, a glTF and its buffers) the page never makes
+// anything of, so it is let go as soon as the wasm has it. One who holds
+// the record still has the bytes after. A failure is not kept: whoever asks
 // after it reads the file again.
 const fetches = new Map();
 export function fetched(url) {
   let made = fetches.get(url);
   if (made) return made;
-  made = { bytes: null, failed: null };
+  made = { bytes: null, failed: null, wanted: false };
   made.done = guardedFetch(url)
     .then((answer) => (answer.ok ? answer.arrayBuffer() : Promise.reject(Object.assign(new Error(`${answer.status}`), { told: `${answer.status} ${answer.statusText}` }))))
     .then(
       (bytes) => void (made.bytes = bytes),
       (error) => {
         made.failed = error;
-        if (fetches.get(url) === made) fetches.delete(url);
+        release(url, made);
       },
     );
   fetches.set(url, made);
   return made;
 }
+
+// The wasm has its copy of `made`: let it go, unless the page is still to
+// make something of it.
+export function taken(url, made) {
+  if (!made.wanted) release(url, made);
+}
+
+// Only this fetch: a later one of the same file is another's to let go.
+function release(url, made) {
+  if (fetches.get(url) === made) fetches.delete(url);
+}
+
+// How many files' bytes are held for one who has yet to take them: what a
+// test asks.
+export const held = () => fetches.size;
 
 // A file, once read: one record for everything that names it. `state()` is
 // null until it is here, then what `took` made of it, or `{ error }`.
@@ -67,6 +85,7 @@ export function file(url, kind, took) {
   let record = files.get(key);
   if (record) return record;
   const bytes = fetched(url);
+  bytes.wanted = true;
   const make = () => {
     try {
       if (bytes.failed) return { error: `could not be read: ${bytes.failed.message}` };
@@ -74,7 +93,7 @@ export function file(url, kind, took) {
     } catch (error) {
       return { error: `could not be read: ${error.message}` };
     } finally {
-      fetches.delete(url);
+      release(url, bytes);
     }
   };
   if (bytes.bytes || bytes.failed) {
