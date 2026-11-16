@@ -374,6 +374,14 @@ test.describe("/demos/", () => {
     await expect(page.getByRole("checkbox", { name: "Reduce motion" }), "the choice is kept").toBeChecked();
     await press(page.getByRole("checkbox", { name: "Reduce motion" }));
     await expect(page.getByRole("checkbox", { name: "Reduce motion" })).not.toBeChecked();
+    // Full motion was chosen, though the browser asks for none less: the
+    // choice still stands once the browser asks for less, now and on the
+    // next load.
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await expect(page.getByRole("checkbox", { name: "Reduce motion" }), "the browser asking for less does not undo the reader's choice").not.toBeChecked();
+    await page.reload();
+    await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+    await expect(page.getByRole("checkbox", { name: "Reduce motion" }), "the reader's choice is kept over the browser's").not.toBeChecked();
   });
 });
 
