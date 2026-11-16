@@ -13,7 +13,7 @@ const scene = (page) => page.locator("canvas.qq-view3d").first();
 
 // Without input any frame is the scene moving; how many there are is
 // the machine's: a software renderer under load rests after each slow
-// picture (View3D's SLOW/REST) and draws a few a second.
+// picture (`paced` in QtQuick3D/wgpu.js) and draws a few a second.
 const WINDOW = 2_500;
 // What a stopped view may still draw: the one picture it was resting
 // before, at most a slow picture's time and its rest.
@@ -21,8 +21,8 @@ const SETTLE = 2_500;
 
 // Frames the view drew over `ms`, counted in the page, while the test
 // does nothing at all.
-function framesOver(page, ms) {
-  return scene(page).evaluate(
+async function framesOver(page, ms) {
+  const frames = await scene(page).evaluate(
     (canvas, ms) =>
       new Promise((resolve) => {
         const from = canvas.$view3d.frames;
@@ -30,14 +30,63 @@ function framesOver(page, ms) {
       }),
     ms,
   );
+  saw(`${frames} frames over ${ms} ms`);
+  return frames;
 }
 
-// The one scroll a reader makes to the showcase; nothing after it.
+// The one scroll a reader makes to the showcase; nothing after it. The
+// view keeps how long its last pictures took to draw, for a test that
+// fails to say.
 async function reach(page, route) {
   await open(page, route);
   await showcase(page).evaluate((element) => element.scrollIntoView({ block: "start" }));
   await expect(scene(page), "the scene is made once it is on screen").toBeAttached({ timeout: 30_000 });
+  await scene(page).evaluate((canvas) => {
+    const drawn = (canvas.$drawnTimes = []);
+    canvas.$view3d.probe = (kind, from, to) => {
+      if (kind !== "draw") return;
+      drawn.push([Math.round(from), Math.round(to - from)]);
+      if (drawn.length > 12) drawn.shift();
+    };
+  });
   await expect.poll(() => scene(page).evaluate((canvas) => canvas.$view3d?.frames ?? 0), { message: "the scene draws", timeout: 30_000 }).toBeGreaterThan(0);
+}
+
+// What the test saw, in order, as it saw it: a test that runs out of time
+// says what it was waiting for and how long each look took.
+let seen = [];
+const saw = (what) => seen.push(`${(performance.now() / 1000).toFixed(1)} s: ${what}`);
+test.beforeEach(() => {
+  seen = [];
+});
+test.afterEach(async ({ page }, testInfo) => {
+  if (testInfo.status === testInfo.expectedStatus) return;
+  // A page kept busy may not answer: what it says is read for 5 s at most.
+  const view = await Promise.race([
+    scene(page)
+      .evaluate((canvas) => {
+        const now = performance.now();
+        const view = canvas.$view3d;
+        const drawn = (canvas.$drawnTimes ?? []).map(([from, took]) => `${took} ms, ${Math.round(now - from)} ms ago`);
+        return `${view?.renderer} on ${view?.backend}: ${view?.frames} frames, turn ${view?.view.parent.turn?.toFixed(1)}°, error ${view?.error}; last pictures took ${drawn.join("; ") || "none"}`;
+      })
+      .catch((error) => `not read: ${error.message.split("\n")[0]}`),
+    new Promise((done) => setTimeout(() => done("the page did not answer in 5 s"), 5_000)),
+  ]);
+  const body = [...seen, `the view: ${view}`].join("\n");
+  await testInfo.attach("what it saw", { body, contentType: "text/plain" });
+  // The report shows an attachment's first lines only.
+  console.error(`${testInfo.titlePath.join(" › ")}: what it saw\n${body}`);
+});
+
+// The scene's picture, with how long it took to take and what the view had
+// drawn by then.
+async function shot(page) {
+  const from = performance.now();
+  const picture = await scene(page).screenshot();
+  const [frames, turn] = await scene(page).evaluate((canvas) => [canvas.$view3d.frames, canvas.$view3d.view.parent.turn]);
+  saw(`a picture taken in ${Math.round(performance.now() - from)} ms, at ${frames} frames, turn ${turn.toFixed(1)}°`);
+  return picture;
 }
 
 // The scene's clock: Orbit's `turn`, read from the View3D the canvas
@@ -75,8 +124,8 @@ for (const renderer of ["js", "wgpu"]) {
       // does not pass on that.
       expect(await framesOver(page, WINDOW), "frames are drawn while nobody touches the page").toBeGreaterThan(0);
       expect(await framesOver(page, WINDOW), "and go on being drawn").toBeGreaterThan(0);
-      const before = await scene(page).screenshot();
-      await expect.poll(async () => Buffer.compare(before, await scene(page).screenshot()) !== 0, { message: "the picture changes" }).toBe(true);
+      const before = await shot(page);
+      await expect.poll(async () => Buffer.compare(before, await shot(page)) !== 0, { message: "the picture changes" }).toBe(true);
     });
 
     test("with less motion asked for, the scene still moves", async ({ page }) => {
