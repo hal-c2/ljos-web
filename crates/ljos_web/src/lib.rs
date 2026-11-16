@@ -18,6 +18,7 @@ pub mod files;
 pub mod given;
 pub use qml_front::discover;
 mod lower;
+pub mod message;
 mod project;
 mod quick;
 mod registry;

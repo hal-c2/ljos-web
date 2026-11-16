@@ -37,13 +37,26 @@ use oxc_ast::ast::{
     TSThisParameter, TSTypeAnnotation, TSTypeAssertion, TSTypeParameterDeclaration,
     TSTypeParameterInstantiation,
 };
-use oxc_ast_visit::{Visit, walk};
+use oxc_ast::ast::{Expression, Program};
+use oxc_ast_visit::{Visit, VisitMut, walk, walk_mut};
 use oxc_parser::Parser;
 use oxc_semantic::SemanticBuilder;
 use oxc_span::{GetSpan, SourceType, Span};
 
-use super::names::{FETCH_GLOBALS, JS_GLOBALS, PLACED_GLOBALS, SUGAR_GLOBALS};
-use crate::{Error, Options, build::B, parse_errors};
+use super::{
+    messages,
+    names::{CORE, CORE_GLOBALS, FETCH_GLOBALS, JS_GLOBALS, PLACED_GLOBALS, SUGAR_GLOBALS},
+};
+use crate::{
+    Error, Options,
+    build::B,
+    message::{self, MacroKind},
+    parse_errors,
+};
+
+/// What a module imports what `Ljos.Core` gives a QML file from
+/// (docs/DIALECT.md §4.3): `import { t } from "@ljos/core"`.
+pub(crate) const CORE_MODULE: &str = "@ljos/core";
 
 /// The module that has the helpers `match` and `is` are lowered to.
 pub(crate) const SUGAR: &str = "compiler/sugar";
@@ -217,7 +230,8 @@ pub(crate) fn imports(source: &str, name: &str) -> Result<crate::Imports, Vec<Er
             Statement::ExportAllDeclaration(export) => export.source.value.as_str(),
             _ => continue,
         };
-        if !found.paths.iter().any(|seen| seen == path) {
+        // `@ljos/core` is the runtime's, no file of the project's.
+        if path != CORE_MODULE && !found.paths.iter().any(|seen| seen == path) {
             found.paths.push(path.to_string());
         }
     }
@@ -243,6 +257,16 @@ fn javascript<'a>(
             .collect());
     }
     let mut program = parsed.program;
+    let errors = core_messages(allocator, &mut program, &options.qt_module);
+    if !errors.is_empty() {
+        return Err(errors
+            .into_iter()
+            .map(|mut error| {
+                error.span = back(error.span);
+                error
+            })
+            .collect());
+    }
     let mut sugar = BTreeSet::new();
     let mut placed = BTreeSet::new();
     let mut unread = HashSet::new();
@@ -323,6 +347,116 @@ fn javascript<'a>(
         program.body.insert(0, import);
     }
     Ok(oxc_codegen::Codegen::new().build(&program).code)
+}
+
+/// The message macros a module imports from `@ljos/core` under their own
+/// names, lowered as a QML file's are ([`messages`]), and the import read
+/// from `Ljos.Core`'s module of the page. What is wrong with a message.
+fn core_messages<'a>(
+    allocator: &'a Allocator,
+    program: &mut Program<'a>,
+    prefix: &str,
+) -> Vec<Error> {
+    let imports_core = program.body.iter().any(|statement| {
+        matches!(statement, Statement::ImportDeclaration(import) if import.source.value == CORE_MODULE)
+    });
+    if !imports_core {
+        return Vec::new();
+    }
+    let core = format!("{prefix}/{}", CORE.replace('.', "/"));
+    let mut macros = HashSet::new();
+    {
+        let semantic = SemanticBuilder::new()
+            .with_build_nodes(true)
+            .build(program)
+            .semantic;
+        let scoping = semantic.scoping();
+        for statement in &program.body {
+            let Statement::ImportDeclaration(import) = statement else {
+                continue;
+            };
+            if import.source.value != CORE_MODULE {
+                continue;
+            }
+            for specifier in import.specifiers.iter().flatten() {
+                let ImportDeclarationSpecifier::ImportSpecifier(it) = specifier else {
+                    continue;
+                };
+                // `import { t as tr }` is the function, as it runs.
+                if it.imported.name() != it.local.name
+                    || MacroKind::named(it.local.name.as_str()).is_none()
+                {
+                    continue;
+                }
+                let Some(symbol) = it.local.symbol_id.get() else {
+                    continue;
+                };
+                for reference in scoping.get_resolved_reference_ids(symbol) {
+                    let node = scoping.get_reference(*reference).node_id();
+                    macros.insert(semantic.nodes().get_node(node).kind().span().start);
+                }
+            }
+        }
+    }
+    let b = B::new(allocator);
+    for statement in program.body.iter_mut() {
+        if let Statement::ImportDeclaration(import) = statement
+            && import.source.value == CORE_MODULE
+        {
+            import.source.value = oxc_str::Str::from(allocator.alloc_str(&core));
+            import.source.raw = None;
+        }
+    }
+    let mut lower = Messages {
+        b,
+        macros: &macros,
+        used: BTreeSet::new(),
+        errors: Vec::new(),
+    };
+    lower.visit_program(program);
+    let Messages { used, errors, .. } = lower;
+    if !used.is_empty() {
+        program.body.insert(0, b.import_named(used, &core));
+    }
+    errors
+}
+
+/// Lowers the calls of the macros a module imports.
+struct Messages<'a, 's> {
+    b: B<'a>,
+    /// Where each reference to a macro the module imports starts.
+    macros: &'s HashSet<u32>,
+    used: BTreeSet<&'static str>,
+    errors: Vec<Error>,
+}
+
+impl<'a> VisitMut<'a> for Messages<'a, '_> {
+    fn visit_expression(&mut self, expression: &mut Expression<'a>) {
+        if let Some((_, span)) = message::callee(expression)
+            && self.macros.contains(&span.start)
+        {
+            match message::message_of(expression) {
+                Some(Err(error)) => {
+                    let span = error.span;
+                    self.errors.push(messages::error(error, span));
+                    return;
+                }
+                Some(Ok(call)) => {
+                    if let Some((function, mut values)) = messages::take(self.b, &call, expression)
+                    {
+                        for value in &mut values {
+                            self.visit_expression(value);
+                        }
+                        self.used.insert(function);
+                        *expression = messages::lowered(self.b, &call, function, values);
+                        return;
+                    }
+                }
+                None => {}
+            }
+        }
+        walk_mut::walk_expression(self, expression);
+    }
 }
 
 /// What is said of the `.ts` module `name` that has `keyword`, the syntax
@@ -425,6 +559,41 @@ impl Eraser<'_> {
         false
     }
 
+    /// `import { t, later } from "@ljos/core"`: what `Ljos.Core` gives a
+    /// QML file, imported by name.
+    fn core_import(&mut self, import: &oxc_ast::ast::ImportDeclaration<'_>) {
+        let specifiers: &[ImportDeclarationSpecifier<'_>] =
+            import.specifiers.as_ref().map_or(&[], |s| s.as_slice());
+        let mut typed = Vec::new();
+        for specifier in specifiers {
+            let ImportDeclarationSpecifier::ImportSpecifier(it) = specifier else {
+                return self.fault(
+                    specifier.span(),
+                    "`@ljos/core` gives its names, not a default nor a namespace: import them by name (`import { t } from \"@ljos/core\"`)",
+                );
+            };
+            if it.import_kind == ImportOrExportKind::Type {
+                typed.push(it.span);
+                continue;
+            }
+            let imported = it.imported.name();
+            if !CORE_GLOBALS.contains(&imported.as_str())
+                && MacroKind::named(imported.as_str()).is_none()
+            {
+                self.fault(
+                    it.imported.span(),
+                    format!("`@ljos/core` has no `{imported}`"),
+                );
+            }
+        }
+        if !typed.is_empty() && typed.len() == specifiers.len() {
+            return self.blank_statement(import.span.start, import.span.end);
+        }
+        for span in typed {
+            self.blank_listed(span);
+        }
+    }
+
     fn statement(&mut self, statement: &Statement<'_>) {
         match statement {
             Statement::ImportDeclaration(import) => {
@@ -432,6 +601,9 @@ impl Eraser<'_> {
                     return self.blank_statement(import.span.start, import.span.end);
                 }
                 let path = import.source.value.as_str();
+                if path == CORE_MODULE {
+                    return self.core_import(import);
+                }
                 if !self.reachable(import.source.span, path) {
                     return;
                 }

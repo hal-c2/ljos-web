@@ -6,6 +6,7 @@
 //! objects with the runtime's types (`packages/runtime`).
 
 mod lower;
+mod messages;
 pub(crate) mod module;
 mod names;
 mod paths;
