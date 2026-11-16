@@ -640,7 +640,8 @@ function numbers(language: string): Intl.NumberFormat {
   let format = numberFormats.get(language);
   if (!format) {
     try {
-      format = new Intl.NumberFormat(language || undefined, { maximumFractionDigits: 20 });
+      // `is_IS`, as Qt writes it, is not a BCP 47 tag `Intl` takes.
+      format = new Intl.NumberFormat(parsed(language)?.toString(), { maximumFractionDigits: 20 });
     } catch {
       format = new Intl.NumberFormat(undefined, { maximumFractionDigits: 20 });
     }

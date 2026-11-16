@@ -135,6 +135,14 @@ fn a_context_and_an_id_are_carried() {
 }
 
 #[test]
+fn a_message_with_only_an_id_shows_its_id_until_translated() {
+    assert_contains(
+        &lowered(r#"property string home: t({ id: "nav.home" })"#),
+        r#"__ljos_message("nav.home", "", "nav.home", """#,
+    );
+}
+
+#[test]
 fn a_descriptor_is_translated_where_it_is_shown() {
     let code = lowered("property string shown: t(name)");
     assert_contains(&code, "t(");
