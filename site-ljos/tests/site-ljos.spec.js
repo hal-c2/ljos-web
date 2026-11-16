@@ -612,9 +612,10 @@ test("a visitor's demos page holds no test hook", async ({ page }) => {
 // A demo's Run pressed, as a reader presses it.
 async function runDemo(page, name) {
   const button = page.getByRole("button", { name });
+  await expect(button, `"${name}" is on the page`).toBeAttached();
   await button.scrollIntoViewIfNeeded();
   await button.click();
-  await expect(button).toBeHidden({ timeout: 30_000 });
+  await expect(button, `"${name}" goes once the demo runs`).toBeHidden({ timeout: 30_000 });
 }
 
 async function demoIn(page, heading, picture, next, drawn = null) {
@@ -625,7 +626,7 @@ async function demoIn(page, heading, picture, next, drawn = null) {
   return boxes.filter((box) => box.y > top && box.y < bottom && box.width > 0 && box.height > 0).length;
 }
 
-test("every showcase demo stands in its slot, on the landing and the demos page", async ({ page }) => {
+test("the landing's showcase demo stands in its slot", async ({ page }) => {
   await page.goto("/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
   await expect(page.getByText("The Corner Pantry", { exact: true })).toBeVisible();
@@ -640,8 +641,14 @@ test("every showcase demo stands in its slot, on the landing and the demos page"
   const runs = await page.evaluate(() => typeof WebGL2RenderingContext === "function" && typeof OffscreenCanvas === "function");
   if (runs) await runDemo(page, "Run the 3D demo");
   else await expect(page.getByRole("button", { name: "Run the 3D demo" }), "where it cannot run, there is no Run").toHaveCount(0);
-  await expect.poll(() => demoIn(page, run, "demo-orbit.webp"), { timeout: 30_000 }).toBeGreaterThan(0);
+  await expect.poll(() => demoIn(page, run, "demo-orbit.webp"), { timeout: 30_000, message: "Orbit stands in its slot" }).toBeGreaterThan(0);
+});
 
+// A page of its own, apart from the landing. Each demo is paused once
+// it is seen, as a reader moving on leaves it: one drawing in software
+// (a browser with no GPU) takes the page's every frame, and the next
+// demo's steps would wait behind it.
+test("every showcase demo stands in its slot on the demos page", async ({ page }) => {
   await page.goto("/demos/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
   // Each demo but the flagship is made once its Run is pressed, so the
@@ -668,6 +675,9 @@ test("every showcase demo stands in its slot, on the landing and the demos page"
     await expect.poll(() => demoIn(page, heading, picture, next, drawn), { timeout: 30_000, message: `${title} stands in its frame` }).toBeGreaterThan(0);
     await shown(page.getByText(inside)).first().scrollIntoViewIfNeeded({ timeout: 30_000 });
     await expect(shown(page.getByText(inside)).first()).toBeVisible();
+    const pause = page.getByRole("button", { name: label.replace(/^Run /, "Pause ") });
+    await pause.click();
+    await expect(page.getByRole("button", { name: label }), `${title} paused offers its Run again`).toBeVisible();
   }
   // The other demos did not take the flagship's place away.
   await stageButton(page, "Add bread");
