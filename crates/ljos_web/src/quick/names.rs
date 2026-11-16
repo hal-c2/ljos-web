@@ -317,6 +317,22 @@ impl<'a> Resolver<'a, '_, '_> {
             }
             resolution
         });
+        // `t(m)` in a delegate: a message macro is Ljos.Core's there too,
+        // as [`is_message_macro`](Self::is_message_macro) says of `` t`…` ``.
+        if !written
+            && let Some(resolution) = &resolution
+            && resolution.aimed.is_none()
+            && matches!(
+                &resolution.target,
+                Some(qml_front::names::Target::Context { name: role, .. })
+                    if !matches!(role.as_str(), "index" | "model" | "modelData")
+            )
+            && let Some(kind) = MacroKind::named(name)
+            && self.types.front().imports(CORE)
+        {
+            self.uses.core.insert(kind.name());
+            return None;
+        }
         let (aimed, roles, target) = match resolution {
             Some(resolution) => {
                 if let Some(qml_front::names::Target::Global(global)) = &resolution.target {
@@ -415,7 +431,10 @@ impl<'a> Resolver<'a, '_, '_> {
 
     /// Whether `name`, written at `span`, is one of Ljós.Core's message
     /// macros: free, in a file that imports Ljos.Core, and nothing of the
-    /// file's own (a property, a role, an id) by that name.
+    /// file's own (a property, an id) by that name. In a delegate, a name
+    /// nothing else has might be a role of the model, which only the running
+    /// model knows; a macro is read as the file is compiled, so `t` there is
+    /// still Ljos.Core's, as it is everywhere else in the file.
     fn is_message_macro(&self, name: &str, span: Span) -> bool {
         if !self.free.contains(&span.start) || !self.types.front().imports(CORE) {
             return false;
@@ -427,13 +446,19 @@ impl<'a> Resolver<'a, '_, '_> {
         match names.lookup(name, span.start) {
             None => true,
             Some(resolution) => {
-                matches!(
+                let core = matches!(
                     resolution.target,
                     Some(qml_front::names::Target::Global(
                         qml_front::names::Global::Core
                     ))
-                ) && resolution.roles.is_empty()
-                    && resolution.aimed.is_none()
+                ) && resolution.roles.is_empty();
+                // No macro is `index`, `model` or `modelData`, so a context's
+                // name here is one only a model's role might have.
+                let only_a_role = matches!(
+                    resolution.target,
+                    Some(qml_front::names::Target::Context { .. })
+                );
+                (core || only_a_role) && resolution.aimed.is_none()
             }
         }
     }

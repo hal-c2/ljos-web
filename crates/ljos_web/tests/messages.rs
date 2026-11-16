@@ -184,6 +184,47 @@ fn a_name_the_file_declares_is_not_a_message() {
     assert!(!code.contains("__ljos_message("), "{code}");
 }
 
+/// What only a model's role might have in a delegate is not what a role
+/// has: a model has no role a message macro could be read from, so `t`
+/// there is Ljos.Core's, as it is anywhere else in the file.
+#[test]
+fn a_message_in_a_delegate_is_a_message() {
+    let code = lowered(
+        r##"ListView {
+    model: ["Ada", "Grace"]
+    delegate: Text {
+      text: t`Hello ${modelData}`
+      property string files: plural(index, { one: "# file", other: "# files" })
+    }
+  }"##,
+    );
+    assert_contains(
+        &code,
+        r#"__ljos_message("Hello {modelData}", "", "Hello {modelData}", "modelData","#,
+    );
+    assert_contains(&code, r#""{index, plural, one {# file} other {# files}}""#);
+    assert!(!code.contains("$data.t"), "{code}");
+    assert!(!code.contains("$data.plural"), "{code}");
+}
+
+/// `t(m)` of a message made elsewhere, in a delegate, is Ljos.Core's `t`
+/// as it runs, not a role of the model.
+#[test]
+fn t_of_a_message_in_a_delegate_is_ljos_cores() {
+    let code = lowered(
+        r##"property var greeting: msg`Hello`
+  Repeater {
+    model: 2
+    delegate: Text { text: t(greeting) }
+  }"##,
+    );
+    assert!(!code.contains("$data.t"), "{code}");
+    assert_contains(
+        &code,
+        r#"import { __ljos_msg, t } from "ljos-web/Ljos/Core";"#,
+    );
+}
+
 #[test]
 fn qs_tr_is_unchanged() {
     let code = code_of(
