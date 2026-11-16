@@ -649,6 +649,8 @@ test("a link over a MouseArea is the link's to follow, and beside it the area's"
 // Flickable takes it from the text, moves, and nothing is followed. The
 // link's words are in a `code` of their own, as a page's often are.
 test("a link in a Flickable is followed by a press, and a drag from it flicks and follows nothing", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
   await boxes(page, "markup");
   const log = () => page.evaluate(() => window.objects.log.filter((line) => !line.startsWith("hovered")));
   const middle = () =>
@@ -662,9 +664,23 @@ test("a link in a Flickable is followed by a press, and a drag from it flicks an
   await page.mouse.move(at.x, at.y);
   await page.mouse.down();
   for (let step = 1; step <= 6; step++) await page.mouse.move(at.x, at.y - 4 * step);
+  // Let go away from the text: the page tells the text nothing then, and
+  // the link is no longer under the pointer.
+  await page.mouse.move(4, 4);
   await page.mouse.up();
   expect(await page.evaluate(() => window.objects.flick.contentY)).toBeGreaterThan(0);
   expect(await log()).toEqual(["activated flicked"]);
+  expect(await page.evaluate(() => window.objects.flicked.hoveredLink)).toBe("");
+  expect(errors).toEqual([]);
+});
+
+// What no pointer pressed is followed once: Enter on a link the browser
+// focused.
+test("a link focused by the keyboard is followed by Enter, once", async ({ page }) => {
+  await boxes(page, "markup");
+  await page.evaluate(() => window.objects.linked.$markup.querySelector("a").focus());
+  await page.keyboard.press("Enter");
+  expect(await page.evaluate(() => window.objects.log.filter((line) => !line.startsWith("hovered")))).toEqual(["activated there"]);
 });
 
 test("markup cannot run a script or bring a frame into the page", async ({ page }) => {
