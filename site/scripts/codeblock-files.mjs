@@ -23,8 +23,17 @@ export function readGiven(dir = GIVEN, env = process.env) {
   const walk = (at) => {
     const names = readdirSync(join(dir, at));
     if (/^\d+$/.test(at.split("/").pop()) && at.includes(".md/")) {
+      // An example's files may stand in directories of their own, as a
+      // ShellLoader's `user/Shell.qml` does: each is named by its path.
       const files = {};
-      for (const name of names) files[name] = readFileSync(join(dir, at, name), "utf8");
+      const read = (within) => {
+        for (const name of readdirSync(join(dir, at, within))) {
+          const path = within ? `${within}/${name}` : name;
+          if (statSync(join(dir, at, path)).isDirectory()) read(path);
+          else files[path] = readFileSync(join(dir, at, path), "utf8");
+        }
+      };
+      read("");
       given.set(`${at.replace(/\/(\d+)$/, " $1")}`, files);
       return;
     }

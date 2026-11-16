@@ -129,6 +129,20 @@ test.describe("the files a page does not show", () => {
     expect(unused(given, ["data/models.md 2"])).toEqual(["site/codeblock-files: data/models.md 9 is no example's now; move or remove its files"]);
   });
 
+  test("in a directory of the example's are named by their path", () => {
+    const dir = mkdtempSync(join(tmpdir(), "codeblock-files-"));
+    try {
+      mkdirSync(join(dir, "ui/shell.md/1/user"), { recursive: true });
+      writeFileSync(join(dir, "ui/shell.md/1/rows.json"), "[]\n");
+      writeFileSync(join(dir, "ui/shell.md/1/user/Shell.qml"), "Item {}\n");
+      const read = readGiven(dir, {});
+      expect(read.get("ui/shell.md 1")).toEqual({ "rows.json": "[]\n", "user/Shell.qml": "Item {}\n" });
+      expect(read.stray).toEqual([]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   test("outside any <page>/<n>/ are told", () => {
     const dir = mkdtempSync(join(tmpdir(), "codeblock-files-"));
     try {

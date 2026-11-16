@@ -108,3 +108,19 @@ fn a_file_with_places_brings_the_inspector_in_though_it_logs_nothing() {
     let code = lowered("import QtQuick\nItem { width: 3 }", Some("Quiet.qml"));
     assert_contains(&code, r#"import "ljos-web/inspect";"#);
 }
+
+#[test]
+fn console_in_a_delegate_says_where_it_is_called_unless_the_row_has_one() {
+    let code = lowered(
+        r#"import QtQuick
+Repeater {
+    model: 2
+    delegate: Item { Component.onCompleted: console.log("row") }
+}"#,
+        Some("app/Sample.qml"),
+    );
+    assert_contains(
+        &code,
+        r#"("console" in $data ? $data.console : $console(["app/Sample.qml", 4, 45])).log("row")"#,
+    );
+}
