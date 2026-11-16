@@ -13,7 +13,8 @@ layout(std140, binding = 0) uniform buf {
 
 // Light on water, worked out per pixel: a handful of travelling waves
 // interfere, one of them centred where the pointer is, and the sums
-// are coloured through one of three ramps. Written for this page —
+// are coloured through one of three ramps, each dark (0-2) or light
+// (3-5) for the reader's colour scheme. Written for this page —
 // the build turns it into what the browser draws with, with no
 // shader compiler of anyone else's in the way.
 vec3 ramp(float v) {
@@ -29,6 +30,20 @@ vec3 ramp(float v) {
         deep = vec3(0.04, 0.09, 0.08);
         mid = vec3(0.14, 0.45, 0.38);
         crest = vec3(0.92, 0.97, 0.78);
+    } else if (which == 3) {
+        // The light ones keep the darkest of what a ramp shows pale, so
+        // the dark words drawn over them stay readable.
+        deep = vec3(0.94, 0.95, 0.97);
+        mid = vec3(0.66, 0.78, 0.92);
+        crest = vec3(0.99, 0.82, 0.52);
+    } else if (which == 4) {
+        deep = vec3(0.97, 0.94, 0.96);
+        mid = vec3(0.86, 0.68, 0.80);
+        crest = vec3(0.99, 0.88, 0.66);
+    } else if (which == 5) {
+        deep = vec3(0.94, 0.97, 0.95);
+        mid = vec3(0.62, 0.85, 0.78);
+        crest = vec3(0.96, 0.99, 0.84);
     }
     vec3 colour = mix(deep, mid, smoothstep(0.15, 0.62, v));
     return mix(colour, crest, smoothstep(0.62, 0.97, v));

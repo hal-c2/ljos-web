@@ -21,8 +21,12 @@ Item {
     // a component the page has already.
     property var source: undefined
     property Component demo: null
-    // A picture of the demo running, and what it shows, in words.
+    // A picture of the demo running, and what it shows, in words. The
+    // demos follow the reader's scheme, so a picture of one in the dark
+    // stands where the reader's is dark; without one, the light serves
+    // both.
     property string picture: ""
+    property string pictureDark: ""
     property string description: ""
     // The route of the page the frame stands on, which the picture's
     // address is written from.
@@ -77,14 +81,22 @@ Item {
         // The picture is in the page as written (Nav.picture), so it
         // stands before the page runs and where it never does. It is
         // the frame's shape, so it fills the frame as it is.
-        Text {
-            x: 1
-            y: 1
-            width: frame.width - 2
-            height: frame.height - 2
-            visible: frame.picture !== "" && !(frame.drawn && loader.opacity === 1)
-            textFormat: Text.RichText
-            text: frame.picture === "" ? "" : Nav.picture(frame.route, frame.picture, frame.width - 2, frame.height - 2, frame.description)
+        // Both are in the page, each shown in its scheme, so the page as
+        // written already shows the reader's (the build writes a
+        // difference of only what is shown as one page for both schemes).
+        Repeater {
+            model: frame.pictureDark === "" ? [frame.picture] : [frame.picture, frame.pictureDark]
+            Text {
+                required property string modelData
+                required property int index
+                x: 1
+                y: 1
+                width: frame.width - 2
+                height: frame.height - 2
+                visible: modelData !== "" && (frame.pictureDark === "" || (index === 1) === Theme.dark) && !(frame.drawn && loader.opacity === 1)
+                textFormat: Text.RichText
+                text: modelData === "" ? "" : Nav.picture(frame.route, modelData, frame.width - 2, frame.height - 2, frame.description)
+            }
         }
 
         // Said where the demo cannot run here.

@@ -13,7 +13,7 @@ Rectangle {
     width: 300
     height: 64
     radius: 8
-    color: "#2a2118"
+    color: look.basket
 
     property int teaBought: 0
     property int breadBought: 0
@@ -50,12 +50,24 @@ Rectangle {
         added(count);
     }
 
+    // The colours this app draws with, for the scheme the reader chose:
+    // each the dark it was drawn in or a light that keeps the text on it
+    // as readable.
+    QtObject {
+        id: look
+        readonly property bool dark: Application.styleHints.colorScheme === Qt.ColorScheme.Dark
+        readonly property color basket: dark ? "#2a2118" : "#fbf1de"
+        readonly property color basketMuted: dark ? "#d8c39a" : "#6b5a3a"
+        readonly property color basketStatus: dark ? "#f3c97e" : "#7a4c00"
+        readonly property color ink: dark ? "#f5eeda" : "#1b1f2a"
+    }
+
     Contribution {
         slot: "status"
         delegate: Component {
             Text {
                 objectName: "statusText"
-                color: "#f3c97e"
+                color: look.basketStatus
                 font.pixelSize: 14
                 text: basket.summary
             }
@@ -66,7 +78,7 @@ Rectangle {
         objectName: "basketText"
         x: 14
         y: 10
-        color: "#f5eeda"
+        color: look.ink
         font.pixelSize: 18
         text: qsTr("Basket")
     }
@@ -74,7 +86,7 @@ Rectangle {
         objectName: "basketSummary"
         x: 14
         y: 36
-        color: "#d8c39a"
+        color: look.basketMuted
         font.pixelSize: 14
         text: basket.summary
     }

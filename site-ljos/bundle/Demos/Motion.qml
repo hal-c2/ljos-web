@@ -10,11 +10,27 @@ Rectangle {
     id: root
     width: 720
     height: 420
-    color: "#171a23"
+    color: look.canvas
     radius: 8
 
     property bool active: true
     property bool calm: false
+
+    // The colours this app draws with, for the scheme the reader chose:
+    // each the dark it was drawn in or a light that keeps the text on it
+    // as readable.
+    QtObject {
+        id: look
+        readonly property bool dark: Application.styleHints.colorScheme === Qt.ColorScheme.Dark
+        readonly property color accent: dark ? "#e8a33d" : "#c07a12"
+        readonly property color accentPressed: dark ? "#c77f2a" : "#a8650a"
+        readonly property color canvas: dark ? "#171a23" : "#f6f4ee"
+        readonly property color ink: dark ? "#e8eaf0" : "#1b1f2a"
+        readonly property color muted1: dark ? "#9aa3b2" : "#4d5566"
+        readonly property color muted2: dark ? "#b9c0d0" : "#4d5566"
+        readonly property color panel: dark ? "#1f2432" : "#ebe8df"
+        readonly property color raised: dark ? "#232839" : "#ffffff"
+    }
 
     // --- the spring tray -------------------------------------------------
     Rectangle {
@@ -24,13 +40,13 @@ Rectangle {
         anchors.top: parent.top
         anchors.margins: 16
         height: 168
-        color: "#1f2432"
+        color: look.panel
         radius: 10
 
         Text {
             x: 14
             y: 10
-            color: "#9aa3b2"
+            color: look.muted1
             font.pixelSize: 13
             text: qsTr("Press and move — the puck springs after you")
         }
@@ -40,7 +56,7 @@ Rectangle {
             width: 54
             height: 54
             radius: 27
-            color: "#e8a33d"
+            color: look.accent
             x: tray.width / 2 - width / 2
             y: tray.height / 2 - height / 2
             property real goalX: x
@@ -103,11 +119,11 @@ Rectangle {
     ListModel {
         id: tiles
         ListElement { label: "Ljós"; tone: "#e8a33d" }
-        ListElement { label: "holds"; tone: "#5b7ba8" }
+        ListElement { label: "holds"; tone: "#7b9bc8" }
         ListElement { label: "state"; tone: "#7ba05b" }
-        ListElement { label: "while"; tone: "#a85b7d" }
+        ListElement { label: "while"; tone: "#c97ba0" }
         ListElement { label: "it"; tone: "#5ba8a0" }
-        ListElement { label: "moves"; tone: "#c4572e" }
+        ListElement { label: "moves"; tone: "#e07a50" }
     }
 
     ListView {
@@ -164,7 +180,7 @@ Rectangle {
             width: 168
             height: 42
             radius: 8
-            color: shufflePress.pressed ? "#c77f2a" : "#e8a33d"
+            color: shufflePress.pressed ? look.accentPressed : look.accent
             scale: shufflePress.pressed ? 0.97 : 1.0
             activeFocusOnTab: true
             Accessible.name: qsTr("Shuffle the tiles")
@@ -210,7 +226,7 @@ Rectangle {
             width: 300
             height: open ? 118 : 42
             radius: 8
-            color: "#232839"
+            color: look.raised
             clip: true
             property bool open: false
             activeFocusOnTab: true
@@ -232,7 +248,7 @@ Rectangle {
             Text {
                 x: 12
                 y: 11
-                color: "#e8eaf0"
+                color: look.ink
                 font.pixelSize: 15
                 text: card.open ? qsTr("About this motion ▾") : qsTr("About this motion ▸")
             }
@@ -241,7 +257,7 @@ Rectangle {
                 y: 42
                 width: parent.width - 24
                 wrapMode: Text.WordWrap
-                color: "#b9c0d0"
+                color: look.muted2
                 font.pixelSize: 13
                 opacity: card.open ? 1 : 0
                 Behavior on opacity {
