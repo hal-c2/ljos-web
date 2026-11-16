@@ -171,22 +171,21 @@ const liveAt = new Map(); // a page's code block -> its live payload
   const pictures = join(bundle, "Examples");
   rmSync(pictures, { recursive: true, force: true });
   mkdirSync(pictures, { recursive: true });
-  // A picture is the prerender's, as this browser draws it, on each of
-  // the site's two papers (Theme.bg), so that it stands on the page as
-  // the running example will, light or dark. Kept under both names, so a
-  // cache kept across builds never answers with one an older runtime or
-  // browser drew. The page names it by its hash. How it is drawn is in
-  // the name too (the stage around it and the size an unsized root is
-  // given), so a changed recipe draws again.
-  const papers = [
-    { suffix: "", bg: "#fdfbf6" },
-    { suffix: "-dark", bg: "#1a1712" },
-  ];
-  const stage = ({ bg }) => `<!doctype html><style>html,body{margin:0;background:${bg}}</style>`;
+  // A picture is the prerender's, as this browser draws it, on no paper:
+  // where the example draws nothing the page's own shows through, light
+  // or dark, as it does under the running example. One picture, not one
+  // for each scheme: a page whose two schemes said two pictures would be
+  // written twice over (site.js's shareSchemes). Kept under both names,
+  // so a cache kept across builds never answers with one an older
+  // runtime or browser drew. The page names it by its hash. How it is
+  // drawn is in the name too (the stage around it and the size an
+  // unsized root is given), so a changed recipe, such as a picture once
+  // drawn on the light paper, draws again.
+  const STAGE = "<!doctype html><style>html,body{margin:0;background:transparent}</style>";
   const UNSIZED = [320, 180];
-  const drawnBy = createHash("sha256").update(`${chromium.executablePath()}\n${papers.map(stage).join("\n")}\n${UNSIZED}`).digest("hex").slice(0, 12);
-  const kept = (hash, { suffix }) => `${hash.slice(0, 16)}${suffix}-${createHash("sha256").update(`${prerendered[hash].stamp ?? ""}\n${drawnBy}`).digest("hex").slice(0, 12)}.png`;
-  const shots = live.filter(({ example }) => papers.some((paper) => !existsSync(join(cacheDir, kept(hashExample(example), paper)))));
+  const drawnBy = createHash("sha256").update(`${chromium.executablePath()}\n${STAGE}\n${UNSIZED}`).digest("hex").slice(0, 12);
+  const kept = (hash) => `${hash.slice(0, 16)}-${createHash("sha256").update(`${prerendered[hash].stamp ?? ""}\n${drawnBy}`).digest("hex").slice(0, 12)}.png`;
+  const shots = live.filter(({ example }) => !existsSync(join(cacheDir, kept(hashExample(example)))));
   if (shots.length) {
     const browser = await chromium.launch();
     try {
@@ -199,22 +198,20 @@ const liveAt = new Map(); // a page's code block -> its live payload
         const width = prerendered[hash].width > 0 ? prerendered[hash].width : UNSIZED[0];
         const height = prerendered[hash].height > 0 ? prerendered[hash].height : UNSIZED[1];
         await page.setViewportSize({ width, height });
-        for (const paper of papers) {
-          await page.setContent(`${stage(paper)}<div id="app" style="position:relative;width:${width}px;height:${height}px">${html}</div>`);
-          await page.screenshot({ path: join(cacheDir, kept(hash, paper)), clip: { x: 0, y: 0, width, height } });
-        }
+        await page.setContent(`${STAGE}<div id="app" style="position:relative;width:${width}px;height:${height}px">${html}</div>`);
+        await page.screenshot({ path: join(cacheDir, kept(hash)), clip: { x: 0, y: 0, width, height }, omitBackground: true });
       }
     } finally {
       await browser.close();
     }
   }
   // Pictures an older runtime or browser drew are never shown again.
-  pruneCache(cacheDir, { keep: new Set(live.flatMap(({ example }) => papers.map((paper) => kept(hashExample(example), paper)))), pattern: /^[0-9a-f]{16}(-dark)?-[0-9a-f]{12}\.png$/ });
+  pruneCache(cacheDir, { keep: new Set(live.map(({ example }) => kept(hashExample(example)))), pattern: /^[0-9a-f]{16}(-dark)?-[0-9a-f]{12}\.png$/ });
   for (const { example } of live) {
     const hash = hashExample(example);
-    if (!papers.every((paper) => existsSync(join(cacheDir, kept(hash, paper))))) continue;
-    for (const paper of papers) cpSync(join(cacheDir, kept(hash, paper)), join(pictures, `${hash.slice(0, 16)}${paper.suffix}.png`));
-    const [picture, pictureDark] = papers.map(({ suffix }) => `${hash.slice(0, 16)}${suffix}.png`);
+    const picture = `${hash.slice(0, 16)}.png`;
+    if (!existsSync(join(cacheDir, kept(hash)))) continue;
+    cpSync(join(cacheDir, kept(hash)), join(pictures, picture));
     const width = prerendered[hash].width > 0 ? prerendered[hash].width : 320;
     const height = prerendered[hash].height > 0 ? prerendered[hash].height : 180;
     // The figure stands at the example's entry fence; its other
@@ -230,7 +227,6 @@ const liveAt = new Map(); // a page's code block -> its live payload
       display: example.display.map((file) => ({ ...file, rich: packRich(highlight(file.code, file.lang ?? "qml")) })),
       ...(example.given ? { given: packGiven(example.given) } : {}),
       picture,
-      pictureDark,
       width,
       height,
     });
@@ -287,9 +283,6 @@ const titles = {
 // where the site stands, the site's own titles and the sidebar, which
 // the shell's Content type holds. Content.qml is written fresh each
 // build and gitignored: the Markdown is its source.
-// A picture's address from a page: back from its route's depth to the
-// site's root, where the pictures stand.
-const at = (route, picture) => `${"../".repeat(route.split("/").filter(Boolean).length)}Examples/${picture}`;
 const leading = (page) => (page ? { route: page.route, title: page.title } : null);
 const slim = site.pages.map(({ route, title, description, headings, blocks }, i) => ({
   route,
@@ -298,10 +291,12 @@ const slim = site.pages.map(({ route, title, description, headings, blocks }, i)
   headings,
   previous: leading(site.pages[i - 1]),
   next: leading(site.pages[i + 1]),
+  // A picture's address is the page's own: from its route's depth
+  // back to the site's root, where the pictures stand.
   // A code block's colouring is packed (`ljos-web/codeblock/rich`).
   blocks: blocks.map((block) =>
     liveAt.has(block)
-      ? { kind: "live", lang: block.lang, rich: packRich(block.rich), live: { ...liveAt.get(block), picture: at(route, liveAt.get(block).picture), pictureDark: at(route, liveAt.get(block).pictureDark) } }
+      ? { kind: "live", lang: block.lang, rich: packRich(block.rich), live: { ...liveAt.get(block), picture: `${"../".repeat(route.split("/").filter(Boolean).length)}Examples/${liveAt.get(block).picture}` } }
       : block.kind === "code"
         ? { ...block, rich: packRich(block.rich) }
         : rooted(block),

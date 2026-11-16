@@ -1,59 +1,107 @@
 import QtQuick
 import Site
 
-// Whether what it lies over runs: an example's stage or a demo. It
-// fills that place and, while the thing is not running, a press
-// anywhere on it runs it. What runs is told by `running`; the reader,
-// the page's budget and its view (Running) decide it:
+// Whether what it lies over runs, an example's stage or a demo, and the
+// control that says so. Nothing runs until the reader asks: the control
+// is a Run button on the picture, which Tab reaches, Return or Space
+// presses, a screen reader names and presses, and a press anywhere on
+// the picture presses too. One control, in four phases, so the focus a
+// keyboard reader gave it stays where it is as it changes:
 //
-// - nothing runs until the reader asks: a press on it, an edit of its
-//   code (CodeBlock), or, where it is `gated` (a window, 3D, what moves
-//   on its own, a demo), its Run button, which Tab reaches, Return or
-//   Space presses and a screen reader names and presses;
-// - a started one runs only while it is on screen and the tab is
-//   shown: away, it pauses, and back it resumes;
-// - at most Running.most are started at once: one more stops another
-//   (Running.claim), which shows its Run button and waits for it.
+// - `picture`: what the build drew stands; "▶ Run" on it;
+// - `loading`: asked for, not drawn yet; "Loading…" where Run was;
+// - `live`: drawn and running; the control steps to the corner, out of
+//   the way, and says what the reader can do next: "✎ Edit" for an
+//   example (its code takes the focus), "❚❚ Pause" for a demo;
+// - `paused`: a demo the reader paused holds still where it was;
+//   "▶ Run" in the corner goes on from there.
+//
+// What is said aloud as it changes is said only for a run the reader
+// asked for, in the page's one polite live region (Accessible.announce):
+// a page scrolled past never talks.
+//
+// A started one runs only while it is on screen and the tab is shown:
+// away, it pauses, and back it resumes. At most Running.most are
+// started at once: one more stops another (Running.claim), which goes
+// back to its picture and its Run.
 Item {
     id: runner
 
-    property bool gated: true
-    // False where it cannot run at all (no WebAssembly): no button.
+    // False where it cannot run at all (no WebAssembly): no control.
     property bool can: true
-    property string label: "Run this example"
+    // What runs, for the control's name: "Run the 3D demo".
+    property string what: "this example"
+    // Whether what runs is drawn: until it is, it is loading.
+    property bool ready: false
+    // Live, an example offers its code to edit; a demo, to pause.
+    property bool editable: false
+    signal edit()
+    // The area it lies over. The runner itself takes none: an item over
+    // what runs would be what the page's pointer lands on, and a native
+    // field under it (an example's text input) would never be pressed.
+    // Only its parts, the button and the press on the picture, take any.
+    property real spanWidth: 0
+    property real spanHeight: 0
+    // The width the call to run is centred in: the picture's, where the
+    // runner spans more (a stage wider than its example, whose corner
+    // keeps the live control off what the example draws).
+    property real callWidth: spanWidth
+
     property bool asked: false
-    // Stopped for the budget: its Run button says it can run again,
-    // gated or not.
-    property bool evicted: false
+    property bool paused: false
     property bool onScreen: false
+    // The reader asked for this run: its phases are said aloud.
+    property bool told: false
 
     readonly property bool started: can && asked
-    readonly property bool running: started && onScreen && Running.shown
-    // What shows its Run button: one that is gated, and one the budget
-    // stopped. A plain example that has not run is its picture, which a
-    // press runs, with no button over what it draws.
-    readonly property bool waiting: can && !started && (gated || evicted)
+    readonly property bool running: started && !paused && onScreen && Running.shown
+    readonly property string phase: !can ? "" : !started ? "picture" : !ready ? "loading" : paused ? "paused" : "live"
+    // In the corner once there is something to see under it.
+    readonly property bool aside: phase === "live" || phase === "paused"
 
     function run() {
         asked = true;
-        evicted = false;
+        paused = false;
     }
     function evict() {
         asked = false;
-        evicted = true;
+        paused = false;
+        told = false;
+    }
+    // What the control does in each phase.
+    function act() {
+        if (phase === "picture" || phase === "paused") {
+            told = true;
+            run();
+        } else if (phase === "live") {
+            if (editable)
+                edit();
+            else
+                paused = true;
+        }
     }
     // Whether any of it is in the band of the page the reader sees.
     function look() {
-        if (width <= 0 || height <= 0 || !visible) {
+        if (spanWidth <= 0 || spanHeight <= 0 || !visible) {
             onScreen = false;
             return;
         }
         var at = runner.mapToItem(null, 0, 0);
-        onScreen = at.y + height > Running.viewTop && at.y < Running.viewBottom;
+        onScreen = at.y + spanHeight > Running.viewTop && at.y < Running.viewBottom;
     }
 
     onStartedChanged: started ? Running.claim(runner) : Running.release(runner)
-    onHeightChanged: look()
+    onPhaseChanged: {
+        if (!told)
+            return;
+        if (phase === "loading")
+            Accessible.announce("Loading " + what);
+        else if (phase === "live")
+            Accessible.announce(what.charAt(0).toUpperCase() + what.slice(1) + " runs");
+        else if (phase === "paused")
+            Accessible.announce(what.charAt(0).toUpperCase() + what.slice(1) + " is paused");
+    }
+    onSpanHeightChanged: look()
     onVisibleChanged: look()
     Component.onCompleted: Qt.callLater(look)
     Component.onDestruction: Running.release(runner)
@@ -65,19 +113,21 @@ Item {
         }
     }
 
-    // Not running: a press on it runs it, as the button does, and still
-    // lands on what is under it; a picture takes no press. It stands
-    // where it cannot run too, only taking nothing, so a page without
+    // On the picture: a press anywhere on it runs it, as the button
+    // does, and still lands on what is under it. It stands where it
+    // cannot run too, only taking nothing, so a page without
     // WebAssembly is built of the same parts.
     MouseArea {
         id: hover
-        anchors.fill: parent
+        width: runner.spanWidth
+        height: runner.spanHeight
         visible: !runner.started
         enabled: runner.can
         hoverEnabled: runner.can
         Accessible.ignored: true
         cursorShape: runner.can ? Qt.PointingHandCursor : Qt.ArrowCursor
         onPressed: (mouse) => {
+            runner.told = true;
             runner.run();
             mouse.accepted = false;
         }
@@ -85,14 +135,20 @@ Item {
 
     Rectangle {
         id: button
-        visible: runner.waiting
-        anchors.centerIn: parent
-        width: words.implicitWidth + 2 * Theme.l
-        height: 44
+        visible: runner.phase !== ""
+        // The call to run is the accent, in the middle of the picture;
+        // once something runs the control is a quiet one in the corner.
+        readonly property bool call: runner.phase === "picture"
+        width: words.implicitWidth + 2 * (runner.aside ? Theme.s : Theme.l)
+        height: runner.aside ? 36 : 44
+        x: runner.aside ? runner.spanWidth - width - Theme.s : Math.round((runner.callWidth - width) / 2)
+        y: runner.aside ? Theme.s : Math.round((runner.spanHeight - height) / 2)
         radius: height / 2
-        color: hover.containsMouse ? Theme.accentHover : Theme.accent
+        color: call ? (hit.pressed ? Theme.accentPressed : hit.containsMouse || hover.containsMouse ? Theme.accentHover : Theme.accent) : (hit.pressed ? Theme.surfacePressed : hit.containsMouse ? Theme.surfaceHover : Theme.surfaceRaised)
+        border.color: call ? "transparent" : Theme.border
+        border.width: call ? 0 : 1
         // The focus ring stands clear of the button, so it reads on the
-        // accent and on any poster under it.
+        // accent and on any picture under it.
         Rectangle {
             visible: button.activeFocus
             anchors.fill: parent
@@ -104,11 +160,20 @@ Item {
         }
         activeFocusOnTab: true
         Accessible.role: Accessible.Button
-        Accessible.name: runner.label
-        Accessible.onPressAction: () => runner.run()
+        Accessible.name: {
+            switch (runner.phase) {
+            case "loading":
+                return "Loading " + runner.what;
+            case "live":
+                return (runner.editable ? "Edit " : "Pause ") + runner.what;
+            default:
+                return "Run " + runner.what;
+            }
+        }
+        Accessible.onPressAction: () => runner.act()
         Keys.onPressed: (event) => {
             if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
-                runner.run();
+                runner.act();
                 event.accepted = true;
             }
         }
@@ -116,11 +181,31 @@ Item {
         Text {
             id: words
             anchors.centerIn: parent
-            text: "▶ Run"
-            color: Theme.textOnAccent
+            text: {
+                switch (runner.phase) {
+                case "loading":
+                    return "◌ Loading…";
+                case "live":
+                    return runner.editable ? "✎ Edit" : "❚❚ Pause";
+                default:
+                    return "▶ Run";
+                }
+            }
+            color: button.call ? Theme.textOnAccent : Theme.text
             font.family: Theme.sans
-            font.pixelSize: Theme.bodySize
+            font.pixelSize: runner.aside ? Theme.captionSize : Theme.bodySize
             font.weight: Font.Bold
+        }
+
+        MouseArea {
+            id: hit
+            anchors.fill: parent
+            hoverEnabled: true
+            Accessible.ignored: true
+            cursorShape: runner.phase === "loading" ? Qt.BusyCursor : Qt.PointingHandCursor
+            // A press leaves the keyboard where it was: once live, what
+            // runs under the control has its own fields to type in.
+            onClicked: runner.act()
         }
     }
 }

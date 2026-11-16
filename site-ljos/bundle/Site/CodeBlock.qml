@@ -9,12 +9,12 @@ import "code-editor.js" as Editor
 // an editor per file, and a stage the result stands in. As the page
 // is first written — and for a reader with no script — the stage
 // holds a picture of the result as the build prerendered it, and so
-// does a browser's until the block runs: a plain one once it is
-// scrolled into view, one that is a window, 3D or moves on its own
-// once the reader presses Run or first edits its code (Runner; a focus
-// in the code fetches only the editor). Only then is the compiler fetched, and the stage's
-// ShellLoader compiles the code in the page and takes the stage over. Every edit recompiles and
-// reloads with its state kept. A broken edit says why beside the
+// does a browser's until the reader runs the block: its Run (Runner),
+// a press on its picture, or a first edit of its code (a focus in the
+// code fetches only the editor). Only then is the compiler fetched,
+// and the stage's ShellLoader compiles the code in the page and takes
+// the stage over. Every edit recompiles and reloads with its state
+// kept. A broken edit says why beside the
 // code, and the last good result keeps running. A block that does not run is
 // its code, coloured at build time, in a panel of its own.
 //
@@ -354,7 +354,7 @@ Column {
                 // result, so the picture never comes back over it.
                 visible: block.isLive && stage.status !== ShellLoader.Ready
                 textFormat: Text.RichText
-                text: block.isLive ? "<img src=\"" + (Theme.dark && block.live.pictureDark ? block.live.pictureDark : block.live.picture) + "\" width=\"" + stageBox.pictureWidth + "\" height=\"" + Math.round(stageBox.pictureHeight) + "\" alt=\"What this example draws\">" : ""
+                text: block.isLive ? "<img src=\"" + block.live.picture + "\" width=\"" + stageBox.pictureWidth + "\" height=\"" + Math.round(stageBox.pictureHeight) + "\" alt=\"What this example draws\">" : ""
             }
             ShellLoader {
                 id: stage
@@ -375,16 +375,20 @@ Column {
                 height: stageBox.height
                 window: Live.windowOf(stage.item)
             }
-            // Whether it runs: a plain example once it is in view, one
-            // that is a window, 3D or moves on its own once its Run is
-            // pressed (a press on the picture, or the button on it).
+            // Whether it runs: once the reader asks (its Run, a press on
+            // its picture, or an edit of its code), and only then is the
+            // compiler fetched. Live, its control offers the code above
+            // to edit.
             Runner {
                 id: runner
-                width: stageBox.pictureWidth
-                height: stageBox.height
-                gated: block.isLive && Live.gated(block.live.display)
+                spanWidth: stageBox.width
+                spanHeight: stageBox.height
+                callWidth: stageBox.pictureWidth
                 can: block.isLive && block.runs && block.checked
+                ready: stage.status === ShellLoader.Ready
+                editable: true
                 onRunningChanged: running ? block.start() : block.stop()
+                onEdit: editors.itemAt(block.currentFile).forceActiveFocus()
             }
         }
 

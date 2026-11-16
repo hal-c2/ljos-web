@@ -31,8 +31,8 @@ Item {
     property string picture: ""
     property string pictureDark: ""
     property string description: ""
-    // The Run button's name, for a screen reader: "Run the 3D demo".
-    property string label: "Run this demo"
+    // What the demo is, for its control's name: "Run the 3D demo".
+    property string what: "this demo"
     // The route of the page the frame stands on, which the picture's
     // address is written from.
     property string route: "/"
@@ -151,8 +151,10 @@ Item {
 
     Runner {
         id: runner
-        anchors.fill: parent
+        spanWidth: parent.width
+        spanHeight: parent.height
         can: frame.runnable
-        label: frame.label
+        what: frame.what
+        ready: frame.drawn
     }
 }
