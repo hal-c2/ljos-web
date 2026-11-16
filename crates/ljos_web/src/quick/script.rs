@@ -149,10 +149,14 @@ pub(crate) fn compile(source: &str, options: &Options) -> Result<String, Vec<Err
                     .kind()
                     .span()
             });
+            // A script imported under a name is what the name means, even
+            // one a global has.
+            if imports.iter().any(|(_, alias)| alias == name) {
+                continue;
+            }
             if QML_GLOBALS.contains(&name) || PLACED_GLOBALS.contains(&name) {
                 free.extend(spans.map(|span| span.start));
-            } else if !JS_GLOBALS.contains(&name) && !imports.iter().any(|(_, alias)| alias == name)
-            {
+            } else if !JS_GLOBALS.contains(&name) {
                 let message = if library {
                     format!("`{name}` is not defined")
                 } else {
