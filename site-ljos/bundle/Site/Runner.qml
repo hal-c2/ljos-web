@@ -20,10 +20,10 @@ import Site
 // asked for, in the page's one polite live region (Accessible.announce):
 // a page scrolled past never talks.
 //
-// A started one runs only while it is on screen and the tab is shown:
-// away, it pauses, and back it resumes. At most Running.most are
-// started at once: one more stops another (Running.claim), which goes
-// back to its picture and its Run.
+// `running` is whether a started one is on screen and its tab shown:
+// a demo pauses away and resumes back; an example stays as the reader
+// left it. At most Running.most are started at once: one more stops
+// another (Running.claim), which goes back to its picture and its Run.
 Item {
     id: runner
 
