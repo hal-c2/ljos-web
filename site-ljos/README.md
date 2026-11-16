@@ -144,10 +144,11 @@ DECISION: the rule of thumb for what a page runs.
   screen first, else the one that started first. A stopped one waits
   for Run again (a demo is unmade, and gives its device back); a plain
   one runs again when next pressed or edited.
-- One that leaves the view pauses, and so does everything while the
-  tab is hidden; back in view, it resumes. A demo pauses in place (its
-  `active` is false, its state kept); an example goes back to its
-  picture, keeping the reader's edits, and runs them again.
+- A demo that leaves the view pauses, and so does every demo while the
+  tab is hidden; back in view, it resumes in place (its `active` is
+  false, its state kept). An example stays as the reader left it,
+  what they typed in it kept, and says nothing while it is away; only
+  the budget stops it.
 - An example's picture follows the site's light or dark: it is drawn
   on no paper, so the page's own shows through it as it does under the
   running example. One picture, not one per scheme: a page whose

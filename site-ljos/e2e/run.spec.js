@@ -5,8 +5,9 @@
 // mouse, the keyboard or a screen reader, and which says what happens:
 // Run, then Loading, then, live, Edit (an example's code) or Pause (a
 // demo); a press on the picture or an edit of the code runs it too. At
-// most three are started at once; what is out of view or in a hidden
-// tab pauses and resumes when it is back; reduced motion softens and
+// most three are started at once; a demo out of view or in a hidden
+// tab pauses and resumes when it is back, and an example stays as the
+// reader left it; reduced motion softens and
 // never stops; one picture stands on light and dark.
 import AxeBuilder from "@axe-core/playwright";
 import { centre, classify, expect, frames, liveBlock, livePages, open, press, runButton, test, unexpected } from "./fixtures.js";
@@ -147,6 +148,40 @@ test.describe("examples", () => {
     // reader to the code.
     await page.keyboard.press("Space");
     await expect(block.block.getByRole("textbox").first(), "Edit takes the reader to the code").toBeFocused();
+    expect(unexpected(errors)).toEqual([]);
+  });
+
+  test("an example scrolled away or in a hidden tab keeps what the reader did in it, and says nothing", async ({ page, errors }) => {
+    await open(page, "/ui/text-input/");
+    const block = liveBlock(page, 0);
+    await centre(block.picture);
+    const run = runButton(block.stage);
+    await expect(run).toBeVisible({ timeout: 30_000 });
+    await listen(run);
+    await press(run);
+    await expect(runButton(block.stage, "Edit this example"), "it runs").toBeVisible({ timeout: 30_000 });
+    const field = block.running.locator("textarea").first();
+    await press(field);
+    await page.keyboard.press("End");
+    await page.keyboard.type(" ljós");
+    await expect(field, "what the reader typed is in it").toHaveValue(/ ljós$/);
+    // Away: scrolled past, then its tab hidden and shown again.
+    await centre(page.locator('img[alt="What this example draws"]').last());
+    await expect(block.stage, "it is scrolled past").not.toBeInViewport();
+    await page.waitForTimeout(1_000);
+    await page.evaluate(() => {
+      for (const state of ["hidden", "visible"]) {
+        Object.defineProperty(document, "visibilityState", { configurable: true, get: () => state });
+        Object.defineProperty(document, "hidden", { configurable: true, get: () => state === "hidden" });
+        document.dispatchEvent(new Event("visibilitychange"));
+      }
+    });
+    await centre(block.stage);
+    await expect(runButton(block.stage, "Edit this example"), "back, it is still live").toBeVisible();
+    await expect(field, "back, what the reader typed is still in it").toHaveValue(/ ljós$/);
+    const { names, said } = await heard(page);
+    expect(names, "the control did not go back to Loading").toEqual(["Run this example", "Loading this example", "Edit this example"]);
+    expect(said, "scrolled past and back, it says nothing more").toEqual(["Loading this example", "This example runs"]);
     expect(unexpected(errors)).toEqual([]);
   });
 

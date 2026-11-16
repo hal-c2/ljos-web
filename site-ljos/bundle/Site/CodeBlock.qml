@@ -86,9 +86,8 @@ Column {
         started = true;
         stage.source = Live.sourceFor(live.hash);
     }
-    // Stopped (it left the view, the tab was hidden, or one more
-    // started): the picture stands again, and the edits are kept for
-    // when it runs again.
+    // Stopped (one more started, past the page's budget): the picture
+    // stands again, and the edits are kept for when it runs again.
     function stop() {
         started = false;
         stage.source = "";
@@ -387,7 +386,12 @@ Column {
                 can: block.isLive && block.runs && block.checked
                 ready: stage.status === ShellLoader.Ready
                 editable: true
-                onRunningChanged: running ? block.start() : block.stop()
+                // Unmade only when the budget stops it: scrolled past or
+                // in a hidden tab it stays as the reader left it, what
+                // they typed in it kept, and never loads again, or says
+                // so, behind their back. Running.most bounds what that
+                // costs.
+                onStartedChanged: started ? block.start() : block.stop()
                 onEdit: editors.itemAt(block.currentFile).forceActiveFocus()
             }
         }
