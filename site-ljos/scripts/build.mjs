@@ -175,7 +175,11 @@ const liveAt = new Map(); // a page's code block -> its live payload
   // A picture is the prerender's, as this browser draws it: kept under
   // both names, so a cache kept across builds never answers with one
   // an older runtime or browser drew. The page names it by its hash.
-  const drawnBy = createHash("sha256").update(chromium.executablePath()).digest("hex").slice(0, 12);
+  // How it is drawn is in the name too (the stage around it and the
+  // size an unsized root is given), so a changed recipe draws again.
+  const STAGE = "<!doctype html><style>html,body{margin:0;background:#fdfbf6}</style>";
+  const UNSIZED = [320, 180];
+  const drawnBy = createHash("sha256").update(`${chromium.executablePath()}\n${STAGE}\n${UNSIZED}`).digest("hex").slice(0, 12);
   const kept = (hash) => `${hash.slice(0, 16)}-${createHash("sha256").update(`${prerendered[hash].stamp ?? ""}\n${drawnBy}`).digest("hex").slice(0, 12)}.png`;
   const shots = live.filter(({ example }) => !existsSync(join(cacheDir, kept(hashExample(example)))));
   if (shots.length) {
@@ -187,10 +191,10 @@ const liveAt = new Map(); // a page's code block -> its live payload
         const { html } = prerendered[hash];
         // A root that gave itself no size prerenders at none: the
         // stage's own size is the picture's then, as in QML below.
-        const width = prerendered[hash].width > 0 ? prerendered[hash].width : 320;
-        const height = prerendered[hash].height > 0 ? prerendered[hash].height : 180;
+        const width = prerendered[hash].width > 0 ? prerendered[hash].width : UNSIZED[0];
+        const height = prerendered[hash].height > 0 ? prerendered[hash].height : UNSIZED[1];
         await page.setViewportSize({ width, height });
-        await page.setContent(`<!doctype html><style>html,body{margin:0;background:#fdfbf6}</style><div id="app" style="position:relative;width:${width}px;height:${height}px">${html}</div>`);
+        await page.setContent(`${STAGE}<div id="app" style="position:relative;width:${width}px;height:${height}px">${html}</div>`);
         await page.screenshot({ path: join(cacheDir, kept(hash)), clip: { x: 0, y: 0, width, height } });
       }
     } finally {
