@@ -540,6 +540,7 @@ export function drawOn(self, canvas, told) {
   const state = (canvas.$view3d = {
     renderer: "wgpu",
     backend: null,
+    view: self,
     frames: 0,
     builds: 0,
     reads: 0,

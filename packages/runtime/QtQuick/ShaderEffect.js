@@ -383,6 +383,9 @@ export const ShaderEffect = defineType("ShaderEffect", Item, {
     canvas.className = "qq-shader";
     canvas.width = canvas.height = 0;
     self.$node.append(canvas);
+    // What a test or a tool may ask from the page: the effect drawn here,
+    // and so its uniforms.
+    canvas.$effect = self;
     const [drawn, setDrawn] = signal(0, self.$owner);
     const [asked, setAsked] = signal(false, self.$owner);
     const shader = (self.$shader = { canvas, drawn, kept: null, keep: () => setAsked(true) });
