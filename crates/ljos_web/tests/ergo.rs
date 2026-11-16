@@ -398,6 +398,32 @@ Item {
     assert_contains(&main, r#"import "ljos-web/compiler/sugar";"#);
 }
 
+/// A parenthesized `Symbol` is the same `Symbol`, in either spelling.
+#[test]
+fn a_parenthesized_symbol_custom_matcher_imports_the_sugar() {
+    let dotted = given("export const key = (Symbol).customMatcher;");
+    let bracketed = given(r#"export const key = (Symbol)["customMatcher"];"#);
+    let main = given(
+        r#"import QtQuick
+import "dotted.lts" as Dotted
+import "bracketed.lts" as Bracketed
+Item {
+  readonly property bool keyed: Dotted.key !== Bracketed.key
+}"#,
+    );
+    let files = [
+        ("Main.qml", main),
+        ("dotted.lts", dotted),
+        ("bracketed.lts", bracketed),
+    ];
+    for module in ["dotted.lts", "bracketed.lts"] {
+        assert_contains(
+            &code_of(&files, "Main.qml", module),
+            r#"import "ljos-web/compiler/sugar";"#,
+        );
+    }
+}
+
 /// A `Symbol` of the file's own is not the page's, and needs nothing.
 #[test]
 fn a_symbol_of_the_modules_own_imports_no_sugar() {

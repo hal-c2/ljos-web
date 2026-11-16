@@ -179,6 +179,7 @@ impl<'a> Visit<'a> for QtGlobal<'_> {
 /// module defines it where the browser does not yet, so a file that declares
 /// a matcher and lowers no `match` or `is` still imports it for that: its
 /// key would be `"undefined"` otherwise, and a later match would not see it.
+/// `(Symbol)`, or `Symbol` under a TypeScript cast, is the same `Symbol`.
 pub(crate) fn reads_custom_matcher(program: &Program<'_>, is_free: impl Fn(u32) -> bool) -> bool {
     struct Reads<F> {
         is_free: F,
@@ -186,7 +187,7 @@ pub(crate) fn reads_custom_matcher(program: &Program<'_>, is_free: impl Fn(u32) 
     }
     impl<'a, F: Fn(u32) -> bool> Visit<'a> for Reads<F> {
         fn visit_static_member_expression(&mut self, member: &StaticMemberExpression<'a>) {
-            if let Expression::Identifier(object) = &member.object
+            if let Expression::Identifier(object) = member.object.get_inner_expression()
                 && object.name == "Symbol"
                 && member.property.name == "customMatcher"
                 && (self.is_free)(object.span.start)
@@ -199,7 +200,7 @@ pub(crate) fn reads_custom_matcher(program: &Program<'_>, is_free: impl Fn(u32) 
 
         // `Symbol["customMatcher"]` is the same read.
         fn visit_computed_member_expression(&mut self, member: &ComputedMemberExpression<'a>) {
-            if let Expression::Identifier(object) = &member.object
+            if let Expression::Identifier(object) = member.object.get_inner_expression()
                 && object.name == "Symbol"
                 && member
                     .static_property_name()
