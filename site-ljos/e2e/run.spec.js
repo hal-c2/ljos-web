@@ -9,7 +9,6 @@
 // tab pauses and resumes when it is back, and an example stays as the
 // reader left it; reduced motion softens and
 // never stops; one picture stands on light and dark.
-import { readFileSync } from "node:fs";
 import AxeBuilder from "@axe-core/playwright";
 import { centre, classify, expect, frames, liveBlock, livePages, open, pageScroll, press, runButton, test, unexpected } from "./fixtures.js";
 import { brokenExample } from "./known.js";
@@ -414,18 +413,16 @@ test.describe("with reduced motion", () => {
   });
 });
 
-// One picture for both schemes, on the example's own paper: what it
-// gives no colour stays readable on the page's light or dark, and the
-// running example stands on the same.
-test("a picture is drawn on the example's paper, the same on the page's light or dark", async ({ page }) => {
+// One picture for both schemes, opaque: the page never shows through
+// it. The running example paints its own surface and text from the
+// palette, light or dark (themes.spec.js reads them in dark).
+test("a picture is the same on the page's light or dark, and the page never shows through it", async ({ page }) => {
   await open(page, examples[0].route);
   const picture = page.locator('img[alt="What this example draws"]').first();
   await expect(picture).toHaveAttribute("src", /Examples\/[0-9a-f]{16}\.png$/);
   const src = await picture.getAttribute("src");
-  // Its pixels, decoded: where it draws nothing (its bottom right
-  // corner, outside every example's own content) the paper stands,
-  // opaque white, and nowhere can the page be seen through it.
-  const { corner, clear } = await picture.evaluate(async (img) => {
+  // Its pixels, decoded: nowhere can the page be seen through it.
+  const clear = await picture.evaluate(async (img) => {
     const bitmap = await createImageBitmap(await (await fetch(img.src)).blob());
     const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
     const context = canvas.getContext("2d");
@@ -433,14 +430,9 @@ test("a picture is drawn on the example's paper, the same on the page's light or
     const { data } = context.getImageData(0, 0, bitmap.width, bitmap.height);
     let clear = 0;
     for (let i = 3; i < data.length; i += 4) if (data[i] < 255) clear++;
-    const at = data.length - 4;
-    return { corner: [data[at], data[at + 1], data[at + 2], data[at + 3]], clear };
+    return clear;
   });
-  // The paper, from the file the bundle's Theme and the build both read.
-  const hex = /var examplePaper = "#([0-9a-fA-F]{6})";/.exec(readFileSync(new URL("../bundle/paper.js", import.meta.url), "utf8"))[1];
-  const paper = [0, 2, 4].map((at) => parseInt(hex.slice(at, at + 2), 16));
-  expect(corner, "where the example draws nothing, its paper stands").toEqual([...paper, 255]);
   expect(clear, "no pixel lets the page through").toBe(0);
   await press(page.getByRole("button", { name: "Use the dark theme" }));
-  await expect(picture, "the same picture stands on the dark paper").toHaveAttribute("src", src);
+  await expect(picture, "the same picture stands on the dark page").toHaveAttribute("src", src);
 });

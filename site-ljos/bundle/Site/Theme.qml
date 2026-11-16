@@ -1,7 +1,6 @@
 pragma Singleton
 import QtQuick
 import "../motion.js" as Motion
-import "../paper.js" as Paper
 import "../scheme.js" as Scheme
 import "../tokens.js" as Tokens
 
@@ -72,9 +71,6 @@ QtObject {
     // Danger as text: the role's own red is 4.3:1 on the light canvas,
     // so words in it are a step darker there.
     readonly property color danger: tone.danger
-    // What an example is drawn on, light or dark alike (paper.js,
-    // which the build draws the pictures on too).
-    readonly property color examplePaper: Paper.examplePaper
     readonly property color scrim: tone.scrim
 
     // The code theme, for what the site draws around highlighted code

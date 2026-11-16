@@ -149,16 +149,14 @@ DECISION: the rule of thumb for what a page runs.
   false, its state kept). An example stays as the reader left it,
   what they typed in it kept, and says nothing while it is away; only
   the budget stops it.
-- An example stands on its own paper, the white a window has where it
-  gives itself none, under its picture and under it running, on the
-  site's light or dark alike: what it gives no colour (its text, most
-  often) is written for that paper and would be lost on a dark page.
-  One picture, not one per scheme: a page whose schemes differed in it
-  would be written twice over.
+- An example paints its own surface and text from the palette, so it
+  reads on the site's light or dark as it runs, and the site lays no
+  paper under it. Its picture is drawn once, on the light paper: a page
+  whose schemes differed in it would be written twice over.
 
 Motion is full by default. A reader whose system asks for reduced
 motion, or who checks the header's "Reduce motion" toggle (kept in
-this browser, and back to the system's when it agrees with it), gets it
+this browser, even where it agrees with the system), gets it
 softened, never stopped: `Theme.calm` is set, so the motion
 demo's springs settle without overshoot and the 3D and shader demos
 turn at a third of their speed.
