@@ -481,7 +481,13 @@ class Host {
     const file = fetched(address);
     await file.done;
     if (file.failed) throw file.failed.told ?? file.failed;
-    // The wasm keeps a copy of what this gives it.
+    // The wasm keeps a copy of what this gives it, so the bytes are let go
+    // here unless the page is already waiting on them. A page that asks
+    // for the same file later (a Model's bounds or picking, read only
+    // when asked, so mostly after the wasm drew it) fetches it again,
+    // once: its parse is kept, and the browser's cache usually answers.
+    // That second fetch is the price of not holding every texture and
+    // glTF, which the page never reads, for as long as the page lives.
     taken(address, file);
     return new Uint8Array(file.bytes);
   }
