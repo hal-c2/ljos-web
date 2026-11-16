@@ -9,8 +9,9 @@
 // tab pauses and resumes when it is back, and an example stays as the
 // reader left it; reduced motion softens and
 // never stops; one picture stands on light and dark.
+import { readFileSync } from "node:fs";
 import AxeBuilder from "@axe-core/playwright";
-import { centre, classify, expect, frames, liveBlock, livePages, open, press, runButton, test, unexpected } from "./fixtures.js";
+import { centre, classify, expect, frames, liveBlock, livePages, open, pageScroll, press, runButton, test, unexpected } from "./fixtures.js";
 import { brokenExample } from "./known.js";
 
 const examples = livePages().flatMap(({ route, examples }) => examples.filter((example) => !brokenExample(route, example.index)).map((example) => ({ route, example })));
@@ -371,7 +372,10 @@ test("a picture is drawn on the example's paper, the same on the page's light or
     const at = data.length - 4;
     return { corner: [data[at], data[at + 1], data[at + 2], data[at + 3]], clear };
   });
-  expect(corner, "where the example draws nothing, its white paper stands").toEqual([255, 255, 255, 255]);
+  // The paper, from the file the bundle's Theme and the build both read.
+  const hex = /var examplePaper = "#([0-9a-fA-F]{6})";/.exec(readFileSync(new URL("../bundle/paper.js", import.meta.url), "utf8"))[1];
+  const paper = [0, 2, 4].map((at) => parseInt(hex.slice(at, at + 2), 16));
+  expect(corner, "where the example draws nothing, its paper stands").toEqual([...paper, 255]);
   expect(clear, "no pixel lets the page through").toBe(0);
   await press(page.getByRole("button", { name: "Use the dark theme" }));
   await expect(picture, "the same picture stands on the dark paper").toHaveAttribute("src", src);
