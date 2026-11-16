@@ -162,6 +162,27 @@ test("the system's palette is Qt's own light one", async ({ page }) => {
   ).toEqual([0, 1, 0, 2, 1, "#919191", "rgb(145, 145, 145)", "#308cc6", 0.1882352977991104, "rgb(48, 140, 198)"]);
 });
 
+// Qt 6.11 measures no Fusion palette in a dark scheme; Ljós answers
+// with Basic's dark one, as ljos-ui's palette does (ljos_quick
+// palette.rs), so a palette nobody set follows the reader's scheme and
+// what is drawn with it stays readable in both.
+test("in a dark scheme a palette nobody set, and the system's, are the dark ones", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await open(page, "palette");
+  expect(await roles(page, "plain", ROLES)).toBe(
+    "alternateBase:#2b2b2b base:#000000 brightText:#000000 button:#2f2f2f buttonText:#d4d6d8 dark:#c8c9cb highlight:#0d69f2 highlightedText:#fdfdfd light:#1a1a1a link:#2f86b1 linkVisited:#ff00ff mid:#626262 midlight:#2c2c2c shadow:#28282a text:#eff0f2 toolTipBase:#000000 toolTipText:#ffffff window:#000000 windowText:#d4d6d8 placeholderText:#88c8c9cb accent:#308cc6",
+  );
+  expect(await roles(page, "plain.disabled", ["base", "buttonText", "highlight", "text", "windowText", "accent"])).toBe(
+    "base:#292929 buttonText:#4dd4d6d8 highlight:#01060f text:#7fc8c9cb windowText:#3f4040 accent:#919191",
+  );
+  expect(await roles(page, "active", ["window", "windowText", "base", "text"])).toBe("window:#000000 windowText:#d4d6d8 base:#000000 text:#eff0f2");
+  // A role somebody set is theirs in either scheme.
+  expect(await roles(page, "tinted", ["button", "text"])).toBe("button:#ff0000 text:#eff0f2");
+  // And it changes as the scheme does.
+  await page.emulateMedia({ colorScheme: "light" });
+  await expect.poll(() => roles(page, "plain", ["window", "windowText"])).toBe("window:#efefef windowText:#000000");
+});
+
 test("a palette has Qt's colours in three groups, and a role set on it is set in all", async ({ page }) => {
   await open(page, "palette");
   const active =

@@ -551,6 +551,18 @@ test("the application is the page, and quitting is said, not done", async ({ pag
   // The scheme is the browser's, and follows it.
   await page.emulateMedia({ colorScheme: "dark" });
   await page.waitForFunction(() => window.objects.Qt.styleHints.colorScheme === window.objects.Qt.Dark);
+  // A scheme the page says on its root later, as a reader's own pick
+  // is, wins over the browser's, and saying none gives the browser's back.
+  const scheme = () => page.evaluate(() => window.objects.Qt.styleHints.colorScheme);
+  await page.evaluate(() => document.documentElement.setAttribute("data-ljos-scheme", "light"));
+  await expect.poll(scheme).toBe(1);
+  await page.evaluate(() => document.documentElement.setAttribute("data-ljos-scheme", "dark"));
+  await page.emulateMedia({ colorScheme: "light" });
+  await expect.poll(scheme).toBe(2);
+  await page.evaluate(() => document.documentElement.removeAttribute("data-ljos-scheme"));
+  await expect.poll(scheme).toBe(1);
+  await page.emulateMedia({ colorScheme: "dark" });
+  await expect.poll(scheme).toBe(2);
   // So are less motion and more contrast, asked for while the page is open.
   const accessibility = () => page.evaluate(() => {
     const { motionPreference, contrastPreference } = window.objects.Qt.styleHints.accessibility;
