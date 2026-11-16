@@ -22,35 +22,6 @@ async function reach(page, heading) {
   return demo(page, heading);
 }
 
-// How far down a canvas the scene stands: the mean row of the pixels
-// that are not its background (the colour of its top-left corner), read
-// from the picture the screen shows.
-async function heightOfScene(canvas) {
-  const picture = (await canvas.screenshot()).toString("base64");
-  return canvas.page().evaluate(async (data) => {
-    const image = new Image();
-    image.src = `data:image/png;base64,${data}`;
-    await image.decode();
-    const board = new OffscreenCanvas(image.width, image.height);
-    const context = board.getContext("2d");
-    context.drawImage(image, 0, 0);
-    const { data: pixels, width, height } = context.getImageData(0, 0, image.width, image.height);
-    const [r, g, b] = pixels;
-    let rows = 0;
-    let count = 0;
-    for (let row = 0; row < height; row++) {
-      for (let column = 0; column < width; column++) {
-        const at = (row * width + column) * 4;
-        if (Math.abs(pixels[at] - r) + Math.abs(pixels[at + 1] - g) + Math.abs(pixels[at + 2] - b) > 48) {
-          rows += row;
-          count++;
-        }
-      }
-    }
-    return count ? rows / count : height / 2;
-  }, picture);
-}
-
 async function settled(page, route) {
   await open(page, route);
   await page.waitForTimeout(800);
@@ -109,27 +80,22 @@ test.describe("/demos/", () => {
   });
 
   test("Orbit takes an up-and-down drag; the page does not", async ({ page }) => {
+    // As for the sideways drag: with the page's clock stopped nothing
+    // turns on its own, so a changed picture is the drag's, and the
+    // page's scroll staying put says the page did not take it.
+    await page.clock.install();
     await settled(page, "/demos/");
     const canvas = (await reach(page, "3D you can orbit")).locator("canvas.qq-view3d");
     await centre(canvas);
     const { x, y } = await centreOf(canvas);
     const scrolled = await pageScroll(page);
-    const before = await heightOfScene(canvas);
+    await page.clock.pauseAt(await page.evaluate(() => Date.now() + 500));
+    const shot = () => canvas.screenshot();
+    const before = await shot();
+    expect(Buffer.compare(before, await shot()), "with the clock stopped the scene holds still").toBe(0);
     await drag(page, { x, y: y - 100 }, { x, y: y + 100 });
     expect(await pageScroll(page), "the page stayed where it was").toBe(scrolled);
-    // The drag is the controller's: the camera tilts, so the scene moves
-    // up or down in the picture. Its turn about the vertical axis, which
-    // goes on beside the drag, leaves its height where it was. A software
-    // renderer draws the tilted picture some frames after the release
-    // (on CI, ~0.6 s), so the picture is read until it has.
-    const { box } = await centreOf(canvas);
-    const least = box.height * 0.03;
-    await expect
-      .poll(async () => Math.abs((await heightOfScene(canvas)) - before), {
-        message: `the scene tilted: its height in the picture moves from ${before.toFixed(1)} px by more than ${least.toFixed(1)} px`,
-        timeout: 10_000,
-      })
-      .toBeGreaterThan(least);
+    await expect.poll(async () => Buffer.compare(before, await shot()) !== 0, { message: "the scene tilted" }).toBe(true);
   });
 
   test("the shader effect keeps drawing frames", async ({ page, errors }) => {
