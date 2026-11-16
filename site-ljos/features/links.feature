@@ -71,7 +71,7 @@ Feature: The site's links are the page's own links
     Given a reader with script on the docs' first page
     When they press the link "ljos observe" in the page's words
     Then the address is the observer's page
-    When they go back and drag the page up from that link
+    When they go back and drag the page up with a finger from that link
     Then the page has scrolled, and the address is still the docs' first page
 
   Scenario: With script, back comes to where the reader was on the page
