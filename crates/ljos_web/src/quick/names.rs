@@ -298,7 +298,7 @@ impl<'a> Resolver<'a, '_, '_> {
             tree: &tree.front,
             types: self.types.front(),
         };
-        let resolution = names.lookup(name, span.start).map(|mut resolution| {
+        let mut resolution = names.lookup(name, span.start).map(|mut resolution| {
             // A delegate's model may have a role of any name, so a global's
             // name in a delegate comes back as the outermost model's role,
             // with nothing behind it. QML finds the global where no model
@@ -317,21 +317,27 @@ impl<'a> Resolver<'a, '_, '_> {
             }
             resolution
         });
-        // `t(m)` in a delegate: a message macro is Ljos.Core's there too,
-        // as [`is_message_macro`](Self::is_message_macro) says of `` t`…` ``.
+        // `t(m)`, or `select` read, in a delegate: a message macro is a
+        // global the pinned front end does not know yet, so it is found as
+        // one is above: the model's role where it has one, else Ljos.Core's
+        // macro. A message written out is read as the file is compiled
+        // ([`is_message_macro`](Self::is_message_macro)); this is the rest.
         if !written
-            && let Some(resolution) = &resolution
+            && let Some(resolution) = &mut resolution
             && resolution.aimed.is_none()
-            && matches!(
-                &resolution.target,
-                Some(qml_front::names::Target::Context { name: role, .. })
-                    if !matches!(role.as_str(), "index" | "model" | "modelData")
-            )
+            && let Some(qml_front::names::Target::Context {
+                context,
+                name: role,
+            }) = &resolution.target
+            && !matches!(role.as_str(), "index" | "model" | "modelData")
             && let Some(kind) = MacroKind::named(name)
             && self.types.front().imports(CORE)
         {
             self.uses.core.insert(kind.name());
-            return None;
+            resolution.roles.push(*context);
+            resolution.target = Some(qml_front::names::Target::Global(
+                qml_front::names::Global::Core,
+            ));
         }
         let (aimed, roles, target) = match resolution {
             Some(resolution) => {
