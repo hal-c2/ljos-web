@@ -373,8 +373,6 @@ test.describe("A ShellLoader shows a user's shell, or the application's own when
       expect(await read(page, "loader/user-shell/tally", "n")).toBe(3);
     });
 
-    // What stands in is there for the wait, not part of it: the user's
-    // shell that comes first is shown, and the fallback after it is not.
     // A shell is what the loader shows, wherever the loader stands: one
     // whose root is a Window or an ApplicationWindow is held there, of
     // the loader's size, and never floats over the page as a window of
@@ -413,6 +411,8 @@ test.describe("A ShellLoader shows a user's shell, or the application's own when
       await expect(page.getByText("held")).toBeVisible();
     });
 
+    // What stands in is there for the wait, not part of it: the user's
+    // shell that comes first is shown, and the fallback after it is not.
     test("A fallback slower to come than the user's shell does not hold it back", async ({ page }) => {
       await serve(page, { "Shell.qml": 'import QtQuick\nRectangle { objectName: "user-shell"; width: 50; height: 20 }\n' });
       // The fallback is fetched too, and never comes.
