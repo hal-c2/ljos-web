@@ -14,8 +14,9 @@ const opened = async (page, scene = "inspectpictured") => {
 
 // The root's picture and the page's own screenshot of the root, each read
 // at `points` (logical pixels of the root), how many of all their pixels
-// are not alike, and how many of those are not at an edge of the page's:
-// within a logical pixel of one of its pixels far from their own colour.
+// are not alike, how many of those are not at an edge of the page's
+// (within a logical pixel of one of its pixels far from their own colour),
+// and how many are off the turned square, a GPU's compositor's to smooth.
 async function compared(page, points, options = {}) {
   const box = await page.evaluate(() => {
     const { x, y, width, height } = window.scene.$node.getBoundingClientRect();
@@ -52,15 +53,24 @@ async function compared(page, points, options = {}) {
           }
         return false;
       };
+      // The turned square's bounds, turned: its centre and half its diagonal.
+      const scale = reference.width / window.scene.width;
+      const turned = (index) => {
+        const x = ((index / 4) % reference.width) / scale;
+        const y = Math.floor(index / 4 / reference.width) / scale;
+        return Math.abs(x - 325) <= 37 && Math.abs(y - 95) <= 37;
+      };
       let unlike = 0;
       let offEdge = 0;
+      let offTurned = 0;
       if (picture.width === reference.width && picture.height === reference.height) {
         for (let index = 0; index < picture.data.length; index += 4)
           if (apart(picture, index, reference, index)) {
             unlike++;
             if (!edge(index)) offEdge++;
+            if (!turned(index)) offTurned++;
           }
-      } else unlike = offEdge = -1;
+      } else unlike = offEdge = offTurned = -1;
       return {
         png: [...taken.png.slice(0, 8)],
         width: taken.width,
@@ -71,6 +81,7 @@ async function compared(page, points, options = {}) {
         decoded: [picture.width, picture.height],
         unlike: unlike / (picture.width * picture.height),
         offEdge,
+        offTurned,
         picture: points.map((point) => at(picture, point)),
         page: points.map((point) => at(reference, point)),
       };
@@ -120,11 +131,17 @@ for (const deviceScaleFactor of [1, 2]) {
       for (const [what, , colour] of DRAWN) if (colour) expect(named(taken.picture)[what], what).toBe(colour);
       // And everywhere else: no pixel is far from the page's. A GPU's
       // compositor smooths the turned square's edge otherwise than a
-      // canvas does: there, only the pixels of an edge may differ.
+      // canvas does: there, and only there, pixels of its edge may differ,
+      // no more than 0.25% of all (RADV smooths 0.12% at a scale of 1 and
+      // 0.06% at 2). Where the square is out of place, its corner and where
+      // it is not, read above, say so.
       expect(taken.offEdge).toBe(0);
       const renderer = await gpu(page);
-      if (renderer && taken.unlike > 0) narrowed(test.info(), renderer, `${(taken.unlike * 100).toFixed(2)}% of the pixels, all at an edge, are smoothed otherwise than a canvas smooths them`);
-      else expect(taken.unlike).toBe(0);
+      if (renderer && taken.unlike > 0) {
+        expect(taken.offTurned).toBe(0);
+        expect(taken.unlike).toBeLessThan(0.0025);
+        narrowed(test.info(), renderer, `${(taken.unlike * 100).toFixed(2)}% of the pixels, all at the turned square's edge, are smoothed otherwise than a canvas smooths them`);
+      } else expect(taken.unlike).toBe(0);
     });
   });
 }
