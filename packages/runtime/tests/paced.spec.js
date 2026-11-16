@@ -60,6 +60,11 @@ test("a fence seen at work once a frame was laid out took no longer than until t
   expect(done(100, 270, 190)).toBe(190);
 });
 
+test("a fence seen at work after the next frame began took until it was seen at work", () => {
+  // The next frame began at 120, before the picture was drawn at 150.
+  expect(done(150, 160, 120)).toBe(150);
+});
+
 test("a fence is seen done late when the page was held between two checks", () => {
   expect(late(100, 104)).toBe(false);
   expect(late(100, 164)).toBe(true);

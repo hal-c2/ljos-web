@@ -662,9 +662,7 @@ export function drawOn(self, canvas, told, instead) {
     }
     gl.deleteSync(fence);
     fence = null;
-    // A frame begun before the message may have begun before this picture
-    // was drawn, and it was seen at work since.
-    const to = done(busy, now, busyAtFrame ? Math.max(busy, madeBy) : null);
+    const to = done(busy, now, busyAtFrame ? madeBy : null);
     watching = late(busy, now);
     state.probe?.("gpu", drawnFrom, to);
     pace.drew(drawnFrom, to);
