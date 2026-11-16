@@ -2474,6 +2474,12 @@ text and key ljos-ui gives: a value that is a bare name is its placeholder
 a literal, or that has no `other`, is an error (`i18n-literal`,
 `i18n-other`). `@ljos/core` in a module is `ljos-web/Ljos/Core`; it gives
 the names of `Ljos.Core` and the message macros, never a default.
+In a delegate a written-out message (`` t`…` ``, `plural(…)`, a call of
+`t`) is always Ljos.Core's, even when the model has a role of that name,
+because the compiler reads a message as the file is compiled and only the
+running model knows its roles; a bare read of the name (`t`, not a call)
+is the role where the model has one, as any QML global is. This differs
+from QML's lookup, which would read the role.
 
 **The runtime** (`Ljos/Core/messages.ts`) formats MessageFormat 1 in the
 page: `#` and `{n, number}` with `Intl.NumberFormat` of the UI language,
