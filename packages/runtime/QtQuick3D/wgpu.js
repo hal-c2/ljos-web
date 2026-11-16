@@ -573,7 +573,8 @@ export function drawOn(self, canvas, told) {
   const draw = () => {
     frame = 0;
     resting = 0;
-    if (gone) return;
+    // A frame asked for may come after the picture it was for was drawn.
+    if (gone || !due) return;
     const from = performance.now();
     // Still due while it rests or the last is with the GPU, so that what
     // asks meanwhile is in it.
@@ -611,7 +612,9 @@ export function drawOn(self, canvas, told) {
     gl.deleteSync(fence);
     fence = null;
     pace.drew(from, done(busy, now));
-    if (due) draw();
+    // Drawn now if asked for meanwhile, unless an animation frame asked
+    // for is still to come and draws it.
+    if (due && !frame) draw();
   };
   // Drawn once what asked for it has settled, in the same task: a build in
   // an animation frame is drawn in that frame, as the JavaScript renderer's
