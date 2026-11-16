@@ -50,13 +50,6 @@ if (!/^https?:\/\/[A-Za-z0-9.-]+(?::\d+)?$/.test(origin)) {
 }
 const repo = resolve(here, "..");
 const bundle = join(here, "bundle");
-// The example's paper, from the one file the bundle's Theme reads it
-// from too: the picture and the paper under the running example match.
-function examplePaper() {
-  const found = /var examplePaper = "(#[0-9a-fA-F]{6})";/.exec(readFileSync(join(bundle, "paper.js"), "utf8"));
-  if (!found) throw new Error("bundle/paper.js: no examplePaper");
-  return found[1];
-}
 const out = join(here, "dist");
 
 const candidates = [
@@ -179,17 +172,14 @@ const liveAt = new Map(); // a page's code block -> its live payload
   rmSync(pictures, { recursive: true, force: true });
   mkdirSync(pictures, { recursive: true });
   // A picture is the prerender's, as this browser draws it, on the
-  // example's paper (bundle/paper.js), which stands under the running
-  // example too, light or dark alike: text the example gives no colour is
-  // written for it, and would be lost on a dark page. One picture, not
-  // one for each scheme: a page whose two schemes said two pictures would
-  // be written twice over (site.js's shareSchemes). Kept under both
-  // names, so a cache kept across builds never answers with one an older
-  // runtime or browser drew. The page names it by its hash. How it is
-  // drawn is in the name too (the stage around it, so the paper, and the
-  // size an unsized root is given), so a changed recipe draws again.
-  const EXAMPLE_PAPER = examplePaper();
-  const STAGE = `<!doctype html><style>html,body{margin:0;background:${EXAMPLE_PAPER}}</style>`;
+  // site's light paper. One picture, not one for each scheme: a page
+  // whose two schemes said two pictures would be written twice over
+  // (site.js's shareSchemes). Kept under both names, so a cache kept
+  // across builds never answers with one an older runtime or browser
+  // drew. The page names it by its hash. How it is drawn is in the name
+  // too (the stage around it and the size an unsized root is given), so
+  // a changed recipe draws again.
+  const STAGE = "<!doctype html><style>html,body{margin:0;background:#fdfbf6}</style>";
   const UNSIZED = [320, 180];
   const drawnBy = createHash("sha256").update(`${chromium.executablePath()}\n${STAGE}\n${UNSIZED}`).digest("hex").slice(0, 12);
   const kept = (hash) => `${hash.slice(0, 16)}-${createHash("sha256").update(`${prerendered[hash].stamp ?? ""}\n${drawnBy}`).digest("hex").slice(0, 12)}.png`;
