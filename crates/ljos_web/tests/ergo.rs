@@ -398,25 +398,29 @@ Item {
     assert_contains(&main, r#"import "ljos-web/compiler/sugar";"#);
 }
 
-/// A parenthesized `Symbol` is the same `Symbol`, in either spelling.
+/// A parenthesized `Symbol` is the same `Symbol`, in either spelling, and
+/// so is one under a TypeScript cast.
 #[test]
 fn a_parenthesized_symbol_custom_matcher_imports_the_sugar() {
     let dotted = given("export const key = (Symbol).customMatcher;");
     let bracketed = given(r#"export const key = (Symbol)["customMatcher"];"#);
+    let cast = given("export const key = (Symbol as SymbolConstructor).customMatcher;");
     let main = given(
         r#"import QtQuick
 import "dotted.lts" as Dotted
 import "bracketed.lts" as Bracketed
+import "cast.lts" as Cast
 Item {
-  readonly property bool keyed: Dotted.key !== Bracketed.key
+  readonly property bool keyed: Dotted.key !== Bracketed.key && Cast.key !== undefined
 }"#,
     );
     let files = [
         ("Main.qml", main),
         ("dotted.lts", dotted),
         ("bracketed.lts", bracketed),
+        ("cast.lts", cast),
     ];
-    for module in ["dotted.lts", "bracketed.lts"] {
+    for module in ["dotted.lts", "bracketed.lts", "cast.lts"] {
         assert_contains(
             &code_of(&files, "Main.qml", module),
             r#"import "ljos-web/compiler/sugar";"#,
