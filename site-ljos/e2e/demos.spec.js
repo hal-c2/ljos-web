@@ -119,10 +119,17 @@ test.describe("/demos/", () => {
     expect(await pageScroll(page), "the page stayed where it was").toBe(scrolled);
     // The drag is the controller's: the camera tilts, so the scene moves
     // up or down in the picture. Its turn about the vertical axis, which
-    // goes on beside the drag, leaves its height where it was.
-    const after = await heightOfScene(canvas);
+    // goes on beside the drag, leaves its height where it was. A software
+    // renderer draws the tilted picture some frames after the release
+    // (on CI, ~0.6 s), so the picture is read until it has.
     const { box } = await centreOf(canvas);
-    expect(Math.abs(after - before), "the scene tilted").toBeGreaterThan(box.height * 0.03);
+    const least = box.height * 0.03;
+    await expect
+      .poll(async () => Math.abs((await heightOfScene(canvas)) - before), {
+        message: `the scene tilted: its height in the picture moves from ${before.toFixed(1)} px by more than ${least.toFixed(1)} px`,
+        timeout: 10_000,
+      })
+      .toBeGreaterThan(least);
   });
 
   test("the shader effect keeps drawing frames", async ({ page, errors }) => {
