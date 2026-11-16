@@ -45,7 +45,7 @@ use oxc_span::{GetSpan, SourceType, Span};
 
 use super::{
     messages,
-    names::{CORE, CORE_GLOBALS, FETCH_GLOBALS, JS_GLOBALS, PLACED_GLOBALS, SUGAR_GLOBALS},
+    names::{self, CORE, CORE_GLOBALS, FETCH_GLOBALS, JS_GLOBALS, PLACED_GLOBALS, SUGAR_GLOBALS},
 };
 use crate::{
     Error, Options,
@@ -270,6 +270,7 @@ fn javascript<'a>(
     let mut sugar = BTreeSet::new();
     let mut placed = BTreeSet::new();
     let mut unread = HashSet::new();
+    let matcher;
     {
         let semantic = SemanticBuilder::new()
             .with_build_nodes(true)
@@ -309,6 +310,21 @@ fn javascript<'a>(
             errors.sort_by_key(|error| error.span.start);
             return Err(errors);
         }
+        let page_symbol: HashSet<u32> = scoping
+            .root_unresolved_references()
+            .iter()
+            .filter(|(name, _)| name.as_str() == "Symbol")
+            .flat_map(|(_, references)| references.iter())
+            .map(|reference| {
+                semantic
+                    .nodes()
+                    .get_node(scoping.get_reference(*reference).node_id())
+                    .kind()
+                    .span()
+                    .start
+            })
+            .collect();
+        matcher = names::reads_custom_matcher(&program, |start| page_symbol.contains(&start));
         // An import of a name the module reads only as a type, `type`
         // written or not, is left out, as TypeScript leaves it out.
         for statement in &program.body {
@@ -341,6 +357,10 @@ fn javascript<'a>(
     if !sugar.is_empty() {
         let import = b.import_named(sugar.iter().copied(), &format!("{prefix}/{SUGAR}"));
         program.body.insert(0, import);
+    } else if matcher {
+        program
+            .body
+            .insert(0, b.import_bare(&format!("{prefix}/{SUGAR}")));
     }
     if !placed.is_empty() {
         let import = b.import_named(placed.iter().copied(), &format!("{prefix}/QtQml"));

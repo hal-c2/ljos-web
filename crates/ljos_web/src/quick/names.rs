@@ -82,6 +82,8 @@ pub(crate) fn resolve<'a>(
 ) {
     let (mut free, sugar) = free_references(program, own);
     uses.sugar.extend(sugar);
+    uses.matcher |=
+        reads_custom_matcher(program, |span| free.contains(&(span, "Symbol".to_string())));
     if dialect.ljos_ui {
         // Before anything reads `Qt.member` as Qt's: in a file of Ljós's
         // API it is nothing, and what it is to Qt would only add errors.
@@ -170,6 +172,37 @@ impl<'a> Visit<'a> for QtGlobal<'_> {
             self.found.push((None, identifier.span.start));
         }
     }
+}
+
+/// Whether `program` reads `Symbol.customMatcher` of the page's `Symbol`,
+/// `is_free` saying, by span start, which `Symbol` is the page's. The sugar
+/// module defines it where the browser does not yet, so a file that declares
+/// a matcher and lowers no `match` or `is` still imports it for that: its
+/// key would be `"undefined"` otherwise, and a later match would not see it.
+pub(crate) fn reads_custom_matcher(program: &Program<'_>, is_free: impl Fn(u32) -> bool) -> bool {
+    struct Reads<F> {
+        is_free: F,
+        found: bool,
+    }
+    impl<'a, F: Fn(u32) -> bool> Visit<'a> for Reads<F> {
+        fn visit_static_member_expression(&mut self, member: &StaticMemberExpression<'a>) {
+            if let Expression::Identifier(object) = &member.object
+                && object.name == "Symbol"
+                && member.property.name == "customMatcher"
+                && (self.is_free)(object.span.start)
+            {
+                self.found = true;
+                return;
+            }
+            walk::walk_static_member_expression(self, member);
+        }
+    }
+    let mut reads = Reads {
+        is_free,
+        found: false,
+    };
+    reads.visit_program(program);
+    reads.found
 }
 
 /// The authored identifiers no JavaScript binding resolves, by span start
