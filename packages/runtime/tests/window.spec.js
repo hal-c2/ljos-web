@@ -328,9 +328,10 @@ test("the screen is the browser's", async ({ page }) => {
         () => screen.angleBetween(Qt.LandscapeOrientation, Qt.PortraitOrientation),
         () => screen.angleBetween(Qt.PrimaryOrientation, Qt.InvertedLandscapeOrientation),
         () => Screen.angleBetween(Qt.PortraitOrientation, Qt.PortraitOrientation),
+        () => [Screen.points(12), screen.points(9), screen.points(10.5), screen.points(0)],
       ];
     }),
-  ).toEqual([true, true, true, true, true, true, true, 1, 3.7795275590551185, 3.7795275590551185, "", 0, 2, 2, true, 270, 90, 180, 0]);
+  ).toEqual([true, true, true, true, true, true, true, 1, 3.7795275590551185, 3.7795275590551185, "", 0, 2, 2, true, 270, 90, 180, 0, [16, 12, 14, 0]]);
 });
 
 test("an item hears of the screen turning", async ({ page }) => {
