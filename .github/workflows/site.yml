@@ -186,8 +186,8 @@ jobs:
       # be made from, so a run that made nothing new saves nothing.
       # Three caches, each saved right after the build that fills it,
       # so a failure after it never loses it: the Astro site's
-      # prerenders, the Ljós site's pictures on the default kernel, and
-      # its prerenders and pictures on the wasm kernel. (No key is a
+      # prerenders, and the Ljós site's prerenders and pictures on the
+      # default kernel and on the wasm kernel. (No key is a
       # prefix of another's, so no restore-keys answers for another.)
       # The files the docs' examples are given (site/codeblock-files)
       # are part of an example's hash, so of the key. The Ljós site's
@@ -226,8 +226,14 @@ jobs:
           key: codeblocks-wasm-ljos-${{ steps.image.outputs.name }}-${{ steps.image.outputs.inputs }}-${{ steps.image.outputs.pictures }}
           restore-keys: codeblocks-wasm-ljos-${{ steps.image.outputs.name }}-
       # Prerenders each live block (and fails on one that claims to
-      # run and does not) before the build embeds them.
+      # run and does not) before the build embeds them. Under the
+      # environment of the build after it: the build embeds only what
+      # was made under its own stamp. The wasm-kernel build below has
+      # another, so it embeds none, and only its showcase and site
+      # specs run, which read no prerender.
       - run: pnpm --filter ljos-site codeblock-prerenders
+        env:
+          VITE_LJOS_VIEW3D: wgpu
       - if: steps.astro-prerenders.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -261,13 +267,9 @@ jobs:
       # held to parity with it, uploaded as its own artifact, and what
       # Pages deploys (the Astro site/dist is the reference, never
       # deployed). The wasm compiler, the kernel and the browser are
-      # the ones above. Its blocks are the Astro build's: the same
-      # examples, compiler, runtime and kernel make the same
-      # prerenders, so they are made once, there; what it adds is
-      # their pictures.
-      - run: |
-          mkdir -p site-ljos/.codeblock-prerenders
-          cp -r site/.codeblock-prerenders/. site-ljos/.codeblock-prerenders/
+      # the ones above. Its blocks are its own, not the Astro build's:
+      # that one's are made for the wgpu renderer, which this build
+      # does not ask for, so their stamp is not this build's.
       # Built twice, once for each place it stands: at a domain's
       # root (ljos.dev), the whole suite; then below a project path
       # (the github.io preview, /<repo>/), what the base decides: the

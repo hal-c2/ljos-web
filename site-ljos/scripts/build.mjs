@@ -122,9 +122,8 @@ const liveAt = new Map(); // a page's code block -> its live payload
     for (const example of examples) gathered.push({ page, example });
   }
   // One stamp's answers to a directory, and this site is built on
-  // either kernel: the default's stand at the top (seeded from the
-  // Astro build's), another's beside them, so neither build drops or
-  // makes again what the other made.
+  // either kernel: the default's stand at the top, another's beside
+  // them, so neither build drops or makes again what the other made.
   const kernel = kernelNamed();
   const cacheDir = kernel === kernelNamed({}) ? join(here, ".codeblock-prerenders") : join(here, ".codeblock-prerenders", kernel);
   const checked = checkExamples(gathered.map(({ example }) => example), { qmlc });

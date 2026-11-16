@@ -4,7 +4,7 @@ import { join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
-import { loadHarnesses, loadPrerenders, siteFiles } from "ljos-web/codeblocks";
+import { loadHarnesses, loadPrerenders, prerenderStamp, siteFiles } from "ljos-web/codeblocks";
 import { liveCodeBlocks } from "ljos-web/codeblocks/remark";
 import qml, { kernelConditions } from "ljos-web/vite";
 import { giveFiles, readGiven } from "./scripts/codeblock-files.mjs";
@@ -36,6 +36,19 @@ const harnessDir = docsDir ? join(docsDir, "harness") : undefined;
 // Resolved as the writer resolves it (codeblock-prerenders.mjs): an
 // absolute path is itself, a relative one is under the site.
 const prerendersAt = resolve(path("."), process.env.LJOS_CODEBLOCK_PRERENDERS ?? ".codeblock-prerenders");
+const qmlc = process.env.QMLC ?? path("../target/debug/qmlc");
+// Only what this build would make itself: a prerender, or a failure,
+// made under another stamp (another kernel or 3D renderer, an older
+// compiler or runtime) is not embedded, and its block is compiled
+// here and shown unrendered, as with no prerender at all. The stamp is
+// the one codeblock-prerenders gives under the same environment, so
+// that step is run with the build's (VITE_LJOS_VIEW3D, LJOS_KERNEL).
+const stamp = prerenderStamp({ qmlc });
+const loaded = Object.entries(loadPrerenders(prerendersAt));
+const prerenders = Object.fromEntries(loaded.filter(([, had]) => had.stamp === stamp));
+const otherwise = loaded.length - Object.keys(prerenders).length;
+if (otherwise > 0)
+  console.warn(`codeblocks: ${otherwise} prerender(s) in ${prerendersAt} were made for another build and are left out; run codeblock-prerenders with this build's environment to embed them`);
 let legacyBlocks = 0;
 const given = readGiven();
 const docsAt = path("src/content/docs");
@@ -88,9 +101,9 @@ export default defineConfig({
         {
           harnesses: loadHarnesses(harnessDir),
           files: siteFiles(docsDir ? join(docsDir, "files") : undefined),
-          qmlc: process.env.QMLC ?? path("../target/debug/qmlc"),
+          qmlc,
           strict: process.env.LJOS_CODEBLOCKS_STRICT === "1",
-          prerenders: loadPrerenders(prerendersAt),
+          prerenders,
           // The files an example reads and its page does not show, as
           // codeblock-prerenders gave them, so its hash and its page's
           // live project are the prerender's.
