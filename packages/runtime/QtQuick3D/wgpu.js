@@ -227,7 +227,11 @@ class Host {
     this.unsteady.delete(handle);
   }
   chain(o) {
-    const names = this.objectsBy.get(o).$type.chain.map((type) => type.typeName);
+    const object = this.objectsBy.get(o);
+    const names = object.$type.chain.map((type) => type.typeName);
+    // An object of a type of the page's own, as XrCamera, may say which
+    // of the renderer's it is drawn as.
+    if (object.$drawnAs) names.push(object.$drawnAs);
     // Qt's own QML of an ExtendedSceneEnvironment is what is run here, an
     // object of the type it is written on, whatever name it is imported by.
     return names.includes("SceneEffectEnvironment") ? [...names, "ExtendedSceneEnvironment"] : names;
@@ -236,6 +240,9 @@ class Host {
     this.note(o, READ.number, p);
     const object = this.objectsBy.get(o);
     const name = NAMES[p];
+    // What such an object tells the renderer though no one said it.
+    const told = object.$told;
+    if (told && name in told) return Number(told[name]);
     // A node's x is a part of its position, whichever of them was said.
     if (name === "x" || name === "y" || name === "z") {
       if (!slot(object, name)?.explicit() && !said(object, "position")) return undefined;
