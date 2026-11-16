@@ -48,8 +48,11 @@ async function pressAndWatch(page) {
         const frame = () => {
           const at = performance.now() - t0;
           seen.push([Math.round(at), read()]);
-          const recent = seen.filter(([t]) => t >= at - still).map(([, x]) => x);
-          const quiet = at >= still && recent.every((x) => x !== null) && Math.max(...recent) - Math.min(...recent) <= 0.5;
+          // From the last reading at least `still` ago, so the readings
+          // span the whole window however far apart the frames fall.
+          const from = seen.findLastIndex(([t]) => t <= at - still);
+          const recent = from < 0 ? [] : seen.slice(from).map(([, x]) => x);
+          const quiet = recent.length >= 2 && recent.every((x) => x !== null) && Math.max(...recent) - Math.min(...recent) <= 0.5;
           if (quiet || at >= settle) resolve({ still: quiet, after: Math.round(at), seen });
           else requestAnimationFrame(frame);
         };
