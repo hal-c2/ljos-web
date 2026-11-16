@@ -189,17 +189,22 @@ jobs:
       # prerenders, the Ljós site's pictures on the default kernel, and
       # its prerenders and pictures on the wasm kernel. (No key is a
       # prefix of another's, so no restore-keys answers for another.)
-      # The fixture docs' blocks (test:codeblocks) are not in any key:
-      # they are made after the Astro cache is saved, into the same
-      # directory, so it never holds them and they are made each run
-      # (one small batch). A key that moved with them would save the
-      # same pinned-docs prerenders again under a new name.
+      # The files the docs' examples are given (site/codeblock-files)
+      # are part of an example's hash, so of the key. The Ljós site's
+      # pictures are also drawn by its build script, so its two keys
+      # move with that script too (PICTURES); each picture's name holds
+      # the same recipe, so one restored from an older key is drawn
+      # again, never shown. The fixture docs' blocks (test:codeblocks)
+      # are in no key and no cache: they are kept in a directory of
+      # their own and made each run (one small batch).
       - id: image
         env:
-          INPUTS: ${{ hashFiles('packages/runtime/**', 'crates/**', 'vendor/**', 'Cargo.lock', 'pnpm-lock.yaml', 'site/ljos-ui.sha', '!**/node_modules/**') }}
+          INPUTS: ${{ hashFiles('packages/runtime/**', 'crates/**', 'vendor/**', 'Cargo.lock', 'pnpm-lock.yaml', 'site/ljos-ui.sha', 'site/codeblock-files/**', '!**/node_modules/**') }}
+          PICTURES: ${{ hashFiles('site-ljos/scripts/build.mjs') }}
         run: |
           echo "name=$ImageOS-$ImageVersion" >> "$GITHUB_OUTPUT"
           echo "inputs=$INPUTS" >> "$GITHUB_OUTPUT"
+          echo "pictures=$PICTURES" >> "$GITHUB_OUTPUT"
       - id: astro-prerenders
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -212,13 +217,13 @@ jobs:
           path: |
             site-ljos/.codeblock-prerenders
             !site-ljos/.codeblock-prerenders/wasm
-          key: codeblocks-ljos-${{ steps.image.outputs.name }}-${{ steps.image.outputs.inputs }}
+          key: codeblocks-ljos-${{ steps.image.outputs.name }}-${{ steps.image.outputs.inputs }}-${{ steps.image.outputs.pictures }}
           restore-keys: codeblocks-ljos-${{ steps.image.outputs.name }}-
       - id: wasm-prerenders
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: site-ljos/.codeblock-prerenders/wasm
-          key: codeblocks-wasm-ljos-${{ steps.image.outputs.name }}-${{ steps.image.outputs.inputs }}
+          key: codeblocks-wasm-ljos-${{ steps.image.outputs.name }}-${{ steps.image.outputs.inputs }}-${{ steps.image.outputs.pictures }}
           restore-keys: codeblocks-wasm-ljos-${{ steps.image.outputs.name }}-
       # Prerenders each live block (and fails on one that claims to
       # run and does not) before the build embeds them.
