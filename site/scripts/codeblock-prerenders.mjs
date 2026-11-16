@@ -82,7 +82,10 @@ for (const { example, diagnostics } of failures) {
 legacy += failures.length;
 const runnable = examples.filter((example) => !failed.has(hashExample(example)));
 
-const cacheDir = join(siteRoot, ".codeblock-prerenders");
+// One docs' examples to a directory (renderPrerenders drops what the
+// docs no longer have), so another docs' are kept apart from the
+// pinned ones' (LJOS_CODEBLOCK_PRERENDERS, as astro.config.mjs reads).
+const cacheDir = join(siteRoot, process.env.LJOS_CODEBLOCK_PRERENDERS ?? ".codeblock-prerenders");
 const { manifest, failures: unmade } = await renderPrerenders(runnable, { cacheDir, qmlc, checked: true });
 for (const { example, diagnostics } of unmade) {
   if (mustRun(example)) {

@@ -184,13 +184,13 @@ export function renderStatic(example, { prerender } = {}) {
 // prerender or a failure made under another is not this one's, so a
 // cache kept across builds (a CI cache, or a checkout's own) answers
 // only for what would make the same again. A compiler named only by
-// a command is known by that name.
+// a command is known by that name. The 3D renderer a build asks for
+// (VITE_LJOS_VIEW3D) is read as the page is bundled, so it is part of
+// what makes a prerender. Read afresh each time it is asked: the same
+// path can hold a rebuilt compiler, and the same runtime edited files.
 const STAMP_SKIPS = new Set(["node_modules", "tests", "site-tests", "type-tests"]);
-const stamps = new Map();
 export function prerenderStamp({ qmlc, width = 1280, height = 720, env = process.env } = {}) {
-  const made = JSON.stringify([width, height, kernelNamed(env)]);
-  const said = JSON.stringify([qmlc ?? "", made]);
-  if (stamps.has(said)) return stamps.get(said);
+  const made = JSON.stringify([width, height, kernelNamed(env), env.VITE_LJOS_VIEW3D ?? ""]);
   // The compiler by its bytes, not where it stands: two checkouts'
   // builds of the same compiler are one.
   const hash = createHash("sha256");
@@ -211,9 +211,7 @@ export function prerenderStamp({ qmlc, width = 1280, height = 720, env = process
       hash.update("\npnpm-lock.yaml\n").update(readFileSync(lock));
       break;
     }
-  const stamp = hash.digest("hex").slice(0, 32);
-  stamps.set(said, stamp);
-  return stamp;
+  return hash.digest("hex").slice(0, 32);
 }
 
 // An example's words name the stage it ran in, a directory made for
@@ -291,13 +289,14 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
   const at = join(cacheDir, "manifest.json");
   const stamp = prerenderStamp({ qmlc, width, height, env });
   const manifest = {};
+  const byHash = new Map(examples.map((example) => [hashExample(example), example]));
   // What another compiler or runtime made is not this one's answer, a
   // failure no more than a prerender: it is dropped, and made again
-  // when an example asks for it.
+  // when an example asks for it. Nor is an example these docs no longer
+  // have: kept, every edit to the docs would grow the cache by one.
   if (existsSync(at))
-    for (const [hash, had] of Object.entries(JSON.parse(readFileSync(at, "utf8")))) if (had?.stamp === stamp) manifest[hash] = had;
+    for (const [hash, had] of Object.entries(JSON.parse(readFileSync(at, "utf8")))) if (had?.stamp === stamp && byHash.has(hash)) manifest[hash] = had;
   const save = () => writeFileSync(at, `${JSON.stringify(manifest, null, 2)}\n`);
-  const byHash = new Map(examples.map((example) => [hashExample(example), example]));
   const failures = [];
   // Said in the manifest, so the build that embeds them leaves the
   // block plain instead of promising it live. A failure is as much this

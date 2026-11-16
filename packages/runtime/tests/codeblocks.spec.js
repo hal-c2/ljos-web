@@ -11,7 +11,7 @@ import { join } from "node:path";
 import { test as plain } from "@playwright/test";
 import { Text } from "@codemirror/state";
 import { assemble, displayPosition, exampleFiles, extractBlocks, parseInfo, spliceHarness } from "../codeblocks/parse.js";
-import { checkExamples, hashExample, loadPrerenders, pruneCache, renderCode, renderPrerenders, renderStatic } from "../codeblocks/build.js";
+import { checkExamples, hashExample, loadPrerenders, prerenderStamp, pruneCache, renderCode, renderPrerenders, renderStatic } from "../codeblocks/build.js";
 import { toDiagnostics } from "../codeblocks/editor.js";
 import { PACKED, packRich, unpackRich } from "../codeblocks/rich.js";
 import { highlight } from "../markdown.js";
@@ -270,6 +270,11 @@ Item {
     expect(existsSync(join(cacheDir, "0123456789abcdef.html"))).toBe(false);
     expect(existsSync(join(cacheDir, manifest[hashExample(counter)].file))).toBe(true);
     expect(existsSync(join(cacheDir, "0123456789abcdef-0123456789ab.png"))).toBe(true);
+    // An example the docs no longer have is no part of what is kept, a
+    // prerender or a failure: it was made by this very stamp, and still
+    // goes, with its file.
+    expect(Object.keys(again.manifest)).toEqual([hashExample(counter)]);
+    expect(existsSync(join(cacheDir, manifest[hashExample(implicit)].file))).toBe(false);
     pruneCache(cacheDir, { keep: new Set(), pattern: /^[0-9a-f]{16}-[0-9a-f]{12}\.png$/ });
     expect(existsSync(join(cacheDir, "0123456789abcdef-0123456789ab.png"))).toBe(false);
     expect(existsSync(join(cacheDir, "manifest.json"))).toBe(true);
@@ -326,6 +331,24 @@ Text {
     expect(loaded[hashExample(throwing)].html).toContain("made anyway");
   } finally {
     rmSync(cacheDir, { recursive: true, force: true });
+  }
+});
+
+// A prerender is made by the compiler's bytes as they are now, and by
+// the 3D renderer the build asks for: a compiler rebuilt where the old
+// one stood, or another renderer, is another stamp.
+plain("a prerender's stamp answers for the compiler's bytes now and the 3D renderer", () => {
+  const dir = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "ljos-codeblock-stamp-"));
+  try {
+    const compiler = join(dir, "qmlc");
+    writeFileSync(compiler, "one");
+    const first = prerenderStamp({ qmlc: compiler, env: {} });
+    expect(prerenderStamp({ qmlc: compiler, env: {} })).toBe(first);
+    expect(prerenderStamp({ qmlc: compiler, env: { VITE_LJOS_VIEW3D: "wgpu" } })).not.toBe(first);
+    writeFileSync(compiler, "two");
+    expect(prerenderStamp({ qmlc: compiler, env: {} })).not.toBe(first);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
 });
 
