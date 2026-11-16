@@ -68,6 +68,12 @@ Item {
         asked = true;
         paused = false;
     }
+    // The reader asked (its Run, a press on its picture, an edit of its
+    // code): its phases are said aloud.
+    function ask() {
+        told = true;
+        run();
+    }
     function evict() {
         asked = false;
         paused = false;
@@ -76,8 +82,7 @@ Item {
     // What the control does in each phase.
     function act() {
         if (phase === "picture" || phase === "paused") {
-            told = true;
-            run();
+            ask();
         } else if (phase === "failed") {
             edit();
         } else if (phase === "live") {
@@ -122,10 +127,11 @@ Item {
         }
     }
 
-    // On the picture: a press anywhere on it runs it, as the button
-    // does, and still lands on what is under it. It stands where it
-    // cannot run too, only taking nothing, so a page without
-    // WebAssembly is built of the same parts.
+    // On the picture: a click or tap anywhere on it runs it, as the
+    // button does. Only a completed one that the page did not scroll
+    // under: a finger that sets out to scroll the page over a picture
+    // runs nothing. It stands where it cannot run too, only taking
+    // nothing, so a page without WebAssembly is built of the same parts.
     MouseArea {
         id: hover
         width: runner.spanWidth
@@ -135,10 +141,15 @@ Item {
         hoverEnabled: runner.can
         Accessible.ignored: true
         cursorShape: runner.can ? Qt.PointingHandCursor : Qt.ArrowCursor
-        onPressed: (mouse) => {
-            runner.told = true;
-            runner.run();
-            mouse.accepted = false;
+        // Where the picture stood on the page at the press. A finger
+        // the page scrolls with keeps its place on the picture, so a
+        // swipe ends as a click on it; the picture having moved under
+        // the window is what tells it from a tap.
+        property real pressedAt: 0
+        onPressed: pressedAt = runner.mapToItem(null, 0, 0).y
+        onClicked: {
+            if (Math.abs(runner.mapToItem(null, 0, 0).y - pressedAt) < 1)
+                runner.ask();
         }
     }
 
