@@ -500,10 +500,15 @@ export const Text = defineType("Text", Item, {
       this.$pressed = "";
       const under = linkUnder(this, point);
       if (link && under === link) this.linkActivated(link);
-      this.$hover(under);
+      this.$linkHover(under);
     },
+    // Taken by a Flickable, the text hears nothing more of the pointer:
+    // the page's boundary events go to the scene while it holds it, and
+    // the drag usually ends off the text. The link is not under it then.
     $grab(transition) {
-      if (transition === CancelGrabExclusive) this.$pressed = "";
+      if (transition !== CancelGrabExclusive) return;
+      this.$pressed = "";
+      this.$linkHover("");
     },
   },
   setup(self) {
@@ -532,7 +537,8 @@ export const Text = defineType("Text", Item, {
     // Markup only: plain text has no links.
     let listening = false;
     self.$pressed = "";
-    const hover = (self.$hover = (link) => {
+    // Not `$hover`: that is the scene's, for what is hovered as an item.
+    const hover = (self.$linkHover = (link) => {
       if (!slot(self, "hoveredLink").write(link)) return;
       flush();
       self.linkHovered(link);
