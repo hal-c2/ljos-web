@@ -823,7 +823,7 @@ test("the sky QtQuick3D.Helpers makes is the one Qt makes", SURROUNDINGS, async 
   }
   for (const [[x, y], points] of ways) {
     await page.evaluate(([x, y]) => window.scene.turn(x, y, 0), [x, y]);
-    const got = await painted(page, points);
+    const got = await painted(page, points, edge(x, 150) ? 4 : 3);
     got.forEach((colour, index) => {
       const [[, py], expected] = points[index];
       near(colour, expected, `turned ${x}, ${y}[${index}]`, edge(x, py) ? 4 : 3);
