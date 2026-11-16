@@ -35,6 +35,30 @@ export function linear(value) {
   return [one(r), one(g), one(b), a];
 }
 
+// A file's bytes, fetched once for both renderers: the wgpu one hands them
+// to its wasm, and what the page makes of them (a Model's bounds) is made
+// from the same fetch. The bytes are kept until the page has made something
+// of them, which it does at once if they are here when asked; one who
+// holds them still has them after. A failure is not kept: whoever asks
+// after it reads the file again.
+const fetches = new Map();
+export function fetched(url) {
+  let made = fetches.get(url);
+  if (made) return made;
+  made = { bytes: null, failed: null };
+  made.done = guardedFetch(url)
+    .then((answer) => (answer.ok ? answer.arrayBuffer() : Promise.reject(Object.assign(new Error(`${answer.status}`), { told: `${answer.status} ${answer.statusText}` }))))
+    .then(
+      (bytes) => void (made.bytes = bytes),
+      (error) => {
+        made.failed = error;
+        if (fetches.get(url) === made) fetches.delete(url);
+      },
+    );
+  fetches.set(url, made);
+  return made;
+}
+
 // A file, once read: one record for everything that names it. `state()` is
 // null until it is here, then what `took` made of it, or `{ error }`.
 const files = new Map();
@@ -42,15 +66,25 @@ export function file(url, kind, took) {
   const key = `${kind} ${url}`;
   let record = files.get(key);
   if (record) return record;
+  const bytes = fetched(url);
+  const make = () => {
+    try {
+      if (bytes.failed) return { error: `could not be read: ${bytes.failed.message}` };
+      return took(bytes.bytes);
+    } catch (error) {
+      return { error: `could not be read: ${error.message}` };
+    } finally {
+      fetches.delete(url);
+    }
+  };
+  if (bytes.bytes || bytes.failed) {
+    const [state] = signal(make());
+    files.set(key, (record = { state }));
+    return record;
+  }
   const [state, setState] = signal(null);
   files.set(key, (record = { state }));
-  awaited(
-    guardedFetch(url)
-      .then((answer) => (answer.ok ? answer.arrayBuffer() : Promise.reject(new Error(`${answer.status}`))))
-      .then((buffer) => setState(took(buffer)))
-      .catch((error) => setState({ error: `could not be read: ${error.message}` }))
-      .then(() => flush()),
-  );
+  awaited(bytes.done.then(() => setState(make())).then(() => flush()));
   return record;
 }
 
@@ -385,6 +419,9 @@ export const DefaultMaterial = defineType("DefaultMaterial", Material, {
     translucentFalloff: 0,
     diffuseLightWrap: 0,
     vertexColorsEnabled: false,
+    // Ljós's own: the spot of a light is the light's colour, not the
+    // surface's, as Qt's graphs draw their series.
+    specularInLightColor: false,
     pointSize: 1,
     lineWidth: 1,
   },
@@ -414,6 +451,7 @@ export const DefaultMaterial = defineType("DefaultMaterial", Material, {
       fresnel: self.fresnelPower,
       opacity: self.opacity,
       colors: self.vertexColorsEnabled,
+      glint: self.specularInLightColor,
       cull: self.cullMode,
       depth: self.depthDrawMode,
       blend: self.blendMode,

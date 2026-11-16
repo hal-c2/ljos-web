@@ -403,7 +403,9 @@ pub struct View3d {
     kept: Rc<Kept>,
     view: RefCell<SurfaceView<'static>>,
     slot: RefCell<SceneSlot>,
-    resized: Cell<bool>,
+    // The scene it has is drawn again at the next frame, though nothing in
+    // it changed: its size did, or its picture is first wanted after it drew.
+    again: Cell<bool>,
     pieces: Cell<u32>,
 }
 
@@ -433,7 +435,7 @@ impl View3d {
             kept: Rc::new(Kept::default()),
             view: RefCell::new(view),
             slot: RefCell::new(slot),
-            resized: Cell::new(false),
+            again: Cell::new(false),
             pieces: Cell::new(0),
         })
     }
@@ -478,14 +480,23 @@ impl View3d {
 
     pub fn resize(&self, width: u32, height: u32) {
         self.view.borrow_mut().resize(width, height);
-        self.resized.set(true);
+        self.again.set(true);
+        self.host.request();
+    }
+
+    /// Draws the scene it has again at the next frame: a picture first
+    /// asked for after the view was drawn is drawn again to be kept, as the
+    /// surface gave the last one to the page.
+    pub fn again(&self) {
+        self.view.borrow_mut().draw_again();
+        self.again.set(true);
         self.host.request();
     }
 
     /// Draws what changed; returns whether it presented.
     pub fn frame(&self) -> bool {
         let slot = self.slot.borrow();
-        let scene = if self.resized.replace(false) {
+        let scene = if self.again.replace(false) {
             slot.current()
         } else {
             slot.take()
