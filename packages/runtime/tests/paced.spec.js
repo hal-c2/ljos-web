@@ -50,9 +50,14 @@ test("a fence asked late, the page held by something else, is done soon after it
   expect(done(100, 164)).toBe(108);
 });
 
-test("a fence seen at work as a frame began, and done once the frame was made, took until then", () => {
+test("a fence seen at work once a frame was laid out, and done once the frame was made, took until then", () => {
   // The browser held the page 90 ms making its frame, waiting for the GPU.
-  expect(done(100, 190, true)).toBe(190);
+  expect(done(100, 190, Infinity)).toBe(190);
+});
+
+test("a fence seen at work once a frame was laid out took no longer than until the next frame began", () => {
+  // The next frame began at 190, and its callbacks held the page until 270.
+  expect(done(100, 270, 190)).toBe(190);
 });
 
 test("a fence is seen done late when the page was held between two checks", () => {
