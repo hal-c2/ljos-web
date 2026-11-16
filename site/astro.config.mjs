@@ -33,7 +33,9 @@ const harnessDir = docsDir ? join(docsDir, "harness") : undefined;
 // The pinned docs' prerenders, or another docs' kept apart
 // (LJOS_CODEBLOCK_PRERENDERS, tests/build-fixture.mjs): a directory
 // holds one docs' examples, and drops the rest.
-const prerendersAt = path(process.env.LJOS_CODEBLOCK_PRERENDERS ?? ".codeblock-prerenders");
+// Resolved as the writer resolves it (codeblock-prerenders.mjs): an
+// absolute path is itself, a relative one is under the site.
+const prerendersAt = resolve(path("."), process.env.LJOS_CODEBLOCK_PRERENDERS ?? ".codeblock-prerenders");
 let legacyBlocks = 0;
 const given = readGiven();
 const docsAt = path("src/content/docs");
