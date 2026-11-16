@@ -1,39 +1,22 @@
 // A site whose visitors may drop a shell of their own (docs/LJOS_WEB.md A9),
 // and one whose visitors may not: what each page is, served as a host would
 // serve it.
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
-import { createServer } from "node:http";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, extname, join, normalize } from "node:path";
-import { expect, test } from "@playwright/test";
+import { dirname, join } from "node:path";
 import { build } from "vite";
 import { buildSite } from "../site.js";
 import qml from "../vite.js";
 import { bundle, qmlc } from "./bundle.js";
+import { expect, serve, test } from "./served.js";
 
-const port = Number(process.env.LJOS_SITE_PORT ?? 4480) + 7;
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".wasm": "application/wasm" };
 
 // The policy a host that runs no script but its own gives the page; the
 // compiler's worker is given its own, which lets it compile WebAssembly.
 const PAGE = "script-src 'self'";
 const WORKER = "script-src 'self' 'wasm-unsafe-eval'";
 
-// A static server of `directory`, under `policy` when it is given.
-function serve(directory, port, policy) {
-  const server = createServer((request, response) => {
-    const path = decodeURIComponent(new URL(request.url, "http://site").pathname);
-    const file = normalize(join(directory, path === "/" ? "index.html" : path));
-    if (!file.startsWith(directory) || !existsSync(file) || !statSync(file).isFile()) {
-      response.writeHead(404).end();
-      return;
-    }
-    const headers = { "content-type": TYPES[extname(file)] ?? "application/octet-stream" };
-    if (policy) headers["content-security-policy"] = /shell-worker[^/]*\.js$/.test(file) ? WORKER : PAGE;
-    response.writeHead(200, headers).end(readFileSync(file));
-  });
-  return new Promise((done) => server.listen(port, "127.0.0.1", () => done(server)));
-}
+const policy = (file) => ({ "content-security-policy": /shell-worker[^/]*\.js$/.test(file) ? WORKER : PAGE });
 
 const MINE = `import QtQuick
 import Shop
@@ -56,17 +39,17 @@ test.describe("a site built without a live shell", () => {
   test.beforeAll(async () => {
     made = bundle("live");
     await buildSite({ dir: made.dir, out: made.out, qmlc });
-    server = await serve(made.out, port);
+    server = await serve(made.out);
   });
   test.afterAll(async () => {
-    await new Promise((done) => server?.close(done));
+    await server?.stop();
     made?.remove();
   });
 
   test("A page built without liveShell has no drop and loads no compiler", async ({ page }) => {
     const asked = [];
     page.on("request", (request) => asked.push(request.url()));
-    await page.goto(`http://127.0.0.1:${port}/`);
+    await page.goto(`${server.origin}/`);
     await expect(page.getByText("Default 0", { exact: true })).toBeVisible();
     await expect(page.getByRole("button", { name: "Open a shell…" })).toHaveCount(0);
     await expect(page.getByRole("region", { name: "Shell" })).toHaveCount(0);
@@ -104,15 +87,15 @@ test.describe("a site whose blocks are on an import path", () => {
       build: { outDir: join(place, "out"), target: "esnext", chunkSizeWarningLimit: 4000 },
       worker: { format: "es" },
     });
-    server = await serve(join(place, "out"), port + 2);
+    server = await serve(join(place, "out"));
   });
   test.afterAll(async () => {
-    await new Promise((done) => server?.close(done));
+    await server?.stop();
     if (place) rmSync(place, { recursive: true, force: true });
   });
 
   test("A block on an import path is offered, its file said from the root and no further", async ({ page }) => {
-    await page.goto(`http://127.0.0.1:${port + 2}/`);
+    await page.goto(`${server.origin}/`);
     await expect.poll(() => page.evaluate(() => window.live)).toEqual([["Basket", "../vendor/Shop/Basket.qml", "function"]]);
     const written = all(join(place, "out")).filter((path) => path.endsWith(".js"));
     for (const path of written) expect(readFileSync(join(place, "out", path), "utf8")).not.toContain(place);
@@ -152,14 +135,14 @@ test.describe("a site's blocks are found as its compile finds them", () => {
       },
       worker: { format: "es" },
     });
-  const offered = async (page, place, at) => {
-    const server = await serve(join(place, "out"), at);
+  const offered = async (page, place) => {
+    const server = await serve(join(place, "out"));
     try {
-      await page.goto(`http://127.0.0.1:${at}/`);
+      await page.goto(`${server.origin}/`);
       await expect.poll(() => page.evaluate(() => window.live)).toBeTruthy();
       return await page.evaluate(() => window.live);
     } finally {
-      await new Promise((done) => server.close(done));
+      await server.stop();
     }
   };
   const inside = (name, files) => Object.fromEntries(Object.entries(files).map(([path, text]) => [`${name}/${path}`, text]));
@@ -173,7 +156,7 @@ test.describe("a site's blocks are found as its compile finds them", () => {
     });
     try {
       await built(place, join(place, "p/src"), {});
-      expect(await offered(page, place, port + 3)).toEqual([["Basket", "Shop/Basket.qml", "function"]]);
+      expect(await offered(page, place)).toEqual([["Basket", "Shop/Basket.qml", "function"]]);
     } finally {
       rmSync(place, { recursive: true, force: true });
     }
@@ -189,7 +172,7 @@ test.describe("a site's blocks are found as its compile finds them", () => {
       mkdirSync(join(place, "links"));
       symlinkSync(join(place, "real/app"), join(place, "links/app"));
       await built(place, join(place, "real/app"), { root: join(place, "links/app"), importPaths: [join(place, "real/vendor")] });
-      expect(await offered(page, place, port + 4)).toEqual([["Basket", "../vendor/Shop/Basket.qml", "function"]]);
+      expect(await offered(page, place)).toEqual([["Basket", "../vendor/Shop/Basket.qml", "function"]]);
     } finally {
       rmSync(place, { recursive: true, force: true });
     }
@@ -215,7 +198,7 @@ test.describe("a site's blocks are found as its compile finds them", () => {
     try {
       await built(place, place, {}, words);
       expect(words.join("\n")).toMatch(/Main\.qml.*no block.*Plain/s);
-      expect(await offered(page, place, port + 6)).toEqual([]);
+      expect(await offered(page, place)).toEqual([]);
     } finally {
       rmSync(place, { recursive: true, force: true });
     }
@@ -233,7 +216,7 @@ test.describe("a site's blocks are found as its compile finds them", () => {
     try {
       await built(place, place, {}, words);
       expect(words.filter((word) => /block/.test(word))).toEqual([]);
-      expect(await offered(page, place, port + 8)).toEqual([["Basket", "Shop/Basket.qml", "function"]]);
+      expect(await offered(page, place)).toEqual([["Basket", "Shop/Basket.qml", "function"]]);
     } finally {
       rmSync(place, { recursive: true, force: true });
     }
@@ -271,7 +254,7 @@ test.describe("a site's blocks are found as its compile finds them", () => {
     const place = made({ ...PAGE, "Main.qml": "import QtQuick\nItem { }\n" });
     try {
       await built(place, place, {});
-      expect(await offered(page, place, port + 5)).toEqual([]);
+      expect(await offered(page, place)).toEqual([]);
     } finally {
       rmSync(place, { recursive: true, force: true });
     }
@@ -285,10 +268,10 @@ test.describe("a site built with a live shell, under a policy that runs only its
   test.beforeAll(async () => {
     made = bundle("live");
     await buildSite({ dir: made.dir, out: made.out, qmlc, liveShell: true });
-    server = await serve(made.out, port + 1, true);
+    server = await serve(made.out, { headers: policy });
   });
   test.afterAll(async () => {
-    await new Promise((done) => server?.close(done));
+    await server?.stop();
     made?.remove();
   });
 
@@ -298,7 +281,7 @@ test.describe("a site built with a live shell, under a policy that runs only its
     page.on("pageerror", (error) => problems.push(error.message));
     page.on("console", (message) => (message.type() === "error" || message.type() === "warning") && problems.push(message.text()));
     page.on("request", (request) => asked.push(request.url()));
-    await page.goto(`http://127.0.0.1:${port + 1}/`);
+    await page.goto(`${server.origin}/`);
     await expect(page.getByText("Default 0", { exact: true })).toBeVisible();
     // The compiler is fetched on the first drop, not before.
     expect(asked.filter((url) => /\.wasm$|shell-worker/.test(url))).toEqual([]);

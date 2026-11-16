@@ -1,33 +1,15 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
-import { createServer } from "node:http";
-import { basename, delimiter, dirname, extname, join, normalize, relative, resolve } from "node:path";
-import { expect, test } from "@playwright/test";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { basename, delimiter, dirname, join, relative, resolve } from "node:path";
 import { build } from "vite";
 import { buildSite, builtWith, replaceSite, STAMP } from "../site.js";
 import qml from "../vite.js";
 import { bundle, compilerFile, design, qmlc } from "./bundle.js";
 import { runnable } from "./compiler-check.js";
+import { expect, serve, test } from "./served.js";
 
-const port = Number(process.env.LJOS_SITE_PORT ?? 4480);
 // Below a path of its own, as a site is put on a host among others.
 const below = "/somewhere/site/";
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".json": "application/json" };
-
-// A plain static server of `directory` at `below`, and nothing else.
-function serve(directory) {
-  const server = createServer((request, response) => {
-    const path = decodeURIComponent(new URL(request.url, "http://site").pathname);
-    const file = path.startsWith(below) ? normalize(join(directory, path.slice(below.length) || "index.html")) : null;
-    if (!file?.startsWith(directory) || !existsSync(file) || !statSync(file).isFile()) {
-      response.writeHead(404).end();
-      return;
-    }
-    response.writeHead(200, { "content-type": TYPES[extname(file)] ?? "application/octet-stream" }).end(readFileSync(file));
-  });
-  return new Promise((done) => server.listen(port, "127.0.0.1", () => done(server)));
-}
-
 test.describe("a site built from a bundle", () => {
   test.describe.configure({ mode: "serial" });
   let made;
@@ -37,10 +19,10 @@ test.describe("a site built from a bundle", () => {
   test.beforeAll(async () => {
     made = bundle("project");
     built = await buildSite({ dir: made.dir, out: made.out, qmlc, with: [design] });
-    server = await serve(made.out);
+    server = await serve(made.out, { below });
   });
   test.afterAll(async () => {
-    await new Promise((done) => server?.close(done));
+    await server?.stop();
     made?.remove();
   });
 
@@ -48,7 +30,7 @@ test.describe("a site built from a bundle", () => {
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
     page.on("console", (message) => message.type() === "error" && errors.push(message.text()));
-    await page.goto(`http://127.0.0.1:${port}${below}`);
+    await page.goto(`${server.origin}${below}`);
     const text = page.getByText("Stopped", { exact: true });
     await expect(text).toBeVisible();
     expect(await text.evaluate((element) => getComputedStyle(element).color)).toBe("rgb(18, 52, 86)");
@@ -69,10 +51,10 @@ test.describe("a site built from a bundle", () => {
   test("is static files of its own, asked for below the path it is served at", async ({ page }) => {
     const asked = [];
     page.on("request", (request) => asked.push(request.url()));
-    await page.goto(`http://127.0.0.1:${port}${below}`);
+    await page.goto(`${server.origin}${below}`);
     await expect(page.getByText("Stopped", { exact: true })).toBeVisible();
     expect(asked.length).toBeGreaterThan(0);
-    for (const url of asked) expect(url.startsWith(`http://127.0.0.1:${port}${below}`) || url.startsWith("data:")).toBe(true);
+    for (const url of asked) expect(url.startsWith(`${server.origin}${below}`) || url.startsWith("data:")).toBe(true);
     expect(built.files).toContain("index.html");
     expect(built.bytes).toBeGreaterThan(0);
   });
