@@ -166,6 +166,9 @@ class Parser {
       case "selectordinal": {
         this.expect(",");
         const forms = this.forms<Selector>(true, (key) => {
+          // `offset:1` is a plural's own; a select's `offset` is a key as any other,
+          // even in a select inside a plural's form.
+          if (/^offset(?::|$)/u.test(key)) this.error("an `offset` is not supported");
           if (key.startsWith("=")) {
             const n = key.slice(1);
             const exact = Number(n);
@@ -212,8 +215,6 @@ class Parser {
         if (written === "=") this.error("`=` is not followed by a number");
         this.error("expected a form's key");
       }
-      // `offset:1` is a plural's; in a select, `offset` is a key as any other.
-      if (plural && /^offset(?::|$)/u.test(written)) this.error("an `offset` is not supported");
       const k = key(written);
       if (forms.some(([f]) => same(f, k))) this.error(`the form \`${written}\` is there twice`);
       this.space();

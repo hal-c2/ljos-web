@@ -198,6 +198,24 @@ test.describe("counts and choices are written in the message", () => {
     expect(await read(page, "shown")).toBe("Offset");
   });
 
+  test("a choice inside a count's form may have a form named offset", async ({ page }) => {
+    await shown(page, {
+      "Main.qml": qml(
+        "property int n: 2",
+        'property string mode: "offset"',
+        'property string shown: t`${plural(n, { other: "# files" })} ${mode}`',
+      ),
+    });
+    await page.evaluate(() =>
+      window.messages.installCatalog(
+        'msgid ""\nmsgstr ""\n"Language: is\\n"\n\nmsgid "{n, plural, other {# files}} {mode}"\nmsgstr "{n, plural, other {{mode, select, offset {# hliðraðar} other {# skrár}}}}"\n',
+        "offset.po",
+      ),
+    );
+    await language(page, "is");
+    expect(await read(page, "shown")).toBe("2 hliðraðar");
+  });
+
   test("a choice picks a form by its value, and other when none matches", async ({ page }) => {
     await shown(page, {
       "Main.qml": qml('property string role: "admin"', 'property string label: select(role, { admin: "Administrator", other: "Member" })'),
