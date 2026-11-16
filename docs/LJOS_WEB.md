@@ -2456,6 +2456,43 @@ a `Tap` that counts, and a `Task` that fetches what the city names. Its
 labels give their own `width`, which a `Ljos.Layout` `Column` keeps (A29).
 
 
+### A33. Translated messages: `` t`…` ``, catalogues and `App.language`
+
+A file of Ljós's API writes what it shows as a message, as ljos-ui does
+(`features/i18n/messages.feature` there): `` t`Hello ${name}` ``, with
+`plural`, `select` and `selectOrdinal` inside or on their own, and
+`t({ message, context, id })`. `msg` marks a message to translate where it
+is shown, as a frozen `{ id, message, context?, values? }` that `t(m)`
+translates. A `.ts` module gets them with `import { t } from "@ljos/core"`.
+
+**The compiler** (`crates/ljos_web/src/message.rs`, the reader ljos-ui
+has) reads each call into its ICU MessageFormat text and its key, the same
+text and key ljos-ui gives: a value that is a bare name is its placeholder
+(`{name}`), any other is numbered (`{0}`). The call becomes
+`__ljos_message(message, context, key, "names", …values)` (`__ljos_msg` for
+`msg`), so a binding reads the values it shows. A message whose text is not
+a literal, or that has no `other`, is an error (`i18n-literal`,
+`i18n-other`). `@ljos/core` in a module is `ljos-web/Ljos/Core`; it gives
+the names of `Ljos.Core` and the message macros, never a default.
+
+**The runtime** (`Ljos/Core/messages.ts`) formats MessageFormat 1 in the
+page: `#` and `{n, number}` with `Intl.NumberFormat` of the UI language,
+plural forms with `Intl.PluralRules`, `=0` style forms before the
+language's. A catalogue is Lingui's `.po`: `msgctxt` is the context,
+obsolete (`#~`) and fuzzy entries are not used.
+`installCatalog(poText, "is.po")` adds one (later ones win),
+`removeCatalog` takes it off; the page loads the text (Vite's `?raw`, or
+`fetch`). `App.language = "is-IS"` looks in `is-IS`, then `is`, then shows
+the source; every binding that shows a message follows. A translation that
+names a placeholder the message lacks is not used, and the log says so,
+once, with the file and line.
+
+`qsTr` and its family are unchanged: a string is its own translation.
+
+**Tests**: `tests/messages.spec.js`, each scenario of ljos-ui's
+`messages.feature` compiled in the page, on both kernels;
+`crates/ljos_web/tests/messages.rs` for the lowering and its errors.
+
 ## Part II — An application's own Rust types
 
 ## 1. The shape of a native type on the web
