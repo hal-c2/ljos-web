@@ -590,11 +590,24 @@ export function drawOn(self, canvas, told, instead) {
   let gl = null;
   let fence = null;
   let finishing = 0;
-  const draw = () => {
+  // The animation frame the view last gave its picture on in, by the
+  // timeline's time, which is the same in every task between two frames.
+  let givenIn = null;
+  const sameFrame = () => {
+    const now = document.timeline?.currentTime;
+    return givenIn !== null && now != null && givenIn === now;
+  };
+  // `time` is the animation frame's, where one called it.
+  const draw = (time) => {
     frame = 0;
     resting = 0;
     // A frame asked for may come after the picture it was for was drawn.
     if (gone || !due) return;
+    // One whose picture others read gives it on once an animation frame:
+    // what finishes or rests on a timer would otherwise draw it again
+    // before the page paints, and two views that show each other's would
+    // go round as fast as the GPU lets them.
+    if (time === undefined && sameFrame()) return void (frame = requestAnimationFrame(draw));
     const from = performance.now();
     // Still due while it rests or the last is with the GPU, so that what
     // asks meanwhile is in it.
@@ -611,6 +624,7 @@ export function drawOn(self, canvas, told, instead) {
       // takes this view as a texture is handed a copy made before it does.
       if (wanted) {
         canvas.$drawn = readPixels(canvas);
+        givenIn = document.timeline?.currentTime ?? null;
         gave(state);
         setDraws((times) => times + 1);
       }
