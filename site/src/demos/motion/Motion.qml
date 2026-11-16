@@ -5,7 +5,8 @@ import QtQuick
 // new places when shuffled (so a change reads as movement, not a
 // jump cut), and a card that opens with a state transition. When
 // the page says reduced motion is preferred (root.calm), the same
-// changes happen with short fades and no travel or overshoot.
+// changes still travel, softer and with no overshoot: reduced motion
+// is less of it, never a jump.
 Rectangle {
     id: root
     width: 720
@@ -45,12 +46,13 @@ Rectangle {
             y: tray.height / 2 - height / 2
             property real goalX: x
             property real goalY: y
-            // A spring when motion is welcome; a short direct move
-            // when it is not. Both end in the same place.
+            // A lively spring when motion is welcome; a soft one with no
+            // overshoot when it is not, slow enough to follow. Both end
+            // in the same place.
             Behavior on x {
                 enabled: root.active
                 SpringAnimation {
-                    spring: root.calm ? 30 : 3.2
+                    spring: root.calm ? 4 : 3.2
                     damping: root.calm ? 1.0 : 0.28
                     epsilon: 0.4
                 }
@@ -58,7 +60,7 @@ Rectangle {
             Behavior on y {
                 enabled: root.active
                 SpringAnimation {
-                    spring: root.calm ? 30 : 3.2
+                    spring: root.calm ? 4 : 3.2
                     damping: root.calm ? 1.0 : 0.28
                     epsilon: 0.4
                 }
@@ -66,7 +68,7 @@ Rectangle {
             scale: chase.pressed ? 0.92 : 1.0
             Behavior on scale {
                 NumberAnimation {
-                    duration: root.calm ? 60 : 140
+                    duration: root.calm ? 150 : 140
                     easing.type: Easing.OutCubic
                 }
             }
@@ -131,14 +133,14 @@ Rectangle {
         moveDisplaced: Transition {
             NumberAnimation {
                 properties: "x,y"
-                duration: root.calm ? 120 : 520
+                duration: root.calm ? 300 : 520
                 easing.type: root.calm ? Easing.OutCubic : Easing.OutBack
             }
         }
         move: Transition {
             NumberAnimation {
                 properties: "x,y"
-                duration: root.calm ? 120 : 520
+                duration: root.calm ? 300 : 520
                 easing.type: root.calm ? Easing.OutCubic : Easing.OutBack
             }
         }
@@ -170,7 +172,7 @@ Rectangle {
             }
             Behavior on scale {
                 NumberAnimation {
-                    duration: root.calm ? 60 : 120
+                    duration: root.calm ? 150 : 120
                     easing.type: Easing.OutCubic
                 }
             }
@@ -217,7 +219,7 @@ Rectangle {
             }
             Behavior on height {
                 NumberAnimation {
-                    duration: root.calm ? 100 : 320
+                    duration: root.calm ? 200 : 320
                     easing.type: Easing.InOutCubic
                 }
             }
@@ -238,7 +240,7 @@ Rectangle {
                 opacity: card.open ? 1 : 0
                 Behavior on opacity {
                     NumberAnimation {
-                        duration: root.calm ? 80 : 220
+                        duration: root.calm ? 180 : 220
                         easing.type: Easing.OutCubic
                     }
                 }
