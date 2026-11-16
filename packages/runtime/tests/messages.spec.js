@@ -103,6 +103,7 @@ test.describe("values are placeholders named after them", () => {
     ["t`'{quoted}'`", "'{quoted}'"],
     [`plural(count, { other: "# in '#'1" })`, "3 in #1"],
     [`plural(count, { other: "# don't fit" })`, "3 don't fit"],
+    [`plural(count, { other: "{left} # {right}" })`, "{left} 3 {right}"],
   ]) {
     test(`text written in the message is shown as written: ${message}`, async ({ page }) => {
       await shown(page, { "Main.qml": qml("property int count: 3", `property string shown: ${message}`) });
@@ -176,6 +177,27 @@ test.describe("counts and choices are written in the message", () => {
     expect(shownFor).toEqual(["1st", "2nd", "3rd", "4th", "11th", "22nd"]);
   });
 
+  test("a catalogue whose language is named as Qt names it picks plural forms", async ({ page }) => {
+    await shown(page, {
+      "Main.qml": qml("property int count: 1", 'property string files: plural(count, { one: "# file", other: "# files" })'),
+    });
+    await page.evaluate(() =>
+      window.messages.installCatalog(
+        'msgid ""\nmsgstr ""\n"Language: en_US\\n"\n\nmsgid "{count, plural, one {# file} other {# files}}"\nmsgstr "{count, plural, one {# document} other {# documents}}"\n',
+        "en_US.po",
+      ),
+    );
+    await language(page, "en_US");
+    expect(await read(page, "files")).toBe("1 document");
+  });
+
+  test("a choice may have a form named offset", async ({ page }) => {
+    await shown(page, {
+      "Main.qml": qml('property string mode: "offset"', 'property string shown: select(mode, { offset: "Offset", other: "Other" })'),
+    });
+    expect(await read(page, "shown")).toBe("Offset");
+  });
+
   test("a choice picks a form by its value, and other when none matches", async ({ page }) => {
     await shown(page, {
       "Main.qml": qml('property string role: "admin"', 'property string label: select(role, { admin: "Administrator", other: "Member" })'),
@@ -215,6 +237,31 @@ test.describe("a message can say its context and its id", () => {
     expect(await read(page, "home")).toBe("Heim");
     await language(page, "de");
     expect(await read(page, "home")).toBe("nav.home");
+  });
+
+  test.describe(() => {
+    test.use({ told: [/^greet\.po:\d+: "greeting": the translation names \{name\}, which the message does not have$/] });
+    test("a translation fits one message of an id and not another", async ({ page }) => {
+      // Descriptors made at run time, whose text is already ICU's.
+      await shown(page, {
+        "greetings.ts":
+          'import type { MessageDescriptor } from "@ljos/core"\n' +
+          'export const welcome: MessageDescriptor = { id: "greeting", message: "Welcome {user}", values: { user: "Bob" } }\n' +
+          'export const hello: MessageDescriptor = { id: "greeting", message: "Hello {name}", values: { name: "Ada" } }\n',
+        "Main.qml": qml(
+          "property string welcome: t(Greetings.welcome)",
+          "property string hello: t(Greetings.hello)",
+          "property string again: t(Greetings.welcome)",
+        ).replace("import Ljos.Core\n", 'import Ljos.Core\nimport "greetings.ts" as Greetings\n'),
+      });
+      await page.evaluate(() =>
+        window.messages.installCatalog('msgid ""\nmsgstr ""\n"Language: is\\n"\n\nmsgid "greeting"\nmsgstr "Hi {name}"\n', "greet.po"),
+      );
+      await language(page, "is");
+      expect(await read(page, "welcome")).toBe("Welcome Bob");
+      expect(await read(page, "hello")).toBe("Hi Ada");
+      expect(await read(page, "again")).toBe("Welcome Bob");
+    });
   });
 
   test("a message with an id is found by its id and shows its message until then", async ({ page }) => {

@@ -123,6 +123,14 @@ fn literal_braces_and_apostrophes_are_quoted() {
 }
 
 #[test]
+fn a_count_in_a_form_is_not_quoted_with_the_braces_around_it() {
+    assert_contains(
+        &lowered(r##"property string shown: plural(count, { other: "{left} # {right} '#'" })"##),
+        r##""{count, plural, other {'{left}' # '{right}' '#'}}""##,
+    );
+}
+
+#[test]
 fn a_context_and_an_id_are_carried() {
     assert_contains(
         &lowered(r#"property string menu: t({ message: "Open", context: "menu" })"#),

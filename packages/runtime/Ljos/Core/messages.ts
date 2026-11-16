@@ -212,7 +212,8 @@ class Parser {
         if (written === "=") this.error("`=` is not followed by a number");
         this.error("expected a form's key");
       }
-      if (written.startsWith("offset")) this.error("an `offset` is not supported");
+      // `offset:1` is a plural's; in a select, `offset` is a key as any other.
+      if (plural && /^offset(?::|$)/u.test(written)) this.error("an `offset` is not supported");
       const k = key(written);
       if (forms.some(([f]) => same(f, k))) this.error(`the form \`${written}\` is there twice`);
       this.space();
@@ -584,7 +585,7 @@ export function installCatalog(catalog: Catalog | string, file?: string): Catalo
   const read = typeof catalog === "string" ? readPo(catalog, file) : catalog;
   installed = [
     ...installed.filter((it) => it.catalog !== read),
-    { catalog: read, name: canonical(read.language), plurals: new Plurals(read.language), parsed: new Map() },
+    { catalog: read, name: canonical(read.language), plurals: new Plurals(canonical(read.language)), parsed: new Map() },
   ];
   setRevision(revision() + 1);
   return read;
@@ -614,13 +615,16 @@ function source(text: string): Message | null {
 const reason = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 
 function translation(it: Installed, entry: Entry, key: string, known: Message | null): Message | null {
-  const cached = it.parsed.get(`${entry.line}\u0004${key}`);
+  const names = known?.names() ?? new Set<string>();
+  // An id may stand for messages with other placeholders, so whether a
+  // translation fits is known only for the message it is checked against.
+  const cacheKey = `${entry.line}\u0004${key}\u0004${[...names].sort().join(",")}`;
+  const cached = it.parsed.get(cacheKey);
   if (cached !== undefined) return cached;
   let message: Message | null = null;
   let why: string | undefined;
   try {
     message = Message.parse(entry.translation);
-    const names = known?.names() ?? new Set<string>();
     const unknown = [...message.names()].filter((name) => !names.has(name)).map((name) => `{${name}}`);
     if (unknown.length) why = `the translation names ${unknown.join(", ")}, which the message does not have`;
   } catch (error) {
@@ -632,7 +636,7 @@ function translation(it: Installed, entry: Entry, key: string, known: Message | 
     warn(`${at}: ${JSON.stringify(key)}: ${why}`);
     message = null;
   }
-  it.parsed.set(`${entry.line}\u0004${key}`, message);
+  it.parsed.set(cacheKey, message);
   return message;
 }
 

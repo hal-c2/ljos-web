@@ -569,6 +569,34 @@ fn is_exact(n: &str) -> bool {
 }
 
 fn escape_into(out: &mut String, text: &str, in_plural: bool) {
+    if !in_plural {
+        return quote_into(out, text, false);
+    }
+    // In a form a bare `#` is the count, so no quote may cover one: each
+    // piece between them is quoted on its own. `'#'` is a hash and stays
+    // inside its piece.
+    let chars: Vec<char> = text.chars().collect();
+    let mut piece = String::new();
+    let mut i = 0;
+    while i < chars.len() {
+        if chars[i..].starts_with(&['\'', '#', '\'']) {
+            piece.push_str("'#'");
+            i += 3;
+            continue;
+        }
+        if chars[i] == '#' {
+            quote_into(out, &piece, true);
+            piece.clear();
+            out.push('#');
+        } else {
+            piece.push(chars[i]);
+        }
+        i += 1;
+    }
+    quote_into(out, &piece, true);
+}
+
+fn quote_into(out: &mut String, text: &str, in_plural: bool) {
     // As ICU quotes: one quote from the first brace to the last, so
     // `Use {braces}` is `Use '{braces}'`, its apostrophes doubled.
     let chars: Vec<char> = text.chars().collect();
