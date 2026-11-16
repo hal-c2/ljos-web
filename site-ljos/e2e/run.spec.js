@@ -1,12 +1,14 @@
 // What a page runs, and when (site-ljos/README.md, "What runs, and
-// when"): nothing runs until the reader asks; a plain example runs when
-// its picture is pressed or its code edited, with no button over it; a
-// window, 3D, what moves on its own and every demo but the Pantry (which
-// holds still, as a plain example does) wait for Run, which a reader
-// reaches with the mouse, the keyboard or a screen reader; at most three
-// are started at once; what is out of view or in a hidden tab pauses
-// and resumes when it is back; reduced motion softens and never stops;
-// the pictures follow light and dark.
+// when"): nothing runs until the reader asks. Every example and every
+// demo but the Pantry (which holds still, as a page does) stands as its
+// picture with a Run control on it, which a reader reaches with the
+// mouse, the keyboard or a screen reader, and which says what happens:
+// Run, then Loading, then, live, Edit (an example's code) or Pause (a
+// demo); a press on the picture or an edit of the code runs it too. At
+// most three are started at once; what is out of view or in a hidden
+// tab pauses and resumes when it is back; reduced motion softens and
+// never stops; one picture stands on light and dark.
+import AxeBuilder from "@axe-core/playwright";
 import { centre, classify, expect, frames, liveBlock, livePages, open, press, runButton, test, unexpected } from "./fixtures.js";
 import { brokenExample } from "./known.js";
 
@@ -23,12 +25,13 @@ const window = examples.find(({ example }) => classify(example.code).window);
 function demo(page, heading) {
   return page.locator("#app div.qq-text").filter({ hasText: new RegExp(`^${heading}$`) }).first().locator("xpath=../..");
 }
-const RUN = {
-  "3D you can orbit": "Run the 3D demo",
-  "A shader effect": "Run the shader demo",
-  "A whole app": "Run the field guide",
-  Motion: "Run the motion demo",
+const WHAT = {
+  "3D you can orbit": "the 3D demo",
+  "A shader effect": "the shader demo",
+  "A whole app": "the field guide",
+  Motion: "the motion demo",
 };
+const RUN = Object.fromEntries(Object.entries(WHAT).map(([heading, what]) => [heading, `Run ${what}`]));
 async function start(page, heading) {
   const slot = demo(page, heading);
   await centre(slot);
@@ -37,6 +40,44 @@ async function start(page, heading) {
   await expect(button, `${heading} starts`).toBeHidden();
   return slot;
 }
+// From now on, every name `control` is given and every sentence said in
+// the page's live region, in order: a phase that passes within one
+// frame is still in the list.
+function listen(control) {
+  return control.evaluate((control) => {
+    const heard = (window.heard = { names: [], said: [] });
+    heard.names.push(control.getAttribute("aria-label"));
+    new MutationObserver(() => {
+      const name = control.getAttribute("aria-label");
+      if (name !== heard.names.at(-1)) heard.names.push(name);
+    }).observe(control, { attributes: true, attributeFilter: ["aria-label"] });
+    new MutationObserver((records) => {
+      for (const record of records)
+        for (const node of record.addedNodes) if (node.textContent && record.target.closest?.("[aria-live]")) heard.said.push(node.textContent);
+    }).observe(document.body, { childList: true, subtree: true });
+  });
+}
+const heard = (page) => page.evaluate(() => window.heard);
+
+// Into a block's code as a reader goes, and on once the editor is there:
+// until CodeMirror has taken the field's place (attach.js, loaded on the
+// first press), a key lands in the field under it, where Enter is an
+// edit, and an edit runs the example without its Run.
+async function intoCode(block) {
+  await press(block.block.getByRole("textbox").first());
+  await expect(block.block.locator(".cm-editor.cm-focused"), "the code editor has the keyboard").toBeVisible({ timeout: 30_000 });
+}
+
+// What axe finds on the page (WCAG 2.2 A and AA, as tests/a11y.spec.js
+// asks), said so a failure names the rule, the element and why.
+async function violations(page) {
+  const { violations } = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
+    .disableRules(["scrollable-region-focusable"])
+    .analyze();
+  return violations.flatMap(({ id, help, nodes }) => nodes.map((node) => `${id}: ${help} — ${node.target.join(" ")} — ${node.failureSummary?.split("\n").slice(1).join(" ").trim()}`));
+}
+
 const drawn = (canvas) => canvas.evaluate((element) => element.$view3d?.frames ?? 0);
 // How many pictures the view draws in `ms`.
 async function drawsIn(canvas, ms) {
@@ -53,12 +94,12 @@ test.describe("examples", () => {
     expect(window, "a window example").toBeTruthy();
   });
 
-  test("a plain example has no Run button, and runs when its picture is pressed", async ({ page, errors }) => {
+  test("a plain example waits for its Run too, and runs when its picture is pressed", async ({ page, errors }) => {
     await open(page, plain.route);
     const block = liveBlock(page, plain.example.index);
     await centre(block.picture);
+    await expect(runButton(block.stage), "its Run is on its picture").toBeVisible({ timeout: 30_000 });
     await page.waitForTimeout(500);
-    await expect(runButton(block.stage), "it has no Run button").toHaveCount(0);
     await expect(block.picture, "it does not run until asked").toBeVisible();
     await press(block.picture);
     await expect(block.picture, "it runs in its picture's place").toBeHidden({ timeout: 30_000 });
@@ -75,13 +116,52 @@ test.describe("examples", () => {
     await expect(block.picture, "it does not run until asked").toBeVisible();
     // As a keyboard reader goes: into the code above it, out with
     // Escape (the editor keeps Tab for indenting), and Tab once to Run.
-    await press(block.block.getByRole("textbox").first());
+    await intoCode(block);
     await expect(block.picture, "the code taking focus does not run it").toBeVisible();
     await page.keyboard.press("Escape");
     await page.keyboard.press("Tab");
     await page.keyboard.press("Enter");
     await expect(block.picture, "Enter on Run runs it").toBeHidden({ timeout: 30_000 });
     expect(unexpected(errors)).toEqual([]);
+  });
+
+  test("Run goes on to Loading and Edit, says so, and keeps the keyboard where it was", async ({ page, errors }) => {
+    await open(page, window.route);
+    const block = liveBlock(page, window.example.index);
+    await centre(block.picture);
+    const run = runButton(block.stage);
+    await expect(run).toBeVisible({ timeout: 30_000 });
+    await listen(run);
+    // The keyboard's way to Run: out of the code with Escape, Tab once.
+    await intoCode(block);
+    await page.keyboard.press("Escape");
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Enter");
+    const edit = runButton(block.stage, "Edit this example");
+    await expect(edit, "live, the control offers its code").toBeVisible({ timeout: 30_000 });
+    const { names, said } = await heard(page);
+    expect(names, "the control's name, phase by phase").toEqual(["Run this example", "Loading this example", "Edit this example"]);
+    const regions = await page.evaluate(() => [...document.querySelectorAll("[aria-live]")].map((region) => region.outerHTML));
+    expect(said, `what a screen reader is told; the page's live regions now: ${regions.join(" ") || "none"}`).toEqual(["Loading this example", "This example runs"]);
+    // The keyboard is still on the control: Space on Edit takes the
+    // reader to the code.
+    await page.keyboard.press("Space");
+    await expect(block.block.getByRole("textbox").first(), "Edit takes the reader to the code").toBeFocused();
+    expect(unexpected(errors)).toEqual([]);
+  });
+
+  test("an example's Run and Edit give a reader all axe asks, light and dark", async ({ page }) => {
+    for (const scheme of ["light", "dark"]) {
+      await page.emulateMedia({ colorScheme: scheme });
+      await open(page, window.route);
+      const block = liveBlock(page, window.example.index);
+      await centre(block.picture);
+      await expect(runButton(block.stage)).toBeVisible({ timeout: 30_000 });
+      expect(await violations(page), `${scheme}, with Run on the picture`).toEqual([]);
+      await press(runButton(block.stage));
+      await expect(runButton(block.stage, "Edit this example")).toBeVisible({ timeout: 30_000 });
+      expect(await violations(page), `${scheme}, live, with Edit in its corner`).toEqual([]);
+    }
   });
 });
 
@@ -121,6 +201,7 @@ test.describe("/demos/", () => {
     await expect.poll(() => drawn(canvas), { message: "it draws" }).toBeGreaterThan(5);
     await centre(demo(page, "Motion"));
     await frames(page);
+    await page.waitForTimeout(1_000);
     expect(await drawsIn(canvas, 1000), "out of view, it draws nothing").toBe(0);
     await centre(canvas);
     await expect.poll(() => drawsIn(canvas, 300), { message: "back in view, it draws again" }).toBeGreaterThan(2);
@@ -138,10 +219,61 @@ test.describe("/demos/", () => {
         document.dispatchEvent(new Event("visibilitychange"));
       }, state);
     await tab("hidden");
+    // A picture already under way when the tab was hidden is let
+    // finish: a software renderer takes most of a second over one.
     await frames(page);
+    await page.waitForTimeout(1_000);
     expect(await drawsIn(canvas, 1000), "hidden, it draws nothing").toBe(0);
     await tab("visible");
     await expect.poll(() => drawsIn(canvas, 300), { message: "shown, it draws again" }).toBeGreaterThan(2);
+  });
+
+  test("a demo's Run goes on to Pause, which holds it where it is until Run again", async ({ page, errors }) => {
+    await open(page, "/demos/");
+    const slot = demo(page, "3D you can orbit");
+    await centre(slot);
+    const run = runButton(slot, RUN["3D you can orbit"]);
+    await expect(run).toBeVisible();
+    await listen(run);
+    // By the mouse here: the keys act on the same control (the
+    // examples' tests above), and a press leaves the keyboard where it
+    // was, so a running demo's own fields have it.
+    await press(run);
+    const pause = runButton(slot, "Pause the 3D demo");
+    await expect(pause, "live, the control offers to pause").toBeVisible({ timeout: 30_000 });
+    const canvas = slot.locator("canvas.qq-view3d");
+    await expect.poll(() => drawsIn(canvas, 500), { message: "it runs" }).toBeGreaterThan(0);
+    await press(pause);
+    await expect(run, "paused, Run goes on from there").toBeVisible();
+    // A picture already under way when it paused is let finish.
+    await frames(page);
+    await page.waitForTimeout(1_000);
+    expect(await drawsIn(canvas, 1_000), "paused, it draws nothing").toBe(0);
+    await press(run);
+    await expect(pause).toBeVisible();
+    await expect.poll(() => drawsIn(canvas, 500), { message: "and runs again" }).toBeGreaterThan(0);
+    const { names, said } = await heard(page);
+    expect(names).toEqual(["Run the 3D demo", "Loading the 3D demo", "Pause the 3D demo", "Run the 3D demo", "Pause the 3D demo"]);
+    expect(said).toEqual(["Loading the 3D demo", "The 3D demo runs", "The 3D demo is paused", "The 3D demo runs"]);
+    expect(unexpected(errors)).toEqual([]);
+  });
+
+  test("a demo's Run and Pause give a reader all axe asks, light and dark", async ({ page }) => {
+    for (const scheme of ["light", "dark"]) {
+      await page.emulateMedia({ colorScheme: scheme });
+      await open(page, "/demos/");
+      const slot = demo(page, "A whole app");
+      await centre(slot);
+      await expect(runButton(slot, RUN["A whole app"])).toBeVisible();
+      expect(await violations(page), `${scheme}, with Run on the pictures`).toEqual([]);
+      await press(runButton(slot, RUN["A whole app"]));
+      await expect(runButton(slot, "Pause the field guide")).toBeVisible({ timeout: 30_000 });
+      // Pause is offered once the app is drawn, as it fades in over its
+      // picture; its colours are its own once the fade is done and the
+      // picture gone, and before then axe reads them half blended.
+      await expect(slot.locator("img").first(), "the app has faded in over its picture").toBeHidden({ timeout: 10_000 });
+      expect(await violations(page), `${scheme}, live, with Pause in its corner`).toEqual([]);
+    }
   });
 
   test("the header's Motion toggle says what it does and is kept", async ({ page }) => {
@@ -173,11 +305,16 @@ test.describe("with reduced motion", () => {
   });
 });
 
-test("a picture is drawn on the page's own paper, light or dark", async ({ page }) => {
+// One picture for both schemes, with no paper of its own: the page's
+// shows through it, light or dark, as it does under the running example.
+test("a picture has no paper of its own, so it stands on the page's light or dark", async ({ page }) => {
   await open(page, examples[0].route);
   const picture = page.locator('img[alt="What this example draws"]').first();
   await expect(picture).toHaveAttribute("src", /Examples\/[0-9a-f]{16}\.png$/);
+  const src = await picture.getAttribute("src");
+  // A PNG's colour type (byte 25) is 6 where it has an alpha channel.
+  const kind = await picture.evaluate(async (img) => new Uint8Array(await (await fetch(img.src)).arrayBuffer())[25]);
+  expect(kind, "the picture can be seen through").toBe(6);
   await press(page.getByRole("button", { name: "Use the dark theme" }));
-  await expect(picture).toHaveAttribute("src", /Examples\/[0-9a-f]{16}-dark\.png$/);
-  await expect.poll(() => picture.evaluate((img) => img.complete && img.naturalWidth > 0), { message: "the dark picture is there" }).toBe(true);
+  await expect(picture, "the same picture stands on the dark paper").toHaveAttribute("src", src);
 });
