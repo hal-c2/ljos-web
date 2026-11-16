@@ -383,7 +383,9 @@ test("the project bundle prerenders too, and hydrates in its design colour", asy
 
 // Each part bounded on its own: this once hung for the test's whole two
 // minutes, and a part that runs past its bound fails naming itself with
-// time left to stop the server.
+// time left to stop the server. The build's bound is the compiler's own
+// (COMPILER_TIMEOUT), as each of its runs holds the event loop that a
+// step's timer would ring on.
 test("a site built without prerender keeps its empty page and mounts as before", async ({ page }) => {
   const made = bundle("prerender");
   let server;
@@ -394,8 +396,12 @@ test("a site built without prerender keeps its empty page and mounts as before",
     await part("load the page", () => page.goto(`${server.origin}/`), { timeout: 20_000 });
     await expect(page.getByText("Prerendered heading", { exact: true })).toBeVisible();
   } finally {
-    await part("stop serving it", () => server?.stop(), { timeout: 15_000 });
-    made.remove();
+    // The bundle goes even if the stop does not end in time.
+    try {
+      await part("stop serving it", () => server?.stop(), { timeout: 15_000 });
+    } finally {
+      made.remove();
+    }
   }
 });
 
