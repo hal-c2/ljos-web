@@ -333,6 +333,15 @@ Column {
             readonly property int pictureHeight: block.isLive && block.live.width > 0 ? pictureWidth * block.live.height / block.live.width : 0
             height: Math.max(pictureHeight, stage.implicitHeight)
 
+            // The example's paper, under its picture and under it
+            // running alike: what it gives no colour of its own stands
+            // on the paper it was written for, readable on the page's
+            // light or dark.
+            Rectangle {
+                width: stageBox.pictureWidth
+                height: stageBox.height
+                color: Theme.examplePaper
+            }
             // The stage's edge, under what it shows: an example that
             // draws little (or nothing) still reads as a result, not
             // as a gap in the page.
