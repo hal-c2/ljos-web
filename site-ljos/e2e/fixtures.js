@@ -51,6 +51,8 @@ export function livePages() {
         files: block.live.display.map(({ name, code }) => ({ name, code })),
         // The site's own files the example names (files=), by name.
         given: Object.keys(block.live.given ?? {}),
+        // Those files' bytes, base64 as the page carries them.
+        packed: block.live.given ?? {},
       }));
     pages.push({ route: page.route, examples });
   }

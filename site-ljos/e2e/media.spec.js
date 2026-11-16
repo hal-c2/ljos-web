@@ -73,23 +73,44 @@ test.describe("an example's own pictures are drawn", () => {
       const pictures = example.given.filter((name) => /\.(png|jpe?g|gif|webp|avif|svg)$/.test(name));
       // An Image draws as an element's background, so each address the
       // example draws from, an img's or a background's, is decoded anew.
-      const decoded = () =>
-        block.running.evaluate(async (root) => {
-          const addresses = new Set();
-          for (const element of [root, ...root.querySelectorAll("*")]) {
-            if (element instanceof HTMLImageElement && element.src) addresses.add(element.src);
-            for (const [, address] of getComputedStyle(element).backgroundImage.matchAll(/url\("?([^")]+)"?\)/g)) addresses.add(address);
-          }
-          const shown = await Promise.all(
-            [...addresses].map((address) => {
+      // A picture is known by the pixels it decodes to at its own size,
+      // not by its bytes (a VectorImage draws its SVG re-serialised), so
+      // one drawn from elsewhere never stands in for the example's own.
+      const undrawn = () =>
+        block.running.evaluate(
+          async (root, wanted) => {
+            const look = async (address) => {
               const image = new Image();
               image.src = address;
-              return image.decode().then(() => image.naturalWidth > 0, () => false);
-            }),
-          );
-          return shown.filter(Boolean).length;
-        });
-      await expect.poll(decoded, { message: `${pictures.join(" and ")} decoded` }).toBeGreaterThanOrEqual(pictures.length);
+              if (!(await image.decode().then(() => image.naturalWidth > 0, () => false))) return null;
+              const canvas = new OffscreenCanvas(image.naturalWidth, image.naturalHeight);
+              const context = canvas.getContext("2d");
+              context.drawImage(image, 0, 0);
+              const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+              const digest = await crypto.subtle.digest("SHA-256", pixels);
+              return `${canvas.width}x${canvas.height}:${[...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+            };
+            const addresses = new Set();
+            for (const element of [root, ...root.querySelectorAll("*")]) {
+              if (element instanceof HTMLImageElement && element.src) addresses.add(element.src);
+              for (const [, address] of getComputedStyle(element).backgroundImage.matchAll(/url\("?([^")]+)"?\)/g)) addresses.add(address);
+            }
+            const seen = new Set(await Promise.all([...addresses].map(look)));
+            const missing = [];
+            for (const [name, { packed, type }] of Object.entries(wanted)) {
+              const file = new Blob([Uint8Array.from(atob(packed), (c) => c.charCodeAt(0))], { type });
+              const address = URL.createObjectURL(file);
+              const own = await look(address);
+              URL.revokeObjectURL(address);
+              if (!own || !seen.has(own)) missing.push(name);
+            }
+            return missing;
+          },
+          Object.fromEntries(
+            pictures.map((name) => [name, { packed: example.packed[name], type: /\.svg$/.test(name) ? "image/svg+xml" : "" }]),
+          ),
+        );
+      await expect.poll(undrawn, { message: `${pictures.join(" and ")} decoded` }).toEqual([]);
       expect(unexpected(errors)).toEqual([]);
     });
   }
