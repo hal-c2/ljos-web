@@ -36,7 +36,7 @@ Rectangle {
         readonly property bool dark: Application.styleHints.colorScheme === Qt.ColorScheme.Dark
         readonly property color canvas: dark ? "#101320" : "#f6f4ee"
         readonly property color ink: dark ? "#e6e9f2" : "#1b1f2a"
-        readonly property color muted: dark ? "#aeb6c9" : "#4d5566"
+        readonly property color muted: dark ? "#aeb6c9" : "#3d4454"
     }
 
     ShaderEffect {
