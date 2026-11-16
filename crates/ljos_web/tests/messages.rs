@@ -218,11 +218,26 @@ fn t_of_a_message_in_a_delegate_is_ljos_cores() {
     delegate: Text { text: t(greeting) }
   }"##,
     );
-    assert!(!code.contains("$data.t"), "{code}");
+    // A model with a role named `t` still gives it; any other gives
+    // Ljos.Core's.
+    assert_contains(&code, r#""t" in $data ? $data.t : t"#);
     assert_contains(
         &code,
         r#"import { __ljos_msg, t } from "ljos-web/Ljos/Core";"#,
     );
+}
+
+/// A role named as a macro is the model's to give, as any global's name is
+/// in a delegate: a model with a `select` role keeps it.
+#[test]
+fn a_role_named_as_a_macro_is_the_models() {
+    let code = lowered(
+        r##"ListView {
+    model: ListModel { ListElement { label: "a"; select: true } }
+    delegate: Text { property bool on: select; text: label }
+  }"##,
+    );
+    assert_contains(&code, r#""select" in $data ? $data.select : select"#);
 }
 
 #[test]
