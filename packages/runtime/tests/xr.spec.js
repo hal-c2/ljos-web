@@ -49,10 +49,19 @@ test("a scene for a headset is seen from where the head would be", async ({ page
   await expect.poll(async () => await pixels(page, [middle, corner])).toEqual([RED, SKY]);
 
   // A camera the origin lets go of is nowhere, and is its own again when
-  // the origin holds it again.
+  // the origin holds it again. The spare looks away from the cube.
   await page.evaluate(() => window.scene.step(3));
   expect((await read()).held).toEqual([false, false, true, true]);
+  await expect.poll(async () => await pixels(page, [middle, corner])).toEqual([SKY, SKY]);
   await page.evaluate(() => window.scene.step(4));
+  expect((await read()).held).toEqual([true, true, false, false]);
+  await expect.poll(async () => await pixels(page, [middle, corner])).toEqual([RED, SKY]);
+
+  // One whose parent the program has since said is the origin stays its
+  // child when the origin lets go of it.
+  await page.evaluate(() => window.scene.step(5));
+  expect((await read()).held).toEqual([true, true, true, true]);
+  await page.evaluate(() => window.scene.step(6));
   expect((await read()).held).toEqual([true, true, false, false]);
   await expect.poll(async () => await pixels(page, [middle, corner])).toEqual([RED, SKY]);
 });

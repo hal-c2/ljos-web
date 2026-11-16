@@ -38,17 +38,21 @@ function viewOf(node) {
 // somewhere: `camera: XrCamera {}` in an origin moves with the origin, and
 // is among its children, where a renderer that walks the scene finds it.
 // Let go, it is nowhere again, so that held a second time it is adopted
-// a second time rather than taken for somewhere else's.
+// a second time rather than taken for somewhere else's; unless the program
+// has since said its parent is the node, which then keeps it as its child.
 function adopting(self, name) {
   effect(
     () => self[name],
     (held) => {
       if (!held?.$spatial || untrack(() => held.parent)) return;
-      slot(held, "parent").provide(self);
+      const parent = slot(held, "parent");
+      parent.provide(self);
       self.$add(held);
       return () => {
+        const said = parent.assigned || parent.bound || parent.layers || parent.placed !== undefined;
+        if (said && untrack(() => held.parent) === self) return;
         self.$remove(held);
-        slot(held, "parent").provide(undefined);
+        parent.provide(undefined);
       };
     },
   );

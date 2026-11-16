@@ -21,8 +21,9 @@ XrView {
         id: origin
 
         camera: XrCamera { id: head }
-        // What the origin's camera is for a while, and then is not.
-        property XrCamera spare: XrCamera { }
+        // What the origin's camera is for a while, and then is not: it
+        // looks the other way.
+        property XrCamera spare: XrCamera { eulerRotation.y: 180 }
 
         XrController {
             id: left
@@ -77,5 +78,9 @@ XrView {
         } else if (index === 2) ahead.y = 0
         else if (index === 3) origin.camera = origin.spare
         else if (index === 4) origin.camera = head
+        else if (index === 5) {
+            head.parent = origin
+            origin.camera = origin.spare
+        } else if (index === 6) origin.camera = head
     }
 }
