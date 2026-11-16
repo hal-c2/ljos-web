@@ -17,7 +17,7 @@ import { dirname, isAbsolute, join, posix, resolve } from "node:path";
 import { build } from "vite";
 import { findTheme } from "./find-theme.ts";
 import { provided } from "./modules.js";
-import qml, { compilerAt, hasControls, installed, kernelNamed } from "./vite.js";
+import qml, { compilerAt, hasControls, installed, kernelNamed, runCompiler } from "./vite.js";
 import { CLIENT_CONDITIONS } from "./server/conditions.js";
 
 const runtime = import.meta.dirname;
@@ -120,7 +120,7 @@ function qmldir(text) {
 // would differ from its parser somewhere, and what it lets past is then what
 // the compiler reads from outside the bundle.
 function importsOf(dir, paths, qmlc) {
-  const ran = spawnSync(qmlc, ["--imports", ...paths], { cwd: dir, encoding: "utf8", maxBuffer: 1 << 28 });
+  const ran = runCompiler(qmlc, ["--imports", ...paths], { cwd: dir, encoding: "utf8", maxBuffer: 1 << 28 });
   if (ran.error) throw new SiteError(`could not run ${qmlc}: ${ran.error.message}`);
   if (ran.status !== 0) throw new SiteError(`${qmlc} could not read what the bundle imports:\n${ran.stderr.trim()}`);
   const said = JSON.parse(ran.stdout);
@@ -248,7 +248,7 @@ function themeOf(dir, manifest, qmlc) {
   const listed = new Set(manifest.files.map(({ path }) => path));
   const file = manifest.theme ?? findTheme(listed, manifest.entry);
   if (!file) return null;
-  const ran = spawnSync(qmlc, ["--theme", file], { cwd: dir, encoding: "utf8" });
+  const ran = runCompiler(qmlc, ["--theme", file], { cwd: dir, encoding: "utf8" });
   if (ran.error) throw new SiteError(`could not run ${qmlc}: ${ran.error.message}`);
   if (ran.status !== 0) throw new SiteError(`the theme ${file} is refused:\n${ran.stderr.trim()}`);
   return file;

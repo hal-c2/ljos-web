@@ -403,6 +403,22 @@ function askingEarly(code, atOnce, warn) {
 // for the PATH.
 export const compilerAt = (qmlc) => (qmlc.includes("/") || qmlc.includes(sep) ? resolvePath(qmlc) : qmlc);
 
+// How long one run of the compiler may take. Each is run to its end and
+// holds Node's event loop meanwhile, so no timer of the caller's can end a
+// compiler that hangs: this is the only bound there is. One file, or the
+// imports of a bundle, takes well under a second.
+export const COMPILER_TIMEOUT = 60_000;
+
+// `qmlc` run with `args` to its end, as spawnSync runs it, within
+// COMPILER_TIMEOUT (or `options.timeout`): a run that does not end is
+// killed, its `error` saying so.
+export function runCompiler(qmlc, args, options = {}) {
+  const { timeout = COMPILER_TIMEOUT } = options;
+  const ran = spawnSync(qmlc, args, { ...options, timeout });
+  if (ran.error?.code === "ETIMEDOUT") ran.error.message = `it did not end within ${timeout / 1000} s (${[qmlc, ...args].join(" ")})`;
+  return ran;
+}
+
 // - `qmlc`, `args`: the compiler and what it is run with, or a function of
 //   the file compiled that gives that: `--urls-on-assignment` for a program
 //   that sets `QML_COMPAT_RESOLVE_URLS_ON_ASSIGNMENT`, whose paths are taken
@@ -595,7 +611,7 @@ export default function qml({
       }
       [argv, cwd] = [["--theme-for", relative(project, entry), "--root", "."], project];
     }
-    const ran = spawnSync(qmlc, [...argv, ...hue], { cwd, encoding: "utf8" });
+    const ran = runCompiler(qmlc, [...argv, ...hue], { cwd, encoding: "utf8" });
     if (ran.error) return { error: `could not run ${qmlc}: ${ran.error.message}`, watched };
     if (ran.status !== 0) return { error: ran.stderr.trim(), watched };
     return { json: ran.stdout.trim(), watched };
@@ -666,7 +682,9 @@ export default function qml({
   const listed = (kind, module) => {
     const key = `${kind} ${module}`;
     if (!tables.has(key)) {
-      const asked = spawnSync(qmlc, [kind, module.replaceAll("/", ".")], { encoding: "utf8" });
+      const asked = runCompiler(qmlc, [kind, module.replaceAll("/", ".")], { encoding: "utf8" });
+      // A compiler that hung says nothing of the module: not its absence.
+      if (asked.error?.code === "ETIMEDOUT") throw new Error(`could not run ${qmlc}: ${asked.error.message}`);
       const names = asked.status === 0 ? asked.stdout.trim().split(" ").slice(1) : [];
       tables.set(key, names.length > 0 ? names : null);
     }
@@ -974,7 +992,7 @@ export default function qml({
       ];
       // A compiled file can be larger than a pipe's default room (a
       // page that carries its words as data is megabytes of it).
-      const result = spawnSync(qmlc, [...given, file], {
+      const result = runCompiler(qmlc, [...given, file], {
         encoding: "utf8",
         maxBuffer: 1 << 28,
       });
@@ -993,7 +1011,7 @@ export default function qml({
       if (live && entries.has(file)) {
         // Asked with what the file is compiled with, and told which directory
         // the files are from: the one lookup says both.
-        const asked = spawnSync(qmlc, ["--shell", ...given, file], { encoding: "utf8", maxBuffer: 1 << 28 });
+        const asked = runCompiler(qmlc, ["--shell", ...given, file], { encoding: "utf8", maxBuffer: 1 << 28 });
         if (asked.error) this.error(`could not run ${qmlc}: ${asked.error.message}`);
         if (asked.status !== 0) this.error(asked.stderr.trim());
         for (const line of asked.stderr.split("\n")) if (line.trim()) this.warn(line.replace(/^warning: /, ""));
