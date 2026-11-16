@@ -644,6 +644,29 @@ test("a link over a MouseArea is the link's to follow, and beside it the area's"
   expect(await log()).toEqual(["activated inside", "area clicked"]);
 });
 
+// The press is the text's, as in Qt, so a Flickable around it still sees
+// it: let go where it was pressed, the link is followed; dragged, the
+// Flickable takes it from the text, moves, and nothing is followed. The
+// link's words are in a `code` of their own, as a page's often are.
+test("a link in a Flickable is followed by a press, and a drag from it flicks and follows nothing", async ({ page }) => {
+  await boxes(page, "markup");
+  const log = () => page.evaluate(() => window.objects.log.filter((line) => !line.startsWith("hovered")));
+  const middle = () =>
+    page.evaluate(() => {
+      const box = window.objects.flicked.$markup.querySelector("a code").getBoundingClientRect();
+      return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    });
+  const at = await middle();
+  await page.mouse.click(at.x, at.y);
+  expect(await log()).toEqual(["activated flicked"]);
+  await page.mouse.move(at.x, at.y);
+  await page.mouse.down();
+  for (let step = 1; step <= 6; step++) await page.mouse.move(at.x, at.y - 4 * step);
+  await page.mouse.up();
+  expect(await page.evaluate(() => window.objects.flick.contentY)).toBeGreaterThan(0);
+  expect(await log()).toEqual(["activated flicked"]);
+});
+
 test("markup cannot run a script or bring a frame into the page", async ({ page }) => {
   await boxes(page, "markup");
   await page.mouse.click(204, 68);

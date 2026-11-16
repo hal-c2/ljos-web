@@ -44,9 +44,18 @@
 //             onLinkActivated: (link) => log.push("activated " + link)
 //         }
 //     }
+//     Flickable {
+//         id: flick; x: 200; y: 264; width: 200; height: 36; contentHeight: 200; clip: true
+//         Boxed {
+//             id: flicked; y: 4; textFormat: Text.RichText
+//             lineHeightMode: Text.FixedHeight; lineHeight: 28
+//             text: "ab <a href=\"flicked\"><code>in</code></a>"
+//             onLinkActivated: (link) => log.push("activated " + link)
+//         }
+//     }
 // }
 import { $object } from "ljos-web/object";
-import { FontLoader, Item, MouseArea, Text } from "ljos-web/QtQuick";
+import { Flickable, FontLoader, Item, MouseArea, Text } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 export const objects = { log: [] };
@@ -54,8 +63,8 @@ export const objects = { log: [] };
 export default function Markup() {
   const { log } = objects;
   // The props are not copied: that would read the bindings among them.
-  const named = (Type, name, props) =>
-    make(Type, Object.defineProperty(props, "$self", { value: (objects[name] = $object()), enumerable: true }));
+  const named = (Type, name, props, children) =>
+    make(Type, Object.defineProperty(props, "$self", { value: (objects[name] = $object()), enumerable: true }), children);
   const boxed = (name, props) => {
     Object.defineProperty(props, "font$family", { get: () => objects.boxes.name, enumerable: true });
     props.font$pixelSize = 16;
@@ -105,6 +114,16 @@ export default function Markup() {
     boxed("arabic", { x: 200, y: 180, width: 100, text: "مرحبا" }),
     make(MouseArea, { x: 200, y: 240, width: 200, height: 20, onClicked: () => log.push("area clicked") }, () => [
       boxed("covered", { text: 'ab <a href="inside">in</a>', onLinkActivated: (link) => log.push(`activated ${link}`) }),
+    ]),
+    named(Flickable, "flick", { x: 200, y: 264, width: 200, height: 36, contentHeight: 200, clip: true }, () => [
+      boxed("flicked", {
+        y: 4,
+        textFormat: Text.RichText,
+        lineHeightMode: Text.FixedHeight,
+        lineHeight: 28,
+        text: 'ab <a href="flicked"><code>in</code></a>',
+        onLinkActivated: (link) => log.push(`activated ${link}`),
+      }),
     ]),
   ]);
 }

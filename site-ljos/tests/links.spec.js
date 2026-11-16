@@ -183,6 +183,35 @@ test("with script, a plain press shows the page in place, and back shows the one
   expect(await page.evaluate(() => globalThis.stillHere)).toBe(true);
 });
 
+// A link in a page's words is drawn by a text, not an item of its own:
+// the text takes the press on it, so the page around it still takes a
+// drag that starts there (ljos-web#19). Such a link may wrap, so it is
+// pressed on its first line, not the middle of the box around both.
+test("with script, a press on a link in a page's words shows that page, and a drag from it scrolls", async ({ page }) => {
+  await page.goto(`${base}start/`);
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  const words = page.locator("a[data-link]", { hasText: "ljos observe" }).first();
+  const firstLine = async () => {
+    await words.scrollIntoViewIfNeeded();
+    return words.evaluate((link) => {
+      const { x, y, width, height } = link.getClientRects()[0];
+      return { x: x + width / 2, y: y + height / 2 };
+    });
+  };
+  const at = await firstLine();
+  await page.mouse.click(at.x, at.y);
+  await expect(page).toHaveURL(`${origin}${base}start/observe/`);
+  await page.goBack();
+  await expect(page).toHaveURL(`${origin}${base}start/`);
+  const from = await firstLine();
+  await page.mouse.move(from.x, from.y);
+  await page.mouse.down();
+  for (let step = 1; step <= 8; step++) await page.mouse.move(from.x, from.y - 10 * step);
+  await page.mouse.up();
+  await expect.poll(async () => (await words.evaluate((link) => link.getClientRects()[0].y))).toBeLessThan(from.y - 20);
+  await expect(page).toHaveURL(`${origin}${base}start/`);
+});
+
 // Where a link of the page is, down it: it moves up as the page is
 // scrolled down.
 const down = async (link) => (await link.boundingBox()).y;

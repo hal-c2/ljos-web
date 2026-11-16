@@ -23,10 +23,24 @@ import {
   resized,
 } from "./font.ts";
 import { Item } from "./Item.js";
+import { LeftButton } from "./keycodes.ts";
 import { alignment } from "./LayoutMirroring.ts";
+import { CancelGrabExclusive, receive } from "./pointer.js";
 import { clothe, elements, mightBeRichText, survey } from "./richtext.js";
 
 const MANY = 2147483647;
+
+// The link of a text's markup under a point, as the page has drawn it (a
+// text turned or scaled too), or an empty string: the topmost of the
+// text's own elements there decides.
+function linkUnder(self, point) {
+  for (const element of document.elementsFromPoint(point.clientX, point.clientY)) {
+    if (!self.$markup.contains(element)) continue;
+    const anchor = element.closest("a[data-link]");
+    return anchor && self.$markup.contains(anchor) ? anchor.dataset.link : "";
+  }
+  return "";
+}
 const ELIDE_RIGHT = 1;
 const ELIDE_NONE = 3;
 const WORD_WRAP = 1;
@@ -472,6 +486,25 @@ export const Text = defineType("Text", Item, {
       }
       return "";
     },
+    // As in Qt, a left press that lands on one of the text's links is the
+    // text's, and the link is followed if it is let go over that link
+    // again. A Flickable around the text still sees the press, and takes
+    // it once it drags: then nothing is followed.
+    $press(point) {
+      if (point.button !== LeftButton) return false;
+      this.$pressed = linkUnder(this, point);
+      return this.$pressed !== "";
+    },
+    $release(point) {
+      const link = this.$pressed;
+      this.$pressed = "";
+      const under = linkUnder(this, point);
+      if (link && under === link) this.linkActivated(link);
+      this.$hover(under);
+    },
+    $grab(transition) {
+      if (transition === CancelGrabExclusive) this.$pressed = "";
+    },
   },
   setup(self) {
     const content = document.createElement("div");
@@ -498,14 +531,20 @@ export const Text = defineType("Text", Item, {
     });
     // Markup only: plain text has no links.
     let listening = false;
-    const hover = (link) => {
+    self.$pressed = "";
+    const hover = (self.$hover = (link) => {
       if (!slot(self, "hoveredLink").write(link)) return;
       flush();
       self.linkHovered(link);
-    };
+    });
     const listen = () => {
       listening = true;
+      receive(self);
       const linked = (event) => event.target.closest?.("a[data-link]")?.dataset.link;
+      // A pointer's press on a link is the text's ($press): the scene
+      // captures the pointer, so its click would come to the scene, not
+      // here. What comes here to be followed is a click no pointer made:
+      // Enter on a link the browser focused, or the element's `click()`.
       content.addEventListener("click", (event) => {
         const link = linked(event);
         if (link === undefined) return;
@@ -514,10 +553,13 @@ export const Text = defineType("Text", Item, {
         // window) it is the browser's.
         if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
         event.preventDefault();
-        self.linkActivated(link);
+        if (event.detail === 0) self.linkActivated(link);
       });
-      content.addEventListener("mouseover", (event) => hover(linked(event) ?? ""));
-      content.addEventListener("mouseout", () => hover(""));
+      // While the text holds a press the scene has the pointer, and the
+      // page says the pointer left the link for it: what is under it
+      // is read again when it is let go.
+      content.addEventListener("mouseover", (event) => self.$pressed || hover(linked(event) ?? ""));
+      content.addEventListener("mouseout", () => self.$pressed || hover(""));
     };
     let shown = {};
     effect(
