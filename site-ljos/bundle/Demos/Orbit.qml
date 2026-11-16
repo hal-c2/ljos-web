@@ -12,7 +12,7 @@ Rectangle {
     id: root
     width: 720
     height: 420
-    color: "#12141b"
+    color: look.canvas
 
     // Driven by the page that embeds this file; harmless standalone.
     property bool active: true
@@ -38,13 +38,27 @@ Rectangle {
         onTriggered: root.turn = 55 + (root.turn - 55 + frameTime * root.pace) % 360
     }
 
+    // The colours this app draws with, for the scheme the reader chose:
+    // each the dark it was drawn in or a light that keeps the text on it
+    // as readable.
+    QtObject {
+        id: look
+        readonly property bool dark: Application.styleHints.colorScheme === Qt.ColorScheme.Dark
+        readonly property color canvas: dark ? "#12141b" : "#f6f4ee"
+        // The captions lie on the scene's ground, which is dark in either
+        // scheme: they keep the light they were drawn in.
+        readonly property color onGround: "#c9cfdd"
+        readonly property color onGroundMuted: "#8b93a7"
+        readonly property color sky: dark ? "#14161f" : "#cfdae8"
+    }
+
     View3D {
         id: view
         anchors.fill: parent
         camera: camera
         environment: SceneEnvironment {
             backgroundMode: SceneEnvironment.Color
-            clearColor: "#14161f"
+            clearColor: look.sky
             antialiasingMode: SceneEnvironment.MSAA
             antialiasingQuality: SceneEnvironment.High
         }
@@ -242,7 +256,7 @@ Rectangle {
         anchors.left: parent.left
         anchors.bottom: parent.bottom
         anchors.margins: 14
-        color: "#c9cfdd"
+        color: look.onGround
         font.pixelSize: 14
         text: qsTr("Drag to orbit · scroll or pinch to zoom")
     }
@@ -250,7 +264,7 @@ Rectangle {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.margins: 14
-        color: "#8b93a7"
+        color: look.onGroundMuted
         font.pixelSize: 13
         text: qsTr("One QML file, drawn by Ljós's 3D renderer")
     }

@@ -10,11 +10,37 @@ Rectangle {
     id: root
     width: 720
     height: 420
-    color: "#171b26"
+    color: look.canvas
     radius: 8
 
     property bool active: true
     property bool calm: false
+
+    // The colours this app draws with, for the scheme the reader chose:
+    // each the dark it was drawn in or a light that keeps the text on it
+    // as readable.
+    QtObject {
+        id: look
+        readonly property bool dark: Application.styleHints.colorScheme === Qt.ColorScheme.Dark
+        readonly property color accent: dark ? "#e8a33d" : "#c07a12"
+        // Words in the accent: on the light canvas it is darker than a fill
+        // in it, or they would be too faint to read.
+        readonly property color accentText: dark ? "#e8a33d" : "#8f5a00"
+        readonly property color canvas: dark ? "#171b26" : "#f6f4ee"
+        readonly property color growth: dark ? "#7ba05b" : "#4f7a2e"
+        readonly property color ink1: dark ? "#f0ead8" : "#1b1f2a"
+        readonly property color ink2: dark ? "#e8eaf0" : "#1b1f2a"
+        readonly property color ink3: dark ? "#eef0f6" : "#1b1f2a"
+        readonly property color ink4: dark ? "#f5efdd" : "#1b1f2a"
+        readonly property color ink5: dark ? "#dfe4ef" : "#1b1f2a"
+        readonly property color ink6: dark ? "#ccd3e2" : "#1b1f2a"
+        readonly property color muted1: dark ? "#8b95af" : "#4d5566"
+        readonly property color muted2: dark ? "#93a0ba" : "#4d5566"
+        readonly property color muted3: dark ? "#a8b3c9" : "#4d5566"
+        readonly property color raised: dark ? "#202636" : "#ffffff"
+        readonly property color selected: dark ? "#2e3a55" : "#d6e0f2"
+        readonly property color track: dark ? "#39415a" : "#cfd4de"
+    }
 
     // The facts, as the model every view reads.
     ListModel {
@@ -74,7 +100,7 @@ Rectangle {
                 width: 330
                 height: 40
                 verticalAlignment: Text.AlignVCenter
-                color: "#f0ead8"
+                color: look.ink1
                 font.pixelSize: 22
                 font.bold: true
                 text: qsTr("Field guide")
@@ -82,9 +108,9 @@ Rectangle {
             TextField {
                 id: search
                 width: parent.width - 344
-                palette.base: "#202636"
-                palette.text: "#e8eaf0"
-                palette.placeholderText: "#8b95af"
+                palette.base: look.raised
+                palette.text: look.ink2
+                palette.placeholderText: look.muted1
                 placeholderText: qsTr("Search by name…")
                 onTextChanged: root.refilter()
             }
@@ -110,18 +136,18 @@ Rectangle {
                     width: list.width
                     height: 52
                     radius: 8
-                    color: root.current === at ? "#2e3a55" : "#202636"
+                    color: root.current === at ? look.selected : look.raised
                     Column {
                         x: 12
                         y: 7
                         spacing: 1
                         Text {
-                            color: "#eef0f6"
+                            color: look.ink3
                             font.pixelSize: 15
                             text: (root.seen[latin] === true ? "✓ " : "") + name
                         }
                         Text {
-                            color: "#93a0ba"
+                            color: look.muted2
                             font.pixelSize: 12
                             font.italic: true
                             text: latin + " · " + season
@@ -141,7 +167,7 @@ Rectangle {
                 spacing: 7
                 Text {
                     width: parent.width
-                    color: "#f5efdd"
+                    color: look.ink4
                     font.pixelSize: 26
                     font.bold: true
                     elide: Text.ElideRight
@@ -149,7 +175,7 @@ Rectangle {
                 }
                 Text {
                     width: parent.width
-                    color: "#a8b3c9"
+                    color: look.muted3
                     font.pixelSize: 14
                     font.italic: true
                     text: root.bird ? root.bird.latin + " · " + root.bird.season.toLowerCase() : ""
@@ -158,7 +184,7 @@ Rectangle {
                     spacing: 10
                     Text {
                         width: 86
-                        color: "#93a0ba"
+                        color: look.muted2
                         font.pixelSize: 13
                         text: qsTr("Length")
                     }
@@ -166,16 +192,16 @@ Rectangle {
                         width: 170
                         height: 10
                         radius: 5
-                        color: "#39415a"
+                        color: look.track
                         Rectangle {
                             width: parent.width * (root.bird ? root.bird.lengthCm / 100 : 0)
                             height: parent.height
                             radius: 5
-                            color: "#e8a33d"
+                            color: look.accent
                         }
                     }
                     Text {
-                        color: "#dfe4ef"
+                        color: look.ink5
                         font.pixelSize: 13
                         text: root.bird ? root.bird.lengthCm + " cm" : ""
                     }
@@ -184,7 +210,7 @@ Rectangle {
                     spacing: 10
                     Text {
                         width: 86
-                        color: "#93a0ba"
+                        color: look.muted2
                         font.pixelSize: 13
                         text: qsTr("Wingspan")
                     }
@@ -192,16 +218,16 @@ Rectangle {
                         width: 170
                         height: 10
                         radius: 5
-                        color: "#39415a"
+                        color: look.track
                         Rectangle {
                             width: parent.width * (root.bird ? root.bird.wingspanCm / 200 : 0)
                             height: parent.height
                             radius: 5
-                            color: "#7ba05b"
+                            color: look.growth
                         }
                     }
                     Text {
-                        color: "#dfe4ef"
+                        color: look.ink5
                         font.pixelSize: 13
                         text: root.bird ? root.bird.wingspanCm + " cm" : ""
                     }
@@ -209,16 +235,16 @@ Rectangle {
                 Text {
                     width: parent.width
                     wrapMode: Text.WordWrap
-                    color: "#ccd3e2"
+                    color: look.ink6
                     font.pixelSize: 14
                     text: root.bird ? root.bird.blurb : ""
                 }
                 CheckBox {
                     id: seenBox
-                    palette.text: "#dfe4ef"
-                    palette.buttonText: "#dfe4ef"
-                    palette.windowText: "#dfe4ef"
-                    palette.base: "#202636"
+                    palette.text: look.ink5
+                    palette.buttonText: look.ink5
+                    palette.windowText: look.ink5
+                    palette.base: look.raised
                     text: qsTr("I have seen this one")
                     checked: root.bird ? root.seen[root.bird.latin] === true : false
                     onToggled: {
@@ -233,9 +259,9 @@ Rectangle {
                 TextArea {
                     width: parent.width
                     height: 52
-                    palette.base: "#202636"
-                    palette.text: "#e8eaf0"
-                    palette.placeholderText: "#8b95af"
+                    palette.base: look.raised
+                    palette.text: look.ink2
+                    palette.placeholderText: look.muted1
                     placeholderText: qsTr("Your notes on this species…")
                     text: root.bird ? (root.notes[root.bird.latin] ?? "") : ""
                     onTextChanged: {
@@ -248,7 +274,7 @@ Rectangle {
                 }
                 Text {
                     width: parent.width
-                    color: "#e8a33d"
+                    color: look.accentText
                     font.pixelSize: 14
                     text: qsTr("Seen %1 of %2").arg(root.seenCount).arg(guide.count)
                 }

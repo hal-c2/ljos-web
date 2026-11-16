@@ -10,7 +10,21 @@ Rectangle {
     objectName: "appShell"
     width: 480
     height: 400
-    color: "#171a23"
+    color: look.canvas
+
+    // The colours this app draws with, for the scheme the reader chose:
+    // each the dark it was drawn in or a light that keeps the text on it
+    // as readable.
+    QtObject {
+        id: look
+        readonly property bool dark: Application.styleHints.colorScheme === Qt.ColorScheme.Dark
+        readonly property color canvas: dark ? "#171a23" : "#f6f4ee"
+        readonly property color ink1: dark ? "#f0ead8" : "#1b1f2a"
+        readonly property color ink2: dark ? "#e8eaf0" : "#1b1f2a"
+        readonly property color muted1: dark ? "#9aa3b2" : "#4d5566"
+        readonly property color muted2: dark ? "#7c869e" : "#4d5566"
+        readonly property color raised: dark ? "#232839" : "#ffffff"
+    }
 
     Column {
         x: 18
@@ -19,7 +33,7 @@ Rectangle {
 
         Text {
             objectName: "pantryTitle"
-            color: "#f0ead8"
+            color: look.ink1
             font.pixelSize: 24
             text: "The Corner Pantry"
         }
@@ -37,11 +51,11 @@ Rectangle {
                 width: 140
                 height: 58
                 radius: 8
-                color: "#232839"
+                color: look.raised
                 Text {
                     x: 10
                     y: 8
-                    color: "#e8eaf0"
+                    color: look.ink2
                     font.pixelSize: 15
                     text: "Tea · £" + basket.teaPrice.toFixed(2)
                 }
@@ -49,7 +63,7 @@ Rectangle {
                     objectName: "teaCount"
                     x: 10
                     y: 32
-                    color: "#9aa3b2"
+                    color: look.muted1
                     font.pixelSize: 13
                     text: basket.teaCount + " in basket"
                 }
@@ -66,11 +80,11 @@ Rectangle {
                 width: 140
                 height: 58
                 radius: 8
-                color: "#232839"
+                color: look.raised
                 Text {
                     x: 10
                     y: 8
-                    color: "#e8eaf0"
+                    color: look.ink2
                     font.pixelSize: 15
                     text: "Bread · £" + basket.breadPrice.toFixed(2)
                 }
@@ -78,7 +92,7 @@ Rectangle {
                     objectName: "breadCount"
                     x: 10
                     y: 32
-                    color: "#9aa3b2"
+                    color: look.muted1
                     font.pixelSize: 13
                     text: basket.breadCount + " in basket"
                 }
@@ -95,11 +109,11 @@ Rectangle {
                 width: 140
                 height: 58
                 radius: 8
-                color: "#232839"
+                color: look.raised
                 Text {
                     x: 10
                     y: 8
-                    color: "#e8eaf0"
+                    color: look.ink2
                     font.pixelSize: 15
                     text: "Jam · £" + basket.jamPrice.toFixed(2)
                 }
@@ -107,7 +121,7 @@ Rectangle {
                     objectName: "jamCount"
                     x: 10
                     y: 32
-                    color: "#9aa3b2"
+                    color: look.muted1
                     font.pixelSize: 13
                     text: basket.jamCount + " in basket"
                 }
@@ -131,7 +145,7 @@ Rectangle {
             width: 444
         }
         Text {
-            color: "#7c869e"
+            color: look.muted2
             font.pixelSize: 13
             text: "Tap a good to add it. Then rewrite this shell — nothing you bought moves."
         }

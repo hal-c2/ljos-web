@@ -9,7 +9,7 @@ Rectangle {
     id: root
     width: 720
     height: 420
-    color: "#101320"
+    color: look.canvas
     activeFocusOnTab: true
 
     property bool active: true
@@ -28,18 +28,32 @@ Rectangle {
         }
     }
 
+    // The colours this app draws with, for the scheme the reader chose:
+    // each the dark it was drawn in or a light that keeps the text on it
+    // as readable.
+    QtObject {
+        id: look
+        readonly property bool dark: Application.styleHints.colorScheme === Qt.ColorScheme.Dark
+        readonly property color canvas: dark ? "#101320" : "#f6f4ee"
+        readonly property color ink: dark ? "#e6e9f2" : "#1b1f2a"
+        readonly property color muted: dark ? "#aeb6c9" : "#4d5566"
+    }
+
     ShaderEffect {
         id: effect
         anchors.fill: parent
         // The uniforms, in the order light.frag declares them.
         property real time: 0
         property point pointer: Qt.point(0.3, 0.6)
-        property real palette: 0
+        // Which of the three colourings the reader tapped to; the
+        // shader has each in a dark and a light, and is told both.
+        property int choice: 0
+        property real palette: choice + (look.dark ? 0 : 3)
         property point resolution: Qt.point(Math.max(width, 1), Math.max(height, 1))
         fragmentShader: "light.frag.qsb"
 
         function cycle() {
-            palette = (palette + 1) % 3;
+            choice = (choice + 1) % 3;
         }
 
         // Moved on each frame by its pace (as Orbit's turn), wrapping at
@@ -68,7 +82,7 @@ Rectangle {
         anchors.left: parent.left
         anchors.bottom: parent.bottom
         anchors.margins: 14
-        color: "#e6e9f2"
+        color: look.ink
         font.pixelSize: 14
         text: qsTr("Move to stir the light · tap for other colours")
     }
@@ -76,7 +90,7 @@ Rectangle {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.margins: 14
-        color: "#aeb6c9"
+        color: look.muted
         font.pixelSize: 13
         text: qsTr("A custom fragment shader")
     }

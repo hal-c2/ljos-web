@@ -86,6 +86,7 @@ Column {
                     needs: "webgl2"
                     route: "/demos/"
                     picture: "/pictures/demo-orbit.webp"
+                    pictureDark: "/pictures/demo-orbit-dark.webp"
                     description: "A lit 3D scene of shapes on a floor, which a drag turns."
                     source: Later.orbit
                 }
@@ -108,6 +109,7 @@ Column {
                     needs: "webgl2"
                     route: "/demos/"
                     picture: "/pictures/demo-shader.webp"
+                    pictureDark: "/pictures/demo-shader-dark.webp"
                     description: "Light pooling over a card of text, following the pointer."
                     source: Later.shader
                 }
@@ -130,6 +132,7 @@ Column {
                     needs: "wasm"
                     route: "/demos/"
                     picture: "/pictures/demo-app.webp"
+                    pictureDark: "/pictures/demo-app-dark.webp"
                     description: "A field guide to birds: a list of species beside the one picked, with notes and a count of those seen."
                     source: Later.fieldGuide
                 }
@@ -152,6 +155,7 @@ Column {
                     needs: "wasm"
                     route: "/demos/"
                     picture: "/pictures/demo-motion.webp"
+                    pictureDark: "/pictures/demo-motion-dark.webp"
                     description: "Tiles that shuffle and settle, driven by one eased value."
                     source: Later.motion
                 }

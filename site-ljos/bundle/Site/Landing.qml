@@ -252,6 +252,7 @@ Column {
                         scroller: landing.scroller
                         needs: "webgl2"
                         picture: "/pictures/demo-orbit.webp"
+                        pictureDark: "/pictures/demo-orbit-dark.webp"
                         description: "A lit 3D scene of shapes on a floor, which a drag turns."
                         source: Later.orbit
                     }
