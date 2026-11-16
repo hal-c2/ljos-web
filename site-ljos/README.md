@@ -120,20 +120,23 @@ without WebGPU draws them on WebGL2.
 
 DECISION: the rule of thumb for what a page runs.
 
-- Nothing runs until the reader asks. A plain example (one that draws
-  and answers input, and holds still otherwise) has no Run button: it
-  runs when its picture is pressed, the press going on to what it
-  draws, or when its code is edited. The Pantry, the flagship, is
-  drawn with the page as one: it holds still, and its shell is the one
-  compiled with the page until the reader's first edit, so it has no
-  Run and does not count among the three below.
-- One whose root is a `Window` or an `ApplicationWindow`, one that
-  draws in 3D, one that keeps moving on its own (a `Timer`, a running
-  or looping animation, an `AnimatedSprite`, media), and every other
-  demo (Orbit on the front page, and `/demos/`' other four) shows its
-  picture with a Run button and runs once the reader presses it: the
-  button, Return or Space on it, or a screen reader's press. `bundle/live.js`
-  `gated()` reads that from the code.
+- Nothing runs until the reader asks: not an example, not a demo. The
+  build's picture stands, and on it one control (`Site/Runner.qml`),
+  "▶ Run", a button Tab reaches, Return or Space presses and a screen
+  reader names ("Run the 3D demo"). A press anywhere on the picture, or
+  an edit of the code, runs it too. Only then is the compiler fetched
+  (an example) or the demo made: what the reader never asks for costs
+  them nothing (about 1.5 MB of compiler, a GPU device). The Pantry,
+  the flagship, is drawn with the page as one: it holds still, and its
+  shell is the one compiled with the page until the reader's first
+  edit, so it has no Run and does not count among the three below.
+- The control says where it is, on screen and to a screen reader: the
+  picture with "▶ Run"; asked for, "◌ Loading…" in its place; drawn,
+  the control steps to the corner, "✎ Edit" on an example (its code
+  takes the focus) and "❚❚ Pause" on a demo, which holds the demo
+  still where it is, and "▶ Run" goes on from there. One button
+  throughout, so a keyboard reader's focus stays on it. Each phase the
+  reader asked for is said in the page's polite live region.
 - A demo is made when its Run is pressed, not as it nears the screen:
   one the reader never asks for costs them no GPU device
   (`Site/DemoFrame.qml`).
@@ -145,8 +148,10 @@ DECISION: the rule of thumb for what a page runs.
   tab is hidden; back in view, it resumes. A demo pauses in place (its
   `active` is false, its state kept); an example goes back to its
   picture, keeping the reader's edits, and runs them again.
-- An example's picture follows the site's light or dark: each is drawn
-  on both papers.
+- An example's picture follows the site's light or dark: it is drawn
+  on no paper, so the page's own shows through it as it does under the
+  running example. One picture, not one per scheme: a page whose
+  schemes differed in it would be written twice over.
 
 Motion is full by default. A reader whose system asks for reduced
 motion, or who checks the header's "Reduce motion" toggle (kept in

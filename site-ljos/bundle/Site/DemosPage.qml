@@ -90,7 +90,7 @@ Column {
                     route: "/demos/"
                     picture: "/pictures/demo-orbit.webp"
                     pictureDark: "/pictures/demo-orbit-dark.webp"
-                    label: "Run the 3D demo"
+                    what: "the 3D demo"
                     description: "A lit 3D scene of shapes on a floor, which a drag turns."
                     source: Later.orbit
                 }
@@ -114,7 +114,7 @@ Column {
                     route: "/demos/"
                     picture: "/pictures/demo-shader.webp"
                     pictureDark: "/pictures/demo-shader-dark.webp"
-                    label: "Run the shader demo"
+                    what: "the shader demo"
                     description: "Light pooling over a card of text, following the pointer."
                     source: Later.shader
                 }
@@ -138,7 +138,7 @@ Column {
                     route: "/demos/"
                     picture: "/pictures/demo-app.webp"
                     pictureDark: "/pictures/demo-app-dark.webp"
-                    label: "Run the field guide"
+                    what: "the field guide"
                     description: "A field guide to birds: a list of species beside the one picked, with notes and a count of those seen."
                     source: Later.fieldGuide
                 }
@@ -162,7 +162,7 @@ Column {
                     route: "/demos/"
                     picture: "/pictures/demo-motion.webp"
                     pictureDark: "/pictures/demo-motion-dark.webp"
-                    label: "Run the motion demo"
+                    what: "the motion demo"
                     description: "Tiles that shuffle and settle, driven by one eased value."
                     source: Later.motion
                 }

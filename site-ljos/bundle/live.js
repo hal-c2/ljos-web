@@ -128,15 +128,3 @@ function windowOf(item) {
     return item && item.contentItem !== undefined && item.visibility !== undefined ? item : null;
 }
 
-// Whether an example waits for its reader's Run rather than running
-// when it is scrolled into view (site-ljos/README.md, "What runs"): one
-// that is a window, draws in 3D, plays media, or keeps moving on its
-// own (a timer, an animation that runs from the start or loops).
-function gated(display) {
-    return display.some(function (file) {
-        var code = file.code || "";
-        var root = (code.replace(/^\s*(import|\/\/|pragma).*$/gm, "").match(/^\s*([A-Z][\w.]*)\s*\{/m) || [])[1] || "";
-        return /^(Window|ApplicationWindow)$/.test(root)
-            || /\bView3D\b|\bTimer\s*\{|running:\s*true|loops:\s*Animation\.Infinite|\bAnimatedSprite\b|Animation on \w|\b(Video|MediaPlayer)\b/.test(code);
-    });
-}

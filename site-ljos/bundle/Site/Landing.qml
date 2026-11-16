@@ -253,7 +253,7 @@ Column {
                         needs: "webgl2"
                         picture: "/pictures/demo-orbit.webp"
                         pictureDark: "/pictures/demo-orbit-dark.webp"
-                        label: "Run the 3D demo"
+                        what: "the 3D demo"
                         description: "A lit 3D scene of shapes on a floor, which a drag turns."
                         source: Later.orbit
                     }
