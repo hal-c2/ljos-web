@@ -6,7 +6,7 @@
 // still goes on, and more slowly than with no preference. Hidden and
 // shown again, the clock goes on from where it held, never back to its
 // start.
-import { centre, expect, open, test } from "./fixtures.js";
+import { centre, expect, open, press, runButton, test } from "./fixtures.js";
 
 // How long a rate is read over: well under either clock's loop.
 const WINDOW = 3_000;
@@ -16,6 +16,7 @@ const DEMOS = [
     name: "Orbit",
     route: "/",
     heading: "See it run",
+    run: "Run the 3D demo",
     canvas: "canvas.qq-view3d",
     // Orbit's `turn`, from the View3D the canvas draws: 55 to 415.
     clock: (canvas) => canvas.$view3d.view.parent.turn,
@@ -29,6 +30,7 @@ const DEMOS = [
     name: "the shader effect",
     route: "/demos/",
     heading: "A shader effect",
+    run: "Run the shader demo",
     canvas: "canvas.qq-shader",
     // The effect's `time` uniform: 0 to 4π.
     clock: (canvas) => canvas.$effect.time,
@@ -49,6 +51,7 @@ for (const demo of DEMOS) {
     async function reach(page) {
       await open(page, demo.route);
       await centre(page.locator("#app div.qq-text").filter({ hasText: new RegExp(`^${demo.heading}$`) }).first());
+      await press(runButton(page, demo.run));
       await expect(canvas(page), "the demo is made once it is on screen").toBeAttached({ timeout: 30_000 });
       await expect.poll(() => canvas(page).evaluate(demo.frames), { message: "the demo draws", timeout: 30_000 }).toBeGreaterThan(0);
     }

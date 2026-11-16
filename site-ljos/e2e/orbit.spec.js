@@ -6,7 +6,7 @@
 // stands still. Once on each renderer: the JavaScript one and wgpu
 // (which draws on WebGL 2 where there is no WebGPU), each asked for by
 // the page's address.
-import { expect, open, test } from "./fixtures.js";
+import { expect, open, press, runButton, test } from "./fixtures.js";
 
 const showcase = (page) => page.locator("#app div.qq-text").filter({ hasText: /^See it run$/ }).first();
 const scene = (page) => page.locator("canvas.qq-view3d").first();
@@ -34,11 +34,13 @@ async function framesOver(page, ms) {
   return frames;
 }
 
-// The one scroll a reader makes to the showcase; nothing after it. The
-// view keeps how long its last pictures took to draw, for a test that
-// fails to say.
+// The one scroll a reader makes to the showcase, and its Run; nothing
+// after it. The view keeps how long its last pictures took to draw, for a
+// test that fails to say.
 async function reach(page, route) {
   await open(page, route);
+  await showcase(page).evaluate((element) => element.scrollIntoView({ block: "start" }));
+  await press(runButton(page, "Run the 3D demo"));
   await showcase(page).evaluate((element) => element.scrollIntoView({ block: "start" }));
   await expect(scene(page), "the scene is made once it is on screen").toBeAttached({ timeout: 30_000 });
   await scene(page).evaluate((canvas) => {
