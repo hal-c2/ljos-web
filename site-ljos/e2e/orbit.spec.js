@@ -40,35 +40,11 @@ async function reach(page, route) {
   await expect.poll(() => scene(page).evaluate((canvas) => canvas.$view3d?.frames ?? 0), { message: "the scene draws", timeout: 30_000 }).toBeGreaterThan(0);
 }
 
-// How unlike two pictures of the scene are: the mean difference of
-// their pixels' channels, 0 to 255.
-function unlike(page, a, b) {
-  return page.evaluate(
-    async ([a, b]) => {
-      const pixels = async (data) => {
-        const image = new Image();
-        image.src = `data:image/png;base64,${data}`;
-        await image.decode();
-        const board = new OffscreenCanvas(image.width, image.height);
-        const context = board.getContext("2d");
-        context.drawImage(image, 0, 0);
-        return context.getImageData(0, 0, image.width, image.height).data;
-      };
-      const [one, other] = [await pixels(a), await pixels(b)];
-      let sum = 0;
-      for (let at = 0; at < one.length; at++) if (at % 4 !== 3) sum += Math.abs(one[at] - other[at]);
-      return sum / ((one.length / 4) * 3);
-    },
-    [a.toString("base64"), b.toString("base64")],
-  );
-}
-
-// The next picture the view draws, as soon as it is drawn.
-async function nextPicture(page) {
-  const from = await scene(page).evaluate((canvas) => canvas.$view3d.frames);
-  await expect.poll(() => scene(page).evaluate((canvas) => canvas.$view3d.frames), { message: "a picture is drawn", intervals: [20, 50, 100] }).toBeGreaterThan(from);
-  return scene(page).screenshot();
-}
+// The scene's clock: Orbit's `turn`, read from the View3D the canvas
+// draws. It runs from 55 to 415 and round again.
+const turnOf = (page) => scene(page).evaluate((canvas) => canvas.$view3d.view.parent.turn);
+// How far the clock went on from `from` to `to`, round a wrap.
+const onFrom = (from, to) => (((to - from) % 360) + 360) % 360;
 
 // The page's tab, hidden and shown again, as the browser says it.
 function showTab(page, shown) {
@@ -94,8 +70,7 @@ for (const renderer of ["js", "wgpu"]) {
       expect(await framesOver(page, WINDOW), "frames are drawn while nobody touches the page").toBeGreaterThan(0);
       expect(await framesOver(page, WINDOW), "and go on being drawn").toBeGreaterThan(0);
       const before = await scene(page).screenshot();
-      await page.waitForTimeout(1_000);
-      expect(Buffer.compare(before, await scene(page).screenshot()), "the picture a second later is another").not.toBe(0);
+      await expect.poll(async () => Buffer.compare(before, await scene(page).screenshot()) !== 0, { message: "the picture changes" }).toBe(true);
     });
 
     test("with less motion asked for, the scene still moves", async ({ page }) => {
@@ -122,20 +97,22 @@ for (const renderer of ["js", "wgpu"]) {
 
     test("in a hidden tab it stops, and shown again it goes on from where it was", async ({ page }) => {
       await reach(page, route);
-      const opening = await nextPicture(page);
       expect(await framesOver(page, WINDOW), "drawn on screen").toBeGreaterThan(0);
-      // Turned well away from its opening pose before the tab hides.
-      await page.waitForTimeout(3_000);
-      const left = await nextPicture(page);
+      await expect.poll(async () => onFrom(55, await turnOf(page)), { message: "the scene turns from its opening pose" }).toBeGreaterThan(20);
       await showTab(page, false);
       await page.waitForTimeout(SETTLE);
       expect(await framesOver(page, WINDOW), "nothing is drawn while the tab is hidden").toBe(0);
+      const held = await turnOf(page);
+      await page.waitForTimeout(1_000);
+      expect(await turnOf(page), "hidden, the scene's clock holds still").toBe(held);
       await showTab(page, true);
-      const back = await nextPicture(page);
-      // Paused, not started over: the scene shown again is the one left,
-      // not the opening pose.
-      expect(await unlike(page, back, left), "shown again, the scene is where it was left, not back at its start").toBeLessThan(await unlike(page, back, opening));
       await expect.poll(() => framesOver(page, WINDOW), { message: "drawn again once shown" }).toBeGreaterThan(0);
+      // Paused, not stopped: a stopped animation starts again from
+      // `from` (55), a snap back a reader sees. Shown again, the clock
+      // goes on forward from where it held, by the little time since.
+      const after = await turnOf(page);
+      expect(onFrom(held, after), "shown again, the scene goes on from where it was, not back at its start").toBeLessThan(90);
+      expect(onFrom(held, after), "and it goes on").toBeGreaterThan(0);
     });
   });
 }

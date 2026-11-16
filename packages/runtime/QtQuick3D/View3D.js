@@ -306,8 +306,9 @@ export const View3D = defineType("View3D", Item, {
     }
     // What a test or a tool may ask, as of the wgpu renderer's view
     // (`drawOn`): `probe` is told of each sight taken ("sync") and each
-    // picture drawn ("draw").
-    const state = (canvas.$view3d = { renderer: "js", backend: "webgl2", frames: 0, builds: 0, error: null, probe: null });
+    // picture drawn ("draw"); `view` is the View3D itself, to read what it
+    // shows from.
+    const state = (canvas.$view3d = { renderer: "js", backend: "webgl2", frames: 0, builds: 0, error: null, probe: null, view: self });
     // Drawn once what asked for it has settled, in the same task; one that
     // gave its picture on in this task waits for the next frame, as the
     // wgpu renderer's does (`gaveNow`).
