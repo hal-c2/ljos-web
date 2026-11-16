@@ -23,6 +23,7 @@ import { signal, untrack } from "#kernel";
 import { CustomMaterial } from "./CustomMaterial.js";
 import { handed, text } from "./effects.js";
 import { inside } from "./Node.js";
+import { done, paced, POLL } from "./paced.js";
 import { Format } from "./TextureData.js";
 
 // Which renderer a View3D has is said where the page asks for it early.
@@ -511,38 +512,6 @@ export const gave = (view) => {
   ending.port2.postMessage(0);
 };
 
-// Drawing holds the page up, where Qt draws on a thread of its own: so
-// where pictures take long, one is not drawn again until as long has gone
-// by as the last took, and the page has half its time for everything else,
-// what it fetches and what is pressed among it. What changes meanwhile is
-// in the picture that is drawn then. Both renderers' views are paced so.
-//
-// One slow picture is not pictures taking long: the first of a scene is
-// slow for the programs that are made for it, and the next is drawn as
-// soon as something changes, as every picture is of a scene that is quick
-// to draw.
-//
-// `wait(now)` is how long a picture asked for at `now` waits, in
-// milliseconds (0 to draw it now); `drew(from, to)` is told when each
-// picture was drawn.
-export function paced() {
-  let rested = 0;
-  let slow = false;
-  return {
-    // A timer may ring a little early.
-    wait: (now) => (rested - now > 1 ? rested - now : 0),
-    drew(from, to) {
-      const took = to - from;
-      rested = slow && took > SLOW ? to + Math.min(took, REST) : 0;
-      slow = took > SLOW;
-    },
-  };
-}
-// A picture is slow that takes longer than this to draw, in milliseconds,
-// and the longest the page is left to itself after one.
-const SLOW = 50;
-const REST = 1000;
-
 // Draws `self` on `canvas`. What a test or a tool may ask (the backend, how
 // many frames and builds, how many reads the last build asked of the page
 // and how many pieces of the view it read again, how many objects the view
@@ -626,20 +595,22 @@ export function drawOn(self, canvas, told) {
       }
     }
     fence = gl?.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0) ?? null;
-    if (fence) finished(from);
+    if (fence) finished(from, performance.now());
     else pace.drew(from, performance.now());
   };
   // The GPU is asked whether it is done, without waiting for it, a few
-  // milliseconds apart, only while a picture is with it.
-  const finished = (from) => {
+  // milliseconds apart, only while a picture is with it. What else held the
+  // page meanwhile is not the picture's time (`done`).
+  const finished = (from, busy) => {
     finishing = 0;
+    const now = performance.now();
     if (!gl.isContextLost() && gl.getSyncParameter(fence, gl.SYNC_STATUS) !== gl.SIGNALED) {
-      finishing = setTimeout(() => finished(from), 4);
+      finishing = setTimeout(() => finished(from, now), POLL);
       return;
     }
     gl.deleteSync(fence);
     fence = null;
-    pace.drew(from, performance.now());
+    pace.drew(from, done(busy, now));
     if (due) draw();
   };
   // Drawn once what asked for it has settled, in the same task: a build in

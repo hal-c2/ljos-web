@@ -22,7 +22,8 @@ import { inside, Node } from "./Node.js";
 import { met } from "./pick.js";
 import { draw } from "./render.js";
 import { SceneEnvironment } from "./scene.js";
-import { drawOn, gave, gaveNow, paced, renderer } from "./wgpu.js";
+import { paced } from "./paced.js";
+import { drawOn, gave, gaveNow, renderer } from "./wgpu.js";
 import { signal, untrack } from "#kernel";
 import { getOwner, onCleanup } from "solid-js";
 

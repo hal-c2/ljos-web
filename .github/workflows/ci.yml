@@ -96,7 +96,7 @@ jobs:
       # others: they run after, one at a time, each given longer.
       - name: Quick3D, on the Solid kernel
         if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
-        run: pnpm --filter ljos-web exec playwright test -c tests quick3d.spec --grep-invert @surroundings
+        run: pnpm --filter ljos-web exec playwright test -c tests quick3d.spec paced.spec --grep-invert @surroundings
       - name: Quick3D lit by its surroundings, one at a time, on the Solid kernel
         if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
         run: pnpm --filter ljos-web exec playwright test -c tests quick3d.spec --grep @surroundings --workers=1 --timeout=120000
