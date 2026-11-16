@@ -45,10 +45,17 @@ Rectangle {
             y: tray.height / 2 - height / 2
             property real goalX: x
             property real goalY: y
+            // Only a reader sends the puck anywhere. Until one does it
+            // sits in the middle of the tray however the tray is sized:
+            // the demo is made at its own size and then given its
+            // frame's, and a spring there would set the puck off on its
+            // own as the demo appears (before the frame says `calm`,
+            // so with the full spring's overshoot).
+            property bool led: false
             // A spring when motion is welcome; a short direct move
             // when it is not. Both end in the same place.
             Behavior on x {
-                enabled: root.active
+                enabled: root.active && puck.led
                 SpringAnimation {
                     spring: root.calm ? 30 : 3.2
                     damping: root.calm ? 1.0 : 0.28
@@ -56,7 +63,7 @@ Rectangle {
                 }
             }
             Behavior on y {
-                enabled: root.active
+                enabled: root.active && puck.led
                 SpringAnimation {
                     spring: root.calm ? 30 : 3.2
                     damping: root.calm ? 1.0 : 0.28
@@ -78,6 +85,7 @@ Rectangle {
             Accessible.name: qsTr("Spring tray. Press and move to lead the puck; it springs after the pointer.")
             Accessible.role: Accessible.Slider
             function lead(mouse) {
+                puck.led = true;
                 puck.goalX = Math.max(0, Math.min(tray.width - puck.width, mouse.x - puck.width / 2));
                 puck.goalY = Math.max(0, Math.min(tray.height - puck.height, mouse.y - puck.height / 2));
                 puck.x = puck.goalX;
