@@ -30,7 +30,10 @@ const docsCandidates = [
 ].filter(Boolean);
 const docsDir = docsCandidates.find((c) => existsSync(join(c, "start/index.md")));
 const harnessDir = docsDir ? join(docsDir, "harness") : undefined;
-const prerendersAt = path(".codeblock-prerenders");
+// The pinned docs' prerenders, or another docs' kept apart
+// (LJOS_CODEBLOCK_PRERENDERS, tests/build-fixture.mjs): a directory
+// holds one docs' examples, and drops the rest.
+const prerendersAt = path(process.env.LJOS_CODEBLOCK_PRERENDERS ?? ".codeblock-prerenders");
 let legacyBlocks = 0;
 const given = readGiven();
 const docsAt = path("src/content/docs");
