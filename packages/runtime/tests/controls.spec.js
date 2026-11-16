@@ -2,9 +2,15 @@
 // is run by `qml6` too, and asked the same.
 import { expect, open, test } from "./open.js";
 
-test("QtQuick.Templates lays a control out, and hands down its font and colours, as Qt does", async ({ page }) => {
+test("QtQuick.Templates lays a control out, and hands down its font and colours, as Qt does", async ({
+  page,
+}) => {
   await open(page, "controls");
-  expect(await page.evaluate(() => JSON.parse(JSON.stringify(window.scene.answers())))).toEqual([
+  expect(
+    await page.evaluate(() =>
+      JSON.parse(JSON.stringify(window.scene.answers())),
+    ),
+  ).toEqual([
     [6, 4, 10, 6],
     [10, 6, 186, 88],
     [4, 6, 186, 88, true],
@@ -76,8 +82,32 @@ const STYLES = {
 };
 
 for (const [style, expected] of Object.entries(STYLES)) {
-  test(`with the ${style} style, controls have its fonts and its colours`, async ({ page }) => {
+  test(`with the ${style} style, controls have its fonts and its colours`, async ({
+    page,
+  }) => {
     await open(page, `themes&style=${style}`);
-    expect(await page.evaluate(() => window.objects.answers())).toEqual([...expected, ...COMMON]);
+    expect(await page.evaluate(() => window.objects.answers())).toEqual([
+      ...expected,
+      ...COMMON,
+    ]);
   });
 }
+
+// ljos-ui's Basic style has a dark palette (ljos_quick palette.rs), and in
+// a dark scheme its controls are drawn with it: a style whose colours were
+// only light painted dark text on the dark page around it.
+test("with the Basic style in a dark scheme, controls have its dark colours, and change as the scheme does", async ({
+  page,
+}) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await open(page, "themes&style=Basic");
+  const colours = () =>
+    page.evaluate(() => window.objects.answers().slice(2, 5));
+  expect(await colours()).toEqual([
+    ["#2f2f2f", "#2f2f2f", "#2f2f2f", "#eff0f2"],
+    ["#7fc8c9cb", "#eff0f2", "#919191"],
+    ["#010203", "#010203", "#d4d6d8"],
+  ]);
+  await page.emulateMedia({ colorScheme: "light" });
+  await expect.poll(colours).toEqual(STYLES.Basic.slice(2, 5));
+});

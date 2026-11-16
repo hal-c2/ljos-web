@@ -148,8 +148,32 @@ const part = (name: string) =>
   );
 
 // The colours of a style, as a palette's defaults: the active ones, and what
-// is different of an object that is not enabled.
-export const colours = (active: Colours, disabled: Partial<Colours>): Record<string, Colours> => ({ active, inactive: active, disabled: { ...active, ...disabled } });
+// is different of an object that is not enabled; and, for a style that has
+// them, the same two in a dark scheme, which are read while it is one.
+export function colours(
+  active: Colours,
+  disabled: Partial<Colours>,
+  dark?: { active: Colours; disabled: Partial<Colours> },
+): Record<string, Colours> {
+  const light = { active, inactive: active, disabled: { ...active, ...disabled } };
+  if (!dark) return light;
+  const night = { active: dark.active, inactive: dark.active, disabled: { ...dark.active, ...dark.disabled } };
+  const now = () => (styleHints().colorScheme === 2 ? night : light);
+  return {
+    get active() {
+      return now().active;
+    },
+    get inactive() {
+      return now().inactive;
+    },
+    get disabled() {
+      return now().disabled;
+    },
+  };
+}
+
+// Basic's colours in a dark scheme, as one style's.
+export const DARK_BASIC = { active: DARK_ACTIVE, disabled: DARK_DISABLED };
 
 const resolve: Record<string, Resolve> = each(
   (role): Resolve =>
