@@ -105,10 +105,18 @@ export function part(title, run) {
 // A shared hook (`beforeAll`, `afterAll`), watched from its start: no
 // test's fixture runs around it, so it is its own. Its body is one part,
 // `title`, and the parts in it say which step it was in.
-export function shared(title, run) {
+//
+// A hook has a time of its own, not its test's: the project's timeout,
+// which `test.info().timeout` does not give (that is the test's, which
+// `describe.configure` or `test.slow` change). A hook that needs another
+// says so here, as `timeout`, rather than with `test.setTimeout`, which
+// would change it where the watch cannot see.
+export function shared(title, run, { timeout } = {}) {
   return async () => {
+    const info = test.info();
+    if (timeout !== undefined) test.setTimeout(timeout);
     const was = watched;
-    const mine = (watched = watch(test.info(), { hook: true }));
+    const mine = (watched = watch(info, { hook: true, timeout: timeout ?? info.project.timeout }));
     try {
       return await part(title, run);
     } finally {
@@ -122,11 +130,11 @@ export function shared(title, run) {
 // What runs for `info`: its parts, and how long Node's own work kept it
 // from its event loop; `late` is what it waited for read 2 s before its
 // time runs out, while the page and what it asked for are still there.
-function watch(info, { hook = false } = {}) {
+function watch(info, { hook = false, timeout = info.timeout } = {}) {
   const delay = monitorEventLoopDelay({ resolution: 20 });
   delay.enable();
   const watch = { parts: [], delay, late: null, near: null };
-  if (info.timeout > 0) {
+  if (timeout > 0) {
     watch.near = setTimeout(() => {
       watch.late = stalled(watch);
       // A hook that runs out of time is ended where it is, with no fixture
@@ -134,7 +142,7 @@ function watch(info, { hook = false } = {}) {
       if (hook && watch.parts.some(({ took }) => took === null)) {
         console.error(`${info.titlePath.join(" › ")}, a shared hook: ${NEAR / 1000} s before its time runs out\n${watch.late.join("\n")}`);
       }
-    }, Math.max(info.timeout - NEAR, 0));
+    }, Math.max(timeout - NEAR, 0));
     watch.near.unref();
   }
   return watch;

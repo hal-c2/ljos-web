@@ -20,4 +20,9 @@ test("a shared hook that stalls in a part says, before its time runs out, which 
   expect(said).toMatch(/server http:\/\/127\.0\.0\.1:\d+: 0 connection\(s\) open, no request in flight/);
   expect(said).toContain("Node waits on: ");
   expect(said).toMatch(/Node was kept from its event loop for up to \d+ ms at a time/);
+  // Each read 2 s before its own hook's time, not its tests': the
+  // project's 4 s, and the 6 s a hook gave itself; before that hook's time
+  // ran out, however late a busy machine rang the timer.
+  expect(said).toMatch(/build the site and serve it: unfinished after (19|[23]\d)\d\d ms/);
+  expect(said).toMatch(/wait for its own time: unfinished after (39|[45]\d)\d\d ms/);
 });
