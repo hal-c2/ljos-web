@@ -633,12 +633,14 @@ export function drawOn(self, canvas, told, instead) {
     fence = gl?.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0) ?? null;
     if (fence) {
       drawnFrom = from;
+      busy = performance.now();
+      busyAtFrame = inFrame;
       finished();
     } else pace.drew(from, performance.now());
   };
   // The GPU is asked whether it is done, without waiting for it, a few
   // milliseconds apart, only while a picture is with it, and again as each
-  // frame of the page's begins and once it is made (`watch`). What else
+  // frame of the page's is laid out and once it is made (`watch`). What else
   // held the page meanwhile is not the picture's time (`done`); the page's
   // frame, made while the picture was with the GPU, is.
   let drawnFrom = 0;
@@ -660,7 +662,7 @@ export function drawOn(self, canvas, told, instead) {
     }
     gl.deleteSync(fence);
     fence = null;
-    const to = done(busy, now, busyAtFrame);
+    const to = done(busy, now, busyAtFrame ? madeBy : null);
     watching = late(busy, now);
     state.probe?.("gpu", drawnFrom, to);
     pace.drew(drawnFrom, to);
@@ -668,20 +670,26 @@ export function drawOn(self, canvas, told, instead) {
     // for is still to come and draws it.
     if (due && !frame) draw();
   };
-  // The browser makes the page's frame after its animation frame callbacks,
-  // and there waits for what the GPU still has to do for the canvas: no
-  // timer rings meanwhile, so a picture checked only by them was seen done
-  // after a gap the page seemed to fill, and counted quick however long the
-  // GPU held every frame of the page's. So once a picture was seen done
-  // late, and while the view draws, each frame says when it begins (an
-  // animation frame callback, which checks the picture too) and when it was
-  // made (a message posted there, the first task after it): a check in
-  // between, the picture's own drawn in an animation frame among them, is
-  // `inFrame`, and the next check after the gap is the message. A view
-  // whose pictures are seen done on time asks for no frames of its own.
+  // The browser makes the page's frame after its animation frame callbacks
+  // and its layout, and there waits for what the GPU still has to do for the
+  // canvas: no timer rings meanwhile, so a picture checked only by them was
+  // seen done after a gap the page seemed to fill, and counted quick however
+  // long the GPU held every frame of the page's. So once a picture was seen
+  // done late, and while the view draws, each frame says when it was laid
+  // out (a resize observer's first look at the canvas, which comes after
+  // every animation frame callback, style and layout, and checks the picture
+  // too) and when it was made (a message posted there, the first task after
+  // it): a picture still with the GPU once the frame was laid out is
+  // `inFrame`, and the check after the gap is the message. What the page's
+  // own callbacks and layout took comes before, and is the page's. A page
+  // held long may begin its next frame before the message: then that frame
+  // began once the last was made, and what its callbacks take is the page's
+  // too (`madeBy`). A view whose pictures are seen done on time asks for no
+  // frames of its own.
   let watching = false;
   let framing = 0;
   let inFrame = false;
+  let madeBy = Infinity;
   // Pictures drawn by the last frame's start: a view drawing in animation
   // frames may have none with the GPU, and none due, as one begins.
   let framesSeen = 0;
@@ -690,12 +698,21 @@ export function drawOn(self, canvas, told, instead) {
     inFrame = false;
     if (fence) finished();
   };
+  const laidOut = new ResizeObserver(() => {
+    laidOut.unobserve(canvas);
+    if (gone) return;
+    inFrame = true;
+    madeBy = Infinity;
+    frameMade.port2.postMessage(0);
+    if (fence) finished();
+  });
   const watch = () => {
     if (framing || gone) return;
-    framing = requestAnimationFrame(() => {
+    framing = requestAnimationFrame((began) => {
       framing = 0;
-      inFrame = true;
-      frameMade.port2.postMessage(0);
+      if (inFrame) madeBy = began;
+      inFrame = false;
+      laidOut.observe(canvas);
       if (fence) finished();
       const drawing = fence || due || state.frames !== framesSeen;
       framesSeen = state.frames;
@@ -869,6 +886,7 @@ export function drawOn(self, canvas, told, instead) {
     finishing = 0;
     if (framing) cancelAnimationFrame(framing);
     framing = 0;
+    laidOut.disconnect();
     frameMade.port1.close();
     if (fence) gl.deleteSync(fence);
     fence = null;

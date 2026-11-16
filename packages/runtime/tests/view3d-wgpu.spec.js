@@ -358,6 +358,174 @@ for (const backend of ["webgpu", "webgl2"]) {
       expect(await over(300)).toEqual({ asks: 0, frames: 0 });
     });
 
+    // A picture on WebGL 2 is done when its fence says so (QtQuick3D/wgpu.js).
+    // Here fences made while `holding` say they are not done until
+    // `release()`, and done from then, whatever the GPU underneath says: the
+    // GPU's work, finished where a test says. Every animation frame the page
+    // asks for is counted, but for the test's own.
+    const HELD = `
+      window.frameAsks = 0;
+      const asked = window.requestAnimationFrame;
+      window.ownFrame = asked.bind(window);
+      // While \`ownFor\` is set, the page's own work comes after every
+      // callback the page asked for in a frame: after the view's.
+      const last = new Map();
+      let asks = 0;
+      window.requestAnimationFrame = (callback) => {
+        window.frameAsks++;
+        const id = asked.call(window, callback);
+        if (window.ownFor) {
+          const frame = document.timeline.currentTime;
+          const mine = ++asks;
+          last.set(frame, mine);
+          asked.call(window, () => last.get(frame) === mine && (last.delete(frame), window.hold(window.ownFor)));
+        }
+        return id;
+      };
+      const proto = WebGL2RenderingContext.prototype;
+      const fenceSync = proto.fenceSync;
+      const status = proto.getSyncParameter;
+      // Each fence made while holding, and whether it is done.
+      const held = new Map();
+      window.holding = false;
+      window.fenceChecks = 0;
+      proto.fenceSync = function (...args) {
+        const fence = fenceSync.apply(this, args);
+        if (window.holding) held.set(fence, false);
+        return fence;
+      };
+      proto.getSyncParameter = function (fence, name) {
+        window.fenceChecks++;
+        if (name !== this.SYNC_STATUS || !held.has(fence)) return status.call(this, fence, name);
+        return held.get(fence) ? this.SIGNALED : this.UNSIGNALED;
+      };
+      window.release = () => {
+        for (const fence of held.keys()) held.set(fence, true);
+      };
+    `;
+    // Each frame of the page's, from now: its animation frame callbacks held
+    // `window.ownFor` ms (HELD), or, once it was laid out, the frame held
+    // `window.makingFor` ms, as a browser that waits there for the GPU; the
+    // GPU's work done at the end of either. Made after the view, so the
+    // view's own look at a laid out frame comes first.
+    const frameHeld = (page) =>
+      page.evaluate(() => {
+        window.ownFor = 0;
+        window.makingFor = 0;
+        const hold = (window.hold = (ms) => {
+          const until = performance.now() + ms;
+          while (performance.now() < until);
+          window.release();
+        });
+        const laidOut = new ResizeObserver(() => {
+          laidOut.unobserve(document.body);
+          if (window.makingFor) hold(window.makingFor);
+        });
+        const each = () => {
+          laidOut.observe(document.body);
+          window.ownFrame(each);
+        };
+        window.ownFrame(each);
+      });
+    // What the GPU took for each picture drawn over `ms`, as the view is
+    // paced by it.
+    const gpuTimes = (page, ms) =>
+      page.evaluate(
+        (ms) =>
+          new Promise((done) => {
+            const state = document.querySelector(".qq-view3d").$view3d;
+            const took = [];
+            state.probe = (kind, from, to) => kind === "gpu" && took.push(Math.round(to - from));
+            setTimeout(() => {
+              state.probe = null;
+              done(took);
+            }, ms);
+          }),
+        ms,
+      );
+    const frameAsksOver = (page, ms) =>
+      page.evaluate(
+        (ms) =>
+          new Promise((done) => {
+            const state = document.querySelector(".qq-view3d").$view3d;
+            const from = { asks: window.frameAsks, frames: state.frames };
+            setTimeout(() => done({ asks: window.frameAsks - from.asks, frames: state.frames - from.frames }), ms);
+          }),
+        ms,
+      );
+
+    test("a picture the browser waits for as it makes the page's frame is the GPU's time, and a view drawn on time again asks for no frames", async ({ page }) => {
+      test.skip(backend !== "webgl2", "a fence is WebGL 2's");
+      await page.addInitScript(HELD);
+      await show(page, "wgpu_moving");
+      await frameHeld(page);
+      await page.evaluate(() => {
+        window.holding = true;
+        window.makingFor = 80;
+        window.objects.moving = true;
+        window.flush();
+      });
+      // The first is checked by timers only, and seen done late; then the
+      // view rests after each, as long as it took.
+      const took = (await gpuTimes(page, 3000)).slice(2);
+      expect(took.length, `the GPU took ${took.join(", ")} ms`).toBeGreaterThan(2);
+      expect(Math.min(...took), `the GPU took ${took.join(", ")} ms, each frame held 80 ms once laid out`).toBeGreaterThanOrEqual(80);
+      await page.evaluate(() => {
+        window.holding = false;
+        window.makingFor = 0;
+        window.release();
+      });
+      await gpuTimes(page, 300);
+      const onTime = await frameAsksOver(page, 1000);
+      expect(onTime.frames).toBeGreaterThan(20);
+      expect(onTime.asks / onTime.frames, `${onTime.asks} animation frames asked for ${onTime.frames} drawn`).toBeLessThanOrEqual(1.1);
+    });
+
+    test("what the page's own animation frames take is not the GPU's time", async ({ page }) => {
+      test.skip(backend !== "webgl2", "a fence is WebGL 2's");
+      await page.addInitScript(HELD);
+      await show(page, "wgpu_moving");
+      await frameHeld(page);
+      await page.evaluate(() => {
+        window.holding = true;
+        window.ownFor = 80;
+        window.objects.moving = true;
+        window.flush();
+      });
+      const took = (await gpuTimes(page, 1500)).slice(2);
+      expect(took.length, `the GPU took ${took.join(", ")} ms`).toBeGreaterThan(2);
+      expect(Math.max(...took), `the GPU took ${took.join(", ")} ms, each frame's callbacks held 80 ms`).toBeLessThan(50);
+    });
+
+    test("a view whose frames are watched, taken away, asks for no frame and checks no fence after", async ({ page }) => {
+      test.skip(backend !== "webgl2", "a fence is WebGL 2's");
+      const errors = [];
+      page.on("pageerror", (error) => errors.push(error.message));
+      await page.addInitScript(HELD);
+      await show(page, "wgpu_moving");
+      await frameHeld(page);
+      await page.evaluate(() => {
+        window.holding = true;
+        window.makingFor = 80;
+        window.objects.moving = true;
+        window.flush();
+      });
+      const watched = await frameAsksOver(page, 1000);
+      expect(watched.asks, "frames the view asked for while it was watched").toBeGreaterThan(0);
+      const after = await page.evaluate(
+        () =>
+          new Promise((done) => {
+            window.reload("aliased").then((error) => {
+              const from = { asks: window.frameAsks, checks: window.fenceChecks };
+              window.makingFor = 0;
+              setTimeout(() => done({ error, asks: window.frameAsks - from.asks, checks: window.fenceChecks - from.checks }), 300);
+            });
+          }),
+      );
+      expect(after).toEqual({ error: null, asks: 0, checks: 0 });
+      expect(errors).toEqual([]);
+    });
+
     // Each draw is a new picture for the other view, without end: what paces
     // them is the animation frame, so the page still paints.
     test("two views showing each other's picture go round once an animation frame, and the page paints", async ({ page }) => {
