@@ -385,6 +385,11 @@ Column {
                 callWidth: stageBox.pictureWidth
                 can: block.isLive && block.runs && block.checked
                 ready: stage.status === ShellLoader.Ready
+                // A first edit that did not compile: the empty fallback
+                // stands, and the error is said under the block. The
+                // fallback stands with no error for want of a source
+                // too, before the first one comes: that is loading.
+                failed: stage.error !== "" && (stage.status === ShellLoader.Fallback || stage.status === ShellLoader.Error)
                 editable: true
                 // Unmade only when the budget stops it: scrolled past or
                 // in a hidden tab it stays as the reader left it, what

@@ -217,6 +217,9 @@ test("a block whose first edit does not compile stays its picture and says why",
   await page.keyboard.type("Broken {");
   await expect(page.getByText(/Main\.qml:\d+/).first()).toBeVisible({ timeout: 30_000 });
   await expect(picture).toBeVisible();
+  // Its control does not go on Loading: it offers the code to mend.
+  await expect(page.getByRole("button", { name: "Edit this example" }), "the control offers its code").toHaveCount(1);
+  await expect(page.getByRole("button", { name: "Loading this example" }), "no Loading that never ends").toHaveCount(0);
 });
 
 test("an editor goes with its page: the next page keeps none of its views or listeners", async ({ page }) => {

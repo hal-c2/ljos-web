@@ -5,7 +5,7 @@ import Site
 // control that says so. Nothing runs until the reader asks: the control
 // is a Run button on the picture, which Tab reaches, Return or Space
 // presses, a screen reader names and presses, and a press anywhere on
-// the picture presses too. One control, in four phases, so the focus a
+// the picture presses too. One control, in five phases, so the focus a
 // keyboard reader gave it stays where it is as it changes:
 //
 // - `picture`: what the build drew stands; "▶ Run" on it;
@@ -14,7 +14,10 @@ import Site
 //   the way, and says what the reader can do next: "✎ Edit" for an
 //   example (its code takes the focus), "❚❚ Pause" for a demo;
 // - `paused`: a demo the reader paused holds still where it was;
-//   "▶ Run" in the corner goes on from there.
+//   "▶ Run" in the corner goes on from there;
+// - `failed`: what was asked for did not compile (the error is said
+//   under it); "✎ Edit" in the corner takes the reader to its code,
+//   since no Loading would ever end.
 //
 // What is said aloud as it changes is said only for a run the reader
 // asked for, in the page's one polite live region (Accessible.announce):
@@ -33,6 +36,8 @@ Item {
     property string what: "this example"
     // Whether what runs is drawn: until it is, it is loading.
     property bool ready: false
+    // Whether it never will be: it did not compile.
+    property bool failed: false
     // Live, an example offers its code to edit; a demo, to pause.
     property bool editable: false
     signal edit()
@@ -55,9 +60,9 @@ Item {
 
     readonly property bool started: can && asked
     readonly property bool running: started && !paused && onScreen && Running.shown
-    readonly property string phase: !can ? "" : !started ? "picture" : !ready ? "loading" : paused ? "paused" : "live"
+    readonly property string phase: !can ? "" : !started ? "picture" : !ready ? (failed ? "failed" : "loading") : paused ? "paused" : "live"
     // In the corner once there is something to see under it.
-    readonly property bool aside: phase === "live" || phase === "paused"
+    readonly property bool aside: phase === "live" || phase === "paused" || phase === "failed"
 
     function run() {
         asked = true;
@@ -73,6 +78,8 @@ Item {
         if (phase === "picture" || phase === "paused") {
             told = true;
             run();
+        } else if (phase === "failed") {
+            edit();
         } else if (phase === "live") {
             if (editable)
                 edit();
@@ -100,6 +107,8 @@ Item {
             Accessible.announce(what.charAt(0).toUpperCase() + what.slice(1) + " runs");
         else if (phase === "paused")
             Accessible.announce(what.charAt(0).toUpperCase() + what.slice(1) + " is paused");
+        else if (phase === "failed")
+            Accessible.announce(what.charAt(0).toUpperCase() + what.slice(1) + " did not compile");
     }
     onSpanHeightChanged: look()
     onVisibleChanged: look()
@@ -166,6 +175,8 @@ Item {
                 return "Loading " + runner.what;
             case "live":
                 return (runner.editable ? "Edit " : "Pause ") + runner.what;
+            case "failed":
+                return "Edit " + runner.what;
             default:
                 return "Run " + runner.what;
             }
@@ -187,6 +198,8 @@ Item {
                     return "◌ Loading…";
                 case "live":
                     return runner.editable ? "✎ Edit" : "❚❚ Pause";
+                case "failed":
+                    return "✎ Edit";
                 default:
                     return "▶ Run";
                 }
