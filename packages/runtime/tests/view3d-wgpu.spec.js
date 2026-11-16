@@ -541,6 +541,22 @@ for (const backend of ["webgpu", "webgl2"]) {
       near(await at(page, 320 + 25, 150 + 25), [255, 255, 255]);
     });
 
+    // What the wasm fetched through the page (a glTF and its buffers) is
+    // not held by the page once the wasm has its copy.
+    test("a file the view has read is not held by the page after", async ({ page }) => {
+      await show(page, "wgpu_loader");
+      await set(page, () => (window.objects.loader.source = "scenes/wgpu_models/checker.gltf"));
+      // Red top left: the checker, drawn.
+      await expect.poll(() => at(page, 200 - 25, 150 - 25)).toEqual([255, 0, 0]);
+      const held = () =>
+        page.evaluate(async () => {
+          // The page's own instance of the module, by the address it was loaded from.
+          const address = performance.getEntriesByType("resource").find(({ name }) => /\/QtQuick3D\/scene\.js/.test(name)).name;
+          return (await import(address)).held();
+        });
+      expect(await held()).toBe(0);
+    });
+
     test("a file arriving for one loader asks nothing again of another whose file is in", async ({ page }) => {
       await show(page, "wgpu_twoloaders");
       await expect.poll(() => at(page, 100, 150)).toEqual([255, 0, 0]);
@@ -874,6 +890,54 @@ test.describe("a View3D no one asked a renderer of", () => {
     const [r, g, b] = (await pixels(page, [[50, 60]]))[0].split(" ").map(Number);
     expect([r, g, b], "the model, not the window's colour").not.toEqual(CLEAR);
     expect(fetched.filter((url) => /ljos_web_3d/.test(url) && !/\.wasm\?import&url$/.test(url))).toEqual([]);
+  });
+
+  // A Loader that lets its View3D go while WebGPU is still being asked for
+  // an adapter: the answer, no adapter, comes to a view that is gone, and
+  // nothing draws on its canvas instead.
+  test("a view let go while WebGPU is asked for an adapter is not drawn on the JavaScript renderer after", async ({ page }) => {
+    await page.addInitScript(() => {
+      let answer;
+      const asked = new Promise((resolve) => (answer = resolve));
+      window.answerAdapter = () => answer(null);
+      window.adapterAsked = 0;
+      const gpu = {
+        requestAdapter: () => {
+          window.adapterAsked++;
+          return asked;
+        },
+        getPreferredCanvasFormat: () => "bgra8unorm",
+      };
+      Object.defineProperty(Navigator.prototype, "gpu", { get: () => gpu, configurable: true });
+      window.papers = [];
+      const context = HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext = function (kind, ...rest) {
+        if (kind === "bitmaprenderer") window.papers.push(this);
+        return context.call(this, kind, ...rest);
+      };
+    });
+    const errors = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    await page.goto("/?scene=late3d");
+    await page.waitForFunction(() => window.ready);
+    await page.evaluate(() => {
+      window.objects.loader.active = true;
+      window.flush();
+      window.canvas = document.querySelector(".qq-view3d");
+    });
+    // Let go once the view is waiting on the answer, not before it asks.
+    await page.waitForFunction(() => window.adapterAsked > 0);
+    await page.evaluate(() => {
+      window.objects.loader.active = false;
+      window.flush();
+    });
+    expect(await page.evaluate(() => [window.canvas?.$view3d?.renderer, window.canvas.isConnected])).toEqual(["wgpu", false]);
+    await page.evaluate(async () => {
+      window.answerAdapter();
+      await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+    });
+    expect(await page.evaluate(() => ({ renderer: window.canvas.$view3d.renderer, papers: window.papers.length }))).toEqual({ renderer: "wgpu", papers: 0 });
+    expect(errors).toEqual([]);
   });
 
   test("draws on wgpu where WebGPU has an adapter", async ({ page }) => {
