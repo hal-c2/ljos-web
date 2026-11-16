@@ -37,6 +37,8 @@ function viewOf(node) {
 // What a property holds is in the node that holds it, unless it is already
 // somewhere: `camera: XrCamera {}` in an origin moves with the origin, and
 // is among its children, where a renderer that walks the scene finds it.
+// Let go, it is nowhere again, so that held a second time it is adopted
+// a second time rather than taken for somewhere else's.
 function adopting(self, name) {
   effect(
     () => self[name],
@@ -44,7 +46,10 @@ function adopting(self, name) {
       if (!held?.$spatial || untrack(() => held.parent)) return;
       slot(held, "parent").provide(self);
       self.$add(held);
-      return () => self.$remove(held);
+      return () => {
+        self.$remove(held);
+        slot(held, "parent").provide(undefined);
+      };
     },
   );
 }

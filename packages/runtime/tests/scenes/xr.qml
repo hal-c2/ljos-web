@@ -21,6 +21,8 @@ XrView {
         id: origin
 
         camera: XrCamera { id: head }
+        // What the origin's camera is for a while, and then is not.
+        property XrCamera spare: XrCamera { }
 
         XrController {
             id: left
@@ -62,6 +64,8 @@ XrView {
             origin: at(origin.scenePosition),
             children: [origin.parent === view, ahead.parent === view],
             hit: view.rayPick(head.scenePosition, head.forward).objectHit,
+            held: [head.parent === origin, origin.children.indexOf(head) >= 0,
+                   origin.spare.parent === origin, origin.children.indexOf(origin.spare) >= 0],
         }
     }
 
@@ -71,5 +75,7 @@ XrView {
             origin.position = Qt.vector3d(0, 0, 0)
             referenceSpace = XrView.ReferenceSpaceLocal
         } else if (index === 2) ahead.y = 0
+        else if (index === 3) origin.camera = origin.spare
+        else if (index === 4) origin.camera = head
     }
 }
