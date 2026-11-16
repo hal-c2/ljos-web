@@ -10,7 +10,8 @@
 // still waits on, and how long Node's own work kept it from doing anything
 // else (a child process run to its end, as the compiler is, holds it).
 // A shared hook, which no test watches, is given by `shared` and says so
-// 2 s before its time runs out, if it is still in a part.
+// 2 s before its time runs out, if it is still in a part. A hook that runs
+// out of time is abandoned, never settled, so its watch ends without it.
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { createServer } from "node:http";
 import { extname, join, normalize } from "node:path";
@@ -31,10 +32,10 @@ const TYPES = {
 // How long before a test's time runs out what it waits for is read.
 const NEAR = 2_000;
 
-// Every server listening, and what is watched now: a test's run, or a
-// shared hook's.
+// Every server listening, and what is watched: a test's run, or a shared
+// hook's (a `beforeEach` in a test), the latest last.
 const servers = new Set();
-let watched = null;
+const watching = [];
 
 // A static server of `directory` at `below`, on a port of its own, so that
 // tests run side by side. `headers(file)` gives a file's own headers.
@@ -90,6 +91,7 @@ export function serve(directory, { below = "/", headers = () => ({}) } = {}) {
 // One part of a test, or of a shared hook given by `shared`, as a step the
 // report names and times.
 export function part(title, run) {
+  const watched = watching.at(-1);
   if (!watched) throw new Error(`part "${title}" runs outside a test and outside a hook given by shared(): nothing would say where it stalled`);
   const at = { title, since: Date.now(), took: null };
   watched.parts.push(at);
@@ -111,18 +113,22 @@ export function part(title, run) {
 // `describe.configure` or `test.slow` change). A hook that needs another
 // says so here, as `timeout`, rather than with `test.setTimeout`, which
 // would change it where the watch cannot see.
+//
+// A hook that runs out of time is left pending: its `finally` never runs.
+// Its watch ends without it, so that what runs next in the worker (an
+// `afterAll` runs after its `beforeAll` timed out) is not read as the
+// stalled hook's, and its event-loop monitor stops: when the next hook or
+// test starts, as a worker runs one hook at a time and no test inside one,
+// or else when the hook's time is over.
 export function shared(title, run, { timeout } = {}) {
   return async () => {
     const info = test.info();
     if (timeout !== undefined) test.setTimeout(timeout);
-    const was = watched;
-    const mine = (watched = watch(info, { hook: true, timeout: timeout ?? info.project.timeout }));
+    const mine = watch(info, { hook: true, timeout: timeout ?? info.project.timeout });
     try {
       return await part(title, run);
     } finally {
-      watched = was;
-      clearTimeout(mine.near);
-      mine.delay.disable();
+      end(mine);
     }
   };
 }
@@ -133,7 +139,16 @@ export function shared(title, run, { timeout } = {}) {
 function watch(info, { hook = false, timeout = info.timeout } = {}) {
   const delay = monitorEventLoopDelay({ resolution: 20 });
   delay.enable();
-  const watch = { parts: [], delay, late: null, near: null };
+  const watch = { parts: [], delay, late: null, near: null, over: null, hook };
+  for (const left of watching.filter((other) => other.hook || !hook)) end(left);
+  watching.push(watch);
+  if (hook && timeout > 0) {
+    // Playwright's own timer for the hook started before this one, so this
+    // rings once the hook has been abandoned, never while it still runs.
+    // It holds nothing open: a worker with nothing else to do may end.
+    watch.over = setTimeout(() => end(watch), timeout);
+    watch.over.unref();
+  }
   if (timeout > 0) {
     watch.near = setTimeout(() => {
       watch.late = stalled(watch);
@@ -146,6 +161,16 @@ function watch(info, { hook = false, timeout = info.timeout } = {}) {
     watch.near.unref();
   }
   return watch;
+}
+
+// `watch` is over: it leaves the list, and its timers and monitor stop.
+// Ending it twice does nothing.
+function end(watch) {
+  const at = watching.indexOf(watch);
+  if (at !== -1) watching.splice(at, 1);
+  clearTimeout(watch.near);
+  clearTimeout(watch.over);
+  watch.delay.disable();
 }
 
 // What a test that did not pass was waiting for, as text.
@@ -165,11 +190,13 @@ export const test = base.extend({
       // A server from a `beforeAll` serves every test of its group; only
       // what this test started is this test's to stop.
       const shared = new Set(servers);
-      const mine = (watched = watch(testInfo));
+      const mine = watch(testInfo);
       try {
         await use();
       } finally {
-        watched = null;
+        // Its monitor is read below, so it stops after.
+        const at = watching.indexOf(mine);
+        if (at !== -1) watching.splice(at, 1);
         clearTimeout(mine.near);
       }
       if (testInfo.status !== testInfo.expectedStatus) {
@@ -179,7 +206,7 @@ export const test = base.extend({
         // The report shows an attachment's first lines only.
         console.error(`${testInfo.titlePath.join(" › ")}: where it stopped\n${body}`);
       }
-      mine.delay.disable();
+      end(mine);
       // A server a stalled test left listening, closed so that it holds
       // nothing of the next test's.
       await Promise.all([...servers].filter((server) => !shared.has(server)).map((server) => server.stop()));
