@@ -9,6 +9,8 @@
 // requests still in flight and connections still open, what Node itself
 // still waits on, and how long Node's own work kept it from doing anything
 // else (a child process run to its end, as the compiler is, holds it).
+// A shared hook's parts, which no test watches, say so 2 s before the
+// hook's time runs out.
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { createServer } from "node:http";
 import { extname, join, normalize } from "node:path";
@@ -29,9 +31,11 @@ const TYPES = {
 // How long before a test's time runs out what it waits for is read.
 const NEAR = 2_000;
 
-// The servers of the test running now, and the parts it has run.
+// Every server listening, and what is watched now: a test's run, or a
+// shared hook's (`watch`).
 const servers = new Set();
-let parts = [];
+let watched = null;
+const hooks = new WeakMap();
 
 // A static server of `directory` at `below`, on a port of its own, so that
 // tests run side by side. `headers(file)` gives a file's own headers.
@@ -84,10 +88,13 @@ export function serve(directory, { below = "/", headers = () => ({}) } = {}) {
   });
 }
 
-// One part of a test, as a step the report names and times.
+// One part of a test, as a step the report names and times. A part of a
+// shared hook (`beforeAll`, `afterAll`), which no test's fixture watches,
+// is watched by the hook's own watch.
 export function part(title, run) {
+  const watch = watched ?? hookWatch();
   const at = { title, since: Date.now(), took: null };
-  parts.push(at);
+  watch.parts.push(at);
   return test.step(title, async () => {
     try {
       return await run();
@@ -97,41 +104,68 @@ export function part(title, run) {
   });
 }
 
+// What runs for `info`: its parts, and how long Node's own work kept it
+// from its event loop; `late` is what it waited for read 2 s before its
+// time runs out, while the page and what it asked for are still there.
+function watch(info, { hook = false } = {}) {
+  const delay = monitorEventLoopDelay({ resolution: 20 });
+  delay.enable();
+  const watch = { parts: [], delay, late: null, near: null };
+  if (info.timeout > 0) {
+    watch.near = setTimeout(() => {
+      watch.late = stalled(watch);
+      // A hook that runs out of time is ended where it is, with no fixture
+      // after it to tell, so it tells now, if it is still in a part.
+      if (hook && watch.parts.some(({ took }) => took === null)) {
+        console.error(`${info.titlePath.join(" › ")}, a shared hook: ${NEAR / 1000} s before its time runs out\n${watch.late.join("\n")}`);
+      }
+      if (hook) delay.disable();
+    }, Math.max(info.timeout - NEAR, 0));
+    watch.near.unref();
+  }
+  return watch;
+}
+
+// A hook's watch, from its first part, which is near when it starts.
+function hookWatch() {
+  const info = test.info();
+  let found = hooks.get(info);
+  if (!found) hooks.set(info, (found = watch(info, { hook: true })));
+  return found;
+}
+
 // What a test that did not pass was waiting for, as text.
-function stalled() {
+function stalled(watch) {
   const now = Date.now();
-  const lines = parts.map(({ title, since, took }) => (took === null ? `${title}: unfinished after ${now - since} ms` : `${title}: ${took} ms`));
+  const lines = watch.parts.map(({ title, since, took }) => (took === null ? `${title}: unfinished after ${now - since} ms` : `${title}: ${took} ms`));
   for (const server of servers) lines.push(`server ${server.state()}`);
   const waits = process.getActiveResourcesInfo().reduce((count, name) => count.set(name, (count.get(name) ?? 0) + 1), new Map());
   lines.push(`Node waits on: ${[...waits].map(([name, n]) => `${name} ×${n}`).join(", ") || "nothing"}`);
+  lines.push(`Node was kept from its event loop for up to ${Math.round(watch.delay.max / 1e6)} ms at a time`);
   return lines;
 }
 
 export const test = base.extend({
   stalls: [
     async ({}, use, testInfo) => {
-      parts = [];
       // A server from a `beforeAll` serves every test of its group; only
       // what this test started is this test's to stop.
       const shared = new Set(servers);
-      const delay = monitorEventLoopDelay({ resolution: 20 });
-      delay.enable();
-      // Read just before the time runs out, while the page and what it
-      // asked for are still there: after it, the page is closed first.
-      let late = null;
-      const near = testInfo.timeout > 0 ? setTimeout(() => (late = stalled()), Math.max(testInfo.timeout - NEAR, 0)) : null;
-      near?.unref();
-      await use();
-      clearTimeout(near);
-      delay.disable();
+      const mine = (watched = watch(testInfo));
+      try {
+        await use();
+      } finally {
+        watched = null;
+        clearTimeout(mine.near);
+      }
       if (testInfo.status !== testInfo.expectedStatus) {
-        const lines = [...(late ? [`${NEAR / 1000} s before the time ran out:`, ...late, "", "after:"] : []), ...stalled()];
-        lines.push(`Node was kept from its event loop for up to ${Math.round(delay.max / 1e6)} ms at a time`);
+        const lines = [...(mine.late ? [`${NEAR / 1000} s before the time ran out:`, ...mine.late, "", "after:"] : []), ...stalled(mine)];
         const body = lines.join("\n");
         await testInfo.attach("where it stopped", { body, contentType: "text/plain" });
         // The report shows an attachment's first lines only.
         console.error(`${testInfo.titlePath.join(" › ")}: where it stopped\n${body}`);
       }
+      mine.delay.disable();
       // A server a stalled test left listening, closed so that it holds
       // nothing of the next test's.
       await Promise.all([...servers].filter((server) => !shared.has(server)).map((server) => server.stop()));
