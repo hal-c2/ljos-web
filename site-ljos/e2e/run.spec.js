@@ -82,6 +82,11 @@ async function violations(page) {
 
 const drawn = (canvas) => canvas.evaluate((element) => element.$view3d?.frames ?? 0);
 // How many pictures the view draws in `ms`.
+// Kept drawing, not one repaint: more than one frame in a second. A rate
+// is not asked for, since a machine with no GPU draws the 3D demo at a
+// few frames a second.
+const keepsDrawing = (canvas) => drawsIn(canvas, 1_000);
+
 async function drawsIn(canvas, ms) {
   const before = await drawn(canvas);
   await canvas.page().waitForTimeout(ms);
@@ -291,7 +296,7 @@ test.describe("/demos/", () => {
     await page.waitForTimeout(1_000);
     expect(await drawsIn(canvas, 1000), "out of view, it draws nothing").toBe(0);
     await centre(canvas);
-    await expect.poll(() => drawsIn(canvas, 300), { message: "back in view, it draws again" }).toBeGreaterThan(2);
+    await expect.poll(() => keepsDrawing(canvas), { message: "back in view, it draws again" }).toBeGreaterThan(1);
   });
 
   test("a demo in a hidden tab pauses, and resumes when the tab is shown", async ({ page }) => {
@@ -312,7 +317,7 @@ test.describe("/demos/", () => {
     await page.waitForTimeout(1_000);
     expect(await drawsIn(canvas, 1000), "hidden, it draws nothing").toBe(0);
     await tab("visible");
-    await expect.poll(() => drawsIn(canvas, 300), { message: "shown, it draws again" }).toBeGreaterThan(2);
+    await expect.poll(() => keepsDrawing(canvas), { message: "shown, it draws again" }).toBeGreaterThan(1);
   });
 
   test("a demo's Run goes on to Pause, which holds it where it is until Run again", async ({ page, errors }) => {
@@ -393,7 +398,7 @@ test.describe("with reduced motion", () => {
     await open(page, "/demos/");
     await expect(page.getByRole("checkbox", { name: "Reduce motion" }), "the system's setting is followed").toBeChecked();
     const canvas = (await start(page, "3D you can orbit")).locator("canvas.qq-view3d");
-    await expect.poll(() => drawsIn(canvas, 500), { message: "the 3D demo still turns" }).toBeGreaterThan(2);
+    await expect.poll(() => keepsDrawing(canvas), { message: "the 3D demo still turns" }).toBeGreaterThan(1);
     const slot = await start(page, "A shader effect");
     const shader = slot.locator("canvas.qq-shader").first();
     // Drawn, and its picture gone: a first frame over the picture, or
