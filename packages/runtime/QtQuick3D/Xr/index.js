@@ -35,12 +35,16 @@ function viewOf(node) {
 }
 
 // What a property holds is in the node that holds it, unless it is already
-// somewhere: `camera: XrCamera {}` in an origin moves with the origin.
+// somewhere: `camera: XrCamera {}` in an origin moves with the origin, and
+// is among its children, where a renderer that walks the scene finds it.
 function adopting(self, name) {
   effect(
     () => self[name],
     (held) => {
-      if (held?.$spatial && !untrack(() => held.parent)) slot(held, "parent").provide(self);
+      if (!held?.$spatial || untrack(() => held.parent)) return;
+      slot(held, "parent").provide(self);
+      self.$add(held);
+      return () => self.$remove(held);
     },
   );
 }
@@ -64,6 +68,13 @@ export const XrCamera = defineType("XrCamera", Camera, {
   },
   setup(self) {
     self.$camera = true;
+    // What the wgpu renderer, which knows a camera by its kind and a value
+    // by its being said, is told of the head: the perspective camera its
+    // view is, seeing SEEN degrees up and down, at the height of the eyes.
+    self.$drawnAs = "PerspectiveCamera";
+    Object.defineProperty(self, "$told", {
+      get: () => ({ fieldOfView: SEEN, fieldOfViewOrientation: 0, clipNear: self.clipNear, clipFar: self.clipFar, y: self.y }),
+    });
   },
 });
 
