@@ -67,11 +67,11 @@ Feature: The site's links are the page's own links
     When they go back twice
     Then the front page is shown, and the page was still not loaded again
 
-  Scenario: With script, a press on a link in a page's words shows that page, and a drag from it scrolls
+  Scenario: With script, a press on a link in a page's words shows that page, and a finger's drag from it scrolls
     Given a reader with script on the docs' first page
     When they press the link "ljos observe" in the page's words
     Then the address is the observer's page
-    When they go back and drag the page up from that link
+    When they go back and drag the page up from that link with a finger
     Then the page has scrolled, and the address is still the docs' first page
 
   Scenario: With script, back comes to where the reader was on the page
