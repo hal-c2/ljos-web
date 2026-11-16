@@ -32,6 +32,7 @@ test("a scene for a headset is seen from where the head would be", async ({ page
     origin: [0, 0, 0],
     children: [true, true],
     hit: null,
+    held: [true, true, false, false],
   });
   await expect.poll(async () => await pixels(page, [middle, corner])).toEqual([RED, SKY]);
 
@@ -45,5 +46,13 @@ test("a scene for a headset is seen from where the head would be", async ({ page
   expect((await read()).head).toEqual([0, 0, 0]);
   await expect.poll(async () => await pixels(page, [middle, corner])).toEqual([SKY, SKY]);
   await page.evaluate(() => window.scene.step(2));
+  await expect.poll(async () => await pixels(page, [middle, corner])).toEqual([RED, SKY]);
+
+  // A camera the origin lets go of is nowhere, and is its own again when
+  // the origin holds it again.
+  await page.evaluate(() => window.scene.step(3));
+  expect((await read()).held).toEqual([false, false, true, true]);
+  await page.evaluate(() => window.scene.step(4));
+  expect((await read()).held).toEqual([true, true, false, false]);
   await expect.poll(async () => await pixels(page, [middle, corner])).toEqual([RED, SKY]);
 });
