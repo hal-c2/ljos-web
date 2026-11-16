@@ -196,6 +196,21 @@ pub(crate) fn reads_custom_matcher(program: &Program<'_>, is_free: impl Fn(u32) 
             }
             walk::walk_static_member_expression(self, member);
         }
+
+        // `Symbol["customMatcher"]` is the same read.
+        fn visit_computed_member_expression(&mut self, member: &ComputedMemberExpression<'a>) {
+            if let Expression::Identifier(object) = &member.object
+                && object.name == "Symbol"
+                && member
+                    .static_property_name()
+                    .is_some_and(|name| name == "customMatcher")
+                && (self.is_free)(object.span.start)
+            {
+                self.found = true;
+                return;
+            }
+            walk::walk_computed_member_expression(self, member);
+        }
     }
     let mut reads = Reads {
         is_free,
