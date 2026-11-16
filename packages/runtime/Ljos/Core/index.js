@@ -9,6 +9,21 @@ export { Component } from "../../QtQml/Component.ts";
 export { Locale } from "./globals.js";
 export { Controller, controller } from "./controller.js";
 export { Task } from "./task.js";
+// Translated messages (`` t`Hello ${name}` ``) and their catalogues;
+// `__ljos_message` and `__ljos_msg` are what the compiler writes a
+// message it read as.
+export {
+  __ljos_message,
+  __ljos_msg,
+  installCatalog,
+  msg,
+  plural,
+  readPo,
+  removeCatalog,
+  select,
+  selectOrdinal,
+  t,
+} from "./messages.ts";
 // What Qt's `Qt` object held, each under its own name: a file of Ljós's
 // API has no `Qt`. `Locale` here is the enums with `current` and `named`.
 export {

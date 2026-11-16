@@ -2,6 +2,7 @@
 // `ljos-web/compiler` and compiles only when a test asks.
 import { compile, createCompiler, translate } from "ljos-web/compiler";
 import { flush, mount } from "ljos-web/object";
+import { App, installCatalog, removeCatalog } from "ljos-web/Ljos/Core";
 
 // Compiles `request` and mounts what it made, as the harness mounts a
 // scene: `window.scene` is the object, `window.objects` what its root has
@@ -16,4 +17,6 @@ window.show = async (request, compiler = { compile }) => {
 };
 window.compiler = { compile, createCompiler, translate };
 window.flush = flush;
+// What messages.spec.js sets: the catalogues and the UI language.
+window.messages = { App, installCatalog, removeCatalog };
 window.ready = true;
