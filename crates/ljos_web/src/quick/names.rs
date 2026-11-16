@@ -507,7 +507,8 @@ impl<'a> Resolver<'a, '_, '_> {
     /// model knows; a macro is read as the file is compiled, so `t` there is
     /// still Ljos.Core's, as it is everywhere else in the file.
     fn is_message_macro(&self, name: &str, span: Span) -> bool {
-        if !self.free.contains(&span.start) || !self.types.front().imports(CORE) {
+        if !self.free.contains(&(span.start, name.to_string())) || !self.types.front().imports(CORE)
+        {
             return false;
         }
         let names = qml_front::names::Names {
