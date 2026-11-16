@@ -101,7 +101,7 @@ test.describe("an example's files", () => {
     const server = watched(page);
     const figure = await mounted(page, "cancelled");
     await expect(figure).toHaveAttribute("data-state", "live", { timeout: 30000 });
-    await expect(figure.locator(".ljos-codeblock__stage")).toContainText("AbortError / 3 rows", { timeout: 15000 });
+    await expect(figure.locator(".ljos-codeblock__stage")).toContainText("AbortError / 3 rows / AbortError", { timeout: 15000 });
     expect(server.named()).toEqual([]);
     expect(server.refused).toEqual([]);
   });

@@ -215,19 +215,24 @@ function answered(found, signal) {
     queueMicrotask(() => {
       if (signal?.aborted) return;
       if (!signal) return resolve(new Response(found.text, { headers }));
-      const stream = new ReadableStream({
-        start(controller) {
-          body = controller;
+      // No queue ahead of the reader: pull runs only when the body is read,
+      // so the signal holds until then.
+      const stream = new ReadableStream(
+        {
+          start(controller) {
+            body = controller;
+          },
+          async pull(controller) {
+            const bytes = new Uint8Array(await new Blob([found.text]).arrayBuffer());
+            if (signal.aborted) return;
+            controller.enqueue(bytes);
+            controller.close();
+            done();
+          },
+          cancel: done,
         },
-        async pull(controller) {
-          const bytes = new Uint8Array(await new Blob([found.text]).arrayBuffer());
-          if (signal.aborted) return;
-          controller.enqueue(bytes);
-          controller.close();
-          done();
-        },
-        cancel: done,
-      });
+        { highWaterMark: 0 },
+      );
       resolve(tied(new Response(stream, { headers }), signal));
     });
   });
