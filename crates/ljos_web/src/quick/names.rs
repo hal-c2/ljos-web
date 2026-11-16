@@ -26,12 +26,17 @@ use oxc_syntax::{operator::BinaryOperator, scope::ScopeFlags};
 
 use super::{
     lower::Uses,
-    paths,
+    messages, paths,
     scope::Tree,
     texts::{self, Text},
     types::{Kind, Origin, Types},
 };
-use crate::{Error, build::B, project::Source};
+use crate::{
+    Error,
+    build::B,
+    message::{self, MacroKind},
+    project::Source,
+};
 
 /// Which of Ljós's API the file is written in (docs/DIALECT.md): what
 /// `ljos check` reads it by.
@@ -394,10 +399,76 @@ impl<'a> Resolver<'a, '_, '_> {
                 None => own,
             });
         }
+        if read.is_none()
+            && let Some(kind) = MacroKind::named(name)
+            && self.types.front().imports(CORE)
+        {
+            // `t(m)`, or the function itself: Ljos.Core's, as it runs.
+            self.uses.core.insert(kind.name());
+            return None;
+        }
         if read.is_none() {
             self.undefined(name, span);
         }
         read
+    }
+
+    /// Whether `name`, written at `span`, is one of Ljós.Core's message
+    /// macros: free, in a file that imports Ljos.Core, and nothing of the
+    /// file's own (a property, a role, an id) by that name.
+    fn is_message_macro(&self, name: &str, span: Span) -> bool {
+        if !self.free.contains(&span.start) || !self.types.front().imports(CORE) {
+            return false;
+        }
+        let names = qml_front::names::Names {
+            tree: &self.tree.front,
+            types: self.types.front(),
+        };
+        match names.lookup(name, span.start) {
+            None => true,
+            Some(resolution) => {
+                matches!(
+                    resolution.target,
+                    Some(qml_front::names::Target::Global(
+                        qml_front::names::Global::Core
+                    ))
+                ) && resolution.roles.is_empty()
+                    && resolution.aimed.is_none()
+            }
+        }
+    }
+
+    /// `` t`Hello ${name}` ``, `msg({ … })`, `plural(n, { … })`: the
+    /// message, read as the file is compiled, and its values, in a call of
+    /// Ljos.Core that looks it up as the program runs. The same message
+    /// gives the same catalogue key and placeholders as it does to ljos-ui
+    /// ([`message`]). `t(m)` of a message made elsewhere stays a call of
+    /// `t`; false then, and for anything that is no macro.
+    fn message(&mut self, expression: &mut Expression<'a>) -> bool {
+        let Some((name, span)) = message::callee(expression) else {
+            return false;
+        };
+        if !self.is_message_macro(name, span) {
+            return false;
+        }
+        let call = match message::message_of(expression) {
+            None => return false,
+            Some(Err(error)) => {
+                let span = error.span;
+                self.errors.push(messages::error(error, span));
+                return true;
+            }
+            Some(Ok(call)) => call,
+        };
+        let Some((function, mut values)) = messages::take(self.b, &call, expression) else {
+            return false;
+        };
+        for value in &mut values {
+            self.visit_expression(value);
+        }
+        self.uses.core.insert(function);
+        *expression = messages::lowered(self.b, &call, function, values);
+        true
     }
 
     /// A name that is nothing. In a typed file of Ljós's API `ljos check`
@@ -841,6 +912,9 @@ impl<'a> VisitMut<'a> for Resolver<'a, '_, '_> {
                 _ => break,
             };
             *expression = inner;
+        }
+        if self.message(expression) {
+            return;
         }
 
         // What a file named by its path makes finds names where the path is
