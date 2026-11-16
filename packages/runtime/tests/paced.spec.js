@@ -2,7 +2,7 @@
 // pictures the page is left to itself, and the time a fence is asked late
 // is not the GPU's.
 import { expect, test } from "@playwright/test";
-import { done, paced } from "../QtQuick3D/paced.js";
+import { done, late, paced } from "../QtQuick3D/paced.js";
 
 test("one slow picture gives no rest; the next is drawn at once", () => {
   const pace = paced();
@@ -48,4 +48,14 @@ test("a fence asked on time is done when it is seen done", () => {
 test("a fence asked late, the page held by something else, is done soon after it was last seen at work", () => {
   // Seen at work at 100, then a 60 ms task: what the GPU took ends by 108.
   expect(done(100, 164)).toBe(108);
+});
+
+test("a fence seen at work as a frame began, and done once the frame was made, took until then", () => {
+  // The browser held the page 90 ms making its frame, waiting for the GPU.
+  expect(done(100, 190, true)).toBe(190);
+});
+
+test("a fence is seen done late when the page was held between two checks", () => {
+  expect(late(100, 104)).toBe(false);
+  expect(late(100, 164)).toBe(true);
 });

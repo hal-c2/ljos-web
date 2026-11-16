@@ -36,7 +36,8 @@ async function framesOver(page, ms) {
 
 // The one scroll a reader makes to the showcase, and its Run; nothing
 // after it. The view keeps how long its last pictures took to draw, for a
-// test that fails to say.
+// test that fails to say: on the page, and on WebGL 2 with the GPU, which
+// the view rests after when it was slow.
 async function reach(page, route) {
   await open(page, route);
   await showcase(page).evaluate((element) => element.scrollIntoView({ block: "start" }));
@@ -46,9 +47,14 @@ async function reach(page, route) {
   await scene(page).evaluate((canvas) => {
     const drawn = (canvas.$drawnTimes = []);
     canvas.$view3d.probe = (kind, from, to) => {
-      if (kind !== "draw") return;
-      drawn.push([Math.round(from), Math.round(to - from)]);
-      if (drawn.length > 12) drawn.shift();
+      if (kind !== "draw" && kind !== "gpu") return;
+      const at = Math.round(from);
+      let picture = drawn.find((picture) => picture.at === at);
+      if (!picture) {
+        drawn.push((picture = { at }));
+        if (drawn.length > 12) drawn.shift();
+      }
+      picture[kind] = Math.round(to - from);
     };
   });
   await expect.poll(() => scene(page).evaluate((canvas) => canvas.$view3d?.frames ?? 0), { message: "the scene draws", timeout: 30_000 }).toBeGreaterThan(0);
@@ -64,13 +70,26 @@ test.beforeEach(() => {
 test.afterEach(async ({ page }, testInfo) => {
   if (testInfo.status === testInfo.expectedStatus) return;
   // A page kept busy may not answer: what it says is read for 5 s at most.
+  // How many frames the page itself made in a second says whether the
+  // view's pictures held it up: a screenshot waits for the page's frames.
   const view = await Promise.race([
     scene(page)
-      .evaluate((canvas) => {
+      .evaluate(async (canvas) => {
         const now = performance.now();
         const view = canvas.$view3d;
-        const drawn = (canvas.$drawnTimes ?? []).map(([from, took]) => `${took} ms, ${Math.round(now - from)} ms ago`);
-        return `${view?.renderer} on ${view?.backend}: ${view?.frames} frames, turn ${view?.view.parent.turn?.toFixed(1)}°, error ${view?.error}; last pictures took ${drawn.join("; ") || "none"}`;
+        const drawn = (canvas.$drawnTimes ?? []).map(
+          ({ at, draw, gpu }) => `${draw ?? "?"} ms${gpu === undefined ? "" : ` (the GPU ${gpu} ms)`}, ${Math.round(now - at)} ms ago`,
+        );
+        const frames = await new Promise((resolve) => {
+          let made = 0;
+          const from = performance.now();
+          const count = () => (performance.now() - from < 1_000 ? (made++, requestAnimationFrame(count)) : resolve(made));
+          requestAnimationFrame(count);
+        });
+        return (
+          `${view?.renderer} on ${view?.backend}: ${view?.frames} frames, turn ${view?.view.parent.turn?.toFixed(1)}°, error ${view?.error}; ` +
+          `last pictures took ${drawn.join("; ") || "none"}; the page made ${frames} frames of its own in the second after`
+        );
       })
       .catch((error) => `not read: ${error.message.split("\n")[0]}`),
     new Promise((done) => setTimeout(() => done("the page did not answer in 5 s"), 5_000)),
