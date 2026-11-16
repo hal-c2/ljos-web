@@ -15,6 +15,7 @@ import { defineType, derived, effect, inside, settle, slot } from "../object.ts"
 import { Point, Vector3d } from "../QtQml/values.ts";
 import { colorValue, css, rgba } from "../QtQuick/color.ts";
 import { advance, describe, fonts, metrics } from "../QtQuick/font.ts";
+import { EMPTY, Geometry, held } from "../QtQuick3D/Geometry.js";
 import { kept, Node } from "../QtQuick3D/Node.js";
 import { DefaultMaterial, DirectionalLight, linear, Model, OrthographicCamera, PerspectiveCamera, PrincipledMaterial, SceneEnvironment, Texture } from "../QtQuick3D/scene.js";
 import { View3D } from "../QtQuick3D/View3D.js";
@@ -670,9 +671,20 @@ export const GraphsItem3D = defineType("GraphsItem3D", View3D, {
       }),
     );
 
-    // A model of a shape made here: its geometry is whatever says what
-    // the shape is.
-    const drawn = (shape, given) => make(self, Model, Object.defineProperty(given, "geometry", { value: { $shape: shape }, enumerable: true }));
+    // A model of a shape made here. Its geometry is a Geometry like any
+    // other, holding what the shape is, so the wgpu renderer, which reads
+    // only what a Geometry holds, draws it as the JavaScript one does.
+    const drawn = (shape, given) => {
+      const geometry = make(self, Geometry, {});
+      let last = null;
+      geometry.$shape = shape;
+      geometry.$held = () => {
+        const now = shape();
+        if (last?.of !== now) last = { of: now, held: now ? held(now) : EMPTY };
+        return last.held;
+      };
+      return make(self, Model, Object.defineProperty(given, "geometry", { value: geometry, enumerable: true }));
+    };
 
     const background = kept(self, () => walls(self));
     const paint = make(self, PrincipledMaterial, {
