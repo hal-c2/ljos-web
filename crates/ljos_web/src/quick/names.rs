@@ -91,7 +91,7 @@ pub(crate) fn resolve<'a>(
         };
         qt.visit_program(program);
         for (member, start) in qt.found {
-            free.remove(&start);
+            free.remove(&(start, "Qt".to_string()));
             errors.push(qt_global(member.as_deref(), start));
         }
     }
@@ -139,7 +139,7 @@ fn qt_global(member: Option<&str>, start: u32) -> Error {
 
 /// Each free `Qt` of the file, with the member it is read for.
 struct QtGlobal<'s> {
-    free: &'s HashSet<u32>,
+    free: &'s Free,
     found: Vec<(Option<String>, u32)>,
 }
 
@@ -147,7 +147,9 @@ impl QtGlobal<'_> {
     fn is_qt(&self, identifier: &IdentifierReference<'_>) -> bool {
         identifier.name == "Qt"
             && identifier.span.end > identifier.span.start
-            && self.free.contains(&identifier.span.start)
+            && self
+                .free
+                .contains(&(identifier.span.start, "Qt".to_string()))
     }
 }
 
@@ -170,25 +172,31 @@ impl<'a> Visit<'a> for QtGlobal<'_> {
     }
 }
 
-/// The authored identifiers no JavaScript binding resolves, by span start.
-/// What the lowering built has no span, and its names all have a `$`, which a
-/// QML id or property cannot: whatever JavaScript does resolve is an id or a
-/// local of the script. With them, the helpers of the runtime's that what
-/// `match` and `is` are lowered to call, which nothing declares.
-fn free_references(program: &Program<'_>, own: &str) -> (HashSet<u32>, Vec<&'static str>) {
+/// The authored identifiers no JavaScript binding resolves, by span start
+/// and name. What the lowering built has no span, and its names all have a
+/// `$`, which a QML id or property cannot: whatever JavaScript does resolve
+/// is an id or a local of the script. The desugar's own names are mapped
+/// back to the pattern they were written for, so several start where it
+/// does, a free `$extract` and the temporary `$x0` its arrow declares among
+/// them: the start alone does not say which is free.
+type Free = HashSet<(u32, String)>;
+
+/// [`Free`], and the helpers of the runtime's that what `match` and `is`
+/// are lowered to call, which nothing declares.
+fn free_references(program: &Program<'_>, own: &str) -> (Free, Vec<&'static str>) {
     let semantic = SemanticBuilder::new()
         .with_build_nodes(true)
         .build(program)
         .semantic;
     let scoping = semantic.scoping();
     let mut free = HashSet::new();
-    let mut add = |reference| {
+    let mut add = |reference, name: &str| {
         let node = semantic
             .nodes()
             .get_node(scoping.get_reference(reference).node_id());
         let span = node.kind().span();
         if span.end > span.start {
-            free.insert(span.start);
+            free.insert((span.start, name.to_string()));
         }
     };
     let mut sugar = Vec::new();
@@ -199,7 +207,9 @@ fn free_references(program: &Program<'_>, own: &str) -> (HashSet<u32>, Vec<&'sta
         {
             sugar.push(*helper);
         }
-        references.iter().copied().for_each(&mut add);
+        for &reference in references {
+            add(reference, name.as_str());
+        }
     }
     // The module binds the file's own name, to the component. To QML a name
     // that is not capitalised is no type: in `mended.qml`, `mended` is the
@@ -210,8 +220,7 @@ fn free_references(program: &Program<'_>, own: &str) -> (HashSet<u32>, Vec<&'sta
         scoping
             .get_resolved_reference_ids(symbol)
             .iter()
-            .copied()
-            .for_each(&mut add);
+            .for_each(|&reference| add(reference, own));
     }
     (free, sugar)
 }
@@ -228,7 +237,7 @@ struct Resolver<'a, 's, 'p> {
     ///
     /// [`Project::dynamic_names`]: crate::project::Project::dynamic_names
     dynamic: &'s HashSet<String>,
-    free: HashSet<u32>,
+    free: Free,
     /// See [`Dialect::typed`].
     typed: bool,
     /// How many functions what is being read is written in: `this` is the
@@ -258,7 +267,7 @@ enum Access {
 impl<'a> Resolver<'a, '_, '_> {
     fn is_free(&self, identifier: &IdentifierReference<'a>) -> bool {
         identifier.span.end > identifier.span.start
-            && (self.free.contains(&identifier.span.start)
+            && (self.free.contains(&(identifier.span.start, identifier.name.to_string()))
                 // An id is never capitalised, so this is the type.
                 || (identifier.name == self.own && self.own.starts_with(|c: char| c.is_ascii_uppercase())))
     }
