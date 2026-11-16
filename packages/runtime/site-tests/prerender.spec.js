@@ -397,15 +397,17 @@ test("the project bundle prerenders too, and hydrates in its design colour", asy
   }
 });
 
+// Each part bounded and named on its own: once this hung for the whole
+// test's two minutes and the timeout said nowhere which part held it.
 test("a site built without prerender keeps its empty page and mounts as before", async ({ page }) => {
   const made = bundle("prerender");
-  const server = await buildSite({ dir: made.dir, out: made.out, qmlc }).then(() => serve(made.out));
+  const server = await test.step("build and serve the site", () => buildSite({ dir: made.dir, out: made.out, qmlc }).then(() => serve(made.out)), { timeout: 60_000 });
   try {
     expect(readFileSync(join(made.out, "index.html"), "utf8")).not.toContain("Prerendered heading");
-    await page.goto(`http://127.0.0.1:${server.address().port}/`);
+    await test.step("load the page", () => page.goto(`http://127.0.0.1:${server.address().port}/`), { timeout: 20_000 });
     await expect(page.getByText("Prerendered heading", { exact: true })).toBeVisible();
   } finally {
-    await new Promise((done) => server.close(done));
+    await test.step("stop the server", () => new Promise((done) => server.close(done)), { timeout: 15_000 });
     made.remove();
   }
 });
