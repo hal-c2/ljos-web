@@ -18,14 +18,22 @@ const PAGE = createRoot(() => getOwner());
 
 // An object made when first asked for, and owned by the page: it lasts as
 // long as the page does. QML reads a singleton through its type
-// (`Application.font`), so the type has the object's members too.
-export function singleton<I extends QObject>(Type: QmlType<I>): () => I {
+// (`Application.font`), so the type has the object's members too. What the
+// system says (`readOnly`) a program cannot say instead: an assignment
+// would set a value that outranks every later one the system provides, so
+// it is refused as Qt refuses a read-only property.
+export function singleton<I extends QObject>(Type: QmlType<I>, readOnly: readonly string[] = []): () => I {
   let made: I | undefined;
   const get = (): I => (made ??= runWithOwner(PAGE, () => createRoot(() => untrack(() => inside(null, () => Type({}))))));
   for (const key in Type.proto) {
+    const refused = readOnly.includes(key);
     Object.defineProperty(Type, key, {
       get: () => (get() as Record<string, unknown>)[key],
-      set: (value: unknown) => void ((get() as Record<string, unknown>)[key] = value),
+      set: refused
+        ? () => {
+            throw new TypeError(`Cannot assign to read-only property "${key}"`);
+          }
+        : (value: unknown) => void ((get() as Record<string, unknown>)[key] = value),
       configurable: true,
     });
   }

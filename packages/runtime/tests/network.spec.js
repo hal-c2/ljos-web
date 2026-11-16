@@ -43,3 +43,12 @@ test("NetworkInformation reads what carries the network, where the browser says"
   await page.waitForFunction(() => window.scene.read()[1] === 3);
   expect(await read(page)).toEqual([ONLINE, 3, false, false, true, DISCONNECTED, 3]);
 });
+
+test("NetworkInformation refuses a program's word for the browser's, and still follows the browser", async ({ page, context }) => {
+  await open(page, "network");
+  expect(await page.evaluate(() => window.scene.assign())).toBe('TypeError: Cannot assign to read-only property "reachability"');
+  await context.setOffline(true);
+  await page.waitForFunction(() => !window.scene.online);
+  expect((await read(page))[0]).toBe(DISCONNECTED);
+  await context.setOffline(false);
+});

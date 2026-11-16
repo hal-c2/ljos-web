@@ -53,4 +53,5 @@ export const NetworkInformation = defineType("NetworkInformation", QtObject, {
   },
 });
 
-singleton(NetworkInformation);
+// All four are the browser's to say, never the program's.
+singleton(NetworkInformation, ["reachability", "isBehindCaptivePortal", "transportMedium", "isMetered"]);
