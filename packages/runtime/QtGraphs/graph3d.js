@@ -726,16 +726,13 @@ export const GraphsItem3D = defineType("GraphsItem3D", View3D, {
     // much it glows of itself, how much of a light it gives back, and
     // whether it is seen from behind.
     const paints = [];
-    // The spot of light on it is the light's colour, whatever its own is.
-    const glinting = (material) => {
-      const described = material.$material;
-      material.$material = () => ({ ...described(), glint: true });
-      return material;
-    };
     const painted = (index) =>
       (paints[index] ??= runWithOwner(self.$owner, () =>
-        glinting(make(self, DefaultMaterial, {
+        make(self, DefaultMaterial, {
           vertexColorsEnabled: true,
+          // The spot of light on it is the light's colour, whatever its
+          // own is.
+          specularInLightColor: true,
           // As tight a spot of light as Qt's graphs have.
           specularRoughness: 2.56 / 75 - 0.01,
           get emissiveFactor() {
@@ -748,7 +745,7 @@ export const GraphsItem3D = defineType("GraphsItem3D", View3D, {
           get cullMode() {
             return self.$shown().paints[index]?.sided ? 3 : 1;
           },
-        })),
+        }),
       ));
 
     const scene = [

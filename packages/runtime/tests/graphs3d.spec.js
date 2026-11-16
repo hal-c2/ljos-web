@@ -73,11 +73,13 @@ test("on the wgpu renderer, a graph's bars are drawn and not only its walls", as
     return state.frames > 0;
   });
   expect(await page.evaluate(() => document.querySelector(".qq-view3d").$view3d.renderer)).toBe("wgpu");
-  // Which of red, green and blue a pixel is mostly, or "wall".
+  // Which of red, green and blue a pixel is mostly, or "wall": the walls
+  // and the frame are grey, and the green series is a muted green, 60
+  // apart where its light shines on it as it does on Qt's.
   const most = (colour) => {
     const [r, g, b] = colour.split(" ").map(Number);
     const top = Math.max(r, g, b);
-    if (top - Math.min(r, g, b) < 80) return "wall";
+    if (top - Math.min(r, g, b) < 40) return "wall";
     return top === r ? "red" : top === g ? "green" : "blue";
   };
   const seen = await pixels(page, [
