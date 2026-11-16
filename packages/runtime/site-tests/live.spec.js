@@ -8,7 +8,7 @@ import { build } from "vite";
 import { buildSite } from "../site.js";
 import qml from "../vite.js";
 import { bundle, qmlc } from "./bundle.js";
-import { expect, serve, test } from "./served.js";
+import { expect, part, serve, shared, test } from "./served.js";
 
 
 // The policy a host that runs no script but its own gives the page; the
@@ -36,15 +36,15 @@ test.describe("a site built without a live shell", () => {
   test.describe.configure({ mode: "serial" });
   let made;
   let server;
-  test.beforeAll(async () => {
+  test.beforeAll(shared("build the site and serve it", async () => {
     made = bundle("live");
-    await buildSite({ dir: made.dir, out: made.out, qmlc });
-    server = await serve(made.out);
-  });
-  test.afterAll(async () => {
-    await server?.stop();
+    await part("build the site", () => buildSite({ dir: made.dir, out: made.out, qmlc }));
+    server = await part("serve it", () => serve(made.out));
+  }));
+  test.afterAll(shared("stop serving it and remove the bundle", async () => {
+    await part("stop serving it", () => server?.stop());
     made?.remove();
-  });
+  }));
 
   test("A page built without liveShell has no drop and loads no compiler", async ({ page }) => {
     const asked = [];
@@ -63,7 +63,7 @@ test.describe("a site whose blocks are on an import path", () => {
   test.describe.configure({ mode: "serial" });
   let place;
   let server;
-  test.beforeAll(async () => {
+  test.beforeAll(shared("build the site and serve it", async () => {
     place = realpathSync(mkdtempSync(join(tmpdir(), "ljos-live-")));
     const files = {
       "index.html": '<!doctype html><script type="module" src="/main.js"></script>',
@@ -87,12 +87,12 @@ test.describe("a site whose blocks are on an import path", () => {
       build: { outDir: join(place, "out"), target: "esnext", chunkSizeWarningLimit: 4000 },
       worker: { format: "es" },
     });
-    server = await serve(join(place, "out"));
-  });
-  test.afterAll(async () => {
-    await server?.stop();
+    server = await part("serve it", () => serve(join(place, "out")));
+  }));
+  test.afterAll(shared("stop serving it and remove the bundle", async () => {
+    await part("stop serving it", () => server?.stop());
     if (place) rmSync(place, { recursive: true, force: true });
-  });
+  }));
 
   test("A block on an import path is offered, its file said from the root and no further", async ({ page }) => {
     await page.goto(`${server.origin}/`);
@@ -136,7 +136,7 @@ test.describe("a site's blocks are found as its compile finds them", () => {
       worker: { format: "es" },
     });
   const offered = async (page, place) => {
-    const server = await serve(join(place, "out"));
+    const server = await part("serve it", () => serve(join(place, "out")));
     try {
       await page.goto(`${server.origin}/`);
       await expect.poll(() => page.evaluate(() => window.live)).toBeTruthy();
@@ -225,7 +225,7 @@ test.describe("a site's blocks are found as its compile finds them", () => {
   test("A site of pages that import only Ljos's own modules builds with a live shell", async () => {
     const site = bundle("models");
     try {
-      await buildSite({ dir: site.dir, out: site.out, qmlc, liveShell: true });
+      await part("build the site", () => buildSite({ dir: site.dir, out: site.out, qmlc, liveShell: true }));
       expect(existsSync(join(site.out, "index.html"))).toBe(true);
     } finally {
       site.remove();
@@ -265,15 +265,15 @@ test.describe("a site built with a live shell, under a policy that runs only its
   test.describe.configure({ mode: "serial" });
   let made;
   let server;
-  test.beforeAll(async () => {
+  test.beforeAll(shared("build the site and serve it", async () => {
     made = bundle("live");
-    await buildSite({ dir: made.dir, out: made.out, qmlc, liveShell: true });
-    server = await serve(made.out, { headers: policy });
-  });
-  test.afterAll(async () => {
-    await server?.stop();
+    await part("build the site", () => buildSite({ dir: made.dir, out: made.out, qmlc, liveShell: true }));
+    server = await part("serve it", () => serve(made.out, { headers: policy }));
+  }));
+  test.afterAll(shared("stop serving it and remove the bundle", async () => {
+    await part("stop serving it", () => server?.stop());
     made?.remove();
-  });
+  }));
 
   test("A page under CSP script-src 'self' runs a dropped shell", async ({ page }) => {
     const problems = [];

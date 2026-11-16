@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { buildSite } from "../site.js";
 import { bundle, qmlc } from "./bundle.js";
-import { expect, serve, test } from "./served.js";
+import { expect, part, serve, shared, test } from "./served.js";
 
 test.describe("a site built as pages", () => {
   test.describe.configure({ mode: "serial" });
@@ -17,9 +17,9 @@ test.describe("a site built as pages", () => {
   let server;
   let origin;
 
-  test.beforeAll(async () => {
+  test.beforeAll(shared("build the site and serve it", async () => {
     made = bundle("pages");
-    built = await buildSite({
+    built = await part("build the site", () => buildSite({
       dir: made.dir,
       out: made.out,
       qmlc,
@@ -32,14 +32,14 @@ test.describe("a site built as pages", () => {
           { route: "/docs/", title: "Docs — Pages", props: { route: "/docs/", sample: "<!-- <script>", reading: "x".repeat(200_000) } },
         ],
       },
-    });
-    server = await serve(made.out);
+    }));
+    server = await part("serve it", () => serve(made.out));
     origin = server.origin;
-  });
-  test.afterAll(async () => {
-    await server?.stop();
+  }));
+  test.afterAll(shared("stop serving it and remove the bundle", async () => {
+    await part("stop serving it", () => server?.stop());
     made?.remove();
-  });
+  }));
 
   test("writes each page under its route, with its title and only its words", () => {
     expect(built.files).toContain("index.html");
@@ -109,7 +109,7 @@ test("a site that imports Ljos.Blocks builds prerendered, its Slot's delegate in
   delete process.env.QT_INSTALL_QML;
   delete process.env.QML_IMPORT_PATH;
   try {
-    await buildSite({ dir: made.dir, out: made.out, qmlc, qt: [], prerender: true });
+    await part("build the site", () => buildSite({ dir: made.dir, out: made.out, qmlc, qt: [], prerender: true }));
     const html = readFileSync(join(made.out, "index.html"), "utf8");
     expect(html).toContain("with a slot");
     expect(html).toContain("own delegate");
@@ -131,7 +131,7 @@ test("a page with a text editor prerenders, its text in the HTML", async () => {
     written.imports = ["QtQuick"];
   });
   try {
-    await buildSite({ dir: made.dir, out: made.out, qmlc, prerender: true });
+    await part("build the site", () => buildSite({ dir: made.dir, out: made.out, qmlc, prerender: true }));
     const html = readFileSync(join(made.out, "index.html"), "utf8");
     expect(html).toContain("Edit me");
     // A textarea's words are its content, as a browser reads them:
@@ -154,7 +154,7 @@ test("a page that carries its words as data, larger than a pipe holds by default
     written.files = written.files.map((file) => (file.path === "Shell.qml" ? { path: file.path, bytes: Buffer.byteLength(shell) } : file));
   });
   try {
-    await buildSite({ dir: made.dir, out: made.out, qmlc, prerender: true });
+    await part("build the site", () => buildSite({ dir: made.dir, out: made.out, qmlc, prerender: true }));
     expect(readFileSync(join(made.out, "index.html"), "utf8")).toContain(`Carried ${words.length}`);
   } finally {
     made.remove();
@@ -186,12 +186,12 @@ test.describe("a site prerendered at more than one size", () => {
   let server;
   let origin;
 
-  test.beforeAll(async () => {
+  test.beforeAll(shared("build the site and serve it", async () => {
     made = bundle("pages", (dir, written) => {
       writeFileSync(join(dir, "Shell.qml"), shell);
       written.files = written.files.map((file) => (file.path === "Shell.qml" ? { path: file.path, bytes: Buffer.byteLength(shell) } : file));
     });
-    await buildSite({
+    await part("build the site", () => buildSite({
       dir: made.dir,
       out: made.out,
       qmlc,
@@ -206,14 +206,14 @@ test.describe("a site prerendered at more than one size", () => {
           { route: "/docs/", title: "Docs", props: { route: "/docs/" } },
         ],
       },
-    });
-    server = await serve(made.out);
+    }));
+    server = await part("serve it", () => serve(made.out));
     origin = server.origin;
-  });
-  test.afterAll(async () => {
-    await server?.stop();
+  }));
+  test.afterAll(shared("stop serving it and remove the bundle", async () => {
+    await part("stop serving it", () => server?.stop());
     made?.remove();
-  });
+  }));
 
   test("each page holds a render of each size, its description and the site's head", () => {
     const home = readFileSync(join(made.out, "index.html"), "utf8");
@@ -304,12 +304,12 @@ test.describe("a site prerendered in both colour schemes", () => {
   let server;
   let origin;
 
-  test.beforeAll(async () => {
+  test.beforeAll(shared("build the site and serve it", async () => {
     made = bundle("pages", (dir, written) => {
       writeFileSync(join(dir, "Shell.qml"), shell);
       written.files = written.files.map((file) => (file.path === "Shell.qml" ? { path: file.path, bytes: Buffer.byteLength(shell) } : file));
     });
-    await buildSite({
+    await part("build the site", () => buildSite({
       dir: made.dir,
       out: made.out,
       qmlc,
@@ -321,14 +321,14 @@ test.describe("a site prerendered in both colour schemes", () => {
         schemes: ["dark", "light"],
         pages: [{ route: "/", title: "Home", props: { route: "/" } }],
       },
-    });
-    server = await serve(made.out);
+    }));
+    server = await part("serve it", () => serve(made.out));
     origin = server.origin;
-  });
-  test.afterAll(async () => {
-    await server?.stop();
+  }));
+  test.afterAll(shared("stop serving it and remove the bundle", async () => {
+    await part("stop serving it", () => server?.stop());
     made?.remove();
-  });
+  }));
 
   for (const [scheme, width, shown] of [
     ["light", 390, "Light narrow"],
@@ -418,12 +418,12 @@ test.describe("a site whose schemes differ only in how they are drawn", () => {
   let server;
   let origin;
 
-  test.beforeAll(async () => {
+  test.beforeAll(shared("build the site and serve it", async () => {
     made = bundle("pages", (dir, written) => {
       writeFileSync(join(dir, "Shell.qml"), shell);
       written.files = written.files.map((file) => (file.path === "Shell.qml" ? { path: file.path, bytes: Buffer.byteLength(shell) } : file));
     });
-    await buildSite({
+    await part("build the site", () => buildSite({
       dir: made.dir,
       out: made.out,
       qmlc,
@@ -435,14 +435,14 @@ test.describe("a site whose schemes differ only in how they are drawn", () => {
         schemes: ["light", "dark"],
         pages: [{ route: "/", title: "Home", props: { route: "/" } }],
       },
-    });
-    server = await serve(made.out);
+    }));
+    server = await part("serve it", () => serve(made.out));
     origin = server.origin;
-  });
-  test.afterAll(async () => {
-    await server?.stop();
+  }));
+  test.afterAll(shared("stop serving it and remove the bundle", async () => {
+    await part("stop serving it", () => server?.stop());
     made?.remove();
-  });
+  }));
 
   test("the page holds one render per size, its colours named by scheme", () => {
     const home = readFileSync(join(made.out, "index.html"), "utf8");

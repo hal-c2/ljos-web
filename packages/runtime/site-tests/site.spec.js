@@ -6,7 +6,7 @@ import { buildSite, builtWith, replaceSite, STAMP } from "../site.js";
 import qml from "../vite.js";
 import { bundle, compilerFile, design, qmlc } from "./bundle.js";
 import { runnable } from "./compiler-check.js";
-import { expect, serve, test } from "./served.js";
+import { expect, part, serve, shared, test } from "./served.js";
 
 // Below a path of its own, as a site is put on a host among others.
 const below = "/somewhere/site/";
@@ -16,15 +16,15 @@ test.describe("a site built from a bundle", () => {
   let built;
   let server;
 
-  test.beforeAll(async () => {
+  test.beforeAll(shared("build the site and serve it", async () => {
     made = bundle("project");
-    built = await buildSite({ dir: made.dir, out: made.out, qmlc, with: [design] });
-    server = await serve(made.out, { below });
-  });
-  test.afterAll(async () => {
-    await server?.stop();
+    built = await part("build the site", () => buildSite({ dir: made.dir, out: made.out, qmlc, with: [design] }));
+    server = await part("serve it", () => serve(made.out, { below }));
+  }));
+  test.afterAll(shared("stop serving it and remove the bundle", async () => {
+    await part("stop serving it", () => server?.stop());
     made?.remove();
-  });
+  }));
 
   test("shows the entry's text in the colour its design module gives text, and its picture", async ({ page }) => {
     const errors = [];
@@ -68,9 +68,9 @@ test.describe("a site built from a bundle", () => {
 test("a site built again where one was built replaces it", async () => {
   const made = bundle("project");
   try {
-    await buildSite({ dir: made.dir, out: made.out, qmlc, with: [design] });
+    await part("build the site", () => buildSite({ dir: made.dir, out: made.out, qmlc, with: [design] }));
     writeFileSync(join(made.out, "left-over.txt"), "of the last build\n");
-    await buildSite({ dir: made.dir, out: made.out, qmlc, with: [design] });
+    await part("build the site", () => buildSite({ dir: made.dir, out: made.out, qmlc, with: [design] }));
     expect(existsSync(join(made.out, "left-over.txt"))).toBe(false);
     expect(existsSync(join(made.out, "index.html"))).toBe(true);
   } finally {
