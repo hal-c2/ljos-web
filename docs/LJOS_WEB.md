@@ -2238,7 +2238,7 @@ kept).
 ### A31. ERGO: compiler — the Ljós dialect in `qmlc` and in the page
 
 `qmlc` and the compiler in the page (A15) take what `ljos check` takes
-at the ljos-ui pin (`c2443e1593f56acfbf97d9f7f7fde921f3984f5d`), with its
+at the ljos-ui pin (`0fc0c76ac19e776ccc4db5c51bdf8a37c15f1075`), with its
 meaning, its errors and its desugaring. Neither has a second parser: each
 file goes through ljos-ui's `qml_syntax::desugar` before anything else
 reads it, and every span is mapped back through its `SpanMap`, so an

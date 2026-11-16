@@ -343,12 +343,28 @@ Item {
 }
 
 #[test]
-fn an_extractor_a_relational_pattern_and_a_sticky_expression_are_errors() {
+fn an_extractor_compiles_with_the_helper_that_reads_its_list() {
+    let main = given(
+        r#"import QtQuick
+Item {
+  property real level: 0
+  readonly property int b: match (level) { when Number(let x): x; default: 0; }
+}"#,
+    );
+    let code = code_of(&[("Main.qml", main)], "Main.qml", "Main.qml");
+    assert_lacks(&code, "when ");
+    assert_contains(
+        &code,
+        r#"import { $extract } from "ljos-web/compiler/sugar";"#,
+    );
+}
+
+#[test]
+fn a_relational_pattern_and_a_sticky_expression_are_errors() {
     let gauge = given(
         r#"import Ljos.Ui
 Item {
   property real level: 0
-  readonly property int b: match (level) { when Some(let x): 1; default: 0; }
   readonly property int c: match (level) { when < 10: 1; default: 0; }
   readonly property bool d: "x" is /x/g
 }"#,
@@ -356,9 +372,8 @@ Item {
     assert_eq!(
         checked(&[("Gauge.qml", gauge)], "Gauge.qml"),
         [
-            "Gauge.qml:4:57: error: an extractor is not in Ljós's `match`: test the value with a predicate, as in `when let x and isSome:` [syntax]",
-            "Gauge.qml:5:57: error: a relational pattern is not in the proposal: write a guard, as in `when let n and if (n < 10):` [syntax]",
-            "Gauge.qml:6:44: error: a regular expression with the `g` or `y` flag keeps its place between tests: leave the flag out [syntax]",
+            "Gauge.qml:4:57: error: a relational pattern is not in the proposal: write a guard, as in `when let n and if (n < 10):` [syntax]",
+            "Gauge.qml:5:44: error: a regular expression with the `g` or `y` flag keeps its place between tests: leave the flag out [syntax]",
         ]
     );
 }

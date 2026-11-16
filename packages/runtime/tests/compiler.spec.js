@@ -148,6 +148,41 @@ test("a match in an .lts module compiled in the page runs on the page's sugar", 
   })).toBe('TypeError: no arm of the `match` matches "huge"');
 });
 
+// match.feature: an extractor reads its list on the page's `$extract`,
+// a custom matcher's and a primitive constructor's alike.
+test("an extractor in an .lts module compiled in the page reads its list on the page's sugar", async ({ page }) => {
+  await opened(page);
+  const files = {
+    "Main.qml": 'import QtQuick\nimport "where.lts" as Where\nItem {\n    function at(p) { return Where.where(p) }\n}\n',
+    "where.lts": [
+      "const Point = {",
+      "  [Symbol.customMatcher](subject: unknown, hint: string): false | number[] {",
+      "    return match (subject) {",
+      "      when { x: Number and let x, y: Number and let y }: [x, y];",
+      "      default: false;",
+      "    }",
+      "  },",
+      "};",
+      "export function where(p: unknown): string {",
+      "  return match (p) {",
+      "    when Point(let x, 0): `on the x axis at ${x}`;",
+      "    when Point(...let xy): `at ${xy}`;",
+      "    when String(let s): `named ${s}`;",
+      '    default: "nowhere";',
+      "  }",
+      "}",
+      "",
+    ].join("\n"),
+  };
+  expect(await show(page, { files, entry: "Main.qml" })).toMatchObject({ mounted: true });
+  expect(await page.evaluate(() => [
+    window.scene.at({ x: 3, y: 0 }),
+    window.scene.at({ x: 1, y: 2 }),
+    window.scene.at("home"),
+    window.scene.at(7),
+  ])).toEqual(["on the x axis at 3", "at 1,2", "named home", "nowhere"]);
+});
+
 test("an export a module reassigns is read as it is now, by a file and by a module that import it", async ({ page }) => {
   await opened(page);
   const files = {
