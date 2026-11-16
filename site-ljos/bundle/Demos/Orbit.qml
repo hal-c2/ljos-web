@@ -25,8 +25,11 @@ Rectangle {
     // One clock turns everything, each binding at its own whole
     // multiple of it, so the loop wraps without a jump.
     property real turn: 55
+    // Paused rather than stopped while it is not seen: a stopped
+    // animation starts again from `from`, and the scene would jump back.
     NumberAnimation on turn {
-        running: root.turning
+        running: true
+        paused: !root.turning
         from: 55
         to: 415
         duration: root.calm ? 78000 : 26000
