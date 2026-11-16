@@ -85,6 +85,35 @@ function shaped({ vertices, indices, stride, attributes, primitive, min, max, su
   };
 }
 
+// What a Geometry would hold to be drawn as `shape` is, a mesh as the
+// renderer takes one: so a shape made in the runtime (a graph's) is read
+// by either renderer as any Geometry is. Only what `shaped` makes is
+// undone; a mesh with more than one way of joining corners is not one.
+export function held(shape) {
+  const attributes = Object.entries(shape.entries).flatMap(([name, { type, offset }]) => {
+    const semantic = Object.keys(PARTS).find((key) => PARTS[key][0] === name);
+    const componentType = KINDS.indexOf(type);
+    return semantic && componentType >= 0 ? [{ semantic: Number(semantic), offset, componentType }] : [];
+  });
+  const order = ORDERS.findIndex((kind) => shape.indices instanceof kind);
+  if (order >= 0) attributes.push({ semantic: SEMANTICS.IndexSemantic, offset: 0, componentType: order });
+  const subsets = shape.subsets ?? [];
+  const boxed = subsets.filter(({ min, max }) => min && max);
+  const min = [0, 1, 2].map((axis) => Math.min(...boxed.map((subset) => subset.min[axis])));
+  const max = [0, 1, 2].map((axis) => Math.max(...boxed.map((subset) => subset.max[axis])));
+  const known = min.every(Number.isFinite) && max.every(Number.isFinite);
+  return {
+    vertices: shape.vertices,
+    indices: order >= 0 ? new Uint8Array(shape.indices.buffer, shape.indices.byteOffset, shape.indices.byteLength) : new Uint8Array(0),
+    stride: shape.stride,
+    attributes,
+    primitive: Math.max(0, MODES.indexOf(shape.drawMode ?? Triangles)),
+    min: known ? min : [0, 0, 0],
+    max: known ? max : [0, 0, 0],
+    subsets: subsets.map(({ offset, count, min, max }) => ({ offset, count, min: min ?? [0, 0, 0], max: max ?? [0, 0, 0], name: "" })),
+  };
+}
+
 export const EMPTY = { vertices: new Uint8Array(0), indices: new Uint8Array(0), stride: 0, attributes: [], primitive: PRIMITIVES.Triangles, min: [0, 0, 0], max: [0, 0, 0], subsets: [] };
 
 // `data` laid over what is there from `offset` on, as Qt's two-argument
