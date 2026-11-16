@@ -334,9 +334,18 @@ test.describe("with reduced motion", () => {
     await expect(page.getByRole("checkbox", { name: "Reduce motion" }), "the system's setting is followed").toBeChecked();
     const canvas = (await start(page, "3D you can orbit")).locator("canvas.qq-view3d");
     await expect.poll(() => drawsIn(canvas, 500), { message: "the 3D demo still turns" }).toBeGreaterThan(2);
-    const shader = (await start(page, "A shader effect")).locator("canvas").first();
-    const before = await shader.screenshot();
-    await expect.poll(async () => Buffer.compare(before, await shader.screenshot()) !== 0, { message: "the shader still moves", timeout: 5_000 }).toBe(true);
+    const slot = await start(page, "A shader effect");
+    const shader = slot.locator("canvas.qq-shader").first();
+    // Drawn, and its picture gone: a first frame over the picture, or
+    // the picture going, is not the shader moving.
+    await expect.poll(() => shader.evaluate((canvas) => canvas.$effect?.$shader?.drawn() ?? 0), { message: "the shader draws", timeout: 30_000 }).toBeGreaterThan(0);
+    await expect(slot.locator("img").first(), "its picture is gone").toBeHidden({ timeout: 10_000 });
+    // Changing over two windows, one after the other: one frame painted
+    // and then held would change the first at most.
+    for (const window of ["first", "then"]) {
+      const before = await shader.screenshot();
+      await expect.poll(async () => Buffer.compare(before, await shader.screenshot()) !== 0, { message: `the shader still moves (${window})`, timeout: 5_000 }).toBe(true);
+    }
   });
 });
 

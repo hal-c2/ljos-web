@@ -635,7 +635,11 @@ test("every showcase demo stands in its slot, on the landing and the demos page"
   const run = shown(page.getByText("See it run", { exact: true }));
   await run.scrollIntoViewIfNeeded();
   await expect.poll(() => demoIn(page, run, "demo-orbit.webp"), { timeout: 30_000 }).toBeGreaterThan(0);
-  await runDemo(page, "Run the 3D demo");
+  // Asked as the page asks (Nav.canRun "webgl2"), not by what stands:
+  // the picture stands before the frame may run as well as after.
+  const runs = await page.evaluate(() => typeof WebGL2RenderingContext === "function" && typeof OffscreenCanvas === "function");
+  if (runs) await runDemo(page, "Run the 3D demo");
+  else await expect(page.getByRole("button", { name: "Run the 3D demo" }), "where it cannot run, there is no Run").toHaveCount(0);
   await expect.poll(() => demoIn(page, run, "demo-orbit.webp"), { timeout: 30_000 }).toBeGreaterThan(0);
 
   await page.goto("/demos/");
