@@ -841,12 +841,47 @@ test("a page with no View3D fetches none of the renderer", async ({ page }) => {
 test("a page with a View3D on the JavaScript renderer fetches none of the wgpu one", async ({ page }) => {
   const fetched = [];
   page.on("request", (request) => fetched.push(request.url()));
-  await page.goto("/?scene=shaded3d");
+  await page.goto("/?scene=shaded3d&view3d=js");
   await page.waitForFunction(() => window.ready);
   await page.waitForTimeout(100);
   // A dev server serves the wasm's address as a module of its own, which is
   // a string and none of the renderer; a build writes it into the page's.
   expect(fetched.filter((url) => /ljos_web_3d/.test(url) && !/\.wasm\?import&url$/.test(url))).toEqual([]);
+});
+
+// Where neither the page nor the build asks for a renderer, a View3D is on
+// wgpu if WebGPU has an adapter for the page, and on the JavaScript one if
+// not: a browser may have WebGPU and no GPU it lets it use.
+test.describe("a View3D no one asked a renderer of", () => {
+  test.skip(!!process.env.VITE_LJOS_VIEW3D, "the build asks for one");
+  const drawn = (page) =>
+    page.waitForFunction(() => {
+      const state = document.querySelector(".qq-view3d")?.$view3d;
+      if (state?.error) throw new Error(state.error);
+      return state?.frames > 0 && state.renderer;
+    });
+
+  test("draws on the JavaScript renderer where WebGPU has no adapter, and fetches none of wgpu", async ({ page }) => {
+    await page.addInitScript(() => {
+      if (navigator.gpu) navigator.gpu.requestAdapter = async () => null;
+    });
+    const fetched = [];
+    page.on("request", (request) => fetched.push(request.url()));
+    await page.goto("/?scene=shaded3d");
+    await page.waitForFunction(() => window.ready);
+    expect(await (await drawn(page)).jsonValue()).toBe("js");
+    // The rectangle of its own colour, up and to the left.
+    const [r, g, b] = (await pixels(page, [[50, 60]]))[0].split(" ").map(Number);
+    expect([r, g, b], "the model, not the window's colour").not.toEqual(CLEAR);
+    expect(fetched.filter((url) => /ljos_web_3d/.test(url) && !/\.wasm\?import&url$/.test(url))).toEqual([]);
+  });
+
+  test("draws on wgpu where WebGPU has an adapter", async ({ page }) => {
+    await page.goto("/?scene=shaded3d");
+    await page.waitForFunction(() => window.ready);
+    test.skip(!(await page.evaluate(async () => !!(await navigator.gpu?.requestAdapter()))), "WebGPU has no adapter here");
+    expect(await (await drawn(page)).jsonValue()).toBe("wgpu");
+  });
 });
 
 test("a page whose View3D draws on wgpu asks for the renderer before its first view is made", async ({ page }) => {

@@ -16,8 +16,8 @@ const WASM = /ljos_web_3d_bg[^/?]*\.wasm$/;
 const renderer = (files) => files.map(({ file }) => file).filter((file) => WASM.test(file));
 const root = join(import.meta.dirname, "first-load");
 
-// The application built for `view3d` (or for the JavaScript renderer),
-// handed to `use` while it is there.
+// The application built for `view3d` (or for the default, wgpu), handed
+// to `use` while it is there.
 async function built(view3d, use) {
   const out = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "ljos-first-load-"));
   // What the build is for, as a build is told it: the QML plugin and the
@@ -52,14 +52,14 @@ function reported(out) {
 
 test("an application built for the JavaScript renderer, with a View3D in its first load, has the wgpu renderer's wasm only in what it may fetch later", async () => {
   test.setTimeout(180_000);
-  const page = await built(undefined, reported);
+  const page = await built("js", reported);
   expect(renderer(page.first.files)).toEqual([]);
   expect(renderer(page.later.files), "the renderer, for a page that says wgpu").toHaveLength(1);
 });
 
 test("an application built for the JavaScript renderer draws on wgpu when its page says so, and fetches the renderer once", async ({ page }) => {
   test.setTimeout(180_000);
-  await built(undefined, async (out) => {
+  await built("js", async (out) => {
     const server = await preview({ configFile: false, root, logLevel: "warn", build: { outDir: out }, preview: { host: "127.0.0.1", port: 0 } });
     try {
       const fetched = [];
@@ -77,8 +77,10 @@ test("an application built for the JavaScript renderer draws on wgpu when its pa
   });
 });
 
-test("an application built for wgpu, with a View3D in its first load, has the renderer's address at once", async () => {
-  test.setTimeout(180_000);
-  const page = await built("wgpu", reported);
-  expect(renderer(page.first.files)).toHaveLength(1);
-});
+for (const [view3d, named] of [["wgpu", "for wgpu"], [undefined, "for no renderer, so for wgpu"]]) {
+  test(`an application built ${named}, with a View3D in its first load, has the renderer's address at once`, async () => {
+    test.setTimeout(180_000);
+    const page = await built(view3d, reported);
+    expect(renderer(page.first.files)).toHaveLength(1);
+  });
+}

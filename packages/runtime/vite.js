@@ -772,7 +772,7 @@ export default function qml({
     configResolved(config) {
       cache = join(config.cacheDir, "ljos-web");
       serving = config.command === "serve";
-      wgpuAtOnce = serving || config.env?.VITE_LJOS_VIEW3D === "wgpu";
+      wgpuAtOnce = serving || config.env?.VITE_LJOS_VIEW3D !== "js";
       base = config.root;
     },
     // Qt's own QML is outside the project. What the runtime itself is built

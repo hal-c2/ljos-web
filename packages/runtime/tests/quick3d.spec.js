@@ -2481,18 +2481,27 @@ test("a View3D says how fast it draws", async ({ page }) => {
 });
 
 // A view in a browser that gives it no context draws nothing, and a
-// picture it never drew is no frame: it says no time of one.
-test("a View3D with no context to draw with says it drew no frame", async ({ page }) => {
-  await page.addInitScript(() => {
-    const given = OffscreenCanvas.prototype.getContext;
-    OffscreenCanvas.prototype.getContext = function (kind, ...rest) {
-      return kind === "webgl2" ? null : given.call(this, kind, ...rest);
-    };
+// picture it never drew is no frame: it says no time of one. The wgpu
+// renderer says why it has no surface.
+test.describe("a View3D with no context", () => {
+  test.use({ told: [/^View3D: the surface could not be made/] });
+  test("a View3D with no context to draw with says it drew no frame", async ({ page }) => {
+    await page.addInitScript(() => {
+      // Neither WebGPU, which the wgpu renderer asks for first, nor WebGL2,
+      // on a canvas off the page or on it, where the wgpu renderer draws.
+      delete Navigator.prototype.gpu;
+      for (const Canvas of [OffscreenCanvas, HTMLCanvasElement]) {
+        const given = Canvas.prototype.getContext;
+        Canvas.prototype.getContext = function (kind, ...rest) {
+          return kind === "webgl2" ? null : given.call(this, kind, ...rest);
+        };
+      }
+    });
+    await open(page, "stats3d");
+    // A turning view would have said a second's frames by now.
+    await page.waitForTimeout(1500);
+    expect(await page.evaluate(() => [window.scene.turning.frameTime, window.scene.turning.fps, window.scene.still.frameTime])).toEqual([0, 0, 0]);
   });
-  await open(page, "stats3d");
-  // A turning view would have said a second's frames by now.
-  await page.waitForTimeout(1500);
-  expect(await page.evaluate(() => [window.scene.turning.frameTime, window.scene.turning.fps, window.scene.still.frameTime])).toEqual([0, 0, 0]);
 });
 
 test("a CustomMaterial's max and min are as GLSL says they are, of what is no number too", async ({ page }) => {
