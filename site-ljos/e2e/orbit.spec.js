@@ -125,12 +125,16 @@ for (const renderer of ["js", "wgpu"]) {
       expect(await framesOver(page, WINDOW), "frames are drawn while nobody touches the page").toBeGreaterThan(0);
       expect(await framesOver(page, WINDOW), "and go on being drawn").toBeGreaterThan(0);
       // A picture can take as long as the wait for one (15 s on a starved
-      // runner), so the wait is on the scene's clock, cheap to read, and
-      // the pictures are compared once it has moved: a canvas that stops
-      // showing what the clock draws still fails.
+      // runner), so the wait is on the scene's clock and frame count, cheap
+      // to read, and the pictures are compared once the clock has moved and
+      // a frame has been drawn since: the clock runs on while a renderer
+      // rests between pictures. A canvas that stops showing what it draws
+      // still fails.
       const before = await shot(page);
       const from = await turnOf(page);
       await expect.poll(async () => onFrom(from, await turnOf(page)), { message: "the scene's clock goes on" }).toBeGreaterThan(10);
+      const drawn = await scene(page).evaluate((canvas) => canvas.$view3d.frames);
+      await expect.poll(() => scene(page).evaluate((canvas) => canvas.$view3d.frames), { message: "the scene draws after its clock moves" }).toBeGreaterThan(drawn);
       expect(Buffer.compare(before, await shot(page)) !== 0, "the picture changes").toBe(true);
     });
 
