@@ -340,16 +340,30 @@ test.describe("with reduced motion", () => {
   });
 });
 
-// One picture for both schemes, with no paper of its own: the page's
-// shows through it, light or dark, as it does under the running example.
-test("a picture has no paper of its own, so it stands on the page's light or dark", async ({ page }) => {
+// One picture for both schemes, on the example's own paper: what it
+// gives no colour stays readable on the page's light or dark, and the
+// running example stands on the same.
+test("a picture is drawn on the example's paper, the same on the page's light or dark", async ({ page }) => {
   await open(page, examples[0].route);
   const picture = page.locator('img[alt="What this example draws"]').first();
   await expect(picture).toHaveAttribute("src", /Examples\/[0-9a-f]{16}\.png$/);
   const src = await picture.getAttribute("src");
-  // A PNG's colour type (byte 25) is 6 where it has an alpha channel.
-  const kind = await picture.evaluate(async (img) => new Uint8Array(await (await fetch(img.src)).arrayBuffer())[25]);
-  expect(kind, "the picture can be seen through").toBe(6);
+  // Its pixels, decoded: where it draws nothing (its bottom right
+  // corner, outside every example's own content) the paper stands,
+  // opaque white, and nowhere can the page be seen through it.
+  const { corner, clear } = await picture.evaluate(async (img) => {
+    const bitmap = await createImageBitmap(await (await fetch(img.src)).blob());
+    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+    const context = canvas.getContext("2d");
+    context.drawImage(bitmap, 0, 0);
+    const { data } = context.getImageData(0, 0, bitmap.width, bitmap.height);
+    let clear = 0;
+    for (let i = 3; i < data.length; i += 4) if (data[i] < 255) clear++;
+    const at = data.length - 4;
+    return { corner: [data[at], data[at + 1], data[at + 2], data[at + 3]], clear };
+  });
+  expect(corner, "where the example draws nothing, its white paper stands").toEqual([255, 255, 255, 255]);
+  expect(clear, "no pixel lets the page through").toBe(0);
   await press(page.getByRole("button", { name: "Use the dark theme" }));
   await expect(picture, "the same picture stands on the dark paper").toHaveAttribute("src", src);
 });

@@ -171,17 +171,18 @@ const liveAt = new Map(); // a page's code block -> its live payload
   const pictures = join(bundle, "Examples");
   rmSync(pictures, { recursive: true, force: true });
   mkdirSync(pictures, { recursive: true });
-  // A picture is the prerender's, as this browser draws it, on no paper:
-  // where the example draws nothing the page's own shows through, light
-  // or dark, as it does under the running example. One picture, not one
-  // for each scheme: a page whose two schemes said two pictures would be
-  // written twice over (site.js's shareSchemes). Kept under both names,
-  // so a cache kept across builds never answers with one an older
+  // A picture is the prerender's, as this browser draws it, on the
+  // example's paper (Theme.examplePaper), which stands under the running
+  // example too, light or dark alike: text the example gives no colour is
+  // written for it, and would be lost on a dark page. One picture, not
+  // one for each scheme: a page whose two schemes said two pictures would
+  // be written twice over (site.js's shareSchemes). Kept under both
+  // names, so a cache kept across builds never answers with one an older
   // runtime or browser drew. The page names it by its hash. How it is
   // drawn is in the name too (the stage around it and the size an
-  // unsized root is given), so a changed recipe, such as a picture once
-  // drawn on the light paper, draws again.
-  const STAGE = "<!doctype html><style>html,body{margin:0;background:transparent}</style>";
+  // unsized root is given), so a changed recipe draws again.
+  const EXAMPLE_PAPER = "#ffffff";
+  const STAGE = `<!doctype html><style>html,body{margin:0;background:${EXAMPLE_PAPER}}</style>`;
   const UNSIZED = [320, 180];
   const drawnBy = createHash("sha256").update(`${chromium.executablePath()}\n${STAGE}\n${UNSIZED}`).digest("hex").slice(0, 12);
   const kept = (hash) => `${hash.slice(0, 16)}-${createHash("sha256").update(`${prerendered[hash].stamp ?? ""}\n${drawnBy}`).digest("hex").slice(0, 12)}.png`;
@@ -199,7 +200,7 @@ const liveAt = new Map(); // a page's code block -> its live payload
         const height = prerendered[hash].height > 0 ? prerendered[hash].height : UNSIZED[1];
         await page.setViewportSize({ width, height });
         await page.setContent(`${STAGE}<div id="app" style="position:relative;width:${width}px;height:${height}px">${html}</div>`);
-        await page.screenshot({ path: join(cacheDir, kept(hash)), clip: { x: 0, y: 0, width, height }, omitBackground: true });
+        await page.screenshot({ path: join(cacheDir, kept(hash)), clip: { x: 0, y: 0, width, height } });
       }
     } finally {
       await browser.close();

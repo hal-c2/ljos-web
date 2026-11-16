@@ -69,6 +69,11 @@ QtObject {
     // Danger as text: the role's own red is 4.3:1 on the light canvas,
     // so words in it are a step darker there.
     readonly property color danger: tone.danger
+    // What an example is drawn on, light or dark alike: the paper a
+    // window has where it gives itself none, which an example's own
+    // colours (black text where it says none) are written against.
+    // scripts/build.mjs draws the pictures on the same.
+    readonly property color examplePaper: "#ffffff"
     readonly property color scrim: tone.scrim
 
     // The code theme, for what the site draws around highlighted code
