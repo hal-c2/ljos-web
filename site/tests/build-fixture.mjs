@@ -8,7 +8,8 @@
 // none of the fixture's blocks (LJOS_CODEBLOCKS_LEDGER=none): strict,
 // every block here runs or the build stops. Its prerenders are its
 // own (.codeblock-prerenders-fixture/): a prerender directory holds
-// one docs' examples, and the pinned docs' are kept for site-ljos.
+// one docs' examples and prunes the rest, so the fixture run would
+// otherwise drop the pinned docs' from the cache CI keeps.
 import { execSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";

@@ -20,7 +20,7 @@ mise run build:wasm-compiler           # the shell drop + live blocks compile in
 mise run build:wasm-3d                 # the orbit demo's wgpu renderer
 mise run build:kernel                  # only for an LJOS_KERNEL=wasm build
 LJOS_DOCS_DIR=../ljos-ui/docs/site VITE_LJOS_VIEW3D=wgpu pnpm --filter ljos-site codeblock-prerenders  # the build's environment: it embeds only these
-LJOS_DOCS_DIR=../ljos-ui/docs/site VITE_LJOS_VIEW3D=wgpu pnpm --filter ljos-site build
+LJOS_DOCS_DIR=../ljos-ui/docs/site VITE_LJOS_VIEW3D=wgpu pnpm --filter ljos-site build  # LJOS_PRERENDERS_REQUIRED=1: stop unless it embeds them, as CI does
 pnpm --filter ljos-site check-links    # every built link resolves
 pnpm --filter ljos-site test           # Playwright: fallback/live/axe
 LJOS_KERNEL=wasm VITE_LJOS_VIEW3D=wgpu pnpm --filter ljos-site build && pnpm --filter ljos-site test  # the same, over Ljós's kernel
