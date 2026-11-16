@@ -41,17 +41,23 @@ async function reach(page, route) {
 }
 
 // The scene's clock: Orbit's `turn`, read from the View3D the canvas
-// draws. It runs from 55 to 415 and round again.
+// draws. It runs from 55 to 415 and round again, at most this fast
+// (degrees a second, Orbit's `pace` with no preference).
 const turnOf = (page) => scene(page).evaluate((canvas) => canvas.$view3d.view.parent.turn);
+const FASTEST = 360 / 26;
 // How far the clock went on from `from` to `to`, round a wrap.
 const onFrom = (from, to) => (((to - from) % 360) + 360) % 360;
+// The clock, and how long ago in the page's own time `since` was.
+const turnSince = (page, since) => scene(page).evaluate((canvas, since) => [canvas.$view3d.view.parent.turn, (performance.now() - since) / 1000], since);
 
-// The page's tab, hidden and shown again, as the browser says it.
+// The page's tab, hidden and shown again, as the browser says it; when
+// it was, in the page's own time.
 function showTab(page, shown) {
   return page.evaluate((shown) => {
     Object.defineProperty(document, "visibilityState", { configurable: true, get: () => (shown ? "visible" : "hidden") });
     Object.defineProperty(document, "hidden", { configurable: true, get: () => !shown });
     document.dispatchEvent(new Event("visibilitychange"));
+    return performance.now();
   }, shown);
 }
 
@@ -105,12 +111,20 @@ for (const renderer of ["js", "wgpu"]) {
       const held = await turnOf(page);
       await page.waitForTimeout(1_000);
       expect(await turnOf(page), "hidden, the scene's clock holds still").toBe(held);
-      await showTab(page, true);
+      const shown = await showTab(page, true);
       // Paused, not stopped: a stopped animation starts again from
       // `from` (55), a snap back a reader sees. Shown again, the clock
-      // goes on forward from where it held, read as soon as it moves.
+      // goes on forward from where it held, by no more than the time
+      // since it was shown: a slow first frame on a software renderer
+      // is time passing, and a snap back is most of a turn more.
       await expect.poll(async () => onFrom(held, await turnOf(page)), { message: "shown again, the clock goes on" }).toBeGreaterThan(0);
-      expect(onFrom(held, await turnOf(page)), "shown again, the scene goes on from where it was, not back at its start").toBeLessThan(90);
+      const [turn, seconds] = await turnSince(page, shown);
+      const went = onFrom(held, turn);
+      expect(
+        went,
+        `shown again, the scene goes on from where it was, not back at its start: held at ${held.toFixed(1)}°, now ${turn.toFixed(1)}°, ` +
+          `${went.toFixed(1)}° on in the ${seconds.toFixed(2)} s since it was shown, where its pace allows ${(FASTEST * seconds).toFixed(1)}°`,
+      ).toBeLessThanOrEqual(FASTEST * seconds + 1);
       await expect.poll(() => framesOver(page, WINDOW), { message: "drawn again once shown" }).toBeGreaterThan(0);
     });
   });

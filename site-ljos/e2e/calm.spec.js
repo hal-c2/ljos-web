@@ -22,6 +22,8 @@ const DEMOS = [
     frames: (canvas) => canvas.$view3d.frames,
     start: 55,
     period: 360,
+    // Its pace with no preference, the fastest it goes, a second.
+    fastest: 360 / 26,
   },
   {
     name: "the shader effect",
@@ -33,6 +35,7 @@ const DEMOS = [
     frames: (canvas) => canvas.$effect.$shader.drawn(),
     start: 0,
     period: 4 * Math.PI,
+    fastest: (4 * Math.PI) / 24,
   },
 ];
 
@@ -100,15 +103,26 @@ for (const demo of DEMOS) {
       const held = await clockOf(page);
       await page.waitForTimeout(1_000);
       expect(await clockOf(page), "hidden, the clock holds still").toBe(held);
-      await page.evaluate(() => {
+      const shown = await page.evaluate(() => {
         Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "visible" });
         Object.defineProperty(document, "hidden", { configurable: true, get: () => false });
         document.dispatchEvent(new Event("visibilitychange"));
+        return performance.now();
       });
       await expect.poll(async () => onFrom(held, await clockOf(page)), { message: "shown again, the clock goes on" }).toBeGreaterThan(0);
-      // A restart would put it back at its start, most of a loop round
-      // from where it held.
-      expect(onFrom(held, await clockOf(page)), "shown again, it goes on from where it held, not from its start").toBeLessThan(demo.period / 4);
+      // No further than the time since it was shown lets it go: a slow
+      // first frame is time passing, and a restart would put it back at
+      // its start, most of a loop round from where it held.
+      const [clock, seconds] = await canvas(page).evaluate(
+        (element, [read, since]) => [new Function("canvas", `return (${read})(canvas)`)(element), (performance.now() - since) / 1000],
+        [demo.clock.toString(), shown],
+      );
+      const went = onFrom(held, clock);
+      expect(
+        went,
+        `shown again, it goes on from where it held, not from its start: held at ${held.toFixed(3)}, now ${clock.toFixed(3)}, ` +
+          `${went.toFixed(3)} on in the ${seconds.toFixed(2)} s since it was shown, where its pace allows ${(demo.fastest * seconds).toFixed(3)}`,
+      ).toBeLessThanOrEqual(demo.fastest * seconds + demo.period / 360);
     });
   });
 }
