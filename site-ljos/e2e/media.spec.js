@@ -86,7 +86,14 @@ test.describe("an example's own pictures are drawn", () => {
               const canvas = new OffscreenCanvas(image.naturalWidth, image.naturalHeight);
               const context = canvas.getContext("2d");
               context.drawImage(image, 0, 0);
-              const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+              // A picture from another origin cannot be read back; it is
+              // none of the example's own, so it is passed over.
+              let pixels;
+              try {
+                pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+              } catch {
+                return null;
+              }
               const digest = await crypto.subtle.digest("SHA-256", pixels);
               return `${canvas.width}x${canvas.height}:${[...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("")}`;
             };
