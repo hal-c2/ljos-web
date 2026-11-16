@@ -321,6 +321,18 @@ function load(done) { fetch("rows.json").then(r => r.json()).then(done) }
     .unwrap_or_else(|errors| panic!("{errors:?}"))
     .code;
     assert_contains(&script, r#"import { fetch } from "ljos-web/QtQml";"#);
+    // A script imported under the name is that script, and only that.
+    let aliased = ljos_web::compile_script(
+        r#".pragma library
+.import "helper.js" as fetch
+function load() { return fetch.load() }
+"#,
+        &Options::default(),
+    )
+    .unwrap_or_else(|errors| panic!("{errors:?}"))
+    .code;
+    assert_contains(&aliased, r#"import * as fetch from"#);
+    assert_lacks(&aliased, r#"import { fetch } from "ljos-web/QtQml";"#);
 }
 
 #[test]
