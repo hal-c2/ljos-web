@@ -64,7 +64,14 @@ pub(crate) fn lowered<'a>(
 ) -> Expression<'a> {
     let names: Vec<&str> = call.placeholders.iter().map(|p| p.name.as_str()).collect();
     let mut arguments = vec![
-        b.string(call.message.as_deref().unwrap_or_default()),
+        // A message with only an id shows its id until a catalogue has it,
+        // as a descriptor `t` is given at run time does.
+        b.string(
+            call.message
+                .as_deref()
+                .or(call.id.as_deref())
+                .unwrap_or_default(),
+        ),
         b.string(call.context.as_deref().unwrap_or_default()),
         b.string(call.key().unwrap_or_default()),
         b.string(&names.join(",")),

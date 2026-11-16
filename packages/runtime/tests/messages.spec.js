@@ -151,6 +151,16 @@ test.describe("counts and choices are written in the message", () => {
     });
   }
 
+  test("a count is written as the language writes numbers, however the language is named", async ({ page }) => {
+    await shown(page, {
+      "Main.qml": qml("property int count: 1000", 'property string files: plural(count, { one: "# file", other: "# files" })'),
+    });
+    // Chromium's ICU has no Icelandic numbers (`is` formats as en-US), so
+    // German, which has no catalogue here: the source, in its numbers.
+    await language(page, "de_DE");
+    expect(await read(page, "files")).toBe("1.000 files");
+  });
+
   test("an ordinal picks the language's ordinal form", async ({ page }) => {
     await shown(page, {
       "Main.qml": qml(
@@ -196,6 +206,15 @@ test.describe("a message can say its context and its id", () => {
     await language(page, "is");
     expect(await read(page, "plain")).toBe("Opna");
     expect(await read(page, "menu")).toBe("Opna valmynd");
+  });
+
+  test("a message with only an id shows its id until a catalogue has it", async ({ page }) => {
+    await shown(page, { "Main.qml": qml('property string home: t({ id: "nav.home" })') });
+    expect(await read(page, "home")).toBe("nav.home");
+    await language(page, "is");
+    expect(await read(page, "home")).toBe("Heim");
+    await language(page, "de");
+    expect(await read(page, "home")).toBe("nav.home");
   });
 
   test("a message with an id is found by its id and shows its message until then", async ({ page }) => {
