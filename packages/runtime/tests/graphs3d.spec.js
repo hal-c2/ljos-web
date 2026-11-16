@@ -19,6 +19,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "./open.js";
+import { pixels } from "./pixels.js";
 import { fixtures, read, ready, step, unlike } from "./plots.js";
 
 const expected = JSON.parse(readFileSync(join(fixtures, "graphs3d.json"), "utf8"));
@@ -54,4 +55,37 @@ test("points from a list model, and the one that is selected", async ({ page }) 
 // seems to size such a graph only as its camera or its size next changes.
 test("graphs that were given nothing, and what their cameras, axes and series answer", async ({ page }) => {
   await same(page, "graph3dbare", [6200, 7700, 12000, 8600, 9200, 9200]);
+});
+
+// What a graph plots is a Geometry like a program's, so the wgpu renderer,
+// which reads only what a Geometry holds, draws it too. Here on WebGL2,
+// which a headless browser has: the bars stand where they do on the
+// JavaScript renderer, each in its series' colour, and not only the walls
+// behind them.
+test("on the wgpu renderer, a graph's bars are drawn and not only its walls", async ({ page }) => {
+  await page.addInitScript(() => delete Navigator.prototype.gpu);
+  await page.goto("/?scene=graph3dbars&view3d=wgpu");
+  await page.waitForFunction(() => window.ready);
+  await page.waitForFunction(() => window.scene.loaded !== false);
+  await page.waitForFunction(() => {
+    const state = document.querySelector(".qq-view3d").$view3d;
+    if (state.error) throw new Error(state.error);
+    return state.frames > 0;
+  });
+  expect(await page.evaluate(() => document.querySelector(".qq-view3d").$view3d.renderer)).toBe("wgpu");
+  // Which of red, green and blue a pixel is mostly, or "wall".
+  const most = (colour) => {
+    const [r, g, b] = colour.split(" ").map(Number);
+    const top = Math.max(r, g, b);
+    if (top - Math.min(r, g, b) < 80) return "wall";
+    return top === r ? "red" : top === g ? "green" : "blue";
+  };
+  const seen = await pixels(page, [
+    [75, 280],
+    [75, 225],
+    [75, 170],
+    [187, 200],
+    [300, 85],
+  ]);
+  expect(seen.map(most)).toEqual(["red", "green", "blue", "red", "green"]);
 });
