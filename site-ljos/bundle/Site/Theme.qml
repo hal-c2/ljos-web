@@ -40,8 +40,10 @@ QtObject {
     readonly property bool calm: motion === "calm" || (motion !== "full" && systemCalm)
 
     function setCalm(wanted) {
-        // Back to following the browser when the choice agrees with it.
-        motion = wanted === systemCalm ? "" : (wanted ? "calm" : "full");
+        // Kept even where it agrees with the browser now: the reader chose
+        // it for this site, and a browser that changes its preference
+        // later does not change the site back under them.
+        motion = wanted ? "calm" : "full";
         Motion.keep(motion);
     }
 
