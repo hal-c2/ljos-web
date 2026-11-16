@@ -78,8 +78,16 @@ test.describe("/demos/", () => {
     const orbit = await started(page, "3D you can orbit");
     // wgpu draws on WebGPU where the browser has it, else on WebGL2; a
     // browser without WebAssembly draws with the JavaScript renderer.
-    await expect.poll(() => orbit.locator("canvas.qq-view3d").evaluate((canvas) => canvas.$view3d?.renderer)).toBe(wasm ? "wgpu" : "js");
-    expect(await orbit.locator("canvas.qq-view3d").evaluate((canvas) => canvas.$view3d.error)).toBeNull();
+    await expect
+      .poll(() => orbit.locator("canvas.qq-view3d").evaluate((canvas) => canvas.$view3d?.renderer), { message: `the renderer, ${wasm ? "with" : "without"} WebAssembly` })
+      .toBe(wasm ? "wgpu" : "js");
+    // The renderer is named before it has started, so a failure to start
+    // comes after: it has drawn, or failed, before its error says anything.
+    // A failure is reported as itself, not as a wait that ran out.
+    await expect
+      .poll(() => orbit.locator("canvas.qq-view3d").evaluate((canvas) => (canvas.$view3d?.frames ?? 0) > 0 || canvas.$view3d?.error != null), { message: "the renderer has drawn or failed", timeout: 30_000 })
+      .toBe(true);
+    expect(await orbit.locator("canvas.qq-view3d").evaluate((canvas) => String(canvas.$view3d.error ?? "")), "the renderer started without an error").toBe("");
   });
 
   test("Orbit turns under a sideways drag and zooms under a pinch", async ({ page, errors }) => {
