@@ -14,6 +14,9 @@ Rectangle {
 
     property bool active: true
     property bool calm: false
+    // How fast the shader's time goes, a second: its loop (four whole
+    // turns of every wave) in 24 s, or in 72 s when calm is asked for.
+    readonly property real pace: (calm ? 1 / 72 : 1 / 24) * 4 * Math.PI
     // Drawn once its shader is: a page that shows a picture until then
     // (Site/DemoFrame.qml) keeps it till.
     readonly property bool ready: effect.status === ShaderEffect.Compiled
@@ -39,17 +42,13 @@ Rectangle {
             palette = (palette + 1) % 3;
         }
 
-        NumberAnimation on time {
-            // Four whole turns of every wave in the shader, so the
-            // loop wraps seamlessly. Paused off screen, so it goes on
-            // where it was rather than from 0; slower, never still, when
-            // calm is asked for.
+        // Moved on each frame by its pace (as Orbit's turn), wrapping at
+        // a whole loop: a new pace is taken at once, and paused off
+        // screen it goes on where it was rather than from 0.
+        FrameAnimation {
             running: true
             paused: !root.active
-            from: 0
-            to: 12.5663706
-            duration: root.calm ? 72000 : 24000
-            loops: Animation.Infinite
+            onTriggered: effect.time = (effect.time + frameTime * root.pace) % (4 * Math.PI)
         }
     }
 

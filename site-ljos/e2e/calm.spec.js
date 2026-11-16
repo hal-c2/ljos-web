@@ -81,6 +81,12 @@ for (const demo of DEMOS) {
       expect(calm.frames, "asked for less motion, frames are still drawn").toBeGreaterThan(0);
       expect(calm.rate, "asked for less motion, the clock still goes on").toBeGreaterThan(0);
       expect(calm.rate, "asked for less motion, it goes on more slowly").toBeLessThan(full.rate);
+
+      // The preference changed while the demo runs is taken at once,
+      // not at the end of a loop: a quick pace again, from where it is.
+      await page.emulateMedia({ reducedMotion: "no-preference" });
+      const again = await pace(page);
+      expect(again.rate, "with no preference again, it goes on faster than calm").toBeGreaterThan(calm.rate);
     });
 
     test("in a hidden tab its clock holds, and shown again goes on from there", async ({ page }) => {
