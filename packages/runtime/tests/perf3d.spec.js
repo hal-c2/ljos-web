@@ -24,7 +24,7 @@ const HIDDEN = `
 `;
 
 const RENDERERS = [
-  { name: "the JavaScript renderer", query: "", renderer: "js", backend: "webgl2", wasm: false },
+  { name: "the JavaScript renderer", query: "&view3d=js", renderer: "js", backend: "webgl2", wasm: false },
   { name: "wgpu on WebGPU", query: "&view3d=wgpu", renderer: "wgpu", backend: "webgpu", wasm: true },
   { name: "wgpu on WebGL2", query: "&view3d=wgpu", renderer: "wgpu", backend: "webgl2", wasm: true, hidden: true },
 ];

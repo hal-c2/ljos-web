@@ -684,8 +684,10 @@ builds nothing 3D; it provides the canvas, the frame clock and the
 graph.
 
 As built so far (A25): the wgpu crate is reached through
-`crates/ljos_web_3d` and is opt-in per page, `?view3d=wgpu` or
-`VITE_LJOS_VIEW3D=wgpu`; the default is still `QtQuick3D/render.js`.
+`crates/ljos_web_3d` and is the default (hal-c2/ljos-web#46) where
+WebGPU has an adapter for the page; where it has none, a View3D no one
+asked a renderer of draws with `QtQuick3D/render.js`, as a page does with
+`?view3d=js` or `VITE_LJOS_VIEW3D=js`.
 Picking stays in JavaScript (`pick.js`), not wasm.
 
 ### A11. Decisions taken in phase 1 (summary)

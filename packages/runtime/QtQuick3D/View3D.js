@@ -23,9 +23,9 @@ import { met } from "./pick.js";
 import { draw } from "./render.js";
 import { SceneEnvironment } from "./scene.js";
 import { paced } from "./paced.js";
-import { drawOn, gave, gaveNow, renderer } from "./wgpu.js";
+import { chosen, drawOn, gave, gaveNow, renderer } from "./wgpu.js";
 import { signal, untrack } from "#kernel";
-import { getOwner, onCleanup } from "solid-js";
+import { getOwner, onCleanup, runWithOwner } from "solid-js";
 
 const sheet = new CSSStyleSheet();
 sheet.replaceSync(`.qq-view3d { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }`);
@@ -256,7 +256,6 @@ export const View3D = defineType("View3D", Item, {
     self.$node.append(canvas);
     // A canvas has one kind of context: wgpu's is made where it draws.
     const wgpu = renderer() === "wgpu";
-    const paper = wgpu ? null : canvas.getContext("bitmaprenderer");
 
     // The scene is a node of its own, whose children are the view's.
     const scene = (self.$scene = within(null, () => Node({})));
@@ -281,7 +280,11 @@ export const View3D = defineType("View3D", Item, {
     if (wgpu) {
       self.$canvas = { element: canvas };
       self.$view = () => 0;
-      const dispose = drawOn(self, canvas, frame);
+      // wgpu taken for want of an ask, and WebGPU with no adapter for the
+      // page: the JavaScript renderer draws on the canvas instead.
+      const owner = getOwner();
+      const instead = chosen() ? undefined : () => runWithOwner(owner, byScript);
+      const dispose = drawOn(self, canvas, frame, instead);
       if (getOwner()) onCleanup(dispose);
       // What the picture does not need but mapping does: the camera a view
       // is seen through, and the view it was last seen in.
@@ -294,114 +297,120 @@ export const View3D = defineType("View3D", Item, {
       );
       return;
     }
-    // What a test or a tool may ask, as of the wgpu renderer's view
-    // (`drawOn`): `probe` is told of each sight taken ("sync") and each
-    // picture drawn ("draw"); `view` is the View3D itself, to read what it
-    // shows from.
-    const state = (canvas.$view3d = { renderer: "js", backend: "webgl2", frames: 0, builds: 0, error: null, probe: null, view: self });
-    // Drawn once what asked for it has settled, in the same task; one that
-    // gave its picture on in this task waits for the next frame, as the
-    // wgpu renderer's does (`gaveNow`).
-    let waiting = 0;
-    let resting = 0;
-    const pace = paced();
-    const soon = () => {
-      if (!gaveNow.has(state)) return void queueMicrotask(drawn);
-      waiting = requestAnimationFrame(() => {
-        waiting = 0;
-        drawn();
-      });
-    };
-    if (getOwner())
-      onCleanup(() => {
-        if (waiting) cancelAnimationFrame(waiting);
-        clearTimeout(resting);
-      });
-    const drawn = () => {
-      const from = performance.now();
-      const wait = pace.wait(from);
-      if (wait) return void (resting = setTimeout(drawn, wait));
-      const scene = due;
-      due = null;
-      const drew = draw(scene, canvas, paper, ways);
-      last = scene;
-      if (ways) {
-        gave(state);
-        setTimes((times) => times + 1);
-      }
-      const ended = performance.now();
-      // A picture never drawn is no frame, so what waits for the first
-      // (a still picture standing in for the view) goes on waiting.
-      if (drew) {
-        frame(from, ended);
-        state.frames++;
-      }
-      state.probe?.("draw", from, ended);
-      pace.drew(from, ended);
-    };
+    byScript();
 
-    // The view is a picture to what takes it for one (a Texture's item),
-    // the right way up or upside down, and that is drawn again when the
-    // view is: but a view that reads its own picture, as one does that lays
-    // each picture over its last, is not drawn again for having been
-    // drawn. A picture first asked for after the view was drawn is drawn
-    // again to be kept.
-    const [times, setTimes] = signal(0, self.$owner);
-    let own = false;
-    let ways = 0;
-    let last = null;
-    self.$canvas = { element: canvas };
-    self.$view = (down) => {
-      const way = down ? 2 : 1;
-      if (!(ways & way)) {
-        ways |= way;
-        if (!due && last) {
-          soon();
-          due = last;
-        }
-      }
-      return own ? 0 : times();
-    };
-
-    effect(
-      () => {
-        const from = state.probe ? performance.now() : 0;
-        own = true;
-        try {
-          return sight();
-        } finally {
-          own = false;
-          state.builds++;
-          state.probe?.("sync", from, performance.now());
-        }
-      },
-      (seen) => {
-        // A camera maps to the view it was last seen through.
-        first = seen.camera;
-        if (seen.camera) Object.assign(seen.camera, { $width: seen.width, $height: seen.height });
-        if (!due) soon();
-        due = { ...seen, camera: seen.eye };
-      },
-    );
-
-    function sight() {
-      const { width, height } = self;
-      const { models, lights, paints, probes, camera: any } = found(self);
-      const camera = self.camera ?? any;
-      return {
-        width,
-        height,
-        camera,
-        models,
-        lights,
-        paints,
-        probes,
-        eye: camera?.$world() ?? null,
-        projection: camera?.$projection(width, height) ?? null,
-        far: camera?.clipFar ?? 0,
-        near: camera?.clipNear ?? 0,
-        environment: (self.environment ?? SceneEnvironment).$environment?.() ?? PLAIN,
+    // The JavaScript renderer draws the view.
+    function byScript() {
+      const paper = canvas.getContext("bitmaprenderer");
+      // What a test or a tool may ask, as of the wgpu renderer's view
+      // (`drawOn`): `probe` is told of each sight taken ("sync") and each
+      // picture drawn ("draw"); `view` is the View3D itself, to read what it
+      // shows from.
+      const state = (canvas.$view3d = { renderer: "js", backend: "webgl2", frames: 0, builds: 0, error: null, probe: null, view: self });
+      // Drawn once what asked for it has settled, in the same task; one that
+      // gave its picture on in this task waits for the next frame, as the
+      // wgpu renderer's does (`gaveNow`).
+      let waiting = 0;
+      let resting = 0;
+      const pace = paced();
+      const soon = () => {
+        if (!gaveNow.has(state)) return void queueMicrotask(drawn);
+        waiting = requestAnimationFrame(() => {
+          waiting = 0;
+          drawn();
+        });
       };
+      if (getOwner())
+        onCleanup(() => {
+          if (waiting) cancelAnimationFrame(waiting);
+          clearTimeout(resting);
+        });
+      const drawn = () => {
+        const from = performance.now();
+        const wait = pace.wait(from);
+        if (wait) return void (resting = setTimeout(drawn, wait));
+        const scene = due;
+        due = null;
+        const drew = draw(scene, canvas, paper, ways);
+        last = scene;
+        if (ways) {
+          gave(state);
+          setTimes((times) => times + 1);
+        }
+        const ended = performance.now();
+        // A picture never drawn is no frame, so what waits for the first
+        // (a still picture standing in for the view) goes on waiting.
+        if (drew) {
+          frame(from, ended);
+          state.frames++;
+        }
+        state.probe?.("draw", from, ended);
+        pace.drew(from, ended);
+      };
+
+      // The view is a picture to what takes it for one (a Texture's item),
+      // the right way up or upside down, and that is drawn again when the
+      // view is: but a view that reads its own picture, as one does that lays
+      // each picture over its last, is not drawn again for having been
+      // drawn. A picture first asked for after the view was drawn is drawn
+      // again to be kept.
+      const [times, setTimes] = signal(0, self.$owner);
+      let own = false;
+      let ways = 0;
+      let last = null;
+      self.$canvas = { element: canvas };
+      self.$view = (down) => {
+        const way = down ? 2 : 1;
+        if (!(ways & way)) {
+          ways |= way;
+          if (!due && last) {
+            soon();
+            due = last;
+          }
+        }
+        return own ? 0 : times();
+      };
+
+      effect(
+        () => {
+          const from = state.probe ? performance.now() : 0;
+          own = true;
+          try {
+            return sight();
+          } finally {
+            own = false;
+            state.builds++;
+            state.probe?.("sync", from, performance.now());
+          }
+        },
+        (seen) => {
+          // A camera maps to the view it was last seen through.
+          first = seen.camera;
+          if (seen.camera) Object.assign(seen.camera, { $width: seen.width, $height: seen.height });
+          if (!due) soon();
+          due = { ...seen, camera: seen.eye };
+        },
+      );
+
+      function sight() {
+        const { width, height } = self;
+        const { models, lights, paints, probes, camera: any } = found(self);
+        const camera = self.camera ?? any;
+        return {
+          width,
+          height,
+          camera,
+          models,
+          lights,
+          paints,
+          probes,
+          eye: camera?.$world() ?? null,
+          projection: camera?.$projection(width, height) ?? null,
+          far: camera?.clipFar ?? 0,
+          near: camera?.clipNear ?? 0,
+          environment: (self.environment ?? SceneEnvironment).$environment?.() ?? PLAIN,
+        };
+      }
     }
   },
 });
@@ -452,17 +461,23 @@ function counted(stats) {
   // The first frame's times are said at once, however soon it comes:
   // what waits for a view's first picture hears of it.
   let since = TOLD;
+  // The first second begins with the first frame: the time the view took to
+  // be made, which may be long where its renderer is fetched, is no frame's.
+  let first = true;
   return (began, ended) => {
     const took = ended - last;
     last = ended;
-    frames++;
-    longest = Math.max(longest, took);
-    second += took;
     since += took;
     const told = {};
     if (since >= TOLD) {
       since -= TOLD;
       Object.assign(told, { frameTime: took, renderTime: ended - began });
+    }
+    if (first) first = false;
+    else {
+      frames++;
+      longest = Math.max(longest, took);
+      second += took;
     }
     if (second >= SECOND) {
       second -= SECOND;

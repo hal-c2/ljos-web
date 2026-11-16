@@ -17,17 +17,17 @@
 import { createRenderEffect, createRoot, getOwner, runWithOwner } from "solid-js";
 import { flush, located, slot, effect } from "../object.ts";
 import { color } from "../QtQuick/color.ts";
-import { guardedFetch } from "../guard.js";
-import { made } from "./early.js";
+import { adapted, made } from "./early.js";
 import { signal, untrack } from "#kernel";
 import { CustomMaterial } from "./CustomMaterial.js";
 import { handed, text } from "./effects.js";
 import { inside } from "./Node.js";
 import { done, paced, POLL } from "./paced.js";
+import { fetched } from "./scene.js";
 import { Format } from "./TextureData.js";
 
 // Which renderer a View3D has is said where the page asks for it early.
-export { renderer } from "./early.js";
+export { chosen, renderer } from "./early.js";
 
 // A glob, as an import of a file a build of JavaScript alone has not got
 // would fail, for the renderer it does not ask for.
@@ -468,10 +468,12 @@ class Host {
   arrived() {
     this.setArrivals((count) => count + 1);
   }
+  // The page's own fetch, which what it makes of the file shares.
   async fetched(url) {
-    const response = await guardedFetch(located(url));
-    if (!response.ok) throw `${response.status} ${response.statusText}`;
-    return new Uint8Array(await response.arrayBuffer());
+    const file = fetched(located(url));
+    await file.done;
+    if (file.failed) throw file.failed.told ?? file.failed;
+    return new Uint8Array(file.bytes);
   }
   report(url, error) {
     console.warn(`${this.view.$type.typeName}: ${url}: ${error}`);
@@ -518,8 +520,9 @@ export const gave = (view) => {
 // holds) is on the canvas, and so is `probe`: what
 // a tool that times the view (tests/perf3d) puts there is told of each build
 // ("sync": the scene read into the renderer) and each frame drawn ("draw"),
-// from when until when. Unset, nothing is timed for it.
-export function drawOn(self, canvas, told) {
+// from when until when. Unset, nothing is timed for it. Where WebGPU gives
+// the page no adapter, `instead`, if given, is called in place of drawing.
+export function drawOn(self, canvas, told, instead) {
   const [made, setMade] = signal(null, self.$owner);
   const [arrivals, setArrivals] = signal(0, self.$owner);
   const [draws, setDraws] = signal(0, self.$owner);
@@ -552,10 +555,11 @@ export function drawOn(self, canvas, told) {
     memory: () => memory?.buffer.byteLength ?? 0,
   });
   // A view that reads itself reads what it drew before and is not drawn again
-  // for that.
+  // for that. One first read after it drew is drawn again, as what it drew
+  // has left the surface.
   self.$view = () => {
     wanted = true;
-    if (!canvas.$drawn) request();
+    if (!canvas.$drawn) made()?.again();
     return own ? 0 : draws();
   };
   // A picture on WebGL 2 is the GPU's work, done after the call that asks
@@ -675,6 +679,14 @@ export function drawOn(self, canvas, told) {
   queue = queue
     .then(async () => {
       if (gone) return;
+      // Before the renderer is fetched or the canvas taken, so what draws
+      // instead has both.
+      if (instead && !(await adapted())) {
+        gone = true;
+        instead();
+        // What took the view's picture asks it again, of what draws now.
+        return void setDraws((times) => times + 1);
+      }
       if (!module) await chunk();
       const view = await module.View3d.create(canvas, host);
       if (gone) return void view.free();

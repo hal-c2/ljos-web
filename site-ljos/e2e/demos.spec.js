@@ -54,10 +54,13 @@ test.describe("/demos/", () => {
   });
 
   test("Orbit is drawn by the renderer the page names", async ({ page }) => {
-    test.fail(true, known.orbitRenderer);
     await settled(page, "/demos/");
     const orbit = await reach(page, "3D you can orbit");
-    await expect.poll(() => orbit.locator("canvas.qq-view3d").evaluate((canvas) => canvas.$view3d?.backend)).toBe("wgpu");
+    // wgpu is every View3D's renderer; a browser with no WebGPU adapter
+    // to give it, as a headless one on a machine without a GPU, has it
+    // drawn by the JS renderer instead.
+    const adapter = await page.evaluate(async () => !!(await globalThis.navigator.gpu?.requestAdapter().catch(() => null)));
+    await expect.poll(() => orbit.locator("canvas.qq-view3d").evaluate((canvas) => canvas.$view3d?.renderer)).toBe(adapter ? "wgpu" : "js");
   });
 
   test("Orbit turns under a sideways drag and zooms under a pinch", async ({ page, errors }) => {

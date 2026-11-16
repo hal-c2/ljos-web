@@ -18,9 +18,26 @@ import { guardedFetch } from "../guard.js";
 const asked = new URLSearchParams(globalThis.location?.search ?? "").get("view3d");
 
 // DECISION: which renderer a View3D has, until `render.js` goes: the page's
-// `?view3d=`, else what the build said (`VITE_LJOS_VIEW3D`), else the
-// JavaScript one, as long as that alone passes all of `quick3d.spec.js`.
-export const renderer = () => asked ?? import.meta.env?.VITE_LJOS_VIEW3D ?? "js";
+// `?view3d=`, else what the build said (`VITE_LJOS_VIEW3D`), else wgpu where
+// the browser has WebGPU, which draws Qt's pictures as the JavaScript one
+// does (`quick3d.spec.js`, `graphs3d.spec.js` on `tests/wgpu.config.js`).
+// `js` still has the JavaScript one, as does a browser without WebGPU.
+export const renderer = () => chosen() ?? (globalThis.navigator?.gpu ? "wgpu" : "js");
+
+// The renderer the page or the build asked for, if either did: a view on
+// the one taken for want of an ask is drawn by the JavaScript renderer when
+// WebGPU gives it no adapter (`adapted`), where one asked for says why not.
+export const chosen = () => asked ?? import.meta.env?.VITE_LJOS_VIEW3D;
+
+// Whether WebGPU has an adapter for this page, asked once: a browser may
+// have WebGPU and no GPU it lets it use.
+let adapter = null;
+export function adapted() {
+  adapter ??= Promise.resolve(globalThis.navigator?.gpu?.requestAdapter())
+    .then((found) => !!found)
+    .catch(() => false);
+  return adapter;
+}
 
 const glue = import.meta.glob("./wgpu/ljos_web_3d.js");
 
@@ -43,11 +60,17 @@ export function asking(address) {
   if (compiled || renderer() !== "wgpu") return;
   const load = glue["./wgpu/ljos_web_3d.js"];
   if (!load || !address) return;
-  // `wgpu.js` fetches these with the chunk.
-  load().catch(() => {});
-  import("./Particles3D/drawn.js").catch(() => {});
   const fetched = (url) => (url ? guardedFetch(url).then(compile) : undefined);
-  compiled = (typeof address === "string" ? fetched(address) : address.then(fetched)).catch(() => undefined);
+  const fetching = () => {
+    // `wgpu.js` fetches these with the chunk.
+    load().catch(() => {});
+    import("./Particles3D/drawn.js").catch(() => {});
+    return typeof address === "string" ? fetched(address) : address.then(fetched);
+  };
+  // Taken for want of an ask, it is fetched only once WebGPU has an adapter
+  // for the page: one without draws on the JavaScript renderer.
+  const wanted = chosen() ? fetching() : adapted().then((found) => (found ? fetching() : undefined));
+  compiled = wanted.catch(() => undefined);
 }
 
 // The wasm compiled for the glue's `default()`, once it is: undefined when

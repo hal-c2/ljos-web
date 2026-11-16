@@ -7,6 +7,10 @@ import { expect, test as base } from "@playwright/test";
 // page's: a picture bigger than a thumbnail read back from WebGL has one
 // say it waited.
 const DRIVER = /GL Driver Message \(OpenGL, Performance/;
+// Nor is the browser's saying WebGPU has no adapter for the page: a View3D
+// asks for one to know whether to draw on wgpu, and draws on the JavaScript
+// renderer when there is none.
+const NO_ADAPTER = /^No available adapters\.$/;
 
 export const test = base.extend({
   // What a scene is to say, as Qt says it of the same QML: a spec names it
@@ -16,7 +20,7 @@ export const test = base.extend({
     const problems = [];
     page.on("pageerror", (error) => problems.push(error.message));
     page.on("console", (message) => {
-      if ((message.type() === "error" || message.type() === "warning") && !DRIVER.test(message.text())) problems.push(message.text());
+      if ((message.type() === "error" || message.type() === "warning") && !DRIVER.test(message.text()) && !NO_ADAPTER.test(message.text())) problems.push(message.text());
     });
     await use(page);
     expect(problems.filter((problem) => !told.some((pattern) => pattern.test(problem)))).toEqual([]);
