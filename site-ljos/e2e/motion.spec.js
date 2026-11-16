@@ -8,8 +8,8 @@ import { centre, expect, open, test } from "./fixtures.js";
 test.use({ reducedMotion: "reduce" });
 
 // Where the puck is, relative to its tray, read in the page on every
-// animation frame: first until it rests, then for a while after a press
-// at the tray's left edge, each as [ms, x]. Read in the page, not from
+// animation frame: first until it rests, as [ms, x, y], then for a
+// while after a press at the tray's left edge, as [ms, x]. Read in the page, not from
 // the test, so a busy machine cannot make the test look away while the
 // puck travels.
 //
@@ -38,21 +38,32 @@ async function pressAndWatch(page) {
           const style = getComputedStyle(element);
           return Math.round(element.getBoundingClientRect().width) === 54 && parseFloat(style.borderTopLeftRadius) >= 26;
         });
-      const read = () => {
+      // Where the puck is in its tray: [x, y], or null where it is not drawn.
+      const place = () => {
         const round = puck();
-        return round ? round.getBoundingClientRect().x - host.getBoundingClientRect().x : null;
+        if (!round) return null;
+        const own = round.getBoundingClientRect();
+        const tray = host.getBoundingClientRect();
+        return [own.x - tray.x, own.y - tray.y];
       };
+      const read = () => place()?.[0] ?? null;
       const rest = await new Promise((resolve) => {
         const seen = [];
         const t0 = performance.now();
         const frame = () => {
           const at = performance.now() - t0;
-          seen.push([Math.round(at), read()]);
+          const where = place();
+          seen.push([Math.round(at), where?.[0] ?? null, where?.[1] ?? null]);
           // From the last reading at least `still` ago, so the readings
-          // span the whole window however far apart the frames fall.
+          // span the whole window however far apart the frames fall;
+          // both ways, so a puck still across but moving down is not at rest.
           const from = seen.findLastIndex(([t]) => t <= at - still);
-          const recent = from < 0 ? [] : seen.slice(from).map(([, x]) => x);
-          const quiet = recent.length >= 2 && recent.every((x) => x !== null) && Math.max(...recent) - Math.min(...recent) <= 0.5;
+          const recent = from < 0 ? [] : seen.slice(from);
+          const within = (axis) => {
+            const values = recent.map((reading) => reading[axis]);
+            return Math.max(...values) - Math.min(...values) <= 0.5;
+          };
+          const quiet = recent.length >= 2 && recent.every(([, x]) => x !== null) && within(1) && within(2);
           if (quiet || at >= settle) resolve({ still: quiet, after: Math.round(at), seen });
           else requestAnimationFrame(frame);
         };
@@ -75,16 +86,16 @@ async function pressAndWatch(page) {
     },
     { press: PRESS, still: STILL, settle: SETTLE },
   );
-  const trace = (samples) => JSON.stringify(samples.map(([t, x]) => [t, x === null ? null : Math.round(x * 10) / 10]));
-  const before = `${rest.still ? `at rest after ${rest.after} ms` : `not at rest after ${rest.after} ms`}; before the press ${trace(rest.seen)}`;
+  const trace = (samples) => JSON.stringify(samples.map(([t, ...place]) => [t, ...place.map((v) => (v === null ? null : Math.round(v * 10) / 10))]));
+  const before = `${rest.still ? `at rest after ${rest.after} ms` : `not at rest after ${rest.after} ms`}; before the press [ms, x, y] ${trace(rest.seen)}`;
   expect(start, `the puck is drawn (${before})`).not.toBeNull();
   expect(rest.still, `the puck is at rest before the press (${before})`).toBe(true);
   await page.mouse.click(box.x + PRESS, box.y + box.height / 2);
   await page.waitForTimeout(2_700);
   const samples = await page.evaluate(() => window.__puck);
   const xs = samples.map(([, x]) => x);
-  // Every failure says what was seen: [ms, x] for each frame read.
-  const seen = `start ${start}, target ${target}; ${before}; after it ${trace(samples)}`;
+  // Every failure says what was seen, for each frame read.
+  const seen = `start ${start}, target ${target}; ${before}; after it [ms, x] ${trace(samples)}`;
   return { start, target, rest, samples, xs, end: xs.at(-1), seen };
 }
 
@@ -93,8 +104,9 @@ test("with reduced motion the puck still travels; it does not jump", async ({ pa
   const { start, target, rest, samples, end, seen } = await pressAndWatch(page);
   // The puck goes where a reader sends it and nowhere else: as the demo
   // appears and takes its frame's size, it stays in the tray's middle.
-  const drawnBefore = rest.seen.filter(([, x]) => x !== null).map(([, x]) => x);
-  expect(Math.max(...drawnBefore) - Math.min(...drawnBefore), `nothing moves the puck before a reader does (${seen})`).toBeLessThanOrEqual(0.5);
+  const drawnBefore = rest.seen.filter(([, x]) => x !== null);
+  const spread = (axis) => Math.max(...drawnBefore.map((reading) => reading[axis])) - Math.min(...drawnBefore.map((reading) => reading[axis]));
+  expect(Math.max(spread(1), spread(2)), `nothing moves the puck before a reader does (${seen})`).toBeLessThanOrEqual(0.5);
   expect(start - target, `the press is far enough away to watch it travel (${seen})`).toBeGreaterThan(50);
   expect(end, `the puck is still drawn when it arrives (${seen})`).not.toBeNull();
   expect(Math.abs(end - target), `it ends where the reader pressed (${seen})`).toBeLessThanOrEqual(3);
