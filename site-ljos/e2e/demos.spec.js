@@ -69,6 +69,13 @@ test.describe("/demos/", () => {
   test("Orbit keeps drawing frames", async ({ page }) => {
     await settled(page, "/demos/");
     const orbit = await started(page, "3D you can orbit");
+    // Run starts the renderer; it keeps drawing once it has drawn and its
+    // picture is gone. A software GPU takes seconds over its first frame,
+    // which is no part of what this checks.
+    await expect
+      .poll(() => orbit.locator("canvas.qq-view3d").evaluate((canvas) => canvas.$view3d?.frames ?? 0), { message: "Orbit has drawn", timeout: 30_000 })
+      .toBeGreaterThan(0);
+    await expect(orbit.locator("img:visible"), "its picture is gone").toHaveCount(0, { timeout: 10_000 });
     await expectFramesAdvance(orbit.locator("canvas").first());
     await expect.poll(() => orbit.locator("canvas.qq-view3d").evaluate((canvas) => canvas.$view3d?.frames ?? 0)).toBeGreaterThan(10);
   });
