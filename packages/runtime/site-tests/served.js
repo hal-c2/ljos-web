@@ -89,19 +89,25 @@ export function serve(directory, { below = "/", headers = () => ({}) } = {}) {
 }
 
 // One part of a test, or of a shared hook given by `shared`, as a step the
-// report names and times.
-export function part(title, run) {
+// report names and times. A part given a `timeout` fails on its own when
+// that runs out, naming itself, and leaves the rest of the test's time to
+// what follows it (a `finally` that stops a server, the report).
+export function part(title, run, { timeout } = {}) {
   const watched = watching.at(-1);
   if (!watched) throw new Error(`part "${title}" runs outside a test and outside a hook given by shared(): nothing would say where it stalled`);
   const at = { title, since: Date.now(), took: null };
   watched.parts.push(at);
-  return test.step(title, async () => {
-    try {
-      return await run();
-    } finally {
-      at.took = Date.now() - at.since;
-    }
-  });
+  return test.step(
+    title,
+    async () => {
+      try {
+        return await run();
+      } finally {
+        at.took = Date.now() - at.since;
+      }
+    },
+    { timeout },
+  );
 }
 
 // A shared hook (`beforeAll`, `afterAll`), watched from its start: no
