@@ -1,3 +1,41 @@
 #!/usr/bin/env bash
-#MISE description="Every test"
-#MISE depends=["test:compiler", "test:runtime", "test:site", "test:web", "test:gallery", "test:size"]
+#MISE description="Every test task, one after another, then a table of each one's result: test:compiler, test:runtime, test:kernel, test:site, test:web, test:gallery, test:size, test:faces-size, test:wasm-counter, test:wasm-gauge, site:test and site:astro:test (perf:3d measures, it does not test, and is left out)"
+#USAGE flag "--only <tasks>" help="Run only these, comma-separated (test:web,site:test)"
+set -euo pipefail
+
+# One list, which tasks:smoke checks against `mise tasks`: a test task
+# added and not named here fails it.
+all=(test:compiler test:runtime test:kernel test:site test:web test:gallery test:size test:faces-size test:wasm-counter test:wasm-gauge site:test site:astro:test)
+tasks=("${all[@]}")
+if [ -n "${usage_only:-}" ]; then
+  IFS=, read -r -a tasks <<<"$usage_only"
+  for task in "${tasks[@]}"; do
+    case " ${all[*]} " in
+      *" $task "*) ;;
+      *)
+        echo "test: --only names test tasks (${all[*]}), not '$task'" >&2
+        exit 2
+        ;;
+    esac
+  done
+fi
+
+# Every task runs, whatever came before it, so one run shows every failure.
+results=()
+failed=0
+for task in "${tasks[@]}"; do
+  echo
+  echo "test: $task"
+  start=$SECONDS
+  if mise run "$task"; then result=pass; else result=FAIL; failed=$((failed + 1)); fi
+  results+=("$(printf '%-18s %-4s %5ss' "$task" "$result" $((SECONDS - start)))")
+done
+
+echo
+printf '%-18s %-4s %6s\n' task result time
+for line in "${results[@]}"; do echo "$line"; done
+if [ "$failed" -gt 0 ]; then
+  echo "test: $failed of ${#tasks[@]} failed" >&2
+  exit 1
+fi
+echo "test: all ${#tasks[@]} passed"
