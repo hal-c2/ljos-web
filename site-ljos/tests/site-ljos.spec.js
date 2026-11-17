@@ -204,6 +204,86 @@ test("a code block is its picture until the reader reaches for it, then runs bes
   expect(errors).toEqual([]);
 });
 
+// What an example shows of itself besides what it draws (observed.js),
+// read as the strip under its stage reads it: plain functions, so the
+// page is not needed to hold them.
+function observed() {
+  const source = readFileSync(new URL("../bundle/observed.js", import.meta.url), "utf8").replace(/^\.pragma library\n/, "");
+  return new Function(`${source}\nreturn { lines, watch, unwatch, say, reset, show, inspectFor, declared, connectSignals, KEPT };`)();
+}
+
+test("an example's lines are kept, the last few, and told to who watches", () => {
+  const o = observed();
+  const told = [];
+  const watcher = (lines) => told.push(lines.map((line) => line.message));
+  o.watch("a", watcher);
+  o.reset("a", ["as the build heard it"]);
+  o.say("a", "log", "one");
+  o.say("b", "log", "elsewhere");
+  expect(told).toEqual([["as the build heard it"], ["as the build heard it", "one"]]);
+  o.unwatch("a", watcher);
+  for (let i = 0; i < o.KEPT + 5; i++) o.say("a", "warn", `line ${i}`);
+  expect(o.lines("a")).toHaveLength(o.KEPT);
+  expect(o.lines("a").at(-1)).toEqual({ level: "warn", message: `line ${o.KEPT + 4}` });
+  expect(told, "one unwatched hears no more").toHaveLength(2);
+});
+
+test("an example's console says its lines as the page's does, and keeps them", () => {
+  const o = observed();
+  const printed = [];
+  const page = { $console: (place) => ({ place, log: (...args) => printed.push([place, ...args]), debug() {}, info() {}, warn() {}, error() {} }) };
+  const own = o.inspectFor("ex", page);
+  expect(o.inspectFor("ex", page), "one per example, so the compiler bridges it once").toBe(own);
+  own.$console(["Main.qml", 5, 28]).log("count", 3, [1, "two"]);
+  expect(printed, "the page's console still prints it, where it was").toEqual([[["Main.qml", 5, 28], "count", 3, [1, "two"]]]);
+  expect(o.lines("ex")).toEqual([{ level: "log", message: "count 3 [1, two]" }]);
+});
+
+test("a root's own properties and signals are read from what declared them, and its signals are said as they fire", () => {
+  const o = observed();
+  const handlers = [];
+  const signal = { connect: (fn) => handlers.push(fn), disconnect: (fn) => handlers.splice(handlers.indexOf(fn), 1) };
+  const root = {
+    $props: { $levels: [{ $declare: { properties: { total: 0 }, signals: ["ping"] } }, { $declare: [{ properties: { total: 0, label: "" }, signals: [] }] }] },
+    ping: signal,
+  };
+  expect(o.declared(root)).toEqual({ properties: ["total", "label"], signals: ["ping"] });
+  expect(o.declared({}), "a root made by no file of the example's declares nothing").toEqual({ properties: [], signals: [] });
+  const disconnect = o.connectSignals("sig", root);
+  handlers.forEach((fn) => fn(3, "start"));
+  expect(o.lines("sig")).toEqual([{ level: "signal", message: "ping(3, start)" }]);
+  disconnect();
+  expect(handlers, "stopped, it listens no more").toEqual([]);
+});
+
+// The build's own run of an example is what its strip says until the
+// reader runs it: true with no script at all.
+test("an example's strip says what the build's run of it logged, with no script", async ({ browser }) => {
+  const context = await browser.newContext({ javaScriptEnabled: false, viewport: BUILD_SIZE });
+  const page = await context.newPage();
+  await page.goto("/ui/items/");
+  await expect(shown(page.getByText("› hit: under", { exact: true })).first()).toBeVisible();
+  await context.close();
+});
+
+// Run, Edit and Reset sit in a toolbar between the code and the stage,
+// never over what the example draws; once it runs, its strip shows its
+// root's own properties as they are.
+test("an example's toolbar stands clear of its stage, and its strip shows what it holds once run", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1600 });
+  await page.goto("/language/signals-and-handlers/");
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  const picture = page.locator('img[alt="What this example draws"]').first();
+  const run = page.getByRole("button", { name: "Run this example" }).first();
+  await run.scrollIntoViewIfNeeded();
+  const [toolbar, stage] = [await run.boundingBox(), await picture.boundingBox()];
+  expect(toolbar.y + toolbar.height, "Run is above the window, not on it").toBeLessThanOrEqual(stage.y);
+  await expect(page.getByRole("button", { name: "Reset this example to as written" }), "nothing to reset before an edit").toHaveCount(0);
+  await press(page, run);
+  await expect(page.getByRole("button", { name: "Stop this example" }).first()).toBeVisible({ timeout: 30_000 });
+  await expect(shown(page.getByText("total: 3", { exact: true })).first(), "its own property, as its run left it").toBeVisible({ timeout: 30_000 });
+});
+
 test("a block whose first edit does not compile stays its picture and says why", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1600 });
   await page.goto("/language/overview/");
@@ -217,9 +297,11 @@ test("a block whose first edit does not compile stays its picture and says why",
   await page.keyboard.type("Broken {");
   await expect(page.getByText(/Main\.qml:\d+/).first()).toBeVisible({ timeout: 30_000 });
   await expect(picture).toBeVisible();
-  // Its control does not go on Loading: it offers the code to mend.
-  await expect(page.getByRole("button", { name: "Edit this example" }), "the control offers its code").toHaveCount(1);
-  await expect(page.getByRole("button", { name: "Loading this example" }), "no Loading that never ends").toHaveCount(0);
+  // Its toolbar does not go on Starting: it offers to stop, back to
+  // the picture, and Edit takes the reader to the code to mend.
+  const stop = page.getByRole("button", { name: "Stop this example" });
+  await expect(stop, "the toolbar offers to stop").toHaveCount(1);
+  await expect(page.getByRole("button", { name: "Starting this example…" }), "no Starting that never ends").toHaveCount(0);
 });
 
 test("an editor goes with its page: the next page keeps none of its views or listeners", async ({ page }) => {
@@ -677,7 +759,7 @@ test("every showcase demo stands in its slot on the demos page", async ({ page }
     await expect(shown(page.getByText(inside)).first()).toBeVisible();
     const pause = page.getByRole("button", { name: label.replace(/^Run /, "Pause ") });
     await pause.click();
-    await expect(page.getByRole("button", { name: label }), `${title} paused offers its Run again`).toBeVisible();
+    await expect(page.getByRole("button", { name: label.replace(/^Run /, "Resume ") }), `${title} paused offers to resume`).toBeVisible();
   }
   // The other demos did not take the flagship's place away.
   await stageButton(page, "Add bread");

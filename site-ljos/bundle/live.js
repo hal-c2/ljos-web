@@ -18,7 +18,8 @@
 // there, told to the block as lines it shows, never asked of a server.
 
 var examples = {};
-var compiler = null;
+var made = null;
+var modules = null;
 // What the last compile of each block said, by display file, in the
 // file's own lines (`parse.displayPosition`): the squiggles its editors
 // show. A compile that worked says nothing.
@@ -32,7 +33,10 @@ function diagnosticsFor(id, index) {
 // `told(lines)`: what the running example asked for and does not have,
 // one line each, as it changes. `given`: the site's files the example
 // was given, as its payload carries them (`parse.packGiven`).
-function setExample(id, display, entry, harnessTemplate, harnessFile, told, given) {
+// `inspected(namespace)`: the `ljos-web/inspect` this example's QML is
+// compiled against (`inspect: true`), so what it logs is told as its
+// own (observed.js); none, and it is the page's.
+function setExample(id, display, entry, harnessTemplate, harnessFile, told, given, inspected) {
     examples[id] = {
         packed: given || undefined,
         display: display,
@@ -40,6 +44,8 @@ function setExample(id, display, entry, harnessTemplate, harnessFile, told, give
         harnessTemplate: harnessTemplate || undefined,
         harnessFile: harnessFile || undefined,
         told: told || function () {},
+        inspected: inspected || null,
+        compile: null,
         absent: []
     };
 }
@@ -58,11 +64,13 @@ async function needsWasm() {
     return made.wasmWorks() ? "" : made.NEEDS_WASM;
 }
 
-async function compileWith() {
-    if (!compiler) {
-        const made = await import("ljos-web/compiler");
+// One compiler per example, all of one wasm and one linker: an
+// example's own `ljos-web/inspect` is its modules' only difference.
+async function compileWith(example) {
+    if (!made) {
+        made = await import("ljos-web/compiler");
         const mods = await import("ljos-web/compiler/modules");
-        const modules = Object.assign({}, mods.modules, {
+        modules = Object.assign({}, mods.modules, {
             "ljos-web/QtQuick/Controls": function () {
                 return import("ljos-web/QtQuick/Controls");
             },
@@ -79,16 +87,24 @@ async function compileWith() {
                 return import("ljos-web/Ljos/Design");
             }
         });
-        compiler = made.createCompiler({ modules: modules }).compile;
     }
-    return compiler;
+    if (!example.compile) {
+        const inspected = example.inspected;
+        const own = inspected ? Object.assign({}, modules, {
+            "ljos-web/inspect": function () {
+                return import("ljos-web/inspect").then(inspected);
+            }
+        }) : modules;
+        example.compile = made.createCompiler({ modules: own }).compile;
+    }
+    return example.compile;
 }
 
 async function moduleFor(id) {
     const example = examples[id];
     if (!example)
         throw new Error("no example " + id);
-    const compile = await compileWith();
+    const compile = await compileWith(example);
     const parse = await import("ljos-web/codeblocks/parse");
     if (example.packed && !example.given)
         example.given = parse.unpackGiven(example.packed);
@@ -99,6 +115,7 @@ async function moduleFor(id) {
         entry: files.entry,
         base: root,
         closed: true,
+        inspect: example.inspected !== null,
         // What the last project was told goes when this compile gives the
         // example its files, before its scripts run: a compile that fails
         // sooner keeps what the example that still runs was told.
