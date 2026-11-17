@@ -1817,12 +1817,18 @@ function complete<T>(make: () => T): T {
     for (const handler of firsts) soon(handler);
     // What the objects make of each other once they are made, as a row of
     // where its items are and how wide that makes it, they have made before
-    // any is told that it is complete.
-    if (handlers.length > 0 || handlers.first) settle();
-    for (const handler of handlers.first ?? []) soon(handler);
+    // any is told that it is complete. Objects a binding makes as it is
+    // evaluated (a popup's `contentItem: Component {}`, asked for by the
+    // popup's `implicitHeight`) are told once it is done, as during a flush:
+    // settled now, what changes would reach the binding as a change it made
+    // itself, and it would keep what it read before (the Solid kernel's).
+    const inBinding = evaluated !== null;
+    const later = inBinding ? after : soon;
+    if (!inBinding && (handlers.length > 0 || handlers.first)) settle();
+    for (const handler of handlers.first ?? []) later(handler);
     // `Component.onCompleted`, as Qt tells of it: of the object made last
     // first, so of one before those in it, and of those the last first.
-    for (let index = handlers.length - 1; index >= 0; index--) soon(handlers[index]!);
+    for (let index = handlers.length - 1; index >= 0; index--) later(handlers[index]!);
   } finally {
     if (--creating === 0) {
       for (const tell of kept) after(tell);
