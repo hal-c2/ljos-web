@@ -54,7 +54,7 @@ expect() {
   fi
 }
 
-for c in newer pinned qt5-only qml-only qml-named system; do
+for c in newer pinned qt5-only qml-only qml-named system unread; do
   stub "$c" rustup "wasm32-unknown-unknown"
   stub "$c" rustc "rustc $rust (stand-in)"
 done
@@ -81,6 +81,11 @@ expect qt5-only 0 "setup --check: found"
 expect qml-only 1 "reference's qml ($scratch/qml-only/qml6) is Qt $newer.0, not the pinned Qt $qt_pinned"
 expect qml-named 0 "reference's qml: $scratch/qt-pinned/bin/qml, the pinned Qt $qt_pinned" QML="$scratch/qt-pinned/bin/qml"
 expect system 1 "types' Qt ($scratch/qt-newer/qml) is Qt $newer.1, not the pinned Qt $qt_pinned" qt_system_qml="$scratch/qt-newer/qml"
+# A Qt found whose version nothing answers is said, not passed as pinned.
+mkdir -p "$scratch/qt-unread/qml"
+stub unread qml6 "Qml Runtime"
+expect unread 0 "types' Qt ($scratch/qt-unread/qml): no qtpaths or qmake beside it gave a Qt 6 version" qt_system_qml="$scratch/qt-unread/qml"
+expect unread 0 "reference's qml ($scratch/unread/qml6) gave no Qt 6 version" qt_system_qml="$scratch/qt-unread/qml"
 
 if [ "$failed" != 0 ]; then
   echo "tasks:test: a case above failed" >&2
