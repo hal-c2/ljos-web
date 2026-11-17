@@ -221,10 +221,10 @@ function given(folder) {
 
 // The files a project was given are at hand too, so the pictures the model
 // is to show of them are looked into before it shows them, as a picked
-// folder's are.
+// folder's are. A folder named like a picture is not one.
 async function held(entries, folder, wanted) {
   if (!entries) return entries;
-  const pictures = present(entries, folder, wanted).filter(({ fileName }) => typeOf(fileName).startsWith("image/"));
+  const pictures = present(entries, folder, wanted).filter(({ fileName, fileIsDir }) => !fileIsDir && typeOf(fileName).startsWith("image/"));
   await Promise.all(pictures.map(({ fileUrl }) => ready(fileUrl)));
   return entries;
 }
