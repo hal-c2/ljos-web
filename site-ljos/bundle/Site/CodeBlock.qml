@@ -60,6 +60,9 @@ Column {
     property bool runs: true
     // A reader is in one of the editors: its box says so.
     property bool editing: false
+    // Whether the example's code is shown above its stage: the toolbar's
+    // Source hides it to leave the app alone, and Edit brings it back.
+    property bool sourceShown: true
     // Whether that has been asked yet: nothing runs before it is known.
     property bool checked: false
     // The code is not as written: Reset puts it back.
@@ -282,7 +285,7 @@ Column {
         spacing: 0
 
         Row {
-            visible: block.isLive && block.live.display.length > 1
+            visible: block.isLive && block.sourceShown && block.live.display.length > 1
             spacing: 6
             // What holds the tabs, so a reader hears them as one set.
             Accessible.role: Accessible.PageTabList
@@ -333,8 +336,9 @@ Column {
         }
 
         Rectangle {
+            visible: block.sourceShown
             width: parent.width
-            height: editorBox.implicitHeight
+            height: visible ? editorBox.implicitHeight : 0
             color: Theme.codeBg
             border.color: block.editing ? Theme.focusRing : Theme.divider
             border.width: block.editing ? 2 : 1
@@ -404,7 +408,10 @@ Column {
                 StageButton {
                     text: t({ message: "Edit", context: "stage" })
                     label: t`Edit ${block.fileName}`
-                    onPressed: editors.itemAt(block.currentFile).forceActiveFocus()
+                    onPressed: {
+                        block.sourceShown = true;
+                        editors.itemAt(block.currentFile).forceActiveFocus();
+                    }
                 }
                 // Only once there is an edit to undo: a control that
                 // cannot act is not shown, as a screen reader would not
@@ -414,6 +421,21 @@ Column {
                     text: t`Reset`
                     label: t`Reset ${block.what} to as written`
                     onPressed: block.reset()
+                }
+                StageButton {
+                    id: sourceButton
+                    checkable: true
+                    checked: block.sourceShown
+                    text: t({ message: "Source", context: "stage tab" })
+                    label: t`Show the source`
+                    onPressed: {
+                        // Code that hides takes no keys: the reader's
+                        // focus stays on what they pressed, and Edit
+                        // has it to give back to the code.
+                        if (block.sourceShown && block.editing)
+                            sourceButton.forceActiveFocus();
+                        block.sourceShown = !block.sourceShown;
+                    }
                 }
             }
             Rectangle {

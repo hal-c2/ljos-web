@@ -139,7 +139,7 @@ export async function centreOf(locator) {
 // of the window a reader sees that holds anything (the window keeps
 // the picture's holder and the prerendered copy beside it, hidden).
 // The window stands on the stage's ground; before that ground, the
-// toolbar (Run, Edit, Reset); after it, the line where the
+// toolbar (Run, Edit, Reset, Source); after it, the line where the
 // block says what went wrong, then the values strip.
 export function liveBlock(page, index) {
   const picture = page.locator(PICTURE).nth(index);
