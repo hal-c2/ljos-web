@@ -4,7 +4,7 @@
 // holds still, and its shell is the one compiled with the page. The
 // others wait for their Run, and then run.
 import { centre, centreOf, drag, expect, expectFramesAdvance, open, pageScroll, pinch, press, runButton, signature, test, unexpected } from "./fixtures.js";
-import { demo as known, sourceView } from "./known.js";
+import { sourceView } from "./known.js";
 
 function headingOf(page, heading) {
   return page.locator("#app div.qq-text").filter({ hasText: new RegExp(`^${heading}$`) }).first();
@@ -201,12 +201,13 @@ test.describe("/demos/", () => {
 
   test("the field guide's search takes what a reader types after pressing it", async ({ page, wasm }) => {
     test.skip(!wasm, "the field guide needs WebAssembly");
-    test.fail(true, known.fieldGuideSearch);
     await settled(page, "/demos/");
     const guide = await started(page, "A whole app");
     await press(guide.getByRole("textbox", { name: /Search/ }));
     await page.keyboard.type("gannet");
-    await expect(guide.getByRole("button")).toHaveCount(1);
+    // The one species it names, beside the demo's own Pause.
+    const named = () => guide.getByRole("button").evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label")));
+    await expect.poll(named).toEqual(["Northern gannet", "Pause the field guide"]);
   });
 
   test("the motion demo's puck springs after a press", async ({ page, errors, wasm }) => {

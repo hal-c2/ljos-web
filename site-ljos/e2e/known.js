@@ -14,8 +14,3 @@ export function brokenExample(route, index) {
 }
 
 export const sourceView = "SOURCE lane: a demo has no 'show source' yet";
-
-export const demo = {
-  fieldGuideSearch:
-    "audit: a mouse press on the field guide's search field leaves focus on the page body, so what the reader types goes nowhere; typing after focus() does filter the list",
-};
