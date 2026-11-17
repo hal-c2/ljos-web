@@ -92,8 +92,8 @@ qt_answer() {
   fi
 }
 # `qt_of_bin <dir>`: the version of the Qt whose bin directory is <dir>. A
-# distribution can keep Qt 5's unsuffixed qtpaths beside Qt 6's qmake6, so a
-# Qt 6 answer wins over the first answer of another major.
+# distribution can keep Qt 5's unsuffixed qtpaths beside Qt 6's qmake6, so an
+# answer of the pinned major wins over the first answer of another.
 qt_of_bin() {
   local ask version first=""
   for ask in "qtpaths6 --qt-version" "qtpaths --qt-version" "qmake6 -query QT_VERSION" "qmake -query QT_VERSION"; do
@@ -102,7 +102,7 @@ qt_of_bin() {
     version="$(qt_answer "$1/${ask%% *}" ${ask#* })"
     case "$version" in
       "") ;;
-      6.*)
+      "${qt_pinned%%.*}".*)
         printf '%s\n' "$version"
         return
         ;;
