@@ -69,16 +69,17 @@ async function keepsDrawing(canvas) {
   }
 }
 
-// Stops the page's installed clock where it is. pauseAt takes a wall-clock
-// time, and the page's clock runs on while the request crosses to a page
-// busy drawing (Orbit's scene on a loaded runner): a time read before it can
-// be past by then, and a clock cannot be put back. Fixing the wall clock at
-// the time the page reads holds it there while frames and timers still run,
-// so pausing at that time is never in the past, however slow the page is.
-async function stopClock(page) {
-  const now = await page.evaluate(() => Date.now());
-  await page.clock.setFixedTime(now);
-  await page.clock.pauseAt(now);
+// Where Orbit's camera rig stands: the turn of the node its camera hangs
+// from (`origin` in Orbit.qml), which its OrbitCameraController turns, and
+// the camera's distance from it, which a pinch changes. The scene's own
+// motion turns its lamp and shapes and never the rig, so what moves the rig
+// is the input, however fast or slow the runner draws.
+function rigOf(canvas) {
+  return canvas.evaluate((canvas) => {
+    const camera = canvas.$view3d.view.camera;
+    const { x, y } = camera.parent.eulerRotation;
+    return { x, y, distance: camera.z, frames: canvas.$view3d.frames };
+  });
 }
 
 test.describe("/demos/", () => {
@@ -132,41 +133,35 @@ test.describe("/demos/", () => {
   });
 
   test("Orbit turns under a sideways drag and zooms under a pinch", async ({ page, errors }) => {
-    // The scene turns on its own, so a changed picture proves nothing
-    // about the drag. With the page's clock stopped nothing moves on
-    // its own: what moves then is what the drag moved.
-    await page.clock.install();
     await settled(page, "/demos/");
     const canvas = (await started(page, "3D you can orbit")).locator("canvas.qq-view3d");
     await centre(canvas);
     const { x, y } = await centreOf(canvas);
-    await stopClock(page);
-    const shot = () => canvas.screenshot();
-    const before = await shot();
-    expect(Buffer.compare(before, await shot()), "with the clock stopped the scene holds still").toBe(0);
+    const before = await rigOf(canvas);
     await drag(page, { x: x - 80, y }, { x: x + 80, y });
-    await expect.poll(async () => Buffer.compare(before, await shot()) !== 0, { message: "the scene turned" }).toBe(true);
+    // As Qt turns it: against the drag, about its upright axis only.
+    const turned = await rigOf(canvas);
+    expect(turned.y, "a drag to the right turns the rig to the left").toBeLessThan(before.y - 10);
+    expect(turned.x, "a sideways drag does not tilt it").toBeCloseTo(before.x, 1);
+    // What is drawn after the drag is drawn from where the rig now stands.
+    await expect.poll(async () => (await rigOf(canvas)).frames, { message: "the turned scene is drawn" }).toBeGreaterThan(turned.frames);
     await pinch(page, x, y);
+    await expect.poll(async () => (await rigOf(canvas)).distance, { message: "a pinch brings the camera closer" }).toBeLessThan(turned.distance);
     expect(unexpected(errors)).toEqual([]);
   });
 
   test("Orbit takes an up-and-down drag; the page does not", async ({ page }) => {
-    // As for the sideways drag: with the page's clock stopped nothing
-    // turns on its own, so a changed picture is the drag's, and the
-    // page's scroll staying put says the page did not take it.
-    await page.clock.install();
     await settled(page, "/demos/");
     const canvas = (await started(page, "3D you can orbit")).locator("canvas.qq-view3d");
     await centre(canvas);
     const { x, y } = await centreOf(canvas);
     const scrolled = await pageScroll(page);
-    await stopClock(page);
-    const shot = () => canvas.screenshot();
-    const before = await shot();
-    expect(Buffer.compare(before, await shot()), "with the clock stopped the scene holds still").toBe(0);
+    const before = await rigOf(canvas);
     await drag(page, { x, y: y - 100 }, { x, y: y + 100 });
     expect(await pageScroll(page), "the page stayed where it was").toBe(scrolled);
-    await expect.poll(async () => Buffer.compare(before, await shot()) !== 0, { message: "the scene tilted" }).toBe(true);
+    const tilted = await rigOf(canvas);
+    expect(tilted.x, "a drag down tilts the rig").toBeLessThan(before.x - 10);
+    expect(tilted.y, "an up-and-down drag does not turn it").toBeCloseTo(before.y, 1);
   });
 
   test("the shader effect keeps drawing frames", async ({ page, errors }) => {
