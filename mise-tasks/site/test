@@ -59,6 +59,15 @@ if want wasm; then
 fi
 # Last, so the build left in dist is the one at /, as deployed.
 if want root; then
+  # The parity check in the tests compares the routes with the Astro build
+  # in site/dist when there is one. This task does not build it
+  # (site:astro:test does), so say which one it is, or that there is none.
+  if [ -d site/dist ]; then
+    built=$(node -e 'process.stdout.write(require("fs").statSync("site/dist").mtime.toISOString())')
+    echo "site:test: the parity check compares with the Astro build in site/dist, made $built; mise run site:astro:test makes a current one"
+  else
+    echo "site:test: there is no Astro build in site/dist, so the parity check skips its comparison with it; mise run site:astro:test makes one"
+  fi
   if step "/: build" build /; then
     step "/: test" env LJOS_SITE_BASE=/ "${site[@]}" test || true
     step "/: e2e" env LJOS_SITE_BASE=/ "${site[@]}" test:e2e || true

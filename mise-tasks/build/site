@@ -36,11 +36,9 @@ whole_qmlc() {
 }
 # A QMLC that is a path is the caller's too, and taken from where they are.
 if [ -n "${QMLC:-}" ]; then QMLC=$(whole_qmlc "$QMLC") && export QMLC; fi
-case ${CARGO_TARGET_DIR:-} in
-  "") target="$root/target" ;;
-  /*) target="$CARGO_TARGET_DIR" ;;
-  *) target="$root/$CARGO_TARGET_DIR" ;;
-esac
+# Where build:compiler's cargo puts it, as cargo itself decides that:
+# CARGO_TARGET_DIR, else build.target-dir in a cargo config, else target/.
+target=$(cargo metadata --no-deps --format-version 1 --locked | node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(0, "utf8")).target_directory)')
 named=false
 for arg in "$@"; do
   case $arg in --qmlc | --qmlc=*) named=true ;; esac
@@ -49,6 +47,10 @@ if [ -n "${QMLC:-}" ] && [ "$QMLC" != "$target/debug/qmlc" ]; then named=true; f
 if [ "$named" = false ]; then
   mise run build:compiler
   export QMLC="$target/debug/qmlc"
+  if [ ! -x "$QMLC" ]; then
+    echo "build:site: build:compiler finished but there is no $QMLC; name a compiler with --qmlc PATH or QMLC=PATH" >&2
+    exit 1
+  fi
 fi
 args=()
 pending=""
