@@ -2,7 +2,7 @@
 #MISE description="First run after a clone, and safe to run again: toolchains, the qtdoc submodule, Rust and JavaScript dependencies, wasm-bindgen, Playwright's Chromium; says what it skipped"
 #USAGE flag "--no-corpus" help="Skip the corpus/qtdoc submodule (Qt's examples, for gallery, corpus and reference)"
 #USAGE flag "--no-browser" help="Skip fetching Playwright's Chromium (the browser tests need it)"
-#USAGE flag "--check" help="Install and fetch nothing; say what is found, and fail if Rust or Qt is not the pinned version"
+#USAGE flag "--check" help="Install and fetch nothing (run it as mise run --skip-tools setup --check, or mise installs missing tools first); say what is found, and fail if Rust or Qt is not the pinned version"
 set -euo pipefail
 
 check="${usage_check:-false}"
@@ -77,34 +77,77 @@ fi
 # minor, and mise run reference and mise run types read Qt's own answers for
 # it. A Qt of another minor draws and types those examples differently.
 qt_pinned=$(git config -f .gitmodules --get submodule.corpus/qtdoc.branch)
-# `qt6_version`: "<version> <tool>" for the Qt 6 on PATH, or nothing. Qt 5's
-# unsuffixed qtpaths and qmake answer too, so theirs counts only when it is 6.
-qt6_version() {
-  local ask tool out
-  for ask in "qtpaths6 --qt-version" "qmake6 -query QT_VERSION" "qml6 --version" \
-    "qtpaths --qt-version" "qmake -query QT_VERSION"; do
-    tool="${ask%% *}"
-    command -v "$tool" >/dev/null 2>&1 || continue
-    # shellcheck disable=SC2086 # the tool and its flags are a word list
-    out="$($ask 2>/dev/null)" || continue
-    [[ "$out" =~ ([0-9]+\.[0-9]+\.[0-9]+) ]] || continue
-    case "${BASH_REMATCH[1]}" in
-      6.*)
-        printf '%s %s\n' "${BASH_REMATCH[1]}" "$tool"
-        return
-        ;;
-    esac
+qt_from="the pinned Qt $qt_pinned (.gitmodules' corpus/qtdoc branch)"
+qt_get="install Qt $qt_pinned (Qt's online installer, or aqt install-qt)"
+# types reads this directory first when it is there (tasks:test points it
+# at a stand-in).
+qt_system_qml="${qt_system_qml:-/usr/lib/qt6/qml}"
+# `qt_answer <tool> <flags>...`: the Qt 6 version in what the tool answers,
+# or nothing. Qt 5's unsuffixed tools answer too, so only a 6 counts.
+qt_answer() {
+  local out
+  out="$("$@" 2>/dev/null || true)"
+  if [[ "$out" =~ (^|[^0-9])(6\.[0-9]+\.[0-9]+) ]]; then
+    printf '%s\n' "${BASH_REMATCH[2]}"
+  fi
+}
+# `qt_of_bin <dir>`: the version of the Qt whose bin directory is <dir>.
+qt_of_bin() {
+  local ask version
+  for ask in "qtpaths6 --qt-version" "qtpaths --qt-version" "qmake6 -query QT_VERSION" "qmake -query QT_VERSION"; do
+    [ -x "$1/${ask%% *}" ] || continue
+    # shellcheck disable=SC2086 # the flags are a word list
+    version="$(qt_answer "$1/${ask%% *}" ${ask#* })"
+    if [ -n "$version" ]; then
+      printf '%s\n' "$version"
+      return
+    fi
   done
 }
-qt_found=$(qt6_version)
-if [ -n "$qt_found" ]; then
-  qt_have="${qt_found%% *}"
-  qt_tool="${qt_found#* }"
-  case "$qt_have" in
-    "$qt_pinned".*) done_+=("Qt $qt_have ($(command -v "$qt_tool")), the pinned $qt_pinned (.gitmodules' corpus/qtdoc branch)") ;;
-    *) mismatched+=("Qt $qt_have ($(command -v "$qt_tool")) is not the pinned Qt $qt_pinned (.gitmodules' corpus/qtdoc branch), so mise run reference and mise run types read another Qt; install Qt $qt_pinned (Qt's online installer, or aqt install-qt) and put its bin directory first on PATH") ;;
+# Each task's Qt, found the way that task finds it.
+# reference (corpus/reference.mjs): QML, else qml6, else qml.
+qt_qml="${QML:-}"
+if [ -z "$qt_qml" ]; then
+  for tool in qml6 qml; do
+    if command -v "$tool" >/dev/null && QT_QPA_PLATFORM=offscreen "$tool" --help >/dev/null 2>&1; then
+      qt_qml="$tool"
+      break
+    fi
+  done
+fi
+if [ -n "$qt_qml" ]; then
+  # qml makes its GUI application before it reads --version, so on a host
+  # with no display it would answer nothing without the offscreen platform.
+  version="$(QT_QPA_PLATFORM=offscreen qt_answer "$qt_qml" --version)"
+  where="$(command -v "$qt_qml" || echo "$qt_qml")"
+  case "$version" in
+    "") ;;
+    "$qt_pinned".*) done_+=("reference's qml: $where, $qt_from") ;;
+    *) mismatched+=("reference's qml ($where) is Qt $version, not $qt_from, so mise run reference takes another Qt's pictures: $qt_get and set QML to its bin/qml") ;;
   esac
 fi
+# types (without --qt): /usr/lib/qt6/qml when it is there, else the qml
+# directory qtpaths6 or qtpaths names.
+qt_types="" version=""
+if [ -d "$qt_system_qml" ]; then
+  qt_types="$qt_system_qml"
+  version="$(qt_of_bin "$qt_system_qml/../bin")"
+else
+  for tool in qtpaths6 qtpaths; do
+    command -v "$tool" >/dev/null || continue
+    dir=$("$tool" --query QT_INSTALL_QML 2>/dev/null || true)
+    if [ -n "$dir" ] && [ -d "$dir" ]; then
+      qt_types="$dir"
+      version="$(qt_answer "$tool" --qt-version)"
+      break
+    fi
+  done
+fi
+case "$version" in
+  "") ;;
+  "$qt_pinned".*) done_+=("types' Qt: $qt_types, $qt_from") ;;
+  *) mismatched+=("types' Qt ($qt_types) is Qt $version, not $qt_from, so mise run types reads another Qt's types: $qt_get and run mise run types --qt <its qml directory>") ;;
+esac
 
 if ! command -v sway >/dev/null; then
   skipped+=("sway not found: mise run reference draws examples with shader effects without them")

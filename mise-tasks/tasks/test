@@ -25,37 +25,62 @@ stub() {
   chmod +x "$scratch/$1/$2"
 }
 
+# `qt <dir> <version>`: a Qt installed at <dir>, with a qml directory and the
+# tools beside it that setup asks (qtpaths6 answers both of its questions).
+qt() {
+  mkdir -p "$1/bin" "$1/qml"
+  # shellcheck disable=SC2016 # the stand-in expands $1 when it runs
+  printf '#!/bin/sh\ncase "$1" in --query) echo "%s" ;; *) echo "%s" ;; esac\n' "$1/qml" "$2" >"$1/bin/qtpaths6"
+  printf '#!/bin/sh\necho "Qml Runtime %s"\n' "$2" >"$1/bin/qml"
+  chmod +x "$1/bin/qtpaths6" "$1/bin/qml"
+}
+
 failed=0
-# `expect <case> <exit code> <text>`: setup --check, with that case's tools,
-# exits with <exit code> and prints <text>.
+# `expect <case> <exit code> <text> [VAR=value]...`: setup --check, with that
+# case's tools and variables, exits with <exit code> and prints <text>. A
+# check that passes names no mismatch.
 expect() {
-  local out code=0
-  out="$(env -i HOME="$scratch" PATH="$scratch/$1:$sys" usage_check=true bash mise-tasks/setup 2>&1)" || code=$?
-  if [ "$code" != "$2" ] || [[ "$out" != *"$3"* ]]; then
-    echo "tasks:test: $1: setup --check exited $code, wanted $2 and '$3'; it said:" >&2
+  local c="$1" want="$2" text="$3" out code=0
+  shift 3
+  # The machine's /usr/lib/qt6/qml would answer for types unless a case names
+  # its own.
+  out="$(env -i HOME="$scratch" PATH="$scratch/$c:$sys" usage_check=true qt_system_qml="$scratch/none" "$@" bash mise-tasks/setup 2>&1)" || code=$?
+  if [ "$code" != "$want" ] || [[ "$out" != *"$text"* ]] || { [ "$want" = 0 ] && [[ "$out" == *"not the pinned"* ]]; }; then
+    echo "tasks:test: $c: setup --check exited $code, wanted $want and '$text'; it said:" >&2
     printf '%s\n' "$out" | sed 's/^/    /' >&2
     failed=1
   else
-    echo "ok: $1"
+    echo "ok: $c"
   fi
 }
 
-for c in newer pinned qt5-only qml-only; do
+for c in newer pinned qt5-only qml-only qml-named system; do
   stub "$c" rustup "wasm32-unknown-unknown"
   stub "$c" rustc "rustc $rust (stand-in)"
 done
-stub newer qmake6 "$newer.1"
-stub newer qml6 "Qml Runtime $newer.1"
-stub pinned qmake6 "$qt_pinned.2"
-stub pinned qml6 "Qml Runtime $qt_pinned.2"
+qt "$scratch/qt-newer" "$newer.1"
+qt "$scratch/qt-pinned" "$qt_pinned.2"
+ln -s "$scratch/qt-newer/bin/qml" "$scratch/newer/qml6"
+ln -s "$scratch/qt-newer/bin/qtpaths6" "$scratch/newer/qtpaths6"
+ln -s "$scratch/qt-pinned/bin/qml" "$scratch/pinned/qml6"
+ln -s "$scratch/qt-pinned/bin/qtpaths6" "$scratch/pinned/qtpaths6"
 # Qt 5's qtpaths answers 5.15, which is no Qt 6 and so no mismatch.
 stub qt5-only qtpaths "5.15.19"
 stub qml-only qml6 "Qml Runtime $newer.0"
+# QML is what reference runs, whatever else on PATH answers.
+ln -s "$scratch/qt-newer/bin/qml" "$scratch/qml-named/qml6"
+stub qml-named qmake6 "$newer.1"
+# Where /usr/lib/qt6/qml is, types reads it ahead of any qtpaths on PATH.
+ln -s "$scratch/qt-pinned/bin/qtpaths6" "$scratch/system/qtpaths6"
 
-expect newer 1 "Qt $newer.1 ($scratch/newer/qmake6) is not the pinned Qt $qt_pinned"
-expect pinned 0 "Qt $qt_pinned.2 ($scratch/pinned/qmake6), the pinned $qt_pinned"
+expect newer 1 "types' Qt ($scratch/qt-newer/qml) is Qt $newer.1, not the pinned Qt $qt_pinned"
+expect newer 1 "reference's qml ($scratch/newer/qml6) is Qt $newer.1, not the pinned Qt $qt_pinned"
+expect pinned 0 "types' Qt: $scratch/qt-pinned/qml, the pinned Qt $qt_pinned"
+expect pinned 0 "reference's qml: $scratch/pinned/qml6, the pinned Qt $qt_pinned"
 expect qt5-only 0 "setup --check: found"
-expect qml-only 1 "Qt $newer.0 ($scratch/qml-only/qml6) is not the pinned Qt $qt_pinned"
+expect qml-only 1 "reference's qml ($scratch/qml-only/qml6) is Qt $newer.0, not the pinned Qt $qt_pinned"
+expect qml-named 0 "reference's qml: $scratch/qt-pinned/bin/qml, the pinned Qt $qt_pinned" QML="$scratch/qt-pinned/bin/qml"
+expect system 1 "types' Qt ($scratch/qt-newer/qml) is Qt $newer.1, not the pinned Qt $qt_pinned" qt_system_qml="$scratch/qt-newer/qml"
 
 if [ "$failed" != 0 ]; then
   echo "tasks:test: a case above failed" >&2
