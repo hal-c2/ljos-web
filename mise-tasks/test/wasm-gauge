@@ -16,4 +16,4 @@ for scene in "Gauges 320 120" "Dials 240 240" "Label 240 80"; do
 done
 WASM_BINDGEN="$(realpath "$bindgen")" node ../../packages/runtime/bin/ljos-web.js faces .
 
-pnpm --filter ljos-web-example-wasm-gauge test "$@"
+../../scripts/isolated pnpm --filter ljos-web-example-wasm-gauge test "$@"

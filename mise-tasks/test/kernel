@@ -5,4 +5,4 @@
 set -euo pipefail
 
 cargo test -p ljos_web_kernel
-LJOS_KERNEL=wasm pnpm --filter ljos-web test "$@"
+LJOS_KERNEL=wasm scripts/isolated pnpm --filter ljos-web test "$@"

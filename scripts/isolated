@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# isolated COMMAND [ARG]...: runs a browser test in a network of its own,
+# with only loopback, where this machine allows it.
+#
+# A Playwright run serves the pages it opens on 127.0.0.1 and needs no
+# other network. On a desktop, a network that changes under it (a VPN, a
+# container's virtual interface coming and going) makes Chromium abort a
+# page load with ERR_NETWORK_CHANGED, a failure that has nothing to do with
+# the page. In a namespace of its own there is no other interface to change.
+#
+# It runs COMMAND as is in CI (CI is set: the runner's network is quiet),
+# off Linux, where unprivileged user namespaces are off, and when
+# LJOS_NO_ISOLATION=1, so the tasks that use it work everywhere and no one
+# has to know it is there.
+set -euo pipefail
+[ "$#" -gt 0 ] || { echo "usage: scripts/isolated COMMAND [ARG]..." >&2; exit 2; }
+
+if [ -z "${CI:-}" ] && [ "${LJOS_NO_ISOLATION:-}" != 1 ] && [ "$(uname -s)" = Linux ] &&
+  command -v unshare >/dev/null && command -v ip >/dev/null &&
+  unshare -rn ip link set lo up 2>/dev/null; then
+  exec unshare -rn bash -c 'ip link set lo up && exec "$@"' isolated "$@"
+fi
+exec "$@"
