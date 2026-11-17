@@ -10,10 +10,25 @@ skipped=()
 # Tools first: the rest runs on them. mise.toml pins Rust with the wasm
 # target, Node and pnpm.
 mise install
-done_+=("tools: Rust $(rustc --version | cut -d' ' -f2) (+ wasm32-unknown-unknown), Node $(node --version), pnpm $(pnpm --version) (mise install)")
-if ! rustup target list --installed 2>/dev/null | grep -qx wasm32-unknown-unknown; then
-  skipped+=("wasm32-unknown-unknown is not installed for this Rust: the wasm builds will fail; run 'rustup target add wasm32-unknown-unknown'")
+# mise installs Rust through rustup. mise.toml's activate_aggressive puts the
+# pinned toolchain first on PATH inside `mise run`, ahead of a system rust;
+# where that still is not what runs, every build after this would use the
+# wrong compiler (no wasm32 sysroot), so setup stops here and says the fix.
+pinned=$(sed -n 's/^rust = { version = "\([0-9.]*\)".*/\1/p' mise.toml)
+if ! command -v rustup >/dev/null; then
+  echo "setup: rustup not found; mise installs Rust $pinned through it. Install rustup (https://rustup.rs), then run 'mise run setup' again" >&2
+  exit 1
 fi
+have=$(rustc --version 2>/dev/null | cut -d' ' -f2)
+if [ "$have" != "$pinned" ]; then
+  echo "setup: rustc on PATH is ${have:-missing} ($(command -v rustc || echo 'not found')), not the pinned $pinned. Run 'mise install rust@$pinned', and check that mise is activated in this shell (mise doctor)" >&2
+  exit 1
+fi
+if ! rustup target list --installed 2>/dev/null | grep -qx wasm32-unknown-unknown; then
+  echo "setup: the wasm32-unknown-unknown target is not installed for Rust $pinned; the wasm builds need it. Run 'rustup target add --toolchain $pinned wasm32-unknown-unknown'" >&2
+  exit 1
+fi
+done_+=("tools: Rust $have (+ wasm32-unknown-unknown), Node $(node --version), pnpm $(pnpm --version) (mise install)")
 
 if [ "${usage_no_corpus:-false}" = true ]; then
   skipped+=("corpus/qtdoc (--no-corpus): gallery, corpus and reference fetch it when they run")
@@ -39,7 +54,7 @@ done_+=("wasm-bindgen, the version the crates pin: $bindgen")
 if [ "${usage_no_browser:-false}" = true ]; then
   skipped+=("Playwright's Chromium (--no-browser): every test task fetches it when it runs (mise run browser)")
 else
-  pnpm --filter ljos-web-example-web exec playwright install chromium
+  mise-tasks/browser
   done_+=("Playwright's Chromium")
 fi
 
@@ -53,15 +68,12 @@ fi
 if ! pkg-config --exists fontconfig 2>/dev/null; then
   skipped+=("fontconfig's headers not found (pkg-config fontconfig): test:wasm-counter and test:wasm-gauge build a desktop app with them (install libfontconfig1-dev or fontconfig-devel)")
 fi
-# Where site/scripts/sync-docs.mjs looks, from the repository's root.
-docs=""
-for candidate in "${LJOS_DOCS_DIR:-}" ljos-ui/docs/site ../ljos-ui/docs/site "$HOME/dev/ljos-ui/docs/site"; do
-  if [ -n "$candidate" ] && [ -d "$candidate" ]; then docs=$candidate; break; fi
-done
-if [ -z "$docs" ]; then
-  skipped+=("no ljos-ui docs found: dev site / site-ljos need them; clone hal-c2/ljos-ui beside this checkout at site/ljos-ui.sha, or set LJOS_DOCS_DIR")
+# The docs both sites are built from: LJOS_DOCS_DIR, else ljos-ui's
+# docs/site at the commit site/ljos-ui.sha pins, fetched into a cache.
+if docs=$(mise-tasks/site/docs); then
+  done_+=("ljos-ui docs for the sites (site:docs): $docs")
 else
-  done_+=("ljos-ui docs for the sites: $docs")
+  skipped+=("ljos-ui's docs could not be fetched (said above): mise run site and dev site fetch them when they run, or set LJOS_DOCS_DIR to a ljos-ui docs/site")
 fi
 if ! command -v gh >/dev/null; then
   skipped+=("gh not found: mise run deploy dispatches the site workflow with it")
@@ -75,4 +87,4 @@ if [ "${#skipped[@]}" -gt 0 ]; then
   for line in "${skipped[@]}"; do echo "  - $line"; done
 fi
 echo
-echo "next: mise run dev (the web example), mise run test, mise tasks for the rest"
+echo "next: mise run site (ljos.dev, live), mise run dev (the web example), mise run test, mise tasks for the rest"
