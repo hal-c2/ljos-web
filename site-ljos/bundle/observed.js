@@ -59,9 +59,15 @@ function reset(id, said) {
 }
 
 // A value as a line shows it: as qml6 prints it, a string as it is.
-// `within`: the arrays it is inside of, so one that holds itself is
-// said to, not followed for ever (the log it is in must still print).
-function show(value, within) {
+// One argument only, so it can be handed to `map` as it is.
+function show(value) {
+    return showWithin(value, []);
+}
+
+// `within`: the arrays `value` is inside of, so one that holds itself
+// is said to, not followed for ever (the log it is in must still
+// print).
+function showWithin(value, within) {
     if (typeof value === "string")
         return value;
     if (value === undefined)
@@ -71,12 +77,11 @@ function show(value, within) {
     if (typeof value === "function")
         return "function";
     if (Array.isArray(value)) {
-        within = within || [];
         if (within.indexOf(value) >= 0)
             return "[circular]";
         var inside = within.concat([value]);
         return "[" + value.map(function (item) {
-            return show(item, inside);
+            return showWithin(item, inside);
         }).join(", ") + "]";
     }
     try {
@@ -99,9 +104,7 @@ function inspectFor(id, namespace) {
             LEVELS.forEach(function (name) {
                 mine[name] = function () {
                     var args = Array.prototype.slice.call(arguments);
-                    say(id, name, args.map(function (arg) {
-                        return show(arg);
-                    }).join(" "));
+                    say(id, name, args.map(show).join(" "));
                     return placed[name].apply(placed, args);
                 };
             });
