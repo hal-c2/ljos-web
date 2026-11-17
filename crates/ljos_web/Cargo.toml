@@ -6,19 +6,19 @@ license.workspace = true
 publish = false
 
 [dependencies]
-qml_front = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "0da5eb39c474055b86440408f4a835aff11f450c" }
-qt_types = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "0da5eb39c474055b86440408f4a835aff11f450c" }
-qml_syntax = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "0da5eb39c474055b86440408f4a835aff11f450c" }
-qml_compat = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "0da5eb39c474055b86440408f4a835aff11f450c" }
+qml_front = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "67ce3115fb603767b60b2122f6ca9786db725cf0" }
+qt_types = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "67ce3115fb603767b60b2122f6ca9786db725cf0" }
+qml_syntax = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "67ce3115fb603767b60b2122f6ca9786db725cf0" }
+qml_compat = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "67ce3115fb603767b60b2122f6ca9786db725cf0" }
 # The theme file's reader and checker. The pin is ljos-ui's main as
 # `Ljos.Ui` came to the web: the first whose type table knows Ljós's
 # own modules, so a dialect file compiles here (docs/LJOS_WEB.md A29).
-ljos_design = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "0da5eb39c474055b86440408f4a835aff11f450c" }
+ljos_design = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "67ce3115fb603767b60b2122f6ca9786db725cf0" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
 # What a dropped shell compiles to: data the page runs, not code.
-ljos_ir = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "0da5eb39c474055b86440408f4a835aff11f450c" }
+ljos_ir = { git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "67ce3115fb603767b60b2122f6ca9786db725cf0" }
 blake3 = "1"
 oxc_allocator = "0.144"
 oxc_ast = "0.144"
@@ -28,7 +28,7 @@ oxc_diagnostics = "0.144"
 # oxc_parser 0.144.0 as Ljós forks it for QML (ljos-ui vendor/FORK.md): a
 # plain parse is unchanged, and the compiler's wasm then holds one copy of
 # oxc's parser where qml_syntax brought a second. Same rev as ljos-ui above.
-oxc_parser = { package = "ljos_oxc_parser", git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "0da5eb39c474055b86440408f4a835aff11f450c" }
+oxc_parser = { package = "ljos_oxc_parser", git = "ssh://git@github.com/hal-c2/ljos-ui.git", rev = "67ce3115fb603767b60b2122f6ca9786db725cf0" }
 oxc_semantic = "0.144"
 oxc_span = "0.144"
 oxc_str = "0.144"
