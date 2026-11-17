@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+#MISE description="The Astro site (site/) as site.yml tests it: built on the wasm kernel, the showcase and site specs; its live blocks prerendered and built strictly, its links checked, its tests; the live blocks on the fixture docs (test:codeblocks). Runs every suite, names each that failed, and leaves site/dist built as CI builds it"
+#MISE depends=["build:compiler", "build:wasm-compiler", "build:wasm-3d", "build:kernel", "browser"]
+set -euo pipefail
+
+LJOS_DOCS_DIR=$(mise-tasks/site/docs)
+export LJOS_DOCS_DIR
+# Starlight runs Pagefind through a shell (DEP0190): its warning, not ours.
+export NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--disable-warning=DEP0190"
+
+failed=()
+ran=()
+# Each suite runs whatever came before it, so one run shows every failure;
+# a suite whose build failed is not tested.
+step() {
+  local name=$1
+  shift
+  echo
+  echo "site:astro:test: $name"
+  ran+=("$name")
+  if "$@"; then return 0; fi
+  failed+=("$name")
+  return 1
+}
+astro=(pnpm --filter ljos-site)
+# Playwright, in a network of its own where the machine allows it.
+isolated=(scripts/isolated pnpm --filter ljos-site)
+
+# The wasm kernel first, so the build left in dist is the ordinary one,
+# which site:test's parity check reads.
+if step "wasm kernel: build" env VITE_LJOS_VIEW3D=wgpu LJOS_KERNEL=wasm "${astro[@]}" build; then
+  step "wasm kernel: showcase and site specs" "${isolated[@]}" exec playwright test tests/showcase.spec.js tests/site.spec.js || true
+fi
+# The prerenders are made under the environment of the build after them:
+# the build embeds only what was made under its own stamp, and stops when
+# it would embed none.
+if step "live blocks: prerender" env VITE_LJOS_VIEW3D=wgpu scripts/isolated "${astro[@]}" codeblock-prerenders &&
+  step "build" env VITE_LJOS_VIEW3D=wgpu LJOS_PRERENDERS_REQUIRED=1 "${astro[@]}" build; then
+  step "links" "${astro[@]}" check-links || true
+  step "tests" "${isolated[@]}" test || true
+fi
+step "live blocks on the fixture docs (test:codeblocks)" "${isolated[@]}" test:codeblocks || true
+
+echo
+if [ "${#failed[@]}" -gt 0 ]; then
+  list=$(printf '%s; ' "${failed[@]}")
+  echo "site:astro:test: ${#failed[@]} of ${#ran[@]} failed: ${list%; }" >&2
+  exit 1
+fi
+echo "site:astro:test: all ${#ran[@]} passed"

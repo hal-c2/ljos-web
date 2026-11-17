@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+#MISE description="ljos.dev (site-ljos) as site.yml tests it before a deploy: built at a project path (/ljos-web/), the base, links and canonical specs; built on the wasm kernel, its e2e; built at /, its tests and its e2e. Runs every suite, names each that failed, and leaves site-ljos/dist built at /"
+#USAGE flag "--only <suite>" help="Run one suite: base (build and specs at /ljos-web/), wasm (build and e2e on the wasm kernel) or root (build, tests and e2e at /)"
+set -euo pipefail
+
+only=${usage_only:-}
+case $only in
+  "" | root | wasm | base) ;;
+  *)
+    echo "site:test: --only is base, wasm or root, not '$only'" >&2
+    exit 2
+    ;;
+esac
+want() { [ -z "$only" ] || [ "$only" = "$1" ]; }
+# The builds after the first are site-ljos's own, which read the docs from
+# LJOS_DOCS_DIR as `site` does.
+LJOS_DOCS_DIR=$(mise-tasks/site/docs)
+export LJOS_DOCS_DIR
+
+failed=()
+ran=()
+# Each suite runs whatever came before it, so one run shows every failure;
+# a suite whose build failed is not tested.
+step() {
+  local name=$1
+  shift
+  echo
+  echo "site:test: $name"
+  ran+=("$name")
+  if "$@"; then return 0; fi
+  failed+=("$name")
+  return 1
+}
+# The first build goes through `mise run site --build`, which builds what
+# every build needs (the compilers, the kernel, Chromium) and fetches the
+# docs; the others only build the site again.
+prepared=false
+build() {
+  local base=$1
+  shift
+  if [ "$prepared" = false ]; then
+    prepared=true
+    env "$@" mise run site --build --base "$base"
+  else
+    env "$@" LJOS_SITE_BASE="$base" pnpm --filter ljos-site-ljos build
+  fi
+}
+# Playwright, in a network of its own where the machine allows it.
+site=(scripts/isolated pnpm --filter ljos-site-ljos)
+
+if want base; then
+  step "/ljos-web/: build" build /ljos-web/ &&
+    step "/ljos-web/: base, links and canonical specs" \
+      env LJOS_SITE_BASE=/ljos-web/ "${site[@]}" exec playwright test tests/base.spec.js tests/links.spec.js tests/canonical.spec.js || true
+fi
+if want wasm; then
+  step "wasm kernel: build" build / LJOS_KERNEL=wasm &&
+    step "wasm kernel: e2e" env LJOS_KERNEL=wasm LJOS_SITE_BASE=/ "${site[@]}" test:e2e || true
+fi
+# Last, so the build left in dist is the one at /, as deployed.
+if want root; then
+  if step "/: build" build /; then
+    step "/: test" env LJOS_SITE_BASE=/ "${site[@]}" test || true
+    step "/: e2e" env LJOS_SITE_BASE=/ "${site[@]}" test:e2e || true
+  fi
+fi
+
+echo
+if [ "${#failed[@]}" -gt 0 ]; then
+  list=$(printf '%s; ' "${failed[@]}")
+  echo "site:test: ${#failed[@]} of ${#ran[@]} failed: ${list%; }" >&2
+  exit 1
+fi
+echo "site:test: all ${#ran[@]} passed"
