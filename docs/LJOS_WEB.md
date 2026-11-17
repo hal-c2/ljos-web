@@ -1745,6 +1745,13 @@ What a prerender has, and what it has not:
   sets that from a head script (`buildSite({ head })`) before the
   body is read, and `styleHints` reads it too once the page runs, so
   neither paint nor hydration shows the other scheme first.
+- The renders are processes of their own, so a build runs several
+  at once: as many as the machine runs at once, or `LJOS_SITE_JOBS`
+  (`buildSite({ jobs })`). They are put back in the order one at a
+  time made them before anything is written, so the site is the same
+  byte for byte however many ran at once. The page's build and the
+  server bundle are made at once too. `buildSite` returns how long
+  each part took (`timings`, in ms).
 - A prerendered page asks for its script once its HTML is painted,
   so the script never stands before the first paint.
 - What paints is not in the HTML: a `Canvas`, a `ShaderEffect`, a
