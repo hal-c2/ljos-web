@@ -69,6 +69,18 @@ async function keepsDrawing(canvas) {
   }
 }
 
+// Stops the page's installed clock where it is. pauseAt takes a wall-clock
+// time, and the page's clock runs on while the request crosses to a page
+// busy drawing (Orbit's scene on a loaded runner): a time read before it can
+// be past by then, and a clock cannot be put back. Fixing the wall clock at
+// the time the page reads holds it there while frames and timers still run,
+// so pausing at that time is never in the past, however slow the page is.
+async function stopClock(page) {
+  const now = await page.evaluate(() => Date.now());
+  await page.clock.setFixedTime(now);
+  await page.clock.pauseAt(now);
+}
+
 test.describe("/demos/", () => {
   test("loads with nothing in its console", async ({ page, errors }) => {
     await settled(page, "/demos/");
@@ -128,7 +140,7 @@ test.describe("/demos/", () => {
     const canvas = (await started(page, "3D you can orbit")).locator("canvas.qq-view3d");
     await centre(canvas);
     const { x, y } = await centreOf(canvas);
-    await page.clock.pauseAt(await page.evaluate(() => Date.now() + 500));
+    await stopClock(page);
     const shot = () => canvas.screenshot();
     const before = await shot();
     expect(Buffer.compare(before, await shot()), "with the clock stopped the scene holds still").toBe(0);
@@ -148,7 +160,7 @@ test.describe("/demos/", () => {
     await centre(canvas);
     const { x, y } = await centreOf(canvas);
     const scrolled = await pageScroll(page);
-    await page.clock.pauseAt(await page.evaluate(() => Date.now() + 500));
+    await stopClock(page);
     const shot = () => canvas.screenshot();
     const before = await shot();
     expect(Buffer.compare(before, await shot()), "with the clock stopped the scene holds still").toBe(0);
