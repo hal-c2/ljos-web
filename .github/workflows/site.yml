@@ -7,13 +7,13 @@ on:
   # the same list from .github/scripts/site-paths.txt; a test holds
   # the three equal.
   pull_request:
-    paths: ["site/**", "site-ljos/**", "packages/**", "crates/**", "vendor/**", "mise-tasks/**", "mise.toml", "Cargo.toml", "Cargo.lock", ".cargo/**", "pnpm-workspace.yaml", "pnpm-lock.yaml", "package.json", ".github/workflows/site.yml", ".github/scripts/**"]
+    paths: ["site/**", "site-ljos/**", "packages/**", "crates/**", "vendor/**", "mise-tasks/**", "mise.toml", "Cargo.toml", "Cargo.lock", ".cargo/**", "pnpm-workspace.yaml", "pnpm-lock.yaml", "package.json", ".github/workflows/site.yml", ".github/scripts/**", ".github/actions/**"]
   # A merge to main is live: it deploys to the repository's Pages
   # custom domain (ljos.dev). The same paths as pull_request, so what
   # a pull request was held to is what deploys.
   push:
     branches: [main]
-    paths: ["site/**", "site-ljos/**", "packages/**", "crates/**", "vendor/**", "mise-tasks/**", "mise.toml", "Cargo.toml", "Cargo.lock", ".cargo/**", "pnpm-workspace.yaml", "pnpm-lock.yaml", "package.json", ".github/workflows/site.yml", ".github/scripts/**"]
+    paths: ["site/**", "site-ljos/**", "packages/**", "crates/**", "vendor/**", "mise-tasks/**", "mise.toml", "Cargo.toml", "Cargo.lock", ".cargo/**", "pnpm-workspace.yaml", "pnpm-lock.yaml", "package.json", ".github/workflows/site.yml", ".github/scripts/**", ".github/actions/**"]
   workflow_dispatch:
     inputs:
       deploy:
@@ -135,122 +135,291 @@ jobs:
       - run: bash .github/scripts/supersede.test.sh
       - run: node --test .github/scripts/site-expressions.test.mjs
       - run: node .github/scripts/site-expressions.test.mjs table >> "$GITHUB_STEP_SUMMARY"
-  build:
+  # DECISION: the one build job ran everything one step after another
+  # (65 minutes for a merge to reach ljos.dev). It is split into jobs
+  # that run side by side: Rust built once and handed on; each build of
+  # the site in a job of its own; each e2e suite in shards. The suites
+  # are all still run: every one gates the deploy as before. The full
+  # e2e suite runs at the root, where ljos.dev serves the site, once on
+  # each kernel (the second run is the wasm kernel, A22, not another
+  # base); the project path the github.io preview stands at is held by
+  # the specs about the base (base, links, canonical), as before.
+  #
+  # The compiler and the wasm every other job reads, built once: qmlc
+  # (the build's prerenders), the compiler in the page, the kernel and
+  # the 3D renderer that draws the showcase's demo. The other jobs
+  # download them, so they install no Rust.
+  rust:
     runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-      # The pages step reads the repository's Pages domain.
-      pages: read
-    # Whether this run deploys, and to the custom domain, said once:
-    # a push to main in hal-c2/ljos-web deploys the domain build; a
-    # dispatch deploys as its inputs ask. A pull request has no
-    # inputs and is not a push, so both are false there. The deploy
-    # steps read these, and the fresh and deploy jobs read the outputs.
-    env:
-      SITE_DEPLOYS: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'hal-c2/ljos-web') || (github.event_name == 'workflow_dispatch' && inputs.deploy) }}
-      SITE_CUSTOM_DOMAIN: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'hal-c2/ljos-web') || (github.event_name == 'workflow_dispatch' && inputs.custom_domain) }}
-    outputs:
-      deploy: ${{ env.SITE_DEPLOYS }}
-      custom-domain: ${{ env.SITE_CUSTOM_DOMAIN }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-      - name: Docs, at the pinned ljos-ui revision
-        run: |
-          git clone https://github.com/hal-c2/ljos-ui "$RUNNER_TEMP/ljos-ui"
-          git -C "$RUNNER_TEMP/ljos-ui" checkout "$(cat site/ljos-ui.sha)"
-          echo "LJOS_DOCS_DIR=$RUNNER_TEMP/ljos-ui/docs/site" >> "$GITHUB_ENV"
-      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
+      - uses: ./.github/actions/site-setup
         with:
-          version: 2026.9.9
+          rust: "true"
+          packages: "false"
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
-      - run: git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
-      - run: pnpm install --frozen-lockfile
+        with:
+          # The key of the one build job this replaces, so the first
+          # run starts from its cache.
+          shared-key: build
       - run: cargo build --bin qmlc --locked
-      # The compiler in the page: a live code block fetches it on its
-      # first compile in a reader's browser, and the prerender step
-      # renders with the same compiler built ahead of time.
       - run: mise run build:wasm-compiler
-      # The showcase's 3D demo is drawn by the wgpu renderer, and
-      # the showcase suite runs again over Ljós's own kernel. Each
-      # artefact is built once here and read by every step after it.
       - run: mise run build:wasm-3d
       - run: mise run build:kernel
-      # One Chromium for both sites' suites and the build's pictures,
-      # kept between runs by Playwright's version (one in the lockfile).
-      # What it needs of the system is installed each run either way.
-      - id: playwright
-        run: echo "version=$(sed -n 's/^  playwright@\([0-9.]*\):$/\1/p' pnpm-lock.yaml | head -n1)" >> "$GITHUB_OUTPUT"
-      - id: browsers
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
-      - if: steps.browsers.outputs.cache-hit != 'true'
-        run: pnpm --filter ljos-site exec playwright install --with-deps chromium
-      - if: steps.browsers.outputs.cache-hit == 'true'
-        run: pnpm --filter ljos-site exec playwright install-deps chromium
-      # Saved as soon as it is installed: a cache saved at the job's end
-      # is lost to any failing test after it.
-      - if: steps.browsers.outputs.cache-hit != 'true'
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+          name: rust-artefacts
+          path: |
+            target/debug/qmlc
+            packages/runtime/compiler/ljos_web_compiler.wasm
+            packages/runtime/kernel/ljos_web_kernel.wasm
+            packages/runtime/QtQuick3D/wgpu/
+          if-no-files-found: error
+          retention-days: 1
+  # The same site as Ljós pages, beside the Astro one: built and held
+  # to parity with it, and what Pages deploys (the Astro site/dist is
+  # the reference, never deployed). Its blocks are its own, not the
+  # Astro build's: that one's are made for the wgpu renderer, which
+  # this build does not ask for, so their stamp is not this build's.
+  # Built here at a domain's root (ljos.dev), and tested from this
+  # build by the jobs after it.
+  site-ljos:
+    needs: rust
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - id: setup
+        uses: ./.github/actions/site-setup
         with:
-          path: ~/.cache/ms-playwright
-          key: ${{ steps.browsers.outputs.cache-primary-key }}
-      # The code blocks' prerenders and pictures, kept between runs.
-      # Each entry names the compiler, runtime, lockfile and kernel that
-      # made it (prerenderStamp), and one made by others is made again,
-      # so an older run's cache is only ever a head start: what the
-      # build embeds is what a build from nothing would. The pictures
-      # are drawn with the runner's fonts, so a runner image of its own
-      # starts from nothing. The key moves with everything a block can
-      # be made from, so a run that made nothing new saves nothing.
-      # Three caches, each saved right after the build that fills it,
-      # so a failure after it never loses it: the Astro site's
-      # prerenders, and the Ljós site's prerenders and pictures on the
-      # default kernel and on the wasm kernel. (No key is a
-      # prefix of another's, so no restore-keys answers for another.)
-      # The files the docs' examples are given (site/codeblock-files)
-      # are part of an example's hash, so of the key. The Ljós site's
-      # pictures are also drawn by its build script, so its two keys
-      # move with that script too (PICTURES); each picture's name holds
-      # the same recipe, so one restored from an older key is drawn
-      # again, never shown. The fixture docs' blocks (test:codeblocks)
-      # are in no key and no cache: they are kept in a directory of
-      # their own and made each run (one small batch).
-      - id: image
-        env:
-          INPUTS: ${{ hashFiles('packages/runtime/**', 'crates/**', 'vendor/**', 'Cargo.lock', 'pnpm-lock.yaml', 'site/ljos-ui.sha', 'site/codeblock-files/**', '!**/node_modules/**') }}
-          PICTURES: ${{ hashFiles('site-ljos/scripts/build.mjs') }}
-        run: |
-          echo "name=$ImageOS-$ImageVersion" >> "$GITHUB_OUTPUT"
-          echo "inputs=$INPUTS" >> "$GITHUB_OUTPUT"
-          echo "pictures=$PICTURES" >> "$GITHUB_OUTPUT"
-      - id: astro-prerenders
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: site/.codeblock-prerenders
-          key: codeblocks-astro-${{ steps.image.outputs.name }}-${{ steps.image.outputs.inputs }}
-          restore-keys: codeblocks-astro-${{ steps.image.outputs.name }}-
+          artefacts: "true"
+          docs: "true"
+          browser: "true"
+      # Its prerenders and pictures on the default kernel; the wasm
+      # kernel's are a cache of their own (site-ljos-wasm). No key is a
+      # prefix of another's, so no restore-keys answers for another.
       - id: ljos-prerenders
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             site-ljos/.codeblock-prerenders
             !site-ljos/.codeblock-prerenders/wasm
-          key: codeblocks-ljos-${{ steps.image.outputs.name }}-${{ steps.image.outputs.inputs }}-${{ steps.image.outputs.pictures }}
-          restore-keys: codeblocks-ljos-${{ steps.image.outputs.name }}-
+          key: codeblocks-ljos-${{ steps.setup.outputs.image }}-${{ steps.setup.outputs.inputs }}-${{ steps.setup.outputs.pictures }}
+          restore-keys: codeblocks-ljos-${{ steps.setup.outputs.image }}-
+      - run: pnpm --filter ljos-site-ljos build
+        env:
+          QMLC: ${{ github.workspace }}/target/debug/qmlc
+          LJOS_SITE_BASE: /
+      # Saved right after the build that fills it, so a failure after it
+      # never loses it, and never saved half-made: a key is saved once.
+      - if: steps.ljos-prerenders.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            site-ljos/.codeblock-prerenders
+            !site-ljos/.codeblock-prerenders/wasm
+          key: ${{ steps.ljos-prerenders.outputs.cache-primary-key }}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: site-ljos-root
+          path: site-ljos/dist
+          include-hidden-files: true
+          if-no-files-found: error
+      # What the build made of each live block, which runnable.spec reads.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: site-ljos-report
+          path: site-ljos/.codeblock-prerenders/report.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
+  # The same examples over Ljós's reactive graph (A22): built and
+  # tested, never deployed.
+  site-ljos-wasm:
+    needs: rust
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - id: setup
+        uses: ./.github/actions/site-setup
+        with:
+          artefacts: "true"
+          docs: "true"
+          browser: "true"
       - id: wasm-prerenders
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: site-ljos/.codeblock-prerenders/wasm
-          key: codeblocks-wasm-ljos-${{ steps.image.outputs.name }}-${{ steps.image.outputs.inputs }}-${{ steps.image.outputs.pictures }}
-          restore-keys: codeblocks-wasm-ljos-${{ steps.image.outputs.name }}-
+          key: codeblocks-wasm-ljos-${{ steps.setup.outputs.image }}-${{ steps.setup.outputs.inputs }}-${{ steps.setup.outputs.pictures }}
+          restore-keys: codeblocks-wasm-ljos-${{ steps.setup.outputs.image }}-
+      - run: pnpm --filter ljos-site-ljos build
+        env:
+          QMLC: ${{ github.workspace }}/target/debug/qmlc
+          LJOS_SITE_BASE: /
+          LJOS_KERNEL: wasm
+      - if: steps.wasm-prerenders.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: site-ljos/.codeblock-prerenders/wasm
+          key: ${{ steps.wasm-prerenders.outputs.cache-primary-key }}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: site-ljos-wasm
+          path: site-ljos/dist
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
+  # The site below a project path (the github.io preview, /<repo>/):
+  # built, and held to what the base decides: the base itself, and
+  # every link and the 404 page at it. After the root build, whose
+  # prerenders it reads from the cache that build saved rather than
+  # making them again.
+  site-ljos-project:
+    needs: [rust, site-ljos]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - id: setup
+        uses: ./.github/actions/site-setup
+        with:
+          artefacts: "true"
+          docs: "true"
+          browser: "true"
+      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            site-ljos/.codeblock-prerenders
+            !site-ljos/.codeblock-prerenders/wasm
+          key: codeblocks-ljos-${{ steps.setup.outputs.image }}-${{ steps.setup.outputs.inputs }}-${{ steps.setup.outputs.pictures }}
+          restore-keys: codeblocks-ljos-${{ steps.setup.outputs.image }}-
+      - run: pnpm --filter ljos-site-ljos build
+        env:
+          QMLC: ${{ github.workspace }}/target/debug/qmlc
+          LJOS_SITE_BASE: /${{ github.event.repository.name }}/
+      - run: pnpm --filter ljos-site-ljos exec playwright test tests/base.spec.js tests/links.spec.js tests/canonical.spec.js
+        env:
+          LJOS_SITE_BASE: /${{ github.event.repository.name }}/
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ failure() }}
+        with:
+          name: site-ljos-project-test-results
+          path: site-ljos/test-results
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: site-ljos-dist
+          path: site-ljos/dist
+          include-hidden-files: true
+          if-no-files-found: error
+  # The root build's own suite: parity with the Astro site and the
+  # docs, the brand, the payload, every live block's report.
+  site-ljos-test:
+    needs: [site-ljos, astro]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: ./.github/actions/site-setup
+        with:
+          artefacts: "true"
+          docs: "true"
+          browser: "true"
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: site-ljos-root
+          path: site-ljos/dist
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: site-ljos-report
+          path: site-ljos/.codeblock-prerenders
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: site-dist
+          path: site/dist
+      - run: pnpm --filter ljos-site-ljos test
+        env:
+          LJOS_SITE_BASE: /
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ failure() }}
+        with:
+          name: site-ljos-test-results
+          path: site-ljos/test-results
+  # Every live example and demo driven as a reader drives it, in a
+  # browser with WebAssembly and in one without (e2e/), on the root
+  # build. The suite is fully parallel, so it is cut into shards that
+  # run side by side.
+  e2e:
+    needs: site-ljos
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: ./.github/actions/site-setup
+        with:
+          browser: "true"
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: site-ljos-root
+          path: site-ljos/dist
+      - run: pnpm --filter ljos-site-ljos test:e2e --shard=${{ matrix.shard }}/4
+        env:
+          LJOS_SITE_BASE: /
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ failure() }}
+        with:
+          name: site-ljos-e2e-${{ matrix.shard }}-test-results
+          path: site-ljos/test-results
+  # The same suite on the wasm kernel's build.
+  e2e-wasm:
+    needs: site-ljos-wasm
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: ./.github/actions/site-setup
+        with:
+          browser: "true"
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: site-ljos-wasm
+          path: site-ljos/dist
+      - run: pnpm --filter ljos-site-ljos test:e2e --shard=${{ matrix.shard }}/4
+        env:
+          LJOS_SITE_BASE: /
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ failure() }}
+        with:
+          name: site-ljos-e2e-wasm-${{ matrix.shard }}-test-results
+          path: site-ljos/test-results
+  # The Astro site, the reference the Ljós site is held to: built here
+  # and handed to the parity suite as soon as it is built, then tested
+  # in astro-test.
+  astro:
+    needs: rust
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - id: setup
+        uses: ./.github/actions/site-setup
+        with:
+          artefacts: "true"
+          docs: "true"
+          browser: "true"
+      - id: astro-prerenders
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: site/.codeblock-prerenders
+          key: codeblocks-astro-${{ steps.setup.outputs.image }}-${{ steps.setup.outputs.inputs }}
+          restore-keys: codeblocks-astro-${{ steps.setup.outputs.image }}-
       # Prerenders each live block (and fails on one that claims to
       # run and does not) before the build embeds them. Under the
       # environment of the build after it: the build embeds only what
-      # was made under its own stamp. The wasm-kernel build below has
-      # another, so it embeds none, and only its showcase and site
-      # specs run, which read no prerender.
+      # was made under its own stamp. The wasm-kernel build in
+      # astro-test has another, so it embeds none, and only its
+      # showcase and site specs run, which read no prerender.
       - run: pnpm --filter ljos-site codeblock-prerenders
         env:
           VITE_LJOS_VIEW3D: wgpu
@@ -268,9 +437,28 @@ jobs:
           VITE_LJOS_VIEW3D: wgpu
           LJOS_PRERENDERS_REQUIRED: "1"
           NODE_OPTIONS: --disable-warning=DEP0190
-      # The artifact is this ordinary build, kept aside before the
-      # wasm-kernel build below takes site/dist.
-      - run: cp -r site/dist "$RUNNER_TEMP/site-dist"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: site-dist
+          path: site/dist
+          include-hidden-files: true
+          if-no-files-found: error
+  astro-test:
+    needs: astro
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: ./.github/actions/site-setup
+        with:
+          artefacts: "true"
+          docs: "true"
+          browser: "true"
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: site-dist
+          path: site/dist
+      # The pages as the build synced them, for the specs that read them.
+      - run: pnpm --filter ljos-site sync-docs
       - run: pnpm --filter ljos-site check-links
       - run: pnpm --filter ljos-site test
       # The same suite over Ljós's reactive graph (A22): a second
@@ -286,77 +474,37 @@ jobs:
       - run: pnpm --filter ljos-site test:codeblocks
         env:
           NODE_OPTIONS: --disable-warning=DEP0190
-      # The same site as Ljós pages, beside the Astro one: built and
-      # held to parity with it, uploaded as its own artifact, and what
-      # Pages deploys (the Astro site/dist is the reference, never
-      # deployed). The wasm compiler, the kernel and the browser are
-      # the ones above. Its blocks are its own, not the Astro build's:
-      # that one's are made for the wgpu renderer, which this build
-      # does not ask for, so their stamp is not this build's.
-      # Built twice, once for each place it stands: at a domain's
-      # root (ljos.dev), the whole suite; then below a project path
-      # (the github.io preview, /<repo>/), what the base decides: the
-      # base itself, and every link and the 404 page at it.
-      # Each build is kept for the deploy to pick from.
-      - run: pnpm --filter ljos-site-ljos build
-        env:
-          QMLC: ${{ github.workspace }}/target/debug/qmlc
-          LJOS_SITE_BASE: /
-      # A step that failed before here saves nothing: a key is never
-      # saved twice, so it must not be saved half-made.
-      - if: steps.ljos-prerenders.outputs.cache-hit != 'true'
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+  # The Pages artifact: the root build or the project-path one, picked
+  # by where Pages serves this repository.
+  build:
+    needs: [site-ljos, site-ljos-project]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      # The pages step reads the repository's Pages domain.
+      pages: read
+    # Whether this run deploys, and to the custom domain, said once:
+    # a push to main in hal-c2/ljos-web deploys the domain build; a
+    # dispatch deploys as its inputs ask. A pull request has no
+    # inputs and is not a push, so both are false there. The deploy
+    # steps read these, and the fresh and deploy jobs read the outputs.
+    env:
+      SITE_DEPLOYS: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'hal-c2/ljos-web') || (github.event_name == 'workflow_dispatch' && inputs.deploy) }}
+      SITE_CUSTOM_DOMAIN: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'hal-c2/ljos-web') || (github.event_name == 'workflow_dispatch' && inputs.custom_domain) }}
+    outputs:
+      deploy: ${{ env.SITE_DEPLOYS }}
+      custom-domain: ${{ env.SITE_CUSTOM_DOMAIN }}
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        if: ${{ env.SITE_DEPLOYS == 'true' }}
         with:
-          path: |
-            site-ljos/.codeblock-prerenders
-            !site-ljos/.codeblock-prerenders/wasm
-          key: ${{ steps.ljos-prerenders.outputs.cache-primary-key }}
-      - run: pnpm --filter ljos-site-ljos test
-        env:
-          LJOS_SITE_BASE: /
-      # Every live example and demo driven as a reader drives it, in a
-      # browser with WebAssembly and in one without (e2e/).
-      - run: pnpm --filter ljos-site-ljos test:e2e
-        env:
-          LJOS_SITE_BASE: /
-      - run: cp -r site-ljos/dist "$RUNNER_TEMP/site-ljos-root"
-      # The same examples over Ljós's reactive graph (A22). This build
-      # is tested and dropped: the root build is already kept above,
-      # and the next build is the project-path one.
-      - run: pnpm --filter ljos-site-ljos build
-        env:
-          QMLC: ${{ github.workspace }}/target/debug/qmlc
-          LJOS_SITE_BASE: /
-          LJOS_KERNEL: wasm
-      - if: steps.wasm-prerenders.outputs.cache-hit != 'true'
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: site-ljos/.codeblock-prerenders/wasm
-          key: ${{ steps.wasm-prerenders.outputs.cache-primary-key }}
-      - run: pnpm --filter ljos-site-ljos test:e2e
-        env:
-          LJOS_SITE_BASE: /
-      - run: pnpm --filter ljos-site-ljos build
-        env:
-          QMLC: ${{ github.workspace }}/target/debug/qmlc
-          LJOS_SITE_BASE: /${{ github.event.repository.name }}/
-      - run: pnpm --filter ljos-site-ljos exec playwright test tests/base.spec.js tests/links.spec.js tests/canonical.spec.js
-        env:
-          LJOS_SITE_BASE: /${{ github.event.repository.name }}/
-      - run: cp -r site-ljos/dist "$RUNNER_TEMP/site-ljos-project"
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: ${{ failure() }}
-        with:
-          name: site-ljos-test-results
-          path: site-ljos/test-results
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+          name: site-ljos-root
+          path: ${{ runner.temp }}/site-ljos-root
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        if: ${{ env.SITE_DEPLOYS == 'true' }}
         with:
           name: site-ljos-dist
           path: ${{ runner.temp }}/site-ljos-project
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: site-dist
-          path: ${{ runner.temp }}/site-dist
       # DECISION: Pages serves site-ljos (the Ljós-built site), never
       # the Astro reference. Every merge to main deploys, in
       # hal-c2/ljos-web only: the root build and a CNAME naming the
@@ -432,7 +580,7 @@ jobs:
   # concurrency of its own: it takes seconds and waits for no one.
   fresh:
     if: ${{ needs.build.outputs.deploy == 'true' }}
-    needs: [build, check, guard]
+    needs: [build, check, guard, site-ljos-test, e2e, e2e-wasm, astro-test]
     runs-on: ubuntu-24.04
     permissions:
       # The checkout, and its branch's head.
@@ -456,7 +604,7 @@ jobs:
     # Nothing is published that `ljos check` refused, while the
     # freshness guard fails its own test, or that is no longer the
     # newest site.
-    needs: [build, check, guard, fresh]
+    needs: [build, check, guard, site-ljos-test, e2e, e2e-wasm, astro-test, fresh]
     runs-on: ubuntu-24.04
     # One deploy at a time to each place Pages serves, and one in
     # flight is never cancelled. A waiting one is replaced by a newer
