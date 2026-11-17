@@ -319,6 +319,51 @@ plain("the plugin tells each import the runtime lacks, and leaves it out, when a
   ]);
 });
 
+// The other half of that: a batch whose examples lack imports is one
+// bundle that names them all, each blamed on its own example, and one
+// more bundle for the rest. Were the blame wrong (an importer the
+// bundler names some other way than the stage's
+// `examples/<16 hex>/`), the batch would still end up right, by
+// halving, and only be slower: so the bundles are counted.
+plain("a batch whose examples lack imports fails those, each with its own, and is bundled once more for the rest", async ({}, info) => {
+  info.setTimeout(180_000);
+  const lacking = (name) =>
+    [
+      `\`\`\`qml group=${name}`,
+      'import QtQuick\nimport "helper.js" as Helper\n\nText { text: Helper.word() }',
+      "```",
+      "",
+      `\`\`\`js file=helper.js group=${name}`,
+      `import { pad } from "nowhere-${name}";\nexport function word() { return pad("${name}"); }`,
+      "```",
+      "",
+    ].join("\n");
+  const [first, second, fine] = assemble(extractBlocks([lacking("first"), lacking("second"), "```qml", 'import QtQuick\n\nText { text: "fine" }', "```", ""].join("\n")), {}).examples;
+  const cacheDir = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "ljos-codeblock-test-"));
+  // Each bundle is a Node process of its own (`prerender-bundle.js`):
+  // one line a start, written by a module every Node process the
+  // prerender starts loads first.
+  const counted = join(cacheDir, "bundles.txt");
+  const counter = join(cacheDir, "count.mjs");
+  writeFileSync(counter, `import { appendFileSync } from "node:fs";\nif (process.argv[1]?.endsWith("prerender-bundle.js")) appendFileSync(${JSON.stringify(counted)}, "bundle\\n");\n`);
+  try {
+    const env = { ...process.env, NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ""} --import=${counter}`.trim(), LJOS_PRERENDER_JOBS: "1" };
+    const { failures } = await renderPrerenders([first, second, fine], { cacheDir, qmlc, env });
+    const said = new Map(failures.map(({ example, diagnostics }) => [example, diagnostics.join("\n")]));
+    expect(failures).toHaveLength(2);
+    expect(said.has(first) && said.has(second)).toBe(true);
+    expect(said.get(first)).toContain("nowhere-first is not in ljos-web");
+    expect(said.get(first)).not.toContain("nowhere-second");
+    expect(said.get(second)).toContain("nowhere-second is not in ljos-web");
+    expect(said.get(second)).not.toContain("nowhere-first");
+    expect(loadPrerenders(cacheDir)[hashExample(fine)].html).toContain("fine");
+    // Once to find what all of them lack, once for the one that is left.
+    expect(readFileSync(counted, "utf8").trim().split("\n")).toHaveLength(2);
+  } finally {
+    rmSync(cacheDir, { recursive: true, force: true });
+  }
+});
+
 plain("a prerender stands where a page stands: a Request is beside it, and a handler's throw is told of", async ({}, info) => {
   info.setTimeout(180_000);
   const one = (code) => assemble(extractBlocks("```qml\n" + code.trimEnd() + "\n```\n"), {}).examples[0];

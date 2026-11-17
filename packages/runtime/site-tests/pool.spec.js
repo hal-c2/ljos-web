@@ -6,6 +6,7 @@
 import { readFileSync } from "node:fs";
 import { availableParallelism } from "node:os";
 import { join } from "node:path";
+import { askedJobs, fittingJobs } from "../pool.js";
 import { buildSite, pooled, siteJobs, SiteError } from "../site.js";
 import { bundle, qmlc } from "./bundle.js";
 import { expect, part, test } from "./served.js";
@@ -67,6 +68,36 @@ test("LJOS_SITE_JOBS says how many renders run at once; by default, as many as t
   expect(siteJobs({ LJOS_SITE_JOBS: "3" }, { cores: 1, memory: GiB })).toBe(3);
   for (const wrong of ["0", "-2", "1.5", "many"]) {
     expect(() => siteJobs({ LJOS_SITE_JOBS: wrong })).toThrow(`LJOS_SITE_JOBS is "${wrong}"`);
+    expect(() => siteJobs({ LJOS_SITE_JOBS: wrong })).toThrow(SiteError);
+  }
+});
+
+test("every pool reads its variable the same way, and by default fits the memory that is free, not the machine's", () => {
+  const GiB = 1024 ** 3;
+  expect(askedJobs({}, "LJOS_PRERENDER_JOBS")).toBeUndefined();
+  expect(askedJobs({ LJOS_PRERENDER_JOBS: "" }, "LJOS_PRERENDER_JOBS")).toBeUndefined();
+  expect(askedJobs({ LJOS_PRERENDER_JOBS: "6" }, "LJOS_PRERENDER_JOBS")).toBe(6);
+  for (const wrong of ["0", "1.5", "many"]) {
+    expect(() => askedJobs({ LJOS_PRERENDER_JOBS: wrong }, "LJOS_PRERENDER_JOBS")).toThrow(`LJOS_PRERENDER_JOBS is "${wrong}"`);
+  }
+  expect(fittingJobs(2 * GiB, { cores: 16, memory: 9 * GiB })).toBe(4);
+  expect(fittingJobs(2 * GiB, { cores: 16, memory: GiB })).toBe(1);
+  // By default the memory is what this process could still be given.
+  expect(fittingJobs(1, { cores: 3 })).toBe(3);
+  expect(fittingJobs(process.availableMemory() + 1, { cores: 3 })).toBe(1);
+});
+
+test("a build that renders nothing does not read LJOS_SITE_JOBS", async () => {
+  const site = bundle("pages");
+  const was = process.env.LJOS_SITE_JOBS;
+  process.env.LJOS_SITE_JOBS = "0";
+  try {
+    await part("build it without prerenders", () => buildSite({ dir: site.dir, out: site.out, qmlc }));
+    await expect(buildSite({ dir: site.dir, out: site.out, qmlc, prerender: { pages: [{ route: "/", title: "Home" }] } })).rejects.toThrow('LJOS_SITE_JOBS is "0"');
+  } finally {
+    if (was === undefined) delete process.env.LJOS_SITE_JOBS;
+    else process.env.LJOS_SITE_JOBS = was;
+    site.remove();
   }
 });
 

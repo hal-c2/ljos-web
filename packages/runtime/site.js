@@ -12,16 +12,16 @@
 import { spawn, spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
-import { availableParallelism, tmpdir, totalmem } from "node:os";
+import { tmpdir } from "node:os";
 import { dirname, isAbsolute, join, posix, resolve } from "node:path";
 import { build } from "vite";
 import { findTheme } from "./find-theme.ts";
 import { provided } from "./modules.js";
 import qml, { compilerAt, hasControls, installed, kernelNamed, runCompiler } from "./vite.js";
 import { CLIENT_CONDITIONS } from "./server/conditions.js";
-import { pooled } from "./pool.js";
+import { askedJobs, fittingJobs, pooled } from "./pool.js";
 
-export { pooled };
+export { askedJobs, pooled };
 
 const runtime = import.meta.dirname;
 
@@ -582,18 +582,19 @@ function startAfterPaint(html) {
 const RENDER_MEMORY = 1024 ** 3;
 
 // How many of a build's prerenders run at once: `LJOS_SITE_JOBS`, or as
-// many as the machine runs at once and has the memory for. Each is a
-// Node process of its own that spends its time making one page, so one
-// per core keeps them all busy, but 32 of them hold 12 GiB: a build
-// held to less (a cgroup's limit, which Node reads) or a small machine
-// runs fewer rather than being stopped. A machine shared with other
-// work says fewer still.
-export function siteJobs(env = process.env, { cores = availableParallelism(), memory = Math.min(process.constrainedMemory?.() || Infinity, totalmem()) } = {}) {
-  const asked = env.LJOS_SITE_JOBS;
-  if (asked === undefined || asked === "") return Math.max(1, Math.min(cores, Math.floor(memory / RENDER_MEMORY)));
-  const jobs = Number(asked);
-  if (!Number.isInteger(jobs) || jobs < 1) throw new SiteError(`LJOS_SITE_JOBS is ${JSON.stringify(asked)}; give how many renders may run at once, a whole number from 1`);
-  return jobs;
+// many as the machine runs at once and has the free memory for. Each is
+// a Node process of its own that spends its time making one page, so
+// one per core keeps them all busy, but 32 of them hold 12 GiB: a build
+// held to less (a cgroup's limit), sharing the machine with other work,
+// or on a small one runs fewer rather than being stopped.
+export function siteJobs(env = process.env, machine = {}) {
+  let asked;
+  try {
+    asked = askedJobs(env, "LJOS_SITE_JOBS");
+  } catch (wrong) {
+    throw new SiteError(wrong.message);
+  }
+  return asked ?? fittingJobs(RENDER_MEMORY, machine);
 }
 
 // How long one page's render may take, and how much HTML it may write.
@@ -610,6 +611,7 @@ function rendering(args, input, signal) {
     const out = [];
     const err = [];
     let size = 0;
+    let said = 0;
     let error = null;
     const end = (why) => {
       error ??= why;
@@ -623,7 +625,13 @@ function rendering(args, input, signal) {
       if (size > RENDER_MAX_BYTES) end(new Error(`it wrote more than ${RENDER_MAX_BYTES} bytes`));
       else out.push(chunk);
     });
-    child.stderr.on("data", (chunk) => err.push(chunk));
+    // A render that logs without end is stopped too, not held in memory
+    // until its timeout: spawnSync's maxBuffer bounded both streams.
+    child.stderr.on("data", (chunk) => {
+      said += chunk.length;
+      if (said > RENDER_MAX_BYTES) end(new Error(`it wrote more than ${RENDER_MAX_BYTES} bytes to stderr`));
+      else err.push(chunk);
+    });
     child.on("error", (why) => (error ??= why));
     // A render that ends before it has read its options says why on
     // stderr; the pipe it closed is not that reason.
@@ -637,14 +645,17 @@ function rendering(args, input, signal) {
   });
 }
 
-export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", qt, styles = "ljos", with: standins = [], liveShell = false, prerender = false, css = [], head = "", logLevel = "warn", jobs = siteJobs() } = {}) {
+export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", qt, styles = "ljos", with: standins = [], liveShell = false, prerender = false, css = [], head = "", logLevel = "warn", jobs } = {}) {
   if (!dir) throw new SiteError("which bundle? buildSite({ dir })");
   if (!Array.isArray(css) || css.some((path) => typeof path !== "string" || !path.endsWith(".css") || !existsSync(path))) {
     throw new SiteError(`css is a list of .css files that exist, not ${JSON.stringify(css)}`);
   }
   if (prerender && liveShell) throw new SiteError("a site with a live shell is not prerendered: its page is the shell host's to make (choose one of prerender and liveShell)");
   if (typeof head !== "string") throw new SiteError("head is the HTML every page's head is given, a string");
-  if (!Number.isInteger(jobs) || jobs < 1) throw new SiteError(`jobs is how many renders may run at once, a whole number from 1, not ${JSON.stringify(jobs)}`);
+  if (jobs !== undefined && (!Number.isInteger(jobs) || jobs < 1)) throw new SiteError(`jobs is how many renders may run at once, a whole number from 1, not ${JSON.stringify(jobs)}`);
+  // Only a prerendered site runs renders, so only it asks how many: a
+  // live shell's build is not refused over a setting it never uses.
+  if (prerender) jobs ??= siteJobs();
   // How long each part of the build took, in milliseconds, for whoever
   // builds a site to say where its time goes.
   const timings = {};
