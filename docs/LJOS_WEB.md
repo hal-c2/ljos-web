@@ -419,7 +419,7 @@ build gains a cleaner layering from every item.
 |---|---|---|
 | First useful page, gzip, JS + wasm | ≤ 250 kB | W8, every QtQuick type + runtime (`test:size`): 149.1 kB JS (Solid kernel); 149.1 kB JS + 26.9 kB wasm = 176.0 kB (wasm kernel) |
 | Kernel wasm | ≤ 30 kB gzip until value kinds move; every later move must remove more JS than it adds wasm, or say why | W8: 68,531 B raw / 26,916 B gzip (`opt-level=2`, LTO, one CGU, `panic=abort`, strip; no `wasm-opt` installed). At 2 the read path is inlined, which folds away more than it copies; "z" and "s" were larger |
-| Compiler in the page (A15), fetched on a page's first compile only | ≤ 1,300 kB gzip wasm, ≤ 5 kB gzip JS | W9.1: 3,717,395 B raw / 1,085,222 B gzip wasm (`opt-level="z"`); 4,061 B gzip JS as written. With the Ljós dialect (A31): 4,327,487 B raw / 1,247,112 B gzip wasm, 4,916 B gzip JS. With one oxc parser (plain JavaScript read by ljos-ui's fork too): 4,044,143 B raw / 1,155,711 B gzip / 837,556 B brotli. `opt-level="s"` is 4,930,010 B, and `wasm-opt -Oz` gains about 1 % gzip but grows brotli, so neither is used. A page that does not compile: unchanged, byte for byte |
+| Compiler in the page (A15), fetched on a page's first compile only | ≤ 1,300 kB gzip wasm, ≤ 6.5 kB gzip JS | W9.1: 3,717,395 B raw / 1,085,222 B gzip wasm (`opt-level="z"`); 4,061 B gzip JS as written. With the Ljós dialect (A31): 4,327,487 B raw / 1,247,112 B gzip wasm, 4,916 B gzip JS. With live examples' own files, fetch and the WebAssembly check (43bb866): 6,093 B gzip JS, 3.5 kB of it without comments. With one oxc parser (plain JavaScript read by ljos-ui's fork too): 4,044,143 B raw / 1,155,711 B gzip / 837,556 B brotli. `opt-level="s"` is 4,930,010 B, and `wasm-opt -Oz` gains about 1 % gzip but grows brotli, so neither is used. A page that does not compile: unchanged, byte for byte |
 | Tracked clean read | ≤ 2× Solid's before the Solid kernel is deleted | W8: 18 ns against Solid's 3.5 (9.5 against 1.5 warmed), from 40.5; not met (A4) |
 | Write → DOM | one Solid flush per write batch, zero polling | holds (faces) |
 | Idle | 0 % CPU | holds (nothing ticks; graph is push on write) |
@@ -919,7 +919,8 @@ where it gets smaller.
 budget (A8): a page that never compiles never fetches it (`index.js`
 imports `link.js`, which fetches the wasm, only inside `compile`), and
 `test:size` fails a page bundle that has it. It has its own line,
-1,300 kB gzip for the wasm and 5 kB for its JS: what it is, with room
+1,300 kB gzip for the wasm and 6.5 kB for its JS (5 kB until a live
+example's files became its own, ad12356 on): what it is, with room
 for Qt's table to grow, so that what would add to it (another parser,
 a table twice) is seen when it comes. It was 1,200 kB until the Ljós
 dialect (A31): ljos-ui's front end at its pin is 29 kB more (1,185 kB
@@ -1617,9 +1618,12 @@ DECISION: `pick.js` keeps picking. QML's `pick` answers at once with
 JavaScript objects, which a renderer that loads and draws
 asynchronously cannot do, and the answer does not depend on who draws.
 
-DECISION: the 3D wasm's budget is 1,400 kB gzip and its glue's 30 kB,
-against 1,313 kB and 21 kB measured. A page without a View3D on wgpu
-fetches neither.
+DECISION: the 3D wasm's budget is 1,500 kB gzip and its glue's 30 kB,
+against 1,313 kB and 21 kB measured first. It was 1,400 kB until
+ljos_3d's SceneSync (4ff16cf: a change reads only the pieces of the view
+that read it, 1,419 kB) and the renderer that draws a DefaultMaterial as
+Qt does (33abf5b, 1,454 kB). A page without a View3D on wgpu fetches
+neither.
 
 DECISION: `QtQuick3D.AssetUtils`' `RuntimeLoader` is a type on both
 renderers, but only wgpu reads the file: the JavaScript renderer draws

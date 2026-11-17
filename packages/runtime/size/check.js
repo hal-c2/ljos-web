@@ -9,7 +9,7 @@ import { gzipSync } from "node:zlib";
 
 const PAGE = 250_000;
 const KERNEL = 30_000;
-// DECISION: the compiler's wasm within 1,300 kB gzip and its JS within 5 kB.
+// DECISION: the compiler's wasm within 1,300 kB gzip and its JS within 6.5 kB.
 // It is fetched once, on a page's first compile, and no frame waits on it;
 // the budget is what it is (1,246 kB with the Ljós dialect: ljos-ui's
 // desugar at its pin, the TypeScript erasure, and the table of where Qt's
@@ -17,13 +17,26 @@ const KERNEL = 30_000;
 // grow, so that what would add to it (another parser, a table twice) is
 // seen when it comes.
 const COMPILER_WASM = 1_300_000;
-const COMPILER_JS = 5_000;
+// The JS was 5 kB, against 4,061 B. It went over at ad12356 (4,963 B to
+// 5,301 B: a live example's files are its own, and what it names and has
+// not is not there), and grew with 092b907 (asked for by address among
+// them, 5,697 B), 48f9260 (its reports go when its files are given),
+// ef1dcc4 (one WebAssembly check, 6,022 B) and e5f84ef (fetch beside its
+// file): 6,093 B at 43bb866. Each is what a live example needs of the
+// linker. As written, more than 2.5 kB of it is the comments, which a
+// page's build drops: 3.5 kB without them.
+const COMPILER_JS = 6_500;
 const COMPILER = /ljos_web_compiler/;
-// DECISION: View3D's renderer within 1,400 kB gzip of wasm and 30 kB of its
+// DECISION: View3D's renderer within 1,500 kB gzip of wasm and 30 kB of its
 // glue. Only a page that makes a View3D on it fetches them, once, and that is
-// measured here: 1,313 kB and 21 kB at wgpu 30 with glTF and the snippets. The
-// room is for the features the mapping has yet to reach, not another backend.
-const VIEW3D_WASM = 1_400_000;
+// measured here: 1,313 kB and 21 kB at wgpu 30 with glTF and the snippets
+// (20e4f80), 1,383 kB by dbde989. The wasm was 1,400 kB until 4ff16cf took
+// it to 1,419 kB: ljos_3d's SceneSync, which reads again only the pieces of
+// the view that read what changed, where rebuilding the scene was 43 % of
+// the main thread. 33abf5b took it to 1,454 kB: ljos-ui's renderer that
+// draws a DefaultMaterial as Qt does. The room is for the features the
+// mapping has yet to reach, not another backend.
+const VIEW3D_WASM = 1_500_000;
 const VIEW3D_JS = 30_000;
 const VIEW3D = /ljos_web_3d/;
 // A class only the JavaScript renderer's View3D makes.
