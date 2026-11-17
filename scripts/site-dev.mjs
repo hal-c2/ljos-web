@@ -10,7 +10,7 @@
 // passed, so a failed rebuild leaves the page a reader has open as it
 // was. The mise task builds the compiler, the wasm and Chromium first,
 // and sets QMLC and LJOS_DOCS_DIR.
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, watch } from "node:fs";
 import { createServer } from "node:http";
 import { dirname, extname, join, normalize, relative, resolve, sep } from "node:path";
@@ -172,8 +172,12 @@ async function buildRust() {
   return true;
 }
 
-// Paths are relative to the repository. Outputs the tasks write into the
-// watched trees are not changes to the site's sources.
+// Paths are relative to the repository. Outputs the build and the tasks
+// write into the watched trees are not changes to the site's sources:
+// site-ljos's build writes its generated pages into site-ljos/bundle
+// itself, so a change git ignores never starts a build, or each build
+// would start the next. The patterns below cover what git would say
+// where there is no git (a tarball).
 const docs = process.env.LJOS_DOCS_DIR ? resolve(process.env.LJOS_DOCS_DIR) : undefined;
 const WATCHED = [
   { dir: join(repo, "site-ljos", "bundle") },
@@ -206,8 +210,21 @@ function changed(path, rust) {
   timer = setTimeout(rebuild, 300);
 }
 
+// The paths of a batch git ignores, asked once for the whole batch.
+function gitIgnored(paths) {
+  const inRepo = paths.filter((path) => !path.startsWith("docs/") || !docs);
+  if (!inRepo.length) return new Set();
+  const asked = spawnSync("git", ["check-ignore", "--stdin", "-z"], { cwd: repo, input: inRepo.join("\0"), encoding: "utf8" });
+  // 0: some are ignored, 1: none are; anything else (no git) ignores none.
+  if (asked.status !== 0) return new Set();
+  return new Set(asked.stdout.split("\0").filter(Boolean));
+}
+
 async function rebuild() {
   if (building) return; // the build in flight runs again when it ends
+  const ignored = gitIgnored([...pending.keys()]);
+  for (const path of ignored) pending.delete(path);
+  if (!pending.size) return;
   building = true;
   const batch = pending;
   pending = new Map();
