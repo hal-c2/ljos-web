@@ -34,3 +34,21 @@ test("a styled Dialog shows its standard buttons in a row in its footer, and eac
   await cancel.click();
   await expect.poll(() => page.evaluate(() => window.scene.said)).toBe("rejected");
 });
+
+test("a styled button box lets go of the buttons a Repeater takes back, and shows only the rest", async ({ page }) => {
+  await open(page, "repeatedbuttons");
+  const held = () =>
+    page.evaluate(() => {
+      const box = window.objects.box;
+      return [box.contentChildren.map((button) => button.text), box.children.filter((child) => child.text).map((child) => child.text)];
+    });
+  expect(await held()).toEqual([["B0", "B1", "B2"], ["B0", "B1", "B2"]]);
+  await page.evaluate(() => {
+    window.scene.count = 1;
+    window.flush();
+  });
+  expect(await held()).toEqual([["B0"], ["B0"]]);
+  await expect(page.getByRole("button", { name: "B0" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "B1" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "B2" })).toHaveCount(0);
+});
