@@ -187,3 +187,25 @@ test("the Flickable a TextArea is attached to goes where the cursor does", async
   await page.keyboard.press("Control+Home");
   await expect.poll(where).toEqual([0, 0, 0]);
 });
+
+// A style lays its placeholder, a Text, over the field. A Text takes no
+// press, so in Qt a press on it is the field's; an item that takes the
+// press (a MouseArea) keeps it.
+test("a press on a Text over a field is the field's, and one a MouseArea over it takes is not", async ({ page }) => {
+  await open(page, "coveredfield");
+  const focused = () => page.evaluate(() => ["covered", "area", "taken"].filter((name) => window.scene[name].activeFocus));
+  await page.mouse.click(10 + 60, 10 + 20);
+  expect(await focused()).toEqual(["covered"]);
+  await page.keyboard.type("typed");
+  expect(await page.evaluate(() => window.scene.covered.text)).toBe("typed");
+
+  await page.mouse.click(10 + 60, 60 + 30);
+  expect(await focused()).toEqual(["area"]);
+  await page.keyboard.type("more");
+  expect(await page.evaluate(() => window.scene.area.text)).toBe("more");
+
+  await page.mouse.click(10 + 60, 140 + 20);
+  expect(await page.evaluate(() => window.scene.presses)).toBe(1);
+  expect(await focused()).toEqual(["area"]);
+  expect(await page.evaluate(() => window.scene.taken.text)).toBe("");
+});

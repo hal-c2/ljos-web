@@ -459,6 +459,9 @@ export function cursor() {
 // The last press of the first pointer: whether what the page would do with
 // it is left undone.
 let claimed = false;
+// Whether an item took the page's last press: what lies over a field and
+// took none (a style's placeholder, a Text) leaves the press to the field.
+export const pressTaken = () => claimed;
 
 // A link of the page's in a scene: an item that is one (link.js) or a
 // link in rich text.
