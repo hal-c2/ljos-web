@@ -11,7 +11,7 @@
 // reader left it; reduced motion softens and
 // never stops; one picture stands on light and dark.
 import AxeBuilder from "@axe-core/playwright";
-import { centre, classify, expect, frames, liveBlock, livePages, open, pageScroll, press, runButton, test, unexpected } from "./fixtures.js";
+import { centre, classify, expect, frames, liveBlock, livePages, open, pageScroll, press, run, runButton, test, unexpected } from "./fixtures.js";
 import { brokenExample } from "./known.js";
 
 const examples = livePages().flatMap(({ route, examples }) => examples.filter((example) => !brokenExample(route, example.index)).map((example) => ({ route, example })));
@@ -240,6 +240,23 @@ test.describe("examples", () => {
     await runButton(block.toolbar, "Edit Main.qml").click();
     await expect(block.block.locator(".cm-editor.cm-focused"), "Edit shows the code and takes the reader to it").toBeVisible();
     await expect(source).toHaveAttribute("aria-pressed", "true");
+    expect(unexpected(errors)).toEqual([]);
+  });
+
+  // Three ten-pixel items in a Row: a sliver, which once stood as a
+  // line across the page. It runs in a window a reader can see, at its
+  // own size in the middle of it (a window's least size never stretches
+  // an app), and what it picked, under it, is what shows it ran.
+  test("an example that draws a sliver runs in a window a reader can see", async ({ page, errors }) => {
+    await open(page, "/data/repeater-and-delegates/");
+    const block = await run(page, 0);
+    const box = await block.stage.boundingBox();
+    expect(box.height, "the window is as tall as the least window").toBeGreaterThanOrEqual(96);
+    expect(box.width, "and twice as wide").toBeGreaterThanOrEqual(192);
+    const app = await block.running.boundingBox();
+    expect(app.width, "the app keeps its own width").toBeLessThan(40);
+    expect(Math.abs(app.x + app.width / 2 - (box.x + box.width / 2)), "in the middle of the window").toBeLessThan(2);
+    await expect(block.values, "what it picked says it ran").toContainText("picked: d2");
     expect(unexpected(errors)).toEqual([]);
   });
 
