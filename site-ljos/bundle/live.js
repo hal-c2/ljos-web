@@ -1,7 +1,8 @@
 .pragma library
 // What a live code block compiles with: the compiler in the page
-// (`ljos-web/compiler`, A15), given the page's own modules and Qt
-// Quick Controls — this page is built with them (ControlsHost), so
+// (`ljos-web/compiler`, A15), given the page's own modules, Qt
+// Quick Controls and Ljós's own controls — this page is built with
+// them (ControlsHost), so
 // an example that imports them compiles and reloads here as it
 // prerendered at build. Nothing is fetched until the first compile.
 //
@@ -64,6 +65,18 @@ async function compileWith() {
         const modules = Object.assign({}, mods.modules, {
             "ljos-web/QtQuick/Controls": function () {
                 return import("ljos-web/QtQuick/Controls");
+            },
+            // Ljós's own controls and their design are QML that comes
+            // with the runtime (docs/LJOS_WEB.md A34): the page has them
+            // when a reader's example first asks.
+            "ljos-web/Ljos/Controls": function () {
+                return import("ljos-web/Ljos/Controls");
+            },
+            "ljos-web/Ljos/Controls/Basic": function () {
+                return import("ljos-web/Ljos/Controls/Basic");
+            },
+            "ljos-web/Ljos/Design": function () {
+                return import("ljos-web/Ljos/Design");
             }
         });
         compiler = made.createCompiler({ modules: modules }).compile;
