@@ -121,7 +121,7 @@ if [ -n "$qt_qml" ]; then
   version="$(QT_QPA_PLATFORM=offscreen qt_answer "$qt_qml" --version)"
   where="$(command -v "$qt_qml" || echo "$qt_qml")"
   case "$version" in
-    "") ;;
+    "") skipped+=("reference's qml ($where) gave no Qt 6 version for --version, so setup cannot say whether it is the pinned Qt $qt_pinned: set QML to Qt $qt_pinned's bin/qml to be sure") ;;
     "$qt_pinned".*) done_+=("reference's qml: $where, $qt_from") ;;
     *) mismatched+=("reference's qml ($where) is Qt $version, not $qt_from, so mise run reference takes another Qt's pictures: $qt_get and set QML to its bin/qml") ;;
   esac
@@ -143,9 +143,10 @@ else
     fi
   done
 fi
-case "$version" in
-  "") ;;
-  "$qt_pinned".*) done_+=("types' Qt: $qt_types, $qt_from") ;;
+case "$qt_types:$version" in
+  :) ;;
+  *:) skipped+=("types' Qt ($qt_types): no qtpaths or qmake beside it gave a Qt 6 version, so setup cannot say whether it is the pinned Qt $qt_pinned: run mise run types --qt with Qt $qt_pinned's qml directory to be sure") ;;
+  *":$qt_pinned".*) done_+=("types' Qt: $qt_types, $qt_from") ;;
   *) mismatched+=("types' Qt ($qt_types) is Qt $version, not $qt_from, so mise run types reads another Qt's types: $qt_get and run mise run types --qt <its qml directory>") ;;
 esac
 
