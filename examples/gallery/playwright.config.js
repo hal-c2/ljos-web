@@ -7,6 +7,11 @@ export default defineConfig({
   testDir: "./tests",
   testMatch: ["report.spec.js", "assets.spec.js"],
   fullyParallel: true,
+  // Every page has the one dev server below compile its example with qmlc
+  // as it loads. With a worker per core (16 here) 11 of 13 examples "did not
+  // finish loading", and with 4 the last 4 still did not, though each loads
+  // alone; with 2 all 27 do.
+  workers: 2,
   reporter: [["./tests/table.js"]],
   timeout: 150000,
   use: {
