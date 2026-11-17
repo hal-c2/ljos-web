@@ -1757,6 +1757,10 @@ What a prerender has, and what it has not:
   byte for byte however many ran at once. The page's build and the
   server bundle are made at once too. `buildSite` returns how long
   each part took (`timings`, in ms).
+- A docs build's compiler check runs as many `qmlc` at once
+  (`checkExamplesAll`, each distinct example once), and its
+  pictures of the prerenders are drawn on a few pages of one
+  browser; `site-ljos` says how long each of these took.
 - A prerendered page asks for its script once its HTML is painted,
   so the script never stands before the first paint.
 - What paints is not in the HTML: a `Canvas`, a `ShaderEffect`, a
@@ -1845,8 +1849,16 @@ turns a Markdown page's fenced blocks into live ones, for any site:
   prerender wrote it** (A26): the examples are built once into a server
   bundle by the same Vite build and made in Node by `renderToString`
   (`ljos-web/server`), cached by content hash. Making an example runs
-  it, so the prerender is also the run half of the check. There is no
-  second, picture-shaped path: a block's static half is its own markup.
+  it, so the prerender is also the run half of the check. The examples
+  are bundled in batches, each in a Node process of its own
+  (`codeblocks/prerender-bundle.js`): the plugin runs `qmlc` to its end
+  for each file, which holds the event loop it runs on, so batches in one
+  process would take turns. As many run at once as the machine has cores
+  and memory for (`LJOS_PRERENDER_JOBS` says otherwise). An import the
+  runtime lacks is told for every example of a batch in its one bundle
+  (the plugin's `lacking`), so a batch is built again once without them,
+  not once an example. There is no second, picture-shaped path: a
+  block's static half is its own markup.
 - **The page** (`ljos-web/codeblock`): hydration mounts each block only
   as it nears the viewport, and its first making takes the prerendered
   nodes over (`hydrate`, A26) — the nodes a reader had are the nodes
@@ -1997,7 +2009,7 @@ the bundle's).
 Live code blocks (A27) stand in such a page as the decision there
 has it — the same halves without remark. The site's build
 assembles each page's fences, holds every one that claims to run
-to compiling and running (`checkExamples`, `renderPrerenders`),
+to compiling and running (`checkExamplesAll`, `renderPrerenders`),
 and gives the shell's one code-block face the ones that do as
 live blocks: an editor per file beside a stage. The stage as
 first written holds a picture the build drew of the prerendered

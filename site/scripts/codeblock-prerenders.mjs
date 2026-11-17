@@ -10,7 +10,7 @@ import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { checkExamples, hashExample, loadHarnesses, renderPrerenders, siteFiles } from "ljos-web/codeblocks";
+import { checkExamplesAll, hashExample, loadHarnesses, renderPrerenders, siteFiles } from "ljos-web/codeblocks";
 import { assemble, extractBlocks, tagged } from "ljos-web/codeblocks/parse";
 import { giveFiles, readGiven, unused } from "./codeblock-files.mjs";
 import { writeHeld } from "./codeblocks-held.mjs";
@@ -70,7 +70,7 @@ const mustRun = (example) => claimed(example) && !listedEverywhere(keysOf.get(ha
 const named = (example) => (keysOf.get(hashExample(example)) ?? []).join(", ");
 // The claimed examples let stand plain, for the page build to keep so.
 const held = new Set();
-const failures = checkExamples(examples, { qmlc });
+const failures = await checkExamplesAll(examples, { qmlc });
 const failed = new Map(failures.map(({ example, diagnostics }) => [hashExample(example), diagnostics]));
 for (const { example, diagnostics } of failures) {
   if (mustRun(example)) {

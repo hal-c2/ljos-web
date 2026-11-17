@@ -483,6 +483,12 @@ export function runCompiler(qmlc, args, options = {}) {
 //   says. A block of such a page is one instance whichever shell shows it,
 //   and an entry carries what it is compiled against. Off, a page has none
 //   of it.
+// - `lacking`: a function told `{ source, importer, why }` for each import
+//   the runtime does not have, which is then left out of the bundle
+//   (external) instead of stopping it. For a build of many programs at once
+//   that leaves out the ones the runtime cannot run: one bundle names them
+//   all, where a stopped one names one a build. Otherwise the build stops
+//   at the first, naming the file that asked.
 export default function qml({
   faces,
   qmlc = "qmlc",
@@ -499,6 +505,7 @@ export default function qml({
   inspect = false,
   types,
   liveShell = false,
+  lacking,
 } = {}) {
   let asked;
   const found = () => (asked ??= installed());
@@ -839,7 +846,11 @@ export default function qml({
         // file that asked is named with it, as with any import it has.
         // An unresolved answer is `null` rather than a refusal, and as
         // much the runtime's lack.
-        const lacked = (why) => this.error({ message: `${source} is not in ljos-web: ${why}`, id: importer.split("?")[0] });
+        const lacked = (why) => {
+          if (!lacking) this.error({ message: `${source} is not in ljos-web: ${why}`, id: importer.split("?")[0] });
+          lacking({ source, importer: importer.split("?")[0], why });
+          return { id: source, external: true };
+        };
         const fallback = await this.resolve(source, join(runtime, "index.js"), { ...options, skipSelf: true }).catch((error) =>
           lacked(String(error?.message ?? error).split("\n")[0]),
         );
