@@ -298,3 +298,24 @@ test("what a binding makes as it is evaluated is told it is complete once, and t
   // Qt 6.11: three rows of 40.
   expect([height, content]).toEqual([120, 120]);
 });
+
+test("what a binding makes with createObject is complete before createObject returns", async ({ page }) => {
+  await open(page, "madeinbinding");
+  const order = await page.evaluate(() => {
+    window.scene.asked = 1;
+    return [window.scene.making, window.scene.order];
+  });
+  // Qt 6.11: createObject() completes what it makes before it returns.
+  expect(order).toEqual([1, ["completed", "returned"]]);
+});
+
+test("a binding that shows what it made with createObject reads it complete", async ({ page }) => {
+  await open(page, "madeinbinding");
+  const text = await page.evaluate(() => {
+    window.scene.shownAsked = 1;
+    window.flush();
+    return window.scene.shown.text;
+  });
+  // Qt 6.11: the made object's onCompleted has run when the binding reads it.
+  expect(text).toBe("ready");
+});
