@@ -9,10 +9,10 @@
 // or written: a field it does not have, a file it does not list or lists
 // wrong, a path out of the directory, a link, a module without its qmldir,
 // an import ljos-web does not provide.
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { availableParallelism, tmpdir } from "node:os";
 import { dirname, isAbsolute, join, posix, resolve } from "node:path";
 import { build } from "vite";
 import { findTheme } from "./find-theme.ts";
@@ -574,13 +574,107 @@ function startAfterPaint(html) {
   return started.replace("</body>", () => `  <script data-ljos-start="${script[1]}" data-ljos-preload="${names}">${STARTER}</script>\n  </body>`);
 }
 
-export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", qt, styles = "ljos", with: standins = [], liveShell = false, prerender = false, css = [], head = "", logLevel = "warn" } = {}) {
+// How many of a build's prerenders run at once: `LJOS_SITE_JOBS`, or as
+// many as the machine runs at once. Each is a Node process of its own
+// that spends its time making one page, so one per core keeps them all
+// busy; a machine shared with other work says fewer.
+export function siteJobs(env = process.env) {
+  const asked = env.LJOS_SITE_JOBS;
+  if (asked === undefined || asked === "") return availableParallelism();
+  const jobs = Number(asked);
+  if (!Number.isInteger(jobs) || jobs < 1) throw new SiteError(`LJOS_SITE_JOBS is ${JSON.stringify(asked)}; give how many renders may run at once, a whole number from 1`);
+  return jobs;
+}
+
+// Each of `tasks` run, at most `jobs` at once, its results in the tasks'
+// order whatever order they end in. A task is given a signal that says
+// to stop. The first to fail starts no more, signals those running to
+// stop, and is what is thrown once they have ended: nothing is left
+// running into whatever the caller does next (the build removes the
+// stage the renders read).
+export async function pooled(tasks, jobs) {
+  const results = new Array(tasks.length);
+  const stop = new AbortController();
+  let next = 0;
+  let failed = null;
+  const worker = async () => {
+    while (failed === null && next < tasks.length) {
+      const at = next++;
+      try {
+        results[at] = await tasks[at](stop.signal);
+      } catch (error) {
+        if (failed === null) {
+          failed = { error };
+          stop.abort();
+        }
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(jobs, tasks.length) }, worker));
+  if (failed !== null) throw failed.error;
+  return results;
+}
+
+// How long one page's render may take, and how much HTML it may write.
+const RENDER_TIMEOUT = 120_000;
+const RENDER_MAX_BYTES = 1 << 28;
+
+// One render, as spawnSync ran it but without holding the event loop:
+// `input` on stdin, stdout and stderr collected, and `error` set when it
+// could not be run, ran past RENDER_TIMEOUT or wrote more than
+// RENDER_MAX_BYTES, as spawnSync's would be.
+function rendering(args, input, signal) {
+  return new Promise((done) => {
+    const child = spawn(process.execPath, args, { stdio: ["pipe", "pipe", "pipe"] });
+    const out = [];
+    const err = [];
+    let size = 0;
+    let error = null;
+    const end = (why) => {
+      error ??= why;
+      child.kill("SIGKILL");
+    };
+    const timer = setTimeout(() => end(new Error(`it did not end within ${RENDER_TIMEOUT / 1000} s`)), RENDER_TIMEOUT);
+    const stopped = () => end(new Error("another render failed"));
+    signal?.addEventListener("abort", stopped, { once: true });
+    child.stdout.on("data", (chunk) => {
+      size += chunk.length;
+      if (size > RENDER_MAX_BYTES) end(new Error(`it wrote more than ${RENDER_MAX_BYTES} bytes`));
+      else out.push(chunk);
+    });
+    child.stderr.on("data", (chunk) => err.push(chunk));
+    child.on("error", (why) => (error ??= why));
+    // A render that ends before it has read its options says why on
+    // stderr; the pipe it closed is not that reason.
+    child.stdin.on("error", () => {});
+    child.on("close", (status, killed) => {
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", stopped);
+      done({ error, status, signal: killed, stdout: Buffer.concat(out).toString("utf8"), stderr: Buffer.concat(err).toString("utf8") });
+    });
+    child.stdin.end(input);
+  });
+}
+
+export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", qt, styles = "ljos", with: standins = [], liveShell = false, prerender = false, css = [], head = "", logLevel = "warn", jobs = siteJobs() } = {}) {
   if (!dir) throw new SiteError("which bundle? buildSite({ dir })");
   if (!Array.isArray(css) || css.some((path) => typeof path !== "string" || !path.endsWith(".css") || !existsSync(path))) {
     throw new SiteError(`css is a list of .css files that exist, not ${JSON.stringify(css)}`);
   }
   if (prerender && liveShell) throw new SiteError("a site with a live shell is not prerendered: its page is the shell host's to make (choose one of prerender and liveShell)");
   if (typeof head !== "string") throw new SiteError("head is the HTML every page's head is given, a string");
+  if (!Number.isInteger(jobs) || jobs < 1) throw new SiteError(`jobs is how many renders may run at once, a whole number from 1, not ${JSON.stringify(jobs)}`);
+  // How long each part of the build took, in milliseconds, for whoever
+  // builds a site to say where its time goes.
+  const timings = {};
+  const timed = async (part, work) => {
+    const from = performance.now();
+    try {
+      return await work();
+    } finally {
+      timings[part] = Math.round(performance.now() - from);
+    }
+  };
   const pages = prerender ? pagesOf(prerender) : null;
   const sizes = prerender ? sizesOf(prerender) : null;
   const schemes = prerender ? schemesOf(prerender) : null;
@@ -647,15 +741,52 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
       },
     };
     const plugin = () => qml({ qmlc, args: ["--root", dir], qt, styles, standins, theme: theme ? join(dir, theme) : false, liveShell });
-    await build({
-      ...shared,
-      plugins: [plugin()],
-      // Each file is compiled by qmlc in the plugin's load, so nearly all
-      // of a build's time is in callbacks; that is expected, not a warning.
-      build: { outDir: join(stage, "dist"), emptyOutDir: true, target: "esnext", chunkSizeWarningLimit: 4000, rollupOptions: { checks: { bundlerTimings: false } } },
-      // The live shell's compiler runs in a module worker.
-      worker: { format: "es" },
-    });
+    // The page's build and, for a prerender, the server bundle of the same
+    // entry, at once: neither reads what the other writes, and each has a
+    // plugin of its own. The compiler is run to its end in the plugin's
+    // load (`runCompiler`), so no two compiles overlap; what overlaps is
+    // the bundler's own work around them.
+    const client = timed("client", () =>
+      build({
+        ...shared,
+        plugins: [plugin()],
+        // Each file is compiled by qmlc in the plugin's load, so nearly all
+        // of a build's time is in callbacks; that is expected, not a warning.
+        build: { outDir: join(stage, "dist"), emptyOutDir: true, target: "esnext", chunkSizeWarningLimit: 4000, rollupOptions: { checks: { bundlerTimings: false } } },
+        // The live shell's compiler runs in a module worker.
+        worker: { format: "es" },
+      }),
+    );
+    // The same entry made where there is no browser: a server bundle of
+    // the entry over this runtime, rendered in a Node process of its own
+    // into the page the client build wrote.
+    if (prerender) writeFileSync(join(stage, "server-entry.js"), SERVER);
+    const server = prerender
+      ? timed("server", () =>
+          build({
+            ...shared,
+            plugins: [plugin()],
+            build: {
+              ssr: join(stage, "server-entry.js"),
+              outDir: join(stage, "server"),
+              emptyOutDir: true,
+              target: "esnext",
+              chunkSizeWarningLimit: 4000,
+              rollupOptions: { output: { format: "es", entryFileNames: "server-entry.mjs" }, checks: { bundlerTimings: false } },
+            },
+            // The browser's builds of what the page is made with: Node's own
+            // build of solid-js renders once and never again, so a root sized
+            // by the element it is put in would keep the size it had before it
+            // was put there, and every binding what it first read.
+            ssr: { noExternal: true, resolve: { conditions: CLIENT_CONDITIONS } },
+            environments: { ssr: { resolve: { noExternal: true, conditions: CLIENT_CONDITIONS } } },
+          }),
+        )
+      : null;
+    // Both ended before either's failure is thrown: the stage they write
+    // into is removed once this throws.
+    const [failed] = (await Promise.allSettled([client, server])).filter((settled) => settled.status === "rejected");
+    if (failed) throw failed.reason;
     const site = join(stage, "dist");
     // What the site gives every page's head (its icon, its colours, what a
     // link to it shows) names files the site puts beside its pages, as it
@@ -665,28 +796,6 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
       writeFileSync(page, readFileSync(page, "utf8").replace("  </head>", () => `    ${head.trim()}\n  </head>`));
     }
     if (prerender) {
-      // The same entry made where there is no browser: a server bundle
-      // of the entry over this runtime, rendered in a Node process of
-      // its own into the page the client build wrote.
-      writeFileSync(join(stage, "server-entry.js"), SERVER);
-      await build({
-        ...shared,
-        plugins: [plugin()],
-        build: {
-          ssr: join(stage, "server-entry.js"),
-          outDir: join(stage, "server"),
-          emptyOutDir: true,
-          target: "esnext",
-          chunkSizeWarningLimit: 4000,
-          rollupOptions: { output: { format: "es", entryFileNames: "server-entry.mjs" }, checks: { bundlerTimings: false } },
-        },
-        // The browser's builds of what the page is made with: Node's own
-        // build of solid-js renders once and never again, so a root sized
-        // by the element it is put in would keep the size it had before it
-        // was put there, and every binding what it first read.
-        ssr: { noExternal: true, resolve: { conditions: CLIENT_CONDITIONS } },
-        environments: { ssr: { resolve: { noExternal: true, conditions: CLIENT_CONDITIONS } } },
-      });
       // One render per page, each in a process of its own, as a render
       // takes the globals over. A site of one page is the entry made
       // with no props at `/`, as it always was.
@@ -695,29 +804,39 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
       shell = startAfterPaint(shell);
       // Every size in every scheme, narrowest first and light before dark.
       const made = sizes.flatMap((_, size) => schemes.map((scheme) => ({ size, scheme })));
-      for (const page of pages ?? [{ route: "/" }]) {
-        const each = made.map(({ size, scheme }) => {
-          const { width, height } = sizes[size];
-          const options = {
-            ...(width !== undefined ? { width } : {}),
-            ...(height !== undefined ? { height } : {}),
-            ...(scheme !== undefined ? { scheme } : {}),
-            ...(page.props ? { props: page.props } : {}),
-          };
-          // On stdin, not as an argument: a page's props are as large as
-          // its reading, and one argument has a limit of its own (E2BIG).
-          const ran = spawnSync(process.execPath, [join(runtime, "server/prerender.js"), join(stage, "server/server-entry.mjs"), "-"], {
-            input: JSON.stringify(options),
-            encoding: "utf8",
-            maxBuffer: 1 << 28,
-            timeout: 120_000,
-          });
-          const at = [sizes.length > 1 ? ` at ${width}×${height}` : "", schemes.length > 1 ? ` in ${scheme}` : ""].join("");
-          if (ran.error) throw new SiteError(`could not prerender ${page.route}${at}: ${ran.error.message}`);
-          if (ran.status !== 0) throw new SiteError(`${page.route} could not be prerendered${at}:\n${(ran.stderr || ran.stdout).trim()}`);
-          if (ran.stderr) console.warn(ran.stderr.trimEnd());
-          return { size, scheme, html: ran.stdout };
-        });
+      const listed = pages ?? [{ route: "/" }];
+      // Every page's renders, several at once (`jobs`), given back in this
+      // order: each page is then written from its own, as one at a time
+      // wrote it.
+      const asked = listed.flatMap((page) => made.map(({ size, scheme }) => ({ page, size, scheme })));
+      const rendered = await timed("prerender", () =>
+        pooled(
+          asked.map(({ page, size, scheme }) => async (signal) => {
+            const { width, height } = sizes[size];
+            const options = {
+              ...(width !== undefined ? { width } : {}),
+              ...(height !== undefined ? { height } : {}),
+              ...(scheme !== undefined ? { scheme } : {}),
+              ...(page.props ? { props: page.props } : {}),
+            };
+            // On stdin, not as an argument: a page's props are as large as
+            // its reading, and one argument has a limit of its own (E2BIG).
+            const ran = await rendering([join(runtime, "server/prerender.js"), join(stage, "server/server-entry.mjs"), "-"], JSON.stringify(options), signal);
+            const at = [sizes.length > 1 ? ` at ${width}×${height}` : "", schemes.length > 1 ? ` in ${scheme}` : ""].join("");
+            if (ran.error) throw new SiteError(`could not prerender ${page.route}${at}: ${ran.error.message}`);
+            if (ran.status !== 0) throw new SiteError(`${page.route} could not be prerendered${at}:\n${(ran.stderr || ran.stdout).trim()}`);
+            return { size, scheme, html: ran.stdout, said: ran.stderr };
+          }),
+          jobs,
+        ),
+      );
+      timings.renders = rendered.length;
+      timings.jobs = Math.min(jobs, rendered.length);
+      // What the renders said, in the order they are listed in, whichever
+      // ended first.
+      for (const { said } of rendered) if (said) console.warn(said.trimEnd());
+      for (const [index, page] of listed.entries()) {
+        const each = rendered.slice(index * made.length, (index + 1) * made.length);
         // A size's light and dark renders made one where only their
         // colours differ, each size on its own.
         const named = new Map();
@@ -782,7 +901,7 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
   }
   const written = present(out).filter((path) => path !== STAMP);
   const bytes = written.reduce((sum, path) => sum + lstatSync(join(out, path)).size, 0);
-  return { out, files: written.sort(), bytes };
+  return { out, files: written.sort(), bytes, timings };
 }
 
 const PAGE = `<!doctype html>
