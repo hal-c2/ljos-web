@@ -29,10 +29,12 @@ jobs:
           version: 2026.9.9
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
       - run: git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
-      - run: cargo fmt --all --check
-      # Each whatever came before it, so one run shows every failure there is.
-      - if: ${{ !cancelled() }}
-        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      # What `mise run check` runs locally, run the same way here: rustfmt,
+      # clippy, the TypeScript types and the code grammar's tests. It runs
+      # each whatever came before it and names every one that failed.
+      - run: mise run check
+        env:
+          SHARP_IGNORE_GLOBAL_LIBVIPS: "1"
       - if: ${{ !cancelled() }}
         run: cargo test --workspace --no-fail-fast --locked
 
@@ -85,13 +87,8 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: ${{ steps.browsers.outputs.cache-primary-key }}
-      # The ported modules' types, before anything runs them.
-      - name: the types
-        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
-        run: pnpm -r --if-present run typecheck
-      - name: the code grammar
-        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
-        run: pnpm --filter lezer-ljos test
+      # The types and the code grammar are checked in the check job
+      # (mise run check).
       # Each whatever came before it, so one run shows which kernel a failure is on.
       - if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
         run: pnpm --filter ljos-web test:site
@@ -160,3 +157,19 @@ jobs:
           path: ~/.cache/ms-playwright
           key: ${{ steps.browsers.outputs.cache-primary-key }}
       - run: mise run test:wasm-counter
+
+  # Every mise task, in a quick mode that does not build (tasks/smoke says
+  # which run and which are only resolved), so a task that broke turns CI
+  # red instead of the next person who runs it.
+  tasks:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
+        with:
+          version: 2026.9.9
+      - run: git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+      # shellcheck comes with the runner's image; the smoke fails in CI without it.
+      - run: mise run tasks:smoke
+        env:
+          SHARP_IGNORE_GLOBAL_LIBVIPS: "1"

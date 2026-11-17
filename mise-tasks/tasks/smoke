@@ -1,0 +1,219 @@
+#!/usr/bin/env bash
+#MISE description="Run every mise task in a quick, non-interactive mode, so a broken task turns CI red"
+#USAGE flag "--list" help="Print the table of tasks and how each is smoke-tested, and run nothing"
+#USAGE flag "--only <task>" help="Smoke-test this one task"
+set -euo pipefail
+
+# task | mode | arguments | needs | why it is only a dry run
+#   run: a real, quick, non-interactive run of `mise run <task> <arguments>`
+#   dry: `mise run -n <task> <arguments>` (usage and depends resolve) and
+#        bash -n, for a task that takes minutes, serves until stopped,
+#        writes what is checked in, or needs what CI has not got
+# @tmp@ in the arguments is a scratch directory removed at the end. A run
+# whose needs (commands on PATH) are not all found becomes a dry run, and
+# the summary says which was missing. Adding or removing a task without
+# changing this table fails the smoke test. tasks:smoke tests only its own
+# --list, so it never recurses. The long tasks are run in full by CI's
+# other jobs, as each reason says.
+table() {
+  cat <<'EOF_TABLE'
+setup|run|--no-corpus||
+tools|run|||
+packages|run|||
+browser|run|--check||
+tool:wasm-bindgen|run|||
+site:docs|run|||
+assets|run|||
+deploy|run|--dry-run||
+install|run|packages||
+tasks:smoke|run|--list||
+check|dry|||clippy over the workspace takes minutes; ci.yml's check job runs mise run check
+fmt|dry|||rewrites the Rust in place; mise run check checks the formatting
+docs|dry|||cargo doc of every crate takes minutes
+build|dry|||a cargo build and a Vite build (minutes)
+build:compiler|dry|||a cargo build (minutes); ci.yml's browser job builds qmlc
+build:kernel|dry|||a wasm cargo build (minutes); ci.yml's browser job runs it
+build:wasm-compiler|dry|||a wasm cargo build (minutes); ci.yml's browser job runs it
+build:wasm-3d|dry|||a wasm cargo build (minutes); site.yml's rust job runs it
+build:web|dry|||builds qmlc and the example (minutes)
+build:site|dry|packages/runtime/site-tests/fixtures/button --out @tmp@/site||builds qmlc first (minutes); test:site builds sites from bundles
+controls|dry|||rewrites packages/runtime/controls from a fetch of ljos-ui
+corpus|dry|||compiles every one of Qt's examples (minutes)
+dev|dry|||a dev server, which runs until it is stopped
+gallery|dry|||every one of Qt's examples in a browser (many minutes)
+gallery:serve|dry|||a dev server, which runs until it is stopped
+perf:3d|dry|||measures for minutes, and wants a quiet machine
+reference|dry|||needs Qt 6 and sway, and takes Qt's pictures of every example
+site|dry|--build||builds the compilers, the kernel and ljos.dev (minutes); site.yml builds it
+site:test|dry|||site.yml's suites (many minutes); site.yml runs them
+site:astro:test|dry|||site.yml's suites for the Astro site (minutes); site.yml runs them
+types|dry|||needs Qt 6 and cargo-installs the generator, and rewrites crates/ljos_web/types.txt
+test|dry|||every test task (an hour)
+test:compiler|dry|||cargo test (minutes); ci.yml's check job runs the workspace's tests
+test:runtime|dry|||the runtime's Playwright suite (minutes)
+test:kernel|dry|||the runtime's Playwright suite on the wasm kernel (minutes)
+test:site|dry|||the site builder's Playwright suite (minutes); ci.yml's browser job runs it
+test:web|dry|||builds and drives the web example (minutes)
+test:gallery|dry|||the gallery's Playwright selftest (minutes)
+test:size|dry|||builds every wasm (minutes)
+test:faces-size|dry|||builds the example crates for wasm (minutes)
+test:wasm-counter|dry|||builds a desktop app and the wasm (minutes); ci.yml's examples job runs it
+test:wasm-gauge|dry|||builds a desktop app and the wasm (minutes)
+EOF_TABLE
+}
+
+if [ "${usage_list:-}" = true ]; then
+  printf '%-20s %-4s %-40s %-10s %s\n' TASK MODE ARGUMENTS NEEDS "WHY DRY"
+  table | while IFS='|' read -r task mode args needs why; do
+    printf '%-20s %-4s %-40s %-10s %s\n' "$task" "$mode" "${args:--}" "${needs:--}" "$why"
+  done
+  exit 0
+fi
+only="${usage_only:-}"
+root=$PWD
+
+# The tasks this repository defines, as "name<TAB>source"; mise also lists
+# any global tasks, which are not this repository's to test.
+tasks="$(mise tasks --json | node -e '
+let text = "";
+process.stdin.on("data", (chunk) => (text += chunk)).on("end", () => {
+  const root = process.argv[1].replace(/\/$/, "") + "/";
+  for (const task of JSON.parse(text)) if (task.source.startsWith(root)) console.log(`${task.name}\t${task.source}`);
+});' "$root")"
+names="$(printf '%s\n' "$tasks" | cut -f1 | sort)"
+tabled="$(table | cut -d'|' -f1 | sort)"
+
+failed=0
+results=""
+record() {
+  results="$results$(printf '%-20s %-6s %-6s %-8s %s' "$1" "$2" "$3" "$4" "${5:-}")
+"
+  [ "$3" = ok ] || failed=1
+}
+
+for t in $(comm -23 <(printf '%s\n' "$names") <(printf '%s\n' "$tabled")); do
+  echo "tasks:smoke: task '$t' has no entry in the table in mise-tasks/tasks/smoke; add one" >&2
+  record "$t" "-" FAIL 0
+done
+for t in $(comm -13 <(printf '%s\n' "$names") <(printf '%s\n' "$tabled")); do
+  echo "tasks:smoke: the table names '$t', which is no longer a task; remove it" >&2
+  record "$t" "-" FAIL 0
+done
+
+# The test task's list of test tasks is one more table that must keep up.
+listed="$(sed -n 's/^all=(\(.*\))$/\1/p' mise-tasks/test/_default | tr ' ' '\n' | sort)"
+defined="$(printf '%s\n' "$names" | grep -E '^(test:|site:test$|site:astro:test$)' | sort)"
+if [ "$listed" != "$defined" ]; then
+  echo "tasks:smoke: mise run test runs [$(echo $listed)], but the test tasks are [$(echo $defined)]; update all=(...) and the description in mise-tasks/test/_default" >&2
+  record "(test list)" lint FAIL 0
+fi
+
+# The README's table of tasks is the one people read; each task has a line.
+for t in $names; do
+  if ! grep -q "^mise run $t " README.md; then
+    echo "tasks:smoke: README.md's table of tasks has no 'mise run $t' line; add one" >&2
+    record "(readme)" lint FAIL 0
+  fi
+done
+
+# Every task file, whether or not --only picks it, and the scripts they
+# source or run (not tasks, so no #MISE line).
+lint=""
+have_shellcheck=""
+if command -v shellcheck >/dev/null 2>&1; then
+  have_shellcheck=1
+elif [ -n "${CI:-}" ]; then
+  echo "tasks:smoke: shellcheck is not installed, and CI lints every task with it" >&2
+  lint=1
+else
+  echo "tasks:smoke: shellcheck is not installed; the tasks are not linted with it (CI does)" >&2
+fi
+for f in $(find mise-tasks scripts -type f | sort); do
+  case "$f" in
+    *.mjs | *.js)
+      if ! node --check "$f" 2>/dev/null; then
+        echo "tasks:smoke: $f: node --check fails" >&2
+        lint=1
+      fi
+      continue
+      ;;
+  esac
+  problems=""
+  bash -n "$f" 2>/dev/null || problems="$problems bash -n fails;"
+  case "$f" in
+    mise-tasks/qmlc-env.sh | scripts/*) ;;
+    *)
+      grep -q '^#MISE description=' "$f" || problems="$problems no #MISE description;"
+      grep -q '^set -euo pipefail' "$f" || problems="$problems no 'set -euo pipefail';"
+      [ -x "$f" ] || problems="$problems not executable, so mise does not see it;"
+      ;;
+  esac
+  if [ -n "$have_shellcheck" ] && ! shellcheck -x -S warning "$f" >/dev/null 2>&1; then
+    problems="$problems shellcheck -S warning fails (run: shellcheck -x -S warning $f);"
+  fi
+  if [ -n "$problems" ]; then
+    echo "tasks:smoke: $f:$problems" >&2
+    lint=1
+  fi
+done
+if [ -z "$lint" ]; then
+  record "(static)" lint ok 0
+else
+  record "(static)" lint FAIL 0
+fi
+
+# Off-screen: smoke runs never open a window, and a desktop's Qt platform
+# theme would kill Qt when there is no display.
+unset WAYLAND_DISPLAY DISPLAY SWAYSOCK HYPRLAND_INSTANCE_SIGNATURE QT_QPA_PLATFORMTHEME
+export QT_QPA_PLATFORM=offscreen
+scratch="$(mktemp -d "${TMPDIR:-/tmp}/ljos-web-smoke.XXXXXX")"
+trap 'rm -rf "$scratch"' EXIT
+
+found_only=""
+while IFS='|' read -r task mode args needs why; do
+  [ -z "$only" ] || [ "$only" = "$task" ] || continue
+  found_only=1
+  source="$(printf '%s\n' "$tasks" | awk -F'\t' -v t="$task" '$1 == t { print $2 }')"
+  [ -n "$source" ] || continue
+  args="${args//@tmp@/$scratch}"
+  note=""
+  if [ "$mode" = run ]; then
+    for n in $needs; do
+      if ! command -v "$n" >/dev/null; then
+        mode=dry
+        note="dry: no $n"
+        break
+      fi
+    done
+  elif [ -z "$why" ]; then
+    echo "tasks:smoke: '$task' is a dry run with no reason given" >&2
+    record "$task" "$mode" FAIL 0
+    continue
+  fi
+  echo "== tasks:smoke: $mode $task $args${note:+ ($note)}"
+  start=$SECONDS
+  result=ok
+  # shellcheck disable=SC2086 # the arguments column is a word list
+  case "$mode" in
+    run) mise run "$task" $args </dev/null || result=FAIL ;;
+    dry) { mise run -n "$task" $args </dev/null && bash -n "$source"; } || result=FAIL ;;
+    *)
+      echo "tasks:smoke: '$task' has unknown mode '$mode'" >&2
+      result=FAIL
+      ;;
+  esac
+  record "$task" "$mode" "$result" $((SECONDS - start)) "$note"
+done < <(table)
+if [ -n "$only" ] && [ -z "$found_only" ]; then
+  echo "tasks:smoke: --only '$only' is not in the table" >&2
+  exit 1
+fi
+
+echo
+printf '%-20s %-6s %-6s %-8s %s\n' TASK MODE RESULT SECONDS NOTE
+printf '%s' "$results"
+if [ "$failed" -ne 0 ]; then
+  echo "tasks:smoke: failed (see the rows above that are not ok)" >&2
+  exit 1
+fi
+echo "tasks:smoke: every task ok"
