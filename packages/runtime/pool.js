@@ -1,7 +1,9 @@
 // A pool of async tasks with a bound on how many run at once: a site's
 // prerenders and a docs build's compiler checks are many short processes
 // each, and one at a time leaves every core but one idle.
-import { availableParallelism, totalmem } from "node:os";
+import { readFileSync } from "node:fs";
+import { availableParallelism, freemem, totalmem } from "node:os";
+import { join, posix } from "node:path";
 
 // Each of `tasks` run, at most `jobs` at once, its results in the tasks'
 // order whatever order they end in. A task is given a signal that says
@@ -44,22 +46,45 @@ export function askedJobs(env, name) {
   return jobs;
 }
 
+// The cgroup (v2) whose limit holds this process: its own, or the
+// nearest above it that sets one. `held` is what every process in it
+// holds, less the file cache it could drop (inactive_file), which the
+// kernel takes back before it refuses anyone. Null when nothing up to
+// the root sets a limit, or there is no cgroup v2 to read (another
+// system, or cgroup v1): then the machine's own free memory is all
+// there is to go by.
+export function cgroupMemory({ root = "/sys/fs/cgroup", self = "/proc/self/cgroup" } = {}) {
+  const read = (path) => {
+    try {
+      return readFileSync(path, "utf8").trim();
+    } catch {
+      return undefined;
+    }
+  };
+  const path = /^0::(\/.*)$/m.exec(read(self) ?? "")?.[1];
+  if (path === undefined) return null;
+  for (let at = path; ; at = posix.dirname(at)) {
+    const max = read(join(root, at, "memory.max"));
+    if (max !== undefined && max !== "max") {
+      const current = Number(read(join(root, at, "memory.current")));
+      const inactive = Number(/^inactive_file (\d+)$/m.exec(read(join(root, at, "memory.stat")) ?? "")?.[1]);
+      return Number.isFinite(current) && Number.isFinite(inactive) ? { limit: Number(max), held: current - inactive } : null;
+    }
+    if (at === "/") return null;
+  }
+}
+
 // What this process could still be given, in bytes. Under a cgroup's
-// limit Node's availableMemory() is the limit less all the cgroup
-// holds, and that counts its page cache: the files a build has read
-// and written, which the kernel takes back when memory is asked for.
+// limit, Node's availableMemory() is the limit less memory.current, and
+// that counts the page cache: the files a build has read and written.
 // A long build fills it, and would be held to one job by memory it can
-// have. So under a limit it is the limit less this process. With none
-// (Node says 0, the largest number it has, or more than the machine
-// holds) it is the machine's free memory, which leaves the cache out
-// already.
-export function freeMemory({
-  limit = process.constrainedMemory(),
-  available = process.availableMemory(),
-  used = process.memoryUsage.rss(),
-  total = totalmem(),
-} = {}) {
-  return limit > 0 && limit < total ? Math.max(0, limit - used) : available;
+// have. So under a limit it is the limit less what the cgroup's
+// processes hold (cgroupMemory), and never more than the machine has
+// free. With none, or one above the machine's memory, it is
+// availableMemory(), the machine's free memory, which leaves the cache
+// out already.
+export function freeMemory({ cgroup = cgroupMemory(), free = freemem(), available = process.availableMemory(), total = totalmem() } = {}) {
+  return cgroup !== null && cgroup.limit < total ? Math.min(free, Math.max(0, cgroup.limit - cgroup.held)) : available;
 }
 
 // As many as the machine runs at once and has `each` bytes of memory
