@@ -201,6 +201,9 @@ const IGNORED = [
 let pending = new Map(); // path -> needs a Rust build
 let timer;
 let building = false;
+// A Rust change stays owed until a Rust build passes: a later save of the
+// docs alone must not publish a site built on the old compilers.
+let rustOwed = false;
 
 function changed(path, rust) {
   const shown = docs && path.startsWith(docs) ? `docs/${relative(docs, path)}` : relative(repo, path);
@@ -229,14 +232,20 @@ async function rebuild() {
   const batch = pending;
   pending = new Map();
   const names = [...batch.keys()];
-  const rust = [...batch.values()].some(Boolean);
+  const rust = rustOwed || [...batch.values()].some(Boolean);
+  rustOwed = rust;
   console.log(`\nsite: changed: ${names.slice(0, 5).join(", ")}${names.length > 5 ? ` and ${names.length - 5} more` : ""}`);
   send("building");
   const start = Date.now();
   // Whatever goes wrong (a full disk while the build is kept, say), the
   // flag is cleared, or no change would ever build again.
   try {
-    const ok = (!rust || (await buildRust())) && (await buildSite());
+    let ok = true;
+    if (rust) {
+      ok = await buildRust();
+      if (ok) rustOwed = false;
+    }
+    ok = ok && (await buildSite());
     if (ok) {
       keep();
       console.log(`site: rebuilt in ${seconds(start)}; reloading ${listeners.size} open page${listeners.size === 1 ? "" : "s"}`);
