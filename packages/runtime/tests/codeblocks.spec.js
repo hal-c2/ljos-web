@@ -364,6 +364,46 @@ plain("a batch whose examples lack imports fails those, each with its own, and i
   }
 });
 
+// The build reads the renderer's answers while it bundles the next
+// batches, so it may read them late: an answer still on its way when
+// the renderer ends is lost, and its example left plain as one that
+// gave none. A slow reader still gets every one.
+plain("a renderer's every answer reaches a reader that is late to read them", async () => {
+  const dir = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "ljos-codeblock-test-"));
+  try {
+    // More than a pipe holds, so most of it is still unread at the end.
+    writeFileSync(
+      join(dir, "entries.mjs"),
+      [
+        `export const pages = Object.fromEntries(Array.from({ length: 24 }, (_, i) => [String(i).padStart(16, "0"), () => null]));`,
+        `export async function renderToString() { return "x".repeat(20_000); }`,
+      ].join("\n"),
+    );
+    const { spawn } = await import("node:child_process");
+    const lines = await new Promise((done, failed) => {
+      const child = spawn(process.execPath, [join(import.meta.dirname, "../codeblocks/prerender-run.js"), join(dir, "entries.mjs"), "{}"], { stdio: ["ignore", "pipe", "pipe"] });
+      const out = [];
+      // Late: not until the renderer has ended, or a while has passed
+      // (a renderer that waits to be read never ends on its own).
+      child.stdout.pause();
+      let late = setTimeout(() => read(), 2_000);
+      const read = () => {
+        if (!late) return;
+        clearTimeout(late);
+        late = null;
+        child.stdout.on("data", (chunk) => out.push(chunk));
+        child.stdout.resume();
+      };
+      child.on("exit", read);
+      child.on("error", failed);
+      child.on("close", () => done(Buffer.concat(out).toString("utf8").split("\n").filter(Boolean)));
+    });
+    expect(lines.map((line) => JSON.parse(line).hash)).toEqual(Array.from({ length: 24 }, (_, i) => String(i).padStart(16, "0")));
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 plain("a prerender stands where a page stands: a Request is beside it, and a handler's throw is told of", async ({}, info) => {
   info.setTimeout(180_000);
   const one = (code) => assemble(extractBlocks("```qml\n" + code.trimEnd() + "\n```\n"), {}).examples[0];

@@ -97,20 +97,25 @@ for (const [set, clear] of [
     return handle;
   };
 }
+// An answer is on its way once written, not yet read: the build reads
+// them while it bundles other batches, so it may lag, and an answer
+// still in the pipe when this process ends is lost. Each is awaited
+// out before the next, so ending after the last loses none.
+const answer = (line) => new Promise((done, failed) => process.stdout.write(line, (error) => (error ? failed(error) : done())));
 const { pages, renderToString } = await import(pathToFileURL(resolve(bundle)).href);
 for (const [hash, Component] of Object.entries(pages)) {
   const own = [];
   logged = own;
   making = hash;
-  let answer;
+  let reply;
   try {
-    answer = { hash, html: await renderToString(Component, options) };
+    reply = { hash, html: await renderToString(Component, options) };
   } catch (error) {
-    answer = { hash, error: error?.message ?? String(error) };
+    reply = { hash, error: error?.message ?? String(error) };
   }
   for (const stop of timers.set.splice(0)) stop();
-  if (own.length) answer.logged = own;
-  process.stdout.write(`${JSON.stringify(answer)}\n`);
+  if (own.length) reply.logged = own;
+  await answer(`${JSON.stringify(reply)}\n`);
 }
 logged = null;
 // An example's animations and timers would keep this process: the
