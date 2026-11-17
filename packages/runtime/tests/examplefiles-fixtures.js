@@ -334,6 +334,30 @@ Text {
 }
 `;
 
+// A model of a folder of the example's: the files it was given are what is
+// in it, as the files of Qt's resources are what is in one of their folders.
+// A folder the example does not have is not there.
+export const FOLDER_MAIN = `import QtQuick
+import Qt.labs.folderlistmodel
+
+Text {
+    color: "#e8eaf0"
+    FolderListModel { id: here; folder: Qt.resolvedUrl(".") }
+    FolderListModel { id: inside; folder: Qt.resolvedUrl("pictures"); nameFilters: ["*.png"] }
+    FolderListModel { id: absent; folder: Qt.resolvedUrl("absent") }
+    function names(model) {
+        const shown = [];
+        for (let i = 0; i < model.count; i++) shown.push(model.get(i, "fileName") + (model.isFolder(i) ? "/" : ""));
+        return model.status + ": " + shown.join(" ");
+    }
+    Image {
+        id: first
+        source: inside.count > 0 ? inside.get(0, "fileUrl") : ""
+    }
+    text: [here, inside, absent].map(names).join(" | ") + " | " + (first.status === Image.Ready ? "shown " + first.sourceSize.width + "x" + first.sourceSize.height : "status " + first.status)
+}
+`;
+
 // A 2 x 1 PNG.
 export const PNG = Uint8Array.from(
   atob("iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAIAAAB7QOjdAAAAD0lEQVR4nGP4z8DAwPAfAAcAAf9+CLHQAAAAAElFTkSuQmCC"),
@@ -363,9 +387,12 @@ export const EXAMPLES = {
   cancelled: figure([qml("Main.qml", CANCELLED_MAIN), { name: "rows.json", code: '{ "rows": [1, 2, 3] }\n', lang: "json" }]),
   heldTimer: figure([qml("Main.qml", HELD_TIMER_MAIN)]),
   given: figure([qml("Main.qml", GIVEN_MAIN), qml("parts/Badge.qml", GIVEN_BADGE)], { given: packGiven({ "photo.png": PNG }) }),
+  folder: figure([qml("Main.qml", FOLDER_MAIN), { name: "notes.json", code: "[]\n", lang: "json" }], {
+    given: packGiven({ "photo.png": PNG, "pictures/a.png": PNG, "pictures/b.txt": Uint8Array.of(98) }),
+  }),
 };
 
 // What may not be asked of the server: every file the examples name.
 // `fetched`'s script is lib/load.js, by its directory too: the wasm
 // kernel's own kernel/load.js is asked for as it starts.
-export const NAMED = /(?:^|\/)(?:(?:shell|AppShell|Shell|Missing|Gone|Badge)\.qml|(?:logo|photo)\.png|100%(?:25)?\.png|my(?: |%20)100%(?:25)?\.svg|(?:data|notes|early|rows)\.json|lib\/load\.js)$/;
+export const NAMED = /(?:^|\/)(?:(?:shell|AppShell|Shell|Missing|Gone|Badge)\.qml|(?:logo|photo)\.png|100%(?:25)?\.png|my(?: |%20)100%(?:25)?\.svg|(?:data|notes|early|rows)\.json|lib\/load\.js|pictures\/(?:a\.png|b\.txt)?|absent\/?)$/;
