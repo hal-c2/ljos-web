@@ -3,10 +3,10 @@
 // and the site they make is the same, byte for byte, however many ran
 // at once: the renders are put back in the order one at a time made
 // them before anything is written.
-import { readFileSync } from "node:fs";
-import { availableParallelism } from "node:os";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { availableParallelism, tmpdir } from "node:os";
 import { join } from "node:path";
-import { askedJobs, fittingJobs, freeMemory } from "../pool.js";
+import { askedJobs, cgroupMemory, fittingJobs, freeMemory } from "../pool.js";
 import { buildSite, pooled, siteJobs, SiteError } from "../site.js";
 import { bundle, qmlc } from "./bundle.js";
 import { expect, part, test } from "./served.js";
@@ -82,34 +82,63 @@ test("every pool reads its variable the same way, and by default fits the memory
   }
   expect(fittingJobs(2 * GiB, { cores: 16, memory: 9 * GiB })).toBe(4);
   expect(fittingJobs(2 * GiB, { cores: 16, memory: GiB })).toBe(1);
-  // By default the memory is what this process could still be given,
-  // read once: a reading held still, so nothing freed meanwhile moves it.
-  const { availableMemory, constrainedMemory } = process;
-  try {
-    process.availableMemory = () => 9 * GiB;
-    process.constrainedMemory = () => 0;
-    expect(fittingJobs(2 * GiB, { cores: 16 })).toBe(4);
-    expect(fittingJobs(10 * GiB, { cores: 16 })).toBe(1);
-  } finally {
-    Object.assign(process, { availableMemory, constrainedMemory });
-  }
+  // By default the memory is what this process could still be given
+  // (freeMemory, below). Whatever this machine has free just now, it
+  // has room for a byte each and none for an exabyte, so neither
+  // answer turns on when it is read.
+  expect(fittingJobs(1, { cores: 3 })).toBe(3);
+  expect(fittingJobs(2 ** 60, { cores: 3 })).toBe(1);
 });
 
-test("under a cgroup's limit, the page cache the build filled is memory it can have", () => {
+test("under a cgroup's limit, what every process in it holds counts, and the page cache it filled does not", () => {
   const GiB = 1024 ** 3;
-  // Node's availableMemory() there is the limit less what the cgroup
-  // holds, files read and written included: 14 GiB of 16 held, 13 of
-  // it cache. What is free for the build is the limit less itself.
-  const limited = { limit: 16 * GiB, available: 2 * GiB, used: GiB, total: 64 * GiB };
-  expect(freeMemory(limited)).toBe(15 * GiB);
-  expect(fittingJobs(2 * GiB, { cores: 32, memory: freeMemory(limited) })).toBe(7);
-  // A process past its limit has none, and still runs one.
-  expect(freeMemory({ ...limited, used: 17 * GiB })).toBe(0);
-  // No limit: Node says 0 or the largest number it can, or a "limit"
-  // above the machine's memory. The machine's free memory, which
-  // leaves the cache out already, is what there is.
-  for (const limit of [0, 2 ** 64, 128 * GiB]) expect(freeMemory({ ...limited, limit })).toBe(2 * GiB);
+  // Node's availableMemory() there is the limit less memory.current,
+  // and that counts the files read and written: 14 GiB of 16 held, 6 of
+  // it cache. The cgroup's processes, this one and the others, hold 8.
+  const limited = { cgroup: { limit: 16 * GiB, held: 8 * GiB }, free: 40 * GiB, available: 2 * GiB, total: 64 * GiB };
+  expect(freeMemory(limited)).toBe(8 * GiB);
+  expect(fittingJobs(2 * GiB, { cores: 32, memory: freeMemory(limited) })).toBe(4);
+  // A cgroup at its limit has none, and still runs one.
+  expect(freeMemory({ ...limited, cgroup: { limit: 16 * GiB, held: 17 * GiB } })).toBe(0);
+  // Nor is more than the machine has free there, whatever the limit.
+  expect(freeMemory({ ...limited, free: 3 * GiB })).toBe(3 * GiB);
+  // No limit, or one above the machine's memory: the machine's free
+  // memory, which leaves the cache out already, is what there is.
+  expect(freeMemory({ ...limited, cgroup: null })).toBe(2 * GiB);
+  expect(freeMemory({ ...limited, cgroup: { limit: 128 * GiB, held: GiB } })).toBe(2 * GiB);
   expect(freeMemory()).toBeGreaterThan(0);
+});
+
+test("the cgroup read is the nearest one with a limit, all it holds less its inactive file cache", () => {
+  const GiB = 1024 ** 3;
+  const root = mkdtempSync(join(tmpdir(), "cgroup-"));
+  const self = join(root, "self");
+  const group = (path, files) => {
+    mkdirSync(join(root, path), { recursive: true });
+    for (const [name, text] of Object.entries(files)) writeFileSync(join(root, path, name), text);
+  };
+  const stat = (inactive) => `anon ${GiB}\nfile ${7 * GiB}\nactive_file ${GiB}\ninactive_file ${inactive}\n`;
+  try {
+    writeFileSync(self, "0::/build.slice/job.scope\n");
+    group("build.slice", { "memory.max": `${16 * GiB}\n`, "memory.current": `${14 * GiB}\n`, "memory.stat": stat(6 * GiB) });
+    // The process's own cgroup sets no limit: its parent's holds, and so
+    // do the parent's numbers, siblings and all.
+    group("build.slice/job.scope", { "memory.max": "max\n", "memory.current": `${3 * GiB}\n`, "memory.stat": stat(GiB) });
+    expect(cgroupMemory({ root, self })).toEqual({ limit: 16 * GiB, held: 8 * GiB });
+    // Its own limit, when it has one, is the nearer.
+    group("build.slice/job.scope", { "memory.max": `${4 * GiB}\n` });
+    expect(cgroupMemory({ root, self })).toEqual({ limit: 4 * GiB, held: 2 * GiB });
+    // No limit up to the root (which has no memory.max), no cgroup v2,
+    // or one it cannot read: nothing to go by.
+    group("build.slice/job.scope", { "memory.max": "max\n" });
+    group("build.slice", { "memory.max": "max\n" });
+    expect(cgroupMemory({ root, self })).toBeNull();
+    writeFileSync(self, "12:memory:/build.slice\n");
+    expect(cgroupMemory({ root, self })).toBeNull();
+    expect(cgroupMemory({ root, self: join(root, "nowhere") })).toBeNull();
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
 });
 
 test("a build that renders nothing does not read LJOS_SITE_JOBS", async () => {
