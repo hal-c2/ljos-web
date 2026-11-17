@@ -218,7 +218,7 @@ test("a code block is its picture until the reader reaches for it, then runs bes
 // page is not needed to hold them.
 function observed() {
   const source = readFileSync(new URL("../bundle/observed.js", import.meta.url), "utf8").replace(/^\.pragma library\n/, "");
-  return new Function(`${source}\nreturn { lines, watch, unwatch, say, reset, show, inspectFor, declared, written, shown, connectSignals, KEPT };`)();
+  return new Function(`${source}\nreturn { lines, watch, unwatch, forget, say, reset, show, inspectFor, declared, written, shown, connectSignals, KEPT };`)();
 }
 
 test("an example's lines are kept, the last few, and told to who watches", () => {
@@ -267,7 +267,7 @@ function liveWith(pull) {
   const source = readFileSync(new URL("../bundle/live.js", import.meta.url), "utf8")
     .replace(/^\.pragma library\n/, "")
     .replace(/\bimport\(/g, "pull(");
-  return new Function("pull", `${source}\nreturn { setExample, compileWith, examples };`)(pull);
+  return new Function("pull", `${source}\nreturn { setExample, compileWith, examples, keyFor, forget };`)(pull);
 }
 
 test("blocks that compile while the compiler loads get all its modules, and a load that failed is tried again", async () => {
@@ -292,6 +292,31 @@ test("blocks that compile while the compiler loads get all its modules, and a lo
   expect(Object.keys(a)).not.toContain("ljos-web/inspect");
   expect(asked.filter((name) => name === "ljos-web/compiler"), "loaded again after it failed, then once for both").toHaveLength(2);
   expect(await live.compileWith(live.examples.a), "an example keeps its compiler").toBe(a);
+});
+
+// Two blocks of the same code have the same hash: each is kept by a key
+// of its own, and what a block that has gone kept goes with it.
+test("blocks of the same code are kept apart, and a block that goes takes what it kept", () => {
+  const live = liveWith(() => Promise.resolve({}));
+  const o = observed();
+  const [a, b] = [live.keyFor("761d32fb"), live.keyFor("761d32fb")];
+  expect(a, "two keys for one code").not.toBe(b);
+  live.setExample(a, [{ name: "Main.qml", code: "Item {}" }]);
+  live.setExample(b, [{ name: "Main.qml", code: "Item {}" }]);
+  o.reset(a, []);
+  o.reset(b, []);
+  const told = [];
+  o.watch(b, (lines) => told.push(lines.length));
+  o.say(a, "log", "only a's");
+  expect(o.lines(b), "b heard nothing of a").toEqual([]);
+  expect(told).toEqual([]);
+  const page = { $console: () => ({ log() {}, debug() {}, info() {}, warn() {}, error() {} }) };
+  const own = o.inspectFor(a, page);
+  o.forget(a);
+  live.forget(a);
+  expect(o.lines(a), "a's lines went with it").toEqual([]);
+  expect(o.inspectFor(a, page), "and its console").not.toBe(own);
+  expect(Object.keys(live.examples), "and its example").toEqual([b]);
 });
 
 test("a root's own properties and signals are read from what declared them, and its signals are said as they fire", () => {
