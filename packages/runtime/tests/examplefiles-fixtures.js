@@ -366,4 +366,6 @@ export const EXAMPLES = {
 };
 
 // What may not be asked of the server: every file the examples name.
-export const NAMED = /(?:^|\/)(?:(?:shell|AppShell|Shell|Missing|Gone|Badge)\.qml|(?:logo|photo)\.png|100%(?:25)?\.png|my(?: |%20)100%(?:25)?\.svg|(?:data|notes|early|rows)\.json|load\.js)$/;
+// `fetched`'s script is lib/load.js, by its directory too: the wasm
+// kernel's own kernel/load.js is asked for as it starts.
+export const NAMED = /(?:^|\/)(?:(?:shell|AppShell|Shell|Missing|Gone|Badge)\.qml|(?:logo|photo)\.png|100%(?:25)?\.png|my(?: |%20)100%(?:25)?\.svg|(?:data|notes|early|rows)\.json|lib\/load\.js)$/;
