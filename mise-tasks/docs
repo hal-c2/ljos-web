@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+#MISE description="Build the API docs of every crate (cargo doc) and print where to open them; the docs people read are ljos.dev's (mise run site)"
+#MISE depends=["tools"]
+#USAGE flag "--open" help="Open the docs in a browser when built"
+set -euo pipefail
+args=(doc --no-deps --workspace --locked)
+[ "${usage_open:-false}" = true ] && args+=(--open)
+cargo "${args[@]}"
+case ${CARGO_TARGET_DIR:-} in
+  "") target="$PWD/target" ;;
+  /*) target="$CARGO_TARGET_DIR" ;;
+  *) target="$PWD/$CARGO_TARGET_DIR" ;;
+esac
+index="$target/doc/ljos_web/index.html"
+if [ ! -f "$index" ]; then
+  echo "docs: cargo doc finished but wrote no $index" >&2
+  exit 1
+fi
+echo "docs: open $index (each crate has its own $target/doc/<crate>/index.html)"

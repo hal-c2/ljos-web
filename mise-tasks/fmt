@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Format every crate in place (mise run check only checks); the JavaScript has no formatter of its own"
+#MISE depends=["tools"]
+set -euo pipefail
+cargo fmt --all
