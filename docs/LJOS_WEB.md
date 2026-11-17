@@ -734,7 +734,8 @@ without its qmldir and an import ljos-web does not provide are each
 refused with what was wrong. The entry is compiled with the directory
 as the project's root; a site's controls are Ljós's own style (A20),
 so Qt is needed only for a style Ljós has none of (Imagine) or with
-`--styles qt`, and Ljos.Design's QML is given with `--with`. A site it
+`--styles qt`; Ljós's own controls and Ljos.Design come with the
+runtime (A34). A site it
 built is replaced (it leaves a `.ljos-site-build` stamp); any other
 directory is not. The theme is checked, applied (A14) and carried
 into the site as it is.
@@ -2080,8 +2081,21 @@ every font, as in Ljós's table; beside a Qt table, whose font has no
 other added member. The rest of `Ljos.Ui` — `Item`, `Image`, the
 shapes and paths, the animations, states and transitions, the views'
 companions — Ljós keeps as they are, so they are the runtime's types
-exported from this module too. `Ljos.Core` is `Timer`, `Binding`,
-`Connections`, `Component`, `Locale` and `QtObject` likewise.
+exported from this module too: `Canvas` (the page's own `<canvas>`,
+placed by layout as any item is), `KeyNavigation`, `PathView` and the
+transforms `Rotation`, `Scale` and `Translate` among them. `GridView` is
+a face as `ListView` is. `Ljos.Core` is `Timer`, `Binding`,
+`Connections`, `Component`, `Locale` and `QtObject` likewise, `Object`
+(the face of `QtObject` Ljós's files declare), and what `QtQml.Models`
+has (`ObjectModel`, `DelegateModel`, …), which natively `Ljos.Core`
+imports. `Ljos.Models` has `ListModel`, `ListElement` and
+`Instantiator` besides its `JsonListModel` (A19).
+
+`Object`, a type of Ljós's with the name of a global of JavaScript, is
+that type only where a type goes: a compiled module imports it as
+`$Object`, and declares, extends and attaches by that name, so
+`Object.keys(…)` in a binding and the compiler's own
+`Object.setPrototypeOf` are still JavaScript's.
 
 `Ljos.Layout`'s `Row`, `Column`, `Box` and `Grid` are ljos-ui's
 arrangement (its `arrangement.rs`, `layouts/distribute.rs` and
@@ -2161,16 +2175,16 @@ check, live when the docs are read at a revision that has it.
 
 Not mapped, and said so rather than papered over: `Pointer` (the face
 of Qt's `PointHandler`, which the runtime has not in `QtQuick`
-either — a file that names it fails at its import) and `KeyEvent` as a
+either — a file that names it fails at its import), `DelegateChooser`
+(the runtime has none yet, in `QtQml.Models` either), the `Ljos`
+module (`ErrorBoundary`, `SelectionScope`, `SystemMenu`: a file that
+imports it fails at that import, with that said) and `KeyEvent` as a
 named type (a key event here is the object a handler is given, in
 either API; nothing is made of the name); a `ListView`'s
 `enter` and `exit` (the runtime's views have no `add`/`remove`
-transitions in either API to rename); `Screen.points(…)` (not in
+transitions in either API to rename); and `Screen.points(…)` (not in
 Ljós's API yet either: a file that sets `font.pointSize` is kept by
-migrate, so none is written); and the dialect modules
-beyond these three — `Ljos.Controls…` and a 3D module Ljós has not
-yet — which no file can import here until they are carried as these
-were.
+migrate, so none is written).
 
 
 ### A30. The code editor: CodeMirror over code the build highlighted
@@ -2266,7 +2280,7 @@ kept).
 ### A31. ERGO: compiler — the Ljós dialect in `qmlc` and in the page
 
 `qmlc` and the compiler in the page (A15) take what `ljos check` takes
-at the ljos-ui pin (`6599656aa0e35c4dcc3e17e3bd46bb0f3cef01e3`), with its
+at the ljos-ui pin (`0da5eb39`, see A34), with its
 meaning, its errors and its desugaring. Neither has a second parser: each
 file goes through ljos-ui's `qml_syntax::desugar` before anything else
 reads it, and every span is mapped back through its `SpanMap`, so an
@@ -3388,3 +3402,28 @@ by this spike; `ljos-ui-src` was read only.
   `wasm-opt`. Each later move must pay for itself in JS removed;
   ICU4X data for `ljos_i18n` is the one most likely not to (keep
   `Intl` as its data source on the web if so).
+
+
+### A34. Ljós's own controls on the web: `Ljos.Controls`, `Ljos.Controls.Basic`, `Ljos.Design`
+
+`import Ljos.Controls`, `import Ljos.Controls.Basic` and `import
+Ljos.Design` build with no Qt installed, as `QtQuick.Controls` in Ljós's
+style does (A20): their QML is ljos-ui's (`crates/ljos_controls/qml/Ljos`
+and `crates/ljos_design_qml/qml`), copied into `packages/runtime/controls/`
+by `mise run controls` at the commit the compiler is pinned to
+(`0da5eb39`), with a hash of each file in `controls/LJOS_UI.json`, and the
+`qmldir`s written as ljos-ui's engine makes the modules
+(`ljos_controls::ljos`): `Ljos.Controls` is its own files and, for each
+control Basic draws that it has no file of, Basic's; `Ljos.Controls.Basic`
+is the controls Basic draws, its own `TabButton` among them. What draws
+nothing — `AbstractButton`, `ButtonGroup`, the file dialogs — is the
+runtime's (`Ljos/Controls/index.js`). `controls/` is searched after the
+installed Qt with `--qt`, so a page built with Qt keeps Qt's QML for
+Qt's modules and still finds Ljós's.
+
+A singleton of a module (`Ljos.Design`'s `Spacing`, `Colors`, `Type`, …)
+is exported as its one object, made when first read, as compiled QML reads
+it: `Spacing.md` through a module import is the same object a `$singleton`
+gives. `site-tests/controls.spec.js` builds a page of `Ljos.Controls` and
+`Ljos.Design` (`site-tests/fixtures/ljos-controls`) where no Qt is, and
+reads the design's spacing from a control.
