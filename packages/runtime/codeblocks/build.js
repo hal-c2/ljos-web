@@ -14,10 +14,10 @@
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
-import { availableParallelism, tmpdir } from "node:os";
+import { availableParallelism, tmpdir, totalmem } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { highlightToHtml } from "lezer-ljos/html";
-import { CLIENT_CONDITIONS } from "../server/conditions.js";
+import { pooled } from "../pool.js";
 import { kernelNamed } from "../vite.js";
 import { assemble, exampleFiles, packGiven } from "./parse.js";
 
@@ -72,38 +72,109 @@ export function siteFiles(dir) {
   };
 }
 
+// An example's files written to a directory of their own, and how
+// `qmlc` is asked about it there.
+function staged(example, qmlc, env) {
+  const { entry, files } = exampleFiles(example);
+  const dir = mkdtempSync(join(env.TMPDIR ?? tmpdir(), "ljos-codeblock-"));
+  try {
+    for (const [name, text] of Object.entries(files)) {
+      mkdirSync(dirname(join(dir, name)), { recursive: true });
+      writeFileSync(join(dir, name), text);
+    }
+  } catch (error) {
+    rmSync(dir, { recursive: true, force: true });
+    throw error;
+  }
+  // No Qt of the machine's: the page's compiler knows the modules
+  // ljos-web provides, and a check that passed on an installed Qt's
+  // would promise the page more than it has.
+  return { entry, dir, args: ["--root", dir, join(dir, entry)], options: { env: { ...env, QT_INSTALL_QML: join(dir, "no-qt-here") } } };
+}
+
+// What `qmlc` said of one example, as `checkExamples` answers it:
+// nothing when it compiled.
+function verdict(example, { entry, dir }, ran) {
+  if (ran.error) return { example, diagnostics: [`${entry}: the compiler could not be run: ${ran.error.message}`] };
+  if (ran.status === 0) return null;
+  const said = (ran.stderr || "the compiler said nothing").trim().split("\n").map((line) => line.replaceAll(`${dir}/`, ""));
+  return { example, diagnostics: said };
+}
+
 // Every example that does not compile, with `qmlc`'s words about it,
 // each naming its file as the reader named it (`Main.qml:4:…`). An
 // empty answer is the check passing; a build that means every block to
-// run fails on any other.
+// run fails on any other. One at a time: for a page's few examples
+// (the Markdown plugin's); a build's many go through `checkExamplesAll`.
 export function checkExamples(examples, { qmlc, env = process.env } = {}) {
   const failures = [];
   for (const example of examples) {
-    const { entry, files } = exampleFiles(example);
-    const dir = mkdtempSync(join(env.TMPDIR ?? tmpdir(), "ljos-codeblock-"));
+    const stage = staged(example, qmlc, env);
     try {
-      for (const [name, text] of Object.entries(files)) {
-        mkdirSync(dirname(join(dir, name)), { recursive: true });
-        writeFileSync(join(dir, name), text);
-      }
-      // No Qt of the machine's: the page's compiler knows the modules
-      // ljos-web provides, and a check that passed on an installed Qt's
-      // would promise the page more than it has.
-      const ran = spawnSync(qmlc, ["--root", dir, join(dir, entry)], {
-        encoding: "utf8",
-        maxBuffer: 64 * 1024 * 1024,
-        env: { ...env, QT_INSTALL_QML: join(dir, "no-qt-here") },
-      });
-      if (ran.error) failures.push({ example, diagnostics: [`${entry}: the compiler could not be run: ${ran.error.message}`] });
-      else if (ran.status !== 0) {
-        const said = (ran.stderr || "the compiler said nothing").trim().split("\n").map((line) => line.replaceAll(`${dir}/`, ""));
-        failures.push({ example, diagnostics: said });
-      }
+      const ran = spawnSync(qmlc, stage.args, { encoding: "utf8", maxBuffer: QMLC_MAX_BYTES, ...stage.options });
+      const failed = verdict(example, stage, ran);
+      if (failed) failures.push(failed);
     } finally {
-      rmSync(dir, { recursive: true, force: true });
+      rmSync(stage.dir, { recursive: true, force: true });
     }
   }
   return failures;
+}
+
+// What `checkExamples` answers, `jobs` compilers at once, and each
+// distinct example asked once however many pages show it: a docs
+// build asks about a couple of hundred, and one `qmlc` after another
+// was most of the minutes a build spent before it made anything. The
+// answer is in the examples' order, a copy's failure said again for
+// each place it stands, as one at a time would.
+export async function checkExamplesAll(examples, { qmlc, env = process.env, jobs = Number(env.LJOS_SITE_JOBS) || availableParallelism() } = {}) {
+  const distinct = new Map();
+  for (const example of examples) {
+    const hash = hashExample(example);
+    if (!distinct.has(hash)) distinct.set(hash, example);
+  }
+  const hashes = [...distinct.keys()];
+  const answers = await pooled(
+    hashes.map((hash) => async () => {
+      const example = distinct.get(hash);
+      const stage = staged(example, qmlc, env);
+      try {
+        return verdict(example, stage, await compiling(qmlc, stage.args, stage.options));
+      } finally {
+        rmSync(stage.dir, { recursive: true, force: true });
+      }
+    }),
+    Math.max(1, jobs),
+  );
+  const byHash = new Map(hashes.map((hash, i) => [hash, answers[i]]));
+  return examples.flatMap((example) => {
+    const failed = byHash.get(hashExample(example));
+    return failed ? [{ example, diagnostics: failed.diagnostics }] : [];
+  });
+}
+
+// How much a compiler may say about one example before it is cut off,
+// as spawnSync's maxBuffer did.
+const QMLC_MAX_BYTES = 64 * 1024 * 1024;
+
+// One `qmlc` run, as spawnSync gives it back (`error`, `status`,
+// `stderr`), without holding the event loop while others run.
+function compiling(qmlc, args, options) {
+  return new Promise((done) => {
+    const child = spawn(qmlc, args, { ...options, stdio: ["ignore", "ignore", "pipe"] });
+    const err = [];
+    let size = 0;
+    let error = null;
+    child.stderr.on("data", (chunk) => {
+      size += chunk.length;
+      if (size > QMLC_MAX_BYTES) {
+        error ??= new Error(`it wrote more than ${QMLC_MAX_BYTES} bytes`);
+        child.kill("SIGKILL");
+      } else err.push(chunk);
+    });
+    child.on("error", (why) => (error ??= why));
+    child.on("close", (status) => done({ error, status, stderr: Buffer.concat(err).toString("utf8") }));
+  });
 }
 
 const esc = (text) =>
@@ -232,14 +303,22 @@ const plain = (said) =>
 // it: every error Rolldown gives with the file it is in. A refusal of
 // which any error names no example's file is no one's to blame.
 const blame = (error, batch) => {
-  const blamed = new Map();
   const errors = error?.errors?.length ? error.errors : [error];
+  return blameEach(
+    errors.map((each) => ({ at: [each?.id, each?.loc?.file], said: plain(each.message).split("\n").find((line) => line.trim()) ?? "" })),
+    batch,
+  );
+};
+
+// `[{ at: [file…], said }]` by the example of the batch each is in, or
+// none at all when one of them is in none.
+const blameEach = (told, batch) => {
+  const blamed = new Map();
   const ours = new Map(batch.map(([hash]) => [hash.slice(0, 16), hash]));
-  for (const each of errors) {
-    const at = [each?.id, each?.loc?.file].find((file) => typeof file === "string" && /\/examples\/[0-9a-f]{16}\//.test(file));
+  for (const { at: files, said } of told) {
+    const at = files.find((file) => typeof file === "string" && /\/examples\/[0-9a-f]{16}\//.test(file));
     const hash = at && ours.get(at.match(/\/examples\/([0-9a-f]{16})\//)[1]);
     if (!hash) return new Map();
-    const said = plain(each.message).split("\n").find((line) => line.trim()) ?? "";
     blamed.set(hash, [...(blamed.get(hash) ?? []), said.trim()]);
   }
   return blamed;
@@ -335,7 +414,7 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
   // would refuse them all unnamed: unless the caller has just asked
   // qmlc of these very examples (`checked`), and kept back its refusals.
   if (qmlc && !checked) {
-    const refused = checkExamples(missing.map(([, example]) => example), { qmlc, env });
+    const refused = await checkExamplesAll(missing.map(([, example]) => example), { qmlc, env });
     for (const { example, diagnostics } of refused) fail(example, diagnostics);
     const bad = new Set(refused.map(({ example }) => hashExample(example)));
     missing = missing.filter(([hash]) => !bad.has(hash));
@@ -344,8 +423,6 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
       return { manifest, failures };
     }
   }
-
-  const [{ build }, { default: qml }] = await Promise.all([import("vite"), import("../vite.js")]);
 
   // One bundle for a batch, rendered in one Node process. A bundle
   // that will not build names the files it refused, and so the
@@ -378,54 +455,31 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
           ``,
         ].join("\n"),
       );
-      // No installed Qt, Ljós's own styles: what a block may draw must
-      // not depend on the building machine, as on the site. Each
-      // example compiles with its own directory as its project (the
-      // plugin's per-file root), never one root for the runtime's QML.
-      const examplesAt = join(stage, "examples") + "/";
       // The stage stands outside any workspace: link this package in,
       // so the bare `ljos-web/…` specifiers compiled QML and the
       // plugin write resolve as they do in a page's own build.
       mkdirSync(join(stage, "node_modules"), { recursive: true });
       symlinkSync(runtime, join(stage, "node_modules/ljos-web"), "dir");
+      // Bundled in a process of its own (`prerender-bundle.js`), so the
+      // batches of the lanes are bundled at once. What the runtime
+      // lacks is told for every example of the batch in its one bundle,
+      // not one bundle each: a batch with a dozen such examples is
+      // built twice, not a dozen times.
+      let lacks = [];
       try {
-        await build({
-          configFile: false,
-          root: stage,
-          // A batch that will not build is split until the example
-          // that refuses is alone, and its words are kept with it:
-          // each refusal on the way is no news, and said by no one.
-          logLevel: "silent",
-          cacheDir: join(runtime, "node_modules/.vite/ljos-codeblocks"),
-          resolve: {
-            alias: {
-              "codeblock:server": join(runtime, "server.js"),
-              "#kernel": join(runtime, kernelNamed(env) === "wasm" ? "kernel/checked.js" : "kernel/solid.js"),
-            },
-            dedupe: ["solid-js", "@solidjs/web", "@solidjs/signals"],
-          },
-          plugins: [
-            qml({
-              qmlc: qmlc ?? "qmlc",
-              qt: [],
-              styles: "ljos",
-              theme: false,
-              root: (file) => (file.startsWith(examplesAt) ? join(examplesAt, file.slice(examplesAt.length).split("/")[0]) : undefined),
-            }),
-          ],
-          build: {
-            ssr: join(stage, "entries.js"),
-            outDir: join(stage, "server"),
-            emptyOutDir: true,
-            target: "esnext",
-            chunkSizeWarningLimit: 4000,
-            rollupOptions: { output: { format: "es", entryFileNames: "entries.mjs" }, checks: { bundlerTimings: false } },
-          },
-          ssr: { noExternal: true, resolve: { conditions: CLIENT_CONDITIONS } },
-          environments: { ssr: { resolve: { noExternal: true, conditions: CLIENT_CONDITIONS } } },
-        });
+        const bundled = await run(process.execPath, [join(import.meta.dirname, "prerender-bundle.js"), JSON.stringify({ stage, qmlc, kernel: kernelNamed(env) })], env);
+        if (bundled.error) throw new Error(`could not bundle the code blocks: ${bundled.error.message}`);
+        const answer = bundled.status === 0 ? JSON.parse(bundled.stdout.trim().split("\n").at(-1) || "null") : null;
+        if (!answer) throw new Error(`the code block bundler stopped without an answer:\n${(bundled.stderr || bundled.stdout).trim()}`);
+        lacks = answer.lacks ?? [];
+        if (answer.error) throw Object.assign(new Error(answer.error.message), answer.error);
+        if (lacks.length > 0) throw Object.assign(new Error(lacks.map(({ said }) => said).join("\n")), { lacks });
       } catch (error) {
-        const blamed = blame(error, batch);
+        // A bundle stopped by something else has told the lacks it met
+        // before, and they are as much their examples' answer.
+        const blamed = error?.lacks ? blameEach(error.lacks, batch) : blame(error, batch);
+        if (!error?.lacks && blamed.size > 0)
+          for (const [hash, words] of blameEach(lacks, batch)) blamed.set(hash, [...(blamed.get(hash) ?? []), ...words]);
         if (blamed.size > 0) {
           for (const [hash, words] of blamed) {
             const example = byHash.get(hash);
@@ -473,11 +527,12 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
       rmSync(stage, { recursive: true, force: true });
     }
   };
-  // The batches are independent bundles and processes: a few at once,
-  // as many as the machine has room for, and never more than there are.
+  // The batches are independent bundles and processes: as many at once
+  // as the machine has cores and memory for (`LJOS_PRERENDER_JOBS` says
+  // otherwise), and never more than there are.
   const batches = [];
   for (let i = 0; i < missing.length; i += 24) batches.push(missing.slice(i, i + 24));
-  const lanes = Math.max(1, Math.min(batches.length, Number(env.LJOS_PRERENDER_JOBS) || Math.min(4, availableParallelism())));
+  const lanes = Math.max(1, Math.min(batches.length, Number(env.LJOS_PRERENDER_JOBS) || prerenderLanes()));
   await Promise.all(
     Array.from({ length: lanes }, async () => {
       while (batches.length > 0) await attempt(batches.shift());
@@ -487,6 +542,15 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
   // returns without a render to save; the manifest must still say so.
   return done();
 }
+
+// What one batch's bundle holds at its height: vite, the runtime's
+// modules and two dozen compiled examples, in a process of its own.
+const BUNDLE_MEMORY = 2 * 1024 ** 3;
+
+// How many batches are bundled at once by default: one a core, as many
+// as the memory (a cgroup's limit, which Node reads) has room for.
+const prerenderLanes = ({ cores = availableParallelism(), memory = Math.min(process.constrainedMemory?.() || Infinity, totalmem()) } = {}) =>
+  Math.max(1, Math.min(cores, Math.floor(memory / BUNDLE_MEMORY)));
 
 // Removes each file of `cacheDir` that `pattern` names and `keep` does
 // not hold: a cache kept across runs (CI restores the newest one, made

@@ -11,7 +11,7 @@ import { join } from "node:path";
 import { test as plain } from "@playwright/test";
 import { Text } from "@codemirror/state";
 import { assemble, displayPosition, exampleFiles, extractBlocks, parseInfo, spliceHarness } from "../codeblocks/parse.js";
-import { checkExamples, hashExample, loadPrerenders, prerenderStamp, pruneCache, renderCode, renderPrerenders, renderStatic } from "../codeblocks/build.js";
+import { checkExamples, checkExamplesAll, hashExample, loadPrerenders, prerenderStamp, pruneCache, renderCode, renderPrerenders, renderStatic } from "../codeblocks/build.js";
 import { toDiagnostics } from "../codeblocks/editor.js";
 import { PACKED, packRich, unpackRich } from "../codeblocks/rich.js";
 import { highlight } from "../markdown.js";
@@ -292,6 +292,33 @@ Item {
   }
 });
 
+// A batch of examples is one bundle: what the runtime lacks is told for
+// all of them in it (`lacking`), where a stopped build names one a build
+// and a batch of a dozen such examples is built a dozen times.
+plain("the plugin tells each import the runtime lacks, and leaves it out, when asked to", async () => {
+  const { default: qml } = await import("../vite.js");
+  const context = {
+    resolve: async () => null,
+    error: (told) => {
+      throw Object.assign(new Error(told.message), told);
+    },
+  };
+  const importer = "/stage/examples/0123456789abcdef/Main.qml";
+  // Not asked: the build stops at the first, naming the file that asked.
+  await expect(qml({ qt: [], styles: "ljos" }).resolveId.call(context, "ljos-web/Nowhere", importer, {})).rejects.toMatchObject({
+    message: "ljos-web/Nowhere is not in ljos-web: nothing resolves it",
+    id: importer,
+  });
+  const told = [];
+  const plugin = qml({ qt: [], styles: "ljos", lacking: (lack) => told.push(lack) });
+  expect(await plugin.resolveId.call(context, "ljos-web/Nowhere", `${importer}?v=1`, {})).toEqual({ id: "ljos-web/Nowhere", external: true });
+  expect(await plugin.resolveId.call(context, "ljos-web/Elsewhere", importer, {})).toEqual({ id: "ljos-web/Elsewhere", external: true });
+  expect(told).toEqual([
+    { source: "ljos-web/Nowhere", importer, why: "nothing resolves it" },
+    { source: "ljos-web/Elsewhere", importer, why: "nothing resolves it" },
+  ]);
+});
+
 plain("a prerender stands where a page stands: a Request is beside it, and a handler's throw is told of", async ({}, info) => {
   info.setTimeout(180_000);
   const one = (code) => assemble(extractBlocks("```qml\n" + code.trimEnd() + "\n```\n"), {}).examples[0];
@@ -361,6 +388,22 @@ plain.describe("the build-time check and static HTML", () => {
     const failures = checkExamples([broken], { qmlc });
     expect(failures).toHaveLength(1);
     expect(failures[0].diagnostics.join("\n")).toMatch(/Main\.qml:\d+/);
+  });
+
+  // A build's check runs several compilers at once and asks once about
+  // an example shown twice: its answer is still one at a time's, in
+  // the examples' order, a copy's failure said for each place it stands.
+  plain("a build's check, several at once, answers as one at a time does", async () => {
+    const { examples } = assemble(extractBlocks(DOC), { harnesses: { window: WINDOW } });
+    const broken = structuredClone(examples[0]);
+    broken.display[0].code = broken.display[0].code.replace("width: 320", "width: 320 +");
+    const asked = [broken, ...examples, structuredClone(broken)];
+    const together = await checkExamplesAll(asked, { qmlc, jobs: 3 });
+    expect(together.map(({ example }) => example)).toEqual([asked[0], asked.at(-1)]);
+    expect(together.map(({ diagnostics }) => diagnostics)).toEqual(checkExamples(asked, { qmlc }).map(({ diagnostics }) => diagnostics));
+    expect(together[0].diagnostics.join("\n")).toMatch(/Main\.qml:\d+/);
+    const missing = await checkExamplesAll([examples[0]], { qmlc: "/nowhere/qmlc" });
+    expect(missing[0].diagnostics[0]).toMatch(/the compiler could not be run/);
   });
 
   plain("a ShellLoader example (Ljos.Blocks, files in folders) assembles and checks", () => {

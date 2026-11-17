@@ -18,8 +18,8 @@ import { fileURLToPath } from "node:url";
 import { chromium } from "@playwright/test";
 import { createRequire } from "node:module";
 import { highlight, readMarkdownSite } from "ljos-web/markdown";
-import { buildSite } from "ljos-web/site";
-import { checkExamples, hashExample, loadHarnesses, loadPrerenders, pruneCache, renderPrerenders, siteFiles } from "ljos-web/codeblocks";
+import { buildSite, pooled } from "ljos-web/site";
+import { checkExamplesAll, hashExample, loadHarnesses, loadPrerenders, pruneCache, renderPrerenders, siteFiles } from "ljos-web/codeblocks";
 import { assemble, packGiven, tagged } from "ljos-web/codeblocks/parse";
 import { kernelNamed } from "ljos-web/vite";
 import { packRich } from "ljos-web/codeblock/rich";
@@ -126,7 +126,17 @@ const liveAt = new Map(); // a page's code block -> its live payload
   // them, so neither build drops or makes again what the other made.
   const kernel = kernelNamed();
   const cacheDir = kernel === kernelNamed({}) ? join(here, ".codeblock-prerenders") : join(here, ".codeblock-prerenders", kernel);
-  const checked = checkExamples(gathered.map(({ example }) => example), { qmlc });
+  // What the build spends before it makes anything, said beside the
+  // count: on a CI runner this was minutes, one compiler and one
+  // picture after another.
+  const phases = [];
+  const timed = async (name, work) => {
+    const start = performance.now();
+    const result = await work();
+    phases.push(`${name} ${Math.round(performance.now() - start)} ms`);
+    return result;
+  };
+  const checked = await timed(`${gathered.length} examples checked`, () => checkExamplesAll(gathered.map(({ example }) => example), { qmlc }));
   // An example is its hash: one on two pages is made once, and what is
   // said of the copy made is said of every place it stands.
   const refused = new Map(checked.map(({ example, diagnostics }) => [hashExample(example), diagnostics]));
@@ -144,7 +154,7 @@ const liveAt = new Map(); // a page's code block -> its live payload
     process.exit(1);
   }
   const runnable = gathered.filter(({ example }) => !refused.has(hashExample(example)));
-  const { manifest, failures } = await renderPrerenders(runnable.map(({ example }) => example), { cacheDir, qmlc, checked: true });
+  const { manifest, failures } = await timed("examples prerendered", () => renderPrerenders(runnable.map(({ example }) => example), { cacheDir, qmlc, checked: true }));
   // As in site/scripts/codeblock-prerenders.mjs: what a live example
   // said as it was made is news unless the ledger says it is the
   // page's point, and the example does not run as far as a reader is
@@ -185,23 +195,38 @@ const liveAt = new Map(); // a page's code block -> its live payload
   const kept = (hash) => `${hash.slice(0, 16)}-${createHash("sha256").update(`${prerendered[hash].stamp ?? ""}\n${drawnBy}`).digest("hex").slice(0, 12)}.png`;
   const shots = live.filter(({ example }) => !existsSync(join(cacheDir, kept(hashExample(example)))));
   if (shots.length) {
-    const browser = await chromium.launch();
-    try {
-      const page = await browser.newPage();
-      for (const { example } of shots) {
-        const hash = hashExample(example);
-        const { html } = prerendered[hash];
-        // A root that gave itself no size prerenders at none: the
-        // stage's own size is the picture's then, as in QML below.
-        const width = prerendered[hash].width > 0 ? prerendered[hash].width : UNSIZED[0];
-        const height = prerendered[hash].height > 0 ? prerendered[hash].height : UNSIZED[1];
-        await page.setViewportSize({ width, height });
-        await page.setContent(`${STAGE}<div id="app" style="position:relative;width:${width}px;height:${height}px">${html}</div>`);
-        await page.screenshot({ path: join(cacheDir, kept(hash)), clip: { x: 0, y: 0, width, height } });
+    // A few pages of one browser, each drawing its share: one page drew
+    // every picture in turn, and each waited on the last's layout and
+    // capture. Few, not one per core: they share the browser's GPU and
+    // compositor processes, which a dozen pages only queue on.
+    const pages = Math.max(1, Math.min(shots.length, 4, Number(process.env.LJOS_SITE_JOBS) || 4));
+    await timed(`${shots.length} pictures drawn on ${pages} pages`, async () => {
+      const browser = await chromium.launch();
+      try {
+        const free = await Promise.all(Array.from({ length: pages }, () => browser.newPage()));
+        await pooled(
+          shots.map(({ example }) => async () => {
+            const page = free.pop();
+            try {
+              const hash = hashExample(example);
+              const { html } = prerendered[hash];
+              // A root that gave itself no size prerenders at none: the
+              // stage's own size is the picture's then, as in QML below.
+              const width = prerendered[hash].width > 0 ? prerendered[hash].width : UNSIZED[0];
+              const height = prerendered[hash].height > 0 ? prerendered[hash].height : UNSIZED[1];
+              await page.setViewportSize({ width, height });
+              await page.setContent(`${STAGE}<div id="app" style="position:relative;width:${width}px;height:${height}px">${html}</div>`);
+              await page.screenshot({ path: join(cacheDir, kept(hash)), clip: { x: 0, y: 0, width, height } });
+            } finally {
+              free.push(page);
+            }
+          }),
+          pages,
+        );
+      } finally {
+        await browser.close();
       }
-    } finally {
-      await browser.close();
-    }
+    });
   }
   // Pictures an older runtime or browser drew are never shown again.
   pruneCache(cacheDir, { keep: new Set(live.map(({ example }) => kept(hashExample(example)))), pattern: /^[0-9a-f]{16}(-dark)?-[0-9a-f]{12}\.png$/ });
@@ -245,6 +270,7 @@ const liveAt = new Map(); // a page's code block -> its live payload
     `site-ljos: ${live.length} live code blocks ` +
       `(${gathered.length - live.length} left plain: ${checked.length} not compiling, ${failures.length} not running)`,
   );
+  console.log(`site-ljos: ${phases.join(", ")}`);
 }
 
 // A link the docs name from the site's root goes as far down as the

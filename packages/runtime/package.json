@@ -16,6 +16,7 @@
     "./QtQuick3D/View3D.*",
     "./QtQuick/Controls/*/index.*",
     "./Ljos/Blocks/shell-worker.*",
+    "./codeblocks/prerender-bundle.*",
     "./codeblocks/prerender-run.*",
     "./files.*"
   ],
