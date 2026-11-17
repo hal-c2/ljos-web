@@ -416,7 +416,11 @@ export const DialogButtonBox = defineType("DialogButtonBox", Container, {
           housed.delete(button);
           slot(button, "x").place(undefined);
           slot(button, "y").place(undefined);
-          if (button.$parent === self) Item.proto.$remove.call(self, button);
+          // The box put it in its own children with `$add`, so the box takes it
+          // out, wherever it went: a container's `remove()` gives it another
+          // parent first, or none, and this runs after that when the removal
+          // happened inside an effect (a Repeater taking rows back).
+          Item.proto.$remove.call(self, button);
         }
         for (const button of buttons) {
           reparent(button, self);
