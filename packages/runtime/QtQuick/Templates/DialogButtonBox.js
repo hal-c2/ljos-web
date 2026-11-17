@@ -6,7 +6,8 @@ import { defineType, derived, effect, instantiate, last, onChange, QtObject, set
 import { setFocus } from "../focus.ts";
 import { AbstractButton } from "./AbstractButton.js";
 import { Button } from "./Button.js";
-import { containerOf, Container } from "./Container.js";
+import { containerOf, Container, reparent } from "./Container.js";
+import { Item } from "../Item.js";
 import { untrack } from "#kernel";
 
 const InvalidRole = -1;
@@ -389,6 +390,42 @@ export const DialogButtonBox = defineType("DialogButtonBox", Container, {
           slot(button, "height").place(undefined);
         }
         buttons.forEach(shares);
+      },
+    );
+    // Ljós's styles give a box no content item, where Qt's give it a view:
+    // its buttons are then its own, in a row inside its padding, as Ljós's
+    // own runtime has them. A container with no content item shows none,
+    // as in Qt, so the box houses them itself, apart from what a content
+    // item would house.
+    const housed = new Set();
+    const along = (button) => {
+      const [x, , width] = self.$inside();
+      let offset = 0;
+      for (const one of self.contentChildren) {
+        if (one === button) break;
+        offset += one.width + self.spacing;
+      }
+      // Mirrored, the row runs from the right.
+      return self.mirrored ? x + width - offset - button.width : x + offset;
+    };
+    effect(
+      () => (self.contentItem ? [] : self.contentChildren),
+      (buttons) => {
+        for (const button of housed) {
+          if (buttons.includes(button)) continue;
+          housed.delete(button);
+          slot(button, "x").place(undefined);
+          slot(button, "y").place(undefined);
+          if (button.$parent === self) Item.proto.$remove.call(self, button);
+        }
+        for (const button of buttons) {
+          reparent(button, self);
+          if (housed.has(button)) continue;
+          housed.add(button);
+          Item.proto.$add.call(self, button);
+          slot(button, "x").place(() => along(button));
+          slot(button, "y").place(() => self.$inside()[1]);
+        }
       },
     );
     // Focus is the default button's, else the first that accepts; the
