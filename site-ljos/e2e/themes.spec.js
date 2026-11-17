@@ -20,6 +20,32 @@ const SCHEMES = ["light", "dark"];
 // there to show what that looks like, and is not read for it.
 const showsUnreadable = ({ code }) => /^(\s*\/\/[^\n]*\n)*?\s*\/\/[^\n]*color-text-contrast/.test(code);
 
+// Ljós's own palettes draw placeholder words under AA. Basic's
+// placeholderText (packages/runtime/QtQuick/Palette.ts, from ljos-ui's
+// palette.rs) is see-through, #88353637 in light and #88c8c9cb in dark,
+// so what it comes to depends on what it is drawn on: 3.04:1 on white,
+// 3.94:1 on black. A field's own empty-state words are #919191 (2.99:1)
+// in light and #707172 (3.99:1) in dark. The palettes' to fix, not an
+// example's, so words in those colours are not counted here; the test
+// at the end turns red once the palettes meet AA, and this comes out
+// with it.
+const PLACEHOLDER = { light: ["#88353637", "#919191"], dark: ["#88c8c9cb", "#707172"] };
+const rgba = (hex) => {
+  const digits = hex.slice(1);
+  const [a, rgb] = digits.length === 8 ? [parseInt(digits.slice(0, 2), 16) / 255, digits.slice(2)] : [1, digits];
+  return { a, rgb: [0, 2, 4].map((at) => parseInt(rgb.slice(at, at + 2), 16)) };
+};
+// What a colour comes to on an opaque background, to within rounding.
+const drawsAs = (colour, background, seen) => {
+  const { a, rgb } = rgba(colour);
+  const under = rgba(background).rgb;
+  return rgba(seen).rgb.every((channel, at) => Math.abs(channel - (a * rgb[at] + (1 - a) * under[at])) <= 2);
+};
+const palettes = (colorScheme) => (line) => {
+  const [, seen, background] = /foreground color: (#[0-9a-f]{6}), background color: (#[0-9a-f]{6})/.exec(line) ?? [];
+  return seen !== undefined && PLACEHOLDER[colorScheme].some((colour) => drawsAs(colour, background, seen));
+};
+
 const pages = livePages()
   .map((page) => ({ ...page, examples: page.examples.filter((example) => !showsUnreadable(example)) }))
   .filter((page) => page.examples.length > 0);
@@ -40,7 +66,7 @@ for (const colorScheme of SCHEMES) {
           for (const line of await unreadable(page, await block.running.evaluate((element) => {
             element.setAttribute("data-themes-check", "");
             return "[data-themes-check]";
-          }))) found.push(`#${example.index} (${example.hash}): ${line}`);
+          }))) if (!palettes(colorScheme)(line)) found.push(`#${example.index} (${example.hash}): ${line}`);
           await block.running.evaluate((element) => element.removeAttribute("data-themes-check"));
         }
         expect(found).toEqual([]);
@@ -85,3 +111,24 @@ test("a scheme picked in the header reaches the demos that are running", async (
   await motion.evaluate((element) => element.setAttribute("data-themes-check", ""));
   expect(await unreadable(page, "[data-themes-check]")).toEqual([]);
 });
+
+// What PLACEHOLDER excuses is still so: a field's placeholder, in
+// Ljós's own style, is under AA. Red once the palette is fixed: take
+// PLACEHOLDER out then.
+for (const colorScheme of SCHEMES) {
+  test(`in ${colorScheme} Ljós's placeholder colour is still under AA, as excused above`, async ({ page, wasm }) => {
+    test.skip(!wasm, "without WebAssembly no example runs");
+    await page.emulateMedia({ colorScheme });
+    const example = livePages()
+      .flatMap(({ route, examples }) => examples.map((each) => ({ route, ...each })))
+      // An empty one: a field with words in it shows them, not its
+      // placeholder.
+      .find(({ code }) => [...code.matchAll(/\b(TextField|TextArea)\s*\{([^}]*)\}/gs)].some(([, , body]) => body.includes("placeholderText:") && !/(^|\s)text:/.test(body)));
+    expect(example, "an example with an empty Ljós field and a placeholder").toBeTruthy();
+    await open(page, example.route);
+    const block = await run(page, example.index);
+    await page.waitForTimeout(400);
+    await block.running.evaluate((element) => element.setAttribute("data-themes-check", ""));
+    expect((await unreadable(page, "[data-themes-check]")).filter(palettes(colorScheme)), "the placeholder is still under AA").not.toEqual([]);
+  });
+}
