@@ -25,6 +25,8 @@ Item {
         T.Button { id: other; text: "Odd"; Accessible.role: Accessible.Link }
         T.TextField { id: field; width: 120; height: 20; placeholderText: "Search" }
         T.TextField { id: named; width: 120; height: 20; Accessible.name: "Your name" }
+        T.Button { id: publish; width: 80; height: 20; text: "Publish"; enabled: root.on }
+        Item { width: 80; height: 20; enabled: false; T.Button { id: inner; width: 80; height: 20; text: "Inner" } }
     }
 
     function read() {
@@ -34,7 +36,7 @@ Item {
     }
 
     function items() {
-        return { go, check, toggle, slider, group, label, tabs, tab, second, mine, told, other, field, named }
+        return { go, check, toggle, slider, group, label, tabs, tab, second, mine, told, other, field, named, publish, inner }
     }
 
     function step() {
