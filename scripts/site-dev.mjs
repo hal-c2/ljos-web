@@ -11,7 +11,7 @@
 // was. The mise task builds the compiler, the wasm and Chromium first,
 // and sets QMLC and LJOS_DOCS_DIR.
 import { spawn, spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, watch } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, watch } from "node:fs";
 import { createServer } from "node:http";
 import { dirname, extname, join, normalize, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -247,13 +247,61 @@ async function rebuild() {
   if (pending.size) rebuild();
 }
 
+// On Linux, Node's recursive watch follows each file by its inode, so a
+// file replaced whole (git checkout, an editor's atomic save) is never
+// seen again. A watch on each directory sees every change to the names
+// in it, whatever the inode, so that is what is watched there; a
+// directory made later is watched once it appears. macOS and Windows
+// watch a tree natively.
+const SKIPPED_DIRS = new Set(["node_modules", ".git", "target", "dist", "test-results", "playwright-report"]);
+const watchedDirs = new Set();
+
+function watchDir(dir, rust) {
+  if (watchedDirs.has(dir)) return;
+  watchedDirs.add(dir);
+  try {
+    watch(dir, (_event, name) => {
+      if (!name) return;
+      const path = join(dir, String(name));
+      try {
+        if (statSync(path).isDirectory()) {
+          if (!SKIPPED_DIRS.has(String(name))) watchTree(path, rust);
+          return;
+        }
+      } catch {
+        // gone: a deletion is a change too
+      }
+      changed(path, rust);
+    }).on("error", () => watchedDirs.delete(dir));
+  } catch {
+    watchedDirs.delete(dir);
+  }
+}
+
+function watchTree(dir, rust) {
+  watchDir(dir, rust);
+  let entries = [];
+  try {
+    entries = readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const entry of entries) if (entry.isDirectory() && !SKIPPED_DIRS.has(entry.name)) watchTree(join(dir, entry.name), rust);
+}
+
 for (const { dir, files, rust = false } of WATCHED) {
   if (!existsSync(dir)) continue;
-  watch(dir, { recursive: !files }, (_event, name) => {
-    if (!name) return;
-    if (files && !files.includes(String(name))) return;
-    changed(join(dir, String(name)), rust);
-  });
+  if (files) {
+    watch(dir, (_event, name) => {
+      if (name && files.includes(String(name))) changed(join(dir, String(name)), rust);
+    });
+  } else if (process.platform === "linux") {
+    watchTree(dir, rust);
+  } else {
+    watch(dir, { recursive: true }, (_event, name) => {
+      if (name) changed(join(dir, String(name)), rust);
+    });
+  }
 }
 
 const url = `http://127.0.0.1:${port}${base}`;
