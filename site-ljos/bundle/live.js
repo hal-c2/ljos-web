@@ -18,8 +18,9 @@
 // there, told to the block as lines it shows, never asked of a server.
 
 var examples = {};
-var made = null;
-var modules = null;
+// The compiler and the page's modules, one load for the page
+// (`loadCompiler`).
+var loading = null;
 // What the last compile of each block said, by display file, in the
 // file's own lines (`parse.displayPosition`): the squiggles its editors
 // show. A compile that worked says nothing.
@@ -64,38 +65,53 @@ async function needsWasm() {
     return made.wasmWorks() ? "" : made.NEEDS_WASM;
 }
 
+// The compiler and the modules every example compiles against, as
+// one value: blocks that ask while it loads wait on the same load, so
+// none compiles against half of it, and a load that failed is tried
+// again by the next compile rather than kept.
+function loadCompiler() {
+    if (!loading) {
+        loading = Promise.all([import("ljos-web/compiler"), import("ljos-web/compiler/modules")]).then(function (both) {
+            return {
+                made: both[0],
+                modules: Object.assign({}, both[1].modules, {
+                    "ljos-web/QtQuick/Controls": function () {
+                        return import("ljos-web/QtQuick/Controls");
+                    },
+                    // Ljós's own controls and their design are QML that
+                    // comes with the runtime (docs/LJOS_WEB.md A34): the
+                    // page has them when a reader's example first asks.
+                    "ljos-web/Ljos/Controls": function () {
+                        return import("ljos-web/Ljos/Controls");
+                    },
+                    "ljos-web/Ljos/Controls/Basic": function () {
+                        return import("ljos-web/Ljos/Controls/Basic");
+                    },
+                    "ljos-web/Ljos/Design": function () {
+                        return import("ljos-web/Ljos/Design");
+                    }
+                })
+            };
+        });
+        loading.catch(function () {
+            loading = null;
+        });
+    }
+    return loading;
+}
+
 // One compiler per example, all of one wasm and one linker: an
 // example's own `ljos-web/inspect` is its modules' only difference.
 async function compileWith(example) {
-    if (!made) {
-        made = await import("ljos-web/compiler");
-        const mods = await import("ljos-web/compiler/modules");
-        modules = Object.assign({}, mods.modules, {
-            "ljos-web/QtQuick/Controls": function () {
-                return import("ljos-web/QtQuick/Controls");
-            },
-            // Ljós's own controls and their design are QML that comes
-            // with the runtime (docs/LJOS_WEB.md A34): the page has them
-            // when a reader's example first asks.
-            "ljos-web/Ljos/Controls": function () {
-                return import("ljos-web/Ljos/Controls");
-            },
-            "ljos-web/Ljos/Controls/Basic": function () {
-                return import("ljos-web/Ljos/Controls/Basic");
-            },
-            "ljos-web/Ljos/Design": function () {
-                return import("ljos-web/Ljos/Design");
-            }
-        });
-    }
+    const loaded = await loadCompiler();
     if (!example.compile) {
         const inspected = example.inspected;
-        const own = inspected ? Object.assign({}, modules, {
+        const own = inspected ? Object.assign({}, loaded.modules, {
             "ljos-web/inspect": function () {
                 return import("ljos-web/inspect").then(inspected);
             }
-        }) : modules;
-        example.compile = made.createCompiler({ modules: own }).compile;
+        }) : loaded.modules;
+        example.compile = loaded.made.createCompiler({ modules: own }).compile;
     }
     return example.compile;
 }
