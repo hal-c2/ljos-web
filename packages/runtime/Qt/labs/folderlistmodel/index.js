@@ -8,8 +8,11 @@
 // nothing (`null`) for a folder that does not exist. `folders.changed(url)`
 // tells the models showing a folder that what is in it changed. With no host
 // a folder has nothing in it, but for the one folder a browser does let a
-// page look in: one the user picked in a FolderDialog.
+// page look in: one the user picked in a FolderDialog. A folder of a project
+// that has only the files it was given (a live code block's example) holds
+// those files, and no host is asked of it.
 import { onCleanup } from "solid-js";
+import { own } from "../../../guard.js";
 import { defineType, derived, effect, settle, slot } from "../../../object.ts";
 import { filesIn, pickedFile, pickedFolder } from "../../../QtQuick/Dialogs/files.js";
 import { ready } from "../../../QtQuick/Image.js";
@@ -193,6 +196,28 @@ async function picked(folder, wanted) {
   return entries;
 }
 
+const bytes = (content) => (typeof content === "string" ? new TextEncoder().encode(content).length : content.length);
+
+// What is in a folder of a project that has only the files it was given:
+// those files, and the folders their names go through, as a folder of Qt's
+// resources holds what was built into the program. Nothing else is there,
+// so a folder none of them is in is not there (null). Undefined for a folder
+// of no such project.
+function given(folder) {
+  const at = own(directory(folder));
+  if (!at) return undefined;
+  const entries = new Map();
+  for (const [name, content] of at.project.files) {
+    if (!name.startsWith(at.name) || name === at.name) continue;
+    const rest = name.slice(at.name.length);
+    const slash = rest.indexOf("/");
+    if (slash < 0) entries.set(rest, { fileName: rest, fileSize: bytes(content) });
+    else entries.set(`${rest.slice(0, slash)}/`, { fileName: rest.slice(0, slash), fileIsDir: true });
+  }
+  // The project's own folder is there with nothing in it.
+  return entries.size > 0 || at.name === "" ? [...entries.values()] : null;
+}
+
 // Asks the host what is in the folder, and shows it. What is shown stays
 // until the answer is here; an answer to a question since asked again is
 // dropped.
@@ -203,7 +228,12 @@ function look(self) {
   slot(self, "status").write(LOADING);
   // Qt reads a folder on another thread: a model is never ready at once.
   Promise.resolve()
-    .then(() => (pickedFolder(folder) ? picked(folder, self.$wanted) : lister ? lister(folder) : []))
+    .then(() => {
+      if (pickedFolder(folder)) return picked(folder, self.$wanted);
+      const held = given(folder);
+      if (held !== undefined) return held;
+      return lister ? lister(folder) : [];
+    })
     .then(
       (entries) => {
         if (self.$asked !== asked) return;
