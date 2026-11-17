@@ -218,7 +218,7 @@ test("a code block is its picture until the reader reaches for it, then runs bes
 // page is not needed to hold them.
 function observed() {
   const source = readFileSync(new URL("../bundle/observed.js", import.meta.url), "utf8").replace(/^\.pragma library\n/, "");
-  return new Function(`${source}\nreturn { lines, watch, unwatch, say, reset, show, inspectFor, declared, connectSignals, KEPT };`)();
+  return new Function(`${source}\nreturn { lines, watch, unwatch, say, reset, show, inspectFor, declared, written, shown, connectSignals, KEPT };`)();
 }
 
 test("an example's lines are kept, the last few, and told to who watches", () => {
@@ -263,6 +263,36 @@ test("a root's own properties and signals are read from what declared them, and 
   expect(o.lines("sig")).toEqual([{ level: "signal", message: "ping(3, start)" }]);
   disconnect();
   expect(handlers, "stopped, it listens no more").toEqual([]);
+});
+
+// A root that declares nothing of its own (a Rectangle as the example
+// wrote it) still has a strip: what its example wrote on it, as it is
+// now, never its handlers, what it holds, or the type's own files'.
+test("a root that declares nothing shows what its example wrote on it, not its handlers or what it holds", () => {
+  const o = observed();
+  const child = { $props: {} };
+  const root = {
+    $props: {
+      $levels: [
+        { radius: 4, implicitWidth: 10 },
+        { width: 120, objectName: "panel", color: { toString: () => "#ff0000" }, onWidthChanged: () => {}, children: [child], anchor: child, $is: true },
+      ],
+    },
+    radius: 4,
+    implicitWidth: 10,
+    width: 120,
+    objectName: "panel",
+    color: { toString: () => "#ff0000" },
+    onWidthChanged: () => {},
+    children: [child],
+    anchor: child,
+  };
+  expect(o.written(root)).toEqual(["width", "objectName", "color"]);
+  expect(o.shown(root), "with nothing declared, what was written").toEqual(["width", "objectName", "color"]);
+  root.$props.$levels.push({ $declare: { properties: { total: 0 }, signals: [] } });
+  expect(o.shown(root), "what it declares, when it declares anything").toEqual(["total"]);
+  expect(o.written({ $props: { $levels: [{ radius: 4 }, {}] }, radius: 4 }), "an example that writes nothing: the type's own").toEqual(["radius"]);
+  expect(o.written({}), "a root of no file's").toEqual([]);
 });
 
 // The build's own run of an example is what its strip says until the

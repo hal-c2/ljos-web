@@ -68,7 +68,8 @@ Column {
     // The code is not as written: Reset puts it back.
     property bool edited: false
     // What the values strip shows: the running root's own properties
-    // by name, and the last lines it logged or signals it fired.
+    // by name (or, when it declares none, those it was written with),
+    // and the last lines it logged or signals it fired.
     property var declaredNames: []
     property var lines: []
     property var disconnect: null
@@ -112,7 +113,7 @@ Column {
         }
         // A plain block's stage holds only the empty fallback.
         var root = isLive ? stage.item : null;
-        declaredNames = root ? Observed.declared(root).properties : [];
+        declaredNames = root ? Observed.shown(root) : [];
         if (root)
             disconnect = Observed.connectSignals(live.hash, root);
     }
