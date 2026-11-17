@@ -252,6 +252,9 @@ const liveAt = new Map(); // a page's code block -> its live payload
       picture,
       width,
       height,
+      // What it said as it was made: the first lines of its values
+      // strip, before a reader runs it.
+      ...(prerendered[hash].logged?.length ? { logged: prerendered[hash].logged } : {}),
     });
   }
   // Every example, page by page, as it stands: what the suite holds
