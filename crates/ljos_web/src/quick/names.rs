@@ -1252,6 +1252,19 @@ pub(crate) use qml_front::names::{
     CORE, CORE_GLOBALS, FETCH_GLOBALS, JS_GLOBALS, QML_GLOBALS, SUGAR_GLOBALS,
 };
 
+/// What a type is called in the compiled module. A type named as one of
+/// JavaScript's globals (`Object` of `Ljos.Core`) is that type only where a
+/// type goes: in a script the name is JavaScript's, and so it is in what
+/// the compiler writes (`Object.setPrototypeOf`). Such a type is imported
+/// under a name of its own, `$Object`, that nothing else can mean.
+pub(crate) fn local(name: &str) -> std::borrow::Cow<'_, str> {
+    if JS_GLOBALS.contains(&name) {
+        format!("${name}").into()
+    } else {
+        name.into()
+    }
+}
+
 /// The page's globals a file is given the runtime's of instead, from
 /// `QtQml`: `fetch` finds what a relative address names beside the file
 /// (a live example's files are not on any server), as QML's

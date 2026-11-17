@@ -217,6 +217,30 @@ Item {
 }
 
 #[test]
+fn a_type_named_as_a_global_of_javascript_is_that_type_only_where_a_type_goes() {
+    // `Object` of Ljos.Core is named only where a type goes: `Object.keys`
+    // in a script, and the compiled module's own `Object.setPrototypeOf`,
+    // are still JavaScript's (ljos-ui's `ljos_core.rs`).
+    let main = given(
+        r#"import Ljos.Ui
+import Ljos.Core
+Object {
+  property int count: Object.keys({ a: 1, b: 2 }).length
+  property Object inner: Object { objectName: "inner" }
+}"#,
+    );
+    let code = code_of(&[("Main.qml", main)], "Main.qml", "Main.qml");
+    assert_contains(
+        &code,
+        r#"import { Object as $Object } from "ljos-web/Ljos/Core";"#,
+    );
+    assert_contains(&code, "Object.keys(");
+    assert_contains(&code, "Object.setPrototypeOf(Main, $Object)");
+    assert_contains(&code, "($Object,");
+    assert_lacks(&code, "(Object,");
+}
+
+#[test]
 fn a_property_of_the_name_of_a_core_global_is_the_propertys() {
     let main = given(
         r#"import Ljos.Ui

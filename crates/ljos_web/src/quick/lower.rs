@@ -269,7 +269,7 @@ impl<'a, 's> Lower<'a, 's> {
     pub(crate) fn extends(&self, name: &str, root: &str) -> Statement<'a> {
         let b = self.b;
         let mut parts = root.split('.');
-        let mut base = b.id(parts.next().unwrap_or(root));
+        let mut base = b.id(&names::local(parts.next().unwrap_or(root)));
         for part in parts {
             base = b.member(base, part);
         }
@@ -433,7 +433,7 @@ impl<'a, 's> Lower<'a, 's> {
         if !built.attach.is_empty() {
             let types = built.attach.iter().map(|name| match name.split_once('.') {
                 Some((namespace, name)) => b.member(b.id(namespace), name),
-                None => b.id(name),
+                None => b.id(&names::local(name)),
             });
             built.attributes.push(b.attr("$attach", b.array(types)));
         }
@@ -458,7 +458,7 @@ impl<'a, 's> Lower<'a, 's> {
                     .push(b.child(b.member(b.id("$props"), "children"))),
             }
         }
-        b.element(&tag, built.attributes, built.children)
+        b.element(&names::local(&tag), built.attributes, built.children)
     }
 
     /// The members of an object, or of a group of it (`font { }`), `group`
@@ -816,7 +816,7 @@ impl<'a, 's> Lower<'a, 's> {
             self.uses.origin(&type_name, &found.origin);
             let attaching = match parts {
                 [namespace, name] => b.member(b.id(namespace), name),
-                _ => b.id(parts[0]),
+                _ => b.id(&names::local(parts[0])),
             };
             (Some(attaching), rest)
         } else {

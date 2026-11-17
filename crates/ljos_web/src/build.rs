@@ -539,6 +539,32 @@ impl<'a> B<'a> {
         self.import(specifiers, source)
     }
 
+    /// `import { A, Object as $Object } from "source";`: types, each under
+    /// the name the module calls it by (`quick::names::local`).
+    pub(crate) fn import_types<'n>(
+        &self,
+        names: impl IntoIterator<Item = &'n str>,
+        source: &str,
+    ) -> Statement<'a> {
+        let specifiers = ArenaVec::from_iter_in(
+            names.into_iter().map(|name| {
+                ImportDeclarationSpecifier::new_import_specifier(
+                    SPAN,
+                    ModuleExportName::new_identifier_name(SPAN, self.ident(name), &self.ast()),
+                    BindingIdentifier::new(
+                        SPAN,
+                        self.ident(&crate::quick::names::local(name)),
+                        &self.ast(),
+                    ),
+                    ImportOrExportKind::Value,
+                    &self.ast(),
+                )
+            }),
+            &self.ast(),
+        );
+        self.import(specifiers, source)
+    }
+
     /// `import "source";`
     pub(crate) fn import_bare(&self, source: &str) -> Statement<'a> {
         Statement::ImportDeclaration(ImportDeclaration::boxed(
