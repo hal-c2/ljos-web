@@ -316,6 +316,41 @@ test.describe("examples", () => {
     expect(unexpected(errors)).toEqual([]);
   });
 
+  // No docs page has two blocks of the same code, so one is made: the
+  // page's first live block twice, the copy right under it. It pings
+  // once as it is made, a signal the build's run does not log, and its
+  // root declares `total`.
+  test("two blocks of the same code are two examples, each with its own values, edits and run", async ({ page, errors }) => {
+    await page.route("**/language/signals-and-handlers/", async (route) => {
+      const response = await route.fetch();
+      const html = await response.text();
+      const json = html.match(/<script type="application\/json" id="ljos-props">([\s\S]*?)<\/script>/)[1];
+      const props = JSON.parse(json);
+      const at = props.page.blocks.findIndex((block) => block.kind === "live");
+      props.page.blocks.splice(at + 1, 0, structuredClone(props.page.blocks[at]));
+      await route.fulfill({ response, body: html.replace(json, () => JSON.stringify(props).replaceAll("<", "\\u003c")) });
+    });
+    await open(page, "/language/signals-and-handlers/");
+    const [first, second] = [liveBlock(page, 0), liveBlock(page, 1)];
+    expect(await first.block.locator(".cm-content").first().textContent(), "the copy is the same code").toBe(await second.block.locator(".cm-content").first().textContent());
+    await run(page, 0);
+    await expect(first.values, "the first ran, and says so").toContainText("ping(3, start)");
+    await expect(second.values, "the copy has not run, and says nothing of the first's run").not.toContainText("ping(");
+    // An edit of the first is the first's: its root declares more.
+    await intoCode(first);
+    await page.keyboard.press("Control+End");
+    await page.keyboard.press("Home");
+    await page.keyboard.type("property int extra: 9\n");
+    await expect(first.values, "the edit ran").toContainText("extra: 9", { timeout: 30_000 });
+    const firstSaid = await first.values.textContent();
+    await run(page, 1);
+    await expect(second.values, "the copy runs its own code").toContainText("ping(3, start)");
+    await expect(second.values).toContainText("total: 3");
+    await expect(second.values, "not the first's edit").not.toContainText("extra");
+    expect(await first.values.textContent(), "and the first heard nothing of the copy's run").toBe(firstSaid);
+    expect(unexpected(errors)).toEqual([]);
+  });
+
   test("an example's toolbar gives a reader all axe asks, light and dark", async ({ page }) => {
     for (const scheme of ["light", "dark"]) {
       await page.emulateMedia({ colorScheme: scheme });

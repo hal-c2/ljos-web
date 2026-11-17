@@ -25,6 +25,22 @@ var loading = null;
 // file's own lines (`parse.displayPosition`): the squiggles its editors
 // show. A compile that worked says nothing.
 var said = {};
+// Blocks made on this page so far, for each its own key (`keyFor`).
+var made = 0;
+
+// The key a block's example is kept by: its code's hash, which names it
+// in what the page says, and which of the page's blocks it is, so two
+// blocks of the same code are two examples.
+function keyFor(hash) {
+    made += 1;
+    return hash + "-" + made;
+}
+
+// A block that has gone: nothing asks for its example again.
+function forget(id) {
+    delete examples[id];
+    delete said[id];
+}
 
 function diagnosticsFor(id, index) {
     var lists = said[id];

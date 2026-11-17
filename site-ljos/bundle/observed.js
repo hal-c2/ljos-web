@@ -41,6 +41,14 @@ function tell(id) {
     });
 }
 
+// An example that has gone (its block with it): its lines, watchers and
+// console go too.
+function forget(id) {
+    delete logs[id];
+    delete watchers[id];
+    delete inspects[id];
+}
+
 // `level`: as console names it ("log", "warn", "signal" for one that
 // fired).
 function say(id, level, message) {

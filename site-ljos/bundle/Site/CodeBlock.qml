@@ -73,6 +73,11 @@ Column {
     property var declaredNames: []
     property var lines: []
     property var disconnect: null
+    // This block among all the page has made: what Live and Observed keep
+    // its files, compiler, diagnostics and log by. Not its code's hash: two
+    // blocks of the same code are two examples, each edited, run and heard
+    // on its own.
+    property string key: ""
     readonly property string what: t`this example`
     readonly property string fileName: isLive ? live.display[currentFile].name : ""
 
@@ -119,13 +124,13 @@ Column {
         var root = isLive ? stage.item : null;
         declaredNames = root ? Observed.shown(root) : [];
         if (root)
-            disconnect = Observed.connectSignals(live.hash, root);
+            disconnect = Observed.connectSignals(block.key, root);
     }
 
     function apply() {
         if (!isLive || !runs)
             return;
-        Live.setFiles(live.hash, display());
+        Live.setFiles(block.key, display());
         // Not running: an edit asks it to run, and it does once it may
         // (in view, within the page's budget: Runner).
         if (!started) {
@@ -147,10 +152,10 @@ Column {
         started = true;
         said = "";
         // A run says its own lines: what the build heard goes.
-        Observed.reset(live.hash, []);
+        Observed.reset(block.key, []);
         for (var i = 0; i < editors.count; i++)
             editors.itemAt(i).diagnostics = [];
-        stage.source = Live.sourceFor(live.hash);
+        stage.source = Live.sourceFor(block.key);
     }
     // Stopped (one more started, past the page's budget): the picture
     // stands again, and the edits are kept for when it runs again. An
@@ -161,27 +166,32 @@ Column {
         started = false;
         if (debounce.running) {
             debounce.stop();
-            Live.setFiles(live.hash, display());
+            Live.setFiles(block.key, display());
         }
         stage.source = "";
-        Observed.reset(live.hash, live.logged || []);
+        Observed.reset(block.key, live.logged || []);
     }
     // The editors' marks, from the compile the stage last took.
     function marked() {
         for (var i = 0; i < editors.count; i++)
-            editors.itemAt(i).diagnostics = Live.diagnosticsFor(live.hash, i);
+            editors.itemAt(i).diagnostics = Live.diagnosticsFor(block.key, i);
     }
 
     Component.onCompleted: {
         if (!isLive)
             return;
-        Live.setExample(live.hash, live.display, live.entry, live.harnessTemplate || "", live.harnessFile || "", function (lines) {
+        key = Live.keyFor(live.hash);
+        Live.setExample(block.key, live.display, live.entry, live.harnessTemplate || "", live.harnessFile || "", function (lines) {
             block.absent = lines;
         }, live.given || null, function (namespace) {
-            return Observed.inspectFor(live.hash, namespace);
+            return Observed.inspectFor(block.key, namespace);
         });
-        Observed.watch(live.hash, block.heard);
-        Observed.reset(live.hash, live.logged || []);
+        Observed.watch(block.key, block.heard);
+        Observed.reset(block.key, live.logged || []);
+        // What the build heard is in the strip as the block is made, so a
+        // prerendered page has it: the build does not wait out a timer.
+        showLines.stop();
+        shownLines();
         // Asked as the page is made, not on the first edit: where the
         // compile cannot run, the block says so before it is reached
         // for, and what it says is why, not how the compile failed.
@@ -197,13 +207,32 @@ Column {
     Component.onDestruction: {
         if (!isLive)
             return;
-        Observed.unwatch(live.hash, block.heard);
+        Observed.unwatch(block.key, block.heard);
         if (disconnect)
             disconnect();
+        // A block made again (the page left and come back to) is a new
+        // key: what this one kept would never be read.
+        Observed.forget(block.key);
+        Live.forget(block.key);
     }
 
-    function heard(all) {
+    // Each line is told as it is said; the strip is rebuilt once for all
+    // said in one go (a loop that logs, a burst of signals), on the next
+    // turn, from the lines as they are then.
+    function heard() {
+        if (!showLines.running)
+            showLines.start();
+    }
+
+    function shownLines() {
+        var all = Observed.lines(block.key);
         block.lines = all.slice(Math.max(0, all.length - 6));
+    }
+
+    Timer {
+        id: showLines
+        interval: 0
+        onTriggered: block.shownLines()
     }
 
     Timer {
