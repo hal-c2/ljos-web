@@ -6,7 +6,7 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { availableParallelism, tmpdir } from "node:os";
 import { join } from "node:path";
-import { askedJobs, cgroupMemory, fittingJobs, freeMemory } from "../pool.js";
+import { askedJobs, cgroupHeadroom, fittingJobs, freeMemory } from "../pool.js";
 import { buildSite, pooled, siteJobs, SiteError } from "../site.js";
 import { bundle, qmlc } from "./bundle.js";
 import { expect, part, test } from "./served.js";
@@ -90,52 +90,68 @@ test("every pool reads its variable the same way, and by default fits the memory
   expect(fittingJobs(2 ** 60, { cores: 3 })).toBe(1);
 });
 
-test("under a cgroup's limit, what every process in it holds counts, and the page cache it filled does not", () => {
+test("under a cgroup's limit, the room its tree leaves is what there is, never more than the machine has free", () => {
   const GiB = 1024 ** 3;
-  // Node's availableMemory() there is the limit less memory.current,
-  // and that counts the files read and written: 14 GiB of 16 held, 6 of
-  // it cache. The cgroup's processes, this one and the others, hold 8.
-  const limited = { cgroup: { limit: 16 * GiB, held: 8 * GiB }, free: 40 * GiB, available: 2 * GiB, total: 64 * GiB };
+  const limited = { headroom: 8 * GiB, free: 40 * GiB, available: 2 * GiB };
   expect(freeMemory(limited)).toBe(8 * GiB);
   expect(fittingJobs(2 * GiB, { cores: 32, memory: freeMemory(limited) })).toBe(4);
-  // A cgroup at its limit has none, and still runs one.
-  expect(freeMemory({ ...limited, cgroup: { limit: 16 * GiB, held: 17 * GiB } })).toBe(0);
+  // A cgroup past its limit has none, and still runs one.
+  expect(freeMemory({ ...limited, headroom: -GiB })).toBe(0);
+  expect(fittingJobs(2 * GiB, { cores: 32, memory: freeMemory({ ...limited, headroom: -GiB }) })).toBe(1);
   // Nor is more than the machine has free there, whatever the limit.
   expect(freeMemory({ ...limited, free: 3 * GiB })).toBe(3 * GiB);
-  // No limit, or one above the machine's memory: the machine's free
-  // memory, which leaves the cache out already, is what there is.
-  expect(freeMemory({ ...limited, cgroup: null })).toBe(2 * GiB);
-  expect(freeMemory({ ...limited, cgroup: { limit: 128 * GiB, held: GiB } })).toBe(2 * GiB);
+  // No limit: Node's availableMemory(), the machine's free memory, which
+  // leaves the cache out already.
+  expect(freeMemory({ ...limited, headroom: null })).toBe(2 * GiB);
   expect(freeMemory()).toBeGreaterThan(0);
 });
 
-test("the cgroup read is the nearest one with a limit, all it holds less its inactive file cache", () => {
+test("a cgroup's room is the least any limit over it leaves: all each holds, less the file cache it could drop", () => {
   const GiB = 1024 ** 3;
   const root = mkdtempSync(join(tmpdir(), "cgroup-"));
   const self = join(root, "self");
+  const total = 64 * GiB;
   const group = (path, files) => {
     mkdirSync(join(root, path), { recursive: true });
-    for (const [name, text] of Object.entries(files)) writeFileSync(join(root, path, name), text);
+    for (const [name, text] of Object.entries(files)) writeFileSync(join(root, path, name), `${text}\n`);
   };
-  const stat = (inactive) => `anon ${GiB}\nfile ${7 * GiB}\nactive_file ${GiB}\ninactive_file ${inactive}\n`;
+  const stat = (inactive) => `anon ${GiB}\nfile ${7 * GiB}\nactive_file ${GiB}\ninactive_file ${inactive}`;
+  const limit = (max, current, inactive, high = "max") => ({ "memory.max": max, "memory.high": high, "memory.current": current, "memory.stat": stat(inactive) });
+  const room = () => cgroupHeadroom({ root, self, total });
   try {
-    writeFileSync(self, "0::/build.slice/job.scope\n");
-    group("build.slice", { "memory.max": `${16 * GiB}\n`, "memory.current": `${14 * GiB}\n`, "memory.stat": stat(6 * GiB) });
-    // The process's own cgroup sets no limit: its parent's holds, and so
-    // do the parent's numbers, siblings and all.
-    group("build.slice/job.scope", { "memory.max": "max\n", "memory.current": `${3 * GiB}\n`, "memory.stat": stat(GiB) });
-    expect(cgroupMemory({ root, self })).toEqual({ limit: 16 * GiB, held: 8 * GiB });
-    // Its own limit, when it has one, is the nearer.
-    group("build.slice/job.scope", { "memory.max": `${4 * GiB}\n` });
-    expect(cgroupMemory({ root, self })).toEqual({ limit: 4 * GiB, held: 2 * GiB });
+    writeFileSync(self, "0::/ci.slice/build.slice/job.scope\n");
+    group("ci.slice", limit("max", 3 * GiB, 0));
+    // The process's own cgroup sets no limit: its parent's holds, with
+    // all the parent holds, the siblings' too. 14 GiB of 16 held, 6 of
+    // it cache: 8 left.
+    group("ci.slice/build.slice", limit(16 * GiB, 14 * GiB, 6 * GiB));
+    group("ci.slice/build.slice/job.scope", limit("max", 3 * GiB, GiB));
+    expect(room()).toBe(8 * GiB);
+    // Its own limit, when it leaves less, is what holds.
+    group("ci.slice/build.slice/job.scope", limit(4 * GiB, 3 * GiB, GiB));
+    expect(room()).toBe(2 * GiB);
+    // A limit further up holds too, and leaves less when its other
+    // processes hold the rest of it: 20 GiB with 19 held leaves 1,
+    // however much the nearer limits leave.
+    group("ci.slice", limit(20 * GiB, 19 * GiB, 0));
+    expect(room()).toBe(GiB);
+    // memory.high is where the kernel starts to throttle the cgroup,
+    // so a build fits under it too.
+    group("ci.slice", limit("max", 3 * GiB, 0));
+    group("ci.slice/build.slice", limit(16 * GiB, 10 * GiB, 0, 11 * GiB));
+    expect(room()).toBe(GiB);
+    // A limit above the machine's memory never holds before the
+    // machine does.
+    group("ci.slice/build.slice", limit(128 * GiB, 10 * GiB, 0));
+    group("ci.slice/build.slice/job.scope", limit("max", 3 * GiB, GiB));
+    expect(room()).toBeNull();
     // No limit up to the root (which has no memory.max), no cgroup v2,
     // or one it cannot read: nothing to go by.
-    group("build.slice/job.scope", { "memory.max": "max\n" });
-    group("build.slice", { "memory.max": "max\n" });
-    expect(cgroupMemory({ root, self })).toBeNull();
-    writeFileSync(self, "12:memory:/build.slice\n");
-    expect(cgroupMemory({ root, self })).toBeNull();
-    expect(cgroupMemory({ root, self: join(root, "nowhere") })).toBeNull();
+    group("ci.slice/build.slice", limit("max", 10 * GiB, 0));
+    expect(room()).toBeNull();
+    writeFileSync(self, "12:memory:/ci.slice\n");
+    expect(room()).toBeNull();
+    expect(cgroupHeadroom({ root, self: join(root, "nowhere"), total })).toBeNull();
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
