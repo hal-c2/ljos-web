@@ -1751,8 +1751,8 @@ What a prerender has, and what it has not:
   neither paint nor hydration shows the other scheme first.
 - The renders are processes of their own, so a build runs several
   at once: as many as the machine runs at once and has a GiB of
-  free memory each for (under a cgroup's limit, what its processes leave
-  of it, not counting the file cache the kernel would drop for them), or
+  free memory each for (under cgroup limits, the least any of them
+  leaves, not counting the file cache the kernel would drop), or
   `LJOS_SITE_JOBS` (`buildSite({ jobs })`; anything but a whole number
   from 1 is refused, and only a prerendered build reads it). They are put back in the order one at a
   time made them before anything is written, so the site is the same

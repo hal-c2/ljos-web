@@ -46,14 +46,17 @@ export function askedJobs(env, name) {
   return jobs;
 }
 
-// The cgroup (v2) whose limit holds this process: its own, or the
-// nearest above it that sets one. `held` is what every process in it
-// holds, less the file cache it could drop (inactive_file), which the
-// kernel takes back before it refuses anyone. Null when nothing up to
-// the root sets a limit, or there is no cgroup v2 to read (another
-// system, or cgroup v1): then the machine's own free memory is all
-// there is to go by.
-export function cgroupMemory({ root = "/sys/fs/cgroup", self = "/proc/self/cgroup" } = {}) {
+// How much more this process's cgroup (v2) tree lets it have, in
+// bytes, or null when no limit holds it. Every cgroup from its own up
+// to the root may set one (memory.max, or memory.high, where the kernel
+// starts to throttle), and each covers all its processes, so the room
+// is the least any of them leaves. What a cgroup holds is
+// memory.current less inactive_file, the file cache the kernel drops
+// before it refuses anyone. A limit above the machine's memory never
+// holds before the machine does. Null too without cgroup v2 (another
+// system, or v1): then the machine's free memory is all there is to go
+// by.
+export function cgroupHeadroom({ root = "/sys/fs/cgroup", self = "/proc/self/cgroup", total = totalmem() } = {}) {
   const read = (path) => {
     try {
       return readFileSync(path, "utf8").trim();
@@ -63,28 +66,31 @@ export function cgroupMemory({ root = "/sys/fs/cgroup", self = "/proc/self/cgrou
   };
   const path = /^0::(\/.*)$/m.exec(read(self) ?? "")?.[1];
   if (path === undefined) return null;
+  let room = null;
   for (let at = path; ; at = posix.dirname(at)) {
-    const max = read(join(root, at, "memory.max"));
-    if (max !== undefined && max !== "max") {
+    const limits = ["memory.max", "memory.high"].map((name) => Number(read(join(root, at, name)))).filter((limit) => limit < total);
+    if (limits.length > 0) {
       const current = Number(read(join(root, at, "memory.current")));
       const inactive = Number(/^inactive_file (\d+)$/m.exec(read(join(root, at, "memory.stat")) ?? "")?.[1]);
-      return Number.isFinite(current) && Number.isFinite(inactive) ? { limit: Number(max), held: current - inactive } : null;
+      // A limit whose use cannot be read is not guessed at.
+      if (!Number.isFinite(current) || !Number.isFinite(inactive)) return null;
+      const left = Math.min(...limits) - (current - inactive);
+      room = room === null ? left : Math.min(room, left);
     }
-    if (at === "/") return null;
+    if (at === "/") return room;
   }
 }
 
 // What this process could still be given, in bytes. Under a cgroup's
-// limit, Node's availableMemory() is the limit less memory.current, and
-// that counts the page cache: the files a build has read and written.
-// A long build fills it, and would be held to one job by memory it can
-// have. So under a limit it is the limit less what the cgroup's
-// processes hold (cgroupMemory), and never more than the machine has
-// free. With none, or one above the machine's memory, it is
-// availableMemory(), the machine's free memory, which leaves the cache
-// out already.
-export function freeMemory({ cgroup = cgroupMemory(), free = freemem(), available = process.availableMemory(), total = totalmem() } = {}) {
-  return cgroup !== null && cgroup.limit < total ? Math.min(free, Math.max(0, cgroup.limit - cgroup.held)) : available;
+// limit, Node's availableMemory() is the nearest limit less its
+// memory.current, and that counts the page cache: the files a build has
+// read and written. A long build fills it, and would be held to one job
+// by memory it can have. So under a limit it is the room the cgroup
+// tree leaves (cgroupHeadroom), and never more than the machine has
+// free. With none it is availableMemory(), the machine's free memory,
+// which leaves the cache out already.
+export function freeMemory({ headroom = cgroupHeadroom(), free = freemem(), available = process.availableMemory() } = {}) {
+  return headroom !== null ? Math.min(free, Math.max(0, headroom)) : available;
 }
 
 // As many as the machine runs at once and has `each` bytes of memory
