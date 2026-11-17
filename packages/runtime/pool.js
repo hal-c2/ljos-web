@@ -50,9 +50,9 @@ export function askedJobs(env, name) {
 // bytes, or null when no limit holds it. Every cgroup from its own up
 // to the root may set one (memory.max, or memory.high, where the kernel
 // starts to throttle), and each covers all its processes, so the room
-// is the least any of them leaves. What a cgroup holds is
-// memory.current less inactive_file, the file cache the kernel drops
-// before it refuses anyone. A limit above the machine's memory never
+// is the least any of them leaves, of those whose use can be read.
+// What a cgroup holds is memory.current less inactive_file, the file
+// cache the kernel drops before it refuses anyone. A limit above the machine's memory never
 // holds before the machine does. Null too without cgroup v2 (another
 // system, or v1): then the machine's free memory is all there is to go
 // by.
@@ -72,10 +72,12 @@ export function cgroupHeadroom({ root = "/sys/fs/cgroup", self = "/proc/self/cgr
     if (limits.length > 0) {
       const current = Number(read(join(root, at, "memory.current")));
       const inactive = Number(/^inactive_file (\d+)$/m.exec(read(join(root, at, "memory.stat")) ?? "")?.[1]);
-      // A limit whose use cannot be read is not guessed at.
-      if (!Number.isFinite(current) || !Number.isFinite(inactive)) return null;
-      const left = Math.min(...limits) - (current - inactive);
-      room = room === null ? left : Math.min(room, left);
+      // A limit whose use cannot be read is not guessed at, and takes
+      // nothing from the room the others are known to leave.
+      if (Number.isFinite(current) && Number.isFinite(inactive)) {
+        const left = Math.min(...limits) - (current - inactive);
+        room = room === null ? left : Math.min(room, left);
+      }
     }
     if (at === "/") return room;
   }
