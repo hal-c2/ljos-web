@@ -148,6 +148,7 @@ test("a cgroup's room is the least any limit over it leaves: all each holds, les
     // A limit whose use cannot be read is not guessed at, and does not
     // take away the room the limits it can read leave: 4 GiB with 3
     // held, 1 of it cache, under 20 nobody can say how full.
+    group("ci.slice/build.slice", limit("max", 3 * GiB, GiB));
     group("ci.slice/build.slice/job.scope", limit(4 * GiB, 3 * GiB, GiB));
     group("ci.slice", { "memory.max": 20 * GiB });
     rmSync(join(root, "ci.slice", "memory.current"));
@@ -156,12 +157,22 @@ test("a cgroup's room is the least any limit over it leaves: all each holds, les
     // its limit less that: 3 GiB over the 2 held inside leaves 1.
     group("ci.slice", { "memory.max": 3 * GiB });
     expect(room()).toBe(GiB);
-    // No limit up to the root (which has no memory.max), no cgroup v2,
-    // or only ones it cannot read: nothing to go by.
-    group("ci.slice/build.slice/job.scope", limit("max", 3 * GiB, GiB));
+    // What is held below is read where no limit is set too: 2.5 GiB
+    // held in cgroups that set none, under a 3 GiB limit nobody can say
+    // how full, leaves 0.5.
+    group("ci.slice/build.slice", limit("max", 3 * GiB, GiB / 2));
+    group("ci.slice/build.slice/job.scope", limit("max", 2 * GiB, GiB / 2));
+    expect(room()).toBe(GiB / 2);
+    // A limit nobody can say how full, with nothing read below it
+    // either: nothing to go by.
+    rmSync(join(root, "ci.slice/build.slice", "memory.current"));
+    rmSync(join(root, "ci.slice/build.slice/job.scope", "memory.current"));
     expect(room()).toBeNull();
+    // No limit up to the root (which has no memory.max), or no cgroup
+    // v2: nothing to go by.
     group("ci.slice", limit("max", 3 * GiB, 0));
     group("ci.slice/build.slice", limit("max", 10 * GiB, 0));
+    group("ci.slice/build.slice/job.scope", limit("max", 3 * GiB, GiB));
     expect(room()).toBeNull();
     writeFileSync(self, "12:memory:/ci.slice\n");
     expect(room()).toBeNull();

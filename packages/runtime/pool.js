@@ -67,23 +67,21 @@ export function cgroupHeadroom({ root = "/sys/fs/cgroup", self = "/proc/self/cgr
   const path = /^0::(\/.*)$/m.exec(read(self) ?? "")?.[1];
   if (path === undefined) return null;
   let room = null;
-  // The most any cgroup below this one is known to hold: every cgroup
-  // holds at least what those in it hold.
-  let heldBelow = null;
+  // The most this cgroup or any below it is known to hold: every
+  // cgroup holds at least what those in it hold, whether or not they
+  // set a limit.
+  let held = null;
   for (let at = path; ; at = posix.dirname(at)) {
+    const current = Number(read(join(root, at, "memory.current")));
+    const inactive = Number(/^inactive_file (\d+)$/m.exec(read(join(root, at, "memory.stat")) ?? "")?.[1]);
+    if (Number.isFinite(current) && Number.isFinite(inactive)) held = Math.max(held ?? 0, current - inactive);
     const limits = ["memory.max", "memory.high"].map((name) => Number(read(join(root, at, name)))).filter((limit) => limit < total);
-    if (limits.length > 0) {
-      const current = Number(read(join(root, at, "memory.current")));
-      const inactive = Number(/^inactive_file (\d+)$/m.exec(read(join(root, at, "memory.stat")) ?? "")?.[1]);
-      // A limit whose use cannot be read is not guessed at: it leaves
-      // no more than itself less what is known to be held in it, and
-      // with nothing known, takes nothing from the others' room.
-      const held = Number.isFinite(current) && Number.isFinite(inactive) ? current - inactive : heldBelow;
-      if (held !== null) {
-        const left = Math.min(...limits) - held;
-        room = room === null ? left : Math.min(room, left);
-        heldBelow = Math.max(heldBelow ?? 0, held);
-      }
+    // A limit whose own use cannot be read is not guessed at: it
+    // leaves no more than itself less what is known to be held in it,
+    // and with nothing known, takes nothing from the others' room.
+    if (limits.length > 0 && held !== null) {
+      const left = Math.min(...limits) - held;
+      room = room === null ? left : Math.min(room, left);
     }
     if (at === "/") return room;
   }
