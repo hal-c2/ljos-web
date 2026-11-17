@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
-#MISE description="Install the tooling: Rust (with the wasm target), Node and pnpm, at the versions in mise.toml"
+#MISE description="Only the toolchains mise.toml pins (Rust with the wasm target, Node, pnpm), nothing else; the tasks that need them depend on it. After a clone, run setup instead, which also fetches dependencies and checks what it cannot install"
 set -euo pipefail
 mise install

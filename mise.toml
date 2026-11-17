@@ -1,5 +1,10 @@
 # The tooling. `mise run tools` (or `mise install`) installs it, and `mise run
 # setup` the rest a first run needs; the tasks are the scripts in mise-tasks/.
+[settings]
+# Pinned tools' bin dirs go first on PATH, so `mise run` builds with rustup's pinned toolchain
+# even where a system rust (e.g. /usr/bin/cargo) or an inherited mise env comes first.
+activate_aggressive = true
+
 [tools]
 rust = { version = "1.98.1", targets = "wasm32-unknown-unknown", components = "rustfmt,clippy" }
 node = "24.21.0"
