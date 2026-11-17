@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-#MISE description="Dispatch the site workflow (site.yml) on GitHub, which builds ljos.dev and deploys it to Pages; --dry-run prints the command"
+#MISE description="Dispatch the site workflow (site.yml) on GitHub, which builds ljos.dev and deploys it to Pages; --dry-run prints the command, --yes dispatches it"
 #USAGE flag "--deploy" negate="--no-deploy" default=#true help="Deploy after building (the workflow's deploy input); --no-deploy only builds and tests"
 #USAGE flag "--custom-domain" negate="--no-custom-domain" default=#true help="Build for the Pages custom domain (ljos.dev) at its root (the workflow's custom_domain input); --no-custom-domain builds for the github.io project path"
 #USAGE flag "--ref <ref>" default="main" help="The branch or tag the workflow runs on"
 #USAGE flag "--repo <repo>" default="hal-c2/ljos-web" help="The repository whose workflow is dispatched"
 #USAGE flag "--dry-run" help="Print the gh command instead of running it"
+#USAGE flag "--yes" help="Dispatch it: a deploy changes ljos.dev, so it is asked for by name"
 set -euo pipefail
 
 # A deploy by hand, of a branch or again of main. Pages serves this
@@ -20,6 +21,10 @@ if [ "${usage_dry_run:-false}" = true ]; then
   printf '%q ' "${cmd[@]}"
   echo
   exit 0
+fi
+if [ "${usage_yes:-false}" != true ]; then
+  echo "deploy: this dispatches site.yml on ${usage_repo:-hal-c2/ljos-web}, which builds ljos.dev and (unless --no-deploy) deploys it; run 'mise run deploy --yes' to do it, or --dry-run to see the command" >&2
+  exit 2
 fi
 command -v gh >/dev/null || { echo "deploy: needs the GitHub CLI, gh (https://cli.github.com), logged in" >&2; exit 1; }
 "${cmd[@]}"

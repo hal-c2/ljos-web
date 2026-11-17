@@ -4,10 +4,46 @@
 #USAGE flag "--qt <dir>" var=#true help="A Qt qml directory to read besides the installed Qt and QML_IMPORT_PATH (more than once for several)"
 #USAGE flag "--module <uri>" var=#true help="Only this module (more than once for several)"
 set -euo pipefail
+
+# Without --qt the generator reads QML_IMPORT_PATH and then Qt's own
+# /usr/lib/qt6/qml. Where Qt is elsewhere, it is found with qtpaths and
+# named: a table made without Qt's own modules would drop every Qt type.
+named=false
+for arg in "$@"; do
+  case $arg in --qt | --qt=*) named=true ;; esac
+done
+extra=()
+if [ "$named" = false ] && [ ! -d /usr/lib/qt6/qml ]; then
+  qml=""
+  for tool in qtpaths6 qtpaths; do
+    if command -v "$tool" >/dev/null; then
+      qml=$("$tool" --query QT_INSTALL_QML 2>/dev/null || true)
+      [ -n "$qml" ] && break
+    fi
+  done
+  if [ -z "$qml" ] || [ ! -d "$qml" ]; then
+    echo "types: no Qt 6 found (no /usr/lib/qt6/qml, and no qtpaths6 to ask); install Qt 6 (qt6-declarative), or name its qml directory with --qt DIR" >&2
+    exit 1
+  fi
+  # --qt replaces the generator's own search, so QML_IMPORT_PATH goes first
+  # as it would have.
+  if [ -n "${QML_IMPORT_PATH:-}" ]; then
+    IFS=: read -r -a imports <<<"$QML_IMPORT_PATH"
+    for dir in "${imports[@]}"; do [ -n "$dir" ] && extra+=(--qt "$dir"); done
+  fi
+  extra+=(--qt "$qml")
+fi
+
 # The generator is Ljós's `qmltypes`, at the rev the compiler's front end
-# is taken from: one generator, in its home repository.
+# is taken from: one generator, in its home repository, which is public, so
+# https fetches it without a key.
 rev=$(grep -oE 'rev = "[0-9a-f]{40}"' crates/ljos_web/Cargo.toml | head -1 | cut -d'"' -f2)
-root="$PWD/target/qmltypes-tool"
+case ${CARGO_TARGET_DIR:-} in
+  "") target="$PWD/target" ;;
+  /*) target="$CARGO_TARGET_DIR" ;;
+  *) target="$PWD/$CARGO_TARGET_DIR" ;;
+esac
+root="$target/qmltypes-tool"
 CARGO_NET_GIT_FETCH_WITH_CLI=true cargo install --quiet --locked --force \
-  --git ssh://git@github.com/hal-c2/ljos-ui.git --rev "$rev" qmltypes --root "$root"
-exec "$root/bin/qmltypes" --out crates/ljos_web/types.txt "$@"
+  --git https://github.com/hal-c2/ljos-ui --rev "$rev" qmltypes --root "$root"
+exec "$root/bin/qmltypes" --out crates/ljos_web/types.txt "${extra[@]+"${extra[@]}"}" "$@"

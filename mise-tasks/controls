@@ -1,16 +1,54 @@
 #!/usr/bin/env bash
-#MISE description="Copy Ljós's styles of Qt Quick Controls into packages/runtime/controls from a ljos-ui checkout, at the commit Ljos.Design is pinned at unless REV is given"
+#MISE description="Copy Ljós's styles of Qt Quick Controls into packages/runtime/controls from ljos-ui, at the commit Ljos.Design is pinned at unless REV is given: from the checkout LJOS_UI names, else fetched"
 #MISE depends=["packages"]
 #USAGE arg "[rev]" help="The ljos-ui commit to copy from; default the one crates/ljos_web/Cargo.toml pins ljos_design at"
-#USAGE flag "--ljos-ui <dir>" env="LJOS_UI" default="../ljos-ui" help="A checkout of ljos-ui"
+#USAGE flag "--ljos-ui <dir>" env="LJOS_UI" help="A checkout of ljos-ui to copy from; without one, the commit's crates/ljos_controls/qml is fetched from GitHub into a cache under the target dir"
 set -euo pipefail
 # One commit of ljos-ui for all of Ljós's QML the web takes: the one
 # crates/ljos_web/Cargo.toml pins ljos_design at, unless named.
 rev=${usage_rev:-$(grep -E '^ljos_design = ' crates/ljos_web/Cargo.toml | grep -oE 'rev = "[0-9a-f]{40}"' | cut -d'"' -f2)}
-ljos_ui=${usage_ljos_ui:-${LJOS_UI:-../ljos-ui}}
-[ -d "$ljos_ui/.git" ] || [ -f "$ljos_ui/.git" ] || { echo "LJOS_UI=$ljos_ui is not a checkout of ljos-ui" >&2; exit 1; }
-rev=$(git -C "$ljos_ui" rev-parse --verify "$rev^{commit}")
+ljos_ui=${usage_ljos_ui:-${LJOS_UI:-}}
 scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
-git -C "$ljos_ui" archive "$rev" crates/ljos_controls/qml | tar x -C "$scratch"
-node packages/runtime/controls.js write "$scratch/crates/ljos_controls/qml" "$rev"
+
+if [ -n "$ljos_ui" ]; then
+  [ -d "$ljos_ui/.git" ] || [ -f "$ljos_ui/.git" ] || { echo "controls: LJOS_UI=$ljos_ui is not a checkout of ljos-ui" >&2; exit 1; }
+  if ! full=$(git -C "$ljos_ui" rev-parse --verify --quiet "$rev^{commit}"); then
+    echo "controls: $ljos_ui does not have ljos-ui commit $rev; run 'git -C $ljos_ui fetch origin $rev' and try again, or leave LJOS_UI unset to fetch it" >&2
+    exit 1
+  fi
+  git -C "$ljos_ui" archive "$full" crates/ljos_controls/qml | tar x -C "$scratch"
+  from="$scratch/crates/ljos_controls/qml"
+else
+  if ! [[ $rev =~ ^[0-9a-f]{40}$ ]]; then
+    echo "controls: GitHub is asked for a full 40-character commit, not '$rev'; give one, or name a checkout that has it with LJOS_UI=DIR" >&2
+    exit 2
+  fi
+  # Only crates/ljos_controls/qml of the one commit: no history, and no
+  # other file's contents.
+  case ${CARGO_TARGET_DIR:-} in
+    "") cache="$PWD/target/ljos-ui-controls" ;;
+    /*) cache="$CARGO_TARGET_DIR/ljos-ui-controls" ;;
+    *) cache="$PWD/$CARGO_TARGET_DIR/ljos-ui-controls" ;;
+  esac
+  from="$cache/$rev/crates/ljos_controls/qml"
+  if [ ! -d "$from" ]; then
+    mkdir -p "$cache"
+    fetch=$(mktemp -d "$cache/.fetch.XXXXXX")
+    trap 'rm -rf "$scratch" "$fetch"' EXIT
+    echo "controls: fetching ljos-ui's crates/ljos_controls/qml at $rev" >&2
+    git -C "$fetch" init -q
+    git -C "$fetch" remote add origin https://github.com/hal-c2/ljos-ui
+    git -C "$fetch" sparse-checkout set --no-cone /crates/ljos_controls/qml/
+    if ! git -C "$fetch" fetch -q --depth 1 --filter=blob:none origin "$rev"; then
+      echo "controls: could not fetch ljos-ui at $rev from https://github.com/hal-c2/ljos-ui; check the network and the commit, or name a checkout that has it with LJOS_UI=DIR" >&2
+      exit 1
+    fi
+    git -C "$fetch" -c advice.detachedHead=false checkout -q FETCH_HEAD
+    rm -rf "${cache:?}/$rev"
+    mv "$fetch" "$cache/$rev"
+    trap 'rm -rf "$scratch"' EXIT
+  fi
+  full=$(git -C "$cache/$rev" rev-parse HEAD)
+fi
+node packages/runtime/controls.js write "$from" "$full"
