@@ -103,6 +103,21 @@ test("`ljos-web build-site` builds the site from the command line, next to the b
   }
 });
 
+// Run from anywhere: from beside the bundle, where no node_modules
+// holds ljos-web, what the build itself writes (a theme's module)
+// still finds the runtime.
+test("`ljos-web build-site` builds the site from a directory outside the runtime's package", () => {
+  const made = bundle("button");
+  try {
+    const ran = spawnSync(process.execPath, [join(import.meta.dirname, "../bin/ljos-web.js"), "build-site", made.dir, "--qmlc", qmlc], { cwd: made.root, encoding: "utf8" });
+    expect(ran.stderr.replace(/^note: .*\n/m, "")).toBe("");
+    expect(ran.status).toBe(0);
+    expect(existsSync(join(`${made.dir}-site`, "index.html"))).toBe(true);
+  } finally {
+    made.remove();
+  }
+});
+
 test("`ljos-web build-site` says why a bundle is refused, and exits with an error", () => {
   const made = bundle("project", (dir) => writeFileSync(join(dir, "stray.txt"), "?\n"));
   try {

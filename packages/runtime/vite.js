@@ -862,10 +862,14 @@ export default function qml({
         look(this, watched);
         if (error) this.error(error);
         const key = JSON.stringify(id);
+        // By its path, as the kernel is: a bare "ljos-web/theme" from a
+        // \0 module resolves from the build's working directory, which
+        // need not hold ljos-web.
+        const theme = JSON.stringify(join(runtime, "theme.js"));
         // Taken again when the file changes, while the page keeps all it has.
         return {
           code: [
-            `import { themed as $themed, rethemed as $rethemed } from "ljos-web/theme";`,
+            `import { themed as $themed, rethemed as $rethemed } from ${theme};`,
             `const checked = ${json};`,
             `export default $themed(${key}, checked);`,
             `if (import.meta.hot) {`,
