@@ -1127,6 +1127,14 @@ export default function qml({
           if (isQml(importer) && !affected.has(importer)) around.push(affected.add(importer) && importer);
         }
       }
+      // What is kept of Qt's own QML (`compiled`) is kept across modules and
+      // environments, so it is let go of here too, or the next transform
+      // gives back what the file said before. A file beside the saved one
+      // that this environment never loaded is let go of as well: another
+      // may have compiled it, and it is compiled against the saved one.
+      compiled.delete(file);
+      for (const kept of compiled.keys()) if (dirname(kept) === directory) compiled.delete(kept);
+      for (const module of affected) compiled.delete(module.file);
       const seen = new Set();
       for (const module of affected) graph.invalidateModule(module, seen, timestamp, true);
       return [...affected].filter((module) => [...module.importers].some((importer) => !isQml(importer)));
