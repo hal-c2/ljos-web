@@ -2,9 +2,10 @@
 // loaded only when something compiled imports it, so a page gets the same
 // instance its own QML has (one `Item`, one clock, one kernel).
 //
-// Not here: `ljos-web/QtQuick/Controls` and what is QML of Qt's own, which a
-// page has only when it was built with it (ljos-web requests 13 and 36). A
-// page that was gives it to `createCompiler({ modules })`.
+// Not here: `ljos-web/QtQuick/Controls`, `ljos-web/Ljos/Design` and what
+// is QML of Qt's own, which a page has only when it was built with it
+// (ljos-web requests 13 and 36). A page that was gives it to
+// `createCompiler({ modules })`.
 export const modules = {
   "solid-js": () => import("solid-js"),
   "ljos-web/runtime": () => import("./whole/runtime.js"),
@@ -64,6 +65,8 @@ export const modules = {
   "ljos-web/Qt/labs/folderlistmodel": () => import("./whole/Qt/labs/folderlistmodel.js"),
   "ljos-web/Qt/labs/synchronizer": () => import("./whole/Qt/labs/synchronizer.js"),
   "ljos-web/Qt/labs/qmlmodels": () => import("./whole/Qt/labs/qmlmodels.js"),
+  "ljos-web/Ljos/Controls": () => import("./whole/Ljos/Controls.js"),
+  "ljos-web/Ljos/Controls/Basic": () => import("./whole/Ljos/Controls/Basic.js"),
   "ljos-web/Ljos/Models": () => import("./whole/Ljos/Models.js"),
   "ljos-web/Ljos/Ui": () => import("./whole/Ljos/Ui.js"),
   "ljos-web/Ljos/Layout": () => import("./whole/Ljos/Layout.js"),

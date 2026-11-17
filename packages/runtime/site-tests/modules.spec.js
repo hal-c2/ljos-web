@@ -15,7 +15,11 @@ test("modules.json is what the package exports, with what is compiled from Qt an
   for (const module of exported) expect(list.modules).toContainEqual(expect.objectContaining({ module, from: "runtime" }));
   // The controls are Ljós's own style's QML, which ljos-web holds.
   expect(list.modules).toContainEqual({ module: "QtQuick.Controls", from: "ljos", needs: [] });
-  expect(list.modules).toContainEqual({ module: "Ljos.Design", from: "ljos", needs: ["with"] });
+  // Ljós's own QML, which ljos-web holds with its controls.
+  expect(list.modules).toContainEqual({ module: "Ljos.Design", from: "ljos", needs: [] });
+  expect(list.modules).toContainEqual({ module: "Ljos.Controls.impl", from: "ljos", needs: [] });
+  expect(list.modules).toContainEqual({ module: "Ljos.Controls", from: "runtime", needs: [] });
+  expect(list.modules).toContainEqual({ module: "Ljos.Controls.Basic", from: "runtime", needs: [] });
   expect(list.modules).toContainEqual({ module: "QtQuick", from: "runtime", needs: [] });
   // What the runtime has of a style is its C++ types; its controls are
   // Ljós's QML, and an installed Qt's for a style Ljós has none of.

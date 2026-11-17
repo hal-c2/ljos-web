@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { build } from "vite";
 import { buildSite } from "../site.js";
-import { check, source } from "../controls.js";
+import { check, DRAWN, qmldirs, source } from "../controls.js";
 import qml, { installed } from "../vite.js";
 import { bundle, compilerFile as qmlc, fixtures } from "./bundle.js";
 import { expect, serve, test } from "./served.js";
@@ -90,6 +90,22 @@ test("a site that imports QtQuick.Controls builds where no Qt is installed, with
       await expect(page.getByRole("slider")).toHaveCount(1);
       await expect(page.getByRole("checkbox")).toHaveCount(1);
       await expect(page.getByRole("combobox")).toHaveCount(1);
+    });
+  } finally {
+    made.remove();
+  }
+});
+
+test("a site that imports Ljos.Controls and Ljos.Design builds where no Qt is installed, with nothing given besides", async ({ page }) => {
+  const made = bundle("ljos-controls");
+  try {
+    await test.step("build the site", () => withoutQt(() => buildSite({ dir: made.dir, out: made.out, qmlc })), { timeout: BUILD });
+    await opened(page, made.out, async () => {
+      await expect(page.getByText("spacing 16 fits true bar true", { exact: true })).toBeVisible();
+      await page.getByRole("button", { name: "Go" }).click();
+      await expect(page.getByText("clicked 1", { exact: true })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Plain" })).toBeVisible();
+      await expect(page.getByRole("progressbar")).toHaveCount(1);
     });
   } finally {
     made.remove();
@@ -198,4 +214,64 @@ test("Ljós's controls are ljos-ui's QML as it is at the commit Ljos.Design is p
   const pinned = cargo.match(/^ljos_design = .*rev = "([0-9a-f]{40})"/m)?.[1];
   expect(source().rev).toBe(pinned);
   expect(Object.keys(source().files)).toContain("QtQuick/Controls/Basic/Button.qml");
+});
+
+// Ljós's own modules are made as its engine makes them (ljos-ui's
+// `ljos_controls::ljos_style` and `ljos_controls::ljos`): Ljos.Controls is
+// its own files, and Basic's of each drawn control it has none of;
+// Ljos.Controls.Basic is Basic's drawn controls with its own twins in their
+// place; a singleton is one because its file says so.
+test("Ljós's own modules name Basic's file of each control they have no file of, and their singletons as singletons", () => {
+  const singleton = "pragma Singleton\nimport QtQuick\nQtObject {}\n";
+  const files = {
+    "QtQuick/Controls/Basic/Button.qml": "",
+    "QtQuick/Controls/Basic/CheckBox.qml": "",
+    "QtQuick/Controls/Basic/TabButton.qml": "",
+    "QtQuick/Controls/Basic/RangeSlider.qml": "",
+    "Ljos/Controls/Button.qml": "",
+    "Ljos/Controls/Card.qml": "",
+    "Ljos/Controls/Theme.qml": singleton,
+    "Ljos/Controls/impl/PopupShade.qml": "",
+    "Ljos/Controls/Basic/Card.qml": "",
+    "Ljos/Controls/Basic/TabButton.qml": "",
+    "Ljos/Design/Colors.qml": singleton,
+    "Ljos/Design/PressBehavior.qml": "",
+  };
+  const made = qmldirs(Object.keys(files), (file) => files[file] ?? "");
+  const header = "# Written by ljos-web (packages/runtime/controls.js) for Ljós's own QML: not Qt's.";
+  const qmldir = (...lines) => [header, ...lines].join("\n") + "\n";
+  expect(made.get("Ljos/Controls/qmldir")).toBe(
+    qmldir(
+      "module Ljos.Controls",
+      "Button 1.0 Button.qml",
+      "Card 1.0 Card.qml",
+      "singleton Theme 1.0 Theme.qml",
+      "CheckBox 1.0 ../../QtQuick/Controls/Basic/CheckBox.qml",
+      "TabButton 1.0 ../../QtQuick/Controls/Basic/TabButton.qml",
+    ),
+  );
+  expect(made.get("Ljos/Controls/Basic/qmldir")).toBe(
+    qmldir(
+      "module Ljos.Controls.Basic",
+      "Button 1.0 ../../../QtQuick/Controls/Basic/Button.qml",
+      "Card 1.0 Card.qml",
+      "CheckBox 1.0 ../../../QtQuick/Controls/Basic/CheckBox.qml",
+      "TabButton 1.0 TabButton.qml",
+    ),
+  );
+  expect(made.get("Ljos/Controls/impl/qmldir")).toBe(qmldir("module Ljos.Controls.impl", "PopupShade 1.0 PopupShade.qml"));
+  expect(made.get("Ljos/Design/qmldir")).toBe(qmldir("module Ljos.Design", "singleton Colors 1.0 Colors.qml", "PressBehavior 1.0 PressBehavior.qml"));
+  // RangeSlider is not a control of Ljós's API, so neither of its modules has it.
+  expect(DRAWN).not.toContain("RangeSlider");
+});
+
+test("Ljós's own modules and Ljos.Design are copied with its controls, and their qmldirs are as the engine makes them", () => {
+  const files = Object.keys(source().files);
+  for (const file of ["Ljos/Controls/Button.qml", "Ljos/Controls/Theme.qml", "Ljos/Controls/impl/PopupShade.qml", "Ljos/Controls/Basic/TabButton.qml", "Ljos/Design/Colors.qml"]) {
+    expect(files).toContain(file);
+  }
+  expect(source().paths).toEqual({
+    "crates/ljos_controls/qml": ["QtQuick/Controls/", "Ljos/Controls/"],
+    "crates/ljos_design_qml/qml": ["Ljos/Design/"],
+  });
 });

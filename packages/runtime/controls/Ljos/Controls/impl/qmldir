@@ -1,0 +1,6 @@
+# Written by ljos-web (packages/runtime/controls.js) for Ljós's own QML: not Qt's.
+module Ljos.Controls.impl
+PopoverBase 1.0 PopoverBase.qml
+PopupEnter 1.0 PopupEnter.qml
+PopupShade 1.0 PopupShade.qml
+PopupSurface 1.0 PopupSurface.qml

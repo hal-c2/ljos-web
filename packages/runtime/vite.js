@@ -56,7 +56,11 @@ const held = (code, component, block) =>
   `\nimport { $held as $$held } from ${JSON.stringify(join(runtime, "Ljos/Blocks/held.js"))};\nexport default $$held(${component}, ${JSON.stringify(block)});\n`;
 
 // `ljos-web/QtQuick/Controls`: a module of Qt's, not `ljos-web/object`.
-const MODULE = /^ljos-web\/(Qt[\w/]*)$/;
+// `ljos-web/Ljos/Controls`: one of Ljós's that is QML (`controls/`), which
+// is put together as one of Qt's is; Ljós's others are the runtime's alone.
+const MODULE = /^ljos-web\/((?:Qt|Ljos\/)[\w/]*)$/;
+// Whether `module` is one of Ljós's own of QML, held in `controls/`.
+const ofLjos = (module) => module.startsWith("Ljos/") && existsSync(join(CONTROLS, module, "qmldir"));
 const VIRTUAL = "\0ljos-web:";
 // The theme an entry reads (ljos-ui's `docs/theme.md`): a module of its own,
 // so that a change of the file is taken without the page being made again.
@@ -270,26 +274,31 @@ function baked(context, file) {
 }
 
 // What a `qmldir` says its module is made of: the QML files that are its
-// types, and the modules that come with it. Of `optional import`s one comes,
+// types (and which of them are singletons), and the modules that come with it. Of `optional import`s one comes,
 // the `default import` when the program chooses no other: a style.
 function described(directory) {
   const file = join(directory, "qmldir");
   if (!existsSync(file)) return null;
   const types = new Map();
+  const singletons = new Set();
   const imports = [];
   const defaults = [];
   let optional = false;
   for (const line of readFileSync(file, "utf8").split("\n")) {
     const words = line.split("#")[0].trim().split(/\s+/);
-    if (words[0] === "singleton" || words[0] === "internal") words.shift();
+    const singleton = words[0] === "singleton";
+    if (singleton || words[0] === "internal") words.shift();
     if (words[0] === "import" && words[1]) imports.push(words[1]);
     else if (words[0] === "optional" && words[1] === "import") optional = true;
     else if (words[0] === "default" && words[1] === "import" && words[2]) defaults.push(words[2]);
-    else if (/^[A-Z]/.test(words[0] ?? "") && words.at(-1).endsWith(".qml") && words.length <= 3) types.set(words[0], words.at(-1));
+    else if (/^[A-Z]/.test(words[0] ?? "") && words.at(-1).endsWith(".qml") && words.length <= 3) {
+      types.set(words[0], words.at(-1));
+      if (singleton) singletons.add(words[0]);
+    }
   }
   // With nothing to choose from, a default is an import as any other.
   if (!optional) imports.push(...defaults);
-  return { file, types, imports, style: optional ? (defaults[0] ?? null) : null };
+  return { file, types, singletons, imports, style: optional ? (defaults[0] ?? null) : null };
 }
 
 // What a `qtquickcontrols2.conf` says, by its groups: `[Material]`, and
@@ -517,8 +526,14 @@ export default function qml({
   // Ljós's 3D is last: what there is where no Qt has those modules. A Qt that
   // has them has all of them, with what Ljós has not written.
   const roots = [...(ljos ? [CONTROLS] : []), ...qts, QUICK3D];
+  // Where the compiler looks: Ljós's own modules (`Ljos.Controls`) are in
+  // `controls/` whichever style the controls of Qt's are, and after
+  // every Qt where those are Qt's own.
+  const searched = ljos ? roots : [...roots, CONTROLS];
   // Where a module of Qt's is: null when Qt has none of that name here.
+  // One of Ljós's is only ever Ljós's.
   const home = (module) => {
+    if (module.startsWith("Ljos/")) return ofLjos(module) ? join(CONTROLS, module) : null;
     const root = roots.find((root) => existsSync(join(root, module, "qmldir")));
     return root ? join(root, module) : null;
   };
@@ -720,7 +735,7 @@ export default function qml({
   // `QML`, which QtQml's `qmldir` imports, is no module to import: what is
   // in it the runtime has in QtQml.
   const has = (module, seen = []) =>
-    /^Qt/.test(module) && Boolean(natives()[`./${module}`] || needed(module) || written(module) || composed(module, seen));
+    ofLjos(module) || (/^Qt/.test(module) && Boolean(natives()[`./${module}`] || needed(module) || written(module) || composed(module, seen)));
   // Whether what a module of Qt's is depends on the style: it has the choice
   // of one, or its QML or what it brings comes to a module that has. Only
   // such a module is one for each style; any other is the same for all.
@@ -795,9 +810,9 @@ export default function qml({
         config.build?.assetsInlineLimit === undefined
           ? { assetsInlineLimit: (file) => (DATA.test(file) ? false : undefined) }
           : undefined;
-      if (roots.length === 0) return { optimizeDeps, build };
+      if (searched.length === 0) return { optimizeDeps, build };
       const allowed = config.server?.fs?.allow ? [] : [searchForWorkspaceRoot(config.root ?? process.cwd())];
-      return { optimizeDeps, build, server: { fs: { allow: [...allowed, ...roots] } } };
+      return { optimizeDeps, build, server: { fs: { allow: [...allowed, ...searched] } } };
     },
     async resolveId(source, importer, options) {
       if (source.startsWith(VIRTUAL) || source.startsWith(THEME)) return source;
@@ -831,7 +846,8 @@ export default function qml({
       // a Qt module this machine's Qt does not have is no dependency to
       // bundle, and failing to resolve it would skip bundling them all.
       // The page that imports it is told when it does.
-      if (module && options?.scan) return { id: source, external: true };
+      // Ljós's modules of the runtime's alone (`Ljos/Ui`) are resolved as any.
+      if (module && /^Qt/.test(module) && options?.scan) return { id: source, external: true };
       if (!importer || (!importer.split("?")[0].endsWith(".qml") && !isScript(importer))) return null;
       // A baked shader is made here, whether or not the file is there.
       if (source.endsWith(BAKED) && /^\.\.?\//.test(source)) return join(dirname(importer.split("?")[0]), source);
@@ -921,9 +937,14 @@ export default function qml({
           // (`BusyIndicatorImpl`): what the runtime has of that is it.
           const ours = home(module).startsWith(CONTROLS + sep);
           const own = ours && native ? exported(this, join(runtime, native)) : new Set();
+          const shared = [...about.types.keys()].filter((name) => about.singletons.has(name) && !own.has(name));
+          if (shared.length > 0) lines.push(`import { $shared } from ${kernel};`);
           for (const [name, file] of about.types) {
             if (own.has(name)) continue;
-            lines.push(`export { default as ${name} } from ${JSON.stringify(join(home(module), file) + carry)};`);
+            const at = JSON.stringify(join(home(module), file) + carry);
+            // A singleton is its one object, as compiled QML reads it.
+            if (shared.includes(name)) lines.push(`import ${name}$getter from ${at};`, `export const ${name} = /* @__PURE__ */ $shared(${name}$getter);`);
+            else lines.push(`export { default as ${name} } from ${at};`);
           }
           const pictures = [...kept(module, about, "images"), ...kept(module, about, "shaders").filter(([, file]) => file.endsWith(BAKED)), ...lodged(module, about)];
           if (pictures.length > 0) {
@@ -981,7 +1002,7 @@ export default function qml({
         }
       }
       // Qt's own is compiled once, whichever programs come to it.
-      const own = roots.some((root) => file.startsWith(root + sep));
+      const own = searched.some((root) => file.startsWith(root + sep));
       if (own && compiled.has(file)) return { code: compiled.get(file), map: null };
       // Where Qt's modules are is told, so that a module of the installed
       // Qt's is one `qmlc` knows to be installed.
@@ -1000,14 +1021,14 @@ export default function qml({
         if (own && said[at] === "--root") at++;
         else argsKept.push(said[at]);
       }
-      const ownRoot = own ? roots.find((root) => file.startsWith(root + sep)) : null;
+      const ownRoot = own ? searched.find((root) => file.startsWith(root + sep)) : null;
       const given = [
         ...argsKept,
         ...(own ? ["--root", ownRoot] : project ? ["--root", project] : []),
         ...dumps.flatMap((dump) => ["--types", dump]),
         ...looked(file).flatMap((directory) => ["-I", directory]),
         ...more.flatMap((directory) => ["--with", directory]),
-        ...roots.flatMap((root) => ["--qt", root]),
+        ...searched.flatMap((root) => ["--qt", root]),
         ...(selector ? ["--select", selector] : []),
         ...((typeof inspect === "function" ? inspect(file) : inspect) ? ["--inspect", relative(base, file).split(sep).join("/")] : []),
       ];
