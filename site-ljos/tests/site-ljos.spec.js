@@ -201,6 +201,15 @@ test("a code block is its picture until the reader reaches for it, then runs bes
   await expect(editor).toHaveAttribute("aria-invalid", "true");
   const why = await editor.getAttribute("aria-errormessage");
   await expect(page.locator(`[id="${why}"]`)).toContainText(/Main\.qml:\d+/);
+  // Edited, the toolbar says so and offers to put it back as written,
+  // which takes the edits and the complaint away.
+  const reset = page.getByRole("button", { name: "Reset this example to as written" });
+  await expect(shown(page.getByText("Edited", { exact: true })).first()).toBeVisible();
+  await press(page, reset);
+  await expect(editor, "as written again").not.toContainText("Broken");
+  await expect(editor).not.toContainText("// edited");
+  await expect(reset, "nothing left to reset").toHaveCount(0);
+  await expect(page.getByText(/Main\.qml:\d+/), "nothing wrong to say").toHaveCount(0, { timeout: 30_000 });
   expect(errors).toEqual([]);
 });
 

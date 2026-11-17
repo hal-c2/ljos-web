@@ -59,6 +59,40 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
+// The light window's paper is the build's: an example's picture and the
+// example running in the light are drawn on the same ground.
+test("an example's picture is drawn on the light window's paper", () => {
+  const build = readFileSync(join(here, "../scripts/build.mjs"), "utf8");
+  expect(build).toContain(`background:${tokens.light.paper}`);
+});
+
+// A running example is a window on a stage, and reads as one: what the
+// window shows stands out from the stage around it, whether that is the
+// window's own paper or a ground the app paints (Basic's window colour,
+// #efefef in light and #000000 in dark), the stage stands out from the
+// page, and the window's hairline from the stage. None of these is text;
+// they are told apart, not read, so the bar is lower than 3:1.
+for (const scheme of ["light", "dark"]) {
+  test(`an app's window stands out from its stage in ${scheme}`, () => {
+    const tone = tokens[scheme];
+    const basicWindow = scheme === "light" ? "#efefef" : "#000000";
+    const ratio = (a, b) => Math.round(contrast(a, b) * 1000) / 1000;
+    const short = [
+      ["paper on stage", tone.paper, tone.stage, 1.2],
+      ["Basic's window on stage", basicWindow, tone.stage, 1.2],
+      ["stage on canvas", tone.stage, tone.canvas, 1.15],
+      ["stageEdge on stage", tone.stageEdge, tone.stage, 1.5],
+    ]
+      .filter(([, a, b, least]) => contrast(a, b) < least)
+      .map(([pair, a, b, least]) => ({ pair, ratio: ratio(a, b), least }));
+    expect(short).toEqual([]);
+    // What an app draws in its own text where it says no colour reads
+    // on the window it runs in.
+    const text = scheme === "light" ? "#000000" : "#d4d6d8";
+    expect(ratio(text, tone.paper), "an app's own text on its window").toBeGreaterThanOrEqual(4.5);
+  });
+}
+
 // Every tag the code blocks' highlighter names (`.tok-<tag>`) has a
 // colour in both schemes, and so do the parts of a code block around it.
 const CODE_TAGS = ["keyword", "string", "number", "bool", "null", "regexp", "comment", "typeName", "propertyName", "variableName", "function", "operator", "punctuation", "meta", "invalid", "topic"];

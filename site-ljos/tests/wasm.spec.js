@@ -61,8 +61,8 @@ async function opened(browser, path, wasm) {
 }
 
 // The page as a reader has it, less its live blocks' stages and what
-// they say (the stage is the picture's box; what it says is the line
-// after it): its words, and its elements with what they look like.
+// they say (the stage holds the window that holds the picture; what
+// it says is the line after it): its words, and its elements with what they look like.
 // `placed` keeps where each element is and how big: on a page with
 // live blocks a block's note moves what is below it and grows what
 // holds it, so there the picture above the first block says it.
@@ -71,7 +71,7 @@ const read = (page, placed) =>
     ([picture, placed]) => {
       const skipped = new Set();
       for (const img of document.querySelectorAll(picture)) {
-        const stage = img.parentElement.parentElement.parentElement;
+        const stage = img.parentElement.parentElement.parentElement.parentElement;
         skipped.add(stage);
         if (stage.nextElementSibling) skipped.add(stage.nextElementSibling);
       }
@@ -109,11 +109,12 @@ const read = (page, placed) =>
   );
 
 // Each live block: whether the build's picture shows, and what the
-// block says under its stage.
+// block says under its stage. The picture is in its rich text, in the
+// window, on the stage.
 const blocks = (page) =>
   page.locator(PICTURE).evaluateAll((imgs) =>
     imgs.map((img) => {
-      const stage = img.parentElement.parentElement.parentElement;
+      const stage = img.parentElement.parentElement.parentElement.parentElement;
       return { picture: img.checkVisibility(), said: stage.nextElementSibling?.innerText.trim() ?? "" };
     }),
   );
@@ -124,7 +125,7 @@ const firstBlockAt = (page) =>
   page.evaluate((picture) => {
     const tops = [document.documentElement.scrollHeight];
     const img = document.querySelector(picture);
-    if (img) tops.push(img.parentElement.parentElement.parentElement.getBoundingClientRect().top + scrollY);
+    if (img) tops.push(img.parentElement.parentElement.parentElement.parentElement.getBoundingClientRect().top + scrollY);
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     for (let node = walker.nextNode(); node; node = walker.nextNode())
       if (/^Live editing needs WebAssembly/.test(node.textContent.trim())) {

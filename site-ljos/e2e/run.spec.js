@@ -1,10 +1,11 @@
 // What a page runs, and when (site-ljos/README.md, "What runs, and
 // when"): nothing runs until the reader asks. Every example and every
 // demo but the Pantry (which holds still, as a page does) stands as its
-// picture with a Run control on it, which a reader reaches with the
-// mouse, the keyboard or a screen reader, and which says what happens:
-// Run, then Loading, then, live, Edit (an example's code) or Pause (a
-// demo); a press on the picture or an edit of the code runs it too. At
+// picture with a Run control in the toolbar under it, never over what
+// it draws, which a reader reaches with the mouse, the keyboard or a
+// screen reader, and which says what happens: Run, then Starting, then,
+// live, Stop (an example) or Pause and Resume (a demo); a press on the
+// picture or an edit of the code runs it too. At
 // most three are started at once; a demo out of view or in a hidden
 // tab pauses and resumes when it is back, and an example stays as the
 // reader left it; reduced motion softens and
@@ -104,7 +105,7 @@ test.describe("examples", () => {
     await open(page, plain.route);
     const block = liveBlock(page, plain.example.index);
     await centre(block.picture);
-    await expect(runButton(block.stage), "its Run is on its picture").toBeVisible({ timeout: 30_000 });
+    await expect(runButton(block.toolbar), "its Run is in its toolbar").toBeVisible({ timeout: 30_000 });
     await page.waitForTimeout(500);
     await expect(block.picture, "it does not run until asked").toBeVisible();
     await press(block.picture);
@@ -112,11 +113,11 @@ test.describe("examples", () => {
     expect(unexpected(errors)).toEqual([]);
   });
 
-  test("an edit that does not compile says so, and its control offers the code", async ({ page, errors }) => {
+  test("an edit that does not compile says so, and its control offers to stop it", async ({ page, errors }) => {
     await open(page, plain.route);
     const block = liveBlock(page, plain.example.index);
     await centre(block.picture);
-    const run = runButton(block.stage);
+    const run = runButton(block.toolbar);
     await expect(run).toBeVisible({ timeout: 30_000 });
     await listen(run);
     // The reader's first act is to break it: the edit asks it to run,
@@ -124,10 +125,10 @@ test.describe("examples", () => {
     await intoCode(block);
     await page.keyboard.press("Control+Home");
     await page.keyboard.type("Broken {");
-    await expect(runButton(block.stage, "Edit this example"), "its control offers the code").toBeVisible({ timeout: 30_000 });
+    await expect(runButton(block.toolbar, "Stop this example"), "its control offers to stop it").toBeVisible({ timeout: 30_000 });
     const { names, said } = await heard(page);
-    expect(names, "the control's name, phase by phase").toEqual(["Run this example", "Loading this example", "Edit this example"]);
-    expect(said, "what a screen reader is told").toEqual(["Loading this example", "This example did not compile"]);
+    expect(names, "the control's name, phase by phase").toEqual(["Run this example", "Starting this example…", "Stop this example"]);
+    expect(said, "what a screen reader is told").toEqual(["Starting this example…", "This example did not compile"]);
     // The compile's own complaint is the one error expected.
     expect(unexpected(errors).filter((text) => !/ShellLoader|Main\.qml/.test(text))).toEqual([]);
   });
@@ -136,7 +137,7 @@ test.describe("examples", () => {
     await open(page, plain.route);
     const block = liveBlock(page, plain.example.index);
     await centre(block.picture);
-    await expect(runButton(block.stage)).toBeVisible({ timeout: 30_000 });
+    await expect(runButton(block.toolbar)).toBeVisible({ timeout: 30_000 });
     const box = await block.picture.boundingBox();
     const at = { x: box.x + box.width / 4, y: box.y + box.height / 2 };
     const before = await pageScroll(page);
@@ -150,7 +151,7 @@ test.describe("examples", () => {
       await touch("touchEnd");
       await page.waitForTimeout(500);
       await expect.poll(() => pageScroll(page), { message: "the swipe scrolled the page" }).not.toEqual(before);
-      await expect(runButton(block.stage), "a swipe over the picture leaves it its picture").toBeVisible();
+      await expect(runButton(block.toolbar), "a swipe over the picture leaves it its picture").toBeVisible();
       await expect(block.picture).toBeVisible();
       // The swipe moved the picture: the tap lands where it stands now.
       const now = await block.picture.boundingBox();
@@ -167,12 +168,13 @@ test.describe("examples", () => {
     await open(page, window.route);
     const block = liveBlock(page, window.example.index);
     await centre(block.picture);
-    const button = runButton(block.stage);
+    const button = runButton(block.toolbar);
     await expect(button, "its Run button is shown, named for a screen reader").toBeVisible({ timeout: 30_000 });
     await page.waitForTimeout(500);
     await expect(block.picture, "it does not run until asked").toBeVisible();
     // As a keyboard reader goes: into the code above it, out with
-    // Escape (the editor keeps Tab for indenting), and Tab once to Run.
+    // Escape (the editor keeps Tab for indenting), and Tab once to Run,
+    // first in the toolbar under the code.
     await intoCode(block);
     await expect(block.picture, "the code taking focus does not run it").toBeVisible();
     await page.keyboard.press("Escape");
@@ -182,11 +184,11 @@ test.describe("examples", () => {
     expect(unexpected(errors)).toEqual([]);
   });
 
-  test("Run goes on to Loading and Edit, says so, and keeps the keyboard where it was", async ({ page, errors }) => {
+  test("Run goes on to Starting and Stop, says so, and keeps the keyboard where it was", async ({ page, errors }) => {
     await open(page, window.route);
     const block = liveBlock(page, window.example.index);
     await centre(block.picture);
-    const run = runButton(block.stage);
+    const run = runButton(block.toolbar);
     await expect(run).toBeVisible({ timeout: 30_000 });
     await listen(run);
     // The keyboard's way to Run: out of the code with Escape, Tab once.
@@ -194,16 +196,19 @@ test.describe("examples", () => {
     await page.keyboard.press("Escape");
     await page.keyboard.press("Tab");
     await page.keyboard.press("Enter");
-    const edit = runButton(block.stage, "Edit this example");
-    await expect(edit, "live, the control offers its code").toBeVisible({ timeout: 30_000 });
+    const stop = runButton(block.toolbar, "Stop this example");
+    await expect(stop, "live, the control offers to stop it").toBeVisible({ timeout: 30_000 });
     const { names, said } = await heard(page);
-    expect(names, "the control's name, phase by phase").toEqual(["Run this example", "Loading this example", "Edit this example"]);
+    expect(names, "the control's name, phase by phase").toEqual(["Run this example", "Starting this example…", "Stop this example"]);
     const regions = await page.evaluate(() => [...document.querySelectorAll("[aria-live]")].map((region) => region.outerHTML));
-    expect(said, `what a screen reader is told; the page's live regions now: ${regions.join(" ") || "none"}`).toEqual(["Loading this example", "This example runs"]);
-    // The keyboard is still on the control: Space on Edit takes the
-    // reader to the code.
+    expect(said, `what a screen reader is told; the page's live regions now: ${regions.join(" ") || "none"}`).toEqual(["Starting this example…", "This example runs"]);
+    // The keyboard is still on the control: Tab on to Edit, and Space
+    // on it takes the reader to the code.
+    await expect(stop, "the keyboard is still on the control").toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(runButton(block.toolbar, "Edit Main.qml"), "Edit is next").toBeFocused();
     await page.keyboard.press("Space");
-    await expect(block.block.getByRole("textbox").first(), "Edit takes the reader to the code").toBeFocused();
+    await expect(block.block.locator(".cm-editor.cm-focused"), "Edit takes the reader to the code").toBeVisible();
     expect(unexpected(errors)).toEqual([]);
   });
 
@@ -211,11 +216,11 @@ test.describe("examples", () => {
     await open(page, "/ui/text-input/");
     const block = liveBlock(page, 0);
     await centre(block.picture);
-    const run = runButton(block.stage);
+    const run = runButton(block.toolbar);
     await expect(run).toBeVisible({ timeout: 30_000 });
     await listen(run);
     await press(run);
-    await expect(runButton(block.stage, "Edit this example"), "it runs").toBeVisible({ timeout: 30_000 });
+    await expect(runButton(block.toolbar, "Stop this example"), "it runs").toBeVisible({ timeout: 30_000 });
     const field = block.running.locator("textarea").first();
     await press(field);
     await page.keyboard.press("End");
@@ -233,25 +238,25 @@ test.describe("examples", () => {
       }
     });
     await centre(block.stage);
-    await expect(runButton(block.stage, "Edit this example"), "back, it is still live").toBeVisible();
+    await expect(runButton(block.toolbar, "Stop this example"), "back, it is still live").toBeVisible();
     await expect(field, "back, what the reader typed is still in it").toHaveValue(/ ljós$/);
     const { names, said } = await heard(page);
-    expect(names, "the control did not go back to Loading").toEqual(["Run this example", "Loading this example", "Edit this example"]);
-    expect(said, "scrolled past and back, it says nothing more").toEqual(["Loading this example", "This example runs"]);
+    expect(names, "the control did not go back to Starting").toEqual(["Run this example", "Starting this example…", "Stop this example"]);
+    expect(said, "scrolled past and back, it says nothing more").toEqual(["Starting this example…", "This example runs"]);
     expect(unexpected(errors)).toEqual([]);
   });
 
-  test("an example's Run and Edit give a reader all axe asks, light and dark", async ({ page }) => {
+  test("an example's toolbar gives a reader all axe asks, light and dark", async ({ page }) => {
     for (const scheme of ["light", "dark"]) {
       await page.emulateMedia({ colorScheme: scheme });
       await open(page, window.route);
       const block = liveBlock(page, window.example.index);
       await centre(block.picture);
-      await expect(runButton(block.stage)).toBeVisible({ timeout: 30_000 });
-      expect(await violations(page), `${scheme}, with Run on the picture`).toEqual([]);
-      await press(runButton(block.stage));
-      await expect(runButton(block.stage, "Edit this example")).toBeVisible({ timeout: 30_000 });
-      expect(await violations(page), `${scheme}, live, with Edit in its corner`).toEqual([]);
+      await expect(runButton(block.toolbar)).toBeVisible({ timeout: 30_000 });
+      expect(await violations(page), `${scheme}, with Run in the toolbar`).toEqual([]);
+      await press(runButton(block.toolbar));
+      await expect(runButton(block.toolbar, "Stop this example")).toBeVisible({ timeout: 30_000 });
+      expect(await violations(page), `${scheme}, live, with Stop in the toolbar`).toEqual([]);
     }
   });
 });
@@ -319,7 +324,7 @@ test.describe("/demos/", () => {
     await expect.poll(() => keepsDrawing(canvas), { message: "shown, it draws again" }).toBeGreaterThan(1);
   });
 
-  test("a demo's Run goes on to Pause, which holds it where it is until Run again", async ({ page, errors }) => {
+  test("a demo's Run goes on to Pause, which holds it where it is until Resume", async ({ page, errors }) => {
     await open(page, "/demos/");
     const slot = demo(page, "3D you can orbit");
     await centre(slot);
@@ -335,17 +340,18 @@ test.describe("/demos/", () => {
     const canvas = slot.locator("canvas.qq-view3d");
     await expect.poll(() => drawsIn(canvas, 500), { message: "it runs" }).toBeGreaterThan(0);
     await press(pause);
-    await expect(run, "paused, Run goes on from there").toBeVisible();
+    const resume = runButton(slot, "Resume the 3D demo");
+    await expect(resume, "paused, Resume goes on from there").toBeVisible();
     // A picture already under way when it paused is let finish.
     await frames(page);
     await page.waitForTimeout(1_000);
     expect(await drawsIn(canvas, 1_000), "paused, it draws nothing").toBe(0);
-    await press(run);
+    await press(resume);
     await expect(pause).toBeVisible();
     await expect.poll(() => drawsIn(canvas, 500), { message: "and runs again" }).toBeGreaterThan(0);
     const { names, said } = await heard(page);
-    expect(names).toEqual(["Run the 3D demo", "Loading the 3D demo", "Pause the 3D demo", "Run the 3D demo", "Pause the 3D demo"]);
-    expect(said).toEqual(["Loading the 3D demo", "The 3D demo runs", "The 3D demo is paused", "The 3D demo runs"]);
+    expect(names).toEqual(["Run the 3D demo", "Starting the 3D demo…", "Pause the 3D demo", "Resume the 3D demo", "Pause the 3D demo"]);
+    expect(said).toEqual(["Starting the 3D demo…", "The 3D demo runs", "The 3D demo is paused", "The 3D demo runs"]);
     expect(unexpected(errors)).toEqual([]);
   });
 
@@ -356,7 +362,7 @@ test.describe("/demos/", () => {
       const slot = demo(page, "A whole app");
       await centre(slot);
       await expect(runButton(slot, RUN["A whole app"])).toBeVisible();
-      expect(await violations(page), `${scheme}, with Run on the pictures`).toEqual([]);
+      expect(await violations(page), `${scheme}, with Run under the pictures`).toEqual([]);
       await press(runButton(slot, RUN["A whole app"]));
       await expect(runButton(slot, "Pause the field guide")).toBeVisible({ timeout: 30_000 });
       // Pause is offered once the app is drawn, as it fades in over its
@@ -365,7 +371,7 @@ test.describe("/demos/", () => {
       // has a picture for each scheme, and the other scheme's is hidden
       // all along, so it is the shown one that is waited for.
       await expect(slot.locator("img:visible"), "the app has faded in over its picture").toHaveCount(0, { timeout: 10_000 });
-      expect(await violations(page), `${scheme}, live, with Pause in its corner`).toEqual([]);
+      expect(await violations(page), `${scheme}, live, with Pause under it`).toEqual([]);
     }
   });
 

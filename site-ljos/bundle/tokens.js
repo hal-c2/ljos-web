@@ -30,6 +30,19 @@ var light = {
     link: "#8e4e00",
     danger: "#b3261e",
     scrim: "#52000000",
+    // An example's stage: the backdrop its window stands on, the
+    // window's hairline and the shadow that lifts it, as a popup of
+    // Ljós's controls is lifted (PopupSurface). The window itself is
+    // `paper`: what an app's window shows where the app paints nothing,
+    // in the scheme the app runs in, so its own text (dark on light,
+    // light on dark, unless it says otherwise) reads on it. The build
+    // draws each example's picture on the light one (scripts/build.mjs
+    // STAGE). A dark window is lighter than its stage, as a raised
+    // surface is in the dark.
+    stage: "#dedad4",
+    stageEdge: "#aeaaa5",
+    stageShadow: "#1f000000",
+    paper: "#fdfbf6",
     code: {
         bg: "#f5f4f2",
         fg: "#282624",
@@ -75,6 +88,10 @@ var dark = {
     link: "#f3a767",
     danger: "#ff7b72",
     scrim: "#99000000",
+    stage: "#1f1e1d",
+    stageEdge: "#5a5754",
+    stageShadow: "#80000000",
+    paper: "#2e2d2b",
     code: {
         bg: "#161514",
         fg: "#efece9",
