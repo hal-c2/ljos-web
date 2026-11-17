@@ -101,6 +101,10 @@ Column {
     function reset() {
         for (var i = 0; i < editors.count; i++)
             editors.itemAt(i).text = live.display[i].code;
+        // Writing the texts back restarts the edit's debounce, and an
+        // edit typed just before may still be waiting on it: either
+        // would compile and reload the same code a second time.
+        debounce.stop();
         apply();
     }
 

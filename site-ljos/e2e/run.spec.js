@@ -243,6 +243,28 @@ test.describe("examples", () => {
     expect(unexpected(errors)).toEqual([]);
   });
 
+  // Reset writes the code as written back into its editors, which an
+  // edit's own debounce hears; it runs that code once, not again when
+  // the debounce runs out.
+  test("Reset puts the code back as written and runs it once", async ({ page, errors }) => {
+    await open(page, "/ui/items/");
+    const block = await run(page, 1);
+    await expect(block.values, "it ran, and said what it hit").toContainText("hit: under");
+    let made = 0;
+    page.on("console", (message) => /hit: /.test(message.text()) && made++);
+    await intoCode(block);
+    await page.keyboard.press("Control+Home");
+    await page.keyboard.type("// edited\n");
+    await expect.poll(() => made, { message: "the edit ran", timeout: 30_000 }).toBe(1);
+    made = 0;
+    await press(runButton(block.toolbar, "Reset this example to as written"));
+    await expect.poll(() => made, { message: "the code as written ran", timeout: 30_000 }).toBe(1);
+    // The debounce's 300 ms, and a compile and a reload after it.
+    await page.waitForTimeout(1_500);
+    expect(made, "and ran once").toBe(1);
+    expect(unexpected(errors)).toEqual([]);
+  });
+
   // Three ten-pixel items in a Row: a sliver, which once stood as a
   // line across the page. It runs in a window a reader can see, at its
   // own size in the middle of it (a window's least size never stretches
