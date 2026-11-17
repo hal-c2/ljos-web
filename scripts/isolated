@@ -7,6 +7,11 @@
 # container's virtual interface coming and going) makes Chromium abort a
 # page load with ERR_NETWORK_CHANGED, a failure that has nothing to do with
 # the page. In a namespace of its own there is no other interface to change.
+# With only loopback Chromium says it is offline (navigator.onLine false),
+# which the specs of what a page knows of its network see; a dummy
+# interface with a default route that leads nowhere makes it online, and
+# still nothing leaves the namespace. Where a dummy cannot be made, only
+# loopback is up.
 #
 # It runs COMMAND as is in CI (CI is set: the runner's network is quiet),
 # off Linux, where unprivileged user namespaces are off, and when
@@ -18,6 +23,10 @@ set -euo pipefail
 if [ -z "${CI:-}" ] && [ "${LJOS_NO_ISOLATION:-}" != 1 ] && [ "$(uname -s)" = Linux ] &&
   command -v unshare >/dev/null && command -v ip >/dev/null &&
   unshare -rn ip link set lo up 2>/dev/null; then
-  exec unshare -rn bash -c 'ip link set lo up && exec "$@"' isolated "$@"
+  exec unshare -rn bash -c '
+    ip link set lo up
+    { ip link add ljos0 type dummy && ip addr add 192.0.2.1/24 dev ljos0 &&
+      ip link set ljos0 up && ip route add default via 192.0.2.254 dev ljos0; } 2>/dev/null || true
+    exec "$@"' isolated "$@"
 fi
 exec "$@"
