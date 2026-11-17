@@ -11,7 +11,9 @@ const base = process.env.LJOS_SITE_BASE ?? "/";
 
 export default defineConfig({
   testDir: ".",
-  reporter: process.env.CI ? [["list"], ["html", { open: "never", outputFolder: "../playwright-report/e2e" }]] : "list",
+  // known-reporter.js says why each expected failure failed, beside the
+  // list reporter's ✘ for it.
+  reporter: [["list"], ["./known-reporter.js"], ...(process.env.CI ? [["html", { open: "never", outputFolder: "../playwright-report/e2e" }]] : [])],
   outputDir: "../test-results/e2e",
   timeout: 90_000,
   expect: { timeout: 15_000 },
