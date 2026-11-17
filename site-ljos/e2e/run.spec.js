@@ -203,12 +203,43 @@ test.describe("examples", () => {
     const regions = await page.evaluate(() => [...document.querySelectorAll("[aria-live]")].map((region) => region.outerHTML));
     expect(said, `what a screen reader is told; the page's live regions now: ${regions.join(" ") || "none"}`).toEqual(["Starting this example…", "This example runs"]);
     // The keyboard is still on the control: Tab on to Edit, and Space
-    // on it takes the reader to the code.
-    await expect(stop, "the keyboard is still on the control").toBeFocused();
+    // on it takes the reader to the code. A button's focus is the
+    // runtime's, as an item's is in Qt, not the page's, so it shows in
+    // what the next keys do.
     await page.keyboard.press("Tab");
-    await expect(runButton(block.toolbar, "Edit Main.qml"), "Edit is next").toBeFocused();
     await page.keyboard.press("Space");
     await expect(block.block.locator(".cm-editor.cm-focused"), "Edit takes the reader to the code").toBeVisible();
+    expect(unexpected(errors)).toEqual([]);
+  });
+
+  test("Source hides an example's code and shows it again, and Edit brings it back to the reader", async ({ page, errors }) => {
+    await open(page, window.route);
+    const block = liveBlock(page, window.example.index);
+    await centre(block.picture);
+    const source = runButton(block.toolbar, "Show the source");
+    // The code as written: its field, until a press makes it the editor.
+    const code = block.block.getByRole("textbox").first();
+    await expect(source, "the toolbar has Source, last").toBeVisible({ timeout: 30_000 });
+    await expect(source, "pressed while the code shows").toHaveAttribute("aria-pressed", "true");
+    await expect(code).toBeVisible();
+    // The keyboard's way to Source: out of the code with Escape, then
+    // Tab past Run and Edit (Reset shows only once there is an edit).
+    await intoCode(block);
+    await page.keyboard.press("Escape");
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Space");
+    await expect(code, "Source pressed again hides the code").toBeHidden();
+    await expect(source).toHaveAttribute("aria-pressed", "false");
+    await expect(block.picture, "the example stays as it was").toBeVisible();
+    await page.keyboard.press("Space");
+    await expect(code, "and shows it again").toBeVisible();
+    await expect(source).toHaveAttribute("aria-pressed", "true");
+    await source.click();
+    await runButton(block.toolbar, "Edit Main.qml").click();
+    await expect(block.block.locator(".cm-editor.cm-focused"), "Edit shows the code and takes the reader to it").toBeVisible();
+    await expect(source).toHaveAttribute("aria-pressed", "true");
     expect(unexpected(errors)).toEqual([]);
   });
 

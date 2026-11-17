@@ -16,6 +16,10 @@ Rectangle {
     // The one call to act on the stage: Run, before anything runs.
     property bool primary: false
     property bool busy: false
+    // One that stays down while what it shows is shown (Source), said to
+    // a screen reader as pressed or not.
+    property bool checkable: false
+    property bool checked: false
     signal pressed
 
     readonly property bool live: enabled && !busy
@@ -23,7 +27,7 @@ Rectangle {
     implicitWidth: words.implicitWidth + 2 * Theme.s
     implicitHeight: 32
     radius: Theme.radiusSmall
-    color: primary ? (hit.pressed ? Theme.accentPressed : hit.containsMouse && live ? Theme.accentHover : Theme.accent) : (hit.pressed ? Theme.surfacePressed : hit.containsMouse && live ? Theme.surfaceHover : Theme.surfaceRaised)
+    color: primary ? (hit.pressed ? Theme.accentPressed : hit.containsMouse && live ? Theme.accentHover : Theme.accent) : (hit.pressed ? Theme.surfacePressed : hit.containsMouse && live ? Theme.surfaceHover : checked ? Theme.surfaceSelected : Theme.surfaceRaised)
     border.color: primary ? "transparent" : Theme.border
     border.width: primary ? 0 : 1
     opacity: enabled ? 1 : 0.45
@@ -54,6 +58,8 @@ Rectangle {
     activeFocusOnTab: enabled
     Accessible.role: Accessible.Button
     Accessible.name: label
+    Accessible.checkable: checkable
+    Accessible.checked: checked
     Accessible.onPressAction: () => {
         if (button.live)
             button.pressed();
