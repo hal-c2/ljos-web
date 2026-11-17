@@ -90,7 +90,7 @@ Everything else is a [mise](https://mise.jdx.dev) task, a script in
 whatever it needs:
 
 ```sh
-mise run setup          # first run after a clone: tools, submodule, dependencies, browser, docs (--no-corpus, --no-browser; --check installs nothing and fails on a Rust or Qt that is not the pinned one)
+mise run setup          # first run after a clone: tools, submodule, dependencies, browser, docs (--no-corpus, --no-browser; `mise run --skip-tools setup --check` installs nothing and fails on a Rust or Qt that is not the pinned one)
 mise run tools          # only the toolchains mise.toml pins: Rust (with the wasm target), Node, pnpm
 mise run packages       # pnpm install --frozen-lockfile (the tasks that need it depend on it)
 mise run browser        # Playwright's Chromium (--check only says whether it is there)
