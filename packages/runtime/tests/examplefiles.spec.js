@@ -5,8 +5,29 @@
 // there for `ljos run` (ljos-ui features/blocks/shell-loader.feature),
 // said beside the code at the line that names it, and the server is
 // never asked for it.
+import { readdirSync } from "node:fs";
+import { join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import { NAMED } from "./examplefiles-fixtures.js";
 import { expect, test } from "./open.js";
+
+// The runtime's own files, as the test server gives them to the page
+// (by their path on disk): asked for as a kernel loads, never because
+// an example named them. Its tests' scenes and fixtures are not the
+// runtime's, and this page never loads them.
+const NOT_OWN = new Set(["node_modules", "test-results", "tests", "site-tests"]);
+function own(dir = fileURLToPath(new URL("..", import.meta.url))) {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    if (NOT_OWN.has(entry.name) || entry.name.startsWith(".")) return [];
+    const path = join(dir, entry.name);
+    return entry.isDirectory() ? own(path) : [`/@fs${path}`];
+  });
+}
+
+test("no file of the runtime's own is taken for one an example names", () => {
+  const root = fileURLToPath(new URL("..", import.meta.url));
+  expect(own().filter((path) => NAMED.test(path)).map((path) => relative(root, path.slice("/@fs".length)))).toEqual([]);
+});
 
 // Everything the page asked of the server, and what it answered with
 // a failure.
