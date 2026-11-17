@@ -350,3 +350,22 @@ test("a TextEdit holds lines, and grows with them", async ({ page }) => {
   await page.mouse.click(10, 118);
   expect(await log(page)).toEqual(["notes finished"]);
 });
+
+test("a press anywhere on a styled field, its placeholder too, puts the cursor in it", async ({ page }) => {
+  await open(page, "styledfields");
+  for (const [name, label] of [
+    ["field", "Search query"],
+    ["area", "Notes"],
+  ]) {
+    const box = await page.getByRole("textbox", { name: label }).boundingBox();
+    // The middle is where the placeholder is drawn, over the field.
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    await page.keyboard.type("ljós");
+    await expect.poll(() => page.evaluate((n) => [window.objects[n].text, window.objects[n].activeFocus], name)).toEqual(["ljós", true]);
+  }
+  // A press on something in the field that takes it is that thing's.
+  const box = await page.getByRole("textbox", { name: "With a button" }).boundingBox();
+  await page.mouse.click(box.x + box.width - 10, box.y + box.height / 2);
+  await expect.poll(() => page.evaluate(() => window.scene.cleared)).toBe(1);
+  expect(await page.evaluate(() => window.objects.area.activeFocus)).toBe(true);
+});
