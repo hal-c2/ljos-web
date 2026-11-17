@@ -11,6 +11,7 @@ import { advance, capitalized, describe, dress, font, fonts, metrics, overhang }
 import { Item } from "./Item.js";
 import { alignment } from "./LayoutMirroring.ts";
 import { AltModifier, ControlModifier, Key, MetaModifier } from "./keycodes.ts";
+import { pressTaken } from "./pointer.js";
 import { arrange } from "./Text.js";
 import { untrack } from "#kernel";
 
@@ -23,6 +24,8 @@ rules(`
 `);
 
 const MANY = 2147483647;
+// What of the page's own takes its own presses.
+const NATIVE = "input,textarea,select,button,[contenteditable]";
 const ALIGNS = { 1: "left", 2: "right", 4: "center", 8: "justify" };
 const CAPITALS = ["", "uppercase", "lowercase", "", "capitalize"];
 
@@ -117,9 +120,18 @@ function editor(self, field, { changed, home, finished }) {
     settleAll();
     finished();
   });
-  // A press beside the text, inside the item, is a press on the item.
+  // A press beside the text, inside the item, is a press on the item. So is
+  // one on what lies over the field and takes no press, as a style's
+  // placeholder does: in Qt a Text passes a press on to what is under it.
   self.$node.addEventListener("mousedown", (event) => {
-    if (event.target !== self.$node || !self.activeFocusOnPress || !self.enabled) return;
+    if (!self.activeFocusOnPress || !self.enabled || event.defaultPrevented) return;
+    const { target } = event;
+    if (target !== self.$node) {
+      if (field.contains(target) || pressTaken()) return;
+      // A field or a button of the page's own inside this one has it.
+      const native = target.closest?.(NATIVE);
+      if (native && self.$node.contains(native)) return;
+    }
     event.preventDefault();
     field.focus();
   });
