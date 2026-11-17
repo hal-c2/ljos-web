@@ -1,6 +1,7 @@
 // What site.yml decides for each way a run can start: its concurrency
-// group, whether it deploys, and whether the freshness guard runs and
-// may be rolled past. The expressions are read out of the workflow and
+// group, what supersedes it, whether it deploys and where its deploy
+// takes turns, and whether the freshness guard runs and may be rolled
+// past. The expressions are read out of the workflow and
 // evaluated here, so a change to one that changes a decision fails a
 // test rather than a deploy.
 //
@@ -62,18 +63,26 @@ function expr([from, to], key, depth) {
 }
 
 const top = [0, lines.findIndex((l) => l === "jobs:")];
+const supersede = job("supersede");
 const build = job("build");
+const fresh = job("fresh");
 const deploy = job("deploy");
 const at = {
   group: expr(top, "group", 2),
   cancel: expr(top, "cancel-in-progress", 2),
+  supersedeIf: expr(supersede, "if", 4),
   deploys: expr(build, "SITE_DEPLOYS", 6),
   domain: expr(build, "SITE_CUSTOM_DOMAIN", 6),
-  buildGuard: step(build, "id", "fresh"),
   pages: step(build, "id", "pages"),
   upload: step(build, "uses", "actions/upload-pages-artifact@"),
+  freshIf: expr(fresh, "if", 4),
+  freshGuard: step(fresh, "id", "fresh"),
+  freshConcurrency: lines.slice(...fresh).some((l) => /^ {4}concurrency:/.test(l)),
   deployIf: expr(deploy, "if", 4),
+  deployGroup: expr(deploy, "group", 6),
+  deployCancel: lines.slice(...deploy).find((l) => /^ {6}cancel-in-progress:/.test(l))?.trim(),
   deployGuard: step(deploy, "id", "fresh"),
+  deployPages: step(deploy, "uses", "actions/deploy-pages@"),
 };
 
 // --- evaluating GitHub's expression language --------------------------
@@ -220,7 +229,9 @@ function stepEnv(range, ctx) {
   return env;
 }
 
-function decide(run) {
+// `fresh`: what the fresh job's guard answers (true unless a test asks
+// for a stale build).
+function decide(run, fresh = "true") {
   const github = {
     event_name: run.event,
     ref: run.ref,
@@ -235,20 +246,29 @@ function decide(run) {
     SITE_CUSTOM_DOMAIN: asString(evaluate(at.domain, base)),
   };
   const ctx = { ...base, env };
-  const deployJob = truthy(evaluate(at.deployIf, { ...base, needs: { build: { outputs: { deploy: env.SITE_DEPLOYS } } } }));
+  const needs = { build: { outputs: { deploy: env.SITE_DEPLOYS, "custom-domain": env.SITE_CUSTOM_DOMAIN } } };
+  const freshJob = truthy(evaluate(at.freshIf, { ...base, needs }));
+  // A skipped job answers nothing: its outputs read as empty.
+  needs.fresh = { outputs: { fresh: freshJob ? fresh : "" } };
+  const deployJob = truthy(evaluate(at.deployIf, { ...base, needs }));
   return {
     group: asString(evaluate(at.group, base)),
     cancel: truthy(evaluate(at.cancel, base)),
+    supersedes: truthy(evaluate(at.supersedeIf, base)),
     deploys: env.SITE_DEPLOYS === "true",
     customDomain: env.SITE_CUSTOM_DOMAIN === "true",
-    buildGuard: stepRuns(at.buildGuard, ctx),
-    buildGuardEnv: stepEnv(at.buildGuard, ctx),
     pages: stepRuns(at.pages, ctx),
     pagesEnv: stepEnv(at.pages, ctx),
     upload: stepRuns(at.upload, ctx),
+    freshJob,
+    freshGuard: freshJob && stepRuns(at.freshGuard, ctx),
+    freshGuardEnv: stepEnv(at.freshGuard, ctx),
     deployJob,
+    deployGroup: deployJob ? asString(evaluate(at.deployGroup, { ...base, needs })) : "",
     deployGuard: deployJob && stepRuns(at.deployGuard, ctx),
     deployGuardEnv: stepEnv(at.deployGuard, ctx),
+    // deploy-pages, when the deploy job's own guard answers `fresh`.
+    deployPages: (answer) => deployJob && truthy(evaluate(expr(at.deployPages, "if", 8), { ...ctx, steps: { fresh: { outputs: { fresh: answer } } } })),
   };
 }
 
@@ -259,7 +279,8 @@ const deploying = (run) => decide(run).deploys;
 test("a pull request never deploys and never reaches the guard", () => {
   const d = decide(runs[0]);
   assert.equal(d.deploys, false);
-  assert.equal(d.buildGuard, false);
+  assert.equal(d.freshJob, false);
+  assert.equal(d.supersedes, false);
   assert.equal(d.pages, false);
   assert.equal(d.upload, false);
   assert.equal(d.deployJob, false);
@@ -274,20 +295,34 @@ test("the runs that deploy are a push to main here and a dispatch with deploy on
   );
 });
 
-test("every deploying run checks freshness before upload and again before deploy-pages", () => {
+test("every deploying run checks freshness before its deploy takes a turn, and again before deploy-pages", () => {
   for (const run of runs.filter(deploying)) {
     const d = decide(run);
-    assert.ok(d.buildGuard, `${run.name}: the guard does not run before upload`);
     assert.ok(d.upload, `${run.name}: deploys without uploading`);
+    assert.ok(d.freshGuard, `${run.name}: the guard does not run before the deploy job`);
+    assert.ok(d.deployJob, `${run.name}: a fresh build does not deploy`);
     assert.ok(d.deployGuard, `${run.name}: the guard does not run before deploy-pages`);
-    assert.ok(at.buildGuard[0] > at.pages[0] && at.buildGuard[0] < at.upload[0], "the build's guard is not the last step before upload");
+    assert.ok(at.deployGuard[0] < at.deployPages[0], "the deploy job's guard is not before deploy-pages");
+    assert.ok(d.deployPages("true"), `${run.name}: deploy-pages does not run when its guard answers fresh`);
   }
+});
+
+test("a stale build never takes a turn in the Pages group, nor deploys", () => {
+  for (const run of runs.filter(deploying)) {
+    const d = decide(run, "false");
+    assert.ok(d.freshJob, run.name);
+    assert.equal(d.deployJob, false, `${run.name}: a stale build's deploy job runs, and waits its turn`);
+    assert.equal(decide(run).deployPages("false"), false, `${run.name}: deploy-pages runs although its guard answered stale`);
+    assert.equal(decide(run).deployPages(""), false, `${run.name}: deploy-pages runs although its guard answered nothing`);
+  }
+  assert.equal(at.freshConcurrency, false, "the fresh job waits in a concurrency group");
 });
 
 test("a run that does not deploy never checks freshness", () => {
   for (const run of runs.filter((r) => !deploying(r))) {
     const d = decide(run);
-    assert.equal(d.buildGuard, false, run.name);
+    assert.equal(d.freshGuard, false, run.name);
+    assert.equal(d.deployJob, false, run.name);
     assert.equal(d.deployGuard, false, run.name);
   }
 });
@@ -296,32 +331,40 @@ test("rollback is on only where a dispatch asks for it, and both guards read it"
   for (const run of runs.filter(deploying)) {
     const d = decide(run);
     const want = String(run.inputs?.rollback === true);
-    assert.equal(d.buildGuardEnv.ROLLBACK, want, `${run.name}: build guard`);
+    assert.equal(d.freshGuardEnv.ROLLBACK, want, `${run.name}: fresh job's guard`);
     assert.equal(d.deployGuardEnv.ROLLBACK, want, `${run.name}: deploy guard`);
     assert.equal(d.pagesEnv.ROLLBACK, want, `${run.name}: pages step`);
   }
 });
 
-test("a deploying run is never cancelled once running", () => {
+test("a deploying run is never cancelled by the workflow's concurrency", () => {
   for (const run of runs.filter(deploying)) assert.equal(decide(run).cancel, false, run.name);
 });
 
-test("main's deploys and a rollback to the domain take turns in one group; other dispatches stand alone", () => {
-  const group = (name) => decide(runs.find((r) => r.name === name)).group;
-  for (const name of [
-    "push to main",
-    "dispatch from main, preview",
-    "dispatch from main, custom_domain",
-    "dispatch from main, custom_domain, rollback",
-    "dispatch from a branch, custom_domain, rollback",
-  ]) {
-    assert.equal(group(name), "site-deploy", name);
+test("a run that may deploy waits behind no other run to build; pull requests and a fork's main are superseded", () => {
+  const d = (name) => decide(runs.find((r) => r.name === name));
+  for (const run of runs.filter((r) => r.event === "workflow_dispatch" || (r.event === "push" && !r.repo))) {
+    assert.equal(d(run.name).group, "site-run-42", run.name);
   }
-  for (const name of ["dispatch, deploy off", "dispatch from a branch, preview", "dispatch from a branch, preview, rollback", "dispatch from a branch, custom_domain"]) {
-    assert.equal(group(name), "site-dispatch-42", name);
+  assert.equal(d("pull request").group, "site-refs/pull/7/merge");
+  assert.equal(d("push to a fork's main").group, "site-refs/heads/main");
+  assert.equal(d("push to a fork's main").cancel, true);
+});
+
+test("only a push to main here supersedes older pushes' runs", () => {
+  assert.deepEqual(
+    runs.filter((r) => decide(r).supersedes).map((r) => r.name),
+    ["push to main"],
+  );
+});
+
+test("deploys to the domain take turns in one group, previews in another, and none in flight is cancelled", () => {
+  assert.equal(at.deployCancel, "cancel-in-progress: false");
+  for (const run of runs.filter(deploying)) {
+    const d = decide(run);
+    assert.equal(d.deployGroup, d.customDomain ? "pages" : "pages-preview", run.name);
   }
-  assert.equal(group("pull request"), "site-refs/pull/7/merge");
-  assert.equal(group("push to a fork's main"), "site-refs/heads/main");
+  assert.equal(decide(runs.find((r) => r.name === "push to main")).deployGroup, "pages");
 });
 
 test("both path filters are the guard's list of what the site is built from", () => {
@@ -341,13 +384,13 @@ test("both path filters are the guard's list of what the site is built from", ()
 const yes = (b) => (b ? "yes" : "no");
 function table() {
   const rows = [
-    "| Run | group | cancels | deploys | custom domain | guard before upload | guard before deploy-pages | ROLLBACK |",
-    "|---|---|---|---|---|---|---|---|",
+    "| Run | group | cancels | supersedes older pushes | deploys | custom domain | fresh job | deploy group | guard before deploy-pages | ROLLBACK |",
+    "|---|---|---|---|---|---|---|---|---|---|",
   ];
   for (const run of runs) {
     const d = decide(run);
     rows.push(
-      `| ${run.name} | \`${d.group}\` | ${yes(d.cancel)} | ${yes(d.deploys)} | ${yes(d.customDomain)} | ${d.buildGuard ? "runs" : "skipped"} | ${d.deployGuard ? "runs" : "skipped"} | ${d.buildGuard ? d.buildGuardEnv.ROLLBACK : "—"} |`,
+      `| ${run.name} | \`${d.group}\` | ${yes(d.cancel)} | ${yes(d.supersedes)} | ${yes(d.deploys)} | ${yes(d.customDomain)} | ${d.freshGuard ? "runs" : "skipped"} | ${d.deployGroup ? `\`${d.deployGroup}\`` : "—"} | ${d.deployGuard ? "runs" : "skipped"} | ${d.freshGuard ? d.freshGuardEnv.ROLLBACK : "—"} |`,
     );
   }
   return rows.join("\n");

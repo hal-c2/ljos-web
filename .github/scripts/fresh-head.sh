@@ -1,11 +1,19 @@
 #!/usr/bin/env bash
-# Refuses to deploy a build older than the site its branch holds now.
+# Says whether a build is still the newest site its branch holds, so an
+# older build is never deployed over a newer one.
 #
-# A re-run keeps its run's commit, and GitHub does not promise to start
-# waiting runs in the order they were made, so without this an older
-# build can land over a newer one. site.yml runs it right before the
-# Pages artifact is uploaded and again right before deploy-pages, since
-# a newer merge can land while a run builds or waits for its turn.
+# Main's runs build side by side, a re-run keeps its run's commit, and
+# GitHub does not promise to start waiting deploys in the order they
+# were made, so without this an older build can land over a newer one.
+# site.yml runs it in the `fresh` job, before a run's deploy may take
+# its turn in the Pages group, and again right before deploy-pages,
+# since a newer merge can land while a deploy waits for its turn.
+#
+# It answers in $GITHUB_OUTPUT: fresh=true, or fresh=false for a stale
+# build, which is not a failure: the build and its tests passed, and
+# the deploy is skipped, so a stale run never waits for a turn it
+# would only refuse. Freshness unknown (gh failing), a ROLLBACK that
+# is not set, or a rollback of a commit main does not hold, fails.
 #
 # The run's commit passes when it is its branch's head, or when every
 # commit since it touches none of the paths the site is built from
@@ -19,10 +27,11 @@
 # be set either way, so a step that forgets to pass it fails rather
 # than skipping the check.
 #
-# Reads REPO, GITHUB_REF, GITHUB_SHA, ROLLBACK and GH_TOKEN (for gh).
+# Reads REPO, GITHUB_REF, GITHUB_SHA, GITHUB_OUTPUT, ROLLBACK and
+# GH_TOKEN (for gh).
 set -euo pipefail
 
-: "${REPO:?}" "${GITHUB_REF:?}" "${GITHUB_SHA:?}"
+: "${REPO:?}" "${GITHUB_REF:?}" "${GITHUB_SHA:?}" "${GITHUB_OUTPUT:?}"
 case "${ROLLBACK:-}" in
   true | false) ;;
   *)
@@ -49,7 +58,12 @@ site_path() {
   return 1
 }
 
-# A failure to read the head, or a comparison, fails the deploy:
+fresh() {
+  echo "fresh=true" >> "$GITHUB_OUTPUT"
+  exit 0
+}
+
+# A failure to read the head, or a comparison, fails the run:
 # freshness unknown is not freshness.
 if [ "$ROLLBACK" = "true" ]; then
   main=$(gh api "repos/$REPO/commits/heads/main" --jq .sha)
@@ -57,24 +71,25 @@ if [ "$ROLLBACK" = "true" ]; then
   case "$status" in
     identical | ahead)
       echo "::warning::rollback: deploying $GITHUB_SHA, a commit of main, which is at $main now"
+      fresh
       ;;
     *)
       echo "::error::rollback deploys only a commit main holds, and $GITHUB_SHA is not one (main is $status of it, at $main): merge it to main first"
       exit 1
       ;;
   esac
-  exit 0
 fi
 
 head=$(gh api "repos/$REPO/commits/$ref" --jq .sha)
 if [ "$head" = "$GITHUB_SHA" ]; then
   echo "$GITHUB_SHA is the head of $branch"
-  exit 0
+  fresh
 fi
 
 stale() {
-  echo "::error::this run is for $GITHUB_SHA, but $branch is at $head now, $1: deploying would put the older build over the newer one. To put an older commit of main live on purpose, dispatch from a branch at it with rollback on (site-ljos/README.md, Deploying)."
-  exit 1
+  echo "::notice::not deploying: this run is for $GITHUB_SHA, but $branch is at $head now, $1, and deploying would put the older build over the newer one. The newer commit's run deploys. To put an older commit of main live on purpose, dispatch from a branch at it with rollback on (site-ljos/README.md, Deploying)."
+  echo "fresh=false" >> "$GITHUB_OUTPUT"
+  exit 0
 }
 
 # One call: the status, the count of files (GitHub lists at most 300),
@@ -91,3 +106,4 @@ while IFS= read -r file; do
   fi
 done < <(sed -n '3,$p' <<<"$compare")
 echo "$GITHUB_SHA is the newest site on $branch: the commits up to its head, $head, change no path the site is built from"
+fresh

@@ -203,20 +203,25 @@ tests, and deploys the root build with a `CNAME` naming the
 repository's Pages domain, for `https://ljos.dev/`. Only a push to
 main in hal-c2/ljos-web deploys; a fork's push builds and tests
 only. A pull request builds and tests at both bases and never
-deploys. Deploying runs take turns, and one in flight is never
-cancelled; a deploy still waiting may be replaced by a newer one,
-and GitHub does not promise to start waiting runs in the order they
-were made. So the turns alone do not keep an older commit from
+deploys. Each run builds and tests without waiting for any other;
+only the deploy job takes turns, one in flight at a time and never
+cancelled. A newer push to main cancels older pushes' runs whose
+deploy has not started (the `supersede` job,
+`.github/scripts/supersede.sh`): their builds could never go live.
+A deploy still waiting for its turn is replaced by a newer one, and
+GitHub does not promise to start waiting deploys in the order they
+were made, so the turns alone do not keep an older commit from
 landing after a newer one, or a re-run of an old run from putting
 its old build live: the freshness guard (`.github/scripts/fresh-head.sh`)
-does. Right before the Pages artifact is uploaded, and again right
-before `deploy-pages`, it fails the run when a commit has landed on
-its branch since the run's own that changes a path the site is built
-from. Commits that change none of them start no run of the workflow,
-so the run's build is still the newest site there is, and it
-deploys. A re-run of an old run that replaced
-a newer waiting one fails the guard, and the newer commit goes live
-with the next merge or a dispatch from main. The workflow runs for
+does. Once the build and every suite pass, the `fresh` job asks it
+whether a commit has landed on the run's branch since the run's own
+that changes a path the site is built from; if one has, the deploy
+is skipped, so a stale run never waits for a turn, and the run still
+reports its build and tests. The deploy job asks again right before
+`deploy-pages`. Commits that change none of those paths start no run
+of the workflow, so the run's build is still the newest site there
+is, and it deploys. A re-run of an old run skips its deploy the same
+way, and the newer commit's run deploys. The workflow runs for
 every path the build reads (`site/`, `site-ljos/`, `packages/`,
 `crates/`, `vendor/`, `mise-tasks/`, `mise.toml`, the Cargo and pnpm
 manifests and locks, `.cargo/`, and the workflow and its
@@ -238,9 +243,10 @@ when `deploy` is ticked:
 | dispatch from another branch | on | on | off | nothing: the run fails, as only main deploys to the custom domain |
 | dispatch from any branch | on | (any) | on | the build for that branch's commit, newer site or not, if main holds the commit: a rollback; nothing, and the run fails, for a commit main does not hold |
 
-Every deploying run's freshness guard fails it when a newer commit
-on its branch has changed the site: one landed while it built or
-waited, or it re-runs an older run. A re-run keeps its run's
+Every deploying run's freshness guard skips its deploy when a newer
+commit on its branch has changed the site: one landed while it built
+or waited, or it re-runs an older run. The guard fails the run only
+when it cannot tell (GitHub's API failing) or refuses a rollback. A re-run keeps its run's
 inputs, so it can never turn `rollback` on.
 
 To put an older commit of main live on ljos.dev on purpose, push a
@@ -249,7 +255,7 @@ dispatch from that branch with `deploy`, `custom_domain` and
 `rollback` on. The guard checks that main holds the commit, so only
 what was reviewed and merged can go live this way, then warns and
 lets it through; the pages step lets a rollback deploy a branch's
-build to the domain, and the run takes its turn among main's
+build to the domain, and its deploy takes its turn among main's
 deploys. It stays live until the next merge to main deploys. A
 rollback from main itself only lets a dispatch deploy although main
 moved on while it built.

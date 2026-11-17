@@ -32,43 +32,60 @@ on:
 permissions:
   contents: read
 
-# A newer push supersedes a pull request's run. A deploying run (a push
-# to main in hal-c2/ljos-web, or a dispatch with deploy on) is never
-# cancelled once running, so a deploy it asked for is not lost. Every
-# deploying run on main shares one group, so one at a time builds and
-# deploys. The group does not keep them in order: it holds one run
-# waiting, which a newer one to wait replaces (a re-run of an old run
-# included), and GitHub does not promise to start waiting runs in the
-# order they were made. What keeps an older commit from landing after
-# a newer one is the freshness guard (.github/scripts/fresh-head.sh):
-# right before upload, and again right before deploy-pages, it fails
-# the run when a commit since its own on its branch changes a path the
-# site is built from (site-paths.txt, the same list as the filters
-# above). A commit that changes none of them starts no run, so the
-# run's build is still the newest site and deploys. A dispatch with
-# rollback on passes it for a commit main holds, to put an older
-# commit of main live on purpose. A
-# re-run of an old run that replaced a newer waiting one fails the
-# guard, and the newer commit goes live with the next merge or a
-# dispatch from main.
-# A deploying dispatch from another branch stands alone, so it never
-# replaces a merge's waiting deploy: it can only deploy the github.io
-# preview, while Pages has no custom domain (the pages step refuses
-# anything else), unless it is a rollback to the custom domain, which
-# takes its turn among main's deploys. A dispatch that only builds
-# stands alone too, and a fork's push to its main, which never
-# deploys, is superseded like a pull request. The group is decided
-# before any job runs, so it says "deploys" in the words the build
-# job's SITE_DEPLOYS says it in.
+# Who waits for whom. A pull request's run, and a fork's push to its
+# main (which never deploys), is superseded by a newer one on its ref.
+# A run that may deploy (a push to main in hal-c2/ljos-web, or any
+# dispatch) has a group of its own, so it never waits behind another
+# run to build and test: only its deploy job takes turns, in the Pages
+# group below. Before, every deploying run shared one group for the
+# whole run, so a newer merge waited while an older one built for an
+# hour only for the freshness guard to refuse its deploy at the end.
+# The workflow's concurrency never cancels a run that may deploy:
+# cancel-in-progress cancels a run whole, its deploy-pages mid-flight
+# included. A newer push to main supersedes the older ones through the
+# supersede job instead, which cancels an older push's run only while
+# its deploy job has not started. What keeps an older commit from
+# landing after a newer one is the freshness guard
+# (.github/scripts/fresh-head.sh): the `fresh` job runs it before a
+# run's deploy may take its turn, and the deploy job again right before
+# deploy-pages. A build that is no longer the newest site its branch
+# holds (a commit since its own changes a path the site is built from,
+# site-paths.txt, the same list as the filters above) is answered
+# fresh=false, and its deploy is skipped: it never waits for a turn it
+# would only refuse. A commit that changes none of those paths starts
+# no run, so the run's build is still the newest site and deploys. A
+# dispatch with rollback on passes the guard for a commit main holds,
+# to put an older commit of main live on purpose. The group is decided
+# before any job runs, so it says "may deploy" in the words the build
+# job's SITE_DEPLOYS uses.
 concurrency:
-  group: ${{ ((github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'hal-c2/ljos-web') || (github.event_name == 'workflow_dispatch' && inputs.deploy && (github.ref == 'refs/heads/main' || (inputs.rollback && inputs.custom_domain)))) && 'site-deploy' || (github.event_name == 'workflow_dispatch' && format('site-dispatch-{0}', github.run_id) || format('site-{0}', github.ref)) }}
-  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' && !(github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'hal-c2/ljos-web') }}
+  group: ${{ ((github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'hal-c2/ljos-web') || github.event_name == 'workflow_dispatch') && format('site-run-{0}', github.run_id) || format('site-{0}', github.ref) }}
+  cancel-in-progress: ${{ !((github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'hal-c2/ljos-web') || github.event_name == 'workflow_dispatch') }}
 
 env:
   CARGO_NET_GIT_FETCH_WITH_CLI: "true"
   CARGO_PROFILE_DEV_DEBUG: "0"
 
 jobs:
+  # A newer push to main makes an older push's build waste: the
+  # freshness guard would skip its deploy. Cancelled here, the older
+  # run stops holding runners the newer build needs.
+  supersede:
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'hal-c2/ljos-web' }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      # Cancelling the older runs.
+      actions: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+      - run: .github/scripts/supersede.sh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
   # Every QML file both sites show is checked by `ljos check` at the
   # pinned revision: the demos, and the docs' blocks through ljos-ui's
   # own docs_site test, which knows each fence's harness and what is
@@ -105,33 +122,34 @@ jobs:
           for demo in site/src/demos/*/ site-ljos/bundle; do
             ljos-ui/target/debug/ljos check --quiet "$demo"
           done
-  # The freshness guard and the decisions above, checked: the guard
-  # against a stubbed gh, and the workflow's expressions for every way
-  # a run can start. The deploy waits on it.
+  # The freshness guard, the supersede step and the decisions above,
+  # checked: the scripts against a stubbed gh, and the workflow's
+  # expressions for every way a run can start. The deploy waits on it.
   guard:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - run: bash .github/scripts/fresh-head.test.sh
+      - run: bash .github/scripts/supersede.test.sh
       - run: node --test .github/scripts/site-expressions.test.mjs
       - run: node .github/scripts/site-expressions.test.mjs table >> "$GITHUB_STEP_SUMMARY"
   build:
     runs-on: ubuntu-24.04
     permissions:
-      # The checkout, and the freshness guard's read of its branch's head.
       contents: read
-      # The deploy step reads the repository's Pages domain.
+      # The pages step reads the repository's Pages domain.
       pages: read
     # Whether this run deploys, and to the custom domain, said once:
     # a push to main in hal-c2/ljos-web deploys the domain build; a
     # dispatch deploys as its inputs ask. A pull request has no
     # inputs and is not a push, so both are false there. The deploy
-    # steps read these, and the deploy job reads `deploy` below.
+    # steps read these, and the fresh and deploy jobs read the outputs.
     env:
       SITE_DEPLOYS: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'hal-c2/ljos-web') || (github.event_name == 'workflow_dispatch' && inputs.deploy) }}
       SITE_CUSTOM_DOMAIN: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'hal-c2/ljos-web') || (github.event_name == 'workflow_dispatch' && inputs.custom_domain) }}
     outputs:
       deploy: ${{ env.SITE_DEPLOYS }}
+      custom-domain: ${{ env.SITE_CUSTOM_DOMAIN }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - name: Docs, at the pinned ljos-ui revision
@@ -392,16 +410,9 @@ jobs:
             dir="$RUNNER_TEMP/site-ljos-project"
           fi
           echo "dir=$dir" >> "$GITHUB_OUTPUT"
-      # As late as it can be before upload: a newer merge that changes
-      # the site may have landed while this run built.
-      - name: Still the head of its branch
-        if: ${{ env.SITE_DEPLOYS == 'true' }}
-        id: fresh
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-          ROLLBACK: ${{ github.event_name == 'workflow_dispatch' && inputs.rollback }}
-        run: .github/scripts/fresh-head.sh
+      # Uploaded whether or not it is still the newest site: the fresh
+      # job decides that once the suites have passed, and an artifact
+      # is all this costs a run that will not deploy.
       # Hidden files are kept, as v3 kept them: the tarball Pages
       # serves holds what the directory does.
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
@@ -409,17 +420,52 @@ jobs:
         with:
           path: ${{ steps.pages.outputs.dir }}
           include-hidden-files: true
-  deploy:
+  # Whether this run's build is still the newest site its branch
+  # holds, asked once the build and every suite passed and before the
+  # deploy takes its turn in the Pages group: a newer merge that
+  # changes the site may have landed while this run built. A stale
+  # build answers fresh=false and the deploy is skipped, so it never
+  # waits behind a deploy in flight, or holds the newer one up. No
+  # concurrency of its own: it takes seconds and waits for no one.
+  fresh:
     if: ${{ needs.build.outputs.deploy == 'true' }}
-    # Nothing is published that `ljos check` refused, or while the
-    # freshness guard fails its own test.
     needs: [build, check, guard]
     runs-on: ubuntu-24.04
-    # One deploy at a time, and one in flight is never cancelled. A
-    # waiting one may be replaced here too; the freshness guard below
-    # is what keeps an older commit from landing after a newer one.
+    permissions:
+      # The checkout, and its branch's head.
+      contents: read
+    outputs:
+      fresh: ${{ steps.fresh.outputs.fresh }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+      - name: Still the head of its branch
+        id: fresh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ROLLBACK: ${{ github.event_name == 'workflow_dispatch' && inputs.rollback }}
+        run: .github/scripts/fresh-head.sh
+  deploy:
+    if: ${{ needs.fresh.outputs.fresh == 'true' }}
+    # Nothing is published that `ljos check` refused, while the
+    # freshness guard fails its own test, or that is no longer the
+    # newest site.
+    needs: [build, check, guard, fresh]
+    runs-on: ubuntu-24.04
+    # One deploy at a time to each place Pages serves, and one in
+    # flight is never cancelled. A waiting one is replaced by a newer
+    # one to wait, which is how a newer push supersedes an older
+    # pending deploy; the freshness guard below keeps an older commit
+    # from landing after a newer one whatever order the turns come in.
+    # The custom domain (main's deploys, and a rollback to it) and the
+    # github.io preview (a dispatch, only while Pages has no custom
+    # domain) take turns apart, so a preview dispatch never replaces a
+    # merge's waiting deploy.
     concurrency:
-      group: pages
+      group: ${{ needs.build.outputs.custom-domain == 'true' && 'pages' || 'pages-preview' }}
       cancel-in-progress: false
     permissions:
       # The freshness guard's checkout, and its branch's head.
@@ -445,4 +491,5 @@ jobs:
           ROLLBACK: ${{ github.event_name == 'workflow_dispatch' && inputs.rollback }}
         run: .github/scripts/fresh-head.sh
       - id: deployment
+        if: ${{ steps.fresh.outputs.fresh == 'true' }}
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

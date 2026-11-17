@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# The freshness guard against a stubbed `gh`: what it does when the
+# The freshness guard against a stubbed `gh`: what it answers when the
 # run's commit is its ref's head, when newer commits have landed that
 # do or do not change the site, when the head cannot be read, and with
-# rollback on.
+# rollback on. A stale build is answered fresh=false, not failed: its
+# deploy is skipped.
 set -euo pipefail
 
 here=$(cd "$(dirname "$0")" && pwd)
@@ -52,37 +53,46 @@ fail() {
 }
 
 # run <name> [VAR=value...]: runs the guard with a clean environment
-# plus the given variables, keeping its status, output and the calls.
+# plus the given variables, keeping its status, output, answer (what
+# it wrote to GITHUB_OUTPUT) and the calls.
 run() {
   local name=$1
   shift
   : > "$work/gh.log"
+  : > "$work/answer"
   set +e
   env -i PATH="$work/bin:$PATH" STUB_LOG="$work/gh.log" \
-    REPO=hal-c2/ljos-web GITHUB_REF=refs/heads/main \
+    REPO=hal-c2/ljos-web GITHUB_REF=refs/heads/main GITHUB_OUTPUT="$work/answer" \
     "$@" bash "$guard" > "$work/$name.out" 2>&1
   status=$?
   set -e
   out=$(cat "$work/$name.out")
   asked=$(cat "$work/gh.log")
+  answer=$(cat "$work/answer")
+}
+
+# answered <name> <true|false> <what>: the guard passed and answered so.
+answered() {
+  [ "$status" = 0 ] || fail "$3 fails instead of answering: $out"
+  [ "$answer" = "fresh=$2" ] || fail "$3 answers '$answer', not fresh=$2: $out"
 }
 
 new=1111111111111111111111111111111111111111
 old=2222222222222222222222222222222222222222
 
 run same GITHUB_SHA=$new STUB_HEAD=$new ROLLBACK=false
-[ "$status" = 0 ] || fail "the head itself is refused: $out"
+answered same true "the head itself"
 [ "$asked" = "repos/hal-c2/ljos-web/commits/heads/main" ] ||
   fail "the head is asked for as '$asked', not main's"
 
 # Newer commits that change the site, by a file, a directory, or a
-# rename out of one: the older build is stale.
+# rename out of one: the older build is stale, and its deploy skipped.
 for files in "site-ljos/bundle/Main.qml" "README.md
 Cargo.lock" "docs/moved.md
 crates/old.rs" ".github/workflows/site.yml"; do
   run stale GITHUB_SHA=$old STUB_HEAD=$new STUB_STATUS=ahead STUB_FILES="$files" ROLLBACK=false
-  [ "$status" != 0 ] || fail "a commit behind a site change ($files) passes"
-  grep -q "^::error::" <<<"$out" || fail "a stale commit fails without an ::error:: line: $out"
+  answered stale false "a commit behind a site change ($files)"
+  grep -q "^::notice::" <<<"$out" || fail "a stale commit is skipped without a ::notice:: line: $out"
   { grep -q "$old" <<<"$out" && grep -q "$new" <<<"$out"; } ||
     fail "the error names neither the run's commit nor the head: $out"
   grep -q "rollback" <<<"$out" || fail "the error does not name rollback: $out"
@@ -97,46 +107,50 @@ docs/TYPESCRIPT.md
 .github/workflows/ci.yml
 site-other/x
 sitemap.txt"
-[ "$status" = 0 ] || fail "a commit behind only non-site changes is refused: $out"
+answered outside true "a commit behind only non-site changes"
 
 run empty GITHUB_SHA=$old STUB_HEAD=$new STUB_STATUS=ahead ROLLBACK=false
-[ "$status" = 0 ] || fail "a commit behind only empty commits is refused: $out"
+answered empty true "a commit behind only empty commits"
 
 # A head that does not hold the run's commit (a force-push), or too
-# many files apart for GitHub to list them all: refused.
+# many files apart for GitHub to list them all: not deployed.
 run diverged GITHUB_SHA=$old STUB_HEAD=$new STUB_STATUS=diverged STUB_FILES=README.md ROLLBACK=false
-[ "$status" != 0 ] || fail "a commit its branch no longer holds passes: $out"
+answered diverged false "a commit its branch no longer holds"
 run many GITHUB_SHA=$old STUB_HEAD=$new STUB_STATUS=ahead STUB_COUNT=300 STUB_FILES=README.md ROLLBACK=false
-[ "$status" != 0 ] || fail "a comparison GitHub cut short passes: $out"
+answered many false "a comparison GitHub cut short"
 
+# Freshness unknown fails, and answers nothing a deploy could read.
 run unread GITHUB_SHA=$new STUB_HEAD=$new STUB_FAIL=1 ROLLBACK=false
 [ "$status" != 0 ] || fail "a head that cannot be read passes"
+[ -z "$answer" ] || fail "a head that cannot be read answers '$answer'"
 
 run branch GITHUB_SHA=$new STUB_HEAD=$new ROLLBACK=false GITHUB_REF=refs/heads/site3/preview
-[ "$status" = 0 ] || fail "a branch's own head is refused: $out"
+answered branch true "a branch's own head"
 [ "$asked" = "repos/hal-c2/ljos-web/commits/heads/site3/preview" ] ||
   fail "a branch dispatch asks for '$asked', not its own head"
 
 # Rollback: an older commit main holds goes live with a warning; one
 # main never held does not, whatever branch it is dispatched from.
 run rollback GITHUB_SHA=$old STUB_MAIN=$new STUB_STATUS=ahead ROLLBACK=true GITHUB_REF=refs/heads/rollback
-[ "$status" = 0 ] || fail "rollback refuses an older commit of main: $out"
+answered rollback true "rollback of an older commit of main"
 { grep -q "^::warning::" <<<"$out" && grep -q "$old" <<<"$out"; } ||
   fail "a rollback does not say what it puts live: $out"
 grep -q "repos/hal-c2/ljos-web/compare/$old...$new" <<<"$asked" ||
   fail "a rollback does not ask whether main holds its commit: $asked"
 
 run rollback-head GITHUB_SHA=$new STUB_MAIN=$new STUB_STATUS=identical ROLLBACK=true
-[ "$status" = 0 ] || fail "rollback refuses main's head itself: $out"
+answered rollback-head true "rollback of main's head itself"
 
 for state in behind diverged; do
   run rollback-$state GITHUB_SHA=$old STUB_MAIN=$new STUB_STATUS=$state ROLLBACK=true GITHUB_REF=refs/heads/unreviewed
   [ "$status" != 0 ] || fail "rollback deploys a commit main does not hold ($state): $out"
   grep -q "^::error::" <<<"$out" || fail "a refused rollback has no ::error:: line: $out"
+  [ -z "$answer" ] || fail "a refused rollback answers '$answer'"
 done
 
 run unset GITHUB_SHA=$new STUB_HEAD=$new
 [ "$status" != 0 ] || fail "a run that never said whether it rolls back passes"
+[ -z "$answer" ] || fail "a run that never said whether it rolls back answers '$answer'"
 
 if [ "$failures" -gt 0 ]; then
   echo "$failures failed" >&2
