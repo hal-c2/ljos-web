@@ -1746,8 +1746,9 @@ What a prerender has, and what it has not:
   body is read, and `styleHints` reads it too once the page runs, so
   neither paint nor hydration shows the other scheme first.
 - The renders are processes of their own, so a build runs several
-  at once: as many as the machine runs at once, or `LJOS_SITE_JOBS`
-  (`buildSite({ jobs })`). They are put back in the order one at a
+  at once: as many as the machine runs at once and has a GiB of
+  memory each for (its cgroup's limit, if it has one), or
+  `LJOS_SITE_JOBS` (`buildSite({ jobs })`). They are put back in the order one at a
   time made them before anything is written, so the site is the same
   byte for byte however many ran at once. The page's build and the
   server bundle are made at once too. `buildSite` returns how long
