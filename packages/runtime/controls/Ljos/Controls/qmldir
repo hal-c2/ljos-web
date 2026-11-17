@@ -1,0 +1,42 @@
+# Written by ljos-web (packages/runtime/controls.js) for Ljós's own QML: not Qt's.
+module Ljos.Controls
+Button 1.0 Button.qml
+Card 1.0 Card.qml
+CheckBox 1.0 CheckBox.qml
+ComboBox 1.0 ComboBox.qml
+EmptyState 1.0 EmptyState.qml
+Icon 1.0 Icon.qml
+Label 1.0 Label.qml
+Menu 1.0 Menu.qml
+MenuItem 1.0 MenuItem.qml
+MenuSeparator 1.0 MenuSeparator.qml
+Popover 1.0 Popover.qml
+Popup 1.0 Popup.qml
+Slider 1.0 Slider.qml
+SpinBox 1.0 SpinBox.qml
+SplitButton 1.0 SplitButton.qml
+Switch 1.0 Switch.qml
+TabBar 1.0 TabBar.qml
+TabButton 1.0 TabButton.qml
+TextField 1.0 TextField.qml
+singleton Theme 1.0 Theme.qml
+ToolTip 1.0 ToolTip.qml
+ApplicationWindow 1.0 ../../QtQuick/Controls/Basic/ApplicationWindow.qml
+BusyIndicator 1.0 ../../QtQuick/Controls/Basic/BusyIndicator.qml
+Control 1.0 ../../QtQuick/Controls/Basic/Control.qml
+DelayButton 1.0 ../../QtQuick/Controls/Basic/DelayButton.qml
+Dialog 1.0 ../../QtQuick/Controls/Basic/Dialog.qml
+Frame 1.0 ../../QtQuick/Controls/Basic/Frame.qml
+GroupBox 1.0 ../../QtQuick/Controls/Basic/GroupBox.qml
+ItemDelegate 1.0 ../../QtQuick/Controls/Basic/ItemDelegate.qml
+Page 1.0 ../../QtQuick/Controls/Basic/Page.qml
+Pane 1.0 ../../QtQuick/Controls/Basic/Pane.qml
+ProgressBar 1.0 ../../QtQuick/Controls/Basic/ProgressBar.qml
+RadioButton 1.0 ../../QtQuick/Controls/Basic/RadioButton.qml
+RoundButton 1.0 ../../QtQuick/Controls/Basic/RoundButton.qml
+ScrollBar 1.0 ../../QtQuick/Controls/Basic/ScrollBar.qml
+ScrollView 1.0 ../../QtQuick/Controls/Basic/ScrollView.qml
+SwipeView 1.0 ../../QtQuick/Controls/Basic/SwipeView.qml
+TextArea 1.0 ../../QtQuick/Controls/Basic/TextArea.qml
+ToolBar 1.0 ../../QtQuick/Controls/Basic/ToolBar.qml
+ToolButton 1.0 ../../QtQuick/Controls/Basic/ToolButton.qml

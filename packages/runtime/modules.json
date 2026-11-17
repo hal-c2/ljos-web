@@ -8,6 +8,21 @@
       "needs": []
     },
     {
+      "module": "Ljos.Controls",
+      "from": "runtime",
+      "needs": []
+    },
+    {
+      "module": "Ljos.Controls.Basic",
+      "from": "runtime",
+      "needs": []
+    },
+    {
+      "module": "Ljos.Controls.impl",
+      "from": "ljos",
+      "needs": []
+    },
+    {
       "module": "Ljos.Core",
       "from": "runtime",
       "needs": []
@@ -15,9 +30,7 @@
     {
       "module": "Ljos.Design",
       "from": "ljos",
-      "needs": [
-        "with"
-      ]
+      "needs": []
     },
     {
       "module": "Ljos.Layout",

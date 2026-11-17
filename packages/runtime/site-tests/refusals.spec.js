@@ -91,15 +91,6 @@ test("a directory without a manifest is no site bundle", async () => {
   }
 });
 
-test("a site that imports Ljos.Design is refused without the directory of its QML, which the error names", async () => {
-  const made = bundle("project");
-  try {
-    await expect(buildSite({ dir: made.dir, out: made.out, qmlc })).rejects.toThrow(/it imports Ljos.Design, .*--with \(ljos-ui's crates\/ljos_design_qml\/qml\)/);
-  } finally {
-    made.remove();
-  }
-});
-
 test("a site is not built inside its own bundle", async () => {
   const made = bundle("project");
   try {

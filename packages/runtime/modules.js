@@ -4,12 +4,12 @@
 // `modules.json` beside this file, which `ljos-web modules --json` prints.
 //
 // What the runtime has of a module is one of its package's exports
-// (`./QtQuick/Layouts` is QtQuick.Layouts). Two more are compiled, not
+// (`./QtQuick/Layouts` is QtQuick.Layouts). More are compiled, not
 // exported: `QtQuick.Controls` is put together by the Vite plugin from the
 // QML of a style, Ljós's own (`controls/`) where no Qt 6 is installed, and
-// `Ljos.Design` is Ljós's QML, given to the compiler as a stand-in
-// (`--with`). A style Ljós has none of (Imagine) is QML of Qt's own, and
-// needs that Qt to be built.
+// `Ljos.Design` and `Ljos.Controls.impl` are Ljós's QML, held in
+// `controls/` with Ljos.Controls'. A style Ljós has none of (Imagine) is
+// QML of Qt's own, and needs that Qt to be built.
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { CONTROLS } from "./controls.js";
@@ -23,16 +23,18 @@ export const VERSION = 1;
 // Ljós's QML.
 const COMPILED = [
   { module: "QtQuick.Controls", from: "ljos" },
+  { module: "Ljos.Controls.impl", from: "ljos" },
   { module: "Ljos.Design", from: "ljos" },
 ];
 
 // What a build of a site that imports `module` must be given besides
 // ljos-web: `qt`, an installed Qt 6's QML modules; `with`, a directory of
-// the module's QML (`--with`).
+// the module's QML (`--with`), for one of Ljós's QML `controls/` lacks.
 function needs(module, from) {
-  if (module.startsWith("QtQuick.Controls.")) return existsSync(join(CONTROLS, ...module.split("."), "qmldir")) ? [] : ["qt"];
+  const held = existsSync(join(CONTROLS, ...module.split("."), "qmldir"));
+  if (module.startsWith("QtQuick.Controls.")) return held ? [] : ["qt"];
   if (module === "QtQuick.Controls") return [];
-  return from === "ljos" ? ["with"] : [];
+  return from === "ljos" && !held ? ["with"] : [];
 }
 
 // The list as the package says it today: what `modules.json` must equal.

@@ -1,34 +1,99 @@
-// Ljós's own styles of Qt Quick Controls: the QML of ljos-ui's
-// `crates/ljos_controls/qml`, written for Ljós from Qt's documentation and
-// from what a running Qt shows (ljos-ui's CLEAN_ROOM.md), with Ljós's
-// metrics. They are copied into `controls/` at one commit of ljos-ui, which
-// `controls/LJOS_UI.json` names with a hash of every file, so that a page
-// that imports `QtQuick.Controls` builds where no Qt is installed.
+// Ljós's own QML, for pages built where no Qt is installed: its styles of
+// Qt Quick Controls (ljos-ui's `crates/ljos_controls/qml/QtQuick`), its
+// own controls (`Ljos.Controls`, `Ljos.Controls.Basic`, beside them in
+// `crates/ljos_controls/qml/Ljos`), and the design they are drawn with
+// (`Ljos.Design`, ljos-ui's `crates/ljos_design_qml/qml`). Written for
+// Ljós from Qt's documentation and from what a running Qt shows (ljos-ui's
+// CLEAN_ROOM.md), with Ljós's metrics. They are copied into `controls/` at
+// one commit of ljos-ui, which `controls/LJOS_UI.json` names with a hash of
+// every file.
 //
-// `controls/` is laid out as a directory of Qt's QML modules is
-// (`QtQuick/Controls/Basic/Button.qml`), so the Vite plugin takes it as one:
-// it is looked in for a module before an installed Qt, or alone. ljos-ui has
-// no `qmldir` there (its build packs the files itself), so those are written
-// here, from which files there are; `check` holds both to the commit.
+// `controls/` is laid out as a directory of QML modules is
+// (`QtQuick/Controls/Basic/Button.qml`, `Ljos/Controls/Button.qml`), so the
+// Vite plugin and the compiler take it as one: it is looked in for a module
+// before an installed Qt, or alone, and is where `Ljos.*`'s QML is always
+// found. The `qmldir`s are written here, from which files there are, so
+// each module is what Ljós's engine makes of them (ljos-ui's
+// `ljos_controls::style`, `ljos_controls::ljos`, `ljos_controls::ljos_style`):
+// `check` holds both to the commit.
 //
-// `node controls.js write DIR REV` copies them from DIR, a checkout of
-// ljos-ui's `crates/ljos_controls/qml` at REV (`mise run controls`).
+// `node controls.js write DIR REV [DESIGN]` copies them from DIR, ljos-ui's
+// `crates/ljos_controls/qml` at REV (`mise run controls`), and Ljos.Design
+// from DESIGN, its `crates/ljos_design_qml/qml` at REV. Without DESIGN,
+// that directory is read at REV out of the ljos-ui checkout `mise run
+// controls` was given (LJOS_UI, else `../ljos-ui`), which has it.
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join, relative, sep } from "node:path";
 
 export const CONTROLS = join(import.meta.dirname, "controls");
 const SOURCE = "LJOS_UI.json";
 const STYLES = "QtQuick/Controls";
+const BASIC = `${STYLES}/Basic`;
+// Where in ljos-ui each part of `controls/` is copied from, by the
+// directory it is copied to.
+const FROM = "crates/ljos_controls/qml";
+const DESIGN_FROM = "crates/ljos_design_qml/qml";
+const DESIGN = "Ljos/Design";
+const OWN = "Ljos/Controls";
+// The controls of Ljós's own API that have a look of their own drawn as
+// Basic would, which stand in for Basic's of the same name in
+// `Ljos.Controls.Basic` (its TabButton has `iconName`).
+const OWN_BASIC = `${OWN}/Basic`;
 // What `import QtQuick.Controls` is when nothing says otherwise, as in Qt.
 const DEFAULT = "Basic";
 // Modules the runtime has in JavaScript alone, which get a `qmldir` of
 // their own all the same: one found here is the one used, so the QML an
 // installed Qt has of them never comes into a page of Ljós's style.
 const NATIVE = ["QtQuick/Controls/impl", "QtQuick/Controls/Material/impl", "QtQuick/Controls/Universal/impl"];
+// The controls Ljós's API has that the Basic style draws (ljos-ui's
+// `ljos_controls::ljos::DRAWN`): `Ljos.Controls.Basic` is these of Basic's,
+// and `Ljos.Controls` has each that it has no file of its own for. What
+// they have besides (AbstractButton, ButtonGroup, FileDialog, FolderDialog)
+// draws nothing, and is the runtime's (`Ljos/Controls/index.js`).
+export const DRAWN = [
+  "ApplicationWindow",
+  "BusyIndicator",
+  "Button",
+  "CheckBox",
+  "ComboBox",
+  "Control",
+  "DelayButton",
+  "Dialog",
+  "Frame",
+  "GroupBox",
+  "ItemDelegate",
+  "Label",
+  "Menu",
+  "MenuItem",
+  "MenuSeparator",
+  "Page",
+  "Pane",
+  "Popup",
+  "ProgressBar",
+  "RadioButton",
+  "RoundButton",
+  "ScrollBar",
+  "ScrollView",
+  "Slider",
+  "SpinBox",
+  "SwipeView",
+  "Switch",
+  "TabBar",
+  "TabButton",
+  "TextArea",
+  "TextField",
+  "ToolBar",
+  "ToolButton",
+  "ToolTip",
+];
 
 const hash = (text) => createHash("sha256").update(text).digest("hex");
 const posix = (path) => path.split(sep).join("/");
+// A file that says `pragma Singleton` is one, as the qmldir must say too.
+const SINGLETON = /^\s*pragma\s+Singleton\b/m;
 
 function walk(directory, found = []) {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
@@ -39,11 +104,16 @@ function walk(directory, found = []) {
   return found;
 }
 
+// Whether a file of a checkout is one `controls/` takes.
+const taken = (file) => file.endsWith(".qml") && (file.startsWith(`${STYLES}/`) || file.startsWith("Ljos/"));
+
 // The `qmldir` of each module, by its directory, from the QML files there
-// are: a module per directory that has some, and what Ljós's engine makes of
-// them (ljos-ui's `ljos_controls::style`). A style other than Basic falls
-// back on Basic's controls for those it has no file of.
-export function qmldirs(files) {
+// are (`read(file)` is a file's text: whether it is a singleton): a module
+// per directory that has some, and what Ljós's engine makes of them. A
+// style other than Basic falls back on Basic's controls for those it has
+// no file of; `Ljos.Controls` and `Ljos.Controls.Basic` name Basic's files
+// where they are Basic's.
+export function qmldirs(files, read = () => "") {
   const modules = new Map(NATIVE.map((directory) => [directory, []]));
   for (const file of files) {
     if (!file.endsWith(".qml")) continue;
@@ -58,21 +128,43 @@ export function qmldirs(files) {
   const written = new Map();
   const header = "# Written by ljos-web (packages/runtime/controls.js) for Ljós's own QML: not Qt's.";
   const uri = (directory) => directory.replaceAll("/", ".");
+  // A type of the module in `directory`, from the file `at` names (its own,
+  // or Basic's), versioned as the module is: Ljós's 1.0, Qt's 6.0.
+  const entry = (directory, name, at = name) =>
+    `${SINGLETON.test(read(posix(join(directory, at)))) ? "singleton " : ""}${name.slice(0, -4)} ${directory.startsWith("Ljos/") ? "1.0" : "6.0"} ${at}`;
   written.set(STYLES, [
     header,
     `module ${uri(STYLES)}`,
     ...styles.filter((style) => style !== DEFAULT).sort().map((style) => `optional import ${uri(STYLES)}.${style} auto`),
     `default import ${uri(STYLES)}.${DEFAULT}`,
   ]);
+  const basic = new Set(modules.get(BASIC) ?? []);
+  // Basic's file of a control, named from a module of Ljós's.
+  const borrowed = (directory, name) => `${relative(directory, BASIC).split(sep).join("/")}/${name}`;
   for (const [directory, names] of modules) {
+    if (directory === OWN_BASIC) continue;
     const lines = [header, `module ${uri(directory)}`];
-    for (const name of names.sort()) lines.push(`${name.slice(0, -4)} 6.0 ${name}`);
+    for (const name of names.sort()) lines.push(entry(directory, name));
+    if (directory === OWN) {
+      for (const name of DRAWN.map((name) => `${name}.qml`)) {
+        if (!names.includes(name) && basic.has(name)) lines.push(entry(OWN, name, borrowed(OWN, name)));
+      }
+    }
     const style = dirname(directory) === STYLES ? directory.split("/").at(-1) : null;
     if (styles.includes(style) && style !== DEFAULT) lines.push(`import ${uri(STYLES)}.${DEFAULT} auto`);
     // What no style draws (`Action`, `AbstractButton`) is Templates', and is
     // still a name of `QtQuick.Controls`, as Qt documents it.
     if (style === DEFAULT) lines.push("import QtQuick.Templates auto");
     written.set(directory, lines);
+  }
+  // `Ljos.Controls.Basic`: Basic's controls of Ljós's API, each that Ljós's
+  // own Basic look has none of under that name.
+  if (modules.has(OWN_BASIC) || modules.has(OWN)) {
+    const own = new Set(modules.get(OWN_BASIC) ?? []);
+    const lines = [header, `module ${uri(OWN_BASIC)}`];
+    const all = [...DRAWN.map((name) => `${name}.qml`).filter((name) => basic.has(name) && !own.has(name)), ...own].sort();
+    for (const name of all) lines.push(entry(OWN_BASIC, name, own.has(name) ? name : borrowed(OWN_BASIC, name)));
+    written.set(OWN_BASIC, lines);
   }
   return new Map([...written].map(([directory, lines]) => [`${directory}/qmldir`, lines.join("\n") + "\n"]));
 }
@@ -85,7 +177,8 @@ export function check(root = CONTROLS) {
   if (!existsSync(at)) return [`${SOURCE} is not there: copy the styles with \`mise run controls\``];
   const source = JSON.parse(readFileSync(at, "utf8"));
   const present = walk(root).map((file) => posix(relative(root, file))).filter((file) => file !== SOURCE);
-  const made = qmldirs(Object.keys(source.files));
+  const text = (file) => (existsSync(join(root, file)) ? readFileSync(join(root, file), "utf8") : "");
+  const made = qmldirs(Object.keys(source.files), text);
   for (const [file, sum] of Object.entries(source.files)) {
     const path = join(root, file);
     if (!existsSync(path)) problems.push(`${file} is missing`);
@@ -105,37 +198,59 @@ export function check(root = CONTROLS) {
 // What `controls/LJOS_UI.json` says: the commit and where in ljos-ui.
 export const source = (root = CONTROLS) => JSON.parse(readFileSync(join(root, SOURCE), "utf8"));
 
-export function write(from, rev, root = CONTROLS) {
-  const files = walk(from)
-    .map((file) => posix(relative(from, file)))
-    .filter((file) => file.startsWith(`${STYLES}/`) && file.endsWith(".qml"))
-    .sort();
+// Copies the QML of `from` (ljos-ui's `crates/ljos_controls/qml`) and of
+// `design` (its `crates/ljos_design_qml/qml`), both at `rev`, into `root`.
+export function write(from, rev, root = CONTROLS, design) {
+  const listed = (directory, keep) =>
+    walk(directory)
+      .map((file) => posix(relative(directory, file)))
+      .filter(keep)
+      .map((file) => [file, join(directory, file)]);
+  const copied = [
+    ...listed(from, (file) => taken(file) && !file.startsWith(`${DESIGN}/`)),
+    ...(design ? listed(design, (file) => file.startsWith(`${DESIGN}/`) && file.endsWith(".qml")) : []),
+  ].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
   rmSync(root, { recursive: true, force: true });
   const sums = {};
-  for (const file of files) {
+  for (const [file, path] of copied) {
     mkdirSync(dirname(join(root, file)), { recursive: true });
-    cpSync(join(from, file), join(root, file));
+    cpSync(path, join(root, file));
     sums[file] = hash(readFileSync(join(root, file)));
   }
-  for (const [file, text] of qmldirs(files)) {
+  for (const [file, text] of qmldirs(Object.keys(sums), (file) => readFileSync(join(root, file), "utf8"))) {
     mkdirSync(dirname(join(root, file)), { recursive: true });
     writeFileSync(join(root, file), text);
   }
-  const said = { repository: "https://github.com/hal-c2/ljos-ui", path: "crates/ljos_controls/qml", rev, files: sums };
+  const paths = { [FROM]: [`${STYLES}/`, `${OWN}/`], ...(design ? { [DESIGN_FROM]: [`${DESIGN}/`] } : {}) };
+  const said = { repository: "https://github.com/hal-c2/ljos-ui", paths, rev, files: sums };
   writeFileSync(join(root, SOURCE), JSON.stringify(said, null, 2) + "\n");
-  return files.length;
+  return copied.length;
+}
+
+// Ljos.Design's QML at `rev`, out of a checkout of ljos-ui: the directory
+// it was read into, which the caller removes.
+function designAt(checkout, rev) {
+  const into = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "ljos-design-"));
+  const archive = execFileSync("git", ["-C", checkout, "archive", rev, DESIGN_FROM], { maxBuffer: 1 << 28 });
+  execFileSync("tar", ["x", "-C", into], { input: archive });
+  return { dir: join(into, DESIGN_FROM), remove: () => rmSync(into, { recursive: true, force: true }) };
 }
 
 if (process.argv[1] === import.meta.filename) {
-  const [command, from, rev] = process.argv.slice(2);
+  const [command, from, rev, design] = process.argv.slice(2);
   if (command === "write" && from && /^[0-9a-f]{40}$/.test(rev ?? "")) {
-    console.log(`controls: ${write(from, rev)} files of ljos-ui ${rev}`);
+    const read = design ? { dir: design, remove: () => {} } : designAt(process.env.usage_ljos_ui ?? process.env.LJOS_UI ?? "../ljos-ui", rev);
+    try {
+      console.log(`controls: ${write(from, rev, CONTROLS, read.dir)} files of ljos-ui ${rev}`);
+    } finally {
+      read.remove();
+    }
   } else if (command === "check") {
     const problems = check();
     for (const problem of problems) console.error(problem);
     process.exit(problems.length > 0 ? 1 : 0);
   } else {
-    console.error("usage: node controls.js write DIR REV | check");
+    console.error("usage: node controls.js write DIR REV [DESIGN] | check");
     process.exit(2);
   }
 }

@@ -2401,6 +2401,26 @@ export function $singleton<K extends object>(Component: (props: Props) => unknow
   return Object.assign(get, keys);
 }
 
+// A singleton of QML as its module has it: compiled QML that imports a
+// module reads `Spacing.md`, as it does a singleton the runtime has,
+// where the file it is in is read through its getter (`Spacing().md`).
+// The one object, made the first time anything of it is asked for, and
+// the same one the file's getter gives; the file's enums are its own.
+export function $shared(get: (() => QObject) & object): QObject {
+  const enumed = (key: PropertyKey) => Object.prototype.propertyIsEnumerable.call(get, key);
+  const target = (key: PropertyKey): object => (enumed(key) ? get : get());
+  return new Proxy(Object.create(null) as QObject, {
+    get: (_, key) => Reflect.get(target(key), key),
+    set: (_, key, value) => Reflect.set(target(key), key, value),
+    has: (_, key) => enumed(key) || key in get(),
+    ownKeys: () => [...new Set([...Object.keys(get), ...Reflect.ownKeys(get())])],
+    getOwnPropertyDescriptor: (_, key) => {
+      const found = Reflect.getOwnPropertyDescriptor(target(key), key);
+      return found && { ...found, configurable: true };
+    },
+  });
+}
+
 // The singletons whose module names them (`Ljos.Design.Colors`), once made:
 // what a page reaches from outside its QML. A file that is loaded again
 // makes its singleton again, and is told again.
