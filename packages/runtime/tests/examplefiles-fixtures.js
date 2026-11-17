@@ -336,11 +336,15 @@ Text {
 
 // A model of a folder of the example's: the files it was given are what is
 // in it, as the files of Qt's resources are what is in one of their folders.
-// A folder the example does not have is not there.
+// A folder the example does not have is not there. Its pictures are at hand,
+// so a delegate sized by its picture is that size as it is made, and its
+// files have a time.
 export const FOLDER_MAIN = `import QtQuick
 import Qt.labs.folderlistmodel
 
 Text {
+    id: root
+    property int placed: -1
     color: "#e8eaf0"
     FolderListModel { id: here; folder: Qt.resolvedUrl(".") }
     FolderListModel { id: inside; folder: Qt.resolvedUrl("pictures"); nameFilters: ["*.png"] }
@@ -354,7 +358,17 @@ Text {
         id: first
         source: inside.count > 0 ? inside.get(0, "fileUrl") : ""
     }
-    text: [here, inside, absent].map(names).join(" | ") + " | " + (first.status === Image.Ready ? "shown " + first.sourceSize.width + "x" + first.sourceSize.height : "status " + first.status)
+    Repeater {
+        model: inside
+        Image {
+            required property url fileUrl
+            source: fileUrl
+            width: sourceSize.width
+            Component.onCompleted: root.placed = width
+        }
+    }
+    readonly property bool dated: inside.count > 0 && inside.get(0, "fileModified").getTime() > 0
+    text: [here, inside, absent].map(names).join(" | ") + " | " + (first.status === Image.Ready ? "shown " + first.sourceSize.width + "x" + first.sourceSize.height : "status " + first.status) + " | placed " + placed + " | dated " + dated
 }
 `;
 
@@ -395,4 +409,4 @@ export const EXAMPLES = {
 // What may not be asked of the server: every file the examples name.
 // `fetched`'s script is lib/load.js, by its directory too: the wasm
 // kernel's own kernel/load.js is asked for as it starts.
-export const NAMED = /(?:^|\/)(?:(?:shell|AppShell|Shell|Missing|Gone|Badge)\.qml|(?:logo|photo)\.png|100%(?:25)?\.png|my(?: |%20)100%(?:25)?\.svg|(?:data|notes|early|rows)\.json|lib\/load\.js|pictures\/(?:a\.png|b\.txt)?|absent\/?)$/;
+export const NAMED = /(?:^|\/)(?:(?:shell|AppShell|Shell|Missing|Gone|Badge)\.qml|(?:logo|photo)\.png|100%(?:25)?\.png|my(?: |%20)100%(?:25)?\.svg|(?:data|notes|early|rows)\.json|lib\/load\.js|pictures(?:\/(?:a\.png|b\.txt)?)?|absent\/?)$/;

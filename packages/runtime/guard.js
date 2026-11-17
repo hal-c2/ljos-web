@@ -62,7 +62,8 @@ const enclosed = (globalThis[ENCLOSED] ??= new Map());
 export function enclose(root, files, { missing, compile } = {}) {
   const at = new URL(".", root).href;
   for (const url of enclosed.get(at)?.blobs.values() ?? []) URL.revokeObjectURL(url);
-  enclosed.set(at, { root: at, files: new Map(files), missing, compile, told: new Set(), blobs: new Map() });
+  // `since`: when it was given them, the one time each of them was last changed.
+  enclosed.set(at, { root: at, files: new Map(files), missing, compile, told: new Set(), blobs: new Map(), since: Date.now() });
 }
 
 // The project at `root` goes, with the addresses its files were given at,
@@ -147,7 +148,7 @@ const TYPES = {
   mjs: "text/javascript",
   css: "text/css",
 };
-const typeOf = (name) => TYPES[/\.(\w+)$/.exec(name)?.[1]?.toLowerCase()] ?? "text/plain";
+export const typeOf = (name) => TYPES[/\.(\w+)$/.exec(name)?.[1]?.toLowerCase()] ?? "text/plain";
 
 // An address the browser can load a given file of a project's from.
 function given(found) {
