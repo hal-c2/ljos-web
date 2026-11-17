@@ -69,7 +69,7 @@ export const interactions = {
   "/controls/containers-and-popups/#1": { act: after(button("Delete"), choose("button", "OK")), expect: (text) => text.includes("Deleted") },
   // The first tab is the current one: the other is the press that shows.
   "/controls/containers-and-popups/#2": { act: async ({ stage }) => press(stage.getByRole("tab", { name: "Sent" })), expect: "look" },
-  "/controls/containers-and-popups/#3": { act: after(button("File"), choose("menuitem", "Open")), expect: (text) => text.includes("Open chosen") },
+  "/controls/containers-and-popups/#4": { act: after(button("File"), choose("menuitem", "Open")), expect: (text) => text.includes("Open chosen") },
   "/controls/value-inputs/#0": {
     // The volume handle dragged to the right (it starts at 25 %).
     act: async ({ page, stage }) => {
