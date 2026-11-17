@@ -2,8 +2,9 @@
 # The freshness guard against a stubbed `gh`: what it answers when the
 # run's commit is its ref's head, when newer commits have landed that
 # do or do not change the site, when the head cannot be read, and with
-# rollback on. A stale build is answered fresh=false, not failed: its
-# deploy is skipped.
+# rollback on. A push's stale build is answered fresh=false, not
+# failed: its deploy is skipped, and the newer push's run deploys. A
+# dispatch's stale build fails: nothing else deploys it.
 set -euo pipefail
 
 here=$(cd "$(dirname "$0")" && pwd)
@@ -62,7 +63,7 @@ run() {
   : > "$work/answer"
   set +e
   env -i PATH="$work/bin:$PATH" STUB_LOG="$work/gh.log" \
-    REPO=hal-c2/ljos-web GITHUB_REF=refs/heads/main GITHUB_OUTPUT="$work/answer" \
+    REPO=hal-c2/ljos-web GITHUB_REF=refs/heads/main GITHUB_EVENT_NAME=push GITHUB_OUTPUT="$work/answer" \
     "$@" bash "$guard" > "$work/$name.out" 2>&1
   status=$?
   set -e
@@ -99,6 +100,18 @@ crates/old.rs" ".github/workflows/site.yml"; do
   grep -q "repos/hal-c2/ljos-web/compare/$old...$new" <<<"$asked" ||
     fail "the guard did not compare the run's commit with the head: $asked"
 done
+
+# A dispatch's stale build fails, saying to dispatch again: no newer
+# run deploys it. A fresh dispatch is answered as a push is.
+run stale-dispatch GITHUB_SHA=$old STUB_HEAD=$new STUB_STATUS=ahead STUB_FILES="site/x.md" ROLLBACK=false GITHUB_EVENT_NAME=workflow_dispatch GITHUB_REF=refs/heads/site3/preview
+[ "$status" != 0 ] || fail "a stale dispatch passes: $out"
+grep -q "^::error::.*[Dd]ispatch again" <<<"$out" || fail "a stale dispatch does not say to dispatch again: $out"
+[ -z "$answer" ] || fail "a stale dispatch answers '$answer'"
+run fresh-dispatch GITHUB_SHA=$new STUB_HEAD=$new ROLLBACK=false GITHUB_EVENT_NAME=workflow_dispatch
+answered fresh-dispatch true "a dispatch at its branch's head"
+
+run noevent GITHUB_SHA=$new STUB_HEAD=$new ROLLBACK=false GITHUB_EVENT_NAME=
+[ "$status" != 0 ] || fail "a run that does not know its event passes"
 
 # Newer commits that change nothing the site is built from start no
 # run of site.yml: this build is the newest the site has.

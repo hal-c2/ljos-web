@@ -26,13 +26,14 @@ while [ $# -gt 0 ]; do
   case "$1" in
     -X) method=$2; shift 2 ;;
     --jq) filter=$2; shift 2 ;;
+    --paginate) method="$method(all pages)"; shift ;;
     *) path=$1; shift ;;
   esac
 done
 echo "$method $path" >> "$STUB_LOG"
 id=$(sed -n 's#.*/actions/runs/\([0-9]*\)/.*#\1#p' <<<"$path")
 case "$method $path" in
-  "GET "*/actions/workflows/*/runs\?*)
+  "GET(all pages) "*/actions/workflows/*/runs\?*)
     if [ -n "${STUB_FAIL:-}" ]; then echo "gh: HTTP 502" >&2; exit 1; fi
     jq -r "$filter" "$STUB_DIR/runs.json"
     ;;
@@ -106,8 +107,8 @@ cancelled() { grep -q "^POST repos/hal-c2/ljos-web/actions/runs/$1/cancel$" <<<"
 runs alone 50:500:in_progress
 run alone
 [ "$status" = 0 ] || fail "a run with no older one fails: $out"
-grep -q "^GET repos/hal-c2/ljos-web/actions/workflows/site.yml/runs?branch=main&event=push&per_page=100$" <<<"$asked" ||
-  fail "the step does not list site.yml's pushes to main: $asked"
+grep -q "^GET(all pages) repos/hal-c2/ljos-web/actions/workflows/site.yml/runs?branch=main&event=push&per_page=100$" <<<"$asked" ||
+  fail "the step does not list every page of site.yml's pushes to main: $asked"
 ! grep -q "^POST" <<<"$asked" || fail "a run with no older one cancels: $asked"
 
 # Older runs still building or testing, or whose deploy waits for its

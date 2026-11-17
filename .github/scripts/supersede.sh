@@ -37,7 +37,9 @@ workflow=${workflow##*/}
 # Older by run number: a run's number is fixed when its push lands,
 # and a re-run keeps it, so a re-run of an older push never cancels a
 # newer one.
-older=$(gh api "repos/$REPO/actions/workflows/$workflow/runs?branch=main&event=push&per_page=100" \
+# Every page: a re-run of an old push keeps its place in the listing,
+# however many pushes came after it.
+older=$(gh api --paginate "repos/$REPO/actions/workflows/$workflow/runs?branch=main&event=push&per_page=100" \
   --jq ".workflow_runs[] | select(.status != \"completed\" and .head_branch == \"main\" and .run_number < $GITHUB_RUN_NUMBER) | .id")
 
 err=$(mktemp)

@@ -51,8 +51,10 @@ permissions:
 # deploy-pages. A build that is no longer the newest site its branch
 # holds (a commit since its own changes a path the site is built from,
 # site-paths.txt, the same list as the filters above) is answered
-# fresh=false, and its deploy is skipped: it never waits for a turn it
-# would only refuse. A commit that changes none of those paths starts
+# fresh=false in a push's run, and its deploy is skipped: it never
+# waits for a turn it would only refuse, and the newer push's run
+# deploys. A stale dispatch fails there instead, as nothing else will
+# deploy what was asked for. A commit that changes none of those paths starts
 # no run, so the run's build is still the newest site and deploys. A
 # dispatch with rollback on passes the guard for a commit main holds,
 # to put an older commit of main live on purpose. The group is decided
@@ -423,9 +425,10 @@ jobs:
   # Whether this run's build is still the newest site its branch
   # holds, asked once the build and every suite passed and before the
   # deploy takes its turn in the Pages group: a newer merge that
-  # changes the site may have landed while this run built. A stale
-  # build answers fresh=false and the deploy is skipped, so it never
-  # waits behind a deploy in flight, or holds the newer one up. No
+  # changes the site may have landed while this run built. A push's
+  # stale build answers fresh=false and the deploy is skipped, so it
+  # never waits behind a deploy in flight, or holds the newer one up;
+  # a dispatch's fails here, before it would take a turn. No
   # concurrency of its own: it takes seconds and waits for no one.
   fresh:
     if: ${{ needs.build.outputs.deploy == 'true' }}
