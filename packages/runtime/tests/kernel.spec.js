@@ -285,3 +285,16 @@ test("what a binding gives as a column places its items is made, on either kerne
   expect(text).toBe("second");
   expect(y).toBeGreaterThan(0);
 });
+
+test("what a binding makes as it is evaluated is told it is complete once, and the binding sees what it becomes", async ({ page }) => {
+  await open(page, "madeinbinding");
+  expect(await page.evaluate(() => [window.scene.popup.implicitHeight, window.scene.log])).toEqual([120, ["completed"]]);
+  await page.evaluate(() => window.scene.combo.popup.open());
+  await page.evaluate(() => window.flush());
+  const [height, content] = await page.evaluate(() => [
+    window.scene.combo.popup.height,
+    window.scene.combo.popup.contentItem.implicitHeight,
+  ]);
+  // Qt 6.11: three rows of 40.
+  expect([height, content]).toEqual([120, 120]);
+});
