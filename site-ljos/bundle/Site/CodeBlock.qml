@@ -472,9 +472,12 @@ Column {
             readonly property int pad: width < 480 ? Theme.s : Theme.l
             readonly property int pictureWidth: block.isLive ? Math.min(block.live.width, width - 2 * pad) : 0
             readonly property int pictureHeight: block.isLive && block.live.width > 0 ? pictureWidth * block.live.height / block.live.width : 0
-            // An example that draws a sliver (a row of ten pixels) still
-            // has a window the reader can see.
+            // An example that draws a sliver (a row of three ten-pixel
+            // items) still has a window the reader can see, twice as
+            // wide as it is tall, with the app at its own size in the
+            // middle of it.
             readonly property int least: 96
+            readonly property int leastWide: Math.min(2 * least, width - 2 * pad)
             height: frame.height + 2 * pad
             color: Theme.stage
             border.color: Theme.divider
@@ -514,8 +517,14 @@ Column {
                 id: frame
                 x: Math.round((stageBox.width - width) / 2)
                 y: stageBox.pad
-                width: stageBox.pictureWidth
-                height: Math.max(stageBox.least, stageBox.pictureHeight, stage.implicitHeight)
+                // The app's own box: as wide as its picture, and as tall
+                // as that or as it grows to be.
+                readonly property int appWidth: stageBox.pictureWidth
+                readonly property int appHeight: Math.max(stageBox.pictureHeight, stage.implicitHeight)
+                readonly property int appX: Math.round((width - appWidth) / 2)
+                readonly property int appY: Math.round((height - appHeight) / 2)
+                width: Math.max(stageBox.leastWide, appWidth)
+                height: Math.max(stageBox.least, appHeight)
                 radius: Theme.radiusSmall
                 color: Theme.paper
                 clip: true
@@ -529,16 +538,21 @@ Column {
                     // keeps the last good result, so the picture never
                     // comes back over it.
                     visible: block.isLive && stage.status !== ShellLoader.Ready
+                    x: frame.appX
+                    y: frame.appY
                     textFormat: Text.RichText
                     text: block.isLive ? "<img src=\"" + block.live.picture + "\" width=\"" + stageBox.pictureWidth + "\" height=\"" + Math.round(stageBox.pictureHeight) + "\" alt=\"What this example draws\">" : ""
                 }
                 // The window fits its app to itself, as a window does:
-                // what it draws is laid out at the window's size, never
-                // scaled.
+                // what it draws is laid out at its picture's size, never
+                // scaled. A 20 px dot stays a dot in a window of the
+                // least size, not a pill as wide as the window.
                 ShellLoader {
                     id: stage
-                    width: frame.width
-                    height: frame.height
+                    x: frame.appX
+                    y: frame.appY
+                    width: frame.appWidth
+                    height: frame.appHeight
                     fallback: emptyStage
                     // A start's compile has come, or failed: its marks.
                     onStatusChanged: if (block.started && status !== ShellLoader.Null) block.marked()
@@ -553,8 +567,10 @@ Column {
                 // reader's press from its text fields.
                 WindowContainer {
                     visible: window !== null
-                    width: frame.width
-                    height: frame.height
+                    x: frame.appX
+                    y: frame.appY
+                    width: frame.appWidth
+                    height: frame.appHeight
                     window: Live.windowOf(stage.item)
                 }
                 // Whether it runs: once the reader asks (Run, a press
