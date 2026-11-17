@@ -21,6 +21,7 @@ import { destroying, hostOf, live } from "../Core/controller.js";
 import { Accessible } from "../../QtQuick/Accessible.ts";
 import { Animation, ParallelAnimation, PauseAnimation, ScriptAction, SequentialAnimation } from "../../QtQuick/animation/Animation.js";
 import { Behavior } from "../../QtQuick/animation/Behavior.js";
+import { Canvas } from "../../QtQuick/Canvas.js";
 import { Easing } from "../../QtQuick/animation/easing.js";
 import {
   ColorAnimation,
@@ -33,12 +34,13 @@ import {
 } from "../../QtQuick/animation/PropertyAnimation.js";
 import { Drag as DragAttachedSource, DropArea } from "../../QtQuick/Drag.js";
 import { Flickable } from "../../QtQuick/Flickable.js";
+import { GridView as GridViewBase } from "../../QtQuick/GridView.js";
 import { font } from "../../QtQml/application.ts";
 import { Font as FontEnums } from "../../QtQuick/font.ts";
 import { DragHandler, HoverHandler, PointerDevice, TapHandler, WheelHandler } from "../../QtQuick/handlers.js";
 import { Image } from "../../QtQuick/Image.js";
 import { Item } from "../../QtQuick/Item.js";
-import { Keys, Shortcut } from "../../QtQuick/Keys.js";
+import { KeyNavigation, Keys, Shortcut } from "../../QtQuick/Keys.js";
 import { ListView as ListViewBase } from "../../QtQuick/ListView.js";
 import { Loader as LoaderBase } from "../../QtQuick/Loader.js";
 import { MouseArea } from "../../QtQuick/MouseArea.js";
@@ -58,6 +60,7 @@ import {
   PathRectangle,
   PathSvg,
 } from "../../QtQuick/Path.js";
+import { PathView } from "../../QtQuick/PathView.js";
 import { Gradient, GradientStop, Rectangle as RectangleBase } from "../../QtQuick/Rectangle.js";
 import { Repeater } from "../../QtQuick/Repeater.js";
 import { ConicalGradient, LinearGradient, RadialGradient, ShapeGradient } from "../../QtQuick/Shapes/gradients.js";
@@ -65,6 +68,7 @@ import { Shape, ShapePath } from "../../QtQuick/Shapes/Shape.js";
 import { PropertyChanges, State, Transition } from "../../QtQuick/states.js";
 import { Text as TextBase } from "../../QtQuick/Text.js";
 import { TextEdit, TextInput } from "../../QtQuick/TextInput.js";
+import { Rotation, Scale, Translate } from "../../QtQuick/transforms.ts";
 import { FontMetrics, TextMetrics } from "../../QtQuick/TextMetrics.js";
 import { DoubleValidator, IntValidator, RegularExpressionValidator } from "../../QtQuick/validators.ts";
 import { Screen, Window } from "../../QtQuick/Window.js";
@@ -190,6 +194,8 @@ export const Loader = face("Loader", LoaderBase, { component: "sourceComponent" 
 // `exit` (Qt's `add` and `remove` transitions) the runtime's views do
 // not have in either name, so there is nothing here to rename.
 export const ListView = face("ListView", ListViewBase);
+// `GridView`, as `ListView` is.
+export const GridView = face("GridView", GridViewBase);
 
 // Qt's attached `Drag`, called `DragSource`: what carries data to a
 // `DropArea`, where `Drag` above is the gesture that moves an item. It
@@ -228,6 +234,7 @@ export {
   Accessible,
   Animation,
   Behavior,
+  Canvas,
   ColorAnimation,
   ConicalGradient,
   DoubleValidator,
@@ -240,6 +247,7 @@ export {
   Image,
   IntValidator,
   Item,
+  KeyNavigation,
   Keys,
   LinearGradient,
   NumberAnimation,
@@ -258,6 +266,7 @@ export {
   PathQuad,
   PathRectangle,
   PathSvg,
+  PathView,
   PauseAnimation,
   PointerDevice,
   PropertyAction,
@@ -266,7 +275,9 @@ export {
   RadialGradient,
   RegularExpressionValidator,
   Repeater,
+  Rotation,
   RotationAnimation,
+  Scale,
   Screen,
   ScriptAction,
   SequentialAnimation,
@@ -281,5 +292,6 @@ export {
   TextInput,
   TextMetrics,
   Transition,
+  Translate,
   Window,
 };

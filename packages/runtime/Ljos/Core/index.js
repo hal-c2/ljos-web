@@ -2,6 +2,9 @@
 // `Ljos.Core` module of ljos-ui's type table). Each is the type
 // `QtQml` has, exported from this module too, as natively.
 export { QtObject } from "../../object.ts";
+export { Object } from "./object.js";
+// `Ljos.Core` brings what `QtQml.Models` has, as natively.
+export * from "../../QtQml/Models/index.ts";
 export { Binding } from "../../QtQuick/Binding.js";
 export { Connections } from "../../QtQuick/Connections.ts";
 export { Timer } from "../../QtQuick/animation/Timer.js";
