@@ -8,7 +8,7 @@
 mod lower;
 mod messages;
 pub(crate) mod module;
-mod names;
+pub(crate) mod names;
 mod paths;
 mod places;
 mod resources;
@@ -262,11 +262,11 @@ fn lower_from<'a>(
             core.extend(names.iter().map(String::as_str));
             continue;
         }
-        imports.push(b.import_named(names.iter().map(String::as_str), &module));
+        imports.push(b.import_types(names.iter().map(String::as_str), &module));
     }
     if !core.is_empty() {
         let module = format!("{prefix}/{}", names::CORE.replace('.', "/"));
-        imports.push(b.import_named(core, &module));
+        imports.push(b.import_types(core, &module));
     }
     if !uses.sugar.is_empty() {
         imports.push(b.import_named(
@@ -281,7 +281,10 @@ fn lower_from<'a>(
             continue;
         }
         let path = types::relative(&options.name, file);
-        imports.push(b.import_default(name, &format!("{path}{}", options.component_extension)));
+        imports.push(b.import_default(
+            &names::local(name),
+            &format!("{path}{}", options.component_extension),
+        ));
     }
     // Every module of the project's own is made by the one `$namespace`:
     // its import is written for the first of them and no other, a name
