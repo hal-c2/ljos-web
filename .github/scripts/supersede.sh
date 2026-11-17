@@ -40,10 +40,12 @@ workflow=${workflow##*/}
 # Listed by each unfinished status, every page: each listing is short,
 # and a re-run of an old push is found however many pushes came after
 # it, where one listing of every run would reach back only as far as
-# GitHub's limit and cost a call per hundred finished runs.
+# GitHub's limit and cost a call per hundred finished runs. A failed
+# listing ends the loop at once: set -e does not hold inside $(...),
+# and the loop's status would be only its last listing's.
 older=$(for state in requested queued pending waiting in_progress; do
   gh api --paginate "repos/$REPO/actions/workflows/$workflow/runs?branch=main&event=push&status=$state&per_page=100" \
-    --jq ".workflow_runs[] | select(.status != \"completed\" and .head_branch == \"main\" and .run_number < $GITHUB_RUN_NUMBER) | .id"
+    --jq ".workflow_runs[] | select(.status != \"completed\" and .head_branch == \"main\" and .run_number < $GITHUB_RUN_NUMBER) | .id" || exit 1
 done | sort -u)
 
 err=$(mktemp)

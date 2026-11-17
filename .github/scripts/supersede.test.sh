@@ -12,7 +12,8 @@ trap 'rm -rf "$work"' EXIT
 
 # The stub answers from JSON in $STUB_DIR, through the real jq with
 # the filter the step gives, as gh's --jq does:
-#   GET  .../workflows/<file>/runs?...status=<s> -> the runs.json entries in <s> (fails if STUB_FAIL)
+#   GET  .../workflows/<file>/runs?...status=<s> -> the runs.json entries
+#        in <s> (fails if STUB_FAIL, or if STUB_FAIL_STATUS is <s>)
 #   GET  .../runs/<id>/jobs?...        -> jobs-<id>.json, or no jobs
 #   POST .../runs/<id>/cancel          -> fails with cancel-<id>.err
 # It records each call as "<method> <path>".
@@ -34,8 +35,8 @@ echo "$method $path" >> "$STUB_LOG"
 id=$(sed -n 's#.*/actions/runs/\([0-9]*\)/.*#\1#p' <<<"$path")
 case "$method $path" in
   "GET(all pages) "*/actions/workflows/*/runs\?*status=*)
-    if [ -n "${STUB_FAIL:-}" ]; then echo "gh: HTTP 502" >&2; exit 1; fi
     state=$(sed -n 's/.*[?&]status=\([a-z_]*\).*/\1/p' <<<"$path")
+    if [ -n "${STUB_FAIL:-}" ] || [ "$state" = "${STUB_FAIL_STATUS:-}" ]; then echo "gh: HTTP 502" >&2; exit 1; fi
     jq --arg s "$state" '{workflow_runs: [.workflow_runs[] | select(.status == $s)]}' "$STUB_DIR/runs.json" | jq -r "$filter"
     ;;
   "GET "*/actions/runs/*/jobs\?*)
@@ -159,6 +160,13 @@ cancelled 490 || fail "one refused cancel stops the others: $asked"
 runs unread
 run unread STUB_FAIL=1
 [ "$status" != 0 ] || fail "a listing that cannot be read passes: $out"
+
+# One listing failing fails the step, though the listings after it
+# answer: a partial list would leave runs uncancelled, silently.
+runs partial 48:480:queued 49:490:in_progress
+run partial STUB_FAIL_STATUS=queued
+[ "$status" != 0 ] || fail "a failed listing of one status passes: $out"
+grep -q "^POST" <<<"$asked" && fail "the step cancels from a partial listing: $asked"
 
 runs unset
 run unset GITHUB_RUN_NUMBER=
