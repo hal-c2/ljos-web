@@ -3,7 +3,7 @@
 // color-contrast, WCAG AA), whichever scheme the browser asks for and
 // whichever the reader picks in the header after the page is open.
 import AxeBuilder from "@axe-core/playwright";
-import { centre, expect, livePages, open, run, test } from "./fixtures.js";
+import { centre, classify, expect, livePages, open, run, test } from "./fixtures.js";
 
 // axe's contrast, and nothing else: the rest of what axe asks is
 // tests/a11y.spec.js's.
@@ -46,8 +46,10 @@ const palettes = (colorScheme) => (line) => {
   return seen !== undefined && PLACEHOLDER[colorScheme].some((colour) => drawsAs(colour, background, seen));
 };
 
+// A popup nothing opens draws no words to read (examples.spec.js holds
+// it shut).
 const pages = livePages()
-  .map((page) => ({ ...page, examples: page.examples.filter((example) => !showsUnreadable(example)) }))
+  .map((page) => ({ ...page, examples: page.examples.filter((example) => !showsUnreadable(example) && !classify(example.code).closed) }))
   .filter((page) => page.examples.length > 0);
 
 for (const colorScheme of SCHEMES) {

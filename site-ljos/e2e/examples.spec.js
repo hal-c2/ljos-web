@@ -52,6 +52,14 @@ for (const { route, examples } of pages) {
         const block = await run(page, example.index);
         const told = (await block.told.innerText().catch(() => "")).trim();
         expect(told, "the block says nothing went wrong").toBe("");
+        // A popup nothing opens is made and stays shut: nothing on the
+        // stage, and nothing there for the reader to move.
+        if (kind.closed) {
+          await page.waitForTimeout(400);
+          await expect(block.stage.locator("xpath=./*[*]").filter({ visible: true }), "a closed popup draws nothing").toHaveCount(0);
+          expect(unexpected(errors)).toEqual([]);
+          return;
+        }
         // It draws: the running example is laid out, visible and holds
         // what it draws (one Text is one element).
         const shown = block.running;

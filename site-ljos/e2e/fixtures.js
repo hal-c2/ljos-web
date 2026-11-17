@@ -62,8 +62,10 @@ export function livePages() {
 export const url = (route) => `${siteBase}${route.replace(/^\//, "")}`;
 
 // What an example's own QML says it is: its root type, whether it is a
-// window, draws in 3D, or moves on its own (a timer, a running or
-// infinite animation), so a spec knows what "it works" means for it.
+// window, draws in 3D, moves on its own (a timer, a running or infinite
+// animation), or is a popup at the root that nothing opens (`closed`),
+// which draws nothing on the site as it draws nothing natively, so a
+// spec knows what "it works" means for it.
 export function classify(code) {
   const root = (code.replace(/^\s*(import|\/\/|pragma).*$/gm, "").match(/^\s*([A-Z][\w.]*)\s*\{/m) || [])[1] ?? "?";
   return {
@@ -72,6 +74,7 @@ export function classify(code) {
     threeD: /\bView3D\b/.test(code),
     moves: /\bTimer\s*\{|running:\s*true|loops:\s*Animation\.Infinite|\bAnimatedSprite\b|\bAnimation on\b/.test(code),
     video: /\b(Video|VideoOutput|MediaPlayer)\b/.test(code),
+    closed: /^(Menu|Popup|Dialog|Drawer|ToolTip)$/.test(root) && !/\bvisible:\s*true\b|\.open\(\)|\.popup\(/.test(code),
   };
 }
 
