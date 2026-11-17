@@ -306,7 +306,11 @@ test("a root's own properties and signals are read from what declared them, and 
   expect(o.declared({}), "a root made by no file of the example's declares nothing").toEqual({ properties: [], signals: [] });
   const disconnect = o.connectSignals("sig", root);
   handlers.forEach((fn) => fn(3, "start"));
-  expect(o.lines("sig")).toEqual([{ level: "signal", message: "ping(3, start)" }]);
+  handlers.forEach((fn) => fn(4, [5, 6]));
+  expect(o.lines("sig")).toEqual([
+    { level: "signal", message: "ping(3, start)" },
+    { level: "signal", message: "ping(4, [5, 6])" },
+  ]);
   disconnect();
   expect(handlers, "stopped, it listens no more").toEqual([]);
 });
