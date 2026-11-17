@@ -248,6 +248,19 @@ test("an example's console says its lines as the page's does, and keeps them", (
   expect(o.lines("ex")).toEqual([{ level: "log", message: "count 3 [1, two]" }]);
 });
 
+test("an array that holds itself is said to, and the line it is in still prints", () => {
+  const o = observed();
+  const printed = [];
+  const page = { $console: () => ({ log: (...args) => printed.push(args.length), debug() {}, info() {}, warn() {}, error() {} }) };
+  const own = o.inspectFor("loop", page);
+  const loop = [1];
+  loop.push(loop);
+  own.$console(["Main.qml", 1, 1]).log("it", loop, [loop]);
+  expect(o.lines("loop")).toEqual([{ level: "log", message: "it [1, [circular]] [[1, [circular]]]" }]);
+  expect(printed, "the page's console printed it too").toEqual([3]);
+  expect(o.show([[1], [1]]), "the same array twice, side by side, is not a loop").toBe("[[1], [1]]");
+});
+
 test("a root's own properties and signals are read from what declared them, and its signals are said as they fire", () => {
   const o = observed();
   const handlers = [];
