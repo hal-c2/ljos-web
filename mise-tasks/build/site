@@ -30,6 +30,43 @@ if [ "$named" = false ]; then
   mise run build:compiler
   export QMLC="$target/debug/qmlc"
 fi
-# Paths are taken from where mise was run.
-cd "${MISE_ORIGINAL_CWD:-$root}"
-exec node "$root/packages/runtime/bin/ljos-web.js" build-site "$@"
+# Paths are taken from where mise was run, and made whole: build-site runs
+# in packages/runtime, the one place its bundler resolves its own
+# `ljos-web/theme` import from (anywhere else a bundle fails to build).
+from="${MISE_ORIGINAL_CWD:-$root}"
+whole() {
+  case $1 in
+    /*) printf '%s' "$1" ;;
+    *) printf '%s/%s' "$from" "$1" ;;
+  esac
+}
+# A --qmlc with no slash is a command on PATH, so it stays a name.
+whole_qmlc() {
+  case $1 in
+    */*) whole "$1" ;;
+    *) printf '%s' "$1" ;;
+  esac
+}
+args=()
+pending=""
+for arg in "$@"; do
+  case $pending in
+    path) args+=("$(whole "$arg")") ;;
+    qmlc) args+=("$(whole_qmlc "$arg")") ;;
+    word) args+=("$arg") ;;
+    *)
+      case $arg in
+        --styles) args+=("$arg") && pending=word && continue ;;
+        --qmlc=*) args+=("--qmlc=$(whole_qmlc "${arg#--qmlc=}")") ;;
+        --out=* | --qt=* | --with=* | --pages=*) args+=("${arg%%=*}=$(whole "${arg#*=}")") ;;
+        --qmlc) args+=("$arg") && pending=qmlc && continue ;;
+        --out | --qt | --with | --pages) args+=("$arg") && pending=path && continue ;;
+        -*) args+=("$arg") ;;
+        *) args+=("$(whole "$arg")") ;;
+      esac
+      ;;
+  esac
+  pending=""
+done
+cd "$root/packages/runtime"
+exec node bin/ljos-web.js build-site "${args[@]+"${args[@]}"}"
