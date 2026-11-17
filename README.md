@@ -90,7 +90,7 @@ Everything else is a [mise](https://mise.jdx.dev) task, a script in
 whatever it needs:
 
 ```sh
-mise run setup          # first run after a clone: tools, submodule, dependencies, browser, docs (--no-corpus, --no-browser)
+mise run setup          # first run after a clone: tools, submodule, dependencies, browser, docs (--no-corpus, --no-browser; --check installs nothing and fails on a Rust or Qt that is not the pinned one)
 mise run tools          # only the toolchains mise.toml pins: Rust (with the wasm target), Node, pnpm
 mise run packages       # pnpm install --frozen-lockfile (the tasks that need it depend on it)
 mise run browser        # Playwright's Chromium (--check only says whether it is there)
@@ -123,6 +123,7 @@ mise run test:wasm-counter # a Rust Counter bound from QML, in a browser
 mise run test:wasm-gauge # native visual types from their Rust, against the desktop's picture
 mise run perf:3d        # View3D measured on each renderer, headless (not a test, so not in test)
 mise run tasks:smoke    # every task in a quick mode, as CI runs it (--list, --only TASK)
+mise run tasks:test     # the tasks' own tests, with stand-in tools (setup's Qt pin)
 mise run install [WHAT] # cli: qmlc on PATH by cargo install (--root DIR); packages: pnpm pack --dry-run of ljos-web and lezer-ljos
 mise run deploy --yes   # dispatch the site workflow (site.yml): --dry-run, --no-deploy, --no-custom-domain, --ref REF
 mise run gallery        # Qt's examples in a browser, against Qt's pictures of them

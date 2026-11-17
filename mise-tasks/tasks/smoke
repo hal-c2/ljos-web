@@ -27,6 +27,7 @@ assets|run|||
 deploy|run|--dry-run||
 install|run|packages||
 tasks:smoke|run|--list||
+tasks:test|run|||
 check|dry|||clippy over the workspace takes minutes; ci.yml's check job runs mise run check
 fmt|dry|||rewrites the Rust in place; mise run check checks the formatting
 docs|dry|||cargo doc of every crate takes minutes
