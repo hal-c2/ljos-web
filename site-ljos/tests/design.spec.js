@@ -476,12 +476,14 @@ for (const viewport of [
 
 // The editor shows where the reader is with one ring, around its box,
 // clear of the code: a ring around the text itself would cross the
-// first column.
-for (const [route, name, colorScheme, width] of [
-  ["/quality/motion/", "Edit Main.qml", "light", 1440],
-  ["/quality/motion/", "Edit Main.qml", "dark", 390],
-  ["/demos/", "Edit the Pantry's Shell.qml", "dark", 1440],
-  ["/demos/", "Edit the Pantry's Shell.qml", "light", 390],
+// first column. Which editor of the page: /quality/motion/'s first
+// example is taller than the window, whose edge would cut its ring
+// wherever it was scrolled to, so its second is read.
+for (const [route, name, nth, colorScheme, width] of [
+  ["/quality/motion/", "Edit Main.qml", 1, "light", 1440],
+  ["/quality/motion/", "Edit Main.qml", 1, "dark", 390],
+  ["/demos/", "Edit the Pantry's Shell.qml", 0, "dark", 1440],
+  ["/demos/", "Edit the Pantry's Shell.qml", 0, "light", 390],
 ]) {
   test(`${route}'s code editor's focus ring stands clear of its code at ${width} in ${colorScheme}`, async ({ browser }) => {
     const context = await browser.newContext({ viewport: { width, height: 900 }, colorScheme });
@@ -489,7 +491,7 @@ for (const [route, name, colorScheme, width] of [
       const page = await context.newPage();
       await page.goto(route);
       await page.waitForSelector('#app[data-ljos-hydrated="true"]');
-      const field = page.getByRole("textbox", { name }).first();
+      const field = page.getByRole("textbox", { name }).nth(nth);
       // Wholly on screen, so only a box that clips its ring can cut it:
       // the page scrolls, and the editor's own scroller stays at its top.
       await field.evaluate((node) => {
