@@ -336,7 +336,8 @@ Text {
 
 // A model of a folder of the example's: the files it was given are what is
 // in it, as the files of Qt's resources are what is in one of their folders.
-// A folder the example does not have is not there. Its pictures are at hand,
+// A folder the example does not have is not there, and one named like a
+// picture is a folder, not a picture. Its pictures are at hand,
 // so a delegate sized by its picture is that size as it is made, and its
 // files have a time.
 export const FOLDER_MAIN = `import QtQuick
@@ -402,11 +403,11 @@ export const EXAMPLES = {
   heldTimer: figure([qml("Main.qml", HELD_TIMER_MAIN)]),
   given: figure([qml("Main.qml", GIVEN_MAIN), qml("parts/Badge.qml", GIVEN_BADGE)], { given: packGiven({ "photo.png": PNG }) }),
   folder: figure([qml("Main.qml", FOLDER_MAIN), { name: "notes.json", code: "[]\n", lang: "json" }], {
-    given: packGiven({ "photo.png": PNG, "pictures/a.png": PNG, "pictures/b.txt": Uint8Array.of(98) }),
+    given: packGiven({ "photo.png": PNG, "pictures/a.png": PNG, "pictures/b.txt": Uint8Array.of(98), "shots.png/c.png": PNG }),
   }),
 };
 
 // What may not be asked of the server: every file the examples name.
 // `fetched`'s script is lib/load.js, by its directory too: the wasm
 // kernel's own kernel/load.js is asked for as it starts.
-export const NAMED = /(?:^|\/)(?:(?:shell|AppShell|Shell|Missing|Gone|Badge)\.qml|(?:logo|photo)\.png|100%(?:25)?\.png|my(?: |%20)100%(?:25)?\.svg|(?:data|notes|early|rows)\.json|lib\/load\.js|pictures(?:\/(?:a\.png|b\.txt)?)?|absent\/?)$/;
+export const NAMED = /(?:^|\/)(?:(?:shell|AppShell|Shell|Missing|Gone|Badge)\.qml|(?:logo|photo)\.png|100%(?:25)?\.png|my(?: |%20)100%(?:25)?\.svg|(?:data|notes|early|rows)\.json|lib\/load\.js|pictures(?:\/(?:a\.png|b\.txt)?)?|shots\.png(?:\/(?:c\.png)?)?|absent\/?)$/;

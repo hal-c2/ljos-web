@@ -150,7 +150,7 @@ test.describe("an example's files", () => {
     // Ready, Ready and Null; the first picture's row is the picture, a
     // delegate sized by it is that size as it is made, and it has a time.
     await expect(figure.locator(".ljos-codeblock__stage")).toContainText(
-      "1: Main.qml notes.json photo.png pictures/ | 1: a.png | 0:  | shown 2x1 | placed 2 | dated true",
+      "1: Main.qml notes.json photo.png pictures/ shots.png/ | 1: a.png | 0:  | shown 2x1 | placed 2 | dated true",
       {
         timeout: 15000,
       },
