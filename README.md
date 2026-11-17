@@ -33,14 +33,21 @@ picture real Qt renders.
 1. Install [mise](https://mise.jdx.dev/getting-started.html).
 2. `mise run setup`: the pinned Rust (with the wasm target), Node and pnpm,
    Qt's examples (`corpus/qtdoc`), the Rust and JavaScript dependencies,
-   wasm-bindgen and Playwright's Chromium. It can be run again, and ends with
-   what it did and what it skipped (Qt's `qml` tool, ljos-ui's docs for the
-   sites) and why.
-3. `mise run dev`: the web example with Vite. `mise run dev site` is the site,
-   `mise run dev gallery` Qt's examples.
+   wasm-bindgen, Playwright's Chromium and ljos-ui's docs for the sites. It
+   can be run again, and ends with what it did and what it skipped (Qt's
+   `qml` tool, for one) and why.
+3. `mise run site`: ljos.dev, served at http://127.0.0.1:4471/ (the last
+   line it prints) and rebuilt as you edit `site-ljos/`, the runtime, the
+   controls, the docs or the crates; open pages reload once a rebuild
+   passes, and a rebuild that fails leaves the last good one served.
+   `--port N` (or `PORT`) and `--base /path/` (or `LJOS_SITE_BASE`) change
+   where; `--build` only builds it, once.
+4. `mise run dev`: the web example with Vite. `mise run dev site` is the Astro
+   site, `mise run dev gallery` Qt's examples.
 
 `mise tasks` lists every task, and `mise run TASK --help` explains its
-arguments.
+arguments. ljos-ui's docs come from `LJOS_DOCS_DIR` when it is set, else
+`mise run site:docs` fetches them at the commit `site/ljos-ui.sha` pins.
 
 ## Layout
 
@@ -83,23 +90,48 @@ Everything else is a [mise](https://mise.jdx.dev) task, a script in
 whatever it needs:
 
 ```sh
-mise run setup          # first run after a clone: tools, submodule, dependencies, browser (--no-corpus, --no-browser)
-mise run tools          # only the tooling in mise.toml: Rust (with the wasm target), Node, pnpm
+mise run setup          # first run after a clone: tools, submodule, dependencies, browser, docs (--no-corpus, --no-browser)
+mise run tools          # only the toolchains mise.toml pins: Rust (with the wasm target), Node, pnpm
+mise run packages       # pnpm install --frozen-lockfile (the tasks that need it depend on it)
+mise run browser        # Playwright's Chromium (--check only says whether it is there)
+mise run tool:wasm-bindgen # the wasm-bindgen the crates pin, and where it is
+mise run site           # ljos.dev, live: http://127.0.0.1:4471/ (--port N, --base /path/, --build)
+mise run site:test      # ljos.dev's tests as site.yml runs them before a deploy
+mise run site:astro:test # the Astro site's tests as site.yml runs them
+mise run site:docs      # ljos-ui's docs at the pinned commit, and where they are (LJOS_DOCS_DIR wins)
+mise run dev [WHAT]     # example (default), site (Astro), site-ljos (= mise run site) or gallery; prints the URL
 mise run build          # build:compiler (qmlc) and build:web (the example's bundle)
-mise run dev [WHAT]     # example (default), site, site-ljos or gallery, with Vite; QML recompiles as it is edited
-mise run check          # cargo fmt --check and clippy, as CI runs them (--fix formats)
-mise run test           # test:compiler, test:runtime, test:site, test:web, test:gallery and test:size
+mise run build:compiler # qmlc
+mise run build:wasm-compiler # the compiler as wasm, for ljos-web/compiler
+mise run build:kernel   # the wasm kernel, beside the runtime that loads it
+mise run build:wasm-3d  # View3D's renderer as wasm, for QtQuick3D/wgpu.js
+mise run build:web      # the web example's bundle
+mise run build:site DIR # a static site from a directory with ljos-site.json (--out, --with, --qt, ... as ljos-web build-site)
+mise run check          # rustfmt and clippy, the TypeScript types, the code grammar's tests, as CI runs them (--fix formats)
+mise run fmt            # format every crate in place
+mise run docs           # cargo doc of every crate, and where it is (--open); ljos.dev is the docs people read
+mise run test           # every test task below, site:test and site:astro:test, then a table (--only a,b)
+mise run test:compiler  # parser, compiler and snapshot tests (cargo test)
+mise run test:runtime   # the runtime's QtQuick types in a browser
+mise run test:kernel    # the runtime's specs on the wasm kernel
+mise run test:site      # the site builder: bundles built into sites, and every bundle it refuses
+mise run test:web       # the built web example
+mise run test:gallery   # the gallery's report, on examples whose answers are known
+mise run test:size      # a page's JS and wasm against the budget, on both kernels
+mise run test:faces-size # what native types cost a page
+mise run test:wasm-counter # a Rust Counter bound from QML, in a browser
+mise run test:wasm-gauge # native visual types from their Rust, against the desktop's picture
+mise run perf:3d        # View3D measured on each renderer, headless (not a test, so not in test)
+mise run tasks:smoke    # every task in a quick mode, as CI runs it (--list, --only TASK)
 mise run install [WHAT] # cli: qmlc on PATH by cargo install (--root DIR); packages: pnpm pack --dry-run of ljos-web and lezer-ljos
-mise run deploy --dry-run # the site workflow (site.yml) dispatched by hand: --no-deploy, --no-custom-domain, --ref REF
+mise run deploy --yes   # dispatch the site workflow (site.yml): --dry-run, --no-deploy, --no-custom-domain, --ref REF
 mise run gallery        # Qt's examples in a browser, against Qt's pictures of them
-mise run gallery:serve  # the same page, to look at
+mise run gallery:serve  # the same page, to look at; prints the URL
 mise run corpus [DIR]   # how much of Qt's examples compiles, and what stops the rest
 mise run reference [ID]... # take Qt's pictures again (needs Qt 6's `qml` tool; `sway` for shader effects)
 mise run assets ID...   # download what an example's build downloads (its pictures, meshes, fonts)
 mise run types          # the table of Qt's types, from the Qt installed here (--qt DIR, --module URI)
-mise run site:build DIR # a static site from a directory with ljos-site.json
-mise run build:wasm-compiler # the compiler as wasm, for ljos-web/compiler
-mise run controls [REV] # copy Ljós's style of the controls again from a ljos-ui checkout (--ljos-ui DIR, or LJOS_UI)
+mise run controls [REV] # Ljós's style of the controls again, from ljos-ui at REV (--ljos-ui DIR or LJOS_UI, else fetched)
 ```
 
 The test tasks pass what follows them on to Playwright (`mise run test:web
@@ -107,8 +139,11 @@ The test tasks pass what follows them on to Playwright (`mise run test:web
 nothing; publishing the packages is a maintainer's step by hand. `deploy`
 needs `gh`, logged in.
 
-`packages` (pnpm install) and `browser` (Playwright's Chromium) are tasks the
-others depend on.
+`packages`, `browser` and `tools` are tasks the others depend on; `tools`
+only installs the toolchains, where `setup` also fetches every dependency and
+checks what it cannot install. Playwright runs in a network namespace of its
+own where it can (`scripts/isolated`), so a local network change does not
+break a page load; CI runs it as it is.
 
 The table of types covers the modules Qt's examples import, some of which a
 distribution packages apart from Qt itself (Charts, Graphs, Quick 3D, Location,
@@ -224,7 +259,7 @@ the object.
 ## A site from a directory
 
 `ljos-web build-site DIR [--out DIR] [--with DIR]... [--qt DIR]...` (the
-`bin` of `packages/runtime`, `mise run site:build DIR`, or
+`bin` of `packages/runtime`, `mise run build:site DIR`, or
 `buildSite({ dir, out })` of `ljos-web/site`) builds a static site from a
 directory that holds `ljos-site.json`, the manifest of what it is:
 
