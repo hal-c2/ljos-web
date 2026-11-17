@@ -9,3 +9,7 @@ packages/runtime/tests/scenes/saved/
 packages/runtime/QtQuick3D/wgpu/
 .tools/
 packages/runtime/tests/perf3d/results/
+# The wasm examples are workspaces of their own, so their test tasks leave a
+# lockfile and the desktop pictures they compare against.
+examples/*/Cargo.lock
+examples/wasm-gauge/picture-out/
