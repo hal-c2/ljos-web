@@ -23,7 +23,6 @@
 #                   and the note says what. Anything else a block says
 #                   as it is made leaves it plain until it is listed
 
-controls/containers-and-popups.md 4 web:ljos-module the Ljos module itself is not in ljos-web yet
 data/other-views.md 3 web:treeview TreeView is not in ljos-web yet
 data/repeater-and-delegates.md 2 web:delegatechooser DelegateChooser is not in ljos-web yet
 language/controllers.md 5 web:ts-controller a Controller written as a .ts module, controller({...}), is no type to the web's compiler
@@ -33,7 +32,7 @@ language/pipe.md 2 web:pipe-chain a chain of |> with a topic in each step fails 
 rust/models.md 1 host-types titlesModel is a model the Rust program sets
 rust/multimedia.md 1 web:media-pause a media element has no pause() on the web yet
 rust/native-types.md 1 host-types the Example module is the Rust program's
-rust/overview.md 1 web:ljos-module the Ljos module itself is not in ljos-web yet
+rust/overview.md 1 web:error-boundary an ErrorBoundary catches and restarts what it holds, and the web's runtime has no supervisor to do it yet
 rust/singletons-and-windows.md 1 host-types io.qt.filenameprovider is a module the Rust program registers
 rust/testing-rust.md 1 web:qttest the test types are not in ljos-web yet
 rust/threads-and-uihandle.md 1 web:xmlhttprequest XMLHttpRequest from Component.onCompleted throws on the web
