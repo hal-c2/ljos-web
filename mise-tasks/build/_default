@@ -1,3 +1,5 @@
 #!/usr/bin/env bash
 #MISE description="Build everything"
 #MISE depends=["build:compiler", "build:web"]
+set -euo pipefail
+# The depends do the work.
