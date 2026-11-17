@@ -45,9 +45,21 @@ else
       exit 1
     fi
     git -C "$fetch" -c advice.detachedHead=false checkout -q FETCH_HEAD
-    rm -rf "${cache:?}/$rev"
-    mv "$fetch" "$cache/$rev"
-    trap 'rm -rf "$scratch"' EXIT
+    # Two runs sharing a target dir can both fetch: the one that finishes
+    # second keeps what the first published, which may be in use, and
+    # throws its own copy away (the trap). Only an entry with no
+    # crates/ljos_controls/qml in it is a broken one, to be replaced.
+    if [ ! -d "$from" ]; then
+      rm -rf "${cache:?}/$rev"
+      mv "$fetch" "$cache/$rev"
+      if [ -d "$cache/$rev/$(basename "$fetch")" ]; then
+        # Another run published between the check and the move, and mv
+        # put this copy inside its entry.
+        fetch="$cache/$rev/$(basename "$fetch")"
+      else
+        trap 'rm -rf "$scratch"' EXIT
+      fi
+    fi
   fi
   full=$(git -C "$cache/$rev" rev-parse HEAD)
 fi

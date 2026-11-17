@@ -14,14 +14,15 @@ errors=$(mktemp)
 trap 'rm -rf "$errors" "$errors.out"' EXIT
 
 # QMLC names the compiler, as for every other task; without it this
-# checkout's is built, where CARGO_TARGET_DIR puts it.
+# checkout's is built, where CARGO_TARGET_DIR puts it (a relative one is
+# from here, as cargo takes it).
 qmlc=${QMLC:-}
 if [ -z "$qmlc" ]; then
   cargo build --quiet --manifest-path "$root/Cargo.toml" --bin qmlc
   case ${CARGO_TARGET_DIR:-} in
     "") qmlc="$root/target/debug/qmlc" ;;
     /*) qmlc="$CARGO_TARGET_DIR/debug/qmlc" ;;
-    *) qmlc="$root/$CARGO_TARGET_DIR/debug/qmlc" ;;
+    *) qmlc="$PWD/$CARGO_TARGET_DIR/debug/qmlc" ;;
   esac
 fi
 # qmlc fails when any file does, which is what is being counted (xargs then

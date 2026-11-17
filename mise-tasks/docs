@@ -6,11 +6,9 @@ set -euo pipefail
 args=(doc --no-deps --workspace --locked)
 [ "${usage_open:-false}" = true ] && args+=(--open)
 cargo "${args[@]}"
-case ${CARGO_TARGET_DIR:-} in
-  "") target="$PWD/target" ;;
-  /*) target="$CARGO_TARGET_DIR" ;;
-  *) target="$PWD/$CARGO_TARGET_DIR" ;;
-esac
+# Where cargo wrote them, as cargo itself decides it: CARGO_TARGET_DIR,
+# else build.target-dir in a cargo config, else target/.
+target=$(cargo metadata --no-deps --format-version 1 --locked | node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(0, "utf8")).target_directory)')
 index="$target/doc/ljos_web/index.html"
 if [ ! -f "$index" ]; then
   echo "docs: cargo doc finished but wrote no $index" >&2

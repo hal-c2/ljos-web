@@ -39,8 +39,19 @@ if [ ! -f "$docs/start/index.md" ]; then
     exit 1
   fi
   git -C "$scratch" -c advice.detachedHead=false checkout -q FETCH_HEAD
-  rm -rf "${cache:?}/$sha"
-  mv "$scratch" "$cache/$sha"
-  trap - EXIT
+  # site and dev site can both fetch: the one that finishes second keeps
+  # what the first published, which may be being read, and throws its own
+  # copy away (the trap). Only an entry without the docs is replaced.
+  if [ ! -f "$docs/start/index.md" ]; then
+    rm -rf "${cache:?}/$sha"
+    mv "$scratch" "$cache/$sha"
+    if [ -d "$cache/$sha/$(basename "$scratch")" ]; then
+      # Another fetch published between the check and the move, and mv
+      # put this copy inside its entry.
+      scratch="$cache/$sha/$(basename "$scratch")"
+    else
+      trap - EXIT
+    fi
+  fi
 fi
 echo "$docs"

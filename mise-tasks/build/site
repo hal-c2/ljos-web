@@ -16,6 +16,26 @@ set -euo pipefail
 # other than this checkout's): then nothing is built for it. Every flag
 # goes to ljos-web build-site, which reads them all.
 root="$PWD"
+# Paths are taken from where mise was run, and made whole: build-site runs
+# in packages/runtime, the one place its bundler resolves its own
+# `ljos-web/theme` import from (anywhere else a bundle fails to build).
+from="${MISE_ORIGINAL_CWD:-$root}"
+whole() {
+  case $1 in
+    /*) printf '%s' "$1" ;;
+    *) printf '%s/%s' "$from" "$1" ;;
+  esac
+}
+# A --qmlc (or QMLC) with no slash is a command on PATH, so it stays a
+# name.
+whole_qmlc() {
+  case $1 in
+    */*) whole "$1" ;;
+    *) printf '%s' "$1" ;;
+  esac
+}
+# A QMLC that is a path is the caller's too, and taken from where they are.
+if [ -n "${QMLC:-}" ]; then QMLC=$(whole_qmlc "$QMLC") && export QMLC; fi
 case ${CARGO_TARGET_DIR:-} in
   "") target="$root/target" ;;
   /*) target="$CARGO_TARGET_DIR" ;;
@@ -30,23 +50,6 @@ if [ "$named" = false ]; then
   mise run build:compiler
   export QMLC="$target/debug/qmlc"
 fi
-# Paths are taken from where mise was run, and made whole: build-site runs
-# in packages/runtime, the one place its bundler resolves its own
-# `ljos-web/theme` import from (anywhere else a bundle fails to build).
-from="${MISE_ORIGINAL_CWD:-$root}"
-whole() {
-  case $1 in
-    /*) printf '%s' "$1" ;;
-    *) printf '%s/%s' "$from" "$1" ;;
-  esac
-}
-# A --qmlc with no slash is a command on PATH, so it stays a name.
-whole_qmlc() {
-  case $1 in
-    */*) whole "$1" ;;
-    *) printf '%s' "$1" ;;
-  esac
-}
 args=()
 pending=""
 for arg in "$@"; do
