@@ -52,10 +52,19 @@ test("a task that fails stops the pool: nothing more starts, the running are tol
   expect(stopped.sort()).toEqual([0, 2]);
 });
 
-test("LJOS_SITE_JOBS says how many renders run at once, and the machine's parallelism is the default", () => {
-  expect(siteJobs({})).toBe(availableParallelism());
-  expect(siteJobs({ LJOS_SITE_JOBS: "" })).toBe(availableParallelism());
-  expect(siteJobs({ LJOS_SITE_JOBS: "3" })).toBe(3);
+test("LJOS_SITE_JOBS says how many renders run at once; by default, as many as the machine runs and has the memory for", () => {
+  const GiB = 1024 ** 3;
+  const roomy = { cores: 32, memory: 64 * GiB };
+  expect(siteJobs({}, roomy)).toBe(32);
+  expect(siteJobs({ LJOS_SITE_JOBS: "" }, roomy)).toBe(32);
+  // A build held to 14 GiB (a cgroup's limit, which Node reads) runs
+  // no more renders than fit in it, nor fewer than one.
+  expect(siteJobs({}, { cores: 32, memory: 14 * GiB })).toBe(14);
+  expect(siteJobs({}, { cores: 4, memory: 0.5 * GiB })).toBe(1);
+  expect(siteJobs({})).toBeGreaterThanOrEqual(1);
+  expect(siteJobs({})).toBeLessThanOrEqual(availableParallelism());
+  // What is asked for is what runs, whatever the machine.
+  expect(siteJobs({ LJOS_SITE_JOBS: "3" }, { cores: 1, memory: GiB })).toBe(3);
   for (const wrong of ["0", "-2", "1.5", "many"]) {
     expect(() => siteJobs({ LJOS_SITE_JOBS: wrong })).toThrow(`LJOS_SITE_JOBS is "${wrong}"`);
   }

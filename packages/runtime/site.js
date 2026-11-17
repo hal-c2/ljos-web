@@ -12,7 +12,7 @@
 import { spawn, spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
-import { availableParallelism, tmpdir } from "node:os";
+import { availableParallelism, tmpdir, totalmem } from "node:os";
 import { dirname, isAbsolute, join, posix, resolve } from "node:path";
 import { build } from "vite";
 import { findTheme } from "./find-theme.ts";
@@ -574,13 +574,20 @@ function startAfterPaint(html) {
   return started.replace("</body>", () => `  <script data-ljos-start="${script[1]}" data-ljos-preload="${names}">${STARTER}</script>\n  </body>`);
 }
 
+// The most one render was seen to hold (ljos.dev's, 2026-11: under
+// 1 GiB with its Node and the page's runtime), kept free for each.
+const RENDER_MEMORY = 1024 ** 3;
+
 // How many of a build's prerenders run at once: `LJOS_SITE_JOBS`, or as
-// many as the machine runs at once. Each is a Node process of its own
-// that spends its time making one page, so one per core keeps them all
-// busy; a machine shared with other work says fewer.
-export function siteJobs(env = process.env) {
+// many as the machine runs at once and has the memory for. Each is a
+// Node process of its own that spends its time making one page, so one
+// per core keeps them all busy, but 32 of them hold 12 GiB: a build
+// held to less (a cgroup's limit, which Node reads) or a small machine
+// runs fewer rather than being stopped. A machine shared with other
+// work says fewer still.
+export function siteJobs(env = process.env, { cores = availableParallelism(), memory = Math.min(process.constrainedMemory?.() || Infinity, totalmem()) } = {}) {
   const asked = env.LJOS_SITE_JOBS;
-  if (asked === undefined || asked === "") return availableParallelism();
+  if (asked === undefined || asked === "") return Math.max(1, Math.min(cores, Math.floor(memory / RENDER_MEMORY)));
   const jobs = Number(asked);
   if (!Number.isInteger(jobs) || jobs < 1) throw new SiteError(`LJOS_SITE_JOBS is ${JSON.stringify(asked)}; give how many renders may run at once, a whole number from 1`);
   return jobs;
