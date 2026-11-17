@@ -7,10 +7,11 @@ import { centre, classify, expect, livePages, open, run, test } from "./fixtures
 
 // axe's contrast, and nothing else: the rest of what axe asks is
 // tests/a11y.spec.js's.
-async function unreadable(page, include) {
+async function contrast(page, include) {
   const { violations } = await new AxeBuilder({ page }).include(include).withRules(["color-contrast"]).analyze();
-  return violations.flatMap(({ nodes }) => nodes.map((node) => `${node.target.join(" ")} — ${node.failureSummary?.split("\n").slice(1).join(" ").trim()}`));
+  return violations.flatMap(({ nodes }) => nodes.map((node) => ({ target: node.target, line: `${node.target.join(" ")} — ${node.failureSummary?.split("\n").slice(1).join(" ").trim()}` })));
 }
+const unreadable = async (page, include) => (await contrast(page, include)).map(({ line }) => line);
 
 // What each scheme is asked by: the browser's own setting, before
 // anything is opened.
@@ -21,15 +22,18 @@ const SCHEMES = ["light", "dark"];
 const showsUnreadable = ({ code }) => /^(\s*\/\/[^\n]*\n)*?\s*\/\/[^\n]*color-text-contrast/.test(code);
 
 // Ljós's own palettes draw placeholder words under AA. Basic's
-// placeholderText (packages/runtime/QtQuick/Palette.ts, from ljos-ui's
-// palette.rs) is see-through, #88353637 in light and #88c8c9cb in dark,
-// so what it comes to depends on what it is drawn on: 3.04:1 on white,
-// 3.94:1 on black. A field's own empty-state words are #919191 (2.99:1)
-// in light and #707172 (3.99:1) in dark. The palettes' to fix, not an
-// example's, so words in those colours are not counted here; the test
-// at the end turns red once the palettes meet AA, and this comes out
-// with it.
-const PLACEHOLDER = { light: ["#88353637", "#919191"], dark: ["#88c8c9cb", "#707172"] };
+// placeholderText is see-through: #88353637 in light
+// (packages/runtime/QtQuick/Controls/Basic/index.js:37, from ljos-ui's
+// palette.rs) and #88c8c9cb in dark (QtQuick/Palette.ts:89). What it
+// comes to depends on what it is drawn on: #919191 on #f9f9f8 (2.99:1)
+// or #939494 on white (3.04:1) in light, #707172 on #0c0c0c (3.99:1) in
+// dark. That is the palettes' to fix, not an example's. So a field's
+// placeholder is not counted here, and nothing else is: the words must
+// be drawn in that colour and be the placeholder of an empty field
+// beside them, the input that those very words name. Real words in the
+// same colour still count. The test at the end turns red once the
+// palettes meet AA, and this comes out with it.
+const PLACEHOLDER = { light: "#88353637", dark: "#88c8c9cb" };
 const rgba = (hex) => {
   const digits = hex.slice(1);
   const [a, rgb] = digits.length === 8 ? [parseInt(digits.slice(0, 2), 16) / 255, digits.slice(2)] : [1, digits];
@@ -41,10 +45,51 @@ const drawsAs = (colour, background, seen) => {
   const under = rgba(background).rgb;
   return rgba(seen).rgb.every((channel, at) => Math.abs(channel - (a * rgb[at] + (1 - a) * under[at])) <= 2);
 };
-const palettes = (colorScheme) => (line) => {
+const inPlaceholderColour = (colorScheme, line) => {
   const [, seen, background] = /foreground color: (#[0-9a-f]{6}), background color: (#[0-9a-f]{6})/.exec(line) ?? [];
-  return seen !== undefined && PLACEHOLDER[colorScheme].some((colour) => drawsAs(colour, background, seen));
+  return seen !== undefined && drawsAs(PLACEHOLDER[colorScheme], background, seen);
 };
+// The words an axe node draws, and whether they are an empty field's
+// placeholder: the field's input or textarea is named by them (a field
+// is called by its placeholder until it is given a name) and holds no
+// text. The field is looked for no further out than the TextField that
+// holds both.
+const placeholderOf = (page, target) =>
+  page.evaluate((selector) => {
+    const element = document.querySelector(selector);
+    const words = element?.textContent.trim() ?? "";
+    for (let at = element?.parentElement, out = 0; at && out < 3; at = at.parentElement, out += 1) {
+      const field = [...at.querySelectorAll("input, textarea")].find((each) => each.getAttribute("aria-label") === words);
+      if (field) return { words, placeholder: field.value === "" };
+    }
+    return { words, placeholder: false };
+  }, target.join(" "));
+
+// Examples from ljos-ui's docs that draw real words in the placeholder
+// colour, so they are under AA. Listed by their words, never by colour,
+// and only on their own page. The docs are to change them (ljos-ui, the
+// docs copy PR). Each listed one must still be found, so the list empties
+// as they are fixed.
+const UNDER_AA = [{ route: "/quality/layout-and-typography/", words: "Select at least one result to publish" }];
+
+// What of the contrast check is the example's: everything but the
+// palette's placeholders, and the listed words seen on their page.
+async function unexcused(page, include, colorScheme, route, seen) {
+  const found = [];
+  for (const { target, line } of await contrast(page, include)) {
+    if (inPlaceholderColour(colorScheme, line)) {
+      const { words, placeholder } = await placeholderOf(page, target);
+      if (placeholder) continue;
+      const listed = UNDER_AA.find((each) => each.route === route && each.words === words);
+      if (listed) {
+        seen.add(listed);
+        continue;
+      }
+    }
+    found.push(line);
+  }
+  return found;
+}
 
 // A popup nothing opens draws no words to read (examples.spec.js holds
 // it shut).
@@ -61,17 +106,20 @@ for (const colorScheme of SCHEMES) {
         test.skip(!wasm, "without WebAssembly no example runs");
         await open(page, route);
         const found = [];
+        const seen = new Set();
         for (const example of examples) {
           const block = await run(page, example.index);
           // Settled: an example that fades in is read where it lands.
           await page.waitForTimeout(400);
-          for (const line of await unreadable(page, await block.running.evaluate((element) => {
-            element.setAttribute("data-themes-check", "");
-            return "[data-themes-check]";
-          }))) if (!palettes(colorScheme)(line)) found.push(`#${example.index} (${example.hash}): ${line}`);
+          await block.running.evaluate((element) => element.setAttribute("data-themes-check", ""));
+          for (const line of await unexcused(page, "[data-themes-check]", colorScheme, route, seen)) found.push(`#${example.index} (${example.hash}): ${line}`);
           await block.running.evaluate((element) => element.removeAttribute("data-themes-check"));
         }
         expect(found).toEqual([]);
+        expect(
+          UNDER_AA.filter((each) => each.route === route && !seen.has(each)),
+          "these listed words are readable now: take them out of UNDER_AA",
+        ).toEqual([]);
       });
     }
 
@@ -131,6 +179,9 @@ for (const colorScheme of SCHEMES) {
     const block = await run(page, example.index);
     await page.waitForTimeout(400);
     await block.running.evaluate((element) => element.setAttribute("data-themes-check", ""));
-    expect((await unreadable(page, "[data-themes-check]")).filter(palettes(colorScheme)), "the placeholder is still under AA").not.toEqual([]);
+    const placeholders = [];
+    for (const { target, line } of await contrast(page, "[data-themes-check]"))
+      if (inPlaceholderColour(colorScheme, line) && (await placeholderOf(page, target)).placeholder) placeholders.push(line);
+    expect(placeholders, "the placeholder is still under AA").not.toEqual([]);
   });
 }
