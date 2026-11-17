@@ -64,6 +64,7 @@ export const modules = {
   "ljos-web/Qt/labs/folderlistmodel": () => import("./whole/Qt/labs/folderlistmodel.js"),
   "ljos-web/Qt/labs/synchronizer": () => import("./whole/Qt/labs/synchronizer.js"),
   "ljos-web/Qt/labs/qmlmodels": () => import("./whole/Qt/labs/qmlmodels.js"),
+  "ljos-web/Ljos": () => import("./whole/Ljos.js"),
   "ljos-web/Ljos/Models": () => import("./whole/Ljos/Models.js"),
   "ljos-web/Ljos/Ui": () => import("./whole/Ljos/Ui.js"),
   "ljos-web/Ljos/Layout": () => import("./whole/Ljos/Layout.js"),
