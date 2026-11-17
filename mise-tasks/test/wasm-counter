@@ -12,4 +12,4 @@ bindgen="$(../../mise-tasks/tool/wasm-bindgen)"
 cargo test
 WASM_BINDGEN="$bindgen" node ../../packages/runtime/bin/ljos-web.js faces .
 
-pnpm --filter ljos-web-example-wasm-counter test "$@"
+../../scripts/isolated pnpm --filter ljos-web-example-wasm-counter test "$@"
