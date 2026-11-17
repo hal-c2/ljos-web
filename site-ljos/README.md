@@ -215,9 +215,11 @@ landing after a newer one, or a re-run of an old run from putting
 its old build live: the freshness guard (`.github/scripts/fresh-head.sh`)
 does. Once the build and every suite pass, the `fresh` job asks it
 whether a commit has landed on the run's branch since the run's own
-that changes a path the site is built from; if one has, the deploy
-is skipped, so a stale run never waits for a turn, and the run still
-reports its build and tests. The deploy job asks again right before
+that changes a path the site is built from; if one has, a push's
+deploy is skipped, so a stale run never waits for a turn, and the
+run still reports its build and tests. A stale dispatch fails there
+instead, since no other run will deploy it: dispatch again from the
+branch's head. The deploy job asks again right before
 `deploy-pages`. Commits that change none of those paths start no run
 of the workflow, so the run's build is still the newest site there
 is, and it deploys. A re-run of an old run skips its deploy the same
@@ -243,10 +245,13 @@ when `deploy` is ticked:
 | dispatch from another branch | on | on | off | nothing: the run fails, as only main deploys to the custom domain |
 | dispatch from any branch | on | (any) | on | the build for that branch's commit, newer site or not, if main holds the commit: a rollback; nothing, and the run fails, for a commit main does not hold |
 
-Every deploying run's freshness guard skips its deploy when a newer
+Every deploying run's freshness guard stops its deploy when a newer
 commit on its branch has changed the site: one landed while it built
-or waited, or it re-runs an older run. The guard fails the run only
-when it cannot tell (GitHub's API failing) or refuses a rollback. A re-run keeps its run's
+or waited, or it re-runs an older run. A push's run skips the deploy
+and stays green, as the newer push's run deploys; a dispatch's run
+fails, so whoever dispatched it knows to dispatch again. The guard
+also fails the run when it cannot tell (GitHub's API failing) or
+refuses a rollback. A re-run keeps its run's
 inputs, so it can never turn `rollback` on.
 
 To put an older commit of main live on ljos.dev on purpose, push a

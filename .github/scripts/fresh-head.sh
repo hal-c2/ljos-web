@@ -9,11 +9,14 @@
 # its turn in the Pages group, and again right before deploy-pages,
 # since a newer merge can land while a deploy waits for its turn.
 #
-# It answers in $GITHUB_OUTPUT: fresh=true, or fresh=false for a stale
-# build, which is not a failure: the build and its tests passed, and
-# the deploy is skipped, so a stale run never waits for a turn it
-# would only refuse. Freshness unknown (gh failing), a ROLLBACK that
-# is not set, or a rollback of a commit main does not hold, fails.
+# It answers in $GITHUB_OUTPUT: fresh=true, or, for a push, fresh=false
+# for a stale build, which is not a failure: the build and its tests
+# passed, the deploy is skipped, so a stale run never waits for a turn
+# it would only refuse, and the newer push's own run deploys. A stale
+# dispatch fails instead: no other run will deploy what it was asked
+# for, so the person who dispatched it must know to dispatch again.
+# Freshness unknown (gh failing), a ROLLBACK that is not set, or a
+# rollback of a commit main does not hold, fails too.
 #
 # The run's commit passes when it is its branch's head, or when every
 # commit since it touches none of the paths the site is built from
@@ -27,11 +30,11 @@
 # be set either way, so a step that forgets to pass it fails rather
 # than skipping the check.
 #
-# Reads REPO, GITHUB_REF, GITHUB_SHA, GITHUB_OUTPUT, ROLLBACK and
-# GH_TOKEN (for gh).
+# Reads REPO, GITHUB_REF, GITHUB_SHA, GITHUB_EVENT_NAME, GITHUB_OUTPUT,
+# ROLLBACK and GH_TOKEN (for gh).
 set -euo pipefail
 
-: "${REPO:?}" "${GITHUB_REF:?}" "${GITHUB_SHA:?}" "${GITHUB_OUTPUT:?}"
+: "${REPO:?}" "${GITHUB_REF:?}" "${GITHUB_SHA:?}" "${GITHUB_EVENT_NAME:?}" "${GITHUB_OUTPUT:?}"
 case "${ROLLBACK:-}" in
   true | false) ;;
   *)
@@ -87,9 +90,15 @@ if [ "$head" = "$GITHUB_SHA" ]; then
 fi
 
 stale() {
-  echo "::notice::not deploying: this run is for $GITHUB_SHA, but $branch is at $head now, $1, and deploying would put the older build over the newer one. The newer commit's run deploys. To put an older commit of main live on purpose, dispatch from a branch at it with rollback on (site-ljos/README.md, Deploying)."
-  echo "fresh=false" >> "$GITHUB_OUTPUT"
-  exit 0
+  local why="this run is for $GITHUB_SHA, but $branch is at $head now, $1, and deploying would put the older build over the newer one"
+  local rollback="To put an older commit of main live on purpose, dispatch from a branch at it with rollback on (site-ljos/README.md, Deploying)."
+  if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+    echo "::notice::not deploying: $why. The newer push's run deploys. $rollback"
+    echo "fresh=false" >> "$GITHUB_OUTPUT"
+    exit 0
+  fi
+  echo "::error::not deploying: $why. Dispatch again from the head of $branch. $rollback"
+  exit 1
 }
 
 # One call: the status, the count of files (GitHub lists at most 300),
