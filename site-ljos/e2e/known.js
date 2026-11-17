@@ -5,14 +5,9 @@
 
 // An example the audit found broken, by page and its place on it (the
 // docs are pinned, site/ljos-ui.sha): the reason, as the audit says it.
-const covered = "audit: a press on its Controls text field lands on an element over the field's input (one holding an empty .qq-text), so the input never takes focus and what the reader types goes nowhere";
-const BROKEN = {
-  // Its pictures now ship (files=); what is left is its field, which
-  // the MOTION lane's window frame (site5/window-frame) takes out from
-  // under the element over it.
-  "/quality/accessibility/#0": `${covered}; waits on site5/window-frame (SITE-5 MOTION)`,
-  "/quality/accessibility/#1": `${covered}; waits on site5/window-frame (SITE-5 MOTION)`,
-};
+// None now: the two Controls fields /quality/accessibility/ shows
+// take a press since Ljos.Controls reached the web.
+const BROKEN = {};
 
 export function brokenExample(route, index) {
   return BROKEN[`${route}#${index}`] ?? null;
