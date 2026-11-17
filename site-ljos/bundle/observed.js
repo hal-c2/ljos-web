@@ -126,6 +126,45 @@ function declared(root) {
     return { properties: properties, signals: signals };
 }
 
+// What the example writes on its root, by name (`width: 120`,
+// `objectName: "panel"`, `title: "Window"`), from the file that made
+// it: for a root that declares nothing of its own, what it was given
+// is what it is about, and what the reader sees of a root that draws
+// nothing. Handlers, attached and grouped properties, and the
+// objects it holds are not values to show.
+var HANDLER = /^(\w+\$)?on[A-Z_]/;
+var HELD = ["children", "data", "resources", "states", "transitions", "contentItem", "contentData"];
+
+function written(root) {
+    var props = root && root.$props;
+    if (!props)
+        return [];
+    // Who gave what, the type's own files first: the example's is the
+    // last that writes anything.
+    var levels = props.$levels || [props];
+    var keep = function (name) {
+        if (name.charAt(0) === "$" || name.indexOf("$") >= 0 || HANDLER.test(name) || HELD.indexOf(name) >= 0 || !(name in root))
+            return false;
+        var value = root[name];
+        if (value && typeof value === "object" && value.$props)
+            return false;
+        return value === null || typeof value !== "object" || Array.isArray(value) || (typeof value.toString === "function" && value.toString !== Object.prototype.toString);
+    };
+    for (var i = levels.length - 1; i >= 0; i--) {
+        var names = Object.keys(levels[i]).filter(keep);
+        if (names.length > 0)
+            return names;
+    }
+    return [];
+}
+
+// What the strip names: the root's own declared properties, or, when
+// it declares none, what it was written with.
+function shown(root) {
+    var own = declared(root).properties;
+    return own.length > 0 ? own : written(root);
+}
+
 // Each of the root's own signals, as it fires, a line: `hit(3)`. What
 // it returns disconnects them.
 function connectSignals(id, root) {
