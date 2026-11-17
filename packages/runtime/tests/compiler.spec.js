@@ -1,10 +1,11 @@
 // QML compiled in the page (`ljos-web/compiler`): what `qmlc` makes of a
 // project, from its files as texts, run against the modules the page has.
 import { execFileSync } from "node:child_process";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { test as plain } from "@playwright/test";
 import { modules } from "../compiler/modules.js";
+import { CONTROLS } from "../controls.js";
 import { expect, rect, test } from "./open.js";
 
 const scenes = join(import.meta.dirname, "scenes");
@@ -48,18 +49,30 @@ const show = (page, request) => page.evaluate((request) => window.show(request),
 
 plain("compiled QML may import every module the runtime package exports", () => {
   const { exports } = JSON.parse(readFileSync(join(import.meta.dirname, "../package.json"), "utf8"));
+  // What no compiled QML imports: the build plugin, the site builder, the
+  // compiler itself, the faces' seam, the prerender's server side, the
+  // Markdown content source a site's build reads, and what a page's own
+  // script asks before any QML runs (whether WebAssembly runs, and the
+  // early fetch of View3D's renderer). The code blocks' halves are an
+  // editor a page mounts, not a QML module.
+  const host = [
+    "./vite.js",
+    "./site.js",
+    "./server.js",
+    "./compiler/index.js",
+    "./compiler/modules.js",
+    "./web/faces.js",
+    "./markdown.js",
+    "./wasm-check.js",
+    "./QtQuick3D/early-at-once.js",
+    "./QtQuick3D/early-held.js",
+  ];
   const kept = Object.entries(exports)
-    // Host-only modules are no part of what compiled QML imports: the
-    // build plugin, the site builder, the compiler itself, the faces'
-    // seam, the prerender's server side, the Markdown content source a
-    // site's build reads, and the code blocks' build and page halves (an
-    // editor a page mounts, not a QML module).
-    .filter(
-      ([, file]) =>
-        file.endsWith(".js") &&
-        !["./vite.js", "./site.js", "./server.js", "./compiler/index.js", "./compiler/modules.js", "./web/faces.js", "./markdown.js"].includes(file) &&
-        !file.startsWith("./codeblocks/"),
-    )
+    .filter(([name, file]) => /\.[jt]s$/.test(file) && !host.includes(file) && !file.startsWith("./codeblocks/"))
+    // Ljós's own modules of QML (`controls/`) are as Qt's Controls: the
+    // Vite plugin puts them together, so only a page built with them has
+    // them, and it gives them to `createCompiler({ modules })`.
+    .filter(([name]) => !(name.startsWith("./Ljos/") && existsSync(join(CONTROLS, name.slice(2), "qmldir"))))
     .map(([name]) => name.replace(/^\./, "ljos-web"));
   expect(Object.keys(modules).sort()).toEqual(["solid-js", ...kept].sort());
 });
