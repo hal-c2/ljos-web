@@ -16,3 +16,4 @@ pnpm-lock.yaml
 package.json
 .github/workflows/site.yml
 .github/scripts/**
+.github/actions/**
