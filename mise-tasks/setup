@@ -82,27 +82,34 @@ qt_get="install Qt $qt_pinned (Qt's online installer, or aqt install-qt)"
 # types reads this directory first when it is there (tasks:test points it
 # at a stand-in).
 qt_system_qml="${qt_system_qml:-/usr/lib/qt6/qml}"
-# `qt_answer <tool> <flags>...`: the Qt 6 version in what the tool answers,
-# or nothing. Qt 5's unsuffixed tools answer too, so only a 6 counts.
+# `qt_answer <tool> <flags>...`: the Qt version in what the tool answers, or
+# nothing. A Qt 5 answers too, and is a Qt of another version.
 qt_answer() {
   local out
   out="$("$@" 2>/dev/null || true)"
-  if [[ "$out" =~ (^|[^0-9])(6\.[0-9]+\.[0-9]+) ]]; then
+  if [[ "$out" =~ (^|[^0-9])([0-9]+\.[0-9]+\.[0-9]+) ]]; then
     printf '%s\n' "${BASH_REMATCH[2]}"
   fi
 }
-# `qt_of_bin <dir>`: the version of the Qt whose bin directory is <dir>.
+# `qt_of_bin <dir>`: the version of the Qt whose bin directory is <dir>. A
+# distribution can keep Qt 5's unsuffixed qtpaths beside Qt 6's qmake6, so a
+# Qt 6 answer wins over the first answer of another major.
 qt_of_bin() {
-  local ask version
+  local ask version first=""
   for ask in "qtpaths6 --qt-version" "qtpaths --qt-version" "qmake6 -query QT_VERSION" "qmake -query QT_VERSION"; do
     [ -x "$1/${ask%% *}" ] || continue
     # shellcheck disable=SC2086 # the flags are a word list
     version="$(qt_answer "$1/${ask%% *}" ${ask#* })"
-    if [ -n "$version" ]; then
-      printf '%s\n' "$version"
-      return
-    fi
+    case "$version" in
+      "") ;;
+      6.*)
+        printf '%s\n' "$version"
+        return
+        ;;
+      *) first="${first:-$version}" ;;
+    esac
   done
+  [ -z "$first" ] || printf '%s\n' "$first"
 }
 # Each task's Qt, found the way that task finds it.
 # reference (corpus/reference.mjs): QML, else qml6, else qml.
@@ -121,7 +128,7 @@ if [ -n "$qt_qml" ]; then
   version="$(QT_QPA_PLATFORM=offscreen qt_answer "$qt_qml" --version)"
   where="$(command -v "$qt_qml" || echo "$qt_qml")"
   case "$version" in
-    "") skipped+=("reference's qml ($where) gave no Qt 6 version for --version, so setup cannot say whether it is the pinned Qt $qt_pinned: set QML to Qt $qt_pinned's bin/qml to be sure") ;;
+    "") skipped+=("reference's qml ($where) gave no Qt version for --version, so setup cannot say whether it is the pinned Qt $qt_pinned: set QML to Qt $qt_pinned's bin/qml to be sure") ;;
     "$qt_pinned".*) done_+=("reference's qml: $where, $qt_from") ;;
     *) mismatched+=("reference's qml ($where) is Qt $version, not $qt_from, so mise run reference takes another Qt's pictures: $qt_get and set QML to its bin/qml") ;;
   esac
@@ -145,7 +152,7 @@ else
 fi
 case "$qt_types:$version" in
   :) ;;
-  *:) skipped+=("types' Qt ($qt_types): no qtpaths or qmake beside it gave a Qt 6 version, so setup cannot say whether it is the pinned Qt $qt_pinned: run mise run types --qt with Qt $qt_pinned's qml directory to be sure") ;;
+  *:) skipped+=("types' Qt ($qt_types): no qtpaths or qmake beside it gave a Qt version, so setup cannot say whether it is the pinned Qt $qt_pinned: run mise run types --qt with Qt $qt_pinned's qml directory to be sure") ;;
   *":$qt_pinned".*) done_+=("types' Qt: $qt_types, $qt_from") ;;
   *) mismatched+=("types' Qt ($qt_types) is Qt $version, not $qt_from, so mise run types reads another Qt's types: $qt_get and run mise run types --qt <its qml directory>") ;;
 esac

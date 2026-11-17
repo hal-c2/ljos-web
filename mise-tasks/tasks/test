@@ -54,7 +54,7 @@ expect() {
   fi
 }
 
-for c in newer pinned qt5-only qml-only qml-named system unread; do
+for c in newer pinned qt5-only qt5-types mixed qml-only qml-named system unread; do
   stub "$c" rustup "wasm32-unknown-unknown"
   stub "$c" rustc "rustc $rust (stand-in)"
 done
@@ -64,8 +64,17 @@ ln -s "$scratch/qt-newer/bin/qml" "$scratch/newer/qml6"
 ln -s "$scratch/qt-newer/bin/qtpaths6" "$scratch/newer/qtpaths6"
 ln -s "$scratch/qt-pinned/bin/qml" "$scratch/pinned/qml6"
 ln -s "$scratch/qt-pinned/bin/qtpaths6" "$scratch/pinned/qtpaths6"
-# Qt 5's qtpaths answers 5.15, which is no Qt 6 and so no mismatch.
+# A qtpaths that names no qml directory leaves types nothing to read.
 stub qt5-only qtpaths "5.15.19"
+# A Qt 5 whose qtpaths names its qml directory is the Qt types would read.
+mkdir -p "$scratch/qt-five/qml"
+# shellcheck disable=SC2016 # the stand-in expands $1 when it runs
+printf '#!/bin/sh\ncase "$1" in --query) echo "%s" ;; *) echo "5.15.19" ;; esac\n' "$scratch/qt-five/qml" >"$scratch/qt5-types/qtpaths"
+chmod +x "$scratch/qt5-types/qtpaths"
+# Qt 5's unsuffixed qtpaths beside Qt 6's qmake6: the Qt 6 answers for it.
+mkdir -p "$scratch/qt-mixed/bin" "$scratch/qt-mixed/qml"
+stub qt-mixed/bin qtpaths "5.15.19"
+stub qt-mixed/bin qmake6 "$qt_pinned.2"
 stub qml-only qml6 "Qml Runtime $newer.0"
 # QML is what reference runs, whatever else on PATH answers.
 ln -s "$scratch/qt-newer/bin/qml" "$scratch/qml-named/qml6"
@@ -78,14 +87,16 @@ expect newer 1 "reference's qml ($scratch/newer/qml6) is Qt $newer.1, not the pi
 expect pinned 0 "types' Qt: $scratch/qt-pinned/qml, the pinned Qt $qt_pinned"
 expect pinned 0 "reference's qml: $scratch/pinned/qml6, the pinned Qt $qt_pinned"
 expect qt5-only 0 "setup --check: found"
+expect qt5-types 1 "types' Qt ($scratch/qt-five/qml) is Qt 5.15.19, not the pinned Qt $qt_pinned"
+expect mixed 0 "types' Qt: $scratch/qt-mixed/qml, the pinned Qt $qt_pinned" qt_system_qml="$scratch/qt-mixed/qml"
 expect qml-only 1 "reference's qml ($scratch/qml-only/qml6) is Qt $newer.0, not the pinned Qt $qt_pinned"
 expect qml-named 0 "reference's qml: $scratch/qt-pinned/bin/qml, the pinned Qt $qt_pinned" QML="$scratch/qt-pinned/bin/qml"
 expect system 1 "types' Qt ($scratch/qt-newer/qml) is Qt $newer.1, not the pinned Qt $qt_pinned" qt_system_qml="$scratch/qt-newer/qml"
 # A Qt found whose version nothing answers is said, not passed as pinned.
 mkdir -p "$scratch/qt-unread/qml"
 stub unread qml6 "Qml Runtime"
-expect unread 0 "types' Qt ($scratch/qt-unread/qml): no qtpaths or qmake beside it gave a Qt 6 version" qt_system_qml="$scratch/qt-unread/qml"
-expect unread 0 "reference's qml ($scratch/unread/qml6) gave no Qt 6 version" qt_system_qml="$scratch/qt-unread/qml"
+expect unread 0 "types' Qt ($scratch/qt-unread/qml): no qtpaths or qmake beside it gave a Qt version" qt_system_qml="$scratch/qt-unread/qml"
+expect unread 0 "reference's qml ($scratch/unread/qml6) gave no Qt version" qt_system_qml="$scratch/qt-unread/qml"
 
 if [ "$failed" != 0 ]; then
   echo "tasks:test: a case above failed" >&2
