@@ -110,7 +110,7 @@ mise run build:site DIR # a static site from a directory with ljos-site.json (--
 mise run check          # rustfmt and clippy, the TypeScript types, the code grammar's tests, as CI runs them (--fix formats)
 mise run fmt            # format every crate in place
 mise run docs           # cargo doc of every crate, and where it is (--open); ljos.dev is the docs people read
-mise run test           # every test task below, site:test and site:astro:test, then a table (--only a,b)
+mise run test           # every test task below, site:astro:test then site:test, then a table (--only a,b)
 mise run test:compiler  # parser, compiler and snapshot tests (cargo test)
 mise run test:runtime   # the runtime's QtQuick types in a browser
 mise run test:kernel    # the runtime's specs on the wasm kernel
