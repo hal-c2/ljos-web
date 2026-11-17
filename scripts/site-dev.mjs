@@ -77,11 +77,16 @@ if (values.build) {
 // live-reload script.
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".webp": "image/webp", ".woff2": "font/woff2", ".json": "application/json", ".wasm": "application/wasm", ".xml": "application/xml", ".txt": "text/plain; charset=utf-8" };
 const EVENTS = "/__site-dev/events";
-const RELOADER = `<script>(() => {
+// A stream that connects once a build has passed is told "ready". Only the
+// not-built page listens for it: the first build can land between serving
+// that page and its stream connecting, and the page would miss "reload".
+const reloader = (notBuilt) => `<script>(() => {
   const events = new EventSource(${JSON.stringify(EVENTS)});
-  events.addEventListener("reload", () => location.reload());
+  events.addEventListener("reload", () => location.reload());${notBuilt ? `
+  events.addEventListener("ready", () => location.reload());` : ""}
   events.addEventListener("failed", () => console.warn("site: the rebuild failed; this is the last good build (see the terminal)"));
 })();</script>`;
+const RELOADER = reloader(false);
 const listeners = new Set();
 let lastGood = false;
 
@@ -91,7 +96,7 @@ function send(event, data = "") {
 
 function notBuilt(response) {
   response.writeHead(503, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
-  response.end(`<!doctype html><title>site: not built</title><p>No build of the site has passed yet; the terminal running <code>mise run site</code> says why. This page reloads when one does.</p>${RELOADER}`);
+  response.end(`<!doctype html><title>site: not built</title><p>No build of the site has passed yet; the terminal running <code>mise run site</code> says why. This page reloads when one does.</p>${reloader(true)}`);
 }
 
 function file(response, path, status = 200) {
@@ -110,7 +115,7 @@ const server = createServer((request, response) => {
   const url = new URL(request.url, "http://site");
   if (url.pathname === EVENTS) {
     response.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-store", connection: "keep-alive" });
-    response.write(": connected\n\n");
+    response.write(lastGood ? "event: ready\ndata: \n\n" : ": connected\n\n");
     listeners.add(response);
     request.on("close", () => listeners.delete(response));
     return;
