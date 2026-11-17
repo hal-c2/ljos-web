@@ -138,7 +138,22 @@ export function attachCodeEditor(item, { lang = "qml", label = "Code", descripti
     },
     setDiagnostics: (diagnostics) => editor.setDiagnostics(diagnostics),
     focus() {
-      if (!view.hasFocus) view.focus();
+      if (view.hasFocus) return;
+      view.focus();
+      // Shown and focused by one change (`visible = true` and then
+      // `forceActiveFocus()`, as in Qt): the page shows the editor once
+      // that change reaches it, which from a handler a press told of is
+      // a frame or so on, and a browser gives no focus to what it cannot
+      // see yet. A few frames on, while the item still has the focus,
+      // it is asked again; then the reader has moved on, or it never
+      // will be shown.
+      let frames = 4;
+      const again = () => {
+        if (!item.activeFocus || view.hasFocus || frames-- === 0) return;
+        view.focus();
+        if (!view.hasFocus) requestAnimationFrame(again);
+      };
+      if (!view.hasFocus) requestAnimationFrame(again);
     },
     blur() {
       if (view.hasFocus) view.contentDOM.blur();
