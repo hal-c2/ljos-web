@@ -21,10 +21,15 @@ publish_cache_entry() {
     sleep 0.1
     waited=$((waited + 1))
   done
+  # Callers test the result in an `if`, where errexit is off, so each
+  # step's failure is checked here rather than left to set -e.
   local published=1
   if [ ! -e "$cache/$key/$marker" ]; then
-    rm -rf "${cache:?}/${key:?}"
-    mv "$scratch" "$cache/$key"
+    if ! rm -rf "${cache:?}/${key:?}" || ! mv "$scratch" "$cache/$key"; then
+      rmdir "$lock"
+      echo "cache: could not publish $cache/$key (see the error above)" >&2
+      exit 1
+    fi
     published=0
   fi
   rmdir "$lock"
