@@ -319,3 +319,16 @@ test("a binding that shows what it made with createObject reads it complete", as
   // Qt 6.11: the made object's onCompleted has run when the binding reads it.
   expect(text).toBe("ready");
 });
+
+test("createObject while a binding makes a property's value completes before it returns, and the value is told once after", async ({ page }) => {
+  await open(page, "madeinbinding");
+  const [height, order] = await page.evaluate(() => {
+    window.scene.nestedAsked = true;
+    window.flush();
+    return [window.scene.nestedControl.implicitHeight, window.scene.nested];
+  });
+  // Qt 6.11: createObject() completes what it makes before it returns. What
+  // the value makes after the call is told with the value, after the binding.
+  expect(height).toBe(40);
+  expect(order).toEqual(["made completed", "createObject returned", "binding returned", "after completed", "content completed"]);
+});

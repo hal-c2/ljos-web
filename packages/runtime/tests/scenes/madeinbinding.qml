@@ -42,6 +42,45 @@ Item {
         return asked
     }
 
+    // createObject() while a binding makes a property's value: a control's
+    // contentItem, given as a Component once it is asked for, makes an
+    // object with createObject() as it is made. That object is complete
+    // before the call returns, in a completion of its own inside the
+    // value's. What the value makes after it (its own contentItem, given
+    // once `made` is) is still part of the value, and all of the value is
+    // told once, after the binding.
+    property var nested: []
+    property bool nestedAsked: false
+    property alias nestedControl: nestedControl
+    property Component nestedPart: Component {
+        QtObject { Component.onCompleted: root.nested.push("made completed") }
+    }
+    property Component nestedContent: Component {
+        T.Control {
+            property QtObject made: {
+                const made = root.nestedPart.createObject(this)
+                root.nested.push("createObject returned")
+                return made
+            }
+            contentItem: made ? root.nestedAfter : null
+            implicitHeight: contentItem ? 40 : 0
+            Component.onCompleted: root.nested.push("content completed")
+        }
+    }
+    property Component nestedAfter: Component {
+        Item { Component.onCompleted: root.nested.push("after completed") }
+    }
+    T.Control {
+        id: nestedControl
+        contentItem: root.nestedAsked ? root.nestedContent : null
+        implicitHeight: {
+            if (!root.nestedAsked) return 0
+            const height = contentItem.implicitHeight
+            root.nested.push("binding returned")
+            return height
+        }
+    }
+
     // The same where the binding is a Text's, evaluated as what it read
     // changes, and reads what the made object's onCompleted gave it.
     property int shownAsked: 0
