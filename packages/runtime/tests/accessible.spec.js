@@ -67,6 +67,22 @@ test("a control says what it is and what it is called when its author says nothi
   expect(said.check["aria-checked"]).toBe("true");
 });
 
+// A control that takes no input says so, as native Ljós does, and so does
+// one inside what takes none: a reader then knows its words are not
+// asked of it, and a contrast check passes over them as WCAG does.
+test("a control that takes no input says it is disabled, and one in something disabled is too", async ({ page }) => {
+  await open(page, "accessiblecontrols");
+  let said = await controls(page);
+  expect(said.publish).toEqual({ role: "button", "aria-label": "Publish", "aria-disabled": "true" });
+  expect(said.inner).toEqual({ role: "button", "aria-label": "Inner", "aria-disabled": "true" });
+  await expect(page.getByRole("button", { name: "Publish" })).toBeDisabled();
+
+  await page.evaluate(() => window.scene.step());
+  said = await controls(page);
+  expect(said.publish).toEqual({ role: "button", "aria-label": "Publish" });
+  expect(said.inner["aria-disabled"]).toBe("true");
+});
+
 test("what is said is what ARIA allows on the role it is said with", async ({ page }) => {
   await open(page, "accessiblearia");
   let said = await controls(page);

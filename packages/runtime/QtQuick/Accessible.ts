@@ -26,6 +26,7 @@ type Attributes = readonly [
   string | null,
   string | null,
   string | null,
+  string | null,
   ...(string | null)[],
 ];
 type Value = [now: string, min: string, max: string];
@@ -207,6 +208,10 @@ function aria(self: Dynamic | null, item: Dynamic): Attributes {
   const value = valueOf(item, asked);
   const [role, level, current] = worded(item, asked, name, told, value);
   const [now, min, max] = value ?? [null, null, null];
+  // What takes no input says so, as native Ljós does: `enabled` reads
+  // false inside what is disabled too. Something no role names is not
+  // a control to say it of.
+  const disabled = role !== null && item.enabled === false ? "true" : null;
   return [
     role,
     name,
@@ -218,13 +223,14 @@ function aria(self: Dynamic | null, item: Dynamic): Attributes {
     now,
     min,
     max,
+    disabled,
     ...told,
   ];
 }
 
 function show(
   node: Element,
-  [role, name, description, ignored, labelledBy, level, current, now, min, max, ...told]: Attributes,
+  [role, name, description, ignored, labelledBy, level, current, now, min, max, disabled, ...told]: Attributes,
 ): void {
   const set = (name: string, value: unknown) =>
     value === null || value === "" ? node.removeAttribute(name) : node.setAttribute(name, value as string);
@@ -238,12 +244,13 @@ function show(
   set("aria-valuenow", now);
   set("aria-valuemin", min);
   set("aria-valuemax", max);
+  set("aria-disabled", disabled);
   states.forEach(([, attribute], index) => set(attribute, told[index]));
 }
 
 // What `show` wrote, taken off again: an attribute of no value is
 // none of them.
-const UNSPOKEN: Attributes = [null, "", "", false, null, null, null, null, null, null, ...states.map(() => null)];
+const UNSPOKEN: Attributes = [null, "", "", false, null, null, null, null, null, null, null, ...states.map(() => null)];
 
 // Where an item's saying goes: on its element, but a text box's is
 // its field — the form element inside it is what a reader edits,
