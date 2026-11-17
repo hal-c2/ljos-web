@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-#MISE description="A static site from a directory with ljos-site.json (ljos-web build-site)"
-#MISE depends=["build:compiler", "packages"]
+#MISE description="A static site from a directory with ljos-site.json (ljos-web build-site); ljos.dev itself is mise run site"
+#MISE depends=["packages"]
 #USAGE arg "<dir>" help="A directory with ljos-site.json"
 #USAGE flag "--out <dir>" help="Where the site is written"
 #USAGE flag "--qmlc <path>" help="The compiler; default this checkout's target/debug/qmlc"
@@ -12,8 +12,24 @@
 #USAGE flag "--prerender" help="Write each page's HTML at build time"
 #USAGE flag "--pages <file>" help="A file naming the pages to build"
 set -euo pipefail
-# The compiler this checkout built; paths are taken from where mise was run.
+# The compiler this checkout builds, unless one is named (--qmlc, or a QMLC
+# other than this checkout's): then nothing is built for it. Every flag
+# goes to ljos-web build-site, which reads them all.
 root="$PWD"
-export QMLC="${QMLC:-${CARGO_TARGET_DIR:-$root/target}/debug/qmlc}"
+case ${CARGO_TARGET_DIR:-} in
+  "") target="$root/target" ;;
+  /*) target="$CARGO_TARGET_DIR" ;;
+  *) target="$root/$CARGO_TARGET_DIR" ;;
+esac
+named=false
+for arg in "$@"; do
+  case $arg in --qmlc | --qmlc=*) named=true ;; esac
+done
+if [ -n "${QMLC:-}" ] && [ "$QMLC" != "$target/debug/qmlc" ]; then named=true; fi
+if [ "$named" = false ]; then
+  mise run build:compiler
+  export QMLC="$target/debug/qmlc"
+fi
+# Paths are taken from where mise was run.
 cd "${MISE_ORIGINAL_CWD:-$root}"
 exec node "$root/packages/runtime/bin/ljos-web.js" build-site "$@"
