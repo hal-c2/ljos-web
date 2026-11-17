@@ -88,10 +88,30 @@ export const test = base.extend({
       if (message.type() === "error") errors.push(message.text());
     });
     page.on("pageerror", (error) => errors.push(`uncaught: ${error.message}`));
+    await page.route(/^https:\/\/example\.org\//, imagined);
     await use(page);
   },
 });
 export { expect };
+
+// The docs' examples ask example.org, the address kept for examples,
+// for what a real app would ask its own server: nothing there answers
+// them, and a browser refuses another site's answer anyway. The tests
+// answer as the server each example imagines would, so an example shows
+// what it is for, the same on every machine and offline.
+const ANSWERS = [
+  [/^\/weather\/([^/]+)\.txt$/, (city) => ({ contentType: "text/plain", body: `Rain in ${decodeURIComponent(city)}\n` })],
+  [/^\/api\/activity$/, () => ({ contentType: "application/json", body: JSON.stringify({ activity: "Walk to the lighthouse" }) })],
+];
+
+function imagined(route) {
+  const { pathname } = new URL(route.request().url());
+  for (const [path, answer] of ANSWERS) {
+    const found = path.exec(pathname);
+    if (found) return route.fulfill({ status: 200, headers: { "access-control-allow-origin": "*" }, ...answer(...found.slice(1)) });
+  }
+  return route.fulfill({ status: 404, headers: { "access-control-allow-origin": "*" }, body: "" });
+}
 
 export async function open(page, route) {
   await page.goto(url(route));

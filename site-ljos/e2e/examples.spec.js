@@ -75,7 +75,7 @@ for (const { route, examples } of pages) {
           const words = () => shown.innerText();
           const before = { text: await words(), look: await signature(shown) };
           await scripted.act({ page, stage: shown, at });
-          if (typeof scripted.expect === "function") await expect.poll(async () => scripted.expect(await words()), { message: "the example shows what the reader did" }).toBe(true);
+          if (typeof scripted.expect === "function") await expect.poll(async () => scripted.expect(await words(), { page, stage: shown }), { message: "the example shows what the reader did" }).toBe(true);
           else if (scripted.expect === "text") await expect.poll(words, { message: "its words change" }).not.toBe(before.text);
           else await expect.poll(() => signature(shown), { message: "what it shows changes" }).not.toBe(before.look);
         } else if (invisible.has(key)) {

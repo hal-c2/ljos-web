@@ -9,7 +9,10 @@
 // is wider than most examples, which stand at its left edge); `expect`
 // is what changes once the reader has acted: "text" (its words),
 // "look" (its signature: elements, words, styles), or a function
-// checking it outright. `fails` names the audit's reason it fails now (it runs as `test.fail`).
+// checking it outright: it gets the words and `{ page, stage }`. A
+// Dialog or a Menu opens in its window's overlay, as in Qt, which is
+// the page's, not the stage's: what it shows is looked for on the page.
+// `fails` names the audit's reason it fails now (it runs as `test.fail`).
 import { drag, pinch, press } from "./fixtures.js";
 
 // A press where a finger lands: the example's own press areas lie over
@@ -23,6 +26,11 @@ const tap = async ({ page, at }) => {
 };
 // An example whose point is the value it draws: nothing to do but read.
 const reads = async () => {};
+// A press on what an example's popup shows, where the popup is.
+const choose = (role, name) => async ({ page }) => press(page.getByRole(role, { name, exact: true }));
+const after = (...steps) => async (context) => {
+  for (const step of steps) await step(context);
+};
 
 export const interactions = {
   "/start/hot-reload/#0": { act: button("Change label"), expect: "text" },
@@ -52,6 +60,16 @@ export const interactions = {
   },
   "/ui/animation/#1": { act: button("Move the square"), expect: "look" },
   "/ui/animation/#2": { act: button("Send the ball here"), expect: "look" },
+  // Its button opens a Dialog, whose standard buttons the style's box
+  // makes.
+  "/controls/accessibility/#2": {
+    act: button("Close"),
+    expect: (text, { page }) => page.getByRole("dialog", { name: "Save?" }).getByRole("button", { name: "OK" }).isVisible(),
+  },
+  "/controls/containers-and-popups/#1": { act: after(button("Delete"), choose("button", "OK")), expect: (text) => text.includes("Deleted") },
+  // The first tab is the current one: the other is the press that shows.
+  "/controls/containers-and-popups/#2": { act: async ({ stage }) => press(stage.getByRole("tab", { name: "Sent" })), expect: "look" },
+  "/controls/containers-and-popups/#3": { act: after(button("File"), choose("menuitem", "Open")), expect: (text) => text.includes("Open chosen") },
   "/controls/value-inputs/#0": {
     // The volume handle dragged to the right (it starts at 25 %).
     act: async ({ page, stage }) => {
@@ -98,8 +116,11 @@ export const interactions = {
   // An .lts module's typed widths, added: 1 and 3.
   "/start/editors/#0": { act: reads, expect: (text) => text.includes("A thin and a thick line are 4 wide") },
   // The files beside an example are what it reads (json/xml group=).
-  "/data/models/#2": { act: reads, expect: (text) => text.includes("a1 First") && text.includes("a2 Second") },
-  "/data/models/#3": { act: reads, expect: (text) => text.includes("Bread") && text.includes("Honey") },
+  "/data/models/#5": { act: reads, expect: (text) => text.includes("a1 First") && text.includes("a2 Second") },
+  "/data/models/#6": { act: reads, expect: (text) => text.includes("Bread") && text.includes("Honey") },
+  // What example.org answers here is the tests' (fixtures.js).
+  "/data/tasks/#0": { act: button("Bergen"), expect: (text) => text.includes("Rain in Bergen") },
+  "/data/tasks/#1": { act: button("Add a random task"), expect: (text) => text.includes("Walk to the lighthouse") },
   "/data/fetching/#0": { act: reads, expect: (text) => text.includes("Walk to the lighthouse") },
   "/data/fetching/#1": { act: reads, expect: (text) => /^POST \S+\/names$/m.test(text) && text.includes("content-type: application/json") },
   // Aborted as soon as it is made: the file beside it is never read.
@@ -123,9 +144,12 @@ export const interactions = {
 // audit's row says "makes no sense"; the suite holds only that they
 // run without errors.
 export const invisible = new Set([
-  "/controls/localisation/#0", // its Back and Next have no handler: a press shows nothing once released
-  "/quality/color/#1", // its buttons have no handler: a press shows nothing once released
   "/quality/layout-and-typography/#2", // its one button is disabled until a result is picked
+  "/controls/localisation/#1", // its Back and Next have no handler
+  "/controls/overview/#1", // a Badge, and buttons with no handler
+  "/controls/overview/#2", // its button has no handler: the example is about fonts
+  "/quality/accessibility/#3", // the first row is current already, and Delete has no handler
+  "/quality/color/#5", // its buttons have no handler: the example is about colour
 ]);
 
 // Examples whose code reads as moving on its own but that draw nothing
