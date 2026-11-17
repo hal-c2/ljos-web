@@ -772,7 +772,9 @@ export function bound<T>(owner: Owner | null, compute: () => T, first?: T): Boun
 // date and where a loop ends: one that asks for its own value while it is
 // computed gets what it had, as the graph gives any binding it is running.
 // What is read through the same interface as `ringed`'s.
-function graphed<T>(owner: Owner | null, compute: () => T, first?: T, own = false): Bound<T> {
+// `counted` is false for a value that is Solid's memo on the other kernel,
+// whose evaluation is no binding's there either.
+function graphed<T>(owner: Owner | null, compute: () => T, first?: T, own = false, counted = true): Bound<T> {
   let held = first as T;
   let index: number | undefined;
   let evaluating = false;
@@ -788,6 +790,7 @@ function graphed<T>(owner: Owner | null, compute: () => T, first?: T, own = fals
     const spent = made;
     if (spent) after(spent);
     evaluating = true;
+    if (counted) bindings++;
     try {
       held = runWithOwner(PARKED, () =>
         createRoot((dispose) => {
@@ -797,6 +800,7 @@ function graphed<T>(owner: Owner | null, compute: () => T, first?: T, own = fals
       ) as T;
     } finally {
       evaluating = false;
+      if (counted) bindings--;
     }
     done = true;
     return !Object.is(before, held);
@@ -838,7 +842,7 @@ function graphed<T>(owner: Owner | null, compute: () => T, first?: T, own = fals
 // where a binding reading a Solid memo would not see it change.
 export function memo<T>(compute: () => T, options: { sync?: boolean } = SYNC): Accessor<T> {
   if (!WASM) return createMemo(compute, options);
-  const read = graphed(getOwner(), compute);
+  const read = graphed(getOwner(), compute, undefined, false, false);
   read.start();
   return read;
 }
@@ -911,12 +915,14 @@ function ringed<T>(owner: Owner | null, compute: () => T, first: T | undefined, 
     record.outer = evaluated;
     evaluated = record;
     evaluating = true;
+    bindings++;
     record.heard = 0;
     record.own = false;
     try {
       value = compute();
     } finally {
       evaluating = false;
+      bindings--;
       evaluated = record.outer;
       record.outer = null;
       // What it read this time is what it is computed from.
@@ -1010,6 +1016,9 @@ function ringed<T>(owner: Owner | null, compute: () => T, first: T | undefined, 
 
 // The value being computed, innermost.
 let evaluated: Ring | null = null;
+// How many bindings are being evaluated, one inside another, on either
+// kernel: the graph's evaluations are not `ringed`'s, and set no `evaluated`.
+let bindings = 0;
 // Counts the changes of values, and the changes that began of themselves.
 let clock = 0;
 let waves = 0;
@@ -1726,6 +1735,11 @@ let holding: Works | null = null;
 // its object was complete: what the binding makes apart from that value, with
 // `createObject()`, is not part of it.
 let valued = false;
+// How many bindings were being evaluated when the objects being completed
+// now, and told so now, were made: a value one of them holds is made by its
+// own binding one deeper, and is told with them, not once a binding is done.
+// None outside such a completion.
+let toldAt: number | null = null;
 // The item whose children are being created.
 let parent: QObject | null | undefined = null;
 // The nonvisual object whose property's value is being created: given to
@@ -1805,7 +1819,18 @@ type Making = "objects" | "value" | "apart";
 
 function complete<T>(make: () => T, making: Making = "objects"): T {
   if (waiting && !(making === "apart" && valued)) return make();
-  const outer = { waiting, watches, completions, holding, valued };
+  // Nothing is settled while a binding is evaluated: what changes would
+  // reach the binding as a change it made itself, and it would keep what it
+  // read before (the Solid kernel's). An object made as a property's value
+  // while another binding reads it (a popup's `contentItem: Component {}`,
+  // asked for by the popup's `implicitHeight`) is told once that binding is
+  // done, as during a flush. What a binding makes itself, with
+  // `createObject()`, is told before the call returns, as in Qt, and so is
+  // each value it holds (`property QtObject inner: QtObject {}`), which only
+  // its own binding makes.
+  const inBinding = bindings > 0;
+  const deferred = making === "value" && inBinding && (toldAt === null || bindings - 1 > toldAt);
+  const outer = { waiting, watches, completions, holding, valued, toldAt };
   valued = making === "value";
   const works: Works = (waiting = []);
   const watched: ((firsts: Works) => void)[] = (watches = []);
@@ -1817,7 +1842,13 @@ function complete<T>(make: () => T, making: Making = "objects"): T {
     try {
       made = make();
     } finally {
-      ({ waiting, watches, completions, holding, valued } = outer);
+      // What was made is completed on its own from here, whatever it was
+      // made inside: an object made apart inside a property's value (with
+      // `createObject()`) has its held values complete with it, before the
+      // call returns, not with the value once the binding is done.
+      waiting = watches = completions = holding = null;
+      valued = false;
+      if (!deferred) toldAt = bindings;
     }
     // Each is complete before what holds it has anything to do with it.
     for (const hold of held) hold();
@@ -1828,22 +1859,15 @@ function complete<T>(make: () => T, making: Making = "objects"): T {
     for (const handler of firsts) soon(handler);
     // What the objects make of each other once they are made, as a row of
     // where its items are and how wide that makes it, they have made before
-    // any is told that it is complete. Nothing is settled while a binding is
-    // evaluated: what changes would reach the binding as a change it made
-    // itself, and it would keep what it read before (the Solid kernel's). An
-    // object made as a property's value while a binding reads it (a popup's
-    // `contentItem: Component {}`, asked for by the popup's `implicitHeight`)
-    // is told once that binding is done, as during a flush. What a binding
-    // makes itself, with `createObject()`, is told before the call returns,
-    // as in Qt.
-    const inBinding = evaluated !== null;
-    const later = inBinding && making === "value" ? after : soon;
+    // any is told that it is complete.
+    const later = deferred ? after : soon;
     if (!inBinding && (handlers.length > 0 || handlers.first)) settle();
     for (const handler of handlers.first ?? []) later(handler);
     // `Component.onCompleted`, as Qt tells of it: of the object made last
     // first, so of one before those in it, and of those the last first.
     for (let index = handlers.length - 1; index >= 0; index--) later(handlers[index]!);
   } finally {
+    ({ waiting, watches, completions, holding, valued, toldAt } = outer);
     if (--creating === 0) {
       for (const tell of kept) after(tell);
       kept = [];
