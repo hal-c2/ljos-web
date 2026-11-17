@@ -1147,7 +1147,7 @@ class Slot {
       complete(() => {
         const visual = self.$contentItem ?? (self.$node ? self : null);
         return inside(visual, visual ? given : () => declaredIn(self, given));
-      });
+      }, "value");
     const made = props.$made?.includes(key);
     const compute = descriptor?.get ? guarded(key, made ? apart(make) : make, !made, self) : null;
     this.bound = compute ? ringed(self.$owner, kind ? converted(key, kind, compute, this.given) : compute, undefined, true) : null;
@@ -1722,6 +1722,10 @@ let watches: ((firsts: Works) => void)[] | null = null;
 let completions: (Works & { first?: Works }) | null = null;
 // The objects properties hold (`header: ToolBar {}`), still to be made.
 let holding: Works | null = null;
+// Whether what is being made is a property's value, made by its binding once
+// its object was complete: what the binding makes apart from that value, with
+// `createObject()`, is not part of it.
+let valued = false;
 // The item whose children are being created.
 let parent: QObject | null | undefined = null;
 // The nonvisual object whose property's value is being created: given to
@@ -1794,8 +1798,15 @@ export function effect<T>(compute: () => T, apply: (value: T, previous?: T) => u
   whenComplete(() => createRenderEffect(compute, (...args: [T, T?]) => settled(apply, ...args) as undefined));
 }
 
-function complete<T>(make: () => T): T {
-  if (waiting) return make();
+// What `make` makes: objects (a file's, those in it), a property's `value`
+// as its binding makes it, or an object made `apart` from the tree that asks
+// for it.
+type Making = "objects" | "value" | "apart";
+
+function complete<T>(make: () => T, making: Making = "objects"): T {
+  if (waiting && !(making === "apart" && valued)) return make();
+  const outer = { waiting, watches, completions, holding, valued };
+  valued = making === "value";
   const works: Works = (waiting = []);
   const watched: ((firsts: Works) => void)[] = (watches = []);
   const handlers: Works & { first?: Works } = (completions = []);
@@ -1806,7 +1817,7 @@ function complete<T>(make: () => T): T {
     try {
       made = make();
     } finally {
-      waiting = watches = completions = holding = null;
+      ({ waiting, watches, completions, holding, valued } = outer);
     }
     // Each is complete before what holds it has anything to do with it.
     for (const hold of held) hold();
@@ -1817,13 +1828,16 @@ function complete<T>(make: () => T): T {
     for (const handler of firsts) soon(handler);
     // What the objects make of each other once they are made, as a row of
     // where its items are and how wide that makes it, they have made before
-    // any is told that it is complete. Objects a binding makes as it is
-    // evaluated (a popup's `contentItem: Component {}`, asked for by the
-    // popup's `implicitHeight`) are told once it is done, as during a flush:
-    // settled now, what changes would reach the binding as a change it made
-    // itself, and it would keep what it read before (the Solid kernel's).
+    // any is told that it is complete. Nothing is settled while a binding is
+    // evaluated: what changes would reach the binding as a change it made
+    // itself, and it would keep what it read before (the Solid kernel's). An
+    // object made as a property's value while a binding reads it (a popup's
+    // `contentItem: Component {}`, asked for by the popup's `implicitHeight`)
+    // is told once that binding is done, as during a flush. What a binding
+    // makes itself, with `createObject()`, is told before the call returns,
+    // as in Qt.
     const inBinding = evaluated !== null;
-    const later = inBinding ? after : soon;
+    const later = inBinding && making === "value" ? after : soon;
     if (!inBinding && (handlers.length > 0 || handlers.first)) settle();
     for (const handler of handlers.first ?? []) later(handler);
     // `Component.onCompleted`, as Qt tells of it: of the object made last
@@ -2539,7 +2553,7 @@ export function instantiate(
         instantiating++;
         let object: QObject | null;
         try {
-          object = untrack(() => complete(() => inside(item ?? null, () => component(data))));
+          object = untrack(() => complete(() => inside(item ?? null, () => component(data)), "apart"));
         } finally {
           instantiating--;
         }
