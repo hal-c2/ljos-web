@@ -233,17 +233,25 @@ async function rebuild() {
   console.log(`\nsite: changed: ${names.slice(0, 5).join(", ")}${names.length > 5 ? ` and ${names.length - 5} more` : ""}`);
   send("building");
   const start = Date.now();
-  const ok = (!rust || (await buildRust())) && (await buildSite());
-  if (ok) {
-    keep();
-    console.log(`site: rebuilt in ${seconds(start)}; reloading ${listeners.size} open page${listeners.size === 1 ? "" : "s"}`);
-    send("reload");
-  } else {
-    console.error(`site: the rebuild failed after ${seconds(start)}; still serving the last good build${lastGood ? "" : " (none yet)"}`);
+  // Whatever goes wrong (a full disk while the build is kept, say), the
+  // flag is cleared, or no change would ever build again.
+  try {
+    const ok = (!rust || (await buildRust())) && (await buildSite());
+    if (ok) {
+      keep();
+      console.log(`site: rebuilt in ${seconds(start)}; reloading ${listeners.size} open page${listeners.size === 1 ? "" : "s"}`);
+      send("reload");
+    } else {
+      console.error(`site: the rebuild failed after ${seconds(start)}; still serving the last good build${lastGood ? "" : " (none yet)"}`);
+      send("failed");
+    }
+  } catch (error) {
+    console.error(`site: the rebuild failed after ${seconds(start)}: ${error.message}; still serving the last good build${lastGood ? "" : " (none yet)"}`);
     send("failed");
+  } finally {
+    building = false;
   }
   console.log(`site: ${url}`);
-  building = false;
   if (pending.size) rebuild();
 }
 
@@ -265,7 +273,12 @@ function watchDir(dir, rust) {
       const path = join(dir, String(name));
       try {
         if (statSync(path).isDirectory()) {
-          if (!SKIPPED_DIRS.has(String(name))) watchTree(path, rust);
+          // A directory moved in whole arrives with its files, which no
+          // watch saw being written: its appearing is the change.
+          if (!SKIPPED_DIRS.has(String(name))) {
+            watchTree(path, rust);
+            changed(path, rust);
+          }
           return;
         }
       } catch {
@@ -310,12 +323,23 @@ server.on("error", (error) => {
   process.exit(1);
 });
 server.listen(port, "127.0.0.1", async () => {
+  // The first build is a build like any other: a change saved while it
+  // runs waits for it, and is built once it ends.
+  building = true;
   const start = Date.now();
-  if (await buildSite()) {
-    keep();
-    console.log(`site: built in ${seconds(start)}; watching for changes`);
-  } else {
-    console.error(`site: the first build failed after ${seconds(start)}; fix it and save, and the site is built again`);
+  try {
+    if (await buildSite()) {
+      keep();
+      console.log(`site: built in ${seconds(start)}; watching for changes`);
+      send("reload"); // pages opened while it built are waiting for it
+    } else {
+      console.error(`site: the first build failed after ${seconds(start)}; fix it and save, and the site is built again`);
+    }
+  } catch (error) {
+    console.error(`site: the first build failed after ${seconds(start)}: ${error.message}; fix it and save, and the site is built again`);
+  } finally {
+    building = false;
   }
   console.log(`site: ${url}`);
+  if (pending.size) rebuild();
 });

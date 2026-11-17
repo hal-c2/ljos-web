@@ -18,11 +18,13 @@ if [ "$named" = false ] && [ ! -d /usr/lib/qt6/qml ]; then
   for tool in qtpaths6 qtpaths; do
     if command -v "$tool" >/dev/null; then
       qml=$("$tool" --query QT_INSTALL_QML 2>/dev/null || true)
-      [ -n "$qml" ] && break
+      # A Qt whose qml directory is gone is no Qt: the next tool may name one.
+      [ -n "$qml" ] && [ -d "$qml" ] && break
+      qml=""
     fi
   done
-  if [ -z "$qml" ] || [ ! -d "$qml" ]; then
-    echo "types: no Qt 6 found (no /usr/lib/qt6/qml, and no qtpaths6 to ask); install Qt 6 (qt6-declarative), or name its qml directory with --qt DIR" >&2
+  if [ -z "$qml" ]; then
+    echo "types: no Qt 6 found (no /usr/lib/qt6/qml, and neither qtpaths6 nor qtpaths names a qml directory that is there); install Qt 6 (qt6-declarative), or name its qml directory with --qt DIR" >&2
     exit 1
   fi
   # --qt replaces the generator's own search, so QML_IMPORT_PATH goes first
