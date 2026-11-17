@@ -18,7 +18,7 @@ import { fileURLToPath } from "node:url";
 import { chromium } from "@playwright/test";
 import { createRequire } from "node:module";
 import { highlight, readMarkdownSite } from "ljos-web/markdown";
-import { buildSite, pooled } from "ljos-web/site";
+import { askedJobs, buildSite, pooled } from "ljos-web/site";
 import { checkExamplesAll, hashExample, loadHarnesses, loadPrerenders, pruneCache, renderPrerenders, siteFiles } from "ljos-web/codeblocks";
 import { assemble, packGiven, tagged } from "ljos-web/codeblocks/parse";
 import { kernelNamed } from "ljos-web/vite";
@@ -199,7 +199,7 @@ const liveAt = new Map(); // a page's code block -> its live payload
     // every picture in turn, and each waited on the last's layout and
     // capture. Few, not one per core: they share the browser's GPU and
     // compositor processes, which a dozen pages only queue on.
-    const pages = Math.max(1, Math.min(shots.length, 4, Number(process.env.LJOS_SITE_JOBS) || 4));
+    const pages = Math.max(1, Math.min(shots.length, 4, askedJobs(process.env, "LJOS_SITE_JOBS") ?? 4));
     await timed(`${shots.length} pictures drawn on ${pages} pages`, async () => {
       const browser = await chromium.launch();
       try {

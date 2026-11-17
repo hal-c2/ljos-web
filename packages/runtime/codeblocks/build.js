@@ -14,10 +14,10 @@
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
-import { availableParallelism, tmpdir, totalmem } from "node:os";
+import { availableParallelism, tmpdir } from "node:os";
 import { dirname, join, relative } from "node:path";
 import { highlightToHtml } from "lezer-ljos/html";
-import { pooled } from "../pool.js";
+import { askedJobs, fittingJobs, pooled } from "../pool.js";
 import { kernelNamed } from "../vite.js";
 import { assemble, exampleFiles, packGiven } from "./parse.js";
 
@@ -126,8 +126,9 @@ export function checkExamples(examples, { qmlc, env = process.env } = {}) {
 // build asks about a couple of hundred, and one `qmlc` after another
 // was most of the minutes a build spent before it made anything. The
 // answer is in the examples' order, a copy's failure said again for
-// each place it stands, as one at a time would.
-export async function checkExamplesAll(examples, { qmlc, env = process.env, jobs = Number(env.LJOS_SITE_JOBS) || availableParallelism() } = {}) {
+// each place it stands, as one at a time would. `LJOS_SITE_JOBS` is read
+// as a site's renders read it, and a wrong one refused the same way.
+export async function checkExamplesAll(examples, { qmlc, env = process.env, jobs = askedJobs(env, "LJOS_SITE_JOBS") ?? availableParallelism() } = {}) {
   const distinct = new Map();
   for (const example of examples) {
     const hash = hashExample(example);
@@ -362,7 +363,8 @@ const run = (command, args, env) =>
 // failures fail a build is the caller's to say, as with
 // `checkExamples`. The kernel is the build's (`LJOS_KERNEL=wasm` for
 // Ljós's graph), as a prerendered site's is. `LJOS_PRERENDER_JOBS`
-// says how many batches are made at once (at most 4 by default).
+// says how many batches are made at once (by default as many as
+// the cores and free memory allow).
 // A `cacheDir` holds one stamp's answers, and drops the rest: a
 // caller that prerenders under several (each kernel, say) gives each
 // its own.
@@ -532,7 +534,7 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
   // otherwise), and never more than there are.
   const batches = [];
   for (let i = 0; i < missing.length; i += 24) batches.push(missing.slice(i, i + 24));
-  const lanes = Math.max(1, Math.min(batches.length, Number(env.LJOS_PRERENDER_JOBS) || prerenderLanes()));
+  const lanes = Math.max(1, Math.min(batches.length, askedJobs(env, "LJOS_PRERENDER_JOBS") ?? fittingJobs(BUNDLE_MEMORY)));
   await Promise.all(
     Array.from({ length: lanes }, async () => {
       while (batches.length > 0) await attempt(batches.shift());
@@ -547,10 +549,6 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
 // modules and two dozen compiled examples, in a process of its own.
 const BUNDLE_MEMORY = 2 * 1024 ** 3;
 
-// How many batches are bundled at once by default: one a core, as many
-// as the memory (a cgroup's limit, which Node reads) has room for.
-const prerenderLanes = ({ cores = availableParallelism(), memory = Math.min(process.constrainedMemory?.() || Infinity, totalmem()) } = {}) =>
-  Math.max(1, Math.min(cores, Math.floor(memory / BUNDLE_MEMORY)));
 
 // Removes each file of `cacheDir` that `pattern` names and `keep` does
 // not hold: a cache kept across runs (CI restores the newest one, made

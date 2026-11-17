@@ -1751,8 +1751,9 @@ What a prerender has, and what it has not:
   neither paint nor hydration shows the other scheme first.
 - The renders are processes of their own, so a build runs several
   at once: as many as the machine runs at once and has a GiB of
-  memory each for (its cgroup's limit, if it has one), or
-  `LJOS_SITE_JOBS` (`buildSite({ jobs })`). They are put back in the order one at a
+  free memory each for (under its cgroup's limit, if it has one), or
+  `LJOS_SITE_JOBS` (`buildSite({ jobs })`; anything but a whole number
+  from 1 is refused, and only a prerendered build reads it). They are put back in the order one at a
   time made them before anything is written, so the site is the same
   byte for byte however many ran at once. The page's build and the
   server bundle are made at once too. `buildSite` returns how long
@@ -1854,7 +1855,7 @@ turns a Markdown page's fenced blocks into live ones, for any site:
   (`codeblocks/prerender-bundle.js`): the plugin runs `qmlc` to its end
   for each file, which holds the event loop it runs on, so batches in one
   process would take turns. As many run at once as the machine has cores
-  and memory for (`LJOS_PRERENDER_JOBS` says otherwise). An import the
+  and free memory for (`LJOS_PRERENDER_JOBS` says otherwise). An import the
   runtime lacks is told for every example of a batch in its one bundle
   (the plugin's `lacking`), so a batch is built again once without them,
   not once an example. There is no second, picture-shaped path: a
