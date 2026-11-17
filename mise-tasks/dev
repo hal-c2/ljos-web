@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
-#MISE description="Run something locally with Vite: the web example (default; QML recompiles as it is edited), the site, the Ljós-pages site or the gallery"
-#MISE depends=["build:compiler", "packages"]
-#USAGE arg "[what]" default="example" help="example (default): examples/web; site: the Astro site (site/); site-ljos: the site as Ljós pages, built then served; gallery: Qt's examples (gallery:serve). An option first (dev --port N) goes to the example's server"
-#USAGE arg "[args]..." var=#true help="Passed on to the server (Vite, Astro), after WHAT"
+#MISE description="Run something locally and print its URL: the web example with Vite (default; QML recompiles as it is edited), the Astro site, ljos.dev (site-ljos, as mise run site) or the gallery"
+#USAGE arg "[what]" default="example" help="example (default): examples/web; site: the Astro site (site/); site-ljos: ljos.dev, live (mise run site); gallery: Qt's examples (gallery:serve). An option first (dev --port N) goes to the example's server"
+#USAGE arg "[args]..." var=#true help="Passed on to the server (Vite, Astro, mise run site), after WHAT"
 set -euo pipefail
 
 # WHAT is checked here, not by a choices list: usage would take a leading
-# server option (dev --port N) as WHAT and refuse it.
+# server option (dev --port N) as WHAT and refuse it. It is checked before
+# anything is built, so a wrong one costs nothing: what each needs is built
+# in its branch, not as the task's depends.
 what=example
 if [ "$#" -gt 0 ] && [ "${1#-}" = "$1" ]; then
   what=$1
@@ -15,21 +16,21 @@ fi
 
 case "$what" in
   example)
+    mise run build:compiler
+    mise run packages
     exec pnpm --filter ljos-web-example-web dev "$@"
     ;;
   site)
+    mise run packages
     # The live blocks and the orbit demo load these in the page.
     mise run build:wasm-compiler
     mise run build:wasm-3d
+    LJOS_DOCS_DIR=$(mise-tasks/site/docs)
+    export LJOS_DOCS_DIR
     exec pnpm --filter ljos-site dev "$@"
     ;;
   site-ljos)
-    mise run build:wasm-compiler
-    mise run build:kernel
-    mise run browser
-    export QMLC="${QMLC:-${CARGO_TARGET_DIR:-$PWD/target}/debug/qmlc}"
-    pnpm --filter ljos-site-ljos build
-    exec pnpm --filter ljos-site-ljos serve "$@"
+    exec mise run site "$@"
     ;;
   gallery)
     exec mise run gallery:serve "$@"

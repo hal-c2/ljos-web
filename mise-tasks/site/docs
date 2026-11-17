@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+#MISE description="Fetch ljos-ui's docs/site at the commit site/ljos-ui.sha pins, into a cache under the target dir, and print where they are; LJOS_DOCS_DIR, when set, is printed instead"
+set -euo pipefail
+
+# Both sites are built from ljos-ui's docs. A person editing those docs
+# names their own checkout with LJOS_DOCS_DIR; everyone else gets the
+# pinned commit, as site.yml builds it, and never a sibling checkout that
+# may be at another commit.
+if [ -n "${LJOS_DOCS_DIR:-}" ]; then
+  if [ ! -f "$LJOS_DOCS_DIR/start/index.md" ]; then
+    echo "site:docs: LJOS_DOCS_DIR=$LJOS_DOCS_DIR is not ljos-ui's docs/site (no start/index.md in it)" >&2
+    exit 1
+  fi
+  (cd "$LJOS_DOCS_DIR" && pwd)
+  exit 0
+fi
+
+root="$(git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-toplevel)"
+sha=$(tr -d '[:space:]' <"$root/site/ljos-ui.sha")
+case ${CARGO_TARGET_DIR:-} in
+  "") cache="$root/target/ljos-ui-docs" ;;
+  /*) cache="$CARGO_TARGET_DIR/ljos-ui-docs" ;;
+  *) cache="$root/$CARGO_TARGET_DIR/ljos-ui-docs" ;;
+esac
+docs="$cache/$sha/docs/site"
+if [ ! -f "$docs/start/index.md" ]; then
+  command -v git >/dev/null || { echo "site:docs: needs git to fetch ljos-ui's docs" >&2; exit 1; }
+  mkdir -p "$cache"
+  # Only docs/site of the one commit: no history, and no other file's
+  # contents (a blob filter with a sparse checkout).
+  scratch=$(mktemp -d "$cache/.fetch.XXXXXX")
+  trap 'rm -rf "$scratch"' EXIT
+  echo "site:docs: fetching ljos-ui's docs/site at $sha" >&2
+  git -C "$scratch" init -q
+  git -C "$scratch" remote add origin https://github.com/hal-c2/ljos-ui
+  git -C "$scratch" sparse-checkout set --no-cone /docs/site/
+  if ! git -C "$scratch" fetch -q --depth 1 --filter=blob:none origin "$sha"; then
+    echo "site:docs: could not fetch ljos-ui at $sha from https://github.com/hal-c2/ljos-ui; check the network, or set LJOS_DOCS_DIR to a ljos-ui docs/site" >&2
+    exit 1
+  fi
+  git -C "$scratch" -c advice.detachedHead=false checkout -q FETCH_HEAD
+  rm -rf "${cache:?}/$sha"
+  mv "$scratch" "$cache/$sha"
+  trap - EXIT
+fi
+echo "$docs"

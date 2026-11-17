@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+#MISE description="ljos.dev (site-ljos) as a live-reload dev server at http://127.0.0.1:4471/: builds it, rebuilds as its sources change and reloads open pages; --build builds once and exits"
+#MISE depends=["packages"]
+#USAGE flag "--build" help="Build the site once into site-ljos/dist and exit (non-zero when the build fails); serve nothing"
+#USAGE flag "--port <port>" env="PORT" default="4471" help="The port to serve on, at 127.0.0.1"
+#USAGE flag "--base <path>" env="LJOS_SITE_BASE" default="/" help="The path the site stands at, as on a project Pages site (/ljos-web/)"
+set -euo pipefail
+
+root=$PWD
+port=${usage_port:-4471}
+base=${usage_base:-/}
+case $port in
+  '' | *[!0-9]*) echo "site: --port $port is not a port number" >&2; exit 2 ;;
+esac
+case $base in
+  /*/ | /) ;;
+  *) echo "site: --base $base is a path that starts and ends with / (such as / or /ljos-web/)" >&2; exit 2 ;;
+esac
+
+case ${CARGO_TARGET_DIR:-} in
+  "") target="$root/target" ;;
+  /*) target=$CARGO_TARGET_DIR ;;
+  *) target="$root/$CARGO_TARGET_DIR" ;;
+esac
+
+# mise.toml points QMLC at the target dir's qmlc whenever CARGO_TARGET_DIR is
+# set, so a QMLC is the caller's own only when it names some other file.
+# Theirs is used as it is; the rest is built here.
+if [ -n "${QMLC:-}" ] && [ "$QMLC" != "$target/debug/qmlc" ]; then
+  if [ ! -x "$QMLC" ]; then
+    echo "site: QMLC=$QMLC is not an executable qmlc; unset it to build one" >&2
+    exit 1
+  fi
+  export LJOS_SITE_OWN_QMLC=1
+else
+  export QMLC="$target/debug/qmlc"
+  mise run build:compiler
+fi
+# The pages compile in the browser, run on the wasm kernel, and the orbit
+# demo draws with the 3D renderer; the build pictures them with Chromium.
+mise run build:wasm-compiler
+mise run build:kernel
+mise run build:wasm-3d
+mise run browser
+
+LJOS_DOCS_DIR=$(mise-tasks/site/docs)
+export LJOS_DOCS_DIR
+
+args=(--port "$port" --base "$base")
+if [ "${usage_build:-false}" = true ]; then args+=(--build); fi
+exec node scripts/site-dev.mjs "${args[@]}"
