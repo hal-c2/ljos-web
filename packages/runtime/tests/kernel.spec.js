@@ -343,3 +343,27 @@ test("createObject while a binding makes a property's value completes before it 
   expect(height).toBe(40);
   expect(order).toEqual(["made completed", "createObject returned", "binding returned", "after completed", "content completed"]);
 });
+
+test("what createObject makes in a binding is complete before the call returns, with the objects its properties hold", async ({ page }) => {
+  await open(page, "madeinbinding");
+  const order = await page.evaluate(() => {
+    window.scene.heldAsked = 1;
+    return [window.scene.makingHeld, window.scene.heldOrder];
+  });
+  // Qt 6.11: createObject() completes all it makes before it returns, the
+  // object made last first.
+  expect(order).toEqual([1, ["deeper completed", "held completed", "holder completed", "returned"]]);
+});
+
+test("what a binding makes as it reads a property's value is told it is complete once the binding is done, on either kernel", async ({ page }) => {
+  await open(page, "madevalue");
+  const [height, order] = await page.evaluate(() => {
+    window.scene.asked = true;
+    // Read at once: the binding, and the value it makes, are evaluated here.
+    const height = window.scene.read;
+    window.flush();
+    return [height, [...window.objects.log]];
+  });
+  expect(height).toBe(30);
+  expect(order).toEqual(["binding returned", "value completed"]);
+});

@@ -99,4 +99,26 @@ Item {
             return made.ready ? "ready" : "not ready"
         }
     }
+
+    // What createObject() makes in a binding holds objects of its own (a
+    // property's object value, which holds one too): each is complete before
+    // what holds it, and all of them before the call returns.
+    property var heldOrder: []
+    property int heldAsked: 0
+    property Component holder: Component {
+        QtObject {
+            property QtObject inner: QtObject {
+                property QtObject deeper: QtObject { Component.onCompleted: root.heldOrder.push("deeper completed") }
+                Component.onCompleted: root.heldOrder.push("held completed")
+            }
+            Component.onCompleted: root.heldOrder.push("holder completed")
+        }
+    }
+    property int makingHeld: {
+        if (heldAsked > 0) {
+            root.holder.createObject(root)
+            heldOrder.push("returned")
+        }
+        return heldAsked
+    }
 }
