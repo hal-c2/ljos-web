@@ -152,6 +152,10 @@ test("a cgroup's room is the least any limit over it leaves: all each holds, les
     group("ci.slice", { "memory.max": 20 * GiB });
     rmSync(join(root, "ci.slice", "memory.current"));
     expect(room()).toBe(2 * GiB);
+    // It still holds all that is held in it, so it leaves no more than
+    // its limit less that: 3 GiB over the 2 held inside leaves 1.
+    group("ci.slice", { "memory.max": 3 * GiB });
+    expect(room()).toBe(GiB);
     // No limit up to the root (which has no memory.max), no cgroup v2,
     // or only ones it cannot read: nothing to go by.
     group("ci.slice/build.slice/job.scope", limit("max", 3 * GiB, GiB));

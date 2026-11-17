@@ -50,9 +50,9 @@ export function askedJobs(env, name) {
 // bytes, or null when no limit holds it. Every cgroup from its own up
 // to the root may set one (memory.max, or memory.high, where the kernel
 // starts to throttle), and each covers all its processes, so the room
-// is the least any of them leaves, of those whose use can be read.
-// What a cgroup holds is memory.current less inactive_file, the file
-// cache the kernel drops before it refuses anyone. A limit above the machine's memory never
+// is the least any of them leaves. What a cgroup holds is
+// memory.current less inactive_file, the file cache the kernel drops
+// before it refuses anyone. A limit above the machine's memory never
 // holds before the machine does. Null too without cgroup v2 (another
 // system, or v1): then the machine's free memory is all there is to go
 // by.
@@ -67,16 +67,22 @@ export function cgroupHeadroom({ root = "/sys/fs/cgroup", self = "/proc/self/cgr
   const path = /^0::(\/.*)$/m.exec(read(self) ?? "")?.[1];
   if (path === undefined) return null;
   let room = null;
+  // The most any cgroup below this one is known to hold: every cgroup
+  // holds at least what those in it hold.
+  let heldBelow = null;
   for (let at = path; ; at = posix.dirname(at)) {
     const limits = ["memory.max", "memory.high"].map((name) => Number(read(join(root, at, name)))).filter((limit) => limit < total);
     if (limits.length > 0) {
       const current = Number(read(join(root, at, "memory.current")));
       const inactive = Number(/^inactive_file (\d+)$/m.exec(read(join(root, at, "memory.stat")) ?? "")?.[1]);
-      // A limit whose use cannot be read is not guessed at, and takes
-      // nothing from the room the others are known to leave.
-      if (Number.isFinite(current) && Number.isFinite(inactive)) {
-        const left = Math.min(...limits) - (current - inactive);
+      // A limit whose use cannot be read is not guessed at: it leaves
+      // no more than itself less what is known to be held in it, and
+      // with nothing known, takes nothing from the others' room.
+      const held = Number.isFinite(current) && Number.isFinite(inactive) ? current - inactive : heldBelow;
+      if (held !== null) {
+        const left = Math.min(...limits) - held;
         room = room === null ? left : Math.min(room, left);
+        heldBelow = Math.max(heldBelow ?? 0, held);
       }
     }
     if (at === "/") return room;
