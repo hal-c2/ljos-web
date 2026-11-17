@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
-#MISE description="Every test task, one after another, then a table of each one's result: test:compiler, test:runtime, test:kernel, test:site, test:web, test:gallery, test:size, test:faces-size, test:wasm-counter, test:wasm-gauge, site:test and site:astro:test (perf:3d measures, it does not test, and is left out)"
+#MISE description="Every test task, one after another, then a table of each one's result: test:compiler, test:runtime, test:kernel, test:site, test:web, test:gallery, test:size, test:faces-size, test:wasm-counter, test:wasm-gauge, site:astro:test and site:test (perf:3d measures, it does not test, and is left out)"
 #USAGE flag "--only <tasks>" help="Run only these, comma-separated (test:web,site:test)"
 set -euo pipefail
 
 # One list, which tasks:smoke checks against `mise tasks`: a test task
-# added and not named here fails it.
-all=(test:compiler test:runtime test:kernel test:site test:web test:gallery test:size test:faces-size test:wasm-counter test:wasm-gauge site:test site:astro:test)
+# added and not named here fails it. site:astro:test goes before site:test:
+# it leaves site/dist built as CI builds it, which site:test's parity check
+# compares its routes with (a stale or missing one would be compared, or
+# skipped).
+all=(test:compiler test:runtime test:kernel test:site test:web test:gallery test:size test:faces-size test:wasm-counter test:wasm-gauge site:astro:test site:test)
 tasks=("${all[@]}")
 if [ -n "${usage_only:-}" ]; then
   IFS=, read -r -a tasks <<<"$usage_only"
