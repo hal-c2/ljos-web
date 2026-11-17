@@ -13,6 +13,10 @@ import { AbstractListModel, modelIndex, track, touch } from "../../QtQuick/model
 import { read as readFile, watch } from "../../files.js";
 import { untrack } from "#kernel";
 
+// The list models Qt Quick has, which Ljós keeps as they are.
+export { Instantiator } from "../../QtQuick/Instantiator.js";
+export { ListElement, ListModel } from "../../QtQuick/model.js";
+
 const NULL = 0;
 const READY = 1;
 const LOADING = 2;

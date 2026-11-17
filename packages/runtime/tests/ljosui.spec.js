@@ -117,6 +117,42 @@ test("a dialect file compiled by qmlc draws what its compat twin draws", async (
   expect(dialect.taps).toBe(1);
 });
 
+test("what Ljos.Ui, Ljos.Core and Ljos.Models keep of Qt Quick runs in a file of Ljós's API", async ({ page }) => {
+  await open(page, "ljosmodules");
+  const read = () =>
+    page.evaluate(() => {
+      const { theGrid: grid, thePath: path, theTurned: turned, made, keys, settings, painted } = window.scene;
+      const { width, height } = turned.$node.getBoundingClientRect();
+      return {
+        cells: grid.count,
+        current: getComputedStyle(grid.itemAtIndex(0).$node).backgroundColor,
+        other: getComputedStyle(grid.itemAtIndex(1).$node).backgroundColor,
+        made,
+        keys,
+        settings: [settings.objectName, settings.size],
+        parts: path.count,
+        turned: [Math.round(width), Math.round(height)],
+        painted: painted > 0,
+      };
+    });
+  await expect.poll(async () => (await read()).painted).toBe(true);
+  expect(await read()).toEqual({
+    cells: 3,
+    current: "rgb(255, 99, 71)",
+    other: "rgb(46, 139, 87)",
+    made: 2,
+    // `Object.keys` in a script is JavaScript's, beside Ljos.Core's `Object`.
+    keys: 2,
+    settings: ["settings", 3],
+    parts: 2,
+    // Turned a quarter, then twice as wide: 40 by 40 where it was 40 by 20.
+    turned: [40, 40],
+    painted: true,
+  });
+  await page.keyboard.press("Tab");
+  expect(await page.evaluate(() => window.scene.theSecond.activeFocus)).toBe(true);
+});
+
 test("a padded Row is as big as its children and its padding, and lays them out inside it", async ({ page }) => {
   await open(page, "ljosuilayout");
   const at = async (name) => [await read(page, name, "x"), await read(page, name, "y")];
