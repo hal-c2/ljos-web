@@ -261,6 +261,39 @@ test("an array that holds itself is said to, and the line it is in still prints"
   expect(o.show([[1], [1]]), "the same array twice, side by side, is not a loop").toBe("[[1], [1]]");
 });
 
+// live.js as the page loads it, its imports answered by `pull`: what it
+// does with the compiler, not the compiler.
+function liveWith(pull) {
+  const source = readFileSync(new URL("../bundle/live.js", import.meta.url), "utf8")
+    .replace(/^\.pragma library\n/, "")
+    .replace(/\bimport\(/g, "pull(");
+  return new Function("pull", `${source}\nreturn { setExample, compileWith, examples };`)(pull);
+}
+
+test("blocks that compile while the compiler loads get all its modules, and a load that failed is tried again", async () => {
+  const asked = [];
+  let refuse = true;
+  const later = (value) => new Promise((resolve) => setTimeout(() => resolve(value), 20));
+  const live = liveWith((name) => {
+    asked.push(name);
+    if (name === "ljos-web/compiler") return Promise.resolve({ createCompiler: ({ modules }) => ({ compile: modules }) });
+    if (name === "ljos-web/compiler/modules") return refuse ? Promise.reject(new Error("offline")) : later({ modules: { "ljos-web/QtQuick": "page" } });
+    return Promise.resolve({});
+  });
+  live.setExample("a", []);
+  live.setExample("b", [], "", "", "", null, "", (namespace) => namespace);
+  await expect(live.compileWith(live.examples.a), "the failed load is said").rejects.toThrow("offline");
+  refuse = false;
+  const [a, b] = await Promise.all([live.compileWith(live.examples.a), live.compileWith(live.examples.b)]);
+  for (const modules of [a, b]) {
+    expect(Object.keys(modules)).toEqual(expect.arrayContaining(["ljos-web/QtQuick", "ljos-web/QtQuick/Controls", "ljos-web/Ljos/Design"]));
+  }
+  expect(Object.keys(b), "an inspected example has its own inspect").toContain("ljos-web/inspect");
+  expect(Object.keys(a)).not.toContain("ljos-web/inspect");
+  expect(asked.filter((name) => name === "ljos-web/compiler"), "loaded again after it failed, then once for both").toHaveLength(2);
+  expect(await live.compileWith(live.examples.a), "an example keeps its compiler").toBe(a);
+});
+
 test("a root's own properties and signals are read from what declared them, and its signals are said as they fire", () => {
   const o = observed();
   const handlers = [];
