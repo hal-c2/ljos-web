@@ -134,21 +134,25 @@ export async function centreOf(locator) {
   return { x: box.x + box.width / 2, y: box.y + Math.min(box.height / 2, 400), box };
 }
 
-// A live example: its picture, and the stage the picture is drawn in;
-// once it runs, the running example, which is the one child of the
-// stage a reader sees that holds anything (the stage keeps the
-// picture's holder and the prerendered copy beside it, hidden, and its
-// edge, an empty frame drawn under the result, shown); after the stage,
-// the line where the block says what went wrong.
+// A live example: its picture, and the window the picture is drawn in
+// (`stage`); once it runs, the running example, which is the one child
+// of the window a reader sees that holds anything (the window keeps
+// the picture's holder and the prerendered copy beside it, hidden).
+// The window stands on the stage's ground; before that ground, the
+// toolbar (Run, Edit, Reset); after it, the line where the
+// block says what went wrong, then the values strip.
 export function liveBlock(page, index) {
   const picture = page.locator(PICTURE).nth(index);
   const stage = picture.locator("xpath=../../..");
+  const ground = stage.locator("xpath=..");
   return {
     picture,
     stage,
     running: stage.locator("xpath=./*[*]").filter({ visible: true }).first(),
-    told: stage.locator("xpath=following-sibling::*[1]"),
-    block: stage.locator("xpath=.."),
+    toolbar: ground.locator("xpath=preceding-sibling::*[1]"),
+    told: ground.locator("xpath=following-sibling::*[1]"),
+    values: ground.locator("xpath=following-sibling::*[2]"),
+    block: ground.locator("xpath=.."),
   };
 }
 

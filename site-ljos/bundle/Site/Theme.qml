@@ -72,6 +72,10 @@ QtObject {
     // so words in it are a step darker there.
     readonly property color danger: tone.danger
     readonly property color scrim: tone.scrim
+    readonly property color stage: tone.stage
+    readonly property color stageEdge: tone.stageEdge
+    readonly property color stageShadow: tone.stageShadow
+    readonly property color paper: tone.paper
 
     // The code theme, for what the site draws around highlighted code
     // (the highlighting itself is the page's HTML, coloured by class).

@@ -1,23 +1,23 @@
+// Ljós's Core before QtQuick: only its t`` is wanted here, and a name
+// both have (Timer) stays QtQuick's, the later import.
+import Ljos.Core
 import QtQuick
 import Site
 
-// Whether what it lies over runs, an example's stage or a demo, and the
-// control that says so. Nothing runs until the reader asks: the control
-// is a Run button on the picture, which Tab reaches, Return or Space
-// presses, a screen reader names and presses, and a press anywhere on
-// the picture presses too. One control, in five phases, so the focus a
-// keyboard reader gave it stays where it is as it changes:
+// Whether what it lies over runs, an example's stage or a demo. Nothing
+// runs until the reader asks: the stage's toolbar (StageButton) asks
+// with its Run, and a press anywhere on the picture asks too. It draws
+// nothing over what runs: a control over an app would hide what the app
+// draws (a demo's caption, a field) and take the presses meant for it.
+// Its phases are what the toolbar says:
 //
-// - `picture`: what the build drew stands; "▶ Run" on it;
-// - `loading`: asked for, not drawn yet; "Loading…" where Run was;
-// - `live`: drawn and running; the control steps to the corner, out of
-//   the way, and says what the reader can do next: "✎ Edit" for an
-//   example (its code takes the focus), "❚❚ Pause" for a demo;
+// - `picture`: what the build drew stands; Run;
+// - `loading`: asked for, not drawn yet; Starting…;
+// - `live`: drawn and running; an example offers Stop, a demo Pause;
 // - `paused`: a demo the reader paused holds still where it was;
-//   "▶ Run" in the corner goes on from there;
+//   Resume goes on from there;
 // - `failed`: what was asked for did not compile (the error is said
-//   under it); "✎ Edit" in the corner takes the reader to its code,
-//   since no Loading would ever end.
+//   under it); Stop takes the picture back.
 //
 // What is said aloud as it changes is said only for a run the reader
 // asked for, in the page's one polite live region (Accessible.announce):
@@ -30,27 +30,22 @@ import Site
 Item {
     id: runner
 
-    // False where it cannot run at all (no WebAssembly): no control.
+    // False where it cannot run at all (no WebAssembly): nothing asks.
     property bool can: true
-    // What runs, for the control's name: "Run the 3D demo".
+    // What runs, for what is said of it: "Run the 3D demo".
     property string what: "this example"
     // Whether what runs is drawn: until it is, it is loading.
     property bool ready: false
     // Whether it never will be: it did not compile.
     property bool failed: false
-    // Live, an example offers its code to edit; a demo, to pause.
-    property bool editable: false
-    signal edit()
+    // Live, an example offers to stop; a demo, to pause.
+    property bool stops: false
     // The area it lies over. The runner itself takes none: an item over
     // what runs would be what the page's pointer lands on, and a native
     // field under it (an example's text input) would never be pressed.
-    // Only its parts, the button and the press on the picture, take any.
+    // Only the press on the picture takes any, and only before it runs.
     property real spanWidth: 0
     property real spanHeight: 0
-    // The width the call to run is centred in: the picture's, where the
-    // runner spans more (a stage wider than its example, whose corner
-    // keeps the live control off what the example draws).
-    property real callWidth: spanWidth
 
     property bool asked: false
     property bool paused: false
@@ -61,8 +56,8 @@ Item {
     readonly property bool started: can && asked
     readonly property bool running: started && !paused && onScreen && Running.shown
     readonly property string phase: !can ? "" : !started ? "picture" : !ready ? (failed ? "failed" : "loading") : paused ? "paused" : "live"
-    // In the corner once there is something to see under it.
-    readonly property bool aside: phase === "live" || phase === "paused" || phase === "failed"
+    // A pointer over the picture: the stage shows it can be run.
+    readonly property bool hovered: hover.containsMouse
 
     function run() {
         asked = true;
@@ -79,18 +74,14 @@ Item {
         paused = false;
         told = false;
     }
-    // What the control does in each phase.
+    // What the toolbar's first button does in each phase.
     function act() {
-        if (phase === "picture" || phase === "paused") {
+        if (phase === "picture" || phase === "paused")
             ask();
-        } else if (phase === "failed") {
-            edit();
-        } else if (phase === "live") {
-            if (editable)
-                edit();
-            else
-                paused = true;
-        }
+        else if (phase === "failed" || (phase === "live" && stops))
+            evict();
+        else if (phase === "live")
+            paused = true;
     }
     // Whether any of it is in the band of the page the reader sees.
     function look() {
@@ -106,14 +97,15 @@ Item {
     onPhaseChanged: {
         if (!told)
             return;
+        var name = what.charAt(0).toUpperCase() + what.slice(1);
         if (phase === "loading")
-            Accessible.announce("Loading " + what);
+            Accessible.announce(t`Starting ${what}…`);
         else if (phase === "live")
-            Accessible.announce(what.charAt(0).toUpperCase() + what.slice(1) + " runs");
+            Accessible.announce(t`${name} runs`);
         else if (phase === "paused")
-            Accessible.announce(what.charAt(0).toUpperCase() + what.slice(1) + " is paused");
+            Accessible.announce(t`${name} is paused`);
         else if (phase === "failed")
-            Accessible.announce(what.charAt(0).toUpperCase() + what.slice(1) + " did not compile");
+            Accessible.announce(t`${name} did not compile`);
     }
     onSpanHeightChanged: look()
     onVisibleChanged: look()
@@ -128,10 +120,11 @@ Item {
     }
 
     // On the picture: a click or tap anywhere on it runs it, as the
-    // button does. Only a completed one that the page did not scroll
-    // under: a finger that sets out to scroll the page over a picture
-    // runs nothing. It stands where it cannot run too, only taking
-    // nothing, so a page without WebAssembly is built of the same parts.
+    // toolbar's Run does. Only a completed one that the page did not
+    // scroll under: a finger that sets out to scroll the page over a
+    // picture runs nothing. It stands where it cannot run too, only
+    // taking nothing, so a page without WebAssembly is built of the same
+    // parts.
     MouseArea {
         id: hover
         width: runner.spanWidth
@@ -150,86 +143,6 @@ Item {
         onClicked: {
             if (Math.abs(runner.mapToItem(null, 0, 0).y - pressedAt) < 1)
                 runner.ask();
-        }
-    }
-
-    Rectangle {
-        id: button
-        visible: runner.phase !== ""
-        // The call to run is the accent, in the middle of the picture;
-        // once something runs the control is a quiet one in the corner.
-        readonly property bool call: runner.phase === "picture"
-        width: words.implicitWidth + 2 * (runner.aside ? Theme.s : Theme.l)
-        height: runner.aside ? 36 : 44
-        x: runner.aside ? runner.spanWidth - width - Theme.s : Math.round((runner.callWidth - width) / 2)
-        y: runner.aside ? Theme.s : Math.round((runner.spanHeight - height) / 2)
-        radius: height / 2
-        color: call ? (hit.pressed ? Theme.accentPressed : hit.containsMouse || hover.containsMouse ? Theme.accentHover : Theme.accent) : (hit.pressed ? Theme.surfacePressed : hit.containsMouse ? Theme.surfaceHover : Theme.surfaceRaised)
-        border.color: call ? "transparent" : Theme.border
-        border.width: call ? 0 : 1
-        // The focus ring stands clear of the button, so it reads on the
-        // accent and on any picture under it.
-        Rectangle {
-            visible: button.activeFocus
-            anchors.fill: parent
-            anchors.margins: -4
-            radius: height / 2
-            color: "transparent"
-            border.color: Theme.focusRing
-            border.width: 2
-        }
-        activeFocusOnTab: true
-        Accessible.role: Accessible.Button
-        Accessible.name: {
-            switch (runner.phase) {
-            case "loading":
-                return "Loading " + runner.what;
-            case "live":
-                return (runner.editable ? "Edit " : "Pause ") + runner.what;
-            case "failed":
-                return "Edit " + runner.what;
-            default:
-                return "Run " + runner.what;
-            }
-        }
-        Accessible.onPressAction: () => runner.act()
-        Keys.onPressed: (event) => {
-            if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
-                runner.act();
-                event.accepted = true;
-            }
-        }
-
-        Text {
-            id: words
-            anchors.centerIn: parent
-            text: {
-                switch (runner.phase) {
-                case "loading":
-                    return "◌ Loading…";
-                case "live":
-                    return runner.editable ? "✎ Edit" : "❚❚ Pause";
-                case "failed":
-                    return "✎ Edit";
-                default:
-                    return "▶ Run";
-                }
-            }
-            color: button.call ? Theme.textOnAccent : Theme.text
-            font.family: Theme.sans
-            font.pixelSize: runner.aside ? Theme.captionSize : Theme.bodySize
-            font.weight: Font.Bold
-        }
-
-        MouseArea {
-            id: hit
-            anchors.fill: parent
-            hoverEnabled: true
-            Accessible.ignored: true
-            cursorShape: runner.phase === "loading" ? Qt.BusyCursor : Qt.PointingHandCursor
-            // A press leaves the keyboard where it was: once live, what
-            // runs under the control has its own fields to type in.
-            onClicked: runner.act()
         }
     }
 }

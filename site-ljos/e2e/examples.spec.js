@@ -135,7 +135,7 @@ for (const { route, examples } of pages) {
         // left out of the comparison.
         const words = (text) => text.replace(/\u00a0/g, " ").split("\n").map((line) => line.trimEnd()).join("\n").trim();
         for (const [i, file] of example.files.entries()) {
-          if (i > 0) await press(block.block.getByRole("button", { name: `Edit ${file.name}`, exact: true }));
+          if (i > 0) await press(block.block.getByRole("tab", { name: file.name, exact: true }));
           const editor = block.block.getByRole("textbox", { name: `Edit ${file.name}`, exact: true });
           await expect(editor, `${file.name}'s editor is shown`).toBeVisible();
           await expect.poll(async () => words(await editor.innerText()), { message: `${file.name}'s editor holds its source` }).toBe(words(file.code));

@@ -1,12 +1,16 @@
+// Ljós's Core before QtQuick: only its t`` is wanted here, and a name
+// both have (Timer) stays QtQuick's, the later import.
+import Ljos.Core
 import QtQuick
 import Site
 import "../nav.js" as Nav
 
 // Where a live demo stands: a frame its own size from the first paint,
 // holding a picture of the demo and the words for it, so nothing below
-// moves when the demo comes. The picture is the demo's poster, with a
-// Run button on it (Runner): the demo is made in a reader's browser
-// once they press it, fades in over its picture, and runs only while
+// moves when the demo comes. The picture is the demo's poster, and
+// under it a toolbar with Run (Runner): nothing is ever drawn over the
+// demo. The demo is made in a reader's browser once they press Run or
+// its poster, fades in over its picture, and runs only while
 // it is on screen and its tab is shown (`active`), gently where the
 // reader asks for less motion (`calm`). One more demo or example
 // started past the page's budget (Running) stops it: it is unmade, and
@@ -44,7 +48,10 @@ Item {
     property var scroller: null
     property real aspect: 420 / 720
 
-    height: Math.round(width * aspect)
+    // The demo's own area, its poster's shape; the toolbar under it.
+    readonly property int surfaceHeight: Math.round(width * aspect)
+    readonly property int barHeight: 48
+    height: surfaceHeight + barHeight
 
     // Set once the page this frame was written into is the reader's:
     // the demo is never part of the page the build writes.
@@ -60,7 +67,7 @@ Item {
         return y;
     }
     readonly property real top: scroller ? offset() - scroller.contentY : 0
-    readonly property bool onScreen: !scroller || (top < scroller.height && top + height > 0)
+    readonly property bool onScreen: !scroller || (top < scroller.height && top + surfaceHeight > 0)
     readonly property bool drawn: loader.status === Loader.Ready && loader.item !== null && loader.item.ready !== false
 
     Timer {
@@ -91,20 +98,19 @@ Item {
                 x: 1
                 y: 1
                 width: frame.width - 2
-                height: frame.height - 2
+                height: frame.surfaceHeight - 1
                 visible: modelData !== "" && (frame.pictureDark === "" || (index === 1) === Theme.dark) && !(frame.drawn && loader.opacity === 1)
                 textFormat: Text.RichText
-                text: modelData === "" ? "" : Nav.picture(frame.route, modelData, frame.width - 2, frame.height - 2, frame.description)
+                text: modelData === "" ? "" : Nav.picture(frame.route, modelData, frame.width - 2, frame.surfaceHeight - 1, frame.description)
             }
         }
 
         // Said where the demo cannot run here.
         Rectangle {
             visible: frame.cannot
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            anchors.margins: Theme.s
+            x: Theme.s
+            y: frame.surfaceHeight - height - Theme.s
+            width: parent.width - 2 * Theme.s
             height: why.implicitHeight + 2 * Theme.xs
             radius: Theme.radiusSmall
             color: Theme.surfaceRaised
@@ -129,7 +135,8 @@ Item {
 
     Loader {
         id: loader
-        anchors.fill: parent
+        width: frame.width
+        height: frame.surfaceHeight
         // DECISION: made when the reader presses Run, not as the frame
         // nears the screen: a demo the reader never asks for costs them
         // no GPU device, and one the budget stops gives its device back.
@@ -151,10 +158,61 @@ Item {
 
     Runner {
         id: runner
-        spanWidth: parent.width
-        spanHeight: parent.height
+        spanWidth: frame.width
+        spanHeight: frame.surfaceHeight
         can: frame.runnable
         what: frame.what
         ready: frame.drawn
+    }
+
+    // The toolbar: within the frame, under the demo, never over it.
+    Rectangle {
+        y: frame.surfaceHeight
+        width: frame.width
+        height: frame.barHeight
+        color: "transparent"
+
+        Rectangle {
+            width: parent.width
+            height: 1
+            color: Theme.divider
+        }
+
+        // One button through the run's phases, so the focus a keyboard
+        // reader gave it stays as it changes.
+        StageButton {
+            x: Theme.s
+            anchors.verticalCenter: parent.verticalCenter
+            visible: runner.phase !== ""
+            primary: runner.phase === "picture"
+            busy: runner.phase === "loading" || runner.phase === "failed"
+            text: {
+                switch (runner.phase) {
+                case "loading":
+                case "failed":
+                    return t`Starting…`;
+                case "live":
+                    return t`Pause`;
+                case "paused":
+                    return t`Resume`;
+                default:
+                    return t({ message: "Run", context: "stage" });
+                }
+            }
+            label: {
+                switch (runner.phase) {
+                case "loading":
+                case "failed":
+                    return t`Starting ${frame.what}…`;
+                case "live":
+                    return t`Pause ${frame.what}`;
+                case "paused":
+                    return t`Resume ${frame.what}`;
+                default:
+                    return t`Run ${frame.what}`;
+                }
+            }
+            onPressed: runner.act()
+        }
     }
 }
