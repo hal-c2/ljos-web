@@ -147,10 +147,14 @@ test.describe("an example's files", () => {
     const server = watched(page);
     const figure = await mounted(page, "folder");
     await expect(figure).toHaveAttribute("data-state", "live", { timeout: 30000 });
-    // Ready, Ready and Null; the first picture's row is the picture.
-    await expect(figure.locator(".ljos-codeblock__stage")).toContainText("1: Main.qml notes.json photo.png pictures/ | 1: a.png | 0:  | shown 2x1", {
-      timeout: 15000,
-    });
+    // Ready, Ready and Null; the first picture's row is the picture, a
+    // delegate sized by it is that size as it is made, and it has a time.
+    await expect(figure.locator(".ljos-codeblock__stage")).toContainText(
+      "1: Main.qml notes.json photo.png pictures/ | 1: a.png | 0:  | shown 2x1 | placed 2 | dated true",
+      {
+        timeout: 15000,
+      },
+    );
     await expect(figure.getByRole("alert")).toBeHidden();
     expect(server.named()).toEqual([]);
     expect(server.refused).toEqual([]);

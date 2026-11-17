@@ -12,7 +12,7 @@
 // that has only the files it was given (a live code block's example) holds
 // those files, and no host is asked of it.
 import { onCleanup } from "solid-js";
-import { own } from "../../../guard.js";
+import { own, typeOf } from "../../../guard.js";
 import { defineType, derived, effect, settle, slot } from "../../../object.ts";
 import { filesIn, pickedFile, pickedFolder } from "../../../QtQuick/Dialogs/files.js";
 import { ready } from "../../../QtQuick/Image.js";
@@ -202,7 +202,7 @@ const bytes = (content) => (typeof content === "string" ? new TextEncoder().enco
 // those files, and the folders their names go through, as a folder of Qt's
 // resources holds what was built into the program. Nothing else is there,
 // so a folder none of them is in is not there (null). Undefined for a folder
-// of no such project.
+// of no such project. Each was last changed when the project was given it.
 function given(folder) {
   const at = own(directory(folder));
   if (!at) return undefined;
@@ -211,11 +211,22 @@ function given(folder) {
     if (!name.startsWith(at.name) || name === at.name) continue;
     const rest = name.slice(at.name.length);
     const slash = rest.indexOf("/");
-    if (slash < 0) entries.set(rest, { fileName: rest, fileSize: bytes(content) });
-    else entries.set(`${rest.slice(0, slash)}/`, { fileName: rest.slice(0, slash), fileIsDir: true });
+    const fileModified = at.project.since;
+    if (slash < 0) entries.set(rest, { fileName: rest, fileSize: bytes(content), fileModified });
+    else entries.set(`${rest.slice(0, slash)}/`, { fileName: rest.slice(0, slash), fileIsDir: true, fileModified });
   }
   // The project's own folder is there with nothing in it.
   return entries.size > 0 || at.name === "" ? [...entries.values()] : null;
+}
+
+// The files a project was given are at hand too, so the pictures the model
+// is to show of them are looked into before it shows them, as a picked
+// folder's are.
+async function held(entries, folder, wanted) {
+  if (!entries) return entries;
+  const pictures = present(entries, folder, wanted).filter(({ fileName }) => typeOf(fileName).startsWith("image/"));
+  await Promise.all(pictures.map(({ fileUrl }) => ready(fileUrl)));
+  return entries;
 }
 
 // Asks the host what is in the folder, and shows it. What is shown stays
@@ -230,8 +241,8 @@ function look(self) {
   Promise.resolve()
     .then(() => {
       if (pickedFolder(folder)) return picked(folder, self.$wanted);
-      const held = given(folder);
-      if (held !== undefined) return held;
+      const kept = given(folder);
+      if (kept !== undefined) return held(kept, folder, self.$wanted);
       return lister ? lister(folder) : [];
     })
     .then(
