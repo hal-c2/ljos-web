@@ -37,10 +37,14 @@ workflow=${workflow##*/}
 # Older by run number: a run's number is fixed when its push lands,
 # and a re-run keeps it, so a re-run of an older push never cancels a
 # newer one.
-# Every page: a re-run of an old push keeps its place in the listing,
-# however many pushes came after it.
-older=$(gh api --paginate "repos/$REPO/actions/workflows/$workflow/runs?branch=main&event=push&per_page=100" \
-  --jq ".workflow_runs[] | select(.status != \"completed\" and .head_branch == \"main\" and .run_number < $GITHUB_RUN_NUMBER) | .id")
+# Listed by each unfinished status, every page: each listing is short,
+# and a re-run of an old push is found however many pushes came after
+# it, where one listing of every run would reach back only as far as
+# GitHub's limit and cost a call per hundred finished runs.
+older=$(for state in requested queued pending waiting in_progress; do
+  gh api --paginate "repos/$REPO/actions/workflows/$workflow/runs?branch=main&event=push&status=$state&per_page=100" \
+    --jq ".workflow_runs[] | select(.status != \"completed\" and .head_branch == \"main\" and .run_number < $GITHUB_RUN_NUMBER) | .id"
+done | sort -u)
 
 err=$(mktemp)
 trap 'rm -f "$err"' EXIT

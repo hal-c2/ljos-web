@@ -12,7 +12,7 @@ trap 'rm -rf "$work"' EXIT
 
 # The stub answers from JSON in $STUB_DIR, through the real jq with
 # the filter the step gives, as gh's --jq does:
-#   GET  .../workflows/<file>/runs?... -> runs.json (fails if STUB_FAIL)
+#   GET  .../workflows/<file>/runs?...status=<s> -> the runs.json entries in <s> (fails if STUB_FAIL)
 #   GET  .../runs/<id>/jobs?...        -> jobs-<id>.json, or no jobs
 #   POST .../runs/<id>/cancel          -> fails with cancel-<id>.err
 # It records each call as "<method> <path>".
@@ -33,9 +33,10 @@ done
 echo "$method $path" >> "$STUB_LOG"
 id=$(sed -n 's#.*/actions/runs/\([0-9]*\)/.*#\1#p' <<<"$path")
 case "$method $path" in
-  "GET(all pages) "*/actions/workflows/*/runs\?*)
+  "GET(all pages) "*/actions/workflows/*/runs\?*status=*)
     if [ -n "${STUB_FAIL:-}" ]; then echo "gh: HTTP 502" >&2; exit 1; fi
-    jq -r "$filter" "$STUB_DIR/runs.json"
+    state=$(sed -n 's/.*[?&]status=\([a-z_]*\).*/\1/p' <<<"$path")
+    jq --arg s "$state" '{workflow_runs: [.workflow_runs[] | select(.status == $s)]}' "$STUB_DIR/runs.json" | jq -r "$filter"
     ;;
   "GET "*/actions/runs/*/jobs\?*)
     if [ -f "$STUB_DIR/jobs-$id.json" ]; then
@@ -107,8 +108,11 @@ cancelled() { grep -q "^POST repos/hal-c2/ljos-web/actions/runs/$1/cancel$" <<<"
 runs alone 50:500:in_progress
 run alone
 [ "$status" = 0 ] || fail "a run with no older one fails: $out"
-grep -q "^GET(all pages) repos/hal-c2/ljos-web/actions/workflows/site.yml/runs?branch=main&event=push&per_page=100$" <<<"$asked" ||
-  fail "the step does not list every page of site.yml's pushes to main: $asked"
+for state in requested queued pending waiting in_progress; do
+  grep -q "^GET(all pages) repos/hal-c2/ljos-web/actions/workflows/site.yml/runs?branch=main&event=push&status=$state&per_page=100$" <<<"$asked" ||
+    fail "the step does not list every page of site.yml's $state pushes to main: $asked"
+done
+grep -q "status=completed" <<<"$asked" && fail "the step lists completed runs: $asked"
 ! grep -q "^POST" <<<"$asked" || fail "a run with no older one cancels: $asked"
 
 # Older runs still building or testing, or whose deploy waits for its
