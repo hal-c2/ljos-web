@@ -153,6 +153,33 @@ test("what Ljos.Ui, Ljos.Core and Ljos.Models keep of Qt Quick runs in a file of
   expect(await page.evaluate(() => window.scene.theSecond.activeFocus)).toBe(true);
 });
 
+test("`import Ljos` has SystemMenu, which a page has no menu bar for, and says which of its types the web has not", async ({ page }) => {
+  await open(page, "ljosroot");
+  const read = await page.evaluate(() => {
+    const { menu, ErrorBoundary, SelectionScope, SystemMenu, make } = window.objects;
+    const said = (work) => {
+      try {
+        work();
+      } catch (error) {
+        return error.message;
+      }
+    };
+    return {
+      roles: [SystemMenu.TextHeuristicRole, SystemMenu.NoRole, SystemMenu.WindowRole],
+      role: SystemMenu.attached(menu).role,
+      boundary: said(() => make(ErrorBoundary)),
+      scope: said(() => make(SelectionScope)),
+    };
+  });
+  expect(read).toEqual({
+    roles: [0, 1, 2],
+    // Said, and kept: off macOS it changes nothing, natively too.
+    role: 2,
+    boundary: "Ljos: ErrorBoundary is not in ljos-web yet",
+    scope: "Ljos: SelectionScope is not in ljos-web yet",
+  });
+});
+
 test("a padded Row is as big as its children and its padding, and lays them out inside it", async ({ page }) => {
   await open(page, "ljosuilayout");
   const at = async (name) => [await read(page, name, "x"), await read(page, name, "y")];
