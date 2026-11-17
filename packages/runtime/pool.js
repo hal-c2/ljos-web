@@ -1,7 +1,7 @@
 // A pool of async tasks with a bound on how many run at once: a site's
 // prerenders and a docs build's compiler checks are many short processes
 // each, and one at a time leaves every core but one idle.
-import { availableParallelism } from "node:os";
+import { availableParallelism, totalmem } from "node:os";
 
 // Each of `tasks` run, at most `jobs` at once, its results in the tasks'
 // order whatever order they end in. A task is given a signal that says
@@ -44,10 +44,28 @@ export function askedJobs(env, name) {
   return jobs;
 }
 
+// What this process could still be given, in bytes. Under a cgroup's
+// limit Node's availableMemory() is the limit less all the cgroup
+// holds, and that counts its page cache: the files a build has read
+// and written, which the kernel takes back when memory is asked for.
+// A long build fills it, and would be held to one job by memory it can
+// have. So under a limit it is the limit less this process. With none
+// (Node says 0, the largest number it has, or more than the machine
+// holds) it is the machine's free memory, which leaves the cache out
+// already.
+export function freeMemory({
+  limit = process.constrainedMemory(),
+  available = process.availableMemory(),
+  used = process.memoryUsage.rss(),
+  total = totalmem(),
+} = {}) {
+  return limit > 0 && limit < total ? Math.max(0, limit - used) : available;
+}
+
 // As many as the machine runs at once and has `each` bytes of memory
 // free for, and never fewer than one. Free, not total: memory other
-// work already holds (or a cgroup's limit, which Node reads) is not
+// work already holds, or that a cgroup's limit keeps from it, is not
 // there for these to use.
-export function fittingJobs(each, { cores = availableParallelism(), memory = process.availableMemory() } = {}) {
+export function fittingJobs(each, { cores = availableParallelism(), memory = freeMemory() } = {}) {
   return Math.max(1, Math.min(cores, Math.floor(memory / each)));
 }

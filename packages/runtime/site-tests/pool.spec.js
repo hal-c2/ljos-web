@@ -6,7 +6,7 @@
 import { readFileSync } from "node:fs";
 import { availableParallelism } from "node:os";
 import { join } from "node:path";
-import { askedJobs, fittingJobs } from "../pool.js";
+import { askedJobs, fittingJobs, freeMemory } from "../pool.js";
 import { buildSite, pooled, siteJobs, SiteError } from "../site.js";
 import { bundle, qmlc } from "./bundle.js";
 import { expect, part, test } from "./served.js";
@@ -82,9 +82,34 @@ test("every pool reads its variable the same way, and by default fits the memory
   }
   expect(fittingJobs(2 * GiB, { cores: 16, memory: 9 * GiB })).toBe(4);
   expect(fittingJobs(2 * GiB, { cores: 16, memory: GiB })).toBe(1);
-  // By default the memory is what this process could still be given.
-  expect(fittingJobs(1, { cores: 3 })).toBe(3);
-  expect(fittingJobs(process.availableMemory() + 1, { cores: 3 })).toBe(1);
+  // By default the memory is what this process could still be given,
+  // read once: a reading held still, so nothing freed meanwhile moves it.
+  const { availableMemory, constrainedMemory } = process;
+  try {
+    process.availableMemory = () => 9 * GiB;
+    process.constrainedMemory = () => 0;
+    expect(fittingJobs(2 * GiB, { cores: 16 })).toBe(4);
+    expect(fittingJobs(10 * GiB, { cores: 16 })).toBe(1);
+  } finally {
+    Object.assign(process, { availableMemory, constrainedMemory });
+  }
+});
+
+test("under a cgroup's limit, the page cache the build filled is memory it can have", () => {
+  const GiB = 1024 ** 3;
+  // Node's availableMemory() there is the limit less what the cgroup
+  // holds, files read and written included: 14 GiB of 16 held, 13 of
+  // it cache. What is free for the build is the limit less itself.
+  const limited = { limit: 16 * GiB, available: 2 * GiB, used: GiB, total: 64 * GiB };
+  expect(freeMemory(limited)).toBe(15 * GiB);
+  expect(fittingJobs(2 * GiB, { cores: 32, memory: freeMemory(limited) })).toBe(7);
+  // A process past its limit has none, and still runs one.
+  expect(freeMemory({ ...limited, used: 17 * GiB })).toBe(0);
+  // No limit: Node says 0 or the largest number it can, or a "limit"
+  // above the machine's memory. The machine's free memory, which
+  // leaves the cache out already, is what there is.
+  for (const limit of [0, 2 ** 64, 128 * GiB]) expect(freeMemory({ ...limited, limit })).toBe(2 * GiB);
+  expect(freeMemory()).toBeGreaterThan(0);
 });
 
 test("a build that renders nothing does not read LJOS_SITE_JOBS", async () => {
