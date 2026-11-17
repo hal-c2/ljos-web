@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-#MISE description="Fetch the JavaScript packages"
+#MISE description="Fetch the JavaScript packages, as pnpm-lock.yaml pins them"
 #MISE depends=["tools"]
-#MISE sources=["package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "packages/*/package.json", "examples/*/package.json"]
+#MISE sources=["package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "packages/*/package.json", "examples/*/package.json", "site/package.json", "site-ljos/package.json"]
 #MISE outputs=["node_modules/.modules.yaml"]
 set -euo pipefail
-pnpm install
+# The lockfile is what CI installs; a package.json that disagrees with it
+# fails here as it would there, instead of rewriting it quietly. After a
+# change to a package.json, run `pnpm install` to update the lockfile.
+pnpm install --frozen-lockfile

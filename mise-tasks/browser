@@ -1,5 +1,16 @@
 #!/usr/bin/env bash
-#MISE description="Fetch the browser Playwright drives"
+#MISE description="Fetch the Chromium Playwright drives (--check only says whether it is there)"
 #MISE depends=["packages"]
+#USAGE flag "--check" help="Fetch nothing: say whether Playwright's Chromium is installed, and exit non-zero when it is not"
 set -euo pipefail
+if [ "${usage_check:-false}" = true ]; then
+  # Playwright names the executable it would launch, whether or not it is there.
+  exe=$(cd examples/web && node -e 'import("@playwright/test").then(({ chromium }) => console.log(chromium.executablePath()))')
+  if [ -x "$exe" ]; then
+    echo "browser: Playwright's Chromium is installed: $exe"
+    exit 0
+  fi
+  echo "browser: Playwright's Chromium is not installed (no $exe); run 'mise run browser'" >&2
+  exit 1
+fi
 pnpm --filter ljos-web-example-web exec playwright install chromium

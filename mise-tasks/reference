@@ -3,5 +3,16 @@
 #MISE depends=["tools"]
 #USAGE arg "[id]..." var=#true help="The examples to take pictures of (ids in corpus/examples.json); default every one"
 set -euo pipefail
+# A desktop's Qt theme plugin would change the pictures, and may not load
+# off-screen at all.
+unset QT_QPA_PLATFORMTHEME
+# Said before the submodule is fetched, not after.
+if [ -z "${QML:-}" ] && ! command -v qml6 >/dev/null && ! command -v qml >/dev/null; then
+  echo "reference: no Qt 6 qml tool (qml6 or qml) on PATH; install Qt 6 (qt6-declarative), or set QML to one" >&2
+  exit 1
+fi
+if ! command -v sway >/dev/null; then
+  echo "reference: no sway on PATH, so the examples are drawn in software, without shader effects (install sway for them)" >&2
+fi
 git submodule update --init --depth 1 corpus/qtdoc
 exec node corpus/reference.mjs "$@"

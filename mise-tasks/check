@@ -1,12 +1,31 @@
 #!/usr/bin/env bash
-#MISE description="Formatting and clippy, as CI checks them (--fix formats in place first)"
-#MISE depends=["tools"]
-#USAGE flag "--fix" help="Format the code in place instead of only checking it"
+#MISE description="What CI checks before any test: Rust formatting and clippy, the TypeScript types, and the code grammar's tests (--fix formats in place first); runs every check and names each that failed"
+#MISE depends=["packages"]
+#USAGE flag "--fix" help="Format the Rust in place instead of only checking it"
 set -euo pipefail
 
+# Every check runs, whatever came before it, so one run shows every
+# failure there is, as CI's does.
+failed=()
+step() {
+  local name=$1
+  shift
+  echo "check: $name"
+  if ! "$@"; then failed+=("$name"); fi
+}
+
 if [ "${usage_fix:-false}" = true ]; then
-  cargo fmt --all
+  step "rustfmt (--fix)" cargo fmt --all
 else
-  cargo fmt --all --check
+  step "rustfmt" cargo fmt --all --check
 fi
-cargo clippy --workspace --all-targets --locked -- -D warnings
+step "clippy" cargo clippy --workspace --all-targets --locked -- -D warnings
+step "TypeScript types" pnpm -r --if-present run typecheck
+step "code grammar (lezer-ljos)" pnpm --filter lezer-ljos test
+
+if [ "${#failed[@]}" -gt 0 ]; then
+  list=$(printf '%s, ' "${failed[@]}")
+  echo "check: failed: ${list%, }" >&2
+  exit 1
+fi
+echo "check: rustfmt, clippy, types and the code grammar are clean"
