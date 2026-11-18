@@ -26,3 +26,31 @@ test("a Ljós button or menu row shows the icon it or its action is given, in it
   expect(icons.actingRow).toEqual([true, 24]);
   expect(icons.plainRow).toEqual([false, 0]);
 });
+
+test("a Ljós button shows what its display asks for: the icon, the text, or the icon over the text", async ({ page }) => {
+  await open(page, "ljoscontrols");
+  const shown = await answer(page, "displays");
+  // Beside, the default: icon, spacing, text.
+  expect(shown.besideWidth).toBe(16 + 8 + shown.labelWidth);
+  expect(shown.iconOnly).toEqual([16, true, false]);
+  expect(shown.textOnly).toEqual([shown.labelWidth, false, true]);
+  expect(shown.pictureTextOnly).toEqual([shown.labelWidth, false]);
+  // A menu row shows its icon in the icons' column, or no icon, and keeps
+  // the column for none only in a menu that has icons; a tab shows what it
+  // is told, the icon over the text too.
+  expect(shown.rowIconOnly).toEqual([true, false, 24]);
+  expect(shown.rowTextOnly).toEqual([false, true, 0]);
+  expect(shown.tabIconOnly).toEqual([true, false]);
+  expect(shown.tabTextOnly).toEqual([false, true]);
+  // Stacked, it is taller than one line, and keeps half a spacing above
+  // and below.
+  const [tabOver, tabIconMiddle, tabTextMiddle, tabMiddle, tabPadding] = shown.tabUnder;
+  expect([tabOver, tabIconMiddle, tabTextMiddle, tabPadding]).toEqual([true, tabMiddle, tabMiddle, 8]);
+  const [width, height, over, iconMiddle, textMiddle, middle, stacked, padding] = shown.under;
+  expect(padding).toBe(8);
+  expect(width).toBe(shown.labelWidth);
+  expect(height).toBe(stacked);
+  expect(over).toBe(true);
+  expect(iconMiddle).toBe(middle);
+  expect(textMiddle).toBe(middle);
+});

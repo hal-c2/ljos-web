@@ -31,6 +31,11 @@ Item {
     Button { id: textOnly; x: 200; y: 80; text: "Save"; iconName: "plus"; display: IconLabel.TextOnly }
     Button { id: under; x: 300; y: 80; text: "Save"; iconName: "plus"; display: IconLabel.TextUnderIcon }
     Button { id: pictureTextOnly; x: 400; y: 80; text: "Save"; icon.source: "../assets/circle.png"; display: IconLabel.TextOnly }
+    MenuItem { id: rowIconOnly; y: 110; width: 120; text: "Open"; iconName: "folder"; display: IconLabel.IconOnly }
+    MenuItem { id: rowTextOnly; x: 120; y: 110; width: 120; text: "Open"; iconName: "folder"; display: IconLabel.TextOnly }
+    TabButton { id: tabIconOnly; x: 240; y: 110; text: "Files"; iconName: "folder"; display: IconLabel.IconOnly }
+    TabButton { id: tabTextOnly; x: 300; y: 110; text: "Files"; iconName: "folder"; display: IconLabel.TextOnly }
+    TabButton { id: tabUnder; x: 360; y: 110; text: "Files"; iconName: "folder"; display: IconLabel.TextUnderIcon }
 
     // An empty state narrower than its text, and one as wide as its text.
     readonly property string longTitle: "A title that is a good deal wider than two hundred pixels"
@@ -123,13 +128,25 @@ Item {
             iconOnly: [iconOnly.implicitContentWidth, glyph(iconOnly).visible, label(iconOnly).visible],
             textOnly: [textOnly.implicitContentWidth, glyph(textOnly).visible, label(textOnly).visible],
             pictureTextOnly: [pictureTextOnly.implicitContentWidth, shown(pictureTextOnly, "picture")],
+            rowIconOnly: [shown(rowIconOnly, "glyph"), shown(rowIconOnly, "label"), rowIconOnly.contentItem.gutter],
+            rowTextOnly: [shown(rowTextOnly, "glyph"), shown(rowTextOnly, "label"), rowTextOnly.contentItem.gutter],
+            tabIconOnly: [shown(tabIconOnly, "glyph"), shown(tabIconOnly, "label")],
+            tabTextOnly: [shown(tabTextOnly, "glyph"), shown(tabTextOnly, "label")],
+            // Under: the icon over the text, both in the middle of the tab.
+            tabUnder: [part(tabUnder.contentItem, "glyph").mapToItem(root, 0, 0).y + part(tabUnder.contentItem, "glyph").height
+                           <= part(tabUnder.contentItem, "label").mapToItem(root, 0, 0).y,
+                       Math.round(part(tabUnder.contentItem, "glyph").mapToItem(tabUnder, 0, 0).x + part(tabUnder.contentItem, "glyph").width / 2),
+                       Math.round(part(tabUnder.contentItem, "label").mapToItem(tabUnder, 0, 0).x + part(tabUnder.contentItem, "label").width / 2),
+                       Math.round(tabUnder.width / 2),
+                       tabUnder.implicitHeight - tabUnder.implicitContentHeight],
             // Under: the mark is over the text, both in the middle.
             under: [under.implicitContentWidth, under.implicitContentHeight,
                     glyph(under).y + glyph(under).height <= label(under).y,
                     Math.round(glyph(under).x + glyph(under).width / 2),
                     Math.round(label(under).x + label(under).width / 2),
                     Math.round(under.contentItem.width / 2),
-                    glyph(under).height + under.spacing + label(under).implicitHeight],
+                    glyph(under).height + under.spacing + label(under).implicitHeight,
+                    under.implicitHeight - under.implicitContentHeight],
         }
     }
 
