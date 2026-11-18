@@ -73,3 +73,46 @@ test("a dev server goes on answering while a file compiles", async () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+// Killing the shell does not kill what it started, and that holds the
+// output's pipes: the run ends when they are closed, not when it is killed.
+test("a dev server's compiler run that left a process holding its output is ended at its bound", async () => {
+  const since = Date.now();
+  const ran = await compilerRun("sh", ["-c", "sleep 30; :"], { encoding: "utf8", timeout: 300 });
+  expect(Date.now() - since).toBeLessThan(10_000);
+  expect(ran.error?.code).toBe("ETIMEDOUT");
+});
+
+// Qt's own QML is compiled once and kept. A save while it compiles makes
+// what that compile gives back old: it is not kept, or the next load would
+// give back what the file said before the save.
+test("a file saved while it compiles is compiled again, not given back as it was", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "ljos-web-saved-"));
+  const qmlc = join(dir, "qmlc");
+  // The file is the module it compiles to, read once the compile has begun.
+  writeFileSync(qmlc, '#!/bin/sh\nfor last; do :; done\ncase "$last" in *.qml) cat "$last" > "$last.read"; sleep 1; cat "$last.read";; esac\n', { mode: 0o755 });
+  const file = join(dir, "Main.qml");
+  writeFileSync(file, "export default function Before() {}\n");
+  const server = await createServer({
+    configFile: false,
+    root: dir,
+    logLevel: "silent",
+    // A save reaches the plugin with hot updates on, the watcher told by hand.
+    server: { middlewareMode: true, hmr: true, watch: null },
+    plugins: [qml({ qmlc, qt: [dir], root: dir, styles: "ljos" })],
+  });
+  try {
+    const first = server.transformRequest("/Main.qml");
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    writeFileSync(file, "export default function After() {}\n");
+    server.watcher.emit("change", file);
+    await first.catch(() => null);
+    // Vite's own result is let go of as a page reloaded later would; what
+    // the plugin kept is all that is left to give the old file back.
+    server.moduleGraph.invalidateAll();
+    expect((await server.transformRequest("/Main.qml"))?.code).toContain("function After");
+  } finally {
+    await server.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
