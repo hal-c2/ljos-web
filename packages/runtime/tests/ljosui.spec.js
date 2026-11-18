@@ -291,3 +291,51 @@ test("a Drag child drags its item", async ({ page }) => {
   const dragged = await rect(page, "dragged");
   expect(dragged.x).toBe(50);
 });
+
+// Ljós's reduced motion (ljos-ui's ARCHITECTURE §14): asked for less
+// motion, what an animation in a file of Ljós's API would slide, grow or
+// turn is where it goes at once, a number of the file's own too (it may
+// well place something), and what it fades or recolours fades, in at
+// most 150 ms, so the change still shows. A loop that never ends keeps
+// its pace. In QML as Qt has it, reduced motion is the program's to say.
+test("asked for less motion, a file of Ljós's API moves nothing and still fades", async ({ page }) => {
+  const watch = async (scene, motion) => {
+    await page.emulateMedia({ reducedMotion: motion });
+    await page.goto(`/?scene=${scene}&still`);
+    await page.waitForFunction(() => window.ready);
+    return page.evaluate(() => {
+      const { scene: root, clock, flush } = window;
+      const slider = root.slider;
+      const at = () => ({ x: slider.x, open: root.open, opacity: slider.opacity, fill: getComputedStyle(slider.$node).backgroundColor });
+      root.moved = true;
+      flush();
+      clock.advance(16);
+      const started = at();
+      clock.advance(134);
+      const soon = at();
+      // The loop, from where it is: it goes on at a turn a second.
+      const turned = root.spin;
+      clock.advance(250);
+      return { started, soon, spun: root.spin - turned };
+    });
+  };
+  const calm = await watch("ljosuimotion", "reduce");
+  expect(calm.started.x).toBe(200);
+  expect(calm.started.open).toBe(1);
+  expect(calm.started.opacity).toBeGreaterThan(0.2);
+  expect(calm.started.opacity).toBeLessThan(1);
+  expect(calm.started.fill).not.toBe("rgb(70, 130, 180)");
+  expect(calm.soon.opacity).toBeCloseTo(0.2, 5);
+  expect(calm.soon.fill).toBe("rgb(70, 130, 180)");
+  expect(calm.spun).toBeCloseTo(90, 0);
+  // With no preference, the same file moves as it says.
+  const full = await watch("ljosuimotion", "no-preference");
+  expect(full.soon.x).toBeGreaterThan(0);
+  expect(full.soon.x).toBeLessThan(200);
+  expect(full.soon.open).toBeLessThan(1);
+  expect(full.soon.opacity).toBeGreaterThan(0.2);
+  // Qt's form leaves it to the program.
+  const qt = await watch("ljosuimotioncompat", "reduce");
+  expect(qt.soon.x).toBeLessThan(200);
+  expect(qt.soon.open).toBeLessThan(1);
+});

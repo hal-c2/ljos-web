@@ -24,14 +24,15 @@ import { Behavior } from "../../QtQuick/animation/Behavior.js";
 import { Canvas } from "../../QtQuick/Canvas.js";
 import { Easing } from "../../QtQuick/animation/easing.js";
 import {
-  ColorAnimation,
-  NumberAnimation,
+  ColorAnimation as ColorAnimationBase,
+  NumberAnimation as NumberAnimationBase,
   PropertyAction,
-  PropertyAnimation,
-  RotationAnimation,
-  SmoothedAnimation,
-  SpringAnimation,
+  PropertyAnimation as PropertyAnimationBase,
+  RotationAnimation as RotationAnimationBase,
+  SmoothedAnimation as SmoothedAnimationBase,
+  SpringAnimation as SpringAnimationBase,
 } from "../../QtQuick/animation/PropertyAnimation.js";
+import { calmed } from "./motion.js";
 import { Drag as DragAttachedSource, DropArea } from "../../QtQuick/Drag.js";
 import { Flickable } from "../../QtQuick/Flickable.js";
 import { GridView as GridViewBase } from "../../QtQuick/GridView.js";
@@ -161,6 +162,14 @@ function gesture(name, Base) {
 
 // `Rectangle`, with `color` called `fill`: what is inside the outline,
 // beside the `border` around it, where a `color` of `Text` is the glyphs'.
+// Asked for less motion, they move nothing and still fade (motion.js).
+export const PropertyAnimation = calmed("PropertyAnimation", PropertyAnimationBase);
+export const NumberAnimation = calmed("NumberAnimation", NumberAnimationBase);
+export const ColorAnimation = calmed("ColorAnimation", ColorAnimationBase);
+export const RotationAnimation = calmed("RotationAnimation", RotationAnimationBase);
+export const SpringAnimation = calmed("SpringAnimation", SpringAnimationBase);
+export const SmoothedAnimation = calmed("SmoothedAnimation", SmoothedAnimationBase);
+
 export const Rectangle = face("Rectangle", RectangleBase, { fill: "color" });
 
 // `Text`, with its alignment, wrapping and format called `align`, `wrap`
@@ -235,7 +244,6 @@ export {
   Animation,
   Behavior,
   Canvas,
-  ColorAnimation,
   ConicalGradient,
   DoubleValidator,
   DropArea,
@@ -250,7 +258,6 @@ export {
   KeyNavigation,
   Keys,
   LinearGradient,
-  NumberAnimation,
   ParallelAnimation,
   Path,
   PathAngleArc,
@@ -270,13 +277,11 @@ export {
   PauseAnimation,
   PointerDevice,
   PropertyAction,
-  PropertyAnimation,
   PropertyChanges,
   RadialGradient,
   RegularExpressionValidator,
   Repeater,
   Rotation,
-  RotationAnimation,
   Scale,
   Screen,
   ScriptAction,
@@ -285,8 +290,6 @@ export {
   ShapeGradient,
   ShapePath,
   Shortcut,
-  SmoothedAnimation,
-  SpringAnimation,
   State,
   TextEdit,
   TextInput,

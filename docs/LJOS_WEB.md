@@ -1754,7 +1754,12 @@ What a prerender has, and what it has not:
   data-ljos-motion="reduce">` or `"no-preference"`): it wins over the
   browser's `prefers-reduced-motion` in
   `styleHints.accessibility.motionPreference`, so a program's reduced
-  motion follows the site's motion switch.
+  motion follows the site's motion switch. A file in the Ljós dialect
+  (`import Ljos.Ui`) has Ljós's rule for it (ljos-ui's ARCHITECTURE
+  §14): asked for less motion, its animations put what moves at its
+  end at once, fade opacity and colour in at most 150 ms, and keep
+  endless ones at their pace (`packages/runtime/Ljos/Ui/motion.js`);
+  QtQuick's own animations are left to the program, as Qt leaves them.
 - The renders are processes of their own, so a build runs several
   at once: as many as the machine runs at once and has a GiB of
   free memory each for (under cgroup limits, the least any of them
