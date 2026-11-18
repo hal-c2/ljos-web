@@ -587,3 +587,18 @@ test("a source a block works out is beside the file as one that is written", asy
   // `Image.Ready`.
   await expect.poll(() => page.evaluate(() => window.scene.read())).toEqual([1, true, true]);
 });
+
+// What takes a picture of a scene waits for `busy()` to be 0: a picture still
+// on its way counts, or the scene is pictured without it.
+test("a picture on its way keeps the scene busy until it is there", async ({ page }) => {
+  let arrive;
+  const arrived = new Promise((resolve) => (arrive = resolve));
+  await page.route("**/mark.svg*", async (route) => {
+    await arrived;
+    await route.continue();
+  });
+  await open(page, "imageloop");
+  expect(await page.evaluate(() => window.busy())).toBeGreaterThan(0);
+  arrive();
+  await page.waitForFunction(() => window.busy() === 0);
+});

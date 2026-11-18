@@ -5,7 +5,7 @@
 // implicit size, and the rectangle it is painted in.
 import { allowedUrl, guardedFetch, sourced } from "../guard.js";
 import { signal } from "#kernel";
-import { defineType, derived, effect, flush, group, located } from "../object.ts";
+import { awaited, defineType, derived, effect, flush, group, located } from "../object.ts";
 import { given, lazy, rules, sized } from "./compute.ts";
 import { Rect } from "../QtQml/values.ts";
 import { Item } from "./Item.js";
@@ -25,11 +25,16 @@ const NONE = Object.freeze({ width: 0, height: 0 });
 const SCALABLE = /\.svgz?(?:[?#]|$)|^data:image\/svg\+xml/i;
 
 // A picture being loaded: how far it is, and its size once it is there.
+// Until it is there or has failed, the page is busy with it (`busy()`): what
+// pictures the page waits for it.
 export function picture(url) {
   const [status, setStatus] = signal(LOADING);
   const record = { url, status, width: 0, height: 0, scalable: SCALABLE.test(url), frames: null };
+  let over;
+  awaited(new Promise((resolve) => (over = resolve)));
   record.settle = (state) => {
     setStatus(state);
+    if (state !== LOADING) over();
     flush();
   };
   return record;

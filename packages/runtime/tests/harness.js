@@ -7,7 +7,7 @@
 // component, as a save does: it answers the error's message if there was one.
 // With `&inspect` the root is `window.inspector`. With `&fill` the root is
 // mounted with `{ fill: true }`.
-import { flush, mount } from "ljos-web/object";
+import { busy, flush, mount } from "ljos-web/object";
 import { reload } from "ljos-web/reload";
 import { clock } from "ljos-web/QtQuick";
 
@@ -32,6 +32,7 @@ window.reload = async (other) => {
 window.flush = flush;
 // Ends the scene as its page would, in the turn it is called in.
 window.dispose = () => handle.dispose();
+window.busy = busy;
 // `&inspect`: the scene's root, inspected (`ljos-web/inspect`).
 if (asked.has("inspect")) {
   const { inspect } = await import("ljos-web/inspect");
