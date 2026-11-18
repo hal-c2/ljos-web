@@ -169,14 +169,14 @@ importers:
   examples/gallery:
     dependencies:
       '@solidjs/web':
-        specifier: 2.0.0-rc.13
-        version: 2.0.0-rc.13(solid-js@2.0.0-rc.13)
+        specifier: 2.0.0
+        version: 2.0.0(solid-js@2.0.0)
       ljos-web:
         specifier: workspace:*
         version: link:../../packages/runtime
       solid-js:
-        specifier: 2.0.0-rc.13
-        version: 2.0.0-rc.13
+        specifier: 2.0.0
+        version: 2.0.0
     devDependencies:
       '@playwright/test':
         specifier: ^1.63.0
@@ -194,14 +194,14 @@ importers:
   examples/wasm-counter:
     dependencies:
       '@solidjs/web':
-        specifier: 2.0.0-rc.13
-        version: 2.0.0-rc.13(solid-js@2.0.0-rc.13)
+        specifier: 2.0.0
+        version: 2.0.0(solid-js@2.0.0)
       ljos-web:
         specifier: workspace:*
         version: link:../../packages/runtime
       solid-js:
-        specifier: 2.0.0-rc.13
-        version: 2.0.0-rc.13
+        specifier: 2.0.0
+        version: 2.0.0
     devDependencies:
       '@playwright/test':
         specifier: ^1.63.0
@@ -213,14 +213,14 @@ importers:
   examples/wasm-gauge:
     dependencies:
       '@solidjs/web':
-        specifier: 2.0.0-rc.13
-        version: 2.0.0-rc.13(solid-js@2.0.0-rc.13)
+        specifier: 2.0.0
+        version: 2.0.0(solid-js@2.0.0)
       ljos-web:
         specifier: workspace:*
         version: link:../../packages/runtime
       solid-js:
-        specifier: 2.0.0-rc.13
-        version: 2.0.0-rc.13
+        specifier: 2.0.0
+        version: 2.0.0
     devDependencies:
       '@playwright/test':
         specifier: ^1.63.0
@@ -232,14 +232,14 @@ importers:
   examples/web:
     dependencies:
       '@solidjs/web':
-        specifier: 2.0.0-rc.13
-        version: 2.0.0-rc.13(solid-js@2.0.0-rc.13)
+        specifier: 2.0.0
+        version: 2.0.0(solid-js@2.0.0)
       ljos-web:
         specifier: workspace:*
         version: link:../../packages/runtime
       solid-js:
-        specifier: 2.0.0-rc.13
-        version: 2.0.0-rc.13
+        specifier: 2.0.0
+        version: 2.0.0
     devDependencies:
       '@playwright/test':
         specifier: ^1.63.0
@@ -307,8 +307,8 @@ importers:
         specifier: 24.19.2
         version: 24.19.2
       solid-js:
-        specifier: 2.0.0-rc.13
-        version: 2.0.0-rc.13
+        specifier: 2.0.0
+        version: 2.0.0
       typescript:
         specifier: 7.0.2
         version: 7.0.2
@@ -316,14 +316,14 @@ importers:
   site:
     dependencies:
       '@solidjs/web':
-        specifier: 2.0.0-rc.13
-        version: 2.0.0-rc.13(solid-js@2.0.0-rc.13)
+        specifier: 2.0.0
+        version: 2.0.0(solid-js@2.0.0)
       ljos-web:
         specifier: workspace:*
         version: link:../packages/runtime
       solid-js:
-        specifier: 2.0.0-rc.13
-        version: 2.0.0-rc.13
+        specifier: 2.0.0
+        version: 2.0.0
     devDependencies:
       '@astrojs/starlight':
         specifier: ^0.34.0
@@ -1263,15 +1263,15 @@ packages:
   '@shikijs/vscode-textmate@10.1.0':
     resolution: {integrity: sha512-cVBuhDQjBZaNMTwBquYfPydrUP+E3hE6oYGasx8h6ZrODIM7/r+gxLDXdd66oszbrggZHEntdE6j+5gYIVyMWQ==}
 
-  '@solidjs/signals@2.0.0-rc.21':
-    resolution: {integrity: sha512-F1TUMO/nd1XC//+tcaWxibOOgXBHQGmNQnAeiDnpLh+1smnlwIgKF6pc20evlyfQwqf0gP6rH4sNEqCPBNcpgg==}
+  '@solidjs/signals@2.0.0':
+    resolution: {integrity: sha512-jrcT6XTVvsYRpesRp0At/mSUnsWr6jiprK8C93Oat56B8n7X9BMSe58Rxl6qSZUhBN0L+sxm8GzeO7HdhBXvDw==}
     engines: {node: '>=22.12.0'}
 
-  '@solidjs/web@2.0.0-rc.13':
-    resolution: {integrity: sha512-vI/7v/XM8B/3U/oKAzCW2VjTLFkM5IArB2DFnrjxyPRYD3FX9KAXg9QuAnPIPQHC/xvg/LgxmvoVfZUfJ96gOQ==}
+  '@solidjs/web@2.0.0':
+    resolution: {integrity: sha512-R0+JMCD6ukEXaID/sH5PVQe9bCIN9pRzJry+F6Sb6YvtlkAp9DEyVI7AeZYiV0cd6TSL98kpbCyLDiZnaAKGrA==}
     engines: {node: '>=22.12.0'}
     peerDependencies:
-      solid-js: ^2.0.0-rc.13
+      solid-js: ^2.0.0
 
   '@types/debug@4.1.13':
     resolution: {integrity: sha512-KSVgmQmzMwPlmtljOomayoR89W4FynCAi3E8PPs7vmDVPe84hT+vGPKkJfThkmXs0x0jAaa9U8uW8bbfyS2fWw==}
@@ -2416,15 +2416,15 @@ packages:
     engines: {node: '>=10'}
     hasBin: true
 
-  seroval-plugins@1.6.12:
-    resolution: {integrity: sha512-+reiwp/lYxiyctSrdvX7OQ1YLrcbWYgBiZrhSFL+V43b0/DGRLNVSDyZINbQe+tWplPOI2fw2dPrdv6hcc09kQ==}
-    engines: {node: '>=10'}
+  seroval-plugins@1.8.0:
+    resolution: {integrity: sha512-96vBb12rDvPPwdKUgWw1op3fGq8AVBFOr0IllbnM72yR5J9WWXF18cQ4g1XfDO7HCyh2dt70P3XdtyRayP8FWg==}
+    engines: {node: '>=20'}
     peerDependencies:
-      seroval: ^1.0
+      seroval: ^1.8.0
 
-  seroval@1.6.12:
-    resolution: {integrity: sha512-CqbIVfk/7GL3ITwZI55lcPbpQbjHZ2DD5cUj4iH7E9YsCfHNJV1mx7yNp86Z84w5IpmkZZS/2s5vPOWmVWSdQg==}
-    engines: {node: '>=10'}
+  seroval@1.8.1:
+    resolution: {integrity: sha512-7z9x1flFYfZBz+LfDkXNfm5UIhZJ/97ASaV8Q1wctoVkeqVfv+tLPsWebeMXBNw6XprvwxDE5wC5Ylqmr+iSrA==}
+    engines: {node: '>=20'}
 
   sharp@0.34.5:
     resolution: {integrity: sha512-Ou9I5Ft9WNcCbXrU9cMgPBcCK8LiwLqcbywW3t4oDV37n1pzpuNLsYiAV8eODnjbtQlSDwZ2cUEeQz4E54Hltg==}
@@ -2445,8 +2445,8 @@ packages:
     resolution: {integrity: sha512-j7WyPdf0CJoutMzMoPLF/bVXHtKZIT9Rb4eGeEbWw8X2t5oirjPgpL+OpaENZrILYaXqYwnVH+qgUwVbl+pUJQ==}
     engines: {node: '>= 18'}
 
-  solid-js@2.0.0-rc.13:
-    resolution: {integrity: sha512-62bYOI4JZ15KOqL5eReKyWSwAXrGb0fbX8SDnHsbJk2UX+SzSyy1gobas2cxW/0BXcobGfQ1V6ffPyQkMIBdoQ==}
+  solid-js@2.0.0:
+    resolution: {integrity: sha512-9zN4uH2OQeQAYbF4BmIzoaa+L5Hb8Dp6kkP6ZXobHQ1FZVICdmzREPDVDBJY7umzdAE8D6zbFfWhxGtagkyslA==}
     engines: {node: '>=22.12.0'}
 
   source-map-js@1.2.2:
@@ -3510,13 +3510,14 @@ snapshots:
 
   '@shikijs/vscode-textmate@10.1.0': {}
 
-  '@solidjs/signals@2.0.0-rc.21': {}
+  '@solidjs/signals@2.0.0': {}
 
-  '@solidjs/web@2.0.0-rc.13(solid-js@2.0.0-rc.13)':
+  '@solidjs/web@2.0.0(solid-js@2.0.0)':
     dependencies:
-      seroval: 1.6.12
-      seroval-plugins: 1.6.12(seroval@1.6.12)
-      solid-js: 2.0.0-rc.13
+      csstype: 3.2.3
+      seroval: 1.8.1
+      seroval-plugins: 1.8.0(seroval@1.8.1)
+      solid-js: 2.0.0
 
   '@types/debug@4.1.13':
     dependencies:
@@ -5205,11 +5206,11 @@ snapshots:
 
   semver@7.8.6: {}
 
-  seroval-plugins@1.6.12(seroval@1.6.12):
+  seroval-plugins@1.8.0(seroval@1.8.1):
     dependencies:
-      seroval: 1.6.12
+      seroval: 1.8.1
 
-  seroval@1.6.12: {}
+  seroval@1.8.1: {}
 
   sharp@0.34.5:
     dependencies:
@@ -5264,12 +5265,11 @@ snapshots:
 
   smol-toml@1.9.1: {}
 
-  solid-js@2.0.0-rc.13:
+  solid-js@2.0.0:
     dependencies:
-      '@solidjs/signals': 2.0.0-rc.21
-      csstype: 3.2.3
-      seroval: 1.6.12
-      seroval-plugins: 1.6.12(seroval@1.6.12)
+      '@solidjs/signals': 2.0.0
+      seroval: 1.8.1
+      seroval-plugins: 1.8.0(seroval@1.8.1)
 
   source-map-js@1.2.2: {}
 

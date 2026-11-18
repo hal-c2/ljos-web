@@ -8,9 +8,9 @@
     "selftest": "node tests/selftest/run.mjs"
   },
   "dependencies": {
-    "@solidjs/web": "2.0.0-rc.13",
+    "@solidjs/web": "2.0.0",
     "ljos-web": "workspace:*",
-    "solid-js": "2.0.0-rc.13"
+    "solid-js": "2.0.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",
