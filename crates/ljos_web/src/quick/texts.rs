@@ -163,6 +163,9 @@ pub(crate) fn declare<'a>(
             text.span,
         )]);
     }
+    // `Date.qml`'s, whose component is bound as `$Date`.
+    let file = options.name.rsplit('/').next().unwrap_or(&options.name);
+    let file = format!("./{file}.qml");
     // A document of its own, next to the file: it imports what it says, and
     // the directory.
     let mut project = project.clone();
@@ -176,7 +179,7 @@ pub(crate) fn declare<'a>(
     let mut component = None;
     for statement in program.body {
         match statement {
-            Statement::ImportDeclaration(_) => import(statement, imports, own, text.span)?,
+            Statement::ImportDeclaration(_) => import(statement, imports, own, &file, text.span)?,
             Statement::ExportDefaultDeclaration(export) => {
                 if let ExportDefaultDeclarationKind::FunctionDeclaration(function) =
                     export.unbox().declaration
@@ -224,12 +227,13 @@ fn taken(index: usize) -> String {
 }
 
 /// Adds what `statement` imports to `imports`, where it is not there. A
-/// name the file has for something else, as `own` is its component, is one
-/// too many.
+/// name the file has for something else, as `own` is the component of
+/// `file`, is one too many.
 fn import<'a>(
     statement: Statement<'a>,
     imports: &mut Vec<Statement<'a>>,
     own: &str,
+    file: &str,
     span: Span,
 ) -> Result<(), Vec<Error>> {
     let Statement::ImportDeclaration(mut declaration) = statement else {
@@ -256,9 +260,7 @@ fn import<'a>(
                 Some(same) if *same == (source.clone(), imported(specifier)) => false,
                 None if name != own => true,
                 // The file's own component, which the text is declared after.
-                None if imported(specifier) == "default" && source == format!("./{own}.qml") => {
-                    false
-                }
+                None if imported(specifier) == "default" && source == file => false,
                 _ => {
                     clash = Some(name.to_string());
                     false

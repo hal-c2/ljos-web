@@ -2423,6 +2423,21 @@ Item {
 }
 
 #[test]
+fn a_text_that_makes_the_file_it_is_written_in_makes_it_by_the_name_it_is_bound_under() {
+    // `Date.qml` is the component `$Date`, as `Dial.qml` is `Dial`; a text
+    // naming the file's own component is that component, not an import.
+    for (name, bound) in [("Dial", "Dial"), ("Date", "$Date")] {
+        let source = "import QtQuick\nItem {\n    function more() { return Qt.createQmlObject('import QtQuick; NAME { }', this) }\n}"
+            .replace("NAME", name);
+        let files = [(name, source.as_str())];
+        let code = lowered_in(&files, name).unwrap_or_else(|errors| panic!("{name}: {errors:?}"));
+        // The text's root is the file's own type, which its component extends.
+        assert_contains(&code, &format!("$text1, {bound});"));
+        assert_lacks(&code, &format!(r#"from "./{name}.qml""#));
+    }
+}
+
+#[test]
 fn a_singleton_of_a_module_of_the_package_is_its_object_through_a_namespace() {
     // A module that is installed is the package's, whose singleton is the
     // object it exports, not a function of the file that stands in for it.
