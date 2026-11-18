@@ -6,6 +6,7 @@
 import QtQuick
 import QtQuick.Controls.impl
 import QtQuick.Templates as T
+import QtQuick.Controls.Basic as QB
 import Ljos.Controls
 import Ljos.Controls.Basic as LB
 
@@ -74,6 +75,26 @@ Item {
         LB.EmptyState { id: plainBasicEmpty; x: 150; actionText: "New"; secondaryActionText: "Import" }
         LB.SplitButton { id: plainSplit; x: 300; text: "Run" }
         TabButton { id: plainTab; x: 450; text: "Files"; iconName: "folder" }
+    }
+
+    // Wider than they ask for, in each direction: their menus open against
+    // the chevron. Their menus fit the window (ljospopovers.qml's 400 by
+    // 300), so none is moved back inside it.
+    LB.SplitButton {
+        id: wideSplit
+        y: 180
+        width: 290
+        text: "Run"
+        menu: QB.Menu { id: wideOptions; width: 120; QB.MenuItem { text: "Run all" } }
+    }
+    LB.SplitButton {
+        id: wideMirroredSplit
+        x: 100
+        y: 180
+        width: 290
+        LayoutMirroring.enabled: true
+        text: "Run"
+        menu: QB.Menu { id: wideMirroredOptions; width: 120; QB.MenuItem { text: "Run all" } }
     }
 
     function part(item, name) {
@@ -156,6 +177,18 @@ Item {
                                      control.availableWidth, control.implicitWidth]
         return { narrow: widths(narrow), natural: widths(natural),
                  basicNarrow: widths(basicNarrow), basicNatural: widths(basicNatural) }
+    }
+
+    // How far each menu's edge is from its chevron's far edge, once opened
+    // from the chevron.
+    function splits() {
+        const edge = (split, options) => {
+            const more = part(split.contentItem, "more")
+            more.clicked()
+            const at = more.mapToItem(split, 0, 0).x
+            return [split.mirrored, Math.round(split.mirrored ? options.x - at : options.x + options.width - at - more.width)]
+        }
+        return { plain: edge(wideSplit, wideOptions), mirrored: edge(wideMirroredSplit, wideMirroredOptions) }
     }
 
     // Whether the action is laid out before the secondary one, in the

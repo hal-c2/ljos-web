@@ -96,3 +96,128 @@ test("a Ljós popover opens on the side the window has room on, as it is drawn a
   expect(at.roomy).toEqual([BOTTOM, 0, 24, 200, 44]);
   expect(at.before).toEqual([LEFT, -104, 0, 96, 20]);
 });
+
+test("a Ljós popover follows its button when a transform of an ancestor moves it", async ({ page }) => {
+  await open(page, "ljospopovers");
+  const TOP = 1, BOTTOM = 8;
+  const before = await page.evaluate(() => {
+    window.scene.popover("moved").open();
+    return JSON.parse(JSON.stringify(window.scene.popovers().moved));
+  });
+  // No room under its button, at 200 to 220 in a window 300 high.
+  expect(before).toEqual([TOP, 0, -104, 280, 96]);
+  await page.evaluate(() => {
+    window.scene.shift = -150;
+  });
+  // Moved up to 50, it has room under its button.
+  await expect.poll(() => page.evaluate(() => JSON.parse(JSON.stringify(window.scene.popovers().moved)))).toEqual([BOTTOM, 0, 24, 280, 74]);
+});
+
+test("a Ljós Basic split button made wider opens its menu against its chevron, in either direction", async ({ page }) => {
+  await open(page, "ljoscontrols");
+  const edges = await answer(page, "splits");
+  expect(edges.plain).toEqual([false, 0]);
+  expect(edges.mirrored).toEqual([true, 0]);
+});
+
+test("a Ljós button, menu row or tab with only one of its icon and its text shows it, whatever its display", async ({ page }) => {
+  await open(page, "ljoslabels");
+  const buttons = await answer(page, "buttons");
+  expect(buttons.noIcon).toEqual([0, [false, true]]);
+  expect(buttons.noText).toEqual([16, [true, false]]);
+  const rows = await answer(page, "rows");
+  expect(rows.noIcon).toEqual([0, [false, true]]);
+  expect(rows.noText).toEqual([24, [true, false]]);
+  const tabs = await answer(page, "tabs");
+  expect(tabs.noIcon).toEqual([[false, true], 0, 0]);
+  expect(tabs.noText).toEqual([[true, false], 0, 0]);
+});
+
+test("a Ljós button that shows its icon alone has it in its middle, as tall as it is drawn", async ({ page }) => {
+  await open(page, "ljoslabels");
+  await page.waitForFunction(() => window.scene.loaded());
+  const buttons = await answer(page, "buttons");
+  // Its own icon, a picture, mirrored, and with an empty text.
+  expect(buttons.middles).toEqual([0, 0, 0, 0]);
+  // A 50 pixel picture is drawn at 50 where it may be drawn at 64; a glyph
+  // is drawn at the size.
+  expect(buttons.heights).toEqual([50, 64]);
+});
+
+test("a Ljós menu row shown as its icon is as tall as a row, and a menu keeps no column for icons it hides", async ({ page }) => {
+  await open(page, "ljoslabels");
+  expect((await answer(page, "rows")).tallFits).toBe(true);
+  // A row shown as its text, one with no icon, one told to keep the
+  // column, and one beside a row whose icon is all it has.
+  expect(await answer(page, "menus")).toEqual([0, 0, 24, 24]);
+});
+
+test("a Ljós tab shows its text alone in its middle, and asks for its room alone", async ({ page }) => {
+  await open(page, "ljoslabels");
+  const tabs = await answer(page, "tabs");
+  expect(tabs.textOnly).toEqual([[false, true], 0, 0]);
+  expect(tabs.plain).toEqual([[false, true], 0, 0]);
+});
+
+test("a Ljós popover's surface is drawn where it is placed, unscaled by its button's ancestor", async ({ page }) => {
+  await open(page, "ljospopovers");
+  await page.evaluate(() => window.scene.popover("scaled").open());
+  // Above its button, at 200 to 240 in the window, by the gap: 96, and as
+  // large as it was made.
+  const drawn = () =>
+    page.evaluate(() => {
+      const scene = window.scene.$node.getBoundingClientRect();
+      const box = window.scene.surface().$node.getBoundingClientRect();
+      return [box.x - scene.x, box.y - scene.y, box.width, box.height].map(Math.round);
+    });
+  await expect.poll(drawn).toEqual([20, 96, 100, 100]);
+});
+
+test("a Ljós popover opened while an ancestor's ScaleAnimator runs is placed by the scale it reads, and again when the animator ends", async ({ page }) => {
+  await open(page, "ljospopovers&still");
+  const TOP = 1, BOTTOM = 8;
+  const advance = (ms) => page.evaluate((ms) => window.clock.advance(ms), ms);
+  const growth = () => page.evaluate(() => JSON.parse(JSON.stringify(window.scene.growth())));
+  await page.evaluate(() => window.scene.grow());
+  // As in Qt, the scale reads 1 while the animator draws it larger, and
+  // mapToItem reads the scale: room under the button at 100 to 120.
+  await advance(500);
+  expect(await growth()).toEqual([1, BOTTOM, 0, 24, 210, 124]);
+  // Told 2 at the end, the popover is placed again: above the button, now
+  // at 200 to 240.
+  await advance(600);
+  expect(await growth()).toEqual([2, TOP, 0, -52, 220, 96]);
+});
+
+test("a Ljós button given the padding of one edge keeps the other's", async ({ page }) => {
+  await open(page, "ljoslabels");
+  // Beside its icon a button has none above or below; under it, half a
+  // spacing.
+  expect(await answer(page, "paddings")).toEqual([0, 4]);
+});
+
+test("a Ljós button or tab loads no picture it does not show, and shows it once nothing hides it", async ({ page }) => {
+  await open(page, "ljoslabels");
+  await page.waitForFunction(() => window.scene.loaded());
+  // A glyph wins over the picture, or the display shows the text alone.
+  expect(await answer(page, "hiddenPictures")).toEqual([
+    ["", false, 0],
+    ["", false, 0],
+    ["", false, 0],
+    ["", false, 0],
+  ]);
+  await page.evaluate(() => window.scene.showPictures());
+  // Its own picture or its action's, beside the text, as large as the
+  // style's icons are (a tab's are smaller); a tab shown as its icon shows
+  // its picture alone.
+  await expect
+    .poll(() => answer(page, "shownPictures"))
+    .toEqual([
+      [true, 16, true],
+      [true, 16, true],
+      [true, 16, true],
+      [true, 12, true],
+      [true, 12, false],
+      [true, 12, false],
+    ]);
+});
