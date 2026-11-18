@@ -2469,3 +2469,39 @@ fn a_singleton_of_a_module_of_the_package_is_its_object_through_a_namespace() {
     assert_contains(&code, "hour={P.Clock.hour}");
     assert_lacks(&code, "P.Clock()");
 }
+
+#[test]
+fn a_directory_imported_as_a_name_is_its_files() {
+    // `import "parts" as Parts`: the directory's types are known by the
+    // name, as a module of the project's own is, and a type of the same
+    // name elsewhere (`Theme` here and in `parts`) is not taken for it.
+    let files = [
+        (
+            "Sample",
+            r#"import QtQuick
+import "parts" as Parts
+Item {
+    Theme { id: own }
+    Parts.Shot { id: shot }
+    Parts.Theme { id: theirs }
+}"#,
+        ),
+        (
+            "Theme",
+            "import QtQuick\nQtObject { property color tint: \"red\" }",
+        ),
+        ("parts/Shot", "import QtQuick\nItem { Theme {} }"),
+        (
+            "parts/Theme",
+            "import QtQuick\nQtObject { property color tint: \"cyan\" }",
+        ),
+        ("parts/Screen.ui", "import QtQuick\nItem {}"),
+    ];
+    let code = lowered_in(&files, "Sample").unwrap_or_else(|errors| panic!("{errors:?}"));
+    assert_contains(&code, "$namespace");
+    assert_contains(&code, r#"from "./parts/Shot.qml""#);
+    assert_contains(&code, r#"from "./parts/Theme.qml""#);
+    assert_contains(&code, r#"from "./parts/Screen.ui.qml""#);
+    assert_contains(&code, r#"from "./Theme.qml""#);
+    assert_contains(&code, "const Parts = $namespace(");
+}

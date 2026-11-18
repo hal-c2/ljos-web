@@ -304,9 +304,19 @@ fn lower_from<'a>(
         // A module of the project's own is files, not a module of the
         // package: its name is a table of them, read when it is used, since
         // a file of the module may be why another is being loaded.
+        // So is a directory under a name: its types are its QML files.
+        let directory = match types.namespace(name) {
+            Some(qml_front::project::Source::Path(path))
+                if !qml_front::project::is_script(path) =>
+            {
+                Some(project.directory_types(&options.name, path))
+            }
+            _ => None,
+        };
         if let Some(own) = types
             .namespace(name)
             .and_then(|source| own_module(source, project, options))
+            .or(directory.as_ref())
         {
             let mut members = Vec::new();
             for (member, file) in own {
@@ -327,7 +337,7 @@ fn lower_from<'a>(
         match types.namespace(name).and_then(|source| names::namespace_source(source, prefix)) {
             Some(module) => imports.push(b.import_namespace(&bound, &module)),
             None => errors.push(Error::new(
-                format!("`{name}` is a directory: only a module or a script can be imported as a name yet"),
+                format!("`{name}` is a directory: only a module, a script or a directory of QML files can be imported as a name"),
                 document.span,
             )),
         }
