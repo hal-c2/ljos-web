@@ -24,6 +24,7 @@ import { checkExamplesAll, hashExample, loadHarnesses, loadPrerenders, pruneCach
 import { assemble, packGiven, tagged } from "ljos-web/codeblocks/parse";
 import { kernelNamed } from "ljos-web/vite";
 import { packRich } from "ljos-web/codeblock/rich";
+import * as Pro from "./pro.mjs";
 import { giveFiles, readGiven } from "../../site/scripts/codeblock-files.mjs";
 import { keysByHash, listedEverywhere, pageOfRoute, pageRecords, readLedger, saysEverywhere } from "../../site/scripts/codeblocks-ledger.mjs";
 
@@ -281,9 +282,10 @@ const rooted = (value) =>
 const own = {
   "/": "Ljós — malleable software, everywhere",
   "/demos/": "Live demos — Ljós",
-  "/demos/cockpit/": "Svala GT cockpit — Ljós",
 };
 const after = " — Ljós";
+// The pro demos' pages are the site's own too (scripts/pro.mjs).
+Object.assign(own, Pro.titles(Pro.demos, after));
 const titles = {
   ...own,
   ...Object.fromEntries(site.pages.map((page) => [page.route, `${page.title}${after}`])),
@@ -326,6 +328,9 @@ QtObject {
     readonly property string base: ${JSON.stringify(base)}
     readonly property var titles: (${JSON.stringify(own)})
     readonly property string after: ${JSON.stringify(after)}
+    // The pro demos (Demos/pro.json), each with its route: the shell
+    // finds a route's page here, the demos page a card for each.
+    readonly property var pro: (${JSON.stringify(Pro.demos.map((demo) => ({ ...demo, route: Pro.route(demo), upstream: undefined })))})
     readonly property var sidebar: ${JSON.stringify(site.sidebar)}
 }
 `,
@@ -357,27 +362,13 @@ QtObject {
   );
 }
 
-// The cockpit demo's source, as data for its editor: each file the app
-// runs on (bundle/Demos/Cockpit, the ljos-ui example as UPSTREAM.json
-// pins it) with its highlighting. A JSON file its page imports when it
-// is made, so the text is in no other page's load. Generated; do not
-// edit by hand.
-{
-  const root = join(bundle, "Demos/Cockpit");
-  const upstream = JSON.parse(readFileSync(join(root, "UPSTREAM.json"), "utf8"));
-  const text = Object.keys(upstream.files).filter((path) => /\.(qml|ts)$/.test(path));
-  writeFileSync(
-    join(bundle, "Demos/cockpit-project.json"),
-    `${JSON.stringify({
-      commit: upstream.commit,
-      files: text.map((path) => {
-        const code = readFileSync(join(root, path), "utf8");
-        const lang = path.endsWith(".ts") ? "ts" : "qml";
-        return { path, lang, code, rich: packRich(highlight(code, lang)) };
-      }),
-    })}\n`,
-  );
-}
+// Each pro demo's source, as data for its editor (scripts/pro.mjs): a
+// JSON file its page imports when it is made, so the text is in no
+// other page's load; and the imports that load it and its app
+// (Demos/pro-later.js). Generated; do not edit by hand.
+for (const demo of Pro.demos)
+  writeFileSync(join(bundle, `Demos/${demo.name}-project.json`), `${JSON.stringify(Pro.projectOf(Pro.targetOf(demo), (code, lang) => packRich(highlight(code, lang))))}\n`);
+writeFileSync(join(bundle, "Demos/pro-later.js"), Pro.loaders(Pro.demos));
 
 // The bundle's manifest, of the bundle as it stands now.
 function files(directory, prefix = "") {
@@ -441,12 +432,7 @@ const pages = [
     description: "Complete Ljós apps running in the page: a shell you rewrite, a 3D scene to orbit, a shader effect, a whole app, and motion.",
     props: { route: "/demos/" },
   },
-  {
-    route: "/demos/cockpit/",
-    title: titles["/demos/cockpit/"],
-    description: "An instrument cluster over a touchscreen for a made-up car, running in the page: a 3D car whose doors open, climate, media, a map.",
-    props: { route: "/demos/cockpit/" },
-  },
+  ...Pro.pages(Pro.demos, after),
   ...site.pages.map((page, i) => ({ route: page.route, title: titles[page.route], description: describe(page), props: { route: page.route, page: slim[i] } })),
 ];
 // The site's head, with the colours of bundle/tokens.js (the table
@@ -647,10 +633,10 @@ for (const name of readdirSync(join(bundle, "assets")).filter((name) => /^demo-.
 // any QML the compiler sees, so no build step carries it: the
 // pictures the bundle was built with stand beside the pages.
 if (existsSync(join(bundle, "Examples"))) cpSync(join(bundle, "Examples"), join(out, "Examples"), { recursive: true });
-// The cockpit's files as they are, where its page compiles an edit
-// against them: what an edit does not change (the car's GLBs, the other
+// Each pro demo's files as they are, where its page compiles an edit
+// against them: what an edit does not change (a model, the other
 // files) is read from here, by the address the compiler gives it.
-cpSync(join(bundle, "Demos/Cockpit"), join(out, "demos/cockpit/source"), { recursive: true });
+for (const demo of Pro.demos) cpSync(Pro.targetOf(demo), join(out, Pro.sourceAt(demo)), { recursive: true });
 console.log(`site-ljos: ${pages.length} pages (${site.pages.length} docs) from ${docs}, standing at ${base}`);
 console.log(`site-ljos: ${out} (${built.files.length} files, ${built.bytes} bytes)`);
 // Where the build's time went, so a slow one says which part was slow.

@@ -9,4 +9,3 @@ function orbit() { return import("./Orbit.qml"); }
 function shader() { return import("./Shader.qml"); }
 function fieldGuide() { return import("./FieldGuide.qml"); }
 function motion() { return import("./Motion.qml"); }
-function cockpit() { return import("./CockpitDemo.qml"); }

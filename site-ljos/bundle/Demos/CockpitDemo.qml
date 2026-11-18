@@ -18,7 +18,7 @@ Item {
     // Driven by the page that embeds this file; harmless standalone.
     property bool active: true
     property bool calm: false
-    // The cockpit as the reader's edits make it (Demos/cockpit-live.js),
+    // The cockpit as the reader's edits make it (Demos/pro-live.js),
     // or null for the one the page was built with.
     property var live: null
 

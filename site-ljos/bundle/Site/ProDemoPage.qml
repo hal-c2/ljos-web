@@ -1,26 +1,26 @@
 import QtQuick
 import Site
-import "../Demos/later.js" as Later
-import "../Demos/cockpit-live.js" as Live
+import "../Demos/pro-live.js" as Live
+import "../nav.js" as Nav
 
-// The cockpit demo's page: Svala GT's cockpit, an instrument cluster
-// over a touchscreen for a made-up car, running in the page, with its
-// files below it to read, change and download. An edit is compiled in the page
-// against the other files as they stand and, once it compiles, the
-// cockpit is made again from it; one that does not is refused with what
-// broke, and the last cockpit that compiled stays. The files come with
-// the page's script (Demos/cockpit-project.json), not in its HTML: a
-// reader without script has the cockpit's picture and a link to each
-// file to download.
+// A pro demo's page (Demos/pro.json, `demo` its entry): a whole app
+// running in the page, with its files below it to read, change and
+// download. An edit is compiled in the page against the other files as
+// they stand and, once it compiles, the app is made again from it; one
+// that does not is refused with what broke, and the last app that
+// compiled stays. The files come with the page's script
+// (Demos/<name>-project.json), not in its HTML: a reader without script
+// has the app's picture and a link to each file to download.
 Column {
     id: page
 
+    required property var demo
     property var scroller: null
     property bool wide: true
 
     // The files, once they came: [{ path, lang, code, rich }].
     property var files: []
-    property string path: "Main.qml"
+    property string path: page.demo.entry
     // What the reader changed, by file; a file they set back is not here.
     property var edits: ({})
     property var live: null
@@ -30,14 +30,14 @@ Column {
     // it back is not taken for an edit.
     property string own: ""
     readonly property var file: files.find((entry) => entry.path === path) ?? null
-    readonly property string sourceBase: Content.base + "demos/cockpit/source/"
+    readonly property string sourceBase: Content.base + "demos/" + page.demo.name + "/source/"
 
     width: parent ? parent.width : 1040
     spacing: Theme.l
     topPadding: page.wide ? Theme.xl : Theme.m
 
     Component.onCompleted: {
-        Live.load().then((project) => {
+        Live.load(page.demo.name).then((project) => {
             page.files = project.files;
             page.show(page.path);
         });
@@ -54,7 +54,7 @@ Column {
         const text = Object.hasOwn(edits, next) ? edits[next] : (file ? file.code : "");
         own = text;
         editor.text = text;
-        editor.diagnostics = Live.diagnosticsFor(next);
+        editor.diagnostics = Live.diagnosticsFor(page.demo.name, next);
         debounce.stop();
     }
     function edited(text) {
@@ -73,7 +73,7 @@ Column {
         if (!runs)
             return;
         const asked = edits;
-        Live.compile(asked, sourceBase).then((made) => {
+        Live.compile(page.demo.name, page.demo.entry, asked, sourceBase).then((made) => {
             if (asked !== page.edits)
                 return;
             page.said = "";
@@ -83,7 +83,7 @@ Column {
             if (asked !== page.edits)
                 return;
             page.said = error.message;
-            editor.diagnostics = Live.diagnosticsFor(page.path);
+            editor.diagnostics = Live.diagnosticsFor(page.demo.name, page.path);
         });
     }
     function reset() {
@@ -105,7 +105,7 @@ Column {
 
         Text {
             width: parent.width
-            text: "Svala GT cockpit"
+            text: page.demo.title
             color: Theme.text
             font.family: Theme.sans
             font.pixelSize: page.wide ? Theme.displaySize : Theme.compactDisplaySize
@@ -118,7 +118,7 @@ Column {
         }
         Text {
             width: Math.min(parent.width, Theme.measure)
-            text: "An instrument cluster over a touchscreen, for a car that does not exist. Open its doors on the 3D car, set the climate, play music, follow the route. The pages are the Ljós dialect over typed TypeScript; the drive runs on timers, and nothing runs while nothing changes."
+            text: page.demo.summary
             color: Theme.textMuted
             font.family: Theme.sans
             font.pixelSize: Theme.subtitleSize - 1
@@ -131,19 +131,16 @@ Column {
     DemoFrame {
         width: parent.width
         scroller: page.scroller
-        // The car is read from its files, which only the wgpu renderer
-        // reads (QtQuick3D/AssetUtils).
-        needs: "webgpu"
-        route: "/demos/cockpit/"
-        aspect: 900 / 1600
-        // The cockpit is dark unless the reader picked light for the site
-        // (Demos/CockpitDemo.qml), so its picture is too.
-        picture: Theme.picked === "light" ? "/pictures/demo-cockpit.webp" : "/pictures/demo-cockpit-dark.webp"
-        what: "the cockpit"
-        description: "A car's instrument cluster, speed and power dials either side of the gear, over a touchscreen showing the car in 3D, music, climate or a map."
+        needs: page.demo.needs
+        route: page.demo.route
+        aspect: page.demo.height / page.demo.width
+        // In the scheme the demo is drawn in (nav.js proPicture).
+        picture: Nav.proPicture(page.demo, Theme.picked, Theme.dark)
+        what: page.demo.what
+        description: page.demo.shows
         demo: running
     }
-    // The cockpit, with the page's edits given to it as they compile.
+    // The app, with the page's edits given to it as they compile.
     Component {
         id: running
         Item {
@@ -152,7 +149,7 @@ Column {
             property bool calm: false
             Loader {
                 anchors.fill: parent
-                source: Later.cockpit
+                source: Live.app(page.demo.name)
                 onLoaded: {
                     item.active = Qt.binding(() => host.active);
                     item.calm = Qt.binding(() => host.calm);
@@ -180,7 +177,7 @@ Column {
         }
         Text {
             width: Math.min(parent.width, Theme.measure)
-            text: "Change any of them: the cockpit is made again from your files as soon as they compile. Try Theme.qml's cyan, or the first leg of the drive in logic/drive.ts."
+            text: page.demo.tryThis
             color: Theme.textMuted
             font.family: Theme.sans
             font.pixelSize: Theme.bodySize
@@ -193,7 +190,7 @@ Column {
             width: parent.width
             spacing: Theme.xxs
             Accessible.role: Accessible.List
-            Accessible.name: "The cockpit's files"
+            Accessible.name: "The files of " + page.demo.what
 
             Repeater {
                 model: page.files
@@ -316,7 +313,7 @@ Column {
                     code: page.file ? page.file.code : ""
                     rich: page.file && !Object.hasOwn(page.edits, page.path) ? page.file.rich : ""
                     lang: page.file ? page.file.lang : "qml"
-                    label: "Edit the cockpit's " + page.path
+                    label: "Edit " + page.path + " of " + page.demo.what
                     errors: told
                     onTextChanged: page.edited(text)
                 }

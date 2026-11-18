@@ -32,6 +32,8 @@ Rectangle {
     // The demos page and each demo's own page under it.
     readonly property bool demosRoute: route.startsWith("/demos/")
     readonly property bool docsRoute: route !== "/" && !demosRoute
+    // The pro demo this route is the page of (Demos/pro.json), or null.
+    readonly property var pro: Content.pro.find((demo) => demo.route === route) ?? null
     readonly property bool sidebarShown: wide && docsRoute
     readonly property bool tocShown: sidebarShown && width >= Theme.tocFrom && page !== null && page.headings.length > 0
     readonly property int gutter: wide ? Theme.gutterWide : Theme.gutterCompact
@@ -309,11 +311,11 @@ Rectangle {
                 id: pageLoader
                 visible: !shell.docsRoute
                 Accessible.role: Accessible.Section
-                Accessible.name: shell.route === "/demos/" ? "Live demos" : shell.route === "/demos/cockpit/" ? "Svala GT cockpit" : "Home"
+                Accessible.name: shell.route === "/demos/" ? "Live demos" : shell.pro ? shell.pro.title : "Home"
                 active: !shell.docsRoute
                 width: Math.min(pageScroll.measure, pageScroll.width - 2 * shell.gutter)
                 x: Math.round((pageScroll.width - width) / 2)
-                sourceComponent: shell.route === "/" ? landingPage : shell.route === "/demos/" ? demosPage : shell.route === "/demos/cockpit/" ? cockpitPage : emptyPage
+                sourceComponent: shell.route === "/" ? landingPage : shell.route === "/demos/" ? demosPage : shell.pro ? proPage : emptyPage
             }
             DocPage {
                 id: docItem
@@ -356,8 +358,9 @@ Rectangle {
         }
     }
     Component {
-        id: cockpitPage
-        CockpitPage {
+        id: proPage
+        ProDemoPage {
+            demo: shell.pro
             scroller: pageScroll
             wide: shell.wide
         }

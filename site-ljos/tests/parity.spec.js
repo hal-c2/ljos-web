@@ -7,6 +7,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
+import { demos, route } from "../scripts/pro.mjs";
 import { readMarkdownSite } from "ljos-web/markdown";
 import { findDocsDir } from "../../scripts/docs-dir.mjs";
 
@@ -29,7 +30,7 @@ function routesUnder(dir, prefix = "") {
 
 // The pro demos are pages of this site alone: the Astro site, the
 // reference for the docs, has no page of theirs.
-const OWN = ["/demos/cockpit/"];
+const OWN = demos.map(route);
 
 const SECTIONS = [
   { id: "start", label: "Start" },

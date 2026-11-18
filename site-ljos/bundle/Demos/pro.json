@@ -1,0 +1,33 @@
+[
+  {
+    "name": "cockpit",
+    "dir": "Cockpit",
+    "app": "CockpitDemo.qml",
+    "entry": "Main.qml",
+    "upstream": {
+      "repository": "hal-c2/ljos-ui",
+      "path": "examples/car-cockpit",
+      "leave": [
+        "assets/car/car.glb",
+        "assets/car/rig.json",
+        "assets/car/build_car.py",
+        "assets/car/README.md"
+      ]
+    },
+    "title": "Svala GT cockpit",
+    "description": "An instrument cluster over a touchscreen for a made-up car, running in the page: a 3D car whose doors open, climate, media, a map.",
+    "summary": "An instrument cluster over a touchscreen, for a car that does not exist. Open its doors on the 3D car, set the climate, play music, follow the route. The pages are the Ljós dialect over typed TypeScript; the drive runs on timers, and nothing runs while nothing changes.",
+    "tryThis": "Change any of them: the cockpit is made again from your files as soon as they compile. Try Theme.qml's cyan, or the first leg of the drive in logic/drive.ts.",
+    "card": "A car's cockpit",
+    "cardBody": "Svala GT, a car that does not exist: an instrument cluster over a touchscreen, with the car in 3D, climate, media and a map. On a page of its own, with every file to change.",
+    "cardAlt": "A car's instrument cluster over a touchscreen showing the car in 3D.",
+    "open": "Open the cockpit",
+    "what": "the cockpit",
+    "shows": "A car's instrument cluster, speed and power dials either side of the gear, over a touchscreen showing the car in 3D, music, climate or a map.",
+    "needs": "webgpu",
+    "width": 1600,
+    "height": 900,
+    "picture": "demo-cockpit",
+    "scheme": "dark"
+  }
+]

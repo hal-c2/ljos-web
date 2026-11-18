@@ -232,6 +232,15 @@ function fromPage(route, href) {
     return up + href.slice(1);
 }
 
+// A pro demo's picture (Demos/pro.json) in the scheme its page draws
+// it in: a demo drawn for one scheme (`scheme`) keeps it unless the
+// reader picked the other for the site (Theme.picked); one that follows
+// the site is in the scheme the reader reads it in (Theme.dark).
+function proPicture(demo, picked, dark) {
+    var darkened = demo.scheme === "dark" ? picked !== "light" : demo.scheme === "light" ? picked === "dark" : dark;
+    return "/pictures/" + demo.picture + (darkened ? "-dark" : "") + ".webp";
+}
+
 // A picture in rich text: written into the HTML the build makes, it is
 // drawn by the browser itself, before any script runs or where none
 // does. An Image paints only once its page runs.
