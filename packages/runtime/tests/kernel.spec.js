@@ -402,10 +402,12 @@ test("what a binding makes as it reads a property's value is told nothing more o
   expect(height).toBe(30);
   // Whether value 1 is told before it ends is the kernel's: the write tells
   // what is still to be told once it has settled, and Solid evaluates `read`
-  // again in that flush, wasm only once it is read. Either way, once value 1
-  // is told it is destroyed it is told nothing more, and value 2 is told
-  // what it is to be told.
-  expect(values.slice(values.indexOf("1 destroyed"))).toEqual(["1 destroyed", "2 first", "2 completed"]);
+  // again in that flush, wasm only once it is read. Either way value 1 is
+  // told each thing once at most, and once it is told it is destroyed it is
+  // told nothing more, while value 2 is told what it is to be told.
+  const ended = values.indexOf("1 destroyed");
+  expect([[], ["1 first", "1 completed"]]).toContainEqual(values.slice(0, ended));
+  expect(values.slice(ended)).toEqual(["1 destroyed", "2 first", "2 completed"]);
 });
 
 test("a first-change handler of what a binding makes as it reads a property's value is told once the binding is done, and the binding sees what it wrote", async ({ page }) => {
