@@ -37,9 +37,10 @@ try {
     if (i > 60) throw new Error("the site's server did not start");
     await new Promise((done) => setTimeout(done, 250));
   }
-  // WebGPU on SwiftShader: an adapter on any machine, GPU or not, so a
-  // demo that needs the renderer reading its models draws with it.
-  const browser = await chromium.launch({ args: ["--enable-unsafe-webgpu", "--use-webgpu-adapter=swiftshader", "--enable-unsafe-swiftshader"] });
+  // WebGPU on the machine's own GPU through Vulkan: SwiftShader's
+  // adapter starts the renderer but leaves its canvases empty, so a
+  // demo drawn there would show no models.
+  const browser = await chromium.launch({ args: ["--enable-unsafe-webgpu", "--enable-features=Vulkan", "--use-angle=vulkan", "--ignore-gpu-blocklist"] });
   for (const demo of asked) {
     for (const scheme of ["dark", "light"]) {
       const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2, colorScheme: scheme, reducedMotion: "no-preference" });
@@ -66,7 +67,9 @@ try {
       await run.click();
       // Once it is drawn the toolbar's Run is its Pause.
       await page.getByRole("button", { name: `Pause ${demo.what}` }).waitFor({ timeout: 60_000 });
-      // What comes up as it starts has come up.
+      // What comes up as it starts has come up: its models are fetched
+      // (in software that outlasts any fixed wait), then drawn.
+      await page.waitForLoadState("networkidle");
       await page.waitForTimeout(3000);
       const png = await page.screenshot({ clip: frame, animations: "allow" });
       const webp = await page.evaluate(
