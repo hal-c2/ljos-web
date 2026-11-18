@@ -28,8 +28,12 @@ test("a Basic button's icon given transparent is drawn as the picture is, and on
   await open(page, "buttonicons");
   await page.waitForFunction(() => window.scene.loaded());
   const middles = await answer(page, "middles");
+  // A tinted picture is painted through a CSS mask, which the browser loads
+  // apart from the Image's own load: it is drawn once that has loaded too.
+  await expect
+    .poll(async () => (await pixels(page, [middles.tinted]))[0], { message: "the tinted icon's middle, once its mask has loaded" })
+    .toBe("0 102 204");
   const [tinted, asItIs, plain] = await pixels(page, [middles.tinted, middles.asItIs, middles.plain]);
-  expect(tinted).toBe("0 102 204");
   expect(asItIs).toBe(plain);
   expect(plain).not.toBe(tinted);
 });
