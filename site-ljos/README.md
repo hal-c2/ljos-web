@@ -229,7 +229,7 @@ every path the build reads (`site/`, `site-ljos/`, `packages/`,
 manifests and locks, `.cargo/`, and the workflow and its
 `.github/scripts/`, listed once more in
 `.github/scripts/site-paths.txt` for the guard, and held equal to
-it by the guard job's test); a path missing from that list would be
+it by the check job's test); a path missing from that list would be
 a merge that changes the site and never deploys it.
 
 A manual dispatch (Actions → site → Run workflow) still deploys

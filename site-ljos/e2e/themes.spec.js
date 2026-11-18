@@ -154,9 +154,9 @@ for (const colorScheme of SCHEMES) {
   test.describe(`in ${colorScheme}`, () => {
     test.use({ colorScheme });
 
-    // One test an example, not one a page: the shards are cut by how
-    // many tests there are, so a page of twenty examples read in one
-    // test made a shard of its own that ran twice as long as the rest.
+    // One test an example, not one a page, so the workers share a
+    // page's examples: a page of twenty examples read in one test kept
+    // one worker twice as long as the rest.
     for (const { route, examples } of pages) {
       for (const example of examples) {
         test(`${route} #${example.index} (${example.hash}): its words are readable on what it draws`, async ({ page }) => {

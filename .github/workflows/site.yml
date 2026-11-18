@@ -88,15 +88,35 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
+  # DECISION: the jobs are as few as the work allows, because runners
+  # are what a run waits for. The organisation's runners are shared
+  # with every other workflow, and a run of 22 jobs held at most four
+  # to ten at once: its jobs queued up to 22 minutes each, longer than
+  # any of them ran (hal-c2/ljos-web#108's runs: 42 to 55 minutes wall,
+  # no job over 16). Each job also pays its own setup and downloads.
+  # So a job that only needs what another already built runs in that
+  # job (the freshness guard's tests in check, the Astro suites with the
+  # Astro build, the project-path build with the Pages artifact), and
+  # the e2e suite runs in three parts per kernel, not six shards.
+  # Every suite still runs and still gates the deploy.
+  #
   # Every QML file both sites show is checked by `ljos check` at the
   # pinned revision: the demos, and the docs' blocks through ljos-ui's
   # own docs_site test, which knows each fence's harness and what is
-  # still listed as missing. A job of its own so it runs beside the
-  # long build rather than after it.
+  # still listed as missing. And the freshness guard, the supersede
+  # step and the decisions in this file, checked: the scripts against
+  # a stubbed gh, and the workflow's expressions for every way a run
+  # can start. A job of its own so it runs beside the long build rather
+  # than after it; the deploy waits on it.
   check:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      # First, as they take seconds and need nothing installed.
+      - run: bash .github/scripts/fresh-head.test.sh
+      - run: bash .github/scripts/supersede.test.sh
+      - run: node --test .github/scripts/site-expressions.test.mjs
+      - run: node .github/scripts/site-expressions.test.mjs table >> "$GITHUB_STEP_SUMMARY"
       - id: pin
         run: echo "sha=$(cat site/ljos-ui.sha)" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -124,26 +144,10 @@ jobs:
           for demo in site/src/demos/*/ site-ljos/bundle; do
             ljos-ui/target/debug/ljos check --quiet "$demo"
           done
-  # The freshness guard, the supersede step and the decisions above,
-  # checked: the scripts against a stubbed gh, and the workflow's
-  # expressions for every way a run can start. The deploy waits on it.
-  guard:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-      - run: bash .github/scripts/fresh-head.test.sh
-      - run: bash .github/scripts/supersede.test.sh
-      - run: node --test .github/scripts/site-expressions.test.mjs
-      - run: node .github/scripts/site-expressions.test.mjs table >> "$GITHUB_STEP_SUMMARY"
-  # DECISION: the one build job ran everything one step after another
-  # (65 minutes for a merge to reach ljos.dev). It is split into jobs
-  # that run side by side: Rust built once and handed on; each build of
-  # the site in a job of its own; each e2e suite in shards. The suites
-  # are all still run: every one gates the deploy as before. The full
-  # e2e suite runs at the root, where ljos.dev serves the site, once on
-  # each kernel (the second run is the wasm kernel, A22, not another
-  # base); the project path the github.io preview stands at is held by
-  # the specs about the base (base, links, canonical), as before.
+  # The full e2e suite runs at the root, where ljos.dev serves the
+  # site, once on each kernel (the second run is the wasm kernel, A22,
+  # not another base); the project path the github.io preview stands at
+  # is held by the specs about the base (base, links, canonical).
   #
   # The compiler and the wasm every other job reads, built once: qmlc
   # (the build's prerenders), the compiler in the page, the kernel and
@@ -182,7 +186,8 @@ jobs:
   # Astro build's: that one's are made for the wgpu renderer, which
   # this build does not ask for, so their stamp is not this build's.
   # Built here at a domain's root (ljos.dev), and tested from this
-  # build by the jobs after it.
+  # build by the jobs after it. Nothing more runs here: the e2e parts
+  # wait for this job, so it ends as soon as its site is uploaded.
   site-ljos:
     needs: rust
     runs-on: ubuntu-24.04
@@ -211,6 +216,7 @@ jobs:
           LJOS_SITE_BASE: /
       # Saved right after the build that fills it, so a failure after it
       # never loses it, and never saved half-made: a key is saved once.
+      # The project-path build in the build job reads it from here.
       - if: steps.ljos-prerenders.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
@@ -268,14 +274,170 @@ jobs:
           include-hidden-files: true
           if-no-files-found: error
           retention-days: 1
+  # Every live example and demo driven as a reader drives it, in a
+  # browser with WebAssembly and in one without (e2e/), on the root
+  # build. Three parts per kernel, not six shards, so a run asks for
+  # half the runners; cut by file (.github/scripts/e2e-part.sh says
+  # how), so the three take about as long each. Playwright's own two
+  # workers: four kept a runner's four cores busy (a run queue of 8 to
+  # 10) and ran no faster, and the specs that time a demo's frames
+  # failed under it.
+  e2e:
+    needs: site-ljos
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [themes, examples, rest]
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: ./.github/actions/site-setup
+        with:
+          browser: "true"
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: site-ljos-root
+          path: site-ljos/dist
+      - run: bash .github/scripts/e2e-part.sh ${{ matrix.part }}
+        env:
+          LJOS_SITE_BASE: /
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ failure() }}
+        with:
+          name: site-ljos-e2e-${{ matrix.part }}-test-results
+          path: site-ljos/test-results
+  # The same suite on the wasm kernel's build.
+  e2e-wasm:
+    needs: site-ljos-wasm
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [themes, examples, rest]
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: ./.github/actions/site-setup
+        with:
+          browser: "true"
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: site-ljos-wasm
+          path: site-ljos/dist
+      - run: bash .github/scripts/e2e-part.sh ${{ matrix.part }}
+        env:
+          LJOS_SITE_BASE: /
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ failure() }}
+        with:
+          name: site-ljos-e2e-wasm-${{ matrix.part }}-test-results
+          path: site-ljos/test-results
+  # The Astro site, the reference the Ljós site is held to, built and
+  # tested here; then the root build's own suite, which holds the Ljós
+  # site to it (parity with the Astro site and the docs, the brand, the
+  # payload, every live block's report). After the root build, so its
+  # suite needs no job of its own: the Astro build and suites take
+  # about as long as that build, which they would otherwise wait for.
+  astro:
+    needs: [rust, site-ljos]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - id: setup
+        uses: ./.github/actions/site-setup
+        with:
+          artefacts: "true"
+          docs: "true"
+          browser: "true"
+      - id: astro-prerenders
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: site/.codeblock-prerenders
+          key: codeblocks-astro-${{ steps.setup.outputs.image }}-${{ steps.setup.outputs.inputs }}
+          restore-keys: codeblocks-astro-${{ steps.setup.outputs.image }}-
+      # Prerenders each live block (and fails on one that claims to
+      # run and does not) before the build embeds them. Under the
+      # environment of the build after it: the build embeds only what
+      # was made under its own stamp. The wasm-kernel build below has
+      # another, so it embeds none, and only its showcase and site specs
+      # run, which read no prerender.
+      - run: pnpm --filter ljos-site codeblock-prerenders
+        env:
+          VITE_LJOS_VIEW3D: wgpu
+      - if: steps.astro-prerenders.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: site/.codeblock-prerenders
+          key: ${{ steps.astro-prerenders.outputs.cache-primary-key }}
+      # Starlight runs Pagefind through a shell (DEP0190): its warning,
+      # not ours, and one this build cannot act on.
+      # Stops if it would embed no prerender: the step above was run
+      # under another environment than this build's.
+      - run: pnpm --filter ljos-site build
+        env:
+          VITE_LJOS_VIEW3D: wgpu
+          LJOS_PRERENDERS_REQUIRED: "1"
+          NODE_OPTIONS: --disable-warning=DEP0190
+      # The root build's suite, on the Astro build it is held to, before
+      # anything below changes that build or the pages beside it.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: site-ljos-root
+          path: site-ljos/dist
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: site-ljos-report
+          path: site-ljos/.codeblock-prerenders
+      - run: pnpm --filter ljos-site-ljos test
+        env:
+          LJOS_SITE_BASE: /
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ failure() }}
+        with:
+          name: site-ljos-test-results
+          path: site-ljos/test-results
+      # The pages as the build synced them, for the specs that read them.
+      - run: pnpm --filter ljos-site sync-docs
+      - run: pnpm --filter ljos-site check-links
+      # runnable.spec checks against the ledger what each live block did
+      # when it was prerendered (site/.codeblock-prerenders/report.json).
+      - run: pnpm --filter ljos-site test
+      # The same suite over Ljós's reactive graph (A22): a second
+      # build of the same pages, then the showcase specs on it.
+      - run: pnpm --filter ljos-site build
+        env:
+          VITE_LJOS_VIEW3D: wgpu
+          LJOS_KERNEL: wasm
+          NODE_OPTIONS: --disable-warning=DEP0190
+      - run: pnpm --filter ljos-site exec playwright test tests/showcase.spec.js tests/site.spec.js
+      # The live blocks on a site built from fixture docs, strictly.
+      # After the ordinary suite: its setup syncs the fixture's pages.
+      - run: pnpm --filter ljos-site test:codeblocks
+        env:
+          NODE_OPTIONS: --disable-warning=DEP0190
   # The site below a project path (the github.io preview, /<repo>/):
   # built, and held to what the base decides: the base itself, and
   # every link and the 404 page at it. After the root build, whose
   # prerenders it reads from the cache that build saved rather than
-  # making them again.
-  site-ljos-project:
+  # making them again. Then the Pages artifact: the root build or the
+  # project-path one, picked by where Pages serves this repository.
+  build:
     needs: [rust, site-ljos]
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      # The pages step reads the repository's Pages domain.
+      pages: read
+    # Whether this run deploys, and to the custom domain, said once:
+    # a push to main in hal-c2/ljos-web deploys the domain build; a
+    # dispatch deploys as its inputs ask. A pull request has no
+    # inputs and is not a push, so both are false there. The deploy
+    # steps read these, and the fresh and deploy jobs read the outputs.
+    env:
+      SITE_DEPLOYS: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'hal-c2/ljos-web') || (github.event_name == 'workflow_dispatch' && inputs.deploy) }}
+      SITE_CUSTOM_DOMAIN: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'hal-c2/ljos-web') || (github.event_name == 'workflow_dispatch' && inputs.custom_domain) }}
+    outputs:
+      deploy: ${{ env.SITE_DEPLOYS }}
+      custom-domain: ${{ env.SITE_CUSTOM_DOMAIN }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - id: setup
@@ -303,221 +465,14 @@ jobs:
         with:
           name: site-ljos-project-test-results
           path: site-ljos/test-results
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: site-ljos-dist
-          path: site-ljos/dist
-          include-hidden-files: true
-          if-no-files-found: error
-  # The root build's own suite: parity with the Astro site and the
-  # docs, the brand, the payload, every live block's report.
-  site-ljos-test:
-    needs: [site-ljos, astro]
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-      - uses: ./.github/actions/site-setup
-        with:
-          artefacts: "true"
-          docs: "true"
-          browser: "true"
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: site-ljos-root
-          path: site-ljos/dist
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: site-ljos-report
-          path: site-ljos/.codeblock-prerenders
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: site-dist
-          path: site/dist
-      - run: pnpm --filter ljos-site-ljos test
-        env:
-          LJOS_SITE_BASE: /
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: ${{ failure() }}
-        with:
-          name: site-ljos-test-results
-          path: site-ljos/test-results
-  # Every live example and demo driven as a reader drives it, in a
-  # browser with WebAssembly and in one without (e2e/), on the root
-  # build. The suite is fully parallel, so it is cut into shards that
-  # run side by side: six, as with four the heaviest shard ran 8.9
-  # minutes (the orbit, theme and run specs) and the lightest 1.2.
-  e2e:
-    needs: site-ljos
-    runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2, 3, 4, 5, 6]
-    steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-      - uses: ./.github/actions/site-setup
-        with:
-          browser: "true"
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: site-ljos-root
-          path: site-ljos/dist
-      - run: pnpm --filter ljos-site-ljos test:e2e --shard=${{ matrix.shard }}/6
-        env:
-          LJOS_SITE_BASE: /
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: ${{ failure() }}
-        with:
-          name: site-ljos-e2e-${{ matrix.shard }}-test-results
-          path: site-ljos/test-results
-  # The same suite on the wasm kernel's build.
-  e2e-wasm:
-    needs: site-ljos-wasm
-    runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2, 3, 4, 5, 6]
-    steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-      - uses: ./.github/actions/site-setup
-        with:
-          browser: "true"
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: site-ljos-wasm
-          path: site-ljos/dist
-      - run: pnpm --filter ljos-site-ljos test:e2e --shard=${{ matrix.shard }}/6
-        env:
-          LJOS_SITE_BASE: /
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: ${{ failure() }}
-        with:
-          name: site-ljos-e2e-wasm-${{ matrix.shard }}-test-results
-          path: site-ljos/test-results
-  # The Astro site, the reference the Ljós site is held to: built here
-  # and handed to the parity suite as soon as it is built, then tested
-  # in astro-test.
-  astro:
-    needs: rust
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-      - id: setup
-        uses: ./.github/actions/site-setup
-        with:
-          artefacts: "true"
-          docs: "true"
-          browser: "true"
-      - id: astro-prerenders
-        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: site/.codeblock-prerenders
-          key: codeblocks-astro-${{ steps.setup.outputs.image }}-${{ steps.setup.outputs.inputs }}
-          restore-keys: codeblocks-astro-${{ steps.setup.outputs.image }}-
-      # Prerenders each live block (and fails on one that claims to
-      # run and does not) before the build embeds them. Under the
-      # environment of the build after it: the build embeds only what
-      # was made under its own stamp. The wasm-kernel build in
-      # astro-test has another, so it embeds none, and only its
-      # showcase and site specs run, which read no prerender.
-      - run: pnpm --filter ljos-site codeblock-prerenders
-        env:
-          VITE_LJOS_VIEW3D: wgpu
-      - if: steps.astro-prerenders.outputs.cache-hit != 'true'
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: site/.codeblock-prerenders
-          key: ${{ steps.astro-prerenders.outputs.cache-primary-key }}
-      # Starlight runs Pagefind through a shell (DEP0190): its warning,
-      # not ours, and one this build cannot act on.
-      # Stops if it would embed no prerender: the step above was run
-      # under another environment than this build's.
-      - run: pnpm --filter ljos-site build
-        env:
-          VITE_LJOS_VIEW3D: wgpu
-          LJOS_PRERENDERS_REQUIRED: "1"
-          NODE_OPTIONS: --disable-warning=DEP0190
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: site-dist
-          path: site/dist
-          include-hidden-files: true
-          if-no-files-found: error
-      # What each live block did when it was prerendered, which
-      # runnable.spec in astro-test checks against the ledger.
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: site-codeblocks-report
-          path: site/.codeblock-prerenders/report.json
-          include-hidden-files: true
-          if-no-files-found: error
-  astro-test:
-    needs: astro
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
-      - uses: ./.github/actions/site-setup
-        with:
-          artefacts: "true"
-          docs: "true"
-          browser: "true"
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: site-dist
-          path: site/dist
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: site-codeblocks-report
-          path: site/.codeblock-prerenders
-      # The pages as the build synced them, for the specs that read them.
-      - run: pnpm --filter ljos-site sync-docs
-      - run: pnpm --filter ljos-site check-links
-      - run: pnpm --filter ljos-site test
-      # The same suite over Ljós's reactive graph (A22): a second
-      # build of the same pages, then the showcase specs on it.
-      - run: pnpm --filter ljos-site build
-        env:
-          VITE_LJOS_VIEW3D: wgpu
-          LJOS_KERNEL: wasm
-          NODE_OPTIONS: --disable-warning=DEP0190
-      - run: pnpm --filter ljos-site exec playwright test tests/showcase.spec.js tests/site.spec.js
-      # The live blocks on a site built from fixture docs, strictly.
-      # After the ordinary suite: its setup syncs the fixture's pages.
-      - run: pnpm --filter ljos-site test:codeblocks
-        env:
-          NODE_OPTIONS: --disable-warning=DEP0190
-  # The Pages artifact: the root build or the project-path one, picked
-  # by where Pages serves this repository.
-  build:
-    needs: [site-ljos, site-ljos-project]
-    runs-on: ubuntu-24.04
-    permissions:
-      contents: read
-      # The pages step reads the repository's Pages domain.
-      pages: read
-    # Whether this run deploys, and to the custom domain, said once:
-    # a push to main in hal-c2/ljos-web deploys the domain build; a
-    # dispatch deploys as its inputs ask. A pull request has no
-    # inputs and is not a push, so both are false there. The deploy
-    # steps read these, and the fresh and deploy jobs read the outputs.
-    env:
-      SITE_DEPLOYS: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'hal-c2/ljos-web') || (github.event_name == 'workflow_dispatch' && inputs.deploy) }}
-      SITE_CUSTOM_DOMAIN: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'hal-c2/ljos-web') || (github.event_name == 'workflow_dispatch' && inputs.custom_domain) }}
-    outputs:
-      deploy: ${{ env.SITE_DEPLOYS }}
-      custom-domain: ${{ env.SITE_CUSTOM_DOMAIN }}
-    steps:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         if: ${{ env.SITE_DEPLOYS == 'true' }}
         with:
           name: site-ljos-root
           path: ${{ runner.temp }}/site-ljos-root
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        if: ${{ env.SITE_DEPLOYS == 'true' }}
-        with:
-          name: site-ljos-dist
-          path: ${{ runner.temp }}/site-ljos-project
+      # The project-path build, where the pages step looks for it.
+      - if: ${{ env.SITE_DEPLOYS == 'true' }}
+        run: cp -a site-ljos/dist "$RUNNER_TEMP/site-ljos-project"
       # DECISION: Pages serves site-ljos (the Ljós-built site), never
       # the Astro reference. Every merge to main deploys, in
       # hal-c2/ljos-web only: the root build and a CNAME naming the
@@ -593,7 +548,7 @@ jobs:
   # concurrency of its own: it takes seconds and waits for no one.
   fresh:
     if: ${{ needs.build.outputs.deploy == 'true' }}
-    needs: [build, check, guard, site-ljos-test, e2e, e2e-wasm, astro-test]
+    needs: [build, check, astro, e2e, e2e-wasm]
     runs-on: ubuntu-24.04
     permissions:
       # The checkout, and its branch's head.
@@ -617,7 +572,7 @@ jobs:
     # Nothing is published that `ljos check` refused, while the
     # freshness guard fails its own test, or that is no longer the
     # newest site.
-    needs: [build, check, guard, site-ljos-test, e2e, e2e-wasm, astro-test, fresh]
+    needs: [build, check, astro, e2e, e2e-wasm, fresh]
     runs-on: ubuntu-24.04
     # One deploy at a time to each place Pages serves, and one in
     # flight is never cancelled. A waiting one is replaced by a newer
