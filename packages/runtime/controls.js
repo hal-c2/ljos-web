@@ -271,7 +271,13 @@ function publish(fresh, root) {
     } catch (error) {
       // The old tree goes back: a failed write leaves the controls as they
       // were, not in a hidden directory beside them.
-      if (existsSync(old)) renameSync(old, root);
+      if (existsSync(old)) {
+        try {
+          renameSync(old, root);
+        } catch (restoring) {
+          throw new Error(`controls: could not put ${fresh} in place (${error.message}), nor the tree it was to replace back; that tree is at ${old}`, { cause: restoring });
+        }
+      }
       throw error;
     }
     rmSync(old, { recursive: true, force: true });
