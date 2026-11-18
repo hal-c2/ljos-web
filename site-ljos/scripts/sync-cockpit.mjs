@@ -26,6 +26,10 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   if (!checkout) throw new Error("usage: node scripts/sync-cockpit.mjs <ljos-ui checkout>");
   const git = (...args) => execFileSync("git", ["-C", checkout, ...args], { encoding: "utf8" }).trim();
   const commit = git("rev-parse", "HEAD");
+  // The pin says what the files are at that commit, so files changed
+  // since would be a pin that lies: they are committed first.
+  const changed = git("status", "--porcelain", "--", example).split("\n").filter(Boolean).map((line) => line.slice(line.indexOf(example) + example.length + 1)).filter(shipped);
+  if (changed.length) throw new Error(`commit these in ${checkout} first: ${changed.join(", ")}`);
   const listed = git("ls-files", "--", example).split("\n").map((path) => path.slice(example.length + 1));
   const files = {};
   for (const path of listed.filter(shipped).sort()) {
