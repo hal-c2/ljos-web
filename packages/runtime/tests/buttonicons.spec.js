@@ -24,6 +24,17 @@ test("a Basic button's icon is drawn in the colour it was given, as it is when t
   expect(colors.holder).toMatch(/circle\.png$/);
 });
 
+test("a Basic button's icon that is another's, given no colour, is drawn in its text's colour, whatever its action was given", async ({ page }) => {
+  await open(page, "buttonicons");
+  await page.waitForFunction(() => window.scene.loaded());
+  const colors = await answer(page, "colors");
+  // The icon given whole gives the colour too, and it gave none: the button's
+  // action, which it would follow otherwise, is not asked.
+  expect(colors.linkedActing[0]).toBe(colors.linkedActing[1]);
+  // Nor where that action's icon is the button's own again.
+  expect(colors.linkedBack[0]).toBe(colors.linkedBack[1]);
+});
+
 test("a Basic button's icon given transparent is drawn as the picture is, and one given a colour is painted in it", async ({ page }) => {
   await open(page, "buttonicons");
   await page.waitForFunction(() => window.scene.loaded());
