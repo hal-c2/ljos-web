@@ -800,6 +800,16 @@ enum Attaching {
 }
 
 impl<'a> Resolver<'a, '_, '_> {
+    /// Whether `name` is what the module binds a namespace under: its own
+    /// name, or [`local`]'s of it.
+    fn is_namespace_binding(&self, name: &str) -> bool {
+        let namespace = name
+            .strip_prefix('$')
+            .filter(|global| JS_GLOBALS.contains(global))
+            .unwrap_or(name);
+        self.types.namespace(namespace).is_some()
+    }
+
     /// `object.Type.member`: a member of what the type attaches to that
     /// object, and no property of it (`delegate.ListView.isCurrentItem`).
     /// `Namespace.Type.member` is of what it attaches to the object the
@@ -846,10 +856,11 @@ impl<'a> Resolver<'a, '_, '_> {
             return None;
         }
         // A type of a namespace is the type, wherever the namespace is named:
-        // what the compiler wrote names it too.
+        // what the compiler wrote names it too, by the name it is bound under
+        // (`$Math` for `Math`).
         if wanted.is_none()
             && let Expression::Identifier(object) = &inner.object
-            && self.types.namespace(object.name.as_str()).is_some()
+            && self.is_namespace_binding(object.name.as_str())
         {
             return None;
         }
@@ -890,13 +901,13 @@ impl<'a> Resolver<'a, '_, '_> {
         }
         Some(match of {
             Attaching::Here(namespace) => {
-                let ty = b.member(b.id(&namespace), &name);
+                let ty = b.member(b.id(&local(&namespace)), &name);
                 self.uses.namespaces.insert(namespace);
                 let attachee = self.scope(span.start);
                 b.call(b.member(ty, "attached"), [attachee])
             }
             Attaching::Through(namespace) => {
-                let ty = b.member(b.id(&namespace), &name);
+                let ty = b.member(b.id(&local(&namespace)), &name);
                 self.uses.namespaces.insert(namespace);
                 let Expression::StaticMemberExpression(outer) = &mut inner.object else {
                     unreachable!()
@@ -1255,13 +1266,30 @@ pub(crate) use qml_front::names::{
 /// What a type is called in the compiled module. A type named as one of
 /// JavaScript's globals (`Object` of `Ljos.Core`) is that type only where a
 /// type goes: in a script the name is JavaScript's, and so it is in what
-/// the compiler writes (`Object.setPrototypeOf`). Such a type is imported
-/// under a name of its own, `$Object`, that nothing else can mean.
+/// the compiler writes (`Object.setPrototypeOf`). Such a type is bound
+/// under a name of its own, `$Object`, that nothing else can mean. So is
+/// whatever else the file names a type by: an inline component (`component
+/// Date`), the file itself (`Date.qml`), and a namespace (`import QtQuick
+/// as Math`). Every binding of the name and every reference the compiler
+/// writes to it go through here, so the two agree.
 pub(crate) fn local(name: &str) -> std::borrow::Cow<'_, str> {
     if JS_GLOBALS.contains(&name) {
         format!("${name}").into()
     } else {
         name.into()
+    }
+}
+
+/// [`local`] of a dotted type name: `Math.Item` is `$Math.Item`, its first
+/// name being what the module binds, the type's or its namespace's.
+pub(crate) fn local_path(name: &str) -> std::borrow::Cow<'_, str> {
+    let (first, rest) = name
+        .split_once('.')
+        .map_or((name, None), |(a, b)| (a, Some(b)));
+    match (local(first), rest) {
+        (std::borrow::Cow::Borrowed(_), _) => name.into(),
+        (owned, None) => owned,
+        (owned, Some(rest)) => format!("{owned}.{rest}").into(),
     }
 }
 

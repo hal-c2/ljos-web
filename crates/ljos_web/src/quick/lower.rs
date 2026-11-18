@@ -432,7 +432,7 @@ impl<'a, 's> Lower<'a, 's> {
         }
         if !built.attach.is_empty() {
             let types = built.attach.iter().map(|name| match name.split_once('.') {
-                Some((namespace, name)) => b.member(b.id(namespace), name),
+                Some((namespace, name)) => b.member(b.id(&names::local(namespace)), name),
                 None => b.id(&names::local(name)),
             });
             built.attributes.push(b.attr("$attach", b.array(types)));
@@ -458,7 +458,7 @@ impl<'a, 's> Lower<'a, 's> {
                     .push(b.child(b.member(b.id("$props"), "children"))),
             }
         }
-        b.element(&names::local(&tag), built.attributes, built.children)
+        b.element(&names::local_path(&tag), built.attributes, built.children)
     }
 
     /// The members of an object, or of a group of it (`font { }`), `group`
@@ -483,14 +483,15 @@ impl<'a, 's> Lower<'a, 's> {
                 QmlMember::Signal(signal) => built.signals.push(signal.name.name.to_string()),
                 QmlMember::Function(function) => self.function(function, index, built),
                 QmlMember::InlineComponent(inline) => {
-                    let name = inline.name.name.as_str();
+                    // Declared by the name its instances are written with.
+                    let name = names::local(inline.name.name.as_str());
                     let root = inline.object.type_name.to_string();
-                    let (component, enums) = self.component(name, inline.object, false);
+                    let (component, enums) = self.component(&name, inline.object, false);
                     self.module.push(component);
-                    let extends = self.extends(name, &root);
+                    let extends = self.extends(&name, &root);
                     self.module.push(extends);
                     if !enums.is_empty() {
-                        let keys = self.keys(name, enums);
+                        let keys = self.keys(&name, enums);
                         self.module.push(keys);
                     }
                 }
@@ -815,7 +816,7 @@ impl<'a, 's> Lower<'a, 's> {
             };
             self.uses.origin(&type_name, &found.origin);
             let attaching = match parts {
-                [namespace, name] => b.member(b.id(namespace), name),
+                [namespace, name] => b.member(b.id(&names::local(namespace)), name),
                 _ => b.id(&names::local(parts[0])),
             };
             (Some(attaching), rest)
