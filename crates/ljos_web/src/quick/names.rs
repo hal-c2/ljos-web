@@ -77,6 +77,7 @@ pub(crate) fn resolve<'a>(
     own: &str,
     dynamic: &HashSet<String>,
     dialect: Dialect,
+    files: &dyn Fn(&str) -> bool,
     uses: &mut Uses,
     errors: &mut Vec<Error>,
 ) {
@@ -105,6 +106,7 @@ pub(crate) fn resolve<'a>(
         dynamic,
         free,
         typed: dialect.typed,
+        files,
         functions: 0,
         uses,
         errors,
@@ -289,6 +291,10 @@ struct Resolver<'a, 's, 'p> {
     free: Free,
     /// See [`Dialect::typed`].
     typed: bool,
+    /// Whether the name the file imports a module as is bound to the files
+    /// of a module of the project's own, each read by calling it, and not
+    /// to a module of the package, whose singletons are its objects.
+    files: &'s dyn Fn(&str) -> bool,
     /// How many functions what is being read is written in: `this` is the
     /// function's own there.
     functions: u32,
@@ -751,8 +757,15 @@ impl<'a> Resolver<'a, '_, '_> {
                 Access::Enum
             )
         {
+            let bound = local(namespace.name.as_str()).into_owned();
             self.uses.namespaces.insert(namespace.name.to_string());
             *expression = member.object.take_in(&b.allocator());
+            if let Expression::StaticMemberExpression(ty) = expression {
+                ty.object = b.id(&bound);
+            }
+            return true;
+        }
+        if self.namespaced_singleton(member) {
             return true;
         }
         match self.of_type(member) {
@@ -760,6 +773,38 @@ impl<'a> Resolver<'a, '_, '_> {
             Some(Access::Enum) => *expression = member.object.take_in(&b.allocator()),
             Some(_) => {}
         }
+        true
+    }
+
+    /// `Namespace.Singleton.member`, read or written: of the one object, as
+    /// `Singleton.member` is. What a module of the project's own files has
+    /// is the function that gives it, which has the singleton's keys and
+    /// nothing else of it; a module of the package has the object.
+    fn namespaced_singleton(&mut self, member: &mut StaticMemberExpression<'a>) -> bool {
+        let b = self.b;
+        let Expression::StaticMemberExpression(ty) = &mut member.object else {
+            return false;
+        };
+        let Expression::Identifier(namespace) = &ty.object else {
+            return false;
+        };
+        let name = namespace.name.to_string();
+        if !self.is_free(namespace) || !(self.files)(&name) {
+            return false;
+        }
+        let Some(found) = self.types.find(&[&name, ty.property.name.as_str()]) else {
+            return false;
+        };
+        if !matches!(
+            self.member_of(&found.kind, member.property.name.as_str()),
+            Access::Singleton
+        ) {
+            return false;
+        }
+        ty.object = b.id(&local(&name));
+        self.uses.namespaces.insert(name);
+        let getter = member.object.take_in(&b.allocator());
+        member.object = b.call(getter, []);
         true
     }
 
@@ -776,15 +821,63 @@ impl<'a> Resolver<'a, '_, '_> {
             return None;
         }
         let span = object.span;
-        let access = self.access(name, member.property.name.as_str(), span);
+        let property = member.property.name.as_str();
+        if let Some(bound) = self.through_global(name, property) {
+            member.object = b.id(&bound);
+            return Some(Access::Static);
+        }
+        let (access, bound) = match self.of_global_type(name, property) {
+            Some(access) => (access, local(name)),
+            None => (self.access(name, property, span), name.into()),
+        };
         match access {
-            Access::Static | Access::Enum => {}
-            Access::Singleton => member.object = b.call(b.id(name), []),
+            Access::Static | Access::Enum => {
+                if bound != name {
+                    member.object = b.id(&bound);
+                }
+            }
+            Access::Singleton => member.object = b.call(b.id(&bound), []),
             Access::Attached => {
                 let attachee = self.scope(span.start);
-                member.object = b.call(b.member(b.id(name), "attached"), [attachee]);
+                member.object = b.call(b.member(b.id(&bound), "attached"), [attachee]);
             }
         }
+        Some(access)
+    }
+
+    /// `Math.Text` of `import QtQuick as Math`: a type of a namespace named
+    /// as a global of JavaScript is read where the namespace is bound,
+    /// `$Math`, and the name it is bound under is given. `Math.max`, which
+    /// is no type of it, is JavaScript's.
+    fn through_global(&mut self, namespace: &str, member: &str) -> Option<String> {
+        if !JS_GLOBALS.contains(&namespace) || self.types.namespace(namespace).is_none() {
+            return None;
+        }
+        self.types.find(&[namespace, member])?;
+        self.uses.namespaces.insert(namespace.to_string());
+        Some(local(namespace).into_owned())
+    }
+
+    /// `Date.Night` of `component Date`: what a type named as a global of
+    /// JavaScript has itself, a key or an enum of it, a member of what it
+    /// attaches, or of the one object a singleton is, is the type's, read
+    /// where it is bound (`$Date`). JavaScript's `Date` has none of them;
+    /// whatever else is read off the name (`Date.now()`) is JavaScript's.
+    fn of_global_type(&mut self, name: &str, member: &str) -> Option<Access> {
+        if !JS_GLOBALS.contains(&name) || self.types.namespace(name).is_some() {
+            return None;
+        }
+        let found = self.types.find(&[name])?;
+        let access = self.member_of(&found.kind, member);
+        let ours = match access {
+            Access::Enum | Access::Attached => true,
+            Access::Singleton => self.types.front().member(&found.kind, member).is_some(),
+            Access::Static => self.types.is_key(&found.kind, None, member),
+        };
+        if !ours {
+            return None;
+        }
+        self.uses.origin(name, &found.origin);
         Some(access)
     }
 }
@@ -920,7 +1013,8 @@ impl<'a> Resolver<'a, '_, '_> {
                 self.uses.origin(&name, &found.origin);
                 let mut attachee = inner.object.take_in(&b.allocator());
                 self.visit_expression(&mut attachee);
-                b.call(b.member(b.id(&name), "attached"), [attachee])
+                // Imported as `$Date` when it is named `Date`.
+                b.call(b.member(b.id(&local(&name)), "attached"), [attachee])
             }
         })
     }
@@ -1148,7 +1242,9 @@ impl<'a> VisitMut<'a> for Resolver<'a, '_, '_> {
         // `ToolTip.visible = true` is told to what the type attaches, as
         // `ToolTip.visible` is read from it.
         if let SimpleAssignmentTarget::StaticMemberExpression(member) = target
-            && (self.attached_member(member) || self.of_type(member).is_some())
+            && (self.attached_member(member)
+                || self.namespaced_singleton(member)
+                || self.of_type(member).is_some())
         {
             return;
         }

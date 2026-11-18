@@ -2205,3 +2205,216 @@ fn a_file_named_as_a_global_of_javascript_is_bound_under_a_name_of_its_own() {
     assert_contains(&code, r#"import $Date from "./Date.qml";"#);
     assert_contains(&code, "<$Date></$Date>");
 }
+
+#[test]
+fn a_type_read_through_a_namespace_named_as_a_global_of_javascript_is_of_that_namespace() {
+    // `Math.Text` is the namespace's type, and `Math.max` JavaScript's: the
+    // namespace is bound as `$Math`, so a script reads its types there.
+    let code = lowered(
+        r#"import QtQuick
+import QtQuick as Math
+Math.Item {
+    property int a: Math.Text.AlignLeft
+    property bool b: Math.Text.AlignRight > 0
+    property real most: Math.max(2, 5)
+    function isText(item) { return item instanceof Math.Text }
+    Math.Text { horizontalAlignment: Math.Text.AlignRight }
+}"#,
+    );
+    assert_contains(&code, "$Math.Text.AlignLeft");
+    assert_contains(&code, "$Math.Text.AlignRight > 0");
+    assert_contains(&code, "horizontalAlignment={$Math.Text.AlignRight}");
+    assert_contains(&code, "return item instanceof $Math.Text;");
+    assert_lacks(&code, "{Math.Text");
+    assert_contains(&code, "Math.max(2, 5)");
+    assert_lacks(&code, "$Math.max");
+}
+
+#[test]
+fn a_type_read_only_through_a_namespace_named_as_a_global_of_javascript_imports_it() {
+    // Nothing else names the namespace: the script's read is why it is
+    // imported.
+    let code = lowered(
+        r#"import QtQuick
+import QtQuick as Math
+Item { property int a: Math.Text.AlignLeft }"#,
+    );
+    assert_contains(&code, r#"import * as $Math from "ljos-web/QtQuick";"#);
+    assert_contains(&code, "a={$Math.Text.AlignLeft}");
+}
+
+#[test]
+fn a_singleton_and_an_enum_read_through_a_module_of_the_project_named_as_a_global_of_javascript_are_its()
+ {
+    let files = [
+        (
+            "Main",
+            r#"import QtQuick
+import Parts as Date
+Date.Dial {
+    property int hour: Date.Clock.hour
+    property int kind: Date.Dial.Night
+    property int named: Date.Dial.Kind.Day
+    property double now: Date.now()
+}"#,
+        ),
+        (
+            "parts/Dial",
+            "import QtQuick\nItem { enum Kind { Day, Night } }",
+        ),
+        (
+            "parts/Clock",
+            "pragma Singleton\nimport QtQuick\nQtObject { property int hour: 3 }",
+        ),
+    ];
+    let mut project = Project::new();
+    for (file, source) in &files {
+        project
+            .add(file, source)
+            .unwrap_or_else(|errors| panic!("{file}: {errors:?}"));
+    }
+    project.add_type("Parts", "Dial", "parts/Dial");
+    project.add_type("Parts", "Clock", "parts/Clock");
+    let options = Options {
+        name: "Main".to_string(),
+        project: Some(project),
+        ..Options::default()
+    };
+    let code = lowered_source(files[0].1, &options).unwrap_or_else(|errors| panic!("{errors:?}"));
+    assert_contains(&code, "$Date.Clock().hour");
+    assert_contains(&code, "$Date.Dial.Night");
+    assert_contains(&code, "$Date.Dial.Day");
+    assert_lacks(&code, "{Date.Clock");
+    assert_lacks(&code, "{Date.Dial");
+    assert_contains(&code, "Date.now()");
+    assert_lacks(&code, "$Date.now");
+}
+
+#[test]
+fn an_enum_of_a_component_named_as_a_global_of_javascript_is_read_off_the_component() {
+    // `Date.Night` is a key of the component's: JavaScript's `Date` has
+    // none. `Date.now()` and `Date.UTC` are still JavaScript's.
+    let code = lowered(
+        r#"import QtQuick
+Item {
+    component Date: Rectangle { enum Kind { Day, Night } }
+    property int kind: Date.Night
+    property int named: Date.Kind.Day
+    property double now: Date.now()
+    property var utc: Date.UTC
+}"#,
+    );
+    assert_contains(&code, "const Date$Night = $Date.Night;");
+    assert_contains(&code, "const Date$Day = $Date.Day;");
+    assert_contains(&code, "Date.now()");
+    assert_lacks(&code, "$Date.now");
+    assert_lacks(&code, "$Date.UTC");
+}
+
+#[test]
+fn a_singleton_named_as_a_global_of_javascript_is_read_where_it_is_bound() {
+    // `JSON.gap` is the singleton's, which has a `gap`; `JSON.stringify` is
+    // JavaScript's, the singleton having none.
+    let json = "pragma Singleton\nimport QtQuick\nQtObject { property int gap: 4 }";
+    let app = r#"import QtQuick
+Item {
+    property int gap: JSON.gap
+    property string said: JSON.stringify([gap])
+}"#;
+    let files = [("JSON", json), ("App", app)];
+    let code = lowered_in(&files, "App").unwrap_or_else(|errors| panic!("{errors:?}"));
+    assert_contains(&code, r#"import $JSON from "./JSON.qml";"#);
+    assert_contains(&code, "gap={$JSON().gap}");
+    assert_contains(&code, "JSON.stringify([");
+    assert_lacks(&code, "$JSON().stringify");
+}
+
+#[test]
+fn a_type_named_as_a_global_of_javascript_attaches_by_the_name_it_is_bound_under() {
+    let code = lowered(
+        r#"import QtQuick
+Item {
+    component Date: ListView { }
+    Date {
+        delegate: Item { property bool on: Date.isCurrentItem }
+    }
+    function current(item) { return item.Date.isCurrentItem }
+}"#,
+    );
+    assert_contains(&code, "return $Date.attached(item).isCurrentItem;");
+    assert_contains(&code, "on={$Date.attached(");
+    assert_lacks(&code, " Date.attached(");
+    assert_lacks(&code, "{Date.isCurrentItem");
+}
+
+#[test]
+fn a_singleton_of_a_module_of_the_project_is_read_off_its_one_object_through_a_namespace() {
+    // What the namespace has of `Clock` is the function that gives the one
+    // object: `P.Clock.hour` is of the object, as `Clock.hour` is, and
+    // `P.Clock.Kind` of the function that has the keys.
+    let files = [
+        (
+            "Main",
+            r#"import QtQuick
+import Parts as P
+Item {
+    property int hour: P.Clock.hour
+    property int kind: P.Clock.Late
+    function reset() { P.Clock.hour = 5 }
+}"#,
+        ),
+        (
+            "parts/Clock",
+            "pragma Singleton\nimport QtQuick\nQtObject { enum Kind { Early, Late }\n property int hour: 3 }",
+        ),
+    ];
+    let mut project = Project::new();
+    for (file, source) in &files {
+        project
+            .add(file, source)
+            .unwrap_or_else(|errors| panic!("{file}: {errors:?}"));
+    }
+    project.add_type("Parts", "Clock", "parts/Clock");
+    let options = Options {
+        name: "Main".to_string(),
+        project: Some(project),
+        ..Options::default()
+    };
+    let code = lowered_source(files[0].1, &options).unwrap_or_else(|errors| panic!("{errors:?}"));
+    assert_contains(&code, "hour={P.Clock().hour}");
+    assert_contains(&code, "kind={P.Clock.Late}");
+    assert_contains(&code, "P.Clock().hour = 5;");
+}
+
+#[test]
+fn a_singleton_of_a_module_of_the_package_is_its_object_through_a_namespace() {
+    // A module that is installed is the package's, whose singleton is the
+    // object it exports, not a function of the file that stands in for it.
+    let files = [
+        (
+            "Main",
+            "import QtQuick\nimport Parts as P\nItem {\n    property int hour: P.Clock.hour\n}",
+        ),
+        (
+            "parts/Clock",
+            "pragma Singleton\nimport QtQuick\nQtObject { property int hour: 3 }",
+        ),
+    ];
+    let mut project = Project::new();
+    for (file, source) in &files {
+        project
+            .add(file, source)
+            .unwrap_or_else(|errors| panic!("{file}: {errors:?}"));
+    }
+    project.add_type("Parts", "Clock", "parts/Clock");
+    let options = Options {
+        name: "Main".to_string(),
+        project: Some(project),
+        installed: vec!["Parts".to_string()],
+        ..Options::default()
+    };
+    let code = lowered_source(files[0].1, &options).unwrap_or_else(|errors| panic!("{errors:?}"));
+    assert_contains(&code, r#"import * as P from "ljos-web/Parts";"#);
+    assert_contains(&code, "hour={P.Clock.hour}");
+    assert_lacks(&code, "P.Clock()");
+}

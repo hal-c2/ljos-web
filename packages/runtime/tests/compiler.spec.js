@@ -98,8 +98,9 @@ test("a compile in the page is what qmlc makes of the same files", async ({ page
   }
 });
 
-// `import QtQuick as Math` and `component Date`: names of JavaScript's
-// globals, bound under names of their own (kernel.spec.js's scene).
+// `import QtQuick as Math`, `import QtQuick.Layouts as JSON` and
+// `component Date`: names of JavaScript's globals, bound under names of
+// their own (kernel.spec.js's scene).
 test("a type named as a global of JavaScript compiles in the page as qmlc compiles it, and runs", async ({ page }) => {
   await opened(page);
   const files = project();
@@ -107,7 +108,7 @@ test("a type named as a global of JavaScript compiles in the page as qmlc compil
   expect(made.diagnostics).toBeUndefined();
   for (const { file, code } of made.modules) expect(code, file).toBe(native(file));
   expect(await show(page, { files, entry: "globalnames.qml" })).toMatchObject({ mounted: true });
-  expect(await page.evaluate(() => window.scene.read())).toEqual([4, 5, 10, 150, 5, 0, "number"]);
+  expect(await page.evaluate(() => window.scene.read())).toEqual([4, 5, 10, 150, 5, 0, "number", 2, 2, 1, "[1]", 1, 1]);
 });
 
 test("QML compiled in the page mounts on the modules the page has", async ({ page }) => {
