@@ -86,7 +86,9 @@ test(`every page names its icon at ${base}, and the build wrote it`, () => {
 });
 
 test("every docs page's reading stands beside its HTML, for a shell that shows it in place", () => {
-  const docs = pages.filter(({ at }) => at !== base && at !== `${base}demos/`);
+  // The front page and the demos, the gallery and each pro demo's own
+  // route, are the site's own pages, not docs pages with a reading.
+  const docs = pages.filter(({ at }) => at !== base && !at.startsWith(`${base}demos/`));
   expect(docs.length).toBeGreaterThan(50);
   const unread = docs.filter(({ file, at }) => {
     const reading = join(dirname(file), "page.json");
