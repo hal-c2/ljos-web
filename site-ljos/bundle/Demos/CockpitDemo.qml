@@ -6,9 +6,10 @@ import "Cockpit" as Svala
 // in a page's frame. It is dark unless the reader picked light for the
 // site: a night cabin is how it was drawn, and the site's own toggle is
 // the reader saying otherwise. The car's drive is held while the frame
-// is off screen; the reader's calm reaches the app's Motion.reduced
-// through the page itself (motion.js marks it), so nothing here
-// changes how anything moves.
+// is off screen; the reader's calm reaches the app as it reaches any
+// page (motion.js marks it), and its Ljós animations calm as Ljós's do
+// (the runtime's Ljos/Ui/motion.js), so nothing here changes how
+// anything moves.
 Item {
     id: demo
     width: 1600

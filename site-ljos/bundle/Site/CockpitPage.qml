@@ -131,7 +131,9 @@ Column {
     DemoFrame {
         width: parent.width
         scroller: page.scroller
-        needs: "webgl2"
+        // The car is read from its files, which only the wgpu renderer
+        // reads (QtQuick3D/AssetUtils).
+        needs: "webgpu"
         route: "/demos/cockpit/"
         aspect: 900 / 1600
         // The cockpit is dark unless the reader picked light for the site
