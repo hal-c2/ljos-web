@@ -230,7 +230,8 @@ test("an ordered list's numbers are said, a bullet is not", async ({ page }) => 
 // where none ever does, at the size the page gives them.
 for (const [route, demos] of [
   ["/", 1],
-  ["/demos/", 4],
+  // Four demos framed in the page, and the cockpit's card.
+  ["/demos/", 5],
 ]) {
   test(`${route}'s mark and demo pictures are drawn with no script`, async ({ browser }) => {
     for (const width of [390, 1440]) {
@@ -258,8 +259,11 @@ for (const [route, demos] of [
         expect(pictures.length, `the demo pictures at ${width}`).toBe(demos);
         for (const picture of pictures) {
           expect(picture.loaded, picture.file).toBe(true);
-          // Its frame's shape (420 by 720), inside the frame's edge.
-          expect(Math.abs(picture.height - Math.round(((picture.width + 2) * 420) / 720) + 2), picture.file).toBeLessThanOrEqual(1);
+          // Its frame's shape, inside the frame's edge: 420 by 720 for a
+          // demo framed in the page; the cockpit's own 900 by 1600, on its
+          // card with no edge, for the demo that has a page of its own.
+          const [tall, wide, edge] = picture.file.startsWith("demo-cockpit") ? [900, 1600, 0] : [420, 720, 2];
+          expect(Math.abs(picture.height - Math.round(((picture.width + edge) * tall) / wide) + edge), picture.file).toBeLessThanOrEqual(1);
           expect(picture.width, picture.file).toBeGreaterThan(300);
         }
       } finally {
