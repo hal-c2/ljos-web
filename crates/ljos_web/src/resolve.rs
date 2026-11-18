@@ -322,9 +322,15 @@ fn is_plain_value(expression: &Expression<'_>) -> bool {
 impl<'a> VisitMut<'a> for Resolver<'a, '_> {
     fn visit_expression(&mut self, expression: &mut Expression<'a>) {
         // The scripts are parsed as TypeScript so that QML's type annotations
-        // parse; none of it is meant to reach the output.
+        // parse; none of it is meant to reach the output. Nor are the
+        // parentheses the parser keeps: Solid matches conditionals without
+        // looking through them (its own parse drops them), and the printer
+        // puts back every one the precedence needs.
         loop {
             let inner = match expression {
+                Expression::ParenthesizedExpression(it) => {
+                    it.expression.take_in(&self.b.allocator())
+                }
                 Expression::TSAsExpression(it) => it.expression.take_in(&self.b.allocator()),
                 Expression::TSSatisfiesExpression(it) => it.expression.take_in(&self.b.allocator()),
                 Expression::TSNonNullExpression(it) => it.expression.take_in(&self.b.allocator()),
