@@ -21,6 +21,13 @@ Item {
     Button { id: linked; x: 300; icon: giver.icon }
     // An action whose icon is given whole, as one value.
     Button { id: wholeAction; x: 360; action: Action { icon: ({ source: "../assets/circle.png", color: "#0066cc" }) } }
+    // An icon that is another button's, which was given no colour, in a
+    // button whose action was given one: the icon given whole gives every
+    // member, so the colour is none, and the action's is not asked.
+    Button { id: bare; x: 420; icon.source: "../assets/circle.png" }
+    Button { id: linkedActing; x: 420; y: 50; icon: bare.icon; action: Action { icon.color: "#0066cc" } }
+    // The same, with the action's icon given back as the button's own.
+    Button { id: linkedBack; x: 360; y: 50; icon: bare.icon; action: Action { icon: linkedBack.icon } }
     // A label given its icon whole, in a button that has none.
     Button { id: holder; y: 50; contentItem: IconLabel { icon: ({ source: "../assets/circle.png" }) } }
     // The picture as it is, to compare what is drawn with.
@@ -41,7 +48,7 @@ Item {
 
     function loaded() {
         return plain.status === Image.Ready
-            && [tinted, asItIs, untold, acting, linked, wholeAction].every((control) => image(control)?.status === Image.Ready)
+            && [tinted, asItIs, untold, acting, linked, wholeAction, linkedActing, linkedBack].every((control) => image(control)?.status === Image.Ready)
     }
 
     function colors() {
@@ -53,6 +60,8 @@ Item {
             linked: String(image(linked).color),
             wholeAction: String(image(wholeAction).color),
             holder: String(image(holder)?.source ?? ""),
+            linkedActing: [String(image(linkedActing).color), String(linkedActing.contentItem.color)],
+            linkedBack: [String(image(linkedBack).color), String(linkedBack.contentItem.color)],
         }
     }
 
