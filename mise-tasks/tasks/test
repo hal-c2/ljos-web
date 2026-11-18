@@ -17,6 +17,11 @@ mkdir -p "$sys"
 for cmd in bash cut env git grep sed; do
   ln -s "$(command -v "$cmd")" "$sys/$cmd"
 done
+# The host is a case's too: setup's aqt line names it, so uname answers what
+# a case sets (Linux x86_64 unless it says otherwise), not this machine.
+# shellcheck disable=SC2016 # the stand-in expands its variables when it runs
+printf '#!/bin/sh\ncase "$1" in -s) echo "${uname_s:-Linux}" ;; -m) echo "${uname_m:-x86_64}" ;; esac\n' >"$sys/uname"
+chmod +x "$sys/uname"
 
 # `stub <case> <name> <output>`: a tool that prints <output> and succeeds.
 stub() {
@@ -89,6 +94,8 @@ expect newer 0 "types' Qt: Qt $newer.1 found ($scratch/qt-newer/qml); mise run t
 expect newer 0 "reference's qml: Qt $newer.1 found ($scratch/newer/qml6); mise run reference takes this Qt's pictures"
 expect newer 0 "pinned: Qt $qt_pinned (.gitmodules' corpus/qtdoc branch)"
 expect newer 0 "install Qt $qt_pinned (Qt's online installer, or aqt install-qt linux desktop \"\$(aqt list-qt linux desktop --spec $qt_pinned --latest-version)\" linux_gcc_64 -O ~/Qt) and set QML to its bin/qml"
+expect newer 0 "aqt install-qt mac desktop \"\$(aqt list-qt mac desktop --spec $qt_pinned --latest-version)\" clang_64 -O ~/Qt" uname_s=Darwin uname_m=arm64
+expect newer 0 "aqt install-qt linux_arm64 desktop \"\$(aqt list-qt linux_arm64 desktop --spec $qt_pinned --latest-version)\" linux_gcc_arm64 -O ~/Qt" uname_m=aarch64
 expect pinned 0 "types' Qt: $scratch/qt-pinned/qml, the pinned Qt $qt_pinned"
 expect pinned 0 "reference's qml: $scratch/pinned/qml6, the pinned Qt $qt_pinned"
 expect qt5-only 0 "setup --check: found"
