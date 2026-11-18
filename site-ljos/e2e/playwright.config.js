@@ -31,7 +31,10 @@ export default defineConfig({
   },
   projects: [
     { name: "webassembly", use: { wasm: true } },
-    { name: "no-webassembly", use: { wasm: false } },
+    // themes.spec.js reads what examples draw, and without WebAssembly
+    // none runs. Left out rather than skipped in each test: the shards
+    // are cut by count, and a test skipped as it runs still counts.
+    { name: "no-webassembly", use: { wasm: false }, testIgnore: ["themes.spec.js"] },
   ],
   webServer: {
     command: "node scripts/serve.mjs dist 4471",
