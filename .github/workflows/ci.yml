@@ -101,14 +101,17 @@ jobs:
           LJOS_KERNEL: wasm
         run: pnpm --filter ljos-web exec playwright test -c tests kernelchoice
       # messages.spec: ljos-ui's features/i18n/messages.feature, compiled in the page.
-      - name: drop and messages, on the Solid kernel
+      # compiler.spec: what the page compiles is what qmlc makes of the same
+      # files, and compiled QML may import every module the runtime exports
+      # but those a page puts together, so a new export is not left out.
+      - name: drop, messages and the compiler in the page, on the Solid kernel
         if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
-        run: pnpm --filter ljos-web exec playwright test -c tests drop live.spec messages.spec
-      - name: drop and messages, on the wasm kernel
+        run: pnpm --filter ljos-web exec playwright test -c tests drop live.spec messages.spec compiler.spec
+      - name: drop, messages and the compiler in the page, on the wasm kernel
         if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
         env:
           LJOS_KERNEL: wasm
-        run: pnpm --filter ljos-web exec playwright test -c tests drop live.spec messages.spec
+        run: pnpm --filter ljos-web exec playwright test -c tests drop live.spec messages.spec compiler.spec
       # The 3D scenes on the JavaScript renderer, which asks for no GPU of its
       # own (Chromium draws its WebGL2 in software here). A View3D made late,
       # as a Loader makes one, is among them. Those lit by a picture of their
