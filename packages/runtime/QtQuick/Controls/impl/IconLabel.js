@@ -5,6 +5,7 @@ import { color, colorValue } from "../../color.ts";
 import { lazy } from "../../compute.ts";
 import { font } from "../../font.ts";
 import { Item } from "../../Item.js";
+import { AbstractButton } from "../../Templates/AbstractButton.js";
 import { chord, chordText } from "../../keycodes.ts";
 import { Text } from "../../Text.js";
 import { IconImage } from "./images.js";
@@ -48,6 +49,54 @@ function coloured(self) {
   return Boolean(from && from !== self && from.$type.slots.icon$color && coloured(from));
 }
 
+// The button a label is in, nearest first. Ljós's own styles write no
+// `icon: control.icon`: Ljós's native engine shows a label the icon of the
+// button it belongs to in whatever the label's own `icon` was not told
+// (ljos-ui's crates/ljos_controls/src/icon_label.rs), and so does this, so
+// the same QML shows the same icon on both.
+const isa = (item, Type) => item?.$type?.chain.includes(Type) === true;
+function buttonOf(self) {
+  // A parent chain deeper than this is a cycle someone built by hand.
+  for (let item = self.parent, depth = 0; item && depth < 4096; item = item.parent, depth++) {
+    if (isa(item, AbstractButton)) return item;
+  }
+  return null;
+}
+
+// The button whose icon fills in what a label's own `icon` was not told:
+// none where the label's whole `icon` is another's (Qt's `icon: control.icon`,
+// which gives every member), or where it is in no button. Tracked, so a
+// label moved into a button shows that button's icon.
+function inheritsFrom(self) {
+  const from = slot(self, "icon").get()?.$self;
+  if (from && from !== self) return null;
+  return buttonOf(self);
+}
+
+// One member of the icon a label shows: its own where it was told one, its
+// button's (which is its action's, where it follows one) otherwise.
+function leaf(self, name) {
+  if (slot(self, `icon$${name}`).explicit()) return self.icon[name];
+  const button = inheritsFrom(self);
+  return button ? button.icon[name] : self.icon[name];
+}
+
+const opaque = (value) => color(value).a > 0;
+
+// The colour a label's icon is drawn in. One it was given, by itself or by
+// the control whose `icon` it takes; else, from the button it belongs to,
+// the button's, its `defaultIconColor`, or the colour of its text, as Ljós's
+// native engine draws it. A label in no button that was given none keeps
+// `defaultIconColor`, transparent unless told: the picture as it is, as Qt
+// shows a bare IconLabel's.
+function iconColor(self) {
+  if (coloured(self)) return self.icon.color;
+  const button = inheritsFrom(self);
+  if (!button) return self.defaultIconColor;
+  if (opaque(button.icon.color)) return button.icon.color;
+  return opaque(self.defaultIconColor) ? self.defaultIconColor : self.color;
+}
+
 export const IconLabel = defineType("IconLabel", Item, {
   properties: {
     icon: group({ name: "", source: "", width: 0, height: 0, color: "transparent", cache: true }),
@@ -87,9 +136,8 @@ export const IconLabel = defineType("IconLabel", Item, {
     // it to show, and they are children of the label only then.
     const parts = lazy(self, () => {
       const display = self.display;
-      const icon = self.icon;
       return {
-        icon: display !== TEXT_ONLY && (icon.name !== "" || String(icon.source ?? "") !== ""),
+        icon: display !== TEXT_ONLY && (leaf(self, "name") !== "" || String(leaf(self, "source") ?? "") !== ""),
         text: display !== ICON_ONLY && String(self.text ?? "") !== "",
       };
     });
@@ -98,22 +146,22 @@ export const IconLabel = defineType("IconLabel", Item, {
         IconImage({
           objectName: "image",
           get name() {
-            return self.icon.name;
+            return leaf(self, "name");
           },
           get source() {
-            return parts().icon ? self.icon.source : "";
+            return parts().icon ? leaf(self, "source") : "";
           },
           get sourceSize$width() {
-            return self.icon.width;
+            return leaf(self, "width");
           },
           get sourceSize$height() {
-            return self.icon.height;
+            return leaf(self, "height");
           },
           get color() {
-            return coloured(self) ? self.icon.color : self.defaultIconColor;
+            return iconColor(self);
           },
           get cache() {
-            return self.icon.cache;
+            return leaf(self, "cache");
           },
           get horizontalAlignment() {
             return self.alignment & HORIZONTAL;
