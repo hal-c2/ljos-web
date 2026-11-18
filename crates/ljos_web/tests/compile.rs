@@ -246,6 +246,24 @@ fn a_property_named_ref_is_an_error() {
         let messages: Vec<_> = errors.iter().map(|error| error.message.as_str()).collect();
         assert_eq!(messages, [message], "{source}");
     }
+    // In a group it is `font$ref`, an attribute like any other, and both
+    // ways of writing it come to the same.
+    let outcome = |source: &str| match compile(source, &options()) {
+        Ok(output) => Ok(output.code),
+        Err(errors) => Err(errors
+            .into_iter()
+            .map(|error| error.message)
+            .collect::<Vec<_>>()),
+    };
+    let grouped = outcome("import QtQuick\nText { font { ref: 1 } }");
+    assert_eq!(grouped, outcome("import QtQuick\nText { font.ref: 1 }"));
+    assert!(
+        grouped
+            .as_ref()
+            .err()
+            .is_none_or(|errors| !errors.iter().any(|e| e.contains("Solid takes"))),
+        "{grouped:?}"
+    );
 }
 
 #[test]
