@@ -1118,7 +1118,8 @@ impl<'a> Resolver<'a, '_, '_> {
         };
         self.uses.origin(name, &origin);
         self.uses.kernel.insert("$file");
-        Some(self.b.call(self.b.id("$file"), [self.b.id(name)]))
+        // By the name it is imported under: `Date` is `$Date`.
+        Some(self.b.call(self.b.id("$file"), [self.b.id(&local(name))]))
     }
 }
 
