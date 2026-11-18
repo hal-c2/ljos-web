@@ -3,7 +3,7 @@
 // color-contrast, WCAG AA), whichever scheme the browser asks for and
 // whichever the reader picks in the header after the page is open.
 import AxeBuilder from "@axe-core/playwright";
-import { centre, classify, expect, livePages, open, run, test } from "./fixtures.js";
+import { centre, classify, expect, livePages, open, press, run, test } from "./fixtures.js";
 
 // axe's contrast, and nothing else: the rest of what axe asks is
 // tests/a11y.spec.js's.
@@ -51,19 +51,57 @@ const inPlaceholderColour = (colorScheme, line) => {
 };
 // The words an axe node draws, and whether they are an empty field's
 // placeholder: the field's input or textarea is named by them (a field
-// is called by its placeholder until it is given a name) and holds no
-// text. The field is looked for no further out than the TextField that
-// holds both.
+// is called by its placeholder until it is given a name), holds no text,
+// and is where they are drawn, as a placeholder stands in for the text
+// the field would show. Words beside the field that say the same are
+// not its placeholder. The field is looked for no further out than the
+// TextField that holds both.
 const placeholderOf = (page, target) =>
   page.evaluate((selector) => {
     const element = document.querySelector(selector);
     const words = element?.textContent.trim() ?? "";
+    const drawn = element?.getBoundingClientRect();
+    const under = (field) => {
+      const box = field.getBoundingClientRect();
+      const [x, y] = [drawn.left + drawn.width / 2, drawn.top + drawn.height / 2];
+      return x >= box.left && x <= box.right && y >= box.top && y <= box.bottom;
+    };
     for (let at = element?.parentElement, out = 0; at && out < 3; at = at.parentElement, out += 1) {
-      const field = [...at.querySelectorAll("input, textarea")].find((each) => each.getAttribute("aria-label") === words);
+      const field = [...at.querySelectorAll("input, textarea")].find((each) => each.getAttribute("aria-label") === words && under(each));
       if (field) return { words, placeholder: field.value === "" };
     }
     return { words, placeholder: false };
   }, target.join(" "));
+
+// A field's placeholder is drawn where its text would be. Words beside
+// the field that say the same, in the same colour, are the example's own
+// and are counted: Notes is the TextArea's placeholder, and is a Text too.
+test("words beside an empty field that say what its placeholder says are counted", async ({ page, wasm }) => {
+  test.skip(!wasm, "without WebAssembly no example runs");
+  await page.emulateMedia({ colorScheme: "light" });
+  const route = "/controls/value-inputs/";
+  const { examples } = livePages().find((each) => each.route === route);
+  const example = examples.find((each) => /placeholderText: "Notes"/.test(each.code));
+  await open(page, route);
+  const block = await run(page, example.index);
+  await press(block.block.getByRole("textbox").first());
+  await expect(block.block.locator(".cm-editor.cm-focused"), "the code editor has the keyboard").toBeVisible({ timeout: 30_000 });
+  await page.keyboard.press("ControlOrMeta+a");
+  await page.keyboard.insertText(
+    example.code.replace("    TextArea {", `    Text { text: "Notes"; color: "${PLACEHOLDER.light}" }\n\n    TextArea {`),
+  );
+  const notes = block.block.locator(".qq-text").filter({ hasText: /^Notes$/ });
+  await expect(notes, "the edit ran: the Text and the placeholder").toHaveCount(2, { timeout: 30_000 });
+  await page.waitForTimeout(400);
+  await block.running.evaluate((element) => element.setAttribute("data-themes-check", ""));
+  const all = await contrast(page, "[data-themes-check]");
+  expect(all.filter(({ line }) => inPlaceholderColour("light", line)), "axe finds both under AA").toHaveLength(2);
+  const found = await unexcused(page, "[data-themes-check]", "light", route, new Set());
+  expect(found, "the placeholder is excused, the Text beside it is not").toHaveLength(1);
+  const counted = await page.evaluate((selector) => document.querySelector(selector).getBoundingClientRect().top, found[0].split(" — ")[0]);
+  const [above] = await notes.evaluateAll((each) => each.map((element) => element.getBoundingClientRect().top).sort((a, b) => a - b));
+  expect(counted, "and what is counted is the Text, above the field").toBe(above);
+});
 
 // Examples from ljos-ui's docs that draw real words in the placeholder
 // colour, so they are under AA. Listed by their words, never by colour,
