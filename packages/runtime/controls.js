@@ -266,7 +266,14 @@ function publish(fresh, root) {
   try {
     const old = `${fresh}.old`;
     if (existsSync(root)) renameSync(root, old);
-    renameSync(fresh, root);
+    try {
+      renameSync(fresh, root);
+    } catch (error) {
+      // The old tree goes back: a failed write leaves the controls as they
+      // were, not in a hidden directory beside them.
+      if (existsSync(old)) renameSync(old, root);
+      throw error;
+    }
     rmSync(old, { recursive: true, force: true });
   } finally {
     rmSync(lock, { recursive: true, force: true });
