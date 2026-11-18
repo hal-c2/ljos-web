@@ -50,6 +50,17 @@ Item {
     // A tab given a picture, by itself or its action, and shown as its icon.
     TabButton { id: tabPicture; x: 400; y: 200; text: "Files"; icon.source: "../assets/circle.png"; display: IconLabel.IconOnly }
     TabButton { id: tabAction; x: 480; y: 200; display: IconLabel.IconOnly; action: T.Action { text: "Files"; icon.source: "../assets/circle.png" } }
+    TabButton { id: tabPictureChecked; x: 480; y: 260; checked: true; icon.source: "../assets/circle.png"; display: IconLabel.IconOnly }
+
+    // A lone "&" is a mnemonic's marker and draws nothing: no text.
+    Button { id: markerOnly; x: 400; y: 320; text: "&"; icon.source: "../assets/circle.png"; display: IconLabel.TextOnly }
+    MenuItem { id: rowMarker; x: 360; y: 120; width: 120; text: "&"; iconName: "folder"; display: IconLabel.TextOnly }
+
+    // Shown under their icon with only one of the two.
+    TabButton { id: tabUnderText; y: 360; text: "Files"; display: IconLabel.TextUnderIcon }
+    TabButton { id: tabUnderIcon; x: 100; y: 360; iconName: "folder"; display: IconLabel.TextUnderIcon }
+    Button { id: underText; x: 200; y: 360; text: "Save"; display: IconLabel.TextUnderIcon }
+    Button { id: underIcon; x: 280; y: 360; iconName: "plus"; display: IconLabel.TextUnderIcon }
 
     // A menu whose only icon is on a row shown as its text.
     Menu {
@@ -65,6 +76,13 @@ Item {
         y: 260
         MenuItem { iconName: "folder"; display: IconLabel.TextOnly }
         MenuItem { id: beside; text: "Close" }
+    }
+    Menu {
+        id: marking
+        x: 360
+        y: 260
+        MenuItem { text: "&"; iconName: "folder"; display: IconLabel.TextOnly }
+        MenuItem { id: besideMarker; text: "Close" }
     }
 
     function part(item, name) {
@@ -163,6 +181,28 @@ Item {
     function menus() {
         hiding.open()
         alone.open()
-        return [hidden, other, kept, beside].map((row) => row.contentItem.gutter)
+        marking.open()
+        return [hidden, other, kept, beside, besideMarker].map((row) => row.contentItem.gutter)
+    }
+
+    // What a button and a row whose text is a lone "&" show.
+    function markers() {
+        return {
+            button: [shows(markerOnly), part(markerOnly.contentItem, "picture").implicitWidth],
+            row: [rowMarker.contentItem.gutter, shows(rowMarker)],
+        }
+    }
+
+    // The colour each tab's picture is drawn in, and the tab's ink.
+    function tabInks() {
+        return [tabPicture, tabPictureChecked].map((tab) => {
+            const image = part(part(tab.contentItem, "picture"), "image")
+            return [image ? String(image.color) : null, String(tab.ink)]
+        })
+    }
+
+    function stackedPaddings() {
+        return [tabUnderText.verticalPadding, tabUnderIcon.verticalPadding,
+                underText.topPadding, underText.bottomPadding, underIcon.topPadding, underIcon.bottomPadding]
     }
 }
