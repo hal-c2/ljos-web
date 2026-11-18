@@ -146,7 +146,7 @@ const pages = livePages()
 // Placed among the examples the tests below read: one left out of them
 // would never say its listed words are readable now.
 test("each of UNDER_AA's words is in an example on its page", () => {
-  const unplaced = UNDER_AA.filter(({ route }) => !pages.some((page) => page.route === route && page.examples.some((example) => listedIn(route, example).length > 0)));
+  const unplaced = UNDER_AA.filter((entry) => !pages.some((page) => page.route === entry.route && page.examples.some((example) => listedIn(entry.route, example).includes(entry))));
   expect(unplaced, "words no example on their page draws: take them out of UNDER_AA").toEqual([]);
 });
 
