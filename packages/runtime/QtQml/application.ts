@@ -126,8 +126,9 @@ const MORE_CONTRAST = matchMedia("(prefers-contrast: more)");
 const LESS_MOTION = matchMedia("(prefers-reduced-motion: reduce)");
 // The motion the page says on its root (`<html data-ljos-motion="reduce">`
 // or `"no-preference"`), as a site keeps a reader's own pick for it, wins
-// over the browser's, as `data-ljos-scheme` does for the scheme.
-const lessMotion = () => {
+// over the browser's, as `data-ljos-scheme` does for the scheme. Ljós's
+// own animations ask it each time one starts (Ljos/Ui/motion.js).
+export const lessMotion = (): boolean => {
   const said = document.documentElement?.getAttribute?.("data-ljos-motion");
   if (said === "reduce") return true;
   if (said === "no-preference") return false;
