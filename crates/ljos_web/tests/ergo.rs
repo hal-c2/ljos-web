@@ -1035,3 +1035,64 @@ export const x: number = also"#,
         ]
     );
 }
+
+/// `Object` of `Ljos.Core` (Qt's `QtObject`) is imported as `$Object`: a
+/// binding named `Object` would hide JavaScript's from the file's code and
+/// from what the compiler writes to make a component (`Object.assign`,
+/// `Object.setPrototypeOf`), and a file whose root is one would not load.
+#[test]
+fn ljos_cores_object_leaves_javascripts_object_to_the_file() {
+    let theme = bare(
+        "pragma Singleton\nimport Ljos.Core\n\nObject {\n    enum Mode { Light, Dark }\n    property var names: Object.keys({ a: 1, b: 2 })\n}",
+    );
+    let main = bare(
+        "import Ljos.Ui\nimport Ljos.Core\n\nItem {\n    property var settings: Object { property int size: 2 }\n    property int count: Object.keys(settings).length\n}",
+    );
+    for (name, text) in [("Theme.qml", theme), ("Main.qml", main)] {
+        let compiled = project(&[(name, text)], name)
+            .unwrap_or_else(|errors| panic!("{}", printed(&errors).join("\n")));
+        let code = &compiled.modules[0].code;
+        assert!(
+            code.contains(r#"import { Object as $Object } from "ljos-web/Ljos/Core";"#),
+            "{name}:\n{code}"
+        );
+        assert!(
+            code.contains("$createComponent($Object,"),
+            "{name}:\n{code}"
+        );
+        assert!(code.contains("Object.keys("), "{name}:\n{code}");
+        assert!(
+            !code.contains("($Object.keys") && !code.contains(" $Object.keys"),
+            "{name}:\n{code}"
+        );
+    }
+}
+
+/// A singleton of a module of the project's, reached through the name the
+/// module is imported as (`Page.Theme.size`), is read off its one object,
+/// as it is when the file names it alone; its enum keys stay on its type.
+#[test]
+fn a_singleton_through_a_modules_name_is_its_one_object() {
+    let theme = bare(
+        "pragma Singleton\nimport QtQuick\n\nQtObject {\n    enum Mode { Light, Dark }\n    property int size: 12\n}",
+    );
+    let main = bare(
+        "import QtQuick\nimport Site as Page\n\nItem {\n    width: Page.Theme.size\n    property int mode: Page.Theme.Dark\n}",
+    );
+    let compiled = project(
+        &[
+            (
+                "Site/qmldir",
+                bare("module Site\nsingleton Theme 1.0 Theme.qml"),
+            ),
+            ("Site/Theme.qml", theme),
+            ("Main.qml", main),
+        ],
+        "Main.qml",
+    )
+    .unwrap_or_else(|errors| panic!("{}", printed(&errors).join("\n")));
+    let code = &compiled.modules[0].code;
+    assert!(code.contains("Page.Theme().size"), "{code}");
+    assert!(code.contains("Page.Theme.Dark"), "{code}");
+    assert!(!code.contains("Page.Theme().Dark"), "{code}");
+}
