@@ -118,11 +118,6 @@ const UNDER_AA = [{ route: "/quality/layout-and-typography/", words: "Select at 
 // reads it on the page.
 const listedIn = (route, example) => UNDER_AA.filter((each) => each.route === route && example.files.some(({ code }) => code.includes(each.words)));
 
-test("each of UNDER_AA's words is in an example on its page", () => {
-  const unplaced = UNDER_AA.filter(({ route }) => !livePages().some((page) => page.route === route && page.examples.some((example) => listedIn(route, example).length > 0)));
-  expect(unplaced, "words no example on their page draws: take them out of UNDER_AA").toEqual([]);
-});
-
 // What of the contrast check is the example's: everything but the
 // palette's placeholders, and the listed words seen on their page.
 async function unexcused(page, include, colorScheme, route, seen) {
@@ -147,6 +142,13 @@ async function unexcused(page, include, colorScheme, route, seen) {
 const pages = livePages()
   .map((page) => ({ ...page, examples: page.examples.filter((example) => !showsUnreadable(example) && !classify(example.code).closed) }))
   .filter((page) => page.examples.length > 0);
+
+// Placed among the examples the tests below read: one left out of them
+// would never say its listed words are readable now.
+test("each of UNDER_AA's words is in an example on its page", () => {
+  const unplaced = UNDER_AA.filter(({ route }) => !pages.some((page) => page.route === route && page.examples.some((example) => listedIn(route, example).length > 0)));
+  expect(unplaced, "words no example on their page draws: take them out of UNDER_AA").toEqual([]);
+});
 
 for (const colorScheme of SCHEMES) {
   test.describe(`in ${colorScheme}`, () => {
