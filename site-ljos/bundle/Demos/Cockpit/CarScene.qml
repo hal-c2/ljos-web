@@ -83,7 +83,7 @@ View3D {
         glowStrength: 1.1
         glowIntensity: scene.dark ? 0.9 : 0.5
         glowBloom: 0.25
-        glowHDRMinimumValue: 1.2
+        glowHDRMinimumValue: 1.8
         glowQualityHigh: true
         glowUseBicubicUpscale: true
         glowLevel: ExtendedSceneEnvironment.GlowLevel.Two
@@ -141,7 +141,8 @@ View3D {
             roughness: 0.9
         }
     }
-    // A lit rim just below the plinth's edge.
+    // A lit rim just below the plinth's edge. 2.6 times the tint clears
+    // the glow threshold (1.8) with the light theme's tint too.
     Model {
         source: "#Cylinder"
         y: -1.6
@@ -150,9 +151,9 @@ View3D {
         castsShadows: false
         materials: PrincipledMaterial {
             baseColor: "black"
-            emissiveFactor: Qt.vector3d(scene.stripTint.r * 1.3 * scene.strips,
-                                        scene.stripTint.g * 1.3 * scene.strips,
-                                        scene.stripTint.b * 1.3 * scene.strips)
+            emissiveFactor: Qt.vector3d(scene.stripTint.r * 2.6 * scene.strips,
+                                        scene.stripTint.g * 2.6 * scene.strips,
+                                        scene.stripTint.b * 2.6 * scene.strips)
         }
     }
 
