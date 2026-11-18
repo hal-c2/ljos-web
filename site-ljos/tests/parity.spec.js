@@ -8,18 +8,16 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
 import { readMarkdownSite } from "ljos-web/markdown";
+import { findDocsDir } from "../../scripts/docs-dir.mjs";
 
 const here = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
-function docsDir() {
-  const candidates = [
-    process.env.LJOS_DOCS_DIR,
-    resolve(here, "../ljos-ui/docs/site"),
-    resolve(here, "../../ljos-ui/docs/site"),
-    join(process.env.HOME ?? "", "dev/ljos-ui/docs/site"),
-  ].filter(Boolean);
-  return candidates.find((candidate) => existsSync(join(candidate, "start/index.md")));
-}
+// The pinned docs the site was built from, never a guessed checkout: a
+// sibling ljos-ui at another revision would be compared with a build of
+// the pinned one. A test, not the file, says when it is missing, so the
+// rest of the suite still runs.
+const docs = findDocsDir();
+const docsDir = () => docs.dir;
 
 function routesUnder(dir, prefix = "") {
   if (!existsSync(dir)) return [];
@@ -40,9 +38,8 @@ const SECTIONS = [
 ];
 
 test("the built routes are the docs' routes, the landing page and the demos page", () => {
-  const docs = docsDir();
-  expect(docs, "LJOS_DOCS_DIR or a sibling ljos-ui checkout").toBeTruthy();
-  const expected = ["/", "/demos/", ...readMarkdownSite({ dir: docs, sections: SECTIONS }).pages.map((page) => page.route)].sort();
+  expect(docsDir(), docs.problem).toBeTruthy();
+  const expected = ["/", "/demos/", ...readMarkdownSite({ dir: docsDir(), sections: SECTIONS }).pages.map((page) => page.route)].sort();
   expect(routesUnder(join(here, "dist")).sort()).toEqual(expected);
   // Where the Astro build stands, its routes are these too (its 404
   // is a host's page, not a route of the site's).
@@ -51,8 +48,8 @@ test("the built routes are the docs' routes, the landing page and the demos page
 });
 
 test("each page's HTML carries its title and its headings, and its links resolve", () => {
-  const docs = docsDir();
-  const site = readMarkdownSite({ dir: docs, sections: SECTIONS });
+  expect(docsDir(), docs.problem).toBeTruthy();
+  const site = readMarkdownSite({ dir: docsDir(), sections: SECTIONS });
   const routes = new Set(["/", "/demos/", ...site.pages.map((page) => page.route)]);
   const gaps = [];
   for (const page of site.pages) {
@@ -73,12 +70,11 @@ test("each page's HTML carries its title and its headings, and its links resolve
 // grows with the docs, so one test over all of them outgrows any
 // budget, and a page that does not answer is named by its test.
 const docsSite = (() => {
-  const docs = docsDir();
-  return docs ? readMarkdownSite({ dir: docs, sections: SECTIONS }) : { pages: [] };
+  return docsDir() ? readMarkdownSite({ dir: docsDir(), sections: SECTIONS }) : { pages: [] };
 })();
 
 test("the docs have their pages to answer", () => {
-  expect(docsDir(), "LJOS_DOCS_DIR or a sibling ljos-ui checkout").toBeTruthy();
+  expect(docsDir(), docs.problem).toBeTruthy();
   expect(docsSite.pages.length).toBeGreaterThanOrEqual(50);
 });
 
