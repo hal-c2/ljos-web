@@ -9,10 +9,10 @@
       "Ljos/Design/"
     ]
   },
-  "rev": "37d9b6bbc8c798d7c5c9bb70f9832bf8f85efb71",
+  "rev": "cf023d76f75cfa6b75562516c18663a3a011a30e",
   "files": {
     "Ljos/Controls/Basic/Card.qml": "2ad78097dfcbc78b956e24293afcd48bc0b6488659d0a8916c5c7cbf96534cfc",
-    "Ljos/Controls/Basic/EmptyState.qml": "e16775f13d601eb5e4a6083d6b633965714b3892e1c2a154359bc6c2eaf325e6",
+    "Ljos/Controls/Basic/EmptyState.qml": "620c7afe6ffb93400c4989d2e2fb6b0f704ce7448b11f2c80643c03fdbc5f57a",
     "Ljos/Controls/Basic/Popover.qml": "4241cc66cc25d144d119b1dbb0c0eaa38f65a46e2dfb68cc72cfedb9533b8425",
     "Ljos/Controls/Basic/SplitButton.qml": "a7257c6512ae0504d283ef7bd5bb68cd665c1a77fc578d0af98d71289e1d2873",
     "Ljos/Controls/Basic/TabButton.qml": "fd679b4b420973a834948e9e3f901fdd6bfbd0ae584ff73bf961272eaf2f62e8",
@@ -20,7 +20,7 @@
     "Ljos/Controls/Card.qml": "ecad2332f803f45b9cc44a3c5358c4a4eb24ed4dc897c9df10a7c3faad01eedf",
     "Ljos/Controls/CheckBox.qml": "62a7614b87e0af50d205f49cc6bc00ef4f9349145a2f604138d500a2032432d0",
     "Ljos/Controls/ComboBox.qml": "d57eeb215469882995a07948faca733e2241082743b469c38bdc70f0160a9a86",
-    "Ljos/Controls/EmptyState.qml": "109346557d52ca659a1bc53cdc60f6faa173ebcf6c6664f7bf1b19070040ffca",
+    "Ljos/Controls/EmptyState.qml": "a168f682be439ebff34a55c83b6c3151547b42be46996f32136542f04f208108",
     "Ljos/Controls/Icon.qml": "8c00af75f85f875a1b95369ad4eea0d03b818ce85aed708538db1ebc76b5581a",
     "Ljos/Controls/Label.qml": "73d68b4231bef7b04d7c34fb59efbf53af6f887098b974253149b60c91d946d5",
     "Ljos/Controls/Menu.qml": "63858d03cded9ce70cc643d630792dce54bbc3dea278c9b9185010a0fb26afe2",
