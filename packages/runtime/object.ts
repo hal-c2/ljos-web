@@ -1853,14 +1853,17 @@ function complete<T>(make: () => T, making: Making = "objects"): T {
     // Each is complete before what holds it has anything to do with it.
     for (const hold of held) hold();
     for (const work of works) work();
+    // What a deferred value tells is told once the binding is done: its
+    // first changes as well as its completion, since a handler of either may
+    // write what the binding reads.
+    const later = deferred ? after : soon;
     // What changes from here on is a change: everything is as it was made.
     const firsts: Works = [];
     for (const watch of watched) watch(firsts);
-    for (const handler of firsts) soon(handler);
+    for (const handler of firsts) later(handler);
     // What the objects make of each other once they are made, as a row of
     // where its items are and how wide that makes it, they have made before
     // any is told that it is complete.
-    const later = deferred ? after : soon;
     if (!inBinding && (handlers.length > 0 || handlers.first)) settle();
     for (const handler of handlers.first ?? []) later(handler);
     // `Component.onCompleted`, as Qt tells of it: of the object made last
