@@ -21,12 +21,21 @@ pub struct SourceNamesOption {
     /// Binding effect labels: the element and attribute (or hole) each
     /// compiled effect writes.
     pub bindings: Option<bool>,
+    /// Source locations (`file:line:col`, relative to `root`) beside each
+    /// emitted name: `createComponent`'s fourth argument, `loc` after
+    /// `name` in a binding's options. Only where the name is emitted, and
+    /// only with a `filename`.
+    pub locations: Option<bool>,
 }
 
 #[napi(object)]
 #[derive(Default)]
 pub struct TransformOptions {
     pub filename: Option<String>,
+    /// Project root the `sourceNames.locations` paths are made relative to.
+    /// Defaults to the working directory, like `transformDirectives`'s
+    /// `root`.
+    pub root: Option<String>,
     /// Source syntax routing, matching `@solidjs/babel-plugin`'s `syntax`:
     /// `"auto"` (default) compiles `.tsrx` filenames with the TSRX frontend,
     /// `"jsx"` never does, `"tsrx"` forces TSRX for every file.
@@ -46,7 +55,11 @@ pub struct TransformOptions {
     /// `bindings` names every compiled binding effect by what it writes
     /// (`span.textContent`, `div.class:active`, a hole `div.children`, a
     /// spread `div.spread`) through an options argument on
-    /// `effect`/`insert`/`spread`; DOM output only. The production runtimes
+    /// `effect`/`insert`/`spread`; DOM output only. `locations` adds the
+    /// source position (`src/App.tsx:12:5`, `filename` relative to `root`)
+    /// beside each emitted name — a fourth `createComponent` argument, `loc`
+    /// after `name` in a binding's options — so a console report can point
+    /// at the line; nothing without a `filename`. The production runtimes
     /// ignore the names. Defaults to `dev`: unset, every kind is on in dev
     /// and off otherwise; `true`/`false` sets every kind; the object form
     /// picks, and each kind it leaves unspecified follows `dev`. Primitive
@@ -65,6 +78,9 @@ pub struct TransformOptions {
     /// `"effect"`.
     pub effect_wrapper: Option<Either<bool, String>>,
     pub wrap_conditionals: Option<bool>,
+    /// Babel's `lowerShow` (default `!dev`): a `<Show>` that needs no
+    /// component compiles to the ternary it renders.
+    pub lower_show: Option<bool>,
     /// The memo wrapper import name (Babel's `memoWrapper: string`), with the
     /// same boolean shorthand as `effect_wrapper`. Default `"memo"`.
     pub memo_wrapper: Option<Either<bool, String>>,
@@ -79,12 +95,6 @@ pub struct TransformOptions {
     pub validate: Option<bool>,
     pub omit_nested_closing_tags: Option<bool>,
     pub omit_last_closing_tag: Option<bool>,
-    /// Babel's `serverComponents`: SSR-only. Attribute-slot positions on
-    /// intrinsic elements stay bindable: `ref`/`on*` compile to a guarded
-    /// `_$ssrClaim` hole instead of dropping, and a dynamic `class`/`style`
-    /// compiles to a whole-attribute `_$ssrElementAttribute` hole instead of
-    /// a value inside template quotes.
-    pub server_components: Option<bool>,
     /// SSR-only (default `true`): a component's props literal with getters
     /// compiles to a module-level constructor with shared getters instead of
     /// an object literal — same own keys, order and descriptors, prototype
@@ -105,6 +115,19 @@ pub struct TransformResult {
     pub css: Option<String>,
     /// Space-separated TSRX scope hashes. Absent when no stylesheet was emitted.
     pub css_hash: Option<String>,
+}
+
+/// The dialect a secondary pass (`transformDirectives`, `transformLazy`,
+/// `transformRefresh`, `transformSourceNames`) parses its input in. Those
+/// passes run on what a JSX transform — this crate's, or another front end's —
+/// already produced, and keep the authored filename only for path-derived
+/// metadata (server-function ids hash it). So a filename Oxc knows picks its
+/// dialect, and any other (`.tsrx`, another front end's `.rx`) is ordinary
+/// code, parsed as TSX.
+pub(crate) fn secondary_source_type(filename: Option<&str>) -> SourceType {
+    filename
+        .and_then(|filename| SourceType::from_path(filename).ok())
+        .unwrap_or_else(SourceType::tsx)
 }
 
 pub(crate) fn source_type_for_filename(filename: Option<&str>) -> Result<SourceType> {

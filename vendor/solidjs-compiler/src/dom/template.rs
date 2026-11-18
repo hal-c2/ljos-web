@@ -39,7 +39,10 @@ pub(crate) struct DomTemplateState {
     pub(crate) uses_set_attribute_ns: bool,
     pub(crate) uses_claim_element: bool,
     pub(crate) uses_set_property: bool,
+    pub(crate) uses_set_stateful_property: bool,
+    pub(crate) uses_held_read: bool,
     pub(crate) uses_add_event_listener: bool,
+    pub(crate) uses_strict_handler: bool,
     pub(crate) uses_delegate_events: bool,
     pub(crate) uses_run_hydration_events: bool,
     pub(crate) delegated_events: std::vec::Vec<String>,
@@ -90,18 +93,43 @@ impl TemplateHtml {
     }
 }
 
+/// What `sourceNames.bindings` writes into an `effect`/`insert` options
+/// argument: the `name` (what the effect writes), and under
+/// `sourceNames.locations` the `loc` of the binding in source.
+pub(crate) struct BindingLabel {
+    pub(crate) name: String,
+    pub(crate) loc: Option<String>,
+}
+
 pub(crate) struct InsertMarker<'a> {
     pub(crate) marker: Expression<'a>,
     pub(crate) initial: Option<Expression<'a>>,
 }
 
-/// 1-based line and column for a byte offset, for diagnostics.
-fn line_and_column(source: &str, offset: u32) -> (usize, usize) {
+/// 1-based line and UTF-16 column for a byte offset, for diagnostics.
+pub(crate) fn line_and_column(source: &str, offset: u32) -> (usize, usize) {
     let offset = (offset as usize).min(source.len());
-    let prefix = &source[..offset];
-    let line = prefix.bytes().filter(|byte| *byte == b'\n').count() + 1;
-    let column = prefix.rfind('\n').map_or(offset, |at| offset - at - 1) + 1;
-    (line, column)
+    let mut line = 1;
+    let mut line_start = 0;
+    let mut chars = source[..offset].char_indices().peekable();
+    while let Some((position, ch)) = chars.next() {
+        let next = match ch {
+            '\r' => {
+                if chars.peek().is_some_and(|(_, next)| *next == '\n') {
+                    let (next_position, next) = chars.next().expect("peeked line feed");
+                    next_position + next.len_utf8()
+                } else {
+                    position + ch.len_utf8()
+                }
+            }
+            '\n' | '\u{2028}' | '\u{2029}' => position + ch.len_utf8(),
+            _ => continue,
+        };
+        line += 1;
+        line_start = next;
+    }
+    let column = source[line_start..offset].encode_utf16().count();
+    (line, column + 1)
 }
 
 impl DomTemplateState {
@@ -132,7 +160,10 @@ impl DomTemplateState {
             uses_set_attribute_ns: false,
             uses_claim_element: false,
             uses_set_property: false,
+            uses_set_stateful_property: false,
+            uses_held_read: false,
             uses_add_event_listener: false,
+            uses_strict_handler: false,
             uses_delegate_events: false,
             uses_run_hydration_events: false,
             delegated_events: std::vec::Vec::new(),
@@ -225,8 +256,19 @@ impl<'a> AstDomTransform<'a, '_> {
             // resolves against the top-level module like the wrappers.
             statements.push(self.import_wrapper_helper("setProperty", "_$setProperty"));
         }
+        if self.template_state.uses_set_stateful_property {
+            // Registered like `setProperty`: against the top-level module.
+            statements
+                .push(self.import_wrapper_helper("setStatefulProperty", "_$setStatefulProperty"));
+        }
+        if self.template_state.uses_held_read {
+            statements.push(self.import_named("heldRead", "_$heldRead"));
+        }
         if self.template_state.uses_add_event_listener {
             statements.push(self.import_named("addEvent", "_$addEvent"));
+        }
+        if self.template_state.uses_strict_handler {
+            statements.push(self.import_named("strictHandler", "_$strictHandler"));
         }
         if self.template_state.uses_delegate_events {
             statements.push(self.import_named("delegateEvents", "_$delegateEvents"));
@@ -249,8 +291,8 @@ impl<'a> AstDomTransform<'a, '_> {
         // in server stderr. The message carries the registration site's
         // line:col so bundler overlays land on the JSX. `validate: false`
         // remains the opt-out. Only DOM templates carry the closing-tags
-        // variant — Babel skips SSR templates for the same reason (theirs
-        // are AST nodes, not strings).
+        // variant; SSR templates rebuild it from their parts
+        // (`validation_markup` in ssr/template.rs).
         if self.validate {
             for template in &self.template_state.templates {
                 if let Some(result) =
@@ -317,7 +359,7 @@ impl<'a> AstDomTransform<'a, '_> {
         AstBuilder::new(self.allocator)
     }
 
-    /// `_$insert(parent, value[, marker[, initial]])`. `name` is the
+    /// `_$insert(parent, value[, marker[, initial]])`. `label` is the
     /// `sourceNames.bindings` label for the hole's render effect
     /// (`<tag>.children`), appended as insert's trailing options argument
     /// with the marker and initial slots filled by `undefined` when the call
@@ -328,7 +370,7 @@ impl<'a> AstDomTransform<'a, '_> {
         parent: &str,
         value: Expression<'a>,
         marker: Option<InsertMarker<'a>>,
-        name: Option<String>,
+        label: Option<BindingLabel>,
     ) -> Statement<'a> {
         let mut args = vec![self.identifier_expression(span, parent), value];
         if let Some(marker) = marker {
@@ -337,11 +379,11 @@ impl<'a> AstDomTransform<'a, '_> {
                 args.push(initial);
             }
         }
-        if let Some(name) = name {
+        if let Some(label) = label {
             while args.len() < 4 {
                 args.push(self.identifier_expression(span, "undefined"));
             }
-            args.push(self.name_options_object(span, &name));
+            args.push(self.name_options_object(span, &label));
         }
         self.ast()
             .statement_expression(span, self.call_identifier(span, "_$insert", args))
@@ -349,9 +391,19 @@ impl<'a> AstDomTransform<'a, '_> {
 
     /// The `sourceNames.bindings` label for a hole under `parent_tag`, or
     /// `None` when the option is off or the hole inserts a static value (a
-    /// component call, a literal) that creates no effect to name.
-    pub(crate) fn hole_name(&self, parent_tag: &str, accessor: bool) -> Option<String> {
-        (self.binding_names && accessor).then(|| format!("{parent_tag}.children"))
+    /// component call, a literal) that creates no effect to name. `offset`
+    /// is the hole's start in source (its `{`), the `loc` under
+    /// `sourceNames.locations`.
+    pub(crate) fn hole_name(
+        &self,
+        parent_tag: &str,
+        accessor: bool,
+        offset: u32,
+    ) -> Option<BindingLabel> {
+        (self.binding_names && accessor).then(|| BindingLabel {
+            name: format!("{parent_tag}.children"),
+            loc: self.source_location(offset),
+        })
     }
 
     pub(crate) fn object_property(
@@ -381,17 +433,35 @@ impl<'a> AstDomTransform<'a, '_> {
         self.call_expression(span, self.identifier_expression(span, callee), args)
     }
 
-    /// `_$claimElement(_el$)` — the element-claim contract statement emitted
-    /// for `a[href]` / `form[action]` at element creation.
-    pub(crate) fn claim_element_statement(&mut self, element_id: &str) -> Statement<'a> {
+    /// `_$claimElement(_el$)` / `_$claimElement(_el$, _o$)` — the
+    /// element-claim contract's mount claim for an `a[href]` /
+    /// `form[action]`: at creation after its attribute writes (no owner
+    /// argument — the creating owner is current), or at the tail of the
+    /// binding effect that applies its dynamic bindings, with `owner` the
+    /// local the root captured at creation.
+    pub(crate) fn claim_element_statement(
+        &mut self,
+        element_id: &str,
+        owner: Option<&str>,
+    ) -> Statement<'a> {
         self.template_state.uses_claim_element = true;
         let span = oxc_span::SPAN;
-        let call = self.call_identifier(
-            span,
-            "_$claimElement",
-            vec![self.identifier_expression(span, element_id)],
-        );
+        let mut args = vec![self.identifier_expression(span, element_id)];
+        if let Some(owner) = owner {
+            args.push(self.identifier_expression(span, owner));
+        }
+        let call = self.call_identifier(span, "_$claimElement", args);
         self.ast().statement_expression(span, call)
+    }
+
+    /// `var _o$ = _$getOwner();` — a template root's creation-time owner
+    /// capture, declared after its positional walks, for the claims at the
+    /// tail of its binding effect (`wrap_dynamics_statement`).
+    pub(crate) fn owner_capture_statement(&mut self, owner_id: &str) -> Statement<'a> {
+        self.template_state.uses_get_owner = true;
+        let span = oxc_span::SPAN;
+        let init = self.call_identifier(span, "_$getOwner", std::vec::Vec::new());
+        self.variable_statement(span, owner_id, init)
     }
 
     pub(crate) fn call_expression(
@@ -629,5 +699,35 @@ impl<'a> AstDomTransform<'a, '_> {
             span,
             self.call_identifier(span, "_$delegateEvents", vec![events]),
         )
+    }
+}
+
+#[cfg(test)]
+mod source_location_tests {
+    use super::line_and_column;
+
+    #[test]
+    fn source_locations_count_javascript_line_terminators_and_utf16_columns() {
+        for terminator in ["\n", "\r", "\r\n", "\u{2028}", "\u{2029}"] {
+            let source = format!("é🚀{terminator}a🚀z");
+            let next_line = "é🚀".len() + terminator.len();
+            for (offset, line, column) in [
+                (0, 1, 0),
+                (2, 1, 1),
+                (6, 1, 3),
+                (next_line, 2, 0),
+                (next_line + 1, 2, 1),
+                (next_line + 5, 2, 3),
+                (source.len(), 2, 4),
+            ] {
+                assert_eq!(
+                    line_and_column(&source, offset as u32),
+                    (line, column + 1),
+                    "offset {offset}, terminator {terminator:?}"
+                );
+            }
+        }
+        assert_eq!(line_and_column("a\r\nb", 2), (2, 1));
+        assert_eq!(line_and_column("", 0), (1, 1));
     }
 }

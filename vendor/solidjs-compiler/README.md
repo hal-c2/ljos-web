@@ -2,7 +2,7 @@
 
 Solid 2.0's native Oxc JSX compiler. Integrations call `transform()` once per source module; this package is not a Vite, Rollup, or Babel plugin by itself. The JavaScript fallback is [`@solidjs/babel-plugin`](../babel-plugin).
 
-> **Solid 2.0 (Release Candidate).** Pin exact versions. The Node `transform()` interface is the supported public contract; the Rust `compile` API is unstable.
+> **Solid 2.0.** Pin exact versions. The Node `transform()` interface is the supported public contract; the Rust `compile` API is unstable.
 
 ## Installation
 
@@ -113,7 +113,8 @@ Pass `sourceMap: true` to receive a JSON source map string in `result.map`. For 
 - `generate`: `"dom"`, `"ssr"`, `"universal"`, or `"dynamic"` (default `"dom"`)
 - `hydratable`
 - `dev`
-- `sourceNames` (`boolean | { components?: boolean; bindings?: boolean }`, default follows `dev`): names as written in source, carried into output so dev/observe runtimes can label the reactive graph after minification. Unset, every kind is on when `dev: true` and off otherwise; `true`/`false` sets every kind (`sourceNames: false` opts a dev build out); the object form picks, and each kind it leaves unspecified follows `dev`. Production output (`dev: false`) is byte-identical with the option set or unset. Same shape and defaults as `@solidjs/babel-plugin`'s option. `components` emits the source tag name as `createComponent`'s third argument (`createComponent(Home, props, "Home")`) — DOM and SSR output (SSR keeps the `createComponent` call it otherwise inlines to `Comp(props)`); not universal or dynamic. `bindings` names every compiled binding effect by what it writes — `effect(…, { name: "span.textContent" })`, a hole `insert(el, v, undefined, undefined, { name: "div.children" })`, a spread `spread(el, props, false, undefined, "div")` (labelled `div.spread` / `div.children` by the runtime) — DOM output only. The production runtimes ignore the names. These are the JSX-level kinds only: naming the primitives themselves is the separate `transformSourceNames` pass below, which the build tool runs on every module independently of the JSX compiler
+- `root` (`string`, default the working directory): the project root `sourceNames.locations` paths (and `transformSourceNames`'s `loc`) are made relative to — the same meaning as `transformDirectives`'s `root`.
+- `sourceNames` (`boolean | { components?: boolean; bindings?: boolean; locations?: boolean }`, default follows `dev`): names as written in source, carried into output so dev/observe runtimes can label the reactive graph after minification. Unset, every kind is on when `dev: true` and off otherwise; `true`/`false` sets every kind (`sourceNames: false` opts a dev build out); the object form picks, and each kind it leaves unspecified follows `dev`. Production output (`dev: false`) is byte-identical with the option set or unset. Same shape and defaults as `@solidjs/babel-plugin`'s option. `components` emits the source tag name as `createComponent`'s third argument (`createComponent(Home, props, "Home")`) — DOM and SSR output (SSR keeps the `createComponent` call it otherwise inlines to `Comp(props)`); not universal or dynamic. `bindings` names every compiled binding effect by what it writes — `effect(…, { name: "span.textContent" })`, a hole `insert(el, v, undefined, undefined, { name: "div.children" })`, a spread `spread(el, props, false, undefined, "div")` (labelled `div.spread` / `div.children` by the runtime) — DOM output only. `locations` adds the source position beside each name the other two kinds emit, as `<path>:<line>:<column>` with the path relative to `root` (posix separators, `..` when the file is outside the root) and the column 1-based (the stack-trace and editor convention, so `http://localhost:5173/src/App.tsx:18:3` links to the right place): `createComponent(Home, props, "Home", "src/App.tsx:12:5")` — the start of the opening element — and `loc` right after `name` in a binding's options, `effect(…, { name: "div.class", loc: "src/App.tsx:14:7" })` — the attribute's start, a hole's `{`, a spread's `{...props}` (a spread's location rides as one more positional string after the tag). Nothing is emitted without a `filename`. The production runtimes ignore the names. These are the JSX-level kinds only: naming the primitives themselves is the separate `transformSourceNames` pass below, which the build tool runs on every module independently of the JSX compiler
 - `sourceMap`
 - `contextToCustomElements` (default `true`)
 - `delegateEvents`
@@ -130,7 +131,6 @@ Pass `sourceMap: true` to receive a JSON source map string in `result.map`. For 
 - `omitLastClosingTag`
 - `builtIns` (default `["For", "Show", "Switch", "Match", "Loading", "Reveal", "Portal", "Repeat", "Dynamic", "Errored"]`)
 - `requireImportSource`
-- `serverComponents`
 - `hoistProps` (default `true`; SSR only)
 - `renderers`
 
@@ -162,7 +162,7 @@ The runtime module defaults to `@solidjs/web/server-functions`. Function IDs are
 
 ### Source names for primitives
 
-`transformSourceNames(code, { filename?, sourceMap? })` is the pass behind `@solidjs/vite-plugin`'s `sourceNames.primitives` option: it names reactive primitives after the identifier they are declared as, so the dev and observe runtimes label graph nodes `count` / `doubled` / `todos.title` instead of `signal` / `computed` / `store.title`. It is plain JavaScript in and out (JSX passes through untouched), which is why it is its own pass rather than a `transform()` option — primitives live in `.ts`/`.js` modules as much as in components. This standalone pass is the single owner of primitive naming: the build tool runs it on every module — `.ts`, `.js`, and JSX files alike — independently of which JSX compiler (this one or `@solidjs/babel-plugin`) handles the file's JSX, so there is no Babel counterpart and `transform()`'s `sourceNames` covers only the JSX-level kinds. `@solidjs/vite-plugin` (solid-vite-plugin #371, `solid: { sourceNames }`) runs it ahead of the JSX transform for the dev and `observe` postures.
+`transformSourceNames(code, { filename?, locations?, root?, sourceMap? })` is the pass behind `@solidjs/vite-plugin`'s `sourceNames.primitives` option: it names reactive primitives after the identifier they are declared as, so the dev and observe runtimes label graph nodes `count` / `doubled` / `todos.title` instead of `signal` / `computed` / `store.title`. With `locations` (default `true` — the pass only runs for the dev and observe postures) and a `filename`, the options literal also carries the call's position right after the name, `createSignal(0, { name: "count", loc: "src/store.ts:3:22" })` (`filename` relative to `root`, column 1-based); an explicit `name` is kept and `loc` still added, an explicit `loc` is never overridden. It is plain JavaScript in and out (JSX passes through untouched), which is why it is its own pass rather than a `transform()` option — primitives live in `.ts`/`.js` modules as much as in components. This standalone pass is the single owner of primitive naming: the build tool runs it on every module — `.ts`, `.js`, and JSX files alike — independently of which JSX compiler (this one or `@solidjs/babel-plugin`) handles the file's JSX, so there is no Babel counterpart and `transform()`'s `sourceNames` covers only the JSX-level kinds. `@solidjs/vite-plugin` (solid-vite-plugin #371, `solid: { sourceNames }`) runs it ahead of the JSX transform for the dev and `observe` postures.
 
 ```js
 const [count, setCount] = createSignal(0);          // createSignal(0, { name: "count" })
@@ -200,6 +200,39 @@ let virtual_tsx =
 ```
 
 `CompileOptions::default()` uses `module_name: "@solidjs/web"` and the same control-flow `built_ins` as the Babel plugin. Build with `--no-default-features` when embedding without the Node-API adapter.
+
+A frontend that builds its own Oxc AST instead of source text hands the program to `compile_program`, which runs the same back ends `compile` reaches after parsing. The program must be allocated in the allocator passed beside it, and `source` must be its `source_text`: the authored text its spans index, so source maps and diagnostics land on authored positions (keep authored spans on carried-over nodes and leave synthesized nodes at `SPAN`). The caller must build against the same Oxc release as this crate.
+
+```rust
+use oxc_allocator::Allocator;
+use solidjs_compiler::{compile_program, CompileOptions};
+
+let allocator = Allocator::default();
+let program = my_frontend::lower(&allocator, authored_source)?; // oxc_ast::ast::Program
+let output = compile_program(&allocator, program, authored_source, &CompileOptions::default())?;
+```
+
+TSRX's scoped-CSS engine is exported as `solidjs_compiler::style` for other frontends, in every build (it does not need the `tsrx` feature). It has no dependency on TSRX syntax or Oxc: describe the elements a `<style>` block governs as `Element` values, and `compile_style` returns the scoped stylesheet, its hash, the class map and the ids of the elements to annotate, the same bytes a `.tsrx` file with that stylesheet at that `StyleLocation` gets.
+
+```rust
+use solidjs_compiler::style::{compile_style, Element, ElementKind, StyleInput, StyleKind, StyleLocation};
+
+let elements = [Element {
+    id: 1,
+    kind: ElementKind::Native("div".into()),
+    attributes: Vec::new(),
+    has_spread: false,
+    children: Vec::new(),
+}];
+let output = compile_style(StyleInput {
+    css: "div { color: red }",
+    location: StyleLocation { filename: "view.rx", line: 3, column: 4 },
+    elements: &elements,
+    kind: StyleKind::Block,
+    minify: false,
+})?;
+// output.css, output.hash, output.class_map, output.scoped_elements
+```
 
 The unstable Rust typecheck projection reports embedded ranges in authored UTF-8 bytes. The N-API adapter converts those ranges to UTF-16 code units for JavaScript tooling.
 

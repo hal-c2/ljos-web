@@ -10,6 +10,7 @@
 //! name is the function's dotted binding path, so ids are keyed on identity
 //! rather than position (solidjs/solid#3109).
 
+mod broadcast;
 mod dce;
 mod transform;
 mod validate;
@@ -21,7 +22,7 @@ use oxc_allocator::Allocator;
 use oxc_codegen::{Codegen, CodegenOptions};
 use oxc_parser::{ParseOptions, Parser};
 
-use crate::config::source_type_for_filename;
+use crate::config::secondary_source_type;
 use transform::{DirectivesTransform, Env, ImportDef, ImportKind, Mode, UnsupportedExport};
 
 const DEFAULT_RUNTIME: &str = "@solidjs/web/server-functions";
@@ -117,7 +118,7 @@ pub fn transform_directives(
         .clone()
         .unwrap_or_else(|| "use server".to_string());
 
-    let source_type = source_type_for_filename(Some(filename))?;
+    let source_type = secondary_source_type(Some(filename));
     let allocator = Allocator::default();
     let parsed = Parser::new(&allocator, &code, source_type)
         .with_options(ParseOptions {
@@ -144,6 +145,16 @@ pub fn transform_directives(
         validate::validate_captures(&program, &code, filename, &directive)
             .map_err(Error::from_reason)?;
     }
+    // A broadcast render is shared by every caller, so it must not read the
+    // per-caller outer body; this holds for module-level directives too.
+    // Only the runtime's own `broadcast` counts: the default entry, or the
+    // module an integration points the register/create imports at.
+    let runtime_sources: Vec<&str> = std::iter::once(DEFAULT_RUNTIME)
+        .chain(options.register.iter().map(|option| option.source.as_str()))
+        .chain(options.create.iter().map(|option| option.source.as_str()))
+        .collect();
+    broadcast::validate_broadcast_captures(&program, &code, filename, &runtime_sources)
+        .map_err(Error::from_reason)?;
 
     let mut pass = DirectivesTransform::new(
         &allocator,
@@ -241,49 +252,4 @@ fn import_def(option: Option<&DirectiveImportOption>, default_name: &str) -> Imp
     }
 }
 
-/// Node's `path.relative(root, id)` with separators normalized to `/` — the
-/// hash input contract shared with the Babel implementation's `compile()`.
-/// Also reused by the refresh pass for cwd-relative `location` strings.
-pub(crate) fn relative_id(root: Option<&str>, filename: &str) -> String {
-    let cwd = std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("/"));
-    let root = normalize(&cwd, root.map(std::path::Path::new).unwrap_or(&cwd));
-    let file = normalize(&cwd, std::path::Path::new(filename));
-
-    let mut root_parts = root.iter().peekable();
-    let mut file_parts = file.iter().peekable();
-    while let (Some(a), Some(b)) = (root_parts.peek(), file_parts.peek()) {
-        if a != b {
-            break;
-        }
-        root_parts.next();
-        file_parts.next();
-    }
-    let mut parts: Vec<String> = Vec::new();
-    for _ in root_parts {
-        parts.push("..".to_string());
-    }
-    for part in file_parts {
-        parts.push(part.to_string_lossy().into_owned());
-    }
-    parts.join("/")
-}
-
-/// Resolve against `cwd` and fold `.`/`..` segments (Node `path.resolve`).
-fn normalize(cwd: &std::path::Path, path: &std::path::Path) -> std::path::PathBuf {
-    let joined = if path.is_absolute() {
-        path.to_path_buf()
-    } else {
-        cwd.join(path)
-    };
-    let mut result = std::path::PathBuf::new();
-    for component in joined.components() {
-        match component {
-            std::path::Component::CurDir => {}
-            std::path::Component::ParentDir => {
-                result.pop();
-            }
-            other => result.push(other.as_os_str()),
-        }
-    }
-    result
-}
+pub(crate) use crate::shared::location::relative_id;

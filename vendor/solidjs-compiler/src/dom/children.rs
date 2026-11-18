@@ -26,7 +26,7 @@ impl<'a> AstDomTransform<'a, '_> {
         template: &mut crate::dom::template::TemplateHtml,
         declarations: &mut std::vec::Vec<Statement<'a>>,
         operations: &mut std::vec::Vec<Statement<'a>>,
-        dynamics: &mut std::vec::Vec<crate::dom::dynamics::DynamicSlot<'a>>,
+        dynamics: &mut crate::dom::dynamics::DynamicsBatch<'a>,
     ) -> Result<()> {
         // Walk anchors are per-parent: this element's positional walks start
         // from its own reference, not an outer marker.
@@ -57,7 +57,7 @@ impl<'a> AstDomTransform<'a, '_> {
         template: &mut crate::dom::template::TemplateHtml,
         declarations: &mut std::vec::Vec<Statement<'a>>,
         operations: &mut std::vec::Vec<Statement<'a>>,
-        dynamics: &mut std::vec::Vec<crate::dom::dynamics::DynamicSlot<'a>>,
+        dynamics: &mut crate::dom::dynamics::DynamicsBatch<'a>,
     ) -> Result<()> {
         let child_to_be_closed = self.child_close_context(tag_name, close_context);
         let last_element = self.find_last_element(&element.children);
@@ -337,7 +337,7 @@ impl<'a> AstDomTransform<'a, '_> {
                         } else {
                             value
                         };
-                        let name = self.hole_name(tag_name, accessor_hole);
+                        let name = self.hole_name(tag_name, accessor_hole, container.span.start);
                         let marker = if let Some(name) = shared_marker_name.as_ref() {
                             Some(InsertMarker {
                                 marker: self.identifier_expression(element.span, name),
@@ -379,7 +379,7 @@ impl<'a> AstDomTransform<'a, '_> {
                     } else {
                         value
                     };
-                    let name = self.hole_name(tag_name, accessor);
+                    let name = self.hole_name(tag_name, accessor, spread.span.start);
                     let marker = self.dynamic_slot_marker(
                         &element.children,
                         index,
@@ -884,7 +884,7 @@ impl<'a> AstDomTransform<'a, '_> {
         parent_template: &mut crate::dom::template::TemplateHtml,
         declarations: &mut std::vec::Vec<Statement<'a>>,
         operations: &mut std::vec::Vec<Statement<'a>>,
-        dynamics: &mut std::vec::Vec<crate::dom::dynamics::DynamicSlot<'a>>,
+        dynamics: &mut crate::dom::dynamics::DynamicsBatch<'a>,
     ) -> Result<String> {
         let tag_name = element_name(&child.opening_element.name)?;
         // The static nested fast path may have declined this element because

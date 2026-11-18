@@ -562,6 +562,8 @@ and `1lh` tall). The fixtures in `crates/ljos_web/tests/fixtures/tui` use it.
 - The QML parser is not vendored here: it is Ljós's `qml_syntax` crate
   (a git dependency on the ljos-ui repository), whose oxc fork carries the
   QML mode. There is one copy of that fork, and it lives there.
-- `vendor/solidjs-compiler`: `packages/compiler` of solidjs/solid at `e44b2e4`
-  (2.0.0-rc.13, MIT). Added `compile_program`, which takes an Oxc `Program`
-  instead of source text; default features are empty so nothing needs Node.
+- `vendor/solidjs-compiler`: `packages/compiler` of solidjs/solid at `a8186e6`
+  (the solid-js 2.0.0 release, MIT). `compile_program`, which takes an Oxc
+  `Program` instead of source text, is upstream's own. Changed here: default
+  features are empty and `tsrx` has no dependencies, so nothing needs Node,
+  and `oxc_parser` is Ljós's fork, so a build has one JS parser.

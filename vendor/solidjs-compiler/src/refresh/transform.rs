@@ -33,6 +33,7 @@ use crate::shared::ast::{
     expression_to_argument, import_named, object_property, variable_statement,
 };
 use crate::shared::ast_builder::AstBuilder;
+use crate::shared::location::line_column;
 
 use super::signature::{CommentInfo, Printer};
 
@@ -1824,13 +1825,4 @@ impl<'b> Visit<'b> for ForeignBindings<'_> {
     fn visit_ts_type_annotation(&mut self, _: &TSTypeAnnotation<'b>) {}
     fn visit_ts_type_parameter_declaration(&mut self, _: &TSTypeParameterDeclaration<'b>) {}
     fn visit_ts_type_parameter_instantiation(&mut self, _: &TSTypeParameterInstantiation<'b>) {}
-}
-
-/// Babel loc: 1-based line, 0-based UTF-16 column.
-fn line_column(source: &str, offset: u32) -> (usize, usize) {
-    let prefix = &source[..offset as usize];
-    let line = prefix.bytes().filter(|byte| *byte == b'\n').count() + 1;
-    let line_start = prefix.rfind('\n').map_or(0, |index| index + 1);
-    let column = prefix[line_start..].encode_utf16().count();
-    (line, column)
 }

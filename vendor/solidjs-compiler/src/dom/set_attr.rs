@@ -5,7 +5,7 @@ use oxc_ast::ast::{
 use oxc_span::Span;
 
 use crate::dom::element::AstDomTransform;
-use crate::shared::constants::{child_properties, dom_with_state, namespaces};
+use crate::shared::constants::{DomPropertyState, child_properties, dom_with_state, namespaces};
 
 /// Options mirroring Babel's `setAttr(path, elem, name, value, options)`.
 #[derive(Default)]
@@ -15,6 +15,9 @@ pub(crate) struct SetAttrOptions<'a> {
     pub(crate) tag_name: String,
     pub(crate) style_property: bool,
     pub(crate) class_property: bool,
+    /// The element is an `<input>` that may be a checkbox or radio (see
+    /// `input_may_be_checkable`).
+    pub(crate) checkable_input: bool,
 }
 
 impl<'a> AstDomTransform<'a, '_> {
@@ -140,9 +143,24 @@ impl<'a> AstDomTransform<'a, '_> {
             // Locked/stateful DOM properties (value/checked/...) must go
             // through the runtime in hydratable builds so the hydration claim
             // pass can adopt pre-hydration user state instead of overwriting
-            // it (#3182). setProperty carries the select-microtask and
+            // it (#3182). setProperty carries the select-value retry and
             // input/textarea nullish special cases.
-            if self.hydratable && (is_locked || namespace != Some("prop")) {
+            // `<select value>` always goes through it, hydratable or not: a
+            // microtask only sees options inserted in the same turn, so
+            // options that arrive later never get selected (#3928). So does a
+            // non-literal value/defaultValue on an input that may be a
+            // checkbox or radio: a nullish value must remove the attribute so
+            // the checked box submits its native "on" (#4009, #4017), and
+            // setProperty already tests the live `type` for that.
+            if (self.hydratable && (is_locked || namespace != Some("prop")))
+                || (name == "value" && options.tag_name == "select")
+                || (options.checkable_input
+                    && (name == "value" || name == "defaultValue")
+                    && !matches!(
+                        value,
+                        Expression::StringLiteral(_) | Expression::NumericLiteral(_)
+                    ))
+            {
                 self.template_state.uses_set_property = true;
                 return self.call_identifier(
                     span,
@@ -155,47 +173,46 @@ impl<'a> AstDomTransform<'a, '_> {
                     ],
                 );
             }
-
-            // handle select/options... mirrors Babel's queueMicrotask race
-            // workaround for `<select value>`.
-            if name == "value" && options.tag_name == "select" {
-                let assignment = self.member_assignment_expression(
-                    span,
-                    elem.clone_in(self.allocator),
-                    &name,
-                    value.clone_in(self.allocator),
-                );
-                let queued = self.call_expression(
-                    span,
-                    self.identifier_expression(span, "queueMicrotask"),
-                    vec![self.arrow_return_expression(
-                        span,
-                        self.member_assignment_expression(span, elem, &name, value),
-                    )],
-                );
-                return self.ast().expression_logical(
-                    span,
-                    queued,
-                    LogicalOperator::Or,
-                    assignment,
-                );
-            }
-            if (name == "value" || name == "defaultValue")
+            let value = if (name == "value" || name == "defaultValue")
                 && (options.tag_name == "input" || options.tag_name == "textarea")
                 && !matches!(
                     value,
                     Expression::StringLiteral(_) | Expression::NumericLiteral(_)
-                )
-            {
-                // prevents undefined on input/textarea.value, fallback to ""
-                let value = self.ast().expression_logical(
+                ) {
+                // prevents undefined on text input/textarea.value, fallback
+                // to "" (#2957)
+                self.ast().expression_logical(
                     span,
                     value,
                     LogicalOperator::Coalesce,
                     self.ast()
                         .expression_string_literal(span, self.ast().str(""), None),
+                )
+            } else {
+                value
+            };
+            // Dev DOM output writes stateful properties (value/checked/
+            // selected/muted) through `setStatefulProperty`: the same
+            // `elem[name] = value`, preceded in the dev runtime by the
+            // UNCOMMITTED_INPUT_OVERWRITTEN check (#4186). Production output
+            // keeps the inline assignment, byte for byte.
+            if self.stateful_property_checks
+                && matches!(
+                    dom_with_state(&options.tag_name, &name),
+                    Some(DomPropertyState::Stateful)
+                )
+            {
+                self.template_state.uses_set_stateful_property = true;
+                return self.call_identifier(
+                    span,
+                    "_$setStatefulProperty",
+                    vec![
+                        elem,
+                        self.ast()
+                            .expression_string_literal(span, self.ast().str(&name), None),
+                        value,
+                    ],
                 );
-                return self.member_assignment_expression(span, elem, &name, value);
             }
             return self.member_assignment_expression(span, elem, &name, value);
         }
