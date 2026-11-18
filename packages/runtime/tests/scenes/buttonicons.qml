@@ -5,16 +5,26 @@
 // "transparent", and in the colour of its text when it was given none.
 import QtQuick
 import QtQuick.Controls.Basic
+import QtQuick.Controls.impl
 
 Item {
     id: root
-    width: 400
+    width: 500
     height: 100
 
     Button { id: tinted; icon.source: "../assets/circle.png"; icon.color: "#0066cc" }
     Button { id: asItIs; x: 60; icon.source: "../assets/circle.png"; icon.color: "transparent" }
     Button { id: untold; x: 120; icon.source: "../assets/circle.png" }
     Button { id: acting; x: 180; action: Action { icon.source: "../assets/circle.png"; icon.color: "transparent" } }
+    // An icon that is another button's, whose action gave it its colour.
+    Button { id: giver; x: 240; action: Action { icon.source: "../assets/circle.png"; icon.color: "#0066cc" } }
+    Button { id: linked; x: 300; icon: giver.icon }
+    // An action whose icon is given whole, as one value.
+    Button { id: wholeAction; x: 360; action: Action { icon: ({ source: "../assets/circle.png", color: "#0066cc" }) } }
+    // A label given its icon whole, in a button that has none.
+    Button { id: holder; y: 50; contentItem: IconLabel { icon: ({ source: "../assets/circle.png" }) } }
+    // The picture as it is, to compare what is drawn with.
+    Image { id: plain; x: 300; y: 60; width: 24; height: 24; source: "../assets/circle.png" }
 
     function image(control) {
         const find = (item) => {
@@ -30,7 +40,8 @@ Item {
     }
 
     function loaded() {
-        return [tinted, asItIs, untold, acting].every((control) => image(control)?.status === Image.Ready)
+        return plain.status === Image.Ready
+            && [tinted, asItIs, untold, acting, linked, wholeAction].every((control) => image(control)?.status === Image.Ready)
     }
 
     function colors() {
@@ -39,6 +50,18 @@ Item {
             asItIs: String(image(asItIs).color),
             untold: [String(image(untold).color), String(untold.contentItem.color)],
             acting: String(image(acting).color),
+            linked: String(image(linked).color),
+            wholeAction: String(image(wholeAction).color),
+            holder: String(image(holder)?.source ?? ""),
         }
+    }
+
+    // Where the middle of each picture is drawn in the scene.
+    function middles() {
+        const middle = (item) => {
+            const point = item.mapToItem(root, item.width / 2, item.height / 2)
+            return [Math.round(point.x), Math.round(point.y)]
+        }
+        return { tinted: middle(image(tinted)), asItIs: middle(image(asItIs)), plain: middle(plain) }
     }
 }

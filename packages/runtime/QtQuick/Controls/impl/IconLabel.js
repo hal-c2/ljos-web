@@ -39,14 +39,24 @@ function aligned(mirrored, alignment, width, height, [x, y, wide, tall]) {
   return [x, y, width, height];
 }
 
-// Whether the icon was given a colour: by itself, or by the control whose
-// icon this one is (`icon: control.icon`).
+// What an object's `icon` was given whole: another's icon (`icon:
+// control.icon`), a plain value (`icon: ({ source: … })`), or nothing.
+const wholeIcon = (self) => slot(self, "icon").get();
+
+// Whether the icon was given a colour: by itself, by the icon it was given
+// whole (a plain value, or the control whose icon this one is), or, for a
+// button, by the action it follows. "transparent" is a colour too: it shows
+// the picture as it is.
 function coloured(self) {
   const own = slot(self, "icon$color");
   // `icon.color = undefined` takes the colour back.
   if (own.explicit()) return own.own() !== undefined;
-  const from = slot(self, "icon").get()?.$self;
-  return Boolean(from && from !== self && from.$type.slots.icon$color && coloured(from));
+  const whole = wholeIcon(self);
+  const from = whole?.$self;
+  if (whole && !from && whole.color !== undefined) return true;
+  if (from && from !== self && from.$type.slots.icon$color && coloured(from)) return true;
+  const action = isa(self, AbstractButton) ? self.action : null;
+  return Boolean(action?.$type?.slots.icon$color) && coloured(action);
 }
 
 // The button a label is in, nearest first. Ljós's own styles write no
@@ -77,19 +87,14 @@ function inheritsFrom(self) {
 // button's (which is its action's, where it follows one) otherwise.
 function leaf(self, name) {
   if (slot(self, `icon$${name}`).explicit()) return self.icon[name];
+  // A member of a plain value the label's `icon` was given whole is told.
+  const whole = wholeIcon(self);
+  if (whole && !whole.$self && whole[name] !== undefined) return self.icon[name];
   const button = inheritsFrom(self);
   return button ? button.icon[name] : self.icon[name];
 }
 
 const opaque = (value) => color(value).a > 0;
-
-// Whether a button's icon was given a colour, by the button or by the action
-// it follows. "transparent" is one too: it shows the picture as it is.
-function buttonColoured(button) {
-  if (coloured(button)) return true;
-  const action = button.action;
-  return Boolean(action?.$type?.slots.icon$color) && coloured(action);
-}
 
 // The colour a label's icon is drawn in. One it was given, by itself or by
 // the control whose `icon` it takes; else, from the button it belongs to,
@@ -102,7 +107,7 @@ function iconColor(self) {
   if (coloured(self)) return self.icon.color;
   const button = inheritsFrom(self);
   if (!button) return self.defaultIconColor;
-  if (buttonColoured(button)) return button.icon.color;
+  if (coloured(button)) return button.icon.color;
   return opaque(self.defaultIconColor) ? self.defaultIconColor : self.color;
 }
 
