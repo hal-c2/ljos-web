@@ -152,10 +152,11 @@ fn lower_from<'a>(
     let is_singleton = project
         .summary(&options.name)
         .is_some_and(|summary| summary.is_singleton);
+    // A file that names itself does so as an instance names it.
     let name = if shadows || is_singleton {
         format!("{stem}$component")
     } else {
-        stem.to_string()
+        names::local(stem).into_owned()
     };
 
     let dialect = names::Dialect::of(&document);
@@ -190,7 +191,7 @@ fn lower_from<'a>(
         let one = if shadows {
             format!("{stem}$singleton")
         } else {
-            stem.to_string()
+            names::local(stem).into_owned()
         };
         let mut arguments = vec![b.id(&name), b.record(enums)];
         // Known by its module's name, a singleton is one a page can reach
@@ -291,6 +292,9 @@ fn lower_from<'a>(
     // being declared once in a file.
     let mut namespace = false;
     for name in &uses.namespaces {
+        // Bound as the lowering names its types (`Math.Item` is
+        // `$Math.Item`).
+        let bound = names::local(name);
         // A module of the project's own is files, not a module of the
         // package: its name is a table of them, read when it is used, since
         // a file of the module may be why another is being loaded.
@@ -300,7 +304,7 @@ fn lower_from<'a>(
         {
             let mut members = Vec::new();
             for (member, file) in own {
-                let local = format!("{name}${member}");
+                let local = format!("{bound}${member}");
                 let path = types::relative(&options.name, file);
                 imports.push(
                     b.import_default(&local, &format!("{path}{}", options.component_extension)),
@@ -311,11 +315,11 @@ fn lower_from<'a>(
                 imports.push(b.import_named(["$namespace"], &format!("{prefix}/object")));
                 namespace = true;
             }
-            imports.push(b.const_(name, b.call(b.id("$namespace"), [b.object(members)])));
+            imports.push(b.const_(&bound, b.call(b.id("$namespace"), [b.object(members)])));
             continue;
         }
         match types.namespace(name).and_then(|source| names::namespace_source(source, prefix)) {
-            Some(module) => imports.push(b.import_namespace(name, &module)),
+            Some(module) => imports.push(b.import_namespace(&bound, &module)),
             None => errors.push(Error::new(
                 format!("`{name}` is a directory: only a module or a script can be imported as a name yet"),
                 document.span,

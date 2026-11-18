@@ -167,6 +167,17 @@ test("what a type of a namespace attaches is asked of the object in a script", a
   expect(await page.evaluate(() => window.scene.read())).toEqual([true, "bar", true, true, 0.25, null]);
 });
 
+test("a type named as a global of JavaScript is that type where a type goes, and JavaScript's in a script", async ({ page }) => {
+  await open(page, "globalnames");
+  // The inline `Date`s are made and the `Math` namespace's types are found:
+  // the mirrored Rectangle is anchored on the right, as Qt 6.12 places it.
+  // `Math.max`, `new Date` and `Date.now` are JavaScript's, as Ljos.Core's
+  // `Object` leaves `Object.keys` JavaScript's.
+  // Qt 6.12: in a script `Math` is the namespace (`Math.max` is undefined)
+  // and `Date` the inline component (`new Date(0)` is a TypeError).
+  expect(await page.evaluate(() => window.scene.read())).toEqual([4, 5, 10, 150, 5, 0, "number"]);
+});
+
 test("Component.onCompleted is told of the object made last first, when all have made of each other what they make", async ({ page }) => {
   await open(page, "completion");
   // Qt 6.11: what a Loader loaded and the rows of a Repeater are complete

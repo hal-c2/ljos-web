@@ -2080,3 +2080,128 @@ fn a_script_is_told_it_cannot_import_a_module_of_its_project() {
     )
     .expect("a Qt module is imported");
 }
+
+#[test]
+fn a_namespace_named_as_a_global_of_javascript_is_bound_under_a_name_of_its_own() {
+    // `Math` the file imports a module as is that module only where a type
+    // goes: in a script `Math` is still JavaScript's.
+    let code = lowered(
+        r#"import QtQuick
+import QtQuick.Templates as Math
+Math.Control {
+    id: root
+    property real most: Math.max(2, 5)
+    Math.ScrollIndicator.vertical: Math.ScrollIndicator { }
+    states: State { PropertyChanges { target: root; Math.ToolTip.delay: 5 } }
+}"#,
+    );
+    assert_contains(
+        &code,
+        r#"import * as $Math from "ljos-web/QtQuick/Templates";"#,
+    );
+    assert_lacks(&code, "import * as Math ");
+    assert_contains(&code, "<$Math.Control $self={root}");
+    assert_contains(&code, "Object.setPrototypeOf(Sample, $Math.Control);");
+    assert_contains(&code, "ScrollIndicator$vertical={<$Math.ScrollIndicator");
+    assert_contains(&code, "$attach={[$Math.ScrollIndicator]}");
+    assert_contains(&code, "\t\t$Math.ToolTip\n");
+    assert_contains(&code, "Math.max(2, 5)");
+}
+
+#[test]
+fn a_type_attached_through_a_namespace_named_as_a_global_of_javascript_is_of_that_namespace() {
+    // The type is found without the namespace too, so what the compiler
+    // writes, `$Math.LayoutMirroring`, could be read as an object's
+    // `LayoutMirroring`.
+    let code = lowered(
+        r#"import QtQuick
+import QtQuick as Math
+Math.Item {
+    id: root
+    Math.LayoutMirroring.enabled: true
+    function flipped(item) { return item.Math.LayoutMirroring.enabled }
+}"#,
+    );
+    assert_contains(&code, "$attach={[$Math.LayoutMirroring]}");
+    assert_lacks(&code, "LayoutMirroring.attached($Math)");
+    assert_contains(
+        &code,
+        "return $Math.LayoutMirroring.attached(item).enabled;",
+    );
+}
+
+#[test]
+fn a_module_of_the_project_named_as_a_global_of_javascript_is_bound_under_a_name_of_its_own() {
+    let files = [
+        (
+            "Main",
+            "import QtQuick\nimport Parts as Date\nDate.Dial { property double now: Date.now() }",
+        ),
+        ("parts/Dial", "import QtQuick\nItem { }"),
+    ];
+    let mut project = Project::new();
+    for (file, source) in &files {
+        project
+            .add(file, source)
+            .unwrap_or_else(|errors| panic!("{file}: {errors:?}"));
+    }
+    project.add_type("Parts", "Dial", "parts/Dial");
+    let options = Options {
+        name: "Main".to_string(),
+        project: Some(project),
+        ..Options::default()
+    };
+    let code = lowered_source(files[0].1, &options).unwrap_or_else(|errors| panic!("{errors:?}"));
+    assert_contains(&code, r#"import $Date$Dial from "./parts/Dial.qml";"#);
+    assert_contains(
+        &code,
+        r#"const $Date = $namespace({ "Dial": () => $Date$Dial });"#,
+    );
+    assert_contains(&code, "<$Date.Dial $self=");
+    assert_contains(&code, "Object.setPrototypeOf(Main, $Date.Dial);");
+    assert_contains(&code, "Date.now()");
+}
+
+#[test]
+fn an_inline_component_named_as_a_global_of_javascript_is_bound_under_a_name_of_its_own() {
+    // The function an inline component is would be the module's `Date`, and
+    // `Date.now()` in a script would read it: it is `$Date`, declared and
+    // named by the same name.
+    let code = lowered(
+        r#"import QtQuick
+Item {
+    component Date: Rectangle {
+        enum Kind { Day, Night }
+        property int day: 3
+    }
+    component Late: Date { }
+    Date { day: 4 }
+    Late { }
+    property double now: Date.now()
+}"#,
+    );
+    assert_contains(&code, "function $Date($props) {");
+    assert_lacks(&code, "function Date(");
+    assert_contains(&code, "$is={$Date}");
+    assert_contains(&code, "Object.setPrototypeOf($Date, Rectangle);");
+    assert_contains(&code, "Object.assign($Date, {");
+    assert_contains(&code, "Object.setPrototypeOf(Late, $Date);");
+    assert_contains(&code, "<$Date day={4}></$Date>");
+    assert_contains(&code, "Date.now()");
+}
+
+#[test]
+fn a_file_named_as_a_global_of_javascript_is_bound_under_a_name_of_its_own() {
+    let date = "import QtQuick\nItem { property double now: Date.now() }";
+    let app = "import QtQuick\nItem { Date { } }";
+    let files = [("Date", date), ("App", app)];
+    let code = lowered_in(&files, "Date").unwrap_or_else(|errors| panic!("{errors:?}"));
+    assert_contains(&code, "export default function $Date($props) {");
+    assert_lacks(&code, "function Date(");
+    assert_contains(&code, "$is={$Date}");
+    assert_contains(&code, "Object.setPrototypeOf($Date, Item);");
+    assert_contains(&code, "Date.now()");
+    let code = lowered_in(&files, "App").unwrap_or_else(|errors| panic!("{errors:?}"));
+    assert_contains(&code, r#"import $Date from "./Date.qml";"#);
+    assert_contains(&code, "<$Date></$Date>");
+}
