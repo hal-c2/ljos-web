@@ -76,7 +76,29 @@ runs:
     - if: inputs.browser == 'true'
       id: playwright
       shell: bash
-      run: echo "version=$(sed -n 's/^  playwright@\([0-9.]*\):$/\1/p' pnpm-lock.yaml | head -n1)" >> "$GITHUB_OUTPUT"
+      run: |
+        echo "version=$(sed -n 's/^  playwright@\([0-9.]*\):$/\1/p' pnpm-lock.yaml | head -n1)" >> "$GITHUB_OUTPUT"
+        echo "image=$ImageOS-$ImageVersion" >> "$GITHUB_OUTPUT"
+    # What Chromium needs of the system is some 30 MB of fonts and Mesa
+    # that the runner's Ubuntu mirror hands out at about 120 kB/s: four
+    # minutes and more of every job with a browser, longer than its
+    # tests. apt is pointed at a directory of its own and told to keep
+    # what it fetches there, which is cached by the runner's image (so
+    # it moves weekly, as the images do) and Playwright's version; it
+    # then fetches only what the mirror has newer. Only the packages are
+    # kept: apt's lock and partial downloads are root's.
+    - if: inputs.browser == 'true'
+      id: debs
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.cache/playwright-debs/*.deb
+        key: playwright-debs-${{ steps.playwright.outputs.image }}-${{ steps.playwright.outputs.version }}
+    - if: inputs.browser == 'true'
+      shell: bash
+      run: |
+        mkdir -p ~/.cache/playwright-debs/partial
+        printf 'Dir::Cache::Archives "%s/";\nAPT::Keep-Downloaded-Packages "true";\nBinary::apt::APT::Keep-Downloaded-Packages "true";\n' ~/.cache/playwright-debs \
+          | sudo tee /etc/apt/apt.conf.d/90playwright-debs > /dev/null
     - if: inputs.browser == 'true'
       id: browsers
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -94,6 +116,11 @@ runs:
       with:
         path: ~/.cache/ms-playwright
         key: ${{ steps.browsers.outputs.cache-primary-key }}
+    - if: inputs.browser == 'true' && steps.debs.outputs.cache-hit != 'true'
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.cache/playwright-debs/*.deb
+        key: ${{ steps.debs.outputs.cache-primary-key }}
     # What the code blocks' prerender caches are keyed by. Each entry
     # names the compiler, runtime, lockfile and kernel that made it
     # (prerenderStamp), and one made by others is made again, so an
