@@ -78,3 +78,21 @@ test("a Ljós row of buttons is mirrored once, whether by what it is in or by it
   // The buttons in the row still take the mirroring passed on to them.
   expect(mirrors.buttons).toEqual([true, false]);
 });
+
+test("a Ljós popover opens on the side the window has room on, as it is drawn and within its margins", async ({ page }) => {
+  await open(page, "ljospopovers");
+  const at = await page.evaluate(() => {
+    for (const name of ["scaled", "margins", "roomy", "before"]) window.scene.popover(name).open();
+    return JSON.parse(JSON.stringify(window.scene.popovers()));
+  });
+  const TOP = 1, LEFT = 2, BOTTOM = 8;
+  // Its button is at 200 to 240 in the window: the popover goes above it,
+  // gap and all in the window's pixels, and is not scaled by its button's
+  // ancestor.
+  expect(at.scaled).toEqual([TOP, 0, -52, 20, 96]);
+  // 126 under, 12 of it margin, for 120: above, where 134 is left.
+  expect(at.margins).toEqual([TOP, 0, -124, 200, 26]);
+  // Room where it is asked to open, so it is where it always was.
+  expect(at.roomy).toEqual([BOTTOM, 0, 24, 200, 44]);
+  expect(at.before).toEqual([LEFT, -104, 0, 96, 20]);
+});
