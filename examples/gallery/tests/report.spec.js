@@ -119,16 +119,35 @@ for (const example of readManifest()) {
     };
     page.on("response", (response) => answers.push(answered(response)));
 
+    // Each wait, how long it took and whether it ended or ran out: a picture
+    // that is not like its reference says what it was taken after. One that
+    // ran out says what was still being fetched then.
+    const waits = [];
+    const started = Date.now();
+    const inFlight = new Set();
+    page.on("request", (request) => inFlight.add(request));
+    page.on("requestfinished", (request) => inFlight.delete(request));
+    page.on("requestfailed", (request) => inFlight.delete(request));
+    const waitFor = async (what, waiting) => {
+      const from = Date.now();
+      const ended = await waiting.then(
+        () => true,
+        () => false,
+      );
+      const pending = ended ? undefined : [...inFlight].slice(0, 10).map((request) => request.url().replace(baseURL, ""));
+      waits.push({ what, ms: Date.now() - from, ended, ...(pending ? { pending } : {}) });
+      return ended;
+    };
     await page.goto(`?example=${encodeURIComponent(example.id)}`);
-    await page
-      .waitForFunction(() => window.gallery && window.gallery.status !== "loading", null, { timeout: LOADING })
-      .catch(() => pageErrors.push("the page did not finish loading the example"));
+    if (!(await waitFor("loaded", page.waitForFunction(() => window.gallery && window.gallery.status !== "loading", null, { timeout: LOADING }))))
+      pageErrors.push("the page did not finish loading the example");
     // Its pictures and fonts are asked for when it is made: a busy server
-    // may take longer over them than the wait that follows.
-    await page.waitForLoadState("networkidle", { timeout: 20000 }).catch(() => {});
+    // may take longer over them than the wait that follows. The pictures
+    // count in `busy()` too.
+    await waitFor("network idle", page.waitForLoadState("networkidle", { timeout: 20000 }));
     // And what it reads once it has something else, as a scene its meshes
     // once the engine that moves them is here.
-    await page.waitForFunction(() => window.gallery.busy() === 0, null, { timeout: 20000 }).catch(() => {});
+    await waitFor("nothing busy", page.waitForFunction(() => window.gallery.busy() === 0, null, { timeout: 20000 }));
     if (moving) await page.clock.runFor(example.qt?.settle ?? 1500);
     else await page.waitForTimeout(example.qt?.settle ?? 1500);
     // A window nothing shows is there and not to be seen: its QML does not
@@ -136,7 +155,8 @@ for (const example of readManifest()) {
     const state = await page.evaluate(() => {
       const stage = document.getElementById("stage");
       const style = stage.firstElementChild && getComputedStyle(stage.firstElementChild);
-      return { ...window.gallery, children: stage.childElementCount, hidden: style?.visibility === "hidden" || style?.display === "none" };
+      const busy = window.gallery?.busy?.() ?? null;
+      return { ...window.gallery, busy, children: stage.childElementCount, hidden: style?.visibility === "hidden" || style?.display === "none" };
     });
     await Promise.all(answers);
     const found =
@@ -180,6 +200,9 @@ for (const example of readManifest()) {
       mismatch: similarity?.mismatch ?? null,
       lacks: compiled.lacks,
       compileErrors: compiled.errors,
+      // What the picture was taken after: each wait, and what was still
+      // being fetched then.
+      waited: { waits, busy: state.busy, status: state.status, ms: Date.now() - started },
       said: Array.from(said, ([text, times]) => ({ text: text.replaceAll(example.directory + "/", ""), times })).slice(0, 40),
     };
     await testInfo.attach("example", { body: JSON.stringify(result), contentType: "application/json" });
@@ -194,10 +217,11 @@ for (const example of readManifest()) {
     const unfetched = Boolean(example.assets) && example.fetched.length + example.served.length === 0;
     if (unfetched) testInfo.annotations.push({ type: "unfetched", description: `mise run assets ${example.id} fetches what it shows` });
     if (floor) {
-      expect(renders, `${example.id} must keep rendering: ${result.error}`).toBe(true);
+      const after = `, taken after ${JSON.stringify(result.waited)}`;
+      expect(renders, `${example.id} must keep rendering: ${result.error}${after}`).toBe(true);
       for (const score of ["pixels", "content"]) {
         if (typeof floor[score] !== "number" || unfetched) continue;
-        expect(result[score], `${example.id} must stay as like its reference picture: ${score}`).toBeGreaterThanOrEqual(floor[score]);
+        expect(result[score], `${example.id} must stay as like its reference picture: ${score}${after}`).toBeGreaterThanOrEqual(floor[score]);
       }
     }
   });
