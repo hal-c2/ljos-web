@@ -1,41 +1,19 @@
 // DECISION: docs come from a pinned ljos-ui checkout, not a git submodule.
 // A submodule would pin every ljos-web clone to ljos-ui's tree and make
 // docs fixes a two-repo dance; instead CI checks out hal-c2/ljos-ui at
-// the SHA in site/ljos-ui.sha and sets LJOS_DOCS_DIR. Locally the
-// candidates below cover the usual sibling layouts. Bumping docs is
-// then a one-line SHA change, reviewable on its own.
+// the SHA in site/ljos-ui.sha and sets LJOS_DOCS_DIR, as the mise
+// tasks do locally (scripts/docs-dir.mjs). Bumping docs is then a
+// one-line SHA change, reviewable on its own.
 // Pages are copied (never symlinked, so Astro's watcher and CI behave
 // the same) into src/content/docs/ at build time; the copies are
 // gitignored. The source pages are never edited here.
-import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { execSync } from "node:child_process";
-import { homedir } from "node:os";
+import { cpSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { docsDir } from "../../scripts/docs-dir.mjs";
 
 const siteRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const candidates = [
-  process.env.LJOS_DOCS_DIR,
-  resolve(siteRoot, "../ljos-ui/docs/site"),
-  resolve(siteRoot, "../../ljos-ui/docs/site"),
-  join(homedir(), "dev/ljos-ui/docs/site"),
-].filter(Boolean);
-const src = candidates.find((c) => existsSync(join(c, "start/index.md")));
-if (!src) {
-  console.error(`sync-docs: no ljos-ui docs/site found. Tried:\n  ${candidates.join("\n  ")}\nSet LJOS_DOCS_DIR to a ljos-ui docs/site checkout.`);
-  process.exit(1);
-}
-// A fallback checkout is whatever revision happens to be there; say
-// so when it is not the pinned one, instead of building other docs
-// than CI does without a word. An explicit LJOS_DOCS_DIR is the
-// caller's own choice (CI pins it), so it is not second-guessed.
-if (!process.env.LJOS_DOCS_DIR) {
-  const pinned = readFileSync(join(siteRoot, "ljos-ui.sha"), "utf8").trim();
-  try {
-    const head = execSync("git rev-parse HEAD", { cwd: src, encoding: "utf8" }).trim();
-    if (head !== pinned) console.warn(`sync-docs: WARNING docs checkout is at ${head}, but site/ljos-ui.sha pins ${pinned}; building the checkout's pages, not the pinned ones.`);
-  } catch { /* not a git checkout: nothing to compare */ }
-}
+const src = docsDir("sync-docs");
 const destRoot = join(siteRoot, "src/content/docs");
 const SECTIONS = ["start", "ui", "controls", "data", "language", "quality", "rust"];
 let count = 0;

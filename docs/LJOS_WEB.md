@@ -726,7 +726,7 @@ directory and `ljos-site.json` (format `ljos-site`, version 1, target
 `web`: the entry, its theme, every file with its size, the project's
 modules with their qmldirs, the modules it imports), and
 `ljos-web build-site DIR` (`buildSite({ dir, out })` of
-`ljos-web/site`, `mise run site:build DIR`) writes `index.html` and
+`ljos-web/site`, `mise run build:site DIR`) writes `index.html` and
 its assets. The manifest is held to its words before anything is
 compiled: an unknown field, an unlisted file, a listed one missing or
 of another size, a path out of the directory, a link, a module
@@ -1668,7 +1668,7 @@ A page of ljos-web is made by its script, so a reader with no script —
 a crawler, a reader's first paint, a screen that has not run it yet —
 had nothing. A site may be built prerendered (`buildSite({ dir,
 prerender: true })`, `ljos-web build-site DIR --prerender`, `mise run
-site:build DIR -- --prerender`): the build writes the page's own HTML
+build:site DIR --prerender`): the build writes the page's own HTML
 into `index.html` — its text, its links and its structure, in the
 markup the runtime itself makes — and the page's script then
 *hydrates* it, taking those elements over instead of making the page
