@@ -32,7 +32,14 @@ const examples = join(corpus, manifest.root);
 const output = join(corpus, "reference");
 const indexFile = join(output, "reference.json");
 
-const qml = process.env.QML ?? ["qml6", "qml"].find((tool) => spawnSync(tool, ["--help"], { env: { ...process.env, QT_QPA_PLATFORM: "offscreen" } }).status === 0);
+// QML set to nothing is unset, as mise-tasks/reference and setup read it. A
+// path of its own is read from where reference was started: the examples run
+// in a scratch directory. The probe goes without the desktop's Qt platform
+// theme, like the examples: a gtk3 theme kills qml when there is no display.
+const { QT_QPA_PLATFORMTHEME: _theme, ...untheme } = process.env;
+const qml = process.env.QML
+  ? process.env.QML.includes("/") ? resolve(process.env.QML) : process.env.QML
+  : ["qml6", "qml"].find((tool) => spawnSync(tool, ["--help"], { env: { ...untheme, QT_QPA_PLATFORM: "offscreen" } }).status === 0);
 if (!qml) {
   console.error("no `qml6` or `qml` tool: install Qt 6 (qt6-declarative), or set QML");
   process.exit(1);
