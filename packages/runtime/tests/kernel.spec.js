@@ -367,3 +367,20 @@ test("what a binding makes as it reads a property's value is told it is complete
   expect(height).toBe(30);
   expect(order).toEqual(["binding returned", "value completed"]);
 });
+
+test("a first-change handler of what a binding makes as it reads a property's value is told once the binding is done, and the binding sees what it wrote", async ({ page }) => {
+  await open(page, "madeinbinding");
+  const [height, order] = await page.evaluate(() => {
+    window.scene.firstAsked = true;
+    // Read at once: the binding, and the value it makes, are evaluated here.
+    const at = window.scene.firstControl.implicitHeight;
+    window.flush();
+    return [[at, window.scene.firstControl.implicitHeight], [...window.scene.firsts]];
+  });
+  // The value is made by its own binding as the assignment settles, and
+  // the control's binding reads it as it is made. The handler writes 5 and
+  // 50, which that binding read before the value and after: both reach it
+  // as changes once the value's binding is done, so it is evaluated again,
+  // after each write as a handler's writes are.
+  expect([height, order]).toEqual([[155, 155], ["binding 0 0", "first 5", "binding 5 0", "binding 5 50"]]);
+});

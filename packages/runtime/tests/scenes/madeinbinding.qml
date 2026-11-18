@@ -121,4 +121,38 @@ Item {
         }
         return heldAsked
     }
+
+    // A handler of the first change of what a binding makes as it reads a
+    // property's value (the made object's `n`, which its binding gives) writes
+    // what that binding reads, before it reads the value and after. It is told
+    // once the binding is done, as the value's onCompleted is: inside the
+    // binding the write would be a change the binding made itself.
+    property var firsts: []
+    property bool firstAsked: false
+    property int firstBefore: 0
+    property int firstAfter: 0
+    property alias firstControl: firstControl
+    property Component firstContent: Component {
+        Item {
+            property int n: root.firstAsked ? 5 : 0
+            onNChanged: {
+                root.firsts.push("first " + n)
+                root.firstBefore = n
+                root.firstAfter = n * 10
+            }
+            implicitHeight: 100
+        }
+    }
+    T.Control {
+        id: firstControl
+        contentItem: root.firstAsked ? root.firstContent : null
+        implicitHeight: {
+            if (!root.firstAsked) return 0
+            const before = root.firstBefore
+            const height = contentItem.implicitHeight
+            const after = root.firstAfter
+            root.firsts.push("binding " + before + " " + after)
+            return height + before + after
+        }
+    }
 }
