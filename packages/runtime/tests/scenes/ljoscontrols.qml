@@ -92,6 +92,15 @@ Item {
         return image ? String(image.color) : null
     }
 
+    // Whether every picture a button or a row shows has loaded: its size,
+    // and so the room kept for it, comes of the file.
+    function loaded() {
+        return [bare, acting, tinted, pictured, row, actingRow].every((control) => {
+            const image = part(part(control.contentItem, "picture"), "image")
+            return image !== null && image.status === Image.Ready
+        })
+    }
+
     function icons() {
         return {
             bare: [bare.implicitContentWidth, shown(bare, "picture"), ink(bare, "picture"), String(bare.ink)],

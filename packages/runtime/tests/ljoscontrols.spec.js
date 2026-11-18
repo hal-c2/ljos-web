@@ -8,6 +8,9 @@ const answer = (page, name) => page.evaluate((name) => JSON.parse(JSON.stringify
 
 test("a Ljós button or menu row shows the icon it or its action is given, in its text's colour unless told one", async ({ page }) => {
   await open(page, "ljoscontrols");
+  // A picture's size is known once its file has loaded, which may be after
+  // the scene is ready.
+  await page.waitForFunction(() => window.scene.loaded());
   const icons = await answer(page, "icons");
   // The bare button is all icon, drawn in its ink.
   expect(icons.bare.slice(0, 2)).toEqual([16, true]);
