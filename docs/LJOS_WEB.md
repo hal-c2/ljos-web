@@ -2280,7 +2280,7 @@ kept).
 ### A31. ERGO: compiler — the Ljós dialect in `qmlc` and in the page
 
 `qmlc` and the compiler in the page (A15) take what `ljos check` takes
-at the ljos-ui pin (`b292160c`, see A34), with its
+at the ljos-ui pin (`af3bf433`, see A34), with its
 meaning, its errors and its desugaring. Neither has a second parser: each
 file goes through ljos-ui's `qml_syntax::desugar` before anything else
 reads it, and every span is mapped back through its `SpanMap`, so an
@@ -3411,7 +3411,7 @@ Ljos.Design` build with no Qt installed, as `QtQuick.Controls` in Ljós's
 style does (A20): their QML is ljos-ui's (`crates/ljos_controls/qml/Ljos`
 and `crates/ljos_design_qml/qml`), copied into `packages/runtime/controls/`
 by `mise run controls` at the commit the compiler is pinned to
-(`b292160c`), with a hash of each file in `controls/LJOS_UI.json`, and the
+(`af3bf433`), with a hash of each file in `controls/LJOS_UI.json`, and the
 `qmldir`s written as ljos-ui's engine makes the modules
 (`ljos_controls::ljos`): `Ljos.Controls` is its own files and, for each
 control Basic draws that it has no file of, Basic's; `Ljos.Controls.Basic`
