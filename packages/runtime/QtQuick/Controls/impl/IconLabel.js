@@ -46,19 +46,27 @@ const wholeIcon = (self) => slot(self, "icon").get();
 // Whether the icon was given a colour: by itself, by the icon it was given
 // whole (a plain value, or the control whose icon this one is), or, for a
 // button, by the action it follows. "transparent" is a colour too: it shows
-// the picture as it is. Another's icon given whole gives every member, its
-// colour or the lack of one: what is drawn is that icon's, so the action is
-// not asked, and an action whose icon is the button's again is no loop.
-function coloured(self) {
+// the picture as it is. Another's icon given whole that was given no colour
+// leaves the button's action to give one, as Qt and Ljós's native engine
+// draw it (`resolving` in object.ts). An action whose icon is the button's
+// own again brings the question back to whom it asked already: `asked` is
+// those, and none of them gave a colour.
+function coloured(self, asked = new Set()) {
+  if (asked.has(self)) return false;
+  asked.add(self);
   const own = slot(self, "icon$color");
   // `icon.color = undefined` takes the colour back.
   if (own.explicit()) return own.own() !== undefined;
   const whole = wholeIcon(self);
   const from = whole?.$self;
   if (whole && !from && whole.color !== undefined) return true;
-  if (from && from !== self) return Boolean(from.$type.slots.icon$color) && coloured(from);
   const action = isa(self, AbstractButton) ? self.action : null;
-  return Boolean(action?.$type?.slots.icon$color) && coloured(action);
+  // What the other icon has from its own action is the other's to show: a
+  // button with an action of its own takes only what that icon was told.
+  if (from && from !== self && from.$type.slots.icon$color) {
+    if (action ? slot(from, "icon$color").told() : coloured(from, asked)) return true;
+  }
+  return Boolean(action?.$type?.slots.icon$color) && coloured(action, asked);
 }
 
 // The button a label is in, nearest first. Ljós's own styles write no

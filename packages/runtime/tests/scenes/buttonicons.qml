@@ -22,8 +22,9 @@ Item {
     // An action whose icon is given whole, as one value.
     Button { id: wholeAction; x: 360; action: Action { icon: ({ source: "../assets/circle.png", color: "#0066cc" }) } }
     // An icon that is another button's, which was given no colour, in a
-    // button whose action was given one: the icon given whole gives every
-    // member, so the colour is none, and the action's is not asked.
+    // button whose action was given one: the icon given whole gives what it
+    // was told, its picture, and the action gives the colour, as Qt 6.11 and
+    // Ljós's native engine draw it (ljos-ui's features/controls/button-icon.feature).
     Button { id: bare; x: 420; icon.source: "../assets/circle.png" }
     Button { id: linkedActing; x: 420; y: 50; icon: bare.icon; action: Action { icon.color: "#0066cc" } }
     // The same, with the action's icon given back as the button's own.
@@ -60,8 +61,8 @@ Item {
             linked: String(image(linked).color),
             wholeAction: String(image(wholeAction).color),
             holder: String(image(holder)?.source ?? ""),
-            linkedActing: [String(image(linkedActing).color), String(linkedActing.contentItem.color)],
-            linkedBack: [String(image(linkedBack).color), String(linkedBack.contentItem.color)],
+            linkedActing: [String(image(linkedActing).color), String(linkedActing.icon.color)],
+            linkedBack: [String(image(linkedBack).color), String(linkedBack.contentItem.color), String(linkedBack.icon.color)],
         }
     }
 

@@ -266,6 +266,18 @@ const isDerived = (initial: unknown): initial is Derived =>
 // What a derived default is, of the object.
 const derive$ = (initial: unknown, self: QObject): unknown =>
   isDerived(initial) ? (initial[DERIVED] as (self: QObject) => unknown)(self) : initial;
+// A derived default of a group's member that a group given whole, another
+// object's, does not hide where that object was only carrying the member:
+// a button given `icon: other.icon` shows `other`'s picture, and the colour
+// `other` was not told is the one its own action gives, as Qt fills in an
+// icon's members from the action where they were not set (Slot's `told`).
+// `alone` is what it is while that is being worked out and something asks
+// for it again: the action whose icon is the button's own, given back.
+const RESOLVES = Symbol("resolves");
+export const resolving = <V, I extends QObject = Dynamic>(compute: (self: I) => V, alone: V): Derived<V> =>
+  ({ [DERIVED]: compute, [RESOLVES]: { alone } }) as unknown as Derived<V>;
+const resolves = (initial: unknown): { alone: unknown } | undefined =>
+  (initial as Partial<Record<typeof RESOLVES, { alone: unknown }>> | null | undefined)?.[RESOLVES];
 
 // `anchors`, `font`, `border`: properties under one name. `anchors.fill` is
 // bound as the prop `anchors$fill`.
@@ -1082,6 +1094,7 @@ class Slot {
   declare bump: Setter<number> | null;
   declare cell: number | undefined;
   declare given$: (() => unknown) | null;
+  declare working: boolean;
 
   constructor(
     self: QObject,
@@ -1130,6 +1143,9 @@ class Slot {
     // The same on the wasm kernel: the number of its node.
     this.cell = undefined;
     this.given$ = resolve ? () => this.own() : null;
+    // Whether what the property takes from its group, or works out under it,
+    // is being worked out: see `base`.
+    this.working = false;
     // A binding is evaluated as it is taken, and may read the property it
     // is for: the slot is there to be found before it is.
     self.$slots[key] = this;
@@ -1225,11 +1241,52 @@ class Slot {
     const back = this.assigned && this.back();
     if (this.assigned && !back) return this.value;
     let value = back ? undefined : this.bound ? this.bound() : this.given;
-    if (value === undefined && this.whole && !this.alone) {
-      value = (slot(this.self, this.whole)!.get() as Record<string, unknown> | null | undefined)?.[this.member as string];
+    if (value !== undefined) return value;
+    const resolution = resolves(this.initial);
+    const resolving = resolution !== undefined;
+    // Asked again while it is worked out, with no binding in between to end
+    // the loop: an action given its button's `icon` whole, while the button
+    // shows its action's icon. It ends there, as a binding's loop does: with
+    // what the property works out alone, or, for one `resolving`, what it is
+    // with nothing to take it from. Nothing would not do: a colour makes
+    // black of it, and the action would hand that back as told.
+    if (this.working) return resolving ? resolution.alone : derive$(this.initial, this.self);
+    const whole = this.whole !== undefined && !this.alone;
+    if (!whole && !resolving) return derive$(this.initial, this.self);
+    this.working = true;
+    try {
+      if (whole) {
+        const group = slot(this.self, this.whole!)!.get() as Record<string, unknown> | null | undefined;
+        const giver = group?.$self as QObject | undefined;
+        if (!resolving || !giver || giver === this.self || slot(giver, this.key)?.told() === true) {
+          value = group?.[this.member as string];
+        }
+      }
+      if (value === undefined && resolving) value = derive$(this.initial, this.self);
+    } finally {
+      this.working = false;
     }
-    if (value === undefined) value = derive$(this.initial, this.self);
+    if (value === undefined && !resolving) value = derive$(this.initial, this.self);
     return value;
+  }
+
+  // Whether the property was told what it is: by itself, or by the group it
+  // was given whole, as far as that group was told it. What it works out is
+  // not told, as Qt keeps of an icon only what was set on it: a button's
+  // colour taken from its action is not one that a button given its icon
+  // whole passes over its own action (`resolving`).
+  told(): boolean {
+    if (this.explicit()) return true;
+    if (this.whole === undefined || this.alone || this.working) return false;
+    this.working = true;
+    try {
+      const group = slot(this.self, this.whole)!.get() as Record<string, unknown> | null | undefined;
+      const giver = group?.$self as QObject | undefined;
+      if (!giver) return group?.[this.member as string] !== undefined;
+      return giver !== this.self && slot(giver, this.key)?.told() === true;
+    } finally {
+      this.working = false;
+    }
   }
 
   // Given nothing where nothing is what gives it back: `width = undefined`

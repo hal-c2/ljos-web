@@ -24,15 +24,18 @@ test("a Basic button's icon is drawn in the colour it was given, as it is when t
   expect(colors.holder).toMatch(/circle\.png$/);
 });
 
-test("a Basic button's icon that is another's, given no colour, is drawn in its text's colour, whatever its action was given", async ({ page }) => {
+test("a Basic button given another's icon whole, which was given no colour, is drawn in its action's, and in its text's where that action's icon is the button's own", async ({ page }) => {
   await open(page, "buttonicons");
   await page.waitForFunction(() => window.scene.loaded());
   const colors = await answer(page, "colors");
-  // The icon given whole gives the colour too, and it gave none: the button's
-  // action, which it would follow otherwise, is not asked.
-  expect(colors.linkedActing[0]).toBe(colors.linkedActing[1]);
-  // Nor where that action's icon is the button's own again.
-  expect(colors.linkedBack[0]).toBe(colors.linkedBack[1]);
+  // The icon given whole gives the picture it was told; the colour it was not
+  // told is the action's, which the button says it has and draws.
+  expect(colors.linkedActing).toEqual(["#0066cc", "#0066cc"]);
+  // An action whose icon is the button's own gives nothing back: no colour,
+  // so the text's, and asking ends.
+  const [drawn, text, color] = colors.linkedBack;
+  expect(drawn).toBe(text);
+  expect(color).toBe("#00000000");
 });
 
 test("a Basic button's icon given transparent is drawn as the picture is, and one given a colour is painted in it", async ({ page }) => {
@@ -47,4 +50,10 @@ test("a Basic button's icon given transparent is drawn as the picture is, and on
   const [tinted, asItIs, plain] = await pixels(page, [middles.tinted, middles.asItIs, middles.plain]);
   expect(asItIs).toBe(plain);
   expect(plain).not.toBe(tinted);
+});
+
+test("a Basic button whose action's icon is the button's own is drawn in its text's colour, and asking for its colour ends", async ({ page }) => {
+  await open(page, "iconcycle");
+  const [icon, text] = await page.evaluate(() => window.scene.colors());
+  expect(icon).toBe(text);
 });

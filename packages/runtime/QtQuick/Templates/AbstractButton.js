@@ -3,7 +3,7 @@
 // is checkable is toggled by a click, and of those that exclude each other
 // one is checked at a time. A style gives it what it looks like.
 import { onCleanup } from "solid-js";
-import { defineType, derived, effect, group, settle, signal, slot } from "../../object.ts";
+import { defineType, derived, effect, group, resolving, settle, signal, slot } from "../../object.ts";
 import { parts } from "./parts.js";
 import { styleHints } from "../../QtQml/application.ts";
 import { PauseJob } from "../animation/jobs.js";
@@ -24,8 +24,18 @@ const CLICKS = [Key.Key_Space, Key.Key_Select, Key.Key_Return, Key.Key_Enter];
 const ANIMATE = 100;
 
 // A button with an action shows the action's icon, where it has none itself.
+// Given another's icon whole, it shows what that icon was told, and its
+// action's where that icon was told nothing; one with no action shows all
+// the other icon carries (`resolving`).
 const icon = Object.fromEntries(
-  Object.entries(ICON).map(([name, initial]) => [name, derived((self) => self.action?.icon[name] ?? initial)]),
+  Object.entries(ICON).map(([name, initial]) => [
+    name,
+    resolving((self) => {
+      if (self.action) return self.action.icon[name] ?? initial;
+      const whole = slot(self, "icon").get();
+      return (whole?.$self && whole.$self !== self ? whole[name] : undefined) ?? initial;
+    }, initial),
+  ]),
 );
 
 const now = (self, name) => untrack(() => self[name]);
