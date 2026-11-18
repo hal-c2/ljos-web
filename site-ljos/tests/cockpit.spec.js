@@ -61,15 +61,18 @@ test("with WebGPU the cockpit runs, opens a door, and is made again from an edit
     const run = page.getByRole("button", { name: "Run the cockpit" });
     await run.scrollIntoViewIfNeeded();
     await run.click();
-    await expect(run, "Run goes once the cockpit is drawn").toBeHidden({ timeout: 60_000 });
+    await expect(page.getByRole("button", { name: "Pause the cockpit" }), "once the cockpit is drawn, Run is its Pause").toBeVisible({ timeout: 60_000 });
     const button = (name) => page.getByRole("button", { name, exact: true });
     await button("Car").click();
     await expect(shown(page.locator("canvas")).first(), "the car is drawn in its canvas").toBeVisible({ timeout: 30_000 });
     const door = button("Left door");
     await expect(door).toHaveCount(1);
-    await expect(door).not.toBeChecked();
+    // A part's button says it is on with aria-pressed (QtQuick/Accessible.ts);
+    // the chip sets Accessible.checked but not checkable, so a shut door says
+    // nothing rather than "false".
+    await expect(door).not.toHaveAttribute("aria-pressed", "true");
     await door.click();
-    await expect(door).toBeChecked();
+    await expect(door).toHaveAttribute("aria-pressed", "true");
 
     const cockpit = readFileSync(join(target, "Cockpit.qml"), "utf8");
     expect(cockpit).toContain("t`Climate`");

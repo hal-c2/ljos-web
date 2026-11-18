@@ -42,17 +42,20 @@ try {
     await page.waitForSelector('#app[data-ljos-hydrated="true"]');
     const run = page.getByRole("button", { name: "Run the cockpit" });
     await run.scrollIntoViewIfNeeded();
-    // The demo's frame is the box around Run drawn at the cockpit's own
-    // shape, 1600 by 900; the page does not move once it is laid out.
+    // The demo's frame is the box around Run: the cockpit's own shape,
+    // 1600 by 900, over the toolbar Run is in. The picture is the part
+    // above the toolbar; the page does not move once it is laid out.
     const frame = await run.evaluate((node) => {
       for (let box = node.parentElement; box; box = box.parentElement) {
         const shown = box.getBoundingClientRect();
-        if (shown.width > 300 && Math.abs(shown.height / shown.width - 900 / 1600) < 0.01) return { x: shown.x, y: shown.y, width: shown.width, height: shown.height };
+        const surface = (shown.width * 900) / 1600;
+        if (shown.width > 300 && shown.height > surface && shown.height - surface < 120) return { x: shown.x, y: shown.y, width: shown.width, height: Math.round(surface) };
       }
       throw new Error("no frame of the cockpit's shape around its Run");
     });
     await run.click();
-    await run.waitFor({ state: "hidden", timeout: 60_000 });
+    // Once it is drawn the toolbar's Run is its Pause.
+    await page.getByRole("button", { name: "Pause the cockpit" }).waitFor({ timeout: 60_000 });
     // The dials have come up and the map has drawn.
     await page.waitForTimeout(3000);
     const png = await page.screenshot({ clip: frame, animations: "allow" });
