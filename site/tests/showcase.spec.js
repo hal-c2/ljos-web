@@ -194,7 +194,10 @@ test("the motion demo springs, shuffles and opens", async ({ page }) => {
   await page.goto("/demos/");
   const fig = await live(page, "motion");
   const tiles = () => fig.locator(".ljos-demo__mount").getByText(/^(Ljós|holds|state|while|it|moves)$/).allTextContents();
-  expect(await tiles()).toEqual(["Ljós", "holds", "state", "while", "it", "moves"]);
+  // Live is the demo mounted, not laid out: the tiles are a ListView's
+  // delegates, made once the strip has its width, which can be a frame
+  // later. A full run read them in between and found none.
+  await expect.poll(tiles).toEqual(["Ljós", "holds", "state", "while", "it", "moves"]);
   await fig.getByRole("button", { name: "Shuffle the tiles" }).click();
   await page.waitForTimeout(800);
   expect([...(await tiles())].sort()).toEqual(["Ljós", "holds", "it", "moves", "state", "while"].sort());
