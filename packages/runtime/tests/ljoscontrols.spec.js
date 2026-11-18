@@ -67,3 +67,14 @@ test("a Ljós empty state's text fits the width it is given, and asks for the wi
   expect(texts.natural).toEqual([360, 360, 360, 360]);
   expect(texts.basicNatural).toEqual([360, 360, 360, 384]);
 });
+
+test("a Ljós row of buttons is mirrored once, whether by what it is in or by itself", async ({ page }) => {
+  await open(page, "ljoscontrols");
+  const mirrors = await answer(page, "mirrors");
+  // EmptyState, Basic EmptyState, Basic SplitButton, TabButton.
+  expect(mirrors.inherited).toEqual([true, true, true, true]);
+  expect(mirrors.own).toEqual([true, true, true, true]);
+  expect(mirrors.plain).toEqual([false, false, false, false]);
+  // The buttons in the row still take the mirroring passed on to them.
+  expect(mirrors.buttons).toEqual([true, false]);
+});
