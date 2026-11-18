@@ -1,7 +1,7 @@
 {
   "repository": "hal-c2/ljos-ui",
   "path": "examples/car-cockpit",
-  "commit": "01660509869632d10462f2b2984702c5ee2c42cd",
+  "commit": "82d28face02bd218edfd32604d0d4e42f55b227d",
   "files": {
     "AssistView.qml": "aa7972b9ebdcd0915fee00bb04324a39e2cc0728d9bc2fcfb391517297ff2bf5",
     "CarPanel.qml": "e76dff4e4e86cb3692c2c7eb76659caaee3eea9c613f15bbe30523d969307d05",
@@ -9,7 +9,7 @@
     "Chip.qml": "f930ef5e95a536917f4e6d0550219457dc2a8ae7af508dc5c938a5cbbecbd42c",
     "ClimatePanel.qml": "fb8559e8a456cb6158bfb4c3fd6422244b1372302818072d670bb92e43ad8f3c",
     "Cluster.qml": "d41861e7a11509377860ca2105f359651e69ccb6ee87d3f53af836b3385666b0",
-    "Cockpit.qml": "c2d436d0ef79902f6867947c20b752ac216cf282911bb12d4071d588f7c9ccee",
+    "Cockpit.qml": "be27aa14bf1d97c9b2a9b6c297487cc47c85ff2fe4ee752061984bfb2e86d4b7",
     "Dial.qml": "711b0fd65f7a3d5b1b72e8c46460edbd4d4f3eca5828d40398886b8ef9fd1656",
     "Dock.qml": "361c86fecb84dbca8c3bc8ae341d09aead2f1aa94961e2093d9cdbbd125f9bd0",
     "Icon.qml": "2d63dc7017537a51e2ff1885b5c9909feeac34ba7b608b8b23a6f9d17b2a362e",
