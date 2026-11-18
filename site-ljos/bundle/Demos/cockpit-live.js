@@ -30,7 +30,7 @@ async function compile(edits, base) {
     const files = {};
     for (const file of (await load()).files)
         files[file.path] = Object.hasOwn(edits, file.path) ? edits[file.path] : file.code;
-    const made = await (await Live.compileWith())({ files: files, entry: "Main.qml", base: new URL(base, location.href).href });
+    const made = await (await Live.compileWith())({ files: files, entry: "Main.qml", base: new URL(base, globalThis.location.href).href });
     said = {};
     if (made.diagnostics) {
         made.diagnostics.forEach(function (d) {
