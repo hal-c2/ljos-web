@@ -573,6 +573,18 @@ test("the application is the page, and quitting is said, not done", async ({ pag
   await expect.poll(accessibility).toEqual([1, 1]);
   await page.emulateMedia({ reducedMotion: "no-preference", contrast: "no-preference" });
   await expect.poll(accessibility).toEqual([0, 0]);
+  // A motion the page says on its root, as a reader's own pick for the
+  // site is, wins over the browser's both ways, and saying none gives the
+  // browser's back.
+  await page.evaluate(() => document.documentElement.setAttribute("data-ljos-motion", "reduce"));
+  await expect.poll(accessibility).toEqual([1, 0]);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.evaluate(() => document.documentElement.setAttribute("data-ljos-motion", "no-preference"));
+  await expect.poll(accessibility).toEqual([0, 0]);
+  await page.evaluate(() => document.documentElement.removeAttribute("data-ljos-motion"));
+  await expect.poll(accessibility).toEqual([1, 0]);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await expect.poll(accessibility).toEqual([0, 0]);
 });
 
 test("callLater calls once, with the last arguments", async ({ page }) => {
