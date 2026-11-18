@@ -176,6 +176,10 @@ pub fn compile(source: &str, options: &Options) -> Result<Output, Vec<Error>> {
     let allocator = Allocator::default();
     let (program, target) = lower(&allocator, source, options)?;
     let mut solid = options.solid.clone();
+    // The lowering never writes `<Show>`, so Solid's Show pass, which builds
+    // the whole program's scoping before it looks for one, would only cost a
+    // compile (and the playground compiles on every edit).
+    solid.lower_show = false;
     if target == Target::Quick {
         // A binding is a getter the object's slot memoizes itself, and a
         // conditional in one is just an expression.
