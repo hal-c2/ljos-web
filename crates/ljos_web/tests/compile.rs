@@ -223,6 +223,15 @@ fn visible_toggles_display() {
 }
 
 #[test]
+fn parentheses_do_not_hide_a_conditional() {
+    // Solid's compile() parses without parentheses, so its conditional
+    // matcher never sees one; the lowered program has to look the same.
+    let plain = js(r#"Item { Text { text: Shell.state.open ? "a" : "b" } }"#);
+    let wrapped = js(r#"Item { Text { text: (Shell.state.open ? ("a") : "b") } }"#);
+    assert_eq!(wrapped, plain);
+}
+
+#[test]
 fn handlers_are_delegated() {
     let code = js(r#"Item {
     Text { text: "a"; onMouseDown: Shell.dispatch("a") }
