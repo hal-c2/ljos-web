@@ -374,7 +374,7 @@ function told(file, send) {
 }
 
 /** What a program reads as data rather than shows. */
-const DATA = /\.(?:json|txt|csv|xml)$/i;
+const DATA = /\.(?:json|txt|csv|xml|obj|gltf|glb|bin)$/i;
 
 // Whether a compiled document names a type that is drawn in space, a View3D
 // or a graph in space, which is one: imported by its name, or used through
@@ -877,7 +877,10 @@ export default function qml({
     //
     // A file a program reads as data (a `JsonListModel`'s `source`) stays a
     // file of the site, however small: inlined as a `data:` address it could
-    // not be fetched again, and `reload()` would read what was built.
+    // not be fetched again, and `reload()` would read what was built. So
+    // does a model (a `RuntimeLoader`'s or a `Model`'s `source`): the
+    // renderer tells its format by its name, and a `.gltf` finds its
+    // buffers beside its own address.
     config(config) {
       const optimizeDeps = { include: ["ljos-web > sql.js"] };
       const build =
