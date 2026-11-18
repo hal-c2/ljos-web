@@ -232,6 +232,23 @@ fn parentheses_do_not_hide_a_conditional() {
 }
 
 #[test]
+fn a_property_named_ref_is_an_error() {
+    // Solid would take it as where to put the object, not as its value.
+    let message = "a property named `ref` is not supported by the web target: \
+                   Solid takes `ref` as a reference to the object";
+    for source in [
+        "import OpenTUI\nItem { property var ref: 1 }",
+        "import OpenTUI\nItem { Sample { ref: 1 } }",
+        "import QtQuick\nItem { property var ref: 1 }",
+        "import QtQuick\nItem { Item { ref: 1 } }",
+    ] {
+        let errors = compile(source, &options()).expect_err(source);
+        let messages: Vec<_> = errors.iter().map(|error| error.message.as_str()).collect();
+        assert_eq!(messages, [message], "{source}");
+    }
+}
+
+#[test]
 fn handlers_are_delegated() {
     let code = js(r#"Item {
     Text { text: "a"; onMouseDown: Shell.dispatch("a") }

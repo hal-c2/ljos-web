@@ -269,6 +269,11 @@ impl<'a, 's> Lower<'a, 's> {
         let mut handlers = Handlers::default();
         let mut entries = Vec::new();
         for member in object.members {
+            if let Some(error) = crate::solid_takes(&member) {
+                self.errors.push(error);
+                ok = false;
+                continue;
+            }
             match member {
                 QmlMember::Binding(binding) => {
                     let entry = Entry::Binding {
