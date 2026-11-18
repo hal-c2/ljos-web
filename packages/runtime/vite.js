@@ -451,9 +451,14 @@ export async function compilerRun(qmlc, args, options = {}) {
       const child = spawn(qmlc, args, { ...spawning, stdio: ["ignore", "pipe", "pipe"] });
       const streams = { stdout: [], stderr: [] };
       let error = null;
+      // What the compiler started is not killed with it, and may hold its
+      // output open: `close` comes once the pipes are, so they are closed
+      // here, as spawnSync closes them.
       const end = (why) => {
         error ??= why;
         child.kill("SIGKILL");
+        child.stdout.destroy();
+        child.stderr.destroy();
       };
       const timer = setTimeout(() => {
         const late = new Error(`it did not end within ${timeout / 1000} s (${[qmlc, ...args].join(" ")})`);
@@ -602,6 +607,9 @@ export default function qml({
   qmlc = compilerAt(qmlc);
   const looked = (file) => (typeof importPaths === "function" ? importPaths(file) : importPaths) ?? [];
   const compiled = new Map();
+  // Saves of QML seen so far: a compile that a save came during gives back
+  // what the file said before it, and is not kept in `compiled`.
+  let saves = 0;
   let serving = false;
   // Whether a view may draw on wgpu by default, so a document that draws in
   // space asks with the renderer's address at once (`askingEarly`).
@@ -1089,12 +1097,13 @@ export default function qml({
       // A build compiles one file at a time (site.js counts on that); a dev
       // server goes on answering while it compiles.
       const options = { encoding: "utf8", maxBuffer: 1 << 28 };
+      const savesBefore = saves;
       const result = serving ? await compilerRun(qmlc, [...given, file], options) : runCompiler(qmlc, [...given, file], options);
       if (result.error) this.error(`could not run ${qmlc}: ${result.error.message}`);
       if (result.status !== 0) this.error(result.stderr.trim());
       // Kept with its ask, so what is kept of Qt's own QML asks too.
       let code = askingEarly(result.stdout, wgpuAtOnce, (message) => this.warn(`${relative(base, file)}: ${message}`));
-      if (own) compiled.set(file, code);
+      if (own && saves === savesBefore) compiled.set(file, code);
       const component = !own && /^export default (?:function\s+|class\s+)?([A-Za-z_$][\w$]*)/m.exec(code)?.[1];
       if (!component) return { code, map: null };
       const live = typeof liveShell === "function" ? liveShell(file) : liveShell;
@@ -1184,6 +1193,7 @@ export default function qml({
       // gives back what the file said before. A file beside the saved one
       // that this environment never loaded is let go of as well: another
       // may have compiled it, and it is compiled against the saved one.
+      saves++;
       compiled.delete(file);
       for (const kept of compiled.keys()) if (dirname(kept) === directory) compiled.delete(kept);
       for (const module of affected) compiled.delete(module.file);
