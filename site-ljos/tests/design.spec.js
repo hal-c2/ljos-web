@@ -7,7 +7,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
-import { demos } from "../scripts/pro.mjs";
+import { demos as proDemos } from "../scripts/pro.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const bundle = join(here, "../bundle");
@@ -232,7 +232,7 @@ test("an ordered list's numbers are said, a bullet is not", async ({ page }) => 
 for (const [route, demos] of [
   ["/", 1],
   // Four demos framed in the page, and each pro demo's card.
-  ["/demos/", 4 + demos.length],
+  ["/demos/", 4 + proDemos.length],
 ]) {
   test(`${route}'s mark and demo pictures are drawn with no script`, async ({ browser }) => {
     for (const width of [390, 1440]) {
@@ -263,7 +263,7 @@ for (const [route, demos] of [
           // Its frame's shape, inside the frame's edge: 420 by 720 for a
           // demo framed in the page; a pro demo's own (Demos/pro.json),
           // on its card with no edge.
-          const pro = demos.find((demo) => [`${demo.picture}.webp`, `${demo.picture}-dark.webp`].includes(picture.file));
+          const pro = proDemos.find((demo) => [`${demo.picture}.webp`, `${demo.picture}-dark.webp`].includes(picture.file));
           const [tall, wide, edge] = pro ? [pro.height, pro.width, 0] : [420, 720, 2];
           expect(Math.abs(picture.height - Math.round(((picture.width + edge) * tall) / wide) + edge), picture.file).toBeLessThanOrEqual(1);
           expect(picture.width, picture.file).toBeGreaterThan(300);

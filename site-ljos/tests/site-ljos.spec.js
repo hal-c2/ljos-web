@@ -5,7 +5,7 @@
 // and light and dark are the reader's to choose.
 import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
-import { demos } from "../scripts/pro.mjs";
+import { demos as proDemos } from "../scripts/pro.mjs";
 import { packRich, unpackRich } from "ljos-web/codeblock/rich";
 import { highlight } from "ljos-web/markdown";
 
@@ -856,7 +856,7 @@ test("every showcase demo stands in its slot on the demos page", async ({ page }
   // is gone.
   const demos = [
     ["A shell you rewrite", null, null],
-    ...demos.map((demo) => [demo.card, null, null]),
+    ...proDemos.map((demo) => [demo.card, null, null]),
     ["3D you can orbit", "demo-orbit.webp", "Drag to orbit · scroll or pinch to zoom", null, "Run the 3D demo"],
     ["A shader effect", "demo-shader.webp", "Move to stir the light · tap for other colours", null, "Run the shader demo"],
     ["A whole app", "demo-app.webp", "Field guide", "Field guide", "Run the field guide"],
