@@ -471,6 +471,10 @@ impl<'a, 's> Lower<'a, 's> {
         built: &mut Built<'a>,
     ) {
         for member in members {
+            if let Some(error) = crate::solid_takes(&member) {
+                self.errors.push(error);
+                continue;
+            }
             match member {
                 QmlMember::Object(child) if scope::is_group(&child) => {
                     let mut path = group.to_vec();

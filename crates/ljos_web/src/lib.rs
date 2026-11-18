@@ -271,6 +271,22 @@ pub fn lowered_source(source: &str, options: &Options) -> Result<String, Vec<Err
     Ok(oxc_codegen::Codegen::new().build(&program).code)
 }
 
+/// Solid takes a `ref` prop as where to put what an element or component
+/// makes, never as a value, so a QML property of that name would reach its
+/// object as something else: it is an error instead.
+pub(crate) fn solid_takes(member: &qml_syntax::ast::QmlMember<'_>) -> Option<Error> {
+    use qml_syntax::ast::QmlMember;
+    let span = match member {
+        QmlMember::Binding(binding) if binding.name.as_simple() == Some("ref") => binding.name.span,
+        QmlMember::Property(property) if property.name.name.as_str() == "ref" => property.name.span,
+        _ => return None,
+    };
+    Some(Error::new(
+        "a property named `ref` is not supported by the web target: Solid takes `ref` as a reference to the object",
+        span,
+    ))
+}
+
 pub(crate) fn parse_errors(diagnostics: Diagnostics) -> Vec<Error> {
     diagnostics
         .into_iter()
