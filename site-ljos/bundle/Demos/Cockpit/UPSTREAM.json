@@ -1,22 +1,22 @@
 {
   "repository": "hal-c2/ljos-ui",
   "path": "examples/car-cockpit",
-  "commit": "cf1701747cbbc736c69e85ccfe3847c0eb97fa11",
+  "commit": "01660509869632d10462f2b2984702c5ee2c42cd",
   "files": {
-    "AssistView.qml": "3794411532e696f2b667c92671c3b7e4244c77652d1ee52ce56ee48fd68d0106",
+    "AssistView.qml": "aa7972b9ebdcd0915fee00bb04324a39e2cc0728d9bc2fcfb391517297ff2bf5",
     "CarPanel.qml": "e76dff4e4e86cb3692c2c7eb76659caaee3eea9c613f15bbe30523d969307d05",
     "CarScene.qml": "f22f3e72e1ac66d89393c7dd9be2c2cea80b3e609b3c4a005b335bed75d0b849",
-    "Chip.qml": "0794653311e0546aabae16080193305123428ff1dcfcdc83930aecbad5377a06",
+    "Chip.qml": "f930ef5e95a536917f4e6d0550219457dc2a8ae7af508dc5c938a5cbbecbd42c",
     "ClimatePanel.qml": "fb8559e8a456cb6158bfb4c3fd6422244b1372302818072d670bb92e43ad8f3c",
     "Cluster.qml": "d41861e7a11509377860ca2105f359651e69ccb6ee87d3f53af836b3385666b0",
-    "Cockpit.qml": "9e4d4dacf9986b2addba803fbcadc565d93da9e56e177b4204d237bdc371f7b1",
+    "Cockpit.qml": "c2d436d0ef79902f6867947c20b752ac216cf282911bb12d4071d588f7c9ccee",
     "Dial.qml": "711b0fd65f7a3d5b1b72e8c46460edbd4d4f3eca5828d40398886b8ef9fd1656",
     "Dock.qml": "361c86fecb84dbca8c3bc8ae341d09aead2f1aa94961e2093d9cdbbd125f9bd0",
     "Icon.qml": "2d63dc7017537a51e2ff1885b5c9909feeac34ba7b608b8b23a6f9d17b2a362e",
     "LauncherPanel.qml": "f7c1e959fd301662416e0a2a11f8df6376d280c7d4709e39a885deee5b85d06f",
-    "Main.qml": "2c88f83635d2fe03ba698d63fc50d845767debf98ec08494e4a9e3c5b8144299",
+    "Main.qml": "2d8fc50650973bcc3a7df61274ebd2aa90822d2ecc629581be38d3cb72c0fbff",
     "MediaPanel.qml": "850564e3e7432d2d263daeda5977d0c9a098b527d5f86ca2fca9e503a331417d",
-    "NavPanel.qml": "d9ca54f3568339da1b5d5520b6ed1191c3cb2e6ad4cf0614aa78d44d91af74c9",
+    "NavPanel.qml": "8255e7c7b5d87be417fa48ce720b982906e41647ef815a314f38aa8d2dc99902",
     "Neon.qml": "d24233d52f90d622aad4af188a029851b7d6349d57eb6c7941c544e1868ab4f0",
     "SettingsPanel.qml": "93142ecf219f51b938ea4621fcbd7e5efebf3332fff94d0662e4e03c726e457b",
     "StatusBar.qml": "40958a10ea94b40125b1363160507166e89bb640edab6f568398a587daddd2d0",
@@ -36,6 +36,6 @@
     "logic/drive.ts": "86e12c588b0c262ca05399347be229c484cc922d33d2937bdfca24257c843e2e",
     "logic/glyphs.ts": "14fd1ad6455b2173bc5c5456d40e891355e9c1dd094c2ee043f509c260e62517",
     "logic/media.ts": "903a056d32937983b022921e9cd24f9513797f674e31d86f1a8999d556df30df",
-    "logic/nav.ts": "7754e5a34a4f360d4bbb7277af529910db354d0b0602522ae52f0316f31fa0ae"
+    "logic/nav.ts": "8ae0947ac07e3d6458f496f2916896dda0dbe9b74725e718c24e0cfe2ba188d1"
   }
 }
