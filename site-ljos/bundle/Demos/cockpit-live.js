@@ -9,6 +9,10 @@
 // an edit does not hold — the car's GLBs — is read from there.
 
 var project = null;
+// Where live.js keeps the compiler it makes for this page, as it keeps
+// one on each live block's example: made with the first edit, with all
+// of the page's modules (the cockpit's chips import Ljos.Design).
+var own = { inspected: null };
 // What the last compile said, by file: the editor's squiggles.
 var said = {};
 
@@ -30,7 +34,7 @@ async function compile(edits, base) {
     const files = {};
     for (const file of (await load()).files)
         files[file.path] = Object.hasOwn(edits, file.path) ? edits[file.path] : file.code;
-    const made = await (await Live.compileWith())({ files: files, entry: "Main.qml", base: new URL(base, globalThis.location.href).href });
+    const made = await (await Live.compileWith(own))({ files: files, entry: "Main.qml", base: new URL(base, globalThis.location.href).href });
     said = {};
     if (made.diagnostics) {
         made.diagnostics.forEach(function (d) {
