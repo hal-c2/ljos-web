@@ -2291,6 +2291,42 @@ Date.Dial {
 }
 
 #[test]
+fn a_component_of_a_module_named_as_a_global_of_javascript_is_made_by_the_name_it_is_imported_under()
+ {
+    let files = [
+        (
+            "Main",
+            r#"import QtQuick
+Item {
+    property var day: Qt.createComponent("Parts", "Date")
+    property var dial: Qt.createComponent("Parts", "Dial")
+}"#,
+        ),
+        ("parts/Date", "import QtQuick\nItem { }"),
+        ("parts/Dial", "import QtQuick\nItem { }"),
+    ];
+    let mut project = Project::new();
+    for (file, source) in &files {
+        project
+            .add(file, source)
+            .unwrap_or_else(|errors| panic!("{file}: {errors:?}"));
+    }
+    project.add_type("Parts", "Date", "parts/Date");
+    project.add_type("Parts", "Dial", "parts/Dial");
+    let options = Options {
+        name: "Main".to_string(),
+        project: Some(project),
+        ..Options::default()
+    };
+    let code = lowered_source(files[0].1, &options).unwrap_or_else(|errors| panic!("{errors:?}"));
+    assert_contains(&code, r#"import $Date from "./parts/Date.qml";"#);
+    assert_contains(&code, "day={$file($Date)}");
+    assert_lacks(&code, "$file(Date)");
+    assert_contains(&code, r#"import Dial from "./parts/Dial.qml";"#);
+    assert_contains(&code, "dial={$file(Dial)}");
+}
+
+#[test]
 fn an_enum_of_a_component_named_as_a_global_of_javascript_is_read_off_the_component() {
     // `Date.Night` is a key of the component's: JavaScript's `Date` has
     // none. `Date.now()` and `Date.UTC` are still JavaScript's.
