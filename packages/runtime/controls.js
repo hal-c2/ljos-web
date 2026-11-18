@@ -24,9 +24,9 @@
 // controls` was given (LJOS_UI, else `../ljos-ui`), which has it.
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join, relative, sep } from "node:path";
+import { basename, dirname, join, relative, sep } from "node:path";
 
 export const CONTROLS = join(import.meta.dirname, "controls");
 const SOURCE = "LJOS_UI.json";
@@ -200,6 +200,13 @@ export const source = (root = CONTROLS) => JSON.parse(readFileSync(join(root, SO
 
 // Copies the QML of `from` (ljos-ui's `crates/ljos_controls/qml`) and of
 // `design` (its `crates/ljos_design_qml/qml`), both at `rev`, into `root`.
+//
+// The tree is made in a directory of its own beside `root` and then put
+// in `root`'s place, so `root` is only ever a whole tree: two writes at
+// once (two `mise run controls` in one checkout) each make their own, and
+// the last to finish is the one kept. Wiping `root` and writing into it
+// made one write delete the files the other was writing, which failed
+// with ENOTEMPTY and left tracked files deleted.
 export function write(from, rev, root = CONTROLS, design) {
   const listed = (directory, keep) =>
     walk(directory)
@@ -210,21 +217,60 @@ export function write(from, rev, root = CONTROLS, design) {
     ...listed(from, (file) => taken(file) && !file.startsWith(`${DESIGN}/`)),
     ...(design ? listed(design, (file) => file.startsWith(`${DESIGN}/`) && file.endsWith(".qml")) : []),
   ].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-  rmSync(root, { recursive: true, force: true });
-  const sums = {};
-  for (const [file, path] of copied) {
-    mkdirSync(dirname(join(root, file)), { recursive: true });
-    cpSync(path, join(root, file));
-    sums[file] = hash(readFileSync(join(root, file)));
+  mkdirSync(dirname(root), { recursive: true });
+  // Beside `root`, so it is on its file system and moves into place whole.
+  const fresh = mkdtempSync(join(dirname(root), `.${basename(root)}-`));
+  try {
+    const sums = {};
+    for (const [file, path] of copied) {
+      mkdirSync(dirname(join(fresh, file)), { recursive: true });
+      cpSync(path, join(fresh, file));
+      sums[file] = hash(readFileSync(join(fresh, file)));
+    }
+    for (const [file, text] of qmldirs(Object.keys(sums), (file) => readFileSync(join(fresh, file), "utf8"))) {
+      mkdirSync(dirname(join(fresh, file)), { recursive: true });
+      writeFileSync(join(fresh, file), text);
+    }
+    const paths = { [FROM]: [`${STYLES}/`, `${OWN}/`], ...(design ? { [DESIGN_FROM]: [`${DESIGN}/`] } : {}) };
+    const said = { repository: "https://github.com/hal-c2/ljos-ui", paths, rev, files: sums };
+    writeFileSync(join(fresh, SOURCE), JSON.stringify(said, null, 2) + "\n");
+    publish(fresh, root);
+  } finally {
+    // Gone once published; what is left of a write that failed.
+    rmSync(fresh, { recursive: true, force: true });
   }
-  for (const [file, text] of qmldirs(Object.keys(sums), (file) => readFileSync(join(root, file), "utf8"))) {
-    mkdirSync(dirname(join(root, file)), { recursive: true });
-    writeFileSync(join(root, file), text);
-  }
-  const paths = { [FROM]: [`${STYLES}/`, `${OWN}/`], ...(design ? { [DESIGN_FROM]: [`${DESIGN}/`] } : {}) };
-  const said = { repository: "https://github.com/hal-c2/ljos-ui", paths, rev, files: sums };
-  writeFileSync(join(root, SOURCE), JSON.stringify(said, null, 2) + "\n");
   return copied.length;
+}
+
+// Puts the tree `fresh` in `root`'s place. A directory cannot be renamed
+// over one that has files, so the old tree is moved aside first; under a
+// lock (mkdir is atomic everywhere), so of two writes the second does not
+// move the first's tree aside between its two renames.
+function publish(fresh, root) {
+  const lock = `${root}.lock`;
+  const pause = new Int32Array(new SharedArrayBuffer(4));
+  for (let waited = 0; ; waited += 100) {
+    try {
+      mkdirSync(lock);
+      break;
+    } catch (error) {
+      if (error.code !== "EEXIST") throw error;
+      if (waited >= 300_000) {
+        throw new Error(`controls: waited 5 minutes for ${lock}; if no other write is running, remove that directory and try again`);
+      }
+      // `write` is synchronous, as its callers are: wait without a loop
+      // that spins.
+      Atomics.wait(pause, 0, 0, 100);
+    }
+  }
+  try {
+    const old = `${fresh}.old`;
+    if (existsSync(root)) renameSync(root, old);
+    renameSync(fresh, root);
+    rmSync(old, { recursive: true, force: true });
+  } finally {
+    rmSync(lock, { recursive: true, force: true });
+  }
 }
 
 // Ljos.Design's QML at `rev`, out of a checkout of ljos-ui: the directory
