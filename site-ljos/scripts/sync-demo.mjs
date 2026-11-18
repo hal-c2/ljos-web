@@ -6,8 +6,8 @@
 // on a copy that drifted from its pin).
 // Usage: node scripts/sync-demo.mjs <name> <checkout>
 import { execFileSync } from "node:child_process";
-import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, join, relative } from "node:path";
 import { demos, sha256, shippedBy, targetOf } from "./pro.mjs";
 
 const [name, checkout] = process.argv.slice(2);
@@ -30,5 +30,10 @@ for (const path of listed.filter(shipped).sort()) {
   copyFileSync(join(checkout, example, path), join(target, path));
   files[path] = sha256(bytes);
 }
+// A file the app no longer has goes too, so the copy is the commit's
+// files and nothing else.
+const walk = (directory) =>
+  existsSync(directory) ? readdirSync(directory, { withFileTypes: true }).flatMap((entry) => (entry.isDirectory() ? walk(join(directory, entry.name)) : [relative(target, join(directory, entry.name))])) : [];
+for (const path of walk(target)) if (path !== "UPSTREAM.json" && !Object.hasOwn(files, path)) rmSync(join(target, path));
 writeFileSync(join(target, "UPSTREAM.json"), `${JSON.stringify({ repository, path: example, commit, files }, null, 2)}\n`);
 console.log(`${demo.name}: ${Object.keys(files).length} files from ${commit}`);
