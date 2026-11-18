@@ -27,6 +27,10 @@ function routesUnder(dir, prefix = "") {
   });
 }
 
+// The pro demos are pages of this site alone: the Astro site, the
+// reference for the docs, has no page of theirs.
+const OWN = ["/demos/cockpit/"];
+
 const SECTIONS = [
   { id: "start", label: "Start" },
   { id: "ui", label: "User interface" },
@@ -39,18 +43,18 @@ const SECTIONS = [
 
 test("the built routes are the docs' routes, the landing page and the demos page", () => {
   expect(docsDir(), docs.problem).toBeTruthy();
-  const expected = ["/", "/demos/", ...readMarkdownSite({ dir: docsDir(), sections: SECTIONS }).pages.map((page) => page.route)].sort();
+  const expected = ["/", "/demos/", ...OWN, ...readMarkdownSite({ dir: docsDir(), sections: SECTIONS }).pages.map((page) => page.route)].sort();
   expect(routesUnder(join(here, "dist")).sort()).toEqual(expected);
   // Where the Astro build stands, its routes are these too (its 404
   // is a host's page, not a route of the site's).
   const astro = routesUnder(join(here, "../site/dist")).sort();
-  if (astro.length) expect(astro).toEqual(expected);
+  if (astro.length) expect(astro).toEqual(expected.filter((route) => !OWN.includes(route)));
 });
 
 test("each page's HTML carries its title and its headings, and its links resolve", () => {
   expect(docsDir(), docs.problem).toBeTruthy();
   const site = readMarkdownSite({ dir: docsDir(), sections: SECTIONS });
-  const routes = new Set(["/", "/demos/", ...site.pages.map((page) => page.route)]);
+  const routes = new Set(["/", "/demos/", ...OWN, ...site.pages.map((page) => page.route)]);
   const gaps = [];
   for (const page of site.pages) {
     const html = readFileSync(join(here, "dist", page.route.slice(1), "index.html"), "utf8");

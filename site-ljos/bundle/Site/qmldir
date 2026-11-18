@@ -22,3 +22,4 @@ MotionToggle 1.0 MotionToggle.qml
 FeatureCard 1.0 FeatureCard.qml
 Runner 1.0 Runner.qml
 StageButton 1.0 StageButton.qml
+CockpitPage 1.0 CockpitPage.qml
