@@ -124,10 +124,19 @@ const MORE_CONTRAST = matchMedia("(prefers-contrast: more)");
 // Qt 6.12's: a reader who asked for less movement is answered with
 // less of it, not none — a fade where a slide was.
 const LESS_MOTION = matchMedia("(prefers-reduced-motion: reduce)");
+// The motion the page says on its root (`<html data-ljos-motion="reduce">`
+// or `"no-preference"`), as a site keeps a reader's own pick for it, wins
+// over the browser's, as `data-ljos-scheme` does for the scheme.
+const lessMotion = () => {
+  const said = document.documentElement?.getAttribute?.("data-ljos-motion");
+  if (said === "reduce") return true;
+  if (said === "no-preference") return false;
+  return LESS_MOTION.matches;
+};
 const accessibilityAsked = () =>
   Object.freeze({
     contrastPreference: MORE_CONTRAST.matches ? enums.ContrastPreference.HighContrast : enums.ContrastPreference.NoPreference,
-    motionPreference: LESS_MOTION.matches ? enums.MotionPreference.ReducedMotion : enums.MotionPreference.NoPreference,
+    motionPreference: lessMotion() ? enums.MotionPreference.ReducedMotion : enums.MotionPreference.NoPreference,
   });
 
 // What of the browser's virtual keyboard a page can use, where there is one.
@@ -174,12 +183,11 @@ const StyleHints = defineType("StyleHints", QtObject, {
   },
   setup(self) {
     const accessibility = slot(self, "accessibility");
-    for (const query of [MORE_CONTRAST, LESS_MOTION]) {
-      listen(query, "change", () => {
-        accessibility.provide(accessibilityAsked());
-        flush();
-      });
-    }
+    const ask = () => {
+      accessibility.provide(accessibilityAsked());
+      flush();
+    };
+    for (const query of [MORE_CONTRAST, LESS_MOTION]) listen(query, "change", ask);
     // The scheme the browser asks pages for, until the program sets its
     // own — or the page's own choice, where its root says one
     // (`<html data-ljos-scheme="dark">`, the attribute a prerendered
@@ -203,7 +211,12 @@ const StyleHints = defineType("StyleHints", QtObject, {
     if (root && typeof MutationObserver === "function") {
       const watch = new MutationObserver(follow);
       watch.observe(root, { attributes: true, attributeFilter: ["data-ljos-scheme"] });
-      onCleanup(() => watch.disconnect());
+      const motion = new MutationObserver(ask);
+      motion.observe(root, { attributes: true, attributeFilter: ["data-ljos-motion"] });
+      onCleanup(() => {
+        watch.disconnect();
+        motion.disconnect();
+      });
     }
   },
 });

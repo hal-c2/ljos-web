@@ -1749,7 +1749,12 @@ What a prerender has, and what it has not:
   data-ljos-scheme="dark">`): a site that lets its reader choose
   sets that from a head script (`buildSite({ head })`) before the
   body is read, and `styleHints` reads it too once the page runs, so
-  neither paint nor hydration shows the other scheme first.
+  neither paint nor hydration shows the other scheme first. A reader's
+  own pick of motion is said the same way (`<html
+  data-ljos-motion="reduce">` or `"no-preference"`): it wins over the
+  browser's `prefers-reduced-motion` in
+  `styleHints.accessibility.motionPreference`, so a program's reduced
+  motion follows the site's motion switch.
 - The renders are processes of their own, so a build runs several
   at once: as many as the machine runs at once and has a GiB of
   free memory each for (under cgroup limits, the least any of them
