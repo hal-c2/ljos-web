@@ -179,6 +179,23 @@ test("childrenRect is the rectangle an item's children take together", async ({ 
   }
 });
 
+// Qt 6.11: an item's `data` is its resources, then its children, and an
+// item made into it later is among its children and its data.
+test("an item's resources are the objects in it that are not items, its data all of them", async ({ page }) => {
+  await open(page, "resources");
+  expect(await page.evaluate(() => window.scene.read())).toEqual([
+    ["a", "t"],
+    ["a", "t", "i", "r"],
+    ["i", "r"],
+  ]);
+  await page.evaluate(() => window.scene.add());
+  expect(await page.evaluate(() => window.scene.read())).toEqual([
+    ["a", "t"],
+    ["a", "t", "i", "r", "drawn"],
+    ["i", "r", "drawn"],
+  ]);
+});
+
 test("a child of negative z is under what its parent draws", async ({ page }) => {
   await open(page, "belowparent");
   expect(await pixels(page, [[15, 15], [50, 50], [70, 70]])).toEqual(["255 0 0", "0 255 0", "0 0 255"]);

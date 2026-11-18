@@ -197,6 +197,14 @@ function children(self) {
   return items;
 }
 
+// The objects declared in one, or made into it, that are not items: a
+// Timer, a QtObject. A Repeater stands for its rows and is not one.
+function resources(self) {
+  self.$track();
+  const all = self.$extra ? [...self.$static, ...self.$extra] : self.$static;
+  return all.filter((child) => child?.$type && !child.$node && !child.$siblings);
+}
+
 // Puts `nodes` in `container` in that order, after what the type itself
 // keeps there, moving only what is out of place.
 function arrange(container, nodes, previous) {
@@ -336,6 +344,13 @@ export const Item = defineType("Item", QtObject, {
     // The items inside this one: a list that changes as they come and go.
     get children() {
       return children(this);
+    },
+    // Qt 6.11: what is not drawn, then what is.
+    get resources() {
+      return resources(this);
+    },
+    get data() {
+      return [...resources(this), ...children(this)];
     },
     // The rectangle they take together, seen or not; nothing at the origin
     // when there are none.
