@@ -173,9 +173,12 @@ test("a type named as a global of JavaScript is that type where a type goes, and
   // the mirrored Rectangle is anchored on the right, as Qt 6.12 places it.
   // `Math.max`, `new Date` and `Date.now` are JavaScript's, as Ljos.Core's
   // `Object` leaves `Object.keys` JavaScript's.
+  // What a script reads of their types is theirs: `Math.Text.AlignRight`
+  // (2, on a Text too), `JSON.GridLayout.TopToBottom` (1) beside
+  // JavaScript's `JSON.stringify`, and `Date`'s keys (`Night` is 1).
   // Qt 6.12: in a script `Math` is the namespace (`Math.max` is undefined)
   // and `Date` the inline component (`new Date(0)` is a TypeError).
-  expect(await page.evaluate(() => window.scene.read())).toEqual([4, 5, 10, 150, 5, 0, "number"]);
+  expect(await page.evaluate(() => window.scene.read())).toEqual([4, 5, 10, 150, 5, 0, "number", 2, 2, 1, "[1]", 1, 1]);
 });
 
 test("Component.onCompleted is told of the object made last first, when all have made of each other what they make", async ({ page }) => {

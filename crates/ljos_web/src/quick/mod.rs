@@ -219,6 +219,12 @@ fn lower_from<'a>(
         stem,
         &lower.dynamic,
         dialect,
+        &|name| {
+            types
+                .namespace(name)
+                .and_then(|source| own_module(source, project, options))
+                .is_some()
+        },
         &mut uses,
         &mut errors,
     );
