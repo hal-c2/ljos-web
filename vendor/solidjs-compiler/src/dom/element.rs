@@ -19,10 +19,16 @@ pub(crate) struct AstDomTransform<'a, 'source> {
     pub(crate) module_name: &'source str,
     pub(crate) hydratable: bool,
     pub(crate) dev: bool,
+    /// See `DomTransformConfig::stateful_property_checks`.
+    pub(crate) stateful_property_checks: bool,
     pub(crate) component_names: bool,
     /// Babel's `sourceNames.bindings` on DOM output: compiled binding
     /// effects carry the target they write as a trailing options argument.
     pub(crate) binding_names: bool,
+    /// Babel's `sourceNames.locations`: the root-relative path every
+    /// location string of this module starts with; `None` when the kind is
+    /// off or the module has no filename, and then no location is emitted.
+    pub(crate) location_base: Option<String>,
     pub(crate) context_to_custom_elements: bool,
     pub(crate) delegate_events: bool,
     pub(crate) delegated_events: std::vec::Vec<String>,
@@ -88,6 +94,7 @@ pub(crate) struct AstDomTransform<'a, 'source> {
     pub(crate) this_index: usize,
     pub(crate) ref_index: usize,
     pub(crate) condition_index: usize,
+    pub(crate) owner_index: usize,
     /// Span of the JSX root currently being lowered via the visitor entry.
     /// Babel keeps a raw `this` in the tag callee of the root element of each
     /// `transformJSX` call; only descendants use the `_self$` capture.
@@ -97,8 +104,14 @@ pub(crate) struct AstDomTransform<'a, 'source> {
 pub(crate) struct DomTransformConfig {
     pub(crate) hydratable: bool,
     pub(crate) dev: bool,
+    /// Dev DOM output (`dev` with `generate: "dom"`): stateful property
+    /// writes go through `setStatefulProperty` instead of an inline
+    /// assignment (Babel's `config.dev && config.generate === "dom"` in
+    /// `setAttr`). Off for the dynamic renderer's DOM subtrees.
+    pub(crate) stateful_property_checks: bool,
     pub(crate) component_names: bool,
     pub(crate) binding_names: bool,
+    pub(crate) location_base: Option<String>,
     pub(crate) context_to_custom_elements: bool,
     pub(crate) delegate_events: bool,
     pub(crate) delegated_events: std::vec::Vec<String>,
@@ -118,6 +131,15 @@ pub(crate) struct DomTransformConfig {
 }
 
 impl<'a, 'source> AstDomTransform<'a, 'source> {
+    /// The `sourceNames.locations` string for the source position `offset`
+    /// (`src/App.tsx:12:5`), or `None` when the kind is off or the module
+    /// has no filename.
+    pub(crate) fn source_location(&self, offset: u32) -> Option<String> {
+        self.location_base
+            .as_deref()
+            .map(|base| crate::shared::location::source_location(base, self.source, offset))
+    }
+
     /// Local for the configured effect wrapper (Babel's `_$${name}` hint).
     pub(crate) fn effect_wrapper_local(&self) -> String {
         format!("_${}", self.effect_wrapper.as_deref().unwrap_or("effect"))
@@ -140,8 +162,10 @@ impl<'a, 'source> AstDomTransform<'a, 'source> {
             module_name,
             hydratable: config.hydratable,
             dev: config.dev,
+            stateful_property_checks: config.stateful_property_checks,
             component_names: config.component_names,
             binding_names: config.binding_names,
+            location_base: config.location_base,
             context_to_custom_elements: config.context_to_custom_elements,
             delegate_events: config.delegate_events,
             delegated_events: config.delegated_events,
@@ -176,6 +200,7 @@ impl<'a, 'source> AstDomTransform<'a, 'source> {
             this_index: 0,
             ref_index: 0,
             condition_index: 0,
+            owner_index: 0,
             jsx_root_span: None,
         }
     }
@@ -194,6 +219,29 @@ impl<'a, 'source> AstDomTransform<'a, 'source> {
             Ok(tag_name) => !elements.iter().any(|name| name == &tag_name),
             Err(_) => false,
         }
+    }
+
+    /// Errors at the first removed 1.x attribute form (#4187) on `element` or
+    /// a native descendant, in document order. Components and other
+    /// renderers' elements are not descended into: their subtrees are
+    /// lowered (and checked) separately.
+    fn check_removed_attributes_in_subtree(
+        &self,
+        element: &JSXElement<'a>,
+        tag_name: &str,
+    ) -> Result<()> {
+        crate::shared::removed::check_removed_attributes(self.source, element, tag_name)?;
+        for child in &element.children {
+            let oxc_ast::ast::JSXChild::Element(child) = child else {
+                continue;
+            };
+            if is_component_name(&child.opening_element.name) || self.is_foreign_element(child) {
+                continue;
+            }
+            let child_tag = element_name(&child.opening_element.name)?;
+            self.check_removed_attributes_in_subtree(child, &child_tag)?;
+        }
+        Ok(())
     }
 
     pub(crate) fn lower_element(&mut self, element: &JSXElement<'a>) -> Result<Expression<'a>> {
@@ -229,6 +277,10 @@ impl<'a, 'source> AstDomTransform<'a, 'source> {
         }
 
         let tag_name = element_name(&element.opening_element.name)?;
+        // Nested native children lower through the static-template and
+        // dynamic-child paths, not back through here, so the template root
+        // checks its whole native subtree for removed 1.x attribute forms.
+        self.check_removed_attributes_in_subtree(element, &tag_name)?;
 
         // Each native template root replays hydratable events independently
         // (Babel transforms component children with `topLevel: true`).
@@ -270,7 +322,7 @@ impl<'a, 'source> AstDomTransform<'a, 'source> {
         let mut template = crate::dom::template::TemplateHtml::open_tag(&tag_name);
         let mut declarations = std::vec::Vec::new();
         let mut operations = std::vec::Vec::new();
-        let mut dynamics = std::vec::Vec::new();
+        let mut dynamics = crate::dom::dynamics::DynamicsBatch::default();
         let element_id = self.next_element_id();
 
         let saved_skip_xmlns = self.skip_xmlns_attribute;
@@ -335,8 +387,15 @@ impl<'a, 'source> AstDomTransform<'a, 'source> {
             }
         }
         // All dynamic attribute bindings collected across this template root
-        // batch into one effect, appended after the other expressions.
-        if let Some(statement) = self.wrap_dynamics_statement(dynamics) {
+        // batch into one effect, appended after the other expressions. Claim
+        // targets among the bound elements are claimed at its tail, under the
+        // owner captured here, at creation (Babel's `createTemplate`).
+        let owner_id = (!dynamics.claims.is_empty()).then(|| {
+            let owner_id = self.next_owner_id();
+            declarations.push(self.owner_capture_statement(&owner_id));
+            owner_id
+        });
+        if let Some(statement) = self.wrap_dynamics_statement(dynamics, owner_id.as_deref()) {
             operations.push(statement);
         }
         if self.should_close_tag(&tag_name, CloseTagContext::root()) {
@@ -370,6 +429,7 @@ impl<'a, 'source> AstDomTransform<'a, 'source> {
         };
         let has_hydratable_event = self.has_hydratable_event;
         self.has_hydratable_event = saved_hydratable_event;
+        let declarations = prune_unused_walks(declarations, &operations);
 
         if declarations.is_empty() && operations.is_empty() && !has_hydratable_event {
             Ok((
@@ -431,21 +491,7 @@ impl<'a, 'source> AstDomTransform<'a, 'source> {
     /// by element name or an explicit `xmlns` attribute, mirroring the Babel
     /// plugin's top-level XML handling.
     fn xml_wrapper_tag(&self, element: &JSXElement<'a>, tag_name: &str) -> Option<&'static str> {
-        if tag_name == "svg" || tag_name == "math" {
-            return None;
-        }
-        let xmlns = xmlns_attribute_value(element);
-        if crate::shared::constants::svg_elements(tag_name)
-            || xmlns.as_deref() == Some("http://www.w3.org/2000/svg")
-        {
-            return Some("svg");
-        }
-        if crate::shared::constants::mathml_elements(tag_name)
-            || xmlns.as_deref() == Some("http://www.w3.org/1998/Math/MathML")
-        {
-            return Some("math");
-        }
-        None
+        xml_wrapper_tag(element, tag_name)
     }
 
     /// Whether any native element in the template's subtree requires
@@ -544,6 +590,26 @@ fn has_attribute_named(element: &JSXElement<'_>, attribute_name: &str) -> bool {
     })
 }
 
+/// The owner tag (`svg`/`math`) a template-root SVG or MathML element is
+/// parsed under, if any — shared with the SSR `validate` pass.
+pub(crate) fn xml_wrapper_tag(element: &JSXElement<'_>, tag_name: &str) -> Option<&'static str> {
+    if tag_name == "svg" || tag_name == "math" {
+        return None;
+    }
+    let xmlns = xmlns_attribute_value(element);
+    if crate::shared::constants::svg_elements(tag_name)
+        || xmlns.as_deref() == Some("http://www.w3.org/2000/svg")
+    {
+        return Some("svg");
+    }
+    if crate::shared::constants::mathml_elements(tag_name)
+        || xmlns.as_deref() == Some("http://www.w3.org/1998/Math/MathML")
+    {
+        return Some("math");
+    }
+    None
+}
+
 /// Static string value of an element's `xmlns` attribute, if present.
 fn xmlns_attribute_value(element: &JSXElement<'_>) -> Option<String> {
     element.opening_element.attributes.iter().find_map(|attr| {
@@ -637,6 +703,69 @@ pub(crate) fn children_attribute_child_from_item<'a>(
         }
         _ => None,
     }
+}
+
+/// Drops `var _el$N = _el$M.firstChild` / `.nextSibling` walks whose node is
+/// never read. Positional ids are handed out before it is known whether a
+/// child's insert needs a marker, so a text node ahead of an appended
+/// expression keeps a walk nothing reads. A minifier keeps the property read
+/// (it could be a getter), so it would ship as `_el$M.firstChild;`.
+///
+/// Runs from the last declaration back, so a walk that only feeds a dropped
+/// walk is dropped too. Other declarations always stay.
+fn prune_unused_walks<'a>(
+    declarations: std::vec::Vec<Statement<'a>>,
+    operations: &[Statement<'a>],
+) -> std::vec::Vec<Statement<'a>> {
+    use oxc_ast_visit::Visit;
+
+    struct Reads<'n> {
+        names: &'n mut std::collections::HashSet<String>,
+    }
+    impl<'b> Visit<'b> for Reads<'_> {
+        fn visit_identifier_reference(&mut self, it: &oxc_ast::ast::IdentifierReference<'b>) {
+            self.names.insert(it.name.to_string());
+        }
+    }
+
+    // Names read by the statements that run after the walks
+    let mut read = std::collections::HashSet::new();
+    for statement in operations {
+        Reads { names: &mut read }.visit_statement(statement);
+    }
+
+    // Keep a walk only when something kept after it reads its node
+    let mut kept = std::vec::Vec::with_capacity(declarations.len());
+    for statement in declarations.into_iter().rev() {
+        if let Some(name) = walk_target(&statement)
+            && !read.contains(name)
+        {
+            continue;
+        }
+        Reads { names: &mut read }.visit_statement(&statement);
+        kept.push(statement);
+    }
+    kept.reverse();
+    kept
+}
+
+/// The declared name of a plain `var x = y.firstChild` / `y.nextSibling`.
+fn walk_target<'s>(statement: &'s Statement<'_>) -> Option<&'s str> {
+    let Statement::VariableDeclaration(declaration) = statement else {
+        return None;
+    };
+    let [declarator] = declaration.declarations.as_slice() else {
+        return None;
+    };
+    let oxc_ast::ast::BindingPattern::BindingIdentifier(id) = &declarator.id else {
+        return None;
+    };
+    let Some(Expression::StaticMemberExpression(member)) = &declarator.init else {
+        return None;
+    };
+    let is_walk = matches!(member.object, Expression::Identifier(_))
+        && matches!(member.property.name.as_str(), "firstChild" | "nextSibling");
+    is_walk.then(|| id.name.as_str())
 }
 
 pub(crate) fn jsx_expression_to_expression<'a>(

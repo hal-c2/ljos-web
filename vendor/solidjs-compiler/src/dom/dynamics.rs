@@ -6,6 +6,7 @@ use oxc_span::Span;
 
 use crate::dom::element::AstDomTransform;
 use crate::dom::set_attr::SetAttrOptions;
+use crate::dom::template::BindingLabel;
 use crate::shared::constants::{DomPropertyState, dom_with_state};
 use crate::shared::utils::get_numbered_id;
 
@@ -14,12 +15,26 @@ use crate::shared::utils::get_numbered_id;
 /// wrapped into a single effect by `wrap_dynamics_statement`.
 pub(crate) struct DynamicSlot<'a> {
     pub(crate) span: Span,
+    /// The start of the attribute as written (see `AttrPlan::source_offset`).
+    pub(crate) source_offset: u32,
     pub(crate) elem: String,
     pub(crate) key: String,
     pub(crate) value: Expression<'a>,
     pub(crate) tag_name: String,
     pub(crate) style_property: bool,
     pub(crate) class_property: bool,
+    pub(crate) checkable_input: bool,
+}
+
+/// What one template root folds into its single binding effect
+/// (`wrap_dynamics_statement`): the deferred attribute bindings (Babel's
+/// `results.dynamics`) and the claim targets whose mount claim trails them
+/// at the effect's tail (Babel's `results.claims`) — `a[href]` /
+/// `form[action]` elements with a binding in `slots`, in document order.
+#[derive(Default)]
+pub(crate) struct DynamicsBatch<'a> {
+    pub(crate) slots: std::vec::Vec<DynamicSlot<'a>>,
+    pub(crate) claims: std::vec::Vec<String>,
 }
 
 impl<'a> AstDomTransform<'a, '_> {
@@ -63,22 +78,39 @@ impl<'a> AstDomTransform<'a, '_> {
 
     /// Port of Babel's `wrapDynamics` (dom/template.ts): one dynamic binding
     /// gets its own effect; multiple bindings share a single keyed effect
-    /// with a previous-values object.
+    /// with a previous-values object. The batch's claim targets are claimed
+    /// at the tail of the effect body — the first run claims after it
+    /// applied the initial attributes (`claimElement` is once-per-element, so
+    /// reruns cost one check) — under `owner`, the owner the template root
+    /// captured at creation (the callback runs ownerless when a held mount
+    /// lands).
     pub(crate) fn wrap_dynamics_statement(
         &mut self,
-        mut dynamics: std::vec::Vec<DynamicSlot<'a>>,
+        batch: DynamicsBatch<'a>,
+        owner: Option<&str>,
     ) -> Option<Statement<'a>> {
+        let DynamicsBatch {
+            slots: mut dynamics,
+            claims,
+        } = batch;
         if dynamics.is_empty() {
             return None;
         }
+        let claim_statements: std::vec::Vec<Statement<'a>> = claims
+            .iter()
+            .map(|element_id| self.claim_element_statement(element_id, owner))
+            .collect();
         self.template_state.uses_effect = true;
         // `sourceNames.bindings`: the effect is named by what it writes — each
         // binding's `<tag>.<attribute>` as written (undoing the `prop:` the
         // locked DOM property plan added to `value`, `checked`, …), the
         // merged effect listing all of its bindings — as a trailing `{ name }`
-        // options argument. Mirrors Babel's `wrapDynamics`.
-        let label = self.binding_names.then(|| {
-            dynamics
+        // options argument. Mirrors Babel's `wrapDynamics`. Under
+        // `sourceNames.locations` the `loc` is the first binding's attribute
+        // start — the merged effect has one location, the first attribute
+        // it writes.
+        let label = self.binding_names.then(|| BindingLabel {
+            name: dynamics
                 .iter()
                 .map(|slot| {
                     let key = slot
@@ -88,7 +120,8 @@ impl<'a> AstDomTransform<'a, '_> {
                     format!("{}.{}", slot.tag_name, key.unwrap_or(&slot.key))
                 })
                 .collect::<std::vec::Vec<_>>()
-                .join(", ")
+                .join(", "),
+            loc: self.source_location(dynamics[0].source_offset),
         });
 
         if dynamics.len() == 1 {
@@ -122,6 +155,7 @@ impl<'a> AstDomTransform<'a, '_> {
                     tag_name: slot.tag_name,
                     style_property: slot.style_property,
                     class_property: slot.class_property,
+                    checkable_input: slot.checkable_input,
                 },
             );
             let statement = self.ast().statement_expression(span, set_attr);
@@ -130,7 +164,9 @@ impl<'a> AstDomTransform<'a, '_> {
             } else {
                 vec!["_v$"]
             };
-            let setter = self.arrow_with_statements(span, params, self.ast().vec1(statement));
+            let mut body = self.ast().vec1(statement);
+            body.extend(claim_statements);
+            let setter = self.arrow_with_statements(span, params, body);
             let effect_local = self.effect_wrapper_local();
             let mut args = vec![getter, setter];
             if let Some(label) = label {
@@ -148,6 +184,8 @@ impl<'a> AstDomTransform<'a, '_> {
         let mut value_props = self.ast().vec();
         let mut statements = self.ast().vec();
         let mut param_names = std::vec::Vec::new();
+        let held_name = get_numbered_id(dynamics.len());
+        let mut uses_held = false;
 
         for (index, slot) in dynamics.into_iter().enumerate() {
             let prop_name = get_numbered_id(index);
@@ -176,15 +214,44 @@ impl<'a> AstDomTransform<'a, '_> {
                     slot_span,
                     elem,
                     &slot.key,
-                    prop_ident,
+                    prop_ident.clone_in(self.allocator),
                     SetAttrOptions {
                         dynamic: true,
                         prev_id: Some(prev_member),
                         tag_name: slot.tag_name,
                         style_property: false,
                         class_property: false,
+                        checkable_input: slot.checkable_input,
                     },
                 );
+                let set_attr = if stateful {
+                    // #4872: `(<v> !== _p$?.<v> || !<h>) && <write>` — a
+                    // stateful prop skips an unchanged write while the effect
+                    // is a stale reader of an open hold (`heldRead`, read
+                    // after every value). Mirrors Babel's `wrapDynamics`.
+                    uses_held = true;
+                    let changed = self.ast().expression_binary(
+                        slot_span,
+                        prop_ident,
+                        BinaryOperator::StrictInequality,
+                        self.optional_prev_member(slot_span, &prop_name),
+                    );
+                    let not_held = self.ast().expression_unary(
+                        slot_span,
+                        UnaryOperator::LogicalNot,
+                        self.identifier_expression(slot_span, &held_name),
+                    );
+                    let guard = self.ast().expression_logical(
+                        slot_span,
+                        changed,
+                        LogicalOperator::Or,
+                        not_held,
+                    );
+                    self.ast()
+                        .expression_logical(slot_span, guard, LogicalOperator::And, set_attr)
+                } else {
+                    set_attr
+                };
                 statements.push(self.ast().statement_expression(slot_span, set_attr));
             } else {
                 let changed = if slot.key == "textContent" {
@@ -230,6 +297,7 @@ impl<'a> AstDomTransform<'a, '_> {
                         tag_name: slot.tag_name,
                         style_property: slot.style_property,
                         class_property: slot.class_property,
+                        checkable_input: slot.checkable_input,
                     },
                 );
                 statements.push(self.ast().statement_expression(
@@ -244,6 +312,13 @@ impl<'a> AstDomTransform<'a, '_> {
             }
             param_names.push(prop_name);
         }
+        if uses_held {
+            self.template_state.uses_held_read = true;
+            let read = self.call_identifier(span, "_$heldRead", std::vec::Vec::new());
+            value_props.push(self.object_property(span, &held_name, read));
+            param_names.push(held_name);
+        }
+        statements.extend(claim_statements);
 
         let values_object = self.ast().expression_object(span, value_props);
         let getter = self.arrow_with_return(span, std::vec::Vec::new(), values_object);
@@ -260,15 +335,21 @@ impl<'a> AstDomTransform<'a, '_> {
     }
 
     /// `{ name: "<label>" }` — the options argument `sourceNames.bindings`
-    /// appends to `effect` and `insert` calls.
-    pub(crate) fn name_options_object(&self, span: Span, label: &str) -> Expression<'a> {
+    /// appends to `effect` and `insert` calls — with `loc` after `name`
+    /// under `sourceNames.locations`. `name` then `loc`, always: the Babel
+    /// plugin prints the same text.
+    pub(crate) fn name_options_object(&self, span: Span, label: &BindingLabel) -> Expression<'a> {
         let value = self
             .ast()
-            .expression_string_literal(span, self.ast().str(label), None);
-        self.ast().expression_object(
-            span,
-            self.ast().vec1(self.object_property(span, "name", value)),
-        )
+            .expression_string_literal(span, self.ast().str(&label.name), None);
+        let mut properties = self.ast().vec1(self.object_property(span, "name", value));
+        if let Some(loc) = label.loc.as_deref() {
+            let value = self
+                .ast()
+                .expression_string_literal(span, self.ast().str(loc), None);
+            properties.push(self.object_property(span, "loc", value));
+        }
+        self.ast().expression_object(span, properties)
     }
 
     /// `_p$?.<name>`

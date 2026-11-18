@@ -90,8 +90,10 @@ pub fn project_tsrx_for_typecheck(
     let source_mapping_utf16 = utf16_offsets(&code, &source_mapping_endpoints)?;
     let generated_mapping_utf16 = utf16_offsets(&output.code, &generated_mapping_endpoints)?;
     let mappings = source_mapping_utf16
-        .chunks_exact(2)
-        .zip(generated_mapping_utf16.chunks_exact(2))
+        .as_chunks::<2>()
+        .0
+        .iter()
+        .zip(generated_mapping_utf16.as_chunks::<2>().0)
         .map(|(source, generated)| TsrxTypecheckMapping {
             source_start: source[0],
             generated_start: generated[0],
@@ -108,7 +110,7 @@ pub fn project_tsrx_for_typecheck(
     let embedded_regions = output
         .embedded_regions
         .into_iter()
-        .zip(utf16_endpoints.chunks_exact(2))
+        .zip(utf16_endpoints.as_chunks::<2>().0)
         .map(|(region, offsets)| {
             let kind = match region.kind {
                 crate::tsrx::TsrxEmbeddedRegionKind::Css => "css",
@@ -177,9 +179,11 @@ pub fn transform_directives(
     crate::directives::transform_directives(code, options)
 }
 
-/// The `lazy()` module-URL pass — injects `__SOLID_LAZY_MODULE__:` placeholder
-/// arguments into `lazy(() => import("..."))` calls for the bundler plugin to
-/// resolve. Ported from vite-plugin-solid's `lazy-module-url` Babel plugin.
+/// The `lazy()` / `lazyModule()` module-URL pass — injects
+/// `__SOLID_LAZY_MODULE__:` placeholder arguments into
+/// `lazy(() => import("..."))` and `lazyModule(() => import("..."))` calls
+/// for the bundler plugin to resolve. Ported from vite-plugin-solid's
+/// `lazy-module-url` Babel plugin.
 #[napi]
 pub fn transform_lazy(
     code: String,
@@ -254,11 +258,11 @@ fn core_options(options: TransformOptions) -> Result<CompileOptions> {
     };
     Ok(CompileOptions {
         filename: options.filename,
+        root: options.root,
         syntax,
         module_name,
         generate,
         hydratable: options.hydratable.unwrap_or(false),
-        server_components: options.server_components.unwrap_or(false),
         hoist_props: options.hoist_props.unwrap_or(true),
         dev: options.dev.unwrap_or(false),
         // `sourceNames` follows `dev`: unset, every kind is `dev`; in the
@@ -273,6 +277,7 @@ fn core_options(options: TransformOptions) -> Result<CompileOptions> {
                 Some(Either::B(picked)) => SourceNames {
                     components: picked.components.unwrap_or(dev),
                     bindings: picked.bindings.unwrap_or(dev),
+                    locations: picked.locations.unwrap_or(dev),
                 },
             }
         },
@@ -285,6 +290,7 @@ fn core_options(options: TransformOptions) -> Result<CompileOptions> {
         inline_styles: options.inline_styles.unwrap_or(true),
         effect_wrapper: wrapper(options.effect_wrapper),
         wrap_conditionals: options.wrap_conditionals.unwrap_or(true),
+        lower_show: options.lower_show.unwrap_or(!options.dev.unwrap_or(false)),
         memo_wrapper: wrapper(options.memo_wrapper),
         static_marker: options.static_marker.unwrap_or_else(|| "@static".into()),
         require_import_source: options.require_import_source,
