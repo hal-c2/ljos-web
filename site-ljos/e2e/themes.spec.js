@@ -92,6 +92,11 @@ test("words beside an empty field that say what its placeholder says are counted
   );
   const notes = block.block.locator(".qq-text").filter({ hasText: /^Notes$/ });
   await expect(notes, "the edit ran: the Text and the placeholder").toHaveCount(2, { timeout: 30_000 });
+  // axe reads what text stands on from what is drawn at its point, which
+  // is known only inside the window: words below it are left out, not
+  // counted. The open editor pushes the example down, so it is centred.
+  await centre(block.running);
+  for (const at of [0, 1]) await expect(notes.nth(at), "both are in the window for axe to read").toBeInViewport();
   await page.waitForTimeout(400);
   await block.running.evaluate((element) => element.setAttribute("data-themes-check", ""));
   const all = await contrast(page, "[data-themes-check]");
