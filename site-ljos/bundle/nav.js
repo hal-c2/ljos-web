@@ -275,6 +275,19 @@ function canRun(needs) {
     return true;
 }
 
+// Whether WebGPU gives this page an adapter, asked once. A browser may
+// offer WebGPU and no GPU it lets a page use; there a View3D draws on
+// the JavaScript renderer, which reads no model from a file, so a demo
+// whose scene is such models would stand without them.
+var adapter = null;
+function gpuAdapted() {
+    if (adapter === null) {
+        var gpu = globalThis.navigator ? globalThis.navigator.gpu : undefined;
+        adapter = gpu ? Promise.resolve(gpu.requestAdapter()).then(function (found) { return !!found; }, function () { return false; }) : Promise.resolve(false);
+    }
+    return adapter;
+}
+
 // Every docs page's title and headings, for the search: fetched the
 // first time a reader searches, as no page's first load carries the
 // other pages' reading (each page's own is in its props). A fetch

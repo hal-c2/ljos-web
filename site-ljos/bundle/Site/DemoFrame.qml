@@ -41,7 +41,7 @@ Item {
     // address is written from.
     property string route: "/"
     // What the demo needs that a browser may not have: "webgl2",
-    // "webgpu", "wasm".
+    // "webgpu" (with an adapter for the page), "wasm".
     property string needs: ""
     // The flickable the page scrolls in, so the frame knows when it is
     // near the screen and when it is on it.
@@ -56,8 +56,12 @@ Item {
     // Set once the page this frame was written into is the reader's:
     // the demo is never part of the page the build writes.
     property bool awake: false
-    readonly property bool runnable: awake && Nav.canRun(needs)
-    readonly property bool cannot: awake && !Nav.canRun(needs)
+    // Where the demo needs WebGPU, whether the browser gave the page an
+    // adapter: 0 until it says, 1 if so (or where none is needed), -1 if
+    // not, which keeps the picture as a browser without WebGPU does.
+    property int adapter: needs.indexOf("webgpu") >= 0 ? 0 : 1
+    readonly property bool runnable: awake && Nav.canRun(needs) && adapter === 1
+    readonly property bool cannot: awake && (!Nav.canRun(needs) || adapter === -1)
 
     function offset() {
         var y = 0;
@@ -73,7 +77,11 @@ Item {
     Timer {
         interval: 0
         running: Nav.inBrowser()
-        onTriggered: frame.awake = true
+        onTriggered: {
+            frame.awake = true;
+            if (frame.adapter === 0 && Nav.canRun(frame.needs))
+                Nav.gpuAdapted().then((found) => frame.adapter = found ? 1 : -1);
+        }
     }
 
     Rectangle {

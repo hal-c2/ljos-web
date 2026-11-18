@@ -24,3 +24,63 @@ test("the copy holds what the app runs on and nothing else", () => {
   expect(here).toContain("Main.qml");
   expect(here.filter((path) => path.endsWith(".glb")).length).toBeGreaterThan(0);
 });
+
+const shown = (locator) => locator.filter({ visible: true });
+
+// A browser that offers WebGPU and gives the page no adapter draws a
+// View3D on the JavaScript renderer, which reads no model from a file:
+// the car would stand without its body. The cockpit keeps its picture
+// there, as where WebGPU is missing, and says why.
+test("without a WebGPU adapter the cockpit keeps its picture and says why", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  try {
+    await context.addInitScript(() => {
+      if (navigator.gpu) navigator.gpu.requestAdapter = async () => null;
+    });
+    const page = await context.newPage();
+    await page.goto("/demos/cockpit/");
+    await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+    await expect(shown(page.getByText(/runs in a browser with WebGPU/)).first()).toBeAttached({ timeout: 30_000 });
+    await expect(page.getByRole("button", { name: "Run the cockpit" })).toHaveCount(0);
+    await expect(shown(page.locator('img[src*="demo-cockpit"]')).first()).toBeAttached();
+  } finally {
+    await context.close();
+  }
+});
+
+// With an adapter (SwiftShader's, so any machine has one) the cockpit
+// runs as the reader would use it: its own buttons by name, a part of
+// the car opened, and an edit to one of its files compiled and shown.
+test("with WebGPU the cockpit runs, opens a door, and is made again from an edit", async ({ playwright, baseURL }) => {
+  const browser = await playwright.chromium.launch({ args: ["--enable-unsafe-webgpu", "--use-webgpu-adapter=swiftshader", "--enable-unsafe-swiftshader"] });
+  try {
+    const context = await browser.newContext({ baseURL, viewport: { width: 1440, height: 900 }, reducedMotion: "no-preference" });
+    const page = await context.newPage();
+    await page.goto("/demos/cockpit/");
+    await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+    const run = page.getByRole("button", { name: "Run the cockpit" });
+    await run.scrollIntoViewIfNeeded();
+    await run.click();
+    await expect(run, "Run goes once the cockpit is drawn").toBeHidden({ timeout: 60_000 });
+    const button = (name) => page.getByRole("button", { name, exact: true });
+    await button("Car").click();
+    await expect(shown(page.locator("canvas")).first(), "the car is drawn in its canvas").toBeVisible({ timeout: 30_000 });
+    const door = button("Left door");
+    await expect(door).toHaveCount(1);
+    await expect(door).not.toBeChecked();
+    await door.click();
+    await expect(door).toBeChecked();
+
+    const cockpit = readFileSync(join(target, "Cockpit.qml"), "utf8");
+    expect(cockpit).toContain("t`Climate`");
+    await page.getByRole("button", { name: "Cockpit.qml", exact: true }).click();
+    await page.getByRole("textbox", { name: "Edit the cockpit's Cockpit.qml" }).first().click();
+    const editor = page.locator(`.cm-content[aria-label="Edit the cockpit's Cockpit.qml"]`).first();
+    await expect(editor).toBeFocused({ timeout: 30_000 });
+    await editor.fill(cockpit.replace("t`Climate`", "t`Cabin`"));
+    await expect(button("Cabin"), "the edited cockpit names its page as the edit says").toHaveCount(1, { timeout: 60_000 });
+    await expect(button("Climate")).toHaveCount(0);
+  } finally {
+    await browser.close();
+  }
+});

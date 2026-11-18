@@ -1,5 +1,5 @@
 // Captures the cockpit demo's pictures from the demo itself running in
-// the built site, so what a reader without script or WebGL 2 sees is
+// the built site, so what a reader without script or WebGPU sees is
 // the real thing, in the scheme they read the site in:
 //   pnpm --filter ljos-site-ljos build
 //   node scripts/capture-fallbacks.mjs [outDir]
@@ -31,7 +31,9 @@ try {
     if (i > 60) throw new Error("the site's server did not start");
     await new Promise((done) => setTimeout(done, 250));
   }
-  const browser = await chromium.launch({ args: ["--enable-unsafe-swiftshader", "--use-angle=swiftshader"] });
+  // WebGPU on SwiftShader: an adapter on any machine, GPU or not, and the
+  // car is drawn by the renderer that reads its files.
+  const browser = await chromium.launch({ args: ["--enable-unsafe-webgpu", "--use-webgpu-adapter=swiftshader", "--enable-unsafe-swiftshader"] });
   for (const scheme of ["dark", "light"]) {
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2, colorScheme: scheme, reducedMotion: "no-preference" });
     await context.addInitScript((picked) => localStorage.setItem("ljos.dev:scheme", picked), scheme);
