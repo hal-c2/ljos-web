@@ -589,15 +589,22 @@ test("a source a block works out is beside the file as one that is written", asy
 });
 
 // What takes a picture of a scene waits for `busy()` to be 0: a picture still
-// on its way counts, or the scene is pictured without it.
+// on its way counts, or the scene is pictured without it. The picture held
+// is one the page fetches: a small one the scene imports is inlined, and is
+// never on its way long enough to be held. The page is opened without waiting
+// for `load`, which a picture on its way holds back.
 test("a picture on its way keeps the scene busy until it is there", async ({ page }) => {
   let arrive;
   const arrived = new Promise((resolve) => (arrive = resolve));
-  await page.route("**/mark.svg*", async (route) => {
+  let held = 0;
+  await page.route("**/assets/flag.png*", async (route) => {
+    held++;
     await arrived;
     await route.continue();
   });
-  await open(page, "imageloop");
+  await page.goto("/?scene=image", { waitUntil: "commit" });
+  await page.waitForFunction(() => window.ready);
+  await expect.poll(() => held).toBeGreaterThan(0);
   expect(await page.evaluate(() => window.busy())).toBeGreaterThan(0);
   arrive();
   await page.waitForFunction(() => window.busy() === 0);
