@@ -44,7 +44,9 @@ QtObject {
         // later does not change the site back under them.
         motion = wanted ? "calm" : "full";
         Motion.keep(motion);
+        Motion.mark(motion);
     }
+    Component.onCompleted: Motion.mark(motion)
 
     // Colour roles: the scheme's own, from the one table both the
     // pages and the page's head read (tokens.js).

@@ -26,3 +26,19 @@ function keep(motion) {
     } catch (error) {
     }
 }
+
+// The reader's choice, said on the page's root, where the runtime reads a
+// program's reduced motion from (`data-ljos-motion`): every app the site
+// runs, the demos too, moves as the reader asked the site to. "" says
+// none, and the browser's own is followed again.
+function mark(motion) {
+    var root = globalThis.document && globalThis.document.documentElement;
+    if (!root)
+        return;
+    if (motion === "calm")
+        root.setAttribute("data-ljos-motion", "reduce");
+    else if (motion === "full")
+        root.setAttribute("data-ljos-motion", "no-preference");
+    else
+        root.removeAttribute("data-ljos-motion");
+}

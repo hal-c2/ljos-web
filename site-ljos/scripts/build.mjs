@@ -281,6 +281,7 @@ const rooted = (value) =>
 const own = {
   "/": "Ljós — malleable software, everywhere",
   "/demos/": "Live demos — Ljós",
+  "/demos/cockpit/": "Svala GT cockpit — Ljós",
 };
 const after = " — Ljós";
 const titles = {
@@ -356,6 +357,28 @@ QtObject {
   );
 }
 
+// The cockpit demo's source, as data for its editor: each file the app
+// runs on (bundle/Demos/Cockpit, the ljos-ui example as UPSTREAM.json
+// pins it) with its highlighting. A JSON file its page imports when it
+// is made, so the text is in no other page's load. Generated; do not
+// edit by hand.
+{
+  const root = join(bundle, "Demos/Cockpit");
+  const upstream = JSON.parse(readFileSync(join(root, "UPSTREAM.json"), "utf8"));
+  const text = Object.keys(upstream.files).filter((path) => /\.(qml|ts)$/.test(path));
+  writeFileSync(
+    join(bundle, "Demos/cockpit-project.json"),
+    `${JSON.stringify({
+      commit: upstream.commit,
+      files: text.map((path) => {
+        const code = readFileSync(join(root, path), "utf8");
+        const lang = path.endsWith(".ts") ? "ts" : "qml";
+        return { path, lang, code, rich: packRich(highlight(code, lang)) };
+      }),
+    })}\n`,
+  );
+}
+
 // The bundle's manifest, of the bundle as it stands now.
 function files(directory, prefix = "") {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) =>
@@ -417,6 +440,12 @@ const pages = [
     title: titles["/demos/"],
     description: "Complete Ljós apps running in the page: a shell you rewrite, a 3D scene to orbit, a shader effect, a whole app, and motion.",
     props: { route: "/demos/" },
+  },
+  {
+    route: "/demos/cockpit/",
+    title: titles["/demos/cockpit/"],
+    description: "An instrument cluster over a touchscreen for a made-up car, running in the page: a 3D car whose doors open, climate, media, a map.",
+    props: { route: "/demos/cockpit/" },
   },
   ...site.pages.map((page, i) => ({ route: page.route, title: titles[page.route], description: describe(page), props: { route: page.route, page: slim[i] } })),
 ];
@@ -618,6 +647,10 @@ for (const name of readdirSync(join(bundle, "assets")).filter((name) => /^demo-.
 // any QML the compiler sees, so no build step carries it: the
 // pictures the bundle was built with stand beside the pages.
 if (existsSync(join(bundle, "Examples"))) cpSync(join(bundle, "Examples"), join(out, "Examples"), { recursive: true });
+// The cockpit's files as they are, where its page compiles an edit
+// against them: what an edit does not change (the car's GLBs, the other
+// files) is read from here, by the address the compiler gives it.
+cpSync(join(bundle, "Demos/Cockpit"), join(out, "demos/cockpit/source"), { recursive: true });
 console.log(`site-ljos: ${pages.length} pages (${site.pages.length} docs) from ${docs}, standing at ${base}`);
 console.log(`site-ljos: ${out} (${built.files.length} files, ${built.bytes} bytes)`);
 // Where the build's time went, so a slow one says which part was slow.

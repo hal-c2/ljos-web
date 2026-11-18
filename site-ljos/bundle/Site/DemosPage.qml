@@ -3,6 +3,7 @@ import Ljos.Blocks
 import Site
 import Demos
 import "../Demos/later.js" as Later
+import "../nav.js" as Nav
 
 // The demos page: complete Ljós apps running in the page, flagship
 // first. Each demo stands in its named Slot as the slot's own
@@ -70,6 +71,29 @@ Column {
                 PantryDemo {
                     width: demos.textWidth
                 }
+            }
+        }
+    }
+
+    DemoSection {
+        width: demos.textWidth
+        wide: demos.wide
+        title: "A car's cockpit"
+        body: "Svala GT, a car that does not exist: an instrument cluster over a touchscreen, with the car in 3D, climate, media and a map. On a page of its own, with every file to change."
+
+        Column {
+            width: demos.textWidth
+            spacing: Theme.s
+
+            Text {
+                width: parent.width
+                height: Math.round(width * 900 / 1600)
+                textFormat: Text.RichText
+                text: Nav.picture("/demos/", Theme.picked === "light" ? "/pictures/demo-cockpit.webp" : "/pictures/demo-cockpit-dark.webp", width, height, "A car's instrument cluster over a touchscreen showing the car in 3D.")
+            }
+            LinkButton {
+                label: "Open the cockpit"
+                href: "/demos/cockpit/"
             }
         }
     }

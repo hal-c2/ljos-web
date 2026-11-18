@@ -29,7 +29,9 @@ Rectangle {
     color: Theme.canvas
 
     readonly property bool wide: width >= Theme.wideFrom
-    readonly property bool docsRoute: route !== "/" && route !== "/demos/"
+    // The demos page and each demo's own page under it.
+    readonly property bool demosRoute: route.startsWith("/demos/")
+    readonly property bool docsRoute: route !== "/" && !demosRoute
     readonly property bool sidebarShown: wide && docsRoute
     readonly property bool tocShown: sidebarShown && width >= Theme.tocFrom && page !== null && page.headings.length > 0
     readonly property int gutter: wide ? Theme.gutterWide : Theme.gutterCompact
@@ -81,7 +83,7 @@ Rectangle {
         title: (to) => Nav.titled(Content.titles, Content.sidebar, Content.after, to),
         // A docs page's reading stands beside its HTML (the build's
         // page.json); the front page and the demos need none.
-        reading: (to) => to === "/" || to === "/demos/" ? null : Nav.at(Content.base, to) + "page.json",
+        reading: (to) => to === "/" || to.startsWith("/demos/") ? null : Nav.at(Content.base, to) + "page.json",
         page: () => shell.page,
         show: (to, fragment, offset, reading) => shell.show(to, fragment, offset, reading),
         offset: () => pageScroll.contentY
@@ -182,7 +184,7 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
                 label: "Demos"
                 to: "/demos/"
-                current: shell.route === "/demos/"
+                current: shell.demosRoute
             }
         }
 
@@ -307,11 +309,11 @@ Rectangle {
                 id: pageLoader
                 visible: !shell.docsRoute
                 Accessible.role: Accessible.Section
-                Accessible.name: shell.route === "/demos/" ? "Live demos" : "Home"
+                Accessible.name: shell.route === "/demos/" ? "Live demos" : shell.route === "/demos/cockpit/" ? "Svala GT cockpit" : "Home"
                 active: !shell.docsRoute
                 width: Math.min(pageScroll.measure, pageScroll.width - 2 * shell.gutter)
                 x: Math.round((pageScroll.width - width) / 2)
-                sourceComponent: shell.route === "/" ? landingPage : shell.route === "/demos/" ? demosPage : emptyPage
+                sourceComponent: shell.route === "/" ? landingPage : shell.route === "/demos/" ? demosPage : shell.route === "/demos/cockpit/" ? cockpitPage : emptyPage
             }
             DocPage {
                 id: docItem
@@ -349,6 +351,13 @@ Rectangle {
     Component {
         id: demosPage
         DemosPage {
+            scroller: pageScroll
+            wide: shell.wide
+        }
+    }
+    Component {
+        id: cockpitPage
+        CockpitPage {
             scroller: pageScroll
             wide: shell.wide
         }
@@ -475,7 +484,7 @@ Rectangle {
                     NavLink {
                         label: "Demos"
                         to: "/demos/"
-                        current: shell.route === "/demos/"
+                        current: shell.demosRoute
                         size: Theme.subtitleSize
                         line: Theme.subtitleLine
                     }

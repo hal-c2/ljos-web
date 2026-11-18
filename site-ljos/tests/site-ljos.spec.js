@@ -855,6 +855,7 @@ test("every showcase demo stands in its slot on the demos page", async ({ page }
   // is gone.
   const demos = [
     ["A shell you rewrite", null, null],
+    ["A car's cockpit", null, null],
     ["3D you can orbit", "demo-orbit.webp", "Drag to orbit · scroll or pinch to zoom", null, "Run the 3D demo"],
     ["A shader effect", "demo-shader.webp", "Move to stir the light · tap for other colours", null, "Run the shader demo"],
     ["A whole app", "demo-app.webp", "Field guide", "Field guide", "Run the field guide"],
