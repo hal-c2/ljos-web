@@ -317,9 +317,9 @@ test.describe("examples", () => {
   });
 
   // No docs page has two blocks of the same code, so one is made: the
-  // page's first live block twice, the copy right under it. It pings
-  // once as it is made, a signal the build's run does not log, and its
-  // root declares `total`.
+  // page's first live block twice, the copy right under it. Its root
+  // declares `total`, which its own ping makes 3 as it is made. That
+  // ping is not said: the strip listens to a root once it is made.
   test("two blocks of the same code are two examples, each with its own values, edits and run", async ({ page, errors }) => {
     await page.route("**/language/signals-and-handlers/", async (route) => {
       const response = await route.fetch();
@@ -332,21 +332,32 @@ test.describe("examples", () => {
     });
     await open(page, "/language/signals-and-handlers/");
     const [first, second] = [liveBlock(page, 0), liveBlock(page, 1)];
-    expect(await first.block.locator(".cm-content").first().textContent(), "the copy is the same code").toBe(await second.block.locator(".cm-content").first().textContent());
+    // The code as a reader sees it before pressing into it: the editor
+    // proper is made only then.
+    const code = (block) => block.block.getByRole("textbox", { name: "Edit Main.qml" }).textContent();
+    expect(await code(first), "the copy is the same code").toBe(await code(second));
     await run(page, 0);
-    await expect(first.values, "the first ran, and says so").toContainText("ping(3, start)");
-    await expect(second.values, "the copy has not run, and says nothing of the first's run").not.toContainText("ping(");
-    // An edit of the first is the first's: its root declares more.
+    await expect(first.values, "the first ran, and shows its root").toContainText("total: 3");
+    await expect(second.values, "the copy has not run, and shows nothing of the first's run").not.toContainText("total");
+    // An edit of the first is the first's: its root declares more, and
+    // pings once it is made, which its strip says. Put in at once, on a
+    // line of its own inside the root (the code ends in a newline, so
+    // its end is outside the root), as one edit, not one per key.
     await intoCode(first);
-    await page.keyboard.press("Control+End");
-    await page.keyboard.press("Home");
-    await page.keyboard.type("property int extra: 9\n");
-    await expect(first.values, "the edit ran").toContainText("extra: 9", { timeout: 30_000 });
+    await expect(first.block.locator(".cm-line").nth(3), "the root opens on the fourth line").toHaveText("Item {");
+    await page.keyboard.press("Control+Home");
+    for (let line = 0; line < 3; line += 1) await page.keyboard.press("ArrowDown");
+    await page.keyboard.press("End");
+    await page.keyboard.insertText('\nproperty int extra: 9\nTimer { running: true; interval: 50; onTriggered: root.ping(9, "edit") }');
+    await expect(first.values, "the edit ran, and its ping is said").toContainText("ping(9, edit)", { timeout: 30_000 });
+    await expect(first.values).toContainText("extra: 9");
+    await expect(first.values).toContainText("total: 12");
+    await expect(second.values, "the copy heard nothing of the first's edit").not.toContainText("ping(");
     const firstSaid = await first.values.textContent();
     await run(page, 1);
-    await expect(second.values, "the copy runs its own code").toContainText("ping(3, start)");
-    await expect(second.values).toContainText("total: 3");
+    await expect(second.values, "the copy runs its own code").toContainText("total: 3");
     await expect(second.values, "not the first's edit").not.toContainText("extra");
+    await expect(second.values, "nor its log").not.toContainText("ping(");
     expect(await first.values.textContent(), "and the first heard nothing of the copy's run").toBe(firstSaid);
     expect(unexpected(errors)).toEqual([]);
   });
