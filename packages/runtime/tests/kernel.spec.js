@@ -386,6 +386,28 @@ test("what a binding makes as it reads a property's value is told nothing more o
   expect(order).toEqual(["binding returned", "value destroyed"]);
 });
 
+test("what a binding makes as it reads a property's value is told nothing more once that binding was evaluated again in the same turn, and what it made then is told, on either kernel", async ({ page }) => {
+  await open(page, "madevalue");
+  const [height, values] = await page.evaluate(async () => {
+    window.scene.asked = true;
+    // Read at once: value 1 is made here, to be told its first change and
+    // its completion once the binding is done. Then `part` is evaluated
+    // again, ending value 1 and making value 2 in its place.
+    window.scene.read;
+    window.scene.again = 1;
+    const height = window.scene.read;
+    await new Promise((resolve) => setTimeout(resolve));
+    return [height, [...window.objects.values]];
+  });
+  expect(height).toBe(30);
+  // Whether value 1 is told before it ends is the kernel's: the write tells
+  // what is still to be told once it has settled, and Solid evaluates `read`
+  // again in that flush, wasm only once it is read. Either way, once value 1
+  // is told it is destroyed it is told nothing more, and value 2 is told
+  // what it is to be told.
+  expect(values.slice(values.indexOf("1 destroyed"))).toEqual(["1 destroyed", "2 first", "2 completed"]);
+});
+
 test("a first-change handler of what a binding makes as it reads a property's value is told once the binding is done, and the binding sees what it wrote", async ({ page }) => {
   await open(page, "madeinbinding");
   const [height, order] = await page.evaluate(() => {
