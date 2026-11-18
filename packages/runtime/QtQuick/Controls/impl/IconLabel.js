@@ -83,9 +83,18 @@ function leaf(self, name) {
 
 const opaque = (value) => color(value).a > 0;
 
+// Whether a button's icon was given a colour, by the button or by the action
+// it follows. "transparent" is one too: it shows the picture as it is.
+function buttonColoured(button) {
+  if (coloured(button)) return true;
+  const action = button.action;
+  return Boolean(action?.$type?.slots.icon$color) && coloured(action);
+}
+
 // The colour a label's icon is drawn in. One it was given, by itself or by
 // the control whose `icon` it takes; else, from the button it belongs to,
-// the button's, its `defaultIconColor`, or the colour of its text, as Ljós's
+// the one the button or its action was given (transparent included), its
+// `defaultIconColor`, or the colour of its text, as Ljós's
 // native engine draws it. A label in no button that was given none keeps
 // `defaultIconColor`, transparent unless told: the picture as it is, as Qt
 // shows a bare IconLabel's.
@@ -93,7 +102,7 @@ function iconColor(self) {
   if (coloured(self)) return self.icon.color;
   const button = inheritsFrom(self);
   if (!button) return self.defaultIconColor;
-  if (opaque(button.icon.color)) return button.icon.color;
+  if (buttonColoured(button)) return button.icon.color;
   return opaque(self.defaultIconColor) ? self.defaultIconColor : self.color;
 }
 
