@@ -88,6 +88,29 @@ Item {
         }
     }
 
+    // Under an ancestor scaled to nothing, with its gap and with none: no
+    // point of the button's is anywhere but where it is all shrunk to, so
+    // each keeps its button's corner.
+    Item {
+        x: 100
+        y: 100
+        width: 200
+        height: 200
+        scale: 0
+        Button {
+            width: 60
+            height: 20
+            text: "Gapped"
+            Popover { id: gappedPop; width: 100; height: 100; gap: 4 }
+        }
+        Button {
+            width: 60
+            height: 20
+            text: "Gapless"
+            Popover { id: gaplessPop; width: 100; height: 100; gap: 0 }
+        }
+    }
+
     function grow() {
         grower.start()
         growingPop.open()
@@ -111,10 +134,10 @@ Item {
     }
 
     function popovers() {
-        return { scaled: at(scaledPop), margins: at(marginPop), roomy: at(roomyPop), before: at(beforePop), moved: at(movedPop) }
+        return { scaled: at(scaledPop), margins: at(marginPop), roomy: at(roomyPop), before: at(beforePop), moved: at(movedPop), gapped: [gappedPop.visible, gappedPop.x, gappedPop.y], gapless: [gaplessPop.visible, gaplessPop.x, gaplessPop.y] }
     }
 
     function popover(name) {
-        return { scaled: scaledPop, margins: marginPop, roomy: roomyPop, before: beforePop, moved: movedPop }[name]
+        return { scaled: scaledPop, margins: marginPop, roomy: roomyPop, before: beforePop, moved: movedPop, gapped: gappedPop, gapless: gaplessPop }[name]
     }
 }

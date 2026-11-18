@@ -241,3 +241,71 @@ test("a Ljós tab or button shown under its icon with only one of the two has no
   await open(page, "ljoslabels");
   expect(await answer(page, "stackedPaddings")).toEqual([0, 0, 0, 0, 0, 0]);
 });
+
+test("a Ljós button, tab or menu row shown as its icon shows its text until its next picture is there", async ({ page }) => {
+  await open(page, "ljosstates");
+  await page.waitForFunction(() => window.scene.loaded());
+  expect(await answer(page, "texts")).toEqual([false, false, false]);
+  // Swapped and asked at once: the new picture cannot have loaded yet.
+  expect(
+    await page.evaluate(() => {
+      window.scene.swap();
+      return JSON.parse(JSON.stringify(window.scene.texts()));
+    }),
+  ).toEqual([true, true, true]);
+  await expect.poll(() => answer(page, "texts")).toEqual([false, false, false]);
+});
+
+for (const [now, from] of [["hidden", true], ["shown", false]]) {
+  test(`a Ljós button, tab or menu row asks for the same room once its parent is ${now}`, async ({ page }) => {
+    await open(page, "ljosstates");
+    const change = await page.evaluate((from) => {
+      const scene = window.scene;
+      scene.shown = from;
+      const kept = JSON.parse(JSON.stringify(scene.sizes()));
+      scene.shown = !from;
+      return JSON.parse(JSON.stringify(scene.sizes())).map((value, index) => value - kept[index]);
+    }, from);
+    expect(change).toEqual([0, 0, 0, 0, 0, 0, 0, 0]);
+  });
+}
+
+test("a Ljós menu row shows its picture or its action's, beside its text or alone", async ({ page }) => {
+  await open(page, "ljosstates");
+  await page.waitForFunction(() => window.scene.loaded());
+  expect(await answer(page, "pictures")).toEqual([
+    [true, 16, true],
+    [true, 16, false],
+    [true, 16, true],
+    [true, 16, false],
+  ]);
+});
+
+test("a Ljós button or tab given its own content that says whether it draws the icon over the text has the padding for that", async ({ page }) => {
+  await open(page, "ljosstates");
+  // Over: half a spacing above and below; beside, though the display says
+  // under: none.
+  expect(await answer(page, "paddings")).toEqual([4, 4, 0, 0, 4, 0]);
+});
+
+test("a Ljós tab given its icon's size has its picture made no larger than that", async ({ page }) => {
+  await open(page, "ljosstates");
+  await page.waitForFunction(() => window.scene.loaded());
+  // Its own 16 by 16, the style's 12, and 8 wide.
+  expect(await answer(page, "iconSizes")).toEqual([16, 16, 12, 8]);
+});
+
+test("a Ljós popover under an ancestor scaled to nothing keeps its parent's corner, with its gap or with none", async ({ page }) => {
+  await open(page, "ljospopovers");
+  await page.evaluate(() => {
+    for (const name of ["gapped", "gapless"]) window.scene.popover(name).open();
+  });
+  const at = () => page.evaluate(() => JSON.parse(JSON.stringify(window.scene.popovers())));
+  await expect.poll(async () => {
+    const { gapped, gapless } = await at();
+    return [gapped, gapless];
+  }).toEqual([
+    [true, 0, 0],
+    [true, 0, 0],
+  ]);
+});
