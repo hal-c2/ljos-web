@@ -54,3 +54,16 @@ test("a Ljós button shows what its display asks for: the icon, the text, or the
   expect(iconMiddle).toBe(middle);
   expect(textMiddle).toBe(middle);
 });
+
+test("a Ljós empty state's text fits the width it is given, and asks for the width of its text", async ({ page }) => {
+  await open(page, "ljoscontrols");
+  const texts = await answer(page, "texts");
+  for (const [name, natural] of [["narrow", 360], ["basicNarrow", 384]]) {
+    const [title, description, available, implicit] = texts[name];
+    expect([name, title, description]).toEqual([name, available, available]);
+    // What it asks for is what it would with all the room it wants.
+    expect([name, implicit]).toEqual([name, natural]);
+  }
+  expect(texts.natural).toEqual([360, 360, 360, 360]);
+  expect(texts.basicNatural).toEqual([360, 360, 360, 384]);
+});
