@@ -8,9 +8,10 @@
 // compiled as any other. A type Qt has in C++ and the runtime does not have
 // yet is there all the same, to say so when it is used: a style names every
 // control, and a program that uses three of them needs those three.
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { availableParallelism } from "node:os";
 import { basename, delimiter, dirname, isAbsolute, join, relative, resolve as resolvePath, sep } from "node:path";
 import { inflateSync } from "node:zlib";
 import { parseAst, searchForWorkspaceRoot } from "vite";
@@ -427,6 +428,57 @@ export function runCompiler(qmlc, args, options = {}) {
   const ran = spawnSync(qmlc, args, { ...options, timeout });
   if (ran.error?.code === "ETIMEDOUT") ran.error.message = `it did not end within ${timeout / 1000} s (${[qmlc, ...args].join(" ")})`;
   return ran;
+}
+
+// How many compiles a dev server runs at once: a style of controls is
+// dozens of files asked for together.
+const COMPILING_AT_ONCE = Math.max(1, availableParallelism());
+let compilesRunning = 0;
+const compilesWaiting = [];
+
+// The same run for a dev server, which has to keep answering while it
+// compiles: a page's pictures, and every other page it serves. With
+// `runCompiler` one example's controls held the server for ten seconds and
+// more, and what another page asked for in that time came after it had
+// been given up on. Bounded as spawnSync is: `maxBuffer` for each stream,
+// and `timeout`, after which the run is killed and its `error` says so.
+export async function compilerRun(qmlc, args, options = {}) {
+  const { timeout = COMPILER_TIMEOUT, maxBuffer = 1 << 20, encoding, ...spawning } = options;
+  if (compilesRunning >= COMPILING_AT_ONCE) await new Promise((go) => compilesWaiting.push(go));
+  compilesRunning++;
+  try {
+    return await new Promise((done) => {
+      const child = spawn(qmlc, args, { ...spawning, stdio: ["ignore", "pipe", "pipe"] });
+      const streams = { stdout: [], stderr: [] };
+      let error = null;
+      const end = (why) => {
+        error ??= why;
+        child.kill("SIGKILL");
+      };
+      const timer = setTimeout(() => {
+        const late = new Error(`it did not end within ${timeout / 1000} s (${[qmlc, ...args].join(" ")})`);
+        late.code = "ETIMEDOUT";
+        end(late);
+      }, timeout);
+      for (const [name, chunks] of Object.entries(streams)) {
+        let size = 0;
+        child[name].on("data", (chunk) => {
+          size += chunk.length;
+          if (size > maxBuffer) end(Object.assign(new Error(`${name} maxBuffer length exceeded`), { code: "ENOBUFS" }));
+          else chunks.push(chunk);
+        });
+      }
+      child.on("error", (why) => (error ??= why));
+      child.on("close", (status, signal) => {
+        clearTimeout(timer);
+        const text = (chunks) => (encoding ? Buffer.concat(chunks).toString(encoding) : Buffer.concat(chunks));
+        done({ status, signal, stdout: text(streams.stdout), stderr: text(streams.stderr), error: error ?? undefined });
+      });
+    });
+  } finally {
+    compilesRunning--;
+    compilesWaiting.shift()?.();
+  }
 }
 
 // - `qmlc`, `args`: the compiler and what it is run with, or a function of
@@ -882,7 +934,7 @@ export default function qml({
       if (!resolved || resolved.external || resolved.id.includes("?")) return resolved;
       return { ...resolved, id: `${resolved.id}?${SCRIPT}` };
     },
-    load(id) {
+    async load(id) {
       if (id.startsWith(THEME)) {
         const { json, error, watched } = check(id);
         themes.set(id, watched);
@@ -1034,10 +1086,10 @@ export default function qml({
       ];
       // A compiled file can be larger than a pipe's default room (a
       // page that carries its words as data is megabytes of it).
-      const result = runCompiler(qmlc, [...given, file], {
-        encoding: "utf8",
-        maxBuffer: 1 << 28,
-      });
+      // A build compiles one file at a time (site.js counts on that); a dev
+      // server goes on answering while it compiles.
+      const options = { encoding: "utf8", maxBuffer: 1 << 28 };
+      const result = serving ? await compilerRun(qmlc, [...given, file], options) : runCompiler(qmlc, [...given, file], options);
       if (result.error) this.error(`could not run ${qmlc}: ${result.error.message}`);
       if (result.status !== 0) this.error(result.stderr.trim());
       // Kept with its ask, so what is kept of Qt's own QML asks too.
@@ -1053,7 +1105,7 @@ export default function qml({
       if (live && entries.has(file)) {
         // Asked with what the file is compiled with, and told which directory
         // the files are from: the one lookup says both.
-        const asked = runCompiler(qmlc, ["--shell", ...given, file], { encoding: "utf8", maxBuffer: 1 << 28 });
+        const asked = serving ? await compilerRun(qmlc, ["--shell", ...given, file], options) : runCompiler(qmlc, ["--shell", ...given, file], options);
         if (asked.error) this.error(`could not run ${qmlc}: ${asked.error.message}`);
         if (asked.status !== 0) this.error(asked.stderr.trim());
         for (const line of asked.stderr.split("\n")) if (line.trim()) this.warn(line.replace(/^warning: /, ""));

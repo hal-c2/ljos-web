@@ -126,9 +126,9 @@ function assets() {
 function tolerant(plugin) {
   return {
     ...plugin,
-    load(id) {
+    async load(id) {
       try {
-        return plugin.load.call(this, id);
+        return await plugin.load.call(this, id);
       } catch (error) {
         const message = String(error?.message ?? error);
         return { code: `throw new Error(${JSON.stringify(message)});\nexport default undefined;\n`, map: null };
