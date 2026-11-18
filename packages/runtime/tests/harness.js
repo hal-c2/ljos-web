@@ -30,6 +30,8 @@ window.reload = async (other) => {
   }
 };
 window.flush = flush;
+// Ends the scene as its page would, in the turn it is called in.
+window.dispose = () => handle.dispose();
 // `&inspect`: the scene's root, inspected (`ljos-web/inspect`).
 if (asked.has("inspect")) {
   const { inspect } = await import("ljos-web/inspect");

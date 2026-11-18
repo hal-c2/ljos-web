@@ -1855,8 +1855,17 @@ function complete<T>(make: () => T, making: Making = "objects"): T {
     for (const work of works) work();
     // What a deferred value tells is told once the binding is done: its
     // first changes as well as its completion, since a handler of either may
-    // write what the binding reads.
-    const later = deferred ? after : soon;
+    // write what the binding reads. And only while what made the objects
+    // lives: a scene ended in the same turn, or a binding evaluated again,
+    // has disposed them and told them of their destruction already.
+    let ended = false;
+    let tied = false;
+    const later = (work: () => unknown) => {
+      if (!deferred && !settling) return void untrack(work);
+      if (!tied && getOwner()) onCleanup(() => (ended = true));
+      tied = true;
+      after(() => ended || work());
+    };
     // What changes from here on is a change: everything is as it was made.
     const firsts: Works = [];
     for (const watch of watched) watch(firsts);

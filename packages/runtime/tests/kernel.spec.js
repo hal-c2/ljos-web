@@ -365,7 +365,25 @@ test("what a binding makes as it reads a property's value is told it is complete
     return [height, [...window.objects.log]];
   });
   expect(height).toBe(30);
-  expect(order).toEqual(["binding returned", "value completed"]);
+  expect(order).toEqual(["binding returned", "value first", "value completed"]);
+});
+
+test("what a binding makes as it reads a property's value is told nothing more once the scene ended in the same turn, on either kernel", async ({ page }) => {
+  await open(page, "madevalue");
+  const [height, order] = await page.evaluate(async () => {
+    window.scene.asked = true;
+    // Read at once: the value is made here, and its first change and its
+    // completion are to be told once the binding is done. The scene ends
+    // before that, as a page that closes in the same turn ends it.
+    const height = window.scene.read;
+    window.dispose();
+    await new Promise((resolve) => setTimeout(resolve));
+    return [height, [...window.objects.log]];
+  });
+  // It was told it is destroyed; its handlers would act on objects that are
+  // gone.
+  expect(height).toBe(30);
+  expect(order).toEqual(["binding returned", "value destroyed"]);
 });
 
 test("a first-change handler of what a binding makes as it reads a property's value is told once the binding is done, and the binding sees what it wrote", async ({ page }) => {
