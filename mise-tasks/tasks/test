@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#MISE description="Test the tasks' own logic with stand-in tools: setup --check against the pinned Qt and the next minor"
+#MISE description="Test the tasks' own logic with stand-in tools: setup and setup --check against the pinned Qt and the next minor"
 set -euo pipefail
 
 scratch="$(mktemp -d "${TMPDIR:-/tmp}/ljos-web-tasks-test.XXXXXX")"
@@ -14,7 +14,7 @@ newer="6.$((${qt_pinned#6.} + 1))"
 # the machine's own Qt, Rust and optional tools never answer for them.
 sys="$scratch/sys"
 mkdir -p "$sys"
-for cmd in bash cut git grep sed; do
+for cmd in bash cut env git grep sed; do
   ln -s "$(command -v "$cmd")" "$sys/$cmd"
 done
 
@@ -37,16 +37,16 @@ qt() {
 
 failed=0
 # `expect <case> <exit code> <text> [VAR=value]...`: setup --check, with that
-# case's tools and variables, exits with <exit code> and prints <text>. A
-# check that passes names no mismatch.
+# case's tools and variables, exits with <exit code> and prints <text>. Qt is
+# only the reference, so no Qt it finds fails setup: that is only ever a note.
 expect() {
   local c="$1" want="$2" text="$3" out code=0
   shift 3
   # The machine's /usr/lib/qt6/qml would answer for types unless a case names
   # its own.
-  out="$(env -i HOME="$scratch" PATH="$scratch/$c:$sys" usage_check=true qt_system_qml="$scratch/none" "$@" bash mise-tasks/setup 2>&1)" || code=$?
-  if [ "$code" != "$want" ] || [[ "$out" != *"$text"* ]] || { [ "$want" = 0 ] && [[ "$out" == *"not the pinned"* ]]; }; then
-    echo "tasks:test: $c: setup --check exited $code, wanted $want and '$text'; it said:" >&2
+  out="$(cd "${layout:-.}" && env -i HOME="$scratch" PATH="$scratch/$c:$sys" usage_check=true qt_system_qml="$scratch/none" "$@" bash mise-tasks/setup 2>&1)" || code=$?
+  if [ "$code" != "$want" ] || [[ "$out" != *"$text"* ]] || [[ "$out" == *"not the pinned"* ]]; then
+    echo "tasks:test: $c: setup exited $code, wanted $want and '$text'; it said:" >&2
     printf '%s\n' "$out" | sed 's/^/    /' >&2
     failed=1
   else
@@ -54,7 +54,7 @@ expect() {
   fi
 }
 
-for c in newer pinned qt5-only qt5-types mixed qml-only qml-named system unread; do
+for c in newer pinned qt5-only qt5-types mixed qml-only qml-named system unread themed; do
   stub "$c" rustup "wasm32-unknown-unknown"
   stub "$c" rustc "rustc $rust (stand-in)"
 done
@@ -82,21 +82,54 @@ stub qml-named qmake6 "$newer.1"
 # Where /usr/lib/qt6/qml is, types reads it ahead of any qtpaths on PATH.
 ln -s "$scratch/qt-pinned/bin/qtpaths6" "$scratch/system/qtpaths6"
 
-expect newer 1 "types' Qt ($scratch/qt-newer/qml) is Qt $newer.1, not the pinned Qt $qt_pinned"
-expect newer 1 "reference's qml ($scratch/newer/qml6) is Qt $newer.1, not the pinned Qt $qt_pinned"
+# Another minor than the pin is a legitimate setup: a note naming the Qt
+# found, the pin and how to install it, and setup passes.
+expect newer 0 "setup: note, a Qt other than the pinned one"
+expect newer 0 "types' Qt: Qt $newer.1 found ($scratch/qt-newer/qml); mise run types reads this Qt's types"
+expect newer 0 "reference's qml: Qt $newer.1 found ($scratch/newer/qml6); mise run reference takes this Qt's pictures"
+expect newer 0 "pinned: Qt $qt_pinned (.gitmodules' corpus/qtdoc branch)"
+expect newer 0 "install Qt $qt_pinned (Qt's online installer, or aqt install-qt) and set QML to its bin/qml"
 expect pinned 0 "types' Qt: $scratch/qt-pinned/qml, the pinned Qt $qt_pinned"
 expect pinned 0 "reference's qml: $scratch/pinned/qml6, the pinned Qt $qt_pinned"
 expect qt5-only 0 "setup --check: found"
-expect qt5-types 1 "types' Qt ($scratch/qt-five/qml) is Qt 5.15.19, not the pinned Qt $qt_pinned"
+# Qt is optional here (no Qt at all is only skipped), so a Qt 5 is a note too.
+expect qt5-types 0 "types' Qt: Qt 5.15.19 found ($scratch/qt-five/qml)"
 expect mixed 0 "types' Qt: $scratch/qt-mixed/qml, the pinned Qt $qt_pinned" qt_system_qml="$scratch/qt-mixed/qml"
-expect qml-only 1 "reference's qml ($scratch/qml-only/qml6) is Qt $newer.0, not the pinned Qt $qt_pinned"
+expect qml-only 0 "reference's qml: Qt $newer.0 found ($scratch/qml-only/qml6)"
 expect qml-named 0 "reference's qml: $scratch/qt-pinned/bin/qml, the pinned Qt $qt_pinned" QML="$scratch/qt-pinned/bin/qml"
-expect system 1 "types' Qt ($scratch/qt-newer/qml) is Qt $newer.1, not the pinned Qt $qt_pinned" qt_system_qml="$scratch/qt-newer/qml"
+expect system 0 "types' Qt: Qt $newer.1 found ($scratch/qt-newer/qml)" qt_system_qml="$scratch/qt-newer/qml"
 # A Qt found whose version nothing answers is said, not passed as pinned.
 mkdir -p "$scratch/qt-unread/qml"
 stub unread qml6 "Qml Runtime"
 expect unread 0 "types' Qt ($scratch/qt-unread/qml): no qtpaths or qmake beside it gave a Qt version" qt_system_qml="$scratch/qt-unread/qml"
 expect unread 0 "reference's qml ($scratch/unread/qml6) gave no Qt version" qt_system_qml="$scratch/qt-unread/qml"
+
+# A desktop's Qt platform theme (gtk3) kills qml with no display; reference
+# runs it without one, so setup asks it the same way.
+mkdir -p "$scratch/themed"
+# shellcheck disable=SC2016 # the stand-in expands its variables when it runs
+printf '#!/bin/sh\n[ -z "$QT_QPA_PLATFORMTHEME" ] || { echo "cannot open display" >&2; exit 1; }\necho "Qml Runtime %s"\n' "$newer.2" >"$scratch/themed/qml6"
+chmod +x "$scratch/themed/qml6"
+expect themed 0 "reference's qml: Qt $newer.2 found ($scratch/themed/qml6)" QT_QPA_PLATFORMTHEME=gtk3
+
+# setup itself, not --check, with another minor: it installs, then says the
+# same note and passes. Run from a copy whose install steps are stand-ins.
+layout="$scratch/layout"
+mkdir -p "$layout/mise-tasks/tool" "$layout/mise-tasks/site"
+cp mise-tasks/setup "$layout/mise-tasks/"
+cp mise.toml .gitmodules "$layout/"
+printf '#!/bin/sh\necho /stand-in/wasm-bindgen\n' >"$layout/mise-tasks/tool/wasm-bindgen"
+printf '#!/bin/sh\necho /stand-in/docs\n' >"$layout/mise-tasks/site/docs"
+chmod +x "$layout/mise-tasks/tool/wasm-bindgen" "$layout/mise-tasks/site/docs"
+for tool in mise cargo pnpm node; do stub newer "$tool" "stand-in $tool"; done
+expect newer 0 "setup: done" usage_check=false usage_no_corpus=true usage_no_browser=true
+expect newer 0 "reference's qml: Qt $newer.1 found ($scratch/newer/qml6)" usage_check=false usage_no_corpus=true usage_no_browser=true
+expect newer 0 "pinned: Qt $qt_pinned (.gitmodules' corpus/qtdoc branch)" usage_check=false usage_no_corpus=true usage_no_browser=true
+layout=""
+# A missing need still fails: here the pinned Rust's wasm target.
+stub newer rustup "none"
+expect newer 1 "the wasm32-unknown-unknown target is not installed"
+stub newer rustup "wasm32-unknown-unknown"
 
 if [ "$failed" != 0 ]; then
   echo "tasks:test: a case above failed" >&2
