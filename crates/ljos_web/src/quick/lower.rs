@@ -471,7 +471,11 @@ impl<'a, 's> Lower<'a, 's> {
         built: &mut Built<'a>,
     ) {
         for member in members {
-            if let Some(error) = crate::solid_takes(&member) {
+            // In a group the attribute is `font$ref`, which Solid reads as
+            // a value like any other.
+            if group.is_empty()
+                && let Some(error) = crate::solid_takes(&member)
+            {
                 self.errors.push(error);
                 continue;
             }
