@@ -2,13 +2,13 @@
 #MISE description="First run after a clone, and safe to run again: toolchains, the qtdoc submodule, Rust and JavaScript dependencies, wasm-bindgen, Playwright's Chromium; says what it skipped"
 #USAGE flag "--no-corpus" help="Skip the corpus/qtdoc submodule (Qt's examples, for gallery, corpus and reference)"
 #USAGE flag "--no-browser" help="Skip fetching Playwright's Chromium (the browser tests need it)"
-#USAGE flag "--check" help="Install and fetch nothing (run it as mise run --skip-tools setup --check, or mise installs missing tools first); say what is found, and fail if Rust or Qt is not the pinned version"
+#USAGE flag "--check" help="Install and fetch nothing (run it as mise run --skip-tools setup --check, or mise installs missing tools first); say what is found, and fail if Rust is not the pinned version; a Qt of another version is a note"
 set -euo pipefail
 
 check="${usage_check:-false}"
 done_=()
 skipped=()
-mismatched=()
+noted=()
 
 # Tools first: the rest runs on them. mise.toml pins Rust with the wasm
 # target, Node and pnpm.
@@ -75,10 +75,18 @@ fi
 
 # The Qt the corpus is pinned to: corpus/qtdoc tracks qtdoc's branch of that
 # minor, and mise run reference and mise run types read Qt's own answers for
-# it. A Qt of another minor draws and types those examples differently.
+# it. A Qt of another minor draws and types those examples differently, but
+# Qt is only the reference: that is a working setup, so it is a note.
 qt_pinned=$(git config -f .gitmodules --get submodule.corpus/qtdoc.branch)
 qt_from="the pinned Qt $qt_pinned (.gitmodules' corpus/qtdoc branch)"
 qt_get="install Qt $qt_pinned (Qt's online installer, or aqt install-qt)"
+# `qt_note <task's Qt> <version> <where> <what it does with it> <then>`: the
+# Qt found, the pin, and the one line that gets the pinned one.
+qt_note() {
+  noted+=("$1: Qt $2 found ($3); $4
+      pinned: Qt $qt_pinned (.gitmodules' corpus/qtdoc branch)
+      for the pinned Qt: $qt_get $5")
+}
 # types reads this directory first when it is there (tasks:test points it
 # at a stand-in).
 qt_system_qml="${qt_system_qml:-/usr/lib/qt6/qml}"
@@ -112,7 +120,10 @@ qt_of_bin() {
   [ -z "$first" ] || printf '%s\n' "$first"
 }
 # Each task's Qt, found the way that task finds it.
-# reference (corpus/reference.mjs): QML, else qml6, else qml.
+# reference (corpus/reference.mjs): QML, else qml6, else qml. It runs them
+# without the desktop's Qt platform theme, which (gtk3) kills qml when there
+# is no display, so setup asks them the same way.
+unset QT_QPA_PLATFORMTHEME
 qt_qml="${QML:-}"
 if [ -z "$qt_qml" ]; then
   for tool in qml6 qml; do
@@ -130,7 +141,7 @@ if [ -n "$qt_qml" ]; then
   case "$version" in
     "") skipped+=("reference's qml ($where) gave no Qt version for --version, so setup cannot say whether it is the pinned Qt $qt_pinned: set QML to Qt $qt_pinned's bin/qml to be sure") ;;
     "$qt_pinned".*) done_+=("reference's qml: $where, $qt_from") ;;
-    *) mismatched+=("reference's qml ($where) is Qt $version, not $qt_from, so mise run reference takes another Qt's pictures: $qt_get and set QML to its bin/qml") ;;
+    *) qt_note "reference's qml" "$version" "$where" "mise run reference takes this Qt's pictures" "and set QML to its bin/qml" ;;
   esac
 fi
 # types (without --qt): /usr/lib/qt6/qml when it is there, else the qml
@@ -154,7 +165,7 @@ case "$qt_types:$version" in
   :) ;;
   *:) skipped+=("types' Qt ($qt_types): no qtpaths or qmake beside it gave a Qt version, so setup cannot say whether it is the pinned Qt $qt_pinned: run mise run types --qt with Qt $qt_pinned's qml directory to be sure") ;;
   *":$qt_pinned".*) done_+=("types' Qt: $qt_types, $qt_from") ;;
-  *) mismatched+=("types' Qt ($qt_types) is Qt $version, not $qt_from, so mise run types reads another Qt's types: $qt_get and run mise run types --qt <its qml directory>") ;;
+  *) qt_note "types' Qt" "$version" "$qt_types" "mise run types reads this Qt's types" "and run mise run types --qt <its qml directory>" ;;
 esac
 
 if ! command -v sway >/dev/null; then
@@ -188,18 +199,14 @@ if [ "${#skipped[@]}" -gt 0 ]; then
   echo "setup: skipped"
   for line in "${skipped[@]}"; do echo "  - $line"; done
 fi
-if [ "${#mismatched[@]}" -gt 0 ]; then
-  echo "setup: not the pinned version"
-  for line in "${mismatched[@]}"; do echo "  - $line"; done
+if [ "${#noted[@]}" -gt 0 ]; then
+  echo "setup: note, a Qt other than the pinned one (this setup works; what is compared with Qt may differ from the pin's)"
+  for line in "${noted[@]}"; do echo "  - $line"; done
 fi
 echo
-# Qt is optional, so plain setup only reports a Qt of another minor; --check
-# asks whether this machine is the one the corpus's pictures assume.
+# Qt is only the reference, so neither setup nor --check fails on its
+# version: what fails is Rust, above, which every build needs.
 if [ "$check" = true ]; then
-  if [ "${#mismatched[@]}" -gt 0 ]; then
-    echo "setup: ${mismatched[0]}" >&2
-    exit 1
-  fi
   exit 0
 fi
 echo "next: mise run site (ljos.dev, live), mise run dev (the web example), mise run test, mise tasks for the rest"
