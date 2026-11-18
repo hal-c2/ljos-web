@@ -148,8 +148,9 @@ test("a Ljós menu row shown as its icon is as tall as a row, and a menu keeps n
   await open(page, "ljoslabels");
   expect((await answer(page, "rows")).tallFits).toBe(true);
   // A row shown as its text, one with no icon, one told to keep the
-  // column, and one beside a row whose icon is all it has.
-  expect(await answer(page, "menus")).toEqual([0, 0, 24, 24]);
+  // column, one beside a row whose icon is all it has, and one beside a
+  // row whose text is a lone "&".
+  expect(await answer(page, "menus")).toEqual([0, 0, 24, 24, 24]);
 });
 
 test("a Ljós tab shows its text alone in its middle, and asks for its room alone", async ({ page }) => {
@@ -220,4 +221,23 @@ test("a Ljós button or tab loads no picture it does not show, and shows it once
       [true, 12, false],
       [true, 12, false],
     ]);
+});
+
+test("a Ljós button or menu row whose text is a lone \"&\" shows its icon, as the marker draws no text", async ({ page }) => {
+  await open(page, "ljoslabels");
+  // The picture's size comes of its file, which loads once it is shown.
+  await expect.poll(() => answer(page, "markers")).toEqual({ button: [[true, false], 16], row: [24, [true, false]] });
+});
+
+test("a Ljós tab's picture is drawn in the colour of its text, current or not", async ({ page }) => {
+  await open(page, "ljoslabels");
+  // Its IconLabel draws the picture in `icon.color` where one is given and
+  // in its `color`, the tab's ink, where none is: never the picture's own.
+  const tinted = async () => (await answer(page, "tabInks")).map(([drawn, ink]) => drawn !== null && drawn === ink && ink !== "#00000000");
+  await expect.poll(tinted).toEqual([true, true]);
+});
+
+test("a Ljós tab or button shown under its icon with only one of the two has no padding above or below", async ({ page }) => {
+  await open(page, "ljoslabels");
+  expect(await answer(page, "stackedPaddings")).toEqual([0, 0, 0, 0, 0, 0]);
 });
