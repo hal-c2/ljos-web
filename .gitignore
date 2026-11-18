@@ -7,6 +7,9 @@ packages/runtime/kernel/*.wasm
 packages/runtime/compiler/*.wasm
 packages/runtime/tests/scenes/saved/
 packages/runtime/QtQuick3D/wgpu/
+# What a `controls.js write` that was stopped leaves beside the tree.
+packages/runtime/.controls-*
+packages/runtime/controls.lock/
 .tools/
 packages/runtime/tests/perf3d/results/
 # The wasm examples are workspaces of their own, so their test tasks leave a
