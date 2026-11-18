@@ -76,8 +76,7 @@ const placeholderOf = (page, target) =>
 // A field's placeholder is drawn where its text would be. Words beside
 // the field that say the same, in the same colour, are the example's own
 // and are counted: Notes is the TextArea's placeholder, and is a Text too.
-test("words beside an empty field that say what its placeholder says are counted", async ({ page, wasm }) => {
-  test.skip(!wasm, "without WebAssembly no example runs");
+test("words beside an empty field that say what its placeholder says are counted", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "light" });
   const route = "/controls/value-inputs/";
   const { examples } = livePages().find((each) => each.route === route);
@@ -115,6 +114,15 @@ test("words beside an empty field that say what its placeholder says are counted
 // as they are fixed.
 const UNDER_AA = [{ route: "/quality/layout-and-typography/", words: "Select at least one result to publish" }];
 
+// The listed words an example draws: they are in its code, as a reader
+// reads it on the page.
+const listedIn = (route, example) => UNDER_AA.filter((each) => each.route === route && example.files.some(({ code }) => code.includes(each.words)));
+
+test("each of UNDER_AA's words is in an example on its page", () => {
+  const unplaced = UNDER_AA.filter(({ route }) => !livePages().some((page) => page.route === route && page.examples.some((example) => listedIn(route, example).length > 0)));
+  expect(unplaced, "words no example on their page draws: take them out of UNDER_AA").toEqual([]);
+});
+
 // What of the contrast check is the example's: everything but the
 // palette's placeholders, and the listed words seen on their page.
 async function unexcused(page, include, colorScheme, route, seen) {
@@ -144,33 +152,31 @@ for (const colorScheme of SCHEMES) {
   test.describe(`in ${colorScheme}`, () => {
     test.use({ colorScheme });
 
+    // One test an example, not one a page: the shards are cut by how
+    // many tests there are, so a page of twenty examples read in one
+    // test made a shard of its own that ran twice as long as the rest.
     for (const { route, examples } of pages) {
-      test(`${route}: every example's words are readable on what it draws`, async ({ page, wasm }) => {
-        test.skip(!wasm, "without WebAssembly no example runs");
-        await open(page, route);
-        const found = [];
-        const seen = new Set();
-        for (const example of examples) {
+      for (const example of examples) {
+        test(`${route} #${example.index} (${example.hash}): its words are readable on what it draws`, async ({ page }) => {
+          await open(page, route);
           const block = await run(page, example.index);
           // Settled: an example that fades in is read where it lands.
           await page.waitForTimeout(400);
           await block.running.evaluate((element) => element.setAttribute("data-themes-check", ""));
-          for (const line of await unexcused(page, "[data-themes-check]", colorScheme, route, seen)) found.push(`#${example.index} (${example.hash}): ${line}`);
-          await block.running.evaluate((element) => element.removeAttribute("data-themes-check"));
-        }
-        expect(found).toEqual([]);
-        expect(
-          UNDER_AA.filter((each) => each.route === route && !seen.has(each)),
-          "these listed words are readable now: take them out of UNDER_AA",
-        ).toEqual([]);
-      });
+          const seen = new Set();
+          expect(await unexcused(page, "[data-themes-check]", colorScheme, route, seen)).toEqual([]);
+          expect(
+            listedIn(route, example).filter((each) => !seen.has(each)),
+            "these listed words are readable now: take them out of UNDER_AA",
+          ).toEqual([]);
+        });
+      }
     }
 
     // The demos, under their headings on /demos/; the flagship is made
     // as a reader scrolls to it.
     for (const heading of ["A shell you rewrite", "3D you can orbit", "A shader effect", "A whole app", "Motion"]) {
-      test(`the demo "${heading}" is readable`, async ({ page, wasm }) => {
-        test.skip(!wasm, "without WebAssembly a demo is its picture");
+      test(`the demo "${heading}" is readable`, async ({ page }) => {
         await open(page, "/demos/");
         const title = page.locator("#app div.qq-text").filter({ hasText: new RegExp(`^${heading}$`) }).first();
         await centre(title);
@@ -186,8 +192,7 @@ for (const colorScheme of SCHEMES) {
 
 // A pick in the header reaches what is already running: the demos
 // follow the page's scheme, not the browser's alone.
-test("a scheme picked in the header reaches the demos that are running", async ({ page, wasm }) => {
-  test.skip(!wasm, "without WebAssembly a demo is its picture");
+test("a scheme picked in the header reaches the demos that are running", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "light" });
   await open(page, "/demos/");
   const title = page.locator("#app div.qq-text").filter({ hasText: /^Motion$/ }).first();
@@ -209,9 +214,8 @@ test("a scheme picked in the header reaches the demos that are running", async (
 // Ljós's own style, is under AA. Red once the palette is fixed: take
 // PLACEHOLDER out then.
 for (const colorScheme of SCHEMES) {
-  test(`in ${colorScheme} Ljós's placeholder colour is still under AA, as excused above`, async ({ page, wasm }) => {
-    test.skip(!wasm, "without WebAssembly no example runs");
-    await page.emulateMedia({ colorScheme });
+  test(`in ${colorScheme} Ljós's placeholder colour is still under AA, as excused above`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme });
     const example = livePages()
       .flatMap(({ route, examples }) => examples.map((each) => ({ route, ...each })))
       // An empty one: a field with words in it shows them, not its
