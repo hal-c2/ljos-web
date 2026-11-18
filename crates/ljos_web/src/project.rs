@@ -189,6 +189,29 @@ impl Project {
         self.module_types.get(uri)
     }
 
+    /// The types of the directory `file` imports as `path` under a name
+    /// (`import "parts" as Parts`), by name, each the file it is: the QML
+    /// files directly in it, `Screen.ui` being `Screen`.
+    pub(crate) fn directory_types(&self, file: &str, path: &str) -> BTreeMap<String, String> {
+        let directory = self.front.import_dir(file, path);
+        let prefix = if directory.is_empty() {
+            String::new()
+        } else {
+            format!("{directory}/")
+        };
+        self.extras
+            .keys()
+            .filter_map(|key| {
+                let name = key.strip_prefix(&prefix)?;
+                if name.contains('/') {
+                    return None;
+                }
+                let name = name.strip_suffix(".ui").unwrap_or(name);
+                Some((name.to_string(), key.clone()))
+            })
+            .collect()
+    }
+
     /// The name a module gives the file `file` as one of its types
     /// (`Ljos.Design.Colors`), when one does by the file's own name: what a
     /// page that holds the module's singletons knows them by.
