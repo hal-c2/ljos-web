@@ -8,7 +8,12 @@
 //     property bool asked: false
 //     Holder { id: holder; part: root.asked ? root.made : null }
 //     property Component made: Component {
-//         Item { implicitHeight: 30; Component.onCompleted: log.push("value completed") }
+//         Item {
+//             implicitHeight: root.asked ? 30 : 0
+//             onImplicitHeightChanged: log.push("value first")
+//             Component.onCompleted: log.push("value completed")
+//             Component.onDestruction: log.push("value destroyed")
+//         }
 //     }
 //     property int read: {
 //         if (!asked) return 0
@@ -35,7 +40,16 @@ export default function MadeValue() {
   const root = (objects.root = $object());
   const holder = (objects.holder = $object());
   const [asked, setAsked] = $signal(false);
-  const made = $component(() => make(Item, { implicitHeight: 30, Component$onCompleted: () => log.push("value completed") }));
+  const made = $component(() =>
+    make(Item, {
+      get implicitHeight() {
+        return asked() ? 30 : 0;
+      },
+      onImplicitHeightChanged: () => log.push("value first"),
+      Component$onCompleted: () => log.push("value completed"),
+      Component$onDestruction: () => log.push("value destroyed"),
+    }),
+  );
   const [read, setRead] = $signal(() => {
     if (!asked()) return 0;
     const height = holder.part.implicitHeight;
