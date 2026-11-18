@@ -1,7 +1,7 @@
 {
   "repository": "hal-c2/ljos-ui",
   "path": "examples/car-cockpit",
-  "commit": "f991358827c3535ed6a0eaed12eb3370524f1128",
+  "commit": "5858c16290959488d12062bcc8a48c06ef24f3ea",
   "files": {
     "AssistView.qml": "3891512d7668f3fcc0f5823aca5a087c0fb91dd3b74373637ca0b991d5fe599f",
     "CarModel.qml": "2e520eb1db8740b10edffff555af225f46a125a08a7ce2751d07293934562de0",
