@@ -1,5 +1,3 @@
-import { existsSync } from "node:fs";
-import { homedir } from "node:os";
 import { join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import starlight from "@astrojs/starlight";
@@ -13,7 +11,7 @@ import { holdPlain, readHeld } from "./scripts/codeblocks-held.mjs";
 const path = (r) => fileURLToPath(new URL(r, import.meta.url));
 
 // Live code blocks: harnesses and prerenders come from the checkout
-// sync-docs reads (the same candidates it tries), and the prerenders
+// sync-docs reads (LJOS_DOCS_DIR), and the prerenders
 // scripts/codeblock-prerenders.mjs writes. DECISION: strict —
 // every non-exempt block must compile or the build fails — is a switch
 // (LJOS_CODEBLOCKS_STRICT=1), not inferred from the docs: a docs pin
@@ -22,13 +20,10 @@ const path = (r) => fileURLToPath(new URL(r, import.meta.url));
 // switched on, a block that claims to run must compile, and one that
 // does not claim to stays plain and is counted, so the site never
 // promises a block is live when it is not.
-const docsCandidates = [
-  process.env.LJOS_DOCS_DIR,
-  resolve(path("."), "../ljos-ui/docs/site"),
-  resolve(path("."), "../../ljos-ui/docs/site"),
-  join(homedir(), "dev/ljos-ui/docs/site"),
-].filter(Boolean);
-const docsDir = docsCandidates.find((c) => existsSync(join(c, "start/index.md")));
+// The config is read by `astro check` too, which needs no docs: no
+// LJOS_DOCS_DIR is no harnesses here, and sync-docs, which every build
+// runs first, is what says to set it.
+const docsDir = process.env.LJOS_DOCS_DIR ? resolve(process.env.LJOS_DOCS_DIR) : undefined;
 const harnessDir = docsDir ? join(docsDir, "harness") : undefined;
 // The pinned docs' prerenders, or another docs' kept apart
 // (LJOS_CODEBLOCK_PRERENDERS, tests/build-fixture.mjs): a directory

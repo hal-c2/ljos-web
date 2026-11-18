@@ -16,7 +16,7 @@ and is built and tested, never deployed.
   HTML — and highlighted static code where it did not.
 - `scripts/build.mjs` — reads the docs of the pinned ljos-ui
   revision (`../site/ljos-ui.sha`, found as the Astro build's
-  sync-docs finds them: `LJOS_DOCS_DIR` or a sibling checkout)
+  sync-docs finds them: `LJOS_DOCS_DIR`, which the mise tasks set)
   with `ljos-web/markdown`, assembles and checks their examples
   and draws each live one's picture (`ljos-web/codeblocks`,
   cached under `.codeblock-prerenders/`), writes the reading into

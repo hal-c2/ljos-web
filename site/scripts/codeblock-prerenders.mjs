@@ -6,10 +6,10 @@
 // does not fails here, with the compiler's or the page's words.
 // Prerenders are cached by content hash in .codeblock-prerenders/;
 // the Astro build embeds them, so nothing is served but the pages.
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
-import { homedir } from "node:os";
+import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { docsDir } from "../../scripts/docs-dir.mjs";
 import { checkExamplesAll, hashExample, loadHarnesses, renderPrerenders, siteFiles } from "ljos-web/codeblocks";
 import { assemble, extractBlocks, tagged } from "ljos-web/codeblocks/parse";
 import { giveFiles, readGiven, unused } from "./codeblock-files.mjs";
@@ -17,17 +17,7 @@ import { writeHeld } from "./codeblocks-held.mjs";
 import { keysByHash, listedEverywhere, pageRecords, readLedger, saysEverywhere, unmarked } from "./codeblocks-ledger.mjs";
 
 const siteRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const candidates = [
-  process.env.LJOS_DOCS_DIR,
-  resolve(siteRoot, "../ljos-ui/docs/site"),
-  resolve(siteRoot, "../../ljos-ui/docs/site"),
-  join(homedir(), "dev/ljos-ui/docs/site"),
-].filter(Boolean);
-const src = candidates.find((c) => existsSync(join(c, "start/index.md")));
-if (!src) {
-  console.error(`codeblock-prerenders: no ljos-ui docs/site found. Tried:\n  ${candidates.join("\n  ")}\nSet LJOS_DOCS_DIR.`);
-  process.exit(1);
-}
+const src = docsDir("codeblock-prerenders");
 const harnessDir = join(src, "harness");
 const strict = process.env.LJOS_CODEBLOCKS_STRICT === "1";
 const harnesses = loadHarnesses(harnessDir);

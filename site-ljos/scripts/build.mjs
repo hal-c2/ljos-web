@@ -6,15 +6,16 @@
 // deploying; this writes `site-ljos/dist/` and nothing else serves
 // or ships it yet.
 //
-// DECISION: the docs come from a checkout, as the Astro build's
-// sync-docs has it: `LJOS_DOCS_DIR`, else the usual sibling layouts.
-// CI checks ljos-ui out at the pin and says where it put it.
+// DECISION: the docs come from the checkout `LJOS_DOCS_DIR` names, as
+// the Astro build's sync-docs has it (scripts/docs-dir.mjs). The tasks
+// and CI fetch ljos-ui at the pin and say where they put it.
 import { execSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { homedir, tmpdir } from "node:os";
+import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { docsDir } from "../../scripts/docs-dir.mjs";
 import { chromium } from "@playwright/test";
 import { createRequire } from "node:module";
 import { highlight, readMarkdownSite } from "ljos-web/markdown";
@@ -52,24 +53,7 @@ const repo = resolve(here, "..");
 const bundle = join(here, "bundle");
 const out = join(here, "dist");
 
-const candidates = [
-  process.env.LJOS_DOCS_DIR,
-  resolve(here, "../ljos-ui/docs/site"),
-  resolve(here, "../../ljos-ui/docs/site"),
-  join(homedir(), "dev/ljos-ui/docs/site"),
-].filter(Boolean);
-const docs = candidates.find((candidate) => existsSync(join(candidate, "start/index.md")));
-if (!docs) {
-  console.error(`site-ljos: no ljos-ui docs/site found. Tried:\n  ${candidates.join("\n  ")}\nSet LJOS_DOCS_DIR to a ljos-ui docs/site checkout.`);
-  process.exit(1);
-}
-if (!process.env.LJOS_DOCS_DIR) {
-  const pinned = readFileSync(join(repo, "site/ljos-ui.sha"), "utf8").trim();
-  try {
-    const head = execSync("git rev-parse HEAD", { cwd: docs, encoding: "utf8" }).trim();
-    if (head !== pinned) console.warn(`site-ljos: WARNING docs checkout is at ${head}, but site/ljos-ui.sha pins ${pinned}; building the checkout's pages, not the pinned ones.`);
-  } catch { /* not a git checkout: nothing to compare */ }
-}
+const docs = docsDir("site-ljos");
 
 // The sections and their sidebar words are the Astro site's, so the
 // two sites name the same map.
