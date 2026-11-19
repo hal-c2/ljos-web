@@ -2665,6 +2665,48 @@ test.describe(() => {
   });
 });
 
+// Picks as one who picks on every move does, a frame apart, until the
+// network is quiet.
+async function pickAgain(page, times) {
+  for (let pick = 0; pick < times; pick++) {
+    await page.evaluate(() => window.objects.pair.$picks());
+    await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+  }
+  await page.waitForLoadState("networkidle");
+}
+
+// A server that fails on the file itself (a 500) has answered: a pick
+// after it does not ask again, as after a 404.
+test.describe(() => {
+  test.use({ told: [/^Failed to load resource: the server responded with a status of 500|pair\.gltf/] });
+  test("a pick asks once for a loader's file the server fails on", async ({ page }) => {
+    let asked = 0;
+    let address;
+    await page.route(/wgpu_models\/pair\.gltf(\?.*)?$/, (route) => (asked++, (address = route.request().url()), route.fulfill({ status: 500, body: "" })));
+    await open(page, "loaderpicks");
+    const scene = await moduleOf(page, /\/QtQuick3D\/scene\.js/);
+    await expect.poll(() => page.evaluate(() => window.objects.pair.$picks()) && address).toBeTruthy();
+    await expect.poll(() => page.evaluate(([scene, address]) => scene.file(address, "gltf", () => null).state()?.error ?? null, [scene, address])).toMatch(/500/);
+    const before = asked;
+    await pickAgain(page, 5);
+    expect(asked).toBe(before);
+  });
+});
+
+// A server that stays busy is asked a few times, not once a pick: after
+// the third it is the file's answer.
+test.describe(() => {
+  test.use({ told: [/^Failed to load resource: the server responded with a status of 503|pair\.gltf/] });
+  test("a pick stops asking for a loader's file a server stays busy for", async ({ page }) => {
+    let asked = 0;
+    await page.route(/wgpu_models\/pair\.gltf(\?.*)?$/, (route) => (asked++, route.fulfill({ status: 503, body: "" })));
+    await open(page, "loaderpicks");
+    await expect.poll(async () => (await pickAgain(page, 1), asked), { timeout: 20_000 }).toBe(3);
+    await pickAgain(page, 8);
+    expect(asked).toBe(3);
+  });
+});
+
 // What a pick meets of a file is made once: a buffer in the description
 // is not decoded again by each pick after.
 test("a pick decodes a loader's buffers only when what it meets is made", async ({ page }) => {
