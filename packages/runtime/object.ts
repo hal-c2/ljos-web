@@ -2954,6 +2954,15 @@ export function $signal(initial: unknown): [get: () => unknown, set: (given: unk
   return [get, set];
 }
 
+// What holds an object without being its parent (an Item's `resources`):
+// told, as its parent is, when the object is destroyed.
+const holders = new WeakMap<QObject, Set<QObject>>();
+export function heldBy(holder: QObject, object: QObject): void {
+  let held = holders.get(object);
+  if (!held) holders.set(object, (held = new Set()));
+  held.add(holder);
+}
+
 export const QtObject = defineType("QtObject", null, {
   properties: { objectName: "" },
   methods: {
@@ -2965,7 +2974,10 @@ export const QtObject = defineType("QtObject", null, {
       if (this.$destroyed) return;
       hidden(this, "$destroyed", true);
       setTimeout(() => {
-        ((dynamic(this).parent as QObject | null | undefined) ?? this.$parent)?.$remove?.(this);
+        const parent = (dynamic(this).parent as QObject | null | undefined) ?? this.$parent;
+        parent?.$remove?.(this);
+        for (const holder of holders.get(this) ?? []) if (holder !== parent) holder.$remove?.(this);
+        holders.delete(this);
         this.$destruction?.();
         this.$dispose?.();
         flush();

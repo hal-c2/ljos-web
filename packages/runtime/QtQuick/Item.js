@@ -5,7 +5,7 @@
 // so they are computed here, anchors included, and the element is only told
 // the result.
 import { onCleanup, runWithOwner } from "solid-js";
-import { contents, defineType, derived, effect, flush, group, inside, kinds, parental, parented, QtObject, settle, typed } from "../object.ts";
+import { contents, defineType, derived, effect, flush, group, heldBy, inside, kinds, parental, parented, QtObject, settle, typed } from "../object.ts";
 import { Rect } from "../QtQml/values.ts";
 import { drawing, drawn } from "./drawn.ts";
 import { declared, forceActiveFocus, nextItemInFocusChain, reachable, setFocus, under } from "./focus.ts";
@@ -200,15 +200,14 @@ function children(self) {
 // The objects declared in one, or made into it, that are not items: a
 // Timer, a QtObject. A Repeater stands for its rows and is not one.
 // What `resources: [...]` was given is among them, an item too, which
-// stays where it is drawn. One destroyed is gone from it, though the item
-// that drew it was another.
+// stays where it is drawn. Once destroyed it is gone from it, though the
+// item that drew it was another: the holder is told (`heldBy`).
 function resources(self) {
   self.$track();
   const all = self.$extra ? [...self.$static, ...self.$extra] : self.$static;
   const loose = all.filter((child) => child?.$type && !child.$node && !child.$siblings);
   if (!self.$held) return loose;
-  const held = self.$held.filter((object) => !object.$destroyed);
-  return [...held, ...loose.filter((child) => !held.includes(child))];
+  return [...self.$held, ...loose.filter((child) => !self.$held.includes(child))];
 }
 
 // Puts `nodes` in `container` in that order, after what the type itself
@@ -447,6 +446,7 @@ export const Item = defineType("Item", QtObject, {
     const held = props.$list?.("resources") ?? EMPTY;
     if (held.length) {
       self.$held = held;
+      for (const object of held) heldBy(self, object);
       const left = new Map();
       for (const object of held) left.set(object, (left.get(object) ?? 0) + 1);
       const kept = made.filter((child) => {
