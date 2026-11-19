@@ -96,9 +96,14 @@ jobs:
   # no job over 16). Each job also pays its own setup and downloads.
   # So a job that only needs what another already built runs in that
   # job (the freshness guard's tests in check, the Astro suites with the
-  # Astro build, the project-path build with the Pages artifact), and
-  # the e2e suite runs in three parts per kernel, not six shards.
-  # Every suite still runs and still gates the deploy.
+  # Astro build, the project-path build with the Pages artifact). The
+  # e2e suite is the exception: it ran in three parts per kernel of 15
+  # test-minutes each, and the longest of them ended every run. It runs
+  # in six of 6 to 9 test-minutes, weighed with a run's seconds
+  # (.github/scripts/e2e-parts.test.mjs): about four minutes less on
+  # the clock for six more runners at once, 14 at the most. In the run
+  # measured before (44439932038) no job waited more than two seconds
+  # for a runner. Every suite still runs and still gates the deploy.
   #
   # Every QML file both sites show is checked by `ljos check` at the
   # pinned revision: the demos, and the docs' blocks through ljos-ui's
@@ -119,6 +124,7 @@ jobs:
       - run: bash .github/scripts/keep-installed-debs.test.sh
       - run: node --test .github/scripts/site-expressions.test.mjs
       - run: node --test .github/scripts/site-jobs.test.mjs
+      - run: node --test .github/scripts/e2e-parts.test.mjs
       - run: node .github/scripts/site-expressions.test.mjs table >> "$GITHUB_STEP_SUMMARY"
       - id: pin
         run: echo "sha=$(cat site/ljos-ui.sha)" >> "$GITHUB_OUTPUT"
@@ -309,9 +315,9 @@ jobs:
           retention-days: 1
   # Every live example and demo driven as a reader drives it, in a
   # browser with WebAssembly and in one without (e2e/), on the root
-  # build. Three parts per kernel, not six shards, so a run asks for
-  # half the runners; cut by file (.github/scripts/e2e-part.sh says
-  # how), so the three take about as long each. Playwright's own two
+  # build. Six parts per kernel, cut by file and title
+  # (.github/scripts/e2e-part.sh says how) so each takes about as long
+  # as the others, not by count as `--shard` cuts. Playwright's own two
   # workers: four kept a runner's four cores busy (a run queue of 8 to
   # 10) and ran no faster, and the specs that time a demo's frames
   # failed under it.
@@ -321,7 +327,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        part: [themes, examples, rest]
+        part: [themes-light, themes-dark, examples-a, examples-b, demos, rest]
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - uses: ./.github/actions/site-setup
@@ -346,7 +352,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        part: [themes, examples, rest]
+        part: [themes-light, themes-dark, examples-a, examples-b, demos, rest]
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - uses: ./.github/actions/site-setup
