@@ -295,7 +295,7 @@ impl Project {
                         .properties
                         .keys()
                         .chain(shape.signals.keys())
-                        .chain(&shape.functions)
+                        .chain(shape.functions.keys())
                         .map(String::as_str),
                 );
             }
