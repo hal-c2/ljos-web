@@ -109,6 +109,18 @@ runs:
         mkdir -p ~/.cache/playwright-debs/partial
         printf 'Dir::Cache::Archives "%s/";\nAPT::Keep-Downloaded-Packages "true";\nBinary::apt::APT::Keep-Downloaded-Packages "true";\n' ~/.cache/playwright-debs \
           | sudo tee /etc/apt/apt.conf.d/90playwright-debs > /dev/null
+    # With no cache of this image's, the packages are fetched side by
+    # side, each from the first mirror that hands it over at a usable
+    # speed, rather than one by one from the first mirror apt picks: one
+    # stalled mirror held a cold run's site job 9.5 min, and its e2e
+    # jobs with it (fetch-debs.sh). apt installs them from its cache as
+    # if it had fetched them, and fetches what this did not.
+    - if: inputs.browser == 'true' && steps.debs.outputs.cache-hit != 'true'
+      continue-on-error: true
+      shell: bash
+      run: |
+        sudo apt-get update -qq
+        { pnpm --filter ljos-site exec playwright install-deps --dry-run chromium || true; } | bash .github/scripts/fetch-debs.sh ~/.cache/playwright-debs
     - if: inputs.browser == 'true'
       id: browsers
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
