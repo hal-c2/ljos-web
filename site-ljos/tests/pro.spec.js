@@ -81,6 +81,13 @@ test("a checkout's files are read by their own names, renames on both sides", ()
   expect(changedIn(git("status", "--porcelain=v1", "-z", "--", "app", "New.qml"), "app").sort()).toEqual(["Old.qml", "logic/door controls.ts"]);
 });
 
+// A rename git found in the worktree carries its R in the second column.
+test("a rename marked in the worktree column is changed on both sides", () => {
+  expect(changedIn(" R notes.txt\0app/Old.qml\0", "app")).toEqual(["Old.qml"]);
+  // The source of a copy is a path, not a record: none of it is cut away.
+  expect(changedIn(" C app/Copy.qml\0bigapp/Main.qml\0", "app")).toEqual(["Copy.qml"]);
+});
+
 for (const demo of demos) {
   const target = targetOf(demo);
   const upstream = JSON.parse(readFileSync(join(target, "UPSTREAM.json"), "utf8"));
