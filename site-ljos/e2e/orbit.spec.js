@@ -6,31 +6,61 @@
 // stands still. Once on each renderer: the JavaScript one and wgpu
 // (which draws on WebGL 2 where there is no WebGPU), each asked for by
 // the page's address.
-import { expect, open, press, runButton, test } from "./fixtures.js";
+import { animationFrames, expect, open, press, runButton, test } from "./fixtures.js";
 
 const showcase = (page) => page.locator("#app div.qq-text").filter({ hasText: /^See it run$/ }).first();
 const scene = (page) => page.locator("canvas.qq-view3d").first();
 
-// Without input any frame is the scene moving; how many there are is
-// the machine's: a software renderer under load rests after each slow
-// picture (`paced` in QtQuick3D/wgpu.js) and draws a few a second.
-const WINDOW = 2_500;
-// What a stopped view may still draw: the one picture it was resting
-// before, at most a slow picture's time and its rest.
-const SETTLE = 2_500;
+// Without input any frame is the scene moving; how many there are a
+// second is the machine's: a software renderer under load rests after each
+// slow picture (`paced` in QtQuick3D/wgpu.js) and draws a few a second. So
+// what is waited for is frames drawn, counted by the view, never a time.
 
-// Frames the view drew over `ms`, counted in the page, while the test
-// does nothing at all.
-async function framesOver(page, ms) {
-  const frames = await scene(page).evaluate(
-    (canvas, ms) =>
-      new Promise((resolve) => {
-        const from = canvas.$view3d.frames;
-        setTimeout(() => resolve(canvas.$view3d.frames - from), ms);
-      }),
-    ms,
+// Until the view has drawn another frame, while the test does nothing at
+// all, however long that takes.
+async function drawsOn(page, what) {
+  const from = await scene(page).evaluate((canvas) => canvas.$view3d.frames);
+  await test.step(`${what}: the view draws past frame ${from}`, () =>
+    scene(page).evaluate(
+      (canvas, from) =>
+        new Promise((done) => {
+          const look = () => (canvas.$view3d.frames > from ? done() : requestAnimationFrame(look));
+          look();
+        }),
+      from,
+    ),
   );
-  saw(`${frames} frames over ${ms} ms`);
+  saw(`${what}: drawn past frame ${from}`);
+}
+
+// Page frames a stopped view is watched through: a view still drawing draws
+// in one of them.
+const WATCHED = 60;
+
+// What the view drew over `WATCHED` of the page's animation frames, once it
+// has stopped: its clock paused (Orbit's `turning`) and no picture of it
+// still to draw (`due`: one it was resting before, or behind the GPU).
+async function drawnWhileStopped(page, what) {
+  await test.step(`${what}: the scene's clock is paused and no picture is due`, () =>
+    scene(page).evaluate(
+      (canvas) =>
+        new Promise((done) => {
+          const look = () => (!canvas.$view3d.view.parent.turning && !canvas.$view3d.due ? done() : requestAnimationFrame(look));
+          look();
+        }),
+    ),
+  );
+  const frames = await scene(page).evaluate(
+    (canvas, count) =>
+      new Promise((done) => {
+        const from = canvas.$view3d.frames;
+        let left = count;
+        const next = () => (--left <= 0 ? done(canvas.$view3d.frames - from) : requestAnimationFrame(next));
+        requestAnimationFrame(next);
+      }),
+    WATCHED,
+  );
+  saw(`${what}: ${frames} frames over ${WATCHED} of the page's`);
   return frames;
 }
 
@@ -143,8 +173,8 @@ for (const renderer of ["js", "wgpu"]) {
       expect(await scene(page).evaluate((canvas) => canvas.$view3d.renderer), "the renderer the address asked for").toBe(renderer);
       // Twice, a second apart: a scene that moved once and stopped
       // does not pass on that.
-      expect(await framesOver(page, WINDOW), "frames are drawn while nobody touches the page").toBeGreaterThan(0);
-      expect(await framesOver(page, WINDOW), "and go on being drawn").toBeGreaterThan(0);
+      await drawsOn(page, "frames are drawn while nobody touches the page");
+      await drawsOn(page, "and go on being drawn");
       // A picture can take as long as the wait for one (15 s on a starved
       // runner), so the wait is on the scene's clock and frame count, cheap
       // to read, and the pictures are compared once the clock has moved and
@@ -162,12 +192,12 @@ for (const renderer of ["js", "wgpu"]) {
     test("with less motion asked for, the scene still moves", async ({ page }) => {
       await page.emulateMedia({ reducedMotion: "reduce" });
       await reach(page, route);
-      expect(await framesOver(page, WINDOW), "frames are drawn while nobody touches the page").toBeGreaterThan(0);
+      await drawsOn(page, "frames are drawn while nobody touches the page");
     });
 
     test("scrolled away it stops, and back on screen it goes on", async ({ page }) => {
       await reach(page, route);
-      expect(await framesOver(page, WINDOW), "drawn on screen").toBeGreaterThan(0);
+      await drawsOn(page, "drawn on screen");
       // A wheel at the page's margin, where no example takes it, back
       // to the top.
       await page.mouse.move(16, 450);
@@ -175,15 +205,14 @@ for (const renderer of ["js", "wgpu"]) {
         await page.mouse.wheel(0, -4000);
         await expect(scene(page)).not.toBeInViewport({ timeout: 500 });
       }, "the scene is scrolled off screen").toPass();
-      await page.waitForTimeout(SETTLE);
-      expect(await framesOver(page, WINDOW), "nothing is drawn off screen").toBe(0);
+      expect(await drawnWhileStopped(page, "off screen"), "nothing is drawn off screen").toBe(0);
       await showcase(page).evaluate((element) => element.scrollIntoView({ block: "start" }));
-      await expect.poll(() => framesOver(page, WINDOW), { message: "drawn again once back" }).toBeGreaterThan(0);
+      await drawsOn(page, "drawn again once back");
     });
 
     test("in a hidden tab it stops, and shown again it goes on from where it was", async ({ page }) => {
       await reach(page, route);
-      expect(await framesOver(page, WINDOW), "drawn on screen").toBeGreaterThan(0);
+      await drawsOn(page, "drawn on screen");
       // Held in the first half of its turn, so a restart at 55 lands
       // more than half a turn ahead and the bound below refuses it.
       // Read past halfway, it waits for the wrap: up to one 26 s turn.
@@ -193,15 +222,15 @@ for (const renderer of ["js", "wgpu"]) {
             const went = onFrom(55, await turnOf(page));
             return went > 20 && went < 180;
           },
-          { message: "the scene turns from its opening pose, in the first half of its turn", timeout: 41_000 },
+          // However long the scene's clock takes to get there.
+          { message: "the scene turns from its opening pose, in the first half of its turn", timeout: 0 },
         )
         .toBe(true);
       await showTab(page, false);
-      await page.waitForTimeout(SETTLE);
-      expect(await framesOver(page, WINDOW), "nothing is drawn while the tab is hidden").toBe(0);
+      expect(await drawnWhileStopped(page, "hidden"), "nothing is drawn while the tab is hidden").toBe(0);
       const held = await turnOf(page);
-      await page.waitForTimeout(1_000);
-      expect(await turnOf(page), "hidden, the scene's clock holds still").toBe(held);
+      await animationFrames(page, WATCHED);
+      expect(await turnOf(page), `hidden, the scene's clock holds still over ${WATCHED} of the page's frames`).toBe(held);
       const shown = await showTab(page, true);
       // Paused, not stopped: a stopped animation starts again from
       // `from` (55), a snap back a reader sees. Shown again, the clock
@@ -216,7 +245,7 @@ for (const renderer of ["js", "wgpu"]) {
         `shown again, the scene goes on from where it was, not back at its start: held at ${held.toFixed(1)}°, now ${turn.toFixed(1)}°, ` +
           `${went.toFixed(1)}° on in the ${seconds.toFixed(2)} s since it was shown, where its pace allows ${(FASTEST * seconds).toFixed(1)}°`,
       ).toBeLessThanOrEqual(FASTEST * seconds + 1);
-      await expect.poll(() => framesOver(page, WINDOW), { message: "drawn again once shown" }).toBeGreaterThan(0);
+      await drawsOn(page, "drawn again once shown");
     });
   });
 }

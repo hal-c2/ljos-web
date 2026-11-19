@@ -11,7 +11,7 @@
 // reader left it; reduced motion softens and
 // never stops; one picture stands on light and dark.
 import AxeBuilder from "@axe-core/playwright";
-import { centre, classify, expect, frames, liveBlock, livePages, open, pageScroll, press, run, runButton, test, unexpected } from "./fixtures.js";
+import { animationFrames, centre, classify, expect, liveBlock, livePages, open, pageScroll, press, run, runButton, test, unexpected } from "./fixtures.js";
 import { brokenExample } from "./known.js";
 
 const examples = livePages().flatMap(({ route, examples }) => examples.filter((example) => !brokenExample(route, example.index)).map((example) => ({ route, example })));
@@ -81,16 +81,53 @@ async function violations(page) {
 }
 
 const drawn = (canvas) => canvas.evaluate((element) => element.$view3d?.frames ?? 0);
-// How many pictures the view draws in `ms`.
-// Kept drawing, not one repaint: more than one frame in a second. A rate
-// is not asked for, since a machine with no GPU draws the 3D demo at a
-// few frames a second.
-const keepsDrawing = (canvas) => drawsIn(canvas, 1_000);
 
-async function drawsIn(canvas, ms) {
-  const before = await drawn(canvas);
-  await canvas.page().waitForTimeout(ms);
-  return (await drawn(canvas)) - before;
+// Waits until the view has drawn `count` more pictures, however long a
+// machine takes over each: counted, not a rate, since a machine with no
+// GPU draws the 3D demo at a few frames a second. Two is kept drawing,
+// not one repaint.
+const drawsMore = (canvas, count, what) =>
+  test.step(what, () =>
+    canvas.evaluate(
+      (element, count) =>
+        new Promise((done) => {
+          const from = element.$view3d?.frames ?? 0;
+          const look = () => ((element.$view3d?.frames ?? 0) - from >= count ? done() : requestAnimationFrame(look));
+          look();
+        }),
+      count,
+    ),
+  );
+const keepsDrawing = (canvas, what) => drawsMore(canvas, 2, what);
+
+// How many of the page's animation frames a stopped view is watched over.
+const WATCHED = 60;
+
+// What a stopped view draws over WATCHED of the page's animation frames,
+// once its scene's clock is held and no picture it was asked for is
+// still to be drawn: a picture already under way when it stopped is let
+// finish, however long a software renderer takes over it, rather than
+// given a second to.
+async function drawnWhileStopped(canvas, what) {
+  await test.step(`${what}: the scene is held and no picture is due`, () =>
+    canvas.evaluate(
+      (element) =>
+        new Promise((done) => {
+          const look = () => (!element.$view3d.view.parent.turning && !element.$view3d.due ? done() : requestAnimationFrame(look));
+          look();
+        }),
+    ),
+  );
+  return canvas.evaluate(
+    (element, count) =>
+      new Promise((done) => {
+        const from = element.$view3d.frames;
+        let left = count;
+        const next = () => (--left <= 0 ? done(element.$view3d.frames - from) : requestAnimationFrame(next));
+        requestAnimationFrame(next);
+      }),
+    WATCHED,
+  );
 }
 
 test.describe("examples", () => {
@@ -106,8 +143,8 @@ test.describe("examples", () => {
     const block = liveBlock(page, plain.example.index);
     await centre(block.picture);
     await expect(runButton(block.toolbar), "its Run is in its toolbar").toBeVisible({ timeout: 30_000 });
-    await page.waitForTimeout(500);
-    await expect(block.picture, "it does not run until asked").toBeVisible();
+    await animationFrames(page, 30);
+    await expect(block.picture, "it does not run until asked, 30 of the page's frames on").toBeVisible();
     await press(block.picture);
     await expect(block.picture, "it runs in its picture's place").toBeHidden({ timeout: 30_000 });
     expect(unexpected(errors)).toEqual([]);
@@ -149,7 +186,7 @@ test.describe("examples", () => {
       await touch("touchStart", at.y);
       for (let step = 1; step <= 8; step++) await touch("touchMove", at.y - 10 * step);
       await touch("touchEnd");
-      await page.waitForTimeout(500);
+      await animationFrames(page, 30);
       await expect.poll(() => pageScroll(page), { message: "the swipe scrolled the page" }).not.toEqual(before);
       await expect(runButton(block.toolbar), "a swipe over the picture leaves it its picture").toBeVisible();
       await expect(block.picture).toBeVisible();
@@ -170,8 +207,8 @@ test.describe("examples", () => {
     await centre(block.picture);
     const button = runButton(block.toolbar);
     await expect(button, "its Run button is shown, named for a screen reader").toBeVisible({ timeout: 30_000 });
-    await page.waitForTimeout(500);
-    await expect(block.picture, "it does not run until asked").toBeVisible();
+    await animationFrames(page, 30);
+    await expect(block.picture, "it does not run until asked, 30 of the page's frames on").toBeVisible();
     // As a keyboard reader goes: into the code above it, out with
     // Escape (the editor keeps Tab for indenting), and Tab once to Run,
     // first in the toolbar under the code.
@@ -299,7 +336,7 @@ test.describe("examples", () => {
     // Away: scrolled past, then its tab hidden and shown again.
     await centre(page.locator('img[alt="What this example draws"]').last());
     await expect(block.stage, "it is scrolled past").not.toBeInViewport();
-    await page.waitForTimeout(1_000);
+    await animationFrames(page, 60);
     await page.evaluate(() => {
       for (const state of ["hidden", "visible"]) {
         Object.defineProperty(document, "visibilityState", { configurable: true, get: () => state });
@@ -412,11 +449,9 @@ test.describe("/demos/", () => {
     const canvas = (await start(page, "3D you can orbit")).locator("canvas.qq-view3d");
     await expect.poll(() => drawn(canvas), { message: "it draws" }).toBeGreaterThan(5);
     await centre(demo(page, "Motion"));
-    await frames(page);
-    await page.waitForTimeout(1_000);
-    expect(await drawsIn(canvas, 1000), "out of view, it draws nothing").toBe(0);
+    expect(await drawnWhileStopped(canvas, "out of view"), `out of view, it draws nothing over ${WATCHED} of the page's frames`).toBe(0);
     await centre(canvas);
-    await expect.poll(() => keepsDrawing(canvas), { message: "back in view, it draws again" }).toBeGreaterThan(1);
+    await keepsDrawing(canvas, "back in view, it draws again");
   });
 
   test("a demo in a hidden tab pauses, and resumes when the tab is shown", async ({ page }) => {
@@ -431,13 +466,9 @@ test.describe("/demos/", () => {
         document.dispatchEvent(new Event("visibilitychange"));
       }, state);
     await tab("hidden");
-    // A picture already under way when the tab was hidden is let
-    // finish: a software renderer takes most of a second over one.
-    await frames(page);
-    await page.waitForTimeout(1_000);
-    expect(await drawsIn(canvas, 1000), "hidden, it draws nothing").toBe(0);
+    expect(await drawnWhileStopped(canvas, "hidden"), `hidden, it draws nothing over ${WATCHED} of the page's frames`).toBe(0);
     await tab("visible");
-    await expect.poll(() => keepsDrawing(canvas), { message: "shown, it draws again" }).toBeGreaterThan(1);
+    await keepsDrawing(canvas, "shown, it draws again");
   });
 
   test("a demo's Run goes on to Pause, which holds it where it is until Resume", async ({ page, errors }) => {
@@ -454,17 +485,14 @@ test.describe("/demos/", () => {
     const pause = runButton(slot, "Pause the 3D demo");
     await expect(pause, "live, the control offers to pause").toBeVisible({ timeout: 30_000 });
     const canvas = slot.locator("canvas.qq-view3d");
-    await expect.poll(() => drawsIn(canvas, 500), { message: "it runs" }).toBeGreaterThan(0);
+    await drawsMore(canvas, 1, "it runs");
     await press(pause);
     const resume = runButton(slot, "Resume the 3D demo");
     await expect(resume, "paused, Resume goes on from there").toBeVisible();
-    // A picture already under way when it paused is let finish.
-    await frames(page);
-    await page.waitForTimeout(1_000);
-    expect(await drawsIn(canvas, 1_000), "paused, it draws nothing").toBe(0);
+    expect(await drawnWhileStopped(canvas, "paused"), `paused, it draws nothing over ${WATCHED} of the page's frames`).toBe(0);
     await press(resume);
     await expect(pause).toBeVisible();
-    await expect.poll(() => drawsIn(canvas, 500), { message: "and runs again" }).toBeGreaterThan(0);
+    await drawsMore(canvas, 1, "and runs again");
     const { names, said } = await heard(page);
     expect(names).toEqual(["Run the 3D demo", "Starting the 3D demo…", "Pause the 3D demo", "Resume the 3D demo", "Pause the 3D demo"]);
     expect(said).toEqual(["Starting the 3D demo…", "The 3D demo runs", "The 3D demo is paused", "The 3D demo runs"]);
@@ -521,7 +549,7 @@ test.describe("with reduced motion", () => {
     await open(page, "/demos/");
     await expect(page.getByRole("checkbox", { name: "Reduce motion" }), "the system's setting is followed").toBeChecked();
     const canvas = (await start(page, "3D you can orbit")).locator("canvas.qq-view3d");
-    await expect.poll(() => keepsDrawing(canvas), { message: "the 3D demo still turns" }).toBeGreaterThan(1);
+    await keepsDrawing(canvas, "the 3D demo still turns");
     const slot = await start(page, "A shader effect");
     const shader = slot.locator("canvas.qq-shader").first();
     // Drawn, and its picture gone: a first frame over the picture, or
@@ -532,7 +560,8 @@ test.describe("with reduced motion", () => {
     // and then held would change the first at most.
     for (const window of ["first", "then"]) {
       const before = await shader.screenshot();
-      await expect.poll(async () => Buffer.compare(before, await shader.screenshot()) !== 0, { message: `the shader still moves (${window})`, timeout: 5_000 }).toBe(true);
+      // However long the machine takes to draw the next of its frames.
+      await expect.poll(async () => Buffer.compare(before, await shader.screenshot()) !== 0, { message: `the shader still moves (${window})`, timeout: 0 }).toBe(true);
     }
   });
 });

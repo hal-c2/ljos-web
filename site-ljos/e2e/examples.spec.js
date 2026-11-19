@@ -82,10 +82,13 @@ for (const { route, examples } of pages) {
           };
           const words = () => shown.innerText();
           const before = { text: await words(), look: await signature(shown) };
+          // Waits on what the reader did, not a clock: an example that
+          // fetches or parses its data takes as long as the machine
+          // needs, and only the test's own timeout bounds it.
           await scripted.act({ page, stage: shown, at });
-          if (typeof scripted.expect === "function") await expect.poll(async () => scripted.expect(await words(), { page, stage: shown }), { message: "the example shows what the reader did" }).toBe(true);
-          else if (scripted.expect === "text") await expect.poll(words, { message: "its words change" }).not.toBe(before.text);
-          else await expect.poll(() => signature(shown), { message: "what it shows changes" }).not.toBe(before.look);
+          if (typeof scripted.expect === "function") await expect.poll(async () => scripted.expect(await words(), { page, stage: shown }), { message: "the example shows what the reader did", timeout: 0 }).toBe(true);
+          else if (scripted.expect === "text") await expect.poll(words, { message: "its words change", timeout: 0 }).not.toBe(before.text);
+          else await expect.poll(() => signature(shown), { message: "what it shows changes", timeout: 0 }).not.toBe(before.look);
         } else if (invisible.has(key)) {
           await press((await control.count()) ? control : shown);
         } else if (await control.count()) {
@@ -101,7 +104,7 @@ for (const { route, examples } of pages) {
           } else {
             await press(control);
           }
-          await expect.poll(() => signature(shown), { message: `a press on its ${role} changes what it shows` }).not.toBe(before);
+          await expect.poll(() => signature(shown), { message: `a press on its ${role} changes what it shows`, timeout: 0 }).not.toBe(before);
         } else {
           await centre(shown);
           const { x, y } = await centreOf(shown);
