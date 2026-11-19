@@ -235,10 +235,13 @@ function fromPage(route, href) {
 // A pro demo's picture (Demos/pro.json) in the scheme its page draws
 // it in: a demo drawn for one scheme (`scheme`) keeps it unless the
 // reader picked the other for the site (Theme.picked); one that follows
-// the site is in the scheme the reader reads it in (Theme.dark).
-function proPicture(demo, picked, dark) {
+// the site is in the scheme the reader reads it in (Theme.dark). In a
+// narrow page (`compact`) a demo with a tall shape of its own
+// (`demo.compact`) is pictured in that shape, so its frame's picture is
+// never stretched to the frame.
+function proPicture(demo, picked, dark, compact) {
     var darkened = demo.scheme === "dark" ? picked !== "light" : demo.scheme === "light" ? picked === "dark" : dark;
-    return "/pictures/" + demo.picture + (darkened ? "-dark" : "") + ".webp";
+    return "/pictures/" + demo.picture + (compact && demo.compact ? "-compact" : "") + (darkened ? "-dark" : "") + ".webp";
 }
 
 // A picture in rich text: written into the HTML the build makes, it is
