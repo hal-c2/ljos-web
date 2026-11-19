@@ -163,6 +163,7 @@ export interface TypeSpec<I extends QObject = QObject, P = PropertySpecs, S exte
   setup?(self: I, props: Props): void;
   adopt?(self: I, props: Props): void;
   readonly lists?: readonly string[];
+  readonly held?: readonly string[];
   readonly attached?: QmlType;
 }
 
@@ -186,6 +187,7 @@ export interface QmlType<I extends QObject = QObject> {
   enums: Enums;
   adopt: Method<[self: I, props: Props], void> | undefined;
   lists: readonly string[];
+  held: readonly string[];
   attached?: (self: QObject) => QObject | undefined;
 }
 
@@ -1741,6 +1743,8 @@ function defineSignal(proto: object, name: string): void {
 // - `lists`: properties that also hold what is declared inside
 //   (`resources: [Timer {}]`): `adopt` is given them first, among its
 //   children.
+// - `held`: those of `lists` that hold what they make without being its
+//   parent (`resources`): an item made in one has no parent.
 // - `attached`: the type of `Type.attached(object)`, for `ListView.view` or
 //   `Layout.fillWidth`. Its props are the object's `Type$name` ones.
 export function defineType<
@@ -1764,6 +1768,7 @@ export function defineType<
   Type.chain = base ? [...base.chain, Type] : [Type];
   Type.adopt = spec.adopt ?? base?.adopt;
   Type.lists = spec.lists ?? base?.lists ?? [];
+  Type.held = spec.held ?? base?.held ?? [];
   for (const [property, initial] of Object.entries(spec.properties ?? {})) {
     if (isGroup(initial)) defineGroup(Type, proto, property, initial[GROUP]);
     else defineProperty(Type, proto, property, initial);
@@ -1807,6 +1812,20 @@ let valued = false;
 let toldAt: number | null = null;
 // The item whose children are being created.
 let parent: QObject | null | undefined = null;
+// Whether the object made now is made by a list that holds it without
+// being its parent (`held`): it has none, though it is bounded and
+// recorded as what it is made in is. Given to the object made, not to
+// what that object makes in turn.
+let heldNow = false;
+function heldApart<T>(make: () => T): T {
+  const outer = heldNow;
+  heldNow = true;
+  try {
+    return make();
+  } finally {
+    heldNow = outer;
+  }
+}
 // The nonvisual object whose property's value is being created: given to
 // the object made, not to what that object makes in turn.
 let declaring: QObject | null = null;
@@ -2153,6 +2172,8 @@ function create(Type: QmlType, props: Props): QObject {
   const outerKind = makingKind;
   const holder = declaring;
   declaring = null;
+  const madeApart = heldNow;
+  heldNow = false;
   kindNow(Type.typeName ?? "");
   try {
     return complete(() => {
@@ -2160,8 +2181,9 @@ function create(Type: QmlType, props: Props): QObject {
       hidden(self, "$type", Type);
       hidden(self, "$props", props);
       hidden(self, "$owner", getOwner());
-      hidden(self, "$parent", parent);
+      hidden(self, "$parent", madeApart ? null : parent);
       if (holder && !parent) hidden(self, "$declaredIn", holder);
+      else if (madeApart && parent) hidden(self, "$declaredIn", parent);
       // What is made later inside an object bounded (a Repeater's delegate, a
       // Loader's item) is bounded as it is.
       const boundary = fault ?? parent?.$fault;
@@ -2189,7 +2211,7 @@ function create(Type: QmlType, props: Props): QObject {
       }
       if (Type.adopt) {
         const listed = Type.lists.filter((name) => name in props);
-        if (listed.length) Type.adopt(self, withLists(props, listed));
+        if (listed.length) Type.adopt(self, withLists(props, listed, Type.held));
         else if ("children" in props) Type.adopt(self, props);
       }
       for (const key of Object.keys(props)) {
@@ -2238,6 +2260,7 @@ function create(Type: QmlType, props: Props): QObject {
   } finally {
     kindNow(outerKind);
     declaring = holder;
+    heldNow = madeApart;
   }
 }
 
@@ -2263,12 +2286,15 @@ export function contents(props: Props, item?: QObject | null): QObject[] {
 // list both levels of a component give (`resources:` in its file and in
 // its instance) holds what each does, the file's first, each made once.
 // `$list(name)` is what one list held, once the children are read.
-function withLists(props: Props, listed: readonly string[]): Props {
+function withLists(props: Props, listed: readonly string[], held: readonly string[]): Props {
   const levels = (props.$levels as readonly Props[] | undefined) ?? [props];
   const made = new Map<string, QObject[]>();
   const list = (name: string): QObject[] => {
     let objects = made.get(name);
-    if (!objects) made.set(name, (objects = flatten(levels.filter((level) => Object.hasOwn(level, name)).map((level) => level[name]), [])));
+    if (!objects) {
+      const read = () => flatten(levels.filter((level) => Object.hasOwn(level, name)).map((level) => level[name]), []);
+      made.set(name, (objects = held.includes(name) ? heldApart(read) : read()));
+    }
     return objects;
   };
   return Object.create(props, {
