@@ -133,3 +133,28 @@ test("a broken compile that lands after Reset leaves no squiggles", async ({ pag
   await expect(editor.locator(".cm-lintRange-error"), "nothing the late compile said").toHaveCount(0);
   await expect(page.getByText(/FacePulse\.qml:\d+/)).toHaveCount(0);
 });
+
+// On a narrow page the watch's frame takes its compact shape, and the
+// picture in it is the one made in that shape, not the wide one
+// stretched to it.
+test("on a narrow page the watch's picture is its compact one, unstretched", async ({ browser }) => {
+  for (const colorScheme of ["light", "dark"]) {
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 }, colorScheme });
+    try {
+      const page = await context.newPage();
+      await page.goto("/demos/watch/");
+      await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+      const picture = page.locator('img[src*="/pictures/demo-watch"]').filter({ visible: true }).first();
+      await expect(picture).toHaveAttribute("src", colorScheme === "dark" ? /demo-watch-compact-dark\.webp$/ : /demo-watch-compact\.webp$/);
+      await picture.evaluate((img) => img.decode());
+      const shape = await picture.evaluate((img) => {
+        const box = img.getBoundingClientRect();
+        return { drawn: box.height / box.width, own: img.naturalHeight / img.naturalWidth, width: box.width };
+      });
+      expect(shape.width).toBeGreaterThan(300);
+      expect(Math.abs(shape.drawn - shape.own), JSON.stringify(shape)).toBeLessThan(0.01);
+    } finally {
+      await context.close();
+    }
+  }
+});

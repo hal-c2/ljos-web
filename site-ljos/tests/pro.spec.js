@@ -6,7 +6,7 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFil
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { expect, test } from "@playwright/test";
-import { changedIn, demos, listedIn, loaders, pages, projectOf, route, sha256, shippedBy, sourceAt, targetOf, titles } from "../scripts/pro.mjs";
+import { changedIn, demos, listedIn, loaders, pages, picturesOf, projectOf, route, sha256, shippedBy, sourceAt, targetOf, titles } from "../scripts/pro.mjs";
 import { execFileSync } from "node:child_process";
 
 const walk = (root, directory = root) =>
@@ -98,5 +98,29 @@ for (const demo of demos) {
     expect(here).toEqual(Object.keys(upstream.files).sort());
     expect(here.every(shippedBy(demo))).toBe(true);
     expect(here).toContain(demo.entry);
+  });
+}
+
+// A WebP's size, from its header: lossy (VP8), lossless (VP8L) or
+// extended (VP8X).
+const webpSize = (bytes) => {
+  const chunk = bytes.toString("ascii", 12, 16);
+  if (chunk === "VP8X") return { width: bytes.readUIntLE(24, 3) + 1, height: bytes.readUIntLE(27, 3) + 1 };
+  if (chunk === "VP8 ") return { width: bytes.readUInt16LE(26) & 0x3fff, height: bytes.readUInt16LE(28) & 0x3fff };
+  const bits = bytes.readUInt32LE(21);
+  return { width: (bits & 0x3fff) + 1, height: ((bits >>> 14) & 0x3fff) + 1 };
+};
+
+// Every picture an entry names is there, in the shape it stands for: the
+// demo's own, and its compact one where it has one, so a frame is never
+// given a picture stretched to it (Nav.proPicture).
+for (const demo of demos) {
+  test(`${route(demo)}'s pictures are there, each in its shape`, () => {
+    for (const { file, width, height } of picturesOf(demo)) {
+      const path = new URL(`../bundle/assets/${file}`, import.meta.url);
+      expect(existsSync(path), file).toBe(true);
+      const size = webpSize(readFileSync(path));
+      expect(Math.abs(size.height - Math.round((size.width * height) / width)), `${file} is ${size.width} by ${size.height}`).toBeLessThanOrEqual(1);
+    }
   });
 }

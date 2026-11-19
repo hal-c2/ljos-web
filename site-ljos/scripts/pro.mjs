@@ -14,8 +14,10 @@
 // `<picture>.webp` light, `<picture>-dark.webp` dark). Optional: `use`
 // (a paragraph under the app on how to work it), `compact` (`width` and
 // `height` of its shape on a narrow page, for an app that lays itself
-// out again when it is taller than wide) and `scheme` (dark or light,
-// for an app with one look; without it the pictures follow the site).
+// out again when it is taller than wide, with pictures of that shape:
+// `<picture>-compact.webp` and `<picture>-compact-dark.webp`) and
+// `scheme` (dark or light, for an app with one look; without it the
+// pictures follow the site).
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -30,6 +32,12 @@ export const pages = (all, after) => all.map((demo) => ({ route: route(demo), ti
 // compiles an edit against them, and a reader downloads them there.
 export const sourceAt = (demo) => `demos/${demo.name}/source`;
 export const targetOf = (demo) => join(bundle, "Demos", demo.dir);
+// The pictures a demo's frame shows until it runs, by file name: each
+// in the shape it is drawn in.
+export const picturesOf = (demo) =>
+  [["", demo], ...(demo.compact ? [["-compact", demo.compact]] : [])].flatMap(([shape, { width, height }]) =>
+    ["", "-dark"].map((scheme) => ({ file: `${demo.picture}${shape}${scheme}.webp`, width, height })),
+  );
 export const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 // What an app runs on: its QML, its TypeScript and its assets. What
 // made them (a build script, the source of a model) is left upstream,

@@ -164,8 +164,9 @@ Column {
         // A demo laid out for a tall frame too (`compact`) has that shape
         // where the page is narrow.
         aspect: !page.wide && page.demo.compact ? page.demo.compact.height / page.demo.compact.width : page.demo.height / page.demo.width
-        // In the scheme the demo is drawn in (nav.js proPicture).
-        picture: Nav.proPicture(page.demo, Theme.picked, Theme.dark)
+        // In the scheme the demo is drawn in, and in the frame's shape
+        // (nav.js proPicture).
+        picture: Nav.proPicture(page.demo, Theme.picked, Theme.dark, !page.wide)
         what: page.demo.what
         description: page.demo.shows
         demo: running
