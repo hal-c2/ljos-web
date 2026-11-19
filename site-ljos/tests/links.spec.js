@@ -234,21 +234,25 @@ test.describe("with touch", () => {
 // Where a link of the page is, down it: it moves up as the page is
 // scrolled down.
 const down = async (link) => (await link.boundingBox()).y;
-// Where it comes to rest, once the wheel has stopped moving the page.
+// Where it comes to rest, once the wheel has stopped moving the page:
+// where it stands in three of the page's animation frames in a row. A
+// smooth scroll moves the page every frame it runs, however far apart a
+// loaded machine puts them; a quarter second without a move, as this
+// once read, was a rest only on a quick one.
 async function rest(link) {
-  let last = null;
-  await expect
-    .poll(
-      async () => {
-        const now = await down(link);
-        const still = now === last;
-        last = now;
-        return still;
-      },
-      { intervals: [250] },
-    )
-    .toBe(true);
-  return last;
+  await link.evaluate(
+    (element) =>
+      new Promise((done) => {
+        const seen = [];
+        const look = () => {
+          seen.push(element.getClientRects()[0]?.y);
+          if (seen.length >= 3 && seen.slice(-3).every((y) => y === seen.at(-1))) done();
+          else requestAnimationFrame(look);
+        };
+        requestAnimationFrame(look);
+      }),
+  );
+  return down(link);
 }
 
 test("with script, a page pressed to is shown from its top, and back and forward come to where the reader left each", async ({ page }) => {
@@ -331,6 +335,12 @@ test("with script, a page loaded again is where the reader left it", async ({ pa
   await page.mouse.wheel(0, 600);
   await expect.poll(() => down(next)).toBeLessThan(unscrolled - 300);
   const left = await rest(next);
+  // The page keeps its place in its history entry once it has stopped
+  // moving (a quarter second after, Main.qml's `keeping`): loaded again
+  // before that, it has nothing to go back to.
+  await test.step("the entry keeps where the page stopped", () =>
+    page.waitForFunction((moved) => Math.abs((history.state?.offset ?? 0) - moved) < 1, unscrolled - left, { timeout: 0, polling: "raf" }),
+  );
 
   await page.reload();
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');

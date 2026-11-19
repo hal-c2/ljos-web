@@ -123,9 +123,24 @@ export async function open(page, route) {
 
 // The page scrolls in its own Flickable, not the document: bring an
 // element to the middle of the window before a hand goes to it.
+// It is there once it stands still: the same place in two animation frames
+// running, however long those take.
 export async function centre(locator) {
   await locator.evaluate((element) => element.scrollIntoView({ block: "center" }));
-  await locator.page().waitForTimeout(150);
+  await locator.evaluate(
+    (element) =>
+      new Promise((done) => {
+        let last = null;
+        const look = () => {
+          const { top, left } = element.getBoundingClientRect();
+          const now = `${top} ${left}`;
+          if (now === last) return done();
+          last = now;
+          requestAnimationFrame(look);
+        };
+        requestAnimationFrame(look);
+      }),
+  );
 }
 
 export async function centreOf(locator) {
@@ -167,7 +182,23 @@ export async function press(locator) {
 
 // Two frames: what a scroll or a press set going has been heard.
 export function frames(page) {
-  return page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+  return animationFrames(page, 2);
+}
+
+// `count` animation frames of the page's, one after another: what a check
+// that something does not happen waits through, counted in the frames it
+// would have happened in, not in time, which a loaded machine fills with
+// fewer of them.
+export function animationFrames(page, count) {
+  return page.evaluate(
+    (count) =>
+      new Promise((done) => {
+        let left = count;
+        const next = () => (--left <= 0 ? done() : requestAnimationFrame(next));
+        requestAnimationFrame(next);
+      }),
+    count,
+  );
 }
 
 // The Run button of a block or a demo (Runner).
@@ -194,9 +225,10 @@ export async function pinch(page, x, y, { from = 20, to = 80 } = {}) {
     { x: x + d, y, id: 2 },
   ];
   await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: points(from) });
+  // A move a frame: each is heard on its own, as a finger's are.
   for (let d = from + 6; d <= to; d += 6) {
     await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: points(d) });
-    await page.waitForTimeout(16);
+    await animationFrames(page, 1);
   }
   await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
   await cdp.detach();
@@ -226,13 +258,47 @@ export function signature(locator) {
   });
 }
 
-// The region keeps drawing new frames: a picture of it, taken again and
-// again, comes to differ from the first within a few seconds. Two
-// pictures a fixed time apart are not enough: an animation whose loop
-// lasts that long (a pulse of 1 s) shows the same frame in both. For a
-// canvas (3D, a shader) its pixels are read back as the screen shows
-// them, which is what a reader sees stop.
-export async function expectFramesAdvance(locator, { within = 3_000, message = "the picture keeps changing" } = {}) {
+// What the page's clock has run, counted where it steps (`ljos-web/clock`):
+// `{ frames, time }`, the time in ms of the scene's own.
+export const clockOf = (page) => page.evaluate(() => ({ frames: 0, time: 0, ...globalThis[Symbol.for("ljos-web/clock")] }));
+
+// Until the page's clock has run `more` frames past `frames`, however long
+// they take: a loaded machine runs fewer of them a second, not fewer of
+// them. A clock that stops waits for the test's own timeout, in a step that
+// says what it waited for.
+async function clockRuns(page, frames, more, what) {
+  await base.step(`${what}: the clock runs ${more} more frames`, () =>
+    page.waitForFunction(([after]) => (globalThis[Symbol.for("ljos-web/clock")]?.frames ?? 0) >= after, [frames + more], { timeout: 0, polling: "raf" }),
+  );
+}
+
+// Until the scene's clock has handed out `ms` of its own time from now, or
+// has nothing left to run: what an example that fades in or settles waits
+// for before it is read, counted in the time its animations were given, not
+// in the test's, which a loaded machine spends before a frame runs.
+export async function sceneRuns(page, ms, what) {
+  const { time } = await clockOf(page);
+  await base.step(`${what}: the scene's clock gives ${ms} ms more, or has nothing to run`, () =>
+    page.waitForFunction(
+      ([until]) => {
+        const clock = globalThis[Symbol.for("ljos-web/clock")];
+        return !clock?.jobs || clock.time >= until;
+      },
+      [time + ms],
+      { timeout: 0, polling: "raf" },
+    ),
+  );
+}
+
+// The region keeps drawing new frames: as the page's clock runs, a picture
+// of it, taken again and again, comes to differ from the first. What bounds
+// the wait is the scene's time, not the test's: the region has failed once
+// the clock has run `frames` frames and `span` ms since the first picture,
+// and every picture since is the same. Two pictures a fixed time apart are
+// not enough: an animation whose loop lasts that long (a pulse of 1 s) shows
+// the same frame in both. For a canvas (3D, a shader) its pixels are read
+// back as the screen shows them, which is what a reader sees stop.
+export async function expectFramesAdvance(locator, { span = 3_000, frames = 30, message = "the picture keeps changing" } = {}) {
   const page = locator.page();
   const clip = async () => {
     const box = await locator.boundingBox();
@@ -252,24 +318,52 @@ export async function expectFramesAdvance(locator, { within = 3_000, message = "
   // then stopped does not pass on its one change.
   for (const time of ["first", "again"]) {
     const from = await page.screenshot({ clip: await clip() });
-    await expect
-      .poll(async () => Buffer.compare(from, await page.screenshot({ clip: await clip() })) !== 0, { message: `${message} (${time})`, timeout: within, intervals: [130, 170, 230] })
-      .toBe(true);
+    const start = await clockOf(page);
+    for (let pictures = 1; ; pictures++) {
+      const seen = await clockOf(page);
+      const ran = { frames: seen.frames - start.frames, time: Math.round(seen.time - start.time) };
+      expect(
+        ran.frames < frames || ran.time < span,
+        `${message} (${time}): the clock ran ${ran.frames} frames and ${ran.time} ms of the scene's time, and ${pictures} pictures of it are the first`,
+      ).toBe(true);
+      await clockRuns(page, seen.frames, 6, `${message} (${time})`);
+      if (Buffer.compare(from, await page.screenshot({ clip: await clip() })) !== 0) break;
+    }
   }
 }
 
-// A `<video>` in the region plays: its time moves on by more than a
-// fraction of a second while nobody touches it.
-export async function expectVideoPlays(locator, { within = 1_500 } = {}) {
+// A `<video>` in the region plays: its own time moves on by more than a
+// quarter of a second while nobody touches it, however long the page takes
+// to play that quarter. A video that loops counts what it played across
+// the loop.
+export async function expectVideoPlays(locator, { by = 0.25 } = {}) {
   const video = locator.locator("video").first();
   await expect(video, "the example has a video").toBeAttached();
   await expect.poll(() => video.evaluate((element) => element.readyState), { message: "the video has data" }).toBeGreaterThanOrEqual(2);
-  const t0 = await video.evaluate((element) => element.currentTime);
-  await locator.page().waitForTimeout(within);
-  const state = await video.evaluate((element) => ({ t: element.currentTime, paused: element.paused, error: element.error?.message ?? null }));
+  const state = await base.step(`the video's time moves on by ${by} s`, () =>
+    video.evaluate(
+      (element, by) =>
+        new Promise((done) => {
+          let last = element.currentTime;
+          let played = 0;
+          const events = ["timeupdate", "pause", "ended", "error"];
+          const check = () => {
+            const now = element.currentTime;
+            played += now >= last ? now - last : now;
+            last = now;
+            if (!(element.error || element.paused || played >= by)) return;
+            for (const name of events) element.removeEventListener(name, check);
+            done({ played, paused: element.paused, error: element.error?.message ?? null });
+          };
+          for (const name of events) element.addEventListener(name, check);
+          check();
+        }),
+      by,
+    ),
+  );
   expect(state.error, "the video has no error").toBeNull();
   expect(state.paused, "the video is not paused").toBe(false);
-  expect(state.t - t0, "the video's time moves on").toBeGreaterThan(0.25);
+  expect(state.played, "the video's time moves on").toBeGreaterThanOrEqual(by);
 }
 
 // Errors a page says that are not an example's fault: a browser

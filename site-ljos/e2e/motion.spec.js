@@ -8,17 +8,26 @@ import { centre, expect, open, press, runButton, test } from "./fixtures.js";
 test.use({ reducedMotion: "reduce" });
 
 // Where the puck is, relative to its tray, read in the page on every
-// animation frame: first until it rests, as [ms, x, y], then for a
-// while after a press at the tray's left edge, as [ms, x]. Read in the page, not from
-// the test, so a busy machine cannot make the test look away while the
-// puck travels.
+// animation frame: first until it rests, as [ms, x, y], then after a
+// press at the tray's left edge until it has come to rest, as [ms, x].
+// Read in the page, not from the test, so a busy machine cannot make
+// the test look away while the puck travels.
+//
+// Every ms is the scene's own time: what the animation clock
+// (`ljos-web/clock`) has handed its animations. The puck moves by that
+// time, so where it is at each ms is the same on a loaded machine,
+// which only draws fewer of them; timed by the page's clock, a slow
+// frame looked like a jump or a rest.
 //
 // The press is measured from where the puck rests, so `start` is read
 // only once it has stayed within 0.5 px for STILL ms (a spring's turn
-// is still for a frame or two, a rest is not), or once SETTLE ms have
-// gone by, which `rest.still` then says.
+// is still for a frame or two, a rest is not), or the clock has nothing
+// left to run, or SETTLE ms have gone by, which `rest.still` then says.
 const STILL = 100;
 const SETTLE = 2_000;
+// How long after the press the puck is watched, at most: longer than
+// the softened travel takes.
+const WATCH = 2_500;
 async function pressAndWatch(page) {
   await open(page, "/demos/");
   const run = runButton(page, "Run the motion demo");
@@ -29,7 +38,7 @@ async function pressAndWatch(page) {
   const box = await tray.boundingBox();
   const PRESS = 20;
   const { rest, start, target } = await tray.evaluate(
-    async (area, { press, still, settle }) => {
+    async (area, { press, still, settle, watch }) => {
       const host = area.parentElement;
       const puck = () =>
         [...host.querySelectorAll("*")].find((element) => {
@@ -45,11 +54,12 @@ async function pressAndWatch(page) {
         return [own.x - tray.x, own.y - tray.y];
       };
       const read = () => place()?.[0] ?? null;
+      const clock = globalThis[Symbol.for("ljos-web/clock")];
       const rest = await new Promise((resolve) => {
         const seen = [];
-        const t0 = performance.now();
+        const t0 = clock.time;
         const frame = () => {
-          const at = performance.now() - t0;
+          const at = clock.time - t0;
           const where = place();
           seen.push([Math.round(at), where?.[0] ?? null, where?.[1] ?? null]);
           // From the last reading at least `still` ago, so the readings
@@ -61,17 +71,32 @@ async function pressAndWatch(page) {
             const values = recent.map((reading) => reading[axis]);
             return Math.max(...values) - Math.min(...values) <= 0.5;
           };
-          const quiet = recent.length >= 2 && recent.every(([, x]) => x !== null) && within(1) && within(2);
+          const drawn = recent.length >= 2 && recent.every(([, x]) => x !== null);
+          // Nothing left to run: the clock's time stands, and so does
+          // the puck, once two frames in a row find it in one place.
+          const idle = !clock.jobs && seen.length >= 2 && where !== null && seen.at(-2)[1] === where[0] && seen.at(-2)[2] === where[1];
+          const quiet = (drawn && within(1) && within(2)) || idle;
           if (quiet || at >= settle) resolve({ still: quiet, after: Math.round(at), seen });
           else requestAnimationFrame(frame);
         };
         requestAnimationFrame(frame);
       });
+      // Watched until WATCH ms of the scene's time have gone by since
+      // the press, or, once it has moved, the clock has nothing left to
+      // run and two frames in a row find it in one place.
       window.__puck = [];
-      const t0 = performance.now();
+      window.__pressed = null;
+      window.__watched = false;
+      const t0 = clock.time;
       const frame = () => {
-        window.__puck.push([Math.round(performance.now() - t0), read()]);
-        if (performance.now() - t0 < 2_500) requestAnimationFrame(frame);
+        const x = read();
+        const before = window.__puck.at(-1);
+        window.__puck.push([Math.round(clock.time - t0), x]);
+        const pressed = window.__pressed;
+        const after = pressed === null ? 0 : clock.time - pressed;
+        const settled = pressed !== null && after > 0 && !clock.jobs && before?.[1] === x;
+        if (after >= watch || settled) window.__watched = true;
+        else requestAnimationFrame(frame);
       };
       requestAnimationFrame(frame);
       // Where the press sends it, as Motion.qml's lead() puts it: the
@@ -82,14 +107,19 @@ async function pressAndWatch(page) {
       const pointer = area.getBoundingClientRect().x - own.x + press;
       return { rest, start: read(), target: Math.max(0, Math.min(own.width - width, pointer - width / 2)) };
     },
-    { press: PRESS, still: STILL, settle: SETTLE },
+    { press: PRESS, still: STILL, settle: SETTLE, watch: WATCH },
   );
   const trace = (samples) => JSON.stringify(samples.map(([t, ...place]) => [t, ...place.map((v) => (v === null ? null : Math.round(v * 10) / 10))]));
   const before = `${rest.still ? `at rest after ${rest.after} ms` : `not at rest after ${rest.after} ms`}; before the press [ms, x, y] ${trace(rest.seen)}`;
   expect(start, `the puck is drawn (${before})`).not.toBeNull();
   expect(rest.still, `the puck is at rest before the press (${before})`).toBe(true);
+  // From here on the clock's time counts as after the press: until the
+  // press lands it only runs if something else is moving.
+  await page.evaluate(() => (window.__pressed = globalThis[Symbol.for("ljos-web/clock")].time));
   await page.mouse.click(box.x + PRESS, box.y + box.height / 2);
-  await page.waitForTimeout(2_700);
+  await test.step("the puck is watched until it rests after the press", () =>
+    page.waitForFunction(() => window.__watched, null, { timeout: 0, polling: "raf" }),
+  );
   const samples = await page.evaluate(() => window.__puck);
   const xs = samples.map(([, x]) => x);
   // Every failure says what was seen, for each frame read.
@@ -109,8 +139,8 @@ test("with reduced motion the puck still travels; it does not jump", async ({ pa
   expect(end, `the puck is still drawn when it arrives (${seen})`).not.toBeNull();
   expect(Math.abs(end - target), `it ends where the reader pressed (${seen})`).toBeLessThanOrEqual(3);
   // A jump goes there between one frame and the next; travel takes
-  // time. Timed, not counted in frames: a busy machine draws fewer
-  // frames of the same travel.
+  // time. Timed in the scene's time, not counted in frames: a busy
+  // machine draws fewer frames of the same travel.
   // Only frames where the puck was found: a frame that lost it says
   // nothing about where it was. Timed from the last frame still at the
   // start, so sparse frames do not cut off the beginning of the travel.

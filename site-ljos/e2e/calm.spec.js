@@ -6,10 +6,11 @@
 // still goes on, and more slowly than with no preference. Hidden and
 // shown again, the clock goes on from where it held, never back to its
 // start.
-import { centre, expect, open, press, runButton, test } from "./fixtures.js";
+import { animationFrames, centre, expect, open, press, runButton, test } from "./fixtures.js";
 
-// How long a rate is read over: well under either clock's loop.
-const WINDOW = 3_000;
+// How many of the scene clock's frames a rate is read over: well under
+// either clock's loop, at any frame's length a loaded machine gives.
+const STEPS = 30;
 
 const DEMOS = [
   {
@@ -56,21 +57,28 @@ for (const demo of DEMOS) {
       await expect.poll(() => canvas(page).evaluate(demo.frames), { message: "the demo draws", timeout: 30_000 }).toBeGreaterThan(0);
     }
 
-    // The clock's pace, per second, and the frames drawn, over WINDOW,
-    // read in the page while the test does nothing.
+    // The clock's pace, per second of the scene's own time, and the frames
+    // drawn, over STEPS of the scene clock's frames and at least one drawn,
+    // read in the page while the test does nothing. The demo's clock moves
+    // by the time the scene's clock hands out (`ljos-web/clock`), so its
+    // pace read against that is its pace, however few frames a second a
+    // loaded machine runs; against the test's time it was the machine's.
     function pace(page) {
       return canvas(page).evaluate(
-        (element, [clock, frames, period, ms]) =>
+        (element, [clock, frames, period, steps]) =>
           new Promise((resolve) => {
             const read = new Function("canvas", `return (${clock})(canvas)`);
             const count = new Function("canvas", `return (${frames})(canvas)`);
-            const [v0, f0, t0] = [read(element), count(element), performance.now()];
-            setTimeout(() => {
+            const counted = globalThis[Symbol.for("ljos-web/clock")];
+            const [v0, f0, s0, t0] = [read(element), count(element), counted.frames, counted.time];
+            const look = () => {
+              if (counted.frames - s0 < steps || count(element) === f0) return void requestAnimationFrame(look);
               const went = (((read(element) - v0) % period) + period) % period;
-              resolve({ rate: (went * 1000) / (performance.now() - t0), frames: count(element) - f0 });
-            }, ms);
+              resolve({ rate: (went * 1000) / (counted.time - t0), frames: count(element) - f0 });
+            };
+            look();
           }),
-        [demo.clock.toString(), demo.frames.toString(), demo.period, WINDOW],
+        [demo.clock.toString(), demo.frames.toString(), demo.period, STEPS],
       );
     }
 
@@ -107,7 +115,8 @@ for (const demo of DEMOS) {
             const went = onFrom(demo.start, await clockOf(page));
             return went > demo.period / 18 && went < demo.period / 2;
           },
-          { message: "the clock leaves its start, in the first half of its loop", timeout: (demo.period / demo.fastest) * 1000 + 15_000 },
+          // However long the scene's clock takes to get there.
+          { message: "the clock leaves its start, in the first half of its loop", timeout: 0 },
         )
         .toBe(true);
       await page.evaluate(() => {
@@ -116,8 +125,8 @@ for (const demo of DEMOS) {
         document.dispatchEvent(new Event("visibilitychange"));
       });
       const held = await clockOf(page);
-      await page.waitForTimeout(1_000);
-      expect(await clockOf(page), "hidden, the clock holds still").toBe(held);
+      await animationFrames(page, 60);
+      expect(await clockOf(page), "hidden, the clock holds still over 60 of the page's frames").toBe(held);
       const shown = await page.evaluate(() => {
         Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "visible" });
         Object.defineProperty(document, "hidden", { configurable: true, get: () => false });

@@ -17,6 +17,24 @@ async function spread(png) {
 
 const demo = (page, name) => page.locator(`[data-ljos-demo='${name}']`);
 
+// Waits until the scene's clock has handed out `ms` more of its time, or
+// has nothing left to run: the time a spring is driven by, not the
+// test's, which a loaded machine stretches while the scene sees less.
+async function sceneRuns(page, ms, what) {
+  const clock = () => page.evaluate(() => globalThis[Symbol.for("ljos-web/clock")]?.time ?? 0);
+  const until = (await clock()) + ms;
+  await test.step(`${what}: the scene's clock gives ${ms} ms more, or has nothing to run`, () =>
+    page.waitForFunction(
+      (until) => {
+        const clock = globalThis[Symbol.for("ljos-web/clock")];
+        return !clock?.jobs || clock.time >= until;
+      },
+      until,
+      { timeout: 0, polling: "raf" },
+    ),
+  );
+}
+
 async function live(page, name) {
   const fig = demo(page, name);
   await fig.scrollIntoViewIfNeeded();
@@ -158,9 +176,9 @@ test("the orbit demo draws a 3D scene and orbiting changes the frame", async ({ 
   await page.mouse.down();
   await page.mouse.move(box.x + box.width / 2 + 140, box.y + box.height / 2 - 50, { steps: 12 });
   await page.mouse.up();
-  await page.waitForTimeout(600);
-  const after = await mount.screenshot();
-  expect(Buffer.compare(before, after)).not.toBe(0);
+  // However many frames the drawing takes to come: the picture differs once
+  // it does.
+  await expect.poll(async () => Buffer.compare(before, await mount.screenshot()), { message: "the orbited frame differs", timeout: 0 }).not.toBe(0);
 });
 
 test("the shader demo paints and answers the pointer", async ({ page }) => {
@@ -199,8 +217,10 @@ test("the motion demo springs, shuffles and opens", async ({ page }) => {
   // later. A full run read them in between and found none.
   await expect.poll(tiles).toEqual(["Ljós", "holds", "state", "while", "it", "moves"]);
   await fig.getByRole("button", { name: "Shuffle the tiles" }).click();
-  await page.waitForTimeout(800);
-  expect([...(await tiles())].sort()).toEqual(["Ljós", "holds", "it", "moves", "state", "while"].sort());
+  // The same six, however many frames the shuffle's moves take to land.
+  await expect
+    .poll(async () => [...(await tiles())].sort(), { message: "the shuffled tiles are the same six", timeout: 0 })
+    .toEqual(["Ljós", "holds", "it", "moves", "state", "while"].sort());
   await fig.getByRole("button", { name: /About this motion/ }).click();
   await expect(fig).toContainText("Springs, behaviors, list transitions");
 });
@@ -261,9 +281,11 @@ test("a demo off screen stops moving, and resumes in view", async ({ page }) => 
   // In view the spring travels a long way after the fling.
   await expect.poll(async () => Math.abs((await puckAt()) - box.width * 0.5), { timeout: 10000 }).toBeGreaterThan(60);
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-  await page.waitForTimeout(400);
+  // Scene time for the page to see it went, and for the flight's tail:
+  // then as much as a live spring moves tens of pixels in.
+  await sceneRuns(page, 400, "scrolled away");
   const away1 = await puckAt();
-  await page.waitForTimeout(700);
+  await sceneRuns(page, 700, "off screen");
   // Off screen the spring is not driven: at most the tail of the
   // flight it was in, never the tens of pixels a live spring moves.
   expect(Math.abs((await puckAt()) - away1)).toBeLessThan(2);

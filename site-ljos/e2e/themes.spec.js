@@ -3,7 +3,7 @@
 // color-contrast, WCAG AA), whichever scheme the browser asks for and
 // whichever the reader picks in the header after the page is open.
 import AxeBuilder from "@axe-core/playwright";
-import { centre, classify, expect, livePages, open, press, run, test } from "./fixtures.js";
+import { centre, classify, expect, livePages, open, press, run, runButton, sceneRuns, test } from "./fixtures.js";
 
 // axe's contrast, and nothing else: the rest of what axe asks is
 // tests/a11y.spec.js's.
@@ -96,7 +96,7 @@ test("words beside an empty field that say what its placeholder says are counted
   // counted. The open editor pushes the example down, so it is centred.
   await centre(block.running);
   for (const at of [0, 1]) await expect(notes.nth(at), "both are in the window for axe to read").toBeInViewport();
-  await page.waitForTimeout(400);
+  await sceneRuns(page, 400, "the edited example settles");
   await block.running.evaluate((element) => element.setAttribute("data-themes-check", ""));
   const all = await contrast(page, "[data-themes-check]");
   expect(all.filter(({ line }) => inPlaceholderColour("light", line)), "axe finds both under AA").toHaveLength(2);
@@ -163,7 +163,7 @@ for (const colorScheme of SCHEMES) {
           await open(page, route);
           const block = await run(page, example.index);
           // Settled: an example that fades in is read where it lands.
-          await page.waitForTimeout(400);
+          await sceneRuns(page, 400, `#${example.index} settles`);
           await block.running.evaluate((element) => element.setAttribute("data-themes-check", ""));
           const seen = new Set();
           expect(await unexcused(page, "[data-themes-check]", colorScheme, route, seen)).toEqual([]);
@@ -184,7 +184,7 @@ for (const colorScheme of SCHEMES) {
         await centre(title);
         const section = title.locator("xpath=../..");
         await centre(section);
-        await page.waitForTimeout(1_200);
+        await sceneRuns(page, 1_200, `the demo "${heading}" settles`);
         await section.evaluate((element) => element.setAttribute("data-themes-check", ""));
         expect(await unreadable(page, "[data-themes-check]")).toEqual([]);
       });
@@ -199,8 +199,10 @@ test("a scheme picked in the header reaches the demos that are running", async (
   await open(page, "/demos/");
   const title = page.locator("#app div.qq-text").filter({ hasText: /^Motion$/ }).first();
   await centre(title);
-  await page.waitForTimeout(800);
   const motion = title.locator("xpath=../..");
+  // Its frame is made as it nears the screen: read once it is there.
+  await expect(runButton(motion, "Run the motion demo"), "the motion demo's frame is made").toBeVisible();
+  await sceneRuns(page, 800, "the motion demo settles");
   // The colours it paints with, not its picture: the demo moves on its
   // own, so a picture would change with no pick at all.
   const look = () => motion.evaluate((element) => [...element.querySelectorAll("*")].map((child) => `${getComputedStyle(child).backgroundColor}/${getComputedStyle(child).color}`).join());
@@ -226,7 +228,7 @@ for (const colorScheme of SCHEMES) {
     expect(example, "an example with an empty Ljós field and a placeholder").toBeTruthy();
     await open(page, example.route);
     const block = await run(page, example.index);
-    await page.waitForTimeout(400);
+    await sceneRuns(page, 400, "the example settles");
     await block.running.evaluate((element) => element.setAttribute("data-themes-check", ""));
     const placeholders = [];
     for (const { target, line } of await contrast(page, "[data-themes-check]"))
