@@ -36,13 +36,30 @@ Column {
     spacing: Theme.l
     topPadding: page.wide ? Theme.xl : Theme.m
 
-    Component.onCompleted: {
-        Live.load(page.demo.name).then((project) => {
+    Component.onCompleted: page.open()
+    // The shell keeps this page from one pro demo's route to the next, so
+    // a new demo starts it afresh, and what was asked for the last one is
+    // dropped when it comes.
+    onDemoChanged: page.open()
+
+    function open() {
+        const name = page.demo.name;
+        debounce.stop();
+        files = [];
+        edits = {};
+        live = null;
+        said = "";
+        runs = true;
+        own = "";
+        path = page.demo.entry;
+        Live.load(name).then((project) => {
+            if (page.demo.name !== name)
+                return;
             page.files = project.files;
             page.show(page.path);
         });
         Live.needsWasm().then((why) => {
-            if (why) {
+            if (why && page.demo.name === name) {
                 page.runs = false;
                 page.said = why;
             }
@@ -55,7 +72,6 @@ Column {
         own = text;
         editor.text = text;
         editor.diagnostics = Live.diagnosticsFor(page.demo.name, next);
-        debounce.stop();
     }
     function edited(text) {
         if (text === own || !file)
@@ -73,20 +89,22 @@ Column {
         if (!runs)
             return;
         const asked = edits;
-        Live.compile(page.demo.name, page.demo.entry, asked, sourceBase).then((made) => {
-            if (asked !== page.edits)
+        const name = page.demo.name;
+        Live.compile(name, page.demo.entry, asked, sourceBase).then((made) => {
+            if (asked !== page.edits || page.demo.name !== name)
                 return;
             page.said = "";
             page.live = Object.keys(asked).length > 0 ? made : null;
             editor.diagnostics = [];
         }, (error) => {
-            if (asked !== page.edits)
+            if (asked !== page.edits || page.demo.name !== name)
                 return;
             page.said = error.message;
             editor.diagnostics = Live.diagnosticsFor(page.demo.name, page.path);
         });
     }
     function reset() {
+        debounce.stop();
         edits = {};
         live = null;
         said = "";
@@ -147,7 +165,10 @@ Column {
             id: host
             property bool active: true
             property bool calm: false
+            // The frame waits on what it holds; what it holds is the app.
+            readonly property bool ready: app.status === Loader.Ready && app.item !== null && app.item.ready !== false
             Loader {
+                id: app
                 anchors.fill: parent
                 source: Live.app(page.demo.name)
                 onLoaded: {

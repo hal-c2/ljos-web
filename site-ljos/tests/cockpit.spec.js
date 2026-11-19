@@ -64,8 +64,45 @@ test("with WebGPU the cockpit runs, opens a door, and is made again from an edit
     const editor = page.locator(`.cm-content[aria-label="Edit Cockpit.qml of the cockpit"]`).first();
     await expect(editor).toBeFocused({ timeout: 30_000 });
     await editor.fill(cockpit.replace("t`Climate`", "t`Cabin`"));
+    // Turning to another file before the edit compiles still runs it.
+    await page.getByRole("button", { name: "Main.qml", exact: true }).click();
     await expect(button("Cabin"), "the edited cockpit names its page as the edit says").toHaveCount(1, { timeout: 60_000 });
     await expect(button("Climate")).toHaveCount(0);
+  } finally {
+    await browser.close();
+  }
+});
+
+// Paused, the cockpit holds still: its song keeps its place and is still
+// the one playing when the reader runs it again.
+test("paused, the cockpit's song keeps its place and still plays", async ({ playwright, baseURL }) => {
+  const browser = await playwright.chromium.launch({ args: ["--enable-unsafe-webgpu", "--use-webgpu-adapter=swiftshader", "--enable-unsafe-swiftshader"] });
+  try {
+    const context = await browser.newContext({ baseURL, viewport: { width: 1440, height: 900 }, reducedMotion: "no-preference" });
+    const page = await context.newPage();
+    await page.goto("/demos/cockpit/");
+    await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+    const run = page.getByRole("button", { name: "Run the cockpit" });
+    await run.scrollIntoViewIfNeeded();
+    await run.click();
+    const pause = page.getByRole("button", { name: "Pause the cockpit" });
+    await expect(pause, "once the cockpit is drawn, Run is its Pause").toBeVisible({ timeout: 60_000 });
+    const button = (name) => page.getByRole("button", { name, exact: true });
+    await button("Media").click();
+    await button("Play").click();
+    const progress = page.getByRole("progressbar", { name: / of / });
+    const at = async () => (await progress.getAttribute("aria-label")) ?? (await progress.textContent());
+    const started = await at();
+    await expect.poll(at, { message: "playing, the song moves on", timeout: 10_000 }).not.toBe(started);
+    await pause.click();
+    const resume = page.getByRole("button", { name: "Resume the cockpit" });
+    await expect(resume).toBeVisible();
+    const held = await at();
+    await page.waitForTimeout(2500);
+    expect(await at(), "paused, the song keeps its place").toBe(held);
+    await resume.click();
+    await expect(button("Pause"), "run again, the song is still playing").toHaveCount(1);
+    await expect.poll(at, { message: "and moves on from where it stood", timeout: 10_000 }).not.toBe(held);
   } finally {
     await browser.close();
   }
