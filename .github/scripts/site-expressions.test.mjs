@@ -431,7 +431,7 @@ test("in the astro job, a cancelled run stops its Astro suites, after a parity f
   const ran = (failing, cancelledIn) => astroSuites.filter((id) => astroSteps(failing, cancelledIn).includes(id));
   assert.deepEqual(ran([], "sync-docs"), ["sync-docs"]);
   assert.deepEqual(ran(["site-ljos-suite"], "sync-docs"), ["sync-docs"], "a superseded run goes on after a parity failure");
-  assert.deepEqual(ran(["site-ljos-suite"], "site-ljos-suite"), [], "a superseded run goes on after a parity failure");
+  assert.deepEqual(ran(["site-ljos-suite"], "site-ljos-suite"), [], "a run cancelled during the parity suite runs an Astro suite");
 });
 
 // --- the table -------------------------------------------------------------
