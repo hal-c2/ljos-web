@@ -115,6 +115,7 @@ jobs:
       # First, as they take seconds and need nothing installed.
       - run: bash .github/scripts/fresh-head.test.sh
       - run: bash .github/scripts/supersede.test.sh
+      - run: bash .github/scripts/drawn-with.test.sh
       - run: node --test .github/scripts/site-expressions.test.mjs
       - run: node .github/scripts/site-expressions.test.mjs table >> "$GITHUB_STEP_SUMMARY"
       - id: pin
@@ -130,9 +131,13 @@ jobs:
       - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
         with:
           version: 2026.9.9
+      # ljos-ui's workspace, under a key of its own: read under the job's
+      # name it would start from ci.yml's check, another workspace.
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
         with:
           workspaces: ljos-ui
+          shared-key: ljos-ui
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       # Font discovery links fontconfig and the audio sink ALSA.
       - run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev libasound2-dev pkg-config
       - run: cargo test -p ljos_cli --test docs_site --locked
@@ -163,9 +168,11 @@ jobs:
           packages: "false"
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
         with:
-          # The key of the one build job this replaces, so the first
-          # run starts from its cache.
+          # qmlc and the wasm, saved here from main and read by ci.yml's
+          # browser and examples jobs, which build part of it. The key of
+          # the one build job this replaced, so main's cache answers.
           shared-key: build
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - run: cargo build --bin qmlc --locked
       - run: mise run build:wasm-compiler
       - run: mise run build:wasm-3d
@@ -208,8 +215,8 @@ jobs:
           path: |
             site-ljos/.codeblock-prerenders
             !site-ljos/.codeblock-prerenders/wasm
-          key: codeblocks-ljos-${{ steps.setup.outputs.image }}-${{ steps.setup.outputs.inputs }}-${{ steps.setup.outputs.pictures }}
-          restore-keys: codeblocks-ljos-${{ steps.setup.outputs.image }}-
+          key: codeblocks-ljos-${{ steps.setup.outputs.drawing }}-${{ steps.setup.outputs.inputs }}-${{ steps.setup.outputs.pictures }}
+          restore-keys: codeblocks-ljos-${{ steps.setup.outputs.drawing }}-
       - run: pnpm --filter ljos-site-ljos build
         env:
           QMLC: ${{ github.workspace }}/target/debug/qmlc
@@ -255,8 +262,8 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: site-ljos/.codeblock-prerenders/wasm
-          key: codeblocks-wasm-ljos-${{ steps.setup.outputs.image }}-${{ steps.setup.outputs.inputs }}-${{ steps.setup.outputs.pictures }}
-          restore-keys: codeblocks-wasm-ljos-${{ steps.setup.outputs.image }}-
+          key: codeblocks-wasm-ljos-${{ steps.setup.outputs.drawing }}-${{ steps.setup.outputs.inputs }}-${{ steps.setup.outputs.pictures }}
+          restore-keys: codeblocks-wasm-ljos-${{ steps.setup.outputs.drawing }}-
       - run: pnpm --filter ljos-site-ljos build
         env:
           QMLC: ${{ github.workspace }}/target/debug/qmlc
@@ -352,8 +359,8 @@ jobs:
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: site/.codeblock-prerenders
-          key: codeblocks-astro-${{ steps.setup.outputs.image }}-${{ steps.setup.outputs.inputs }}
-          restore-keys: codeblocks-astro-${{ steps.setup.outputs.image }}-
+          key: codeblocks-astro-${{ steps.setup.outputs.drawing }}-${{ steps.setup.outputs.inputs }}
+          restore-keys: codeblocks-astro-${{ steps.setup.outputs.drawing }}-
       # Prerenders each live block (and fails on one that claims to
       # run and does not) before the build embeds them. Under the
       # environment of the build after it: the build embeds only what
@@ -470,8 +477,8 @@ jobs:
           path: |
             site-ljos/.codeblock-prerenders
             !site-ljos/.codeblock-prerenders/wasm
-          key: codeblocks-ljos-${{ steps.setup.outputs.image }}-${{ steps.setup.outputs.inputs }}-${{ steps.setup.outputs.pictures }}
-          restore-keys: codeblocks-ljos-${{ steps.setup.outputs.image }}-
+          key: codeblocks-ljos-${{ steps.setup.outputs.drawing }}-${{ steps.setup.outputs.inputs }}-${{ steps.setup.outputs.pictures }}
+          restore-keys: codeblocks-ljos-${{ steps.setup.outputs.drawing }}-
       - run: pnpm --filter ljos-site-ljos build
         env:
           QMLC: ${{ github.workspace }}/target/debug/qmlc
