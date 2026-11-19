@@ -77,13 +77,22 @@ T.Popup {
         const py = side === Qt.TopEdge ? at.y - height - gap
                  : side === Qt.BottomEdge ? at.y + at.height + gap
                  : at.y
-        const back = anchor.mapFromItem(top, px, py)
         // Where the parent's transforms have no inverse (it is scaled to 0,
         // say) `mapFromItem` gives the window's point back as it was, and
         // no point of the parent's is where the popover goes: it keeps the
-        // parent's corner, rather than take a window's point for one.
+        // parent's corner, rather than take a window's point for one. A
+        // parent shrunk to a point or a line spans no area, which a pixel
+        // along each of its axes shows; the place alone can come back where
+        // it was, where it is the point the parent is shrunk to. Only the
+        // place is mapped back: a point beside it can lie on the horizon of
+        // a perspective that maps the place itself back and forth exactly.
+        const o = anchor.mapToItem(top, 0, 0)
+        const ex = anchor.mapToItem(top, 1, 0)
+        const ey = anchor.mapToItem(top, 0, 1)
+        const area = (ex.x - o.x) * (ey.y - o.y) - (ex.y - o.y) * (ey.x - o.x)
+        const back = anchor.mapFromItem(top, px, py)
         const again = anchor.mapToItem(top, back.x, back.y)
-        if (Math.abs(again.x - px) > 0.5 || Math.abs(again.y - py) > 0.5)
+        if (area === 0 || Math.abs(again.x - px) > 0.5 || Math.abs(again.y - py) > 0.5)
             return { side: side, x: 0, y: 0 }
         return { side: side, x: back.x, y: back.y }
     }
