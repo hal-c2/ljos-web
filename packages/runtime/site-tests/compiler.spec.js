@@ -74,6 +74,10 @@ test("a dev server goes on answering while a file compiles", async () => {
     const compiling = server.transformRequest("/Main.qml").finally(() => {
       ended = true;
     });
+    // Handled from the start: a compile that ended before it was seen to
+    // begin fails on the assert below, and only there, not again as a
+    // rejection nobody waited for.
+    compiling.catch(() => {});
     while (!existsSync(`${main}.begun`) && !ended) await new Promise((resolve) => setTimeout(resolve, 10));
     const other = await server.transformRequest("/other.js");
     expect(other?.code).toContain("other");
@@ -81,6 +85,8 @@ test("a dev server goes on answering while a file compiles", async () => {
     writeFileSync(`${main}.go`, "");
     expect((await compiling).code).toContain("function Main");
   } finally {
+    // A test that failed before it let the compile end lets it end here.
+    writeFileSync(`${main}.go`, "");
     await server.close();
     rmSync(dir, { recursive: true, force: true });
   }
@@ -103,8 +109,15 @@ test("a file saved while it compiles is compiled again, not given back as it was
   const qmlc = join(dir, "qmlc");
   // The file is the module it compiles to, read once the compile has begun.
   // Read under another name and moved: `.read` is there only once the read
-  // is done, where a redirect makes it before `cat` has read anything.
-  writeFileSync(qmlc, '#!/bin/sh\nfor last; do :; done\ncase "$last" in *.qml) cat "$last" > "$last.reading" && mv "$last.reading" "$last.read"; sleep 1; cat "$last.read";; esac\n', { mode: 0o755 });
+  // is done, where a redirect makes it before `cat` has read anything. It
+  // ends only once the test lets it (`.go`), after the save, so the save
+  // falls inside the compile however slow the machine; its minute is the
+  // stub's own bound, not one the test keeps.
+  writeFileSync(
+    qmlc,
+    '#!/bin/sh\nfor last; do :; done\ncase "$last" in *.qml) cat "$last" > "$last.reading" && mv "$last.reading" "$last.read"; i=0; while [ ! -e "$last.go" ] && [ $i -lt 600 ]; do sleep 0.1; i=$((i+1)); done; cat "$last.read";; esac\n',
+    { mode: 0o755 },
+  );
   const file = join(dir, "Main.qml");
   writeFileSync(file, "export default function Before() {}\n");
   const server = await createServer({
@@ -122,12 +135,14 @@ test("a file saved while it compiles is compiled again, not given back as it was
     while (!existsSync(`${file}.read`)) await new Promise((resolve) => setTimeout(resolve, 10));
     writeFileSync(file, "export default function After() {}\n");
     server.watcher.emit("change", file);
+    writeFileSync(`${file}.go`, "");
     await first.catch(() => null);
     // Vite's own result is let go of as a page reloaded later would; what
     // the plugin kept is all that is left to give the old file back.
     server.moduleGraph.invalidateAll();
     expect((await server.transformRequest("/Main.qml"))?.code).toContain("function After");
   } finally {
+    writeFileSync(`${file}.go`, "");
     await server.close();
     rmSync(dir, { recursive: true, force: true });
   }
