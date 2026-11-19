@@ -732,12 +732,16 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
         dedupe: ["solid-js", "@solidjs/web", "@solidjs/signals"],
       },
     };
-    const plugin = () => qml({ qmlc, args: ["--root", dir], qt, styles, standins, theme: theme ? join(dir, theme) : false, liveShell });
+    // What the compiler said of the bundle's files, for both builds: it
+    // says the same to each, and a run holds the event loop they share.
+    const answers = new Map();
+    const plugin = () => qml({ qmlc, args: ["--root", dir], qt, styles, standins, theme: theme ? join(dir, theme) : false, liveShell, answers });
     // The page's build and, for a prerender, the server bundle of the same
     // entry, at once: neither reads what the other writes, and each has a
     // plugin of its own. The compiler is run to its end in the plugin's
-    // load (`runCompiler`), so no two compiles overlap; what overlaps is
-    // the bundler's own work around them.
+    // load (`runCompiler`), so no two compiles overlap, and what one build
+    // asked of it the other is told (`answers`); what overlaps is the
+    // bundler's own work around them.
     const client = timed("client", () =>
       build({
         ...shared,
