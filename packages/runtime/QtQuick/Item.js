@@ -380,6 +380,15 @@ export const Item = defineType("Item", QtObject, {
       arranged(this);
       this.$touch((version) => version + 1);
     },
+    // Holds one `resources` is given once this is made (through an alias
+    // of it): this item's, but not drawn by it. The holder lasts as long
+    // as this does, not as the effect that gave it, so no owner takes it.
+    $hold(object) {
+      if (this.$held?.includes(object)) return;
+      this.$held = [...(this.$held ?? []), object];
+      runWithOwner(null, () => heldBy(this, [object]));
+      this.$touch((version) => version + 1);
+    },
     // Takes one out, whether it was made with this or added later.
     $remove(item) {
       const index = this.$extra?.indexOf(item) ?? -1;
