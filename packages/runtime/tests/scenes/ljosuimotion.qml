@@ -11,6 +11,7 @@ Item {
 
     property bool moved: false
     property alias slider: slider
+    property alias blink: blink
     property real open: moved ? 1 : 0
     property real spin: 0
 
@@ -40,6 +41,18 @@ Item {
         }
         Behavior on fill {
             ColorAnimation { duration: 400 }
+        }
+    }
+
+    // A fade the file asks to take no time takes none.
+    Rectangle {
+        id: blink
+        width: 20
+        height: 20
+        opacity: root.moved ? 0.5 : 1
+
+        Behavior on opacity {
+            NumberAnimation { duration: 0 }
         }
     }
 }
