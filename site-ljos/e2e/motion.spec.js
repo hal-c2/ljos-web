@@ -88,13 +88,20 @@ async function pressAndWatch(page) {
       window.__pressed = null;
       window.__watched = false;
       const t0 = clock.time;
+      // Where the first frame after the press found it, and whether one
+      // since found it elsewhere: what else ran the clock meanwhile and
+      // stopped is not the puck at rest after a move it never made.
+      let from;
+      let moved = false;
       const frame = () => {
         const x = read();
         const before = window.__puck.at(-1);
         window.__puck.push([Math.round(clock.time - t0), x]);
         const pressed = window.__pressed;
+        if (pressed !== null && from === undefined) from = x;
+        if (pressed !== null && x !== null && from != null && Math.abs(x - from) > 0.5) moved = true;
         const after = pressed === null ? 0 : clock.time - pressed;
-        const settled = pressed !== null && after > 0 && !clock.jobs && before?.[1] === x;
+        const settled = moved && after > 0 && !clock.jobs && before?.[1] === x;
         if (after >= watch || settled) window.__watched = true;
         else requestAnimationFrame(frame);
       };

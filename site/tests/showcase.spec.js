@@ -23,6 +23,9 @@ const demo = (page, name) => page.locator(`[data-ljos-demo='${name}']`);
 async function sceneRuns(page, ms, what) {
   const clock = () => page.evaluate(() => globalThis[Symbol.for("ljos-web/clock")]?.time ?? 0);
   const until = (await clock()) + ms;
+  // Two of the page's frames first: what the scroll just set going is one
+  // of the clock's jobs by then, and is not taken for nothing left to run.
+  await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
   await test.step(`${what}: the scene's clock gives ${ms} ms more, or has nothing to run`, () =>
     page.waitForFunction(
       (until) => {
@@ -216,11 +219,42 @@ test("the motion demo springs, shuffles and opens", async ({ page }) => {
   // delegates, made once the strip has its width, which can be a frame
   // later. A full run read them in between and found none.
   await expect.poll(tiles).toEqual(["Ljós", "holds", "state", "while", "it", "moves"]);
+  // Each word and where its tile stands, left to right: a word is centred
+  // in its tile, so its centre is the tile's, whatever the word's width.
+  const placed = () =>
+    fig
+      .locator(".ljos-demo__mount")
+      .getByText(/^(Ljós|holds|state|while|it|moves)$/)
+      .evaluateAll((words) =>
+        words
+          .map((word) => {
+            const box = word.getBoundingClientRect();
+            return [word.textContent, box.x + box.width / 2];
+          })
+          .sort((a, b) => a[1] - b[1]),
+      );
+  const frames = () => page.evaluate(() => globalThis[Symbol.for("ljos-web/clock")]?.frames ?? 0);
+  const start = await placed();
+  const ranFrom = await frames();
   await fig.getByRole("button", { name: "Shuffle the tiles" }).click();
-  // The same six, however many frames the shuffle's moves take to land.
-  await expect
-    .poll(async () => [...(await tiles())].sort(), { message: "the shuffled tiles are the same six", timeout: 0 })
-    .toEqual(["Ljós", "holds", "it", "moves", "state", "while"].sort());
+  // Landed: every tile stands in one of the six places the strip had, and
+  // the order is another, or the scene's clock ran frames enough for the
+  // moves to have begun and the shuffle gave the same order back. Not on
+  // the first look after the press, which is still the strip before it.
+  const order = (row) => row.map(([word]) => word).join(" ");
+  await test.step("the shuffle's moves land", () =>
+    expect
+      .poll(
+        async () => {
+          const now = await placed();
+          const inPlaces = now.length === start.length && now.every(([, x], at) => Math.abs(x - start[at][1]) <= 1);
+          return inPlaces && (order(now) !== order(start) || (await frames()) - ranFrom >= 3);
+        },
+        { timeout: 0 },
+      )
+      .toBe(true),
+  );
+  expect([...(await tiles())].sort(), "the shuffled tiles are the same six").toEqual(["Ljós", "holds", "it", "moves", "state", "while"].sort());
   await fig.getByRole("button", { name: /About this motion/ }).click();
   await expect(fig).toContainText("Springs, behaviors, list transitions");
 });

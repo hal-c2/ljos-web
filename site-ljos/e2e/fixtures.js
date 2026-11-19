@@ -278,6 +278,11 @@ async function clockRuns(page, frames, more, what) {
 // in the test's, which a loaded machine spends before a frame runs.
 export async function sceneRuns(page, ms, what) {
   const { time } = await clockOf(page);
+  // Two of the page's frames first: a fade or Behavior that what came
+  // just before started (a run, a scroll) is one of the clock's jobs by
+  // then, and is not taken for nothing left to run. Not a frame of the
+  // clock's: one that has nothing to run steps no frame at all.
+  await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
   await base.step(`${what}: the scene's clock gives ${ms} ms more, or has nothing to run`, () =>
     page.waitForFunction(
       ([until]) => {

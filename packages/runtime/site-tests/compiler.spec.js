@@ -91,7 +91,9 @@ test("a file saved while it compiles is compiled again, not given back as it was
   const dir = mkdtempSync(join(tmpdir(), "ljos-web-saved-"));
   const qmlc = join(dir, "qmlc");
   // The file is the module it compiles to, read once the compile has begun.
-  writeFileSync(qmlc, '#!/bin/sh\nfor last; do :; done\ncase "$last" in *.qml) cat "$last" > "$last.read"; sleep 1; cat "$last.read";; esac\n', { mode: 0o755 });
+  // Read under another name and moved: `.read` is there only once the read
+  // is done, where a redirect makes it before `cat` has read anything.
+  writeFileSync(qmlc, '#!/bin/sh\nfor last; do :; done\ncase "$last" in *.qml) cat "$last" > "$last.reading" && mv "$last.reading" "$last.read"; sleep 1; cat "$last.read";; esac\n', { mode: 0o755 });
   const file = join(dir, "Main.qml");
   writeFileSync(file, "export default function Before() {}\n");
   const server = await createServer({
