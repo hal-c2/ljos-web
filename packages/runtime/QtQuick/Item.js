@@ -435,12 +435,23 @@ export const Item = defineType("Item", QtObject, {
   // declared in the item.
   lists: ["resources", "data"],
   // Qt 6.11: what `resources` holds is the item's but not drawn by it, so
-  // an item it names keeps its visual parent.
+  // an item it names keeps its visual parent. One the item also declares,
+  // or gives `data`, is still its child, once.
   adopt(self, props) {
     const made = contents(props, self);
     const held = props.$list?.("resources") ?? EMPTY;
-    if (held.length) self.$held = held;
-    self.$static = held.length ? made.filter((child) => !held.includes(child)) : made;
+    if (held.length) {
+      self.$held = held;
+      const left = new Map();
+      for (const object of held) left.set(object, (left.get(object) ?? 0) + 1);
+      const kept = made.filter((child) => {
+        const times = left.get(child);
+        if (!times) return true;
+        left.set(child, times - 1);
+        return false;
+      });
+      self.$static = [...new Set(kept)];
+    } else self.$static = made;
     if (self.$static.length) arranged(self);
   },
 });
