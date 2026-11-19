@@ -122,6 +122,7 @@ jobs:
       - run: bash .github/scripts/supersede.test.sh
       - run: bash .github/scripts/drawn-with.test.sh
       - run: bash .github/scripts/keep-installed-debs.test.sh
+      - run: bash .github/scripts/fetch-debs.test.sh
       - run: node --test .github/scripts/site-expressions.test.mjs
       - run: node --test .github/scripts/site-jobs.test.mjs
       - run: node --test .github/scripts/e2e-parts.test.mjs

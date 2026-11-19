@@ -97,3 +97,20 @@ test("each artefact a job builds is uploaded by it under a name the site-setup a
     if (single) assert.equal(download.path.replace(/\/?$/, "/"), built.replace(/\/?$/, "/"), `${name} is downloaded to ${download.path}, not ${built}`);
   }
 });
+
+// A cold run's site jobs waited 9.5 min on one stalled mirror for the
+// packages Chromium needs, and every e2e job waits on them.
+test("a browser's system packages are fetched side by side before Playwright installs them, when the cache has none of this image's", () => {
+  const action = read("../actions/site-setup/action.yml");
+  const at = (pattern) => action.findIndex((line) => pattern.test(line));
+  const fetch = at(/bash \.github\/scripts\/fetch-debs\.sh ~\/\.cache\/playwright-debs/);
+  assert.ok(fetch >= 0, "site-setup never runs fetch-debs.sh");
+  assert.ok(/install-deps --dry-run chromium/.test(action[fetch]), "fetch-debs.sh is not given Playwright's dry run");
+  const step = action.slice(0, fetch).findLastIndex((line) => /^ {4}- /.test(line));
+  const own = action.slice(step, fetch);
+  assert.ok(own.some((line) => line.includes("steps.debs.outputs.cache-hit != 'true'")), "it runs even when this image's cache was found");
+  assert.ok(own.some((line) => line.trim() === "continue-on-error: true"), "a failed fetch would fail the job, though apt fetches what it lacks");
+  assert.ok(at(/90playwright-debs/) < fetch, "it runs before apt is told where its cache is");
+  assert.ok(fetch < at(/exec playwright install(?!-deps --dry-run)/), "it runs after Playwright installs");
+  assert.ok(runs(all.get("check"), "bash .github/scripts/fetch-debs.test.sh"), "the check job does not test fetch-debs.sh");
+});
