@@ -2,13 +2,13 @@ name: site setup
 description: >-
   What every site.yml job that builds or tests starts with: the pinned
   tools, the JavaScript packages, and on request the Rust artefacts the
-  rust job built, the ljos-ui docs at the pinned revision, and Chromium.
+  rust jobs built, the ljos-ui docs at the pinned revision, and Chromium.
 inputs:
   rust:
-    description: "Install Rust too (the rust job builds; the others download what it built)"
+    description: "Install Rust too (the rust jobs build; the others download what they built)"
     default: "false"
   artefacts:
-    description: "Download the rust job's qmlc and wasm into the places the tasks build them"
+    description: "Download the rust and rust-3d jobs' qmlc and wasm into the places the tasks build them"
     default: "false"
   docs:
     description: "Fetch ljos-ui's docs/site at site/ljos-ui.sha (mise run site:docs) and set LJOS_DOCS_DIR"
@@ -61,6 +61,11 @@ runs:
       uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
       with:
         name: rust-artefacts
+    - if: inputs.artefacts == 'true'
+      uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+      with:
+        name: rust-artefacts-3d
+        path: packages/runtime/QtQuick3D/wgpu/
     # An artifact keeps no file modes.
     - if: inputs.artefacts == 'true'
       shell: bash
