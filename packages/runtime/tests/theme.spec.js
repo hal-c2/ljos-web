@@ -8,6 +8,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test as plain } from "@playwright/test";
+import { createServer } from "vite";
 import { expect, open, test } from "./open.js";
 
 const qmlc = process.env.QMLC ?? join(import.meta.dirname, "../../../target/debug/qmlc");
@@ -145,9 +146,41 @@ test.describe("a theme file beside an entry", () => {
   // One file, written by each in turn.
   test.describe.configure({ mode: "serial" });
   test.afterEach(() => rmSync(hot, { force: true }));
+  // On a server of its own: what a server says of a file it refused goes
+  // to every page it serves, and the other specs' pages are on the shared
+  // one. Its own cache, so the shared server's is not written under it, and
+  // its scan done before a page asks, so no dependency found late makes the
+  // page again. A server of its own starts cold, its dependencies bundled
+  // and the runtime compiled for the first page it serves: one page opened
+  // here pays for that, so each test's time is its own steps'.
+  let server;
+  let cacheDir;
+  test.beforeAll(async ({ browser }) => {
+    cacheDir = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "ljos-theme-server-"));
+    server = await createServer({
+      configFile: join(import.meta.dirname, "vite.config.js"),
+      cacheDir,
+      logLevel: "error",
+      server: { host: "127.0.0.1", port: 0 },
+    });
+    await server.listen();
+    await server.environments.client.depsOptimizer?.scanProcessing;
+    const first = await browser.newPage();
+    await entry(first, "theme-file");
+    await first.close();
+  });
+  test.afterAll(async () => {
+    await server?.close();
+    if (cacheDir) rmSync(cacheDir, { recursive: true, force: true });
+  });
+  const at = (scene) => `${server.resolvedUrls.local[0]}?scene=${scene}`;
+  const entry = async (page, scene) => {
+    await page.goto(at(scene));
+    await page.waitForFunction(() => window.ready);
+  };
 
   test("written, changed and taken away while the page is open, is followed without the page being made again", async ({ page }) => {
-    await open(page, "theme-file");
+    await entry(page, "theme-file");
     await page.evaluate(() => window.scene.field.forceActiveFocus());
     await page.keyboard.type("kept");
     await page.evaluate(() => (window.marker = window.scene));
@@ -166,12 +199,36 @@ test.describe("a theme file beside an entry", () => {
   // cannot take is said on the page as an error, as it is of any such file.
   plain("turned into one that is refused, leaves the page the theme it had", async ({ page }) => {
     writeFileSync(hot, '{"Spacing": {"md": 20}}\n');
-    await open(page, "theme-file");
+    await entry(page, "theme-file");
     const label = () => page.evaluate(() => window.scene.label.text);
     expect(await label()).toBe("gap 20");
     writeFileSync(hot, '{"Spacing": {"md": "wide"}}\n');
     await expect(page.locator("vite-error-overlay")).toHaveCount(1);
     expect(await page.locator("vite-error-overlay").evaluate((overlay) => overlay.shadowRoot.textContent)).toContain("theme.json:1:20: Spacing.md is a whole number");
     expect(await label()).toBe("gap 20");
+  });
+
+  // These run beside the other specs' pages. A page of the server that is
+  // told this file was refused, and has had nothing to take since it was
+  // opened, is made again at the next file taken (Vite's client): what is
+  // said of this file reaches no page but this entry's.
+  plain("refused and then taken away, makes no other spec's page again", async ({ page, context }) => {
+    writeFileSync(hot, '{"Spacing": {"md": 20}}\n');
+    await entry(page, "theme-file");
+    writeFileSync(hot, '{"Spacing": {"md": "wide"}}\n');
+    await expect(page.locator("vite-error-overlay")).toHaveCount(1);
+    const other = await context.newPage();
+    const loads = [];
+    other.on("load", () => loads.push(other.url()));
+    await open(other, "timer");
+    await other.evaluate(() => (window.marker = true));
+    // Another page of the entry, which asks for the refused file again.
+    const again = await context.newPage();
+    await again.goto(at("theme-file"));
+    await expect(again.locator("vite-error-overlay")).toHaveCount(1);
+    rmSync(hot);
+    await expect.poll(() => page.evaluate(() => window.scene.label.text)).toBe("gap 12");
+    expect(await other.evaluate(() => window.marker ?? false)).toBe(true);
+    expect(loads).toHaveLength(1);
   });
 });
