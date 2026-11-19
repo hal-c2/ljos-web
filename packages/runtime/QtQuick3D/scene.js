@@ -50,7 +50,7 @@ export function fetched(url) {
   if (made) return made;
   made = { bytes: null, failed: null, wanted: false };
   made.done = guardedFetch(url)
-    .then((answer) => (answer.ok ? answer.arrayBuffer() : Promise.reject(Object.assign(new Error(`${answer.status}`), { told: `${answer.status} ${answer.statusText}` }))))
+    .then((answer) => (answer.ok ? answer.arrayBuffer() : Promise.reject(Object.assign(new Error(`${answer.status}`), { told: `${answer.status} ${answer.statusText}`, status: answer.status }))))
     .then(
       (bytes) => void (made.bytes = bytes),
       (error) => {
@@ -88,9 +88,7 @@ export function file(url, kind, took) {
   bytes.wanted = true;
   const make = () => {
     try {
-      // Only a fetch nothing answered is worth asking again: a server's
-      // answer (a 404) is the file's, and stays.
-      if (bytes.failed) return { error: `could not be read: ${bytes.failed.message}`, fetching: !bytes.failed.told };
+      if (bytes.failed) return { error: `could not be read: ${bytes.failed.message}`, fetching: again(bytes.failed) };
       return took(bytes.bytes);
     } catch (error) {
       return { error: `could not be read: ${error.message}` };
@@ -109,7 +107,14 @@ export function file(url, kind, took) {
   return record;
 }
 
-// A file's state, as `file` has it, except that a fetch no server answered
+// Whether a fetch that failed is worth asking again: one nothing answered,
+// or a server busy or restarting (5xx, 408, 429). Any other answer (a 404)
+// is the file's, and stays.
+function again({ status }) {
+  return status === undefined || status >= 500 || status === 408 || status === 429;
+}
+
+// A file's state, as `file` has it, except that a fetch worth asking again
 // is forgotten once told: whoever asks after it reads the file again, as a
 // pick does. A server's answer, and what the file was found to hold, even
 // an error in it, stay.
