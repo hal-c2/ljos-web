@@ -124,7 +124,9 @@ function found(self) {
 // The models a ray is tried against: those for picking, shown or not, of
 // a shape that something shown is drawn with. A shape's triangles are what
 // is met where a model that is for picking, or is inside one that is, is
-// shown with it and not shown through wholly.
+// shown with it and not shown through wholly. What a loader read is met
+// where the loader is shown, at its triangles: the renderer that draws it
+// draws it whole.
 function pickable(self) {
   const drawn = new Set();
   const exact = new Set();
@@ -133,13 +135,15 @@ function pickable(self) {
     if (opacity > 0.01 && forPicking(node)) exact.add(shape);
   }
   const models = [];
-  const walk = (node) => {
+  const walk = (node, shown) => {
     const shape = node.$model && node.pickable ? node.$shape() : null;
     if (shape && drawn.has(shape)) models.push({ node, shape, exact: exact.has(shape), placed: node.$world(), instances: node.$instances() });
-    for (const child of inside(node)) walk(child);
+    const seen = shown && node.visible !== false;
+    if (seen && node.$picks) for (const part of node.$picks()) models.push({ ...part, exact: true, instances: null });
+    for (const child of inside(node)) walk(child, seen);
   };
-  for (const node of inside(self.$scene)) walk(node);
-  if (self.importScene?.$spatial) walk(self.importScene);
+  for (const node of inside(self.$scene)) walk(node, true);
+  if (self.importScene?.$spatial) walk(self.importScene, true);
   return models;
 }
 
