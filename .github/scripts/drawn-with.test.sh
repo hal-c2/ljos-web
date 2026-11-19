@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # drawn-with.sh against a stubbed fontconfig and dpkg: the hash moves
-# with a font, a fontconfig rule or a library that draws, and with
+# with a font (its version or its file), a fontconfig rule or a library that draws, and with
 # nothing else (the runner image's name, the order fc-list lists in,
 # a package that draws nothing). A machine it cannot read gives no hash.
 set -euo pipefail
@@ -37,14 +37,21 @@ differs() {
 machine() {
   local dir="$work/$1"
   mkdir -p "$dir/etc/conf.d"
-  printf '/usr/share/fonts/dejavu/DejaVuSans.ttf\tDejaVu Sans\tBook\t160000\n/usr/share/fonts/liberation/LiberationSerif-Regular.ttf\tLiberation Serif\tRegular\t131072\n' > "$dir/fonts"
+  mkdir -p "$dir/share/dejavu" "$dir/share/liberation"
+  echo 'DejaVu Sans glyphs' > "$dir/share/dejavu/DejaVuSans.ttf"
+  echo 'Liberation Serif glyphs' > "$dir/share/liberation/LiberationSerif-Regular.ttf"
+  printf '%s\tDejaVu Sans\tBook\t160000\n%s\tLiberation Serif\tRegular\t131072\n' "$fonts/dejavu/DejaVuSans.ttf" "$fonts/liberation/LiberationSerif-Regular.ttf" > "$dir/fonts"
   echo '<fontconfig><alias><family>serif</family></alias></fontconfig>' > "$dir/etc/fonts.conf"
   echo '<fontconfig/>' > "$dir/etc/conf.d/10-hinting.conf"
   printf 'curl=8.5.0-2ubuntu10.6\nlibfontconfig1=2.15.0-1.1ubuntu2\nlibgl1-mesa-dri=25.0.7-0ubuntu0.24.04.2\nlibllvm20=1:20.1.2-0ubuntu1~24.04.2\nmesa-vulkan-drivers=25.0.7-0ubuntu0.24.04.2\n' > "$dir/packages"
   echo "$dir"
 }
+# Every machine's fonts are at one path, as on the runners: a machine's
+# own are put there before it is hashed.
+fonts="$work/fonts"
 hash_of() {
   local dir=$1; shift
+  rm -rf "$fonts" && cp -r "$dir/share" "$fonts"
   env PATH="$work/bin:$PATH" STUB_DIR="$dir" FONTCONFIG_ETC="$dir/etc" "$@" bash "$script"
 }
 
@@ -66,8 +73,13 @@ font=$(machine font)
 sed -i 's/\t160000$/\t161000/' "$font/fonts"
 differs "a font at another version gives another hash" "$(hash_of "$font")" "$first"
 
+glyphs=$(machine glyphs)
+echo 'DejaVu Sans glyphs, redrawn' > "$glyphs/share/dejavu/DejaVuSans.ttf"
+differs "a font file changed under the same name and version gives another hash" "$(hash_of "$glyphs")" "$first"
+
 added=$(machine added)
-printf '/usr/share/fonts/noto/NotoColorEmoji.ttf\tNoto Color Emoji\tRegular\t131072\n' >> "$added/fonts"
+echo 'Noto Color Emoji glyphs' > "$added/share/NotoColorEmoji.ttf"
+printf '%s\tNoto Color Emoji\tRegular\t131072\n' "$fonts/NotoColorEmoji.ttf" >> "$added/fonts"
 differs "one more font gives another hash" "$(hash_of "$added")" "$first"
 
 rule=$(machine rule)
