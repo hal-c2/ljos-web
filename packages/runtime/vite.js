@@ -555,6 +555,11 @@ export async function compilerRun(qmlc, args, options = {}) {
 //   that leaves out the ones the runtime cannot run: one bundle names them
 //   all, where a stopped one names one a build. Otherwise the build stops
 //   at the first, naming the file that asked.
+// - `answers`: a Map the plugin keeps what the compiler said in, for a
+//   build that shares it with another build of the same files at the same
+//   time (a site's page and its server bundle, `buildSite`): what one has
+//   asked, the other takes rather than asks again. A dev server's files
+//   change under it, so it asks every time.
 export default function qml({
   faces,
   qmlc = "qmlc",
@@ -572,6 +577,7 @@ export default function qml({
   types,
   liveShell = false,
   lacking,
+  answers,
 } = {}) {
   let asked;
   const found = () => (asked ??= installed());
@@ -607,6 +613,14 @@ export default function qml({
   qmlc = compilerAt(qmlc);
   const looked = (file) => (typeof importPaths === "function" ? importPaths(file) : importPaths) ?? [];
   const compiled = new Map();
+  // A run of the compiler as a build runs it, to its end (`runCompiler`):
+  // once in `answers` for whatever builds share them.
+  const ask = (argv, options = {}) => {
+    if (serving || !answers) return runCompiler(qmlc, argv, options);
+    const key = JSON.stringify([qmlc, options.cwd ?? process.cwd(), argv]);
+    if (!answers.has(key)) answers.set(key, runCompiler(qmlc, argv, options));
+    return answers.get(key);
+  };
   // Saves of QML seen so far: a compile that a save came during gives back
   // what the file said before it, and is not kept in `compiled`.
   let saves = 0;
@@ -699,7 +713,7 @@ export default function qml({
       }
       [argv, cwd] = [["--theme-for", relative(project, entry), "--root", "."], project];
     }
-    const ran = runCompiler(qmlc, [...argv, ...hue], { cwd, encoding: "utf8" });
+    const ran = ask([...argv, ...hue], { cwd, encoding: "utf8" });
     if (ran.error) return { error: `could not run ${qmlc}: ${ran.error.message}`, watched };
     if (ran.status !== 0) return { error: ran.stderr.trim(), watched };
     return { json: ran.stdout.trim(), watched };
@@ -770,7 +784,7 @@ export default function qml({
   const listed = (kind, module) => {
     const key = `${kind} ${module}`;
     if (!tables.has(key)) {
-      const asked = runCompiler(qmlc, [kind, module.replaceAll("/", ".")], { encoding: "utf8" });
+      const asked = ask([kind, module.replaceAll("/", ".")], { encoding: "utf8" });
       // A compiler that hung says nothing of the module: not its absence.
       if (asked.error?.code === "ETIMEDOUT") throw new Error(`could not run ${qmlc}: ${asked.error.message}`);
       const names = asked.status === 0 ? asked.stdout.trim().split(" ").slice(1) : [];
@@ -1098,7 +1112,7 @@ export default function qml({
       // server goes on answering while it compiles.
       const options = { encoding: "utf8", maxBuffer: 1 << 28 };
       const savesBefore = saves;
-      const result = serving ? await compilerRun(qmlc, [...given, file], options) : runCompiler(qmlc, [...given, file], options);
+      const result = serving ? await compilerRun(qmlc, [...given, file], options) : ask([...given, file], options);
       if (result.error) this.error(`could not run ${qmlc}: ${result.error.message}`);
       if (result.status !== 0) this.error(result.stderr.trim());
       // Kept with its ask, so what is kept of Qt's own QML asks too.
@@ -1114,7 +1128,7 @@ export default function qml({
       if (live && entries.has(file)) {
         // Asked with what the file is compiled with, and told which directory
         // the files are from: the one lookup says both.
-        const asked = serving ? await compilerRun(qmlc, ["--shell", ...given, file], options) : runCompiler(qmlc, ["--shell", ...given, file], options);
+        const asked = serving ? await compilerRun(qmlc, ["--shell", ...given, file], options) : ask(["--shell", ...given, file], options);
         if (asked.error) this.error(`could not run ${qmlc}: ${asked.error.message}`);
         if (asked.status !== 0) this.error(asked.stderr.trim());
         for (const line of asked.stderr.split("\n")) if (line.trim()) this.warn(line.replace(/^warning: /, ""));
