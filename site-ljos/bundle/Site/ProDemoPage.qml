@@ -25,6 +25,10 @@ Column {
     property var edits: ({})
     property var live: null
     property string said: ""
+    // What the reader's current edits made the compiler say, by file:
+    // the editor's squiggles. Only the compile of the edits as they
+    // still stand writes it, so one that lands late says nothing.
+    property var marks: ({})
     property bool runs: true
     // The text last given to the editor by the page, so the editor saying
     // it back is not taken for an edit.
@@ -49,6 +53,7 @@ Column {
         edits = {};
         live = null;
         said = "";
+        marks = {};
         runs = true;
         own = "";
         path = page.demo.entry;
@@ -71,7 +76,7 @@ Column {
         const text = Object.hasOwn(edits, next) ? edits[next] : (file ? file.code : "");
         own = text;
         editor.text = text;
-        editor.diagnostics = Live.diagnosticsFor(page.demo.name, next);
+        editor.diagnostics = marks[next] || [];
     }
     function edited(text) {
         if (text === own || !file)
@@ -94,20 +99,25 @@ Column {
             if (asked !== page.edits || page.demo.name !== name)
                 return;
             page.said = "";
+            page.marks = {};
             page.live = Object.keys(asked).length > 0 ? made : null;
             editor.diagnostics = [];
         }, (error) => {
             if (asked !== page.edits || page.demo.name !== name)
                 return;
             page.said = error.message;
-            editor.diagnostics = Live.diagnosticsFor(page.demo.name, page.path);
+            page.marks = error.diagnostics || {};
+            editor.diagnostics = page.marks[page.path] || [];
         });
     }
     function reset() {
+        // An edit waiting to be compiled is set back with the rest, and
+        // what a broken one said goes with it.
         debounce.stop();
         edits = {};
         live = null;
         said = "";
+        marks = {};
         show(path);
     }
 
@@ -115,19 +125,6 @@ Column {
         id: debounce
         interval: 500
         onTriggered: page.apply()
-    }
-
-    // How to use the app, for a demo whose entry says (`use`).
-    Text {
-        visible: (page.demo.use ?? "") !== ""
-        width: Math.min(parent.width, Theme.measure)
-        text: page.demo.use ?? ""
-        color: Theme.textMuted
-        font.family: Theme.sans
-        font.pixelSize: Theme.bodySize
-        lineHeightMode: Text.FixedHeight
-        lineHeight: Theme.bodyLine
-        wrapMode: Text.Wrap
     }
 
     Column {
@@ -193,6 +190,19 @@ Column {
                 }
             }
         }
+    }
+
+    // How to use the app, for a demo whose entry says (`use`).
+    Text {
+        visible: (page.demo.use ?? "") !== ""
+        width: Math.min(parent.width, Theme.measure)
+        text: page.demo.use ?? ""
+        color: Theme.textMuted
+        font.family: Theme.sans
+        font.pixelSize: Theme.bodySize
+        lineHeightMode: Text.FixedHeight
+        lineHeight: Theme.bodyLine
+        wrapMode: Text.Wrap
     }
 
     Column {
