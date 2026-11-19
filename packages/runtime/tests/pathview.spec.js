@@ -1,6 +1,6 @@
 // What is expected here is what Qt 6.11 answers for the same QML: `qml6` for
 // the steps, and `qmltestrunner` with the same presses and moves for the mouse.
-import { expect, open, test } from "./open.js";
+import { expect, open, stampPointers, test } from "./open.js";
 
 // What `read()` answers at the start, part by part.
 const START = {
@@ -198,6 +198,9 @@ test("a PathView puts its rows along its path, as its offset and current row say
 const row = (x, current = false) => [x, 10, true, current];
 
 test("the mouse turns a PathView, and lets go of it between rows or with a flick", async ({ page }) => {
+  // The mouse's moves a frame apart, and its rests, as the test gives them
+  // (open.js), not as quickly as a loaded machine sends them.
+  const gap = await stampPointers(page);
   await open(page, "pathview&still");
   const read = () => page.evaluate(() => [window.scene.read()[0], ...window.scene.turning()]);
   const rest = (ms) => page.evaluate((ms) => window.clock.advance(ms), ms);
@@ -208,7 +211,7 @@ test("the mouse turns a PathView, and lets go of it between rows or with a flick
   };
   // A point that rested before it was let go has no speed left.
   const drop = async () => {
-    await page.waitForTimeout(120);
+    await gap(120);
     await page.mouse.up();
   };
   expect(await read()).toEqual([[], [4, 0, 0, 0, [row(-10, true), row(40), row(90), row(140)]], false, false, false]);

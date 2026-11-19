@@ -1,7 +1,14 @@
 // A Flickable dragged and thrown with a mouse, which the browser leaves to
 // the page. What is expected is what Qt 6.11 does with the same scene and
 // the same moves.
-import { expect, open, test } from "./open.js";
+import { expect, open, stampPointers, test } from "./open.js";
+
+// The time between the mouse's moves, as the test gives it (open.js): what
+// a move's speed, and a rest before a release, are read from.
+let gap;
+test.beforeEach(async ({ page }) => {
+  gap = await stampPointers(page);
+});
 
 const said = (page) => page.evaluate(() => window.scene.said());
 const at = (page, name = "flickable") => page.evaluate((name) => window.scene[name].contentY, name);
@@ -13,12 +20,12 @@ async function drag(page, x, from, to, steps, wait, release = true) {
   await page.mouse.move(x, from);
   await page.mouse.down();
   for (let step = 1; step <= steps; step++) {
-    if (wait) await page.waitForTimeout(wait);
+    if (wait) await gap(wait);
     await page.mouse.move(x, from + ((to - from) * step) / steps);
     seen.push(await at(page));
   }
   if (release) {
-    if (wait) await page.waitForTimeout(wait);
+    if (wait) await gap(wait);
     await page.mouse.up();
   }
   return seen;
@@ -48,7 +55,7 @@ test("a mouse drags the content once it has gone far enough", async ({ page }) =
   expect(await at(page)).toBe(0);
   // A mouse that rested before it was let go has not thrown it.
   await page.mouse.move(50, 100);
-  await page.waitForTimeout(150);
+  await gap(150);
   await page.mouse.up();
   expect(await said(page)).toEqual(["dragEnded 70", "movementEnded"]);
   expect(await page.evaluate(() => [window.scene.flickable.dragging, window.scene.flickable.moving])).toEqual([false, false]);
@@ -84,7 +91,7 @@ test("a press in a Flickable is not one for what is behind it", async ({ page })
   expect(await said(page)).toEqual([]);
   await drag(page, 250, 200, 100, 10, 0, false);
   expect(await at(page, "plain")).toBe(70);
-  await page.waitForTimeout(150);
+  await gap(150);
   await page.mouse.up();
   // Nor does the drag select the text it went over.
   expect(await page.evaluate(() => String(getSelection()))).toBe("");
@@ -120,7 +127,7 @@ async function swipe(page, from, to, rest) {
   await page.mouse.move(from, 50);
   await page.mouse.down();
   for (let x = from; x !== to; ) await page.mouse.move((x += Math.sign(to - from) * 20), 50);
-  if (rest) await page.waitForTimeout(150);
+  if (rest) await gap(150);
   await page.mouse.up();
 }
 
@@ -137,7 +144,7 @@ test("a list that goes an item at a time comes to rest on one", async ({ page })
   for (const to of [370, 350, 330, 310]) await page.mouse.move(to, 50);
   expect(await x()).toBe(40);
   // Let go of at rest, having gone far enough, it goes on to the next.
-  await page.waitForTimeout(150);
+  await gap(150);
   await page.mouse.up();
   expect(await rested()).toEqual([100, ["dragStarted 0", "movementStarted", "dragEnded 40", "movementEnded"]]);
   // Thrown, it goes one on however far it would have gone.

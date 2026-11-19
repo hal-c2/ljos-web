@@ -41,3 +41,25 @@ export const rect = (page, name) =>
     const { x, y, width, height } = window.objects[name].$node.getBoundingClientRect();
     return { x, y, width, height };
   }, name);
+
+// The time a pointer's moves come at, as the test says: each pointer event
+// is stamped a frame's 16 ms after the one before it, or what `gap(ms)`
+// gives the next one. A point's speed is read from its events' stamps
+// (QtQuick/pointer.js), so a speed is the test's, however late a loaded
+// page runs the events; timed by waiting between them, it was the
+// machine's. Installed before the scene is opened.
+export async function stampPointers(page) {
+  await page.addInitScript(() => {
+    for (const type of ["pointerdown", "pointermove", "pointerup", "pointercancel"])
+      window.addEventListener(
+        type,
+        (event) => {
+          window.pointerStamp = (window.pointerStamp ?? event.timeStamp) + (window.pointerGap ?? 16);
+          window.pointerGap = undefined;
+          Object.defineProperty(event, "timeStamp", { value: window.pointerStamp });
+        },
+        true,
+      );
+  });
+  return (ms) => page.evaluate((ms) => (window.pointerGap = ms), ms);
+}
