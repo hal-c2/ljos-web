@@ -35,11 +35,18 @@ Item {
     }
     // What is destroyed is gone from every `resources` that held it.
     function drop() {
+        heard = []
         held.resources[0].destroy()
         shared.destroy()
     }
+    // What binds to a holder's resources hears of it, whoever draws it.
+    readonly property int heldCount: held.resources.length
+    readonly property int otherCount: other.resources.length
+    property var heard: []
+    onHeldCountChanged: heard = heard.concat(["held " + heldCount])
+    onOtherCountChanged: heard = heard.concat(["other " + otherCount])
     function dropped() {
-        return [names(held.resources), names(other.resources)]
+        return [names(held.resources), names(other.resources), heard.slice().sort()]
     }
     function read() {
         return [names(held.resources), held.made, shared.parent === root, names(other.resources), names(other.children), names(root.children), names(both.children), names(both.resources), inner.parent === both]
