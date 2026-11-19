@@ -181,6 +181,7 @@ impl<'a> AstDomTransform<'a, '_> {
         let span = dynamics
             .first()
             .map_or_else(Span::default, |slot| slot.span);
+        let types = type_first(&mut dynamics);
         let mut value_props = self.ast().vec();
         let mut statements = self.ast().vec();
         let mut param_names = std::vec::Vec::new();
@@ -190,6 +191,12 @@ impl<'a> AstDomTransform<'a, '_> {
         for (index, slot) in dynamics.into_iter().enumerate() {
             let prop_name = get_numbered_id(index);
             let slot_span = slot.span;
+            // The `type` this value is written under, when that is bound in
+            // this effect too (see `type_first`).
+            let type_name = (slot.checkable_input && is_value_key(&slot.key))
+                .then(|| types.iter().find(|(elem, _)| *elem == slot.elem))
+                .flatten()
+                .map(|(_, at)| get_numbered_id(*at));
 
             let value = if slot.class_property
                 && !matches!(
@@ -236,6 +243,7 @@ impl<'a> AstDomTransform<'a, '_> {
                         BinaryOperator::StrictInequality,
                         self.optional_prev_member(slot_span, &prop_name),
                     );
+                    let changed = self.or_type_changed(slot_span, changed, type_name.as_deref());
                     let not_held = self.ast().expression_unary(
                         slot_span,
                         UnaryOperator::LogicalNot,
@@ -279,12 +287,13 @@ impl<'a> AstDomTransform<'a, '_> {
                     self.ast()
                         .expression_logical(slot_span, not_prev, LogicalOperator::Or, compare)
                 } else {
-                    self.ast().expression_binary(
+                    let changed = self.ast().expression_binary(
                         slot_span,
                         prop_ident.clone_in(self.allocator),
                         BinaryOperator::StrictInequality,
                         self.optional_prev_member(slot_span, &prop_name),
-                    )
+                    );
+                    self.or_type_changed(slot_span, changed, type_name.as_deref())
                 };
                 let set_attr = self.set_attr_expression(
                     slot_span,
@@ -350,6 +359,27 @@ impl<'a> AstDomTransform<'a, '_> {
             properties.push(self.object_property(span, "loc", value));
         }
         self.ast().expression_object(span, properties)
+    }
+
+    /// `<changed> || <t> !== _p$?.<t>` when the slot's input binds its
+    /// `type` in the same effect as `<t>`; `<changed>` alone otherwise.
+    fn or_type_changed(
+        &self,
+        span: Span,
+        changed: Expression<'a>,
+        type_name: Option<&str>,
+    ) -> Expression<'a> {
+        let Some(type_name) = type_name else {
+            return changed;
+        };
+        let type_changed = self.ast().expression_binary(
+            span,
+            self.identifier_expression(span, type_name),
+            BinaryOperator::StrictInequality,
+            self.optional_prev_member(span, type_name),
+        );
+        self.ast()
+            .expression_logical(span, changed, LogicalOperator::Or, type_changed)
     }
 
     /// `_p$?.<name>`
@@ -448,3 +478,48 @@ fn wrap_for_effect<'a>(
         _ => crate::shared::ast::concise_arrow_thunk(ctx.allocator, span, value),
     }
 }
+
+/// `value` / `defaultValue`, however the attribute plan prefixed it.
+fn is_value_key(key: &str) -> bool {
+    matches!(key.trim_start_matches("prop:"), "value" | "defaultValue")
+}
+
+/// Moves the bound `type` of an input that may be checkable ahead of that
+/// input's value writes, and returns where each such `type` now is, by
+/// element. `setProperty` decides on the live `type` whether a nullish value
+/// clears to "" or removes the attribute (restoring the checked box's "on"),
+/// so the value write has to come after the type write, and run again when
+/// only the type changed. Babel's `wrapDynamics` keeps the written order and
+/// skips the unchanged value, so a text field that becomes a checkbox keeps
+/// submitting "" (solid#4017's case, with the type bound); this departs from
+/// it there and nowhere else.
+fn type_first(slots: &mut std::vec::Vec<DynamicSlot<'_>>) -> std::vec::Vec<(String, usize)> {
+    let mut types = std::vec::Vec::new();
+    let mut index = 0;
+    while index < slots.len() {
+        let slot = &slots[index];
+        let local = slot.key.rsplit(':').next().unwrap_or(&slot.key);
+        if slot.checkable_input && local == "type" {
+            let first_value = slots[..index]
+                .iter()
+                .position(|other| other.elem == slot.elem && is_value_key(&other.key));
+            let at = match first_value {
+                Some(at) => {
+                    let moved = slots.remove(index);
+                    slots.insert(at, moved);
+                    for (_, place) in &mut types {
+                        if *place >= at {
+                            *place += 1;
+                        }
+                    }
+                    at
+                }
+                None => index,
+            };
+            types.push((slots[at].elem.clone(), at));
+        }
+        index += 1;
+    }
+    types
+}
+
