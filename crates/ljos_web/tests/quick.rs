@@ -2505,3 +2505,47 @@ Item {
     assert_contains(&code, r#"from "./Theme.qml""#);
     assert_contains(&code, "const Parts = $namespace(");
 }
+
+#[test]
+fn a_singleton_of_a_directory_imported_as_a_name_is_its_object() {
+    // `import "parts" as P`: the name holds the function that gives each
+    // singleton, as a module of the project's own does, so its members
+    // are read of what it gives; its keys and its other types are as they
+    // are.
+    let files = [
+        (
+            "Main",
+            "import QtQuick\nimport \"parts\" as P\nItem {\n    property int hour: P.Clock.hour\n    property int kind: P.Clock.Late\n    P.Shot { }\n    Component.onCompleted: P.Clock.hour = 5\n}",
+        ),
+        (
+            "parts/Clock",
+            "pragma Singleton\nimport QtQuick\nQtObject { enum Kind { Early, Late }\n property int hour: 3 }",
+        ),
+        ("parts/Shot", "import QtQuick\nItem { }"),
+    ];
+    let code = lowered_in(&files, "Main").unwrap_or_else(|errors| panic!("{errors:?}"));
+    assert_contains(&code, "hour={P.Clock().hour}");
+    assert_contains(&code, "kind={P.Clock.Late}");
+    assert_contains(&code, "Component$onCompleted={() => P.Clock().hour = 5}");
+    assert_lacks(&code, "P.Shot()");
+}
+
+#[test]
+fn a_directory_s_plain_file_comes_before_its_ui_file() {
+    // `Screen.qml` and `Screen.ui.qml` side by side: `Parts.Screen` is the
+    // plain one, as the checker takes it, whatever order the project
+    // holds its files in (each project hashes them its own way).
+    let files = [
+        (
+            "Sample",
+            "import QtQuick\nimport \"parts\" as Parts\nItem { Parts.Screen {} }",
+        ),
+        ("parts/Screen", "import QtQuick\nItem {}"),
+        ("parts/Screen.ui", "import QtQuick\nRectangle {}"),
+    ];
+    for _ in 0..16 {
+        let code = lowered_in(&files, "Sample").unwrap_or_else(|errors| panic!("{errors:?}"));
+        assert_contains(&code, r#"from "./parts/Screen.qml""#);
+        assert!(!code.contains("Screen.ui.qml"), "{code}");
+    }
+}
