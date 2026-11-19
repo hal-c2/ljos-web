@@ -9,6 +9,8 @@ import { Triangles } from "./mesh.js";
 const JSON_CHUNK = 0x4e4f534a;
 const BIN_CHUNK = 0x004e4942;
 const TRIANGLES = 4;
+const TRIANGLE_STRIP = 5;
+const TRIANGLE_FAN = 6;
 const FLOAT = 5126;
 
 // A file's description and, in a binary one, its own buffer: `{ json,
@@ -84,14 +86,28 @@ function own(node) {
   return math.placed(node.translation ?? [0, 0, 0], node.scale ?? [1, 1, 1], [0, 0, 0], [w, x, y, z]);
 }
 
+// The triangles of a strip or a fan of `count` corners, as a list: glTF
+// 2.0's own rule, so a strip's every other triangle is turned the same
+// way as the first.
+function listed(mode, count) {
+  const list = [];
+  for (let at = 0; at + 2 < count; at++) {
+    if (mode === TRIANGLE_FAN) list.push(at + 1, at + 2, 0);
+    else if (at % 2) list.push(at, at + 2, at + 1);
+    else list.push(at, at + 1, at + 2);
+  }
+  return list;
+}
+
 // A mesh's triangles, a run of them for each of its parts drawn as
-// triangles: null when it has none.
+// triangles, a strip or a fan of them: null when it has none.
 function shaped(json, bytes, mesh) {
   const corners = [];
   const indices = [];
   const subsets = [];
   for (const primitive of mesh?.primitives ?? []) {
-    if ((primitive.mode ?? TRIANGLES) !== TRIANGLES) continue;
+    const mode = primitive.mode ?? TRIANGLES;
+    if (mode !== TRIANGLES && mode !== TRIANGLE_STRIP && mode !== TRIANGLE_FAN) continue;
     const at = read(json, bytes, primitive.attributes?.POSITION);
     if (!at || at.type !== FLOAT || at.width !== 3) continue;
     const first = corners.length / 3;
@@ -107,8 +123,10 @@ function shaped(json, bytes, mesh) {
     }
     const offset = indices.length;
     const order = primitive.indices === undefined ? null : read(json, bytes, primitive.indices);
-    if (order) for (let row = 0; row < order.count; row++) indices.push(first + order.get(row, 0));
-    else for (let row = 0; row < at.count; row++) indices.push(first + row);
+    const corner = order ? (row) => order.get(row, 0) : (row) => row;
+    const count = order ? order.count : at.count;
+    if (mode === TRIANGLES) for (let row = 0; row < count; row++) indices.push(first + corner(row));
+    else for (const row of listed(mode, count)) indices.push(first + corner(row));
     if (indices.length > offset) subsets.push({ count: indices.length - offset, offset, min, max });
   }
   if (!subsets.length) return null;

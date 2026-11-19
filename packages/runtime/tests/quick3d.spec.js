@@ -2595,3 +2595,82 @@ test("two views that show each other's picture draw once a frame, each showing t
   // Each square shows the other view, its clear colour at the corners.
   near(await painted(page, [[[55, 105], [0, 0, 0x40]], [[255, 105], [0x40, 0, 0]]], 3, { endless: true }), [[0, 0, 0x40], [0x40, 0, 0]], "", 3);
 });
+
+// The page's own instance of one of its modules, by the address it was
+// loaded from.
+const moduleOf = (page, pattern) =>
+  page.evaluateHandle(async (source) => {
+    const address = performance.getEntriesByType("resource").find(({ name }) => new RegExp(source).test(name)).name;
+    return await import(address);
+  }, pattern.source);
+
+const pickedOf = (page, name) => page.evaluate((name) => window.objects[name].$picks().map(({ node }) => node.objectName), name);
+
+// A fetch that failed once, of the file or of its buffer, is asked for
+// again by the next pick, not remembered as the file's answer. The
+// browser tells of each failed fetch.
+test.describe(() => {
+  test.use({ told: [/^Failed to load resource: net::ERR_FAILED$/] });
+  test("a pick asks again for a loader's file and buffer when a fetch of them failed", async ({ page }) => {
+    const failed = [];
+    await page.route(/wgpu_models\/pair\.(gltf|bin)(\?.*)?$/, (route) => {
+      const name = new URL(route.request().url()).pathname.split("/").pop();
+      if (failed.includes(name)) return route.continue();
+      failed.push(name);
+      return route.abort();
+    });
+    await open(page, "loaderpicks");
+    await expect.poll(() => pickedOf(page, "pair"), { timeout: 10_000 }).toEqual(["left", "right"]);
+    expect(failed.sort()).toEqual(["pair.bin", "pair.gltf"]);
+  });
+});
+
+// What a pick meets of a file is made once: a buffer in the description
+// is not decoded again by each pick after.
+test("a pick decodes a loader's buffers only when what it meets is made", async ({ page }) => {
+  await open(page, "loaderpicks");
+  await expect.poll(() => pickedOf(page, "square")).toEqual(["square"]);
+  const decoded = await page.evaluate(() => {
+    let count = 0;
+    const atob = window.atob;
+    window.atob = (text) => (count++, atob(text));
+    for (let pick = 0; pick < 3; pick++) window.objects.square.$picks();
+    window.atob = atob;
+    return count;
+  });
+  expect(decoded).toBe(0);
+});
+
+// glTF 2.0: a strip's triangle i is corners i, i+1, i+2, every odd one
+// turned (i, i+2, i+1); a fan's is i+1, i+2 and the first.
+test("a pick meets a mesh drawn as a triangle strip or a fan", async ({ page }) => {
+  await open(page, "loaderpicks");
+  const gltf = await moduleOf(page, /\/QtQuick3D\/gltf\.js/);
+  const shape = await page.evaluate((gltf) => {
+    const bytes = new Uint8Array(56);
+    new Float32Array(bytes.buffer, 0, 12).set([0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0]);
+    new Uint16Array(bytes.buffer, 48, 4).set([3, 2, 1, 0]);
+    const json = {
+      nodes: [{ name: "strips", mesh: 0 }],
+      meshes: [{ primitives: [{ mode: 5, attributes: { POSITION: 0 } }, { mode: 6, attributes: { POSITION: 0 }, indices: 1 }] }],
+      bufferViews: [
+        { buffer: 0, byteOffset: 0, byteLength: 48 },
+        { buffer: 0, byteOffset: 48, byteLength: 8 },
+      ],
+      accessors: [
+        { bufferView: 0, componentType: 5126, count: 4, type: "VEC3" },
+        { bufferView: 1, componentType: 5123, count: 4, type: "SCALAR" },
+      ],
+    };
+    const [part] = gltf.parts(json, [bytes]);
+    return { name: part?.name, indices: Array.from(part?.shape.indices ?? []), subsets: part?.shape.subsets.map(({ count, offset }) => [count, offset]) };
+  }, gltf);
+  expect(shape).toEqual({
+    name: "strips",
+    indices: [0, 1, 2, 1, 3, 2, 6, 5, 7, 5, 4, 7],
+    subsets: [
+      [6, 0],
+      [6, 6],
+    ],
+  });
+});
