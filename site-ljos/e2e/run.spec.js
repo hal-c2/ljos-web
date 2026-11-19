@@ -302,6 +302,32 @@ test.describe("examples", () => {
     expect(unexpected(errors)).toEqual([]);
   });
 
+  // An example stopped with an edit keeps it for when it runs again; an
+  // undo that puts the code back as written, with nothing running to
+  // hear it, is an edit all the same: Run runs the code the reader sees.
+  test("Run after an edit is undone runs the code as it shows", async ({ page, errors }) => {
+    await open(page, "/ui/items/");
+    const block = await run(page, 1);
+    await expect(block.values, "it ran, and said what it hit").toContainText("hit: under");
+    await intoCode(block);
+    await page.keyboard.press("Control+Home");
+    // An edit that does not compile, so that what runs shows which
+    // code it was.
+    await page.keyboard.type("@");
+    await expect(block.told, "the edit ran, and did not compile").not.toBeEmpty({ timeout: 30_000 });
+    await press(runButton(block.toolbar, "Stop this example"));
+    await expect(runButton(block.toolbar), "stopped").toBeVisible({ timeout: 30_000 });
+    await intoCode(block);
+    await page.keyboard.press("Control+z");
+    await expect(runButton(block.toolbar, "Reset this example to as written"), "the code is back as written").toBeHidden();
+    let made = 0;
+    page.on("console", (message) => /hit: /.test(message.text()) && made++);
+    await press(runButton(block.toolbar));
+    await expect.poll(() => made, { message: "the code as written ran", timeout: 30_000 }).toBe(1);
+    // The one error is the edit's own complaint that it does not compile.
+    expect(unexpected(errors).filter((text) => !/ShellLoader|Main\.qml/.test(text))).toEqual([]);
+  });
+
   // Three ten-pixel items in a Row: a sliver, which once stood as a
   // line across the page. It runs in a window a reader can see, at its
   // own size in the middle of it (a window's least size never stretches

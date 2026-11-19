@@ -147,10 +147,15 @@ Column {
     // would leave the stage empty until it did. What an earlier compile
     // said goes: this one says its own (the stage's error, and the
     // editors' marks once it has come). Only a block that can run
-    // starts, so what is cleared is never the reason it cannot.
+    // starts, so what is cleared is never the reason it cannot. What
+    // runs is the code the editors show: an undo back to the code as
+    // written, made while stopped, ran nothing to say so, and an edit
+    // still waiting out its debounce would run it a second time.
     function start() {
         started = true;
         said = "";
+        debounce.stop();
+        Live.setFiles(block.key, display());
         // A run says its own lines: what the build heard goes.
         Observed.reset(block.key, []);
         for (var i = 0; i < editors.count; i++)
