@@ -66,7 +66,7 @@ export const jsHighlight = styleTags({
   "property signal component": t.definitionKeyword,
   "required on": t.modifier,
   "pragma": t.moduleKeyword,
-  "Pragma UiPragma/PragmaName": t.meta,
+  "Pragma ResourceImport UiPragma/PragmaName": t.meta,
   "UiImport/UiQualifiedId/UiIdentifier": t.namespace,
   "UiImport/TypeDefinition": t.definition(t.namespace),
   Version: t.number,

@@ -280,6 +280,21 @@ Script(
       ReturnStatement(return,UnaryExpression(ArithOp,VariableName)),
       "}")))
 
+# .import lines bring other resources and modules into one {"top":"Script"}
+
+.pragma library
+.import "../live.js" as Live
+.import QtQuick 2.0 as Quick
+var made = Live
+
+==>
+
+Script(
+  Pragma,
+  ResourceImport,
+  ResourceImport,
+  VariableDeclaration(var,VariableDefinition,Equals,VariableName))
+
 # Plain JavaScript keeps < and > as comparisons {"top":"Script"}
 
 a < b > c
