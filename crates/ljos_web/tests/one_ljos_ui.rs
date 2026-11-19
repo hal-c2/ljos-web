@@ -48,6 +48,10 @@ const PINNED: [(&str, &str); 12] = [
 
 const DESIGN: &str = include_str!("../../../docs/LJOS_WEB.md");
 
+/// Stands for a dependency on ljos-ui that names no commit: it follows a
+/// branch, so it is a pin of its own and never agrees with the others.
+const NO_REV: &str = "(no rev)";
+
 /// The commit (whole or short) written right after each `marker` in `text`.
 fn commit_after<'a>(text: &'a str, marker: &str) -> Vec<&'a str> {
     text.match_indices(marker)
@@ -77,11 +81,74 @@ fn revs<'a>(file: &str, text: &'a str) -> Vec<&'a str> {
         // Ljós's own controls are copied at the pin.
         commit_after(text, "the commit the compiler is pinned to\n(`")
     } else {
-        text.lines()
-            .filter(|line| line.contains("hal-c2/ljos-ui.git"))
-            .flat_map(|line| commit_after(line, "rev = \""))
+        declarations(text)
+            .into_iter()
+            .flat_map(|declared| match commit_after(declared, "rev = \"") {
+                found if found.is_empty() => vec![NO_REV],
+                found => found,
+            })
             .collect()
     }
+}
+
+const LJOS_UI: &str = "hal-c2/ljos-ui.git";
+
+/// Each dependency on ljos-ui a manifest declares, whole, so its `git` and
+/// its `rev` are read together: an inline table is its line, and a table of
+/// its own (`[dependencies.name]`) runs from its header to the next.
+fn declarations(text: &str) -> Vec<&str> {
+    let mut tables = Vec::new();
+    let (mut from, mut at) = (0, 0);
+    for line in text.split_inclusive('\n') {
+        if line.trim_start().starts_with('[') && at > from {
+            tables.push(&text[from..at]);
+            from = at;
+        }
+        at += line.len();
+    }
+    tables.push(&text[from..]);
+    tables
+        .into_iter()
+        .flat_map(|table| {
+            let own = table.lines().any(|line| {
+                line.trim_start().strip_prefix("git").is_some_and(|rest| {
+                    rest.trim_start().starts_with('=') && rest.contains(LJOS_UI)
+                })
+            });
+            if own {
+                vec![table]
+            } else {
+                table
+                    .lines()
+                    .filter(|line| line.contains(LJOS_UI))
+                    .collect()
+            }
+        })
+        .collect()
+}
+
+#[test]
+fn a_dependency_in_a_table_of_its_own_is_read_with_its_rev() {
+    // The examples keep no lockfile, so in them only the manifest can tell
+    // a stale table: an inline dependency at the pin must not hide it.
+    let manifest = "[dependencies]\n\
+        ljos_ir = { git = \"ssh://git@github.com/hal-c2/ljos-ui.git\", rev = \"18f6d6eca7929e8e6c4dd0722c242533bac4b2d4\" }\n\
+        \n\
+        [dependencies.qml_front]\n\
+        git = \"ssh://git@github.com/hal-c2/ljos-ui.git\"\n\
+        rev = \"09ce2bacd77607c852519c34e914f8e6a8bf1dd6\"\n\
+        \n\
+        [dependencies.ljos_core]\n\
+        git = \"ssh://git@github.com/hal-c2/ljos-ui.git\"\n\
+        default-features = false\n";
+    assert_eq!(
+        revs("examples/x/Cargo.toml", manifest),
+        [
+            "18f6d6eca7929e8e6c4dd0722c242533bac4b2d4",
+            "09ce2bacd77607c852519c34e914f8e6a8bf1dd6",
+            NO_REV,
+        ]
+    );
 }
 
 #[test]
