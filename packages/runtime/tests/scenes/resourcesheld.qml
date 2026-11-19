@@ -30,6 +30,19 @@ Item {
         resources: [inner]
     }
 
+    // Holders made and destroyed again, of something that outlives them.
+    Rectangle { id: kept; objectName: "kept" }
+    Component {
+        id: holding
+        Item { resources: [kept] }
+    }
+    function holdAndLet(times) {
+        for (let i = 0; i < times; i++) holding.createObject(root).destroy()
+    }
+    function keptOne() {
+        return kept
+    }
+
     function names(list) {
         return Array.from(list, (object) => object.objectName)
     }

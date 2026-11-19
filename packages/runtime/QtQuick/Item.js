@@ -446,7 +446,7 @@ export const Item = defineType("Item", QtObject, {
     const held = props.$list?.("resources") ?? EMPTY;
     if (held.length) {
       self.$held = held;
-      for (const object of held) heldBy(self, object);
+      heldBy(self, held);
       const left = new Map();
       for (const object of held) left.set(object, (left.get(object) ?? 0) + 1);
       const kept = made.filter((child) => {

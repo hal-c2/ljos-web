@@ -212,13 +212,25 @@ test("an item's resources and data given as lists are among its resources and da
 // An item the holder also declares is still its child, once.
 test("a component's resources and its instance's are both held, and a held item stays drawn where it was", async ({ page }) => {
   await open(page, "resourcesheld");
-  expect(await page.evaluate(() => window.scene.read())).toEqual([["a", "b"], 2, true, ["shared"], [], ["", "shared", "other", "both"], ["inner"], ["inner"], true]);
+  expect(await page.evaluate(() => window.scene.read())).toEqual([["a", "b"], 2, true, ["shared"], [], ["", "shared", "other", "both", "kept"], ["inner"], ["inner"], true]);
 });
 
 test("what is destroyed is gone from the resources that held it", async ({ page }) => {
   await open(page, "resourcesheld");
   await page.evaluate(() => window.scene.drop());
   await expect.poll(() => page.evaluate(() => window.scene.dropped())).toEqual([["b"], [], ["held 1", "other 0"]]);
+});
+
+// A holder that is destroyed lets go of what it held: what outlives it
+// does not keep it.
+test("a destroyed holder is no longer held by what it held", async ({ page }) => {
+  await open(page, "resourcesheld");
+  const object = await page.evaluateHandle(async () => {
+    const address = performance.getEntriesByType("resource").find(({ name }) => /\/object\.ts(\?|$)/.test(name)).name;
+    return await import(address);
+  });
+  await page.evaluate(() => window.scene.holdAndLet(4));
+  await expect.poll(() => page.evaluate((object) => object.holdersOf(window.scene.keptOne()), object)).toBe(0);
 });
 
 test("a child of negative z is under what its parent draws", async ({ page }) => {
