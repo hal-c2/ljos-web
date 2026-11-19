@@ -862,7 +862,9 @@ for (const backend of ["webgpu", "webgl2"]) {
         await page.evaluate(async () => {
           const address = performance.getEntriesByType("resource").find(({ name }) => /\/wgpu\/ljos_web_3d\.js/.test(name)).name;
           const { View3d } = await import(address);
+          window.calls = 0;
           const trap = () => {
+            window.calls++;
             throw new WebAssembly.RuntimeError("unreachable");
           };
           for (const name of ["build", "frame", "resize", "again", "pieces", "free"]) View3d.prototype[name] = trap;
@@ -876,6 +878,41 @@ for (const backend of ["webgpu", "webgl2"]) {
         await page.evaluate(() => (window.objects.counter.count = 2));
         await expect(page.getByText("count 2")).toBeAttached();
         expect(await page.evaluate(() => document.querySelector(".qq-view3d").$view3d.frames)).toBe(frames);
+        expect(await page.evaluate(() => window.calls), "the renderer is not called again once it trapped").toBe(1);
+      });
+
+      // What the wasm started before it trapped (a fetch's callback) may
+      // still ask its view for a picture: a stopped view never draws again,
+      // so it is not due, which a host that reads its pixels waits on.
+      test("is not due for a picture asked of it once stopped", async ({ page }) => {
+        await show(page, "wgpu_trapped");
+        await page.evaluate(async () => {
+          const address = performance.getEntriesByType("resource").find(({ name }) => /\/wgpu\/ljos_web_3d\.js/.test(name)).name;
+          const { View3d } = await import(address);
+          const create = View3d.create;
+          View3d.create = function (canvas, host) {
+            window.host = host;
+            return create.call(this, canvas, host);
+          };
+          window.objects.later.active = true;
+        });
+        await page.waitForFunction(() => {
+          const views = [...document.querySelectorAll(".qq-view3d")];
+          return views.length === 2 && views.every((view) => view.$view3d.frames > 0) && window.host;
+        });
+        await page.evaluate(async () => {
+          const address = performance.getEntriesByType("resource").find(({ name }) => /\/wgpu\/ljos_web_3d\.js/.test(name)).name;
+          const { View3d } = await import(address);
+          const trap = () => {
+            throw new WebAssembly.RuntimeError("unreachable");
+          };
+          for (const name of ["build", "frame", "resize", "again", "pieces", "free"]) View3d.prototype[name] = trap;
+          window.objects.moved.x = 40;
+        });
+        await expect.poll(() => page.evaluate(() => document.querySelectorAll(".qq-view3d")[1].$view3d.error)).toMatch(/^the renderer stopped/);
+        await page.evaluate(() => window.host.request());
+        await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+        expect(await page.evaluate(() => [...document.querySelectorAll(".qq-view3d")].map((view) => view.$view3d.due))).toEqual([false, false]);
       });
     });
 
