@@ -2744,6 +2744,7 @@ export function mount(Component: Mountable, element: Element, props: Props = {},
   // A plain mount makes its own: nothing it asks for is a page's still
   // being hydrated (`hydrate`).
   if (mounting === undefined && taking.length > 0) return mountAs(null, () => mount(Component, element, props, options));
+  hosts.add(element);
   const reloadable = options.reloadable ?? hot;
   const root = made(Component, props, reloadable);
   element.classList.add("q-scene");
@@ -2839,6 +2840,10 @@ const taking: Taking[] = [];
 let mounting: Taking | null | undefined;
 // The documents a hydration answers for.
 const answered = new Set<Document>();
+// Every element a root was mounted into, hydrated or not: a making
+// whose item stands in one of them is that page's, wherever the page
+// is (in a detached element, or inside another page's).
+const hosts = new WeakSet<Element>();
 
 function answer(document: Document, tag: string): Element | null {
   if (unnumbered(tag) || mounting === null) return null;
@@ -2846,20 +2851,27 @@ function answer(document: Document, tag: string): Element | null {
   return pageOf(taking.filter((one) => one.element.ownerDocument === document))?.take(tag) ?? null;
 }
 
-// Which page still settling a making between mounts is of: the one
-// holding the element of the item it is made into, or of the nearest
-// such item that is placed (a ShellLoader's fallback is made into the
-// loader, whose element was the page's). Made into an item placed
-// elsewhere — a page mounted beside them — it is none's, and new. Made
-// into no placed item, it is the page's alone settling, or, with
-// several, none's: no page's count is moved by it.
+// Which page still settling a making between mounts is of: the page
+// whose host the item it is made into stands in, the nearest host up
+// from the item's element (a ShellLoader's fallback is made into the
+// loader, whose element was the page's; taking an element over leaves
+// it where it was). The nearest host being another's — a page mounted
+// beside them, into a detached element, inside a hydrating page, or
+// one already hydrated — the making is that page's, and new. An item
+// whose element stands in no host is skipped while it is not placed
+// (made, not yet put in), and is none's once it is. Made into no item
+// with an element, it is the page's alone settling, or, with several,
+// none's: no page's count is moved by it.
 function pageOf(settling: Taking[]): Taking | null {
   for (let at = parent; at; at = at.$parent ?? at.$declaredIn) {
     const node = at.$node;
-    if (!node?.isConnected) continue;
-    const holding = settling.filter((one) => one.element.contains(node));
-    // The innermost, where one page is hydrated inside another.
-    return holding.length ? holding.reduce((outer, inner) => (outer.element.contains(inner.element) ? inner : outer)) : null;
+    if (!node) continue;
+    for (let up: Node | null = node; up; up = up.parentNode) {
+      const page = settling.find((one) => one.element === up);
+      if (page) return page;
+      if (hosts.has(up as Element)) return null;
+    }
+    if (node.isConnected) return null;
   }
   return settling.length === 1 ? (settling[0] ?? null) : null;
 }
