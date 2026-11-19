@@ -160,6 +160,7 @@ export interface TypeSpec<I extends QObject = QObject, P = PropertySpecs, S exte
   readonly resolve?: Readonly<Record<string, Resolve>>;
   setup?(self: I, props: Props): void;
   adopt?(self: I, props: Props): void;
+  readonly lists?: readonly string[];
   readonly attached?: QmlType;
 }
 
@@ -182,6 +183,7 @@ export interface QmlType<I extends QObject = QObject> {
   chain: readonly QmlType[];
   enums: Enums;
   adopt: Method<[self: I, props: Props], void> | undefined;
+  lists: readonly string[];
   attached?: (self: QObject) => QObject | undefined;
 }
 
@@ -1734,6 +1736,9 @@ function defineSignal(proto: object, name: string): void {
 //   objects a binding names may not exist yet.
 // - `adopt(self, props)`: takes the objects declared inside this one,
 //   `contents(props)`. The most derived type's is the one that runs.
+// - `lists`: properties that also hold what is declared inside
+//   (`resources: [Timer {}]`): `adopt` is given them first, among its
+//   children.
 // - `attached`: the type of `Type.attached(object)`, for `ListView.view` or
 //   `Layout.fillWidth`. Its props are the object's `Type$name` ones.
 export function defineType<
@@ -1756,6 +1761,7 @@ export function defineType<
   Type.groups = Object.create(base ? base.groups : null);
   Type.chain = base ? [...base.chain, Type] : [Type];
   Type.adopt = spec.adopt ?? base?.adopt;
+  Type.lists = spec.lists ?? base?.lists ?? [];
   for (const [property, initial] of Object.entries(spec.properties ?? {})) {
     if (isGroup(initial)) defineGroup(Type, proto, property, initial[GROUP]);
     else defineProperty(Type, proto, property, initial);
@@ -2179,7 +2185,11 @@ function create(Type: QmlType, props: Props): QObject {
         const at = key.indexOf("$");
         if (at > 0 && key[0]! >= "a" && key[0]! <= "z" && !(key in Type.slots)) whenComplete(() => through(self, props, key, key));
       }
-      if (Type.adopt && "children" in props) Type.adopt(self, props);
+      if (Type.adopt) {
+        const listed = Type.lists.filter((name) => name in props);
+        if (listed.length) Type.adopt(self, withLists(props, listed));
+        else if ("children" in props) Type.adopt(self, props);
+      }
       for (const key of Object.keys(props)) {
         // `onWidthChanged`: a handler of a property's changes, not of a signal.
         const property = /^on([A-Z]\w*)Changed$/.exec(key)?.[1];
@@ -2244,6 +2254,12 @@ function record(self: QObject, born: QObject[]): void {
 export function contents(props: Props, item?: QObject | null): QObject[] {
   const made = untrack(() => (item ? inside(item, () => flatten(props.children, [])) : flatten(props.children, [])));
   return made;
+}
+
+// `props` whose children are first what its lists hold, then what is
+// declared in it: read as the type's `adopt` reads them, not before.
+function withLists(props: Props, listed: readonly string[]): Props {
+  return Object.create(props, { children: { get: () => [...listed.map((name) => props[name]), props.children] } }) as Props;
 }
 
 // A component puts its instance's children among its own
