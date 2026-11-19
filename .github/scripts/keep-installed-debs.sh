@@ -9,7 +9,8 @@
 #
 # A package dpkg can't read (a download cut short) goes too. A machine
 # whose installed packages can't be listed fails the step and loses
-# nothing. Anything in the directory that is not a .deb is left alone.
+# nothing; site-setup then skips the save. Anything in the directory
+# that is not a .deb is left alone.
 set -euo pipefail
 dir=$1
 # dpkg's own fields, for dpkg to fill in, not the shell.
