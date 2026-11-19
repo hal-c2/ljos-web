@@ -39,6 +39,10 @@ export const step = (page, index) => page.evaluate((index) => window.scene.step(
 // Qt's has nothing around the chart, where the page is white. The picture is
 // named from `fixtures`, without what it ends in.
 export async function unlike(page, clip, name, slack = 3) {
+  // A view paces its pictures: one asked for by the last step may be put
+  // off to a later task (`due`), and the picture taken before it is drawn
+  // is of what the view showed before the step.
+  await page.waitForFunction(() => [...document.querySelectorAll(".qq-view3d")].every(({ $view3d }) => !$view3d?.due), null, { polling: "raf" });
   const shot = (await page.screenshot({ clip })).toString("base64");
   const theirs = readFileSync(join(fixtures, `${name}.png`)).toString("base64");
   return page.evaluate(
