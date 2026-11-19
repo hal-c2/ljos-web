@@ -763,6 +763,30 @@ for (const backend of ["webgpu", "webgl2"]) {
       near(await at(page, 320 + 25, 150 + 25), [255, 255, 255]);
     });
 
+    test("what a loader read is picked by the names of its nodes, where the loader puts them", async ({ page }) => {
+      await show(page, "wgpu_loaderpick");
+      await page.waitForFunction(() => window.objects.loaded);
+      const picked = (x, y) =>
+        page.evaluate(([x, y]) => {
+          const hit = window.objects.view.pick(x, y).objectHit;
+          return hit ? [hit.objectName, hit.parent?.objectName ?? null] : null;
+        }, [x, y]);
+      // Read when picking asks, once the file is here.
+      await expect.poll(() => picked(150, 50)).toEqual(["left", "pair"]);
+      expect(await picked(250, 50)).toEqual(["right", "pair"]);
+      expect(await picked(265, 50)).toBe(null);
+      expect(await picked(200, 50)).toBe(null);
+      await expect.poll(() => picked(350, 190)).toEqual(["cube", "box"]);
+      expect(await picked(350, 110)).toEqual(["cube", "box"]);
+      expect(await picked(300, 150)).toBe(null);
+      const all = await page.evaluate(() => window.objects.view.pickAll(150, 50).map((hit) => hit.objectHit.objectName));
+      expect(all).toEqual(["left"]);
+      await set(page, () => (window.objects.pair.x = 100));
+      expect(await picked(250, 50)).toEqual(["left", "pair"]);
+      await set(page, () => (window.objects.pair.visible = false));
+      expect(await picked(250, 50)).toBe(null);
+    });
+
     // What the wasm fetched through the page (a glTF and its buffers) is
     // not held by the page once the wasm has its copy.
     test("a file the view has read is not held by the page after", async ({ page }) => {
