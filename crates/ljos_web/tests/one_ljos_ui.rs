@@ -4,10 +4,25 @@
 //! examples and the copied Quick3D QML stayed 1636 commits behind the rest.
 //! A pin that falls behind is caught here instead.
 
-/// Every place that names a commit of ljos-ui. The examples are workspaces
-/// of their own (their lockfiles are not kept), so their manifests are read.
-const PINNED: [(&str, &str); 6] = [
+/// Every place that names a commit of ljos-ui. The manifests are read as
+/// well as the lockfile, so a pin left behind is named where it is written.
+/// The examples are workspaces of their own (their lockfiles are not kept),
+/// so only their manifests are.
+const PINNED: [(&str, &str); 12] = [
     ("Cargo.lock", include_str!("../../../Cargo.lock")),
+    ("crates/ljos_web/Cargo.toml", include_str!("../Cargo.toml")),
+    (
+        "crates/ljos_web_3d/Cargo.toml",
+        include_str!("../../ljos_web_3d/Cargo.toml"),
+    ),
+    (
+        "crates/ljos_web_kernel/Cargo.toml",
+        include_str!("../../ljos_web_kernel/Cargo.toml"),
+    ),
+    (
+        "vendor/solidjs-compiler/Cargo.toml",
+        include_str!("../../../vendor/solidjs-compiler/Cargo.toml"),
+    ),
     (
         "examples/wasm-counter/Cargo.toml",
         include_str!("../../../examples/wasm-counter/Cargo.toml"),
@@ -24,11 +39,14 @@ const PINNED: [(&str, &str); 6] = [
         "packages/runtime/quick3d/LJOS_UI.json",
         include_str!("../../../packages/runtime/quick3d/LJOS_UI.json"),
     ),
-    (
-        "docs/LJOS_WEB.md (A22)",
-        include_str!("../../../docs/LJOS_WEB.md"),
-    ),
+    // The design's three lines that name the pin, each read on its own, so
+    // one left behind, or reworded so it is no longer found, is named.
+    ("docs/LJOS_WEB.md (A22)", DESIGN),
+    ("docs/LJOS_WEB.md (A31)", DESIGN),
+    ("docs/LJOS_WEB.md (A34)", DESIGN),
 ];
+
+const DESIGN: &str = include_str!("../../../docs/LJOS_WEB.md");
 
 /// The commit (whole or short) written right after each `marker` in `text`.
 fn commit_after<'a>(text: &'a str, marker: &str) -> Vec<&'a str> {
@@ -49,9 +67,15 @@ fn revs<'a>(file: &str, text: &'a str) -> Vec<&'a str> {
         commit_after(text, "\"rev\": \"")
     } else if file == "Cargo.lock" {
         commit_after(text, "hal-c2/ljos-ui.git?rev=")
-    } else if file.starts_with("docs/") {
-        // The kernel's section says which commit its graph follows.
+    } else if file.ends_with("(A22)") {
+        // The kernel's graph follows the pin.
         commit_after(text, "follows ljos-ui (rev ")
+    } else if file.ends_with("(A31)") {
+        // Both compilers take the Ljós dialect at the pin.
+        commit_after(text, "at the ljos-ui pin (`")
+    } else if file.ends_with("(A34)") {
+        // Ljós's own controls are copied at the pin.
+        commit_after(text, "the commit the compiler is pinned to\n(`")
     } else {
         text.lines()
             .filter(|line| line.contains("hal-c2/ljos-ui.git"))
