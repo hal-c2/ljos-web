@@ -118,6 +118,7 @@ jobs:
       - run: bash .github/scripts/drawn-with.test.sh
       - run: bash .github/scripts/keep-installed-debs.test.sh
       - run: node --test .github/scripts/site-expressions.test.mjs
+      - run: node --test .github/scripts/site-jobs.test.mjs
       - run: node .github/scripts/site-expressions.test.mjs table >> "$GITHUB_STEP_SUMMARY"
       - id: pin
         run: echo "sha=$(cat site/ljos-ui.sha)" >> "$GITHUB_OUTPUT"
@@ -156,9 +157,9 @@ jobs:
   # is held by the specs about the base (base, links, canonical).
   #
   # The compiler and the wasm every other job reads, built once: qmlc
-  # (the build's prerenders), the compiler in the page, the kernel and
-  # the 3D renderer that draws the showcase's demo. The other jobs
-  # download them, so they install no Rust.
+  # (the build's prerenders), the compiler in the page and the kernel
+  # here, the 3D renderer that draws the showcase's demo in rust-3d. The
+  # other jobs download them, so they install no Rust.
   rust:
     runs-on: ubuntu-24.04
     steps:
@@ -176,7 +177,6 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/main' }}
       - run: cargo build --bin qmlc --locked
       - run: mise run build:wasm-compiler
-      - run: mise run build:wasm-3d
       - run: mise run build:kernel
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -185,7 +185,32 @@ jobs:
             target/debug/qmlc
             packages/runtime/compiler/ljos_web_compiler.wasm
             packages/runtime/kernel/ljos_web_kernel.wasm
-            packages/runtime/QtQuick3D/wgpu/
+          if-no-files-found: error
+          retention-days: 1
+  # View3D's renderer, on a runner of its own beside the rust job: the
+  # two share no crate, and one after the other they were the run's
+  # first three minutes cold, before any site could start building.
+  # Its Rust cache is its own key (view3d), as the build key is read by
+  # ci.yml's jobs, which build only what the rust job does.
+  rust-3d:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: ./.github/actions/site-setup
+        with:
+          rust: "true"
+          packages: "false"
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+        with:
+          shared-key: view3d
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - run: mise run build:wasm-3d
+      # One directory is the artefact's root: site-setup puts it back
+      # where it was built.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: rust-artefacts-3d
+          path: packages/runtime/QtQuick3D/wgpu/
           if-no-files-found: error
           retention-days: 1
   # The same site as Ljós pages, beside the Astro one: built and held
@@ -197,7 +222,7 @@ jobs:
   # build by the jobs after it. Nothing more runs here: the e2e parts
   # wait for this job, so it ends as soon as its site is uploaded.
   site-ljos:
-    needs: rust
+    needs: [rust, rust-3d]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -249,7 +274,7 @@ jobs:
   # The same examples over Ljós's reactive graph (A22): built and
   # tested, never deployed.
   site-ljos-wasm:
-    needs: rust
+    needs: [rust, rust-3d]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -346,7 +371,7 @@ jobs:
   # suite needs no job of its own: the Astro build and suites take
   # about as long as that build, which they would otherwise wait for.
   astro:
-    needs: [rust, site-ljos]
+    needs: [rust, rust-3d, site-ljos]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
@@ -448,7 +473,7 @@ jobs:
   # making them again. Then the Pages artifact: the root build or the
   # project-path one, picked by where Pages serves this repository.
   build:
-    needs: [rust, site-ljos]
+    needs: [rust, rust-3d, site-ljos]
     runs-on: ubuntu-24.04
     permissions:
       contents: read
