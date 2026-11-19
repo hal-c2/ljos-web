@@ -365,7 +365,9 @@ QtObject {
 // Each pro demo's source, as data for its editor (scripts/pro.mjs): a
 // JSON file its page imports when it is made, so the text is in no
 // other page's load; and the imports that load it and its app
-// (Demos/pro-later.js). Generated; do not edit by hand.
+// (Demos/pro-later.js, committed too, so a checkout not yet built is
+// one project for `ljos check`; tests/pro.spec.js keeps it the table's).
+// Generated; do not edit by hand.
 for (const demo of Pro.demos)
   writeFileSync(join(bundle, `Demos/${demo.name}-project.json`), `${JSON.stringify(Pro.projectOf(Pro.targetOf(demo), (code, lang) => packRich(highlight(code, lang))))}\n`);
 writeFileSync(join(bundle, "Demos/pro-later.js"), Pro.loaders(Pro.demos));

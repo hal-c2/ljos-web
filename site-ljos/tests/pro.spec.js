@@ -6,7 +6,8 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFil
 import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { expect, test } from "@playwright/test";
-import { demos, loaders, pages, projectOf, route, sha256, shippedBy, sourceAt, targetOf, titles } from "../scripts/pro.mjs";
+import { changedIn, demos, listedIn, loaders, pages, projectOf, route, sha256, shippedBy, sourceAt, targetOf, titles } from "../scripts/pro.mjs";
+import { execFileSync } from "node:child_process";
 
 const walk = (root, directory = root) =>
   readdirSync(directory, { withFileTypes: true }).flatMap((entry) => (entry.isDirectory() ? walk(root, join(directory, entry.name)) : [relative(root, join(directory, entry.name))]));
@@ -33,6 +34,13 @@ test("a second demo is its entry: its route, title, page, loaders and served fil
   for (const demo of demos) expect(made).toContain(`case ${JSON.stringify(demo.name)}: return import(${JSON.stringify(`./${demo.app}`)});`);
 });
 
+// pro-later.js is committed, so a checkout that has not been built is
+// still one project for `ljos check` (pro-live.js imports it); the build
+// writes it again, and this keeps the two the same.
+test("the committed loaders are the ones the table makes", () => {
+  expect(readFileSync(new URL("../bundle/Demos/pro-later.js", import.meta.url), "utf8")).toBe(loaders(demos));
+});
+
 test("a demo's editor holds its QML and TypeScript, as the pin names them", () => {
   const root = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "pro-"));
   mkdirSync(join(root, "logic"));
@@ -51,6 +59,26 @@ test("a demo ships its QML, TypeScript and assets, and leaves what made them", (
   const shipped = shippedBy(second);
   expect(["Main.qml", "logic/sea.ts", "assets/ship.glb"].every(shipped)).toBe(true);
   expect(["assets/raw.blend", "README.md", "Cargo.toml", "src/lib.rs"].some(shipped)).toBe(false);
+});
+
+// sync-demo.mjs reads the checkout through git: a path with a space, a
+// quote or a letter outside ASCII is the file's own name, and a file
+// renamed into or out of the app is changed on both sides.
+test("a checkout's files are read by their own names, renames on both sides", () => {
+  const root = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "sync-"));
+  const git = (...args) => execFileSync("git", ["-C", root, ...args], { encoding: "utf8" });
+  git("init", "-q");
+  git("config", "user.email", "sync@example.invalid");
+  git("config", "user.name", "sync");
+  mkdirSync(join(root, "app/logic"), { recursive: true });
+  mkdirSync(join(root, "app/assets"));
+  for (const path of ["app/logic/door controls.ts", "app/assets/hjól.glb", "app/Main.qml", "app/Old.qml"]) writeFileSync(join(root, path), "1\n");
+  git("add", "-A");
+  git("commit", "-qm", "app");
+  expect(listedIn(git("ls-files", "-z", "--", "app"), "app").sort()).toEqual(["Main.qml", "Old.qml", "assets/hjól.glb", "logic/door controls.ts"]);
+  writeFileSync(join(root, "app/logic/door controls.ts"), "2\n");
+  git("mv", "app/Old.qml", "New.qml");
+  expect(changedIn(git("status", "--porcelain=v1", "-z", "--", "app", "New.qml"), "app").sort()).toEqual(["Old.qml", "logic/door controls.ts"]);
 });
 
 for (const demo of demos) {

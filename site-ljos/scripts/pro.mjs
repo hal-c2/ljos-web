@@ -33,6 +33,26 @@ export const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex"
 export const shippedBy = (demo) => (path) => !demo.upstream.leave.includes(path) && (/\.(qml|ts)$/.test(path) || path.startsWith("assets/"));
 // A demo's source, as data for its editor: each QML and TypeScript file
 // its UPSTREAM.json pins, with its highlighting (`colour(code, lang)`).
+// What `git ls-files -z` lists of the app at `example`, by each file's
+// path in the app. NUL-ended records hold each path as it is: git
+// quotes nothing in them.
+export const listedIn = (output, example) => output.split("\0").filter((path) => path.startsWith(`${example}/`)).map((path) => path.slice(example.length + 1));
+
+// What `git status --porcelain=v1 -z` says changed in the app at
+// `example`, by each file's path in the app. A rename or a copy is two
+// paths, the new one first; it changed the app if either is in it.
+export function changedIn(output, example) {
+  const records = output.split("\0");
+  const paths = [];
+  for (let at = 0; at < records.length; at++) {
+    const record = records[at];
+    if (!record) continue;
+    paths.push(record.slice(3));
+    if (record[0] === "R" || record[0] === "C") paths.push(records[++at]);
+  }
+  return listedIn(paths.join("\0"), example);
+}
+
 export function projectOf(root, colour) {
   const upstream = JSON.parse(readFileSync(join(root, "UPSTREAM.json"), "utf8"));
   const text = Object.keys(upstream.files).filter((path) => /\.(qml|ts)$/.test(path));

@@ -8,7 +8,7 @@
 import { execFileSync } from "node:child_process";
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
-import { demos, sha256, shippedBy, targetOf } from "./pro.mjs";
+import { changedIn, demos, listedIn, sha256, shippedBy, targetOf } from "./pro.mjs";
 
 const [name, checkout] = process.argv.slice(2);
 const demo = demos.find((entry) => entry.name === name);
@@ -16,13 +16,15 @@ if (!demo || !checkout) throw new Error(`usage: node scripts/sync-demo.mjs <${de
 const { path: example, repository } = demo.upstream;
 const shipped = shippedBy(demo);
 const target = targetOf(demo);
-const git = (...args) => execFileSync("git", ["-C", checkout, ...args], { encoding: "utf8" }).trim();
-const commit = git("rev-parse", "HEAD");
+// Not trimmed: a path's own spaces are part of it (pro.mjs listedIn).
+const git = (...args) => execFileSync("git", ["-C", checkout, ...args], { encoding: "utf8" });
+const commit = git("rev-parse", "HEAD").trim();
 // The pin says what the files are at that commit, so files changed
-// since would be a pin that lies: they are committed first.
-const changed = git("status", "--porcelain", "--", example).split("\n").filter(Boolean).map((line) => line.slice(line.indexOf(example) + example.length + 1)).filter(shipped);
+// since would be a pin that lies: they are committed first. Paths are
+// the repository's, which the example's path is.
+const changed = changedIn(git("status", "--porcelain=v1", "-z", "--", example), example).filter(shipped);
 if (changed.length) throw new Error(`commit these in ${checkout} first: ${changed.join(", ")}`);
-const listed = git("ls-files", "--", example).split("\n").map((path) => path.slice(example.length + 1));
+const listed = listedIn(git("ls-files", "-z", "--full-name", "--", example), example);
 const files = {};
 for (const path of listed.filter(shipped).sort()) {
   const bytes = readFileSync(join(checkout, example, path));
