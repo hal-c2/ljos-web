@@ -621,6 +621,7 @@ impl<'s> Shell<'s> {
                 alias: None,
                 in_project: is_blocks,
                 stands_in: false,
+                stood_in: None,
             });
         }
         imports
