@@ -20,15 +20,15 @@ inputs:
     description: "Install the JavaScript packages"
     default: "true"
 outputs:
-  image:
-    description: "The runner's image, which draws the prerenders' pictures with its fonts"
-    value: ${{ steps.image.outputs.name }}
+  drawing:
+    description: "A hash of the fonts and libraries Chromium draws the prerenders' pictures with (with browser only)"
+    value: ${{ steps.drawing.outputs.hash }}
   inputs:
     description: "A hash of everything a code block's prerender can be made from"
-    value: ${{ steps.image.outputs.inputs }}
+    value: ${{ steps.keys.outputs.inputs }}
   pictures:
     description: "A hash of the script that draws the Ljós site's pictures"
-    value: ${{ steps.image.outputs.pictures }}
+    value: ${{ steps.keys.outputs.pictures }}
 runs:
   using: composite
   steps:
@@ -78,6 +78,7 @@ runs:
       shell: bash
       run: |
         echo "version=$(sed -n 's/^  playwright@\([0-9.]*\):$/\1/p' pnpm-lock.yaml | head -n1)" >> "$GITHUB_OUTPUT"
+        echo "os=$ImageOS" >> "$GITHUB_OUTPUT"
         echo "image=$ImageOS-$ImageVersion" >> "$GITHUB_OUTPUT"
     # What Chromium needs of the system is some 30 MB of fonts and Mesa
     # that the runner's Ubuntu mirror hands out at about 120 kB/s: four
@@ -85,14 +86,18 @@ runs:
     # tests. apt is pointed at a directory of its own and told to keep
     # what it fetches there, which is cached by the runner's image (so
     # it moves weekly, as the images do) and Playwright's version; it
-    # then fetches only what the mirror has newer. Only the packages are
-    # kept: apt's lock and partial downloads are root's.
+    # then fetches only what the mirror has newer. A run's jobs land on
+    # several images, so one whose image has no cache yet starts from
+    # another image's: apt takes a package from it only where its
+    # version is the one wanted, and fetches the rest. Only the packages
+    # are kept: apt's lock and partial downloads are root's.
     - if: inputs.browser == 'true'
       id: debs
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/.cache/playwright-debs/*.deb
         key: playwright-debs-${{ steps.playwright.outputs.image }}-${{ steps.playwright.outputs.version }}
+        restore-keys: playwright-debs-${{ steps.playwright.outputs.os }}-
     - if: inputs.browser == 'true'
       shell: bash
       run: |
@@ -126,20 +131,29 @@ runs:
     # (prerenderStamp), and one made by others is made again, so an
     # older run's cache is only ever a head start: what the build embeds
     # is what a build from nothing would. The pictures are drawn with
-    # the runner's fonts, so a runner image of its own starts from
-    # nothing. The key moves with everything a block can be made from,
-    # so a run that made nothing new saves nothing. The files the docs'
-    # examples are given (site/codeblock-files) are part of an example's
-    # hash, so of the key. The Ljós site's pictures are also drawn by its
-    # build script, so its keys move with that script too (pictures);
-    # each picture's name holds the same recipe, so one restored from an
-    # older key is drawn again, never shown.
-    - id: image
+    # the runner's fonts and graphics libraries, which no stamp names,
+    # so the keys start with what those are (drawn-with.sh): a runner
+    # that draws otherwise starts from nothing, and the images a run's
+    # jobs land on, which draw alike, share one cache. It is read once
+    # Playwright has installed what Chromium needs of the system, where
+    # most of it comes from. The key moves with everything a block can
+    # be made from, so a run that made nothing new saves nothing. The
+    # files the docs' examples are given (site/codeblock-files) are part
+    # of an example's hash, so of the key. The Ljós site's pictures are
+    # also drawn by its build script, so its keys move with that script
+    # too (pictures); each picture's name holds the same recipe, so one
+    # restored from an older key is drawn again, never shown.
+    - if: inputs.browser == 'true'
+      id: drawing
+      shell: bash
+      run: |
+        hash=$(bash .github/scripts/drawn-with.sh)
+        echo "hash=$hash" >> "$GITHUB_OUTPUT"
+    - id: keys
       shell: bash
       env:
         INPUTS: ${{ hashFiles('packages/runtime/**', 'crates/**', 'vendor/**', 'Cargo.lock', 'pnpm-lock.yaml', 'site/ljos-ui.sha', 'site/codeblock-files/**', '!**/node_modules/**') }}
         PICTURES: ${{ hashFiles('site-ljos/scripts/build.mjs') }}
       run: |
-        echo "name=$ImageOS-$ImageVersion" >> "$GITHUB_OUTPUT"
         echo "inputs=$INPUTS" >> "$GITHUB_OUTPUT"
         echo "pictures=$PICTURES" >> "$GITHUB_OUTPUT"

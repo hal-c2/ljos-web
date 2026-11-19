@@ -24,10 +24,23 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      # How both workflows key their caches; here, as ci runs on every
+      # change, where site.yml runs only on the site's paths.
+      - run: node --test .github/scripts/caches.test.mjs
       - uses: jdx/mise-action@6612f0ef07ed2a736cd1e00a94a065522dd41195 # v5.2.5
         with:
           version: 2026.9.9
+      # The Rust caches are saved from main only, one per key, and read
+      # by every branch: a pull request's own would be one more copy of
+      # main's, and they filled the repository's 10 GB until the site's
+      # caches were evicted between runs. This job's clippy and tests
+      # are a build of their own; the others read the build key that
+      # site.yml's rust job saves (qmlc and the wasm), what they build
+      # is part of it.
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+        with:
+          shared-key: check
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - run: git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
       # What `mise run check` runs locally, run the same way here: rustfmt,
       # clippy, the TypeScript types and the code grammar's tests. It runs
@@ -46,6 +59,9 @@ jobs:
         with:
           version: 2026.9.9
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+        with:
+          shared-key: build
+          save-if: false
       - run: git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
       # This file starts low in a stack of pull requests, below the live shell
       # and the site builder. It says so rather than passing quietly; once they
@@ -133,6 +149,9 @@ jobs:
         with:
           version: 2026.9.9
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2
+        with:
+          shared-key: build
+          save-if: false
       - run: git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
       # The example's Rust is also a desktop application, whose text finds fonts by fontconfig.
       - run: sudo apt-get update && sudo apt-get install -y libfontconfig1-dev pkg-config
