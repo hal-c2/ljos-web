@@ -108,19 +108,33 @@ export function file(url, kind, took) {
 }
 
 // Whether a fetch that failed is worth asking again: one nothing answered,
-// or a server busy or restarting (5xx, 408, 429). Any other answer (a 404)
-// is the file's, and stays.
+// or a server busy, restarting or behind a gateway that timed out (502,
+// 503, 504, 408, 429). Any other answer (a 404, a 500) is the file's, and
+// stays.
+const TRANSIENT = new Set([502, 503, 504, 408, 429]);
 function again({ status }) {
-  return status === undefined || status >= 500 || status === 408 || status === 429;
+  return status === undefined || TRANSIENT.has(status);
 }
 
 // A file's state, as `file` has it, except that a fetch worth asking again
 // is forgotten once told: whoever asks after it reads the file again, as a
-// pick does. A server's answer, and what the file was found to hold, even
-// an error in it, stay.
+// pick does, up to ASKS times in all. After that the failure stays as a
+// 404 does, so a server that stays busy is not asked on every pick. A
+// server's answer, and what the file was found to hold, even an error in
+// it, stay.
+const ASKS = 3;
+const asked = new Map();
 export function retried(url, kind, took) {
+  const key = `${kind} ${url}`;
   const state = file(url, kind, took).state();
-  if (state?.fetching) files.delete(`${kind} ${url}`);
+  if (!state?.fetching) {
+    if (state) asked.delete(key);
+    return state;
+  }
+  const times = (asked.get(key) ?? 1) + 1;
+  if (times > ASKS) return state;
+  asked.set(key, times);
+  files.delete(key);
   return state;
 }
 
