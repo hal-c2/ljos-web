@@ -1728,10 +1728,12 @@ stderr, never into the HTML. That the page is live, the element it
 was hydrated into says (`data-ljos-hydrated`), and so does the root
 `hydrate` gives, as `hydrated`, a promise kept once it has. With
 nothing prerendered in it, `hydrate` is `mount`. Pages hydrated at
-once (a site's live blocks) each take their own over: while one
-makes its root what is made is its own, and as they settle what a type
-makes goes to the one whose next element it is; one never ends
-another's rounds.
+once (prerendered parts of one document, each hydrated into its own
+element) each take their own over: while one makes its root what is
+made is its own, and as they settle what a type makes goes to the page
+whose element the item it is made into stands in; one never ends
+another's rounds. A page mounted meanwhile, beside them, inside one or
+into an element not in the document, makes its own.
 
 What a prerender has, and what it has not:
 

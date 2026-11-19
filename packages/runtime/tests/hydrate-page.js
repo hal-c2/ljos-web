@@ -1,6 +1,7 @@
-// Pages prerendered into this one and hydrated, as a site's live blocks
-// are: `window.prerender(host)` writes into a host what a prerender of
-// `scenes/hydrating.qml` (or the scene given) writes (`renderToString` of `ljos-web/server`):
+// Pages prerendered into this one and hydrated, each into its own
+// element: `window.prerender(host, Scene)` writes into a host what a
+// prerender of the scene (`scenes/hydrating.qml` unless given) writes
+// (`renderToString` of `ljos-web/server`):
 // each element a type makes, numbered as it is made with its type,
 // through the rounds the making settles in, and what is no making in
 // the count (`unnumbered` in object.ts, server/dom.js) left out of it.
