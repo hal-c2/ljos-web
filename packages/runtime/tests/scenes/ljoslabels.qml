@@ -62,6 +62,11 @@ Item {
     Button { id: underText; x: 200; y: 360; text: "Save"; display: IconLabel.TextUnderIcon }
     Button { id: underIcon; x: 280; y: 360; iconName: "plus"; display: IconLabel.TextUnderIcon }
 
+    // Given their own content, which does not say what it draws.
+    Button { id: ownUnder; x: 360; y: 360; text: "Save"; display: IconLabel.TextUnderIcon; contentItem: Text { text: "Save" } }
+    TabButton { id: ownTabUnder; x: 440; y: 360; text: "Files"; display: IconLabel.TextUnderIcon; contentItem: Text { text: "Files" } }
+    Button { id: ownBeside; x: 520; y: 360; text: "Save"; contentItem: Text { text: "Save" } }
+
     // A menu whose only icon is on a row shown as its text.
     Menu {
         id: hiding
@@ -204,5 +209,9 @@ Item {
     function stackedPaddings() {
         return [tabUnderText.verticalPadding, tabUnderIcon.verticalPadding,
                 underText.topPadding, underText.bottomPadding, underIcon.topPadding, underIcon.bottomPadding]
+    }
+
+    function ownPaddings() {
+        return [ownUnder.topPadding, ownUnder.bottomPadding, ownTabUnder.verticalPadding, ownBeside.topPadding]
     }
 }

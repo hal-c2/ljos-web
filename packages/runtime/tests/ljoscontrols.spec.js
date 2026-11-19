@@ -309,3 +309,10 @@ test("a Ljós popover under an ancestor scaled to nothing keeps its parent's cor
     [true, 0, 0],
   ]);
 });
+
+test("a Ljós button or tab given its own content that does not say what it draws, shown under its icon, keeps half a spacing above and below", async ({ page }) => {
+  await open(page, "ljoslabels");
+  // Content that says whether it draws the icon over the text is held
+  // above (ljosstates); for content that does not, the display decides.
+  expect(await answer(page, "ownPaddings")).toEqual([4, 4, 4, 0]);
+});
