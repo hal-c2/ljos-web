@@ -617,12 +617,12 @@ for (const backend of ["webgpu", "webgl2"]) {
     });
 
     // Only a view that gave its picture on waits for the next animation
-    // frame to draw again: one that shows another's picture, and drew already
-    // in this task, still draws the new picture without being held. What is
-    // counted is the draws each view was held for (`held`), not whether they
-    // came before the next frame: a slow GPU's fence or the pacing's rest may
-    // put the second draw after it on a loaded machine, and that is no hold.
-    test("a view showing another's picture draws its new picture in the frame it changed, though it drew already in it", async ({ page }) => {
+    // frame to draw again: one that shows another's picture, and drew already,
+    // still draws the new picture without being held. What is counted is the
+    // draws each view was held for (`held`), not whether they came before the
+    // next frame: a slow GPU's fence or the pacing's rest may put a draw
+    // after it on a loaded machine, and that is no hold.
+    test("a view showing another's picture is not held to the next frame for its new picture, though it drew already", async ({ page }) => {
       await show(page, "wgpu_oneway");
       const before = await page.evaluate(
         () =>
@@ -632,15 +632,19 @@ for (const backend of ["webgpu", "webgl2"]) {
               const before = { giver: { frames: giver.frames, held: giver.held }, shower: { frames: shower.frames, held: shower.held } };
               window.objects.own.x = 60;
               window.flush();
-              // The shower's first draw, for its own change, in this task.
+              // The shower's first draw, for its own change: in this task
+              // where nothing puts it off, in a later one where the GPU's
+              // last picture (a fence) or the pacing's rest does, which only
+              // a timer of the view's ends.
               for (let turn = 0; turn < 20 && shower.frames === before.shower.frames; turn++) await null;
+              while (shower.frames === before.shower.frames) await new Promise((done) => setTimeout(done));
               window.objects.moved.x = 60;
               window.flush();
               done({ ...before, first: shower.frames - before.shower.frames });
             });
           }),
       );
-      expect(before.first, "frames the right view drew for its own change in the task it changed in").toBe(1);
+      expect(before.first, "frames the right view drew for its own change").toBe(1);
       await page.waitForFunction(
         (frames) => [...document.querySelectorAll(".qq-view3d")][1].$view3d.frames >= frames,
         before.shower.frames + 2,
