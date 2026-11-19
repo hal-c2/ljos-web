@@ -2079,6 +2079,36 @@ const isList = <T>(value: T | readonly T[]): value is readonly T[] => Array.isAr
 
 type Held = Record<string, unknown> | null | undefined;
 
+// Whether `name` is one of the lists an object holds others in (`data`,
+// `children`, `resources`): read only as a property, since what is in
+// it is the object's to keep, and changed by adding and taking out.
+type Holding = Dynamic & { $add(child: QObject): void };
+function isHeldList(object: Held, name: string): object is Holding {
+  return isObject(object) && typeof object.$add === "function" && (name === "children" || object.$type.lists.includes(name));
+}
+
+// What an object's list is given through an alias. Qt 6.12: the objects
+// declared for it are added to what is in it, and a list written or bound
+// to it is the whole of it, what it no longer has being left without a
+// parent. An item joins by its `parent`, as one moved by a program does,
+// and anything else by being added.
+function intoHeldList(object: Holding, name: string, value: unknown, declared: boolean): void {
+  const next = flatten(value, []);
+  const before = untrack(() => [...((object[name] as readonly QObject[] | undefined) ?? [])]);
+  if (!declared) {
+    for (const child of before) {
+      if (next.includes(child)) continue;
+      if (child.$node) (child as Dynamic).parent = null;
+      else object.$remove?.(child);
+    }
+  }
+  for (const child of next) {
+    if (!declared && before.includes(child)) continue;
+    if (child.$node) (child as Dynamic).parent = object;
+    else object.$add(child);
+  }
+}
+
 function defineAlias(self: QObject, name: string, [target, ...path]: AliasPath): void {
   const last = path.at(-1) as string;
   const holder = (): Held => path.slice(0, -1).reduce<Held>((object, member) => object?.[member] as Held, target);
@@ -2117,7 +2147,9 @@ function defineAlias(self: QObject, name: string, [target, ...path]: AliasPath):
         () => (target.$type || !target.$track ? target : (target.$track(), null)),
     set(value: unknown) {
       const object = holder();
-      if (path.length && object) object[last] = value;
+      if (!path.length || !object) return;
+      if (isHeldList(object, last)) intoHeldList(object, last, value, false);
+      else object[last] = value;
     },
     enumerable: true,
     configurable: true,
@@ -2153,6 +2185,7 @@ function defineAlias(self: QObject, name: string, [target, ...path]: AliasPath):
           const object = holder();
           // A binding that could not be evaluated has nothing to assign.
           if (!object || (value === undefined && binding!.failing)) return;
+          if (isHeldList(object, last)) return intoHeldList(object, last, value, declared);
           // It is a binding all the same: a value the property cannot hold
           // leaves it what it held, and is told of.
           try {
