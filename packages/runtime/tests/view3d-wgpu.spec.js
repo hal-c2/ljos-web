@@ -849,6 +849,36 @@ for (const backend of ["webgpu", "webgl2"]) {
       });
     });
 
+    // A wasm that traps (a panic, which aborts) is left with what it held
+    // mid-call still held, so every call into it after traps too. One that
+    // trapped inside a build, as a lost device's did on a loaded machine,
+    // stopped every binding on the page with it: Solid halts all of them
+    // on an error nothing catches. The view stops and says why; the page
+    // around it goes on.
+    test.describe("a renderer that trapped", () => {
+      test.use({ told: [/^View3D: the renderer stopped: RuntimeError: unreachable/] });
+      test("stops its view and says why, and the page around it goes on", async ({ page }) => {
+        await show(page, "wgpu_trapped");
+        await page.evaluate(async () => {
+          const address = performance.getEntriesByType("resource").find(({ name }) => /\/wgpu\/ljos_web_3d\.js/.test(name)).name;
+          const { View3d } = await import(address);
+          const trap = () => {
+            throw new WebAssembly.RuntimeError("unreachable");
+          };
+          for (const name of ["build", "frame", "resize", "again", "pieces", "free"]) View3d.prototype[name] = trap;
+        });
+        const frames = await page.evaluate(() => document.querySelector(".qq-view3d").$view3d.frames);
+        await page.evaluate(() => (window.objects.moved.x = 40));
+        await expect.poll(() => page.evaluate(() => document.querySelector(".qq-view3d").$view3d.error)).toMatch(/^the renderer stopped: RuntimeError: unreachable/);
+        await page.evaluate(() => (window.objects.counter.count = 1));
+        await expect(page.getByText("count 1")).toBeAttached();
+        await page.evaluate(() => (window.objects.moved.x = 80));
+        await page.evaluate(() => (window.objects.counter.count = 2));
+        await expect(page.getByText("count 2")).toBeAttached();
+        expect(await page.evaluate(() => document.querySelector(".qq-view3d").$view3d.frames)).toBe(frames);
+      });
+    });
+
     test.describe("a chunk that did not arrive", () => {
       test.use({ told: [/View3D: |net::ERR_FAILED/] });
       test("is asked for again by the next view, which draws", async ({ page }) => {

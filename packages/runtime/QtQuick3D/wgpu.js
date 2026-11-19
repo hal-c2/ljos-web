@@ -51,6 +51,36 @@ async function chunk() {
 }
 let NAMES = null;
 
+// Why the renderer stopped, once a call into it trapped. A trap (a panic,
+// which aborts) leaves what the wasm held mid-call still held, so every
+// call into it after traps too: none is made, and each view it drew stops
+// where it stood, its last picture kept. Uncaught, a trap in a build (as a
+// device lost on a loaded machine gave) halted every binding on the page,
+// as Solid stops all of them on an error nothing catches.
+let stopped = null;
+const stopping = new Set();
+function trapped(error) {
+  if (!(error instanceof WebAssembly.RuntimeError)) return false;
+  if (!stopped) {
+    stopped = `the renderer stopped: ${error}`;
+    console.error(`View3D: ${stopped}`);
+    for (const stop of stopping) stop();
+  }
+  return true;
+}
+// `call` into the renderer, or `otherwise` once it stopped. What else a call
+// throws (a binding's own error, read through the wasm) is not the
+// renderer's, and is thrown on.
+function into(call, otherwise) {
+  if (stopped) return otherwise;
+  try {
+    return call();
+  } catch (error) {
+    if (trapped(error)) return otherwise;
+    throw error;
+  }
+}
+
 // Views are made one after another: the first makes the page's device, and
 // the others share it.
 let queue = Promise.resolve();
@@ -587,7 +617,7 @@ export function drawOn(self, canvas, told, instead) {
   // has left the surface.
   self.$view = () => {
     wanted = true;
-    if (!canvas.$drawn) made()?.again();
+    if (!canvas.$drawn) into(() => made()?.again());
     return own ? 0 : draws();
   };
   // A picture on WebGL 2 is the GPU's work, done after the call that asks
@@ -614,7 +644,7 @@ export function drawOn(self, canvas, told, instead) {
     frame = 0;
     resting = 0;
     // A frame asked for may come after the picture it was for was drawn.
-    if (gone || !due) return;
+    if (gone || stopped || !due) return;
     // One whose picture others read gives it on once an animation frame:
     // what finishes or rests on a timer would otherwise draw it again
     // before the page paints, and two views that show each other's would
@@ -630,7 +660,7 @@ export function drawOn(self, canvas, told, instead) {
     if (wait) return void (resting = setTimeout(draw, wait));
     if (fence) return;
     due = false;
-    if (made()?.frame()) {
+    if (into(() => made()?.frame(), false)) {
       state.frames++;
       const to = performance.now();
       told(from, to);
@@ -745,6 +775,16 @@ export function drawOn(self, canvas, told, instead) {
     frame = requestAnimationFrame(draw);
   };
   const host = new Host(self, setArrivals, arrivals, request);
+  const stop = () => {
+    state.error = stopped;
+    due = false;
+    if (frame) cancelAnimationFrame(frame);
+    frame = 0;
+    clearTimeout(resting);
+    resting = 0;
+  };
+  if (stopped) stop();
+  else stopping.add(stop);
 
   // Follows what the wasm asked of `o`: a change to any of it marks the
   // reads of `o` that give something else, which the wasm alone asks again,
@@ -805,14 +845,18 @@ export function drawOn(self, canvas, told, instead) {
         return void setDraws((times) => times + 1);
       }
       if (!module) await chunk();
+      if (stopped) return;
       const view = await module.View3d.create(canvas, host);
-      if (gone) return void view.free();
-      state.backend = view.backend();
+      if (gone) return void into(() => view.free());
+      if (stopped) return;
+      state.backend = into(() => view.backend(), null);
+      if (stopped) return;
       // The context the view draws with, which a canvas gives again.
       if (state.backend === "webgl2") gl = canvas.getContext("webgl2");
       setMade(() => view);
     })
     .catch((error) => {
+      if (trapped(error)) return;
       state.error = String(error?.message ?? error);
       console.error(`View3D: ${state.error}`);
     });
@@ -821,7 +865,7 @@ export function drawOn(self, canvas, told, instead) {
   effect(
     () => ({ view: made(), width: self.width, height: self.height }),
     ({ view, width, height }) => {
-      if (view) view.resize(...size(width, height));
+      if (view) into(() => view.resize(...size(width, height)));
     },
   );
   // The build reads in the compute, untracked, as what it reads may make
@@ -858,13 +902,14 @@ export function drawOn(self, canvas, told, instead) {
       let left;
       own = true;
       try {
-        left = untrack(() => view.build(marked, Uint32Array.from(said)));
+        left = untrack(() => into(() => view.build(marked, Uint32Array.from(said)), null));
       } finally {
         own = false;
       }
+      if (!left) return null;
       state.builds++;
       state.reads = host.crossed;
-      state.pieces = view.pieces();
+      state.pieces = into(() => view.pieces(), state.pieces);
       // One asked just what it was before is followed as it was.
       for (const [o, asked] of before) {
         const now = host.asked.get(o);
@@ -890,6 +935,7 @@ export function drawOn(self, canvas, told, instead) {
 
   return () => {
     gone = true;
+    stopping.delete(stop);
     for (const end of followers.values()) end();
     followers.clear();
     following.end();
@@ -908,7 +954,7 @@ export function drawOn(self, canvas, told, instead) {
     const view = made();
     if (view) {
       setMade(null);
-      view.free();
+      into(() => view.free());
     }
   };
 }
