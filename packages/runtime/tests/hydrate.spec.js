@@ -1,8 +1,10 @@
 // Hydration takes over what a prerender wrote, page by page: pages
 // hydrated at once each take their own elements over and settle on
-// their own rounds, a page mounted beside them makes its own, what a
-// page's own script makes meanwhile is new, and a page that throws as it
-// is made leaves the document making its own elements again.
+// their own rounds, a page mounted beside them or into a detached
+// element makes its own, what a part's completion makes as the page
+// settles is taken over once, what a page's own script makes meanwhile
+// is new, and a page that throws as it is made leaves the document
+// making its own elements again.
 import { expect, test } from "@playwright/test";
 
 const open = async (page) => {
@@ -66,6 +68,59 @@ test("a page mounted beside one still hydrating makes its own elements", async (
     };
   });
   expect(taken).toEqual({ written: taken.written, kept: taken.written, moved: 0, beside: true });
+  expect(warnings).toEqual([]);
+});
+
+test("a page mounted into a detached element while one hydrates makes its own elements", async ({ page }) => {
+  const warnings = await open(page);
+  const taken = await page.evaluate(async () => {
+    const one = document.getElementById("one");
+    const detached = document.createElement("div");
+    const written = await prerender(one);
+    const before = [...one.querySelectorAll("[data-hk]")];
+    // Measured off the page, or built before it is put in, and mounted
+    // just before the page is hydrated: its ShellLoader's fallback is
+    // made first, in the rounds the hydrating page settles in.
+    mount(Page, detached);
+    const hydrating = hydrate(Page, one);
+    await hydrating.hydrated;
+    return {
+      written,
+      kept: before.filter((element) => one.contains(element)).length,
+      moved: before.filter((element) => detached.contains(element)).length,
+      unclaimed: document.querySelectorAll("[data-hk]").length,
+      settled: [one, detached].map((host) => host.textContent.includes("Made as the page settles")),
+    };
+  });
+  expect(taken).toEqual({ written: taken.written, kept: taken.written, moved: 0, unclaimed: 0, settled: [true, true] });
+  expect(warnings).toEqual([]);
+});
+
+test("what a part's Component.onCompleted makes as the page settles is taken over, once", async ({ page }) => {
+  const warnings = await open(page);
+  const taken = await page.evaluate(async () => {
+    const [one, fresh] = [document.getElementById("one"), document.getElementById("two")];
+    const written = await prerender(one, Completing);
+    const before = [...one.querySelectorAll("[data-hk]")];
+    // The child the completion appended, numbered as the prerender made it.
+    const added = [...one.querySelectorAll('[data-hk$=":Rectangle"]')].filter((element) => element.textContent.includes("Added on completion")).at(-1) ?? null;
+    await hydrate(Completing, one).hydrated;
+    // A page made fresh, for what the hydrated one should be.
+    mount(Completing, fresh);
+    await new Promise((done) => setTimeout(done));
+    const shape = (host) => [...host.querySelectorAll("*")].map((element) => element.localName);
+    return {
+      written,
+      kept: before.filter((element) => one.contains(element)).length,
+      unclaimed: document.querySelectorAll("[data-hk]").length,
+      added: one.textContent.split("Added on completion").length - 1,
+      sameChild: added !== null && one.contains(added) && added.textContent.includes("Added on completion"),
+      completed: one.textContent.includes("Completed, and a child added") && !one.textContent.includes("Before it completes"),
+      shape: shape(one).join(" ") === shape(fresh).join(" "),
+    };
+  });
+  expect(taken.written).toBeGreaterThan(5);
+  expect(taken).toEqual({ written: taken.written, kept: taken.written, unclaimed: 0, added: 1, sameChild: true, completed: true, shape: true });
   expect(warnings).toEqual([]);
 });
 
