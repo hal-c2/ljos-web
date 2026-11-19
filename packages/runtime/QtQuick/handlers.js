@@ -450,6 +450,16 @@ export const TapHandler = defineType("TapHandler", PointerHandler, {
 
 const axis = (minimum, maximum, value) => group({ enabled: true, minimum, maximum, activeValue: value });
 const translation = () => ({ x: 0, y: 0 });
+// A translation property before anything writes it: one object a handler
+// keeps, since the default is worked out at every read and a new object
+// each time would be a change each time, told at load where Qt tells none.
+const unmoved = () => {
+  const kept = new WeakMap();
+  return derived((self) => {
+    if (!kept.has(self)) kept.set(self, translation());
+    return kept.get(self);
+  });
+};
 
 // Qt's `QQuickDragAxis::updateValue` for the two axes of a translation: what
 // it is in this gesture, and what it adds up to over all of them, which the
@@ -465,11 +475,12 @@ function shift(self, x, y) {
   mine.y += dy;
   slot(self, "xAxis$activeValue").write(mine.x);
   slot(self, "yAxis$activeValue").write(mine.y);
-  slot(self, "activeTranslation").write({ x: mine.x, y: mine.y });
+  // Qt 6.11: persistentTranslationChanged comes first, and on every move that translates, even one held at an axis's limit.
   slot(self, "persistentTranslation").write({
     x: xAxis.enabled ? bound(xAxis.minimum, persistent.x + dx, xAxis.maximum) : persistent.x,
     y: yAxis.enabled ? bound(yAxis.minimum, persistent.y + dy, yAxis.maximum) : persistent.y,
   });
+  slot(self, "activeTranslation").write({ x: mine.x, y: mine.y });
 }
 
 function shifted(self) {
@@ -485,7 +496,9 @@ function still(self) {
   mine.x = mine.y = 0;
   slot(self, "xAxis$activeValue").write(0);
   slot(self, "yAxis$activeValue").write(0);
-  slot(self, "activeTranslation").write(translation());
+  // Nothing already, it is not changed by being made nothing again.
+  const was = self.activeTranslation;
+  if (was.x || was.y) slot(self, "activeTranslation").write({ x: 0, y: 0 });
 }
 
 // The target goes where the point is, keeping the spot it was pressed on
@@ -604,8 +617,8 @@ export const DragHandler = defineType("DragHandler", PointerHandler, {
     maximumPointCount: derived((self) => self.minimumPointCount),
     xAxis: axis(-DBL_MAX, DBL_MAX, 0),
     yAxis: axis(-DBL_MAX, DBL_MAX, 0),
-    activeTranslation: derived(translation),
-    persistentTranslation: derived(translation),
+    activeTranslation: unmoved(),
+    persistentTranslation: unmoved(),
   },
   // `translationChanged` says by how much, so `translation` is not a
   // property of the kernel's: its changes are told here.
@@ -689,6 +702,7 @@ export const DragHandler = defineType("DragHandler", PointerHandler, {
       } else {
         const threshold = this.dragThreshold;
         if ((Math.abs(dx) <= threshold && Math.abs(dy) <= threshold) || !takeExclusive(point, this)) return;
+        // Qt 6.11: the activating move moves the target but publishes no translation; the next move publishes all of it.
         centroid.$grabbed();
         mine.active = true;
         slot(this, "active").write(true);
@@ -703,8 +717,10 @@ export const DragHandler = defineType("DragHandler", PointerHandler, {
         return;
       }
       if (mine.point !== point) return;
-      // Where it was let go, in the item as it is now.
-      this.$point.$move(this.$parent, point.x, point.y, point);
+      // Where the last move left it, in the item as it is now.
+      // Qt 6.11: the release does not move the centroid; a point let go elsewhere is told where it last moved.
+      const centroid = this.$point;
+      centroid.$move(this.$parent, centroid.$sceneX, centroid.$sceneY, point);
       endDrag(this);
     },
     $grab(transition, point) {
@@ -1090,8 +1106,8 @@ export const PinchHandler = defineType("PinchHandler", PointerHandler, {
     persistentScale: 1,
     activeRotation: 0,
     persistentRotation: 0,
-    activeTranslation: derived(translation),
-    persistentTranslation: derived(translation),
+    activeTranslation: unmoved(),
+    persistentTranslation: unmoved(),
     xAxis: axis(-DBL_MAX, DBL_MAX, 0),
     yAxis: axis(-DBL_MAX, DBL_MAX, 0),
     scaleAxis: axis(
