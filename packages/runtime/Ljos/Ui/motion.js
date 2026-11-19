@@ -57,7 +57,7 @@ class CalmJob extends AnimatorJob {
 function calm(self, mine, reverse) {
   const fading = mine.filter(fades);
   const moving = fading.length ? mine.filter((action) => !fading.includes(action)) : mine;
-  const length = fading.length ? Math.min(FADE_MAX, Math.max(0, self.duration > 0 ? self.duration : FADE_MAX)) : 0;
+  const length = fading.length ? Math.min(FADE_MAX, Math.max(0, self.duration)) : 0;
   const job = new CalmJob(length, self.$curve(), fading.length ? fading : NONE, moving);
   job.fromDefined = self.from !== undefined;
   job.mirrored = reverse;
