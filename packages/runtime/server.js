@@ -22,7 +22,7 @@
 //   const html = await renderToString(Entry);
 //
 // and puts `html` in the element its page hydrates.
-import { flush, mount } from "./object.ts";
+import { mount, settleMaking } from "./object.ts";
 import { installPrerenderGlobals, renumber, serialize } from "./server/dom.js";
 
 export { installPrerenderGlobals };
@@ -48,12 +48,9 @@ export async function renderToString(Component, { props = {}, width = 1280, heig
   // the client's hydration counts it.
   renumber(document);
   const root = mount(Component, host, props);
-  flush();
-  // What completion set going settles in microtasks: let it.
-  for (let round = 0; round < 10; round++) {
-    await null;
-    flush();
-  }
+  // What completion set going settles in microtasks: let it, in the
+  // rounds `hydrate` takes the page over in.
+  await settleMaking();
   try {
     const mark = (node) => {
       for (const child of node.childNodes ?? []) {
