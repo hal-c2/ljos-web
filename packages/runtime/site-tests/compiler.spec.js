@@ -1,7 +1,7 @@
 // A compiler run holds Node's event loop until it ends, so its own bound is
 // the only one: a compiler that hangs is ended, and says it did not end.
 // A dev server's run does not hold it: the server goes on answering.
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
@@ -11,7 +11,10 @@ import qml, { compilerRun, runCompiler } from "../vite.js";
 test("a compiler run that does not end is ended at its bound, and says so", () => {
   const since = Date.now();
   const ran = runCompiler("sh", ["-c", "sleep 30"], { encoding: "utf8", timeout: 300 });
-  expect(Date.now() - since).toBeLessThan(10_000);
+  // Ended before the run it bounds would have: what tells the bound from
+  // a wait for the run is the run's own 30 s, which a loaded machine only
+  // lengthens; a few seconds of slack in place of it failed one.
+  expect(Date.now() - since).toBeLessThan(30_000);
   expect(ran.error?.code).toBe("ETIMEDOUT");
   expect(ran.error.message).toBe("it did not end within 0.3 s (sh -c sleep 30)");
 });
@@ -26,7 +29,7 @@ test("a compiler run that ends is as spawnSync gives it", () => {
 test("a dev server's compiler run that does not end is ended at its bound, and says so", async () => {
   const since = Date.now();
   const ran = await compilerRun("sh", ["-c", "sleep 30"], { encoding: "utf8", timeout: 300 });
-  expect(Date.now() - since).toBeLessThan(10_000);
+  expect(Date.now() - since).toBeLessThan(30_000);
   expect(ran.error?.code).toBe("ETIMEDOUT");
   expect(ran.error.message).toBe("it did not end within 0.3 s (sh -c sleep 30)");
 });
@@ -56,18 +59,16 @@ test("a dev server goes on answering while a file compiles", async () => {
     plugins: [qml({ qmlc, qt: [dir], root: dir, styles: "ljos" })],
   });
   try {
-    // The longest the event loop went without a turn while the file compiled.
-    let longest = 0;
-    let last = Date.now();
-    const ticking = setInterval(() => {
-      longest = Math.max(longest, Date.now() - last);
-      last = Date.now();
-    }, 20);
+    // How many turns the event loop took while the file compiled: a compile
+    // that held it gives none until it ends. Counted, not the longest gap
+    // between turns, which a loaded machine stretches past any bound.
+    let turns = 0;
+    const ticking = setInterval(() => turns++, 20);
     const since = Date.now();
     const compiled = await server.transformRequest("/Main.qml").finally(() => clearInterval(ticking));
     expect(Date.now() - since).toBeGreaterThanOrEqual(2000);
     expect(compiled.code).toContain("function Main");
-    expect(longest).toBeLessThan(1000);
+    expect(turns, "turns of the event loop while the file compiled for 2 s").toBeGreaterThanOrEqual(10);
   } finally {
     await server.close();
     rmSync(dir, { recursive: true, force: true });
@@ -79,7 +80,7 @@ test("a dev server goes on answering while a file compiles", async () => {
 test("a dev server's compiler run that left a process holding its output is ended at its bound", async () => {
   const since = Date.now();
   const ran = await compilerRun("sh", ["-c", "sleep 30; :"], { encoding: "utf8", timeout: 300 });
-  expect(Date.now() - since).toBeLessThan(10_000);
+  expect(Date.now() - since).toBeLessThan(30_000);
   expect(ran.error?.code).toBe("ETIMEDOUT");
 });
 
@@ -103,7 +104,9 @@ test("a file saved while it compiles is compiled again, not given back as it was
   });
   try {
     const first = server.transformRequest("/Main.qml");
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    // Saved once the compile has read the file, however long it took to
+    // start: 300 ms on, a loaded machine's compile could read the save.
+    while (!existsSync(`${file}.read`)) await new Promise((resolve) => setTimeout(resolve, 10));
     writeFileSync(file, "export default function After() {}\n");
     server.watcher.emit("change", file);
     await first.catch(() => null);

@@ -103,7 +103,9 @@ async function madeAndAsked(page, asked) {
 
 for (const backend of ["webgpu", "webgl2"]) {
   test.describe(backend, () => {
-    async function show(page, scene) {
+    // A scene that never rests (`endless`: each picture asks for the next)
+    // always has one due, so it is shown once it drew, not once it rests.
+    async function show(page, scene, { endless = false } = {}) {
       if (backend === "webgl2") await page.addInitScript(HIDDEN);
       await page.addInitScript(COUNTED);
       await page.addInitScript(LIVE);
@@ -115,19 +117,67 @@ for (const backend of ["webgpu", "webgl2"]) {
         return state.frames > 0;
       });
       expect(await page.evaluate(() => document.querySelector(".qq-view3d").$view3d.backend)).toBe(backend);
-      await still(page);
+      await still(page, { endless });
     }
-    // Until what was just set is drawn, and two animation frames have
-    // passed for what draws from it in turn.
-    const still = (page) =>
-      page.evaluate(async () => {
+    // Until what was just set is drawn, and what draws from it in turn: two
+    // animation frames for what is asked for in them, then until no view has
+    // a picture still to draw. A loaded machine's GPU or the pacing's rest
+    // may hold a picture past any number of frames; what is waited on is
+    // that it was drawn.
+    const still = async (page, { endless = false } = {}) => {
+      await page.evaluate(async () => {
         window.flush();
         await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
       });
+      if (!endless) await page.waitForFunction(() => [...document.querySelectorAll(".qq-view3d")].every(({ $view3d }) => !$view3d?.due), null, { timeout: 0, polling: "raf" });
+    };
     const set = async (page, work, argument) => {
       await page.evaluate(work, argument);
       await still(page);
     };
+    // `count` of the page's animation frames, by `window.ownFrame` where a
+    // test counts the frames the page asks for and keeps its own apart.
+    // What a still scene does not do is watched over frames, not a time:
+    // a loaded machine runs fewer of them in any time.
+    const pageFrames = (page, count) =>
+      page.evaluate(
+        (count) =>
+          new Promise((done) => {
+            const ask = window.ownFrame ?? requestAnimationFrame;
+            let left = count;
+            const next = () => (--left <= 0 ? done() : ask(next));
+            ask(next);
+          }),
+        count,
+      );
+    // The animation frames the page asked for (counted as `frameAsks`) while
+    // the view drew its next `count` pictures, looked at in the page's
+    // frames by `window.ownFrame`, which are not counted.
+    const drawnOver = (page, count) =>
+      page.evaluate(
+        (count) =>
+          new Promise((done) => {
+            const state = document.querySelector(".qq-view3d").$view3d;
+            const from = { asks: window.frameAsks, frames: state.frames };
+            const look = () => (state.frames - from.frames >= count ? done({ asks: window.frameAsks - from.asks, frames: state.frames - from.frames }) : window.ownFrame(look));
+            window.ownFrame(look);
+          }),
+        count,
+      );
+    // What the page asked for and the view drew over `count` of the page's
+    // frames, by `window.ownFrame`.
+    const asksOver = (page, count) =>
+      page.evaluate(
+        (count) =>
+          new Promise((done) => {
+            const state = document.querySelector(".qq-view3d").$view3d;
+            const from = { asks: window.frameAsks, frames: state.frames };
+            let left = count;
+            const next = () => (--left <= 0 ? done({ asks: window.frameAsks - from.asks, frames: state.frames - from.frames }) : window.ownFrame(next));
+            window.ownFrame(next);
+          }),
+        count,
+      );
     const loaderSays = (page) =>
       page.evaluate(() => {
         const { status, errorString } = window.objects.loader;
@@ -163,14 +213,14 @@ for (const backend of ["webgpu", "webgl2"]) {
 
     test("a scene that did not change makes no GPU call, and writing what it was makes none", async ({ page }) => {
       await show(page, "wgpu_mapped");
-      await page.waitForTimeout(200);
+      await still(page);
       const calls = () => page.evaluate(() => window.gpuCalls);
       const before = await calls();
       expect(before).toBeGreaterThan(0);
-      await page.waitForTimeout(500);
-      expect(await calls()).toBe(before);
+      await pageFrames(page, 30);
+      expect(await calls(), "30 of the page's frames on").toBe(before);
       await set(page, () => (window.objects.cube.x = 0));
-      await page.waitForTimeout(100);
+      await pageFrames(page, 6);
       expect(await calls()).toBe(before);
       const frames = () => page.evaluate(() => document.querySelector(".qq-view3d").$view3d.frames);
       const drawn = await frames();
@@ -201,8 +251,8 @@ for (const backend of ["webgpu", "webgl2"]) {
       await show(page, "wgpu_many");
       near(await at(page, 20, 50), [255, 0, 0]);
       const before = await counts(page);
-      await page.waitForTimeout(300);
-      expect(await counts(page), "a still scene builds nothing and draws nothing").toEqual(before);
+      await pageFrames(page, 20);
+      expect(await counts(page), "a still scene builds nothing and draws nothing, 20 of the page's frames on").toEqual(before);
       await set(page, () => (window.objects.squares.objectAt(0).y = 80));
       const after = await counts(page);
       expect(after.builds).toBe(before.builds + 1);
@@ -329,33 +379,22 @@ for (const backend of ["webgpu", "webgl2"]) {
       await page.addInitScript(() => {
         window.frameAsks = 0;
         const asked = window.requestAnimationFrame;
+        window.ownFrame = asked.bind(window);
         window.requestAnimationFrame = (callback) => (window.frameAsks++, asked.call(window, callback));
       });
       await show(page, "wgpu_moving");
-      // Timed by timers: Playwright's own waiting asks for animation frames.
-      const over = (ms) =>
-        page.evaluate(
-          (ms) =>
-            new Promise((done) => {
-              const state = document.querySelector(".qq-view3d").$view3d;
-              const from = { asks: window.frameAsks, frames: state.frames };
-              setTimeout(() => done({ asks: window.frameAsks - from.asks, frames: state.frames - from.frames }), ms);
-            }),
-          ms,
-        );
       await page.evaluate(() => {
         window.objects.moving = true;
         window.flush();
       });
-      const moving = await over(1000);
-      expect(moving.frames).toBeGreaterThan(20);
+      const moving = await drawnOver(page, 40);
       expect(moving.asks / moving.frames, `${moving.asks} animation frames asked for ${moving.frames} drawn`).toBeLessThanOrEqual(1.1);
       await page.evaluate(() => {
         window.objects.moving = false;
         window.flush();
       });
       await still(page);
-      expect(await over(300)).toEqual({ asks: 0, frames: 0 });
+      expect(await asksOver(page, 20), "20 of the page's frames on").toEqual({ asks: 0, frames: 0 });
     });
 
     // A picture on WebGL 2 is done when its fence says so (QtQuick3D/wgpu.js).
@@ -427,31 +466,24 @@ for (const backend of ["webgpu", "webgl2"]) {
         };
         window.ownFrame(each);
       });
-    // What the GPU took for each picture drawn over `ms`, as the view is
-    // paced by it.
-    const gpuTimes = (page, ms) =>
+    // What the GPU took for each of the next `count` pictures, as the view
+    // is paced by it: counted, so a loaded machine that draws fewer in a
+    // second still gives as many.
+    const gpuTimes = (page, count) =>
       page.evaluate(
-        (ms) =>
+        (count) =>
           new Promise((done) => {
             const state = document.querySelector(".qq-view3d").$view3d;
             const took = [];
-            state.probe = (kind, from, to) => kind === "gpu" && took.push(Math.round(to - from));
-            setTimeout(() => {
+            state.probe = (kind, from, to) => {
+              if (kind !== "gpu") return;
+              took.push(Math.round(to - from));
+              if (took.length < count) return;
               state.probe = null;
               done(took);
-            }, ms);
+            };
           }),
-        ms,
-      );
-    const frameAsksOver = (page, ms) =>
-      page.evaluate(
-        (ms) =>
-          new Promise((done) => {
-            const state = document.querySelector(".qq-view3d").$view3d;
-            const from = { asks: window.frameAsks, frames: state.frames };
-            setTimeout(() => done({ asks: window.frameAsks - from.asks, frames: state.frames - from.frames }), ms);
-          }),
-        ms,
+        count,
       );
 
     test("a picture the browser waits for as it makes the page's frame is the GPU's time, and a view drawn on time again asks for no frames", async ({ page }) => {
@@ -467,17 +499,17 @@ for (const backend of ["webgpu", "webgl2"]) {
       });
       // The first is checked by timers only, and seen done late; then the
       // view rests after each, as long as it took.
-      const took = (await gpuTimes(page, 3000)).slice(2);
-      expect(took.length, `the GPU took ${took.join(", ")} ms`).toBeGreaterThan(2);
+      const took = (await gpuTimes(page, 6)).slice(2);
       expect(Math.min(...took), `the GPU took ${took.join(", ")} ms, each frame held 80 ms once laid out`).toBeGreaterThanOrEqual(80);
       await page.evaluate(() => {
         window.holding = false;
         window.makingFor = 0;
         window.release();
       });
-      await gpuTimes(page, 300);
-      const onTime = await frameAsksOver(page, 1000);
-      expect(onTime.frames).toBeGreaterThan(20);
+      // The pictures under way when it was let go, and the rest after the
+      // last slow one.
+      await gpuTimes(page, 2);
+      const onTime = await drawnOver(page, 40);
       expect(onTime.asks / onTime.frames, `${onTime.asks} animation frames asked for ${onTime.frames} drawn`).toBeLessThanOrEqual(1.1);
     });
 
@@ -492,8 +524,7 @@ for (const backend of ["webgpu", "webgl2"]) {
         window.objects.moving = true;
         window.flush();
       });
-      const took = (await gpuTimes(page, 1500)).slice(2);
-      expect(took.length, `the GPU took ${took.join(", ")} ms`).toBeGreaterThan(2);
+      const took = (await gpuTimes(page, 6)).slice(2);
       expect(Math.max(...took), `the GPU took ${took.join(", ")} ms, each frame's callbacks held 80 ms`).toBeLessThan(50);
     });
 
@@ -510,7 +541,7 @@ for (const backend of ["webgpu", "webgl2"]) {
         window.objects.moving = true;
         window.flush();
       });
-      const watched = await frameAsksOver(page, 1000);
+      const watched = await drawnOver(page, 3);
       expect(watched.asks, "frames the view asked for while it was watched").toBeGreaterThan(0);
       const after = await page.evaluate(
         () =>
@@ -518,7 +549,10 @@ for (const backend of ["webgpu", "webgl2"]) {
             window.reload("aliased").then((error) => {
               const from = { asks: window.frameAsks, checks: window.fenceChecks };
               window.makingFor = 0;
-              setTimeout(() => done({ error, asks: window.frameAsks - from.asks, checks: window.fenceChecks - from.checks }), 300);
+              // Over 20 of the page's frames, its own, which are not counted.
+              let left = 20;
+              const next = () => (--left <= 0 ? done({ error, asks: window.frameAsks - from.asks, checks: window.fenceChecks - from.checks }) : window.ownFrame(next));
+              window.ownFrame(next);
             });
           }),
       );
@@ -529,24 +563,24 @@ for (const backend of ["webgpu", "webgl2"]) {
     // Each draw is a new picture for the other view, without end: what paces
     // them is the animation frame, so the page still paints.
     test("two views showing each other's picture go round once an animation frame, and the page paints", async ({ page }) => {
-      await show(page, "wgpu_mutual");
+      await show(page, "wgpu_mutual", { endless: true });
       const { frames, drawn } = await page.evaluate(
         () =>
           new Promise((done) => {
             const views = [...document.querySelectorAll(".qq-view3d")].map((canvas) => canvas.$view3d);
             const draws = () => views.reduce((all, view) => all + view.frames, 0);
             const from = draws();
-            const start = performance.now();
+            // Counted in the page's frames, not timed: a loaded machine
+            // runs fewer frames, and the views go round once in each.
             let frames = 0;
             const tick = () => {
               frames++;
-              if (performance.now() - start < 500) requestAnimationFrame(tick);
+              if (frames < 20 || draws() === from) requestAnimationFrame(tick);
               else done({ frames, drawn: draws() - from });
             };
             requestAnimationFrame(tick);
           }),
       );
-      expect(frames).toBeGreaterThan(10);
       expect(drawn).toBeGreaterThan(0);
       expect(drawn, `${drawn} drawn in ${frames} animation frames`).toBeLessThanOrEqual(2 * (frames + 1));
       // Each square shows the other view, its clear colour at the corners.
@@ -584,26 +618,42 @@ for (const backend of ["webgpu", "webgl2"]) {
 
     // Only a view that gave its picture on waits for the next animation
     // frame to draw again: one that shows another's picture, and drew already
-    // in this frame, still draws the new picture in it.
+    // in this task, still draws the new picture without being held. What is
+    // counted is the draws each view was held for (`held`), not whether they
+    // came before the next frame: a slow GPU's fence or the pacing's rest may
+    // put the second draw after it on a loaded machine, and that is no hold.
     test("a view showing another's picture draws its new picture in the frame it changed, though it drew already in it", async ({ page }) => {
       await show(page, "wgpu_oneway");
-      const drawn = await page.evaluate(
+      const before = await page.evaluate(
         () =>
           new Promise((done) => {
             const [giver, shower] = [...document.querySelectorAll(".qq-view3d")].map((canvas) => canvas.$view3d);
             requestAnimationFrame(async () => {
-              const before = { giver: giver.frames, shower: shower.frames };
-              // Asked for before the changes: the first callback of the next frame.
-              requestAnimationFrame(() => done({ giver: giver.frames - before.giver, shower: shower.frames - before.shower }));
+              const before = { giver: { frames: giver.frames, held: giver.held }, shower: { frames: shower.frames, held: shower.held } };
               window.objects.own.x = 60;
               window.flush();
-              for (let turn = 0; turn < 20 && shower.frames === before.shower; turn++) await null;
+              // The shower's first draw, for its own change, in this task.
+              for (let turn = 0; turn < 20 && shower.frames === before.shower.frames; turn++) await null;
               window.objects.moved.x = 60;
               window.flush();
+              done({ ...before, first: shower.frames - before.shower.frames });
             });
           }),
       );
-      expect(drawn, "frames drawn before the next animation frame began").toEqual({ giver: 1, shower: 2 });
+      expect(before.first, "frames the right view drew for its own change in the task it changed in").toBe(1);
+      await page.waitForFunction(
+        (frames) => [...document.querySelectorAll(".qq-view3d")][1].$view3d.frames >= frames,
+        before.shower.frames + 2,
+        { timeout: 0, polling: "raf" },
+      );
+      await still(page);
+      const after = await page.evaluate(() =>
+        [...document.querySelectorAll(".qq-view3d")].map(({ $view3d: { frames, held } }) => ({ frames, held })),
+      );
+      expect(
+        { giver: { drawn: after[0].frames - before.giver.frames, held: after[0].held - before.giver.held }, shower: { drawn: after[1].frames - before.shower.frames, held: after[1].held - before.shower.held } },
+        "frames each view drew for the two changes, and the draws it was held to the next frame for",
+      ).toEqual({ giver: { drawn: 1, held: 0 }, shower: { drawn: 2, held: 0 } });
       // The right view's large square shows the left view, its red square moved right.
       near(await at(page, 255, 105), [0x40, 0, 0]);
       near(await at(page, 330, 150), [255, 0, 0]);

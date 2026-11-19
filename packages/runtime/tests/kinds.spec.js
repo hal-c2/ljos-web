@@ -45,9 +45,15 @@ test("an object that is destroyed is gone once what destroyed it is done", async
   await expect.poll(() => scene(() => window.scene.read())).toEqual([3, ["gone chip"]]);
 
   // With a delay it stays that long.
-  expect(await scene(() => [window.scene.make(), window.scene.unmake(250), window.scene.read()])).toEqual([4, 4, [4, ["gone chip"]]]);
-  await page.waitForTimeout(100);
-  expect(await scene(() => window.scene.read())).toEqual([4, ["gone chip"]]);
+  // Read again by a page timer set after the delay's, so it runs first
+  // however late a loaded page runs both; read from the test 100 ms on,
+  // a slow round trip could come after the delay.
+  expect(
+    await scene(() => {
+      const now = [window.scene.make(), window.scene.unmake(250), window.scene.read()];
+      return new Promise((done) => setTimeout(() => done([...now, window.scene.read()]), 100));
+    }),
+  ).toEqual([4, 4, [4, ["gone chip"]], [4, ["gone chip"]]]);
   await expect.poll(() => scene(() => window.scene.read())).toEqual([3, ["gone chip", "gone chip"]]);
 
   // Destroyed twice it is destroyed once.

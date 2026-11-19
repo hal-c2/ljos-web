@@ -31,6 +31,40 @@ const RENDERERS = [
 
 const view = (page) => page.evaluate(() => document.querySelector(".qq-view3d")?.$view3d && { ...document.querySelector(".qq-view3d").$view3d });
 
+// Until what the scene fetched and made has been drawn: no picture is
+// due, and the page asked for no frame over 10 of its frames. Counted, so
+// a loaded machine's slower fetches and pictures are waited for, not
+// given half a second.
+const settles = (page) =>
+  page.evaluate(
+    () =>
+      new Promise((done) => {
+        const P = window.perf3d;
+        const view = document.querySelector(".qq-view3d").$view3d;
+        let [asked, quiet] = [P.asked, 0];
+        const look = () => {
+          quiet = P.asked === asked && !view.due ? quiet + 1 : 0;
+          asked = P.asked;
+          if (quiet >= 10) done();
+          else P.ownFrame(look);
+        };
+        P.ownFrame(look);
+      }),
+  );
+
+// What a still scene asks for and draws over `count` of the page's frames.
+const over = (page, count) =>
+  page.evaluate(
+    (count) =>
+      new Promise((done) => {
+        const P = window.perf3d;
+        let left = count;
+        const next = () => (--left <= 0 ? done({ asked: P.asked, frames: P.frames.length }) : P.ownFrame(next));
+        P.ownFrame(next);
+      }),
+    count,
+  );
+
 async function show(page, scene, { query, hidden }, options) {
   await page.addInitScript(probe, options);
   if (hidden) await page.addInitScript(HIDDEN);
@@ -87,11 +121,9 @@ for (const renderer of RENDERERS) {
     test("a still scene asks for no frame once it is drawn", async ({ page }) => {
       await show(page, "perf3d_still", renderer, {});
       // What it fetched and made settles first.
-      await page.waitForTimeout(500);
+      await settles(page);
       const before = await page.evaluate(() => ({ asked: window.perf3d.asked, frames: window.perf3d.frames.length }));
-      await page.waitForTimeout(1000);
-      const after = await page.evaluate(() => ({ asked: window.perf3d.asked, frames: window.perf3d.frames.length }));
-      expect(after).toEqual(before);
+      expect(await over(page, 60), "60 of the page's frames on").toEqual(before);
     });
   });
 }
@@ -102,7 +134,7 @@ for (const renderer of RENDERERS) {
 test("an upload counts the bytes of the range it writes, not of the whole array", async ({ page }) => {
   await show(page, "perf3d_still", RENDERERS[0], { count: true });
   // The scene's own first frames settle first: after them it uploads nothing.
-  await page.waitForTimeout(500);
+  await settles(page);
   const bytes = await page.evaluate(async () => {
     const P = window.perf3d;
     const framed = (work) =>

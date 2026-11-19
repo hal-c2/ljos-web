@@ -182,12 +182,25 @@ const over = ([r, g, b], alpha) => [r, g, b].map((c) => Math.round((c * alpha + 
 const grey = (v) => [v, v, v];
 
 // What is painted at each of the points, once the pictures it is painted
-// with are here.
-async function painted(page, points, within = 3) {
+// with are here: nothing the page reads is still loading (`busy()`), no view
+// has a picture still to draw, and two frames have painted it. A loaded
+// machine takes longer to get there, and is waited for; it is not given a
+// time. What is read is then looked at again over a few frames, not
+// seconds, for a picture that lands a frame late. A scene that never rests
+// (`endless`: each picture asks for the next) always has one to draw, so
+// only its loads are waited for.
+async function painted(page, points, within = 3, { endless = false } = {}) {
   const at = points.map(([point]) => point);
   const read = async () => (await pixels(page, at)).map((colour) => colour.split(" ").map(Number));
   const there = (colours) => colours.every((colour, index) => colour.every((channel, part) => Math.abs(channel - points[index][1][part]) < within));
-  await expect.poll(async () => there(await read())).toBe(true).catch(() => {});
+  const frames = () => page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+  await page.waitForFunction((endless) => window.busy() === 0 && (endless || [...document.querySelectorAll(".qq-view3d")].every(({ $view3d }) => !$view3d?.due)), endless, { timeout: 0, polling: "raf" });
+  await frames();
+  for (let look = 0; look < 5; look++) {
+    const colours = await read();
+    if (there(colours)) return colours;
+    await frames();
+  }
   return read();
 }
 
@@ -2486,7 +2499,8 @@ test("a View3D says how fast it draws", async ({ page }) => {
     return { extendedDataCollectionEnabled, drawCallCount, renderPassCount, renderPassDetails, graphicsApiName, pipelineCount };
   })).toEqual({ extendedDataCollectionEnabled: false, drawCallCount: 0, renderPassCount: 0, renderPassDetails: "", graphicsApiName: "OpenGL", pipelineCount: 0 });
 
-  await expect.poll(async () => (await read()).fps, { timeout: 5000 }).toBeGreaterThan(0);
+  // However long the machine takes over the frames of its first second.
+  await expect.poll(async () => (await read()).fps, { message: "the view says how many frames it drew in a second", timeout: 0 }).toBeGreaterThan(0);
   const later = await read();
   expect(later.seen.at(-1)).toBe(later.fps);
   expect(later.turning.frameTime).toBeGreaterThan(0);
@@ -2565,19 +2579,19 @@ test("two views that show each other's picture draw once a frame, each showing t
         const views = [...document.querySelectorAll(".qq-view3d")].map((canvas) => canvas.$view3d);
         const draws = () => views.reduce((all, view) => all + view.frames, 0);
         const from = draws();
-        const start = performance.now();
+        // Counted in the page's frames, not timed: a loaded machine runs
+        // fewer frames, and the views go round once in each.
         let frames = 0;
         const tick = () => {
           frames++;
-          if (performance.now() - start < 500) requestAnimationFrame(tick);
+          if (frames < 20 || draws() === from) requestAnimationFrame(tick);
           else done({ frames, drawn: draws() - from });
         };
         requestAnimationFrame(tick);
       }),
   );
-  expect(frames).toBeGreaterThan(10);
   expect(drawn).toBeGreaterThan(0);
   expect(drawn, `${drawn} drawn in ${frames} animation frames`).toBeLessThanOrEqual(2 * (frames + 1));
   // Each square shows the other view, its clear colour at the corners.
-  near(await painted(page, [[[55, 105], [0, 0, 0x40]], [[255, 105], [0x40, 0, 0]]]), [[0, 0, 0x40], [0x40, 0, 0]], "", 3);
+  near(await painted(page, [[[55, 105], [0, 0, 0x40]], [[255, 105], [0x40, 0, 0]]], 3, { endless: true }), [[0, 0, 0x40], [0x40, 0, 0]], "", 3);
 });

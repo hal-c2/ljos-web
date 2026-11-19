@@ -13,10 +13,18 @@ const BLUE = "0 0 255";
 const DRAWN = ["mark", "disc", "packed", "box", "units", "wide", "part", "across", "down", "acrossFit", "empty", "kids", "later"];
 const PLACED = ["stretch", "fit", "crop", "asItIs", "offset", "squashed"];
 
-// The scene, once every file in it has been read.
+// The scene, once every file in it has been read and every drawing is
+// painted. A size is known once the file is read; its picture is an <img>
+// that decodes the file after that, so what is painted is waited for on
+// the pictures themselves (decoded, then two frames), not on the sizes.
 async function drawings(page) {
   await open(page, "vectorimage");
   await page.waitForFunction((names) => names.every((name) => window.objects[name].implicitWidth > 0), [...DRAWN, ...PLACED]);
+  await page.evaluate(async () => {
+    const pictures = [...document.querySelectorAll("img.qq-vector")].filter((image) => image.getAttribute("src"));
+    await Promise.all(pictures.map((image) => image.decode().catch(() => {})));
+    await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+  });
 }
 
 const read = (page, names) =>
