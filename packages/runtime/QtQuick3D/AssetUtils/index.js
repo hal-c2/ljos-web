@@ -11,6 +11,15 @@ import { retried } from "../scene.js";
 
 // What a loader made for picking of the file it read last.
 const picked = new WeakMap();
+// Each read file's buffers as its description gives them, those in it
+// decoded: kept apart from `picked`, as a file can be read while a buffer
+// it names is still being fetched (or never comes), and a pick on every
+// move would decode the ones in it again each time.
+const described = new WeakMap();
+const describedOf = (read, address) => {
+  if (!described.has(read)) described.set(read, buffers(read, address));
+  return described.get(read);
+};
 
 export const RuntimeLoader = defineType("RuntimeLoader", Node, {
   properties: {
@@ -37,7 +46,7 @@ export const RuntimeLoader = defineType("RuntimeLoader", Node, {
       let made = picked.get(this);
       if (made?.read !== read) {
         // Its buffers, decoded only when what the pick meets is made again.
-        const bytes = buffers(read, address).map((buffer) => (buffer.url ? retried(buffer.url, "buffer", (taken) => ({ bytes: new Uint8Array(taken) })) : buffer));
+        const bytes = describedOf(read, address).map((buffer) => (buffer.url ? retried(buffer.url, "buffer", (taken) => ({ bytes: new Uint8Array(taken) })) : buffer));
         if (bytes.some((buffer) => !buffer?.bytes)) return [];
         const models = parts(read.json, bytes.map((buffer) => buffer.bytes)).map(({ name, index, placed, shape }) => ({
           node: Object.freeze({ objectName: name, index, parent: this, pickable: true, visible: true }),

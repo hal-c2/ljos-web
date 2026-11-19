@@ -1,4 +1,5 @@
 import { expect, open, test } from "./open.js";
+import { readFile } from "node:fs/promises";
 import { pixels } from "./pixels.js";
 
 // Qt's numbers are single precision, rounded to three places.
@@ -2721,6 +2722,33 @@ test("a pick decodes a loader's buffers only when what it meets is made", async 
     return count;
   });
   expect(decoded).toBe(0);
+});
+
+// A file whose buffers are one in the description and one the server
+// says is not there makes nothing for a pick to meet: the one in the
+// description is still decoded once, not again by each pick after.
+test.describe(() => {
+  test.use({ told: [/^Failed to load resource: the server responded with a status of 404|pair\.bin/] });
+  test("a pick decodes a loader's buffers once when another of them is not there", async ({ page }) => {
+    const pair = JSON.parse(await readFile(new URL("./scenes/wgpu_models/pair.gltf", import.meta.url), "utf8"));
+    pair.buffers.push({ uri: "data:application/octet-stream;base64,AAAAAA==", byteLength: 4 });
+    let failed = 0;
+    await page.route(/wgpu_models\/pair\.gltf(\?.*)?$/, (route) => route.fulfill({ contentType: "model/gltf+json", body: JSON.stringify(pair) }));
+    await page.route(/wgpu_models\/pair\.bin(\?.*)?$/, (route) => (failed++, route.fulfill({ status: 404, body: "" })));
+    await open(page, "loaderpicks");
+    await expect.poll(async () => (await pickAgain(page, 1), failed)).toBe(1);
+    await pickAgain(page, 1);
+    const decoded = await page.evaluate(() => {
+      let count = 0;
+      const atob = window.atob;
+      window.atob = (text) => (count++, atob(text));
+      for (let pick = 0; pick < 3; pick++) window.objects.pair.$picks();
+      window.atob = atob;
+      return count;
+    });
+    expect(decoded).toBe(0);
+    expect(await pickedOf(page, "pair")).toEqual([]);
+  });
 });
 
 // glTF 2.0: a strip's triangle i is corners i, i+1, i+2, every odd one
