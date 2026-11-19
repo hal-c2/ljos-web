@@ -1704,9 +1704,12 @@ Each element the prerender makes is numbered as it is made, with
 the type whose making made it, and carries the two in the HTML
 (`data-hk="12:Text"`). `hydrate(Component, element)`
 (`ljos-web/object`, beside `mount`) makes the page over an element
-that holds such HTML: while the root is made, an element a type asks
-the document for is answered with the prerendered one of that number
-and type, and the effects that then run write to it as they always
+that holds such HTML: while the root is made, and through the
+microtask rounds the prerender let the making settle in
+(`settleMaking`, the one function both sides settle through — where a
+`ShellLoader` puts its fallback in), an element a type asks the
+document for is answered with the prerendered one of that number and
+type, and the effects that then run write to it as they always
 did — its listeners, its measured styles, its painted faces are the
 browser's own, settled in place. The nodes a reader was reading are
 the nodes that then behave. An element of another tag or for another
@@ -1716,11 +1719,13 @@ fewer from what only the browser measures — is a mismatch: it is
 told of once on the console, no element after it is taken over
 either (from where the makings part, no number can be trusted to
 name the same making), what was not taken over is taken out and
-told of, and the page goes on as a mount would have made it. What the page says as it is made
+told of, and the page goes on as a mount would have made it; what no
+making asked for is told of once those rounds are over. What the page says as it is made
 (`console.log`, QML's `print`) a prerender sends to the build's
 stderr, never into the HTML. That the page is live, the element it
-was hydrated into says (`data-ljos-hydrated`). With nothing
-prerendered in it, `hydrate` is `mount`.
+was hydrated into says (`data-ljos-hydrated`), and so does the root
+`hydrate` gives, as `hydrated`, a promise kept once it has. With
+nothing prerendered in it, `hydrate` is `mount`.
 
 What a prerender has, and what it has not:
 
@@ -1961,10 +1966,11 @@ project gone, its addresses revoked and its text withdrawn, also when
 disposed mid-compile, and while a compile links, once or twice. `site/tests/codeblocks.e2e.js` (its own config) holds the same
 on a site built from fixture docs, strictly.
 
-Known limits, as the pieces stand: a `ShellLoader` loads its shell as
-it can (async, by design), so that subtree is made after hydration's
-window and remade there — the app around it is adopted, and the
-prerender still serves a reader without script; a `.ts` file a QML file imports by
+Known limits, as the pieces stand: a `ShellLoader` loads its source as
+it can (async, by design): its fallback, which the prerender wrote
+standing in, is taken over in hydration's rounds as the rest of the
+page is, and a source that comes later (a compile, a fetch) takes its
+place as it would on a page made fresh; a `.ts` file a QML file imports by
 name is refused by the compiler today (a `.mjs` script is not), so a
 grouped example's scripts ride as files the editor shows and a `.ts`
 import is the compiler's gap to close, not papered over here; an

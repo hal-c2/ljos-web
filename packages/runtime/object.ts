@@ -2796,6 +2796,27 @@ export function outsideTheCount<T>(make: () => T): T {
   }
 }
 
+// What a page's making set going and settles in microtasks (a
+// ShellLoader putting its fallback in, a completion's promise): the
+// rounds a prerender lets it settle in before the page is written, and
+// so the rounds a hydration keeps taking the prerendered elements over
+// in. Both sides settle through this one function, so what one wrote
+// the other asks for; `done` ends the rounds early once there is
+// nothing left to take.
+export const SETTLING_ROUNDS = 10;
+export async function settleMaking(done: () => boolean = () => false): Promise<void> {
+  flush();
+  for (let round = 0; round < SETTLING_ROUNDS && !done(); round++) {
+    await null;
+    flush();
+  }
+}
+
+// The hydration still settling, as the function that ends it: one
+// document answers one hydration at a time, so a page hydrated while
+// another is settling ends the other's rounds first.
+let stillSettling: (() => void) | null = null;
+
 // Puts a component's object in the page over what a prerender of it
 // wrote there (`renderToString` of `ljos-web/server`), taking the
 // prerendered elements over instead of making the page again: while
@@ -2813,12 +2834,18 @@ export function outsideTheCount<T>(make: () => T): T {
 // element after it is taken over either (from there no number can
 // be trusted to name the same making), what was not taken over is
 // taken out and told of, and the page goes on as a mount would have
-// made it. Nothing prerendered in `element` is a plain mount. That the
-// page was hydrated, `element` says (`data-ljos-hydrated`), so that
-// what waits for the live page need not guess.
-export function hydrate(Component: Mountable, element: Element, props: Props = {}, options: MountOptions = {}): Root | Mounted {
+// made it. Nothing prerendered in `element` is a plain mount.
+//
+// What the making sets going is still the making until it has settled
+// as the prerender let it (`settleMaking`): the prerendered elements
+// are taken over through those rounds too, and only then is what no
+// one asked for told of. That the page was hydrated, `element` says
+// (`data-ljos-hydrated`), and the root's `hydrated` once it has, so
+// that what waits for the live page need not guess.
+export function hydrate(Component: Mountable, element: Element, props: Props = {}, options: MountOptions = {}): Hydrated {
+  stillSettling?.();
   const marked = element.querySelectorAll("[data-hk]");
-  if (marked.length === 0) return mount(Component, element, props, options);
+  if (marked.length === 0) return Object.assign(mount(Component, element, props, options), { hydrated: Promise.resolve() });
   const keyed = (node: Element): [number: number, kind: string] => {
     const said = node.getAttribute("data-hk") ?? "";
     const at = said.indexOf(":");
@@ -2867,8 +2894,23 @@ export function hydrate(Component: Mountable, element: Element, props: Props = {
   document.createElement = ((tag: string, given?: ElementCreationOptions) => take(tag) ?? createElement(tag, given)) as Document["createElement"];
   document.createElementNS = ((namespace: string | null, tag: string, given?: ElementCreationOptions) =>
     take(tag) ?? createElementNS(namespace, tag, given)) as Document["createElementNS"];
+  const answered = (): void => {
+    delete (document as Partial<Document>).createElement;
+    delete (document as Partial<Document>).createElementNS;
+  };
+  let root: Root | Mounted;
   try {
-    const root = mount(Component, element, props, options);
+    root = mount(Component, element, props, options);
+  } catch (error) {
+    answered();
+    throw error;
+  }
+  let finished = false;
+  const finish = (): void => {
+    if (finished) return;
+    finished = true;
+    if (stillSettling === finish) stillSettling = null;
+    answered();
     // What no type took over is not the page's: a part the prerender
     // had and this making does not. It is told of, as a mismatch is,
     // unless that parting was already told of.
@@ -2878,12 +2920,18 @@ export function hydrate(Component: Mountable, element: Element, props: Props = {
     }
     for (const node of staleCanvases) node.remove();
     element.setAttribute("data-ljos-hydrated", "true");
-    return root;
-  } finally {
-    delete (document as Partial<Document>).createElement;
-    delete (document as Partial<Document>).createElementNS;
-  }
+  };
+  stillSettling = finish;
+  const hydrated = settleMaking(() => finished || told || waiting.size === 0).then(finish, (error: unknown) => {
+    finish();
+    throw error;
+  });
+  return Object.assign(root, { hydrated });
 }
+
+// What `hydrate` gives: the root, and when it has taken over what the
+// prerender wrote and the page is live.
+export type Hydrated = (Root | Mounted) & { hydrated: Promise<void> };
 
 // What a component declares, put on its root object so that it can be
 // reached through it: `{ name: [get, set] }` for a property, a function for
