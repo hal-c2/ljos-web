@@ -71,6 +71,25 @@ test("a page mounted beside one still hydrating makes its own elements", async (
   expect(warnings).toEqual([]);
 });
 
+test("pages hydrated at once into elements not in the document each take their own over", async ({ page }) => {
+  const warnings = await open(page);
+  const taken = await page.evaluate(async () => {
+    const hosts = [document.createElement("div"), document.createElement("div")];
+    const written = [await prerender(hosts[0]), await prerender(hosts[1])];
+    const before = hosts.map((host) => [...host.querySelectorAll("[data-hk]")]);
+    const hydrating = hosts.map((host) => hydrate(Page, host));
+    await Promise.all(hydrating.map((one) => one.hydrated));
+    return {
+      written,
+      kept: before.map((elements, at) => elements.filter((element) => hosts[at].contains(element)).length),
+      unclaimed: hosts.map((host) => host.querySelectorAll("[data-hk]").length),
+      settled: hosts.map((host) => host.textContent.includes("Made as the page settles")),
+    };
+  });
+  expect(taken).toEqual({ written: taken.written, kept: taken.written, unclaimed: [0, 0], settled: [true, true] });
+  expect(warnings).toEqual([]);
+});
+
 test("a page mounted into a detached element while one hydrates makes its own elements", async ({ page }) => {
   const warnings = await open(page);
   const taken = await page.evaluate(async () => {
