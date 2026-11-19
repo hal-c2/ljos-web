@@ -117,6 +117,19 @@ Column {
         onTriggered: page.apply()
     }
 
+    // How to use the app, for a demo whose entry says (`use`).
+    Text {
+        visible: (page.demo.use ?? "") !== ""
+        width: Math.min(parent.width, Theme.measure)
+        text: page.demo.use ?? ""
+        color: Theme.textMuted
+        font.family: Theme.sans
+        font.pixelSize: Theme.bodySize
+        lineHeightMode: Text.FixedHeight
+        lineHeight: Theme.bodyLine
+        wrapMode: Text.Wrap
+    }
+
     Column {
         width: parent.width
         spacing: Theme.s
@@ -151,7 +164,9 @@ Column {
         scroller: page.scroller
         needs: page.demo.needs
         route: page.demo.route
-        aspect: page.demo.height / page.demo.width
+        // A demo laid out for a tall frame too (`compact`) has that shape
+        // where the page is narrow.
+        aspect: !page.wide && page.demo.compact ? page.demo.compact.height / page.demo.compact.width : page.demo.height / page.demo.width
         // In the scheme the demo is drawn in (nav.js proPicture).
         picture: Nav.proPicture(page.demo, Theme.picked, Theme.dark)
         what: page.demo.what

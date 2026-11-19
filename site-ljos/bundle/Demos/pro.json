@@ -29,5 +29,41 @@
     "height": 900,
     "picture": "demo-cockpit",
     "scheme": "dark"
+  },
+  {
+    "name": "watch",
+    "dir": "Watch",
+    "app": "WatchDemo.qml",
+    "entry": "Main.qml",
+    "upstream": {
+      "repository": "hal-c2/ljos-ui",
+      "path": "examples/smartwatch",
+      "leave": [
+        "assets/watch/README.md",
+        "assets/watch/build_watch.py",
+        "assets/watch/rig.json",
+        "assets/watch/screen.glb",
+        "assets/watch/watch.glb"
+      ]
+    },
+    "title": "Kestrel, a smartwatch",
+    "description": "The software of a made-up smartwatch, running in the page at its round and rounded-square screens, and the watch in 3D with its lights blooming.",
+    "summary": "The software of a watch that does not exist, for a round screen and a rounded square. Swipe between its screens, turn the crown with the wheel, let it rest on its always-on face. The screens are the Ljós dialect over typed TypeScript; asleep, only the clock wakes, once a minute.",
+    "use": "Wear it with the pointer. From the face, swipe up for notifications, down for quick settings and left for the apps; swipe right to go back, and hold the face to change it. The wheel turns the crown; the keys under the watch are its side button and crown, its other screen, and rest. Left alone for fifteen seconds it rests on its always-on face. The 3D watch's case, glass and band are glTF files, which only the WebGPU renderer reads; a browser without WebGPU draws its light strips alone.",
+    "tryThis": "Change any of them: the watch is made again from your files as soon as they compile. Try Theme.qml's cyan, or the names of the faces in Watch.qml.",
+    "card": "A smartwatch",
+    "cardBody": "Kestrel, a watch that does not exist: two faces, a round screen and a rounded square, the crown on the mouse wheel, an always-on face, and the watch in 3D. On a page of its own, with every file to change.",
+    "cardAlt": "A round smartwatch face with neon rings beside the same watch in 3D.",
+    "open": "Open the watch",
+    "what": "the watch",
+    "shows": "A round smartwatch face with neon rings beside the same watch in 3D, its light strips glowing.",
+    "needs": "webgl2",
+    "width": 1120,
+    "height": 640,
+    "compact": {
+      "width": 640,
+      "height": 992
+    },
+    "picture": "demo-watch"
   }
 ]
