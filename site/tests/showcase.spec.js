@@ -235,8 +235,10 @@ test("the motion demo springs, shuffles and opens", async ({ page }) => {
       );
   const frames = () => page.evaluate(() => globalThis[Symbol.for("ljos-web/clock")]?.frames ?? 0);
   const start = await placed();
-  const ranFrom = await frames();
   await fig.getByRole("button", { name: "Shuffle the tiles" }).click();
+  // Counted from once the press is in: frames the click itself took ran
+  // before any move began.
+  const ranFrom = await frames();
   // Landed: every tile stands in one of the six places the strip had, and
   // the order is another, or the scene's clock ran frames enough for the
   // moves to have begun and the shuffle gave the same order back. Not on

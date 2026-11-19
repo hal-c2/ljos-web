@@ -46,11 +46,19 @@ test("a dev server's compiler run that ends is as spawnSync gives it", async () 
 // by another page's compile did not send them in time.
 test("a dev server goes on answering while a file compiles", async () => {
   const dir = mkdtempSync(join(tmpdir(), "ljos-web-compiling-"));
-  // A compiler that takes its time over a QML file, and has nothing to say
-  // of anything else it is asked.
+  // A compiler that says it has begun on a QML file and ends once the test
+  // lets it, and has nothing to say of anything else it is asked. Its
+  // minute is no bound the test keeps: a compile that held the event loop
+  // is never let go, and only ends there instead of holding it for good.
   const qmlc = join(dir, "qmlc");
-  writeFileSync(qmlc, '#!/bin/sh\nfor last; do :; done\ncase "$last" in *.qml) sleep 2; echo "export default function Main() {}";; esac\n', { mode: 0o755 });
-  writeFileSync(join(dir, "Main.qml"), "import QtQuick\nItem {}\n");
+  writeFileSync(
+    qmlc,
+    '#!/bin/sh\nfor last; do :; done\ncase "$last" in *.qml) : > "$last.begun"; i=0; while [ ! -e "$last.go" ] && [ $i -lt 600 ]; do sleep 0.1; i=$((i+1)); done; echo "export default function Main() {}";; esac\n',
+    { mode: 0o755 },
+  );
+  const main = join(dir, "Main.qml");
+  writeFileSync(main, "import QtQuick\nItem {}\n");
+  writeFileSync(join(dir, "other.js"), "export const other = 1;\n");
   const server = await createServer({
     configFile: false,
     root: dir,
@@ -59,16 +67,19 @@ test("a dev server goes on answering while a file compiles", async () => {
     plugins: [qml({ qmlc, qt: [dir], root: dir, styles: "ljos" })],
   });
   try {
-    // How many turns the event loop took while the file compiled: a compile
-    // that held it gives none until it ends. Counted, not the longest gap
-    // between turns, which a loaded machine stretches past any bound.
-    let turns = 0;
-    const ticking = setInterval(() => turns++, 20);
-    const since = Date.now();
-    const compiled = await server.transformRequest("/Main.qml").finally(() => clearInterval(ticking));
-    expect(Date.now() - since).toBeGreaterThanOrEqual(2000);
-    expect(compiled.code).toContain("function Main");
-    expect(turns, "turns of the event loop while the file compiled for 2 s").toBeGreaterThanOrEqual(10);
+    // Another file is served between the compile's beginning and its end,
+    // which the test itself sets: the order is what is checked, not how
+    // long any of it took, which a loaded machine stretches past any bound.
+    let ended = false;
+    const compiling = server.transformRequest("/Main.qml").finally(() => {
+      ended = true;
+    });
+    while (!existsSync(`${main}.begun`) && !ended) await new Promise((resolve) => setTimeout(resolve, 10));
+    const other = await server.transformRequest("/other.js");
+    expect(other?.code).toContain("other");
+    expect(ended, "the compile still running once another file was served").toBe(false);
+    writeFileSync(`${main}.go`, "");
+    expect((await compiling).code).toContain("function Main");
   } finally {
     await server.close();
     rmSync(dir, { recursive: true, force: true });
