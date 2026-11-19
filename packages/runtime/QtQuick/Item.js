@@ -428,6 +428,9 @@ export const Item = defineType("Item", QtObject, {
     if ("activeFocusOnTab" in props) reachable(self);
     navigable(self, props);
   },
+  // Qt 6.11: what `resources` and `data` were given comes before what is
+  // declared in the item.
+  lists: ["resources", "data"],
   adopt(self, props) {
     self.$static = contents(props, self);
     if (self.$static.length) arranged(self);

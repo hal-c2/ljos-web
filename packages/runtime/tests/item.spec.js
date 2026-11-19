@@ -196,6 +196,17 @@ test("an item's resources are the objects in it that are not items, its data all
   ]);
 });
 
+// Qt 6.11: `resources: [...]` and `data: [...]` add to what is declared
+// in the item, in the same two lists, and make each object once.
+test("an item's resources and data given as lists are among its resources and data", async ({ page }) => {
+  await open(page, "resourceslists");
+  const [resources, data, children, made] = await page.evaluate(() => window.scene.read());
+  expect(resources.sort()).toEqual(["q", "t"]);
+  expect(data.sort()).toEqual(["d", "i", "q", "t"]);
+  expect(children.sort()).toEqual(["d", "i"]);
+  expect(made).toBe(4);
+});
+
 test("a child of negative z is under what its parent draws", async ({ page }) => {
   await open(page, "belowparent");
   expect(await pixels(page, [[15, 15], [50, 50], [70, 70]])).toEqual(["255 0 0", "0 255 0", "0 0 255"]);
