@@ -372,7 +372,8 @@ jobs:
       # not ours, and one this build cannot act on.
       # Stops if it would embed no prerender: the step above was run
       # under another environment than this build's.
-      - run: pnpm --filter ljos-site build
+      - id: astro-build
+        run: pnpm --filter ljos-site build
         env:
           VITE_LJOS_VIEW3D: wgpu
           LJOS_PRERENDERS_REQUIRED: "1"
@@ -387,7 +388,12 @@ jobs:
         with:
           name: site-ljos-report
           path: site-ljos/.codeblock-prerenders
-      - run: pnpm --filter ljos-site-ljos test
+      # A failure here does not stop the Astro suites after it: each
+      # still runs, up to the first of them that fails, so one run says
+      # whether the Astro side passes too. Their `if:`s say so, and
+      # site-expressions.test.mjs holds them to it.
+      - id: site-ljos-suite
+        run: pnpm --filter ljos-site-ljos test
         env:
           LJOS_SITE_BASE: /
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -396,22 +402,34 @@ jobs:
           name: site-ljos-test-results
           path: site-ljos/test-results
       # The pages as the build synced them, for the specs that read them.
-      - run: pnpm --filter ljos-site sync-docs
-      - run: pnpm --filter ljos-site check-links
+      - id: sync-docs
+        if: ${{ success() || steps.site-ljos-suite.outcome == 'failure' }}
+        run: pnpm --filter ljos-site sync-docs
+      - id: check-links
+        if: ${{ success() || (steps.site-ljos-suite.outcome == 'failure' && steps.sync-docs.outcome == 'success') }}
+        run: pnpm --filter ljos-site check-links
       # runnable.spec checks against the ledger what each live block did
       # when it was prerendered (site/.codeblock-prerenders/report.json).
-      - run: pnpm --filter ljos-site test
+      - id: astro-suite
+        if: ${{ success() || (steps.site-ljos-suite.outcome == 'failure' && steps.check-links.outcome == 'success') }}
+        run: pnpm --filter ljos-site test
       # The same suite over Ljós's reactive graph (A22): a second
       # build of the same pages, then the showcase specs on it.
-      - run: pnpm --filter ljos-site build
+      - id: astro-wasm-build
+        if: ${{ success() || (steps.site-ljos-suite.outcome == 'failure' && steps.astro-suite.outcome == 'success') }}
+        run: pnpm --filter ljos-site build
         env:
           VITE_LJOS_VIEW3D: wgpu
           LJOS_KERNEL: wasm
           NODE_OPTIONS: --disable-warning=DEP0190
-      - run: pnpm --filter ljos-site exec playwright test tests/showcase.spec.js tests/site.spec.js
+      - id: astro-showcase
+        if: ${{ success() || (steps.site-ljos-suite.outcome == 'failure' && steps.astro-wasm-build.outcome == 'success') }}
+        run: pnpm --filter ljos-site exec playwright test tests/showcase.spec.js tests/site.spec.js
       # The live blocks on a site built from fixture docs, strictly.
       # After the ordinary suite: its setup syncs the fixture's pages.
-      - run: pnpm --filter ljos-site test:codeblocks
+      - id: astro-codeblocks
+        if: ${{ success() || (steps.site-ljos-suite.outcome == 'failure' && steps.astro-showcase.outcome == 'success') }}
+        run: pnpm --filter ljos-site test:codeblocks
         env:
           NODE_OPTIONS: --disable-warning=DEP0190
   # The site below a project path (the github.io preview, /<repo>/):

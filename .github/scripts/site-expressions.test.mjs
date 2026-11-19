@@ -87,8 +87,9 @@ const at = {
 
 // --- evaluating GitHub's expression language --------------------------
 // The part of it site.yml uses: literals, property paths, !, ==, !=,
-// &&, || (which yield an operand, not a boolean), parentheses and
-// format().
+// &&, || (which yield an operand, not a boolean), parentheses,
+// format() and the status functions, which read `job.status` (success
+// until a step fails).
 
 function tokens(src) {
   const out = [];
@@ -181,7 +182,12 @@ function evaluate(src, ctx) {
         if (peek(",")) i++;
       }
       take(")");
-      assert.equal(t.id, "format", `the evaluator knows format() only, not ${t.id}()`);
+      const status = lookup(ctx, "job.status") ?? "success";
+      if (t.id === "success") return status === "success";
+      if (t.id === "failure") return status === "failure";
+      if (t.id === "always") return true;
+      if (t.id === "cancelled") return false;
+      assert.equal(t.id, "format", `the evaluator knows format() and the status functions only, not ${t.id}()`);
       return args[0].replace(/\{(\d+)\}/g, (_, n) => String(args[Number(n) + 1] ?? ""));
     }
     return lookup(ctx, t.id);
@@ -377,6 +383,46 @@ test("both path filters are the guard's list of what the site is built from", ()
   // fresh-head.sh matches a directory by prefix and a file exactly;
   // any other glob it would misread.
   for (const path of listed) assert.match(path, /^[^*?[\]!]+(\/\*\*)?$/, `fresh-head.sh cannot match ${path}`);
+});
+
+// The astro job's steps, walked in order the way a runner walks them:
+// which run when the steps in `failing` fail. An `if:` that names no
+// status function holds only while every step before it passed, as
+// GitHub reads it. Answers the ids of the steps that ran.
+function astroSteps(failing = []) {
+  const range = job("astro");
+  const ran = [];
+  const steps = {};
+  let status = "success";
+  for (let i = range[0]; i < range[1]; i++) {
+    if (!/^ {6}- /.test(lines[i])) continue;
+    const s = block(i, 6);
+    const id = lines.slice(...s).map((l) => l.replace(/^ {6}- /, "        ").trim()).find((l) => l.startsWith("id: "))?.slice(4);
+    const raw = lines.slice(...s).map((l) => l.replace(/^ {6}- /, "        ")).find((l) => /^ {8}if: /.test(l))?.trim().slice(4);
+    let cond = expr(s, "if", 8) ?? raw ?? "success()";
+    if (!/\b(success|failure|always|cancelled)\(/.test(cond)) cond = `success() && (${cond})`;
+    const runs = truthy(evaluate(cond, { job: { status }, steps }));
+    const outcome = !runs ? "skipped" : failing.includes(id) ? "failure" : "success";
+    if (outcome === "failure") status = "failure";
+    if (id) {
+      steps[id] = { outcome, outputs: {} };
+      if (runs) ran.push(id);
+    }
+  }
+  return ran;
+}
+
+const astroSuites = ["sync-docs", "check-links", "astro-suite", "astro-wasm-build", "astro-showcase", "astro-codeblocks"];
+
+test("in the astro job, the Astro suites still run when the root build's suite fails, up to the first of them that fails", () => {
+  const ran = (failing) => astroSuites.filter((id) => astroSteps(failing).includes(id));
+  assert.deepEqual(ran([]), astroSuites, "a passing run runs every suite");
+  assert.ok(astroSteps(["site-ljos-suite"]).includes("site-ljos-suite"));
+  assert.deepEqual(ran(["site-ljos-suite"]), astroSuites, "a parity failure skips an Astro suite");
+  assert.deepEqual(ran(["site-ljos-suite", "check-links"]), ["sync-docs", "check-links"], "an Astro suite runs after another failed");
+  assert.deepEqual(ran(["astro-suite"]), ["sync-docs", "check-links", "astro-suite"], "an Astro suite runs after another failed");
+  assert.deepEqual(ran(["astro-build"]), [], "an Astro suite runs on a build that failed");
+  assert.ok(!astroSteps(["astro-build"]).includes("site-ljos-suite"), "the root build's suite runs on an Astro build that failed");
 });
 
 // --- the table -------------------------------------------------------------
