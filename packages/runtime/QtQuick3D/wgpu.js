@@ -563,6 +563,17 @@ export function drawOn(self, canvas, told, instead) {
     backend: null,
     view: self,
     frames: 0,
+    // Draws put off to the next animation frame because the view gave its
+    // picture on in this task or frame (`gaveNow`, `sameFrame`): what a test
+    // counts to say a view was or was not made to wait, where a deadline
+    // would count the machine's speed too.
+    held: 0,
+    // Whether a picture asked for is still to be drawn (resting, behind the
+    // GPU's last, or waiting for a frame): what a host waits on to read the
+    // view's pixels, where a number of frames would only pass the time.
+    get due() {
+      return due;
+    },
     builds: 0,
     reads: 0,
     pieces: 0,
@@ -608,7 +619,10 @@ export function drawOn(self, canvas, told, instead) {
     // what finishes or rests on a timer would otherwise draw it again
     // before the page paints, and two views that show each other's would
     // go round as fast as the GPU lets them.
-    if (time === undefined && sameFrame()) return void (frame = requestAnimationFrame(draw));
+    if (time === undefined && sameFrame()) {
+      state.held++;
+      return void (frame = requestAnimationFrame(draw));
+    }
     const from = performance.now();
     // Still due while it rests or the last is with the GPU, so that what
     // asks meanwhile is in it.
@@ -726,8 +740,9 @@ export function drawOn(self, canvas, told, instead) {
   const request = () => {
     if (due) return;
     due = true;
-    if (gaveNow.has(state)) frame = requestAnimationFrame(draw);
-    else queueMicrotask(draw);
+    if (!gaveNow.has(state)) return void queueMicrotask(draw);
+    state.held++;
+    frame = requestAnimationFrame(draw);
   };
   const host = new Host(self, setArrivals, arrivals, request);
 

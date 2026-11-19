@@ -305,8 +305,9 @@ export const View3D = defineType("View3D", Item, {
       // What a test or a tool may ask, as of the wgpu renderer's view
       // (`drawOn`): `probe` is told of each sight taken ("sync") and each
       // picture drawn ("draw"); `view` is the View3D itself, to read what it
-      // shows from.
-      const state = (canvas.$view3d = { renderer: "js", backend: "webgl2", frames: 0, builds: 0, error: null, probe: null, view: self });
+      // shows from; `held` counts the draws put off to the next frame, and
+      // `due` says a picture asked for is still to be drawn.
+      const state = (canvas.$view3d = { renderer: "js", backend: "webgl2", frames: 0, held: 0, builds: 0, error: null, probe: null, view: self, get due() { return due !== null; } });
       // Drawn once what asked for it has settled, in the same task; one that
       // gave its picture on in this task waits for the next frame, as the
       // wgpu renderer's does (`gaveNow`).
@@ -315,6 +316,7 @@ export const View3D = defineType("View3D", Item, {
       const pace = paced();
       const soon = () => {
         if (!gaveNow.has(state)) return void queueMicrotask(drawn);
+        state.held++;
         waiting = requestAnimationFrame(() => {
           waiting = 0;
           drawn();
