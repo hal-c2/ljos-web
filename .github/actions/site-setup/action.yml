@@ -124,11 +124,15 @@ runs:
     # apt keeps every package it fetches and never drops an older one,
     # so a cache started from another image's would carry each version
     # of the fonts and Mesa from then on. What is saved is only what
-    # this job installed, at the version it installed.
+    # this job installed, at the version it installed. A machine whose
+    # installed packages can't be read saves nothing, and goes on: the
+    # cache is a head start, not a part of the job.
     - if: inputs.browser == 'true' && steps.debs.outputs.cache-hit != 'true'
+      id: kept
+      continue-on-error: true
       shell: bash
       run: bash .github/scripts/keep-installed-debs.sh ~/.cache/playwright-debs
-    - if: inputs.browser == 'true' && steps.debs.outputs.cache-hit != 'true'
+    - if: inputs.browser == 'true' && steps.debs.outputs.cache-hit != 'true' && steps.kept.outcome == 'success'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ~/.cache/playwright-debs/*.deb

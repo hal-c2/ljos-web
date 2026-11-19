@@ -93,7 +93,10 @@ test("the browser's apt packages are saved holding only what this job installed"
   const save = all.find((s) => s.value("key") === "${{ steps.debs.outputs.cache-primary-key }}");
   const prune = all.find((s) => s.lines.some((l) => l.includes(".github/scripts/keep-installed-debs.sh ~/.cache/playwright-debs")));
   assert.ok(prune, "nothing prunes the apt packages before they are saved");
-  assert.equal(prune.value("if"), save?.value("if"), "the prune and the save run under different conditions");
+  // A prune that fails (dpkg unreadable) costs this save, not the job.
+  assert.equal(prune.value("continue-on-error"), "true", "a failing prune fails the job");
+  assert.equal(prune.value("id"), "kept", "the prune has no id for the save to read");
+  assert.equal(save?.value("if"), `${prune.value("if")} && steps.kept.outcome == 'success'`, "the save runs after a prune that failed, or under another condition");
   const pruneAt = at(".github/scripts/keep-installed-debs.sh");
   assert.ok(pruneAt > at("playwright install --with-deps chromium") && pruneAt > at("playwright install-deps chromium"), "the packages are pruned before Playwright installs them");
   assert.ok(pruneAt < at("key: ${{ steps.debs.outputs.cache-primary-key }}"), "the packages are pruned after they are saved");
