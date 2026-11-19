@@ -1,10 +1,11 @@
 import QtQuick
 
-// A host whose `content` is the list of an item inside it: what an
-// instance gives it is that item's.
+// A host whose `content` and `kept` are lists of an item inside it: what
+// an instance gives them is that item's.
 Item {
     property alias inner: inner
     property alias content: inner.data
+    property alias kept: inner.resources
 
     Item {
         id: inner
