@@ -73,6 +73,21 @@ impl<'p> Types<'p> {
         self.front().namespace(name)
     }
 
+    /// Everything the file imports `as` `name`, in the order it imports
+    /// them: two directories may share a name, as two modules may.
+    pub(crate) fn namespaces(&self, name: &str) -> Vec<&'p qml_front::project::Source> {
+        self.project
+            .summary(self.file)
+            .map_or_else(Vec::new, |summary| {
+                summary
+                    .imports
+                    .iter()
+                    .filter(|import| import.alias.as_deref() == Some(name))
+                    .map(|import| &import.source)
+                    .collect()
+            })
+    }
+
     pub(crate) fn base(&self, kind: &Kind) -> Option<Qt> {
         self.front().base(kind)
     }

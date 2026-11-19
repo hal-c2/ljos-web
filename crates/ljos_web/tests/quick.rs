@@ -2531,6 +2531,34 @@ fn a_singleton_of_a_directory_imported_as_a_name_is_its_object() {
 }
 
 #[test]
+fn directories_imported_under_one_name_are_one_namespace() {
+    // `import "first" as P` and `import "second" as P`: the name has the
+    // types of both, a singleton of either is its object, and where both
+    // have a type (`Shot`) it is the one imported last, as it is to the
+    // types.
+    let files = [
+        (
+            "Main",
+            "import QtQuick\nimport \"first\" as P\nimport \"second\" as P\nItem {\n    property int hour: P.Clock.hour\n    P.Alarm { }\n    P.Shot { }\n}",
+        ),
+        (
+            "first/Clock",
+            "pragma Singleton\nimport QtQuick\nQtObject { property int hour: 3 }",
+        ),
+        ("first/Shot", "import QtQuick\nItem { }"),
+        ("second/Alarm", "import QtQuick\nItem { }"),
+        ("second/Shot", "import QtQuick\nRectangle { }"),
+    ];
+    let code = lowered_in(&files, "Main").unwrap_or_else(|errors| panic!("{errors:?}"));
+    assert_contains(&code, r#"import P$Clock from "./first/Clock.qml";"#);
+    assert_contains(&code, r#"import P$Alarm from "./second/Alarm.qml";"#);
+    assert_contains(&code, r#"import P$Shot from "./second/Shot.qml";"#);
+    assert_lacks(&code, "./first/Shot.qml");
+    assert_contains(&code, "hour={P.Clock().hour}");
+    assert_contains(&code, "const P = $namespace(");
+}
+
+#[test]
 fn a_directory_s_plain_file_comes_before_its_ui_file() {
     // `Screen.qml` and `Screen.ui.qml` side by side: `Parts.Screen` is the
     // plain one, as the checker takes it, whatever order the project

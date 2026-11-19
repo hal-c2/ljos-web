@@ -112,6 +112,34 @@ fn own_module<'p>(
     project.module_types(uri)
 }
 
+/// The types of the files a name is bound to, by name, each the file it is:
+/// those of the project's own modules and directories of QML files the file
+/// imports under it. Two of them may share the name (`import "first" as P`,
+/// `import "second" as P`), so they are one table, and where both have a
+/// type the one imported last is it, as it is to the types. None when the
+/// name's last import is not files, a package's module or a script, which
+/// is then what the name is.
+fn namespace_files(
+    types: types::Types<'_>,
+    name: &str,
+    project: &Project,
+    options: &Options,
+) -> Option<std::collections::BTreeMap<String, String>> {
+    let files = |source: &qml_front::project::Source| match source {
+        qml_front::project::Source::Path(path) if !qml_front::project::is_script(path) => {
+            Some(project.directory_types(&options.name, path))
+        }
+        source => own_module(source, project, options).cloned(),
+    };
+    let sources = types.namespaces(name);
+    files(sources.last()?)?;
+    let mut merged = std::collections::BTreeMap::new();
+    for source in sources {
+        merged.extend(files(source).into_iter().flatten());
+    }
+    Some(merged)
+}
+
 /// The same, of a document the module of another takes in: `files` is how
 /// many QML files that one names by their path so far, and counts on. With
 /// `text` it is one written as a text of the other.
@@ -221,11 +249,7 @@ fn lower_from<'a>(
         dialect,
         // A directory imported under a name is files too (`import "parts"
         // as P`), so its singletons are read as a module's are.
-        &|name| match types.namespace(name) {
-            Some(qml_front::project::Source::Path(path)) => !qml_front::project::is_script(path),
-            Some(source) => own_module(source, project, options).is_some(),
-            None => false,
-        },
+        &|name| namespace_files(types, name, project, options).is_some(),
         &mut uses,
         &mut errors,
     );
@@ -306,21 +330,9 @@ fn lower_from<'a>(
         // package: its name is a table of them, read when it is used, since
         // a file of the module may be why another is being loaded.
         // So is a directory under a name: its types are its QML files.
-        let directory = match types.namespace(name) {
-            Some(qml_front::project::Source::Path(path))
-                if !qml_front::project::is_script(path) =>
-            {
-                Some(project.directory_types(&options.name, path))
-            }
-            _ => None,
-        };
-        if let Some(own) = types
-            .namespace(name)
-            .and_then(|source| own_module(source, project, options))
-            .or(directory.as_ref())
-        {
+        if let Some(own) = namespace_files(types, name, project, options) {
             let mut members = Vec::new();
-            for (member, file) in own {
+            for (member, file) in &own {
                 let local = format!("{bound}${member}");
                 let path = types::relative(&options.name, file);
                 imports.push(
