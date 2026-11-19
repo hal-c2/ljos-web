@@ -2073,8 +2073,21 @@ function defineAlias(self: QObject, name: string, [target, ...path]: AliasPath):
   // none is read until then.
   const given = path.length > 0 && name in self.$props;
   const [early, setEarly] = given ? counted(true, getOwner()) : [];
+  // An object declared for the alias (`thing: QtObject {}`) is made once, as
+  // Qt makes it: what the reads before completion made, the first
+  // evaluation after it hands on rather than making another.
+  const declared = given && Boolean(self.$props.$made?.includes(name));
+  let made: { value: unknown } | null = null;
+  const give = declared
+    ? () => {
+        if (untrack(early!)) return (made ??= { value: self.$props[name] }).value;
+        const kept = made;
+        made = null;
+        return kept ? kept.value : self.$props[name];
+      }
+    : () => self.$props[name];
   // A binding like any other: one that cannot be evaluated yet is told of.
-  const binding = given ? guarded(name, () => self.$props[name]) : null;
+  const binding = given ? guarded(name, give) : null;
   Object.defineProperty(self, name, {
     get: path.length
       ? () => (early?.() ? binding!() : holder()?.[last])
@@ -2091,10 +2104,21 @@ function defineAlias(self: QObject, name: string, [target, ...path]: AliasPath):
   if (!given) return;
   // What the instance binds to the alias is the target's binding.
   const key = path.join("$");
-  whenComplete(() => {
-    setEarly!(false);
+  const bind = (): boolean => {
     const aliased = target.$type && slot(target as unknown as QObject, key);
-    if (aliased) return aliased.bind(self.$props, name);
+    if (!aliased) return false;
+    setEarly!(false);
+    aliased.bind(self.$props, name);
+    return true;
+  };
+  // A declared object is the target's as the objects properties hold are
+  // made, before the instance reads what it holds (`props.$made`): read
+  // early, it would be made once here and again by the target's binding.
+  let bound = false;
+  if (declared) whenMade(() => (bound = bind()));
+  whenComplete(() => {
+    if (bound || bind()) return;
+    setEarly!(false);
     // An alias of an alias, or of an object made later: assigned instead.
     // Assigned when what is bound changes, not whenever it is worked out.
     createRenderEffect(
