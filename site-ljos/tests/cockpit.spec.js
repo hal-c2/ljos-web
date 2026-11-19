@@ -73,6 +73,30 @@ test("with WebGPU the cockpit runs, opens a door, and is made again from an edit
   }
 });
 
+// The frame is told ready by the app it holds, not by the page around
+// it: with the app's module slow to come, Run turns to Pause only once
+// the app is there, its own buttons with it.
+test("the cockpit's frame is ready only once its app is", async ({ playwright, baseURL }) => {
+  const browser = await playwright.chromium.launch({ args: ["--enable-unsafe-webgpu", "--use-webgpu-adapter=swiftshader", "--enable-unsafe-swiftshader"] });
+  try {
+    const context = await browser.newContext({ baseURL, viewport: { width: 1440, height: 900 }, reducedMotion: "no-preference" });
+    const page = await context.newPage();
+    await page.route(/\/CockpitDemo-[^/]*\.js$/, async (route) => {
+      await new Promise((done) => setTimeout(done, 2000));
+      await route.continue();
+    });
+    await page.goto("/demos/cockpit/");
+    await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+    const run = page.getByRole("button", { name: "Run the cockpit" });
+    await run.scrollIntoViewIfNeeded();
+    await run.click();
+    await expect(page.getByRole("button", { name: "Pause the cockpit" })).toBeVisible({ timeout: 60_000 });
+    expect(await page.getByRole("button", { name: "Car", exact: true }).count(), "the app is there when its frame says ready").toBe(1);
+  } finally {
+    await browser.close();
+  }
+});
+
 // Paused, the cockpit holds still: its song keeps its place and is still
 // the one playing when the reader runs it again.
 test("paused, the cockpit's song keeps its place and still plays", async ({ playwright, baseURL }) => {
