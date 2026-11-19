@@ -127,12 +127,13 @@ test("ColorMaster multiplies each channel, and desaturates", async ({ page }) =>
   });
   await settled(page, [50, 190], [110, 55, 0], 3, "by channel");
   await page.evaluate(() => (window.objects.master.saturation = -1));
-  const [red, green, blue] = await (async () => {
-    await page.waitForTimeout(50);
-    return colour(page, [50, 190]);
-  })();
-  expect(red).toBe(green);
-  expect(green).toBe(blue);
+  // Waited for as the picture with it, not given 50 ms to be drawn.
+  await expect
+    .poll(async () => {
+      const [red, green, blue] = await colour(page, [50, 190]);
+      return [red - green, green - blue];
+    }, { message: "desaturated, its channels are one grey" })
+    .toEqual([0, 0]);
 });
 
 test("a Vignette darkens the edges to its colour and leaves the middle", async ({ page }) => {

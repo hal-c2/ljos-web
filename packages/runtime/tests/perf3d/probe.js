@@ -68,6 +68,8 @@ export function probe({ count = false, gpu = false } = {}) {
   };
 
   const raf = window.requestAnimationFrame.bind(window);
+  // The page's frames for a test to count by, not counted as asked.
+  P.ownFrame = raf;
   window.requestAnimationFrame = function requestAnimationFrame(callback) {
     P.asked++;
     return raf((t) => {

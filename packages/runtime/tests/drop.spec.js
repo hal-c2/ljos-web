@@ -805,7 +805,15 @@ Column {
       await opened(page);
       await site(page);
       await (await part(page, "keeps")).evaluate((block) => block.keep("cover.svg"));
-      await page.waitForTimeout(100);
+      // Until what it kept is written, however long the database takes:
+      // the reload asks the next page for it.
+      expect(
+        await page.evaluate(() => {
+          window.flush();
+          return window.databasesSaved();
+        }),
+        "what the site's own shell keeps is written before the reload",
+      ).toBe(true);
       await page.reload();
       await opened(page);
       await site(page);
@@ -833,8 +841,11 @@ Column {
     const keeps = () => page.evaluateHandle(() => window.keeping.object.children.find((child) => child.objectName === "keeps"));
     const write = async (text) => {
       await (await keeps()).evaluate((block, text) => block.keep(text), text);
-      await page.waitForTimeout(100);
-      return page.evaluate(() => window.databasesSaved());
+      // Whether it was written, once it is: not read 100 ms on.
+      return page.evaluate(() => {
+        window.flush();
+        return window.databasesSaved();
+      });
     };
     const found = async () => (await keeps()).evaluate((block) => [block.fromSettings, block.fromDatabase]);
     const shell = `import QtQuick\nimport Shop\n\nColumn {\n    Keeps { objectName: "keeps" }\n}\n`;
