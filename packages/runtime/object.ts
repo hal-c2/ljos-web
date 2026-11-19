@@ -89,6 +89,8 @@ export interface QObject {
   $written?: () => void;
   $add?: (child: QObject) => void;
   $remove?: (child: QObject) => void;
+  // What an Item's `resources` holds without drawing it.
+  $held?: readonly QObject[];
   $mounted?: (element: Element, options: MountOptions) => void;
   $block?: QObject;
 }
@@ -2955,13 +2957,25 @@ export function $signal(initial: unknown): [get: () => unknown, set: (given: unk
 }
 
 // What holds an object without being its parent (an Item's `resources`):
-// told, as its parent is, when the object is destroyed.
+// told, as its parent is, when the object is destroyed. A holder that ends
+// first lets go, so what outlives it (a shared object held by items a
+// Loader or `createObject` makes again and again) does not keep it.
 const holders = new WeakMap<QObject, Set<QObject>>();
-export function heldBy(holder: QObject, object: QObject): void {
-  let held = holders.get(object);
-  if (!held) holders.set(object, (held = new Set()));
-  held.add(holder);
+export function heldBy(holder: QObject, objects: readonly QObject[]): void {
+  for (const object of objects) {
+    let held = holders.get(object);
+    if (!held) holders.set(object, (held = new Set()));
+    held.add(holder);
+  }
+  if (getOwner()) onCleanup(() => letGo(holder, objects));
 }
+
+function letGo(holder: QObject, objects: readonly QObject[]): void {
+  for (const object of objects) holders.get(object)?.delete(holder);
+}
+
+// How many hold `object` through their `resources`: what a test asks.
+export const holdersOf = (object: QObject): number => holders.get(object)?.size ?? 0;
 
 export const QtObject = defineType("QtObject", null, {
   properties: { objectName: "" },
@@ -2978,6 +2992,7 @@ export const QtObject = defineType("QtObject", null, {
         parent?.$remove?.(this);
         for (const holder of holders.get(this) ?? []) if (holder !== parent) holder.$remove?.(this);
         holders.delete(this);
+        letGo(this, this.$held ?? []);
         this.$destruction?.();
         this.$dispose?.();
         flush();
