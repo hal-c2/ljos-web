@@ -2831,8 +2831,9 @@ interface Taking {
 }
 // The hydrations still taking over: each keeps its own count and
 // finishes on its own rounds, so one page hydrated while another is
-// still settling (a site's live blocks, made as each one's compile
-// comes in) takes nothing of the other's over and ends nothing of it.
+// still settling (prerendered parts of one document, each hydrated
+// into its own element) takes nothing of the other's over and ends
+// nothing of it.
 const taking: Taking[] = [];
 // The mount under way: a hydration's, whose makings are its own while
 // it makes its root, or a plain mount's (null), whose makings are new
