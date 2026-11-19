@@ -1,5 +1,6 @@
 // A View3D beside what is not in it: the page around a renderer that
-// stopped still answers.
+// stopped still answers. A second view is made when the test asks
+// (`later`), so the test can hold what that view's renderer is given.
 import QtQuick
 import QtQuick3D
 
@@ -9,6 +10,7 @@ Rectangle {
     color: "#000000"
     property alias moved: moved
     property alias counter: counter
+    property alias later: later
     QtObject {
         id: counter
         property int count: 0
@@ -26,6 +28,22 @@ Rectangle {
             materials: PrincipledMaterial {
                 lighting: PrincipledMaterial.NoLighting
                 baseColor: "#ff0000"
+            }
+        }
+    }
+    Loader {
+        id: later
+        active: false
+        width: 100
+        height: 100
+        sourceComponent: View3D {
+            OrthographicCamera { z: 500 }
+            Model {
+                source: "#Rectangle"
+                materials: PrincipledMaterial {
+                    lighting: PrincipledMaterial.NoLighting
+                    baseColor: "#00ff00"
+                }
             }
         }
     }

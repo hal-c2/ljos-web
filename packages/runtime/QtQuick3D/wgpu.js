@@ -768,7 +768,10 @@ export function drawOn(self, canvas, told, instead) {
   // is, and asks for no frame of its own. One that gave its picture on in
   // this task waits for the next frame.
   const request = () => {
-    if (due) return;
+    // A stopped renderer draws no more: what it started before it trapped
+    // may still ask, and a view due for a picture never drawn holds what
+    // waits to read its pixels.
+    if (due || stopped) return;
     due = true;
     if (!gaveNow.has(state)) return void queueMicrotask(draw);
     state.held++;
