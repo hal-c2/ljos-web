@@ -16,7 +16,7 @@ function demo(name) {
         // `own` is where live.js keeps the compiler it makes for this
         // demo, as it keeps one on each live block's example: made with
         // the first edit, with all of the page's modules.
-        held[name] = { project: null, own: { inspected: null }, said: {} };
+        held[name] = { project: null, own: { inspected: null } };
     return held[name];
 }
 
@@ -29,30 +29,30 @@ async function load(name) {
     return state.project;
 }
 
-// What the last compile said about `path`: the editor's squiggles.
-function diagnosticsFor(name, path) {
-    return demo(name).said[path] || [];
-}
-
 // The demo as `edits` ({ path: text }) make it from `entry`, at `base`:
 // a function a Loader's source takes, or an Error saying what broke
-// and where.
+// and where, with what was said of each file as its `diagnostics`
+// ({ path: [diagnostic] }). Those go with the error to the page, which
+// keeps them only for the edits they are of: kept here, a compile that
+// lands after its edits were set back would bring them back.
 async function compile(name, entry, edits, base) {
     const state = demo(name);
     const files = {};
     for (const file of (await load(name)).files)
         files[file.path] = Object.hasOwn(edits, file.path) ? edits[file.path] : file.code;
     const made = await (await Live.compileWith(state.own))({ files: files, entry: entry, base: new URL(base, globalThis.location.href).href });
-    state.said = {};
     if (made.diagnostics) {
+        const said = {};
         made.diagnostics.forEach(function (d) {
             const file = d.file || entry;
             if (d.line)
-                (state.said[file] = state.said[file] || []).push(d);
+                (said[file] = said[file] || []).push(d);
         });
-        throw new Error(made.diagnostics.map(function (d) {
+        const error = new Error(made.diagnostics.map(function (d) {
             return (d.file || entry) + (d.line ? ":" + d.line + ":" + (d.column || 1) : "") + ": " + d.message;
         }).join("\n"));
+        error.diagnostics = said;
+        throw error;
     }
     const component = made.component;
     return function () {
