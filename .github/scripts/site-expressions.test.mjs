@@ -186,7 +186,7 @@ function evaluate(src, ctx) {
       if (t.id === "success") return status === "success";
       if (t.id === "failure") return status === "failure";
       if (t.id === "always") return true;
-      if (t.id === "cancelled") return false;
+      if (t.id === "cancelled") return status === "cancelled";
       assert.equal(t.id, "format", `the evaluator knows format() and the status functions only, not ${t.id}()`);
       return args[0].replace(/\{(\d+)\}/g, (_, n) => String(args[Number(n) + 1] ?? ""));
     }
@@ -386,10 +386,11 @@ test("both path filters are the guard's list of what the site is built from", ()
 });
 
 // The astro job's steps, walked in order the way a runner walks them:
-// which run when the steps in `failing` fail. An `if:` that names no
-// status function holds only while every step before it passed, as
+// which run when the steps in `failing` fail, and, with `cancelledIn`,
+// when the run is cancelled while that step runs. An `if:` that names
+// no status function holds only while every step before it passed, as
 // GitHub reads it. Answers the ids of the steps that ran.
-function astroSteps(failing = []) {
+function astroSteps(failing = [], cancelledIn = undefined) {
   const range = job("astro");
   const ran = [];
   const steps = {};
@@ -404,6 +405,7 @@ function astroSteps(failing = []) {
     const runs = truthy(evaluate(cond, { job: { status }, steps }));
     const outcome = !runs ? "skipped" : failing.includes(id) ? "failure" : "success";
     if (outcome === "failure") status = "failure";
+    if (runs && id !== undefined && id === cancelledIn) status = "cancelled";
     if (id) {
       steps[id] = { outcome, outputs: {} };
       if (runs) ran.push(id);
@@ -423,6 +425,13 @@ test("in the astro job, the Astro suites still run when the root build's suite f
   assert.deepEqual(ran(["astro-suite"]), ["sync-docs", "check-links", "astro-suite"], "an Astro suite runs after another failed");
   assert.deepEqual(ran(["astro-build"]), [], "an Astro suite runs on a build that failed");
   assert.ok(!astroSteps(["astro-build"]).includes("site-ljos-suite"), "the root build's suite runs on an Astro build that failed");
+});
+
+test("in the astro job, a cancelled run stops its Astro suites, after a parity failure too", () => {
+  const ran = (failing, cancelledIn) => astroSuites.filter((id) => astroSteps(failing, cancelledIn).includes(id));
+  assert.deepEqual(ran([], "sync-docs"), ["sync-docs"]);
+  assert.deepEqual(ran(["site-ljos-suite"], "sync-docs"), ["sync-docs"], "a superseded run goes on after a parity failure");
+  assert.deepEqual(ran(["site-ljos-suite"], "site-ljos-suite"), [], "a superseded run goes on after a parity failure");
 });
 
 // --- the table -------------------------------------------------------------
