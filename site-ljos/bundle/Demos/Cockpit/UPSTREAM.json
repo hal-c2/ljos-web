@@ -1,7 +1,7 @@
 {
   "repository": "hal-c2/ljos-ui",
   "path": "examples/car-cockpit",
-  "commit": "5858c16290959488d12062bcc8a48c06ef24f3ea",
+  "commit": "3bc446a177179e68d856c165b1bf5af7c88009bd",
   "files": {
     "AssistView.qml": "3891512d7668f3fcc0f5823aca5a087c0fb91dd3b74373637ca0b991d5fe599f",
     "CarModel.qml": "2e520eb1db8740b10edffff555af225f46a125a08a7ce2751d07293934562de0",
@@ -11,13 +11,13 @@
     "Chip.qml": "f930ef5e95a536917f4e6d0550219457dc2a8ae7af508dc5c938a5cbbecbd42c",
     "ClimatePanel.qml": "fb8559e8a456cb6158bfb4c3fd6422244b1372302818072d670bb92e43ad8f3c",
     "Cluster.qml": "d41861e7a11509377860ca2105f359651e69ccb6ee87d3f53af836b3385666b0",
-    "Cockpit.qml": "e6becb94e2be6cf5d34f33d385640cffbbb679aac0f87b2e7423d4179ccc823b",
+    "Cockpit.qml": "b9d90ce3e028024e4c5104196e3522a4e2acdf210d67b8222d7e804f53003971",
     "Dial.qml": "711b0fd65f7a3d5b1b72e8c46460edbd4d4f3eca5828d40398886b8ef9fd1656",
     "Dock.qml": "361c86fecb84dbca8c3bc8ae341d09aead2f1aa94961e2093d9cdbbd125f9bd0",
     "Icon.qml": "2d63dc7017537a51e2ff1885b5c9909feeac34ba7b608b8b23a6f9d17b2a362e",
     "Main.qml": "9c3d62f06a4f29c3cb63dbc60f6706c4605412ad7b2a5390d67e298113e73a62",
     "MediaPanel.qml": "850564e3e7432d2d263daeda5977d0c9a098b527d5f86ca2fca9e503a331417d",
-    "NavPanel.qml": "8255e7c7b5d87be417fa48ce720b982906e41647ef815a314f38aa8d2dc99902",
+    "NavPanel.qml": "134c8bcea0abbb77554f98dc62351d7a5f2efe099b3dd30f6fe1750c320c75ce",
     "Neon.qml": "d24233d52f90d622aad4af188a029851b7d6349d57eb6c7941c544e1868ab4f0",
     "SettingsPanel.qml": "93142ecf219f51b938ea4621fcbd7e5efebf3332fff94d0662e4e03c726e457b",
     "StatusBar.qml": "40958a10ea94b40125b1363160507166e89bb640edab6f568398a587daddd2d0",
@@ -37,6 +37,6 @@
     "logic/drive.ts": "86e12c588b0c262ca05399347be229c484cc922d33d2937bdfca24257c843e2e",
     "logic/glyphs.ts": "129d41f0883bd4b473d62b7d8146969f3ce167885e2bbb44bce1d0b14f7d39f2",
     "logic/media.ts": "903a056d32937983b022921e9cd24f9513797f674e31d86f1a8999d556df30df",
-    "logic/nav.ts": "8ae0947ac07e3d6458f496f2916896dda0dbe9b74725e718c24e0cfe2ba188d1"
+    "logic/nav.ts": "fd63fdb4c764cfba175aaa69ed57e353471af14869430877449bb1b0c2e413a8"
   }
 }
