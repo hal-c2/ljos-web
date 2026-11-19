@@ -2741,6 +2741,9 @@ export function made(Component: Mountable, props: Props, reloadable?: boolean): 
 // `{ reloadable: true }` (the default in a dev server) `reload` can give it
 // a new component and keep its state.
 export function mount(Component: Mountable, element: Element, props: Props = {}, options: MountOptions = {}): Root | Mounted {
+  // A plain mount makes its own: nothing it asks for is a page's still
+  // being hydrated (`hydrate`).
+  if (mounting === undefined && taking.length > 0) return mountAs(null, () => mount(Component, element, props, options));
   const reloadable = options.reloadable ?? hot;
   const root = made(Component, props, reloadable);
   element.classList.add("q-scene");
@@ -2774,8 +2777,14 @@ export function mount(Component: Mountable, element: Element, props: Props = {},
 // `<link rel="modulepreload">`) — a prerender, which imports no chunk
 // that way, makes none.
 const UNNUMBERED = new Set(["canvas", "img", "video", "audio", "link", "script", "style", "meta"]);
+//
+// Nor is anything made outside a type's setup (`makingKind` is then
+// empty): no type asked for it, so it is no part of the page's making —
+// a script of the page's own, or a library's, making an element while
+// a hydration is still taking the page over gets a new one, and every
+// prerendered element stays the page's.
 function unnumbered(tag: string): boolean {
-  return UNNUMBERED.has(String(tag).toLowerCase()) || marks[OUTSIDE_THE_COUNT] === true;
+  return UNNUMBERED.has(String(tag).toLowerCase()) || marks[OUTSIDE_THE_COUNT] === true || makingKind === "";
 }
 
 // Nor is what the runtime makes for its own ends rather than a type's:
@@ -2812,10 +2821,82 @@ export async function settleMaking(done: () => boolean = () => false): Promise<v
   }
 }
 
-// The hydration still settling, as the function that ends it: one
-// document answers one hydration at a time, so a page hydrated while
-// another is settling ends the other's rounds first.
-let stillSettling: (() => void) | null = null;
+// One hydration taking its root's prerendered elements over: offered a
+// making, it answers with the prerendered element of that making's
+// number, or null.
+interface Taking {
+  element: Element;
+  take(tag: string): Element | null;
+}
+// The hydrations still taking over: each keeps its own count and
+// finishes on its own rounds, so one page hydrated while another is
+// still settling (a site's live blocks, made as each one's compile
+// comes in) takes nothing of the other's over and ends nothing of it.
+const taking: Taking[] = [];
+// The mount under way: a hydration's, whose makings are its own while
+// it makes its root, or a plain mount's (null), whose makings are new
+// whatever is still settling. Undefined between mounts.
+let mounting: Taking | null | undefined;
+// The documents a hydration answers for.
+const answered = new Set<Document>();
+
+function answer(document: Document, tag: string): Element | null {
+  if (unnumbered(tag) || mounting === null) return null;
+  if (mounting) return mounting.element.ownerDocument === document ? mounting.take(tag) : null;
+  return pageOf(taking.filter((one) => one.element.ownerDocument === document))?.take(tag) ?? null;
+}
+
+// Which page still settling a making between mounts is of: the one
+// holding the element of the item it is made into, or of the nearest
+// such item that is placed (a ShellLoader's fallback is made into the
+// loader, whose element was the page's). Made into an item placed
+// elsewhere — a page mounted beside them — it is none's, and new. Made
+// into no placed item, it is the page's alone settling, or, with
+// several, none's: no page's count is moved by it.
+function pageOf(settling: Taking[]): Taking | null {
+  for (let at = parent; at; at = at.$parent ?? at.$declaredIn) {
+    const node = at.$node;
+    if (!node?.isConnected) continue;
+    const holding = settling.filter((one) => one.element.contains(node));
+    // The innermost, where one page is hydrated inside another.
+    return holding.length ? holding.reduce((outer, inner) => (outer.element.contains(inner.element) ? inner : outer)) : null;
+  }
+  return settling.length === 1 ? (settling[0] ?? null) : null;
+}
+
+function answering(taker: Taking): void {
+  taking.push(taker);
+  const document = taker.element.ownerDocument;
+  if (answered.has(document)) return;
+  const createElement = document.createElement.bind(document);
+  const createElementNS = document.createElementNS.bind(document);
+  answered.add(document);
+  document.createElement = ((tag: string, given?: ElementCreationOptions) => answer(document, tag) ?? createElement(tag, given)) as Document["createElement"];
+  document.createElementNS = ((namespace: string | null, tag: string, given?: ElementCreationOptions) =>
+    answer(document, tag) ?? createElementNS(namespace, tag, given)) as Document["createElementNS"];
+}
+
+function doneAnswering(taker: Taking): void {
+  const at = taking.indexOf(taker);
+  if (at >= 0) taking.splice(at, 1);
+  const document = taker.element.ownerDocument;
+  if (taking.some((one) => one.element.ownerDocument === document) || !answered.has(document)) return;
+  answered.delete(document);
+  delete (document as Partial<Document>).createElement;
+  delete (document as Partial<Document>).createElementNS;
+}
+
+// Makes a root as `mount` does, with what is made while it is made
+// offered to `taker` alone — or, with none, to no hydration at all.
+function mountAs(taker: Taking | null, make: () => Root | Mounted): Root | Mounted {
+  const was = mounting;
+  mounting = taker;
+  try {
+    return make();
+  } finally {
+    mounting = was;
+  }
+}
 
 // Puts a component's object in the page over what a prerender of it
 // wrote there (`renderToString` of `ljos-web/server`), taking the
@@ -2841,9 +2922,11 @@ let stillSettling: (() => void) | null = null;
 // are taken over through those rounds too, and only then is what no
 // one asked for told of. That the page was hydrated, `element` says
 // (`data-ljos-hydrated`), and the root's `hydrated` once it has, so
-// that what waits for the live page need not guess.
+// that what waits for the live page need not guess. Pages hydrated at
+// once each take their own over: while one makes its root, what is
+// made is its own; as they settle, what a type makes is the page's it
+// is made into (`pageOf`); none ends another's rounds.
 export function hydrate(Component: Mountable, element: Element, props: Props = {}, options: MountOptions = {}): Hydrated {
-  stillSettling?.();
   const marked = element.querySelectorAll("[data-hk]");
   if (marked.length === 0) return Object.assign(mount(Component, element, props, options), { hydrated: Promise.resolve() });
   const keyed = (node: Element): [number: number, kind: string] => {
@@ -2862,55 +2945,43 @@ export function hydrate(Component: Mountable, element: Element, props: Props = {
   // prerender decided it. The prerendered ones are taken out below;
   // what paints into a canvas paints when the page runs.
   const staleCanvases = [...element.querySelectorAll("canvas")];
-  const document = element.ownerDocument;
   let made = 0;
   let told = false;
-  const take = (tag: string): Element | null => {
-    if (unnumbered(tag)) return null;
-    // Once the makings have parted, no later number can be trusted to
-    // name the same making: the rest is made again, and what was
-    // prerendered of it is taken out below.
-    if (told) return null;
-    const held = waiting.get(++made);
-    if (!held) return null;
-    const { kind, node } = held;
-    // A making outside any type's setup (a measuring canvas, a bench)
-    // has no type to expect, on either side: where the key names one
-    // and this making is another's, the counts have parted, however
-    // alike the tags are.
-    const off =
-      node.localName !== String(tag).toLowerCase() ? `a <${String(tag).toLowerCase()}> where the prerendered page has a <${node.localName}>` : kind && makingKind && kind !== makingKind ? `an element for ${makingKind} where the prerendered page has one for ${kind}` : null;
-    if (off) {
-      told = true;
-      console.warn(`ljos-web: hydration mismatch: the page asks for ${off} (element ${made}); what does not match is made again`);
-      return null;
-    }
-    waiting.delete(made);
-    node.removeAttribute("data-hk");
-    return node;
+  const taker: Taking = {
+    element,
+    take(tag) {
+      // Once the makings have parted, no later number can be trusted to
+      // name the same making: the rest is made again, and what was
+      // prerendered of it is taken out below.
+      if (told) return null;
+      const held = waiting.get(++made);
+      if (!held) return null;
+      const { kind, node } = held;
+      // Every making is a type's (`unnumbered`), and its type is the
+      // one the key names, however alike the tags are: where they
+      // differ, the counts have parted.
+      const off =
+        node.localName !== String(tag).toLowerCase() ? `a <${String(tag).toLowerCase()}> where the prerendered page has a <${node.localName}>` : kind && kind !== makingKind ? `an element for ${makingKind} where the prerendered page has one for ${kind}` : null;
+      if (off) {
+        told = true;
+        console.warn(`ljos-web: hydration mismatch: the page asks for ${off} (element ${made}); what does not match is made again`);
+        return null;
+      }
+      waiting.delete(made);
+      node.removeAttribute("data-hk");
+      return node;
+    },
   };
-  const createElement = document.createElement.bind(document);
-  const createElementNS = document.createElementNS.bind(document);
-  document.createElement = ((tag: string, given?: ElementCreationOptions) => take(tag) ?? createElement(tag, given)) as Document["createElement"];
-  document.createElementNS = ((namespace: string | null, tag: string, given?: ElementCreationOptions) =>
-    take(tag) ?? createElementNS(namespace, tag, given)) as Document["createElementNS"];
-  const answered = (): void => {
-    delete (document as Partial<Document>).createElement;
-    delete (document as Partial<Document>).createElementNS;
-  };
+  answering(taker);
   let root: Root | Mounted;
   try {
-    root = mount(Component, element, props, options);
+    root = mountAs(taker, () => mount(Component, element, props, options));
   } catch (error) {
-    answered();
+    doneAnswering(taker);
     throw error;
   }
-  let finished = false;
   const finish = (): void => {
-    if (finished) return;
-    finished = true;
-    if (stillSettling === finish) stillSettling = null;
-    answered();
+    doneAnswering(taker);
     // What no type took over is not the page's: a part the prerender
     // had and this making does not. It is told of, as a mismatch is,
     // unless that parting was already told of.
@@ -2921,8 +2992,7 @@ export function hydrate(Component: Mountable, element: Element, props: Props = {
     for (const node of staleCanvases) node.remove();
     element.setAttribute("data-ljos-hydrated", "true");
   };
-  stillSettling = finish;
-  const hydrated = settleMaking(() => finished || told || waiting.size === 0).then(finish, (error: unknown) => {
+  const hydrated = settleMaking(() => told || waiting.size === 0).then(finish, (error: unknown) => {
     finish();
     throw error;
   });
