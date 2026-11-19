@@ -221,6 +221,11 @@ test("what is destroyed is gone from the resources that held it", async ({ page 
   await expect.poll(() => page.evaluate(() => window.scene.dropped())).toEqual([["b"], [], ["held 1", "other 0"]]);
 });
 
+test("what an instance declares inside a component whose default property is named data is in that list only", async ({ page }) => {
+  await open(page, "defaultlist");
+  expect(await page.evaluate(() => window.scene.read())).toEqual([["given"], [], ["own"]]);
+});
+
 // A holder that is destroyed lets go of what it held: what outlives it
 // does not keep it.
 test("a destroyed holder is no longer held by what it held", async ({ page }) => {
