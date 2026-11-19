@@ -2257,9 +2257,22 @@ export function contents(props: Props, item?: QObject | null): QObject[] {
 }
 
 // `props` whose children are first what its lists hold, then what is
-// declared in it: read as the type's `adopt` reads them, not before.
+// declared in it: read as the type's `adopt` reads them, not before. A
+// list both levels of a component give (`resources:` in its file and in
+// its instance) holds what each does, the file's first, each made once.
+// `$list(name)` is what one list held, once the children are read.
 function withLists(props: Props, listed: readonly string[]): Props {
-  return Object.create(props, { children: { get: () => [...listed.map((name) => props[name]), props.children] } }) as Props;
+  const levels = (props.$levels as readonly Props[] | undefined) ?? [props];
+  const made = new Map<string, QObject[]>();
+  const list = (name: string): QObject[] => {
+    let objects = made.get(name);
+    if (!objects) made.set(name, (objects = flatten(levels.filter((level) => Object.hasOwn(level, name)).map((level) => level[name]), [])));
+    return objects;
+  };
+  return Object.create(props, {
+    children: { get: () => [...listed.map(list), props.children] },
+    $list: { value: (name: string) => made.get(name) ?? [] },
+  }) as Props;
 }
 
 // A component puts its instance's children among its own

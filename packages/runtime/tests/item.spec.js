@@ -207,6 +207,13 @@ test("an item's resources and data given as lists are among its resources and da
   expect(made).toBe(4);
 });
 
+// Qt 6.11: a list a component and its instance both give holds what each
+// does, and `resources` holds an object without drawing it.
+test("a component's resources and its instance's are both held, and a held item stays drawn where it was", async ({ page }) => {
+  await open(page, "resourcesheld");
+  expect(await page.evaluate(() => window.scene.read())).toEqual([["a", "b"], 2, true, ["shared"], [], ["", "shared", "other"]]);
+});
+
 test("a child of negative z is under what its parent draws", async ({ page }) => {
   await open(page, "belowparent");
   expect(await pixels(page, [[15, 15], [50, 50], [70, 70]])).toEqual(["255 0 0", "0 255 0", "0 0 255"]);

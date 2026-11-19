@@ -1,0 +1,33 @@
+import QtQuick
+
+// A component's `resources` and its instance's both hold what they say,
+// each made once; an item named in another's `resources` is still drawn
+// by its own parent.
+Item {
+    id: root
+    width: 400
+    height: 300
+
+    component Held: Item {
+        id: me
+        property int made: 0
+        resources: [
+            Timer { objectName: "a"; Component.onCompleted: me.made++ }
+        ]
+    }
+    Held {
+        id: held
+        resources: [
+            Timer { objectName: "b"; Component.onCompleted: held.made++ }
+        ]
+    }
+    Rectangle { id: shared; objectName: "shared"; width: 10; height: 10 }
+    Item { id: other; objectName: "other"; resources: [shared] }
+
+    function names(list) {
+        return Array.from(list, (object) => object.objectName)
+    }
+    function read() {
+        return [names(held.resources), held.made, shared.parent === root, names(other.resources), names(other.children), names(root.children)]
+    }
+}
