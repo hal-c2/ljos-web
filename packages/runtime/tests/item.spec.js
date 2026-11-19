@@ -215,6 +215,14 @@ test("a component's resources and its instance's are both held, and a held item 
   expect(await page.evaluate(() => window.scene.read())).toEqual([["a", "b"], 2, true, ["shared"], [], ["", "shared", "other", "both", "kept"], ["inner"], ["inner"], true]);
 });
 
+// Qt 6.11 (qml6): an item made inline in a `resources` list is held, not
+// drawn: it has no parent, a binding to its parent reads none, and it is
+// a child of neither its holder nor what the holder is in.
+test("an item made inline in another's resources has no parent", async ({ page }) => {
+  await open(page, "resourcesinline");
+  expect(await page.evaluate(() => window.scene.read())).toEqual(["none", "none", ["inline", "plain"], [], ["other"], ["outer"]]);
+});
+
 test("what is destroyed is gone from the resources that held it", async ({ page }) => {
   await open(page, "resourcesheld");
   await page.evaluate(() => window.scene.drop());

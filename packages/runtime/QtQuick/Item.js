@@ -438,6 +438,9 @@ export const Item = defineType("Item", QtObject, {
   // Qt 6.11: what `resources` and `data` were given comes before what is
   // declared in the item.
   lists: ["resources", "data"],
+  // Qt 6.11: an item made in `resources: [...]` has no parent, and is not
+  // drawn; one made in `data: [...]` is a child.
+  held: ["resources"],
   // Qt 6.11: what `resources` holds is the item's but not drawn by it, so
   // an item it names keeps its visual parent. One the item also declares,
   // or gives `data`, is still its child, once.
