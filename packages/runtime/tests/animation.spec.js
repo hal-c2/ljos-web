@@ -15,6 +15,27 @@ test("an animation on a property runs from the start, a frame at a time", async 
   expect(await page.evaluate(() => window.objects.clock.running)).toBe(false);
 });
 
+// What a host reads of the page's clock (a test, the Observer): how many
+// frames it ran and how much time it handed out, counted where it steps,
+// and how many jobs it has, so a host asks "has time moved for the scene",
+// or "is there anything left to move", of the scene, not of its own clock,
+// which a loaded machine slows.
+test("the clock counts the frames it ran and the time it gave, for a host to read", async ({ page }) => {
+  await open(page, "animation");
+  const counted = () => page.evaluate(() => ({ ...globalThis[Symbol.for("ljos-web/clock")] }));
+  const from = await counted();
+  expect(from.jobs, "jobs on the clock: the animation that runs from the start").toBe(1);
+  await advance(page, 160);
+  const ran = await counted();
+  expect({ frames: ran.frames - from.frames, time: ran.time - from.time }, "frames and time the clock counted for 160 ms").toEqual({ frames: 10, time: 160 });
+  // Once nothing moves, time asked to pass is not handed out, nor counted.
+  await advance(page, 2000);
+  const ended = await counted();
+  expect(ended.jobs, "jobs on the clock once the animation ended").toBe(0);
+  await advance(page, 500);
+  expect(await counted(), "what a clock with nothing to run counted").toEqual(ended);
+});
+
 test("an animation says what it does in Qt's order", async ({ page }) => {
   await open(page, "animation");
   const started = await page.evaluate(() => {

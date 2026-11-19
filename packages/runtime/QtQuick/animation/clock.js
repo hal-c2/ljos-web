@@ -21,6 +21,14 @@ let manual = false;
 // A frame in a test is as long as one of Qt's.
 const FRAME = 16;
 
+// How many frames the clock has run, how much time it has handed out and how
+// many jobs it has, for a host that follows the page (a test, the Observer):
+// whether the scene's time moved, or has nothing left to move, is read from
+// here, not from the host's own clock, which a loaded machine slows. On
+// `globalThis`, so that the copy of this module a page's compiled examples
+// load counts in the same place.
+const counted = (globalThis[Symbol.for("ljos-web/clock")] ??= { frames: 0, time: 0, jobs: 0 });
+
 // What a binding decides (`running: held`, a state's `when`) is found out by
 // an effect, inside Solid's flush: nothing can be settled there, and a handler
 // that assigned to a property could not either. So it is done after the
@@ -53,6 +61,8 @@ export function drain() {
 }
 
 function step(delta) {
+  counted.frames++;
+  counted.time += delta;
   stepping = delta;
   try {
     for (const job of jobs) {
@@ -121,11 +131,14 @@ export const clock = {
     // A job starts now, not when the others were last advanced.
     job.skew = stepping >= 0 ? stepping : manual ? 0 : Math.max(0, performance.now() - last);
     jobs.add(job);
+    counted.jobs++;
     schedule();
   },
 
   remove(job) {
-    if (jobs.delete(job) && !jobs.size) cancel();
+    if (!jobs.delete(job)) return;
+    counted.jobs--;
+    if (!jobs.size) cancel();
   },
 
   // What a job that was only waiting does when it has something to do.
@@ -135,6 +148,12 @@ export const clock = {
 
   get running() {
     return jobs.size > 0;
+  },
+
+  // What every clock on the page has run and has: `{ frames, time, jobs }`,
+  // the time in ms.
+  get counted() {
+    return { frames: counted.frames, time: counted.time, jobs: counted.jobs };
   },
 
   // For tests: time passes only when `advance` says so.
