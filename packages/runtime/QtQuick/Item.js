@@ -199,10 +199,13 @@ function children(self) {
 
 // The objects declared in one, or made into it, that are not items: a
 // Timer, a QtObject. A Repeater stands for its rows and is not one.
+// What `resources: [...]` was given is among them, an item too, which
+// stays where it is drawn.
 function resources(self) {
   self.$track();
   const all = self.$extra ? [...self.$static, ...self.$extra] : self.$static;
-  return all.filter((child) => child?.$type && !child.$node && !child.$siblings);
+  const loose = all.filter((child) => child?.$type && !child.$node && !child.$siblings);
+  return self.$held ? [...self.$held, ...loose] : loose;
 }
 
 // Puts `nodes` in `container` in that order, after what the type itself
@@ -431,8 +434,13 @@ export const Item = defineType("Item", QtObject, {
   // Qt 6.11: what `resources` and `data` were given comes before what is
   // declared in the item.
   lists: ["resources", "data"],
+  // Qt 6.11: what `resources` holds is the item's but not drawn by it, so
+  // an item it names keeps its visual parent.
   adopt(self, props) {
-    self.$static = contents(props, self);
+    const made = contents(props, self);
+    const held = props.$list?.("resources") ?? EMPTY;
+    if (held.length) self.$held = held;
+    self.$static = held.length ? made.filter((child) => !held.includes(child)) : made;
     if (self.$static.length) arranged(self);
   },
 });
