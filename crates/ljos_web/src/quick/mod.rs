@@ -219,11 +219,12 @@ fn lower_from<'a>(
         stem,
         &lower.dynamic,
         dialect,
-        &|name| {
-            types
-                .namespace(name)
-                .and_then(|source| own_module(source, project, options))
-                .is_some()
+        // A directory imported under a name is files too (`import "parts"
+        // as P`), so its singletons are read as a module's are.
+        &|name| match types.namespace(name) {
+            Some(qml_front::project::Source::Path(path)) => !qml_front::project::is_script(path),
+            Some(source) => own_module(source, project, options).is_some(),
+            None => false,
         },
         &mut uses,
         &mut errors,

@@ -199,17 +199,26 @@ impl Project {
         } else {
             format!("{directory}/")
         };
-        self.extras
-            .keys()
-            .filter_map(|key| {
-                let name = key.strip_prefix(&prefix)?;
-                if name.contains('/') {
-                    return None;
+        let mut types = BTreeMap::new();
+        for key in self.extras.keys() {
+            let Some(name) = key.strip_prefix(&prefix) else {
+                continue;
+            };
+            if name.contains('/') {
+                continue;
+            }
+            // `Screen` is `Screen.qml` where there is one, as the checker
+            // has it, and `Screen.ui.qml` only without it.
+            match name.strip_suffix(".ui") {
+                Some(name) => {
+                    types.entry(name.to_string()).or_insert_with(|| key.clone());
                 }
-                let name = name.strip_suffix(".ui").unwrap_or(name);
-                Some((name.to_string(), key.clone()))
-            })
-            .collect()
+                None => {
+                    types.insert(name.to_string(), key.clone());
+                }
+            }
+        }
+        types
     }
 
     /// The name a module gives the file `file` as one of its types
