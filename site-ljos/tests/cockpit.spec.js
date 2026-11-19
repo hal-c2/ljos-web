@@ -34,11 +34,17 @@ test("without a WebGPU adapter the cockpit keeps its picture and says why", asyn
 // With an adapter (SwiftShader's, so any machine has one) the cockpit
 // runs as the reader would use it: its own buttons by name, a part of
 // the car opened, and an edit to one of its files compiled and shown.
-test("with WebGPU the cockpit runs, opens a door, and is made again from an edit", async ({ playwright, baseURL }) => {
+// Its browser is its own, so the report's trace holds no page: a failure
+// carries the page as it was instead.
+test("with WebGPU the cockpit runs, opens a door, and is made again from an edit", async ({ playwright, baseURL }, testInfo) => {
   const browser = await playwright.chromium.launch({ args: ["--enable-unsafe-webgpu", "--use-webgpu-adapter=swiftshader", "--enable-unsafe-swiftshader"] });
+  let page;
+  const said = [];
   try {
     const context = await browser.newContext({ baseURL, viewport: { width: 1440, height: 900 }, reducedMotion: "no-preference" });
-    const page = await context.newPage();
+    page = await context.newPage();
+    page.on("console", (message) => said.push(`${message.type()}: ${message.text()}`));
+    page.on("pageerror", (error) => said.push(`pageerror: ${error.stack || error.message}`));
     await page.goto("/demos/cockpit/");
     await page.waitForSelector('#app[data-ljos-hydrated="true"]');
     const run = page.getByRole("button", { name: "Run the cockpit" });
@@ -47,6 +53,7 @@ test("with WebGPU the cockpit runs, opens a door, and is made again from an edit
     await expect(page.getByRole("button", { name: "Pause the cockpit" }), "once the cockpit is drawn, Run is its Pause").toBeVisible({ timeout: 60_000 });
     const button = (name) => page.getByRole("button", { name, exact: true });
     await button("Car").click();
+    await expect(button("Car"), "the dock's Car turns the cockpit to its car page").toHaveAttribute("aria-pressed", "true");
     await expect(shown(page.locator("canvas")).first(), "the car is drawn in its canvas").toBeVisible({ timeout: 30_000 });
     const door = button("Left door");
     await expect(door).toHaveCount(1);
@@ -68,6 +75,13 @@ test("with WebGPU the cockpit runs, opens a door, and is made again from an edit
     await page.getByRole("button", { name: "Main.qml", exact: true }).click();
     await expect(button("Cabin"), "the edited cockpit names its page as the edit says").toHaveCount(1, { timeout: 60_000 });
     await expect(button("Climate")).toHaveCount(0);
+  } catch (error) {
+    if (page) {
+      await testInfo.attach("page", { body: await page.screenshot(), contentType: "image/png" });
+      await testInfo.attach("accessibility tree", { body: await page.locator("#app").ariaSnapshot(), contentType: "text/plain" });
+    }
+    await testInfo.attach("console", { body: said.join("\n"), contentType: "text/plain" });
+    throw error;
   } finally {
     await browser.close();
   }
