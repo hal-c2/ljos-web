@@ -1976,13 +1976,18 @@ function complete<T>(make: () => T, making: Making = "objects"): T {
 export const currentParent = (): QObject | null | undefined => parent;
 
 // Creates objects as children of `item`: `parent` is theirs from the start.
+// What is made there is another object's work, though a held list's read
+// asked for it (a property's item made when first read): not held.
 export function inside<T>(item: QObject | null | undefined, make: () => T): T {
   const outer = parent;
+  const outerHeld = heldNow;
   parent = item;
+  heldNow = false;
   try {
     return make();
   } finally {
     parent = outer;
+    heldNow = outerHeld;
   }
 }
 

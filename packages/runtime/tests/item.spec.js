@@ -223,6 +223,15 @@ test("an item made inline in another's resources has no parent", async ({ page }
   expect(await page.evaluate(() => window.scene.read())).toEqual(["none", "none", ["inline", "plain"], [], ["other"], ["outer"]]);
 });
 
+// The held marker is the list's own entries': what reading the list makes
+// in another object's work (here an item property's item, made the first
+// time it is read) is made as it would be read anywhere else.
+test("an item property's item that a resources read makes first has the parent it has when read elsewhere", async ({ page }) => {
+  await open(page, "resourcesreads");
+  const [first, second] = await page.evaluate(() => window.scene.read());
+  expect(first).toBe(second);
+});
+
 test("what is destroyed is gone from the resources that held it", async ({ page }) => {
   await open(page, "resourcesheld");
   await page.evaluate(() => window.scene.drop());
