@@ -209,9 +209,10 @@ test("an item's resources and data given as lists are among its resources and da
 
 // Qt 6.11: a list a component and its instance both give holds what each
 // does, and `resources` holds an object without drawing it.
+// An item the holder also declares is still its child, once.
 test("a component's resources and its instance's are both held, and a held item stays drawn where it was", async ({ page }) => {
   await open(page, "resourcesheld");
-  expect(await page.evaluate(() => window.scene.read())).toEqual([["a", "b"], 2, true, ["shared"], [], ["", "shared", "other"]]);
+  expect(await page.evaluate(() => window.scene.read())).toEqual([["a", "b"], 2, true, ["shared"], [], ["", "shared", "other", "both"], ["inner"], ["inner"], true]);
 });
 
 test("a child of negative z is under what its parent draws", async ({ page }) => {
