@@ -281,7 +281,10 @@ function place(point, event) {
   const { left, top, zoom } = frameOf(point.scene);
   const x = (event.clientX - left) / zoom;
   const y = (event.clientY - top) / zoom;
-  const time = performance.now();
+  // When the input came, not when the page got to it: a busy page runs a
+  // burst of moves late and close together, and their speed is the
+  // reader's, not the page's.
+  const time = event.timeStamp || performance.now();
   const elapsed = (time - point.time) / 1000;
   if (elapsed > 0) {
     point.velocityX = (x - point.x) / elapsed;
