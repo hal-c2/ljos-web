@@ -1,0 +1,1120 @@
+# test	default kernel (s)	wasm kernel (s)	from run 44439932038
+no-webassembly calm.spec.js Orbit asked for less motion, it still moves, more slowly than with no preference	13.1	13.3
+no-webassembly calm.spec.js Orbit in a hidden tab its clock holds, and shown again goes on from there	4.2	4.4
+no-webassembly calm.spec.js the shader effect asked for less motion, it still moves, more slowly than with no preference	12.5	12.5
+no-webassembly calm.spec.js the shader effect in a hidden tab its clock holds, and shown again goes on from there	4.7	4.8
+no-webassembly demos.spec.js /demos/ 3D you can orbit: show source opens its QML	16.6	16.6
+no-webassembly demos.spec.js /demos/ A shader effect: show source opens its QML	16.6	16.7
+no-webassembly demos.spec.js /demos/ A shell you rewrite: show source opens its QML	16.6	16.7
+no-webassembly demos.spec.js /demos/ A whole app: show source opens its QML	16.6	16.6
+no-webassembly demos.spec.js /demos/ A whole app: without WebAssembly keeps its picture and says why	1.9	1.7
+no-webassembly demos.spec.js /demos/ Motion: show source opens its QML	16.6	16.6
+no-webassembly demos.spec.js /demos/ Motion: without WebAssembly keeps its picture and says why	1.7	1.9
+no-webassembly demos.spec.js /demos/ Orbit is drawn by the renderer the page names	2.7	3
+no-webassembly demos.spec.js /demos/ Orbit keeps drawing frames	6.1	5.8
+no-webassembly demos.spec.js /demos/ Orbit takes an up-and-down drag; the page does not	3.5	3.9
+no-webassembly demos.spec.js /demos/ Orbit turns under a sideways drag and zooms under a pinch	4.6	4.6
+no-webassembly demos.spec.js /demos/ loads with nothing in its console	1.7	1.8
+no-webassembly demos.spec.js /demos/ the Pantry answers a press and keys	2.1	2
+no-webassembly demos.spec.js /demos/ the shader effect keeps drawing frames	3.1	3.4
+no-webassembly demos.spec.js the front page loads with nothing in its console; the Pantry and Orbit run	3	3.4
+no-webassembly examples.spec.js /controls/accessibility/ #0 Column (324a4305b4b1ccc4) without WebAssembly says so and keeps its picture	0.807	0.842
+no-webassembly examples.spec.js /controls/accessibility/ #1 Row (24cb04b8bfc9cdf2) without WebAssembly says so and keeps its picture	0.826	0.845
+no-webassembly examples.spec.js /controls/accessibility/ #2 Item (7e9c2e2b54c60261) without WebAssembly says so and keeps its picture	0.789	0.823
+no-webassembly examples.spec.js /controls/accessibility/ loads with nothing in its console and every example's picture	1.2	1.2
+no-webassembly examples.spec.js /controls/buttons-and-toggles/ #0 Column (6135ed2ed00fc184) without WebAssembly says so and keeps its picture	0.838	0.858
+no-webassembly examples.spec.js /controls/buttons-and-toggles/ #1 Column (96cc903e9a815d8f) without WebAssembly says so and keeps its picture	0.878	0.876
+no-webassembly examples.spec.js /controls/buttons-and-toggles/ #2 Column (8e3225ad2008c238) without WebAssembly says so and keeps its picture	0.857	0.862
+no-webassembly examples.spec.js /controls/buttons-and-toggles/ loads with nothing in its console and every example's picture	1.3	1.3
+no-webassembly examples.spec.js /controls/containers-and-popups/ #0 Column (cc8d064e8ad05d4c) without WebAssembly says so and keeps its picture	0.928	0.911
+no-webassembly examples.spec.js /controls/containers-and-popups/ #1 Item (4eb6e5519e26e7e1) without WebAssembly says so and keeps its picture	0.892	0.926
+no-webassembly examples.spec.js /controls/containers-and-popups/ #2 Column (8f14b9fb7af7aff7) without WebAssembly says so and keeps its picture	1.1	1.2
+no-webassembly examples.spec.js /controls/containers-and-popups/ #3 Menu (91fb5d1ead28286c) without WebAssembly says so and keeps its picture	1.1	1.1
+no-webassembly examples.spec.js /controls/containers-and-popups/ #4 Item (0b18cf07793e3e9d) without WebAssembly says so and keeps its picture	1.2	1.2
+no-webassembly examples.spec.js /controls/containers-and-popups/ loads with nothing in its console and every example's picture	1.4	1.4
+no-webassembly examples.spec.js /controls/localisation/ #0 Column (137df92bfa8e0859) without WebAssembly says so and keeps its picture	0.82	0.95
+no-webassembly examples.spec.js /controls/localisation/ #1 Row (03a7bbe6a68cce9d) without WebAssembly says so and keeps its picture	1	1
+no-webassembly examples.spec.js /controls/localisation/ #2 Column (54177f22bfbd2c83) without WebAssembly says so and keeps its picture	0.943	0.984
+no-webassembly examples.spec.js /controls/localisation/ loads with nothing in its console and every example's picture	1.4	1.5
+no-webassembly examples.spec.js /controls/overview/ #0 Column (615cc92f8023f3e1) without WebAssembly says so and keeps its picture	1.1	1.1
+no-webassembly examples.spec.js /controls/overview/ #1 Column (5f997f34838f3099) without WebAssembly says so and keeps its picture	1.2	1.3
+no-webassembly examples.spec.js /controls/overview/ #2 Pane (41cbc65d73f90a38) without WebAssembly says so and keeps its picture	1.1	1.2
+no-webassembly examples.spec.js /controls/overview/ loads with nothing in its console and every example's picture	1.6	1.6
+no-webassembly examples.spec.js /controls/styles/ #0 Pane (9ef32cc910dcffe3) without WebAssembly says so and keeps its picture	0.911	1
+no-webassembly examples.spec.js /controls/styles/ #1 Pane (887824c13b3c8664) without WebAssembly says so and keeps its picture	1	1.1
+no-webassembly examples.spec.js /controls/styles/ #2 Pane (de5eb235ae311068) without WebAssembly says so and keeps its picture	0.948	1
+no-webassembly examples.spec.js /controls/styles/ loads with nothing in its console and every example's picture	1.4	1.5
+no-webassembly examples.spec.js /controls/value-inputs/ #0 Column (614474ac5f49dd42) without WebAssembly says so and keeps its picture	0.988	1
+no-webassembly examples.spec.js /controls/value-inputs/ #1 Column (45d59cf4a15be216) without WebAssembly says so and keeps its picture	1.1	1.1
+no-webassembly examples.spec.js /controls/value-inputs/ #2 Column (cc1c0189c2c59d22) without WebAssembly says so and keeps its picture	1	1
+no-webassembly examples.spec.js /controls/value-inputs/ #3 Column (5d877f9361aeff23) without WebAssembly says so and keeps its picture	1	1.1
+no-webassembly examples.spec.js /controls/value-inputs/ loads with nothing in its console and every example's picture	1.6	1.6
+no-webassembly examples.spec.js /controls/windows/ #0 Window (4e0f6cc0c88e7ff0) without WebAssembly says so and keeps its picture	0.895	0.919
+no-webassembly examples.spec.js /controls/windows/ #1 ApplicationWindow (ccaeac08b4f25e9f) without WebAssembly says so and keeps its picture	1.1	0.942
+no-webassembly examples.spec.js /controls/windows/ #2 Window (ffba0f2b97cea2e6) without WebAssembly says so and keeps its picture	0.996	0.984
+no-webassembly examples.spec.js /controls/windows/ loads with nothing in its console and every example's picture	1.4	1.4
+no-webassembly examples.spec.js /data/fetching/ #0 Text (e31e2d212cce10b8) without WebAssembly says so and keeps its picture	1	1.1
+no-webassembly examples.spec.js /data/fetching/ #1 Text (9f68f9707a6ad3ed) without WebAssembly says so and keeps its picture	1.1	1.3
+no-webassembly examples.spec.js /data/fetching/ #2 Text (494b723d4a572b6f) without WebAssembly says so and keeps its picture	1.1	1.1
+no-webassembly examples.spec.js /data/fetching/ loads with nothing in its console and every example's picture	1.5	1.5
+no-webassembly examples.spec.js /data/keyboard-and-focus/ #0 Item (3534f01ffba233ec) without WebAssembly says so and keeps its picture	1.1	1
+no-webassembly examples.spec.js /data/keyboard-and-focus/ #1 Row (52682c03cae83854) without WebAssembly says so and keeps its picture	1.1	1.1
+no-webassembly examples.spec.js /data/keyboard-and-focus/ #2 Item (3675b16ed362920d) without WebAssembly says so and keeps its picture	1.1	1.1
+no-webassembly examples.spec.js /data/keyboard-and-focus/ #3 Item (b92df979ee2fa94f) without WebAssembly says so and keeps its picture	1.1	1.1
+no-webassembly examples.spec.js /data/keyboard-and-focus/ loads with nothing in its console and every example's picture	1.6	1.6
+no-webassembly examples.spec.js /data/list-and-grid-views/ #0 ListView (6bccdcfd7a6fcba4) without WebAssembly says so and keeps its picture	0.969	0.921
+no-webassembly examples.spec.js /data/list-and-grid-views/ #1 GridView (942cf536c2686a3f) without WebAssembly says so and keeps its picture	1	1.1
+no-webassembly examples.spec.js /data/list-and-grid-views/ #2 Item (098f59fce2adb0e4) without WebAssembly says so and keeps its picture	0.998	0.998
+no-webassembly examples.spec.js /data/list-and-grid-views/ loads with nothing in its console and every example's picture	1.5	1.4
+no-webassembly examples.spec.js /data/models/ #0 Item (30e005a4d466ded9) without WebAssembly says so and keeps its picture	1.4	1.5
+no-webassembly examples.spec.js /data/models/ #1 Column (dce009041c39d0aa) without WebAssembly says so and keeps its picture	1.5	1.5
+no-webassembly examples.spec.js /data/models/ #2 Column (1b81ce5dbda3bc51) without WebAssembly says so and keeps its picture	1.5	1.5
+no-webassembly examples.spec.js /data/models/ #3 Item (0ef6f90a9ecad2c7) without WebAssembly says so and keeps its picture	1.5	1.6
+no-webassembly examples.spec.js /data/models/ #4 Item (bd3a4498f5a3fc76) without WebAssembly says so and keeps its picture	1.5	1.5
+no-webassembly examples.spec.js /data/models/ #5 Column (e3889e4ab501c21b) without WebAssembly says so and keeps its picture	1.5	1.6
+no-webassembly examples.spec.js /data/models/ #6 ListView (2e079c09cbaf90fb) without WebAssembly says so and keeps its picture	1.5	1.5
+no-webassembly examples.spec.js /data/models/ #7 Column (8e3048660e1b1e1c) without WebAssembly says so and keeps its picture	1.4	1.5
+no-webassembly examples.spec.js /data/models/ loads with nothing in its console and every example's picture	2.2	2.1
+no-webassembly examples.spec.js /data/other-views/ #0 PathView (9e320b1b20c712b2) without WebAssembly says so and keeps its picture	1	1
+no-webassembly examples.spec.js /data/other-views/ #1 TableView (e1ab30a61cd60d18) without WebAssembly says so and keeps its picture	1	1
+no-webassembly examples.spec.js /data/other-views/ #2 Flickable (5b92ca3e82dae038) without WebAssembly says so and keeps its picture	1.1	1
+no-webassembly examples.spec.js /data/other-views/ loads with nothing in its console and every example's picture	1.5	1.6
+no-webassembly examples.spec.js /data/pointer-input/ #0 Item (b55623ed58944722) without WebAssembly says so and keeps its picture	0.99	0.987
+no-webassembly examples.spec.js /data/pointer-input/ #1 Item (9d4249843e891090) without WebAssembly says so and keeps its picture	1.1	1.1
+no-webassembly examples.spec.js /data/pointer-input/ #2 Item (a71f87a4c464b70b) without WebAssembly says so and keeps its picture	1.1	1.1
+no-webassembly examples.spec.js /data/pointer-input/ #3 Item (04a6f889c93004fc) without WebAssembly says so and keeps its picture	1.2	1.2
+no-webassembly examples.spec.js /data/pointer-input/ #4 Item (1f481945421f133a) without WebAssembly says so and keeps its picture	1.2	1.1
+no-webassembly examples.spec.js /data/pointer-input/ loads with nothing in its console and every example's picture	1.6	1.6
+no-webassembly examples.spec.js /data/repeater-and-delegates/ #0 Row (3cc3314389c6bb59) without WebAssembly says so and keeps its picture	0.936	1
+no-webassembly examples.spec.js /data/repeater-and-delegates/ #1 Item (f3874391b12edc7e) without WebAssembly says so and keeps its picture	1	1.1
+no-webassembly examples.spec.js /data/repeater-and-delegates/ loads with nothing in its console and every example's picture	1.4	1.5
+no-webassembly examples.spec.js /data/tasks/ #0 Column (32595cd0358c7195) without WebAssembly says so and keeps its picture	0.971	0.954
+no-webassembly examples.spec.js /data/tasks/ #1 Column (a8bbd60a3259ea60) without WebAssembly says so and keeps its picture	0.979	1
+no-webassembly examples.spec.js /data/tasks/ loads with nothing in its console and every example's picture	1.4	1.4
+no-webassembly examples.spec.js /language/components/ #0 PanelForm (01b87cdc0e9105d9) without WebAssembly says so and keeps its picture	1	1
+no-webassembly examples.spec.js /language/components/ #1 Item (9d81b036611eba74) without WebAssembly says so and keeps its picture	1.1	1.2
+no-webassembly examples.spec.js /language/components/ #2 Rectangle (1eb336446268cd33) without WebAssembly says so and keeps its picture	1.1	1.1
+no-webassembly examples.spec.js /language/components/ #3 Item (1f1aeee7161cbcce) without WebAssembly says so and keeps its picture	1.1	1.2
+no-webassembly examples.spec.js /language/components/ #4 Item (78d4527cf9c9b52b) without WebAssembly says so and keeps its picture	1.1	1.1
+no-webassembly examples.spec.js /language/components/ loads with nothing in its console and every example's picture	1.6	1.6
+no-webassembly examples.spec.js /language/controllers/ #0 Rectangle (bb4c8d9cd56dc289) without WebAssembly says so and keeps its picture	1	1.1
+no-webassembly examples.spec.js /language/controllers/ #1 Rectangle (ff4ff7116b3a4748) without WebAssembly says so and keeps its picture	1.1	1.2
+no-webassembly examples.spec.js /language/controllers/ #2 Rectangle (f6fb6d55629b05ed) without WebAssembly says so and keeps its picture	1.1	1.1
+no-webassembly examples.spec.js /language/controllers/ loads with nothing in its console and every example's picture	1.6	1.6
+no-webassembly examples.spec.js /language/javascript/ #0 Item (1413819f00aa822a) without WebAssembly says so and keeps its picture	1	1
+no-webassembly examples.spec.js /language/javascript/ #1 Item (d145f62a705de594) without WebAssembly says so and keeps its picture	1.1	1.1
+no-webassembly examples.spec.js /language/javascript/ #2 Item (e363f9c5fb26cd2f) without WebAssembly says so and keeps its picture	1	0.982
+no-webassembly examples.spec.js /language/javascript/ loads with nothing in its console and every example's picture	1.6	1.5
+no-webassembly examples.spec.js /language/match/ #0 Window (dcb0c0f58a5f0451) without WebAssembly says so and keeps its picture	1.4	1.4
+no-webassembly examples.spec.js /language/match/ #1 Window (a9da1fd07c097d55) without WebAssembly says so and keeps its picture	1.5	1.4
+no-webassembly examples.spec.js /language/match/ #2 Window (9a90d9a8c2c40e48) without WebAssembly says so and keeps its picture	1.5	1.6
+no-webassembly examples.spec.js /language/match/ #3 Window (cb731fe8df497478) without WebAssembly says so and keeps its picture	1.5	1.5
+no-webassembly examples.spec.js /language/match/ #4 Window (bc860cfaf6f208e8) without WebAssembly says so and keeps its picture	1.4	1.5
+no-webassembly examples.spec.js /language/match/ #5 Window (9ed1f0b04685a24e) without WebAssembly says so and keeps its picture	1.5	1.5
+no-webassembly examples.spec.js /language/match/ #6 Rectangle (2c90b7fc7c401ddc) without WebAssembly says so and keeps its picture	1.5	1.5
+no-webassembly examples.spec.js /language/match/ #7 Window (9a4a33c909992587) without WebAssembly says so and keeps its picture	1.5	1.4
+no-webassembly examples.spec.js /language/match/ loads with nothing in its console and every example's picture	2.1	2.1
+no-webassembly examples.spec.js /language/modules-and-imports/ #0 Item (e5d91af03fd8389c) without WebAssembly says so and keeps its picture	1.1	0.999
+no-webassembly examples.spec.js /language/modules-and-imports/ #1 Item (f7834b4d3cd2e42a) without WebAssembly says so and keeps its picture	1	1.1
+no-webassembly examples.spec.js /language/modules-and-imports/ loads with nothing in its console and every example's picture	1.5	1.5
+no-webassembly examples.spec.js /language/overview/ #0 Rectangle (000de854f3cbdfc6) without WebAssembly says so and keeps its picture	0.991	1
+no-webassembly examples.spec.js /language/overview/ #1 Item (88c41e67264c3c22) without WebAssembly says so and keeps its picture	1.1	1.2
+no-webassembly examples.spec.js /language/overview/ #2 Item (3f3c043768509236) without WebAssembly says so and keeps its picture	1.1	1.1
+no-webassembly examples.spec.js /language/overview/ #3 Item (935775fe0fb30363) without WebAssembly says so and keeps its picture	1.2	1.2
+no-webassembly examples.spec.js /language/overview/ loads with nothing in its console and every example's picture	1.5	1.6
+no-webassembly examples.spec.js /language/pipe/ #0 Rectangle (862f741faa2e1274) without WebAssembly says so and keeps its picture	0.997	1.1
+no-webassembly examples.spec.js /language/pipe/ #1 Window (43a5deff18a3cc35) without WebAssembly says so and keeps its picture	1.2	1.3
+no-webassembly examples.spec.js /language/pipe/ #2 Window (72d384f14458ab47) without WebAssembly says so and keeps its picture	1.2	1.2
+no-webassembly examples.spec.js /language/pipe/ #3 Rectangle (ba68ad4afae482a9) without WebAssembly says so and keeps its picture	1.2	1.2
+no-webassembly examples.spec.js /language/pipe/ loads with nothing in its console and every example's picture	1.7	1.7
+no-webassembly examples.spec.js /language/porting-from-qt/ #0 Rectangle (84d9cb079c47b817) without WebAssembly says so and keeps its picture	1.3	1.4
+no-webassembly examples.spec.js /language/porting-from-qt/ #1 Rectangle (e1535e423c757c1e) without WebAssembly says so and keeps its picture	1.5	1.5
+no-webassembly examples.spec.js /language/porting-from-qt/ loads with nothing in its console and every example's picture	1.8	2
+no-webassembly examples.spec.js /language/properties-and-bindings/ #0 Item (7357e4e2cfaf4326) without WebAssembly says so and keeps its picture	1.1	1.1
+no-webassembly examples.spec.js /language/properties-and-bindings/ #1 Item (ec99100df38dc1c2) without WebAssembly says so and keeps its picture	1.1	1.1
+no-webassembly examples.spec.js /language/properties-and-bindings/ #2 Item (97682e6e1e168577) without WebAssembly says so and keeps its picture	1.1	1.2
+no-webassembly examples.spec.js /language/properties-and-bindings/ #3 Item (4d7fb07d3f216705) without WebAssembly says so and keeps its picture	1.1	1.2
+no-webassembly examples.spec.js /language/properties-and-bindings/ #4 Rectangle (ca0c4a2130141fee) without WebAssembly says so and keeps its picture	1.1	1.2
+no-webassembly examples.spec.js /language/properties-and-bindings/ #5 Item (5bb57ebc5143f6ba) without WebAssembly says so and keeps its picture	1.1	1.2
+no-webassembly examples.spec.js /language/properties-and-bindings/ loads with nothing in its console and every example's picture	1.6	1.7
+no-webassembly examples.spec.js /language/signals-and-handlers/ #0 Item (761d32fbcf01ceaf) without WebAssembly says so and keeps its picture	0.963	0.994
+no-webassembly examples.spec.js /language/signals-and-handlers/ #1 Item (48ed81ac882cce6d) without WebAssembly says so and keeps its picture	1.1	1.2
+no-webassembly examples.spec.js /language/signals-and-handlers/ #2 Item (fe097da39aba27f4) without WebAssembly says so and keeps its picture	1.1	1.1
+no-webassembly examples.spec.js /language/signals-and-handlers/ #3 Item (b63408ab23bf1894) without WebAssembly says so and keeps its picture	1.1	1.2
+no-webassembly examples.spec.js /language/signals-and-handlers/ #4 Item (e035d15ad488d338) without WebAssembly says so and keeps its picture	1.1	1.2
+no-webassembly examples.spec.js /language/signals-and-handlers/ loads with nothing in its console and every example's picture	1.5	1.6
+no-webassembly examples.spec.js /language/states-and-transitions/ #0 Item (b2f8cb4e3fe3e7ef) without WebAssembly says so and keeps its picture	1	1.2
+no-webassembly examples.spec.js /language/states-and-transitions/ #1 Item (eb8ce3ec3486cffe) without WebAssembly says so and keeps its picture	1.2	1.2
+no-webassembly examples.spec.js /language/states-and-transitions/ #2 Item (90fc290eb93ba6c7) without WebAssembly says so and keeps its picture	1.1	1.1
+no-webassembly examples.spec.js /language/states-and-transitions/ #3 Item (69cbd9b210efe14f) without WebAssembly says so and keeps its picture	1.1	1.3
+no-webassembly examples.spec.js /language/states-and-transitions/ #4 Item (45e00b07679c7dce) without WebAssembly says so and keeps its picture	1.2	1.1
+no-webassembly examples.spec.js /language/states-and-transitions/ loads with nothing in its console and every example's picture	1.6	1.7
+no-webassembly examples.spec.js /language/values-and-the-app/ #0 Rectangle (ea86b18e6672f839) without WebAssembly says so and keeps its picture	0.987	1
+no-webassembly examples.spec.js /language/values-and-the-app/ #1 Item (984208df421b33e3) without WebAssembly says so and keeps its picture	1.1	1.1
+no-webassembly examples.spec.js /language/values-and-the-app/ #2 Item (6d9e2956239d1e98) without WebAssembly says so and keeps its picture	1	1.1
+no-webassembly examples.spec.js /language/values-and-the-app/ #3 Item (3d647a63243dd609) without WebAssembly says so and keeps its picture	1.1	1.1
+no-webassembly examples.spec.js /language/values-and-the-app/ #4 Item (066adcb4bc5c802e) without WebAssembly says so and keeps its picture	0.977	1.1
+no-webassembly examples.spec.js /language/values-and-the-app/ loads with nothing in its console and every example's picture	1.5	1.6
+no-webassembly examples.spec.js /quality/accessibility/ #0 ApplicationWindow (5a1723ac8be0b2b9) without WebAssembly says so and keeps its picture	1.4	1.4
+no-webassembly examples.spec.js /quality/accessibility/ #1 ListView (3215cf30ef9b66eb) without WebAssembly says so and keeps its picture	1.4	1.5
+no-webassembly examples.spec.js /quality/accessibility/ #2 ApplicationWindow (23fa8c1a34b35431) without WebAssembly says so and keeps its picture	1.4	1.4
+no-webassembly examples.spec.js /quality/accessibility/ #3 ApplicationWindow (534d171447744505) without WebAssembly says so and keeps its picture	1.4	1.5
+no-webassembly examples.spec.js /quality/accessibility/ #4 ApplicationWindow (2c3dcdee15065394) without WebAssembly says so and keeps its picture	1.4	1.4
+no-webassembly examples.spec.js /quality/accessibility/ loads with nothing in its console and every example's picture	1.9	1.9
+no-webassembly examples.spec.js /quality/color/ #0 Item (6caf3630aa400e86) without WebAssembly says so and keeps its picture	1.2	1.4
+no-webassembly examples.spec.js /quality/color/ #1 ApplicationWindow (a47453de4fdb8e6d) without WebAssembly says so and keeps its picture	1.4	1.4
+no-webassembly examples.spec.js /quality/color/ #2 ApplicationWindow (6873b5bd4103b36d) without WebAssembly says so and keeps its picture	1.4	1.4
+no-webassembly examples.spec.js /quality/color/ #3 ApplicationWindow (d5f8e2d4fbaa75be) without WebAssembly says so and keeps its picture	1.4	1.5
+no-webassembly examples.spec.js /quality/color/ #4 ApplicationWindow (17ac45e572b4c48d) without WebAssembly says so and keeps its picture	1.3	1.3
+no-webassembly examples.spec.js /quality/color/ #5 ApplicationWindow (44e24806c231ac5e) without WebAssembly says so and keeps its picture	1.3	1.4
+no-webassembly examples.spec.js /quality/color/ loads with nothing in its console and every example's picture	1.8	1.9
+no-webassembly examples.spec.js /quality/design-guardrails/ #0 ApplicationWindow (a82b3cb84ec2e107) without WebAssembly says so and keeps its picture	1.1	1.2
+no-webassembly examples.spec.js /quality/design-guardrails/ #1 Item (106a7a4ad83a5a23) without WebAssembly says so and keeps its picture	1.3	1.2
+no-webassembly examples.spec.js /quality/design-guardrails/ #2 ApplicationWindow (70246b0366d17cbe) without WebAssembly says so and keeps its picture	1.2	1.2
+no-webassembly examples.spec.js /quality/design-guardrails/ #3 ApplicationWindow (f350092dc49debcc) without WebAssembly says so and keeps its picture	1.2	1.2
+no-webassembly examples.spec.js /quality/design-guardrails/ loads with nothing in its console and every example's picture	1.6	1.6
+no-webassembly examples.spec.js /quality/layout-and-typography/ #0 ApplicationWindow (099540a662ef9668) without WebAssembly says so and keeps its picture	1.2	1.3
+no-webassembly examples.spec.js /quality/layout-and-typography/ #1 ApplicationWindow (fbab522556a8c412) without WebAssembly says so and keeps its picture	1.4	1.4
+no-webassembly examples.spec.js /quality/layout-and-typography/ #2 ApplicationWindow (423ec75fda11accd) without WebAssembly says so and keeps its picture	1.3	1.3
+no-webassembly examples.spec.js /quality/layout-and-typography/ loads with nothing in its console and every example's picture	1.8	1.8
+no-webassembly examples.spec.js /quality/motion/ #0 ApplicationWindow (e7eac52d85ee1aaf) without WebAssembly says so and keeps its picture	1.2	1.3
+no-webassembly examples.spec.js /quality/motion/ #1 ApplicationWindow (5366f6978d3de1a8) without WebAssembly says so and keeps its picture	1.3	1.3
+no-webassembly examples.spec.js /quality/motion/ #2 ApplicationWindow (1eb45e74c3b79844) without WebAssembly says so and keeps its picture	1.3	1.3
+no-webassembly examples.spec.js /quality/motion/ loads with nothing in its console and every example's picture	1.7	1.7
+no-webassembly examples.spec.js /quality/performance/ #0 ApplicationWindow (83b7f432a072a0d6) without WebAssembly says so and keeps its picture	1.2	1.3
+no-webassembly examples.spec.js /quality/performance/ loads with nothing in its console and every example's picture	1.7	1.8
+no-webassembly examples.spec.js /quality/principles/ #0 ApplicationWindow (fdd4fcd245587249) without WebAssembly says so and keeps its picture	0.967	1
+no-webassembly examples.spec.js /quality/principles/ loads with nothing in its console and every example's picture	1.5	1.5
+no-webassembly examples.spec.js /rust/models/ #0 Item (c9b0ef992b71ebb3) without WebAssembly says so and keeps its picture	0.902	0.91
+no-webassembly examples.spec.js /rust/models/ loads with nothing in its console and every example's picture	1.4	1.4
+no-webassembly examples.spec.js /rust/multimedia/ #0 Rectangle (5ff72f427940749d) without WebAssembly says so and keeps its picture	0.944	1
+no-webassembly examples.spec.js /rust/multimedia/ #1 Text (011a19fb83d70a61) without WebAssembly says so and keeps its picture	1.1	1.1
+no-webassembly examples.spec.js /rust/multimedia/ loads with nothing in its console and every example's picture	1.5	1.5
+no-webassembly examples.spec.js /rust/platforms/ #0 Item (49535baf385720a9) without WebAssembly says so and keeps its picture	0.885	0.93
+no-webassembly examples.spec.js /rust/platforms/ loads with nothing in its console and every example's picture	1.3	1.3
+no-webassembly examples.spec.js /start/ #0 Item (9d5a2bf0a50b6429) without WebAssembly says so and keeps its picture	1	1.1
+no-webassembly examples.spec.js /start/ #1 Text (397a2269fdad6b26) without WebAssembly says so and keeps its picture	1.2	1.2
+no-webassembly examples.spec.js /start/ #2 Rectangle (5dd660b1fd2fbcf5) without WebAssembly says so and keeps its picture	1.1	1.2
+no-webassembly examples.spec.js /start/ loads with nothing in its console and every example's picture	1.6	1.6
+no-webassembly examples.spec.js /start/editors/ #0 Text (00a787b7a7935c14) without WebAssembly says so and keeps its picture	1.1	1
+no-webassembly examples.spec.js /start/editors/ loads with nothing in its console and every example's picture	1.5	1.5
+no-webassembly examples.spec.js /start/first-app/ #0 Rectangle (33de776ec096f803) without WebAssembly says so and keeps its picture	0.994	1.1
+no-webassembly examples.spec.js /start/first-app/ #1 Rectangle (700a6c5b1dff665b) without WebAssembly says so and keeps its picture	1.2	1.1
+no-webassembly examples.spec.js /start/first-app/ loads with nothing in its console and every example's picture	1.5	1.5
+no-webassembly examples.spec.js /start/hot-reload/ #0 Item (811b6e56e453525b) without WebAssembly says so and keeps its picture	1.1	1
+no-webassembly examples.spec.js /start/hot-reload/ #1 Item (353ce123c3300080) without WebAssembly says so and keeps its picture	1.1	1.1
+no-webassembly examples.spec.js /start/hot-reload/ loads with nothing in its console and every example's picture	1.5	1.5
+no-webassembly examples.spec.js /start/your-own-shell/ #0 Item (1f4076edf3cb4551) without WebAssembly says so and keeps its picture	1.3	1.3
+no-webassembly examples.spec.js /start/your-own-shell/ #1 Item (73919e5aca200809) without WebAssembly says so and keeps its picture	1.4	1.5
+no-webassembly examples.spec.js /start/your-own-shell/ #2 Row (c47db4323ab80575) without WebAssembly says so and keeps its picture	1.4	1.5
+no-webassembly examples.spec.js /start/your-own-shell/ loads with nothing in its console and every example's picture	1.8	1.8
+no-webassembly examples.spec.js /ui/animation/ #0 Rectangle (6790dc79329b6fa1) without WebAssembly says so and keeps its picture	1	1.1
+no-webassembly examples.spec.js /ui/animation/ #1 Rectangle (bbb656d8e62a9366) without WebAssembly says so and keeps its picture	1.1	1.1
+no-webassembly examples.spec.js /ui/animation/ #2 Rectangle (4de3af7862e15976) without WebAssembly says so and keeps its picture	1	1.1
+no-webassembly examples.spec.js /ui/animation/ #3 Rectangle (52b242573efb7f0c) without WebAssembly says so and keeps its picture	1.1	1.2
+no-webassembly examples.spec.js /ui/animation/ loads with nothing in its console and every example's picture	1.6	1.6
+no-webassembly examples.spec.js /ui/items/ #0 Item (e032da9ea6004354) without WebAssembly says so and keeps its picture	1.1	1
+no-webassembly examples.spec.js /ui/items/ #1 Item (ab1ec7309e8b9f05) without WebAssembly says so and keeps its picture	1.3	1.2
+no-webassembly examples.spec.js /ui/items/ #2 Item (6a6df88d0f3ab3f9) without WebAssembly says so and keeps its picture	1.2	1.2
+no-webassembly examples.spec.js /ui/items/ #3 Item (f83c633aeeb383bd) without WebAssembly says so and keeps its picture	1.1	1.2
+no-webassembly examples.spec.js /ui/items/ loads with nothing in its console and every example's picture	1.6	1.7
+no-webassembly examples.spec.js /ui/layouts/ #0 Row (4c3e328dfc851f7e) without WebAssembly says so and keeps its picture	0.961	1.1
+no-webassembly examples.spec.js /ui/layouts/ #1 Column (0bb171dd8e8daece) without WebAssembly says so and keeps its picture	1.1	1.2
+no-webassembly examples.spec.js /ui/layouts/ #2 GridLayout (e0e8135cb5320da3) without WebAssembly says so and keeps its picture	1.1	1.2
+no-webassembly examples.spec.js /ui/layouts/ #3 Item (cf63dee5a6284087) without WebAssembly says so and keeps its picture	1.1	1.1
+no-webassembly examples.spec.js /ui/layouts/ loads with nothing in its console and every example's picture	1.5	1.5
+no-webassembly examples.spec.js /ui/offscreen-and-cost/ #0 ListView (ca89fc4dd0ef6064) without WebAssembly says so and keeps its picture	0.917	0.946
+no-webassembly examples.spec.js /ui/offscreen-and-cost/ #1 Rectangle (6a950fc4c61c1e72) without WebAssembly says so and keeps its picture	1.1	1.1
+no-webassembly examples.spec.js /ui/offscreen-and-cost/ #2 Rectangle (10052c74c229e131) without WebAssembly says so and keeps its picture	1	1
+no-webassembly examples.spec.js /ui/offscreen-and-cost/ loads with nothing in its console and every example's picture	1.4	1.4
+no-webassembly examples.spec.js /ui/positioning/ #0 Item (fef33de673e58034) without WebAssembly says so and keeps its picture	1	1.1
+no-webassembly examples.spec.js /ui/positioning/ #1 Item (4e352060a7c3ea3b) without WebAssembly says so and keeps its picture	1.1	1.1
+no-webassembly examples.spec.js /ui/positioning/ #2 Flow (835eda2e7b07b0f9) without WebAssembly says so and keeps its picture	1.1	1.1
+no-webassembly examples.spec.js /ui/positioning/ #3 Grid (3bff1919f568bca4) without WebAssembly says so and keeps its picture	1.1	1.1
+no-webassembly examples.spec.js /ui/positioning/ loads with nothing in its console and every example's picture	1.5	1.6
+no-webassembly examples.spec.js /ui/shapes-and-effects/ #0 Item (efd11601728228ba) without WebAssembly says so and keeps its picture	0.996	1
+no-webassembly examples.spec.js /ui/shapes-and-effects/ #1 Item (c9f6efc406249b0c) without WebAssembly says so and keeps its picture	1	1.1
+no-webassembly examples.spec.js /ui/shapes-and-effects/ #2 Canvas (cb4d06f7ad53202d) without WebAssembly says so and keeps its picture	1.1	1.1
+no-webassembly examples.spec.js /ui/shapes-and-effects/ #3 Item (7db0c04878b935fe) without WebAssembly says so and keeps its picture	1.1	1.1
+no-webassembly examples.spec.js /ui/shapes-and-effects/ loads with nothing in its console and every example's picture	1.5	1.5
+no-webassembly examples.spec.js /ui/text-input/ #0 Item (5c3e973f49100595) without WebAssembly says so and keeps its picture	1	1
+no-webassembly examples.spec.js /ui/text-input/ #1 Item (8cd0c3af58ba6532) without WebAssembly says so and keeps its picture	1.1	1.1
+no-webassembly examples.spec.js /ui/text-input/ #2 Item (bdee20467ba4cd32) without WebAssembly says so and keeps its picture	1	1.1
+no-webassembly examples.spec.js /ui/text-input/ #3 Item (21eae8694487d90f) without WebAssembly says so and keeps its picture	1.1	1.1
+no-webassembly examples.spec.js /ui/text-input/ loads with nothing in its console and every example's picture	1.6	1.5
+no-webassembly examples.spec.js /ui/text/ #0 Column (f01ccf1486813f92) without WebAssembly says so and keeps its picture	1	1
+no-webassembly examples.spec.js /ui/text/ #1 Item (044d0ecd5266ad96) without WebAssembly says so and keeps its picture	1.1	1.2
+no-webassembly examples.spec.js /ui/text/ #2 Column (01d650c6e6f0bfa4) without WebAssembly says so and keeps its picture	1.1	1.1
+no-webassembly examples.spec.js /ui/text/ #3 Text (0f8b7a9da6e109b2) without WebAssembly says so and keeps its picture	1.1	1.1
+no-webassembly examples.spec.js /ui/text/ loads with nothing in its console and every example's picture	1.5	1.5
+no-webassembly examples.spec.js the build wrote pages with live examples	0	0.001
+no-webassembly orbit.spec.js on the js renderer in a hidden tab it stops, and shown again it goes on from where it was	13.1	13.1
+no-webassembly orbit.spec.js on the js renderer scrolled away it stops, and back on screen it goes on	12.2	12.1
+no-webassembly orbit.spec.js on the js renderer the scene moves on its own, with no input	8.9	8.5
+no-webassembly orbit.spec.js on the js renderer with less motion asked for, the scene still moves	4.4	4.3
+no-webassembly run.spec.js a picture is the same on the page's light or dark, and the page never shows through it	0.927	0.912
+no-webassembly windows.spec.js the docs have examples whose root is a window	0	0
+webassembly calm.spec.js Orbit asked for less motion, it still moves, more slowly than with no preference	13.8	13.7
+webassembly calm.spec.js Orbit in a hidden tab its clock holds, and shown again goes on from there	4.2	4.7
+webassembly calm.spec.js the shader effect asked for less motion, it still moves, more slowly than with no preference	12.8	13.2
+webassembly calm.spec.js the shader effect in a hidden tab its clock holds, and shown again goes on from there	4.4	4.8
+webassembly demos.spec.js /demos/ 3D you can orbit: show source opens its QML	16.6	16.9
+webassembly demos.spec.js /demos/ A shader effect: show source opens its QML	16.6	17
+webassembly demos.spec.js /demos/ A shell you rewrite: show source opens its QML	16.7	16.9
+webassembly demos.spec.js /demos/ A whole app: show source opens its QML	16.7	16.9
+webassembly demos.spec.js /demos/ Motion: show source opens its QML	16.6	16.8
+webassembly demos.spec.js /demos/ Orbit is drawn by the renderer the page names	3	2.8
+webassembly demos.spec.js /demos/ Orbit keeps drawing frames	5.5	5.7
+webassembly demos.spec.js /demos/ Orbit takes an up-and-down drag; the page does not	3.8	4
+webassembly demos.spec.js /demos/ Orbit turns under a sideways drag and zooms under a pinch	4.8	4.9
+webassembly demos.spec.js /demos/ loads with nothing in its console	1.4	1.8
+webassembly demos.spec.js /demos/ the Pantry answers a press and keys	1.9	2
+webassembly demos.spec.js /demos/ the field guide shows the species a reader picks, and marks it seen	2.7	2.5
+webassembly demos.spec.js /demos/ the field guide's search takes what a reader types after pressing it	2.5	2.5
+webassembly demos.spec.js /demos/ the motion demo's puck springs after a press	2.2	2.3
+webassembly demos.spec.js /demos/ the shader effect keeps drawing frames	3.9	3.5
+webassembly demos.spec.js the front page loads with nothing in its console; the Pantry and Orbit run	3	3.3
+webassembly examples.spec.js /controls/accessibility/ #0 Column (324a4305b4b1ccc4) runs, draws and answers the reader	2.7	3
+webassembly examples.spec.js /controls/accessibility/ #0 Column (324a4305b4b1ccc4) shows its QML source	0.791	1
+webassembly examples.spec.js /controls/accessibility/ #1 Row (24cb04b8bfc9cdf2) runs, draws and answers the reader	2.5	3
+webassembly examples.spec.js /controls/accessibility/ #1 Row (24cb04b8bfc9cdf2) shows its QML source	0.858	1.2
+webassembly examples.spec.js /controls/accessibility/ #2 Item (7e9c2e2b54c60261) runs, draws and answers the reader	2.1	2.7
+webassembly examples.spec.js /controls/accessibility/ #2 Item (7e9c2e2b54c60261) shows its QML source	0.737	1.1
+webassembly examples.spec.js /controls/accessibility/ loads with nothing in its console and every example's picture	1.7	2
+webassembly examples.spec.js /controls/buttons-and-toggles/ #0 Column (6135ed2ed00fc184) runs, draws and answers the reader	2.5	3.5
+webassembly examples.spec.js /controls/buttons-and-toggles/ #0 Column (6135ed2ed00fc184) shows its QML source	0.741	1.1
+webassembly examples.spec.js /controls/buttons-and-toggles/ #1 Column (96cc903e9a815d8f) runs, draws and answers the reader	2.6	3.2
+webassembly examples.spec.js /controls/buttons-and-toggles/ #1 Column (96cc903e9a815d8f) shows its QML source	0.925	1.5
+webassembly examples.spec.js /controls/buttons-and-toggles/ #2 Column (8e3225ad2008c238) runs, draws and answers the reader	2.6	2.7
+webassembly examples.spec.js /controls/buttons-and-toggles/ #2 Column (8e3225ad2008c238) shows its QML source	0.845	0.98
+webassembly examples.spec.js /controls/buttons-and-toggles/ loads with nothing in its console and every example's picture	1.6	2.3
+webassembly examples.spec.js /controls/containers-and-popups/ #0 Column (cc8d064e8ad05d4c) runs, draws and answers the reader	2.7	2.9
+webassembly examples.spec.js /controls/containers-and-popups/ #0 Column (cc8d064e8ad05d4c) shows its QML source	0.886	1.1
+webassembly examples.spec.js /controls/containers-and-popups/ #1 Item (4eb6e5519e26e7e1) runs, draws and answers the reader	3.1	3.1
+webassembly examples.spec.js /controls/containers-and-popups/ #1 Item (4eb6e5519e26e7e1) shows its QML source	1.2	1.3
+webassembly examples.spec.js /controls/containers-and-popups/ #2 Column (8f14b9fb7af7aff7) runs, draws and answers the reader	2.5	2.5
+webassembly examples.spec.js /controls/containers-and-popups/ #2 Column (8f14b9fb7af7aff7) shows its QML source	0.826	1.1
+webassembly examples.spec.js /controls/containers-and-popups/ #3 Menu (91fb5d1ead28286c) runs, draws and answers the reader	2.3	2.5
+webassembly examples.spec.js /controls/containers-and-popups/ #3 Menu (91fb5d1ead28286c) shows its QML source	0.943	1.3
+webassembly examples.spec.js /controls/containers-and-popups/ #4 Item (0b18cf07793e3e9d) runs, draws and answers the reader	2.6	2.9
+webassembly examples.spec.js /controls/containers-and-popups/ #4 Item (0b18cf07793e3e9d) shows its QML source	0.867	1.2
+webassembly examples.spec.js /controls/containers-and-popups/ loads with nothing in its console and every example's picture	1.9	2
+webassembly examples.spec.js /controls/localisation/ #0 Column (137df92bfa8e0859) runs, draws and answers the reader	2.3	2.8
+webassembly examples.spec.js /controls/localisation/ #0 Column (137df92bfa8e0859) shows its QML source	0.805	1.1
+webassembly examples.spec.js /controls/localisation/ #1 Row (03a7bbe6a68cce9d) runs, draws and answers the reader	2.1	2.5
+webassembly examples.spec.js /controls/localisation/ #1 Row (03a7bbe6a68cce9d) shows its QML source	0.847	1.1
+webassembly examples.spec.js /controls/localisation/ #2 Column (54177f22bfbd2c83) runs, draws and answers the reader	2.9	3.3
+webassembly examples.spec.js /controls/localisation/ #2 Column (54177f22bfbd2c83) shows its QML source	0.833	1.2
+webassembly examples.spec.js /controls/localisation/ loads with nothing in its console and every example's picture	1.3	1.6
+webassembly examples.spec.js /controls/overview/ #0 Column (615cc92f8023f3e1) runs, draws and answers the reader	2.9	3.1
+webassembly examples.spec.js /controls/overview/ #0 Column (615cc92f8023f3e1) shows its QML source	1	1.3
+webassembly examples.spec.js /controls/overview/ #1 Column (5f997f34838f3099) runs, draws and answers the reader	2.3	2.5
+webassembly examples.spec.js /controls/overview/ #1 Column (5f997f34838f3099) shows its QML source	1.2	1.4
+webassembly examples.spec.js /controls/overview/ #2 Pane (41cbc65d73f90a38) runs, draws and answers the reader	2.3	2.8
+webassembly examples.spec.js /controls/overview/ #2 Pane (41cbc65d73f90a38) shows its QML source	0.949	1.3
+webassembly examples.spec.js /controls/overview/ loads with nothing in its console and every example's picture	1.4	1.7
+webassembly examples.spec.js /controls/styles/ #0 Pane (9ef32cc910dcffe3) runs, draws and answers the reader	2.4	2.8
+webassembly examples.spec.js /controls/styles/ #0 Pane (9ef32cc910dcffe3) shows its QML source	0.915	1.1
+webassembly examples.spec.js /controls/styles/ #1 Pane (887824c13b3c8664) runs, draws and answers the reader	2.3	2.7
+webassembly examples.spec.js /controls/styles/ #1 Pane (887824c13b3c8664) shows its QML source	0.787	1.1
+webassembly examples.spec.js /controls/styles/ #2 Pane (de5eb235ae311068) runs, draws and answers the reader	2.4	2.7
+webassembly examples.spec.js /controls/styles/ #2 Pane (de5eb235ae311068) shows its QML source	0.883	1
+webassembly examples.spec.js /controls/styles/ loads with nothing in its console and every example's picture	1.4	1.7
+webassembly examples.spec.js /controls/value-inputs/ #0 Column (614474ac5f49dd42) runs, draws and answers the reader	2.3	2.8
+webassembly examples.spec.js /controls/value-inputs/ #0 Column (614474ac5f49dd42) shows its QML source	0.919	1.2
+webassembly examples.spec.js /controls/value-inputs/ #1 Column (45d59cf4a15be216) runs, draws and answers the reader	2.6	2.9
+webassembly examples.spec.js /controls/value-inputs/ #1 Column (45d59cf4a15be216) shows its QML source	0.981	1.2
+webassembly examples.spec.js /controls/value-inputs/ #2 Column (cc1c0189c2c59d22) runs, draws and answers the reader	2.3	2.6
+webassembly examples.spec.js /controls/value-inputs/ #2 Column (cc1c0189c2c59d22) shows its QML source	0.741	1.1
+webassembly examples.spec.js /controls/value-inputs/ #3 Column (5d877f9361aeff23) runs, draws and answers the reader	2.5	2.9
+webassembly examples.spec.js /controls/value-inputs/ #3 Column (5d877f9361aeff23) shows its QML source	0.967	1.2
+webassembly examples.spec.js /controls/value-inputs/ loads with nothing in its console and every example's picture	1.5	1.7
+webassembly examples.spec.js /controls/windows/ #0 Window (4e0f6cc0c88e7ff0) runs, draws and answers the reader	2.9	3.3
+webassembly examples.spec.js /controls/windows/ #0 Window (4e0f6cc0c88e7ff0) shows its QML source	0.859	1.1
+webassembly examples.spec.js /controls/windows/ #1 ApplicationWindow (ccaeac08b4f25e9f) runs, draws and answers the reader	2.7	2.9
+webassembly examples.spec.js /controls/windows/ #1 ApplicationWindow (ccaeac08b4f25e9f) shows its QML source	0.694	0.976
+webassembly examples.spec.js /controls/windows/ #2 Window (ffba0f2b97cea2e6) runs, draws and answers the reader	3	3.5
+webassembly examples.spec.js /controls/windows/ #2 Window (ffba0f2b97cea2e6) shows its QML source	0.873	1.2
+webassembly examples.spec.js /controls/windows/ loads with nothing in its console and every example's picture	1.3	1.5
+webassembly examples.spec.js /data/fetching/ #0 Text (e31e2d212cce10b8) runs, draws and answers the reader	2.2	2.5
+webassembly examples.spec.js /data/fetching/ #0 Text (e31e2d212cce10b8) shows its QML source	1.3	1.7
+webassembly examples.spec.js /data/fetching/ #1 Text (9f68f9707a6ad3ed) runs, draws and answers the reader	2.2	2.5
+webassembly examples.spec.js /data/fetching/ #1 Text (9f68f9707a6ad3ed) shows its QML source	0.974	1.3
+webassembly examples.spec.js /data/fetching/ #2 Text (494b723d4a572b6f) runs, draws and answers the reader	2.1	2.5
+webassembly examples.spec.js /data/fetching/ #2 Text (494b723d4a572b6f) shows its QML source	1.2	1.6
+webassembly examples.spec.js /data/fetching/ loads with nothing in its console and every example's picture	1.5	1.7
+webassembly examples.spec.js /data/keyboard-and-focus/ #0 Item (3534f01ffba233ec) runs, draws and answers the reader	3	3.4
+webassembly examples.spec.js /data/keyboard-and-focus/ #0 Item (3534f01ffba233ec) shows its QML source	0.818	1.1
+webassembly examples.spec.js /data/keyboard-and-focus/ #1 Row (52682c03cae83854) runs, draws and answers the reader	2.9	3.5
+webassembly examples.spec.js /data/keyboard-and-focus/ #1 Row (52682c03cae83854) shows its QML source	0.896	1.3
+webassembly examples.spec.js /data/keyboard-and-focus/ #2 Item (3675b16ed362920d) runs, draws and answers the reader	2.8	3.1
+webassembly examples.spec.js /data/keyboard-and-focus/ #2 Item (3675b16ed362920d) shows its QML source	0.803	1.1
+webassembly examples.spec.js /data/keyboard-and-focus/ #3 Item (b92df979ee2fa94f) runs, draws and answers the reader	2.9	3.5
+webassembly examples.spec.js /data/keyboard-and-focus/ #3 Item (b92df979ee2fa94f) shows its QML source	0.931	1.3
+webassembly examples.spec.js /data/keyboard-and-focus/ loads with nothing in its console and every example's picture	1.6	2
+webassembly examples.spec.js /data/list-and-grid-views/ #0 ListView (6bccdcfd7a6fcba4) runs, draws and answers the reader	3	3.4
+webassembly examples.spec.js /data/list-and-grid-views/ #0 ListView (6bccdcfd7a6fcba4) shows its QML source	0.882	1.3
+webassembly examples.spec.js /data/list-and-grid-views/ #1 GridView (942cf536c2686a3f) runs, draws and answers the reader	2.8	3.1
+webassembly examples.spec.js /data/list-and-grid-views/ #1 GridView (942cf536c2686a3f) shows its QML source	0.729	1
+webassembly examples.spec.js /data/list-and-grid-views/ #2 Item (098f59fce2adb0e4) runs, draws and answers the reader	3	3.4
+webassembly examples.spec.js /data/list-and-grid-views/ #2 Item (098f59fce2adb0e4) shows its QML source	0.887	1.2
+webassembly examples.spec.js /data/list-and-grid-views/ loads with nothing in its console and every example's picture	1.4	1.6
+webassembly examples.spec.js /data/models/ #0 Item (30e005a4d466ded9) runs, draws and answers the reader	3.9	4.3
+webassembly examples.spec.js /data/models/ #0 Item (30e005a4d466ded9) shows its QML source	1.3	1.6
+webassembly examples.spec.js /data/models/ #1 Column (dce009041c39d0aa) runs, draws and answers the reader	3.7	4.1
+webassembly examples.spec.js /data/models/ #1 Column (dce009041c39d0aa) shows its QML source	1.1	1.5
+webassembly examples.spec.js /data/models/ #2 Column (1b81ce5dbda3bc51) runs, draws and answers the reader	4	4.5
+webassembly examples.spec.js /data/models/ #2 Column (1b81ce5dbda3bc51) shows its QML source	1.3	1.7
+webassembly examples.spec.js /data/models/ #3 Item (0ef6f90a9ecad2c7) runs, draws and answers the reader	3.3	3.9
+webassembly examples.spec.js /data/models/ #3 Item (0ef6f90a9ecad2c7) shows its QML source	1.2	1.5
+webassembly examples.spec.js /data/models/ #4 Item (bd3a4498f5a3fc76) runs, draws and answers the reader	3.8	4.2
+webassembly examples.spec.js /data/models/ #4 Item (bd3a4498f5a3fc76) shows its QML source	1.4	1.7
+webassembly examples.spec.js /data/models/ #5 Column (e3889e4ab501c21b) runs, draws and answers the reader	2.2	2.9
+webassembly examples.spec.js /data/models/ #5 Column (e3889e4ab501c21b) shows its QML source	1.6	2
+webassembly examples.spec.js /data/models/ #6 ListView (2e079c09cbaf90fb) runs, draws and answers the reader	2.6	3
+webassembly examples.spec.js /data/models/ #6 ListView (2e079c09cbaf90fb) shows its QML source	1.5	1.9
+webassembly examples.spec.js /data/models/ #7 Column (8e3048660e1b1e1c) runs, draws and answers the reader	3.6	4.3
+webassembly examples.spec.js /data/models/ #7 Column (8e3048660e1b1e1c) shows its QML source	1.3	1.7
+webassembly examples.spec.js /data/models/ loads with nothing in its console and every example's picture	2	2.3
+webassembly examples.spec.js /data/other-views/ #0 PathView (9e320b1b20c712b2) runs, draws and answers the reader	3	3.5
+webassembly examples.spec.js /data/other-views/ #0 PathView (9e320b1b20c712b2) shows its QML source	0.965	1.2
+webassembly examples.spec.js /data/other-views/ #1 TableView (e1ab30a61cd60d18) runs, draws and answers the reader	2.7	3.1
+webassembly examples.spec.js /data/other-views/ #1 TableView (e1ab30a61cd60d18) shows its QML source	0.758	1
+webassembly examples.spec.js /data/other-views/ #2 Flickable (5b92ca3e82dae038) runs, draws and answers the reader	2.4	2.9
+webassembly examples.spec.js /data/other-views/ #2 Flickable (5b92ca3e82dae038) shows its QML source	0.976	1.2
+webassembly examples.spec.js /data/other-views/ loads with nothing in its console and every example's picture	1.4	1.6
+webassembly examples.spec.js /data/pointer-input/ #0 Item (b55623ed58944722) runs, draws and answers the reader	2.5	3
+webassembly examples.spec.js /data/pointer-input/ #0 Item (b55623ed58944722) shows its QML source	0.957	1.3
+webassembly examples.spec.js /data/pointer-input/ #1 Item (9d4249843e891090) runs, draws and answers the reader	2.3	2.6
+webassembly examples.spec.js /data/pointer-input/ #1 Item (9d4249843e891090) shows its QML source	0.892	1.2
+webassembly examples.spec.js /data/pointer-input/ #2 Item (a71f87a4c464b70b) runs, draws and answers the reader	3.1	3.6
+webassembly examples.spec.js /data/pointer-input/ #2 Item (a71f87a4c464b70b) shows its QML source	0.985	1.3
+webassembly examples.spec.js /data/pointer-input/ #3 Item (04a6f889c93004fc) runs, draws and answers the reader	16.2	16.4
+webassembly examples.spec.js /data/pointer-input/ #3 Item (04a6f889c93004fc) shows its QML source	0.805	1
+webassembly examples.spec.js /data/pointer-input/ #4 Item (1f481945421f133a) runs, draws and answers the reader	2.2	2.3
+webassembly examples.spec.js /data/pointer-input/ #4 Item (1f481945421f133a) shows its QML source	0.761	0.929
+webassembly examples.spec.js /data/pointer-input/ loads with nothing in its console and every example's picture	1.5	1.8
+webassembly examples.spec.js /data/repeater-and-delegates/ #0 Row (3cc3314389c6bb59) runs, draws and answers the reader	2.6	2.8
+webassembly examples.spec.js /data/repeater-and-delegates/ #0 Row (3cc3314389c6bb59) shows its QML source	0.684	0.895
+webassembly examples.spec.js /data/repeater-and-delegates/ #1 Item (f3874391b12edc7e) runs, draws and answers the reader	2.6	2.7
+webassembly examples.spec.js /data/repeater-and-delegates/ #1 Item (f3874391b12edc7e) shows its QML source	0.683	0.836
+webassembly examples.spec.js /data/repeater-and-delegates/ loads with nothing in its console and every example's picture	1.3	1.4
+webassembly examples.spec.js /data/tasks/ #0 Column (32595cd0358c7195) runs, draws and answers the reader	1.9	2.7
+webassembly examples.spec.js /data/tasks/ #0 Column (32595cd0358c7195) shows its QML source	0.825	1.3
+webassembly examples.spec.js /data/tasks/ #1 Column (a8bbd60a3259ea60) runs, draws and answers the reader	2.4	2.5
+webassembly examples.spec.js /data/tasks/ #1 Column (a8bbd60a3259ea60) shows its QML source	0.936	1.1
+webassembly examples.spec.js /data/tasks/ loads with nothing in its console and every example's picture	1.3	1.4
+webassembly examples.spec.js /language/components/ #0 PanelForm (01b87cdc0e9105d9) runs, draws and answers the reader	2.9	3.4
+webassembly examples.spec.js /language/components/ #0 PanelForm (01b87cdc0e9105d9) shows its QML source	1.2	1.3
+webassembly examples.spec.js /language/components/ #1 Item (9d81b036611eba74) runs, draws and answers the reader	2.9	3.5
+webassembly examples.spec.js /language/components/ #1 Item (9d81b036611eba74) shows its QML source	0.812	1.3
+webassembly examples.spec.js /language/components/ #2 Rectangle (1eb336446268cd33) runs, draws and answers the reader	3	3.3
+webassembly examples.spec.js /language/components/ #2 Rectangle (1eb336446268cd33) shows its QML source	0.904	1.1
+webassembly examples.spec.js /language/components/ #3 Item (1f1aeee7161cbcce) runs, draws and answers the reader	2.8	3.5
+webassembly examples.spec.js /language/components/ #3 Item (1f1aeee7161cbcce) shows its QML source	0.821	1.3
+webassembly examples.spec.js /language/components/ #4 Item (78d4527cf9c9b52b) runs, draws and answers the reader	2.9	3.3
+webassembly examples.spec.js /language/components/ #4 Item (78d4527cf9c9b52b) shows its QML source	0.911	1.1
+webassembly examples.spec.js /language/components/ loads with nothing in its console and every example's picture	1.4	2
+webassembly examples.spec.js /language/controllers/ #0 Rectangle (bb4c8d9cd56dc289) runs, draws and answers the reader	16	16.3
+webassembly examples.spec.js /language/controllers/ #0 Rectangle (bb4c8d9cd56dc289) shows its QML source	1.2	1.3
+webassembly examples.spec.js /language/controllers/ #1 Rectangle (ff4ff7116b3a4748) runs, draws and answers the reader	1.8	2
+webassembly examples.spec.js /language/controllers/ #1 Rectangle (ff4ff7116b3a4748) shows its QML source	0.927	1.2
+webassembly examples.spec.js /language/controllers/ #2 Rectangle (f6fb6d55629b05ed) runs, draws and answers the reader	1.8	2
+webassembly examples.spec.js /language/controllers/ #2 Rectangle (f6fb6d55629b05ed) shows its QML source	0.729	0.967
+webassembly examples.spec.js /language/controllers/ loads with nothing in its console and every example's picture	1.5	1.9
+webassembly examples.spec.js /language/javascript/ #0 Item (1413819f00aa822a) runs, draws and answers the reader	2.6	2.9
+webassembly examples.spec.js /language/javascript/ #0 Item (1413819f00aa822a) shows its QML source	0.732	0.933
+webassembly examples.spec.js /language/javascript/ #1 Item (d145f62a705de594) runs, draws and answers the reader	2.7	2.9
+webassembly examples.spec.js /language/javascript/ #1 Item (d145f62a705de594) shows its QML source	0.924	1.3
+webassembly examples.spec.js /language/javascript/ #2 Item (e363f9c5fb26cd2f) runs, draws and answers the reader	2.8	3.5
+webassembly examples.spec.js /language/javascript/ #2 Item (e363f9c5fb26cd2f) shows its QML source	0.894	1.3
+webassembly examples.spec.js /language/javascript/ loads with nothing in its console and every example's picture	1.3	1.5
+webassembly examples.spec.js /language/match/ #0 Window (dcb0c0f58a5f0451) runs, draws and answers the reader	3.4	4.2
+webassembly examples.spec.js /language/match/ #0 Window (dcb0c0f58a5f0451) shows its QML source	1.2	1.7
+webassembly examples.spec.js /language/match/ #1 Window (a9da1fd07c097d55) runs, draws and answers the reader	3.5	4
+webassembly examples.spec.js /language/match/ #1 Window (a9da1fd07c097d55) shows its QML source	1.5	1.7
+webassembly examples.spec.js /language/match/ #2 Window (9a90d9a8c2c40e48) runs, draws and answers the reader	3.4	4.2
+webassembly examples.spec.js /language/match/ #2 Window (9a90d9a8c2c40e48) shows its QML source	1.5	2
+webassembly examples.spec.js /language/match/ #3 Window (cb731fe8df497478) runs, draws and answers the reader	3.5	3.9
+webassembly examples.spec.js /language/match/ #3 Window (cb731fe8df497478) shows its QML source	1.2	1.5
+webassembly examples.spec.js /language/match/ #4 Window (bc860cfaf6f208e8) runs, draws and answers the reader	3.5	4.3
+webassembly examples.spec.js /language/match/ #4 Window (bc860cfaf6f208e8) shows its QML source	1.3	1.7
+webassembly examples.spec.js /language/match/ #5 Window (9ed1f0b04685a24e) runs, draws and answers the reader	3.5	4
+webassembly examples.spec.js /language/match/ #5 Window (9ed1f0b04685a24e) shows its QML source	1.2	1.4
+webassembly examples.spec.js /language/match/ #6 Rectangle (2c90b7fc7c401ddc) runs, draws and answers the reader	2.4	3.1
+webassembly examples.spec.js /language/match/ #6 Rectangle (2c90b7fc7c401ddc) shows its QML source	1.5	1.9
+webassembly examples.spec.js /language/match/ #7 Window (9a4a33c909992587) runs, draws and answers the reader	3.6	4.1
+webassembly examples.spec.js /language/match/ #7 Window (9a4a33c909992587) shows its QML source	1.6	1.9
+webassembly examples.spec.js /language/match/ loads with nothing in its console and every example's picture	2	2.3
+webassembly examples.spec.js /language/modules-and-imports/ #0 Item (e5d91af03fd8389c) runs, draws and answers the reader	2.5	2.9
+webassembly examples.spec.js /language/modules-and-imports/ #0 Item (e5d91af03fd8389c) shows its QML source	1.5	1.8
+webassembly examples.spec.js /language/modules-and-imports/ #1 Item (f7834b4d3cd2e42a) runs, draws and answers the reader	2.9	3.2
+webassembly examples.spec.js /language/modules-and-imports/ #1 Item (f7834b4d3cd2e42a) shows its QML source	1.1	1.4
+webassembly examples.spec.js /language/modules-and-imports/ loads with nothing in its console and every example's picture	1.4	1.6
+webassembly examples.spec.js /language/overview/ #0 Rectangle (000de854f3cbdfc6) runs, draws and answers the reader	3	3.5
+webassembly examples.spec.js /language/overview/ #0 Rectangle (000de854f3cbdfc6) shows its QML source	0.96	1.2
+webassembly examples.spec.js /language/overview/ #1 Item (88c41e67264c3c22) runs, draws and answers the reader	2.8	3.3
+webassembly examples.spec.js /language/overview/ #1 Item (88c41e67264c3c22) shows its QML source	0.779	1.1
+webassembly examples.spec.js /language/overview/ #2 Item (3f3c043768509236) runs, draws and answers the reader	3.7	4.1
+webassembly examples.spec.js /language/overview/ #2 Item (3f3c043768509236) shows its QML source	0.949	1.2
+webassembly examples.spec.js /language/overview/ #3 Item (935775fe0fb30363) runs, draws and answers the reader	2.8	3.1
+webassembly examples.spec.js /language/overview/ #3 Item (935775fe0fb30363) shows its QML source	0.803	1.1
+webassembly examples.spec.js /language/overview/ loads with nothing in its console and every example's picture	1.5	1.8
+webassembly examples.spec.js /language/pipe/ #0 Rectangle (862f741faa2e1274) runs, draws and answers the reader	3.2	3.7
+webassembly examples.spec.js /language/pipe/ #0 Rectangle (862f741faa2e1274) shows its QML source	0.877	1.1
+webassembly examples.spec.js /language/pipe/ #1 Window (43a5deff18a3cc35) runs, draws and answers the reader	3	3.6
+webassembly examples.spec.js /language/pipe/ #1 Window (43a5deff18a3cc35) shows its QML source	1	1.4
+webassembly examples.spec.js /language/pipe/ #2 Window (72d384f14458ab47) runs, draws and answers the reader	3	3.4
+webassembly examples.spec.js /language/pipe/ #2 Window (72d384f14458ab47) shows its QML source	0.866	1.2
+webassembly examples.spec.js /language/pipe/ #3 Rectangle (ba68ad4afae482a9) runs, draws and answers the reader	2.1	2.8
+webassembly examples.spec.js /language/pipe/ #3 Rectangle (ba68ad4afae482a9) shows its QML source	1.3	1.7
+webassembly examples.spec.js /language/pipe/ loads with nothing in its console and every example's picture	1.7	2.1
+webassembly examples.spec.js /language/porting-from-qt/ #0 Rectangle (84d9cb079c47b817) runs, draws and answers the reader	2.9	3.3
+webassembly examples.spec.js /language/porting-from-qt/ #0 Rectangle (84d9cb079c47b817) shows its QML source	1.2	1.5
+webassembly examples.spec.js /language/porting-from-qt/ #1 Rectangle (e1535e423c757c1e) runs, draws and answers the reader	3	3.4
+webassembly examples.spec.js /language/porting-from-qt/ #1 Rectangle (e1535e423c757c1e) shows its QML source	1.4	1.7
+webassembly examples.spec.js /language/porting-from-qt/ loads with nothing in its console and every example's picture	1.9	2.2
+webassembly examples.spec.js /language/properties-and-bindings/ #0 Item (7357e4e2cfaf4326) runs, draws and answers the reader	3.2	3.6
+webassembly examples.spec.js /language/properties-and-bindings/ #0 Item (7357e4e2cfaf4326) shows its QML source	1.1	1.4
+webassembly examples.spec.js /language/properties-and-bindings/ #1 Item (ec99100df38dc1c2) runs, draws and answers the reader	3	3.3
+webassembly examples.spec.js /language/properties-and-bindings/ #1 Item (ec99100df38dc1c2) shows its QML source	0.89	1.2
+webassembly examples.spec.js /language/properties-and-bindings/ #2 Item (97682e6e1e168577) runs, draws and answers the reader	3.1	3.6
+webassembly examples.spec.js /language/properties-and-bindings/ #2 Item (97682e6e1e168577) shows its QML source	1	1.4
+webassembly examples.spec.js /language/properties-and-bindings/ #3 Item (4d7fb07d3f216705) runs, draws and answers the reader	2.9	3.3
+webassembly examples.spec.js /language/properties-and-bindings/ #3 Item (4d7fb07d3f216705) shows its QML source	0.906	1.2
+webassembly examples.spec.js /language/properties-and-bindings/ #4 Rectangle (ca0c4a2130141fee) runs, draws and answers the reader	3.1	3.5
+webassembly examples.spec.js /language/properties-and-bindings/ #4 Rectangle (ca0c4a2130141fee) shows its QML source	1.1	1.4
+webassembly examples.spec.js /language/properties-and-bindings/ #5 Item (5bb57ebc5143f6ba) runs, draws and answers the reader	2.9	3.4
+webassembly examples.spec.js /language/properties-and-bindings/ #5 Item (5bb57ebc5143f6ba) shows its QML source	0.88	1.2
+webassembly examples.spec.js /language/properties-and-bindings/ loads with nothing in its console and every example's picture	1.6	1.9
+webassembly examples.spec.js /language/signals-and-handlers/ #0 Item (761d32fbcf01ceaf) runs, draws and answers the reader	2.9	3.5
+webassembly examples.spec.js /language/signals-and-handlers/ #0 Item (761d32fbcf01ceaf) shows its QML source	0.78	1.1
+webassembly examples.spec.js /language/signals-and-handlers/ #1 Item (48ed81ac882cce6d) runs, draws and answers the reader	3	3.5
+webassembly examples.spec.js /language/signals-and-handlers/ #1 Item (48ed81ac882cce6d) shows its QML source	0.874	1.2
+webassembly examples.spec.js /language/signals-and-handlers/ #2 Item (fe097da39aba27f4) runs, draws and answers the reader	2.8	3.3
+webassembly examples.spec.js /language/signals-and-handlers/ #2 Item (fe097da39aba27f4) shows its QML source	0.78	1.1
+webassembly examples.spec.js /language/signals-and-handlers/ #3 Item (b63408ab23bf1894) runs, draws and answers the reader	2.9	3.5
+webassembly examples.spec.js /language/signals-and-handlers/ #3 Item (b63408ab23bf1894) shows its QML source	0.888	1.3
+webassembly examples.spec.js /language/signals-and-handlers/ #4 Item (e035d15ad488d338) runs, draws and answers the reader	2.9	3.3
+webassembly examples.spec.js /language/signals-and-handlers/ #4 Item (e035d15ad488d338) shows its QML source	0.796	1.1
+webassembly examples.spec.js /language/signals-and-handlers/ loads with nothing in its console and every example's picture	1.6	2
+webassembly examples.spec.js /language/states-and-transitions/ #0 Item (b2f8cb4e3fe3e7ef) runs, draws and answers the reader	3	3.5
+webassembly examples.spec.js /language/states-and-transitions/ #0 Item (b2f8cb4e3fe3e7ef) shows its QML source	0.879	1.2
+webassembly examples.spec.js /language/states-and-transitions/ #1 Item (eb8ce3ec3486cffe) runs, draws and answers the reader	3	3.5
+webassembly examples.spec.js /language/states-and-transitions/ #1 Item (eb8ce3ec3486cffe) shows its QML source	0.866	1.2
+webassembly examples.spec.js /language/states-and-transitions/ #2 Item (90fc290eb93ba6c7) runs, draws and answers the reader	3.1	3.5
+webassembly examples.spec.js /language/states-and-transitions/ #2 Item (90fc290eb93ba6c7) shows its QML source	0.953	1.2
+webassembly examples.spec.js /language/states-and-transitions/ #3 Item (69cbd9b210efe14f) runs, draws and answers the reader	3	3.5
+webassembly examples.spec.js /language/states-and-transitions/ #3 Item (69cbd9b210efe14f) shows its QML source	0.857	1.2
+webassembly examples.spec.js /language/states-and-transitions/ #4 Item (45e00b07679c7dce) runs, draws and answers the reader	3	3.4
+webassembly examples.spec.js /language/states-and-transitions/ #4 Item (45e00b07679c7dce) shows its QML source	0.908	1.1
+webassembly examples.spec.js /language/states-and-transitions/ loads with nothing in its console and every example's picture	1.6	2
+webassembly examples.spec.js /language/values-and-the-app/ #0 Rectangle (ea86b18e6672f839) runs, draws and answers the reader	3.1	3.2
+webassembly examples.spec.js /language/values-and-the-app/ #0 Rectangle (ea86b18e6672f839) shows its QML source	0.944	1.1
+webassembly examples.spec.js /language/values-and-the-app/ #1 Item (984208df421b33e3) runs, draws and answers the reader	2.8	3.3
+webassembly examples.spec.js /language/values-and-the-app/ #1 Item (984208df421b33e3) shows its QML source	0.759	1.2
+webassembly examples.spec.js /language/values-and-the-app/ #2 Item (6d9e2956239d1e98) runs, draws and answers the reader	3.1	3.2
+webassembly examples.spec.js /language/values-and-the-app/ #2 Item (6d9e2956239d1e98) shows its QML source	0.933	1.1
+webassembly examples.spec.js /language/values-and-the-app/ #3 Item (3d647a63243dd609) runs, draws and answers the reader	2.8	3.3
+webassembly examples.spec.js /language/values-and-the-app/ #3 Item (3d647a63243dd609) shows its QML source	0.777	1.1
+webassembly examples.spec.js /language/values-and-the-app/ #4 Item (066adcb4bc5c802e) runs, draws and answers the reader	3.1	3.2
+webassembly examples.spec.js /language/values-and-the-app/ #4 Item (066adcb4bc5c802e) shows its QML source	0.878	1.1
+webassembly examples.spec.js /language/values-and-the-app/ loads with nothing in its console and every example's picture	1.4	1.8
+webassembly examples.spec.js /quality/accessibility/ #0 ApplicationWindow (5a1723ac8be0b2b9) runs, draws and answers the reader	3	3.3
+webassembly examples.spec.js /quality/accessibility/ #0 ApplicationWindow (5a1723ac8be0b2b9) shows its QML source	1.3	1.4
+webassembly examples.spec.js /quality/accessibility/ #1 ListView (3215cf30ef9b66eb) runs, draws and answers the reader	2.7	3.4
+webassembly examples.spec.js /quality/accessibility/ #1 ListView (3215cf30ef9b66eb) shows its QML source	1.4	1.8
+webassembly examples.spec.js /quality/accessibility/ #2 ApplicationWindow (23fa8c1a34b35431) runs, draws and answers the reader	3.1	3.3
+webassembly examples.spec.js /quality/accessibility/ #2 ApplicationWindow (23fa8c1a34b35431) shows its QML source	1.2	1.5
+webassembly examples.spec.js /quality/accessibility/ #3 ApplicationWindow (534d171447744505) runs, draws and answers the reader	2.5	3
+webassembly examples.spec.js /quality/accessibility/ #3 ApplicationWindow (534d171447744505) shows its QML source	1.4	1.8
+webassembly examples.spec.js /quality/accessibility/ #4 ApplicationWindow (2c3dcdee15065394) runs, draws and answers the reader	3.1	3.5
+webassembly examples.spec.js /quality/accessibility/ #4 ApplicationWindow (2c3dcdee15065394) shows its QML source	1.3	1.6
+webassembly examples.spec.js /quality/accessibility/ loads with nothing in its console and every example's picture	1.8	2.2
+webassembly examples.spec.js /quality/color/ #0 Item (6caf3630aa400e86) runs, draws and answers the reader	3.3	3.7
+webassembly examples.spec.js /quality/color/ #0 Item (6caf3630aa400e86) shows its QML source	1.1	1.5
+webassembly examples.spec.js /quality/color/ #1 ApplicationWindow (a47453de4fdb8e6d) runs, draws and answers the reader	3.3	3.6
+webassembly examples.spec.js /quality/color/ #1 ApplicationWindow (a47453de4fdb8e6d) shows its QML source	1	1.3
+webassembly examples.spec.js /quality/color/ #2 ApplicationWindow (6873b5bd4103b36d) runs, draws and answers the reader	2.9	3.1
+webassembly examples.spec.js /quality/color/ #2 ApplicationWindow (6873b5bd4103b36d) shows its QML source	1.2	1.5
+webassembly examples.spec.js /quality/color/ #3 ApplicationWindow (d5f8e2d4fbaa75be) runs, draws and answers the reader	3.4	3.9
+webassembly examples.spec.js /quality/color/ #3 ApplicationWindow (d5f8e2d4fbaa75be) shows its QML source	1.1	1.4
+webassembly examples.spec.js /quality/color/ #4 ApplicationWindow (17ac45e572b4c48d) runs, draws and answers the reader	3.1	3.7
+webassembly examples.spec.js /quality/color/ #4 ApplicationWindow (17ac45e572b4c48d) shows its QML source	1.1	1.3
+webassembly examples.spec.js /quality/color/ #5 ApplicationWindow (44e24806c231ac5e) runs, draws and answers the reader	2.5	2.8
+webassembly examples.spec.js /quality/color/ #5 ApplicationWindow (44e24806c231ac5e) shows its QML source	1.2	1.4
+webassembly examples.spec.js /quality/color/ loads with nothing in its console and every example's picture	1.6	1.9
+webassembly examples.spec.js /quality/design-guardrails/ #0 ApplicationWindow (a82b3cb84ec2e107) runs, draws and answers the reader	3.2	3.6
+webassembly examples.spec.js /quality/design-guardrails/ #0 ApplicationWindow (a82b3cb84ec2e107) shows its QML source	0.967	1.2
+webassembly examples.spec.js /quality/design-guardrails/ #1 Item (106a7a4ad83a5a23) runs, draws and answers the reader	3	3.4
+webassembly examples.spec.js /quality/design-guardrails/ #1 Item (106a7a4ad83a5a23) shows its QML source	0.95	1.3
+webassembly examples.spec.js /quality/design-guardrails/ #2 ApplicationWindow (70246b0366d17cbe) runs, draws and answers the reader	2.5	2.8
+webassembly examples.spec.js /quality/design-guardrails/ #2 ApplicationWindow (70246b0366d17cbe) shows its QML source	0.873	1.2
+webassembly examples.spec.js /quality/design-guardrails/ #3 ApplicationWindow (f350092dc49debcc) runs, draws and answers the reader	2.6	3
+webassembly examples.spec.js /quality/design-guardrails/ #3 ApplicationWindow (f350092dc49debcc) shows its QML source	1	1.4
+webassembly examples.spec.js /quality/design-guardrails/ loads with nothing in its console and every example's picture	1.7	2
+webassembly examples.spec.js /quality/layout-and-typography/ #0 ApplicationWindow (099540a662ef9668) runs, draws and answers the reader	2.7	3.3
+webassembly examples.spec.js /quality/layout-and-typography/ #0 ApplicationWindow (099540a662ef9668) shows its QML source	1.2	1.4
+webassembly examples.spec.js /quality/layout-and-typography/ #1 ApplicationWindow (fbab522556a8c412) runs, draws and answers the reader	3.4	3.8
+webassembly examples.spec.js /quality/layout-and-typography/ #1 ApplicationWindow (fbab522556a8c412) shows its QML source	1.1	1.3
+webassembly examples.spec.js /quality/layout-and-typography/ #2 ApplicationWindow (423ec75fda11accd) runs, draws and answers the reader	2.5	2.8
+webassembly examples.spec.js /quality/layout-and-typography/ #2 ApplicationWindow (423ec75fda11accd) shows its QML source	0.983	1.3
+webassembly examples.spec.js /quality/layout-and-typography/ loads with nothing in its console and every example's picture	1.6	1.9
+webassembly examples.spec.js /quality/motion/ #0 ApplicationWindow (e7eac52d85ee1aaf) runs, draws and answers the reader	2.8	3.2
+webassembly examples.spec.js /quality/motion/ #0 ApplicationWindow (e7eac52d85ee1aaf) shows its QML source	0.901	1.3
+webassembly examples.spec.js /quality/motion/ #1 ApplicationWindow (5366f6978d3de1a8) runs, draws and answers the reader	3.4	3.8
+webassembly examples.spec.js /quality/motion/ #1 ApplicationWindow (5366f6978d3de1a8) shows its QML source	1.1	1.3
+webassembly examples.spec.js /quality/motion/ #2 ApplicationWindow (1eb45e74c3b79844) runs, draws and answers the reader	3.1	3.4
+webassembly examples.spec.js /quality/motion/ #2 ApplicationWindow (1eb45e74c3b79844) shows its QML source	0.871	1.2
+webassembly examples.spec.js /quality/motion/ loads with nothing in its console and every example's picture	1.8	2.1
+webassembly examples.spec.js /quality/performance/ #0 ApplicationWindow (83b7f432a072a0d6) runs, draws and answers the reader	3.2	3.6
+webassembly examples.spec.js /quality/performance/ #0 ApplicationWindow (83b7f432a072a0d6) shows its QML source	1.1	1.3
+webassembly examples.spec.js /quality/performance/ loads with nothing in its console and every example's picture	1.8	2.1
+webassembly examples.spec.js /quality/principles/ #0 ApplicationWindow (fdd4fcd245587249) runs, draws and answers the reader	2.3	2.7
+webassembly examples.spec.js /quality/principles/ #0 ApplicationWindow (fdd4fcd245587249) shows its QML source	0.766	0.974
+webassembly examples.spec.js /quality/principles/ loads with nothing in its console and every example's picture	1.5	1.8
+webassembly examples.spec.js /rust/models/ #0 Item (c9b0ef992b71ebb3) runs, draws and answers the reader	2.7	3.1
+webassembly examples.spec.js /rust/models/ #0 Item (c9b0ef992b71ebb3) shows its QML source	0.706	0.949
+webassembly examples.spec.js /rust/models/ loads with nothing in its console and every example's picture	1.4	1.7
+webassembly examples.spec.js /rust/multimedia/ #0 Rectangle (5ff72f427940749d) runs, draws and answers the reader	2.3	2.7
+webassembly examples.spec.js /rust/multimedia/ #0 Rectangle (5ff72f427940749d) shows its QML source	0.882	1.1
+webassembly examples.spec.js /rust/multimedia/ #1 Text (011a19fb83d70a61) runs, draws and answers the reader	3	3.5
+webassembly examples.spec.js /rust/multimedia/ #1 Text (011a19fb83d70a61) shows its QML source	0.858	1.2
+webassembly examples.spec.js /rust/multimedia/ loads with nothing in its console and every example's picture	1.3	1.7
+webassembly examples.spec.js /rust/platforms/ #0 Item (49535baf385720a9) runs, draws and answers the reader	3	3.3
+webassembly examples.spec.js /rust/platforms/ #0 Item (49535baf385720a9) shows its QML source	0.85	1.1
+webassembly examples.spec.js /rust/platforms/ loads with nothing in its console and every example's picture	1.3	1.5
+webassembly examples.spec.js /start/ #0 Item (9d5a2bf0a50b6429) runs, draws and answers the reader	3.1	3.6
+webassembly examples.spec.js /start/ #0 Item (9d5a2bf0a50b6429) shows its QML source	1.6	1.8
+webassembly examples.spec.js /start/ #1 Text (397a2269fdad6b26) runs, draws and answers the reader	2.1	2.2
+webassembly examples.spec.js /start/ #1 Text (397a2269fdad6b26) shows its QML source	1.2	1.5
+webassembly examples.spec.js /start/ #2 Rectangle (5dd660b1fd2fbcf5) runs, draws and answers the reader	3.2	3.6
+webassembly examples.spec.js /start/ #2 Rectangle (5dd660b1fd2fbcf5) shows its QML source	1	1.2
+webassembly examples.spec.js /start/ loads with nothing in its console and every example's picture	1.6	1.7
+webassembly examples.spec.js /start/editors/ #0 Text (00a787b7a7935c14) runs, draws and answers the reader	2.2	2.4
+webassembly examples.spec.js /start/editors/ #0 Text (00a787b7a7935c14) shows its QML source	1.5	1.8
+webassembly examples.spec.js /start/editors/ loads with nothing in its console and every example's picture	1.4	1.7
+webassembly examples.spec.js /start/first-app/ #0 Rectangle (33de776ec096f803) runs, draws and answers the reader	2.5	2.9
+webassembly examples.spec.js /start/first-app/ #0 Rectangle (33de776ec096f803) shows its QML source	0.774	1.1
+webassembly examples.spec.js /start/first-app/ #1 Rectangle (700a6c5b1dff665b) runs, draws and answers the reader	2.6	2.9
+webassembly examples.spec.js /start/first-app/ #1 Rectangle (700a6c5b1dff665b) shows its QML source	0.944	1.3
+webassembly examples.spec.js /start/first-app/ loads with nothing in its console and every example's picture	1.6	1.9
+webassembly examples.spec.js /start/hot-reload/ #0 Item (811b6e56e453525b) runs, draws and answers the reader	2.4	2.7
+webassembly examples.spec.js /start/hot-reload/ #0 Item (811b6e56e453525b) shows its QML source	0.974	1.4
+webassembly examples.spec.js /start/hot-reload/ #1 Item (353ce123c3300080) runs, draws and answers the reader	3	3.4
+webassembly examples.spec.js /start/hot-reload/ #1 Item (353ce123c3300080) shows its QML source	0.841	1.1
+webassembly examples.spec.js /start/hot-reload/ loads with nothing in its console and every example's picture	1.4	1.7
+webassembly examples.spec.js /start/your-own-shell/ #0 Item (1f4076edf3cb4551) runs, draws and answers the reader	2.7	3.2
+webassembly examples.spec.js /start/your-own-shell/ #0 Item (1f4076edf3cb4551) shows its QML source	1.7	2
+webassembly examples.spec.js /start/your-own-shell/ #1 Item (73919e5aca200809) runs, draws and answers the reader	3.5	4
+webassembly examples.spec.js /start/your-own-shell/ #1 Item (73919e5aca200809) shows its QML source	1.3	1.6
+webassembly examples.spec.js /start/your-own-shell/ #2 Row (c47db4323ab80575) runs, draws and answers the reader	3.3	3.7
+webassembly examples.spec.js /start/your-own-shell/ #2 Row (c47db4323ab80575) shows its QML source	1.1	1.3
+webassembly examples.spec.js /start/your-own-shell/ loads with nothing in its console and every example's picture	1.6	2.1
+webassembly examples.spec.js /ui/animation/ #0 Rectangle (6790dc79329b6fa1) runs, draws and answers the reader	3	3.3
+webassembly examples.spec.js /ui/animation/ #0 Rectangle (6790dc79329b6fa1) shows its QML source	0.782	1.1
+webassembly examples.spec.js /ui/animation/ #1 Rectangle (bbb656d8e62a9366) runs, draws and answers the reader	2.3	2.8
+webassembly examples.spec.js /ui/animation/ #1 Rectangle (bbb656d8e62a9366) shows its QML source	0.903	1.3
+webassembly examples.spec.js /ui/animation/ #2 Rectangle (4de3af7862e15976) runs, draws and answers the reader	2.2	2.8
+webassembly examples.spec.js /ui/animation/ #2 Rectangle (4de3af7862e15976) shows its QML source	0.883	1.1
+webassembly examples.spec.js /ui/animation/ #3 Rectangle (52b242573efb7f0c) runs, draws and answers the reader	3.7	4.3
+webassembly examples.spec.js /ui/animation/ #3 Rectangle (52b242573efb7f0c) shows its QML source	1	1.4
+webassembly examples.spec.js /ui/animation/ loads with nothing in its console and every example's picture	1.6	1.9
+webassembly examples.spec.js /ui/items/ #0 Item (e032da9ea6004354) runs, draws and answers the reader	3.3	3.7
+webassembly examples.spec.js /ui/items/ #0 Item (e032da9ea6004354) shows its QML source	1	1.4
+webassembly examples.spec.js /ui/items/ #1 Item (ab1ec7309e8b9f05) runs, draws and answers the reader	2.9	3.4
+webassembly examples.spec.js /ui/items/ #1 Item (ab1ec7309e8b9f05) shows its QML source	0.842	1.1
+webassembly examples.spec.js /ui/items/ #2 Item (6a6df88d0f3ab3f9) runs, draws and answers the reader	3.2	3.7
+webassembly examples.spec.js /ui/items/ #2 Item (6a6df88d0f3ab3f9) shows its QML source	0.983	1.3
+webassembly examples.spec.js /ui/items/ #3 Item (f83c633aeeb383bd) runs, draws and answers the reader	3	3.3
+webassembly examples.spec.js /ui/items/ #3 Item (f83c633aeeb383bd) shows its QML source	0.859	1.1
+webassembly examples.spec.js /ui/items/ loads with nothing in its console and every example's picture	1.6	2
+webassembly examples.spec.js /ui/layouts/ #0 Row (4c3e328dfc851f7e) runs, draws and answers the reader	3.1	3.4
+webassembly examples.spec.js /ui/layouts/ #0 Row (4c3e328dfc851f7e) shows its QML source	0.813	1.1
+webassembly examples.spec.js /ui/layouts/ #1 Column (0bb171dd8e8daece) runs, draws and answers the reader	3	3.5
+webassembly examples.spec.js /ui/layouts/ #1 Column (0bb171dd8e8daece) shows its QML source	0.941	1.3
+webassembly examples.spec.js /ui/layouts/ #2 GridLayout (e0e8135cb5320da3) runs, draws and answers the reader	3	3.4
+webassembly examples.spec.js /ui/layouts/ #2 GridLayout (e0e8135cb5320da3) shows its QML source	0.819	1.1
+webassembly examples.spec.js /ui/layouts/ #3 Item (cf63dee5a6284087) runs, draws and answers the reader	2.3	2.8
+webassembly examples.spec.js /ui/layouts/ #3 Item (cf63dee5a6284087) shows its QML source	0.983	1.3
+webassembly examples.spec.js /ui/layouts/ loads with nothing in its console and every example's picture	1.7	2
+webassembly examples.spec.js /ui/offscreen-and-cost/ #0 ListView (ca89fc4dd0ef6064) runs, draws and answers the reader	2.9	3.3
+webassembly examples.spec.js /ui/offscreen-and-cost/ #0 ListView (ca89fc4dd0ef6064) shows its QML source	0.824	1.1
+webassembly examples.spec.js /ui/offscreen-and-cost/ #1 Rectangle (6a950fc4c61c1e72) runs, draws and answers the reader	4.7	4.8
+webassembly examples.spec.js /ui/offscreen-and-cost/ #1 Rectangle (6a950fc4c61c1e72) shows its QML source	0.764	0.984
+webassembly examples.spec.js /ui/offscreen-and-cost/ #2 Rectangle (10052c74c229e131) runs, draws and answers the reader	2.6	3
+webassembly examples.spec.js /ui/offscreen-and-cost/ #2 Rectangle (10052c74c229e131) shows its QML source	0.882	1.2
+webassembly examples.spec.js /ui/offscreen-and-cost/ loads with nothing in its console and every example's picture	1.4	1.6
+webassembly examples.spec.js /ui/positioning/ #0 Item (fef33de673e58034) runs, draws and answers the reader	3	3.5
+webassembly examples.spec.js /ui/positioning/ #0 Item (fef33de673e58034) shows its QML source	0.998	1.1
+webassembly examples.spec.js /ui/positioning/ #1 Item (4e352060a7c3ea3b) runs, draws and answers the reader	2.9	3.4
+webassembly examples.spec.js /ui/positioning/ #1 Item (4e352060a7c3ea3b) shows its QML source	0.754	1.1
+webassembly examples.spec.js /ui/positioning/ #2 Flow (835eda2e7b07b0f9) runs, draws and answers the reader	2.9	3.3
+webassembly examples.spec.js /ui/positioning/ #2 Flow (835eda2e7b07b0f9) shows its QML source	0.808	1.1
+webassembly examples.spec.js /ui/positioning/ #3 Grid (3bff1919f568bca4) runs, draws and answers the reader	3.1	3.5
+webassembly examples.spec.js /ui/positioning/ #3 Grid (3bff1919f568bca4) shows its QML source	0.844	1.2
+webassembly examples.spec.js /ui/positioning/ loads with nothing in its console and every example's picture	1.6	2.1
+webassembly examples.spec.js /ui/shapes-and-effects/ #0 Item (efd11601728228ba) runs, draws and answers the reader	3	3.3
+webassembly examples.spec.js /ui/shapes-and-effects/ #0 Item (efd11601728228ba) shows its QML source	0.984	1.3
+webassembly examples.spec.js /ui/shapes-and-effects/ #1 Item (c9f6efc406249b0c) runs, draws and answers the reader	2.9	3.2
+webassembly examples.spec.js /ui/shapes-and-effects/ #1 Item (c9f6efc406249b0c) shows its QML source	0.753	1
+webassembly examples.spec.js /ui/shapes-and-effects/ #2 Canvas (cb4d06f7ad53202d) runs, draws and answers the reader	2.9	3.4
+webassembly examples.spec.js /ui/shapes-and-effects/ #2 Canvas (cb4d06f7ad53202d) shows its QML source	0.913	1.3
+webassembly examples.spec.js /ui/shapes-and-effects/ #3 Item (7db0c04878b935fe) runs, draws and answers the reader	2.8	3.1
+webassembly examples.spec.js /ui/shapes-and-effects/ #3 Item (7db0c04878b935fe) shows its QML source	0.794	1.1
+webassembly examples.spec.js /ui/shapes-and-effects/ loads with nothing in its console and every example's picture	1.4	1.7
+webassembly examples.spec.js /ui/text-input/ #0 Item (5c3e973f49100595) runs, draws and answers the reader	2.6	2.8
+webassembly examples.spec.js /ui/text-input/ #0 Item (5c3e973f49100595) shows its QML source	0.852	1.1
+webassembly examples.spec.js /ui/text-input/ #1 Item (8cd0c3af58ba6532) runs, draws and answers the reader	2	2.6
+webassembly examples.spec.js /ui/text-input/ #1 Item (8cd0c3af58ba6532) shows its QML source	0.932	1.3
+webassembly examples.spec.js /ui/text-input/ #2 Item (bdee20467ba4cd32) runs, draws and answers the reader	2.3	2.5
+webassembly examples.spec.js /ui/text-input/ #2 Item (bdee20467ba4cd32) shows its QML source	1	1.1
+webassembly examples.spec.js /ui/text-input/ #3 Item (21eae8694487d90f) runs, draws and answers the reader	2.3	2.7
+webassembly examples.spec.js /ui/text-input/ #3 Item (21eae8694487d90f) shows its QML source	0.941	1.3
+webassembly examples.spec.js /ui/text-input/ loads with nothing in its console and every example's picture	1.6	1.9
+webassembly examples.spec.js /ui/text/ #0 Column (f01ccf1486813f92) runs, draws and answers the reader	3	3.5
+webassembly examples.spec.js /ui/text/ #0 Column (f01ccf1486813f92) shows its QML source	0.817	1.1
+webassembly examples.spec.js /ui/text/ #1 Item (044d0ecd5266ad96) runs, draws and answers the reader	3	3.4
+webassembly examples.spec.js /ui/text/ #1 Item (044d0ecd5266ad96) shows its QML source	0.925	1.1
+webassembly examples.spec.js /ui/text/ #2 Column (01d650c6e6f0bfa4) runs, draws and answers the reader	3	3.5
+webassembly examples.spec.js /ui/text/ #2 Column (01d650c6e6f0bfa4) shows its QML source	0.848	1.2
+webassembly examples.spec.js /ui/text/ #3 Text (0f8b7a9da6e109b2) runs, draws and answers the reader	2.9	3.3
+webassembly examples.spec.js /ui/text/ #3 Text (0f8b7a9da6e109b2) shows its QML source	0.909	1.1
+webassembly examples.spec.js /ui/text/ loads with nothing in its console and every example's picture	1.6	1.8
+webassembly examples.spec.js the build wrote pages with live examples	0.004	0.007
+webassembly media.spec.js an example's own pictures are drawn /data/models/#7 draws logo.svg, photo.jpg	1.7	1.8
+webassembly media.spec.js an example's own pictures are drawn /quality/accessibility/#2 draws status-ok.svg, decorative-wave.svg	1.6	1.7
+webassembly media.spec.js an example's own pictures are drawn /ui/items/#3 draws photo.jpg	1.4	1.5
+webassembly media.spec.js an example's own pictures are drawn /ui/shapes-and-effects/#3 draws logo.svg	1.4	1.4
+webassembly media.spec.js canvas, shader and Canvas items keep drawing /ui/shapes-and-effects/#2 draws into its canvas	1.7	1.8
+webassembly motion.spec.js with reduced motion the puck still travels; it does not jump	3.8	3.9
+webassembly motion.spec.js with reduced motion the puck's travel is softened: no overshoot	3.9	4
+webassembly orbit.spec.js on the js renderer in a hidden tab it stops, and shown again it goes on from where it was	13.3	13.5
+webassembly orbit.spec.js on the js renderer scrolled away it stops, and back on screen it goes on	12.2	12.4
+webassembly orbit.spec.js on the js renderer the scene moves on its own, with no input	8.9	8.5
+webassembly orbit.spec.js on the js renderer with less motion asked for, the scene still moves	4.3	4.4
+webassembly orbit.spec.js on the wgpu renderer in a hidden tab it stops, and shown again it goes on from where it was	16.4	16.6
+webassembly orbit.spec.js on the wgpu renderer scrolled away it stops, and back on screen it goes on	14	14.9
+webassembly orbit.spec.js on the wgpu renderer the scene moves on its own, with no input	13.1	12
+webassembly orbit.spec.js on the wgpu renderer with less motion asked for, the scene still moves	7.2	7
+webassembly run.spec.js /demos/ a demo in a hidden tab pauses, and resumes when the tab is shown	7.9	6.7
+webassembly run.spec.js /demos/ a demo out of view pauses, and resumes back in view	8.1	7.1
+webassembly run.spec.js /demos/ a demo's Run and Pause give a reader all axe asks, light and dark	6.1	6.6
+webassembly run.spec.js /demos/ a demo's Run goes on to Pause, which holds it where it is until Resume	5.9	6
+webassembly run.spec.js /demos/ at most three are started at once; a fourth stops the first started out of view	4.5	4.6
+webassembly run.spec.js /demos/ every demo but the Pantry waits for Run	1.7	1.7
+webassembly run.spec.js /demos/ the header's Motion toggle says what it does and is kept	2.1	2.5
+webassembly run.spec.js a picture is the same on the page's light or dark, and the page never shows through it	1.3	1.4
+webassembly run.spec.js examples Reset puts the code back as written and runs it once	4.4	4.7
+webassembly run.spec.js examples Run goes on to Starting and Stop, says so, and keeps the keyboard where it was	1.7	1.9
+webassembly run.spec.js examples Source hides an example's code and shows it again, and Edit brings it back to the reader	1.7	1.9
+webassembly run.spec.js examples a finger that scrolls the page over a picture runs nothing; a tap on it runs it	2.3	2.3
+webassembly run.spec.js examples a plain example waits for its Run too, and runs when its picture is pressed	2.2	2.6
+webassembly run.spec.js examples a window example waits for Run, which the keyboard reaches and presses	2.2	2.3
+webassembly run.spec.js examples an edit that does not compile says so, and its control offers to stop it	2.2	2.4
+webassembly run.spec.js examples an example scrolled away or in a hidden tab keeps what the reader did in it, and says nothing	3.1	3.3
+webassembly run.spec.js examples an example that draws a sliver runs in a window a reader can see	1.5	1.7
+webassembly run.spec.js examples an example's toolbar gives a reader all axe asks, light and dark	7.8	8.1
+webassembly run.spec.js examples the docs have plain examples and window examples	0.001	0.001
+webassembly run.spec.js examples two blocks of the same code are two examples, each with its own values, edits and run	3.5	3.8
+webassembly run.spec.js with reduced motion the header says motion is reduced, and the 3D and shader demos still move	5.7	5.9
+webassembly themes.spec.js a scheme picked in the header reaches the demos that are running	2.2	2.3
+webassembly themes.spec.js each of UNDER_AA's words is in an example on its page	0.005	0.006
+webassembly themes.spec.js in dark /controls/accessibility/ #0 (324a4305b4b1ccc4): its words are readable on what it draws	2.2	2.4
+webassembly themes.spec.js in dark /controls/accessibility/ #1 (24cb04b8bfc9cdf2): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in dark /controls/accessibility/ #2 (7e9c2e2b54c60261): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in dark /controls/buttons-and-toggles/ #0 (6135ed2ed00fc184): its words are readable on what it draws	2.5	2.7
+webassembly themes.spec.js in dark /controls/buttons-and-toggles/ #1 (96cc903e9a815d8f): its words are readable on what it draws	2.6	2.8
+webassembly themes.spec.js in dark /controls/buttons-and-toggles/ #2 (8e3225ad2008c238): its words are readable on what it draws	2.5	2.7
+webassembly themes.spec.js in dark /controls/containers-and-popups/ #0 (cc8d064e8ad05d4c): its words are readable on what it draws	2.6	2.8
+webassembly themes.spec.js in dark /controls/containers-and-popups/ #1 (4eb6e5519e26e7e1): its words are readable on what it draws	2.6	2.8
+webassembly themes.spec.js in dark /controls/containers-and-popups/ #2 (8f14b9fb7af7aff7): its words are readable on what it draws	2.6	2.8
+webassembly themes.spec.js in dark /controls/containers-and-popups/ #4 (0b18cf07793e3e9d): its words are readable on what it draws	2.7	2.8
+webassembly themes.spec.js in dark /controls/localisation/ #0 (137df92bfa8e0859): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in dark /controls/localisation/ #1 (03a7bbe6a68cce9d): its words are readable on what it draws	2.5	2.5
+webassembly themes.spec.js in dark /controls/localisation/ #2 (54177f22bfbd2c83): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in dark /controls/overview/ #0 (615cc92f8023f3e1): its words are readable on what it draws	2.6	2.8
+webassembly themes.spec.js in dark /controls/overview/ #1 (5f997f34838f3099): its words are readable on what it draws	2.7	2.8
+webassembly themes.spec.js in dark /controls/overview/ #2 (41cbc65d73f90a38): its words are readable on what it draws	2.7	2.7
+webassembly themes.spec.js in dark /controls/styles/ #0 (9ef32cc910dcffe3): its words are readable on what it draws	2.5	2.7
+webassembly themes.spec.js in dark /controls/styles/ #1 (887824c13b3c8664): its words are readable on what it draws	2.5	2.6
+webassembly themes.spec.js in dark /controls/styles/ #2 (de5eb235ae311068): its words are readable on what it draws	2.6	2.7
+webassembly themes.spec.js in dark /controls/value-inputs/ #0 (614474ac5f49dd42): its words are readable on what it draws	2.5	2.7
+webassembly themes.spec.js in dark /controls/value-inputs/ #1 (45d59cf4a15be216): its words are readable on what it draws	2.6	2.7
+webassembly themes.spec.js in dark /controls/value-inputs/ #2 (cc1c0189c2c59d22): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in dark /controls/value-inputs/ #3 (5d877f9361aeff23): its words are readable on what it draws	2.6	2.7
+webassembly themes.spec.js in dark /controls/windows/ #0 (4e0f6cc0c88e7ff0): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in dark /controls/windows/ #1 (ccaeac08b4f25e9f): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in dark /controls/windows/ #2 (ffba0f2b97cea2e6): its words are readable on what it draws	2.3	2.5
+webassembly themes.spec.js in dark /data/fetching/ #0 (e31e2d212cce10b8): its words are readable on what it draws	2.6	2.8
+webassembly themes.spec.js in dark /data/fetching/ #1 (9f68f9707a6ad3ed): its words are readable on what it draws	2.5	2.8
+webassembly themes.spec.js in dark /data/fetching/ #2 (494b723d4a572b6f): its words are readable on what it draws	2.5	2.8
+webassembly themes.spec.js in dark /data/keyboard-and-focus/ #0 (3534f01ffba233ec): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in dark /data/keyboard-and-focus/ #1 (52682c03cae83854): its words are readable on what it draws	2.4	2.5
+webassembly themes.spec.js in dark /data/keyboard-and-focus/ #2 (3675b16ed362920d): its words are readable on what it draws	2.3	2.6
+webassembly themes.spec.js in dark /data/keyboard-and-focus/ #3 (b92df979ee2fa94f): its words are readable on what it draws	2.3	2.7
+webassembly themes.spec.js in dark /data/list-and-grid-views/ #0 (6bccdcfd7a6fcba4): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in dark /data/list-and-grid-views/ #1 (942cf536c2686a3f): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in dark /data/list-and-grid-views/ #2 (098f59fce2adb0e4): its words are readable on what it draws	2.5	2.6
+webassembly themes.spec.js in dark /data/models/ #0 (30e005a4d466ded9): its words are readable on what it draws	3	3.3
+webassembly themes.spec.js in dark /data/models/ #1 (dce009041c39d0aa): its words are readable on what it draws	2.9	3.3
+webassembly themes.spec.js in dark /data/models/ #2 (1b81ce5dbda3bc51): its words are readable on what it draws	3	3.2
+webassembly themes.spec.js in dark /data/models/ #3 (0ef6f90a9ecad2c7): its words are readable on what it draws	2.8	3.1
+webassembly themes.spec.js in dark /data/models/ #4 (bd3a4498f5a3fc76): its words are readable on what it draws	3	3.2
+webassembly themes.spec.js in dark /data/models/ #5 (e3889e4ab501c21b): its words are readable on what it draws	2.9	3.2
+webassembly themes.spec.js in dark /data/models/ #6 (2e079c09cbaf90fb): its words are readable on what it draws	3	3.2
+webassembly themes.spec.js in dark /data/models/ #7 (8e3048660e1b1e1c): its words are readable on what it draws	3.1	3.2
+webassembly themes.spec.js in dark /data/other-views/ #0 (9e320b1b20c712b2): its words are readable on what it draws	2.3	2.5
+webassembly themes.spec.js in dark /data/other-views/ #1 (e1ab30a61cd60d18): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in dark /data/other-views/ #2 (5b92ca3e82dae038): its words are readable on what it draws	2.3	2.5
+webassembly themes.spec.js in dark /data/pointer-input/ #0 (b55623ed58944722): its words are readable on what it draws	2.5	2.8
+webassembly themes.spec.js in dark /data/pointer-input/ #1 (9d4249843e891090): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in dark /data/pointer-input/ #2 (a71f87a4c464b70b): its words are readable on what it draws	2.6	2.9
+webassembly themes.spec.js in dark /data/pointer-input/ #3 (04a6f889c93004fc): its words are readable on what it draws	2.5	2.7
+webassembly themes.spec.js in dark /data/pointer-input/ #4 (1f481945421f133a): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in dark /data/repeater-and-delegates/ #0 (3cc3314389c6bb59): its words are readable on what it draws	2.4	2.5
+webassembly themes.spec.js in dark /data/repeater-and-delegates/ #1 (f3874391b12edc7e): its words are readable on what it draws	2.3	2.6
+webassembly themes.spec.js in dark /data/tasks/ #0 (32595cd0358c7195): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in dark /data/tasks/ #1 (a8bbd60a3259ea60): its words are readable on what it draws	2.5	2.7
+webassembly themes.spec.js in dark /language/components/ #0 (01b87cdc0e9105d9): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in dark /language/components/ #1 (9d81b036611eba74): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in dark /language/components/ #2 (1eb336446268cd33): its words are readable on what it draws	2.5	2.8
+webassembly themes.spec.js in dark /language/components/ #3 (1f1aeee7161cbcce): its words are readable on what it draws	2.5	2.6
+webassembly themes.spec.js in dark /language/components/ #4 (78d4527cf9c9b52b): its words are readable on what it draws	2.6	2.8
+webassembly themes.spec.js in dark /language/controllers/ #0 (bb4c8d9cd56dc289): its words are readable on what it draws	2.6	2.7
+webassembly themes.spec.js in dark /language/controllers/ #1 (ff4ff7116b3a4748): its words are readable on what it draws	2.5	2.7
+webassembly themes.spec.js in dark /language/controllers/ #2 (f6fb6d55629b05ed): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in dark /language/javascript/ #0 (1413819f00aa822a): its words are readable on what it draws	2.3	2.6
+webassembly themes.spec.js in dark /language/javascript/ #1 (d145f62a705de594): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in dark /language/javascript/ #2 (e363f9c5fb26cd2f): its words are readable on what it draws	2.6	2.6
+webassembly themes.spec.js in dark /language/match/ #0 (dcb0c0f58a5f0451): its words are readable on what it draws	2.9	3.3
+webassembly themes.spec.js in dark /language/match/ #1 (a9da1fd07c097d55): its words are readable on what it draws	2.9	3.2
+webassembly themes.spec.js in dark /language/match/ #2 (9a90d9a8c2c40e48): its words are readable on what it draws	3	3.2
+webassembly themes.spec.js in dark /language/match/ #3 (cb731fe8df497478): its words are readable on what it draws	2.8	3.1
+webassembly themes.spec.js in dark /language/match/ #4 (bc860cfaf6f208e8): its words are readable on what it draws	2.8	3.1
+webassembly themes.spec.js in dark /language/match/ #5 (9ed1f0b04685a24e): its words are readable on what it draws	2.9	3.2
+webassembly themes.spec.js in dark /language/match/ #6 (2c90b7fc7c401ddc): its words are readable on what it draws	2.9	3.3
+webassembly themes.spec.js in dark /language/match/ #7 (9a4a33c909992587): its words are readable on what it draws	2.9	3.2
+webassembly themes.spec.js in dark /language/modules-and-imports/ #0 (e5d91af03fd8389c): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in dark /language/modules-and-imports/ #1 (f7834b4d3cd2e42a): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in dark /language/overview/ #0 (000de854f3cbdfc6): its words are readable on what it draws	2.5	2.7
+webassembly themes.spec.js in dark /language/overview/ #1 (88c41e67264c3c22): its words are readable on what it draws	2.5	2.8
+webassembly themes.spec.js in dark /language/overview/ #2 (3f3c043768509236): its words are readable on what it draws	2.6	2.8
+webassembly themes.spec.js in dark /language/overview/ #3 (935775fe0fb30363): its words are readable on what it draws	2.5	2.7
+webassembly themes.spec.js in dark /language/pipe/ #0 (862f741faa2e1274): its words are readable on what it draws	2.5	2.8
+webassembly themes.spec.js in dark /language/pipe/ #1 (43a5deff18a3cc35): its words are readable on what it draws	2.8	3
+webassembly themes.spec.js in dark /language/pipe/ #2 (72d384f14458ab47): its words are readable on what it draws	2.6	3
+webassembly themes.spec.js in dark /language/pipe/ #3 (ba68ad4afae482a9): its words are readable on what it draws	2.7	3
+webassembly themes.spec.js in dark /language/porting-from-qt/ #0 (84d9cb079c47b817): its words are readable on what it draws	2.9	3.3
+webassembly themes.spec.js in dark /language/porting-from-qt/ #1 (e1535e423c757c1e): its words are readable on what it draws	3	3.3
+webassembly themes.spec.js in dark /language/properties-and-bindings/ #0 (7357e4e2cfaf4326): its words are readable on what it draws	2.4	2.8
+webassembly themes.spec.js in dark /language/properties-and-bindings/ #1 (ec99100df38dc1c2): its words are readable on what it draws	2.6	2.9
+webassembly themes.spec.js in dark /language/properties-and-bindings/ #2 (97682e6e1e168577): its words are readable on what it draws	2.5	2.7
+webassembly themes.spec.js in dark /language/properties-and-bindings/ #3 (4d7fb07d3f216705): its words are readable on what it draws	2.7	2.8
+webassembly themes.spec.js in dark /language/properties-and-bindings/ #4 (ca0c4a2130141fee): its words are readable on what it draws	2.6	2.8
+webassembly themes.spec.js in dark /language/properties-and-bindings/ #5 (5bb57ebc5143f6ba): its words are readable on what it draws	2.6	2.7
+webassembly themes.spec.js in dark /language/signals-and-handlers/ #0 (761d32fbcf01ceaf): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in dark /language/signals-and-handlers/ #1 (48ed81ac882cce6d): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in dark /language/signals-and-handlers/ #2 (fe097da39aba27f4): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in dark /language/signals-and-handlers/ #3 (b63408ab23bf1894): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in dark /language/signals-and-handlers/ #4 (e035d15ad488d338): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in dark /language/states-and-transitions/ #0 (b2f8cb4e3fe3e7ef): its words are readable on what it draws	2.5	2.7
+webassembly themes.spec.js in dark /language/states-and-transitions/ #1 (eb8ce3ec3486cffe): its words are readable on what it draws	2.5	2.8
+webassembly themes.spec.js in dark /language/states-and-transitions/ #2 (90fc290eb93ba6c7): its words are readable on what it draws	2.5	2.6
+webassembly themes.spec.js in dark /language/states-and-transitions/ #3 (69cbd9b210efe14f): its words are readable on what it draws	2.6	2.7
+webassembly themes.spec.js in dark /language/states-and-transitions/ #4 (45e00b07679c7dce): its words are readable on what it draws	2.5	2.8
+webassembly themes.spec.js in dark /language/values-and-the-app/ #0 (ea86b18e6672f839): its words are readable on what it draws	2.5	2.6
+webassembly themes.spec.js in dark /language/values-and-the-app/ #1 (984208df421b33e3): its words are readable on what it draws	2.3	2.7
+webassembly themes.spec.js in dark /language/values-and-the-app/ #2 (6d9e2956239d1e98): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in dark /language/values-and-the-app/ #3 (3d647a63243dd609): its words are readable on what it draws	2.4	2.5
+webassembly themes.spec.js in dark /language/values-and-the-app/ #4 (066adcb4bc5c802e): its words are readable on what it draws	2.3	2.6
+webassembly themes.spec.js in dark /quality/accessibility/ #0 (5a1723ac8be0b2b9): its words are readable on what it draws	2.9	3.1
+webassembly themes.spec.js in dark /quality/accessibility/ #1 (3215cf30ef9b66eb): its words are readable on what it draws	3	3.2
+webassembly themes.spec.js in dark /quality/accessibility/ #2 (23fa8c1a34b35431): its words are readable on what it draws	3	3.2
+webassembly themes.spec.js in dark /quality/accessibility/ #3 (534d171447744505): its words are readable on what it draws	3	3.2
+webassembly themes.spec.js in dark /quality/accessibility/ #4 (2c3dcdee15065394): its words are readable on what it draws	2.9	3.2
+webassembly themes.spec.js in dark /quality/color/ #0 (6caf3630aa400e86): its words are readable on what it draws	2.5	3
+webassembly themes.spec.js in dark /quality/color/ #1 (a47453de4fdb8e6d): its words are readable on what it draws	2.7	3.1
+webassembly themes.spec.js in dark /quality/color/ #2 (6873b5bd4103b36d): its words are readable on what it draws	2.8	3
+webassembly themes.spec.js in dark /quality/color/ #3 (d5f8e2d4fbaa75be): its words are readable on what it draws	2.7	3
+webassembly themes.spec.js in dark /quality/color/ #4 (17ac45e572b4c48d): its words are readable on what it draws	2.7	3.1
+webassembly themes.spec.js in dark /quality/color/ #5 (44e24806c231ac5e): its words are readable on what it draws	2.6	3
+webassembly themes.spec.js in dark /quality/design-guardrails/ #0 (a82b3cb84ec2e107): its words are readable on what it draws	2.6	2.8
+webassembly themes.spec.js in dark /quality/design-guardrails/ #1 (106a7a4ad83a5a23): its words are readable on what it draws	2.5	2.8
+webassembly themes.spec.js in dark /quality/design-guardrails/ #3 (f350092dc49debcc): its words are readable on what it draws	2.7	2.8
+webassembly themes.spec.js in dark /quality/layout-and-typography/ #0 (099540a662ef9668): its words are readable on what it draws	2.7	3
+webassembly themes.spec.js in dark /quality/layout-and-typography/ #1 (fbab522556a8c412): its words are readable on what it draws	2.8	3
+webassembly themes.spec.js in dark /quality/layout-and-typography/ #2 (423ec75fda11accd): its words are readable on what it draws	2.8	3
+webassembly themes.spec.js in dark /quality/motion/ #0 (e7eac52d85ee1aaf): its words are readable on what it draws	2.6	2.9
+webassembly themes.spec.js in dark /quality/motion/ #1 (5366f6978d3de1a8): its words are readable on what it draws	2.6	2.9
+webassembly themes.spec.js in dark /quality/motion/ #2 (1eb45e74c3b79844): its words are readable on what it draws	2.6	2.9
+webassembly themes.spec.js in dark /quality/performance/ #0 (83b7f432a072a0d6): its words are readable on what it draws	2.7	2.9
+webassembly themes.spec.js in dark /quality/principles/ #0 (fdd4fcd245587249): its words are readable on what it draws	2.4	2.5
+webassembly themes.spec.js in dark /rust/models/ #0 (c9b0ef992b71ebb3): its words are readable on what it draws	2.3	2.4
+webassembly themes.spec.js in dark /rust/multimedia/ #0 (5ff72f427940749d): its words are readable on what it draws	2.5	2.7
+webassembly themes.spec.js in dark /rust/multimedia/ #1 (011a19fb83d70a61): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in dark /rust/platforms/ #0 (49535baf385720a9): its words are readable on what it draws	2.3	2.5
+webassembly themes.spec.js in dark /start/ #0 (9d5a2bf0a50b6429): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in dark /start/ #1 (397a2269fdad6b26): its words are readable on what it draws	2.6	2.8
+webassembly themes.spec.js in dark /start/ #2 (5dd660b1fd2fbcf5): its words are readable on what it draws	2.5	2.8
+webassembly themes.spec.js in dark /start/editors/ #0 (00a787b7a7935c14): its words are readable on what it draws	2.5	2.8
+webassembly themes.spec.js in dark /start/first-app/ #0 (33de776ec096f803): its words are readable on what it draws	2.4	2.8
+webassembly themes.spec.js in dark /start/first-app/ #1 (700a6c5b1dff665b): its words are readable on what it draws	2.5	2.7
+webassembly themes.spec.js in dark /start/hot-reload/ #0 (811b6e56e453525b): its words are readable on what it draws	2.5	2.7
+webassembly themes.spec.js in dark /start/hot-reload/ #1 (353ce123c3300080): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in dark /start/your-own-shell/ #0 (1f4076edf3cb4551): its words are readable on what it draws	2.7	3.1
+webassembly themes.spec.js in dark /start/your-own-shell/ #1 (73919e5aca200809): its words are readable on what it draws	2.9	3.1
+webassembly themes.spec.js in dark /start/your-own-shell/ #2 (c47db4323ab80575): its words are readable on what it draws	2.6	3
+webassembly themes.spec.js in dark /ui/animation/ #0 (6790dc79329b6fa1): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in dark /ui/animation/ #1 (bbb656d8e62a9366): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in dark /ui/animation/ #2 (4de3af7862e15976): its words are readable on what it draws	2.4	2.8
+webassembly themes.spec.js in dark /ui/animation/ #3 (52b242573efb7f0c): its words are readable on what it draws	2.6	2.9
+webassembly themes.spec.js in dark /ui/items/ #0 (e032da9ea6004354): its words are readable on what it draws	2.6	3
+webassembly themes.spec.js in dark /ui/items/ #1 (ab1ec7309e8b9f05): its words are readable on what it draws	2.5	2.8
+webassembly themes.spec.js in dark /ui/items/ #2 (6a6df88d0f3ab3f9): its words are readable on what it draws	2.5	2.9
+webassembly themes.spec.js in dark /ui/items/ #3 (f83c633aeeb383bd): its words are readable on what it draws	2.5	2.8
+webassembly themes.spec.js in dark /ui/layouts/ #0 (4c3e328dfc851f7e): its words are readable on what it draws	2.4	2.8
+webassembly themes.spec.js in dark /ui/layouts/ #1 (0bb171dd8e8daece): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in dark /ui/layouts/ #2 (e0e8135cb5320da3): its words are readable on what it draws	2.4	2.8
+webassembly themes.spec.js in dark /ui/layouts/ #3 (cf63dee5a6284087): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in dark /ui/offscreen-and-cost/ #0 (ca89fc4dd0ef6064): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in dark /ui/offscreen-and-cost/ #1 (6a950fc4c61c1e72): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in dark /ui/offscreen-and-cost/ #2 (10052c74c229e131): its words are readable on what it draws	2.4	2.5
+webassembly themes.spec.js in dark /ui/positioning/ #0 (fef33de673e58034): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in dark /ui/positioning/ #1 (4e352060a7c3ea3b): its words are readable on what it draws	2.5	2.8
+webassembly themes.spec.js in dark /ui/positioning/ #2 (835eda2e7b07b0f9): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in dark /ui/positioning/ #3 (3bff1919f568bca4): its words are readable on what it draws	2.5	2.7
+webassembly themes.spec.js in dark /ui/shapes-and-effects/ #0 (efd11601728228ba): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in dark /ui/shapes-and-effects/ #1 (c9f6efc406249b0c): its words are readable on what it draws	2.5	2.8
+webassembly themes.spec.js in dark /ui/shapes-and-effects/ #2 (cb4d06f7ad53202d): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in dark /ui/shapes-and-effects/ #3 (7db0c04878b935fe): its words are readable on what it draws	2.5	2.7
+webassembly themes.spec.js in dark /ui/text-input/ #0 (5c3e973f49100595): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in dark /ui/text-input/ #1 (8cd0c3af58ba6532): its words are readable on what it draws	2.4	2.8
+webassembly themes.spec.js in dark /ui/text-input/ #2 (bdee20467ba4cd32): its words are readable on what it draws	2.4	2.8
+webassembly themes.spec.js in dark /ui/text-input/ #3 (21eae8694487d90f): its words are readable on what it draws	2.5	2.8
+webassembly themes.spec.js in dark /ui/text/ #0 (f01ccf1486813f92): its words are readable on what it draws	2.5	2.8
+webassembly themes.spec.js in dark /ui/text/ #1 (044d0ecd5266ad96): its words are readable on what it draws	2.5	2.8
+webassembly themes.spec.js in dark /ui/text/ #2 (01d650c6e6f0bfa4): its words are readable on what it draws	2.5	2.8
+webassembly themes.spec.js in dark /ui/text/ #3 (0f8b7a9da6e109b2): its words are readable on what it draws	2.4	2.8
+webassembly themes.spec.js in dark Ljós's placeholder colour is still under AA, as excused above	2.5	2.7
+webassembly themes.spec.js in dark the demo "3D you can orbit" is readable	2.5	2.7
+webassembly themes.spec.js in dark the demo "A shader effect" is readable	2.6	2.8
+webassembly themes.spec.js in dark the demo "A shell you rewrite" is readable	2.6	2.8
+webassembly themes.spec.js in dark the demo "A whole app" is readable	2.5	2.7
+webassembly themes.spec.js in dark the demo "Motion" is readable	2.6	2.7
+webassembly themes.spec.js in light /controls/accessibility/ #0 (324a4305b4b1ccc4): its words are readable on what it draws	2.5	2.9
+webassembly themes.spec.js in light /controls/accessibility/ #1 (24cb04b8bfc9cdf2): its words are readable on what it draws	2.2	2.5
+webassembly themes.spec.js in light /controls/accessibility/ #2 (7e9c2e2b54c60261): its words are readable on what it draws	2.5	2.8
+webassembly themes.spec.js in light /controls/buttons-and-toggles/ #0 (6135ed2ed00fc184): its words are readable on what it draws	2.6	2.9
+webassembly themes.spec.js in light /controls/buttons-and-toggles/ #1 (96cc903e9a815d8f): its words are readable on what it draws	2.7	2.8
+webassembly themes.spec.js in light /controls/buttons-and-toggles/ #2 (8e3225ad2008c238): its words are readable on what it draws	2.7	2.7
+webassembly themes.spec.js in light /controls/containers-and-popups/ #0 (cc8d064e8ad05d4c): its words are readable on what it draws	3	2.8
+webassembly themes.spec.js in light /controls/containers-and-popups/ #1 (4eb6e5519e26e7e1): its words are readable on what it draws	2.9	2.9
+webassembly themes.spec.js in light /controls/containers-and-popups/ #2 (8f14b9fb7af7aff7): its words are readable on what it draws	2.5	2.9
+webassembly themes.spec.js in light /controls/containers-and-popups/ #4 (0b18cf07793e3e9d): its words are readable on what it draws	2.6	2.9
+webassembly themes.spec.js in light /controls/localisation/ #0 (137df92bfa8e0859): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in light /controls/localisation/ #1 (03a7bbe6a68cce9d): its words are readable on what it draws	2.5	2.7
+webassembly themes.spec.js in light /controls/localisation/ #2 (54177f22bfbd2c83): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in light /controls/overview/ #0 (615cc92f8023f3e1): its words are readable on what it draws	2.6	2.9
+webassembly themes.spec.js in light /controls/overview/ #1 (5f997f34838f3099): its words are readable on what it draws	2.7	2.9
+webassembly themes.spec.js in light /controls/overview/ #2 (41cbc65d73f90a38): its words are readable on what it draws	2.6	2.9
+webassembly themes.spec.js in light /controls/styles/ #0 (9ef32cc910dcffe3): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in light /controls/styles/ #1 (887824c13b3c8664): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in light /controls/styles/ #2 (de5eb235ae311068): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in light /controls/value-inputs/ #0 (614474ac5f49dd42): its words are readable on what it draws	2.5	2.6
+webassembly themes.spec.js in light /controls/value-inputs/ #1 (45d59cf4a15be216): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in light /controls/value-inputs/ #2 (cc1c0189c2c59d22): its words are readable on what it draws	2.5	2.6
+webassembly themes.spec.js in light /controls/value-inputs/ #3 (5d877f9361aeff23): its words are readable on what it draws	2.3	2.6
+webassembly themes.spec.js in light /controls/windows/ #0 (4e0f6cc0c88e7ff0): its words are readable on what it draws	2.3	2.6
+webassembly themes.spec.js in light /controls/windows/ #1 (ccaeac08b4f25e9f): its words are readable on what it draws	2.3	2.5
+webassembly themes.spec.js in light /controls/windows/ #2 (ffba0f2b97cea2e6): its words are readable on what it draws	2.3	2.5
+webassembly themes.spec.js in light /data/fetching/ #0 (e31e2d212cce10b8): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in light /data/fetching/ #1 (9f68f9707a6ad3ed): its words are readable on what it draws	2.6	2.8
+webassembly themes.spec.js in light /data/fetching/ #2 (494b723d4a572b6f): its words are readable on what it draws	2.5	2.7
+webassembly themes.spec.js in light /data/keyboard-and-focus/ #0 (3534f01ffba233ec): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in light /data/keyboard-and-focus/ #1 (52682c03cae83854): its words are readable on what it draws	2.3	2.6
+webassembly themes.spec.js in light /data/keyboard-and-focus/ #2 (3675b16ed362920d): its words are readable on what it draws	2.3	2.7
+webassembly themes.spec.js in light /data/keyboard-and-focus/ #3 (b92df979ee2fa94f): its words are readable on what it draws	2.3	2.5
+webassembly themes.spec.js in light /data/list-and-grid-views/ #0 (6bccdcfd7a6fcba4): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in light /data/list-and-grid-views/ #1 (942cf536c2686a3f): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in light /data/list-and-grid-views/ #2 (098f59fce2adb0e4): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in light /data/models/ #0 (30e005a4d466ded9): its words are readable on what it draws	2.8	3.2
+webassembly themes.spec.js in light /data/models/ #1 (dce009041c39d0aa): its words are readable on what it draws	3	3.3
+webassembly themes.spec.js in light /data/models/ #2 (1b81ce5dbda3bc51): its words are readable on what it draws	2.8	3.3
+webassembly themes.spec.js in light /data/models/ #3 (0ef6f90a9ecad2c7): its words are readable on what it draws	2.7	3.1
+webassembly themes.spec.js in light /data/models/ #4 (bd3a4498f5a3fc76): its words are readable on what it draws	2.9	3.2
+webassembly themes.spec.js in light /data/models/ #5 (e3889e4ab501c21b): its words are readable on what it draws	3	3.3
+webassembly themes.spec.js in light /data/models/ #6 (2e079c09cbaf90fb): its words are readable on what it draws	2.8	3.3
+webassembly themes.spec.js in light /data/models/ #7 (8e3048660e1b1e1c): its words are readable on what it draws	2.9	3.2
+webassembly themes.spec.js in light /data/other-views/ #0 (9e320b1b20c712b2): its words are readable on what it draws	2.2	2.6
+webassembly themes.spec.js in light /data/other-views/ #1 (e1ab30a61cd60d18): its words are readable on what it draws	2.3	2.6
+webassembly themes.spec.js in light /data/other-views/ #2 (5b92ca3e82dae038): its words are readable on what it draws	2.2	2.5
+webassembly themes.spec.js in light /data/pointer-input/ #0 (b55623ed58944722): its words are readable on what it draws	2.5	2.8
+webassembly themes.spec.js in light /data/pointer-input/ #1 (9d4249843e891090): its words are readable on what it draws	2.3	2.6
+webassembly themes.spec.js in light /data/pointer-input/ #2 (a71f87a4c464b70b): its words are readable on what it draws	2.5	2.8
+webassembly themes.spec.js in light /data/pointer-input/ #3 (04a6f889c93004fc): its words are readable on what it draws	2.6	2.6
+webassembly themes.spec.js in light /data/pointer-input/ #4 (1f481945421f133a): its words are readable on what it draws	2.3	2.7
+webassembly themes.spec.js in light /data/repeater-and-delegates/ #0 (3cc3314389c6bb59): its words are readable on what it draws	2.3	2.5
+webassembly themes.spec.js in light /data/repeater-and-delegates/ #1 (f3874391b12edc7e): its words are readable on what it draws	2.4	2.5
+webassembly themes.spec.js in light /data/tasks/ #0 (32595cd0358c7195): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in light /data/tasks/ #1 (a8bbd60a3259ea60): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in light /language/components/ #0 (01b87cdc0e9105d9): its words are readable on what it draws	2.3	2.6
+webassembly themes.spec.js in light /language/components/ #1 (9d81b036611eba74): its words are readable on what it draws	2.4	2.5
+webassembly themes.spec.js in light /language/components/ #2 (1eb336446268cd33): its words are readable on what it draws	2.5	2.7
+webassembly themes.spec.js in light /language/components/ #3 (1f1aeee7161cbcce): its words are readable on what it draws	2.4	2.5
+webassembly themes.spec.js in light /language/components/ #4 (78d4527cf9c9b52b): its words are readable on what it draws	2.5	2.7
+webassembly themes.spec.js in light /language/controllers/ #0 (bb4c8d9cd56dc289): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in light /language/controllers/ #1 (ff4ff7116b3a4748): its words are readable on what it draws	2.5	2.7
+webassembly themes.spec.js in light /language/controllers/ #2 (f6fb6d55629b05ed): its words are readable on what it draws	2.4	2.8
+webassembly themes.spec.js in light /language/javascript/ #0 (1413819f00aa822a): its words are readable on what it draws	2.3	2.5
+webassembly themes.spec.js in light /language/javascript/ #1 (d145f62a705de594): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in light /language/javascript/ #2 (e363f9c5fb26cd2f): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in light /language/match/ #0 (dcb0c0f58a5f0451): its words are readable on what it draws	2.9	3.2
+webassembly themes.spec.js in light /language/match/ #1 (a9da1fd07c097d55): its words are readable on what it draws	2.8	3.1
+webassembly themes.spec.js in light /language/match/ #2 (9a90d9a8c2c40e48): its words are readable on what it draws	3	3.3
+webassembly themes.spec.js in light /language/match/ #3 (cb731fe8df497478): its words are readable on what it draws	2.9	3.1
+webassembly themes.spec.js in light /language/match/ #4 (bc860cfaf6f208e8): its words are readable on what it draws	2.8	3.1
+webassembly themes.spec.js in light /language/match/ #5 (9ed1f0b04685a24e): its words are readable on what it draws	2.8	3
+webassembly themes.spec.js in light /language/match/ #6 (2c90b7fc7c401ddc): its words are readable on what it draws	3	3.2
+webassembly themes.spec.js in light /language/match/ #7 (9a4a33c909992587): its words are readable on what it draws	3	3.3
+webassembly themes.spec.js in light /language/modules-and-imports/ #0 (e5d91af03fd8389c): its words are readable on what it draws	2.5	2.7
+webassembly themes.spec.js in light /language/modules-and-imports/ #1 (f7834b4d3cd2e42a): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in light /language/overview/ #0 (000de854f3cbdfc6): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in light /language/overview/ #1 (88c41e67264c3c22): its words are readable on what it draws	2.5	2.7
+webassembly themes.spec.js in light /language/overview/ #2 (3f3c043768509236): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in light /language/overview/ #3 (935775fe0fb30363): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in light /language/pipe/ #0 (862f741faa2e1274): its words are readable on what it draws	2.4	2.8
+webassembly themes.spec.js in light /language/pipe/ #1 (43a5deff18a3cc35): its words are readable on what it draws	2.5	2.9
+webassembly themes.spec.js in light /language/pipe/ #2 (72d384f14458ab47): its words are readable on what it draws	2.6	2.9
+webassembly themes.spec.js in light /language/pipe/ #3 (ba68ad4afae482a9): its words are readable on what it draws	2.6	2.9
+webassembly themes.spec.js in light /language/porting-from-qt/ #0 (84d9cb079c47b817): its words are readable on what it draws	2.9	3.2
+webassembly themes.spec.js in light /language/porting-from-qt/ #1 (e1535e423c757c1e): its words are readable on what it draws	2.9	3.2
+webassembly themes.spec.js in light /language/properties-and-bindings/ #0 (7357e4e2cfaf4326): its words are readable on what it draws	2.5	2.8
+webassembly themes.spec.js in light /language/properties-and-bindings/ #1 (ec99100df38dc1c2): its words are readable on what it draws	2.5	2.8
+webassembly themes.spec.js in light /language/properties-and-bindings/ #2 (97682e6e1e168577): its words are readable on what it draws	2.5	2.7
+webassembly themes.spec.js in light /language/properties-and-bindings/ #3 (4d7fb07d3f216705): its words are readable on what it draws	2.7	2.9
+webassembly themes.spec.js in light /language/properties-and-bindings/ #4 (ca0c4a2130141fee): its words are readable on what it draws	2.4	2.8
+webassembly themes.spec.js in light /language/properties-and-bindings/ #5 (5bb57ebc5143f6ba): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in light /language/signals-and-handlers/ #0 (761d32fbcf01ceaf): its words are readable on what it draws	2.3	2.6
+webassembly themes.spec.js in light /language/signals-and-handlers/ #1 (48ed81ac882cce6d): its words are readable on what it draws	2.3	2.7
+webassembly themes.spec.js in light /language/signals-and-handlers/ #2 (fe097da39aba27f4): its words are readable on what it draws	2.4	2.5
+webassembly themes.spec.js in light /language/signals-and-handlers/ #3 (b63408ab23bf1894): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in light /language/signals-and-handlers/ #4 (e035d15ad488d338): its words are readable on what it draws	2.3	2.7
+webassembly themes.spec.js in light /language/states-and-transitions/ #0 (b2f8cb4e3fe3e7ef): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in light /language/states-and-transitions/ #1 (eb8ce3ec3486cffe): its words are readable on what it draws	2.5	2.7
+webassembly themes.spec.js in light /language/states-and-transitions/ #2 (90fc290eb93ba6c7): its words are readable on what it draws	2.4	2.5
+webassembly themes.spec.js in light /language/states-and-transitions/ #3 (69cbd9b210efe14f): its words are readable on what it draws	2.4	2.5
+webassembly themes.spec.js in light /language/states-and-transitions/ #4 (45e00b07679c7dce): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in light /language/values-and-the-app/ #0 (ea86b18e6672f839): its words are readable on what it draws	2.3	2.6
+webassembly themes.spec.js in light /language/values-and-the-app/ #1 (984208df421b33e3): its words are readable on what it draws	2.3	2.5
+webassembly themes.spec.js in light /language/values-and-the-app/ #2 (6d9e2956239d1e98): its words are readable on what it draws	2.3	2.6
+webassembly themes.spec.js in light /language/values-and-the-app/ #3 (3d647a63243dd609): its words are readable on what it draws	2.3	2.6
+webassembly themes.spec.js in light /language/values-and-the-app/ #4 (066adcb4bc5c802e): its words are readable on what it draws	2.3	2.5
+webassembly themes.spec.js in light /quality/accessibility/ #0 (5a1723ac8be0b2b9): its words are readable on what it draws	2.9	3.2
+webassembly themes.spec.js in light /quality/accessibility/ #1 (3215cf30ef9b66eb): its words are readable on what it draws	2.9	3.2
+webassembly themes.spec.js in light /quality/accessibility/ #2 (23fa8c1a34b35431): its words are readable on what it draws	2.9	3.3
+webassembly themes.spec.js in light /quality/accessibility/ #3 (534d171447744505): its words are readable on what it draws	3	3.2
+webassembly themes.spec.js in light /quality/accessibility/ #4 (2c3dcdee15065394): its words are readable on what it draws	2.8	3.2
+webassembly themes.spec.js in light /quality/color/ #0 (6caf3630aa400e86): its words are readable on what it draws	2.6	2.9
+webassembly themes.spec.js in light /quality/color/ #1 (a47453de4fdb8e6d): its words are readable on what it draws	2.6	3.1
+webassembly themes.spec.js in light /quality/color/ #2 (6873b5bd4103b36d): its words are readable on what it draws	2.8	3
+webassembly themes.spec.js in light /quality/color/ #3 (d5f8e2d4fbaa75be): its words are readable on what it draws	2.7	3.1
+webassembly themes.spec.js in light /quality/color/ #4 (17ac45e572b4c48d): its words are readable on what it draws	2.8	3.1
+webassembly themes.spec.js in light /quality/color/ #5 (44e24806c231ac5e): its words are readable on what it draws	2.7	3.1
+webassembly themes.spec.js in light /quality/design-guardrails/ #0 (a82b3cb84ec2e107): its words are readable on what it draws	2.6	2.9
+webassembly themes.spec.js in light /quality/design-guardrails/ #1 (106a7a4ad83a5a23): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in light /quality/design-guardrails/ #3 (f350092dc49debcc): its words are readable on what it draws	2.6	2.9
+webassembly themes.spec.js in light /quality/layout-and-typography/ #0 (099540a662ef9668): its words are readable on what it draws	2.8	3.1
+webassembly themes.spec.js in light /quality/layout-and-typography/ #1 (fbab522556a8c412): its words are readable on what it draws	2.6	3.1
+webassembly themes.spec.js in light /quality/layout-and-typography/ #2 (423ec75fda11accd): its words are readable on what it draws	2.8	3.1
+webassembly themes.spec.js in light /quality/motion/ #0 (e7eac52d85ee1aaf): its words are readable on what it draws	2.7	2.9
+webassembly themes.spec.js in light /quality/motion/ #1 (5366f6978d3de1a8): its words are readable on what it draws	2.6	3
+webassembly themes.spec.js in light /quality/motion/ #2 (1eb45e74c3b79844): its words are readable on what it draws	2.7	3.1
+webassembly themes.spec.js in light /quality/performance/ #0 (83b7f432a072a0d6): its words are readable on what it draws	2.6	3
+webassembly themes.spec.js in light /quality/principles/ #0 (fdd4fcd245587249): its words are readable on what it draws	2.2	2.7
+webassembly themes.spec.js in light /rust/models/ #0 (c9b0ef992b71ebb3): its words are readable on what it draws	2.1	2.5
+webassembly themes.spec.js in light /rust/multimedia/ #0 (5ff72f427940749d): its words are readable on what it draws	2.3	2.7
+webassembly themes.spec.js in light /rust/multimedia/ #1 (011a19fb83d70a61): its words are readable on what it draws	2.3	2.6
+webassembly themes.spec.js in light /rust/platforms/ #0 (49535baf385720a9): its words are readable on what it draws	2.2	2.6
+webassembly themes.spec.js in light /start/ #0 (9d5a2bf0a50b6429): its words are readable on what it draws	2.5	2.8
+webassembly themes.spec.js in light /start/ #1 (397a2269fdad6b26): its words are readable on what it draws	2.5	2.8
+webassembly themes.spec.js in light /start/ #2 (5dd660b1fd2fbcf5): its words are readable on what it draws	2.4	2.8
+webassembly themes.spec.js in light /start/editors/ #0 (00a787b7a7935c14): its words are readable on what it draws	2.4	2.8
+webassembly themes.spec.js in light /start/first-app/ #0 (33de776ec096f803): its words are readable on what it draws	2.5	2.7
+webassembly themes.spec.js in light /start/first-app/ #1 (700a6c5b1dff665b): its words are readable on what it draws	2.5	2.8
+webassembly themes.spec.js in light /start/hot-reload/ #0 (811b6e56e453525b): its words are readable on what it draws	2.5	2.7
+webassembly themes.spec.js in light /start/hot-reload/ #1 (353ce123c3300080): its words are readable on what it draws	2.3	2.6
+webassembly themes.spec.js in light /start/your-own-shell/ #0 (1f4076edf3cb4551): its words are readable on what it draws	2.8	3.1
+webassembly themes.spec.js in light /start/your-own-shell/ #1 (73919e5aca200809): its words are readable on what it draws	2.8	3.2
+webassembly themes.spec.js in light /start/your-own-shell/ #2 (c47db4323ab80575): its words are readable on what it draws	2.7	3
+webassembly themes.spec.js in light /ui/animation/ #0 (6790dc79329b6fa1): its words are readable on what it draws	2.5	2.7
+webassembly themes.spec.js in light /ui/animation/ #1 (bbb656d8e62a9366): its words are readable on what it draws	2.5	2.7
+webassembly themes.spec.js in light /ui/animation/ #2 (4de3af7862e15976): its words are readable on what it draws	2.5	2.7
+webassembly themes.spec.js in light /ui/animation/ #3 (52b242573efb7f0c): its words are readable on what it draws	2.7	2.9
+webassembly themes.spec.js in light /ui/items/ #0 (e032da9ea6004354): its words are readable on what it draws	2.7	3
+webassembly themes.spec.js in light /ui/items/ #1 (ab1ec7309e8b9f05): its words are readable on what it draws	2.5	2.9
+webassembly themes.spec.js in light /ui/items/ #2 (6a6df88d0f3ab3f9): its words are readable on what it draws	2.6	2.9
+webassembly themes.spec.js in light /ui/items/ #3 (f83c633aeeb383bd): its words are readable on what it draws	2.6	2.8
+webassembly themes.spec.js in light /ui/layouts/ #0 (4c3e328dfc851f7e): its words are readable on what it draws	2.5	2.8
+webassembly themes.spec.js in light /ui/layouts/ #1 (0bb171dd8e8daece): its words are readable on what it draws	2.5	2.7
+webassembly themes.spec.js in light /ui/layouts/ #2 (e0e8135cb5320da3): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in light /ui/layouts/ #3 (cf63dee5a6284087): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in light /ui/offscreen-and-cost/ #0 (ca89fc4dd0ef6064): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in light /ui/offscreen-and-cost/ #1 (6a950fc4c61c1e72): its words are readable on what it draws	2.4	2.5
+webassembly themes.spec.js in light /ui/offscreen-and-cost/ #2 (10052c74c229e131): its words are readable on what it draws	2.4	2.5
+webassembly themes.spec.js in light /ui/positioning/ #0 (fef33de673e58034): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in light /ui/positioning/ #1 (4e352060a7c3ea3b): its words are readable on what it draws	2.5	2.6
+webassembly themes.spec.js in light /ui/positioning/ #2 (835eda2e7b07b0f9): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in light /ui/positioning/ #3 (3bff1919f568bca4): its words are readable on what it draws	2.5	2.7
+webassembly themes.spec.js in light /ui/shapes-and-effects/ #0 (efd11601728228ba): its words are readable on what it draws	2.3	2.6
+webassembly themes.spec.js in light /ui/shapes-and-effects/ #1 (c9f6efc406249b0c): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in light /ui/shapes-and-effects/ #2 (cb4d06f7ad53202d): its words are readable on what it draws	2.3	2.6
+webassembly themes.spec.js in light /ui/shapes-and-effects/ #3 (7db0c04878b935fe): its words are readable on what it draws	2.4	2.6
+webassembly themes.spec.js in light /ui/text-input/ #0 (5c3e973f49100595): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in light /ui/text-input/ #1 (8cd0c3af58ba6532): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in light /ui/text-input/ #2 (bdee20467ba4cd32): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in light /ui/text-input/ #3 (21eae8694487d90f): its words are readable on what it draws	2.4	2.7
+webassembly themes.spec.js in light /ui/text/ #0 (f01ccf1486813f92): its words are readable on what it draws	2.5	2.7
+webassembly themes.spec.js in light /ui/text/ #1 (044d0ecd5266ad96): its words are readable on what it draws	2.5	2.7
+webassembly themes.spec.js in light /ui/text/ #2 (01d650c6e6f0bfa4): its words are readable on what it draws	2.5	2.8
+webassembly themes.spec.js in light /ui/text/ #3 (0f8b7a9da6e109b2): its words are readable on what it draws	2.5	2.7
+webassembly themes.spec.js in light Ljós's placeholder colour is still under AA, as excused above	2.6	2.8
+webassembly themes.spec.js in light the demo "3D you can orbit" is readable	2.6	2.8
+webassembly themes.spec.js in light the demo "A shader effect" is readable	2.6	2.8
+webassembly themes.spec.js in light the demo "A shell you rewrite" is readable	2.6	2.8
+webassembly themes.spec.js in light the demo "A whole app" is readable	2.6	2.9
+webassembly themes.spec.js in light the demo "Motion" is readable	2.6	2.7
+webassembly themes.spec.js words beside an empty field that say what its placeholder says are counted	4.5	4.9
+webassembly windows.spec.js /controls/windows/ #0 (4e0f6cc0c88e7ff0): the window stays in its frame	1.8	1.9
+webassembly windows.spec.js /controls/windows/ #1 (ccaeac08b4f25e9f): the window stays in its frame	1.8	2.1
+webassembly windows.spec.js /controls/windows/ #2 (ffba0f2b97cea2e6): the window stays in its frame	1.6	1.7
+webassembly windows.spec.js /language/match/ #0 (dcb0c0f58a5f0451): the window stays in its frame	2.2	2.3
+webassembly windows.spec.js /language/match/ #1 (a9da1fd07c097d55): the window stays in its frame	2.2	2.2
+webassembly windows.spec.js /language/match/ #2 (9a90d9a8c2c40e48): the window stays in its frame	2	2.4
+webassembly windows.spec.js /language/match/ #3 (cb731fe8df497478): the window stays in its frame	2.1	2.2
+webassembly windows.spec.js /language/match/ #4 (bc860cfaf6f208e8): the window stays in its frame	2.2	2.3
+webassembly windows.spec.js /language/match/ #5 (9ed1f0b04685a24e): the window stays in its frame	2.2	2.2
+webassembly windows.spec.js /language/match/ #7 (9a4a33c909992587): the window stays in its frame	2.2	2.3
+webassembly windows.spec.js /language/pipe/ #1 (43a5deff18a3cc35): the window stays in its frame	1.9	2
+webassembly windows.spec.js /language/pipe/ #2 (72d384f14458ab47): the window stays in its frame	1.9	2
+webassembly windows.spec.js /quality/accessibility/ #0 (5a1723ac8be0b2b9): the window stays in its frame	2.1	2.3
+webassembly windows.spec.js /quality/accessibility/ #2 (23fa8c1a34b35431): the window stays in its frame	2.1	2.3
+webassembly windows.spec.js /quality/accessibility/ #3 (534d171447744505): the window stays in its frame	2.1	2.3
+webassembly windows.spec.js /quality/accessibility/ #4 (2c3dcdee15065394): the window stays in its frame	2.2	2.3
+webassembly windows.spec.js /quality/color/ #1 (a47453de4fdb8e6d): the window stays in its frame	1.9	2.2
+webassembly windows.spec.js /quality/color/ #2 (6873b5bd4103b36d): the window stays in its frame	1.9	2.2
+webassembly windows.spec.js /quality/color/ #3 (d5f8e2d4fbaa75be): the window stays in its frame	1.9	2.2
+webassembly windows.spec.js /quality/color/ #4 (17ac45e572b4c48d): the window stays in its frame	2	2.1
+webassembly windows.spec.js /quality/color/ #5 (44e24806c231ac5e): the window stays in its frame	2	2.2
+webassembly windows.spec.js /quality/design-guardrails/ #0 (a82b3cb84ec2e107): the window stays in its frame	1.7	2
+webassembly windows.spec.js /quality/design-guardrails/ #2 (70246b0366d17cbe): the window stays in its frame	1.8	2
+webassembly windows.spec.js /quality/design-guardrails/ #3 (f350092dc49debcc): the window stays in its frame	1.8	2
+webassembly windows.spec.js /quality/layout-and-typography/ #0 (099540a662ef9668): the window stays in its frame	2	2.1
+webassembly windows.spec.js /quality/layout-and-typography/ #1 (fbab522556a8c412): the window stays in its frame	2	2.1
+webassembly windows.spec.js /quality/layout-and-typography/ #2 (423ec75fda11accd): the window stays in its frame	2	2.2
+webassembly windows.spec.js /quality/motion/ #0 (e7eac52d85ee1aaf): the window stays in its frame	2	2
+webassembly windows.spec.js /quality/motion/ #1 (5366f6978d3de1a8): the window stays in its frame	1.9	2.1
+webassembly windows.spec.js /quality/motion/ #2 (1eb45e74c3b79844): the window stays in its frame	2	2.1
+webassembly windows.spec.js /quality/performance/ #0 (83b7f432a072a0d6): the window stays in its frame	1.9	2.2
+webassembly windows.spec.js /quality/principles/ #0 (fdd4fcd245587249): the window stays in its frame	1.7	1.8
+webassembly windows.spec.js the docs have examples whose root is a window	0	0
