@@ -730,11 +730,11 @@ intersectionOp[@name=LogicOp] { "&" }
 
   Hashbang { "#!" ![\n]* }
 
-  Pragma { ".pragma" ![\n]* }
+  Pragma { ".pragma" ![\r\n\u2028\u2029]* }
 
   // A JavaScript resource's other resources and modules, each on its
   // own line under its .pragma, before any statement.
-  ResourceImport { ".import" ![\n]* }
+  ResourceImport { ".import" ![\r\n\u2028\u2029]* }
 
   percent { "%" }
 
