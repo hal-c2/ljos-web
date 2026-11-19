@@ -2647,6 +2647,24 @@ test.describe(() => {
   });
 });
 
+// A server that is busy or restarting (a 503, a 429) has not said what
+// the file is: a pick after it asks again.
+test.describe(() => {
+  test.use({ told: [/^Failed to load resource: the server responded with a status of (503|429)|pair\.(gltf|bin)/] });
+  test("a pick asks again for a loader's file and buffer when the server was busy", async ({ page }) => {
+    const busy = [];
+    await page.route(/wgpu_models\/pair\.(gltf|bin)(\?.*)?$/, (route) => {
+      const name = new URL(route.request().url()).pathname.split("/").pop();
+      if (busy.includes(name)) return route.continue();
+      busy.push(name);
+      return route.fulfill({ status: name.endsWith(".bin") ? 429 : 503, body: "" });
+    });
+    await open(page, "loaderpicks");
+    await expect.poll(() => pickedOf(page, "pair"), { timeout: 10_000 }).toEqual(["left", "right"]);
+    expect(busy.sort()).toEqual(["pair.bin", "pair.gltf"]);
+  });
+});
+
 // What a pick meets of a file is made once: a buffer in the description
 // is not decoded again by each pick after.
 test("a pick decodes a loader's buffers only when what it meets is made", async ({ page }) => {
