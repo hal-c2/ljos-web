@@ -215,6 +215,12 @@ test("a component's resources and its instance's are both held, and a held item 
   expect(await page.evaluate(() => window.scene.read())).toEqual([["a", "b"], 2, true, ["shared"], [], ["", "shared", "other", "both"], ["inner"], ["inner"], true]);
 });
 
+test("what is destroyed is gone from the resources that held it", async ({ page }) => {
+  await open(page, "resourcesheld");
+  await page.evaluate(() => window.scene.drop());
+  await expect.poll(() => page.evaluate(() => window.scene.dropped())).toEqual([["b"], []]);
+});
+
 test("a child of negative z is under what its parent draws", async ({ page }) => {
   await open(page, "belowparent");
   expect(await pixels(page, [[15, 15], [50, 50], [70, 70]])).toEqual(["255 0 0", "0 255 0", "0 0 255"]);

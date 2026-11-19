@@ -200,12 +200,15 @@ function children(self) {
 // The objects declared in one, or made into it, that are not items: a
 // Timer, a QtObject. A Repeater stands for its rows and is not one.
 // What `resources: [...]` was given is among them, an item too, which
-// stays where it is drawn.
+// stays where it is drawn. One destroyed is gone from it, though the item
+// that drew it was another.
 function resources(self) {
   self.$track();
   const all = self.$extra ? [...self.$static, ...self.$extra] : self.$static;
   const loose = all.filter((child) => child?.$type && !child.$node && !child.$siblings);
-  return self.$held ? [...self.$held, ...loose] : loose;
+  if (!self.$held) return loose;
+  const held = self.$held.filter((object) => !object.$destroyed);
+  return [...held, ...loose.filter((child) => !held.includes(child))];
 }
 
 // Puts `nodes` in `container` in that order, after what the type itself
@@ -381,9 +384,11 @@ export const Item = defineType("Item", QtObject, {
     // Takes one out, whether it was made with this or added later.
     $remove(item) {
       const index = this.$extra?.indexOf(item) ?? -1;
+      const held = this.$held?.includes(item);
+      if (held) this.$held = this.$held.filter((object) => object !== item);
       if (index >= 0) this.$extra.splice(index, 1);
       else if (this.$static.includes(item)) this.$static = this.$static.filter((child) => child !== item);
-      else return;
+      else if (!held) return;
       this.$touch((version) => version + 1);
     },
     // Called by `mount` for the object it mounted.

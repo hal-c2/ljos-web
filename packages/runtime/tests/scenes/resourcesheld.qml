@@ -33,6 +33,14 @@ Item {
     function names(list) {
         return Array.from(list, (object) => object.objectName)
     }
+    // What is destroyed is gone from every `resources` that held it.
+    function drop() {
+        held.resources[0].destroy()
+        shared.destroy()
+    }
+    function dropped() {
+        return [names(held.resources), names(other.resources)]
+    }
     function read() {
         return [names(held.resources), held.made, shared.parent === root, names(other.resources), names(other.children), names(root.children), names(both.children), names(both.resources), inner.parent === both]
     }
