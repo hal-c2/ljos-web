@@ -1,4 +1,5 @@
 import QtQuick
+import Ljos.Blocks
 
 // A page as a site writes one: a heading, text a reader came for, a link
 // onward, and something to press whose count the press changes. The
@@ -68,4 +69,22 @@ Column {
         MouseArea { anchors.fill: parent; onClicked: page.followed++ }
     }
     Text { text: "Followed " + page.followed }
+    // A part made as the page settles, not while its root is made: a
+    // ShellLoader puts its fallback in once the page is made, so the
+    // prerender writes it after every other element, and hydration
+    // must still be taking the page over when it comes.
+    ShellLoader {
+        width: 200
+        height: 40
+        fallback: settled
+    }
+    Component {
+        id: settled
+        Rectangle {
+            width: 200
+            height: 40
+            color: "honeydew"
+            Text { text: "Made as the page settles" }
+        }
+    }
 }

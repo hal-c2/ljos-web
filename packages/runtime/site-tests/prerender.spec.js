@@ -45,6 +45,7 @@ for (const kernel of ["solid", "wasm"]) {
       expect(html).toContain("https://example.com/docs");
       expect(html).toContain("Count 0");
       expect(html).toContain("Increment");
+      expect(html).toContain("Made as the page settles");
       // What the page logged as it was made is the build's to hear,
       // not the reader's: it is not in the page, as text or as markup.
       expect(html).not.toContain("a page logging");
@@ -309,6 +310,39 @@ for (const kernel of ["solid", "wasm"]) {
       const box = await page.getByText("Increment", { exact: true }).boundingBox();
       await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
       await expect(page.getByText("Count 1", { exact: true })).toBeVisible();
+    });
+
+    test("a part made as the page settles is taken over as it was written", async ({ page }) => {
+      const warnings = [];
+      page.on("console", (message) => {
+        if (message.type() === "warning") warnings.push(message.text());
+      });
+      let release;
+      const held = new Promise((done) => (release = done));
+      await page.route("**/*.js", async (route) => {
+        await held;
+        await route.continue();
+      });
+      await page.goto(`${origin}/`, { waitUntil: "commit" });
+      await page.waitForSelector("#app [data-hk]");
+      // The ShellLoader's fallback is in the page as written, numbered
+      // after everything the root made.
+      const before = await page.evaluate(() => {
+        window.__prerendered = [...document.querySelectorAll("#app [data-hk]")];
+        window.__settled = [...document.querySelectorAll("#app *")].find((element) => element.textContent === "Made as the page settles" && element.children.length === 0);
+        return window.__prerendered.length;
+      });
+      release();
+      await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+      await page.unroute("**/*.js");
+      expect(warnings.filter((text) => /hydration mismatch/.test(text))).toEqual([]);
+      const taken = await page.evaluate(() => ({
+        kept: window.__prerendered.filter((element) => document.contains(element)).length,
+        unclaimed: document.querySelectorAll("#app [data-hk]").length,
+        settled: Boolean(window.__settled) && document.contains(window.__settled),
+      }));
+      expect(taken).toEqual({ kept: before, unclaimed: 0, settled: true });
+      await expect(page.getByText("Made as the page settles", { exact: true })).toBeVisible();
     });
 
     test("a chunk the bundler preloads mid-hydration is no making: every prerendered node is kept", async ({ page }) => {
