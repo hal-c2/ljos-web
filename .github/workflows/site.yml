@@ -116,6 +116,7 @@ jobs:
       - run: bash .github/scripts/fresh-head.test.sh
       - run: bash .github/scripts/supersede.test.sh
       - run: bash .github/scripts/drawn-with.test.sh
+      - run: bash .github/scripts/keep-installed-debs.test.sh
       - run: node --test .github/scripts/site-expressions.test.mjs
       - run: node .github/scripts/site-expressions.test.mjs table >> "$GITHUB_STEP_SUMMARY"
       - id: pin

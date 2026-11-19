@@ -86,3 +86,15 @@ test("the browser's apt packages start from another image's when their own has n
   const debs = all.find((s) => s.value("id") === "debs");
   assert.match(debs?.value("restore-keys") ?? "", /^playwright-debs-\$\{\{ steps\.playwright\.outputs\.os \}\}-$/);
 });
+
+test("the browser's apt packages are saved holding only what this job installed", () => {
+  const action = read("../actions/site-setup/action.yml");
+  const at = (text) => action.findIndex((l) => l.includes(text));
+  const save = all.find((s) => s.value("key") === "${{ steps.debs.outputs.cache-primary-key }}");
+  const prune = all.find((s) => s.lines.some((l) => l.includes(".github/scripts/keep-installed-debs.sh ~/.cache/playwright-debs")));
+  assert.ok(prune, "nothing prunes the apt packages before they are saved");
+  assert.equal(prune.value("if"), save?.value("if"), "the prune and the save run under different conditions");
+  const pruneAt = at(".github/scripts/keep-installed-debs.sh");
+  assert.ok(pruneAt > at("playwright install --with-deps chromium") && pruneAt > at("playwright install-deps chromium"), "the packages are pruned before Playwright installs them");
+  assert.ok(pruneAt < at("key: ${{ steps.debs.outputs.cache-primary-key }}"), "the packages are pruned after they are saved");
+});

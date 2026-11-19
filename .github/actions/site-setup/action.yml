@@ -121,6 +121,13 @@ runs:
       with:
         path: ~/.cache/ms-playwright
         key: ${{ steps.browsers.outputs.cache-primary-key }}
+    # apt keeps every package it fetches and never drops an older one,
+    # so a cache started from another image's would carry each version
+    # of the fonts and Mesa from then on. What is saved is only what
+    # this job installed, at the version it installed.
+    - if: inputs.browser == 'true' && steps.debs.outputs.cache-hit != 'true'
+      shell: bash
+      run: bash .github/scripts/keep-installed-debs.sh ~/.cache/playwright-debs
     - if: inputs.browser == 'true' && steps.debs.outputs.cache-hit != 'true'
       uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
