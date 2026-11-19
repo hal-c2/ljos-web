@@ -475,7 +475,7 @@ function shift(self, x, y) {
   mine.y += dy;
   slot(self, "xAxis$activeValue").write(mine.x);
   slot(self, "yAxis$activeValue").write(mine.y);
-  // Qt 6.11: persistentTranslationChanged comes first, and on every move that translates, even one held at an axis's limit.
+  // Qt 6.12: persistentTranslationChanged comes first, and on every move that translates, even one held at an axis's limit.
   slot(self, "persistentTranslation").write({
     x: xAxis.enabled ? bound(xAxis.minimum, persistent.x + dx, xAxis.maximum) : persistent.x,
     y: yAxis.enabled ? bound(yAxis.minimum, persistent.y + dy, yAxis.maximum) : persistent.y,
@@ -702,7 +702,7 @@ export const DragHandler = defineType("DragHandler", PointerHandler, {
       } else {
         const threshold = this.dragThreshold;
         if ((Math.abs(dx) <= threshold && Math.abs(dy) <= threshold) || !takeExclusive(point, this)) return;
-        // Qt 6.11: the activating move moves the target but publishes no translation; the next move publishes all of it.
+        // Qt 6.12: the activating move moves the target but publishes no translation; the next move publishes all of it.
         centroid.$grabbed();
         mine.active = true;
         slot(this, "active").write(true);
@@ -718,7 +718,7 @@ export const DragHandler = defineType("DragHandler", PointerHandler, {
       }
       if (mine.point !== point) return;
       // Where the last move left it, in the item as it is now.
-      // Qt 6.11: the release does not move the centroid; a point let go elsewhere is told where it last moved.
+      // Qt 6.12: the release does not move the centroid; a point let go elsewhere is told where it last moved.
       const centroid = this.$point;
       centroid.$move(this.$parent, centroid.$sceneX, centroid.$sceneY, point);
       endDrag(this);
