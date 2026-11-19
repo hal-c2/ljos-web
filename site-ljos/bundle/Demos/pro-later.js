@@ -7,6 +7,7 @@
 function app(name) {
     switch (name) {
         case "cockpit": return import("./CockpitDemo.qml");
+        case "watch": return import("./WatchDemo.qml");
     }
     throw new Error("no pro demo " + name);
 }
@@ -14,6 +15,7 @@ function app(name) {
 function project(name) {
     switch (name) {
         case "cockpit": return import("./cockpit-project.json");
+        case "watch": return import("./watch-project.json");
     }
     throw new Error("no pro demo " + name);
 }

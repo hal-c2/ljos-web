@@ -11,7 +11,11 @@
 // (where the files are copied from, and what there is `leave`n out),
 // the words of its page and card, `needs` (what DemoFrame needs),
 // `width` and `height` (its shape), and `picture` (its pictures' name:
-// `<picture>.webp` light, `<picture>-dark.webp` dark).
+// `<picture>.webp` light, `<picture>-dark.webp` dark). Optional: `use`
+// (a paragraph under the app on how to work it), `compact` (`width` and
+// `height` of its shape on a narrow page, for an app that lays itself
+// out again when it is taller than wide) and `scheme` (dark or light,
+// for an app with one look; without it the pictures follow the site).
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
