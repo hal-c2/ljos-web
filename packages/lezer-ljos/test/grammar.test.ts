@@ -18,12 +18,22 @@ for (const file of readdirSync(dir).filter((f) => f.endsWith(".txt"))) {
 
 // A .pragma or .import line ends at any newline JavaScript knows, not
 // only LF: the statement after it keeps its own tree.
-describe("resource header lines", () => {
+describe("resource header lines, comments and hashbangs", () => {
   for (const [name, nl] of [["CR", "\r"], ["CRLF", "\r\n"], ["U+2028", " "], ["U+2029", " "]]) {
     it(`end at ${name}`, () => {
       const script = parser.configure({ top: "Script" });
       const tree = script.parse(`.pragma library${nl}.import "live.js" as Live${nl}var made = Live`);
       assert.equal(tree.toString(), "Script(Pragma,ResourceImport,VariableDeclaration(var,VariableDefinition,Equals,VariableName))");
+    });
+    it(`and so does a line comment between them, at ${name}`, () => {
+      const script = parser.configure({ top: "Script" });
+      const tree = script.parse(`.pragma library${nl}// note${nl}.import "live.js" as Live${nl}var made = Live`);
+      assert.equal(tree.toString(), "Script(Pragma,LineComment,ResourceImport,VariableDeclaration(var,VariableDefinition,Equals,VariableName))");
+    });
+    it(`and a hashbang, at ${name}`, () => {
+      const script = parser.configure({ top: "Script" });
+      const tree = script.parse(`#!/usr/bin/env node${nl}var made = 1`);
+      assert.equal(tree.toString(), "Script(Hashbang,VariableDeclaration(var,VariableDefinition,Equals,Number))");
     });
   }
 });
