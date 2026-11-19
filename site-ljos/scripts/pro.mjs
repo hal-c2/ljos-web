@@ -31,8 +31,6 @@ export const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex"
 // made them (a build script, the source of a model) is left upstream,
 // and so is anything outside those, such as a native crate's files.
 export const shippedBy = (demo) => (path) => !demo.upstream.leave.includes(path) && (/\.(qml|ts)$/.test(path) || path.startsWith("assets/"));
-// A demo's source, as data for its editor: each QML and TypeScript file
-// its UPSTREAM.json pins, with its highlighting (`colour(code, lang)`).
 // What `git ls-files -z` lists of the app at `example`, by each file's
 // path in the app. NUL-ended records hold each path as it is: git
 // quotes nothing in them.
@@ -48,11 +46,15 @@ export function changedIn(output, example) {
     const record = records[at];
     if (!record) continue;
     paths.push(record.slice(3));
-    if (record[0] === "R" || record[0] === "C") paths.push(records[++at]);
+    // Either column can say so: git marks a rename staged in the index
+    // in the first and one found in the worktree in the second.
+    if (/[RC]/.test(record.slice(0, 2))) paths.push(records[++at]);
   }
   return listedIn(paths.join("\0"), example);
 }
 
+// A demo's source, as data for its editor: each QML and TypeScript file
+// its UPSTREAM.json pins, with its highlighting (`colour(code, lang)`).
 export function projectOf(root, colour) {
   const upstream = JSON.parse(readFileSync(join(root, "UPSTREAM.json"), "utf8"));
   const text = Object.keys(upstream.files).filter((path) => /\.(qml|ts)$/.test(path));
