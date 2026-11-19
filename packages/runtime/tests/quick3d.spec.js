@@ -2625,6 +2625,28 @@ test.describe(() => {
   });
 });
 
+// A server's answer that the file is not there is the file's answer: a
+// pick after it does not ask again, though one picks on every move.
+test.describe(() => {
+  test.use({ told: [/^Failed to load resource: the server responded with a status of 404|pair\.gltf/] });
+  test("a pick asks once for a loader's file the server says is not there", async ({ page }) => {
+    let asked = 0;
+    let address;
+    await page.route(/wgpu_models\/pair\.gltf(\?.*)?$/, (route) => (asked++, (address = route.request().url()), route.fulfill({ status: 404, body: "" })));
+    await open(page, "loaderpicks");
+    const scene = await moduleOf(page, /\/QtQuick3D\/scene\.js/);
+    await expect.poll(() => page.evaluate(() => window.objects.pair.$picks()) && address).toBeTruthy();
+    await expect.poll(() => page.evaluate(([scene, address]) => scene.file(address, "gltf", () => null).state()?.error ?? null, [scene, address])).toMatch(/404/);
+    const before = asked;
+    for (let pick = 0; pick < 5; pick++) {
+      await page.evaluate(() => window.objects.pair.$picks());
+      await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+    }
+    await page.waitForLoadState("networkidle");
+    expect(asked).toBe(before);
+  });
+});
+
 // What a pick meets of a file is made once: a buffer in the description
 // is not decoded again by each pick after.
 test("a pick decodes a loader's buffers only when what it meets is made", async ({ page }) => {

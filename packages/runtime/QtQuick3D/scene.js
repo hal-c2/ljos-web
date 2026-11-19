@@ -88,7 +88,9 @@ export function file(url, kind, took) {
   bytes.wanted = true;
   const make = () => {
     try {
-      if (bytes.failed) return { error: `could not be read: ${bytes.failed.message}`, fetching: true };
+      // Only a fetch nothing answered is worth asking again: a server's
+      // answer (a 404) is the file's, and stays.
+      if (bytes.failed) return { error: `could not be read: ${bytes.failed.message}`, fetching: !bytes.failed.told };
       return took(bytes.bytes);
     } catch (error) {
       return { error: `could not be read: ${error.message}` };
@@ -107,9 +109,10 @@ export function file(url, kind, took) {
   return record;
 }
 
-// A file's state, as `file` has it, except that a fetch that failed is
-// forgotten once told: whoever asks after it reads the file again, as a
-// pick does. What the file was found to hold, even an error in it, stays.
+// A file's state, as `file` has it, except that a fetch no server answered
+// is forgotten once told: whoever asks after it reads the file again, as a
+// pick does. A server's answer, and what the file was found to hold, even
+// an error in it, stay.
 export function retried(url, kind, took) {
   const state = file(url, kind, took).state();
   if (state?.fetching) files.delete(`${kind} ${url}`);
