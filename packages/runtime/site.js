@@ -957,7 +957,7 @@ for (const element of (shown ?? app).querySelectorAll("[data-ljos-dark]")) {
   element.removeAttribute("data-ljos-dark");
 }
 const { hydrated } = hydrate(Entry, shown ?? app, carried ? JSON.parse(carried.textContent) : {});
-if (shown) hydrated.then(() => app.setAttribute("data-ljos-hydrated", "true"));
+if (shown) hydrated.finally(() => app.setAttribute("data-ljos-hydrated", "true"));
 `;
 
 // What the prerender renders: the entry, made by the runtime's server

@@ -1702,7 +1702,9 @@ it stands meanwhile: the loader's fallback, standing in.
 
 Each element the prerender makes is numbered as it is made, with
 the type whose making made it, and carries the two in the HTML
-(`data-hk="12:Text"`). `hydrate(Component, element)`
+(`data-hk="12:Text"`); what is made outside any type's setup (a
+page's own script, a library) is no making and is not numbered, on
+either side, so it never takes a prerendered element. `hydrate(Component, element)`
 (`ljos-web/object`, beside `mount`) makes the page over an element
 that holds such HTML: while the root is made, and through the
 microtask rounds the prerender let the making settle in
@@ -1725,7 +1727,11 @@ making asked for is told of once those rounds are over. What the page says as it
 stderr, never into the HTML. That the page is live, the element it
 was hydrated into says (`data-ljos-hydrated`), and so does the root
 `hydrate` gives, as `hydrated`, a promise kept once it has. With
-nothing prerendered in it, `hydrate` is `mount`.
+nothing prerendered in it, `hydrate` is `mount`. Pages hydrated at
+once (a site's live blocks) each take their own over: while one
+makes its root what is made is its own, and as they settle what a type
+makes goes to the one whose next element it is; one never ends
+another's rounds.
 
 What a prerender has, and what it has not:
 

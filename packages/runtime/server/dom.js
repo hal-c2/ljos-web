@@ -33,10 +33,11 @@ const kindNow = () => globalThis[MAKING_KIND] ?? "";
 // often here as a load fails; and what belongs in a document's head,
 // which the bundler makes in a reader's browser as it preloads a chunk,
 // and nothing makes here. So is what the runtime makes while it says so
-// (`outsideTheCount`).
+// (`outsideTheCount`), and what is made outside any type's setup, which
+// no type asked for.
 const UNNUMBERED = new Set(["canvas", "img", "video", "audio", "link", "script", "style", "meta"]);
 const OUTSIDE_THE_COUNT = Symbol.for("ljos-web.outside-the-count");
-const unnumbered = (tag) => UNNUMBERED.has(String(tag).toLowerCase()) || globalThis[OUTSIDE_THE_COUNT] === true;
+const unnumbered = (tag) => UNNUMBERED.has(String(tag).toLowerCase()) || globalThis[OUTSIDE_THE_COUNT] === true || kindNow() === "";
 
 // The numbering starts again: a render's elements are numbered from
 // its making, as the client's are from its hydration. The count is
