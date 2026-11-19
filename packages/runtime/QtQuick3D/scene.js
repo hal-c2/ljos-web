@@ -88,7 +88,7 @@ export function file(url, kind, took) {
   bytes.wanted = true;
   const make = () => {
     try {
-      if (bytes.failed) return { error: `could not be read: ${bytes.failed.message}` };
+      if (bytes.failed) return { error: `could not be read: ${bytes.failed.message}`, fetching: true };
       return took(bytes.bytes);
     } catch (error) {
       return { error: `could not be read: ${error.message}` };
@@ -105,6 +105,15 @@ export function file(url, kind, took) {
   files.set(key, (record = { state }));
   awaited(bytes.done.then(() => setState(make())).then(() => flush()));
   return record;
+}
+
+// A file's state, as `file` has it, except that a fetch that failed is
+// forgotten once told: whoever asks after it reads the file again, as a
+// pick does. What the file was found to hold, even an error in it, stays.
+export function retried(url, kind, took) {
+  const state = file(url, kind, took).state();
+  if (state?.fetching) files.delete(`${kind} ${url}`);
+  return state;
 }
 
 const PRIMITIVE = /#(Cube|Sphere|Cylinder|Cone|Rectangle)$/;

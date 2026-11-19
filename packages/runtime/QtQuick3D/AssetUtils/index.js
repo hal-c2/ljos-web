@@ -7,7 +7,7 @@ import { defineType, located } from "../../object.ts";
 import { buffers, header, parts } from "../gltf.js";
 import * as math from "../math.js";
 import { Node } from "../Node.js";
-import { file } from "../scene.js";
+import { retried } from "../scene.js";
 
 // What a loader made for picking of the file it read last.
 const picked = new WeakMap();
@@ -30,12 +30,15 @@ export const RuntimeLoader = defineType("RuntimeLoader", Node, {
       const given = String(this.source ?? "");
       if (!given) return [];
       const address = located(given);
-      const read = file(address, "gltf", header).state();
+      // A file or a buffer that could not be fetched is asked for again by
+      // the next pick.
+      const read = retried(address, "gltf", header);
       if (!read || read.error) return [];
-      const bytes = buffers(read, address).map((buffer) => (buffer.url ? file(buffer.url, "buffer", (taken) => ({ bytes: new Uint8Array(taken) })).state() : buffer));
-      if (bytes.some((buffer) => !buffer?.bytes)) return [];
       let made = picked.get(this);
       if (made?.read !== read) {
+        // Its buffers, decoded only when what the pick meets is made again.
+        const bytes = buffers(read, address).map((buffer) => (buffer.url ? retried(buffer.url, "buffer", (taken) => ({ bytes: new Uint8Array(taken) })) : buffer));
+        if (bytes.some((buffer) => !buffer?.bytes)) return [];
         const models = parts(read.json, bytes.map((buffer) => buffer.bytes)).map(({ name, index, placed, shape }) => ({
           node: Object.freeze({ objectName: name, index, parent: this, pickable: true, visible: true }),
           shape,
