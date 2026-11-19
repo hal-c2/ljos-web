@@ -50,7 +50,7 @@
 
 @top Program { Hashbang? uiHeader* UiObjectDefinition? }
 
-@top Script { Hashbang? Pragma? statement* }
+@top Script { Hashbang? Pragma? ResourceImport* statement* }
 
 uiHeader { UiPragma | UiImport | ";" }
 
@@ -731,6 +731,10 @@ intersectionOp[@name=LogicOp] { "&" }
   Hashbang { "#!" ![\n]* }
 
   Pragma { ".pragma" ![\n]* }
+
+  // A JavaScript resource's other resources and modules, each on its
+  // own line under its .pragma, before any statement.
+  ResourceImport { ".import" ![\n]* }
 
   percent { "%" }
 
