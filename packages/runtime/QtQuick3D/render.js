@@ -1132,16 +1132,18 @@ function forget() {
 function context() {
   if (gl !== undefined) return gl;
   surface = new OffscreenCanvas(1, 1);
+  gl = surface.getContext("webgl2", { antialias: false, depth: true }) ?? null;
+  if (!gl) return gl;
   // A context the browser takes back (its GPU process gone, say) is one it
   // may give again if asked: and when it does, all that was made on the one
-  // lost is gone, so it is all made again, and each view drawn again.
+  // lost is gone, so it is all made again, and each view drawn again. Only
+  // a surface that gave a context has one to lose: a prerender's stand-in
+  // gives none, and is no event target.
   surface.addEventListener("webglcontextlost", (event) => event.preventDefault());
   surface.addEventListener("webglcontextrestored", () => {
     forget();
     for (const again of [...restoring]) again();
   });
-  gl = surface.getContext("webgl2", { antialias: false, depth: true }) ?? null;
-  if (!gl) return gl;
   shaded = program(VERTEX, FRAGMENT, UNIFORMS);
   if (!shaded) return (gl = null);
   fractions = Boolean(gl.getExtension("EXT_color_buffer_float"));
