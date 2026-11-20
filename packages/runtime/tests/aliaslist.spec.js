@@ -62,6 +62,13 @@ test("a list alias with no binding keeps a state's list once the state ends", as
   ]);
 });
 
+// Qt 6.12: so does one whose binding a script's write ended before the
+// state began; the binding does not come back either (measured with qml6).
+test("a list alias a script wrote keeps a state's list once the state ends", async ({ page }) => {
+  await open(page, "aliaslist");
+  expect(await page.evaluate(() => window.scene.assignedThroughState())).toEqual(["scripted", "stated", "stated", "stated"]);
+});
+
 // Only the alias the state changes is written by the state: a handler
 // that write runs, writing another alias, writes it as a script does, as
 // Qt 6.12 has it (measured with qml6).
