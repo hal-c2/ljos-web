@@ -3,13 +3,18 @@
 
 use solidjs_compiler::{CompileOptions, compile};
 
-/// The body of the one effect that writes the element's bindings.
-fn effect(source: &str, hydratable: bool) -> String {
+/// What the compiler makes of `source`.
+fn compiled(source: &str, hydratable: bool) -> String {
     let options = CompileOptions {
         hydratable,
         ..CompileOptions::default()
     };
-    let code = compile(source, &options).expect("compile JSX").code;
+    compile(source, &options).expect("compile JSX").code
+}
+
+/// The body of the one effect that writes the element's bindings.
+fn effect(source: &str, hydratable: bool) -> String {
+    let code = compiled(source, hydratable);
     let start = code.find("_p$) => {").expect("one effect for the bindings");
     code[start..].to_string()
 }
@@ -17,14 +22,33 @@ fn effect(source: &str, hydratable: bool) -> String {
 /// A nullish value clears a text field to "" but removes a checkbox's
 /// `value`, so the checked box submits "on" (solid#4017). `setProperty`
 /// reads the live `type` to tell, so a type bound in the same effect is
-/// written first, and a change of type alone writes the value again.
+/// written first, and a change of type alone writes the value again. The
+/// bindings are still read in the order written, since reading one may
+/// change what another reads.
 #[test]
 fn a_bound_type_is_written_before_the_value_and_a_new_type_writes_it_again() {
     for hydratable in [false, true] {
-        for source in [
-            "const v = <input type={kind()} defaultValue={initial()} />;",
-            "const v = <input defaultValue={initial()} type={kind()} />;",
+        for (source, guard) in [
+            (
+                "const v = <input type={kind()} defaultValue={initial()} />;",
+                r#"(t !== _p$?.t || e !== _p$?.e) && _$setProperty(_el$, "defaultValue", t)"#,
+            ),
+            (
+                "const v = <input defaultValue={initial()} type={kind()} />;",
+                r#"(e !== _p$?.e || t !== _p$?.t) && _$setProperty(_el$, "defaultValue", e)"#,
+            ),
         ] {
+            let code = compiled(source, hydratable);
+            let read = |call: &str| code.find(call).unwrap_or_else(|| panic!("{call} in\n{code}"));
+            let first = if source.find("kind()") < source.find("initial()") {
+                ("kind()", "initial()")
+            } else {
+                ("initial()", "kind()")
+            };
+            assert!(
+                read(first.0) < read(first.1),
+                "read in the order written: {source}\n{code}"
+            );
             let body = effect(source, hydratable);
             let at = |write: &str| {
                 body.find(write)
@@ -35,9 +59,7 @@ fn a_bound_type_is_written_before_the_value_and_a_new_type_writes_it_again() {
                 "the type first: {source}\n{body}"
             );
             assert!(
-                body.contains(
-                    r#"(t !== _p$?.t || e !== _p$?.e) && _$setProperty(_el$, "defaultValue", t)"#
-                ),
+                body.contains(guard),
                 "the value again when the type changes: {source}\n{body}"
             );
         }
@@ -51,7 +73,7 @@ fn a_bound_type_is_written_before_the_value_and_a_new_type_writes_it_again() {
         };
         assert!(at(r#"(_el$, "type""#) < at(r#"(_el$, "value""#), "{body}");
         assert!(
-            body.contains("(t !== _p$?.t || e !== _p$?.e || !a) &&"),
+            body.contains("(e !== _p$?.e || t !== _p$?.t || !a) &&"),
             "{body}"
         );
     }
@@ -74,4 +96,21 @@ fn a_value_without_its_own_bound_type_is_written_when_it_changes() {
         body.contains(r#"e !== _p$?.e && _$setProperty(_el$, "defaultValue", e)"#),
         "{body}"
     );
+}
+
+/// A `class:type` or `style:type` names a class or a style property, not
+/// the input's type: the value is written where it was, when it changes.
+#[test]
+fn a_class_or_style_named_type_is_not_the_inputs_type() {
+    for source in [
+        "const v = <input defaultValue={initial()} class:type={on()} />;",
+        "const v = <input defaultValue={initial()} style:type={look()} />;",
+    ] {
+        let body = effect(source, false);
+        assert!(!body.contains("||"), "{source}\n{body}");
+        assert!(
+            body.find(r#""defaultValue""#) < body.find(r#""type""#),
+            "{source}\n{body}"
+        );
+    }
 }
