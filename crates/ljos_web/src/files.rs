@@ -12,7 +12,7 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
-use qml_front::discover;
+use qml_front::{QtTypeOracle, TypeOracle, discover};
 
 use crate::{Error, Options, Output, Project, compile, compile_script, lowered_source};
 
@@ -141,6 +141,10 @@ struct Places {
     paths: Vec<PathBuf>,
     with: Vec<PathBuf>,
     qt: Vec<PathBuf>,
+    /// The `qmldir` under Qt's directories of each module the file imports
+    /// that Qt's table does not describe: QML of its own, which is not
+    /// looked through with the rest of Qt.
+    unlisted: Vec<PathBuf>,
 }
 
 /// A module a compile takes, and what says so.
@@ -376,12 +380,30 @@ impl<'f> Load<'f> {
             .into_iter()
             .chain(root.clone())
             .collect();
+        let qt = canonical(qt);
+        let imported = self
+            .read(&path)
+            .and_then(|source| crate::imports(&source).ok())
+            .map(|imports| imports.modules)
+            .unwrap_or_default();
+        let unlisted = imported
+            .iter()
+            .filter(|uri| !QtTypeOracle.has_module(uri))
+            .filter_map(|uri| {
+                let place = uri.replace('.', "/");
+                // The first of Qt's directories to have it, as Qt looks.
+                qt.iter()
+                    .map(|root| root.join(&place).join("qmldir"))
+                    .find(|qmldir| self.files.is_file(qmldir))
+            })
+            .collect();
         Some(Places {
             base,
             root,
             paths,
             with: canonical(&self.with),
-            qt: canonical(qt),
+            qt,
+            unlisted,
         })
     }
 
@@ -394,7 +416,13 @@ impl<'f> Load<'f> {
         warnings: &mut Vec<String>,
     ) -> Option<(PathBuf, Vec<Found>)> {
         let places = self.places(path, qt)?;
-        let found = self.found(&places.paths, &places.with, &places.qt, warnings);
+        let found = self.found(
+            &places.paths,
+            &places.with,
+            &places.qt,
+            &places.unlisted,
+            warnings,
+        );
         Some((places.root.unwrap_or(places.base), found))
     }
 
@@ -413,6 +441,7 @@ impl<'f> Load<'f> {
         paths: &[PathBuf],
         with: &[PathBuf],
         qt: &[PathBuf],
+        unlisted: &[PathBuf],
         warnings: &mut Vec<String>,
     ) -> Vec<Found> {
         let dumped = self
@@ -438,10 +467,21 @@ impl<'f> Load<'f> {
         let mut described = Vec::new();
         let mut misplaced = Vec::new();
         let mut read_qmldirs = HashSet::new();
-        for &(lot, standing) in &lots {
-            let mut found = Vec::new();
-            self.descriptions(lot, &mut found);
-            found.sort();
+        let mut groups: Vec<(&Path, bool, Vec<PathBuf>)> = lots
+            .iter()
+            .map(|&(lot, standing)| {
+                let mut found = Vec::new();
+                self.descriptions(lot, &mut found);
+                found.sort();
+                (lot, standing, found)
+            })
+            .collect();
+        // Qt's own QML modules the table has no word of are what their
+        // `qmldir` says, as any on Qt's import path.
+        if let Some(first) = qt.first() {
+            groups.push((first.as_path(), false, unlisted.to_vec()));
+        }
+        for (lot, standing, found) in groups {
             for description in found {
                 let directory = description.parent().unwrap_or(lot).to_path_buf();
                 if description.ends_with("CMakeLists.txt") {
@@ -604,7 +644,13 @@ impl<'f> Load<'f> {
         let root = directory(path);
         let canonical = (self.files.canonicalize(root), self.files.canonicalize(path));
         if let Some(places) = self.places(path, qt) {
-            let found = self.found(&places.paths, &places.with, &places.qt, warnings);
+            let found = self.found(
+                &places.paths,
+                &places.with,
+                &places.qt,
+                &places.unlisted,
+                warnings,
+            );
             self.modules(&mut project, found, &places.base);
             if let Some(project_root) = &places.root {
                 // A program's files are one lot, whichever part names one.
