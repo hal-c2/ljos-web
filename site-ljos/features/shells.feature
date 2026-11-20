@@ -72,6 +72,18 @@ Feature: The site is shown in a shell the reader picks
     Then the page is shown in the Marketing shell
     And it stays in the Marketing shell once the Desktop shell has come
 
+  Scenario: A page shown anyway while the kept shell is being put in is seen at once
+    Given a reader who picked the Desktop shell
+    And the Desktop shell is slow to come
+    When the page is shown anyway while the Desktop shell is being put in
+    Then the page is seen a moment later, in the Marketing shell
+
+  Scenario: A kept shell that comes while the page fades in does not replace it
+    Given a reader who picked the Desktop shell
+    And the Desktop shell comes while the page is being shown anyway
+    When they reload the page
+    Then it stays in the Marketing shell once the Desktop shell has come
+
   Scenario: The Desktop shell keeps every page the reader opened as a tab
     Given a reader in the Desktop shell on "/start/first-app/"
     When they go to another docs page
