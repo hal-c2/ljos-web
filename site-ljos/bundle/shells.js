@@ -174,10 +174,37 @@ function swap(change, calm, arrived) {
 
 // Shown once the kept shell is in: the page the head script held back
 // (assets/head.html) fades in, the shell it was waiting for in place.
+// Not once the watchdog has shown it: it would fade in a second time.
 function shown() {
     var document = globalThis.document;
-    if (document && document.documentElement)
+    if (document && document.documentElement && !late())
         document.documentElement.dataset.ljosShellShown = "";
+}
+
+// Whether the head's watchdog (assets/head.html) has shown the page
+// already, the kept shell not yet in: it says so on the root,
+// `data-ljos-shell-late`, when its animation ends.
+function late() {
+    var document = globalThis.document;
+    return !!(document && document.documentElement && "ljosShellLate" in document.documentElement.dataset);
+}
+
+// Calls `then()` once, if the watchdog shows the page before `shown`
+// has: the attribute is watched, not polled.
+function whenLate(then) {
+    var document = globalThis.document;
+    var root = document && document.documentElement;
+    if (!root || !globalThis.MutationObserver)
+        return;
+    var watching = new globalThis.MutationObserver(function () {
+        if ("ljosShellShown" in root.dataset) {
+            watching.disconnect();
+        } else if ("ljosShellLate" in root.dataset) {
+            watching.disconnect();
+            then();
+        }
+    });
+    watching.observe(root, { attributes: true, attributeFilter: ["data-ljos-shell-late", "data-ljos-shell-shown"] });
 }
 
 // Back and forward through the reader's own history, as the browser's
