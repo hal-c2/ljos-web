@@ -3,9 +3,10 @@ import Site
 import Shells
 import Ljos.Core
 import Ljos.Blocks
-import Ljos.Controls as C
 import "nav.js" as Nav
 import "shells.js" as Frames
+import "Shells/later.js" as Later
+import "Site/later.js" as SiteLater
 
 // ljos.dev: the site's state and its pieces, and the shell that places
 // them. Which page is shown is the `route` the build prerendered this
@@ -89,7 +90,13 @@ Rectangle {
         Frames.forward();
     }
     function showSource(name) {
-        shellSource.show(name);
+        main.controlsShown = true;
+        if (shellSource.item) {
+            shellSource.item.show(name);
+        } else {
+            shellSource.asked = name;
+            shellSource.active = true;
+        }
     }
     // Whether the reader can see `item`: it and all it stands in shown.
     function seen(item) {
@@ -152,10 +159,18 @@ Rectangle {
         });
     }
 
-    // The colours Ljós's own controls draw in are the site's.
-    Binding { target: C.Theme; property: "canvas"; value: Theme.canvas }
-    Binding { target: C.Theme; property: "text"; value: Theme.text }
-    Binding { target: C.Theme; property: "accent"; value: Theme.accent }
+    // Ljós's own controls draw in the site's colours (Site/ControlsLook.qml)
+    // from the first time the site shows one: a shell other than
+    // Marketing, the shell choices or a shell's source, each of which
+    // comes after a page's first load and brings them. Once made it stays,
+    // so it is the one thing that colours them.
+    property bool controlsShown: false
+    readonly property bool framesControls: framed !== "marketing"
+    onFramesControlsChanged: if (framesControls) controlsShown = true
+    Loader {
+        active: main.controlsShown
+        source: SiteLater.controlsLook
+    }
 
     // Named, never made: this page is built with Qt Quick Controls,
     // so a live block's compiler may be given them (A15).
@@ -171,37 +186,50 @@ Rectangle {
         }
     }
 
-    // Past the shell to the page, the first stop for a keyboard.
-    Rectangle {
-        id: skip
+    // Past the shell to the page, the first stop for a keyboard. It stands
+    // in a region of its own: a page holds a render for each size, so a
+    // narrow one's skip link comes after the wide one's links, and axe
+    // then takes it for content outside every landmark.
+    Item {
         z: 10
-        x: Theme.s
-        y: skip.activeFocus ? Theme.s : -height - Theme.s
-        width: skipWords.implicitWidth + 2 * Theme.s
-        height: 40
-        radius: Theme.radiusSmall
-        color: Theme.surfaceRaised
-        border.color: Theme.focusRing
-        border.width: 2
-        activeFocusOnTab: true
-        Accessible.role: Accessible.Link
-        Accessible.name: skipWords.text
-        Accessible.onPressAction: () => pageView.forceActiveFocus()
-        Keys.onPressed: (event) => {
-            if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
-                pageView.forceActiveFocus();
-                event.accepted = true;
-            }
-        }
+        Accessible.role: Accessible.Section
+        Accessible.name: t`Skip to content`
 
-        Text {
-            id: skipWords
-            anchors.centerIn: parent
-            text: t`Skip to content`
-            color: Theme.text
-            font.family: Theme.sans
-            font.pixelSize: Theme.bodySize
-            Accessible.ignored: true
+        Rectangle {
+            id: skip
+            x: Theme.s
+            y: skip.activeFocus ? Theme.s : -height - Theme.s
+            width: skipWords.implicitWidth + 2 * Theme.s
+            height: 40
+            radius: Theme.radiusSmall
+            color: Theme.surfaceRaised
+            border.color: Theme.focusRing
+            border.width: 2
+            activeFocusOnTab: true
+            // A link to a place on this page, which is what makes it a skip
+            // link to a reader with no script (and to axe): the app's own
+            // element, the one place every page has. With script a press
+            // moves the focus to the page itself.
+            readonly property string href: "#app"
+            Accessible.role: Accessible.Link
+            Accessible.name: skipWords.text
+            Accessible.onPressAction: () => pageView.forceActiveFocus()
+            Keys.onPressed: (event) => {
+                if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                    pageView.forceActiveFocus();
+                    event.accepted = true;
+                }
+            }
+
+            Text {
+                id: skipWords
+                anchors.centerIn: parent
+                text: t`Skip to content`
+                color: Theme.text
+                font.family: Theme.sans
+                font.pixelSize: Theme.bodySize
+                Accessible.ignored: true
+            }
         }
     }
 
@@ -316,7 +344,8 @@ Rectangle {
         delegate: Component {
             ShellSwitcher {
                 preferences: sitePreferences
-                onSourceAsked: (name) => shellSource.show(name)
+                onChoosing: main.controlsShown = true
+                onSourceAsked: (name) => main.showSource(name)
             }
         }
     }
@@ -389,9 +418,11 @@ Rectangle {
     Contribution {
         slot: "site.toc.inline"
         delegate: Component {
+            // Only a narrow page has the menu this stands in; wide, the
+            // contents beside the page are the one list a reader finds.
             Toc {
                 width: parent ? parent.width : 0
-                router: siteRouter
+                router: sitePreferences.wide ? null : siteRouter
                 roomy: true
             }
         }
@@ -422,23 +453,13 @@ Rectangle {
         }
     }
 
-    // The shells the site ships, each given the site. A shell the reader
-    // wrote is given it once it is in (it may not ask for it).
+    // The shells the site ships. Marketing, the one every page is
+    // written in, is given the site here; the others come when first
+    // picked (Shells/later.js) and, as a shell the reader wrote, are
+    // given it once they are in.
     Component {
         id: marketingShell
         Marketing {
-            site: main
-        }
-    }
-    Component {
-        id: workbenchShell
-        Workbench {
-            site: main
-        }
-    }
-    Component {
-        id: desktopShell
-        Desktop {
             site: main
         }
     }
@@ -447,7 +468,7 @@ Rectangle {
         id: loader
         width: main.width
         height: main.height
-        source: main.userShell ?? (main.framed === "workbench" ? workbenchShell : main.framed === "desktop" ? desktopShell : marketingShell)
+        source: main.userShell ?? (main.framed === "workbench" ? Later.workbench : main.framed === "desktop" ? Later.desktop : marketingShell)
         // A shell that does not work gives way to the one every page is
         // written in, and says why (Site/ShellSource.qml shows it).
         fallback: marketingShell
@@ -487,13 +508,30 @@ Rectangle {
         easing.type: Easing.OutCubic
     }
 
-    ShellSource {
+    // A shell's own QML, to read and change (Site/ShellSource.qml): it
+    // comes the first time a reader asks for it.
+    Loader {
         id: shellSource
-        error: loader.error
-        onApplied: (file, text) => {
+        // The shell asked for before the panel was in.
+        property string asked: ""
+        // Of no size at the page's top left: the panel is centred on the
+        // page itself, and a loader the page's size would stand over it.
+        active: false
+        source: SiteLater.shellSource
+        onLoaded: {
+            item.room = main;
+            item.error = Qt.binding(() => loader.error);
+            item.show(shellSource.asked);
+        }
+    }
+    Connections {
+        target: shellSource.item
+        function onApplied(file, text) {
             main.userShell = Frames.compiled(file, text);
         }
-        onReset: main.userShell = null
+        function onReset() {
+            main.userShell = null;
+        }
     }
 
     // Said once a swap is done, where a reader listens.
