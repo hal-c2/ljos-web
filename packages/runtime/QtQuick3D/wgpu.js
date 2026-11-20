@@ -934,11 +934,14 @@ export function drawOn(self, canvas, told, instead) {
         if (state.backend === "webgl2") gl = canvas.getContext("webgl2");
         setMade(() => view);
       })
-      .catch((error) => {
+      .catch(async (error) => {
         if (trapped(error)) return;
-        // A view made again for a GPU lost, where WebGPU has no adapter
-        // after, and one made while another found that.
-        if ((state.lost || givenUp) && !gone) return void giveUp((givenUp ??= `the GPU was lost, and none is to be had again: ${error?.message ?? error}`));
+        // A view made again for a GPU lost gives WebGPU up for the page only
+        // where WebGPU has no adapter after, or once another view found that
+        // or gave up; a view that fails for a reason of its own, with an
+        // adapter still there, stops alone.
+        const none = !givenUp && state.lost && !(await navigator.gpu?.requestAdapter().catch(() => null));
+        if ((none || givenUp) && !gone) return void giveUp((givenUp ??= `the GPU was lost, and none is to be had again: ${error?.message ?? error}`));
         state.error = String(error?.message ?? error);
         console.error(`View3D: ${state.error}`);
       });
