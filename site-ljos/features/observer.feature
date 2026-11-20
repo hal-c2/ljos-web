@@ -59,8 +59,8 @@ Feature: The Observer looks into what runs on the page
     Then the Observer's frame count stays where it is
 
   Scenario: What the web cannot answer, the Observer says so
-    When a reader opens a part of the Observer the web cannot fill, as a trace of a native process
-    Then it says why, never a blank
+    When a reader asks the Observer for what the web cannot give, as a trace of an object's signals and changes
+    Then it says why, and where to have it
 
   Scenario: The Observer follows the site's light and dark
     When a reader switches the site between light and dark with the Observer open

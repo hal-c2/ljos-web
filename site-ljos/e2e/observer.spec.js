@@ -11,7 +11,8 @@ const ROUTE = "/start/first-app/";
 const isObserver = (url) => /Observer/.test(new URL(url).pathname);
 
 // The dock (Site/ObserverDock.qml): the pane named Observer, and the app in it.
-const dock = (page) => page.getByRole("region", { name: "Observer" }).or(page.locator('[aria-label="Observer"]')).first();
+// The site's menu has a link of that name too: the dock is the group.
+const dock = (page) => page.getByRole("group", { name: "Observer", exact: true });
 const observerButton = (block) => block.toolbar.getByRole("button", { name: /^Observe / });
 const pageTab = (page, name) => page.getByRole("tab", { name, exact: true });
 
@@ -115,8 +116,11 @@ test("frames are counted while the app moves, and at rest the count holds", asyn
 
 test("what the web cannot fill, the Observer says why", async ({ page }) => {
   await observed(page);
-  await pageTab(page, "Trace").click();
-  await expect(page.getByText(/web/i).first()).toBeVisible();
+  await pageTab(page, "Objects").click();
+  await page.getByRole("listitem", { name: "Rectangle#root" }).click();
+  await dock(page).getByRole("button", { name: "Trace", exact: true }).click();
+  // Said where the Observer says what went wrong, and it stays said.
+  await expect(dock(page).getByText(/^app_trace: .*not answered on the web/)).toBeVisible();
 });
 
 test("it follows the site's light and dark", async ({ page }) => {
