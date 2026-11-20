@@ -2091,15 +2091,23 @@ function defineAlias(self: QObject, name: string, [target, ...path]: AliasPath):
   // Qt makes it: what the reads before completion made, the first
   // evaluation after it hands on rather than making another.
   const declared = given && Boolean(self.$props.$made?.includes(name));
+  // What the binding makes is made for the object it is assigned to, as a
+  // binding of that object's own would be, whether read early or once all
+  // is made: one made in no visual parent is declared in it, and answers to
+  // its error boundary.
+  const evaluate = (): unknown => {
+    const object = holder();
+    return object ? declaredIn(object as unknown as QObject, () => self.$props[name]) : self.$props[name];
+  };
   let made: { value: unknown } | null = null;
   const give = declared
     ? () => {
-        if (untrack(early!)) return (made ??= { value: self.$props[name] }).value;
+        if (untrack(early!)) return (made ??= { value: evaluate() }).value;
         const kept = made;
         made = null;
-        return kept ? kept.value : self.$props[name];
+        return kept ? kept.value : evaluate();
       }
-    : () => self.$props[name];
+    : evaluate;
   // A binding like any other: one that cannot be evaluated yet is told of.
   const binding = given ? guarded(name, give) : null;
   Object.defineProperty(self, name, {
