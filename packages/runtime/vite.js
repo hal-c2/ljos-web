@@ -531,7 +531,8 @@ export async function compilerRun(qmlc, args, options = {}) {
 //   entry. Otherwise the module's.
 // - `inspect`: true for a build `ljos-web/inspect` reads, whose objects,
 //   bindings and `console` lines say where they are written, each file by
-//   its path from Vite's root: or a function of the file compiled that says.
+//   its path from Vite's root: or a function of the file compiled that says,
+//   true, or the name the file is given there instead of that path.
 //   For a dev server; a page built for people to use leaves it out and
 //   carries none of it.
 // - `types`: the type dumps (`ljostypes.json`) of the types a program
@@ -630,6 +631,15 @@ export default function qml({
   let wgpuAtOnce = false;
   let cache = join(runtime, "node_modules/.vite/ljos-web");
   let base = process.cwd();
+  // `--inspect` and the name a file's places give it, where it is inspected:
+  // its path from Vite's root, unless `inspect` names it otherwise (a site
+  // built from a stage names a file by its path in the bundle, not by a way
+  // up out of a directory made for the build).
+  const inspected = (file) => {
+    const said = typeof inspect === "function" ? inspect(file) : inspect;
+    if (!said) return [];
+    return ["--inspect", typeof said === "string" ? said : relative(base, file).split(sep).join("/")];
+  };
   // The QML files something other than QML imports, and what each theme
   // module looks at.
   const entries = new Set();
@@ -1107,7 +1117,7 @@ export default function qml({
         ...more.flatMap((directory) => ["--with", directory]),
         ...searched.flatMap((root) => ["--qt", root]),
         ...(selector ? ["--select", selector] : []),
-        ...((typeof inspect === "function" ? inspect(file) : inspect) ? ["--inspect", relative(base, file).split(sep).join("/")] : []),
+        ...inspected(file),
       ];
       // A compiled file can be larger than a pipe's default room (a
       // page that carries its words as data is megabytes of it).

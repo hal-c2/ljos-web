@@ -261,3 +261,34 @@ test("the commit a site is said to be built with is ljos-web's checkout's, not t
     made.remove();
   }
 });
+
+// A site whose readers look into one of its apps (an Observer on it) builds
+// that app's files with their places, named by their paths in the bundle,
+// and the rest without: a page built for people to use carries none of it.
+test("the files a site asks to be inspected are built with where each object is written", async () => {
+  const made = bundle("project");
+  try {
+    await part("build the site", () =>
+      buildSite({ dir: made.dir, out: made.out, qmlc, with: [design], inspect: (path) => path === "App/Media/Player.qml" }),
+    );
+    const scripts = readdirSync(join(made.out, "assets"))
+      .filter((name) => name.endsWith(".js"))
+      .map((name) => readFileSync(join(made.out, "assets", name), "utf8"))
+      .join("\n");
+    // The minifier writes a string in whichever quotes it likes.
+    expect(scripts).toMatch(/\$at:\[["'`]App\/Media\/Player\.qml["'`],\d+,\d+,["'`]Item["'`]\]/);
+    expect(scripts.match(/\$at:\[/g)).toHaveLength(1);
+  } finally {
+    made.remove();
+  }
+});
+
+test("what is inspected is said by a function of each file's path in the bundle", async () => {
+  const made = bundle("project");
+  try {
+    await expect(buildSite({ dir: made.dir, out: made.out, qmlc, with: [design], inspect: "App" })).rejects.toThrow(/inspect is a function of a file's path in the bundle/);
+    expect(existsSync(made.out)).toBe(false);
+  } finally {
+    made.remove();
+  }
+});
