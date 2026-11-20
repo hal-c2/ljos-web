@@ -1,58 +1,57 @@
+// Ljos.Core before QtQuick so t`` is available while shared names stay QtQuick's.
+import Ljos.Core
 import QtQuick
 import QtQuick3D
 import QtQuick3D.Helpers
+import "logic/orbit.ts" as OrbitLogic
 
-// A lighthouse at night, in Quick3D: drag to orbit it, scroll or pinch
-// to zoom. The lamp sweeps a spotlight across the water while three
-// unlike shapes circle the tower, so the scene is alive before it is
-// touched — and still when the page asks it to be (root.active), or
-// slower, never stopped, when the visitor prefers reduced motion
-// (root.calm).
+// Declarative 3D driven by a typed TypeScript clock (logic/orbit.ts).
+// Drag to orbit, scroll or pinch to zoom. Try changing loopSeconds,
+// towerStripe, lampBrightness, or the spin multiples in logic/orbit.ts.
 Rectangle {
     id: root
     width: 720
     height: 420
     color: look.canvas
 
-    // Driven by the page that embeds this file; harmless standalone.
+    // Remix knobs: one-line edits change the scene's speed and look.
+    property real loopSeconds: 26
+    property real calmLoopSeconds: 78
+    property real startAngle: 55
+    property color towerStripe: "#c77f2a"
+    property color lampGlow: "#ffd9a0"
+    property real lampBrightness: 6
+
+    // Host contract: DemoFrame pauses off-screen demos and slows calm ones.
     property bool active: true
     property bool calm: false
     readonly property bool turning: active
-    // Drawn once the view has said the time of a frame: a page that
-    // shows a picture until then (Site/DemoFrame.qml) keeps it till.
+    // Stays false until View3D paints a frame so the poster holds until then.
     readonly property bool ready: view.renderStats.frameTime > 0
 
-    // One clock turns everything, each binding at its own whole
-    // multiple of it, so the loop wraps without a jump.
-    property real turn: 55
-    // Degrees a second: a third as fast when calm is asked for.
-    readonly property real pace: calm ? 360 / 78 : 360 / 26
-    // Moved on each frame by its pace rather than animated from one
-    // value to another: a NumberAnimation takes a new duration only at
-    // its next loop, and one stopped starts again from `from`. This
-    // takes a new pace at once and, paused while not seen, goes on from
-    // where it was: never a snap.
+    // One clock turns the whole scene; every angle in `pose` is a whole multiple.
+    property real turn: startAngle
+    readonly property real pace: OrbitLogic.degreesPerSecond(calm, loopSeconds, calmLoopSeconds)
+    readonly property var pose: OrbitLogic.poseAt(turn)
+
+    // FrameAnimation advances by elapsed time rather than interpolating from/to,
+    // so changing pace or resuming from pause never jumps back to the start.
     FrameAnimation {
         running: true
         paused: !root.turning
-        onTriggered: root.turn = 55 + (root.turn - 55 + frameTime * root.pace) % 360
+        onTriggered: root.turn = OrbitLogic.advance(root.turn, frameTime, root.pace, root.startAngle)
     }
 
-    // The colours this app draws with, for the scheme the reader chose:
-    // each the dark it was drawn in or a light that keeps the text on it
-    // as readable.
     QtObject {
         id: look
         readonly property bool dark: Application.styleHints.colorScheme === Qt.ColorScheme.Dark
         readonly property color canvas: dark ? "#12141b" : "#f6f4ee"
-        // The captions sit on pills of their own, dark in either scheme,
-        // because the reader can orbit or zoom until the sky or the lit
-        // water is behind them: light text on the pill stays at 4.5:1 or
-        // more whatever the scene shows through it.
+        readonly property color sky: dark ? "#14161f" : "#cfdae8"
+        // Captions stay on dark translucent pills in both schemes so text keeps
+        // readable contrast whether orbiting puts dark water or bright sky behind it.
         readonly property color pill: "#e612141b"
         readonly property color onPill: "#c9cfdd"
         readonly property color onPillMuted: "#aeb6c9"
-        readonly property color sky: dark ? "#14161f" : "#cfdae8"
     }
 
     View3D {
@@ -91,14 +90,13 @@ Rectangle {
             castsShadow: true
             shadowMapQuality: Light.ShadowMapQualityHigh
         }
-        // Cool fill from the opposite side, so the night side still reads.
+        // Cool fill from the opposite side keeps the shadowed faces legible.
         DirectionalLight {
             eulerRotation: Qt.vector3d(-20, 140, 0)
             color: "#7d92c4"
             brightness: 0.35
         }
 
-        // The water: a broad disc the lamp's sweep can land on.
         Model {
             source: "#Cylinder"
             y: -92
@@ -109,7 +107,6 @@ Rectangle {
                 metalness: 0.35
             }
         }
-        // The rock the tower stands on.
         Model {
             source: "#Cylinder"
             y: -68
@@ -122,7 +119,6 @@ Rectangle {
 
         Node {
             id: tower
-            // Tower shaft with two amber bands.
             Model {
                 source: "#Cylinder"
                 y: 55
@@ -137,7 +133,7 @@ Rectangle {
                 y: 15
                 scale: Qt.vector3d(0.66, 0.42, 0.66)
                 materials: PrincipledMaterial {
-                    baseColor: "#c77f2a"
+                    baseColor: root.towerStripe
                     roughness: 0.55
                 }
             }
@@ -146,11 +142,10 @@ Rectangle {
                 y: 115
                 scale: Qt.vector3d(0.66, 0.42, 0.66)
                 materials: PrincipledMaterial {
-                    baseColor: "#c77f2a"
+                    baseColor: root.towerStripe
                     roughness: 0.55
                 }
             }
-            // Gallery deck, lamp room and roof.
             Model {
                 source: "#Cylinder"
                 y: 186
@@ -183,8 +178,6 @@ Rectangle {
             }
         }
 
-        // The lamp itself: a warm point of light, plus a spotlight on a
-        // turning arm that sweeps the water and whatever circles by.
         PointLight {
             y: 222
             color: "#ffb65c"
@@ -196,12 +189,12 @@ Rectangle {
         Node {
             id: sweep
             y: 222
-            eulerRotation: Qt.vector3d(0, root.turn * 2, 0)
+            eulerRotation: Qt.vector3d(0, root.pose.sweep, 0)
             SpotLight {
                 z: 30
                 eulerRotation: Qt.vector3d(-24, 0, 0)
-                color: "#ffd9a0"
-                brightness: 6
+                color: root.lampGlow
+                brightness: root.lampBrightness
                 coneAngle: 26
                 innerConeAngle: 12
                 constantFade: 1.0
@@ -210,18 +203,17 @@ Rectangle {
             }
         }
 
-        // Three shapes in unlike materials circle the tower: polished
-        // metal, matte stone, warm glassy amber. Each also turns on
-        // its own axis, so orbiting the camera always changes a face.
+        // Three distinct materials orbit the tower and spin on their own axes
+        // so the sweeping lamp reveals highlights from every angle.
         Node {
             id: ring
             y: 40
-            eulerRotation: Qt.vector3d(0, root.turn, 0)
+            eulerRotation: Qt.vector3d(0, root.pose.ring, 0)
             Model {
                 x: 215
                 scale: Qt.vector3d(0.55, 0.55, 0.55)
                 source: "#Sphere"
-                eulerRotation: Qt.vector3d(0, root.turn * 4, 0)
+                eulerRotation: Qt.vector3d(0, root.pose.sphere, 0)
                 materials: PrincipledMaterial {
                     baseColor: "#d8b36a"
                     roughness: 0.3
@@ -234,7 +226,7 @@ Rectangle {
                 z: 90
                 scale: Qt.vector3d(0.62, 0.62, 0.62)
                 source: "#Cube"
-                eulerRotation: Qt.vector3d(root.turn * 2, root.turn * 3, 0)
+                eulerRotation: Qt.vector3d(root.pose.cubeX, root.pose.cubeY, 0)
                 materials: PrincipledMaterial {
                     baseColor: "#5b7ba8"
                     roughness: 0.85
@@ -246,7 +238,7 @@ Rectangle {
                 z: -215
                 scale: Qt.vector3d(0.7, 0.7, 0.7)
                 source: "#Cone"
-                eulerRotation: Qt.vector3d(0, root.turn * -3, 0)
+                eulerRotation: Qt.vector3d(0, root.pose.cone, 0)
                 materials: PrincipledMaterial {
                     baseColor: "#c4572e"
                     roughness: 0.35
@@ -268,7 +260,7 @@ Rectangle {
             anchors.centerIn: parent
             color: look.onPill
             font.pixelSize: 14
-            text: qsTr("Drag to orbit · scroll or pinch to zoom")
+            text: t`Drag to orbit · scroll or pinch to zoom`
         }
     }
     Rectangle {
@@ -284,7 +276,7 @@ Rectangle {
             anchors.centerIn: parent
             color: look.onPillMuted
             font.pixelSize: 13
-            text: qsTr("One QML file, drawn by Ljós's 3D renderer")
+            text: t`Drawn by Ljós's 3D renderer`
         }
     }
 }
