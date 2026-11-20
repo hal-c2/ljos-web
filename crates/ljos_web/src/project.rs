@@ -234,6 +234,19 @@ impl Project {
         Some(format!("{uri}.{name}"))
     }
 
+    /// The modules the project's files import, each once.
+    pub(crate) fn imported_modules(&self) -> BTreeSet<String> {
+        self.extras
+            .keys()
+            .filter_map(|file| self.front.summary(file))
+            .flat_map(|summary| &summary.imports)
+            .filter_map(|import| match &import.source {
+                Source::Module(uri) => Some(uri.clone()),
+                Source::Path(_) => None,
+            })
+            .collect()
+    }
+
     /// Says the project has the module `uri`: a `qmldir` in its place, or a
     /// build that makes it, whose types may all be C++.
     pub fn add_module(&mut self, uri: &str) {

@@ -386,17 +386,7 @@ impl<'f> Load<'f> {
             .and_then(|source| crate::imports(&source).ok())
             .map(|imports| imports.modules)
             .unwrap_or_default();
-        let unlisted = imported
-            .iter()
-            .filter(|uri| !QtTypeOracle.has_module(uri))
-            .filter_map(|uri| {
-                let place = uri.replace('.', "/");
-                // The first of Qt's directories to have it, as Qt looks.
-                qt.iter()
-                    .map(|root| root.join(&place).join("qmldir"))
-                    .find(|qmldir| self.files.is_file(qmldir))
-            })
-            .collect();
+        let unlisted = self.unlisted(&qt, imported.iter());
         Some(Places {
             base,
             root,
@@ -405,6 +395,20 @@ impl<'f> Load<'f> {
             qt,
             unlisted,
         })
+    }
+
+    /// The `qmldir` under Qt's directories `qt` of each of the modules
+    /// `uris` that Qt's table does not describe.
+    fn unlisted<'u>(&self, qt: &[PathBuf], uris: impl Iterator<Item = &'u String>) -> Vec<PathBuf> {
+        uris.filter(|uri| !QtTypeOracle.has_module(uri))
+            .filter_map(|uri| {
+                let place = uri.replace('.', "/");
+                // The first of Qt's directories to have it, as Qt looks.
+                qt.iter()
+                    .map(|root| root.join(&place).join("qmldir"))
+                    .find(|qmldir| self.files.is_file(qmldir))
+            })
+            .collect()
     }
 
     /// The project's directory `path` is compiled in, and the modules its
@@ -421,6 +425,7 @@ impl<'f> Load<'f> {
             &places.with,
             &places.qt,
             &places.unlisted,
+            true,
             warnings,
         );
         Some((places.root.unwrap_or(places.base), found))
@@ -435,18 +440,20 @@ impl<'f> Load<'f> {
     /// import paths the one under the earlier is, as Qt looks in its import
     /// path: the import paths in order, then Qt's. A stand-in's adds to the
     /// module what it has in C++, wherever the rest of it is. A build's file
-    /// says what its modules are wherever it is.
+    /// says what its modules are wherever it is, when `dump` asks for it.
     fn found(
         &self,
         paths: &[PathBuf],
         with: &[PathBuf],
         qt: &[PathBuf],
         unlisted: &[PathBuf],
+        dump: bool,
         warnings: &mut Vec<String>,
     ) -> Vec<Found> {
         let dumped = self
             .dumped
             .as_ref()
+            .filter(|_| dump)
             .and_then(|dumped| self.files.canonicalize(dumped));
         let lots: Vec<(&Path, bool)> = paths
             .iter()
@@ -643,12 +650,14 @@ impl<'f> Load<'f> {
         let mut project = Project::new();
         let root = directory(path);
         let canonical = (self.files.canonicalize(root), self.files.canonicalize(path));
-        if let Some(places) = self.places(path, qt) {
+        let places = self.places(path, qt);
+        if let Some(places) = &places {
             let found = self.found(
                 &places.paths,
                 &places.with,
                 &places.qt,
                 &places.unlisted,
+                true,
                 warnings,
             );
             self.modules(&mut project, found, &places.base);
@@ -711,6 +720,30 @@ impl<'f> Load<'f> {
                 {
                     let _ = project.add(key, &source);
                 }
+            }
+        }
+        // A part of the project may import a module of Qt's own QML that
+        // the compiled file does not: what the compiled file gives that part
+        // is typed by that module's types, so it is found as the compiled
+        // file's are, until no file it brings imports another.
+        if let Some(places) = &places {
+            let mut taken: HashSet<PathBuf> = places.unlisted.iter().cloned().collect();
+            loop {
+                let imported = project.imported_modules();
+                let more: Vec<PathBuf> = self
+                    .unlisted(
+                        &places.qt,
+                        imported.iter().filter(|uri| !project.has_module(uri)),
+                    )
+                    .into_iter()
+                    .filter(|qmldir| taken.insert(qmldir.clone()))
+                    .collect();
+                if more.is_empty() {
+                    break;
+                }
+                // Only those modules: the build's file was read with the rest.
+                let found = self.found(&[], &[], &places.qt, &more, false, warnings);
+                self.modules(&mut project, found, &places.base);
             }
         }
         project
