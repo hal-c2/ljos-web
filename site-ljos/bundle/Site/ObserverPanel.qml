@@ -1,5 +1,6 @@
 import QtQuick
 import Ljos.Observer
+import Site
 
 // Ljós's Observer, the one `ljos observe` opens, on an app of this page:
 // its objects, their properties as they change, its frames, its log. It
@@ -25,10 +26,24 @@ Item {
         title: panel.title
     }
 
-    WindowContainer {
+    // Never narrower than the Observer lays its pages out for: held in
+    // less room, it is scrolled sideways to what is past the edge, as a
+    // phone's sheet does, rather than drawn with its values squeezed out.
+    Flickable {
+        id: room
         anchors.fill: parent
-        window: Observer {
-            tokenFile: inspector.tokenFile
+        contentWidth: Math.max(width, Theme.observerWidth)
+        contentHeight: height
+        flickableDirection: Flickable.HorizontalFlick
+        boundsBehavior: Flickable.StopAtBounds
+        clip: true
+
+        WindowContainer {
+            width: room.contentWidth
+            height: room.height
+            window: Observer {
+                tokenFile: inspector.tokenFile
+            }
         }
     }
 }

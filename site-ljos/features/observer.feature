@@ -29,12 +29,15 @@ Feature: The Observer looks into what runs on the page
     Given a window 1000 pixels wide or wider
     When a reader opens the Observer on an example
     Then it stands along the right of the window, under the header
+    And it is as wide as the Observer's pages are laid out for, so each value it shows can be edited
     And the page reflows beside it, so the example can still be pressed
 
   Scenario: On a phone it is a sheet
     Given a window narrower than 1000 pixels
     When a reader opens the Observer on an example
     Then it slides up over the lower part of the screen
+    And the Observer in it keeps the width its pages are laid out for, and scrolls sideways to what is past the screen's edge
+    And a value typed into it and ended with Return is given to the example
     And a press above it closes it
 
   Scenario: Its tree is the example's objects
@@ -44,12 +47,12 @@ Feature: The Observer looks into what runs on the page
   Scenario: What the reader does in the app, the Observer shows
     Given the Observer is open on a running example
     When the reader presses in the example
-    Then the Observer's frames count a frame woken by input
+    Then the Observer's frames count a frame woken by input, with the bindings it ran and the text it laid out
     And a property the press changed shows its new value
 
   Scenario: What the Observer changes, the app shows
     Given the Observer is open on a running example
-    When the reader gives one of the example's properties a value in the Observer
+    When the reader gives one of the example's properties a value in the Observer, typed and ended with Return
     Then the example draws with that value
     And reverting it gives the property its binding back
 
@@ -75,7 +78,7 @@ Feature: The Observer looks into what runs on the page
   Scenario: The flagship demo is looked into while its shell is rewritten
     Given the front page's Pantry, its app's own shell running
     When the reader presses the Pantry's "Observer"
-    Then its tree starts at the app's shell, with the blocks the shell holds
+    Then its tree starts at the app's shell, with the blocks the shell holds by the names they are written by
     When they add a good to the basket
     Then the Observer's frames count a frame woken by input
     When they rewrite the shell and it applies
