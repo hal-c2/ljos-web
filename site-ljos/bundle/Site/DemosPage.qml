@@ -1,3 +1,6 @@
+// Ljós's Core before QtQuick: only its t`` is wanted here, and any name
+// both have stays QtQuick's, the later import.
+import Ljos.Core
 import QtQuick
 import Ljos.Blocks
 import Site
@@ -36,7 +39,7 @@ Column {
 
         Text {
             width: parent.width
-            text: "Live demos"
+            text: t`Live demos`
             color: Theme.text
             font.family: Theme.sans
             font.pixelSize: demos.wide ? Theme.displaySize : Theme.compactDisplaySize
@@ -49,7 +52,7 @@ Column {
         }
         Text {
             width: Math.min(parent.width, Theme.measure)
-            text: "Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in the page. The page reads with no script; where a demo cannot run — no wasm, no WebGL 2 — its picture and its words stand in its place."
+            text: t`Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in this page. Press Run to start any framed demo, switch between light and dark themes in the header to watch it follow, and edit the live source in the Pantry and on the cockpit and smartwatch pages. Where a browser lacks WebAssembly, WebGL 2 or WebGPU, each demo keeps its picture and description.`
             color: Theme.textMuted
             font.family: Theme.sans
             font.pixelSize: Theme.subtitleSize - 1
@@ -62,8 +65,8 @@ Column {
     DemoSection {
         width: demos.textWidth
         wide: demos.wide
-        title: "A shell you rewrite"
-        body: "The flagship: a small app whose shell you rewrite in the page's editor. Its data and state survive the swap; move a Slot and its contribution moves with it; break the shell and the app's own shell stands, with what broke shown."
+        title: t`A shell you rewrite`
+        body: t`Add items to the basket, then edit Shell.qml right in the page. Move a Slot to rearrange the interface while the basket keeps its items, or introduce a syntax error to watch the app fall back to its built-in shell with the compiler message shown. Switch light and dark themes to watch both shells follow.`
 
         Slot {
             name: "demo-shell"
@@ -108,8 +111,8 @@ Column {
     DemoSection {
         width: demos.textWidth
         wide: demos.wide
-        title: "3D you can orbit"
-        body: "A Quick3D scene in the browser: drag to orbit it. The same scene runs natively under the same engine."
+        title: t`3D you can orbit`
+        body: t`Press Run to start a lit 3D scene rendered by the same engine that runs natively on desktop and mobile. Drag to orbit, scroll or pinch to zoom, and switch light and dark themes to watch the scene adapt.`
 
         Slot {
             name: "demo-orbit"
@@ -121,8 +124,8 @@ Column {
                     route: "/demos/"
                     picture: "/pictures/demo-orbit.webp"
                     pictureDark: "/pictures/demo-orbit-dark.webp"
-                    what: "the 3D demo"
-                    description: "A lit 3D scene of shapes on a floor, which a drag turns."
+                    what: t`the 3D demo`
+                    description: t`A lit 3D scene of shapes on a floor, which a drag turns.`
                     source: Later.orbit
                 }
             }
@@ -132,8 +135,8 @@ Column {
     DemoSection {
         width: demos.textWidth
         wide: demos.wide
-        title: "A shader effect"
-        body: "A custom shader over live content, written as part of the app — no toolkit-private path, nothing pre-baked."
+        title: t`A shader effect`
+        body: t`Press Run, then move the pointer across the card to stir the light and tap to cycle colours. The shader runs over live app content rather than a pre-rendered texture, and follows the page's light and dark themes.`
 
         Slot {
             name: "demo-shader"
@@ -145,8 +148,8 @@ Column {
                     route: "/demos/"
                     picture: "/pictures/demo-shader.webp"
                     pictureDark: "/pictures/demo-shader-dark.webp"
-                    what: "the shader demo"
-                    description: "Light pooling over a card of text, following the pointer."
+                    what: t`the shader demo`
+                    description: t`Light pooling over a card of text, following the pointer.`
                     source: Later.shader
                 }
             }
@@ -156,8 +159,8 @@ Column {
     DemoSection {
         width: demos.textWidth
         wide: demos.wide
-        title: "A whole app"
-        body: "A real app of the corpus, not a toy: the whole program, running here as it runs on a desktop."
+        title: t`A whole app`
+        body: t`Press Run to open a bird field guide running in WebAssembly. Filter the list by typing in Search, pick a species to read its notes, mark birds as seen to update the counter, and switch light and dark themes while keeping your selection.`
 
         Slot {
             name: "demo-app"
@@ -169,8 +172,8 @@ Column {
                     route: "/demos/"
                     picture: "/pictures/demo-app.webp"
                     pictureDark: "/pictures/demo-app-dark.webp"
-                    what: "the field guide"
-                    description: "A field guide to birds: a list of species beside the one picked, with notes and a count of those seen."
+                    what: t`the field guide`
+                    description: t`A field guide to birds: a list of species beside the one picked, with notes and a count of those seen.`
                     source: Later.fieldGuide
                 }
             }
@@ -180,8 +183,8 @@ Column {
     DemoSection {
         width: demos.textWidth
         wide: demos.wide
-        title: "Motion"
-        body: "Animation as a property of the interface: one value, eased, driving everything that moves — and nothing at all moving, or costing, at rest."
+        title: t`Motion`
+        body: t`Press Run, click Shuffle the tiles to watch them reorder on a single eased value, and press and drag in the spring tray so the puck springs after your pointer. When the motion settles, nothing ticks and an app at rest uses 0 % CPU.`
 
         Slot {
             name: "demo-motion"
@@ -193,8 +196,8 @@ Column {
                     route: "/demos/"
                     picture: "/pictures/demo-motion.webp"
                     pictureDark: "/pictures/demo-motion-dark.webp"
-                    what: "the motion demo"
-                    description: "Tiles that shuffle and settle, driven by one eased value."
+                    what: t`the motion demo`
+                    description: t`Tiles that shuffle and settle, driven by one eased value.`
                     source: Later.motion
                 }
             }
