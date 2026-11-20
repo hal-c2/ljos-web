@@ -80,6 +80,10 @@ extern "C" {
     /// Asks for one frame; many asks in one frame are one frame.
     #[wasm_bindgen(method)]
     fn request(this: &JsHost);
+    /// The view's device was lost: the view draws nothing more, and is made
+    /// again if the page wants it.
+    #[wasm_bindgen(method)]
+    fn lost(this: &JsHost, message: &str);
 }
 
 fn get(from: &JsValue, name: &str) -> JsValue {
@@ -381,9 +385,109 @@ impl Fetch for BrowserFetch {
     }
 }
 
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = console, js_name = error)]
+    fn console_error(message: &str);
+}
+
+/// The workspace builds with `panic = "abort"`, so without a hook a panic
+/// reaches the page as a bare `unreachable` that names nothing.
+#[wasm_bindgen(start)]
+fn start() {
+    std::panic::set_hook(Box::new(|info| console_error(&format!("View3D: {info}"))));
+}
+
+/// A device and the views that draw with it. A browser may lose a device at
+/// any time (its GPU process or driver gave up); what is asked of one lost
+/// fails, in Chrome with an exception thrown through the wasm that leaves
+/// what it held borrowed, so a view on it asks nothing more of it.
+struct Device {
+    gpu: Gpu,
+    lost: Cell<bool>,
+    views: RefCell<Vec<(u32, JsHost)>>,
+}
+
 thread_local! {
-    // A page has one device, where a device can draw on any canvas.
-    static GPU: RefCell<Option<Gpu>> = const { RefCell::new(None) };
+    // A page has one device, where a device can draw on any canvas: until
+    // it is lost, when the next view makes another.
+    static GPU: RefCell<Option<Rc<Device>>> = const { RefCell::new(None) };
+    // Each device by its number, which is what wgpu's callbacks may hold.
+    static DEVICES: RefCell<Vec<(u32, std::rc::Weak<Device>)>> = const { RefCell::new(Vec::new()) };
+    static NEXT: Cell<u32> = const { Cell::new(0) };
+}
+
+fn next() -> u32 {
+    NEXT.with(|next| {
+        let number = next.get();
+        next.set(number.wrapping_add(1));
+        number
+    })
+}
+
+impl Device {
+    fn new(gpu: Gpu) -> Rc<Device> {
+        let device = Rc::new(Device {
+            gpu,
+            lost: Cell::new(false),
+            views: RefCell::new(Vec::new()),
+        });
+        let number = next();
+        DEVICES.with(|all| {
+            let mut all = all.borrow_mut();
+            all.retain(|(_, device)| device.strong_count() > 0);
+            all.push((number, Rc::downgrade(&device)));
+        });
+        // Called where wgpu learns of it, which may be inside a call of the
+        // view's own: the views are told after it returns.
+        device
+            .gpu
+            .device()
+            .set_device_lost_callback(move |_, message| lose(number, message));
+        // wgpu's own handler on WebGL 2 panics, which aborts every view of
+        // the page for one call it refused. Said instead, as on WebGPU.
+        device
+            .gpu
+            .device()
+            .on_uncaptured_error(Arc::new(|error: wgpu::Error| {
+                console_error(&format!("View3D: {error}"))
+            }));
+        device
+    }
+}
+
+fn lose(number: u32, message: String) {
+    let Some(device) = DEVICES.with(|all| {
+        all.borrow()
+            .iter()
+            .find(|(each, _)| *each == number)
+            .and_then(|(_, device)| device.upgrade())
+    }) else {
+        return;
+    };
+    if device.lost.replace(true) {
+        return;
+    }
+    GPU.with(|gpu| {
+        let mut gpu = gpu.borrow_mut();
+        if gpu
+            .as_ref()
+            .is_some_and(|shared| Rc::ptr_eq(shared, &device))
+        {
+            *gpu = None;
+        }
+    });
+    spawn_local(async move {
+        let views: Vec<JsHost> = device
+            .views
+            .borrow()
+            .iter()
+            .map(|(_, host)| host.clone())
+            .collect();
+        for host in views {
+            host.lost(&message);
+        }
+    });
 }
 
 /// The members' names, in the order reads number them, so that the page
@@ -400,6 +504,8 @@ pub fn prop_names() -> Vec<String> {
 #[wasm_bindgen]
 pub struct View3d {
     host: JsHost,
+    device: Rc<Device>,
+    number: u32,
     kept: Rc<Kept>,
     view: RefCell<SurfaceView<'static>>,
     slot: RefCell<SceneSlot>,
@@ -418,20 +524,33 @@ impl View3d {
     pub async fn create(canvas: HtmlCanvasElement, host: JsHost) -> Result<View3d, JsError> {
         let (w, h) = (canvas.width(), canvas.height());
         let target = wgpu::SurfaceTarget::Canvas(canvas);
-        let shared = GPU.with(|gpu| gpu.borrow().clone());
-        let view = match shared {
-            Some(gpu) => SurfaceView::with_gpu(&gpu, target, w, h),
-            None => SurfaceView::new(target, w, h).await,
-        }
-        .map_err(|e| JsError::new(&e.to_string()))?;
-        if view.backend() == wgpu::Backend::BrowserWebGpu {
-            GPU.with(|gpu| *gpu.borrow_mut() = Some(view.gpu().clone()));
-        }
+        let shared = GPU
+            .with(|gpu| gpu.borrow().clone())
+            .filter(|device| !device.lost.get());
+        let (view, device) = match shared {
+            Some(device) => (
+                SurfaceView::with_gpu(&device.gpu, target, w, h),
+                Some(device),
+            ),
+            None => (SurfaceView::new(target, w, h).await, None),
+        };
+        let view = view.map_err(|e| JsError::new(&e.to_string()))?;
+        let device = device.unwrap_or_else(|| {
+            let device = Device::new(view.gpu().clone());
+            if view.backend() == wgpu::Backend::BrowserWebGpu {
+                GPU.with(|gpu| *gpu.borrow_mut() = Some(device.clone()));
+            }
+            device
+        });
+        let number = next();
+        device.views.borrow_mut().push((number, host.clone()));
         let mut slot = SceneSlot::new();
         let told = host.clone();
         slot.on_change(move || told.request());
         Ok(View3d {
             host,
+            device,
+            number,
             kept: Rc::new(Kept::default()),
             view: RefCell::new(view),
             slot: RefCell::new(slot),
@@ -479,6 +598,9 @@ impl View3d {
     }
 
     pub fn resize(&self, width: u32, height: u32) {
+        if self.device.lost.get() {
+            return;
+        }
         self.view.borrow_mut().resize(width, height);
         self.again.set(true);
         self.host.request();
@@ -488,6 +610,9 @@ impl View3d {
     /// asked for after the view was drawn is drawn again to be kept, as the
     /// surface gave the last one to the page.
     pub fn again(&self) {
+        if self.device.lost.get() {
+            return;
+        }
         self.view.borrow_mut().draw_again();
         self.again.set(true);
         self.host.request();
@@ -495,6 +620,9 @@ impl View3d {
 
     /// Draws what changed; returns whether it presented.
     pub fn frame(&self) -> bool {
+        if self.device.lost.get() {
+            return false;
+        }
         let slot = self.slot.borrow();
         let scene = if self.again.replace(false) {
             slot.current()
@@ -502,5 +630,14 @@ impl View3d {
             slot.take()
         };
         scene.is_some_and(|scene| self.view.borrow_mut().draw(&scene))
+    }
+}
+
+impl Drop for View3d {
+    fn drop(&mut self) {
+        self.device
+            .views
+            .borrow_mut()
+            .retain(|(number, _)| *number != self.number);
     }
 }

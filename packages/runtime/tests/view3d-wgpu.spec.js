@@ -67,6 +67,32 @@ const LIVE = `
     return made.filter((each) => { const object = each.deref(); return object && !gone.has(object); }).length;
   };
 `;
+// A device the page can lose, as a browser does when its GPU process or
+// driver gives up. Chrome then fails a buffer mapped at its making with a
+// RangeError, which is what reached the wasm when that happened.
+const LOSABLE = `
+  window.gpuDevices = [];
+  const ask = GPUAdapter.prototype.requestDevice;
+  GPUAdapter.prototype.requestDevice = async function (...args) {
+    const device = await ask.apply(this, args);
+    const made = { device, lost: false };
+    window.gpuDevices.push(made);
+    device.lost.then(() => (made.lost = true));
+    return device;
+  };
+  const create = GPUDevice.prototype.createBuffer;
+  GPUDevice.prototype.createBuffer = function (descriptor) {
+    if (descriptor?.mappedAtCreation && window.gpuDevices.find(({ device }) => device === this)?.lost)
+      throw new RangeError("createBuffer failed, size (" + descriptor.size + ") is too large for the implementation when mappedAtCreation == true");
+    return create.call(this, descriptor);
+  };
+  window.loseGpu = async () => {
+    const live = window.gpuDevices.filter(({ lost }) => !lost);
+    for (const { device } of live) device.destroy();
+    await Promise.all(live.map(({ device }) => device.lost));
+    await new Promise((done) => setTimeout(done));
+  };
+`;
 const CENTRE = [200, 150];
 const CLEAR = [0x20, 0x20, 0x20];
 // The most a model whose y changed may ask of the page in the build that
@@ -1134,6 +1160,33 @@ for (const backend of ["webgpu", "webgl2"]) {
       expect(await page.locator(".qq-view3d").count()).toBe(1);
       await set(page, () => (window.objects.first.x = 40));
       near(await at(page, 140, 150), [255, 0, 0]);
+    });
+
+    test("views whose GPU is lost are made again on a new one, and go on drawing", async ({ page }) => {
+      test.skip(backend !== "webgpu", "a device the page can lose is WebGPU's");
+      await page.addInitScript(LOSABLE);
+      await show(page, "wgpu_two");
+      const first = await page.evaluateHandle(() => document.querySelector(".qq-view3d").$view3d);
+      const drawn = await first.evaluate(({ frames }) => frames);
+      await page.evaluate(() => window.loseGpu());
+      // One drawing when it was lost draws again, and so does one made after.
+      await first.evaluate((state, drawn) => new Promise((done) => {
+        const look = () => (state.error ? done() : state.frames > drawn ? done() : requestAnimationFrame(look));
+        look();
+      }), drawn);
+      expect(await first.evaluate(({ lost, error }) => ({ lost, error }))).toEqual({ lost: 1, error: null });
+      await set(page, () => (window.objects.second.active = false));
+      await set(page, () => (window.objects.second.active = true));
+      await page.waitForFunction(() => {
+        const views = [...document.querySelectorAll(".qq-view3d")];
+        return views.length === 2 && views.every(({ $view3d }) => $view3d.frames > 0 && !$view3d.error);
+      });
+      await still(page);
+      near(await at(page, 100, 150), [255, 0, 0]);
+      near(await at(page, 300, 150), [0, 0, 255]);
+      await set(page, () => (window.objects.first.x = 40));
+      near(await at(page, 140, 150), [255, 0, 0]);
+      expect(await page.evaluate(() => window.gpuDevices.filter(({ lost }) => !lost).length)).toBe(1);
     });
 
     test("the view's size is the canvas's in device pixels, and changing it draws again", async ({ page }) => {

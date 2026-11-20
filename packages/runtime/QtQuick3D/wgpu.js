@@ -171,11 +171,12 @@ function joined(sides) {
 }
 
 class Host {
-  constructor(view, setArrivals, arrivals, ask) {
+  constructor(view, setArrivals, arrivals, ask, lost) {
     this.view = view;
     this.setArrivals = setArrivals;
     this.count = arrivals;
     this.ask = ask;
+    this.lose = lost;
     this.handles = new Map([[view, 0]]);
     this.objectsBy = new Map([[0, view]]);
     this.pixelReads = new WeakMap();
@@ -538,7 +539,15 @@ class Host {
   request() {
     this.ask();
   }
+  lost(message) {
+    this.lose(message);
+  }
 }
+
+// How many times a view is made again for a GPU lost, within `LOSSES_IN`
+// milliseconds of the first: past that, the GPU is taken as gone for it.
+const LOSSES = 3;
+const LOSSES_IN = 60_000;
 
 // The views that gave a new picture to what shows it in this task. One
 // asked to draw again in it waits for the next animation frame: views that
@@ -605,6 +614,9 @@ export function drawOn(self, canvas, told, instead) {
       return due;
     },
     builds: 0,
+    // How many times the GPU the view drew with was lost, and the view made
+    // again on another.
+    lost: 0,
     reads: 0,
     pieces: 0,
     objects: () => host.objectsBy.size,
@@ -777,7 +789,32 @@ export function drawOn(self, canvas, told, instead) {
     state.held++;
     frame = requestAnimationFrame(draw);
   };
-  const host = new Host(self, setArrivals, arrivals, request);
+  // A view whose GPU was lost is made again on the same canvas, as the
+  // first was, with a host of its own: the new view asks for the whole
+  // scene. Freed after the task that told it, which may be in one of its
+  // own calls.
+  let losses = [];
+  const lost = (message) => {
+    const view = made();
+    if (gone || stopped || !view) return;
+    const now = performance.now();
+    losses = losses.filter((at) => now - at < LOSSES_IN);
+    losses.push(now);
+    setMade(null);
+    queueMicrotask(() => into(() => view.free()));
+    for (const end of followers.values()) end();
+    followers.clear();
+    changed.clear();
+    members.clear();
+    if (losses.length > LOSSES) {
+      state.error = `the GPU was lost: ${message}`;
+      return void console.error(`View3D: ${state.error}`);
+    }
+    state.lost++;
+    host = new Host(self, setArrivals, arrivals, request, lost);
+    make();
+  };
+  let host = new Host(self, setArrivals, arrivals, request, lost);
   const stop = () => {
     state.error = stopped;
     due = false;
@@ -833,39 +870,42 @@ export function drawOn(self, canvas, told, instead) {
 
   const size = (width, height) => [Math.max(1, Math.round(width * devicePixelRatio)), Math.max(1, Math.round(height * devicePixelRatio))];
   [canvas.width, canvas.height] = untrack(() => size(self.width, self.height));
-  queue = queue
-    .then(async () => {
-      if (gone) return;
-      // Before the renderer is fetched or the canvas taken, so what draws
-      // instead has both.
-      if (instead && !(await adapted())) {
-        // A view let go while WebGPU was asked has no owner left for what
-        // draws instead to live under.
+  const make = () => {
+    queue = queue
+      .then(async () => {
         if (gone) return;
-        gone = true;
-        instead();
-        // What took the view's picture asks it again, of what draws now.
-        return void setDraws((times) => times + 1);
-      }
-      // A renderer that trapped as it was first made is not kept, and is
-      // not made again: a failed fetch alone is asked for again.
-      if (stopped) return;
-      if (!module) await chunk();
-      if (stopped) return;
-      const view = await module.View3d.create(canvas, host);
-      if (gone) return void into(() => view.free());
-      if (stopped) return;
-      state.backend = into(() => view.backend(), null);
-      if (stopped) return;
-      // The context the view draws with, which a canvas gives again.
-      if (state.backend === "webgl2") gl = canvas.getContext("webgl2");
-      setMade(() => view);
-    })
-    .catch((error) => {
-      if (trapped(error)) return;
-      state.error = String(error?.message ?? error);
-      console.error(`View3D: ${state.error}`);
-    });
+        // Before the renderer is fetched or the canvas taken, so what draws
+        // instead has both.
+        if (instead && !(await adapted())) {
+          // A view let go while WebGPU was asked has no owner left for what
+          // draws instead to live under.
+          if (gone) return;
+          gone = true;
+          instead();
+          // What took the view's picture asks it again, of what draws now.
+          return void setDraws((times) => times + 1);
+        }
+        // A renderer that trapped as it was first made is not kept, and is
+        // not made again: a failed fetch alone is asked for again.
+        if (stopped) return;
+        if (!module) await chunk();
+        if (stopped) return;
+        const view = await module.View3d.create(canvas, host);
+        if (gone) return void into(() => view.free());
+        if (stopped) return;
+        state.backend = into(() => view.backend(), null);
+        if (stopped) return;
+        // The context the view draws with, which a canvas gives again.
+        if (state.backend === "webgl2") gl = canvas.getContext("webgl2");
+        setMade(() => view);
+      })
+      .catch((error) => {
+        if (trapped(error)) return;
+        state.error = String(error?.message ?? error);
+        console.error(`View3D: ${state.error}`);
+      });
+  };
+  make();
 
   // The item's own size says when, without watching the element.
   effect(
