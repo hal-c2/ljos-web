@@ -1,6 +1,6 @@
 // `controls.js write`, the copy of ljos-ui's QML into `controls/`, run as
 // `mise run controls` runs it: in a Node process of its own.
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -47,6 +47,38 @@ plain("writes at once each finish, and leave one whole tree and nothing beside i
     expect(runs, "every write finished, and said nothing went wrong").toEqual(runs.map(() => ({ code: 0, said: "" })));
     expect(check(root), "the tree is whole: every file, and each qmldir its files make").toEqual([]);
     expect(readdirSync(into), "no write's own tree or lock is left").toEqual(["controls"]);
+  } finally {
+    rmSync(at, { recursive: true, force: true });
+  }
+});
+
+plain("a write from a rev that lacks one of the directories it reads leaves none of them behind", async () => {
+  const at = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "ljos-controls-"));
+  try {
+    // A checkout whose one commit has Design but no Observer.
+    const repo = join(at, "ljos-ui");
+    const design = join(repo, "crates/ljos_design_qml/qml/Ljos/Design");
+    mkdirSync(design, { recursive: true });
+    writeFileSync(join(design, "Part.qml"), "import QtQuick\nItem {}\n");
+    const git = (...args) => execFileSync("git", ["-C", repo, ...args], { encoding: "utf8" }).trim();
+    execFileSync("git", ["init", "-q", repo]);
+    git("add", ".");
+    git("-c", "user.name=t", "-c", "user.email=t@example.com", "commit", "-qm", "design only");
+    const rev = git("rev-parse", "HEAD");
+    const temporary = join(at, "tmp");
+    mkdirSync(temporary);
+    const from = join(at, "controls");
+    mkdirSync(from);
+    const run = await new Promise((resolve) => {
+      const child = spawn(process.execPath, [CONTROLS_JS, "write", from, rev], {
+        env: { ...process.env, LJOS_UI: repo, usage_ljos_ui: "", TMPDIR: temporary },
+        stdio: ["ignore", "ignore", "pipe"],
+      });
+      child.stderr.resume();
+      child.on("close", (code) => resolve(code));
+    });
+    expect(run, "the write failed: the rev has no Observer").not.toBe(0);
+    expect(readdirSync(temporary), "neither the Design read nor the Observer one is left").toEqual([]);
   } finally {
     rmSync(at, { recursive: true, force: true });
   }
