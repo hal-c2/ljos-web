@@ -3356,8 +3356,17 @@ export const QtObject = defineType("QtObject", null, {
 
 // What `import LocalModule as X` names: a table of the module's files, each
 // read when it is used, as a file of the module may be loading this one.
-export function $namespace(members: Readonly<Record<string, () => unknown>>): Record<string, unknown> {
+// A module of the package imported under the same name gives its exports
+// too, a later one's over an earlier one's; a file is over them all, the
+// compiler leaving out any a module imported after it also has.
+export function $namespace(
+  members: Readonly<Record<string, () => unknown>>,
+  ...modules: readonly Readonly<Record<string, unknown>>[]
+): Record<string, unknown> {
   const table: Record<string, unknown> = {};
-  for (const [name, member] of Object.entries(members)) Object.defineProperty(table, name, { get: member, enumerable: true });
+  const define = (name: string, get: () => unknown) =>
+    Object.defineProperty(table, name, { get, enumerable: true, configurable: true });
+  for (const module of modules) for (const name of Object.keys(module)) define(name, () => module[name]);
+  for (const [name, member] of Object.entries(members)) define(name, member);
   return table;
 }

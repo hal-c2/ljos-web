@@ -77,7 +77,7 @@ pub(crate) fn resolve<'a>(
     own: &str,
     dynamic: &HashSet<String>,
     dialect: Dialect,
-    files: &dyn Fn(&str) -> bool,
+    files: &dyn Fn(&str, &str) -> bool,
     uses: &mut Uses,
     errors: &mut Vec<Error>,
 ) {
@@ -291,10 +291,12 @@ struct Resolver<'a, 's, 'p> {
     free: Free,
     /// See [`Dialect::typed`].
     typed: bool,
-    /// Whether the name the file imports a module as is bound to the files
-    /// of a module of the project's own, each read by calling it, and not
-    /// to a module of the package, whose singletons are its objects.
-    files: &'s dyn Fn(&str) -> bool,
+    /// Whether a member of the name the file imports modules as
+    /// (`files(namespace, member)`) is a file of a module of the project's
+    /// own or of a directory, read by calling it, and not a type of a
+    /// module of the package, whose singletons are its objects. It is asked
+    /// of each member, as one name may be both.
+    files: &'s dyn Fn(&str, &str) -> bool,
     /// How many functions what is being read is written in: `this` is the
     /// function's own there.
     functions: u32,
@@ -789,7 +791,7 @@ impl<'a> Resolver<'a, '_, '_> {
             return false;
         };
         let name = namespace.name.to_string();
-        if !self.is_free(namespace) || !(self.files)(&name) {
+        if !self.is_free(namespace) || !(self.files)(&name, ty.property.name.as_str()) {
             return false;
         }
         let Some(found) = self.types.find(&[&name, ty.property.name.as_str()]) else {

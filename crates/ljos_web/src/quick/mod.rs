@@ -112,32 +112,60 @@ fn own_module<'p>(
     project.module_types(uri)
 }
 
-/// The types of the files a name is bound to, by name, each the file it is:
-/// those of the project's own modules and directories of QML files the file
-/// imports under it. Two of them may share the name (`import "first" as P`,
-/// `import "second" as P`), so they are one table, and where both have a
-/// type the one imported last is it, as it is to the types. None when the
-/// name's last import is not files, a package's module or a script, which
-/// is then what the name is.
-fn namespace_files(
-    types: types::Types<'_>,
+/// What a name the file imports modules and directories under is bound to,
+/// when any of them is files: those of the project's own modules and
+/// directories of QML files, by type, each the file it is, and the modules
+/// of the package, in the order they are imported.
+struct Namespace<'p> {
+    files: std::collections::BTreeMap<String, String>,
+    modules: Vec<&'p qml_front::project::Source>,
+}
+
+/// See [`Namespace`]. Two of them may share the name (`import "first" as
+/// P`, `import Parts as P`), so they are one table, and where two have a
+/// type the one imported last is it, as it is to the types: a file a module
+/// of the package imported after it also has is not in the table. None when
+/// none of them is files, or one is a script, which is then what the name
+/// is.
+fn namespace_files<'p>(
+    types: types::Types<'p>,
     name: &str,
     project: &Project,
     options: &Options,
-) -> Option<std::collections::BTreeMap<String, String>> {
-    let files = |source: &qml_front::project::Source| match source {
-        qml_front::project::Source::Path(path) if !qml_front::project::is_script(path) => {
-            Some(project.directory_types(&options.name, path))
-        }
-        source => own_module(source, project, options).cloned(),
+) -> Option<Namespace<'p>> {
+    use qml_front::project::Source;
+    let mut namespace = Namespace {
+        files: std::collections::BTreeMap::new(),
+        modules: Vec::new(),
     };
-    let sources = types.namespaces(name);
-    files(sources.last()?)?;
-    let mut merged = std::collections::BTreeMap::new();
-    for source in sources {
-        merged.extend(files(source).into_iter().flatten());
+    let mut any = false;
+    for source in types.namespaces(name) {
+        match source {
+            Source::Path(path) if qml_front::project::is_script(path) => return None,
+            Source::Path(path) => {
+                any = true;
+                namespace
+                    .files
+                    .extend(project.directory_types(&options.name, path));
+            }
+            Source::Module(uri) => match own_module(source, project, options) {
+                Some(files) => {
+                    any = true;
+                    namespace.files.extend(files.clone());
+                }
+                None => {
+                    namespace.files.retain(|member, _| {
+                        QtTypeOracle.module_type(uri, member).is_none()
+                            && project
+                                .module_types(uri)
+                                .is_none_or(|types| !types.contains_key(member))
+                    });
+                    namespace.modules.push(source);
+                }
+            },
+        }
     }
-    Some(merged)
+    any.then_some(namespace)
 }
 
 /// The same, of a document the module of another takes in: `files` is how
@@ -249,7 +277,10 @@ fn lower_from<'a>(
         dialect,
         // A directory imported under a name is files too (`import "parts"
         // as P`), so its singletons are read as a module's are.
-        &|name| namespace_files(types, name, project, options).is_some(),
+        &|name, member| {
+            namespace_files(types, name, project, options)
+                .is_some_and(|namespace| namespace.files.contains_key(member))
+        },
         &mut uses,
         &mut errors,
     );
@@ -332,7 +363,7 @@ fn lower_from<'a>(
         // So is a directory under a name: its types are its QML files.
         if let Some(own) = namespace_files(types, name, project, options) {
             let mut members = Vec::new();
-            for (member, file) in &own {
+            for (member, file) in &own.files {
                 let local = format!("{bound}${member}");
                 let path = types::relative(&options.name, file);
                 imports.push(
@@ -344,7 +375,20 @@ fn lower_from<'a>(
                 imports.push(b.import_named(["$namespace"], &format!("{prefix}/object")));
                 namespace = true;
             }
-            imports.push(b.const_(&bound, b.call(b.id("$namespace"), [b.object(members)])));
+            // A module of the package under the name too is what it
+            // exports, beside the files: `$namespace` takes its types, and
+            // a file of the table is over them, being left out of it where
+            // a module imported after it has the type.
+            let mut arguments = vec![b.object(members)];
+            for (index, source) in own.modules.iter().enumerate() {
+                let Some(module) = names::namespace_source(source, prefix) else {
+                    continue;
+                };
+                let local = format!("{bound}${index}");
+                imports.push(b.import_namespace(&local, &module));
+                arguments.push(b.id(&local));
+            }
+            imports.push(b.const_(&bound, b.call(b.id("$namespace"), arguments)));
             continue;
         }
         match types.namespace(name).and_then(|source| names::namespace_source(source, prefix)) {
