@@ -77,6 +77,7 @@ Rectangle {
                 color: look.ink
                 font.pixelSize: 22
                 font.bold: true
+                elide: Text.ElideRight
                 text: t`Field guide`
             }
             TextField {
@@ -152,6 +153,7 @@ Rectangle {
                     color: look.muted
                     font.pixelSize: 14
                     font.italic: true
+                    elide: Text.ElideRight
                     text: t`${root.bird.latin} · ${root.bird.season.toLowerCase()}`
                 }
                 Row {
@@ -160,6 +162,7 @@ Rectangle {
                         width: 86
                         color: look.muted
                         font.pixelSize: 13
+                        elide: Text.ElideRight
                         text: t`Length`
                     }
                     Rectangle {
@@ -172,13 +175,6 @@ Rectangle {
                             height: parent.height
                             radius: 5
                             color: look.accent
-                            Behavior on width {
-                                enabled: root.active
-                                NumberAnimation {
-                                    duration: root.calm ? 200 : 280
-                                    easing.type: Easing.OutCubic
-                                }
-                            }
                         }
                     }
                     Text {
@@ -193,6 +189,7 @@ Rectangle {
                         width: 86
                         color: look.muted
                         font.pixelSize: 13
+                        elide: Text.ElideRight
                         text: t`Wingspan`
                     }
                     Rectangle {
@@ -205,13 +202,6 @@ Rectangle {
                             height: parent.height
                             radius: 5
                             color: look.growth
-                            Behavior on width {
-                                enabled: root.active
-                                NumberAnimation {
-                                    duration: root.calm ? 200 : 280
-                                    easing.type: Easing.OutCubic
-                                }
-                            }
                         }
                     }
                     Text {
@@ -252,6 +242,7 @@ Rectangle {
                     width: parent.width
                     color: look.accentText
                     font.pixelSize: 14
+                    elide: Text.ElideRight
                     text: t`Seen ${root.seenCount} of ${root.totalSpecies}`
                 }
             }
