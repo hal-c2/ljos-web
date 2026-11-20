@@ -26,6 +26,11 @@ Item {
     property Item nine: Rectangle { objectName: "nine" }
     property Item ten: Rectangle { objectName: "ten" }
     property Item eleven: Rectangle { objectName: "eleven" }
+    property Item early: Rectangle { objectName: "seven" }
+    property Item late: Rectangle { objectName: "eight" }
+    property Item over: Rectangle { objectName: "nine" }
+    property Item given: Rectangle { objectName: "ten" }
+    property Item lent: Rectangle { objectName: "eleven" }
     property bool echoing: false
 
     AliasListHost {
@@ -76,13 +81,53 @@ Item {
         }
     }
 
-    states: State {
-        name: "over"
-        PropertyChanges {
-            target: staged
-            content: [root.nine]
-        }
+    // An alias of the alias `relayHost.content`, and hosts whose list has
+    // no binding: one declared, one with nothing given.
+    AliasListHost {
+        id: relayHost
+        content: root.flag ? [root.early] : [root.late]
     }
+    QtObject {
+        id: relay
+        property alias relayed: relayHost.content
+    }
+    AliasListHost {
+        id: madeHost
+        content: [
+            Rectangle { objectName: "given" }
+        ]
+    }
+    AliasListHost {
+        id: plainHost
+    }
+
+    states: [
+        State {
+            name: "over"
+            PropertyChanges {
+                target: staged
+                content: [root.nine]
+            }
+        },
+        State {
+            name: "relay"
+            PropertyChanges {
+                target: relay
+                relayed: [root.over]
+            }
+        },
+        State {
+            name: "made"
+            PropertyChanges {
+                target: madeHost
+                content: [root.given]
+            }
+            PropertyChanges {
+                target: plainHost
+                content: [root.lent]
+            }
+        }
+    ]
 
     AliasListHost {
         id: rebound
@@ -162,6 +207,27 @@ Item {
         root.echoing = true
         root.state = ""
         return [names(staged.inner.children), names(echo.inner.children)]
+    }
+    function throughRelay() {
+        const seen = [names(relayHost.inner.children)]
+        root.state = "relay"
+        seen.push(names(relayHost.inner.children))
+        root.flag = false
+        seen.push(names(relayHost.inner.children))
+        root.state = ""
+        seen.push(names(relayHost.inner.children))
+        root.flag = true
+        seen.push(names(relayHost.inner.children))
+        return seen
+    }
+    // Lists with no binding, through a state and out of it.
+    function unboundThroughState() {
+        const seen = [[names(madeHost.inner.children), names(plainHost.inner.children)]]
+        root.state = "made"
+        seen.push([names(madeHost.inner.children), names(plainHost.inner.children)])
+        root.state = ""
+        seen.push([names(madeHost.inner.children), names(plainHost.inner.children)])
+        return seen
     }
     function holdInLoader() {
         loading.active = true
