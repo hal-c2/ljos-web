@@ -3,8 +3,9 @@ import Site
 import Ljos.Core
 import "../nav.js" as Nav
 
-// The docs' search: page titles and the headings on them, found as the
-// reader types. Up and Down choose, Return goes, Escape clears; each
+// The site's search: the docs' page titles and the headings on them, and
+// the demos' pages (scripts/build.mjs, search.json), found as the reader
+// types. Up and Down choose, Return goes, Escape clears; each
 // result is also a real link a pointer can follow.
 Item {
     id: search
@@ -165,6 +166,8 @@ Item {
                 topPadding: Theme.xs
                 bottomPadding: Theme.xs
                 text: search.pages === null ? search.trouble : t`Nothing matches “${query}”. Try a type name, like ListView.`
+                // The reader's words as they typed them, never as markup.
+                textFormat: Text.PlainText
                 readonly property string query: field.text.trim()
                 color: Theme.textMuted
                 font.family: Theme.sans
