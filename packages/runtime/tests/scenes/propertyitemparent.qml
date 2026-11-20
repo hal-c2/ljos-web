@@ -47,6 +47,15 @@ Item {
         id: owning
         Item { property Item made: Item { objectName: "madeLater" } }
     }
+    // Given through an alias of an alias: assigned once all is made.
+    PropertyItemChain {
+        id: chain
+        deep: Item { objectName: "madeChain" }
+    }
+    Component {
+        id: chaining
+        PropertyItemChain { deep: Item { objectName: "madeChainLater" } }
+    }
     function read() {
         return [first.made.parent === first, second.made.parent === second, second.made.parent, holder.resources.length, first.made.parent]
     }
@@ -62,6 +71,13 @@ Item {
     function ownLater() {
         const owner = owning.createObject(bounding)
         return [owner.$fault === bounding.$fault, owner.made.$fault === bounding.$fault, owner.made.parent]
+    }
+    function throughChain() {
+        return [chain.deep.objectName, chain.deep.parent, chain.middle.inner.children.length]
+    }
+    function chainLater() {
+        const owner = chaining.createObject(bounding)
+        return [owner.deep.objectName, owner.deep.$fault === bounding.$fault, owner.deep.parent]
     }
     // Put in a visual list, it has that list's item as its parent.
     function put() {
