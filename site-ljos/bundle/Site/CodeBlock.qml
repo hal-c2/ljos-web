@@ -7,6 +7,7 @@ import Ljos.Blocks
 import Site
 import "../live.js" as Live
 import "../observed.js" as Observed
+import "../observing.js" as Observing
 import "code-editor.js" as Editor
 
 // A fenced block of a page. One that runs (`live` set by the build,
@@ -78,6 +79,8 @@ Column {
     // blocks of the same code are two examples, each edited, run and heard
     // on its own.
     property string key: ""
+    // Whether the Observer the toolbar opens is on this block's app.
+    property bool observing: false
     readonly property string what: t`this example`
     readonly property string fileName: isLive ? live.display[currentFile].name : ""
 
@@ -125,6 +128,16 @@ Column {
         declaredNames = root ? Observed.shown(root) : [];
         if (root)
             disconnect = Observed.connectSignals(block.key, root);
+        // The Observer on it follows it made again, and closes with it.
+        Observing.retarget(block.key, root);
+    }
+
+    function toggleObserver() {
+        Observing.toggle(block.key, stage.item, Observed.logSource(block.key), fileName);
+    }
+
+    function observerMoved() {
+        observing = Observing.isShown(block.key);
     }
 
     function apply() {
@@ -192,6 +205,7 @@ Column {
             return Observed.inspectFor(block.key, namespace);
         });
         Observed.watch(block.key, block.heard);
+        Observing.watch(block.observerMoved);
         Observed.reset(block.key, live.logged || []);
         // What the build heard is in the strip as the block is made, so a
         // prerendered page has it: the build does not wait out a timer.
@@ -213,6 +227,8 @@ Column {
         if (!isLive)
             return;
         Observed.unwatch(block.key, block.heard);
+        Observing.unwatch(block.observerMoved);
+        Observing.close(block.key);
         if (disconnect)
             disconnect();
         // A block made again (the page left and come back to) is a new
@@ -475,6 +491,17 @@ Column {
                             sourceButton.forceActiveFocus();
                         block.sourceShown = !block.sourceShown;
                     }
+                }
+                // Ljós's Observer on the app running here: its objects,
+                // properties, frames and log, as `ljos observe` shows a
+                // native one's. Only while it runs.
+                StageButton {
+                    visible: stage.status === ShellLoader.Ready && stage.item !== null
+                    checkable: true
+                    checked: block.observing
+                    text: t({ message: "Observer", context: "stage" })
+                    label: t`Observe ${block.what}`
+                    onPressed: block.toggleObserver()
                 }
             }
             Rectangle {

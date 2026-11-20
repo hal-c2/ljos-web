@@ -1,8 +1,12 @@
+// Ljós's Core before QtQuick: only its t`` is wanted here, and a name
+// both have (Timer) stays QtQuick's, the later import.
+import Ljos.Core
 import QtQuick
 import Ljos.Blocks
 import Site
 import Demos
 import "pantry-live.js" as LivePantry
+import "../observing.js" as Observing
 
 // The flagship: a small app whose shell the visitor rewrites here.
 // The app is its blocks (Pantry/Basket — what was bought; Pantry/Note
@@ -77,6 +81,7 @@ Column {
     // with the page, so nothing is applied until a reader edits: the
     // first apply fetches the compiler, megabytes of wasm.
     Component.onCompleted: {
+        Observing.watch(demo.observerMoved);
         LivePantry.setProject(PantryProject.files, PantryProject.shellText);
         writeOwn(PantryProject.shellText);
         // As CodeBlock asks it: before any edit, so the demo says why
@@ -87,6 +92,19 @@ Column {
                 demo.said = why;
             }
         });
+    }
+
+    // The Observer on the app, under whichever shell stands: a shell
+    // applied is the app made again, which the Observer follows as it
+    // follows a reload.
+    readonly property string observerKey: Observing.keyFor("pantry")
+    property bool observing: false
+    function observerMoved() {
+        observing = Observing.isShown(observerKey);
+    }
+    Component.onDestruction: {
+        Observing.unwatch(demo.observerMoved);
+        Observing.close(observerKey);
     }
 
     Timer {
@@ -111,6 +129,7 @@ Column {
 
         ShellLoader {
             id: stage
+            onItemChanged: Observing.retarget(demo.observerKey, item)
             width: 480
             height: 400
             scale: stageBox.fit
@@ -126,7 +145,7 @@ Column {
 
     Rectangle {
         width: parent.width
-        height: headRow.implicitHeight + 10
+        height: Math.max(headRow.implicitHeight, observerButton.implicitHeight) + 10
         color: Theme.panel
         border.color: Theme.border
         border.width: 1
@@ -175,6 +194,21 @@ Column {
                     onClicked: demo.resetToAppShell()
                 }
             }
+        }
+
+        // Ljós's Observer on the app while it runs: its objects,
+        // properties, frames and log, under whichever shell stands.
+        StageButton {
+            id: observerButton
+            anchors.right: parent.right
+            anchors.rightMargin: 6
+            anchors.verticalCenter: parent.verticalCenter
+            visible: stage.item !== null
+            checkable: true
+            checked: demo.observing
+            text: t({ message: "Observer", context: "stage" })
+            label: t`Observe the Pantry`
+            onPressed: Observing.toggle(demo.observerKey, stage.item, null, t`the Pantry`)
         }
     }
 

@@ -18,6 +18,9 @@ var LEVELS = ["log", "debug", "info", "warn", "error"];
 var logs = {};
 var watchers = {};
 var inspects = {};
+// How many lines each example has said: a line's number, which the
+// Observer asks for those since (`logSource`).
+var counted = {};
 
 function lines(id) {
     return logs[id] || [];
@@ -45,6 +48,7 @@ function tell(id) {
 // console go too.
 function forget(id) {
     delete logs[id];
+    delete counted[id];
     delete watchers[id];
     delete inspects[id];
 }
@@ -52,7 +56,7 @@ function forget(id) {
 // `level`: as console names it ("log", "warn", "signal" for one that
 // fired).
 function say(id, level, message) {
-    var kept = (logs[id] || []).concat([{ level: level, message: message }]);
+    var kept = (logs[id] || []).concat([{ level: level, message: message, seq: next(id) }]);
     logs[id] = kept.length > KEPT ? kept.slice(kept.length - KEPT) : kept;
     tell(id);
 }
@@ -61,9 +65,52 @@ function say(id, level, message) {
 // as the build made it), or none, as a run starts.
 function reset(id, said) {
     logs[id] = (said || []).map(function (message) {
-        return { level: "log", message: message };
+        return { level: "log", message: message, seq: next(id) };
     });
     tell(id);
+}
+
+function next(id) {
+    var seq = counted[id] || 0;
+    counted[id] = seq + 1;
+    return seq;
+}
+
+// What the Observer calls each level, as Qt's message types: qml6 says
+// `console.log` is a debug message and `console.error` a critical one.
+// A signal that fired is told as information.
+var QT_LEVELS = { log: "debug", debug: "debug", info: "info", warn: "warning", error: "critical", signal: "info" };
+
+// An example's lines as `ljos-web/Ljos/Observer` reads a log (its
+// `LogSource`): the Observer on a stage shows what that example said,
+// not the page's every line. Numbered from its first, and a run that
+// starts again goes on numbering, so the Observer asking for those
+// since the last it showed is told only what is new.
+function logSource(id) {
+    return {
+        lines: function (since, limit) {
+            return lines(id).filter(function (line) {
+                return line.seq >= since;
+            }).slice(0, limit).map(function (line) {
+                return {
+                    seq: line.seq,
+                    line: { level: QT_LEVELS[line.level] || "debug", category: line.level === "signal" ? "signal" : "qml", message: line.message, file: null, line: null }
+                };
+            });
+        },
+        count: function () {
+            return counted[id] || 0;
+        },
+        listen: function (told) {
+            var heard = function () {
+                told();
+            };
+            watch(id, heard);
+            return function () {
+                unwatch(id, heard);
+            };
+        }
+    };
 }
 
 // A value as a line shows it: as qml6 prints it, a string as it is.

@@ -35,7 +35,11 @@ Rectangle {
     // The pro demo this route is the page of (Demos/pro.json), or null.
     readonly property var pro: Content.pro.find((demo) => demo.route === route) ?? null
     readonly property bool sidebarShown: wide && docsRoute
-    readonly property bool tocShown: sidebarShown && width >= Theme.tocFrom && page !== null && page.headings.length > 0
+    // How much of the right the Observer a stage opened is docked over
+    // (Site/ObserverDock.qml): the page gives it the room, and what is on
+    // the page goes, so the app the reader clicks in stays beside it.
+    readonly property int docked: observerDock.open && !observerDock.sheet ? observerDock.panelWidth : 0
+    readonly property bool tocShown: sidebarShown && docked === 0 && width >= Theme.tocFrom && page !== null && page.headings.length > 0
     readonly property int gutter: wide ? Theme.gutterWide : Theme.gutterCompact
     property bool menuOpen: false
 
@@ -262,6 +266,7 @@ Rectangle {
         anchors.left: shell.sidebarShown ? sidebarScroll.right : parent.left
         anchors.leftMargin: shell.sidebarShown ? 1 : 0
         anchors.right: shell.tocShown ? tocScroll.left : parent.right
+        anchors.rightMargin: shell.tocShown ? 0 : shell.docked
         anchors.top: header.bottom
         anchors.bottom: parent.bottom
         contentWidth: width
@@ -554,5 +559,14 @@ Rectangle {
                 }
             }
         }
+    }
+
+    ObserverDock {
+        id: observerDock
+        z: 4
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: header.bottom
+        anchors.bottom: parent.bottom
     }
 }
