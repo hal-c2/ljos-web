@@ -94,6 +94,30 @@ fn only_an_object_something_names_has_a_binding() {
 }
 
 #[test]
+fn a_property_of_an_object_type_takes_objects_of_it() {
+    let code = lowered(
+        r#"import QtQuick
+Item {
+    property Rectangle thing
+    property QtObject loose
+    property Component made
+    property font face
+}"#,
+    );
+    // An object of the type or of one made from it, as Qt takes; any
+    // object for a QtObject. A component is a function here, and a font a
+    // value: neither is checked.
+    for property in [
+        r#"thing: $instance(Rectangle, "Rectangle*")"#,
+        r#"loose: $instance(null, "QObject*")"#,
+        "made: null",
+    ] {
+        assert_contains(&code, property);
+    }
+    assert!(!code.contains("face: $instance"), "{code}");
+}
+
+#[test]
 fn what_an_object_declares_is_its_type() {
     let code = lowered(
         r#"import QtQuick
@@ -117,7 +141,7 @@ Item {
         "hours: $int",
         "city: $string",
         "anything: void 0",
-        "face: null",
+        r#"face: $instance(Item, "Item*")"#,
         "hands: []",
         "night: $bool",
     ] {

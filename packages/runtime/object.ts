@@ -198,6 +198,9 @@ export interface Kind {
   type: string;
   any?: boolean;
   made?: (value: unknown) => unknown;
+  // An object's type (`Rectangle*`), which a binding's warning names
+  // without the pointer, as Qt's does.
+  object?: boolean;
 }
 
 // What ends a computation's run in a value: a binding, as the slots hold one.
@@ -508,6 +511,22 @@ export const $bool = typed(bool, false);
 export const $string = typed(string, "");
 export const $color = typed(tint, color(""));
 
+// `property Rectangle thing`: an object of the type or of one made from it,
+// or null; `name` is what the refusal calls the type. Qt 6.11 calls it by
+// its class (`QQuickRectangle*`), which the compiler's table does not
+// know; it calls it by its QML name. `type` null (`QtObject`) takes any
+// object, and so does a type that cannot say what is one of it.
+export function $instance(type: QmlType | null, name: string): Typed<null> {
+  const isOne = (value: unknown): boolean => {
+    const object = value as (Partial<QObject> & { $component?: unknown }) | null | undefined;
+    if (typeof value !== "object" && typeof value !== "function") return false;
+    if (!object?.$type && !object?.$component) return false;
+    return type === null || type[Symbol.hasInstance] !== isA || value instanceof type;
+  };
+  const kind = Object.assign((value: unknown) => (value === null || isOne(value) ? value : REFUSED), { type: name, object: true });
+  return typed(kind, null);
+}
+
 // A binding's value as the property's type has it. What the type refuses
 // leaves the property as it was: what the binding last gave it, or `last`,
 // what it was given before it had the binding.
@@ -518,9 +537,17 @@ function converted(key: string, kind: Kind, compute: () => unknown, last?: unkno
     const made = kind(value);
     if (made === KEPT) return last;
     if (made !== REFUSED) return (last = made);
-    console.warn(`${key.replaceAll("$", ".")}: Unable to assign ${named(value)} to ${kind.type}`);
+    unable(key, kind, value);
     return last;
   };
+}
+
+// What Qt tells of a value the property's type refuses, where nothing
+// throws: a binding's, or one given as the object is made. An object type
+// is named with no `*` here, as Qt names it.
+function unable(key: string, kind: Kind, value: unknown): void {
+  const [given, to] = kind.object ? [named(value).replace(/\*$/, ""), kind.type.replace(/\*$/, "")] : [named(value), kind.type];
+  console.warn(`${key.replaceAll("$", ".")}: Unable to assign ${given} to ${to}`);
 }
 
 const next = (version: number): number => version + 1;
@@ -1389,6 +1416,8 @@ class Slot {
   made(value: unknown): unknown {
     if (!this.kind || value === undefined) return value;
     const made = this.kind(value);
+    // `property Rectangle direct: plain`, where `plain` is a QtObject.
+    if (made === REFUSED && this.kind.object) unable(this.key, this.kind, value);
     return made === REFUSED || made === KEPT ? undefined : made;
   }
 
