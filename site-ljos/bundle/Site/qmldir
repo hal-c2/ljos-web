@@ -23,3 +23,15 @@ FeatureCard 1.0 FeatureCard.qml
 Runner 1.0 Runner.qml
 StageButton 1.0 StageButton.qml
 ProDemoPage 1.0 ProDemoPage.qml
+# block Router 1.0 Router.qml Site "Where the reader is on the site and how they move: route, page, sections, follow, show"
+Router 1.0 Router.qml
+# block Preferences 1.0 Preferences.qml Site "What the reader chose: colour scheme, reduced motion and the shell"
+Preferences 1.0 Preferences.qml
+PageView 1.0 PageView.qml
+GitHubMark 1.0 GitHubMark.qml
+ShellSwitcher 1.0 ShellSwitcher.qml
+ShellSource 1.0 ShellSource.qml
+Brand 1.0 Brand.qml
+Toc 1.0 Toc.qml
+PageTree 1.0 PageTree.qml
+PageSource 1.0 PageSource.qml

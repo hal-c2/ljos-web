@@ -1,5 +1,6 @@
 import QtQuick
 import Site
+import Ljos.Core
 
 // Reduced motion, the reader's: it starts as their browser says and,
 // pressed, says otherwise for this site, which is kept (Theme.setCalm).
@@ -21,7 +22,7 @@ Rectangle {
 
     activeFocusOnTab: true
     Accessible.role: Accessible.CheckBox
-    Accessible.name: "Reduce motion"
+    Accessible.name: t`Reduce motion`
     Accessible.checkable: true
     Accessible.checked: Theme.calm
     Accessible.onPressAction: () => Theme.setCalm(!Theme.calm)

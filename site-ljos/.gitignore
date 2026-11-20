@@ -7,3 +7,4 @@ bundle/Site/Content.qml
 bundle/Examples/
 bundle/Demos/PantryProject.qml
 bundle/Demos/*-project.json
+bundle/Shells/sources.json
