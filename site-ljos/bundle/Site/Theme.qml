@@ -149,6 +149,9 @@ QtObject {
     // What Ljós's Observer lays its pages out for: its list of pages, an
     // object tree and the values beside it, each value wide enough to edit.
     readonly property int observerWidth: 680
+    // The narrowest a page is left beside a docked panel: a phone's
+    // width, less its gutters.
+    readonly property int pageNarrowest: 320
 
     // Motion, in ms, with its easing (out: fast, then settling).
     readonly property int enterSmall: 150

@@ -24,18 +24,38 @@ Item {
 
     property real room: 0
     property real roomHeight: 0
+    // What else stands beside the page in that room (a docs page's
+    // sidebar), which the dock would leave where it is.
+    property real beside: 0
 
     // What is shown: { key, target, logs, title }, or null.
     property var shown: null
     readonly property bool open: shown !== null
-    readonly property bool sheet: room < Theme.wideFrom
+    // A sheet on a phone, and wherever docking would leave the page beside
+    // it narrower than it is read at.
+    readonly property bool sheet: room < Theme.wideFrom || room - beside - dockedWidth < Theme.pageNarrowest
     // Made while open, and while it slides away.
     property bool held: false
+    // The stage the panel was made for. Moved to another stage, the
+    // Observer is made anew: nothing of the first one's (the page it was
+    // left on, an item picked, a value being edited) is about the second.
+    readonly property string key: shown ? shown.key : ""
+    property string madeFor: ""
+    property bool renewing: false
+    // Unmade, it is made for whichever stage opens it next.
+    onHeldChanged: if (!held) madeFor = ""
+    onKeyChanged: {
+        if (key === "" || madeFor === "" || key === madeFor)
+            return;
+        renewing = true;
+        Qt.callLater(() => dock.renewing = false);
+    }
 
     // Docked, it is never narrower than Ljós's Observer lays its pages out
     // for: a narrower dock left a value no room to be read or edited. A
     // sheet is the phone's width, and the panel scrolls sideways in it.
-    readonly property int panelWidth: sheet ? room : Math.min(760, Math.max(Theme.observerWidth, Math.round(room * 0.5)))
+    readonly property int dockedWidth: Math.min(760, Math.max(Theme.observerWidth, Math.round(room * 0.5)))
+    readonly property int panelWidth: sheet ? room : dockedWidth
     readonly property int panelHeight: sheet ? Math.round(roomHeight * 0.72) : roomHeight
 
     function show(what) {
@@ -156,13 +176,16 @@ Item {
             y: head.height
             width: parent.width
             height: parent.height - head.height
-            active: dock.held
+            active: dock.held && !dock.renewing
             source: Observing.panel
             onLoaded: {
+                dock.madeFor = dock.key;
                 item.minimumWidth = Theme.observerWidth;
-                item.target = Qt.binding(() => dock.shown ? dock.shown.target : null);
+                // The log and title before the target: the target is
+                // served with what it is given then.
                 item.logs = Qt.binding(() => dock.shown ? dock.shown.logs : null);
                 item.title = Qt.binding(() => dock.shown ? dock.shown.title : "");
+                item.target = Qt.binding(() => dock.shown ? dock.shown.target : null);
             }
         }
     }

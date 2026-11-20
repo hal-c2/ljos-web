@@ -145,6 +145,18 @@ test("on a wide window it is docked along the right, and the example can still b
   await page.getByRole("link", { name: "Hot Reload", exact: true }).first().click({ trial: true, timeout: 5_000 });
 });
 
+// A docs page keeps its sidebar on a window this wide: docked beside both,
+// the Observer would leave the page too little room to be read, so it is a
+// sheet, as on a phone.
+test("on a window with no room for the page beside the sidebar and the dock it is a sheet", async ({ page }) => {
+  await page.setViewportSize({ width: 1100, height: 800 });
+  await observed(page);
+  await expect.poll(async () => Math.abs(800 - (await dock(page).boundingBox().then((box) => box.y + box.height)))).toBeLessThanOrEqual(1);
+  const box = await dock(page).boundingBox();
+  expect(box.width).toBe(1100);
+  expect(box.y).toBeGreaterThan(100);
+});
+
 test("on a phone it is a sheet over the lower part of the screen, and a press above it closes it", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await observed(page);
@@ -258,13 +270,50 @@ test("one Observer at a time: pressed on another example, it moves there", async
   await open(page, "/language/properties-and-bindings/");
   const first = await run(page, 0);
   const second = await run(page, 1);
+  const tree = async () => {
+    await pageTab(page, "Objects").click();
+    const rows = dock(page).getByRole("listitem", { name: /^\w+(#\w+)?$/ });
+    await expect(rows.first()).toBeVisible({ timeout: 30_000 });
+    return rows.evaluateAll((each) => each.map((row) => row.getAttribute("aria-label")));
+  };
   await press(observerButton(first));
   await expect(observerButton(first)).toHaveAttribute("aria-pressed", "true");
+  const firstTree = await tree();
   await press(observerButton(second));
   await expect(observerButton(second)).toHaveAttribute("aria-pressed", "true");
   await expect(observerButton(first)).toHaveAttribute("aria-pressed", "false");
   await expect(page.getByRole("tab", { name: "Overview" })).toHaveCount(1);
+  // A new Observer, all of it the second example's: it opens on its
+  // Overview, not on the page the first was left on, and its tree and log
+  // are the second's, as they are when it is opened on the second alone.
+  await expect(pageTab(page, "Overview")).toHaveAttribute("aria-selected", "true");
+  const moved = { tree: await tree(), logs: await logs() };
+  expect(moved.tree).not.toEqual(firstTree);
+  await page.getByRole("button", { name: "Close the Observer" }).click();
+  await expect(dock(page)).toBeHidden();
+  await press(observerButton(second));
+  expect({ tree: await tree(), logs: await logs() }).toEqual(moved);
+
+  async function logs() {
+    await pageTab(page, "Logs").click();
+    return dock(page).getByRole("listitem").evaluateAll((each) => each.map((row) => row.getAttribute("aria-label") ?? row.textContent));
+  }
 });
+
+for (const width of [320, 390]) {
+  test(`at ${width} px the Pantry's Reset is whole beside its Observer button`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 844 });
+    await open(page, "/");
+    await centre(page.getByLabel("The Pantry, running"));
+    const reset = page.getByRole("button", { name: "Reset to the app's shell" });
+    const button = page.getByRole("button", { name: "Observer for the Pantry" });
+    await expect(button).toBeVisible({ timeout: 30_000 });
+    const [at, by] = [await reset.boundingBox(), await button.boundingBox()];
+    expect(at.x, "Reset starts on the screen").toBeGreaterThanOrEqual(0);
+    expect(at.x + at.width, "Reset ends before the Observer button starts").toBeLessThanOrEqual(by.x);
+    expect(by.x + by.width, "the Observer button ends on the screen").toBeLessThanOrEqual(width);
+  });
+}
 
 test("the Pantry is looked into while its shell is rewritten", async ({ page }) => {
   await open(page, "/");

@@ -568,5 +568,7 @@ Rectangle {
         anchors.top: header.bottom
         room: parent.width
         roomHeight: parent.height - header.height
+        // The sidebar and the line after it.
+        beside: shell.sidebarShown ? Theme.sidebarWidth + 1 : 0
     }
 }
