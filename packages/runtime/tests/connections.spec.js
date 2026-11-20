@@ -65,3 +65,12 @@ test("a Connections whose target is Component hears of its own completion", asyn
   await open(page, "connectionown");
   expect(await page.evaluate(() => window.scene.said)).toEqual(["own", "root"]);
 });
+
+// A change of a list that has no signal of its own (`children`) is told
+// once what changed has settled, as every other change is: the handler
+// reads bindings up to date, and its write asks for no flush inside the one
+// that found the change (no FLUSH_IN_EFFECT_CALLBACK, which open.js fails).
+test("a Connections hears childrenChanged once the move has settled, and writes outside the flush", async ({ page }) => {
+  await open(page, "connectionchildren");
+  expect(await page.evaluate(() => window.scene.move())).toEqual([1, [2], 1]);
+});
