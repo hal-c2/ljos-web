@@ -240,6 +240,25 @@ test("an item made inline as a declared property's value has no parent until it 
   expect(await page.evaluate(() => window.scene.put())).toEqual([true, 1]);
 });
 
+// What an instance gives an alias of such a property is that property's
+// too, and parentless: the alias's name is not what decides it.
+test("an item given through an alias of a declared property has no parent", async ({ page }) => {
+  await open(page, "propertyitemparent");
+  expect(await page.evaluate(() => window.scene.throughAlias())).toEqual(["madeThrough", null, 0]);
+});
+
+// Made in no visual parent, the item still answers to its owner's error
+// boundary (a ShellLoader's), not to the page.
+test("an item made as a declared property's value has its owner's error boundary", async ({ page }) => {
+  await open(page, "propertyitemparent");
+  const answer = await page.evaluate(() => {
+    const boundary = () => {};
+    Object.defineProperty(window.scene.boundingItem(), "$fault", { value: boundary, configurable: true });
+    return window.scene.ownLater();
+  });
+  expect(answer).toEqual([true, true, null]);
+});
+
 test("what is destroyed is gone from the resources that held it", async ({ page }) => {
   await open(page, "resourcesheld");
   await page.evaluate(() => window.scene.drop());
