@@ -160,38 +160,138 @@ test("the reader's place on a docs page is kept across a swap", async ({ browser
   }
 });
 
+// From the first paint on, each frame: which shell framed the page and
+// how much of the page could be seen (sampled as painted, not as
+// attributes change: a shell can come between two changes).
+const frames = () => {
+  const seen = (window.__seen = []);
+  const look = () => {
+    const app = document.getElementById("app");
+    return app ? getComputedStyle(app).opacity : "";
+  };
+  document.addEventListener("DOMContentLoaded", () => (window.__atFirst = look()));
+  const each = () => {
+    const opacity = look();
+    if (opacity !== "") seen.push({ shell: document.documentElement.dataset.ljosShellShowing ?? "", opacity });
+    requestAnimationFrame(each);
+  };
+  requestAnimationFrame(each);
+};
+
+// The frames in which a shell other than `kept` could be seen.
+const seenOtherThan = (page, kept) => page.evaluate((kept) => window.__seen.filter(({ shell, opacity }) => shell !== kept && opacity !== "0"), kept);
+
 test("the pick is kept, and a reload puts it in before the page is seen", async ({ browser }) => {
   const context = await reader(browser);
   try {
     const page = await context.newPage();
     await open(page, "/start/first-app/");
     await pick(page, "desktop");
-    // From the first paint on: how the page looked each time another
-    // shell came to frame it.
-    await page.addInitScript(() => {
-      const seen = (window.__seen = []);
-      const look = () => {
-        const app = document.getElementById("app");
-        return app ? getComputedStyle(app).opacity : "";
-      };
-      document.addEventListener("DOMContentLoaded", () => (window.__atFirst = look()));
-      // The script runs before there is a root to watch, so the document
-      // is watched, the root's attributes with it.
-      new MutationObserver(() => seen.push({ shell: document.documentElement.dataset.ljosShellShowing ?? "", opacity: look() })).observe(document, {
-        subtree: true,
-        attributes: true,
-        attributeFilter: ["data-ljos-shell-showing"],
-      });
-    });
+    await page.addInitScript(frames);
     await page.reload();
     await page.waitForSelector(HYDRATED);
     await page.waitForFunction(() => "ljosShellShown" in document.documentElement.dataset);
     expect(await showing(page)).toBe("desktop");
-    const { seen, first } = await page.evaluate(() => ({ seen: window.__seen, first: window.__atFirst }));
-    expect(first, "the page as written is held back").toBe("0");
-    for (const { shell, opacity } of seen.filter(({ shell }) => shell !== "desktop"))
-      expect(opacity, `the ${shell} shell was not seen`).toBe("0");
+    expect(await page.evaluate(() => window.__atFirst), "the page as written is held back").toBe("0");
     await expect(page.locator("#app")).toHaveCSS("opacity", "1");
+    expect(await seenOtherThan(page, "desktop"), "frames in which another shell was seen").toEqual([]);
+  } finally {
+    await context.close();
+  }
+});
+
+test("with no view transitions, a reload still puts the kept shell in before the page is seen", async ({ browser }) => {
+  const context = await reader(browser, { kept: "desktop" });
+  try {
+    const page = await context.newPage();
+    // A browser without them: the swap is made at once (shells.js `swap`).
+    await page.addInitScript(() => delete Document.prototype.startViewTransition);
+    await page.addInitScript(frames);
+    // The shell's module is slow to come, as on a slow connection: well
+    // within the head's watchdog, well after the page has come alive.
+    await page.route("**/Desktop-*.js", async (route) => {
+      await new Promise((done) => setTimeout(done, 600));
+      await route.continue();
+    });
+    await open(page, "/start/first-app/");
+    expect(await page.evaluate(() => typeof document.startViewTransition)).toBe("undefined");
+    expect(await showing(page)).toBe("desktop");
+    await expect(page.locator("#app")).toHaveCSS("opacity", "1");
+    expect(await seenOtherThan(page, "desktop"), "frames in which another shell was seen").toEqual([]);
+  } finally {
+    await context.close();
+  }
+});
+
+test("a kept shell that comes after the head's watchdog showed the page does not replace it", async ({ browser }) => {
+  const context = await reader(browser, { kept: "desktop" });
+  try {
+    const page = await context.newPage();
+    await page.addInitScript(frames);
+    // Its module comes long after the head stopped waiting for it.
+    let asked = false;
+    let came;
+    const delivered = new Promise((done) => (came = done));
+    await page.route("**/Desktop-*.js", async (route) => {
+      asked = true;
+      await new Promise((done) => setTimeout(done, 5_000));
+      await route.continue().catch(() => {});
+      came();
+    });
+    await page.goto(at("/start/first-app/"));
+    await page.waitForSelector(HYDRATED, { timeout: 40_000 });
+    // The watchdog's: the page shows, as written.
+    await expect(page.locator("#app")).toHaveCSS("opacity", "1", { timeout: 10_000 });
+    const sawFrom = await page.evaluate(() => window.__seen.length);
+    if (asked) {
+      await delivered;
+      // What the module's arrival would set off, given its turn.
+      await page.evaluate(() => new Promise((done) => setTimeout(() => requestAnimationFrame(() => done()), 500)));
+    }
+    expect(await showing(page), "the page stays in the shell the reader sees").toBe("marketing");
+    const after = await page.evaluate((from) => window.__seen.slice(from).filter(({ shell }) => shell !== "marketing"), sawFrom);
+    expect(after, "frames in which another shell came").toEqual([]);
+    await expect(page.locator("#app")).toHaveCSS("opacity", "1");
+  } finally {
+    await context.close();
+  }
+});
+
+test("the Desktop shell keeps every page the reader opened as a tab", async ({ browser }) => {
+  const context = await reader(browser, { kept: "desktop" });
+  try {
+    const page = await context.newPage();
+    await open(page, "/start/first-app/");
+    const tabs = page.getByRole("tablist", { name: "Open pages" }).getByRole("tab");
+    await expect(tabs).toHaveCount(1);
+    await expect(tabs.first()).toHaveAccessibleName(/Your First App/);
+    await page.getByRole("link", { name: "Editor Setup", exact: true }).filter({ visible: true }).first().click();
+    await page.waitForURL("**/start/editors/");
+    await expect(tabs, "the page left is still a tab").toHaveCount(2);
+    await expect(tabs.nth(0)).toHaveAccessibleName(/Your First App/);
+    await expect(tabs.nth(1)).toHaveAccessibleName(/Editor Setup/);
+  } finally {
+    await context.close();
+  }
+});
+
+test("the shell choices come on a later press when the first could not load them", async ({ browser }) => {
+  const context = await reader(browser);
+  try {
+    const page = await context.newPage();
+    let first = true;
+    await page.route("**/ShellChoices-*.js", (route) => {
+      if (!first) return route.continue();
+      first = false;
+      return route.abort("connectionreset");
+    });
+    await open(page, "/");
+    const failed = page.waitForEvent("requestfailed", (request) => /ShellChoices-/.test(request.url()));
+    await press(switcher(page));
+    await failed;
+    await expect(page.getByRole("radio", { name: LABEL.desktop, exact: true })).toHaveCount(0);
+    await press(switcher(page));
+    await expect(page.getByRole("radio", { name: LABEL.desktop, exact: true }), "the choices, asked for again").toBeVisible({ timeout: 30_000 });
   } finally {
     await context.close();
   }
@@ -308,6 +408,46 @@ test("the header names the source with an icon", async ({ browser }) => {
     const github = page.getByRole("link", { name: "Ljós on GitHub", exact: true }).filter({ visible: true }).first();
     await expect(github).toHaveAttribute("href", "https://github.com/hal-c2/ljos-ui");
     await expect(github).toHaveText("");
+  } finally {
+    await context.close();
+  }
+});
+
+test("each shell's source shows that shell's own QML, and keeps the reader's edits to each", async ({ browser }) => {
+  const context = await reader(browser);
+  try {
+    const page = await context.newPage();
+    await open(page, "/start/first-app/");
+    await pick(page, "workbench");
+    // Named by the file it shows; the shell choices are a dialog too.
+    const dialog = page.getByRole("dialog", { name: /^Shells\// });
+    const editor = dialog.getByRole("textbox", { name: "Edit this shell's QML" });
+    const view = async () => {
+      await press(switcher(page));
+      await press(page.getByRole("button", { name: "View this shell's source", exact: true }));
+      await expect(dialog).toBeVisible();
+    };
+    await view();
+    await expect(editor).toContainText("workbenchShell");
+    await editor.click();
+    await expect(page.locator(`.cm-content[aria-label="Edit this shell's QML"]`)).toBeFocused({ timeout: 30_000 });
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.type("// the reader's own\n");
+    await expect(editor).toContainText("// the reader's own");
+    await press(dialog.getByRole("button", { name: "Close", exact: true }));
+    await expect(dialog).toBeHidden();
+    await pick(page, "desktop");
+    await view();
+    await expect(dialog).toHaveAccessibleName("Shells/Desktop.qml");
+    await expect(editor, "the Desktop shell's own QML").toContainText("desktopShell");
+    await expect(editor).not.toContainText("// the reader's own");
+    await press(dialog.getByRole("button", { name: "Close", exact: true }));
+    await expect(dialog).toBeHidden();
+    await pick(page, "workbench");
+    await view();
+    await expect(dialog).toHaveAccessibleName("Shells/Workbench.qml");
+    await expect(editor, "the Workbench edit, kept").toContainText("// the reader's own");
+    await expect(editor).toContainText("workbenchShell");
   } finally {
     await context.close();
   }

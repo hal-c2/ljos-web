@@ -58,6 +58,37 @@ Feature: The site is shown in a shell the reader picks
     Then the page is framed by the Desktop shell
     And the page was not shown in the Marketing shell before it was
 
+  Scenario: A reload shows the kept shell without a jump in a browser with no view transitions
+    Given a reader in a browser with no view transitions, who picked the Desktop shell
+    And the Desktop shell is slow to come
+    When they reload the page
+    Then the page is framed by the Desktop shell
+    And the page was not shown in the Marketing shell before it was
+
+  Scenario: A kept shell that comes too late does not replace the page the reader sees
+    Given a reader who picked the Desktop shell
+    And the Desktop shell comes only after the page has been shown anyway
+    When they reload the page
+    Then the page is shown in the Marketing shell
+    And it stays in the Marketing shell once the Desktop shell has come
+
+  Scenario: The Desktop shell keeps every page the reader opened as a tab
+    Given a reader in the Desktop shell on "/start/first-app/"
+    When they go to another docs page
+    Then both pages are open as tabs
+
+  Scenario: The shell choices come on a later press when the first could not load them
+    Given a reader whose first press on the shell switcher could not load the choices
+    When they press it again
+    Then the shell choices are shown
+
+  Scenario: Each shell's source shows that shell's own QML, and keeps the reader's edits to each
+    Given a reader who edited the Workbench shell's source and closed it
+    When they swap to the Desktop shell and view this shell's source
+    Then they see the Desktop shell's own QML, without their edit
+    When they swap back to the Workbench shell and view its source
+    Then they see their edit again
+
   Scenario: A page's first load carries only the shell it is written in
     Given any page the build wrote
     Then what it loads before a reader does anything holds no Workbench or Desktop shell
