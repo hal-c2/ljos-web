@@ -70,7 +70,9 @@ const switcher = (page) => page.getByRole("button", { name: SWITCHER }).filter({
 async function pick(page, name) {
   await press(switcher(page));
   await press(page.getByRole("radio", { name: LABEL[name], exact: true }));
-  await expect.poll(() => showing(page), { message: `the ${name} shell frames the page` }).toBe(name);
+  // Workbench and Desktop come the first time one is picked
+  // (Shells/later.js): the wait is the fetch's, not a fixed few seconds.
+  await expect.poll(() => showing(page), { message: `the ${name} shell frames the page`, timeout: 30_000 }).toBe(name);
   await page.waitForFunction(() => !document.documentElement.dataset.ljosSwap);
 }
 
