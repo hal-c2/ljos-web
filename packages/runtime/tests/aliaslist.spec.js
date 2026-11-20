@@ -158,3 +158,17 @@ test("an item that holds its resources again and again lets go of them once", as
   await page.evaluate(() => window.scene.reholdHeld(8));
   expect(await cleanups()).toBe(once);
 });
+
+// An object declared for an alias of an alias that the property cannot
+// hold is told of, as a binding's value it cannot hold is, and the
+// property keeps what it held. Qt 6.12 refuses to load the component.
+test.describe("an alias of an alias given what it cannot hold", () => {
+  test.use({ told: [/^thing: Unable to assign/] });
+  test("is told of, and keeps what it held", async ({ page }) => {
+    const told = [];
+    page.on("console", (message) => message.text().startsWith("thing: Unable to assign") && told.push(message.text()));
+    await open(page, "aliasrefused");
+    expect(await page.evaluate(() => window.scene.held())).toBe(7);
+    expect(told.length).toBe(1);
+  });
+});
