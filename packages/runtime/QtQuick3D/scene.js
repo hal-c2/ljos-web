@@ -79,31 +79,45 @@ export const held = () => fetches.size;
 
 // A file, once read: one record for everything that names it. `state()` is
 // null until it is here, then what `took` made of it, or `{ error }`.
+//
+// What a renderer lets go of once its card has it (`spent()`, a baked cube's
+// levels) is read again by `reread()`, for a card made anew: the JavaScript
+// renderer's context lost and given back. The file is fetched again, and
+// `state()` is what it made of it then.
 const files = new Map();
 export function file(url, kind, took) {
   const key = `${kind} ${url}`;
   let record = files.get(key);
   if (record) return record;
-  const bytes = fetched(url);
-  bytes.wanted = true;
-  const make = () => {
+  const asked = () => {
+    const bytes = fetched(url);
+    bytes.wanted = true;
+    return bytes;
+  };
+  const make = (bytes) => {
     try {
       if (bytes.failed) return { error: `could not be read: ${bytes.failed.message}`, fetching: again(bytes.failed) };
-      return took(bytes.bytes);
+      const made = took(bytes.bytes);
+      if (typeof made?.spent === "function") {
+        let read = false;
+        made.reread = () => {
+          if (read) return;
+          read = true;
+          arrives(asked());
+        };
+      }
+      return made;
     } catch (error) {
       return { error: `could not be read: ${error.message}` };
     } finally {
       release(url, bytes);
     }
   };
-  if (bytes.bytes || bytes.failed) {
-    const [state] = signal(make());
-    files.set(key, (record = { state }));
-    return record;
-  }
-  const [state, setState] = signal(null);
+  const bytes = asked();
+  const [state, setState] = signal(bytes.bytes || bytes.failed ? make(bytes) : null);
+  const arrives = (bytes) => awaited(bytes.done.then(() => setState(make(bytes))).then(() => flush()));
   files.set(key, (record = { state }));
-  awaited(bytes.done.then(() => setState(make())).then(() => flush()));
+  if (!bytes.bytes && !bytes.failed) arrives(bytes);
   return record;
 }
 
