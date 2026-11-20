@@ -254,9 +254,13 @@ export const View3D = defineType("View3D", Item, {
     rebuildExtensionList() {},
   },
   setup(self, props) {
-    const canvas = document.createElement("canvas");
-    canvas.className = "qq-view3d";
-    canvas.width = canvas.height = 0;
+    const canvasFor = () => {
+      const made = document.createElement("canvas");
+      made.className = "qq-view3d";
+      made.width = made.height = 0;
+      return made;
+    };
+    let canvas = canvasFor();
     self.$node.append(canvas);
     // A canvas has one kind of context: wgpu's is made where it draws.
     const wgpu = renderer() === "wgpu";
@@ -285,9 +289,20 @@ export const View3D = defineType("View3D", Item, {
       self.$canvas = { element: canvas };
       self.$view = () => 0;
       // wgpu taken for want of an ask, and WebGPU with no adapter for the
-      // page: the JavaScript renderer draws on the canvas instead.
+      // page: the JavaScript renderer draws on the canvas instead, or on
+      // one in its place where wgpu took the canvas's context (`taken`).
       const owner = getOwner();
-      const instead = chosen() ? undefined : () => runWithOwner(owner, byScript);
+      const instead = chosen()
+        ? undefined
+        : (taken) =>
+            runWithOwner(owner, () => {
+              if (taken) {
+                const made = canvasFor();
+                canvas.replaceWith(made);
+                canvas = made;
+              }
+              byScript();
+            });
       const dispose = drawOn(self, canvas, frame, instead);
       if (getOwner()) onCleanup(dispose);
       // What the picture does not need but mapping does: the camera a view

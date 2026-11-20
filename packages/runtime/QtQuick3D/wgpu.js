@@ -793,6 +793,17 @@ export function drawOn(self, canvas, told, instead) {
   // first was, with a host of its own: the new view asks for the whole
   // scene. Freed after the task that told it, which may be in one of its
   // own calls.
+  //
+  // One no one asked a renderer of, whose GPU is not to be had again (a
+  // browser whose GPU process gave up may have no adapter after) or is lost
+  // too often to go on, draws on the JavaScript renderer instead, as where
+  // WebGPU had no adapter from the start: on a canvas of its own, as this
+  // one keeps WebGPU's context.
+  const fallBack = () => {
+    gone = true;
+    instead(true);
+    setDraws((times) => times + 1);
+  };
   let losses = [];
   const lost = (message) => {
     const view = made();
@@ -807,6 +818,7 @@ export function drawOn(self, canvas, told, instead) {
     changed.clear();
     members.clear();
     if (losses.length > LOSSES) {
+      if (instead) return void fallBack();
       state.error = `the GPU was lost: ${message}`;
       return void console.error(`View3D: ${state.error}`);
     }
@@ -901,6 +913,7 @@ export function drawOn(self, canvas, told, instead) {
       })
       .catch((error) => {
         if (trapped(error)) return;
+        if (state.lost && instead && !gone) return void fallBack();
         state.error = String(error?.message ?? error);
         console.error(`View3D: ${state.error}`);
       });
