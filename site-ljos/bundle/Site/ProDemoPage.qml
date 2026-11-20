@@ -180,6 +180,8 @@ Column {
             property bool calm: false
             // The frame waits on what it holds; what it holds is the app.
             readonly property bool ready: app.status === Loader.Ready && app.item !== null && app.item.ready !== false
+            // What the Observer is on: the app, not this frame round it.
+            readonly property var observed: app.item
             Loader {
                 id: app
                 anchors.fill: parent

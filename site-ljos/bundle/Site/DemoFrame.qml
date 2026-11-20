@@ -4,6 +4,7 @@ import Ljos.Core
 import QtQuick
 import Site
 import "../nav.js" as Nav
+import "../observing.js" as Observing
 
 // Where a live demo stands: a frame its own size from the first paint,
 // holding a picture of the demo and the words for it, so nothing below
@@ -73,6 +74,21 @@ Item {
     readonly property real top: scroller ? offset() - scroller.contentY : 0
     readonly property bool onScreen: !scroller || (top < scroller.height && top + surfaceHeight > 0)
     readonly property bool drawn: loader.status === Loader.Ready && loader.item !== null && loader.item.ready !== false
+
+    // The Observer on what runs here: the demo, or the app a demo holds
+    // where it says which (`observed`), so its tree starts at the app.
+    readonly property string key: Observing.keyFor("demo")
+    readonly property var observed: loader.item ? (loader.item.observed !== undefined ? loader.item.observed : loader.item) : null
+    property bool observing: false
+    function observerMoved() {
+        observing = Observing.isShown(key);
+    }
+    onObservedChanged: Observing.retarget(key, observed)
+    Component.onCompleted: Observing.watch(frame.observerMoved)
+    Component.onDestruction: {
+        Observing.unwatch(frame.observerMoved);
+        Observing.close(key);
+    }
 
     Timer {
         interval: 0
@@ -221,6 +237,20 @@ Item {
                 }
             }
             onPressed: runner.act()
+        }
+
+        // Ljós's Observer on the demo while it runs: its objects,
+        // properties, frames and log.
+        StageButton {
+            anchors.right: parent.right
+            anchors.rightMargin: Theme.s
+            anchors.verticalCenter: parent.verticalCenter
+            visible: frame.drawn && frame.observed !== null
+            checkable: true
+            checked: frame.observing
+            text: t({ message: "Observer", context: "stage" })
+            label: t`Observe ${frame.what}`
+            onPressed: Observing.toggle(frame.key, frame.observed, null, frame.what)
         }
     }
 }
