@@ -500,7 +500,7 @@ Column {
                     checkable: true
                     checked: block.observing
                     text: t({ message: "Observer", context: "stage" })
-                    label: t`Observe ${block.what}`
+                    label: t`Observer for ${block.what}`
                     onPressed: block.toggleObserver()
                 }
             }

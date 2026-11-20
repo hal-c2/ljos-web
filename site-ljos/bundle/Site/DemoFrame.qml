@@ -249,7 +249,7 @@ Item {
             checkable: true
             checked: frame.observing
             text: t({ message: "Observer", context: "stage" })
-            label: t`Observe ${frame.what}`
+            label: t`Observer for ${frame.what}`
             onPressed: Observing.toggle(frame.key, frame.observed, null, frame.what)
         }
     }
