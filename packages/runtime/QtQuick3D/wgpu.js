@@ -833,6 +833,8 @@ export function drawOn(self, canvas, told, instead) {
       return void console.error(`View3D: ${state.error}`);
     }
     gone = true;
+    // On the JavaScript renderer now, there is nothing left to retire.
+    retiring.delete(retire);
     instead(gaveCanvas);
     setDraws((times) => times + 1);
   };
@@ -926,6 +928,7 @@ export function drawOn(self, canvas, told, instead) {
           // draws instead to live under.
           if (gone) return;
           gone = true;
+          retiring.delete(retire);
           instead();
           // What took the view's picture asks it again, of what draws now.
           return void setDraws((times) => times + 1);
