@@ -19,7 +19,11 @@ function picked() {
 // still shows it on this page.
 function keep(scheme) {
     try {
-        if (globalThis.localStorage)
+        if (!globalThis.localStorage)
+            return;
+        if (scheme === "")
+            globalThis.localStorage.removeItem(key);
+        else
             globalThis.localStorage.setItem(key, scheme);
     } catch (error) {
     }
@@ -41,4 +45,18 @@ function mark(scheme, tint) {
     var tints = globalThis.document.querySelectorAll('meta[name="theme-color"]');
     for (var i = 0; i < tints.length; i++)
         tints[i].setAttribute("content", tint);
+}
+
+// The browser's own scheme again: the root says none, and each
+// theme-color is the one its media asks for (`light` and `dark`, the
+// two canvases).
+function unmark(light, dark) {
+    var root = globalThis.document && globalThis.document.documentElement;
+    if (!root)
+        return;
+    root.removeAttribute("data-ljos-scheme");
+    root.style.colorScheme = "";
+    var tints = globalThis.document.querySelectorAll('meta[name="theme-color"]');
+    for (var i = 0; i < tints.length; i++)
+        tints[i].setAttribute("content", String(tints[i].getAttribute("media")).indexOf("dark") >= 0 ? dark : light);
 }

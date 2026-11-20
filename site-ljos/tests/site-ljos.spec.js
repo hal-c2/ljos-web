@@ -83,7 +83,7 @@ test("the landing page leads with your own shell, and never pitches compatibilit
   await page.goto("/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
   // The footer says the same words, smaller, at the page's end.
-  await expect(page.getByText("Ljós — malleable software, everywhere", { exact: true }).first()).toBeInViewport();
+  await expect(page.getByText("Typed apps you can see inside and drive while they run.", { exact: true }).first()).toBeInViewport();
   // The page's own words: the code in a field is the reader's to
   // edit, and an `import QtQuick` there pitches nothing.
   const words = await page.locator("#app").evaluate((app) => {
@@ -116,7 +116,7 @@ test("a docs page reads with JavaScript off: title, prose, table, code, sidebar 
     await expect(shown(page.getByText("ljos mcp --project .", { exact: false })).first()).toBeVisible();
     await expect(shown(page.getByText("What is Ljós?", { exact: true })).first()).toBeVisible();
     await expect(shown(page.getByText("On this page", { exact: true }))).toBeVisible();
-    await expect(shown(page.getByText("Search the docs…", { exact: true }))).toBeVisible();
+    await expect(shown(page.getByText("Search docs and demos", { exact: true }))).toBeVisible();
   } finally {
     await context.close();
   }

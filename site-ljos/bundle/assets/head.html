@@ -7,6 +7,13 @@
      build writes in here from it), on the root before the body is read,
      so the first paint is already in it. -->
 <script>try{const s=localStorage.getItem(%SCHEME_KEY%);if(s==="light"||s==="dark"){const r=document.documentElement;r.dataset.ljosScheme=s;r.style.colorScheme=s;for(const m of document.querySelectorAll('meta[name="theme-color"]'))m.content=s==="dark"?"%DARK_CANVAS%":"%LIGHT_CANVAS%"}}catch{}</script>
+<!-- The shell the reader picked (shells.js keeps it): every page is
+     written in the marketing shell, and another is put in once the page
+     has been taken over. Where one is kept and the window has room for
+     it, the page waits unseen until it is in (shells.js `shown`), so
+     the reader never sees one shell turn into another; if that never
+     comes, it shows anyway. A reader with no script runs none of this. -->
+<script>try{const k=localStorage.getItem(%SHELL_KEY%);if((k==="workbench"||k==="desktop")&&innerWidth>=%WIDE_FROM%)document.documentElement.dataset.ljosShell=k}catch{}</script>
 <!-- The design tokens as the HTML around the app reads them: the
      build writes tokens.js's colours here as `--ljos-<role>` and
      `--ljos-code-<tag>` (which the code blocks' `.tok-<tag>` classes
@@ -52,4 +59,20 @@
   .tok-meta { color: var(--ljos-code-meta); }
   .tok-invalid { color: var(--ljos-code-invalid); }
   .tok-topic { color: var(--ljos-code-topic); }
+  /* The kept shell's page, held back until it is in (above). */
+  :root[data-ljos-shell]:not([data-ljos-shell-shown]) #app { opacity: 0; animation: ljos-shell-late 160ms ease-out 2500ms forwards; }
+  :root[data-ljos-shell][data-ljos-shell-shown] #app { animation: ljos-shell-in 160ms ease-out; }
+  @keyframes ljos-shell-late { to { opacity: 1; } }
+  @keyframes ljos-shell-in { from { opacity: 0; } }
+  /* A shell swapped live (shells.js `swap`): the last one sinks back and
+     the next rises into its place; with reduced motion they crossfade,
+     nothing moving. */
+  :root[data-ljos-swap="rich"]::view-transition-old(root) { animation: ljos-swap-out 180ms cubic-bezier(0.4, 0, 1, 1) both; }
+  :root[data-ljos-swap="rich"]::view-transition-new(root) { animation: ljos-swap-in 360ms cubic-bezier(0.16, 1, 0.3, 1) 60ms both; }
+  :root[data-ljos-swap="calm"]::view-transition-old(root) { animation: ljos-fade-out 220ms ease both; }
+  :root[data-ljos-swap="calm"]::view-transition-new(root) { animation: ljos-fade-in 220ms ease both; }
+  @keyframes ljos-swap-out { to { opacity: 0; transform: scale(0.98); } }
+  @keyframes ljos-swap-in { from { opacity: 0; transform: translateY(16px) scale(1.01); } }
+  @keyframes ljos-fade-out { to { opacity: 0; } }
+  @keyframes ljos-fade-in { from { opacity: 0; } }
 </style>

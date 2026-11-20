@@ -336,9 +336,9 @@ test("on a phone the menu holds the docs, and search finds a page", async ({ bro
     page.on("pageerror", (error) => errors.push(error.message));
     await page.goto("/");
     await page.waitForSelector('#app[data-ljos-hydrated="true"]');
-    await page.getByRole("button", { name: "Open the menu" }).click();
-    await expect(page.getByRole("button", { name: "Close the menu" })).toBeVisible();
-    const search = page.getByRole("textbox", { name: "Search the docs" });
+    await page.getByRole("button", { name: "Menu", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Close menu", exact: true })).toBeVisible();
+    const search = page.getByRole("textbox", { name: "Search", exact: true });
     await search.click();
     await page.keyboard.type("mcp servers");
     await expect(page.getByRole("list", { name: "Search results" }).getByText("MCP Servers for Agents", { exact: true })).toBeVisible();
@@ -360,8 +360,8 @@ test("a result opened in a new tab leaves the page where it was", async ({ brows
     const page = await context.newPage();
     await page.goto("/");
     await page.waitForSelector('#app[data-ljos-hydrated="true"]');
-    await page.getByRole("button", { name: "Open the menu" }).click();
-    await page.getByRole("textbox", { name: "Search the docs" }).click();
+    await page.getByRole("button", { name: "Menu", exact: true }).click();
+    await page.getByRole("textbox", { name: "Search", exact: true }).click();
     await page.keyboard.type("mcp servers");
     const result = page.getByRole("list", { name: "Search results" }).getByRole("link", { name: "MCP Servers for Agents" });
     await expect(result).toBeVisible();
@@ -388,13 +388,13 @@ test("on a phone the menu holds the page's headings", async ({ browser }) => {
     const page = await context.newPage();
     await page.goto("/start/mcp/");
     await page.waitForSelector('#app[data-ljos-hydrated="true"]');
-    await page.getByRole("button", { name: "Open the menu" }).click();
+    await page.getByRole("button", { name: "Menu", exact: true }).click();
     const menu = page.getByRole("region", { name: "Menu" });
     const contents = menu.getByRole("region", { name: "On this page" });
     for (const { plain } of headings) await expect(contents.getByRole("link", { name: plain, exact: true })).toBeAttached();
     const last = headings.at(-1);
     await contents.getByRole("link", { name: last.plain, exact: true }).click();
-    await expect(page.getByRole("button", { name: "Open the menu" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Menu", exact: true })).toBeVisible();
     await expect(page.locator("#app [role=heading]").filter({ hasText: last.plain }).filter({ visible: true }).first()).toBeInViewport();
   } finally {
     await context.close();

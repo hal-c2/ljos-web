@@ -86,18 +86,18 @@ test("the phone's menu, open, and the search results it finds give a reader all 
       const page = await context.newPage();
       await page.goto("/start/");
       await page.waitForSelector('#app[data-ljos-hydrated="true"]');
-      await page.getByRole("button", { name: "Open the menu" }).click();
-      await expect(page.getByRole("button", { name: "Close the menu" })).toBeVisible();
+      await page.getByRole("button", { name: "Menu", exact: true }).click();
+      await expect(page.getByRole("button", { name: "Close menu", exact: true })).toBeVisible();
       // Read once it has faded in: halfway, its colours are not the page's.
       await expect(page.getByRole("region", { name: "Menu" })).toHaveCSS("opacity", "1");
       expect(await violations(page), `the menu open, ${colorScheme}`).toEqual([]);
-      await page.getByRole("textbox", { name: "Search the docs" }).click();
+      await page.getByRole("textbox", { name: "Search", exact: true }).click();
       await page.keyboard.type("mcp servers");
       await expect(page.getByRole("list", { name: "Search results" }).getByText("MCP Servers for Agents", { exact: true })).toBeVisible();
       expect(await violations(page), `search results, ${colorScheme}`).toEqual([]);
       for (const _ of "mcp servers") await page.keyboard.press("Backspace");
       await page.keyboard.type("zzzz");
-      await expect(page.getByText("Nothing in the docs matches “zzzz”.")).toBeVisible();
+      await expect(page.getByText("Nothing matches “zzzz”. Try a type name, like ListView.")).toBeVisible();
       expect(await violations(page), `no search results, ${colorScheme}`).toEqual([]);
     } finally {
       await context.close();
