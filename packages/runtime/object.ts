@@ -145,16 +145,17 @@ export type GroupOf<G> = { -readonly [K in keyof G]: ValueOf<G[K]> };
 export type PropertiesOf<P> = { -readonly [K in keyof P]: ValueOf<P[K]> };
 type ChangesOf<P> = { readonly [K in keyof P & string as `${K}Changed`]: ChangeSignal };
 type SignalsOf<S extends string> = { readonly [K in S]: Signal };
+type ChangesNamed<C extends string> = { readonly [K in C as `${K}Changed`]: ChangeSignal };
 
 // What an object of a type is: its base's, its own properties and their
-// changes, its signals and its methods.
-export type Instance<B extends QObject, P, S extends string, M> = B & PropertiesOf<P> & ChangesOf<P> & SignalsOf<S> & M;
+// changes, its signals, its methods and the changes of those `changes` names.
+export type Instance<B extends QObject, P, S extends string, M, C extends string = never> = B & PropertiesOf<P> & ChangesOf<P> & SignalsOf<S> & M & ChangesNamed<C>;
 
 // `resolve: { x: (self, own) => ... }`.
 export type Resolve = (self: Dynamic, own: () => unknown) => unknown;
 
 // What `defineType` is told: see there.
-export interface TypeSpec<I extends QObject = QObject, P = PropertySpecs, S extends string = string, M = object, E = Enums> {
+export interface TypeSpec<I extends QObject = QObject, P = PropertySpecs, S extends string = string, M = object, E = Enums, C extends string = string> {
   readonly properties?: P | undefined;
   readonly signals?: readonly S[] | undefined;
   readonly methods?: M & ThisType<I>;
@@ -165,7 +166,7 @@ export interface TypeSpec<I extends QObject = QObject, P = PropertySpecs, S exte
   readonly lists?: readonly string[];
   readonly held?: readonly string[];
   readonly attached?: QmlType;
-  readonly changes?: readonly string[];
+  readonly changes?: readonly C[];
 }
 
 // Makes the slot of a property on an object, the first time it is asked for.
@@ -1763,8 +1764,9 @@ export function defineType<
   S extends string = never,
   M extends object = {},
   E extends Enums = {},
->(name: string, base: QmlType<B> | null, spec: TypeSpec<Instance<B, P, S, M>, P, S, M, E> = {}): QmlType<Instance<B, P, S, M>> & E {
-  type I = Instance<B, P, S, M>;
+  C extends string = never,
+>(name: string, base: QmlType<B> | null, spec: TypeSpec<Instance<B, P, S, M, C>, P, S, M, E, C> = {}): QmlType<Instance<B, P, S, M, C>> & E {
+  type I = Instance<B, P, S, M, C>;
   const Type = ((props?: Props) => create(Type, props ?? {}) as I) as QmlType<I> & E;
   const proto: object = Object.create(base ? base.proto : Object.prototype);
   Type.enums = { ...base?.enums, ...spec.enums };
