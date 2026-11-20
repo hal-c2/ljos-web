@@ -18,7 +18,8 @@ Rectangle {
     property real loopSeconds: 24
     property real calmLoopSeconds: 72
     property int startPalette: 0
-    property int paletteCount: 3
+    // Not a knob: light.frag draws exactly three ramps for each scheme.
+    readonly property int paletteCount: 3
 
     // Host contract: DemoFrame pauses off-screen demos and slows calm ones.
     property bool active: true
