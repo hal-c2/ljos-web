@@ -886,7 +886,9 @@ impl<'a, 's> Lower<'a, 's> {
                 self.uses.kernel.insert(kind);
                 b.id(kind)
             }
-            None => default_of(b, &declared, type_name.is_list),
+            None => self
+                .instance(&declared, type_name.is_list)
+                .unwrap_or_else(|| default_of(b, &declared, type_name.is_list)),
         };
         built.properties.push((name.to_string(), initial));
         if property.is_required {
@@ -902,6 +904,46 @@ impl<'a, 's> Lower<'a, 's> {
             let value = self.bound(value, placed.then_some(property.name.span.start));
             built.attributes.push(b.attr(name, value));
         }
+    }
+
+    /// `property Rectangle thing`: `$instance(Rectangle, "Rectangle*")`, a
+    /// property that holds an object of the type, or of one made from it,
+    /// and refuses any other, as Qt does. Not of a value type, nor of a
+    /// `Component`, whose values are made functions here rather than objects
+    /// of it, nor of a type that stands in or a singleton, which no object
+    /// is made of. `QtObject` takes any object.
+    fn instance(&mut self, declared: &str, is_list: bool) -> Option<Expression<'a>> {
+        let b = self.b;
+        if is_list || !declared.starts_with(|c: char| c.is_ascii_uppercase()) {
+            return None;
+        }
+        let parts: Vec<&str> = declared.split('.').collect();
+        let found = self.types.find(&parts)?;
+        if matches!(found.origin, Origin::StandIn(_)) || self.types.is_singleton(&found.kind) {
+            return None;
+        }
+        let base = self.types.base(&found.kind)?;
+        if base.0.is_value || is_qt_class(base.0.class, "Component") {
+            return None;
+        }
+        self.uses.kernel.insert("$instance");
+        let written = parts.last().copied().unwrap_or(declared);
+        if matches!(found.kind, types::Kind::Builtin(_)) && is_qt_class(base.0.class, "QtObject") {
+            return Some(b.call(b.id("$instance"), [b.null(), b.string("QObject*")]));
+        }
+        let own = matches!(&found.origin, Origin::File(file) if file == self.types.file);
+        let ty = if own {
+            // The file's own type, which it is and does not import.
+            b.id(self.name)
+        } else {
+            self.uses.origin(declared, &found.origin);
+            let mut ty = b.id(&names::local(parts[0]));
+            for part in &parts[1..] {
+                ty = b.member(ty, part);
+            }
+            ty
+        };
+        Some(b.call(b.id("$instance"), [ty, b.string(&format!("{written}*"))]))
     }
 
     /// `label.font.bold` as `[label, "font", "bold"]`.
@@ -1406,6 +1448,16 @@ fn typed(type_name: &str, is_list: bool) -> Option<&'static str> {
         "color" => Some("$color"),
         _ => None,
     }
+}
+
+/// Whether `class` is the class of QtQml's `name` in either table: Qt's
+/// (`QQmlComponent`, `QObject`) or Ljós's own (`QtQml.Component`).
+fn is_qt_class(class: &str, name: &str) -> bool {
+    let qt = match name {
+        "Component" => "QQmlComponent",
+        _ => "QObject",
+    };
+    class == qt || class.strip_prefix("QtQml.") == Some(name)
 }
 
 /// What a declared property of any other type is before anything is bound
