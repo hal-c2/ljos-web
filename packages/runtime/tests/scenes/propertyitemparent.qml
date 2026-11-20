@@ -32,6 +32,11 @@ Item {
         id: through
         exposed: Item { objectName: "madeThrough" }
     }
+    // Given by an instance to a property its component's root declares.
+    PropertyItemCard {
+        id: card
+        header: Rectangle { objectName: "cardHeader" }
+    }
     // An owner made later, outside what bounded the page's objects, has its
     // boundary from its parent: so has what its declared property holds.
     Item {
@@ -47,6 +52,9 @@ Item {
     }
     function throughAlias() {
         return [through.exposed.objectName, through.exposed.parent, through.inner.children.length]
+    }
+    function cardHeader() {
+        return [card.header.objectName, card.header.parent, card.children.length]
     }
     function boundingItem() {
         return bounding

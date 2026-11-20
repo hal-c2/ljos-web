@@ -247,6 +247,13 @@ test("an item given through an alias of a declared property has no parent", asyn
   expect(await page.evaluate(() => window.scene.throughAlias())).toEqual(["madeThrough", null, 0]);
 });
 
+// What an instance gives a property its component's root declares is
+// that property's: the declaration and the value come from two files.
+test("an item an instance gives a property its component declares has no parent", async ({ page }) => {
+  await open(page, "propertyitemparent");
+  expect(await page.evaluate(() => window.scene.cardHeader())).toEqual(["cardHeader", null, 0]);
+});
+
 // Made in no visual parent, the item still answers to its owner's error
 // boundary (a ShellLoader's), not to the page.
 test("an item made as a declared property's value has its owner's error boundary", async ({ page }) => {
