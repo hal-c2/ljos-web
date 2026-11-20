@@ -5,6 +5,8 @@
 // goes to (a x + c y + e, b x + d y + f). An item's is what Item gives its
 // element as a transform, so a point maps where it is seen.
 
+import { native, type QObject } from "../object.ts";
+
 // `[a, b, c, d, e, f]`.
 export type Matrix = [number, number, number, number, number, number];
 export interface Point {
@@ -73,7 +75,7 @@ const multiply = (m: Matrix, a: number, b: number, c: number, d: number, e: numb
 
 // The point `rotation` and `scale` are about, in the item.
 export function origin(item: Spatial): Point {
-  const at = item.transformOrigin;
+  const at = native(item as unknown as QObject, "transformOrigin") as number;
   return { x: ((at % 3) / 2) * item.width, y: (Math.floor(at / 3) / 2) * item.height };
 }
 
@@ -89,8 +91,10 @@ function enter(m: Matrix, item: Spatial): void {
       multiply(m, a, b, c, d, e, f);
     }
   }
-  const by = item.scale;
-  const rotation = item.rotation;
+  // The item's own, as it is drawn (Item.js): a file may declare a `scale`
+  // of its own, which is no turn or size of the item.
+  const by = native(item as unknown as QObject, "scale") as number;
+  const rotation = native(item as unknown as QObject, "rotation") as number;
   if (by !== 1 || rotation !== 0) {
     const { x, y } = origin(item);
     translate(m, x, y);

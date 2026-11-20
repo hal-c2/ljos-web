@@ -139,8 +139,10 @@ const resolve = {
     return own();
   },
   // An item inside one that is not shown is not shown, whatever it says.
-  visible: (self, own) => Boolean(own()) && (self.parent?.visible ?? true),
-  enabled: (self, own) => Boolean(own()) && (self.parent?.enabled ?? true),
+  // The parent's own: a file that declares a `visible` of its own (what
+  // it is about is shown) does not hide what is in it.
+  visible: (self, own) => Boolean(own()) && (self.parent ? native(self.parent, "visible") !== false : true),
+  enabled: (self, own) => Boolean(own()) && (self.parent ? native(self.parent, "enabled") !== false : true),
   // Who has focus is decided among the items of a scope: see focus.js.
   focus: (self) => self.$focus === true,
   activeFocus: (self) => self.$active === true,
@@ -173,8 +175,8 @@ function transform(self) {
     const all = Array.isArray(list) ? list : [list];
     for (let index = all.length - 1; index >= 0; index--) css += ` ${all[index].$css()}`;
   }
-  const scale = over?.scale ?? native(self, "scale");
-  const rotation = over?.rotation ?? native(self, "rotation");
+  const scale = drawn(self, "scale");
+  const rotation = drawn(self, "rotation");
   if (scale !== 1 || rotation !== 0) {
     const [fx, fy] = ORIGINS[native(self, "transformOrigin")] ?? ORIGINS[4];
     const x = fx * self.width;

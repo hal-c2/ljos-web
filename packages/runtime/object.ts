@@ -2182,6 +2182,13 @@ export function native(self: QObject, name: string): unknown {
   return (kept[name] ??= own.apart(self)).get();
 }
 
+// Whether a file declares `name` over its type's own: what is drawn of the
+// type's own is then not what an animator of that name moves, which moves
+// the file's.
+export function declaredOver(self: QObject, name: string): boolean {
+  return Boolean(self.$type.shadowed?.[name]?.apart);
+}
+
 // The type of an object that declares properties and signals of its own:
 // `Item { property int hours; signal ticked }`. One per declaration, however
 // many objects are made from it.
