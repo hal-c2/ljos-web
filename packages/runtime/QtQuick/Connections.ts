@@ -1,8 +1,8 @@
 // Connections: handlers of another object's signals, declared from outside
 // it. `function onFoo(a) {}` arrives as the prop `onFoo`; the object is
 // `target`, the Connections' parent when it names none.
-import { createEffect, createMemo, createRenderEffect, createRoot, onCleanup, runWithOwner } from "solid-js";
-import { defineType, QtObject, slot, whenComplete, whenCompleted } from "../object.ts";
+import { createRenderEffect, createRoot, onCleanup, runWithOwner } from "solid-js";
+import { connect, defineType, QtObject, slot, whenComplete, whenCompleted } from "../object.ts";
 import { Component } from "../QtQml/Component.ts";
 import { untrack } from "#kernel";
 import type { Dynamic, Handler, QObject, Signal } from "../object.ts";
@@ -16,29 +16,23 @@ interface Conn extends QObject {
   $named?: boolean;
 }
 
-const SYNC = { sync: true };
-const DEFER = { defer: true };
 const HANDLER = /^on[A-Z]/;
 
 const signalName = (handler: string): string => handler[2]!.toLowerCase() + handler.slice(3);
 
 // Runs `listener` when `target` emits `name`, or when the property a
 // `fooChanged` is about has another value: reading it again is not a change.
-// False when the target has neither.
+// False when the target has neither. `connect` is what does it, as for a
+// handler written on the object itself: a change of a property with no
+// signal of its own (`children`) is found in Solid's flush, and told after
+// it like any other, so what the handler writes is settled by a flush of its
+// own and what it reads is up to date.
 function listen(target: Dynamic, name: string, listener: Handler): boolean {
   const emitted = target[name] as Partial<Signal> | undefined;
-  if (typeof emitted?.connect === "function" && typeof emitted.disconnect === "function") {
-    emitted.connect!(listener);
-    onCleanup(() => emitted.disconnect!(listener));
-    return true;
-  }
+  const isSignal = typeof emitted?.connect === "function" && typeof emitted.disconnect === "function";
   const property = /^(\w+)Changed$/.exec(name)?.[1];
-  if (property === undefined || !(property in target)) return false;
-  createEffect(
-    createMemo(() => target[property], SYNC),
-    () => void listener(),
-    DEFER,
-  );
+  if (!isSignal && (property === undefined || !(property in target))) return false;
+  connect(target, name, listener);
   return true;
 }
 
