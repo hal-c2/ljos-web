@@ -1100,11 +1100,46 @@ function program(vertex, fragment, names) {
   return { program: made, at: Object.fromEntries(names.map((name) => [name, gl.getUniformLocation(made, name)])) };
 }
 
+// What is drawn again once a lost context is given back.
+const restoring = new Set();
+export function restored(again) {
+  restoring.add(again);
+  return () => restoring.delete(again);
+}
+
+// Everything made on a context, forgotten for one made anew.
+function forget() {
+  surface = gl = at = shaded = undefined;
+  fractions = false;
+  nothing = fold = blur = sky = gloss = whole = reflecting = undefined;
+  undrawn = smooth = linear = graded = background = skeleton = ordered = null;
+  shining = telling = morphing = worn = wearing = quad = showing = null;
+  shapes = new WeakMap();
+  textures = new WeakMap();
+  views = new WeakMap();
+  probes = new WeakMap();
+  tables = new WeakMap();
+  tailored = new WeakMap();
+  passing = new WeakMap();
+  kept = new WeakMap();
+  cubes = new WeakMap();
+  flats = new Map();
+  turns = new Map();
+}
+
 // The context, and the program every shape is drawn with. Null when the
 // browser has none to give.
 function context() {
   if (gl !== undefined) return gl;
   surface = new OffscreenCanvas(1, 1);
+  // A context the browser takes back (its GPU process gone, say) is one it
+  // may give again if asked: and when it does, all that was made on the one
+  // lost is gone, so it is all made again, and each view drawn again.
+  surface.addEventListener("webglcontextlost", (event) => event.preventDefault());
+  surface.addEventListener("webglcontextrestored", () => {
+    forget();
+    for (const again of [...restoring]) again();
+  });
   gl = surface.getContext("webgl2", { antialias: false, depth: true }) ?? null;
   if (!gl) return gl;
   shaded = program(VERTEX, FRAGMENT, UNIFORMS);
@@ -1191,7 +1226,7 @@ function targeted(targets) {
 
 // A shape as OpenGL holds it: its corners as the mesh file has them, each
 // part of a corner said where it is in the row.
-const shapes = new WeakMap();
+let shapes = new WeakMap();
 function held(shape) {
   let made = shapes.get(shape);
   if (made) return made;
@@ -1238,7 +1273,7 @@ const forms = () => ({
 // A picture as a texture, sampled as its Texture says: an element of the
 // page, or numbers, whose first row is the bottom one already, or what a
 // view last drew.
-const textures = new WeakMap();
+let textures = new WeakMap();
 // Which picture is being drawn: what something draws on is read once for
 // one, however many read it.
 let turn = 0;
@@ -1289,7 +1324,7 @@ function bound(map, unit = 0) {
 // way up and upside down, as it is asked for. The picture leaves the
 // surface for the page once drawn, so it is copied before it does, and a
 // view that reads itself reads the picture before the one being drawn.
-const views = new WeakMap();
+let views = new WeakMap();
 let undrawn = null;
 function viewed(map) {
   const record = views.get(map.element);
@@ -1472,7 +1507,7 @@ function baked(data) {
 // picture itself; the next four what surfaces of a roughness of a quarter,
 // a half, three quarters and one give back of it; the last what one takes
 // of it from all round.
-const probes = new WeakMap();
+let probes = new WeakMap();
 const LEVELS = 6;
 function probed(map) {
   const from = map.element ?? map.data;
@@ -1687,7 +1722,7 @@ function jointed(bones) {
 // picture has one buffer for them all.
 const ENTRY = 20;
 const ROWS = ENTRY / 4;
-const tables = new WeakMap();
+let tables = new WeakMap();
 let ordered = null;
 function entered(instances) {
   let buffer = instances.fresh ? (ordered ??= gl.createBuffer()) : tables.get(instances.data);
@@ -1785,7 +1820,7 @@ const OWN = 17;
 const FACTORS = [0, 0, 1, 0x300, 0x301, 0x306, 0x307, 0x302, 0x303, 0x304, 0x305, 0x8001, 0x8002, 0x8003, 0x8004, 0x308];
 
 // A picture of one colour all over.
-const flats = new Map();
+let flats = new Map();
 function flat(...rgba) {
   const key = rgba.join(" ");
   let made = flats.get(key);
@@ -1807,7 +1842,7 @@ function pictured(unit, texture) {
 
 // The program a CustomMaterial is drawn with, made once of its shaders:
 // null where they make none, which is said once.
-const tailored = new WeakMap();
+let tailored = new WeakMap();
 function tailor(source) {
   let made = tailored.get(source);
   if (made !== undefined) return made;
@@ -2065,7 +2100,7 @@ function sheet(held, width, height, format, filter, wrap) {
 // The program a pass of an Effect draws with, made once of its shaders:
 // null where they make none, which is said once.
 const SEEN = ["u_input", "u_depth", "u_inputSize", "u_outputSize", "u_frame", "u_clips", "u_projection", "u_unprojected"];
-const passing = new WeakMap();
+let passing = new WeakMap();
 function passed(source) {
   let made = passing.get(source);
   if (made !== undefined) return made;
@@ -2090,7 +2125,7 @@ function passed(source) {
 // A view keeps each by its name, from one picture to the next: one that
 // nothing drew into yet is black, and all of it seen through.
 const kinds = () => ({ 1: gl.RGBA8, 2: gl.RGBA16F, 3: gl.RGBA16F, 4: gl.R8, 5: gl.R16F, 6: gl.R16F, 7: gl.R16F });
-const kept = new WeakMap();
+let kept = new WeakMap();
 function buffered(view, { name, format, filter, wrap, scale }, width, height) {
   if (!kept.has(view)) kept.set(view, new Map());
   const held = kept.get(view);
@@ -2112,7 +2147,7 @@ function buffered(view, { name, format, filter, wrap, scale }, width, height) {
 // effect after it.
 let quad = null;
 let frames = 0;
-const turns = new Map();
+let turns = new Map();
 function affected(effects, from, width, height, scene, view) {
   if (!quad) {
     quad = gl.createVertexArray();
@@ -2400,7 +2435,7 @@ const LOOKS = [
 //
 // A probe that is looked through once is looked through again when it is
 // asked to be, and when more of the scene is here than was.
-const cubes = new WeakMap();
+let cubes = new WeakMap();
 let reflecting;
 function reflected(probe, scene, environment, surroundings) {
   blur ??= program(COVER, BLUR, BLURRING);
