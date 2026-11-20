@@ -129,6 +129,8 @@ const MOST_ITEMS = 16;
 interface Watch {
   since: Partial<Counts>;
   items: Map<string, number>;
+  // The client it is for (`holder`), or null.
+  holder: string | null;
   settleMs: number;
   started: number;
   settling: ReturnType<typeof setTimeout> | null;
@@ -475,7 +477,7 @@ function refusal(error: Refused): Result {
 
 // Why a tool a page cannot answer is not answered.
 const NOT_HERE: Record<string, string> = {
-  app_trace: "a page has no threads to trace: the web runtime runs this application on the page's own thread, and the browser's performance panel traces it",
+  app_trace: "an object's signals, changes and binding runs are written down by the engine of `ljos run`, and this page's runtime keeps no such record; the Objects page still reads and changes each property, and the Logs page has what the app said",
   app_audit: "the design audit runs in ljos-ui's inspector, which this page does not have; run the application with `ljos run` and audit it there",
 };
 
@@ -562,10 +564,18 @@ function watch(state: State, args: Args): Promise<Result> {
   for (const named of asked) items.set(named, since.items?.[named] ?? state.itemCounts.get(named) ?? 0);
   const wait = Math.min(Math.max(0, number(args.wait_ms, 10_000)), MOST_WAIT_MS);
   const settleMs = Math.min(Math.max(0, number(args.settle_ms, 0)), MOST_SETTLE_MS);
+  const holder = typeof args.holder === "string" && args.holder !== "" ? args.holder : null;
+  // A holder follows the application with one watch at a time: asked again,
+  // it wants what it asks now, so the watch it had out is answered at once.
+  // The Observer counts on it: an item picked is followed by a new watch
+  // while the one following every pass is still out, and it asks again only
+  // once no watch of its own is waiting.
+  if (holder !== null) for (const earlier of [...state.watches]) if (earlier.holder === holder) earlier.answer();
   return new Promise((resolve) => {
     const watching: Watch = {
       since,
       items,
+      holder,
       settleMs,
       started: performance.now(),
       settling: null,

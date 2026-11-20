@@ -108,6 +108,44 @@ test("a pass is counted when input changes the application, and a watch waits fo
   expect(later.map((frame) => frame.woke[0])).toEqual(expect.arrayContaining(["timer", "animation"]));
 });
 
+test("a watch on a picked item wakes for a pass that changed it, as the Observer's Objects page asks", async ({ page }) => {
+  await opened(page);
+  const rows = (await call(page, "app_objects", { max: 3000 })).result.structuredContent.objects;
+  const app = rows.find((row) => row.id === "app").handle;
+  const spinner = rows.find((row) => row.id === "spinner").handle;
+  // The Observer's first watch of an item: its count now, at once.
+  const first = (await call(page, "app_watch", { items: [app] })).result.structuredContent.counts;
+  expect(first.items).toEqual({ [app]: 0 });
+  const since = { logs: first.logs, reloads: first.reloads, traces: first.traces, items: first.items };
+  const waiting = call(page, "app_watch", { since, items: [app], wait_ms: 10000 });
+  // The spinner's own watch: a press that changes only the label is not its.
+  const still = (await call(page, "app_watch", { items: [spinner] })).result.structuredContent.counts;
+  const aside = call(page, "app_watch", { since: { logs: still.logs, items: still.items }, items: [spinner], wait_ms: 1500 });
+  await page.mouse.click(20, 70);
+  const woke = (await waiting).result.structuredContent;
+  expect(woke.changed).toEqual(["items"]);
+  expect(woke.counts.items[app]).toBeGreaterThan(0);
+  expect((await aside).result.structuredContent.changed).toEqual([]);
+});
+
+test("a holder waits on one watch at a time: asking again answers the one it had out", async ({ page }) => {
+  await opened(page);
+  const counts = (await call(page, "app_watch", {})).result.structuredContent.counts;
+  const since = { paints: counts.paints, logs: counts.logs };
+  const earlier = call(page, "app_watch", { since, wait_ms: 3_600_000, holder: "observer" });
+  const other = call(page, "app_watch", { since, wait_ms: 1500, holder: "someone else" });
+  await page.waitForTimeout(300);
+  // The same holder, following something else now (as the Observer does
+  // once an item is picked): the watch it had out is told nothing changed.
+  const later = call(page, "app_watch", { since, wait_ms: 1500, holder: "observer" });
+  const told = (await earlier).result.structuredContent;
+  expect(told.changed).toEqual([]);
+  expect(told.waited).toBeLessThan(1000);
+  expect((await later).result.structuredContent.waited).toBeGreaterThanOrEqual(1400);
+  // Another holder's is its own.
+  expect((await other).result.structuredContent.waited).toBeGreaterThanOrEqual(1400);
+});
+
 test("at rest nothing is counted, and a watch holds until its wait is over", async ({ page }) => {
   await opened(page);
   await page.waitForTimeout(300);
