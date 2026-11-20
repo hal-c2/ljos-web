@@ -2068,7 +2068,11 @@ type Held = Record<string, unknown> | null | undefined;
 // Whether `name` is one of the lists an object holds others in (`data`,
 // `children`, `resources`): read only as a property, since what is in
 // it is the object's to keep, and changed by adding and taking out.
-type Holding = Dynamic & { $add(child: QObject): void; $hold?: (child: QObject) => void };
+type Holding = Dynamic & {
+  $add(child: QObject): void;
+  $hold?: (child: QObject) => void;
+  $release?: (child: QObject) => void;
+};
 function isHeldList(object: Held, name: string): object is Holding {
   return isObject(object) && typeof object.$add === "function" && (name === "children" || object.$type.lists.includes(name));
 }
@@ -2081,7 +2085,8 @@ function isHeldList(object: Held, name: string): object is Holding {
 // again in order, as Qt clears and appends. An item joins by its `parent`,
 // as one moved by a program does, and anything else by being added.
 // `resources` holds without drawing (`$hold`), so an item given to it keeps
-// the parent it has.
+// the parent it has, and one taken out of it (`$release`) stays drawn by
+// the item if it was.
 function intoHeldList(object: Holding, name: string, value: unknown, declared: boolean): void {
   const hold = name === "resources" ? object.$hold?.bind(object) : undefined;
   const next = flatten(value, []);
@@ -2091,6 +2096,7 @@ function intoHeldList(object: Holding, name: string, value: unknown, declared: b
     while (kept < before.length && kept < next.length && before[kept] === next[kept]) kept++;
     for (const child of before.slice(kept)) {
       if (child.$node && !hold) (child as Dynamic).parent = null;
+      else if (child.$node && object.$release) object.$release(child);
       else object.$remove?.(child);
     }
   }

@@ -43,6 +43,10 @@ Item {
     }
 
     AliasListHost {
+        id: both
+    }
+
+    AliasListHost {
         id: rebound
         content: root.flag ? [root.four] : [root.five]
     }
@@ -69,6 +73,15 @@ Item {
         const first = names(ordered.inner.children)
         ordered.content = [gamma, alpha, beta]
         return [first, names(ordered.inner.children)]
+    }
+    // Items both drawn by the item and held in its resources, the held
+    // ones then given in another order: they are still drawn by it.
+    function reorderHeld() {
+        both.content = [alpha, beta]
+        both.kept = [alpha, beta]
+        const first = [names(both.inner.children), names(both.inner.resources)]
+        both.kept = [beta, alpha]
+        return [first, [names(both.inner.children), names(both.inner.resources)]]
     }
     function writeOverBinding() {
         rebound.content = [six]
