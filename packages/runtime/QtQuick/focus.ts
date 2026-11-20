@@ -302,9 +302,16 @@ export function activate(item: Focusable): void {
 }
 
 // The window a key event is for: the one the page's focus is in, else the
-// one used last, else the only one.
+// one used last, else the only one. A window an item holds is drawn inside
+// the window holding it, so of the windows around the focus the innermost
+// is the one it is in.
 export function keyWindow(target: Node): FocusWindow | null {
-  for (const window of windows) if (window.top.$node!.contains(target)) return window;
+  let found: FocusWindow | null = null;
+  for (const window of windows) {
+    const top = window.top.$node!;
+    if (top.contains(target) && (!found || found.top.$node!.contains(top))) found = window;
+  }
+  if (found) return found;
   if (current) return current;
   return windows.size === 1 ? windows.values().next().value! : null;
 }
