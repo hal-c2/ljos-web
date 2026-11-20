@@ -10,7 +10,7 @@ import "../observing.js" as Observing
 // and on a phone a sheet over the lower part of the screen, the app
 // above it. It slides in, and out again when closed; only then is the
 // Observer unmade, and what it served of the app let go of. The
-// Observer itself (Site/ObserverPanel.qml) is fetched the first time a
+// Observer itself (`ljos-web/observer/ObserverPanel.qml`) is fetched the first time a
 // reader opens it (observing.js).
 //
 // The dock itself has no size: it is told the room it stands in (`room`
@@ -62,9 +62,13 @@ Item {
                 duration: Theme.enterPanel
             }
         }
+        // A press beside the sheet closes it, as a phone's sheets do. It
+        // is no control of its own: the sheet's Close button is the one
+        // a keyboard and a screen reader reach.
         MouseArea {
             anchors.fill: parent
             enabled: dock.open
+            Accessible.ignored: true
             onClicked: Observing.close()
         }
     }
@@ -155,6 +159,7 @@ Item {
             active: dock.held
             source: Observing.panel
             onLoaded: {
+                item.minimumWidth = Theme.observerWidth;
                 item.target = Qt.binding(() => dock.shown ? dock.shown.target : null);
                 item.logs = Qt.binding(() => dock.shown ? dock.shown.logs : null);
                 item.title = Qt.binding(() => dock.shown ? dock.shown.title : "");

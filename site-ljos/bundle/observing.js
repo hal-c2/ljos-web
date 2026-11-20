@@ -90,5 +90,5 @@ function tell() {
 
 // The Observer itself, as a Loader's source: a chunk of its own.
 function panel() {
-    return import("./Site/ObserverPanel.qml");
+    return import("ljos-web/observer/ObserverPanel.qml");
 }
