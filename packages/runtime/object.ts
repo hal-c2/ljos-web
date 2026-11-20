@@ -173,6 +173,9 @@ export interface TypeSpec<I extends QObject = QObject, P = PropertySpecs, S exte
 export interface SlotMaker {
   (self: QObject): Slot;
   kind?: Kind | undefined;
+  // A slot of the property kept apart from the one the object reads and
+  // writes by name, for when a file declares the property again (`native`).
+  apart?: (self: QObject) => Slot;
 }
 
 // A type: called with props, it makes the object.
@@ -191,6 +194,9 @@ export interface QmlType<I extends QObject = QObject> {
   lists: readonly string[];
   held: readonly string[];
   attached?: (self: QObject) => QObject | undefined;
+  // The properties a file declares again over its type's own: each one's
+  // maker as the type that first had it made it (`native`).
+  shadowed?: Record<string, SlotMaker | undefined>;
 }
 
 // What a property's type makes of what it is given: the value, or that it
@@ -1172,6 +1178,7 @@ class Slot {
     member?: string,
     kind?: Kind,
     alone?: boolean,
+    apart?: boolean,
   ) {
     this.alone = alone === true;
     this.self = self;
@@ -1213,6 +1220,9 @@ class Slot {
     // Whether what the property takes from its group, or works out under it,
     // is being worked out: see `base`.
     this.working = false;
+    // One kept apart (`native`) is no one's by name, and given nothing: what
+    // the object was given by that name is the property declared over it.
+    if (apart) return;
     // A binding is evaluated as it is taken, and may read the property it
     // is for: the slot is there to be found before it is.
     self.$slots[key] = this;
@@ -1611,6 +1621,7 @@ function defineProperty(Type: QmlType, proto: object, name: string, initial: unk
   if (isTyped(initial)) initial = initial.initial;
   const make: SlotMaker = (self) => (self.$slots[name] = new Slot(self, name, initial, resolve, undefined, undefined, kind));
   make.kind = kind;
+  make.apart = (self) => new Slot(self, name, initial, resolve, undefined, undefined, kind, false, true);
   Type.slots[name] = make;
   Object.defineProperty(proto, name, {
     get(this: QObject) {
@@ -2156,6 +2167,21 @@ export function inherit(own: Props, given: Props): Props {
 // `onClicked`, `Keys$onPressed`, `Component$onCompleted`.
 const HANDLER = /^(\w+\$)?on[A-Z_]/;
 
+// What the object's own type keeps under a property's name, for the code
+// that draws or runs it. A file may declare a property its type already
+// has (`property real scale: 16667`, as the Observer's Frames page does for
+// the length of its bars): then, as in Ljós, the file's is the one read,
+// written, bound and animated by that name, and the type's own is kept
+// apart, at what the type says it is, and the item is drawn by that.
+const keptApart = new WeakMap<QObject, Record<string, Slot>>();
+export function native(self: QObject, name: string): unknown {
+  const own = self.$type.shadowed?.[name];
+  if (!own?.apart) return (self as unknown as Record<string, unknown>)[name];
+  let kept = keptApart.get(self);
+  if (!kept) keptApart.set(self, (kept = {}));
+  return (kept[name] ??= own.apart(self)).get();
+}
+
 // The type of an object that declares properties and signals of its own:
 // `Item { property int hours; signal ticked }`. One per declaration, however
 // many objects are made from it.
@@ -2168,6 +2194,12 @@ function derive(Type: QmlType, declared: Declared | readonly Declared[]): QmlTyp
   if (!Derived) {
     Derived = defineType(Type.typeName, Type, { properties: declared.properties, signals: declared.signals });
     if (Type.attached) Derived.attached = Type.attached;
+    let shadowed = Type.shadowed;
+    for (const name of Object.keys(declared.properties ?? {})) {
+      const own = Type.shadowed?.[name] ?? Type.slots[name];
+      if (own) shadowed = { ...shadowed, [name]: own };
+    }
+    if (shadowed) Derived.shadowed = shadowed;
     derivedTypes.set(declared, Derived);
   }
   return Derived;

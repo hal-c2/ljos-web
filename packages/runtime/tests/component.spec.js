@@ -248,3 +248,17 @@ plain("what a handler throws is told of, and whoever emitted the signal goes on"
     "Cannot read properties of null (reading 'there')",
   ]);
 });
+
+test("a property a file declares again is the file's, and the item is drawn by its own", async ({ page }) => {
+  await open(page, "shadowed");
+  const read = () =>
+    page.evaluate(() => {
+      const { page, bar, scaled } = window.objects;
+      return [page.scale, page.rotation, bar.width, page.$node.style.transform, scaled.$node.style.transform.includes("scale(2)")];
+    });
+  expect(await read()).toEqual([16667, 45, 16.667, "translate(0px, 0px)", true]);
+  // Written by name, as a function of the file writes it: still the file's.
+  await page.evaluate(() => window.objects.page.grow(20000));
+  expect(await read()).toEqual([20000, 45, 20, "translate(0px, 0px)", true]);
+  expect(await rect(page, "page")).toEqual({ x: 0, y: 0, width: 200, height: 50 });
+});
