@@ -156,15 +156,22 @@ Column {
             anchors.leftMargin: 10
             anchors.verticalCenter: parent.verticalCenter
             spacing: 14
+            // Up to the Observer button, when it shows: on a phone the
+            // caption gives up its room, elided, before Reset gives any.
+            readonly property real room: parent.width - anchors.leftMargin
+                - (observerButton.visible ? observerButton.width + observerButton.anchors.rightMargin + spacing : anchors.leftMargin)
 
             Text {
                 anchors.verticalCenter: parent.verticalCenter
+                width: Math.max(0, Math.min(implicitWidth, headRow.room - resetBox.width - headRow.spacing))
+                elide: Text.ElideRight
                 color: Theme.muted
                 font.family: Theme.mono
                 font.pixelSize: 11
                 text: "Shell.qml — the app's shell, yours to rewrite"
             }
             Item {
+                id: resetBox
                 width: resetWords.implicitWidth
                 height: resetWords.implicitHeight + 4
                 anchors.verticalCenter: parent.verticalCenter
