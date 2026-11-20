@@ -2244,12 +2244,12 @@ function defineAlias(self: QObject, name: string, [target, ...path]: AliasPath):
           // A binding that could not be evaluated has nothing to assign.
           if (written || overridden || !object || (value === undefined && binding!.failing)) return;
           if (isHeldList(object, last)) return intoHeldList(object, last, value, declared);
-          // Declared for an alias of an alias: added by the alias it names.
-          if (declared && isAlias(object, last)) return asDeclared(() => (object[last] = value));
           // It is a binding all the same: a value the property cannot hold
           // leaves it what it held, and is told of.
           try {
-            object[last] = value;
+            // Declared for an alias of an alias: added by the alias it names.
+            if (declared && isAlias(object, last)) asDeclared(() => (object[last] = value));
+            else object[last] = value;
           } catch (error) {
             if (!(error as { refused?: boolean }).refused) throw error;
             console.warn(`${name}: ${(error as Error).message.replace("Cannot", "Unable to")}`);
