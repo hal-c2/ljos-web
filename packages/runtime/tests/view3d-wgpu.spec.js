@@ -1333,6 +1333,40 @@ test.describe("a View3D no one asked a renderer of", () => {
     test.skip(!(await page.evaluate(async () => !!(await navigator.gpu?.requestAdapter()))), "WebGPU has no adapter here");
     expect(await (await drawn(page)).jsonValue()).toBe("wgpu");
   });
+
+  // As a browser whose GPU process gave up may: the device is lost, and
+  // WebGPU has no adapter after. The canvas keeps WebGPU's context, which
+  // the JavaScript renderer cannot draw with.
+  test("a view whose GPU is lost and not to be had again draws on the JavaScript renderer instead", async ({ page }) => {
+    await page.addInitScript(LOSABLE);
+    await page.addInitScript(() => {
+      window.adapterGone = false;
+      if (!self.GPU) return;
+      const ask = GPU.prototype.requestAdapter;
+      GPU.prototype.requestAdapter = function (...args) {
+        return window.adapterGone ? Promise.resolve(null) : ask.apply(this, args);
+      };
+    });
+    await page.goto("/?scene=shaded3d");
+    await page.waitForFunction(() => window.ready);
+    test.skip(!(await page.evaluate(async () => !!(await navigator.gpu?.requestAdapter()))), "WebGPU has no adapter here");
+    expect(await (await drawn(page)).jsonValue()).toBe("wgpu");
+    await page.evaluate(async () => {
+      window.canvas = document.querySelector(".qq-view3d");
+      window.adapterGone = true;
+      await window.loseGpu();
+    });
+    // Until the view says it failed, or draws on another canvas.
+    await page.waitForFunction(() => {
+      const state = window.canvas.$view3d;
+      if (state.error) throw new Error(state.error);
+      const now = document.querySelector(".qq-view3d")?.$view3d;
+      return now?.renderer === "js" && now.frames > 0;
+    });
+    expect(await page.evaluate(() => [document.querySelectorAll(".qq-view3d").length, window.canvas.isConnected])).toEqual([1, false]);
+    const [r, g, b] = (await pixels(page, [[50, 60]]))[0].split(" ").map(Number);
+    expect([r, g, b], "the model, not the window's colour").not.toEqual(CLEAR);
+  });
 });
 
 test("a page whose View3D draws on wgpu asks for the renderer before its first view is made", async ({ page }) => {
