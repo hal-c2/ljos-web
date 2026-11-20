@@ -165,6 +165,7 @@ export interface TypeSpec<I extends QObject = QObject, P = PropertySpecs, S exte
   readonly lists?: readonly string[];
   readonly held?: readonly string[];
   readonly attached?: QmlType;
+  readonly changes?: readonly string[];
 }
 
 // Makes the slot of a property on an object, the first time it is asked for.
@@ -1754,6 +1755,8 @@ function defineSignal(proto: object, name: string): void {
 //   parent (`resources`): an item made in one has no parent.
 // - `attached`: the type of `Type.attached(object)`, for `ListView.view` or
 //   `Layout.fillWidth`. Its props are the object's `Type$name` ones.
+// - `changes`: accessors of `methods` whose changes are signals too
+//   (`childrenChanged`), heard by `onChildrenChanged` as a property's are.
 export function defineType<
   B extends QObject = QObject,
   P extends PropertySpecs = {},
@@ -1782,6 +1785,7 @@ export function defineType<
   }
   for (const signalName of spec.signals ?? []) defineSignal(proto, signalName);
   if (spec.methods) Object.defineProperties(proto, Object.getOwnPropertyDescriptors(spec.methods));
+  for (const changed of spec.changes ?? []) defineChange(proto, changed);
   const { attached } = spec;
   if (attached) Type.attached = (self) => attach(name, attached, self);
   Object.defineProperty(Type, Symbol.hasInstance, { value: isA });
@@ -2277,7 +2281,7 @@ function create(Type: QmlType, props: Props): QObject {
         const name = property[0]!.toLowerCase() + property.slice(1);
         const changed = () => dynamic(self)[`${name}Changed`] as ChangeSignal;
         if (name in Type.slots) changed().watch((value, firsts) => first(self, name, key, value, firsts));
-        else if (props.$aliases?.[name]) changed().watch();
+        else if (props.$aliases?.[name] || computed(self, name)) changed().watch();
       }
       // `Keys.onPressed`, `Layout.fillWidth`: the attached object is what does
       // something about them, so it has to exist.
@@ -2376,6 +2380,15 @@ function sameItems(value: unknown, last: unknown): boolean {
   return true;
 }
 
+// Whether the type computes `name` afresh at each read and says when it
+// changes (`children`): no slot holds it.
+const computed = (self: QObject, name: string): boolean =>
+  Boolean(self.$type?.chain.some((type) => type.spec.changes?.includes(name)));
+
+// What a computed list is read as again is a new array, though it holds the
+// same objects: a Timer made in an item is none of its children.
+const alike = (value: unknown, last: unknown): boolean => Object.is(value, last) || sameItems(value, last);
+
 // Runs `handler` when the property changes from what it is now, or from what
 // it is once the objects being created all are.
 export function onChange(self: QObject, name: string, handler: Handler, first?: First): void {
@@ -2388,7 +2401,9 @@ export function onChange(self: QObject, name: string, handler: Handler, first?: 
     : () => dynamic(self)[name];
   const same = members
     ? (value: unknown, last: unknown) => (value as unknown[]).every((member, index) => Object.is(member, (last as unknown[])[index]))
-    : Object.is;
+    : computed(self, name)
+      ? alike
+      : Object.is;
   const watch = (firsts?: Works) => {
     let last = untrack(read);
     let fresh = true;
@@ -2514,6 +2529,10 @@ export function $component(file: File): Component {
     const { object, dispose } = instantiate(given, properties ?? {}, item);
     hidden(object as QObject, "$dispose", dispose);
     item?.$add?.(object as QObject);
+    // The parent has heard of its new child (`onChildrenChanged`) when the
+    // call returns, as when a `parent` is assigned. A binding that makes one
+    // is settled with the rest.
+    if (item?.$add && bindings === 0) settle();
     return object;
   };
   return make;

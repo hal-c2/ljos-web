@@ -435,6 +435,9 @@ export const Item = defineType("Item", QtObject, {
     if ("activeFocusOnTab" in props) reachable(self);
     navigable(self, props);
   },
+  // Qt 6.11: `childrenChanged` is told as a child comes or goes, though
+  // `children` is computed; `resources` and `data` have no change signal.
+  changes: ["children"],
   // Qt 6.11: what `resources` and `data` were given comes before what is
   // declared in the item.
   lists: ["resources", "data"],
