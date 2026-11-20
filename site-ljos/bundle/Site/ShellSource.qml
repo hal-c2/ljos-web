@@ -18,15 +18,28 @@ C.Popup {
     // Why the shell shown is not the one asked for, as ShellLoader says.
     property string error: ""
     property var source: null
+    // What the reader has written in each shell's QML and not reset, by
+    // its file: the editor holds one shell's at a time.
+    property var drafts: ({})
 
     signal applied(string file, string text)
     signal reset
 
     function show(wanted) {
+        if (panel.source)
+            panel.drafts[panel.source.file] = editor.text;
         panel.name = wanted;
         panel.open();
         Shells.sources().then((all) => {
-            panel.source = all.shells[wanted] ?? null;
+            // Asked for another meanwhile: that one's comes.
+            if (panel.name !== wanted)
+                return;
+            var source = all.shells[wanted] ?? null;
+            panel.source = source;
+            // The editor's text is written once the reader edits, and
+            // the next shell's `code` would not show over it: it is that
+            // shell's own, as last left.
+            editor.text = source ? panel.drafts[source.file] ?? source.text : "";
         }, (why) => {
             panel.source = null;
             console.warn(`ShellSource: ${why}`);
