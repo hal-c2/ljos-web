@@ -1,12 +1,12 @@
+// Ljos.Core before QtQuick so t`` is available while shared names stay QtQuick's.
+import Ljos.Core
 import QtQuick
+import "logic/motion.ts" as MotionLogic
 
-// Motion with a job to do: a puck that springs after your pointer
-// (feedback that feels physical), a row of tiles that glide to their
-// new places when shuffled (so a change reads as movement, not a
-// jump cut), and a card that opens with a state transition. When
-// the page says reduced motion is preferred (root.calm), the same
-// changes still travel, softer and with no overshoot: reduced motion
-// is less of it, never a jump.
+// Declarative motion in three forms: a spring-driven puck, list transitions
+// when tiles shuffle, and a card that opens with animated state. Clamping,
+// tuning, and shuffle steps live in logic/motion.ts.
+// Try changing livelyDamping, tileMoveMs, or puckSize.
 Rectangle {
     id: root
     width: 720
@@ -14,17 +14,32 @@ Rectangle {
     color: look.canvas
     radius: 8
 
+    // Remix knobs: tune the spring feel, shuffle pace, and puck size here.
+    property real puckSize: 54
+    property real livelySpring: 3.2
+    property real livelyDamping: 0.28
+    property real calmSpring: 4.0
+    property real calmDamping: 1.0
+    property int tileMoveMs: 520
+    property int calmMoveMs: 300
+    property int cardOpenHeight: 118
+
+    // Host contract: DemoFrame pauses off-screen demos and sets calm for reduced motion.
     property bool active: true
     property bool calm: false
 
-    // The colours this app draws with, for the scheme the reader chose:
-    // each the dark it was drawn in or a light that keeps the text on it
-    // as readable.
+    readonly property var spring: MotionLogic.springTuning(
+        calm, livelySpring, livelyDamping, calmSpring, calmDamping
+    )
+    readonly property int tileDuration: MotionLogic.duration(calm, tileMoveMs, calmMoveMs)
+
     QtObject {
         id: look
         readonly property bool dark: Application.styleHints.colorScheme === Qt.ColorScheme.Dark
         readonly property color accent: dark ? "#e8a33d" : "#c07a12"
         readonly property color accentPressed: dark ? "#c77f2a" : "#a8650a"
+        readonly property color onAccent: "#1a1408"
+        readonly property color onTile: "#14161d"
         readonly property color canvas: dark ? "#171a23" : "#f6f4ee"
         readonly property color ink: dark ? "#e8eaf0" : "#1b1f2a"
         readonly property color muted1: dark ? "#9aa3b2" : "#4d5566"
@@ -33,7 +48,7 @@ Rectangle {
         readonly property color raised: dark ? "#232839" : "#ffffff"
     }
 
-    // --- the spring tray -------------------------------------------------
+    // --- Spring tray ------------------------------------------------------
     Rectangle {
         id: tray
         anchors.left: parent.left
@@ -49,49 +64,44 @@ Rectangle {
             y: 10
             color: look.muted1
             font.pixelSize: 13
-            text: qsTr("Press and move — the puck springs after you")
+            text: t`Press and move — the puck springs after you`
         }
 
         Rectangle {
             id: puck
-            width: 54
-            height: 54
-            radius: 27
+            width: root.puckSize
+            height: root.puckSize
+            radius: root.puckSize / 2
             color: look.accent
             x: tray.width / 2 - width / 2
             y: tray.height / 2 - height / 2
             property real goalX: x
             property real goalY: y
-            // Only a reader sends the puck anywhere. Until one does it
-            // sits in the middle of the tray however the tray is sized:
-            // the demo is made at its own size and then given its
-            // frame's, and a spring there would set the puck off on its
-            // own as the demo appears (before the frame says `calm`,
-            // so with the full spring's overshoot).
+            // Wait for the first pointer gesture before enabling springs so
+            // initial layout sizing does not launch the puck on its own.
             property bool led: false
-            // A lively spring when motion is welcome; a soft one with no
-            // overshoot when it is not, slow enough to follow. Both end
-            // in the same place.
+
             Behavior on x {
                 enabled: root.active && puck.led
                 SpringAnimation {
-                    spring: root.calm ? 4 : 3.2
-                    damping: root.calm ? 1.0 : 0.28
+                    spring: root.spring.spring
+                    damping: root.spring.damping
                     epsilon: 0.4
                 }
             }
             Behavior on y {
                 enabled: root.active && puck.led
                 SpringAnimation {
-                    spring: root.calm ? 4 : 3.2
-                    damping: root.calm ? 1.0 : 0.28
+                    spring: root.spring.spring
+                    damping: root.spring.damping
                     epsilon: 0.4
                 }
             }
             scale: chase.pressed ? 0.92 : 1.0
             Behavior on scale {
+                enabled: root.active
                 NumberAnimation {
-                    duration: root.calm ? 150 : 140
+                    duration: MotionLogic.duration(root.calm, 140, 150)
                     easing.type: Easing.OutCubic
                 }
             }
@@ -100,14 +110,15 @@ Rectangle {
         MouseArea {
             id: chase
             anchors.fill: parent
-            Accessible.name: qsTr("Spring tray. Press and move to lead the puck; it springs after the pointer.")
+            Accessible.name: t`Spring tray. Press and move to lead the puck; it springs after the pointer.`
             Accessible.role: Accessible.Slider
             function lead(mouse) {
+                const target = MotionLogic.clampPuck(mouse.x, mouse.y, puck.width, tray.width, tray.height);
                 puck.led = true;
-                puck.goalX = Math.max(0, Math.min(tray.width - puck.width, mouse.x - puck.width / 2));
-                puck.goalY = Math.max(0, Math.min(tray.height - puck.height, mouse.y - puck.height / 2));
-                puck.x = puck.goalX;
-                puck.y = puck.goalY;
+                puck.goalX = target.x;
+                puck.goalY = target.y;
+                puck.x = target.x;
+                puck.y = target.y;
             }
             onPressed: (mouse) => lead(mouse)
             onPositionChanged: (mouse) => {
@@ -117,7 +128,7 @@ Rectangle {
         }
     }
 
-    // --- the tiles that glide home --------------------------------------
+    // --- Gliding tiles ----------------------------------------------------
     ListModel {
         id: tiles
         ListElement { label: "Ljós"; tone: "#e8a33d" }
@@ -148,7 +159,7 @@ Rectangle {
             color: tone
             Text {
                 anchors.centerIn: parent
-                color: "#14161d"
+                color: look.onTile
                 font.pixelSize: 17
                 font.bold: true
                 text: label
@@ -157,20 +168,20 @@ Rectangle {
         moveDisplaced: Transition {
             NumberAnimation {
                 properties: "x,y"
-                duration: root.calm ? 300 : 520
+                duration: root.tileDuration
                 easing.type: root.calm ? Easing.OutCubic : Easing.OutBack
             }
         }
         move: Transition {
             NumberAnimation {
                 properties: "x,y"
-                duration: root.calm ? 300 : 520
+                duration: root.tileDuration
                 easing.type: root.calm ? Easing.OutCubic : Easing.OutBack
             }
         }
     }
 
-    // --- controls ---------------------------------------------------------
+    // --- Controls ---------------------------------------------------------
     Row {
         anchors.left: parent.left
         anchors.top: strip.bottom
@@ -185,7 +196,7 @@ Rectangle {
             color: shufflePress.pressed ? look.accentPressed : look.accent
             scale: shufflePress.pressed ? 0.97 : 1.0
             activeFocusOnTab: true
-            Accessible.name: qsTr("Shuffle the tiles")
+            Accessible.name: t`Shuffle the tiles`
             Accessible.role: Accessible.Button
             Accessible.onPressAction: shuffleButton.shuffle()
             Keys.onPressed: (event) => {
@@ -195,17 +206,18 @@ Rectangle {
                 }
             }
             Behavior on scale {
+                enabled: root.active
                 NumberAnimation {
-                    duration: root.calm ? 150 : 120
+                    duration: MotionLogic.duration(root.calm, 120, 150)
                     easing.type: Easing.OutCubic
                 }
             }
             Text {
                 anchors.centerIn: parent
-                color: "#1a1408"
+                color: look.onAccent
                 font.pixelSize: 15
                 font.bold: true
-                text: qsTr("Shuffle the tiles")
+                text: t`Shuffle the tiles`
             }
             MouseArea {
                 id: shufflePress
@@ -213,26 +225,20 @@ Rectangle {
                 onClicked: shuffleButton.shuffle()
             }
             function shuffle() {
-                // A Fisher–Yates pass over the model: every tile
-                // travels, none is remade, so the move reads.
-                for (let i = tiles.count - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    if (j !== i)
-                        tiles.move(i, j, 1);
-                }
+                MotionLogic.shuffleMoves(tiles.count).forEach((step) => tiles.move(step.from, step.to, 1));
             }
         }
 
         Rectangle {
             id: card
             width: 300
-            height: open ? 118 : 42
+            height: open ? root.cardOpenHeight : 42
             radius: 8
             color: look.raised
             clip: true
             property bool open: false
             activeFocusOnTab: true
-            Accessible.name: qsTr("About this motion. Tap to open or close.")
+            Accessible.name: t`About this motion. Tap to open or close.`
             Accessible.role: Accessible.Button
             Accessible.onPressAction: card.open = !card.open
             Keys.onPressed: (event) => {
@@ -242,8 +248,9 @@ Rectangle {
                 }
             }
             Behavior on height {
+                enabled: root.active
                 NumberAnimation {
-                    duration: root.calm ? 200 : 320
+                    duration: MotionLogic.duration(root.calm, 320, 200)
                     easing.type: Easing.InOutCubic
                 }
             }
@@ -252,7 +259,7 @@ Rectangle {
                 y: 11
                 color: look.ink
                 font.pixelSize: 15
-                text: card.open ? qsTr("About this motion ▾") : qsTr("About this motion ▸")
+                text: card.open ? t`About this motion ▾` : t`About this motion ▸`
             }
             Text {
                 x: 12
@@ -263,12 +270,13 @@ Rectangle {
                 font.pixelSize: 13
                 opacity: card.open ? 1 : 0
                 Behavior on opacity {
+                    enabled: root.active
                     NumberAnimation {
-                        duration: root.calm ? 180 : 220
+                        duration: MotionLogic.duration(root.calm, 220, 180)
                         easing.type: Easing.OutCubic
                     }
                 }
-                text: qsTr("Springs, behaviors, list transitions and states are declarations beside the values they move — no animation loop of yours to run, and nothing ticks while this is off screen.")
+                text: t`Springs, behaviors, list transitions and states are declarations beside the values they move — no animation loop of yours to run, and nothing ticks while this is off screen.`
             }
             MouseArea {
                 anchors.fill: parent
