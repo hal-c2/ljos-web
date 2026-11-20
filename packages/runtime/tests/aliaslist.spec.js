@@ -69,6 +69,13 @@ test("a list alias a script wrote keeps a state's list once the state ends", asy
   expect(await page.evaluate(() => window.scene.assignedThroughState())).toEqual(["scripted", "stated", "stated", "stated"]);
 });
 
+// An object declared for an alias of an alias is made once: what its own
+// bindings read changing changes it, and makes no other.
+test("an object declared for an alias of an alias of a list is made once", async ({ page }) => {
+  await open(page, "aliaslist");
+  expect(await page.evaluate(() => window.scene.declaredRelayOnce())).toEqual(["own,on", "own,off", true]);
+});
+
 // Only the alias the state changes is written by the state: a handler
 // that write runs, writing another alias, writes it as a script does, as
 // Qt 6.12 has it (measured with qml6).
