@@ -24,6 +24,9 @@ Item {
     property Item seven: Rectangle { objectName: "seven" }
     property Item eight: Rectangle { objectName: "eight" }
     property Item nine: Rectangle { objectName: "nine" }
+    property Item ten: Rectangle { objectName: "ten" }
+    property Item eleven: Rectangle { objectName: "eleven" }
+    property bool echoing: false
 
     AliasListHost {
         id: declared
@@ -57,6 +60,20 @@ Item {
     AliasListHost {
         id: staged
         content: root.flag ? [root.seven] : [root.eight]
+    }
+
+    // A handler that the state's own write runs, writing another alias as
+    // a script does.
+    AliasListHost {
+        id: echo
+        content: [root.eleven]
+    }
+    Connections {
+        target: staged.inner
+        enabled: root.echoing
+        function onChildrenChanged() {
+            echo.content = [root.ten]
+        }
     }
 
     states: State {
@@ -137,6 +154,14 @@ Item {
         root.flag = true
         seen.push(names(staged.inner.children))
         return seen
+    }
+    // The state ends, and what its write runs writes `echo`: that write is
+    // a script's, and stays.
+    function echoOfState() {
+        root.state = "over"
+        root.echoing = true
+        root.state = ""
+        return [names(staged.inner.children), names(echo.inner.children)]
     }
     function holdInLoader() {
         loading.active = true

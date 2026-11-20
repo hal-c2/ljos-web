@@ -43,6 +43,19 @@ test("a state that changes an alias of an item's list gives its binding back whe
   expect(await page.evaluate(() => window.scene.throughState())).toEqual(["seven", "nine", "nine", "eight", "seven"]);
 });
 
+// Only the alias the state changes is written by the state: a handler
+// that write runs, writing another alias, writes it as a script does, as
+// Qt 6.12 has it (measured with qml6).
+test.describe(() => {
+  // A handler of childrenChanged runs inside an effect, so its write's
+  // flush is one Solid says does nothing (#132), whoever wrote it.
+  test.use({ told: [/FLUSH_IN_EFFECT_CALLBACK/] });
+  test("what a state's write of an alias runs writes other aliases as a script", async ({ page }) => {
+    await open(page, "aliaslist");
+    expect(await page.evaluate(() => window.scene.echoOfState())).toEqual(["seven", "ten"]);
+  });
+});
+
 // `property alias kept: inner.resources`: what it is given is the item's
 // without the item drawing it, so an item keeps the parent it has, and a
 // declared one has none, as in Qt 6.12. A binding's list is the whole.
