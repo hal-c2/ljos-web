@@ -93,6 +93,25 @@ const LOSABLE = `
     await new Promise((done) => setTimeout(done));
   };
 `;
+// Loses the page's GPU (`LOSABLE`), and waits until each view drew again,
+// said why it stopped, or draws on the JavaScript renderer instead.
+const LOST_AND_SETTLED = async () => {
+  const views = () => [...document.querySelectorAll(".qq-view3d")];
+  const before = new Map(views().map((canvas) => [canvas, canvas.$view3d.frames]));
+  await window.loseGpu();
+  await new Promise((done) => {
+    const look = () => {
+      const now = views();
+      const settled = now.length === before.size && now.every(({ $view3d: state }, index) => state.error || state.frames > (before.get(now[index]) ?? 0));
+      if (settled) done();
+      else requestAnimationFrame(look);
+    };
+    look();
+  });
+};
+// What each view draws with, how many times it was made again for a GPU
+// lost, and why it stopped, if it did.
+const RENDERERS = () => [...document.querySelectorAll(".qq-view3d")].map(({ $view3d: { renderer, lost, error } }) => ({ renderer, lost: lost ?? 0, error: error && error.split(":")[0] }));
 const CENTRE = [200, 150];
 const CLEAR = [0x20, 0x20, 0x20];
 // The most a model whose y changed may ask of the page in the build that
@@ -1189,6 +1208,22 @@ for (const backend of ["webgpu", "webgl2"]) {
       expect(await page.evaluate(() => window.gpuDevices.filter(({ lost }) => !lost).length)).toBe(1);
     });
 
+    // A GPU that keeps dying: views a renderer was asked of are made again
+    // for the first three losses within a minute, and stop at the fourth,
+    // saying why.
+    test.describe("a GPU that keeps dying", () => {
+      test.use({ told: [/^View3D: the GPU was lost: /] });
+
+      test("views a renderer was asked of stop, saying why, once their GPU is lost too often", async ({ page }) => {
+        test.skip(backend !== "webgpu", "a device the page can lose is WebGPU's");
+        await page.addInitScript(LOSABLE);
+        await show(page, "wgpu_two");
+        for (let time = 0; time < 4; time++) await page.evaluate(LOST_AND_SETTLED);
+        const stopped = { renderer: "wgpu", lost: 3, error: "the GPU was lost" };
+        expect(await page.evaluate(RENDERERS)).toEqual([stopped, stopped]);
+      });
+    });
+
     test("the view's size is the canvas's in device pixels, and changing it draws again", async ({ page }) => {
       await show(page, "wgpu_mapped");
       const size = () => page.evaluate(() => { const c = document.querySelector(".qq-view3d"); return [c.width, c.height]; });
@@ -1310,6 +1345,43 @@ test("a view on the JavaScript renderer whose context is given back draws again"
   expect([r, g, b], "the model, not the window's colour").not.toEqual(CLEAR);
 });
 
+// Surroundings Qt baked into a file are handed to the context as they are,
+// and the file let go of: a context given back reads it again, and the
+// scene is lit by it and has it behind as before.
+test("a view on the JavaScript renderer lit by baked surroundings is lit by them again once its context is given back", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.addInitScript(() => {
+    const get = OffscreenCanvas.prototype.getContext;
+    OffscreenCanvas.prototype.getContext = function (kind, ...rest) {
+      const made = get.call(this, kind, ...rest);
+      if (kind === "webgl2" && made) window.drawing = made;
+      return made;
+    };
+  });
+  await page.goto("/?scene=baked3d&view3d=js");
+  await page.waitForFunction(() => window.ready && document.querySelector(".qq-view3d")?.$view3d?.frames > 0);
+  // Behind, the mirror, and the ball half as smooth, as quick3d.spec.js
+  // has them.
+  const points = [[60, 60], [300, 60], [200, 150], [320, 150]];
+  const colours = [[62, 168, 168], [129, 129, 43], [87, 87, 208], [45, 45, 134]];
+  const lit = async () => {
+    const got = (await pixels(page, points)).map((one) => one.split(" ").map(Number));
+    return got.every((colour, index) => colour.every((value, at) => Math.abs(value - colours[index][at]) <= 3)) || got;
+  };
+  await expect.poll(lit).toBe(true);
+  const frames = await page.evaluate(() => {
+    window.losing = window.drawing.getExtension("WEBGL_lose_context");
+    window.losing.loseContext();
+    return document.querySelector(".qq-view3d").$view3d.frames;
+  });
+  await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => setTimeout(done, 50))));
+  await page.evaluate(() => window.losing.restoreContext());
+  await page.waitForFunction((was) => document.querySelector(".qq-view3d").$view3d.frames > was, frames);
+  await expect.poll(lit, { message: "lit and behind as before the context was lost" }).toBe(true);
+  expect(errors).toEqual([]);
+});
+
 // Where neither the page nor the build asks for a renderer, a View3D is on
 // wgpu if WebGPU has an adapter for the page, and on the JavaScript one if
 // not: a browser may have WebGPU and no GPU it lets it use.
@@ -1424,6 +1496,54 @@ test.describe("a View3D no one asked a renderer of", () => {
     expect(await page.evaluate(() => [document.querySelectorAll(".qq-view3d").length, window.canvas.isConnected])).toEqual([1, false]);
     const [r, g, b] = (await pixels(page, [[50, 60]]))[0].split(" ").map(Number);
     expect([r, g, b], "the model, not the window's colour").not.toEqual(CLEAR);
+  });
+
+  // A GPU that keeps dying is given up for the page, at the fourth loss
+  // within a minute: every view draws on the JavaScript renderer.
+  const twoOnWgpu = async (page) => {
+    await page.addInitScript(LOSABLE);
+    await page.goto("/?scene=wgpu_two");
+    await page.waitForFunction(() => window.ready);
+    test.skip(!(await page.evaluate(async () => !!(await navigator.gpu?.requestAdapter()))), "WebGPU has no adapter here");
+    await page.waitForFunction(() => {
+      const views = [...document.querySelectorAll(".qq-view3d")];
+      return views.length === 2 && views.every(({ $view3d: state }) => state.renderer === "wgpu" && state.frames > 0);
+    });
+  };
+  const drawingOnScript = (page) =>
+    page.waitForFunction(() => {
+      const views = [...document.querySelectorAll(".qq-view3d")];
+      return views.length === 2 && views.every(({ $view3d: state }) => state.renderer === "js" && state.frames > 0);
+    });
+
+  test("views whose GPU is lost too often draw on the JavaScript renderer instead", async ({ page }) => {
+    await twoOnWgpu(page);
+    for (let time = 0; time < 4; time++) await page.evaluate(LOST_AND_SETTLED);
+    await drawingOnScript(page);
+    const drawing = { renderer: "js", lost: 0, error: null };
+    expect(await page.evaluate(RENDERERS)).toEqual([drawing, drawing]);
+  });
+
+  // The losses are the page's, not a view's: one made after some of them
+  // gives up with the rest, and so does one made after, so no view shows a
+  // picture one on the other renderer drew.
+  test("a view made between losses of the GPU gives up with the others, and one made after draws on the JavaScript renderer", async ({ page }) => {
+    await twoOnWgpu(page);
+    const remade = async () => {
+      await page.evaluate(() => (window.objects.second.active = false));
+      await page.evaluate(() => (window.objects.second.active = true));
+      await page.waitForFunction(() => {
+        const views = [...document.querySelectorAll(".qq-view3d")];
+        return views.length === 2 && views.every(({ $view3d: state }) => state.error || state.frames > 0);
+      });
+    };
+    await page.evaluate(LOST_AND_SETTLED);
+    await remade();
+    for (let time = 0; time < 3; time++) await page.evaluate(LOST_AND_SETTLED);
+    await drawingOnScript(page);
+    await remade();
+    await drawingOnScript(page);
+    expect((await page.evaluate(RENDERERS)).map(({ renderer }) => renderer)).toEqual(["js", "js"]);
   });
 });
 
