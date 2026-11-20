@@ -7,6 +7,9 @@
     ],
     "crates/ljos_design_qml/qml": [
       "Ljos/Design/"
+    ],
+    "crates/ljos_cli/src/observe": [
+      "Ljos/Observer/"
     ]
   },
   "rev": "18f6d6eca7929e8e6c4dd0722c242533bac4b2d4",
@@ -49,6 +52,7 @@
     "Ljos/Design/PressBehavior.qml": "2d61d13da5502c24d2114885dba09a7e2f42e20956648b4d172e99a0384638f9",
     "Ljos/Design/Spacing.qml": "b6681674a52daef6cbcef804fe6295af7c33c8aa1c6229b8c5c5b71e66b1d0fa",
     "Ljos/Design/Typography.qml": "1b9e3fb6817dcdf613ac1916030edfbbb77d4e44365e2aafe51eec9cc2444407",
+    "Ljos/Observer/Observer.qml": "b73ec16baf1f760320ab0c87095848a908e7dd267f4012ca3750e17873ffb24e",
     "QtQuick/Controls/Basic/ApplicationWindow.qml": "01abfabc1541be99c236914853d2b34b1c672fb4df75eda9e559588e0a05468a",
     "QtQuick/Controls/Basic/BusyIndicator.qml": "22523d690df065e2126ea1a0bb773f6b5e71f8b78349f0221397d3ac115f5c62",
     "QtQuick/Controls/Basic/Button.qml": "90f17f0a040c3a2c347ff8cb94329d131714bde93eb444a6e21c899c1cbf449d",

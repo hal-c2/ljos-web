@@ -1,0 +1,6673 @@
+// The window of `ljos observe` (crates/ljos_cli/src/observe.rs). Every
+// value it shows comes from an inspector tool through `client.call`.
+//
+// It follows the application with `app_watch`, which the inspector
+// answers on its server's thread when a pass is drawn, a line is logged or
+// a reload happens, and holds otherwise: while the application rests,
+// neither it nor this window does any work. Each answer brings the page
+// shown up to date and adds a point to the charts.
+//
+// An inspector is to cost less than what it watches: words are Text, not
+// Label, each in the theme's colour (a Label costs over twice a Text to
+// make and hold), and a page out of sight lets the rows of its view go.
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import QtQuick.Shapes
+import Ljos.Observer
+
+ApplicationWindow {
+    id: window
+    required property string tokenFile
+
+    visible: true
+    title: "Observer — " + (client.url === "" ? "connecting" : client.url)
+    color: theme.bg
+
+    // The system's scheme, light or dark, as the rest of the desktop.
+    readonly property bool dark: Qt.styleHints.colorScheme === Qt.ColorScheme.Dark
+
+    // The controls inherit the window's palette: a field, a box to tick
+    // and a button are drawn in the theme's colours, not the style's.
+    palette.window: theme.bg
+    palette.windowText: theme.text
+    palette.base: theme.card
+    palette.alternateBase: theme.cardAlt
+    palette.text: theme.text
+    palette.placeholderText: theme.subtle
+    palette.button: window.dark ? "#2a2f38" : "#e2e5ea"
+    palette.buttonText: theme.text
+    palette.highlight: theme.accent
+    palette.highlightedText: window.dark ? "#15171c" : "#ffffff"
+    palette.mid: theme.rule
+    palette.dark: theme.subtle
+    palette.light: theme.cardAlt
+    palette.midlight: theme.rule
+    // A colour set above is the disabled group's too, so a disabled
+    // button would look as the others: these make it look disabled.
+    palette.disabled.button: window.dark ? "#22262d" : "#eceef1"
+    palette.disabled.buttonText: window.dark ? "#5c6370" : "#a3a9b2"
+    palette.disabled.text: window.dark ? "#5c6370" : "#a3a9b2"
+    palette.disabled.windowText: window.dark ? "#5c6370" : "#a3a9b2"
+
+    QtObject {
+        id: theme
+        readonly property color bg: window.dark ? "#15171c" : "#f4f5f7"
+        readonly property color side: window.dark ? "#1b1e24" : "#e9ebef"
+        readonly property color card: window.dark ? "#20242b" : "#ffffff"
+        readonly property color cardAlt: window.dark ? "#252a32" : "#f6f7f9"
+        readonly property color text: window.dark ? "#e4e7ec" : "#1b1e23"
+        readonly property color subtle: window.dark ? "#8f97a4" : "#636a75"
+        readonly property color rule: window.dark ? "#2e333c" : "#dfe2e7"
+        readonly property color accent: window.dark ? "#78a9ff" : "#1f55b8"
+        readonly property color accentSoft: Qt.rgba(accent.r, accent.g, accent.b, window.dark ? 0.22 : 0.12)
+        readonly property color good: window.dark ? "#4cc27c" : "#2f9e5c"
+        readonly property color warn: window.dark ? "#f0b44c" : "#c98a12"
+        readonly property color bad: window.dark ? "#f07068" : "#d2443c"
+        readonly property color violet: window.dark ? "#b896ff" : "#7a4fd6"
+        readonly property string mono: "monospace"
+    }
+
+    // A value as the inspector gives it, with every digit it has: an edit
+    // of 736.0003 must not read 736. The Objects and Trace pages both
+    // show values through this.
+    function shown(v) {
+        if (v === null || v === undefined)
+            return ""
+        if (typeof v === "string")
+            return v
+        if (typeof v === "number" || typeof v === "boolean")
+            return String(v)
+        return JSON.stringify(v)
+    }
+
+    // What a refusal says, without the JSON it came in.
+    function refusal(result) {
+        var text = String(result)
+        try {
+            var r = JSON.parse(text)
+            var e = r && r.error ? r.error : r
+            if (e && typeof e.message === "string")
+                return e.message
+        } catch (err) {
+        }
+        return text
+    }
+
+    // ----- Asking -----------------------------------------------------
+
+    // What each answer still awaited is for, by serial: the name of a
+    // handler in `answered` below, as a property holds values, not
+    // functions.
+    property var waiting: ({})
+
+    // The name the traces started here are held by: the inspector stops
+    // them once this window no longer watches the application, as when
+    // it is closed.
+    readonly property string holder: "observer " + Date.now().toString(36)
+        + Math.floor(Math.random() * 1e9).toString(36)
+
+    function ask(tool, args, route) {
+        var serial = client.call(tool, JSON.stringify(args || {}))
+        var next = waiting
+        next[serial] = route
+        waiting = next
+    }
+
+    function answered(route, ok, r) {
+        var s = ok ? r.structuredContent : null
+        if (route === "watch")
+            watcher.answered(ok, s)
+        else if (route === "processes" && ok)
+            processes.show(s)
+        else if (route === "mailboxes" && ok)
+            mailboxes.show(s.mailboxes)
+        else if (route.indexOf("objects:") === 0)
+            objects.showTree(ok, s, r, parseInt(route.substring(8)), false)
+        else if (route.indexOf("objects+:") === 0)
+            objects.showTree(ok, s, r, parseInt(route.substring(9)), true)
+        else if (route === "inspect")
+            objects.showProperties(ok, s, r)
+        else if (route === "picture")
+            objects.showPicture(ok, r)
+        else if (route === "edited")
+            objects.edited(ok, r)
+        else if (route === "supervisors" && ok)
+            supervision.showTree(s.processes)
+        else if (route === "faults" && ok)
+            supervision.showFaults(s.faults)
+        else if (route === "logs" && ok)
+            logs.add(s)
+        else if (route === "trace" && ok)
+            trace.add(s)
+        else if (route === "frames" && ok)
+            timeline.add(s)
+        else if (route === "memory" && ok)
+            memory.show(s)
+        else if (route === "models" && ok)
+            models.list = s.models
+        else if (route === "model-rows")
+            models.showRows(ok, s)
+        else if (route === "wakes" && ok)
+            wakes.add(s)
+        else if (route === "wake-due" && ok)
+            wakes.showDue(s)
+        else if (route === "one-wake")
+            wakes.showOne(ok, s, r)
+        else if (route === "components" && ok)
+            components.show(s)
+        else if (route === "component")
+            components.showInstances(ok, s)
+        else if (route === "mark" && ok)
+            components.marked(s)
+        else if (route === "since-mark" && ok)
+            components.showSince(s)
+        else if (route === "bindings" && ok)
+            hot.show(s)
+        else if (route === "growth" && ok)
+            growth.show(s)
+        else if (route === "audit")
+            audit.show(ok, s, r)
+        else if (route === "audit-status" && ok)
+            audit.showStatus(s)
+        else if (route === "audit-shot")
+            audit.showPicture(ok, r)
+        else if (route === "export")
+            timeline.saved(ok, s)
+        else if (route.indexOf("sample-") === 0 && ok)
+            overview.part(route.substring(7), s)
+    }
+
+    InspectorClient {
+        id: client
+        tokenFile: window.tokenFile
+        // The Frames page tells this window's requests by it.
+        clientName: window.holder
+        onAnswered: function(serial, tool, ok, result) {
+            var next = window.waiting
+            var route = next[serial]
+            delete next[serial]
+            window.waiting = next
+            // A refresh the inspector turned away for being asked too
+            // often keeps what is shown; the next change asks again. An
+            // edit turned away is told.
+            if (!ok && route !== "watch" && route !== "edited"
+                    && String(result).indexOf("rate_limited") >= 0) {
+                status.text = "The application is asked too often; showing the last answer"
+                if (route && route.indexOf("objects") === 0)
+                    objects.turnedAway(parseInt(route.substring(route.indexOf(":") + 1)))
+                return
+            }
+            // A picture that cannot be taken is said where the picture
+            // would be.
+            if (route !== "watch" && route !== "picture" && route !== "audit-shot")
+                status.text = ok ? "" : tool + ": " + window.refusal(result)
+            window.answered(route || "", ok, ok ? JSON.parse(result) : result)
+        }
+    }
+
+    // The page shown.
+    readonly property var pages: ["Overview", "Processes", "Mailboxes", "Objects", "Logs", "Trace",
+                                   "Supervision", "Frames", "Memory", "Models", "Wakes", "Components",
+                                   "Bindings", "Growth", "Audit"]
+    property int page: 0
+    onPageChanged: watcher.start()
+
+    function refresh(changed) {
+        var all = changed === undefined
+        overview.sample()
+        if (page === 1)
+            processes.load()
+        else if (page === 2)
+            mailboxes.load()
+        else if (page === 3 && (all || changed.indexOf("paints") >= 0 || changed.indexOf("items") >= 0
+                                || changed.indexOf("reloads") >= 0))
+            objects.load(all || changed.indexOf("reloads") >= 0)
+        // Every fault is logged, so a new one is a new log line.
+        else if (page === 6 && (all || changed.indexOf("logs") >= 0))
+            supervision.load()
+        // A frame recorded that drew something is a pass drawn.
+        else if (page === 7 && (all || changed.indexOf("paints") >= 0))
+            timeline.load()
+        else if (page === 8 && (all || changed.indexOf("paints") >= 0 || changed.indexOf("reloads") >= 0))
+            memory.load()
+        // Only the model picked is followed, so a change is of it.
+        else if (page === 9 && (all || changed.indexOf("models") >= 0 || changed.indexOf("reloads") >= 0))
+            models.load()
+        // Only a wake the application had moves the count, not the
+        // asking this page does. A wake is counted only while recorded;
+        // what will wake it next changes in a frame, recorded or not.
+        else if (page === 10 && (all || changed.indexOf("wakes") >= 0 || changed.indexOf("frames") >= 0))
+            wakes.load()
+        else if (page === 11 && (all || changed.indexOf("paints") >= 0 || changed.indexOf("reloads") >= 0))
+            components.load()
+        // Bindings run, and instances are made and let go of, in a frame
+        // whether or not it draws anything.
+        else if (page === 12 && (all || changed.indexOf("frames") >= 0 || changed.indexOf("reloads") >= 0))
+            hot.load()
+        else if (page === 13 && (all || changed.indexOf("frames") >= 0 || changed.indexOf("reloads") >= 0))
+            growth.load()
+        if (all || changed.indexOf("logs") >= 0)
+            logs.load()
+        if (all || changed.indexOf("traces") >= 0)
+            trace.load()
+    }
+
+    // Follows the application: one `app_watch` waiting at a time, asked
+    // again when it answers. A busy application is shown once a second:
+    // each showing costs a handful of calls, and the inspector takes
+    // twenty a second from everyone. An item picked on the Objects page
+    // is followed instead of every pass, so that an application busy
+    // elsewhere asks nothing of the observer.
+    QtObject {
+        id: watcher
+        property var counts: null
+        property bool live: true
+        // How many watches are out, and the item the newest follows: one
+        // that follows something else answers into nothing.
+        property int out: 0
+        property string following: ""
+        // Whether the newest waits for the model the Models page follows
+        // too: no other page asks for it. The Wakes page likewise.
+        property bool followsModels: false
+        property bool followsWakes: false
+        // Whether it waits for every frame, drawn or not: the Bindings and
+        // Growth pages follow what runs in one, the Wakes page what a
+        // frame started or stopped.
+        property bool followsFrames: false
+        // When the last answer said nothing changed.
+        property string quietSince: ""
+
+        // Paused, it still watches, so that the traces it holds stay, and
+        // shows nothing until followed again.
+        property bool missed: false
+
+        function wanted() {
+            return page === 3 && objects.pickedItem ? objects.picked : ""
+        }
+
+        function start() {
+            var item = wanted()
+            var withModels = page === 9
+            var withWakes = page === 10
+            var withFrames = page === 10 || page === 12 || page === 13
+            if (out > 0 && following === item && followsModels === withModels
+                    && followsWakes === withWakes && followsFrames === withFrames)
+                return
+            following = item
+            followsModels = withModels
+            followsWakes = withWakes
+            followsFrames = withFrames
+            out += 1
+            var args = {}
+            if (counts !== null) {
+                var since = { logs: counts.logs, reloads: counts.reloads, traces: counts.traces }
+                if (withModels)
+                    since.models = counts.models
+                if (withWakes && counts.wakes !== undefined)
+                    since.wakes = counts.wakes
+                if (withFrames)
+                    since.frames = counts.frames
+                var known = item !== "" && counts.items !== undefined && counts.items[item] !== undefined
+                if (item === "")
+                    since.paints = counts.paints
+                else if (known) {
+                    since.items = {}
+                    since.items[item] = counts.items[item]
+                }
+                // An item not followed yet is counted from now: the
+                // first answer comes at once with its count. Otherwise
+                // the longest wait there is, so that an application at
+                // rest is asked again once an hour.
+                args = { since: since, wait_ms: item === "" || known ? 3600000 : 0,
+                         settle_ms: 1000, holder: window.holder }
+            }
+            if (item !== "")
+                args.items = [item]
+            window.ask("app_watch", args, "watch")
+        }
+
+        function answered(ok, s) {
+            out -= 1
+            var item = ok && s.counts.items !== undefined ? Object.keys(s.counts.items)[0] : ""
+            if (ok && item !== following)
+                return
+            if (!ok) {
+                // The application is gone or not there yet: try again
+                // in a while, longer each time, and only while that is so.
+                retry.start()
+                return
+            }
+            retry.interval = retry.least
+            var first = counts === null
+            counts = s.counts
+            if (!live) {
+                missed = missed || first || s.changed.length > 0
+                start()
+                return
+            }
+            if (first)
+                window.refresh()
+            else if (s.changed.length > 0) {
+                quietSince = ""
+                window.refresh(s.changed)
+            } else if (quietSince === "")
+                quietSince = Qt.formatTime(new Date(), "hh:mm:ss")
+            start()
+        }
+
+        onLiveChanged: {
+            if (live && missed) {
+                missed = false
+                window.refresh()
+            }
+        }
+    }
+
+    Timer {
+        id: retry
+        readonly property int least: 2000
+        interval: least
+        onTriggered: {
+            interval = Math.min(interval * 2, 60000)
+            watcher.start()
+        }
+    }
+
+    Shortcut {
+        sequence: "Ctrl+R"
+        onActivated: window.refresh()
+    }
+
+    Component.onCompleted: watcher.start()
+
+    function ms(us) {
+        if (us === undefined || us === null)
+            return ""
+        if (us < 1000)
+            return us + " µs"
+        if (us < 1000000)
+            return (us / 1000).toFixed(1) + " ms"
+        return (us / 1000000).toFixed(2) + " s"
+    }
+
+    // Whether the platform measured `key` of the process block: what it
+    // did not is named in `not_measured`, and is never shown as 0.
+    function measured(p, key) {
+        return p !== null && p !== undefined && typeof p[key] === "number"
+    }
+
+    function bytes(n) {
+        if (n === undefined || n === null)
+            return "—"
+        if (n < 1024)
+            return n + " B"
+        if (n < 1024 * 1024)
+            return (n / 1024).toFixed(0) + " KiB"
+        return (n / (1024 * 1024)).toFixed(1) + " MiB"
+    }
+
+    function stateColor(state) {
+        if (state === "running" || state === "busy")
+            return theme.warn
+        if (state === "blocked")
+            return theme.bad
+        return theme.good
+    }
+
+    RowLayout {
+        anchors.fill: parent
+        spacing: 0
+
+        // ----- The pages, and whom the window observes ------------------
+        Rectangle {
+            Layout.fillHeight: true
+            Layout.preferredWidth: 210
+            color: theme.side
+
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 14
+                spacing: 2
+
+                Text {
+                    text: "Observer"
+                    color: theme.text
+                    font.pixelSize: 21
+                    font.bold: true
+                }
+                Text {
+                    Layout.bottomMargin: 18
+                    text: processes.process ? "pid " + processes.process.pid : "ljos observe"
+                    color: theme.subtle
+                }
+
+                Repeater {
+                    model: window.pages
+                    delegate: Rectangle {
+                        required property string modelData
+                        required property int index
+                        Layout.fillWidth: true
+                        height: 34
+                        radius: 7
+                        color: window.page === index ? theme.accentSoft
+                             : hover.containsMouse ? Qt.rgba(theme.text.r, theme.text.g, theme.text.b, 0.05)
+                             : "transparent"
+                        Rectangle {
+                            visible: window.page === index
+                            width: 3; height: 16; radius: 2
+                            anchors.left: parent.left
+                            anchors.verticalCenter: parent.verticalCenter
+                            color: theme.accent
+                        }
+                        Text {
+                            anchors.left: parent.left
+                            anchors.leftMargin: 14
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: modelData
+                            color: window.page === index ? theme.accent : theme.text
+                            font.bold: window.page === index
+                        }
+                        Text {
+                            anchors.right: parent.right
+                            anchors.rightMargin: 10
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: (index === 4 && logs.unread > 0) || (index === 5 && trace.unread > 0)
+                            text: index === 4 ? logs.unread : trace.unread
+                            color: theme.subtle
+                            font.pixelSize: 11
+                        }
+                        MouseArea {
+                            id: hover
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            Accessible.role: Accessible.PageTab
+                            Accessible.name: modelData
+                            onClicked: {
+                                window.page = index
+                                window.refresh()
+                            }
+                        }
+                    }
+                }
+
+                Item { Layout.fillHeight: true }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+                    Rectangle {
+                        width: 9; height: 9; radius: 5
+                        color: !client.connected ? theme.bad
+                             : watcher.live ? theme.good : theme.subtle
+                    }
+                    Text {
+                        Layout.fillWidth: true
+                        elide: Text.ElideRight
+                        text: !client.connected ? "not connected"
+                            : !watcher.live ? "paused"
+                            : watcher.quietSince !== "" ? "idle since " + watcher.quietSince
+                            : "live"
+                        color: theme.subtle
+                    }
+                }
+                Text {
+                    Layout.fillWidth: true
+                    text: client.url
+                    elide: Text.ElideMiddle
+                    color: theme.subtle
+                    font.pixelSize: 11
+                }
+                RowLayout {
+                    Layout.topMargin: 6
+                    Button {
+                        Layout.fillWidth: true
+                        text: watcher.live ? "Pause" : "Follow"
+                        onClicked: watcher.live = !watcher.live
+                    }
+                    Button {
+                        Layout.fillWidth: true
+                        text: "Refresh"
+                        onClicked: window.refresh()
+                    }
+                }
+            }
+            Rectangle {
+                anchors.right: parent.right
+                width: 1; height: parent.height
+                color: theme.rule
+            }
+        }
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            spacing: 0
+
+            StackLayout {
+                currentIndex: window.page
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.margins: 18
+                // A page is as wide as the window leaves it, not as the
+                // widest page wants: the one shown makes do, each in its
+                // own way, and nothing goes past the window's edge.
+                Layout.minimumWidth: 0
+
+                // ----- Overview ----------------------------------------
+                ColumnLayout {
+                    id: overview
+                    spacing: 12
+
+                    // One point per answer of the watch: what moved since
+                    // the point before, kept as one list per chart so
+                    // that a chart reads its own without going through
+                    // every point.
+                    property var series: ({ frameMs: [], drawn: [], skipped: [], rss: [], wakeups: [], inbox: [] })
+                    property int version: 0
+                    property var last: null
+                    property var parts: ({})
+                    property var latest: ({})
+                    // What the platform does not measure, by figure.
+                    property var unmeasured: ({})
+
+                    function sample() {
+                        parts = {}
+                        window.ask("app_metrics", {}, "sample-metrics")
+                    }
+
+                    function part(name, s) {
+                        var next = parts
+                        next[name] = s
+                        parts = next
+                        // The threads are asked once the metrics are
+                        // answered. Their mailboxes are counted after the
+                        // UI thread answered, so that the depth is not
+                        // this window's own questions waiting.
+                        if (name === "metrics")
+                            window.ask("app_processes", {}, "sample-threads")
+                        else if (parts.metrics)
+                            add(parts.metrics, s, s)
+                    }
+
+                    function add(m, t, b) {
+                        if (t.process)
+                            processes.process = t.process
+                        var now = Date.now()
+                        // The process's own count where the platform
+                        // keeps one, else its threads' added up; neither
+                        // is unknown, not 0.
+                        var wakeups = window.measured(t.process, "wakeups") ? t.process.wakeups : null
+                        var counted = 0
+                        var everyCounted = true
+                        var threadCount = 0
+                        for (var i = 0; i < t.processes.length; ++i) {
+                            var th = t.processes[i]
+                            if (th.kind !== "thread")
+                                continue
+                            threadCount += 1
+                            if (typeof th.wakeups === "number")
+                                counted += th.wakeups
+                            else
+                                everyCounted = false
+                        }
+                        if (wakeups === null && threadCount > 0 && everyCounted)
+                            wakeups = counted
+                        var rss = window.measured(t.process, "rss_bytes") ? t.process.rss_bytes : null
+                        var threads = window.measured(t.process, "threads") ? t.process.threads
+                            : t.process ? null : threadCount
+                        unmeasured = { rss: rss === null, wakeups: wakeups === null, threads: threads === null }
+                        var depth = 0
+                        var boxes = b.mailboxes || []
+                        for (var j = 0; j < boxes.length; ++j)
+                            depth += boxes[j].depth
+                        var p = m.paint || {}
+                        var here = {
+                            t: now,
+                            frames: m.frames.count,
+                            frameTotal: m.frames.total_us,
+                            drawn: (p.presented || 0) + (p.presented_in_part || 0),
+                            skipped: p.unchanged || 0,
+                            wakeups: wakeups,
+                        }
+                        var point = {
+                            frameMs: 0, drawn: 0, skipped: 0, wakeups: 0,
+                            rss: rss === null ? 0 : rss / (1024 * 1024),
+                            inbox: depth,
+                        }
+                        if (last !== null) {
+                            var secs = Math.max(0.001, (now - last.t) / 1000)
+                            var frames = here.frames - last.frames
+                            point.frameMs = frames > 0 ? (here.frameTotal - last.frameTotal) / frames / 1000 : 0
+                            point.drawn = here.drawn - last.drawn
+                            point.skipped = here.skipped - last.skipped
+                            if (here.wakeups !== null && last.wakeups !== null)
+                                point.wakeups = (here.wakeups - last.wakeups) / secs
+                        }
+                        last = here
+                        latest = {
+                            frames: m.frames.count,
+                            overruns: m.frames.overruns,
+                            objects: m.objects,
+                            threads: threads,
+                            rss: rss,
+                            drawn: here.drawn,
+                            skipped: here.skipped,
+                            painter: p.painter || "",
+                        }
+                        var next = {}
+                        for (var key in point) {
+                            var was = series[key]
+                            var kept = was.slice(Math.max(0, was.length - 119))
+                            kept.push(point[key])
+                            next[key] = kept
+                        }
+                        // The version first: a chart reads it to
+                        // number the values it is given.
+                        version += 1
+                        series = next
+                        // The count comes after the change that made
+                        // the objects, and an application at rest tells
+                        // of no other.
+                        if (window.page === 3)
+                            objects.follow(false)
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Text { text: "Overview"; color: theme.text; font.pixelSize: 19; font.bold: true }
+                        Item { Layout.fillWidth: true }
+                        Text {
+                            color: theme.subtle
+                            text: "one point each time the application changed"
+                        }
+                    }
+
+                    // The figures now.
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 10
+                        Repeater {
+                            model: [
+                                ["Frames", "frames"], ["Over budget", "overruns"], ["Objects", "objects"],
+                                ["Threads", "threads"], ["Resident", "rss"], ["Passes drawn", "drawn"],
+                                ["Passes skipped", "skipped"]
+                            ]
+                            delegate: Rectangle {
+                                required property var modelData
+                                Layout.fillWidth: true
+                                height: 62
+                                radius: 9
+                                color: theme.card
+                                border.color: theme.rule
+                                Column {
+                                    anchors.fill: parent
+                                    anchors.margins: 10
+                                    spacing: 2
+                                    Text {
+                                        text: modelData[0]
+                                        color: theme.subtle
+                                        font.pixelSize: 11
+                                    }
+                                    Text {
+                                        property var v: overview.latest[modelData[1]]
+                                        readonly property bool unknown: overview.unmeasured[modelData[1]] === true
+                                        width: parent.width
+                                        text: unknown ? "not measured on this platform"
+                                            : v === undefined || v === null ? "—"
+                                            : modelData[1] === "rss" ? window.bytes(v) : v
+                                        color: unknown ? theme.subtle
+                                            : modelData[1] === "overruns" && v > 0 ? theme.bad : theme.text
+                                        font.pixelSize: unknown ? 12 : 19
+                                        font.bold: !unknown
+                                        wrapMode: unknown ? Text.WordWrap : Text.NoWrap
+                                        maximumLineCount: 2
+                                        elide: Text.ElideRight
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    GridLayout {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        columns: 2
+                        columnSpacing: 12
+                        rowSpacing: 12
+
+                        Repeater {
+                            model: [
+                                { title: "Frame time", key: "frameMs", unit: "ms", tone: "accent" },
+                                { title: "Passes drawn and skipped", key: "drawn", second: "skipped", unit: "", tone: "good" },
+                                { title: "Memory, resident", key: "rss", unit: "MiB", tone: "violet" },
+                                { title: "Wakeups per second, all threads", key: "wakeups", unit: "/s", tone: "warn" },
+                                { title: "Messages waiting in the mailboxes", key: "inbox", unit: "", tone: "bad" }
+                            ]
+                            delegate: Rectangle {
+                                id: chart
+                                required property var modelData
+                                required property int index
+                                readonly property color tone: theme[modelData.tone]
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                Layout.columnSpan: index === 4 ? 2 : 1
+                                Layout.minimumHeight: 120
+                                radius: 9
+                                color: theme.card
+                                border.color: theme.rule
+
+                                readonly property var values: overview.series[modelData.key]
+                                readonly property var seconds: modelData.second ? overview.series[modelData.second] : []
+                                readonly property real now: values.length === 0 ? 0 : values[values.length - 1]
+                                readonly property bool unknown: overview.unmeasured[modelData.key] === true
+
+                                Text {
+                                    x: 12; y: 10
+                                    text: chart.modelData.title
+                                    color: theme.subtle
+                                }
+                                Text {
+                                    anchors.right: parent.right
+                                    anchors.rightMargin: 12
+                                    y: 8
+                                    text: chart.unknown ? "not measured on this platform"
+                                        : chart.values.length === 0 ? "—"
+                                        : (Math.round(chart.now * 10) / 10) + (chart.modelData.unit === "" ? "" : " " + chart.modelData.unit)
+                                          + (chart.modelData.second && chart.seconds.length > 0
+                                             ? " drawn  ·  " + chart.seconds[chart.seconds.length - 1] + " skipped" : "")
+                                    color: theme.text
+                                    font.bold: true
+                                }
+                                // Lines, not a canvas: a canvas keeps a
+                                // picture of itself the size of the chart and
+                                // draws its text through the canvas's own
+                                // path, which cost more memory than the rest
+                                // of the page and took the first frame over
+                                // its budget.
+                                Item {
+                                    id: plot
+                                    anchors.fill: parent
+                                    anchors.topMargin: 34
+                                    anchors.margins: 12
+                                    visible: !chart.unknown
+                                    // A point stays where it was drawn and
+                                    // the lines move left under the plot, so
+                                    // a sample makes one point per line, not
+                                    // all of them again: making them all was
+                                    // most of what a sample cost. They are
+                                    // made again when the scale or the size
+                                    // changes, and the scale moves in steps
+                                    // so that it seldom does.
+                                    property real top: 1
+                                    property var line: []
+                                    property var second: []
+                                    readonly property real step: width / 119
+                                    // Where the newest point is drawn in the
+                                    // lines' own frame.
+                                    readonly property real head: (overview.version - 1) * step
+
+                                    onWidthChanged: refresh(true)
+                                    onHeightChanged: refresh(true)
+                                    Component.onCompleted: refresh(true)
+                                    Connections {
+                                        target: chart
+                                        function onValuesChanged() { plot.refresh(false) }
+                                        function onSecondsChanged() { plot.refresh(false) }
+                                    }
+
+                                    function refresh(whole) {
+                                        // Nothing to number points by before
+                                        // the plot has a width.
+                                        if (!(step > 0)) {
+                                            line = []
+                                            second = []
+                                            return
+                                        }
+                                        var t = scaleOf(chart.values, chart.seconds)
+                                        if (t !== top) {
+                                            top = t
+                                            whole = true
+                                        }
+                                        var l = follow(whole ? [] : line, chart.values)
+                                        if (l !== line)
+                                            line = l
+                                        var s = follow(whole ? [] : second, chart.seconds)
+                                        if (s !== second)
+                                            second = s
+                                    }
+                                    // One of 1, 1.5, 2, 3, 4, 5, 6 or 8
+                                    // times a power of ten, above the
+                                    // highest value.
+                                    function scaleOf(a, b) {
+                                        var most = 0
+                                        for (var i = 0; i < a.length; ++i)
+                                            most = Math.max(most, a[i])
+                                        for (var k = 0; k < b.length; ++k)
+                                            most = Math.max(most, b[k])
+                                        if (!(most > 0))
+                                            return 1
+                                        var p = Math.pow(10, Math.floor(Math.log10(most * 1.1)))
+                                        var f = most * 1.1 / p
+                                        var nice = [1, 1.5, 2, 3, 4, 5, 6, 8, 10]
+                                        var n = 0
+                                        while (nice[n] < f)
+                                            n += 1
+                                        return nice[n] * p
+                                    }
+                                    // `had` with the points that fell off
+                                    // the left taken away and those for new
+                                    // values added; the overview's version
+                                    // numbers the newest value.
+                                    function follow(had, vs) {
+                                        var first = overview.version - vs.length
+                                        var from = had.length > 0 ? Math.round(had[0].x / step) : first
+                                        var to = from + had.length
+                                        if (from > first || to < first)
+                                            return follow([], vs)
+                                        if (from === first && to === overview.version)
+                                            return had
+                                        var out = had.slice(first - from)
+                                        for (var n = Math.max(to, first); n < overview.version; ++n)
+                                            out.push(Qt.point(n * step, height - vs[n - first] / top * height))
+                                        return out
+                                    }
+
+                                    Rectangle { width: plot.width; height: 1; color: theme.rule }
+                                    Rectangle { y: Math.round(plot.height / 2); width: plot.width; height: 1; color: theme.rule }
+                                    Rectangle { y: plot.height - 1; width: plot.width; height: 1; color: theme.rule }
+                                    Shape {
+                                        x: plot.width - plot.head
+                                        width: Math.max(0, plot.head)
+                                        height: plot.height
+                                        // The line taken down to the bottom
+                                        // and filled under. The same points,
+                                        // not a copy with two more: a copy
+                                        // cost as much again to make and to
+                                        // hand over. Less than two points
+                                        // enclose nothing.
+                                        ShapePath {
+                                            strokeWidth: -1
+                                            fillColor: plot.line.length < 2 ? "transparent"
+                                                : Qt.rgba(chart.tone.r, chart.tone.g, chart.tone.b, 0.14)
+                                            PathPolyline { path: plot.line }
+                                            PathLine { x: plot.head; y: plot.height }
+                                            PathLine { x: plot.line.length > 0 ? plot.line[0].x : 0; y: plot.height }
+                                        }
+                                        ShapePath {
+                                            strokeColor: theme.accent
+                                            strokeWidth: 2
+                                            fillColor: "transparent"
+                                            PathPolyline { path: plot.second }
+                                        }
+                                        ShapePath {
+                                            strokeColor: chart.tone
+                                            strokeWidth: 2
+                                            fillColor: "transparent"
+                                            PathPolyline { path: plot.line }
+                                        }
+                                    }
+                                    // A single point is no line.
+                                    Rectangle {
+                                        visible: chart.values.length === 1
+                                        x: plot.width - 2
+                                        y: plot.line.length === 1 ? plot.line[0].y - 2 : 0
+                                        width: 4; height: 4
+                                        color: chart.tone
+                                    }
+                                    Text {
+                                        x: 2
+                                        visible: chart.values.length > 0
+                                        text: String(Math.round(plot.top * 10) / 10)
+                                        color: theme.subtle
+                                        font.pixelSize: 10
+                                    }
+                                    Text {
+                                        x: 4
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        visible: chart.values.length === 0
+                                        text: "waiting for the application to change"
+                                        color: theme.subtle
+                                        font.pixelSize: 12
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // ----- Processes ---------------------------------------
+                ColumnLayout {
+                    id: processes
+                    spacing: 10
+                    // A busy application is shown anew each second. The
+                    // view's rows are a ListModel set row by row from the
+                    // answer (`held` is what it holds): a row whose values
+                    // are the same is left alone, and a count that changes
+                    // adds or takes rows at the end, never all of them.
+                    ListModel { id: procRows }
+                    property var held: []
+                    // A row made costs a delegate, so rows are set a piece
+                    // at a time, as long as `applyMs` allows a frame:
+                    // `incoming` from `at` on is still to come.
+                    property var incoming: []
+                    property int at: 0
+                    readonly property int applyMs: 2
+                    Timer { id: applying; interval: 1; repeat: true; onTriggered: processes.step() }
+                    property var process: null
+                    property string kind: ""
+                    // Kind, name, state, work, wakeups, detail: the heads
+                    // and the rows share them, so they line up.
+                    readonly property var widths: [118, 0, 110, 96, 86, 230]
+
+                    function load() {
+                        var args = kind === "" ? {} : { kind: kind }
+                        window.ask("app_processes", args, "processes")
+                    }
+
+                    function show(s) {
+                        incoming = s.processes
+                        at = 0
+                        if (s.process)
+                            process = s.process
+                        step()
+                    }
+
+                    function step() {
+                        var rows = incoming
+                        var h = held
+                        var began = Date.now()
+                        var i = at
+                        for (; i < rows.length; ++i) {
+                            if (Date.now() - began >= applyMs)
+                                break
+                            var row = flat(rows[i])
+                            if (i >= h.length) {
+                                procRows.append(row)
+                                h.push(row)
+                            } else if (differs(h[i], row)) {
+                                procRows.set(i, row)
+                                h[i] = row
+                            }
+                        }
+                        at = i
+                        held = h
+                        if (i < rows.length) {
+                            if (!applying.running)
+                                applying.start()
+                            return
+                        }
+                        applying.stop()
+                        if (h.length > rows.length) {
+                            procRows.remove(rows.length, h.length - rows.length)
+                            h.splice(rows.length, h.length - rows.length)
+                        }
+                    }
+
+                    // A row as the view's model holds it: what the
+                    // columns show, worked out once.
+                    function flat(r) {
+                        return {
+                            what: r.role ? r.kind + " · " + r.role : r.kind || "",
+                            name: r.name || "",
+                            truncated: r.truncated === true,
+                            status: r.state || "",
+                            hasStatus: r.state !== undefined,
+                            work: window.ms(r.work_us),
+                            wakeups: typeof r.wakeups === "number" ? String(r.wakeups) : "",
+                            detail: r.kind === "timer"
+                                    ? "every " + r.interval_ms + " ms" + (r.repeat ? ", repeats" : "")
+                                    : r.locator || r.thread_name || "",
+                            handle: r.handle === undefined ? "" : r.handle,
+                            pickable: r.handle !== undefined
+                        }
+                    }
+
+                    function differs(a, b) {
+                        for (var k in b) {
+                            if (a[k] !== b[k])
+                                return true
+                        }
+                        return false
+                    }
+
+                    // The process as a whole: what was measured, then what
+                    // the platform does not measure.
+                    function summary(p) {
+                        if (p === null)
+                            return ""
+                        var parts = []
+                        if (window.measured(p, "threads"))
+                            parts.push(p.threads + " threads")
+                        if (window.measured(p, "rss_bytes"))
+                            parts.push(window.bytes(p.rss_bytes) + " resident")
+                        if (window.measured(p, "cpu_us"))
+                            parts.push(window.ms(p.cpu_us) + " CPU")
+                        var words = { threads: "threads", rss_bytes: "memory", cpu_us: "CPU time" }
+                        var missing = (p.not_measured || []).map(function (k) { return words[k] || k })
+                        if (missing.length > 0)
+                            parts.push(missing.join(", ") + ": not measured on this platform")
+                        return parts.join(" · ")
+                    }
+
+                    readonly property bool threadsUnmeasured: process !== null
+                        && (process.not_measured || []).indexOf("threads") >= 0
+
+                    function nameWidth(total) {
+                        var rest = 0
+                        for (var i = 0; i < widths.length; ++i)
+                            rest += widths[i]
+                        return Math.max(120, total - rest - 16)
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Text { text: "Processes"; color: theme.text; font.pixelSize: 19; font.bold: true }
+                        Text {
+                            Layout.leftMargin: 12
+                            visible: processes.process !== null
+                            color: theme.subtle
+                            text: processes.summary(processes.process)
+                        }
+                        Item { Layout.fillWidth: true }
+                        Repeater {
+                            model: [["All", ""], ["Threads", "thread"], ["Timers", "timer"],
+                                    ["Animations", "animation"], ["Owners", "owner"]]
+                            delegate: Button {
+                                required property var modelData
+                                text: modelData[0]
+                                flat: processes.kind !== modelData[1]
+                                highlighted: processes.kind === modelData[1]
+                                onClicked: {
+                                    processes.kind = modelData[1]
+                                    processes.load()
+                                }
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        radius: 9
+                        color: theme.card
+                        border.color: theme.rule
+                        clip: true
+
+                        // Column heads, laid out as the rows are.
+                        Row {
+                            id: heads
+                            x: 8
+                            y: 0
+                            height: 32
+                            Repeater {
+                                model: ["Kind", "Name", "State", "Work", "Wakeups", "Detail"]
+                                delegate: Text {
+                                    required property string modelData
+                                    required property int index
+                                    width: index === 1 ? processes.nameWidth(heads.parent.width) : processes.widths[index]
+                                    height: 32
+                                    verticalAlignment: Text.AlignVCenter
+                                    horizontalAlignment: index === 3 || index === 4 ? Text.AlignRight : Text.AlignLeft
+                                    rightPadding: index === 3 || index === 4 ? 12 : 0
+                                    text: modelData
+                                    color: theme.subtle
+                                    font.pixelSize: 12
+                                    font.bold: true
+                                }
+                            }
+                        }
+                        Rectangle { y: 32; width: parent.width; height: 1; color: theme.rule }
+
+                        // Where the platform lists no threads, the table
+                        // says so rather than leaving them out unsaid.
+                        Text {
+                            id: noThreads
+                            x: 8
+                            y: 33
+                            visible: processes.threadsUnmeasured
+                                && (processes.kind === "" || processes.kind === "thread")
+                            height: visible ? 32 : 0
+                            verticalAlignment: Text.AlignVCenter
+                            text: "Threads: not measured on this platform"
+                            color: theme.subtle
+                        }
+
+                        ListView {
+                            anchors.fill: parent
+                            anchors.topMargin: 33 + noThreads.height
+                            clip: true
+                            // A page out of sight lets its rows go: they
+                            // are most of what a page costs to hold.
+                            model: window.page === 1 ? procRows : null
+                            ScrollBar.vertical: ScrollBar {}
+                            delegate: Rectangle {
+                                id: prow
+                                required property int index
+                                required property string what
+                                required property string name
+                                required property bool truncated
+                                required property string status
+                                required property bool hasStatus
+                                required property string work
+                                required property string wakeups
+                                required property string detail
+                                required property string handle
+                                required property bool pickable
+                                width: ListView.view.width
+                                height: 32
+                                color: rowHover.containsMouse ? theme.accentSoft
+                                     : index % 2 ? theme.cardAlt : "transparent"
+                                Row {
+                                    x: 8
+                                    height: parent.height
+                                    Text {
+                                        width: processes.widths[0]; height: parent.height
+                                        verticalAlignment: Text.AlignVCenter
+                                        text: prow.what
+                                        color: theme.subtle
+                                        elide: Text.ElideRight
+                                    }
+                                    Text {
+                                        width: processes.nameWidth(prow.width); height: parent.height
+                                        verticalAlignment: Text.AlignVCenter
+                                        text: prow.name + (prow.truncated ? "…" : "")
+                                        color: prow.pickable ? theme.accent : theme.text
+                                        elide: Text.ElideMiddle
+                                        font.bold: prow.name === "UI thread"
+                                    }
+                                    Item {
+                                        width: processes.widths[2]; height: parent.height
+                                        Rectangle {
+                                            id: dot
+                                            visible: prow.hasStatus
+                                            width: 8; height: 8; radius: 4
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            color: window.stateColor(prow.status)
+                                        }
+                                        Text {
+                                            anchors.left: dot.right
+                                            anchors.leftMargin: 7
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            text: prow.status
+                                            color: theme.text
+                                        }
+                                    }
+                                    Text {
+                                        width: processes.widths[3]; height: parent.height
+                                        verticalAlignment: Text.AlignVCenter
+                                        horizontalAlignment: Text.AlignRight
+                                        rightPadding: 12
+                                        text: prow.work
+                                        color: theme.text
+                                        font.family: theme.mono
+                                    }
+                                    Text {
+                                        width: processes.widths[4]; height: parent.height
+                                        verticalAlignment: Text.AlignVCenter
+                                        horizontalAlignment: Text.AlignRight
+                                        rightPadding: 12
+                                        text: prow.wakeups
+                                        color: theme.text
+                                        font.family: theme.mono
+                                    }
+                                    Text {
+                                        width: processes.widths[5]; height: parent.height
+                                        verticalAlignment: Text.AlignVCenter
+                                        elide: Text.ElideRight
+                                        color: theme.subtle
+                                        text: prow.detail
+                                    }
+                                }
+                                MouseArea {
+                                    id: rowHover
+                                    anchors.fill: parent
+                                    hoverEnabled: prow.pickable
+                                    enabled: prow.pickable
+                                    Accessible.role: Accessible.ListItem
+                                    Accessible.name: prow.name
+                                    onClicked: {
+                                        window.page = 3
+                                        objects.load(true)
+                                        objects.pick(prow.handle, prow.name)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // ----- Mailboxes ---------------------------------------
+                ColumnLayout {
+                    id: mailboxes
+                    spacing: 10
+                    // Row by row, as the processes are: a box whose
+                    // figures are the same is left alone. There are few
+                    // boxes, so all are set in one go.
+                    ListModel { id: boxRows }
+                    property var held: []
+
+                    function show(list) {
+                        var h = held
+                        for (var i = 0; i < list.length; ++i) {
+                            var row = flat(list[i])
+                            if (i >= h.length) {
+                                boxRows.append(row)
+                                h.push(row)
+                            } else if (processes.differs(h[i], row)) {
+                                boxRows.set(i, row)
+                                h[i] = row
+                            }
+                        }
+                        if (h.length > list.length) {
+                            boxRows.remove(list.length, h.length - list.length)
+                            h.splice(list.length, h.length - list.length)
+                        }
+                        held = h
+                    }
+
+                    // A box as the view's model holds it: what the card
+                    // shows, worked out once.
+                    function flat(b) {
+                        // A side stream (kind "batch") gives way by its
+                        // policy when full and carries one type: it says
+                        // what it evicted, and has no kinds to list.
+                        var batch = b.kind === "batch"
+                        return {
+                            name: b.name,
+                            batch: batch,
+                            depth: b.depth,
+                            capacity: b.capacity,
+                            sent: String(b.sent),
+                            drained: String(b.drained),
+                            refused: b.refused,
+                            replaced: String(b.replaced),
+                            evicted: b.evicted === undefined ? "0" : String(b.evicted),
+                            senders: b.senders + (b.waiting_senders > 0 ? " (" + b.waiting_senders + " waiting)" : ""),
+                            oldest: b.oldest_us === undefined || b.oldest_us === null ? "—" : window.ms(b.oldest_us),
+                            kinds: batch ? "side stream · handled a run at a time"
+                                : b.kinds.length === 0 ? "empty"
+                                : b.kinds.map(function(k) { return k.kind + " ×" + k.count }).join(", ")
+                        }
+                    }
+
+                    function load() {
+                        window.ask("app_processes", { kind: "mailbox", peek: 5 }, "mailboxes")
+                    }
+
+                    RowLayout {
+                        Text { text: "Mailboxes"; color: theme.text; font.pixelSize: 19; font.bold: true }
+                        Text {
+                            Layout.leftMargin: 12
+                            text: "counted since the inspector started · kinds only, never contents"
+                            color: theme.subtle
+                        }
+                    }
+
+                    GridView {
+                        id: boxes
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        clip: true
+                        cellWidth: Math.max(280, width / Math.max(1, Math.floor(width / 320)))
+                        cellHeight: 186
+                        model: window.page === 2 ? boxRows : null
+                        delegate: Item {
+                            id: box
+                            required property string name
+                            required property bool batch
+                            required property int depth
+                            required property int capacity
+                            required property string sent
+                            required property string drained
+                            required property int refused
+                            required property string replaced
+                            required property string evicted
+                            required property string senders
+                            required property string oldest
+                            required property string kinds
+                            width: boxes.cellWidth
+                            height: boxes.cellHeight
+                            Rectangle {
+                                anchors.fill: parent
+                                anchors.margins: 6
+                                radius: 9
+                                color: theme.card
+                                border.color: theme.rule
+                                ColumnLayout {
+                                    anchors.fill: parent
+                                    anchors.margins: 14
+                                    spacing: 7
+                                    RowLayout {
+                                        Text { text: box.name; color: theme.text; font.bold: true; font.pixelSize: 15 }
+                                        Text { visible: box.batch; text: "batch"; color: theme.subtle }
+                                        Item { Layout.fillWidth: true }
+                                        Text {
+                                            text: box.depth + " / " + box.capacity
+                                            color: theme.text
+                                            font.family: theme.mono
+                                        }
+                                    }
+                                    // How full it is.
+                                    Rectangle {
+                                        Layout.fillWidth: true
+                                        height: 6
+                                        radius: 3
+                                        color: theme.rule
+                                        Rectangle {
+                                            height: parent.height
+                                            radius: 3
+                                            width: parent.width * Math.min(1, box.depth / Math.max(1, box.capacity))
+                                            color: box.depth >= box.capacity ? theme.bad
+                                                 : box.depth > 0 ? theme.warn : theme.good
+                                        }
+                                    }
+                                    GridLayout {
+                                        columns: 4
+                                        columnSpacing: 12
+                                        rowSpacing: 2
+                                        Text { text: "sent"; color: theme.subtle }
+                                        Text { text: box.sent; color: theme.text; font.family: theme.mono }
+                                        Text { text: "drained"; color: theme.subtle }
+                                        Text { text: box.drained; color: theme.text; font.family: theme.mono }
+                                        Text { text: "refused"; color: theme.subtle }
+                                        Text {
+                                            text: box.refused
+                                            font.family: theme.mono
+                                            color: box.refused > 0 ? theme.bad : theme.text
+                                        }
+                                        Text { text: "replaced"; color: theme.subtle }
+                                        Text { text: box.replaced; color: theme.text; font.family: theme.mono }
+                                        Text { text: "senders"; color: theme.subtle }
+                                        Text { text: box.senders; color: theme.text; font.family: theme.mono }
+                                        Text { text: "oldest"; color: theme.subtle }
+                                        Text { text: box.oldest; color: theme.text; font.family: theme.mono }
+                                        Text { visible: box.batch; text: "evicted"; color: theme.subtle }
+                                        Text {
+                                            visible: box.batch
+                                            text: box.evicted
+                                            font.family: theme.mono
+                                            color: box.evicted !== "0" ? theme.warn : theme.text
+                                        }
+                                    }
+                                    Text {
+                                        Layout.fillWidth: true
+                                        elide: Text.ElideRight
+                                        color: theme.subtle
+                                        text: box.kinds
+                                    }
+                                    Item { Layout.fillHeight: true }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // ----- Objects -----------------------------------------
+                RowLayout {
+                    id: objects
+                    spacing: 12
+                    property var tree: []
+                    // The parts of a tree are put together in `tree` and
+                    // shown once all have come. The view's rows are a
+                    // ListModel brought to the rows wanted a piece at a
+                    // time (`sync`): a row kept is not made again, and no
+                    // frame does a whole tree of thousands.
+                    property int treeCount: 0
+                    property int shownCount: 0
+                    property string filter: treeFilter.text
+                    onFilterChanged: show()
+                    // The largest first, as `app_objects` says each holds,
+                    // rather than in the tree's order.
+                    property bool bySize: false
+                    onBySizeChanged: show()
+                    // The rows are a list, not a tree, under a filter or
+                    // in order of size.
+                    readonly property bool listed: filter !== "" || bySize
+                    ListModel { id: treeRows }
+                    // What `treeRows` holds and what it is to hold, where
+                    // each wanted row is, how far down the tree the filter
+                    // has looked for them, and how many rows from the top
+                    // the two are already the same.
+                    property var have: []
+                    property var want: []
+                    property var wantAt: ({})
+                    property int scanned: 0
+                    property int same: 0
+                    // Rows to the piece, where the view shows them and
+                    // elsewhere, and time to the frame that `sync` takes,
+                    // well inside the dispatch's budget.
+                    readonly property int near: 4
+                    readonly property int piece: 200
+                    readonly property int syncMs: 2
+                    readonly property int rowHeight: 26
+                    Timer {
+                        id: syncing
+                        interval: 1
+                        repeat: true
+                        onTriggered: objects.sync()
+                    }
+                    property bool truncated: false
+                    // The tree comes in parts, each as much as one
+                    // answer holds; a part of a tree asked before the
+                    // last load is let go, and a part turned away is
+                    // asked again in a while.
+                    property int treeAsked: 0
+                    property bool treeComing: false
+                    property string partCursor: ""
+                    // The application's object count when the tree was
+                    // asked: objects made or let go at run time ask for
+                    // it again, at most once a second.
+                    property int treeObjects: -1
+                    property real treeAskedAt: 0
+                    readonly property int mostObjects: 3000
+                    // An application with more objects than the tree
+                    // holds is shown to a depth, and a row whose
+                    // children were left out is opened by hand, as far
+                    // down again: the rows shown are the ones looked
+                    // for, not the first thousands in order.
+                    readonly property int step: 2
+                    property int treeDepth: 0
+                    // The rows opened, in the order they were, opened
+                    // again after a reload; the one being opened, how
+                    // deep it is and where its next part goes.
+                    property var opened: []
+                    property var toOpen: []
+                    property string opening: ""
+                    property int openDepth: 0
+                    property int spliceAt: 0
+                    property string picked: ""
+                    property string pickedName: ""
+                    property bool pickedItem: true
+                    // The item picked is what the watch follows.
+                    onPickedChanged: watcher.start()
+                    onPickedItemChanged: watcher.start()
+                    property var props: []
+                    // The rows are kept while their number stays: a
+                    // refresh changes what they say, and a row being
+                    // clicked or typed in is not made again under it.
+                    property int propRows: 0
+                    property string head: ""
+                    property string where: ""
+                    property bool all: false
+                    // Whether the bindings are shown, each with what it
+                    // read and what reads it.
+                    property bool bindings: false
+                    property var binds: []
+                    property string picture: ""
+                    property string pictureNote: ""
+                    // The property whose field is being typed in: the
+                    // values are not shown again under it until it is
+                    // done. It is the field's focus, not its active
+                    // focus, which the window losing activation takes.
+                    property string editing: ""
+                    // The picture was asked with the properties, not
+                    // after them.
+                    property bool shotAsked: false
+
+                    function load(tree) {
+                        follow(tree)
+                        if (picked !== "")
+                            inspect(true)
+                    }
+
+                    // The tree is asked again when a reload or the
+                    // application made or let go of objects, at most
+                    // once a second and not while one comes: a count
+                    // changed sooner is looked at again in a while.
+                    function follow(tree) {
+                        var count = overview.latest.objects
+                        var counted = count !== undefined && count !== treeObjects
+                        if (counted && !tree && (treeComing
+                                || objects.tree.length > 0 && Date.now() - treeAskedAt < 1000)) {
+                            if (!partAgain.running)
+                                partAgain.start()
+                            return
+                        }
+                        if (tree || (objects.tree.length === 0 && !treeComing) || counted) {
+                            treeAsked += 1
+                            treeObjects = count === undefined ? -1 : count
+                            treeAskedAt = Date.now()
+                            treeDepth = count !== undefined && count > mostObjects ? step : 0
+                            partCursor = ""
+                            opening = ""
+                            toOpen = []
+                            askPart()
+                        } else if (!treeComing) {
+                            goOn()
+                        }
+                    }
+
+                    Timer {
+                        id: partAgain
+                        interval: 1100
+                        onTriggered: objects.follow(false)
+                    }
+
+                    // The rest of the part being asked, or the next row
+                    // to open.
+                    function goOn() {
+                        if (partCursor !== "" || opening !== "")
+                            askPart()
+                        else
+                            openNext()
+                    }
+
+                    function askPart() {
+                        treeComing = true
+                        var room = mostObjects - tree.length
+                        if (partCursor !== "")
+                            window.ask("app_objects", { cursor: partCursor, max: room },
+                                       "objects+:" + treeAsked)
+                        else if (opening !== "")
+                            // The row itself comes first, and is not
+                            // counted against the room.
+                            window.ask("app_objects", { root: opening, depth: step, max: room + 1 },
+                                       "objects+:" + treeAsked)
+                        else if (treeDepth > 0)
+                            window.ask("app_objects", { max: mostObjects, depth: treeDepth },
+                                       "objects:" + treeAsked)
+                        else
+                            window.ask("app_objects", { max: mostObjects }, "objects:" + treeAsked)
+                    }
+
+                    function turnedAway(asked) {
+                        if (asked !== treeAsked)
+                            return
+                        treeComing = false
+                        // A first part turned away is asked again too.
+                        if (partCursor === "" && opening === "")
+                            treeObjects = -1
+                        // An application at rest asks nothing of the
+                        // observer, so the part is asked again in a
+                        // while, not at the next change.
+                        if (!partAgain.running)
+                            partAgain.start()
+                    }
+
+                    function indexOf(handle) {
+                        for (var i = 0; i < tree.length; ++i)
+                            if (tree[i].handle === handle)
+                                return i
+                        return -1
+                    }
+
+                    function isOpen(row) {
+                        return row.hidden === undefined && opened.indexOf(row.handle) >= 0
+                    }
+
+                    function open(handle) {
+                        if (opened.indexOf(handle) < 0)
+                            opened = opened.concat([handle])
+                        toOpen = toOpen.concat([handle])
+                        if (!treeComing)
+                            goOn()
+                    }
+
+                    // What is below a row is let go of, and so are the
+                    // rows opened in it.
+                    function close(handle) {
+                        var i = indexOf(handle)
+                        if (i < 0 || treeComing)
+                            return
+                        var row = tree[i]
+                        var end = i + 1
+                        while (end < tree.length && tree[end].depth > row.depth)
+                            ++end
+                        var gone = {}
+                        for (var k = i + 1; k < end; ++k)
+                            gone[tree[k].handle] = true
+                        opened = opened.filter(function(h) { return h !== handle && !gone[h] })
+                        row.hidden = row.children
+                        tree = tree.slice(0, i).concat([row], tree.slice(end))
+                        truncated = false
+                        show()
+                    }
+
+                    function openNext() {
+                        while (toOpen.length > 0) {
+                            var handle = toOpen[0]
+                            toOpen = toOpen.slice(1)
+                            var i = indexOf(handle)
+                            // Gone, or below a row no longer open.
+                            if (i < 0) {
+                                opened = opened.filter(function(h) { return h !== handle })
+                                continue
+                            }
+                            if (tree[i].hidden === undefined)
+                                continue
+                            if (tree.length >= mostObjects) {
+                                truncated = true
+                                toOpen = []
+                                break
+                            }
+                            opening = handle
+                            askPart()
+                            return
+                        }
+                        show()
+                    }
+
+                    function showTree(ok, s, r, asked, more) {
+                        if (asked !== treeAsked)
+                            return
+                        treeComing = false
+                        var going = partCursor !== ""
+                        partCursor = ""
+                        if (!ok) {
+                            status.text = window.refusal(r)
+                            // A row that cannot be opened is not opened
+                            // again.
+                            if (opening !== "") {
+                                var lost = opening
+                                opened = opened.filter(function(h) { return h !== lost })
+                                opening = ""
+                                goOn()
+                            }
+                            return
+                        }
+                        var rows = s.objects
+                        if (!more) {
+                            tree = rows
+                            truncated = false
+                            toOpen = opened.slice()
+                        } else if (opening === "") {
+                            tree = tree.concat(rows)
+                        } else {
+                            if (!going) {
+                                // The row comes again, now without what
+                                // it left out; what is below it goes
+                                // after it.
+                                var at = indexOf(opening)
+                                if (at < 0) {
+                                    opening = ""
+                                    goOn()
+                                    return
+                                }
+                                openDepth = tree[at].depth
+                                rows[0].depth = openDepth
+                                tree = tree.slice(0, at).concat(tree.slice(at + 1))
+                                spliceAt = at
+                            }
+                            for (var k = 0; k < rows.length; ++k)
+                                if (going || k > 0)
+                                    rows[k].depth += openDepth
+                            tree = tree.slice(0, spliceAt).concat(rows, tree.slice(spliceAt))
+                            spliceAt += rows.length
+                        }
+                        if (s.next_cursor) {
+                            if (tree.length < mostObjects) {
+                                partCursor = s.next_cursor
+                                askPart()
+                                return
+                            }
+                            truncated = true
+                        }
+                        opening = ""
+                        goOn()
+                    }
+
+                    // The view is to show the rows of the tree the filter
+                    // lets through; `sync` looks for them.
+                    function show() {
+                        want = []
+                        wantAt = {}
+                        scanned = 0
+                        same = 0
+                        treeCount = tree.length
+                        if (!syncing.running)
+                            syncing.start()
+                    }
+
+                    // A filter `>N`, `>Nk` or `>Nm` keeps the objects that
+                    // hold at least that many bytes; -1 for one of text.
+                    function leastBytes(f) {
+                        var m = /^>\s*(\d+(?:\.\d+)?)\s*([km]?)i?b?$/.exec(f)
+                        if (!m)
+                            return -1
+                        return Number(m[1]) * (m[2] === "k" ? 1024 : m[2] === "m" ? 1048576 : 1)
+                    }
+
+                    function sizeText(n) {
+                        return n < 1024 ? n + " B" : (n / 1024).toFixed(1) + " KiB"
+                    }
+
+                    // What the filter looks in, in lower case, worked out
+                    // once a row.
+                    function key(row) {
+                        if (row.key === undefined)
+                            row.key = (row.type + "\n" + (row.id || "") + "\n"
+                                       + (row.object_name || "")).toLowerCase()
+                        return row.key
+                    }
+
+                    // A row as the view's model holds it.
+                    function flat(row) {
+                        return {
+                            handle: row.handle,
+                            kind: row.type,
+                            ident: row.id || "",
+                            oname: row.object_name || "",
+                            depth: row.depth || 0,
+                            isItem: row.item === true,
+                            dim: row.visible === false,
+                            hidden: row.hidden === undefined ? -1 : row.hidden,
+                            size: row.bytes || 0
+                        }
+                    }
+
+                    function differs(held, row) {
+                        return held.kind !== row.type || held.ident !== (row.id || "")
+                            || held.oname !== (row.object_name || "")
+                            || held.depth !== (row.depth || 0)
+                            || held.isItem !== (row.item === true)
+                            || held.dim !== (row.visible === false)
+                            || held.hidden !== (row.hidden === undefined ? -1 : row.hidden)
+                            || held.size !== (row.bytes || 0)
+                    }
+
+                    // Brings the view's rows a piece nearer the rows
+                    // wanted, from the top: a row that is the same stays,
+                    // one changed is set, rows no longer wanted go and
+                    // rows new come in, a piece at a time.
+                    function sync() {
+                        var h = have
+                        var w = want
+                        var at = wantAt
+                        var began = Date.now()
+                        var t = tree
+                        var f = filter.toLowerCase()
+                        var least = leastBytes(f)
+                        var i = scanned
+                        for (; i < t.length; ++i) {
+                            if (i % 16 === 15 && Date.now() - began >= syncMs)
+                                break
+                            if (least >= 0 ? (t[i].bytes || 0) < least
+                                           : f !== "" && key(t[i]).indexOf(f) < 0)
+                                continue
+                            at[t[i].handle] = w.length
+                            w.push(t[i])
+                        }
+                        // Sorted once every row is looked at, and once
+                        // only: the rows already brought over are kept.
+                        if (i === t.length && scanned < t.length && bySize) {
+                            w.sort(function(a, b) { return (b.bytes || 0) - (a.bytes || 0) })
+                            for (var r = 0; r < w.length; ++r)
+                                at[w[r].handle] = r
+                        }
+                        scanned = i
+                        if (i < t.length)
+                            return
+                        shownCount = w.length
+                        // Rows that come or go where the view shows them
+                        // have their delegates made then and there, so
+                        // there they change a few at a time.
+                        var shownTo = Math.ceil((treeView.contentY - treeView.originY
+                                                 + treeView.height) / rowHeight)
+                        var p = same
+                        var done = false
+                        while (Date.now() - began < syncMs) {
+                            var most = p <= shownTo ? near : piece
+                            if (p >= w.length) {
+                                if (h.length > p) {
+                                    treeRows.remove(p, h.length - p)
+                                    h.splice(p, h.length - p)
+                                }
+                                done = true
+                                break
+                            }
+                            var j = p < h.length ? at[h[p].handle] : w.length
+                            if (j === p) {
+                                if (differs(h[p], w[p])) {
+                                    h[p] = flat(w[p])
+                                    treeRows.set(p, h[p])
+                                }
+                                ++p
+                            } else if (j === undefined || j < p) {
+                                // Gone, or already come in above.
+                                var end = p + 1
+                                while (end < h.length && end - p < most) {
+                                    var k = at[h[end].handle]
+                                    if (k !== undefined && k >= p)
+                                        break
+                                    ++end
+                                }
+                                treeRows.remove(p, end - p)
+                                h.splice(p, end - p)
+                            } else {
+                                var rows = []
+                                var stop = Math.min(j, p + most)
+                                for (var n = p; n < stop; ++n)
+                                    rows.push(flat(w[n]))
+                                treeRows.insert(p, rows)
+                                Array.prototype.splice.apply(h, [p, 0].concat(rows))
+                                p = stop
+                            }
+                        }
+                        same = p
+                        have = h
+                        if (done)
+                            syncing.stop()
+                    }
+
+                    function pick(handle, name) {
+                        editing = ""
+                        picked = handle
+                        pickedName = name || handle
+                        inspect(false)
+                    }
+
+                    // Asks again for the one picked, leaving a field
+                    // being typed in as it is. An item already known to
+                    // be one has its picture asked at the same time, so
+                    // that a change is shown one answer after it is made
+                    // rather than two.
+                    function inspect(withPicture) {
+                        window.ask("app_inspect", { target: picked, all: all, bindings: bindings }, "inspect")
+                        shotAsked = withPicture === true && pickedItem
+                        if (shotAsked)
+                            window.ask("app_screenshot", { target: picked, max_size: 640 }, "picture")
+                    }
+
+                    function showProperties(ok, s, r) {
+                        // The rows shrink before the list does, so that
+                        // no row is drawn from past its end.
+                        if (!ok) {
+                            propRows = 0
+                            props = []
+                            binds = []
+                            head = window.refusal(r)
+                            where = ""
+                            picture = ""
+                            pictureNote = ""
+                            return
+                        }
+                        head = (s.type || "") + (s.id ? "#" + s.id : "") + (s.object_name ? "  \"" + s.object_name + "\"" : "")
+                        where = s.source ? s.source.file.split("/").pop() + ":" + s.source.line : ""
+                        if (editing === "") {
+                            propRows = Math.min(propRows, s.properties.length)
+                            props = s.properties
+                            propRows = props.length
+                        }
+                        binds = s.bindings || []
+                        pickedItem = s.geometry !== undefined && s.geometry !== null
+                        if (pickedItem) {
+                            if (!shotAsked)
+                                window.ask("app_screenshot", { target: picked, max_size: 640 }, "picture")
+                        } else {
+                            picture = ""
+                            pictureNote = "Not drawn: it is not an item"
+                        }
+                        shotAsked = false
+                    }
+
+                    function showPicture(ok, r) {
+                        pictureNote = ok ? "" : window.refusal(r)
+                        if (!ok) {
+                            picture = ""
+                            return
+                        }
+                        for (var i = 0; i < r.content.length; ++i)
+                            if (r.content[i].type === "image")
+                                picture = "data:" + r.content[i].mimeType + ";base64," + r.content[i].data
+                    }
+
+                    // One end of a binding as the file would name it:
+                    // `width of box`, by id, else `#objectName`, else type.
+                    function endText(d) {
+                        var of = d.id ? " of " + d.id
+                            : d.object_name ? " of #" + d.object_name
+                            : d.object ? " of " + (/^[aeiou]/i.test(d.object) ? "an " : "a ") + d.object
+                            : ""
+                        return (d.property || "a handler") + of
+                    }
+
+                    // A value as a field shows it.
+                    function valueText(v) {
+                        return window.shown(v)
+                    }
+
+                    // The text of a field as the JSON the property takes.
+                    function typed(type, text) {
+                        if (type === "bool")
+                            return text === "true"
+                        if (["int", "real", "double", "number"].indexOf(type) >= 0 && text.trim() !== "" && !isNaN(Number(text)))
+                            return Number(text)
+                        return text
+                    }
+
+                    // An edit covers a binding rather than ending it, so
+                    // that Revert brings the binding back.
+                    function edit(name, type, value) {
+                        editing = ""
+                        window.ask("app_set_property",
+                                   { target: picked, property: name, value: value, keep_binding: true },
+                                   "edited")
+                    }
+
+                    // Text that starts with `=` is an expression the
+                    // property is bound to, as a spreadsheet's formula
+                    // is: it follows what it reads from then on.
+                    function bind(name, expression) {
+                        editing = ""
+                        window.ask("app_set_property",
+                                   { target: picked, property: name, binding: expression, keep_binding: true },
+                                   "edited")
+                    }
+
+                    function revert(name) {
+                        window.ask("app_set_property", { target: picked, property: name, revert: true }, "edited")
+                    }
+
+                    function edited(ok, r) {
+                        if (ok)
+                            inspect(true)
+                    }
+
+                    // The tree. The properties come first when the
+                    // window is narrow: the tree and the picture give up
+                    // their width before the values do.
+                    Rectangle {
+                        Layout.preferredWidth: Math.max(160, Math.min(300, objects.width * 0.3))
+                        Layout.fillHeight: true
+                        radius: 9
+                        color: theme.card
+                        border.color: theme.rule
+                        clip: true
+
+                        TextField {
+                            id: treeFilter
+                            x: 8; y: 8
+                            width: parent.width - 16
+                            placeholderText: "Filter by type, id, name or >size"
+                            // A field is not named by its placeholder.
+                            Accessible.name: "Filter objects"
+                        }
+                        Text {
+                            id: sizeOrder
+                            anchors.right: parent.right
+                            anchors.rightMargin: 12
+                            anchors.top: treeFilter.bottom
+                            anchors.topMargin: 6
+                            text: objects.bySize ? "largest first" : "tree order"
+                            color: sizeHover.containsMouse ? theme.accent : theme.subtle
+                            font.pixelSize: 11
+                            MouseArea {
+                                id: sizeHover
+                                anchors.fill: parent
+                                anchors.margins: -4
+                                hoverEnabled: true
+                                Accessible.role: Accessible.Button
+                                Accessible.name: objects.bySize ? "Show in tree order" : "Show largest first"
+                                onClicked: objects.bySize = !objects.bySize
+                            }
+                        }
+                        Text {
+                            x: 12
+                            width: sizeOrder.x - 18
+                            elide: Text.ElideRight
+                            anchors.top: treeFilter.bottom
+                            anchors.topMargin: 6
+                            color: theme.subtle
+                            font.pixelSize: 11
+                            text: objects.shownCount + " of " + objects.treeCount + " objects"
+                                  + (objects.treeComing || objects.partCursor !== "" ? ", more coming"
+                                     : objects.truncated ? ", the most shown"
+                                     : objects.treeDepth > 0 ? " (" + objects.treeObjects + " in all; + opens a row)"
+                                     : "")
+                        }
+                        ListView {
+                            id: treeView
+                            anchors.fill: parent
+                            anchors.topMargin: treeFilter.height + 34
+                            clip: true
+                            model: window.page === 3 ? treeRows : null
+                            // Where it was scrolled to, kept while the
+                            // page is out of sight and its rows let go.
+                            property real keptY: 0
+                            onContentYChanged: if (model !== null) keptY = contentY
+                            onModelChanged: if (model !== null) Qt.callLater(function() { treeView.contentY = treeView.keptY })
+                            ScrollBar.vertical: ScrollBar {}
+                            delegate: Rectangle {
+                                id: node
+                                required property string handle
+                                required property string kind
+                                required property string ident
+                                required property string oname
+                                required property int depth
+                                required property bool isItem
+                                required property bool dim
+                                required property int hidden
+                                required property real size
+                                width: ListView.view.width
+                                height: objects.rowHeight
+                                color: objects.picked === node.handle ? theme.accentSoft
+                                     : nodeHover.containsMouse ? Qt.rgba(theme.text.r, theme.text.g, theme.text.b, 0.05)
+                                     : "transparent"
+                                Row {
+                                    id: nodeRow
+                                    x: 10 + (objects.listed ? 0 : node.depth * 14)
+                                    height: parent.height
+                                    spacing: 6
+                                    Rectangle {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        width: 6; height: 6; radius: node.isItem ? 1 : 3
+                                        color: !node.isItem ? theme.violet
+                                             : node.dim ? theme.subtle : theme.accent
+                                    }
+                                    Text {
+                                        id: nodeKind
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: node.kind
+                                        color: node.dim ? theme.subtle : theme.text
+                                        font.bold: objects.picked === node.handle
+                                    }
+                                    // A long name is cut to what the row
+                                    // leaves it, short of the size.
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        visible: text !== ""
+                                        width: Math.max(24, Math.min(implicitWidth,
+                                            (node.size > 0 ? nodeSize.x : node.width) - 12 - nodeRow.x
+                                            - 12 - nodeKind.width - 6
+                                            - (nodeHandle.visible ? nodeHandle.width + 6 : 0)
+                                            - (disclosure.visible ? disclosure.width + 6 : 0)))
+                                        elide: Text.ElideRight
+                                        text: node.ident ? "#" + node.ident
+                                            : node.oname ? "\"" + node.oname + "\"" : ""
+                                        color: theme.accent
+                                    }
+                                    // Without an id or a name, the handle tells
+                                    // one Timer from the next; so it does
+                                    // for the rows of a filter, which all
+                                    // may have the id of their component.
+                                    Text {
+                                        id: nodeHandle
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        visible: objects.listed || !node.ident && !node.oname
+                                        text: node.handle
+                                        color: theme.subtle
+                                        font.pixelSize: 11
+                                    }
+                                    // What a row left out opens it; an
+                                    // opened row closes.
+                                    Text {
+                                        id: disclosure
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        visible: text !== ""
+                                        text: node.hidden >= 0 ? "+" + node.hidden
+                                            : objects.opened.indexOf(node.handle) >= 0 ? "−" : ""
+                                        color: discloseHover.containsMouse ? theme.accent : theme.subtle
+                                        font.bold: discloseHover.containsMouse
+                                    }
+                                }
+                                // About what it holds, at the right.
+                                Text {
+                                    id: nodeSize
+                                    anchors.right: parent.right
+                                    anchors.rightMargin: 10
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    visible: node.size > 0
+                                    text: objects.sizeText(node.size)
+                                    color: theme.subtle
+                                    font.family: theme.mono
+                                    font.pixelSize: 11
+                                }
+                                MouseArea {
+                                    id: nodeHover
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    Accessible.role: Accessible.ListItem
+                                    Accessible.name: node.kind + (node.ident ? "#" + node.ident : "")
+                                    onClicked: objects.pick(node.handle,
+                                                            node.kind + (node.ident ? "#" + node.ident : ""))
+                                }
+                                MouseArea {
+                                    id: discloseHover
+                                    visible: disclosure.visible
+                                    x: disclosure.parent.x + disclosure.x - 6
+                                    width: disclosure.width + 12
+                                    height: parent.height
+                                    hoverEnabled: true
+                                    Accessible.role: Accessible.Button
+                                    Accessible.name: node.hidden >= 0 ? "Open" : "Close"
+                                    onClicked: {
+                                        if (node.hidden >= 0)
+                                            objects.open(node.handle)
+                                        else
+                                            objects.close(node.handle)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // The properties of the one picked.
+                    Rectangle {
+                        id: propCard
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        radius: 9
+                        color: theme.card
+                        border.color: theme.rule
+                        clip: true
+
+                        ColumnLayout {
+                            anchors.fill: parent
+                            anchors.margins: 12
+                            spacing: 6
+
+                            // In a narrow card the buttons go under the
+                            // name; the card is never widened for them.
+                            GridLayout {
+                                id: propHead
+                                readonly property bool narrow: propCard.width < 364
+                                Layout.fillWidth: true
+                                Layout.minimumWidth: 0
+                                columns: narrow ? 3 : 4
+                                Text {
+                                    Layout.fillWidth: true
+                                    Layout.columnSpan: propHead.narrow ? 3 : 1
+                                    text: objects.picked === "" ? "Pick an object" : objects.head
+                                    color: theme.text
+                                    font.bold: true
+                                    font.pixelSize: 15
+                                    elide: Text.ElideRight
+                                }
+                                Button {
+                                    visible: objects.picked !== ""
+                                    text: trace.traces(objects.picked) ? "Stop tracing" : "Trace"
+                                    onClicked: trace.toggle(objects.picked)
+                                }
+                                CheckBox {
+                                    text: propHead.narrow ? "Defaults" : "Defaults too"
+                                    checked: objects.all
+                                    onToggled: {
+                                        objects.all = checked
+                                        if (objects.picked !== "")
+                                            objects.pick(objects.picked, objects.pickedName)
+                                    }
+                                }
+                                CheckBox {
+                                    text: "Bindings"
+                                    checked: objects.bindings
+                                    onToggled: {
+                                        objects.bindings = checked
+                                        if (objects.picked !== "")
+                                            objects.pick(objects.picked, objects.pickedName)
+                                    }
+                                }
+                            }
+                            Text {
+                                visible: objects.picked !== ""
+                                Layout.fillWidth: true
+                                Layout.minimumWidth: 0
+                                elide: Text.ElideRight
+                                text: objects.picked + (objects.where === "" ? "" : "  ·  " + objects.where)
+                                      + "  ·  =expression binds"
+                                color: theme.subtle
+                                font.family: theme.mono
+                                font.pixelSize: 11
+                            }
+                            Rectangle { Layout.fillWidth: true; height: 1; color: theme.rule }
+
+                            ListView {
+                                Layout.fillWidth: true
+                                Layout.minimumWidth: 0
+                                Layout.fillHeight: true
+                                clip: true
+                                model: window.page === 3 ? objects.propRows : 0
+                                ScrollBar.vertical: ScrollBar {}
+                                delegate: Item {
+                                    id: prop
+                                    required property int index
+                                    readonly property var modelData: objects.props[index] || ({})
+                                    width: ListView.view.width
+                                    // The value and its badge share the line
+                                    // while the value has room for a few
+                                    // words; else the badge goes below it,
+                                    // so that neither is drawn over the other.
+                                    readonly property bool stacked: width - valueBox.x - chips.width - 12 < 96
+                                    height: stacked ? 60 : 36
+                                    readonly property bool edited: modelData.assigned_by === "devtools"
+                                    readonly property bool fixed: modelData.read_only === true
+                                    readonly property bool boolean: modelData.type === "bool"
+                                    readonly property bool held: modelData.items !== undefined || modelData.handle !== undefined
+                                    readonly property bool editable: !fixed && !boolean && !held
+                                    // A row is text and frames until its value
+                                    // is typed in: a field is made for that and
+                                    // let go after, as a screenful of fields
+                                    // costs more to make than a frame has.
+                                    property bool typing: false
+                                    Rectangle {
+                                        anchors.fill: parent
+                                        color: prop.index % 2 ? theme.cardAlt : "transparent"
+                                    }
+                                    Item {
+                                        id: line
+                                        width: parent.width
+                                        height: 36
+                                    }
+                                    Text {
+                                        id: propName
+                                        x: 6
+                                        width: Math.max(72, Math.min(130, prop.width * 0.3))
+                                        anchors.verticalCenter: line.verticalCenter
+                                        text: prop.modelData.name || ""
+                                        color: theme.text
+                                        elide: Text.ElideRight
+                                    }
+                                    Text {
+                                        id: propType
+                                        anchors.left: propName.right
+                                        anchors.verticalCenter: line.verticalCenter
+                                        width: 60
+                                        text: prop.modelData.type || ""
+                                        color: theme.subtle
+                                        font.pixelSize: 11
+                                        elide: Text.ElideRight
+                                    }
+                                    // A value that can be changed is framed, so
+                                    // it reads apart from one that cannot.
+                                    Rectangle {
+                                        id: valueBox
+                                        anchors.left: propType.right
+                                        anchors.right: parent.right
+                                        anchors.rightMargin: prop.stacked ? 4 : chips.width + 12
+                                        anchors.verticalCenter: line.verticalCenter
+                                        height: 28
+                                        radius: 5
+                                        // What does not fit is cut at the frame,
+                                        // never drawn past it.
+                                        clip: true
+                                        color: "transparent"
+                                        border.color: !prop.editable ? "transparent"
+                                            : valueArea.containsMouse ? theme.subtle : theme.rule
+                                        Text {
+                                            anchors.left: parent.left
+                                            anchors.leftMargin: prop.editable ? 6 : 0
+                                            anchors.right: parent.right
+                                            anchors.rightMargin: 6
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            visible: !prop.typing && !prop.boolean
+                                            text: prop.modelData.value === null && !prop.editable ? "—"
+                                                : objects.valueText(prop.modelData.value)
+                                            color: prop.modelData.handle !== undefined ? theme.accent : theme.text
+                                            elide: Text.ElideRight
+                                        }
+                                        // A check for a value that is true or false.
+                                        Loader {
+                                            active: prop.boolean
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            sourceComponent: check
+                                        }
+                                        Component {
+                                            id: check
+                                            Row {
+                                                spacing: 8
+                                                Accessible.role: Accessible.CheckBox
+                                                Accessible.name: prop.modelData.name || ""
+                                                Accessible.checked: prop.modelData.value === "true"
+                                                Rectangle {
+                                                    anchors.verticalCenter: parent.verticalCenter
+                                                    width: 16; height: 16; radius: 4
+                                                    color: prop.modelData.value === "true" && !prop.fixed ? theme.accent : "transparent"
+                                                    border.color: prop.modelData.value === "true" && !prop.fixed ? theme.accent
+                                                        : valueArea.containsMouse ? theme.subtle : theme.rule
+                                                    Text {
+                                                        anchors.centerIn: parent
+                                                        visible: prop.modelData.value === "true"
+                                                        text: "✓"
+                                                        color: prop.fixed ? theme.subtle : theme.bg
+                                                        font.pixelSize: 12
+                                                        font.bold: true
+                                                    }
+                                                }
+                                                Text {
+                                                    anchors.verticalCenter: parent.verticalCenter
+                                                    text: prop.modelData.value === null ? "" : String(prop.modelData.value)
+                                                    color: theme.text
+                                                }
+                                            }
+                                        }
+                                        MouseArea {
+                                            id: valueArea
+                                            anchors.fill: parent
+                                            enabled: !prop.typing && (prop.editable || prop.modelData.handle !== undefined
+                                                                       || (prop.boolean && !prop.fixed))
+                                            hoverEnabled: enabled
+                                            cursorShape: prop.editable ? Qt.IBeamCursor : Qt.PointingHandCursor
+                                            // The check below speaks for a true or false value.
+                                            Accessible.ignored: prop.boolean
+                                            Accessible.role: Accessible.Button
+                                            Accessible.name: prop.modelData.name || ""
+                                            Accessible.description: objects.valueText(prop.modelData.value)
+                                            onClicked: {
+                                                if (prop.modelData.handle !== undefined)
+                                                    objects.pick(prop.modelData.handle, prop.modelData.value)
+                                                else if (prop.boolean)
+                                                    objects.edit(prop.modelData.name, "bool", prop.modelData.value !== "true")
+                                                else
+                                                    prop.typing = true
+                                            }
+                                        }
+                                        Loader {
+                                            anchors.fill: parent
+                                            active: prop.typing
+                                            // Focus is given once the click that
+                                            // made the field is over.
+                                            onLoaded: {
+                                                objects.editing = prop.modelData.name
+                                                Qt.callLater(function() {
+                                                    if (!item)
+                                                        return
+                                                    item.forceActiveFocus()
+                                                    item.selectAll()
+                                                })
+                                            }
+                                            // The Loader's focus, not the field's:
+                                            // a Loader is a focus scope, so the
+                                            // field keeps its focus inside it
+                                            // when another value's field takes
+                                            // focus. Not active focus either,
+                                            // which the window losing activation
+                                            // takes.
+                                            onFocusChanged: if (!focus && prop.typing) prop.done()
+                                            sourceComponent: TextField {
+                                                id: field
+                                                topPadding: 4
+                                                bottomPadding: 4
+                                                leftPadding: 6
+                                                clip: true
+                                                color: theme.text
+                                                // Named as the value it takes
+                                                // the place of, so that what
+                                                // pressed that value finds it.
+                                                Accessible.name: prop.modelData.name || ""
+                                                background: Rectangle {
+                                                    radius: 5
+                                                    color: theme.bg
+                                                    border.color: theme.accent
+                                                }
+                                                // A bound value is typed in as the
+                                                // expression it is bound to.
+                                                text: prop.modelData.expression !== undefined
+                                                    ? "=" + prop.modelData.expression
+                                                    : objects.valueText(prop.modelData.value)
+                                                onAccepted: {
+                                                    var name = prop.modelData.name
+                                                    var typed = text
+                                                    prop.done()
+                                                    if (typed.charAt(0) === "=")
+                                                        objects.bind(name, typed.substring(1))
+                                                    else
+                                                        objects.edit(name, prop.modelData.type,
+                                                                     objects.typed(prop.modelData.type, typed))
+                                                }
+                                                Keys.onEscapePressed: prop.done()
+                                            }
+                                        }
+                                    }
+                                    // The field is let go once its handler is over.
+                                    function done() {
+                                        if (objects.editing === modelData.name)
+                                            objects.editing = ""
+                                        Qt.callLater(function() { prop.typing = false })
+                                    }
+                                    Row {
+                                        id: chips
+                                        anchors.right: parent.right
+                                        anchors.rightMargin: 4
+                                        y: prop.stacked ? line.height : (line.height - height) / 2
+                                        spacing: 6
+                                        Rectangle {
+                                            height: 20
+                                            width: chipText.implicitWidth + 14
+                                            radius: 10
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            readonly property color tone: prop.edited ? theme.warn
+                                                : prop.modelData.provenance === "bound" ? theme.accent
+                                                : prop.modelData.provenance === "animated" ? theme.violet
+                                                : theme.subtle
+                                            color: Qt.rgba(tone.r, tone.g, tone.b, 0.16)
+                                            // That the binding is kept below an
+                                            // edit is told on hover: in the chip
+                                            // it left the value too narrow to
+                                            // click.
+                                            readonly property string kept: prop.edited && prop.modelData.binding_kept
+                                                ? "The binding is kept below the edit; Revert brings it back" : ""
+                                            Accessible.role: Accessible.StaticText
+                                            Accessible.name: chipText.text
+                                            Accessible.description: kept
+                                            ToolTip.text: kept
+                                            ToolTip.visible: kept !== "" && chipArea.containsMouse
+                                            ToolTip.delay: 400
+                                            Text {
+                                                id: chipText
+                                                anchors.centerIn: parent
+                                                text: prop.edited ? (prop.modelData.provenance === "bound" ? "rebound" : "edited")
+                                                    : prop.fixed ? (prop.modelData.provenance || "") + " · read-only"
+                                                    : prop.modelData.provenance || ""
+                                                color: parent.tone
+                                                font.pixelSize: 11
+                                            }
+                                            MouseArea {
+                                                id: chipArea
+                                                anchors.fill: parent
+                                                enabled: parent.kept !== ""
+                                                hoverEnabled: enabled
+                                            }
+                                        }
+                                        Text {
+                                            visible: prop.edited
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            text: "Revert"
+                                            color: theme.accent
+                                            font.pixelSize: 12
+                                            font.underline: revertArea.containsMouse
+                                            MouseArea {
+                                                id: revertArea
+                                                anchors.fill: parent
+                                                anchors.margins: -4
+                                                enabled: prop.edited
+                                                hoverEnabled: enabled
+                                                cursorShape: Qt.PointingHandCursor
+                                                Accessible.role: Accessible.Button
+                                                Accessible.name: "Revert " + (prop.modelData.name || "")
+                                                onClicked: objects.revert(prop.modelData.name)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            // The bindings, each with what it read and
+                            // what reads it, under the values they set.
+                            Rectangle {
+                                visible: objects.bindings && objects.picked !== ""
+                                Layout.fillWidth: true
+                                height: 1
+                                color: theme.rule
+                            }
+                            ListView {
+                                id: bindingList
+                                visible: objects.bindings && objects.picked !== ""
+                                Layout.fillWidth: true
+                                Layout.minimumWidth: 0
+                                Layout.preferredHeight: Math.min(Math.max(contentHeight, 24), propCard.height * 0.45)
+                                clip: true
+                                model: window.page === 3 && visible ? objects.binds.length : 0
+                                ScrollBar.vertical: ScrollBar {}
+                                Text {
+                                    visible: bindingList.count === 0
+                                    text: "No bindings written for it"
+                                    color: theme.subtle
+                                }
+                                delegate: Column {
+                                    id: bound
+                                    required property int index
+                                    readonly property var modelData: objects.binds[index] || ({})
+                                    width: ListView.view.width
+                                    bottomPadding: 6
+                                    Text {
+                                        width: parent.width
+                                        elide: Text.ElideRight
+                                        text: bound.modelData.property
+                                              + (bound.modelData.tier ? "  ·  tier " + bound.modelData.tier : "")
+                                        color: theme.text
+                                        font.bold: true
+                                    }
+                                    // Each end that is an object is a link
+                                    // to it, as a value that holds one is.
+                                    Repeater {
+                                        model: [["reads", bound.modelData.reads || []],
+                                                ["read by", bound.modelData.read_by || []]]
+                                        delegate: Flow {
+                                            id: endRow
+                                            required property var modelData
+                                            width: bound.width
+                                            spacing: 4
+                                            Text {
+                                                text: endRow.modelData[0]
+                                                color: theme.subtle
+                                                font.pixelSize: 11
+                                            }
+                                            Text {
+                                                visible: endRow.modelData[1].length === 0
+                                                text: "nothing"
+                                                color: theme.subtle
+                                                font.pixelSize: 11
+                                            }
+                                            Repeater {
+                                                model: endRow.modelData[1]
+                                                delegate: Text {
+                                                    id: end
+                                                    required property var modelData
+                                                    required property int index
+                                                    readonly property bool linked: !!modelData.handle
+                                                    text: objects.endText(modelData)
+                                                          + (index + 1 < endRow.modelData[1].length ? "," : "")
+                                                    color: linked ? theme.accent : theme.subtle
+                                                    font.pixelSize: 11
+                                                    font.underline: endArea.containsMouse
+                                                    MouseArea {
+                                                        id: endArea
+                                                        anchors.fill: parent
+                                                        enabled: end.linked
+                                                        hoverEnabled: enabled
+                                                        cursorShape: Qt.PointingHandCursor
+                                                        Accessible.role: Accessible.Button
+                                                        Accessible.name: end.text
+                                                        onClicked: objects.pick(end.modelData.handle, end.modelData.name)
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                    Text {
+                                        visible: bound.modelData.truncated === true
+                                        text: "and more"
+                                        color: theme.subtle
+                                        font.pixelSize: 11
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // A picture of it, drawn again when the application
+                    // draws.
+                    Rectangle {
+                        id: frame
+                        Layout.preferredWidth: Math.max(160, Math.min(280, objects.width * 0.25))
+                        visible: objects.width >= 760
+                        Layout.fillHeight: true
+                        radius: 9
+                        color: theme.card
+                        border.color: theme.rule
+                        // Two pictures take turns: the next one loads
+                        // under the one shown and comes to the top once
+                        // it is ready, so that a picture that keeps
+                        // changing never blanks while it loads.
+                        property int front: 0
+                        readonly property Image shown: front === 0 ? shotA : shotB
+                        readonly property Image back: front === 0 ? shotB : shotA
+
+                        function show(url) {
+                            if (url === "") {
+                                shotA.source = ""
+                                shotB.source = ""
+                                return
+                            }
+                            back.asked = url
+                            back.source = url
+                            // A picture already decoded is ready without
+                            // its status changing.
+                            Qt.callLater(frame.loaded, back)
+                        }
+                        function loaded(which) {
+                            if (which === back && which.status === Image.Ready
+                                    && which.asked === objects.picture)
+                                front = 1 - front
+                        }
+
+                        Connections {
+                            target: objects
+                            function onPictureChanged() { frame.show(objects.picture) }
+                        }
+                        // An outline, so that a white picture shows on a
+                        // white card.
+                        Rectangle {
+                            anchors.centerIn: parent
+                            visible: objects.picture !== "" && frame.shown.status === Image.Ready
+                            width: frame.shown.paintedWidth + 2
+                            height: frame.shown.paintedHeight + 2
+                            color: "transparent"
+                            border.color: theme.rule
+                        }
+                        Image {
+                            id: shotA
+                            property string asked: ""
+                            Accessible.name: "The picked object as drawn"
+                            anchors.centerIn: parent
+                            z: frame.front === 0 ? 1 : 0
+                            opacity: frame.front === 0 ? 1 : 0
+                            width: Math.min(implicitWidth, frame.width - 24)
+                            height: Math.min(implicitHeight, frame.height - 24)
+                            fillMode: Image.PreserveAspectFit
+                            onStatusChanged: frame.loaded(shotA)
+                        }
+                        Image {
+                            id: shotB
+                            property string asked: ""
+                            Accessible.name: "The picked object as drawn"
+                            anchors.centerIn: parent
+                            z: frame.front === 1 ? 1 : 0
+                            opacity: frame.front === 1 ? 1 : 0
+                            width: Math.min(implicitWidth, frame.width - 24)
+                            height: Math.min(implicitHeight, frame.height - 24)
+                            fillMode: Image.PreserveAspectFit
+                            onStatusChanged: frame.loaded(shotB)
+                        }
+                        Text {
+                            anchors.centerIn: parent
+                            width: parent.width - 24
+                            wrapMode: Text.Wrap
+                            horizontalAlignment: Text.AlignHCenter
+                            visible: objects.picture === ""
+                            color: theme.subtle
+                            text: objects.pictureNote !== "" ? objects.pictureNote : "No picture"
+                        }
+                    }
+                }
+
+                // ----- Logs --------------------------------------------
+                ColumnLayout {
+                    id: logs
+                    spacing: 10
+                    property var entries: []
+                    property var since: null
+                    property int unread: 0
+                    property string level: "debug"
+                    property string filter: ""
+                    readonly property var levels: ["debug", "info", "warning", "critical"]
+
+                    // Only what is newer than what the window has.
+                    function load() {
+                        var args = { limit: 100 }
+                        if (since !== null)
+                            args.since = since
+                        window.ask("app_logs", args, "logs")
+                    }
+
+                    function add(s) {
+                        since = s.next_since
+                        if (s.entries.length === 0)
+                            return
+                        var all = entries.concat(s.entries)
+                        var over = Math.max(0, all.length - 2000)
+                        entries = all.slice(over)
+                        if (over > 0) {
+                            show()
+                        } else {
+                            for (var i = 0; i < s.entries.length; ++i)
+                                put(s.entries[i])
+                            // Once for the lot: at each line, the view
+                            // would make the new row and drop the top one.
+                            logView.positionViewAtEnd()
+                        }
+                        if (window.page !== 4)
+                            unread += s.entries.length
+                    }
+
+                    function matches(e) {
+                        if (levels.indexOf(e.level) < levels.indexOf(level))
+                            return false
+                        var f = filter.toLowerCase()
+                        return f === "" || e.message.toLowerCase().indexOf(f) >= 0
+                            || (e.category || "").toLowerCase().indexOf(f) >= 0
+                    }
+
+                    // Lines are added to the model, not given as a new
+                    // array: a view given a new array makes every row
+                    // again, and a busy application logs all the time.
+                    function put(e) {
+                        if (!matches(e))
+                            return
+                        // A QML warning starts with the full URL of where it
+                        // happened, which pushed what happened out of the row;
+                        // the last column already says where.
+                        var at = e.file ? /^\S+:\d+(:\d+)?: /.exec(e.message) : null
+                        shownLines.append({
+                            level: e.level,
+                            category: e.category || "",
+                            message: at ? e.message.slice(at[0].length) : e.message,
+                            where: e.file ? e.file.split("/").pop() + ":" + e.line : ""
+                        })
+                    }
+
+                    function show() {
+                        shownLines.clear()
+                        for (var i = 0; i < entries.length; ++i)
+                            put(entries[i])
+                        logView.positionViewAtEnd()
+                    }
+
+                    onFilterChanged: show()
+                    onLevelChanged: show()
+
+                    ListModel { id: shownLines }
+
+                    function tone(level) {
+                        return level === "critical" ? theme.bad
+                             : level === "warning" ? theme.warn
+                             : level === "info" ? theme.accent : theme.subtle
+                    }
+
+                    Connections {
+                        target: window
+                        function onPageChanged() {
+                            if (window.page === 4)
+                                logs.unread = 0
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 10
+                        Text { text: "Logs"; color: theme.text; font.pixelSize: 19; font.bold: true }
+                        Text {
+                            text: shownLines.count + " of " + logs.entries.length + " lines"
+                            color: theme.subtle
+                        }
+                        Item { Layout.fillWidth: true }
+                        TextField {
+                            Layout.preferredWidth: 260
+                            placeholderText: "Filter text or category"
+                            Accessible.name: "Filter logs"
+                            onTextChanged: logs.filter = text
+                        }
+                        ComboBox {
+                            model: ["debug and up", "info and up", "warnings and up", "critical only"]
+                            onActivated: function(index) { logs.level = logs.levels[index] }
+                        }
+                        Button {
+                            text: "Clear"
+                            onClicked: {
+                                logs.entries = []
+                                shownLines.clear()
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        radius: 9
+                        color: theme.card
+                        border.color: theme.rule
+                        clip: true
+                        ListView {
+                            id: logView
+                            anchors.fill: parent
+                            anchors.margins: 6
+                            clip: true
+                            model: window.page === 4 ? shownLines : null
+                            onModelChanged: if (model !== null) Qt.callLater(logView.positionViewAtEnd)
+                            ScrollBar.vertical: ScrollBar {}
+                            delegate: Item {
+                                id: entry
+                                required property int index
+                                required property string level
+                                required property string category
+                                required property string message
+                                required property string where
+                                width: ListView.view.width
+                                height: 24
+                                Rectangle {
+                                    anchors.fill: parent
+                                    color: entry.index % 2 ? theme.cardAlt : "transparent"
+                                }
+                                Row {
+                                    x: 6
+                                    height: parent.height
+                                    spacing: 10
+                                    Text {
+                                        width: 64
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: entry.level
+                                        color: logs.tone(entry.level)
+                                        font.bold: entry.level === "warning" || entry.level === "critical"
+                                        font.pixelSize: 12
+                                    }
+                                    Text {
+                                        width: 110
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: entry.category
+                                        color: theme.subtle
+                                        elide: Text.ElideRight
+                                        font.pixelSize: 12
+                                    }
+                                    Text {
+                                        width: entry.width - 64 - 110 - 160 - 50
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: entry.message
+                                        color: theme.text
+                                        elide: Text.ElideRight
+                                        font.family: theme.mono
+                                        font.pixelSize: 12
+                                    }
+                                    Text {
+                                        width: 160
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        horizontalAlignment: Text.AlignRight
+                                        text: entry.where
+                                        color: theme.subtle
+                                        elide: Text.ElideLeft
+                                        font.pixelSize: 11
+                                    }
+                                }
+                            }
+                        }
+                        Text {
+                            anchors.centerIn: parent
+                            visible: shownLines.count === 0
+                            text: logs.entries.length === 0 ? "Nothing logged yet" : "No line matches"
+                            color: theme.subtle
+                        }
+                    }
+                }
+
+                // ----- Trace -------------------------------------------
+                // What the traced objects were told, in order, with the
+                // application's time, as Erlang's observer traces the
+                // messages of a process.
+                ColumnLayout {
+                    id: trace
+                    spacing: 10
+                    property var since: null
+                    property var tracing: []
+                    property int dropped: 0
+                    property int unread: 0
+                    // The last event listed: answers to reads that went
+                    // out with the same `since` list an event once.
+                    property int lastSeq: -1
+                    // The properties and signals a trace started from now
+                    // on keeps to, as typed; blank keeps to none.
+                    property string only: ""
+
+                    // This window reads its own ring: what the objects it
+                    // traces were told, and nobody else's.
+                    function args() {
+                        var a = { max: 500, holder: window.holder }
+                        if (since !== null)
+                            a.since = since
+                        return a
+                    }
+
+                    function onlyNames() {
+                        return only.split(/[\s,]+/).filter(function(n) { return n !== "" })
+                    }
+
+                    function load() {
+                        window.ask("app_trace", args(), "trace")
+                    }
+
+                    function traces(handle) {
+                        for (var i = 0; i < tracing.length; ++i)
+                            if (tracing[i].handle === handle)
+                                return true
+                        return false
+                    }
+
+                    function toggle(handle) {
+                        var a = args()
+                        if (handle !== undefined) {
+                            a.target = handle
+                            a.stop = traces(handle)
+                            if (!a.stop && onlyNames().length > 0)
+                                a.names = onlyNames()
+                        } else
+                            a.stop = true
+                        window.ask("app_trace", a, "trace")
+                    }
+
+                    // Traced again, with or without its bindings: what was
+                    // written down stays.
+                    function follow(handle, bindings, names) {
+                        var a = args()
+                        a.target = handle
+                        a.bindings = bindings
+                        if (names.length > 0)
+                            a.names = names
+                        window.ask("app_trace", a, "trace")
+                    }
+
+                    function add(s) {
+                        tracing = s.tracing
+                        dropped = s.dropped
+                        since = s.next_since
+                        var added = 0
+                        for (var i = 0; i < s.events.length; ++i) {
+                            if (s.events[i].seq <= lastSeq)
+                                continue
+                            lastSeq = s.events[i].seq
+                            put(s.events[i])
+                            added += 1
+                        }
+                        var over = traceLines.count - 2000
+                        if (over > 0)
+                            traceLines.remove(0, over)
+                        if (added > 0) {
+                            traceView.positionViewAtEnd()
+                            if (window.page !== 5)
+                                unread += added
+                        }
+                        if (s.more)
+                            load()
+                    }
+
+                    function put(e) {
+                        // A string is quoted, so that "" and a number
+                        // held as text read as what they are.
+                        function said(v) {
+                            return typeof v === "string" ? JSON.stringify(v) : window.shown(v)
+                        }
+                        // A binding says what woke it and what it cost;
+                        // one that gave what it had ran for nothing.
+                        function woke(e) {
+                            var by = e.cause.map(function(c) { return c.object + "." + c.property })
+                            return "← " + (by.length > 0 ? by.join(", ") : "?") + "  ·  " + e.us + " µs"
+                                   + (e.same ? "  ·  gave the value it had" : "")
+                        }
+                        var what = e.kind === "change" ? (e.key ? e.key + " (" + e.value + ")" : said(e.value))
+                                 : e.kind === "signal" ? "(" + e.args.map(said).join(", ") + ")"
+                                 : e.kind === "binding" ? woke(e)
+                                 : ""
+                        traceLines.append({
+                            seq: e.seq,
+                            at: (e.at_us / 1000000).toFixed(3) + " s",
+                            object: e.object,
+                            kind: e.kind === "binding" && e.same ? "same value" : e.kind,
+                            name: e.name || "",
+                            what: what
+                        })
+                    }
+
+                    function tone(kind) {
+                        return kind === "destroyed" || kind === "same value" ? theme.bad
+                             : kind === "signal" ? theme.warn
+                             : kind === "binding" ? theme.violet : theme.accent
+                    }
+
+                    ListModel { id: traceLines }
+
+                    Connections {
+                        target: window
+                        function onPageChanged() {
+                            if (window.page === 5)
+                                trace.unread = 0
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 10
+                        Text { text: "Trace"; color: theme.text; font.pixelSize: 19; font.bold: true }
+                        Text {
+                            text: traceLines.count + " events"
+                                  + (trace.dropped > 0 ? " · " + trace.dropped + " older gave way" : "")
+                            color: theme.subtle
+                        }
+                        Item { Layout.fillWidth: true }
+                        TextField {
+                            Layout.preferredWidth: 230
+                            placeholderText: "Only these names (blank: all)"
+                            Accessible.name: "Trace only these properties and signals"
+                            onTextChanged: trace.only = text
+                        }
+                        Button {
+                            text: "Stop all"
+                            enabled: trace.tracing.length > 0
+                            onClicked: trace.toggle()
+                        }
+                        Button {
+                            text: "Clear"
+                            onClicked: traceLines.clear()
+                        }
+                    }
+
+                    // Whom the trace follows: Stop on each.
+                    Flow {
+                        Layout.fillWidth: true
+                        spacing: 6
+                        Text {
+                            visible: trace.tracing.length === 0
+                            text: "Nothing is traced. Pick an object on the Objects page and press Trace; "
+                                  + "a traced object's bindings are followed with + bindings."
+                            color: theme.subtle
+                        }
+                        Repeater {
+                            model: trace.tracing
+                            delegate: Rectangle {
+                                id: chip
+                                required property var modelData
+                                width: chipRow.implicitWidth + 16
+                                height: 28
+                                radius: 14
+                                color: theme.accentSoft
+                                Row {
+                                    id: chipRow
+                                    x: 8
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    spacing: 6
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: chip.modelData.name
+                                              + (chip.modelData.names.length > 0 ? " · only " + chip.modelData.names.join(", ") : "")
+                                        color: theme.accent
+                                        font.pixelSize: 12
+                                    }
+                                    // Its bindings' runs: what woke each,
+                                    // what it cost, whether it was for
+                                    // nothing. Off, they cost nothing.
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: chip.modelData.bindings ? "− bindings" : "+ bindings"
+                                        color: chip.modelData.bindings ? theme.violet : theme.subtle
+                                        font.pixelSize: 12
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            anchors.margins: -4
+                                            Accessible.role: Accessible.Button
+                                            Accessible.name: (chip.modelData.bindings ? "Stop following the bindings of "
+                                                                                      : "Follow the bindings of ")
+                                                             + chip.modelData.name
+                                            onClicked: trace.follow(chip.modelData.handle, !chip.modelData.bindings, chip.modelData.names)
+                                        }
+                                    }
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: "✕"
+                                        color: theme.subtle
+                                        font.pixelSize: 12
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            anchors.margins: -4
+                                            Accessible.role: Accessible.Button
+                                            Accessible.name: "Stop tracing " + chip.modelData.name
+                                            onClicked: trace.toggle(chip.modelData.handle)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        radius: 9
+                        color: theme.card
+                        border.color: theme.rule
+                        clip: true
+                        ListView {
+                            id: traceView
+                            anchors.fill: parent
+                            anchors.margins: 6
+                            clip: true
+                            model: window.page === 5 ? traceLines : null
+                            onModelChanged: if (model !== null) Qt.callLater(traceView.positionViewAtEnd)
+                            ScrollBar.vertical: ScrollBar {}
+                            delegate: Item {
+                                id: traceRow
+                                required property int index
+                                required property int seq
+                                required property string at
+                                required property string object
+                                required property string kind
+                                required property string name
+                                required property string what
+                                width: ListView.view.width
+                                height: 24
+                                Rectangle {
+                                    anchors.fill: parent
+                                    color: traceRow.index % 2 ? theme.cardAlt : "transparent"
+                                }
+                                Row {
+                                    x: 6
+                                    height: parent.height
+                                    spacing: 10
+                                    Text {
+                                        width: 80
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        horizontalAlignment: Text.AlignRight
+                                        text: traceRow.at
+                                        color: theme.subtle
+                                        font.family: theme.mono
+                                        font.pixelSize: 12
+                                    }
+                                    Text {
+                                        width: 180
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: traceRow.object
+                                        color: theme.text
+                                        elide: Text.ElideRight
+                                        font.pixelSize: 12
+                                    }
+                                    Text {
+                                        width: 70
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: traceRow.kind
+                                        color: trace.tone(traceRow.kind)
+                                        font.pixelSize: 12
+                                    }
+                                    Text {
+                                        width: 150
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: traceRow.name
+                                        color: theme.text
+                                        font.bold: true
+                                        elide: Text.ElideRight
+                                        font.pixelSize: 12
+                                    }
+                                    Text {
+                                        width: traceRow.width - 80 - 180 - 70 - 150 - 50
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: traceRow.what
+                                        color: theme.text
+                                        elide: Text.ElideRight
+                                        font.family: theme.mono
+                                        font.pixelSize: 12
+                                    }
+                                }
+                            }
+                        }
+                        Text {
+                            anchors.centerIn: parent
+                            visible: traceLines.count === 0
+                            text: "Nothing written down yet"
+                            color: theme.subtle
+                        }
+                    }
+                }
+
+                // ----- Supervision -------------------------------------
+                // Erlang's observer shows an application's supervisors:
+                // here every boundary, each under the one around it, and
+                // the faults each took.
+                ColumnLayout {
+                    id: supervision
+                    spacing: 10
+                    // Row by row, as the mailboxes are: a row whose
+                    // values are the same is left alone.
+                    ListModel { id: supRows }
+                    ListModel { id: faultRows }
+                    property var held: []
+                    property var heldFaults: []
+                    // The fault whose stack is shown, by its number.
+                    property int opened: -1
+
+                    function load() {
+                        window.ask("app_processes", { kind: "supervisor" }, "supervisors")
+                        window.ask("app_processes", { kind: "fault" }, "faults")
+                    }
+
+                    function into(model, h, rows) {
+                        for (var i = 0; i < rows.length; ++i) {
+                            if (i >= h.length) {
+                                model.append(rows[i])
+                                h.push(rows[i])
+                            } else if (processes.differs(h[i], rows[i])) {
+                                model.set(i, rows[i])
+                                h[i] = rows[i]
+                            }
+                        }
+                        if (h.length > rows.length) {
+                            model.remove(rows.length, h.length - rows.length)
+                            h.splice(rows.length, h.length - rows.length)
+                        }
+                        return h
+                    }
+
+                    function showTree(list) {
+                        held = into(supRows, held, list.map(flatSupervisor))
+                    }
+
+                    // The newest fault first.
+                    function showFaults(list) {
+                        heldFaults = into(faultRows, heldFaults, list.slice().reverse().map(flatFault))
+                    }
+
+                    function flatSupervisor(s) {
+                        return {
+                            depth: s.depth,
+                            name: s.name,
+                            strategy: s.strategy.replace(/_/g, " "),
+                            used: s.restarts + " of " + s.max_restarts + " in " + window.ms(s.within_ms * 1000),
+                            status: s.state,
+                            content: s.content === undefined ? ""
+                                : s.content + (s.content_restart ? " · " + s.content_restart : ""),
+                            handle: s.handle === undefined ? "" : s.handle
+                        }
+                    }
+
+                    function flatFault(f) {
+                        var file = f.file ? f.file.substring(f.file.lastIndexOf("/") + 1) : ""
+                        return {
+                            seq: f.seq,
+                            fault: f.fault,
+                            message: f.message,
+                            place: file === "" ? "" : file + ":" + f.line,
+                            at: "at " + window.ms(f.at_ms * 1000),
+                            origin: f.origin === null || f.origin === undefined ? ""
+                                : f.origin + (f.origin_gone ? " (gone)" : ""),
+                            originHandle: f.origin_handle ? f.origin_handle : "",
+                            takenBy: f.taken_by,
+                            takenHandle: f.taken_by_handle ? f.taken_by_handle : "",
+                            stack: f.stack.map(function(s) {
+                                var at = s.file ? s.file.substring(s.file.lastIndexOf("/") + 1) + ":" + s.line : ""
+                                return (s.function || "(anonymous)") + "  " + at
+                            }).join("\n"),
+                            depth: f.stack.length
+                        }
+                    }
+
+                    // To the Objects page, with the object picked.
+                    function show(handle, name) {
+                        window.page = 3
+                        objects.load(true)
+                        objects.pick(handle, name)
+                    }
+
+                    RowLayout {
+                        Text { text: "Supervision"; color: theme.text; font.pixelSize: 19; font.bold: true }
+                        Text {
+                            Layout.leftMargin: 12
+                            text: "every boundary, from when it is made · the last 32 faults"
+                            color: theme.subtle
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        // Up to ten rows; more scroll. A height taken from
+                        // the page's would lay the page out again.
+                        Layout.preferredHeight: 33 + Math.min(10, Math.max(1, supRows.count)) * 30
+                        radius: 9
+                        color: theme.card
+                        border.color: theme.rule
+                        clip: true
+                        Row {
+                            x: 8
+                            height: 32
+                            Repeater {
+                                model: ["Supervisor", "Strategy", "Restarts used", "State", "Content"]
+                                delegate: Text {
+                                    required property string modelData
+                                    required property int index
+                                    width: [Math.max(160, supervision.width - 560), 120, 170, 110, 160][index]
+                                    height: 32
+                                    verticalAlignment: Text.AlignVCenter
+                                    text: modelData
+                                    color: theme.subtle
+                                    font.pixelSize: 12
+                                    font.bold: true
+                                }
+                            }
+                        }
+                        Rectangle { y: 32; width: parent.width; height: 1; color: theme.rule }
+                        ListView {
+                            anchors.fill: parent
+                            anchors.topMargin: 33
+                            clip: true
+                            model: window.page === 6 ? supRows : null
+                            ScrollBar.vertical: ScrollBar {}
+                            delegate: Rectangle {
+                                id: srow
+                                required property int index
+                                required property int depth
+                                required property string name
+                                required property string strategy
+                                required property string used
+                                required property string status
+                                required property string content
+                                required property string handle
+                                width: ListView.view.width
+                                height: 30
+                                color: supHover.containsMouse ? theme.accentSoft
+                                     : index % 2 ? theme.cardAlt : "transparent"
+                                Row {
+                                    x: 8
+                                    height: parent.height
+                                    Text {
+                                        width: Math.max(160, supervision.width - 560); height: parent.height
+                                        verticalAlignment: Text.AlignVCenter
+                                        leftPadding: srow.depth * 18
+                                        text: srow.name
+                                        color: srow.handle !== "" ? theme.accent : theme.text
+                                        elide: Text.ElideMiddle
+                                    }
+                                    Text {
+                                        width: 120; height: parent.height
+                                        verticalAlignment: Text.AlignVCenter
+                                        text: srow.strategy
+                                        color: theme.subtle
+                                    }
+                                    Text {
+                                        width: 170; height: parent.height
+                                        verticalAlignment: Text.AlignVCenter
+                                        text: srow.used
+                                        color: theme.text
+                                        font.family: theme.mono
+                                    }
+                                    Item {
+                                        width: 110; height: parent.height
+                                        Rectangle {
+                                            id: supDot
+                                            width: 8; height: 8; radius: 4
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            color: srow.status === "down" ? theme.bad : theme.good
+                                        }
+                                        Text {
+                                            anchors.left: supDot.right
+                                            anchors.leftMargin: 7
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            text: srow.status
+                                            color: theme.text
+                                        }
+                                    }
+                                    Text {
+                                        width: 160; height: parent.height
+                                        verticalAlignment: Text.AlignVCenter
+                                        text: srow.content
+                                        color: srow.content.indexOf("stopped") === 0 ? theme.bad : theme.subtle
+                                        elide: Text.ElideRight
+                                    }
+                                }
+                                MouseArea {
+                                    id: supHover
+                                    anchors.fill: parent
+                                    hoverEnabled: srow.handle !== ""
+                                    enabled: srow.handle !== ""
+                                    Accessible.role: Accessible.ListItem
+                                    Accessible.name: srow.name
+                                    onClicked: supervision.show(srow.handle, srow.name)
+                                }
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        radius: 9
+                        color: theme.card
+                        border.color: theme.rule
+                        clip: true
+                        ListView {
+                            anchors.fill: parent
+                            anchors.margins: 6
+                            clip: true
+                            spacing: 2
+                            model: window.page === 6 ? faultRows : null
+                            ScrollBar.vertical: ScrollBar {}
+                            delegate: Rectangle {
+                                id: frow
+                                required property int index
+                                required property int seq
+                                required property string fault
+                                required property string message
+                                required property string place
+                                required property string at
+                                required property string origin
+                                required property string originHandle
+                                required property string takenBy
+                                required property string takenHandle
+                                required property string stack
+                                required property int depth
+                                readonly property bool open: supervision.opened === seq
+                                width: ListView.view.width
+                                height: 52 + (open ? stackText.implicitHeight + 6 : 0)
+                                radius: 6
+                                color: index % 2 ? theme.cardAlt : "transparent"
+                                MouseArea {
+                                    anchors.fill: parent
+                                    enabled: frow.depth > 0
+                                    Accessible.role: Accessible.ListItem
+                                    Accessible.name: frow.fault + ": " + frow.message
+                                    onClicked: supervision.opened = frow.open ? -1 : frow.seq
+                                }
+                                Column {
+                                    x: 8
+                                    y: 5
+                                    width: parent.width - 16
+                                    spacing: 3
+                                    Row {
+                                        spacing: 10
+                                        Text {
+                                            text: frow.fault
+                                            color: frow.takenBy === "log" ? theme.warn : theme.bad
+                                            font.bold: true
+                                        }
+                                        Text {
+                                            width: frow.width - 300
+                                            text: frow.message
+                                            color: theme.text
+                                            elide: Text.ElideRight
+                                        }
+                                    }
+                                    Row {
+                                        spacing: 14
+                                        Text { text: frow.at; color: theme.subtle; font.family: theme.mono; font.pixelSize: 12 }
+                                        Text { text: frow.place; color: theme.subtle; font.family: theme.mono; font.pixelSize: 12 }
+                                        Text {
+                                            text: frow.origin === "" ? "" : "in " + frow.origin
+                                            color: frow.originHandle !== "" ? theme.accent : theme.subtle
+                                            font.pixelSize: 12
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                visible: frow.originHandle !== ""
+                                                Accessible.role: Accessible.Link
+                                                Accessible.name: frow.origin
+                                                onClicked: supervision.show(frow.originHandle, frow.origin)
+                                            }
+                                        }
+                                        Text {
+                                            text: "taken by " + frow.takenBy
+                                            color: frow.takenHandle !== "" ? theme.accent : theme.subtle
+                                            font.pixelSize: 12
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                visible: frow.takenHandle !== ""
+                                                Accessible.role: Accessible.Link
+                                                Accessible.name: frow.takenBy
+                                                onClicked: supervision.show(frow.takenHandle, frow.takenBy)
+                                            }
+                                        }
+                                        Text {
+                                            visible: frow.depth > 0
+                                            text: (frow.open ? "▾ " : "▸ ") + frow.depth + (frow.depth === 1 ? " frame" : " frames")
+                                            color: theme.subtle
+                                            font.pixelSize: 12
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                Accessible.role: Accessible.Button
+                                                Accessible.name: (frow.open ? "Hide the stack of fault " : "Show the stack of fault ") + frow.seq
+                                                onClicked: supervision.opened = frow.open ? -1 : frow.seq
+                                            }
+                                        }
+                                    }
+                                    Text {
+                                        id: stackText
+                                        visible: frow.open
+                                        leftPadding: 12
+                                        text: frow.stack
+                                        color: theme.text
+                                        font.family: theme.mono
+                                        font.pixelSize: 12
+                                    }
+                                }
+                            }
+                        }
+                        Text {
+                            anchors.centerIn: parent
+                            visible: faultRows.count === 0
+                            text: "No faults"
+                            color: theme.subtle
+                        }
+                    }
+                }
+
+                // ----- Frames ------------------------------------------
+                // Each frame while recorded: what woke it and where its
+                // time went, to set beside another runtime's. The
+                // recording is held by this window, so it ends with it.
+                ColumnLayout {
+                    id: timeline
+                    spacing: 10
+                    property var since: null
+                    property bool recording: false
+                    property int dropped: 0
+                    property var summary: null
+                    // The longest frame since Clear, and never less than a
+                    // frame of a 60 Hz display, so that bars compare.
+                    property real scale: 16667
+                    // Every frame kept, shown or not: the frames this
+                    // window's own requests alone woke are hidden while
+                    // `hideOwn`, and come back when it is turned off.
+                    property var kept: []
+                    property int ownCount: 0
+                    property bool hideOwn: true
+                    onHideOwnChanged: refill()
+                    // Where the last trace file was written.
+                    property string savedTo: ""
+                    // The last frame listed. Two asks out at once, a
+                    // change's and Record's, answer from the same `since`,
+                    // and a frame both carry is listed once.
+                    property int lastSeq: 0
+                    readonly property var parts: [
+                        { key: "timers", name: "timers", tone: theme.warn },
+                        { key: "animations", name: "animations", tone: theme.violet },
+                        { key: "layout", name: "layout", tone: theme.accent },
+                        { key: "create", name: "create", tone: theme.good },
+                        { key: "scene", name: "scene build", tone: "#3fa7a0" },
+                        { key: "other", name: "other", tone: theme.subtle },
+                        { key: "render", name: "render", tone: theme.bad },
+                        { key: "present", name: "present", tone: "#d77fae" }
+                    ]
+
+                    function args() {
+                        var a = { max: 600 }
+                        if (since !== null)
+                            a.since = since
+                        return a
+                    }
+
+                    function load() {
+                        window.ask("app_frames", args(), "frames")
+                    }
+
+                    function record(on) {
+                        var a = args()
+                        a.record = on
+                        a.holder = window.holder
+                        window.ask("app_frames", a, "frames")
+                    }
+
+                    // The frames, wakes and runs of bindings recorded, as
+                    // a trace file the application writes beside its
+                    // token file, for a trace viewer.
+                    function save() {
+                        var name = "trace-" + Qt.formatDateTime(new Date(), "yyyyMMdd-hhmmss")
+                        window.ask("app_frames", { export: name }, "export")
+                    }
+
+                    function saved(ok, s) {
+                        savedTo = ok ? s.path + " · " + s.frames + " frames, " + s.wakes + " wakes, "
+                                       + s.runs + " runs of bindings" : ""
+                    }
+
+                    function add(s) {
+                        recording = s.recording
+                        dropped = s.dropped
+                        since = s.next_since
+                        if (s.frames.length > 0)
+                            summary = s.summary
+                        // Only a view at its end follows: one scrolled
+                        // back is being read.
+                        var following = frameRows.count === 0 || frameView.atYEnd
+                        for (var i = 0; i < s.frames.length; ++i) {
+                            if (s.frames[i].frame <= lastSeq)
+                                continue
+                            lastSeq = s.frames[i].frame
+                            put(s.frames[i])
+                        }
+                        var all = kept
+                        var over = all.length - 600
+                        if (over > 0) {
+                            for (var j = 0; j < over; ++j)
+                                if (all[j].own)
+                                    ownCount -= 1
+                            all.splice(0, over)
+                            kept = all
+                        }
+                        over = frameRows.count - 600
+                        if (over > 0)
+                            frameRows.remove(0, over)
+                        if (s.frames.length > 0 && following)
+                            frameView.positionViewAtEnd()
+                        if (s.more)
+                            load()
+                    }
+
+                    // Whether only this window's requests woke `f`: no
+                    // input, timer, animation or other thread did, and
+                    // every client that asked was this window.
+                    function own(f) {
+                        if (f.woke.length !== 1 || f.woke[0] !== "message"
+                                || f.thread_messages > 0 || f.asked_by.length === 0)
+                            return false
+                        for (var i = 0; i < f.asked_by.length; ++i)
+                            if (f.asked_by[i] !== window.holder)
+                                return false
+                        return true
+                    }
+
+                    function put(f) {
+                        var p = f.passes
+                        var row = {
+                            seq: f.frame,
+                            win: f.window === null ? "main" : f.window,
+                            own: own(f),
+                            at: (f.at_ms / 1000).toFixed(3) + " s",
+                            woke: f.woke.join(", "),
+                            frames: f.scene_frames,
+                            total: f.total_us,
+                            timers: p.timers_us,
+                            animations: p.animations_us,
+                            layout: p.layout_us,
+                            create: p.create_us,
+                            scene: p.scene_us,
+                            other: p.other_us,
+                            render: f.render_us === null ? 0 : f.render_us,
+                            present: f.present_us === null ? 0 : f.present_us,
+                            bindings: f.bindings_us,
+                            runs: f.binding_runs,
+                            text: f.text_us,
+                            layouts: f.text_layouts
+                        }
+                        var all = kept
+                        all.push(row)
+                        kept = all
+                        if (row.own)
+                            ownCount += 1
+                        if (!(hideOwn && row.own)) {
+                            scale = Math.max(scale, row.total)
+                            frameRows.append(row)
+                        }
+                    }
+
+                    function refill() {
+                        frameRows.clear()
+                        for (var i = 0; i < kept.length; ++i) {
+                            var row = kept[i]
+                            if (hideOwn && row.own)
+                                continue
+                            scale = Math.max(scale, row.total)
+                            frameRows.append(row)
+                        }
+                        frameView.positionViewAtEnd()
+                    }
+
+                    function clear() {
+                        frameRows.clear()
+                        kept = []
+                        ownCount = 0
+                        summary = null
+                        scale = 16667
+                    }
+
+                    // "p50 · p95 · max" of a part, as the last answer
+                    // gave it over the frames it listed.
+                    function spread(key) {
+                        var s = summary ? summary[key + "_us"] : undefined
+                        if (!s)
+                            return "—"
+                        return window.ms(s.p50) + " · " + window.ms(s.p95) + " · " + window.ms(s.max)
+                    }
+
+                    function wokeTone(woke) {
+                        return woke.indexOf("input") >= 0 ? theme.accent
+                             : woke.indexOf("animation") >= 0 ? theme.violet
+                             : woke.indexOf("timer") >= 0 ? theme.warn : theme.subtle
+                    }
+
+                    ListModel { id: frameRows }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 10
+                        Text { text: "Frames"; color: theme.text; font.pixelSize: 19; font.bold: true }
+                        Text {
+                            text: (timeline.recording ? "recording" : "not recording") + " · "
+                                  + frameRows.count + " frames"
+                                  + (timeline.hideOwn && timeline.ownCount > 0
+                                     ? " · " + timeline.ownCount + " woken by this window hidden" : "")
+                                  + (timeline.dropped > 0 ? " · " + timeline.dropped + " older gave way" : "")
+                            color: timeline.recording ? theme.good : theme.subtle
+                        }
+                        Item { Layout.fillWidth: true }
+                        // This window asks the application too; what only
+                        // its asking woke is not the application's work.
+                        CheckBox {
+                            text: "Hide this window's requests"
+                            checked: timeline.hideOwn
+                            onToggled: timeline.hideOwn = checked
+                        }
+                        Button {
+                            text: timeline.recording ? "Stop" : "Record"
+                            onClicked: timeline.record(!timeline.recording)
+                        }
+                        Button {
+                            text: "Clear"
+                            onClicked: timeline.clear()
+                        }
+                        Button {
+                            text: "Save trace"
+                            enabled: frameRows.count > 0 || timeline.recording
+                            onClicked: timeline.save()
+                        }
+                    }
+
+                    Text {
+                        Layout.fillWidth: true
+                        visible: timeline.savedTo !== ""
+                        elide: Text.ElideMiddle
+                        text: "Saved " + timeline.savedTo
+                        color: theme.subtle
+                        font.pixelSize: 11
+                    }
+
+                    // p50 · p95 · max of each part over the frames listed.
+                    Flow {
+                        Layout.fillWidth: true
+                        spacing: 14
+                        visible: timeline.summary !== null
+                        Repeater {
+                            model: ["total", "layout", "scene", "bindings", "text", "render", "present"]
+                            delegate: Column {
+                                required property string modelData
+                                Text {
+                                    text: modelData === "scene" ? "scene build" : modelData
+                                    color: theme.subtle
+                                    font.pixelSize: 11
+                                }
+                                Text {
+                                    text: timeline.spread(modelData)
+                                    color: theme.text
+                                    font.family: theme.mono
+                                    font.pixelSize: 12
+                                }
+                            }
+                        }
+                    }
+
+                    // What the colours of a bar are.
+                    Flow {
+                        Layout.fillWidth: true
+                        spacing: 12
+                        Repeater {
+                            model: timeline.parts
+                            delegate: Row {
+                                required property var modelData
+                                spacing: 5
+                                Rectangle {
+                                    width: 10; height: 10; radius: 2
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    color: modelData.tone
+                                }
+                                Text { text: modelData.name; color: theme.subtle; font.pixelSize: 11 }
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        radius: 9
+                        color: theme.card
+                        border.color: theme.rule
+                        clip: true
+                        ListView {
+                            id: frameView
+                            anchors.fill: parent
+                            anchors.margins: 6
+                            clip: true
+                            model: window.page === 7 ? frameRows : null
+                            onModelChanged: if (model !== null) Qt.callLater(frameView.positionViewAtEnd)
+                            ScrollBar.vertical: ScrollBar {}
+                            delegate: Item {
+                                id: frameRow
+                                required property int index
+                                required property int seq
+                                required property string win
+                                required property string at
+                                required property string woke
+                                required property int frames
+                                required property real total
+                                required property real timers
+                                required property real animations
+                                required property real layout
+                                required property real create
+                                required property real scene
+                                required property real other
+                                required property real render
+                                required property real present
+                                required property real bindings
+                                required property int runs
+                                required property real text
+                                required property int layouts
+                                readonly property real barWidth: Math.max(40, width - 630)
+                                width: ListView.view.width
+                                height: 24
+                                Accessible.role: Accessible.ListItem
+                                Accessible.name: "frame " + seq + " of " + (win === "main" ? "the main window" : win)
+                                                 + ", woke by " + (woke === "" ? "nothing" : woke)
+                                                 + ", " + window.ms(total)
+                                Rectangle {
+                                    anchors.fill: parent
+                                    color: frameRow.index % 2 ? theme.cardAlt : "transparent"
+                                }
+                                Row {
+                                    x: 6
+                                    height: parent.height
+                                    spacing: 10
+                                    Text {
+                                        width: 50
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        horizontalAlignment: Text.AlignRight
+                                        text: frameRow.seq
+                                        color: theme.subtle
+                                        font.family: theme.mono
+                                        font.pixelSize: 12
+                                    }
+                                    Text {
+                                        width: 70
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        horizontalAlignment: Text.AlignRight
+                                        text: frameRow.at
+                                        color: theme.subtle
+                                        font.family: theme.mono
+                                        font.pixelSize: 12
+                                    }
+                                    // Which window's scene ran it.
+                                    Text {
+                                        width: 60
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: frameRow.win
+                                        color: frameRow.win === "main" ? theme.subtle : theme.accent
+                                        elide: Text.ElideRight
+                                        font.family: theme.mono
+                                        font.pixelSize: 12
+                                    }
+                                    Text {
+                                        width: 140
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: frameRow.woke === "" ? "—" : frameRow.woke
+                                        color: timeline.wokeTone(frameRow.woke)
+                                        elide: Text.ElideRight
+                                        font.pixelSize: 12
+                                    }
+                                    Text {
+                                        width: 70
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        horizontalAlignment: Text.AlignRight
+                                        text: window.ms(frameRow.total)
+                                        color: theme.text
+                                        font.family: theme.mono
+                                        font.pixelSize: 12
+                                    }
+                                    // The passes, then painting, to one
+                                    // scale for every row.
+                                    Row {
+                                        width: frameRow.barWidth
+                                        height: 12
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        Repeater {
+                                            model: timeline.parts
+                                            delegate: Rectangle {
+                                                required property var modelData
+                                                height: 12
+                                                width: frameRow.barWidth * frameRow[modelData.key] / timeline.scale
+                                                color: modelData.tone
+                                            }
+                                        }
+                                    }
+                                    Text {
+                                        width: 180
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: "bindings " + window.ms(frameRow.bindings) + " (" + frameRow.runs + ")"
+                                              + " · text " + window.ms(frameRow.text) + " (" + frameRow.layouts + ")"
+                                        color: theme.subtle
+                                        elide: Text.ElideRight
+                                        font.pixelSize: 11
+                                    }
+                                }
+                            }
+                        }
+                        Text {
+                            anchors.centerIn: parent
+                            visible: frameRows.count === 0
+                            text: timeline.recording ? "No frame since recording began: the application is at rest"
+                                                     : "Press Record to keep each frame's times"
+                            color: theme.subtle
+                        }
+                    }
+                }
+
+                // ----- Memory ------------------------------------------
+                // Where the application's memory is, as an allocator view
+                // shows it: the parts beside what the process holds, the
+                // objects by type, and each window. Asked when shown and
+                // when a pass is drawn, at most once a second as the watch
+                // settles; nothing is asked while another page is shown.
+                ColumnLayout {
+                    id: memory
+                    spacing: 10
+                    property var last: null
+                    // What each owner held, a sample each time the page
+                    // asked, the oldest first: the chart over time.
+                    property var history: []
+                    readonly property int kept: 120
+                    // The stacked bands drawn, bottom first, each as a
+                    // polygon in the chart's own pixels.
+                    property var bands: []
+                    property real stackTop: 1
+                    // The owners stacked, bottom first: together they are
+                    // what the process holds. Textures are not among them.
+                    readonly property var stack: [
+                        { key: "program", tone: "#8a8f99" },
+                        { key: "compiled", tone: "#6b7fb5" },
+                        { key: "script", tone: theme.warn },
+                        { key: "objects", tone: theme.accent },
+                        { key: "reactive", tone: theme.violet },
+                        { key: "scene", tone: "#d77fae" },
+                        { key: "text", tone: theme.good },
+                        { key: "glyph_atlas", tone: "#8fcf6f" },
+                        { key: "meshes", tone: theme.bad },
+                        { key: "images", tone: "#3fa7a0" },
+                        { key: "models", tone: "#c9a35a" },
+                        { key: "allocator_free", tone: "#b7bcc5" },
+                        { key: "not_attributed", tone: theme.rule }
+                    ]
+                    // The largest part, so that bars compare.
+                    property real most: 1
+                    readonly property var parts: [
+                        { key: "objects", name: "objects", tone: theme.accent },
+                        { key: "script", name: "script heap", tone: theme.warn },
+                        { key: "reactive", name: "reactive graph", tone: theme.violet },
+                        { key: "text", name: "text caches", tone: theme.good },
+                        { key: "images", name: "images", tone: "#3fa7a0" },
+                        { key: "scenes", name: "scenes", tone: "#d77fae" },
+                        { key: "renderers", name: "renderers", tone: theme.bad }
+                    ]
+
+                    function load() {
+                        window.ask("app_metrics", { memory: { max: 200, mappings: true } }, "memory")
+                    }
+
+                    function sum(windows, of) {
+                        var n = 0
+                        for (var i = 0; i < windows.length; ++i) {
+                            var w = of(windows[i])
+                            n += w ? w.bytes : 0
+                        }
+                        return n
+                    }
+
+                    function sample(s) {
+                        if (!s.owners)
+                            return
+                        var at = {}
+                        var gpu = 0
+                        for (var i = 0; i < s.owners.length; ++i) {
+                            var o = s.owners[i]
+                            if (o.gpu)
+                                gpu += o.bytes
+                            else
+                                at[o.owner] = o.bytes
+                        }
+                        var h = history.slice(Math.max(0, history.length - kept + 1))
+                        h.push({ t: Date.now(), bytes: at, gpu: gpu })
+                        history = h
+                        draw()
+                    }
+
+                    // The bands for the samples kept, to the chart's width:
+                    // each sample at its time, so that a quiet stretch with
+                    // nothing asked reads as one.
+                    function draw() {
+                        var h = history
+                        var w = memoryChart.width, ht = memoryChart.height
+                        if (h.length === 0 || !(w > 0)) {
+                            bands = []
+                            return
+                        }
+                        var top = 1
+                        var totals = []
+                        for (var i = 0; i < h.length; ++i) {
+                            var n = 0
+                            for (var k = 0; k < stack.length; ++k)
+                                n += h[i].bytes[stack[k].key] || 0
+                            totals.push(n)
+                            top = Math.max(top, n)
+                        }
+                        top *= 1.05
+                        var t0 = h[0].t, span = h[h.length - 1].t - t0
+                        var xs = []
+                        for (var j = 0; j < h.length; ++j)
+                            xs.push(span > 0 ? (h[j].t - t0) / span * w : (h.length === 1 ? 0 : j / (h.length - 1) * w))
+                        // One sample is a column across the whole width.
+                        var one = h.length === 1
+                        var below = []
+                        for (var b = 0; b < h.length; ++b)
+                            below.push(0)
+                        var out = []
+                        for (var s = 0; s < stack.length; ++s) {
+                            var key = stack[s].key
+                            var upper = [], lower = []
+                            var any = false
+                            for (var m = 0; m < h.length; ++m) {
+                                var v = h[m].bytes[key] || 0
+                                any = any || v > 0
+                                var y0 = ht - below[m] / top * ht
+                                below[m] += v
+                                var y1 = ht - below[m] / top * ht
+                                upper.push(Qt.point(xs[m], y1))
+                                lower.unshift(Qt.point(xs[m], y0))
+                                if (one) {
+                                    upper.push(Qt.point(w, y1))
+                                    lower.unshift(Qt.point(w, y0))
+                                }
+                            }
+                            if (any)
+                                out.push({ tone: String(stack[s].tone), points: upper.concat(lower) })
+                        }
+                        stackTop = top
+                        bands = out
+                    }
+
+                    function show(s) {
+                        last = s
+                        sample(s)
+                        var sizes = {
+                            objects: s.objects.bytes,
+                            script: s.script ? s.script.bytes : 0,
+                            reactive: s.reactive.bytes,
+                            text: s.text ? s.text.bytes : 0,
+                            images: s.images.bytes,
+                            scenes: sum(s.windows, function (w) { return w.scene }),
+                            renderers: sum(s.windows, function (w) { return w.render })
+                        }
+                        partRows.clear()
+                        var top = 1
+                        for (var i = 0; i < parts.length; ++i) {
+                            var p = parts[i]
+                            top = Math.max(top, sizes[p.key])
+                            partRows.append({ name: p.name, tone: String(p.tone), bytes: sizes[p.key] })
+                        }
+                        typeRows.clear()
+                        for (var j = 0; j < s.objects.types.length; ++j) {
+                            var t = s.objects.types[j]
+                            top = Math.max(top, t.bytes)
+                            typeRows.append({ type: t.type, count: t.count, bytes: t.bytes })
+                        }
+                        most = top
+                        windowRows.clear()
+                        for (var k = 0; k < s.windows.length; ++k) {
+                            var w = s.windows[k]
+                            var r = w.render
+                            windowRows.append({
+                                name: w.window === null ? "window " + k : w.window,
+                                scene: w.scene.items + " items, " + w.scene.lists + " display lists, "
+                                       + window.bytes(w.scene.bytes),
+                                render: r === null ? "nothing draws it"
+                                      : r.meshes + " meshes, " + (r.textures + r.pages + r.shape_textures)
+                                        + " textures, glyph atlas " + window.bytes(r.glyph_atlas_bytes)
+                                        + ", " + window.bytes(r.bytes)
+                                        + (r.glyph_runs_incomplete > 0
+                                           ? ", " + r.glyph_runs_incomplete + " text runs missing glyphs" : "")
+                                        + (r.warnings > 0 ? ", " + r.warnings + " drawing warnings" : "")
+                            })
+                        }
+                    }
+
+                    ListModel { id: partRows }
+                    ListModel { id: typeRows }
+                    ListModel { id: windowRows }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 10
+                        Text { text: "Memory"; color: theme.text; font.pixelSize: 19; font.bold: true }
+                        Text {
+                            Layout.fillWidth: true
+                            elide: Text.ElideRight
+                            text: !memory.last ? ""
+                                : (memory.last.process
+                                   ? window.bytes(memory.last.process.resident_bytes) + " resident, "
+                                     + window.bytes(memory.last.process.own_bytes) + " of it its own · "
+                                   : "")
+                                  + window.bytes(memory.last.counted_bytes) + " counted below"
+                                  + (memory.last.reconciled
+                                     ? " · " + window.bytes(Math.max(0, memory.last.reconciled.not_attributed_bytes))
+                                       + " not attributed (" + Math.round(memory.last.reconciled.not_attributed_share * 100) + " %)"
+                                     : "")
+                            color: theme.subtle
+                        }
+                        Button {
+                            text: "Refresh"
+                            onClicked: memory.load()
+                        }
+                    }
+
+                    // What the process holds, by owner, over the samples
+                    // kept: the bands stack to what is resident.
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 150 + legend.implicitHeight
+                        radius: 9
+                        color: theme.card
+                        border.color: theme.rule
+                        visible: memory.history.length > 0
+                        Item {
+                            id: memoryChart
+                            x: 8; y: 8
+                            width: parent.width - 16
+                            height: 120
+                            onWidthChanged: memory.draw()
+                            Accessible.role: Accessible.Chart
+                            Accessible.name: "Memory by owner over the last " + memory.history.length + " samples"
+                            Rectangle { width: parent.width; height: 1; color: theme.rule }
+                            Rectangle { y: parent.height - 1; width: parent.width; height: 1; color: theme.rule }
+                            Repeater {
+                                model: window.page === 8 ? memory.bands : null
+                                delegate: Shape {
+                                    id: band
+                                    required property var modelData
+                                    width: memoryChart.width
+                                    height: memoryChart.height
+                                    ShapePath {
+                                        strokeWidth: -1
+                                        fillColor: band.modelData.tone
+                                        PathPolyline { path: band.modelData.points }
+                                    }
+                                }
+                            }
+                            Text {
+                                x: 4; y: 2
+                                text: window.bytes(memory.stackTop)
+                                color: theme.subtle
+                                font.pixelSize: 10
+                            }
+                        }
+                        Flow {
+                            id: legend
+                            x: 8
+                            y: memoryChart.y + memoryChart.height + 8
+                            width: parent.width - 16
+                            spacing: 12
+                            Repeater {
+                                model: window.page === 8 && memory.last && memory.last.owners ? memory.last.owners : null
+                                delegate: Row {
+                                    id: key
+                                    required property var modelData
+                                    spacing: 4
+                                    property string tone: {
+                                        for (var i = 0; i < memory.stack.length; ++i)
+                                            if (memory.stack[i].key === modelData.owner)
+                                                return String(memory.stack[i].tone)
+                                        return "transparent"
+                                    }
+                                    Rectangle {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        width: 9; height: 9; radius: 2
+                                        color: key.tone
+                                        border.color: key.modelData.gpu ? theme.subtle : "transparent"
+                                    }
+                                    Text {
+                                        text: key.modelData.label + " " + window.bytes(key.modelData.bytes)
+                                              + (key.modelData.of !== "" && key.modelData.count > 0
+                                                 ? " · " + key.modelData.count + " " + key.modelData.of : "")
+                                              + (key.modelData.gpu ? " (GPU, not stacked)" : "")
+                                        color: key.modelData.owner === "not_attributed" ? theme.warn : theme.subtle
+                                        font.pixelSize: 11
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // What the owners above leave out, by mapping: the
+                    // program and each library it loaded, and of what is
+                    // not attributed, where it lies. Only where the
+                    // platform tells; elsewhere it says so.
+                    Rectangle {
+                        id: mapped
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: (split !== null && split.known ? mappedRow.implicitHeight : 18) + 16
+                        radius: 9
+                        color: theme.card
+                        border.color: theme.rule
+                        visible: memory.last !== null && memory.last.mappings !== null
+                                 && memory.last.mappings !== undefined
+                        readonly property var split: visible ? memory.last.mappings : null
+                        Text {
+                            x: 8; y: 8
+                            visible: mapped.split !== null && !mapped.split.known
+                            text: "By mapping: not known on this platform"
+                            color: theme.subtle
+                        }
+                        Row {
+                            id: mappedRow
+                            x: 8; y: 8
+                            width: parent.width - 16
+                            spacing: 16
+                            visible: mapped.split !== null && mapped.split.known === true
+                            Repeater {
+                                model: [["The program and its libraries", "program_split"],
+                                        ["Not attributed, by where it is", "not_attributed_split"]]
+                                delegate: Column {
+                                    id: half
+                                    required property var modelData
+                                    width: (mappedRow.width - 16) / 2
+                                    spacing: 2
+                                    Text {
+                                        text: half.modelData[0]
+                                        color: theme.subtle
+                                        font.pixelSize: 12
+                                        font.bold: true
+                                    }
+                                    Repeater {
+                                        model: window.page === 8 && mapped.split !== null && mapped.split.known
+                                               ? mapped.split[half.modelData[1]] : null
+                                        delegate: Row {
+                                            id: mapRow
+                                            required property var modelData
+                                            spacing: 8
+                                            Accessible.role: Accessible.ListItem
+                                            Accessible.name: modelData.label + ", " + window.bytes(modelData.bytes)
+                                            Text {
+                                                width: half.width - 88
+                                                text: mapRow.modelData.label
+                                                elide: Text.ElideRight
+                                                color: theme.text
+                                                font.pixelSize: 12
+                                            }
+                                            Text {
+                                                width: 80
+                                                horizontalAlignment: Text.AlignRight
+                                                text: window.bytes(mapRow.modelData.bytes)
+                                                color: theme.text
+                                                font.family: theme.mono
+                                                font.pixelSize: 12
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // One bar a part, to the scale of the largest part or
+                    // type. Bytes no allocator counts are estimates.
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: partColumn.implicitHeight + 16
+                        radius: 9
+                        color: theme.card
+                        border.color: theme.rule
+                        Column {
+                            id: partColumn
+                            x: 8; y: 8
+                            width: parent.width - 16
+                            spacing: 4
+                            Repeater {
+                                model: window.page === 8 ? partRows : null
+                                delegate: Row {
+                                    id: partRow
+                                    required property string name
+                                    required property string tone
+                                    required property real bytes
+                                    spacing: 10
+                                    Accessible.role: Accessible.ListItem
+                                    Accessible.name: name + ", " + window.bytes(bytes)
+                                    Text { width: 120; text: partRow.name; color: theme.text; font.pixelSize: 12 }
+                                    Text {
+                                        width: 80
+                                        horizontalAlignment: Text.AlignRight
+                                        text: window.bytes(partRow.bytes)
+                                        color: theme.text
+                                        font.family: theme.mono
+                                        font.pixelSize: 12
+                                    }
+                                    Rectangle {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        height: 10
+                                        radius: 2
+                                        width: Math.max(1, (partColumn.width - 230) * partRow.bytes / memory.most)
+                                        color: partRow.tone
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Text {
+                        text: !memory.last ? "" : "Objects by type · " + memory.last.objects.count + " objects"
+                              + (memory.last.objects.types_left_out > 0
+                                 ? " · " + memory.last.objects.types_left_out + " smaller types not listed" : "")
+                        color: theme.subtle
+                    }
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        radius: 9
+                        color: theme.card
+                        border.color: theme.rule
+                        clip: true
+                        ListView {
+                            anchors.fill: parent
+                            anchors.margins: 6
+                            clip: true
+                            model: window.page === 8 ? typeRows : null
+                            ScrollBar.vertical: ScrollBar {}
+                            delegate: Item {
+                                id: typeRow
+                                required property int index
+                                required property string type
+                                required property int count
+                                required property real bytes
+                                width: ListView.view.width
+                                height: 22
+                                Accessible.role: Accessible.ListItem
+                                Accessible.name: type + ", " + count + (count === 1 ? " object, " : " objects, ") + window.bytes(bytes)
+                                Rectangle {
+                                    anchors.fill: parent
+                                    color: typeRow.index % 2 ? theme.cardAlt : "transparent"
+                                }
+                                Row {
+                                    x: 6
+                                    height: parent.height
+                                    spacing: 10
+                                    Text {
+                                        width: 180
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        text: typeRow.type
+                                        color: theme.text
+                                        elide: Text.ElideRight
+                                        font.pixelSize: 12
+                                    }
+                                    Text {
+                                        width: 60
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        horizontalAlignment: Text.AlignRight
+                                        text: typeRow.count
+                                        color: theme.subtle
+                                        font.family: theme.mono
+                                        font.pixelSize: 12
+                                    }
+                                    Text {
+                                        width: 80
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        horizontalAlignment: Text.AlignRight
+                                        text: window.bytes(typeRow.bytes)
+                                        color: theme.text
+                                        font.family: theme.mono
+                                        font.pixelSize: 12
+                                    }
+                                    Rectangle {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        height: 10
+                                        radius: 2
+                                        width: Math.max(1, (typeRow.width - 370) * typeRow.bytes / memory.most)
+                                        color: theme.accent
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // Each window: its scene, and what its renderer keeps.
+                    Repeater {
+                        model: window.page === 8 ? windowRows : null
+                        delegate: Column {
+                            id: windowRow
+                            required property string name
+                            required property string scene
+                            required property string render
+                            Layout.fillWidth: true
+                            Text { text: windowRow.name; color: theme.text; font.pixelSize: 12; font.bold: true }
+                            Text { text: "scene: " + windowRow.scene; color: theme.subtle; font.pixelSize: 12 }
+                            Text { text: "renderer: " + windowRow.render; color: theme.subtle; font.pixelSize: 12 }
+                        }
+                    }
+                }
+
+                // ----- Models ------------------------------------------
+                // The application's models, as a table viewer shows a
+                // node's tables: the list, and a page of the rows of the
+                // one picked. The one picked is followed: the watch says
+                // when it changed and the page is asked again then, so a
+                // model at rest asks nothing. Nothing is followed until a
+                // model is picked, and nothing is asked while another
+                // page is shown.
+                ColumnLayout {
+                    id: models
+                    spacing: 10
+                    property var list: []
+                    // The model picked, by handle, and the page of it shown.
+                    property string picked: ""
+                    property var table: null
+                    property int offset: 0
+                    readonly property int limit: 50
+                    // The cell typed in, as "row/role".
+                    property string editing: ""
+                    readonly property var columns: !table ? []
+                        : table.roles.length > 0 ? table.roles : ["modelData"]
+                    readonly property real columnWidth: Math.max(90, (rowsView.width - 70) / Math.max(1, columns.length))
+
+                    function load() {
+                        window.ask("app_objects", { models: true }, "models")
+                        if (picked !== "")
+                            rows()
+                    }
+
+                    function rows() {
+                        window.ask("app_objects",
+                                   { model: picked, offset: offset, limit: limit, holder: window.holder },
+                                   "model-rows")
+                    }
+
+                    function open(handle) {
+                        picked = handle
+                        offset = 0
+                        editing = ""
+                        table = null
+                        rows()
+                    }
+
+                    // To the Objects page, with a view or the model picked.
+                    function reveal(handle, name) {
+                        window.page = 3
+                        objects.load(true)
+                        objects.pick(handle, name)
+                    }
+
+                    function turn(by) {
+                        offset = Math.max(0, offset + by * limit)
+                        editing = ""
+                        rows()
+                    }
+
+                    function showRows(ok, s) {
+                        // A model gone, as after a reload, is let go.
+                        if (!ok) {
+                            picked = ""
+                            table = null
+                            return
+                        }
+                        // A page past a model that shrank goes back to its last.
+                        if (s.rows.length === 0 && s.count > 0 && offset > 0) {
+                            offset = Math.floor((s.count - 1) / limit) * limit
+                            rows()
+                            return
+                        }
+                        table = s
+                    }
+
+                    // The text typed as the JSON the cell had: a number
+                    // stays a number and true or false a bool.
+                    function typed(was, text) {
+                        if (typeof was === "boolean")
+                            return text === "true"
+                        if (typeof was === "number" && text.trim() !== "" && !isNaN(Number(text)))
+                            return Number(text)
+                        return text
+                    }
+
+                    // What is shown again comes with the watch, which
+                    // the write moves.
+                    function write(row, role, was, text) {
+                        editing = ""
+                        window.ask("app_set_property",
+                                   { target: picked, row: row, property: role, value: typed(was, text) },
+                                   "model-edited")
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 10
+                        Text { text: "Models"; color: theme.text; font.pixelSize: 19; font.bold: true }
+                        Text {
+                            Layout.fillWidth: true
+                            elide: Text.ElideRight
+                            text: models.list.length + (models.list.length === 1 ? " model" : " models")
+                            color: theme.subtle
+                        }
+                        Button {
+                            text: "Refresh"
+                            onClicked: models.load()
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        spacing: 10
+
+                        // The models, each with what has it and its rows.
+                        Rectangle {
+                            Layout.preferredWidth: Math.max(180, Math.min(300, models.width * 0.3))
+                            Layout.fillHeight: true
+                            radius: 9
+                            color: theme.card
+                            border.color: theme.rule
+                            clip: true
+                            ListView {
+                                anchors.fill: parent
+                                anchors.margins: 6
+                                clip: true
+                                model: window.page === 9 ? models.list : []
+                                ScrollBar.vertical: ScrollBar {}
+                                delegate: Rectangle {
+                                    id: modelRow
+                                    required property var modelData
+                                    readonly property string name: modelData.owned_by_view
+                                        ? modelData.type + " of " + (modelData.object_name ? "\"" + modelData.object_name + "\"" : modelData.model)
+                                        : modelData.type + (modelData.object_name ? " \"" + modelData.object_name + "\"" : "")
+                                    // The view it is shown by, or what has it.
+                                    readonly property var view: modelData.shown_by && modelData.shown_by.length > 0
+                                        ? modelData.shown_by[0] : null
+                                    width: ListView.view.width
+                                    height: 54
+                                    radius: 6
+                                    color: models.picked === modelData.model ? theme.accentSoft : "transparent"
+                                    Column {
+                                        x: 8
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        width: parent.width - 16
+                                        Text {
+                                            width: parent.width
+                                            elide: Text.ElideRight
+                                            text: modelRow.name
+                                            color: models.picked === modelRow.modelData.model ? theme.accent : theme.text
+                                            font.pixelSize: 12
+                                            font.bold: models.picked === modelRow.modelData.model
+                                        }
+                                        Text {
+                                            width: parent.width
+                                            elide: Text.ElideRight
+                                            text: modelRow.modelData.count + " rows"
+                                                  + (modelRow.modelData.roles.length > 0 ? " · " + modelRow.modelData.roles.join(", ") : "")
+                                                  + (modelRow.modelData.writable ? " · writable" : "")
+                                            color: theme.subtle
+                                            font.pixelSize: 11
+                                        }
+                                        Text {
+                                            width: parent.width - viewLink.width - 8
+                                            elide: Text.ElideRight
+                                            text: (modelRow.modelData.shown_by || []).length === 0 ? "shown by no view"
+                                                  : "shown by " + modelRow.modelData.shown_by.map(function(v) { return v.name }).join(", ")
+                                            color: theme.subtle
+                                            font.pixelSize: 11
+                                        }
+                                    }
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        Accessible.role: Accessible.ListItem
+                                        Accessible.name: modelRow.name + ", " + modelRow.modelData.count + " rows"
+                                        onClicked: models.open(modelRow.modelData.model)
+                                    }
+                                    // Over the row: opens the view on the Objects page.
+                                    Text {
+                                        id: viewLink
+                                        anchors.right: parent.right
+                                        anchors.rightMargin: 8
+                                        anchors.bottom: parent.bottom
+                                        anchors.bottomMargin: 6
+                                        visible: modelRow.view !== null
+                                        text: "view ›"
+                                        color: theme.accent
+                                        font.pixelSize: 11
+                                        font.underline: viewHover.containsMouse
+                                        MouseArea {
+                                            id: viewHover
+                                            anchors.fill: parent
+                                            anchors.margins: -4
+                                            hoverEnabled: true
+                                            Accessible.role: Accessible.Link
+                                            Accessible.name: "open " + (modelRow.view ? modelRow.view.name : "") + " on Objects"
+                                            onClicked: models.reveal(modelRow.view.view, modelRow.view.name)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // A page of the rows of the model picked.
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            spacing: 6
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 8
+                                Text {
+                                    Layout.fillWidth: true
+                                    elide: Text.ElideRight
+                                    color: theme.subtle
+                                    text: !models.table
+                                        ? (models.picked === "" ? "Pick a model to see its rows" : "")
+                                        : models.table.count === 0 ? models.table.type + " · no rows"
+                                        : models.table.type + " · rows " + models.table.offset + " to "
+                                          + (models.table.offset + models.table.rows.length - 1) + " of " + models.table.count
+                                          + (models.table.writable ? " · click a cell to edit it" : "")
+                                }
+                                // The views that draw it, each opening on Objects.
+                                Repeater {
+                                    model: window.page === 9 && models.table && models.table.shown_by ? models.table.shown_by : []
+                                    delegate: Button {
+                                        required property var modelData
+                                        text: modelData.name + (modelData.at ? " · " + modelData.at.replace(/^.*\//, "") : "")
+                                        onClicked: models.reveal(modelData.view, modelData.name)
+                                    }
+                                }
+                                Button {
+                                    text: "Previous"
+                                    enabled: !!models.table && models.offset > 0
+                                    onClicked: models.turn(-1)
+                                }
+                                Button {
+                                    text: "Next"
+                                    enabled: !!models.table && models.table.next_offset !== null
+                                    onClicked: models.turn(1)
+                                }
+                            }
+
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                radius: 9
+                                color: theme.card
+                                border.color: theme.rule
+                                clip: true
+
+                                // The roles, over their columns.
+                                Row {
+                                    id: header
+                                    x: 12; y: 8
+                                    spacing: 0
+                                    Text {
+                                        width: 60
+                                        text: "row"
+                                        color: theme.subtle
+                                        font.pixelSize: 11
+                                        font.bold: true
+                                    }
+                                    Repeater {
+                                        model: window.page === 9 ? models.columns : []
+                                        delegate: Text {
+                                            required property string modelData
+                                            width: models.columnWidth
+                                            elide: Text.ElideRight
+                                            text: modelData
+                                            color: theme.subtle
+                                            font.pixelSize: 11
+                                            font.bold: true
+                                        }
+                                    }
+                                }
+
+                                ListView {
+                                    id: rowsView
+                                    anchors.fill: parent
+                                    anchors.margins: 6
+                                    anchors.topMargin: 28
+                                    clip: true
+                                    model: window.page === 9 && models.table ? models.table.rows : []
+                                    ScrollBar.vertical: ScrollBar {}
+                                    delegate: Item {
+                                        id: tableRow
+                                        required property var modelData
+                                        required property int index
+                                        width: ListView.view.width
+                                        height: 24
+                                        Rectangle {
+                                            anchors.fill: parent
+                                            color: tableRow.index % 2 ? theme.cardAlt : "transparent"
+                                        }
+                                        Row {
+                                            x: 6
+                                            height: parent.height
+                                            Text {
+                                                width: 60
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                text: tableRow.modelData.index
+                                                color: theme.subtle
+                                                font.family: theme.mono
+                                                font.pixelSize: 12
+                                            }
+                                            Repeater {
+                                                model: models.columns
+                                                delegate: Item {
+                                                    id: cell
+                                                    required property string modelData
+                                                    readonly property var value: tableRow.modelData.values[modelData]
+                                                    readonly property string key: tableRow.modelData.index + "/" + modelData
+                                                    width: models.columnWidth
+                                                    height: tableRow.height
+                                                    Text {
+                                                        anchors.fill: parent
+                                                        anchors.rightMargin: 8
+                                                        verticalAlignment: Text.AlignVCenter
+                                                        elide: Text.ElideRight
+                                                        visible: models.editing !== cell.key
+                                                        text: window.shown(cell.value)
+                                                        color: theme.text
+                                                        font.pixelSize: 12
+                                                    }
+                                                    MouseArea {
+                                                        anchors.fill: parent
+                                                        enabled: !!models.table && models.table.writable
+                                                        Accessible.role: Accessible.Cell
+                                                        Accessible.name: cell.modelData + " " + tableRow.modelData.index
+                                                        onClicked: models.editing = cell.key
+                                                    }
+                                                    Loader {
+                                                        anchors.fill: parent
+                                                        anchors.rightMargin: 8
+                                                        active: models.editing === cell.key
+                                                        // Focus is given once the click that made
+                                                        // the field is over.
+                                                        onLoaded: Qt.callLater(function() {
+                                                            if (!item)
+                                                                return
+                                                            item.forceActiveFocus()
+                                                            item.selectAll()
+                                                        })
+                                                        sourceComponent: TextField {
+                                                            topPadding: 2
+                                                            bottomPadding: 2
+                                                            leftPadding: 4
+                                                            clip: true
+                                                            color: theme.text
+                                                            Accessible.name: cell.modelData + " " + tableRow.modelData.index
+                                                            background: Rectangle {
+                                                                radius: 4
+                                                                color: theme.bg
+                                                                border.color: theme.accent
+                                                            }
+                                                            text: window.shown(cell.value)
+                                                            onAccepted: models.write(tableRow.modelData.index, cell.modelData,
+                                                                                     cell.value, text)
+                                                            Keys.onEscapePressed: models.editing = ""
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // ----- Wakes -------------------------------------------
+                // Why the UI thread woke, for an application that should
+                // rest: each wake with its causes and what it led to, on
+                // a strip of the last seconds and in a list, beside the
+                // timers and animations that will wake it next. Kept
+                // only while this window holds the recording; the wakes
+                // only this window's requests caused are hidden unless
+                // asked for, and never move the watch.
+                ColumnLayout {
+                    id: wakes
+                    spacing: 10
+                    property var since: null
+                    property bool recording: false
+                    property int dropped: 0
+                    property var kept: []
+                    property int ownCount: 0
+                    property bool hideOwn: true
+                    onHideOwnChanged: refill()
+                    // What will wake it, from `app_processes` with the kind
+                    // `waker`: scheduled rows and rows that only listen.
+                    property var due: []
+                    property int scheduled: 0
+                    property int listening: 0
+                    // The strip shows this many seconds before the last wake.
+                    readonly property real span: 10000
+                    property real lastAt: 0
+                    // The last wake listed: two answers from the same
+                    // `since` list a wake once.
+                    property int lastSeq: 0
+                    readonly property var tones: ({
+                        input: theme.accent, timer: theme.warn, animation: theme.violet,
+                        message: theme.subtle, redraw: theme.bad, window: "#3fa7a0",
+                        dirty: theme.good, deadline: "#d77fae", "requested redraw": theme.rule
+                    })
+
+                    function args() {
+                        var a = { wakes: true, max: 600 }
+                        if (since !== null)
+                            a.since = since
+                        return a
+                    }
+
+                    function load() {
+                        window.ask("app_frames", args(), "wakes")
+                        window.ask("app_processes", { kind: "waker" }, "wake-due")
+                    }
+
+                    function record(on) {
+                        var a = args()
+                        a.record = on
+                        a.holder = window.holder
+                        window.ask("app_frames", a, "wakes")
+                    }
+
+                    function tone(causes) {
+                        for (var i = 0; i < causes.length; ++i)
+                            if (causes[i] !== "message")
+                                return tones[causes[i]] || theme.subtle
+                        return theme.subtle
+                    }
+
+                    function add(s) {
+                        recording = s.recording
+                        dropped = s.dropped
+                        since = s.next_since
+                        var following = wakeRows.count === 0 || wakeView.atYEnd
+                        var all = kept
+                        for (var i = 0; i < s.wakes.length; ++i) {
+                            var w = s.wakes[i]
+                            if (w.wake <= lastSeq)
+                                continue
+                            lastSeq = w.wake
+                            var row = {
+                                seq: w.wake,
+                                atMs: w.at_ms,
+                                at: (w.at_ms / 1000).toFixed(3) + " s",
+                                causes: w.causes.join(", "),
+                                // As text: a colour the theme gives and one
+                                // written here would be two types to a role.
+                                tone: String(tone(w.causes)),
+                                own: w.requests_only,
+                                detailed: w.detailed === true,
+                                ledTo: w.led_to,
+                                detail: "passes " + w.passes + " · frames " + w.frames + " · drawn " + w.drawn
+                                        + " · unchanged " + w.unchanged
+                                        + (w.messages.thread > 0 ? " · " + w.messages.thread + " from threads" : "")
+                                        + (w.asked_by.length > 0 ? " · asked by " + w.asked_by.join(", ") : "")
+                            }
+                            all.push(row)
+                            if (row.own)
+                                ownCount += 1
+                            if (!(hideOwn && row.own)) {
+                                wakeRows.append(row)
+                                lastAt = row.atMs
+                            }
+                        }
+                        var over = all.length - 600
+                        if (over > 0) {
+                            for (var j = 0; j < over; ++j)
+                                if (all[j].own)
+                                    ownCount -= 1
+                            all.splice(0, over)
+                        }
+                        kept = all
+                        over = wakeRows.count - 600
+                        if (over > 0)
+                            wakeRows.remove(0, over)
+                        if (s.wakes.length > 0 && following)
+                            wakeView.positionViewAtEnd()
+                        if (s.more)
+                            window.ask("app_frames", args(), "wakes")
+                    }
+
+                    function showDue(s) {
+                        var rows = []
+                        for (var i = 0; i < s.processes.length; ++i) {
+                            var p = s.processes[i]
+                            var detail = ""
+                            if (p.source === "timer")
+                                detail = "every " + p.interval_ms + " ms" + (p.repeat ? "" : ", once")
+                                         + (p.due_in_us === null || p.due_in_us === undefined
+                                            ? ", frozen" : ", next in " + window.ms(p.due_in_us))
+                            else if (p.source === "animation")
+                                detail = "running, each frame"
+                            else if (p.source === "answer")
+                                detail = p.what + (p.scheduled ? ", waited " + window.ms(p.waited_us)
+                                                               : ", may never come")
+                            else if (p.source === "image")
+                                detail = p.url + (p.queued ? ", queued" : ", decoding")
+                                         + (p.waiting > 1 ? ", for " + p.waiting + " items" : "")
+                            else if (p.source === "message")
+                                detail = p.depth + " queued in " + p.mailbox
+                            else if (p.source === "watcher")
+                                detail = p.what + ", for a change to reload"
+                            rows.push({
+                                source: p.source,
+                                scheduled: p.scheduled,
+                                handle: p.handle || "",
+                                owner: p.name ? p.name + (p.at ? " at " + p.at.substring(p.at.lastIndexOf("/") + 1) : "") : "the application",
+                                detail: detail
+                            })
+                        }
+                        scheduled = s.scheduled
+                        listening = s.listening
+                        due = rows
+                    }
+
+                    // What the wake picked did, in order; a click on a
+                    // row the inspector kept the detail of asks for it.
+                    property var one: null
+
+                    function openOne(seq) {
+                        window.ask("app_frames", { wakes: true, wake: seq, max: 300 }, "one-wake")
+                    }
+
+                    function showOne(ok, s, r) {
+                        if (!ok) {
+                            one = { title: window.refusal(r), took: "", rows: [] }
+                            return
+                        }
+                        var rows = []
+                        for (var i = 0; i < s.entries.length; ++i) {
+                            var e = s.entries[i]
+                            var what = e.kind === "changed"
+                                ? e.type + "." + e.name + ": " + JSON.stringify(e.old) + " → " + JSON.stringify(e.new)
+                                : e.name !== "" ? e.type + "." + e.name : e.type + " " + e.object
+                            rows.push({
+                                depth: e.depth,
+                                kind: e.kind,
+                                what: what,
+                                at: e.at ? e.at.substring(e.at.lastIndexOf("/") + 1) : "",
+                                took: e.took_us === null ? "" : window.ms(e.took_us)
+                            })
+                        }
+                        var counted = []
+                        for (var k in s.counts)
+                            counted.push(s.counts[k] + " " + k)
+                        one = {
+                            title: "Wake " + s.wake + " · " + s.causes.join(", ") + " → " + s.led_to,
+                            took: s.steps.total_ms.toFixed(2) + " ms · layout " + s.steps.layout_ms.toFixed(2)
+                                  + " · scene " + s.steps.scene_ms.toFixed(2) + " · bindings "
+                                  + s.steps.bindings_ms.toFixed(2) + (counted.length > 0 ? " · " + counted.join(", ") : ""),
+                            rows: rows
+                        }
+                    }
+
+                    function refill() {
+                        wakeRows.clear()
+                        for (var i = 0; i < kept.length; ++i) {
+                            if (hideOwn && kept[i].own)
+                                continue
+                            wakeRows.append(kept[i])
+                            lastAt = kept[i].atMs
+                        }
+                        wakeView.positionViewAtEnd()
+                    }
+
+                    function clear() {
+                        wakeRows.clear()
+                        kept = []
+                        ownCount = 0
+                        lastAt = 0
+                    }
+
+                    ListModel { id: wakeRows }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 10
+                        Text { text: "Wakes"; color: theme.text; font.pixelSize: 19; font.bold: true }
+                        // Takes what the buttons leave, so that a narrow
+                        // window cuts the summary, never a button.
+                        Text {
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: 0
+                            elide: Text.ElideRight
+                            text: (wakes.recording ? "keeping" : "not keeping") + " · "
+                                  + wakeRows.count + " wakes"
+                                  + (wakes.hideOwn && wakes.ownCount > 0
+                                     ? " · " + wakes.ownCount + " woken by this window hidden" : "")
+                                  + (wakes.dropped > 0 ? " · " + wakes.dropped + " older gave way" : "")
+                            color: wakes.recording ? theme.good : theme.subtle
+                        }
+                        CheckBox {
+                            text: "Hide this window's requests"
+                            checked: wakes.hideOwn
+                            onToggled: wakes.hideOwn = checked
+                        }
+                        Button {
+                            text: wakes.recording ? "Stop" : "Record"
+                            onClicked: wakes.record(!wakes.recording)
+                        }
+                        Button {
+                            text: "Clear"
+                            onClicked: wakes.clear()
+                        }
+                    }
+
+                    // What the colours are.
+                    Flow {
+                        Layout.fillWidth: true
+                        spacing: 12
+                        Repeater {
+                            model: ["input", "timer", "animation", "message", "redraw", "window", "dirty", "deadline"]
+                            delegate: Row {
+                                required property string modelData
+                                spacing: 5
+                                Rectangle {
+                                    width: 10; height: 10; radius: 2
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    color: wakes.tones[modelData]
+                                }
+                                Text { text: modelData; color: theme.subtle; font.pixelSize: 11 }
+                            }
+                        }
+                    }
+
+                    // The last seconds, a tick a wake: a resting
+                    // application leaves it empty.
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 34
+                        radius: 9
+                        color: theme.card
+                        border.color: theme.rule
+                        clip: true
+                        Repeater {
+                            model: window.page === 10 ? wakeRows : null
+                            delegate: Rectangle {
+                                required property real atMs
+                                required property color tone
+                                readonly property real ago: wakes.lastAt - atMs
+                                visible: ago <= wakes.span
+                                x: 8 + (parent.width - 16) * (1 - ago / wakes.span)
+                                y: 7
+                                width: 2
+                                height: 20
+                                color: tone
+                            }
+                        }
+                        Text {
+                            anchors.right: parent.right
+                            anchors.rightMargin: 8
+                            anchors.bottom: parent.bottom
+                            text: "last " + (wakes.span / 1000) + " s"
+                            color: theme.subtle
+                            font.pixelSize: 10
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        spacing: 10
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            radius: 9
+                            color: theme.card
+                            border.color: theme.rule
+                            clip: true
+                            ListView {
+                                id: wakeView
+                                anchors.fill: parent
+                                anchors.margins: 6
+                                clip: true
+                                model: window.page === 10 ? wakeRows : null
+                                onModelChanged: if (model !== null) Qt.callLater(wakeView.positionViewAtEnd)
+                                ScrollBar.vertical: ScrollBar {}
+                                delegate: Item {
+                                    id: wakeRow
+                                    required property int index
+                                    required property int seq
+                                    required property string at
+                                    required property string causes
+                                    required property color tone
+                                    required property string ledTo
+                                    required property string detail
+                                    required property bool detailed
+                                    width: ListView.view.width
+                                    height: 24
+                                    Accessible.role: Accessible.ListItem
+                                    Accessible.name: "wake " + seq + ", woke by " + (causes === "" ? "nothing known" : causes)
+                                                     + ", led to " + ledTo
+                                    Rectangle {
+                                        anchors.fill: parent
+                                        color: wakeRow.index % 2 ? theme.cardAlt : "transparent"
+                                    }
+                                    Row {
+                                        x: 6
+                                        height: parent.height
+                                        spacing: 10
+                                        Text {
+                                            width: 50
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            horizontalAlignment: Text.AlignRight
+                                            text: wakeRow.seq
+                                            color: theme.subtle
+                                            font.family: theme.mono
+                                            font.pixelSize: 12
+                                        }
+                                        Text {
+                                            width: 80
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            horizontalAlignment: Text.AlignRight
+                                            text: wakeRow.at
+                                            color: theme.subtle
+                                            font.family: theme.mono
+                                            font.pixelSize: 12
+                                        }
+                                        Text {
+                                            width: 170
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            text: wakeRow.causes === "" ? "—" : wakeRow.causes
+                                            color: wakeRow.tone
+                                            elide: Text.ElideRight
+                                            font.pixelSize: 12
+                                        }
+                                        Text {
+                                            width: 90
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            text: wakeRow.ledTo
+                                            color: wakeRow.ledTo === "nothing" ? theme.subtle : theme.text
+                                            font.pixelSize: 12
+                                        }
+                                        Text {
+                                            width: wakeRow.width - 440
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            text: wakeRow.detail
+                                            color: theme.subtle
+                                            elide: Text.ElideRight
+                                            font.pixelSize: 11
+                                        }
+                                    }
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        enabled: wakeRow.detailed
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: wakes.openOne(wakeRow.seq)
+                                    }
+                                }
+                            }
+                            Text {
+                                anchors.centerIn: parent
+                                visible: wakeRows.count === 0
+                                text: wakes.recording ? "No wake since keeping began: the application is at rest"
+                                                      : "Press Record to keep each wake and its causes"
+                                color: theme.subtle
+                            }
+                        }
+
+                        // What the wake picked did, in order.
+                        Rectangle {
+                            Layout.preferredWidth: 440
+                            Layout.fillHeight: true
+                            visible: wakes.one !== null
+                            radius: 9
+                            color: theme.card
+                            border.color: theme.accent
+                            clip: true
+                            Text {
+                                id: oneTitle
+                                x: 10; y: 6
+                                width: parent.width - 80
+                                elide: Text.ElideRight
+                                text: wakes.one ? wakes.one.title : ""
+                                color: theme.text
+                                font.pixelSize: 12
+                                font.bold: true
+                            }
+                            Button {
+                                anchors.right: parent.right
+                                anchors.rightMargin: 4
+                                y: 2
+                                text: "Close"
+                                flat: true
+                                onClicked: wakes.one = null
+                            }
+                            Text {
+                                x: 10; y: 26
+                                // Clear of the Close button.
+                                width: parent.width - 80
+                                wrapMode: Text.Wrap
+                                text: wakes.one ? wakes.one.took : ""
+                                color: theme.subtle
+                                font.pixelSize: 11
+                            }
+                            ListView {
+                                anchors.fill: parent
+                                anchors.margins: 6
+                                anchors.topMargin: 60
+                                clip: true
+                                model: window.page === 10 && wakes.one ? wakes.one.rows : []
+                                ScrollBar.vertical: ScrollBar {}
+                                delegate: Row {
+                                    id: oneRow
+                                    required property var modelData
+                                    width: ListView.view.width
+                                    height: 18
+                                    spacing: 6
+                                    Accessible.role: Accessible.ListItem
+                                    Accessible.name: modelData.kind + " " + modelData.what
+                                    Text {
+                                        width: 70 + oneRow.modelData.depth * 12
+                                        leftPadding: oneRow.modelData.depth * 12
+                                        text: oneRow.modelData.kind
+                                        color: oneRow.modelData.kind === "handler" ? theme.accent
+                                             : oneRow.modelData.kind === "binding" ? theme.violet
+                                             : oneRow.modelData.kind === "changed" ? theme.good : theme.subtle
+                                        font.pixelSize: 11
+                                    }
+                                    Text {
+                                        width: oneRow.width - 150 - oneRow.modelData.depth * 12
+                                        text: oneRow.modelData.what + (oneRow.modelData.at !== "" ? "  " + oneRow.modelData.at : "")
+                                        elide: Text.ElideRight
+                                        color: theme.text
+                                        font.pixelSize: 11
+                                    }
+                                    Text {
+                                        width: 60
+                                        horizontalAlignment: Text.AlignRight
+                                        text: oneRow.modelData.took
+                                        color: theme.subtle
+                                        font.family: theme.mono
+                                        font.pixelSize: 11
+                                    }
+                                }
+                            }
+                        }
+
+                        // What wakes it next.
+                        Rectangle {
+                            Layout.preferredWidth: Math.max(200, Math.min(320, wakes.width * 0.3))
+                            Layout.fillHeight: true
+                            radius: 9
+                            color: theme.card
+                            border.color: theme.rule
+                            clip: true
+                            Text {
+                                x: 10; y: 8
+                                width: parent.width - 20
+                                elide: Text.ElideRight
+                                text: "Why awake · " + wakes.scheduled + " scheduled"
+                                      + (wakes.listening > 0 ? ", " + wakes.listening + " listening" : "")
+                                color: wakes.scheduled > 0 ? theme.warn : theme.subtle
+                                font.pixelSize: 11
+                                font.bold: true
+                            }
+                            ListView {
+                                anchors.fill: parent
+                                anchors.margins: 6
+                                anchors.topMargin: 28
+                                clip: true
+                                model: window.page === 10 ? wakes.due : []
+                                ScrollBar.vertical: ScrollBar {}
+                                // A row with an object opens it on the Objects page.
+                                delegate: Column {
+                                    id: dueRow
+                                    required property var modelData
+                                    width: ListView.view.width
+                                    bottomPadding: 6
+                                    Accessible.role: Accessible.ListItem
+                                    Accessible.name: dueRow.modelData.source + " " + dueRow.modelData.owner
+                                    Text {
+                                        width: parent.width
+                                        elide: Text.ElideRight
+                                        text: dueRow.modelData.source + " · " + dueRow.modelData.owner
+                                        color: !dueRow.modelData.scheduled ? theme.subtle
+                                               : dueRow.modelData.source === "timer" ? theme.warn
+                                               : dueRow.modelData.source === "animation" ? theme.violet
+                                               : theme.accent
+                                        font.pixelSize: 12
+                                        font.underline: dueHover.containsMouse
+                                        MouseArea {
+                                            id: dueHover
+                                            anchors.fill: parent
+                                            enabled: dueRow.modelData.handle !== ""
+                                            hoverEnabled: enabled
+                                            onClicked: {
+                                                window.page = 3
+                                                objects.load(true)
+                                                objects.pick(dueRow.modelData.handle, dueRow.modelData.owner)
+                                            }
+                                        }
+                                    }
+                                    Text {
+                                        width: parent.width
+                                        elide: Text.ElideRight
+                                        text: (dueRow.modelData.scheduled ? "" : "listens · ") + dueRow.modelData.detail
+                                        color: theme.subtle
+                                        font.pixelSize: 11
+                                    }
+                                }
+                            }
+                            Text {
+                                anchors.centerIn: parent
+                                width: parent.width - 20
+                                horizontalAlignment: Text.AlignHCenter
+                                wrapMode: Text.Wrap
+                                visible: wakes.due.length === 0
+                                text: "Nothing will wake the UI thread"
+                                color: theme.subtle
+                            }
+                        }
+                    }
+                }
+
+                // ----- Components --------------------------------------
+                // What the application has loaded, as a module browser
+                // shows it: each component of each file, how it is
+                // written, how many instances of it live and what they
+                // hold. The one picked lists its instances; each opens
+                // on the Objects page. Asked when shown and when a pass
+                // is drawn or a file reloaded, at most once a second as
+                // the watch settles.
+                ColumnLayout {
+                    id: components
+                    spacing: 10
+                    property var list: []
+                    property int live: 0
+                    property int leftOut: 0
+                    property real most: 1
+                    // The component picked, by id, and the page of it shown.
+                    property string picked: ""
+                    property var shown: null
+                    property int offset: 0
+                    readonly property int limit: 50
+                    // This window's mark: the objects alive when "Mark" was
+                    // pressed. "Since mark" lists what was made since and
+                    // is still alive, the step's leftovers; the inspector
+                    // forgets the mark with the window.
+                    property int markedCount: -1
+                    property var since: null
+
+                    function mark() {
+                        since = null
+                        window.ask("app_objects", { mark: true, holder: window.holder }, "mark")
+                    }
+
+                    function marked(s) {
+                        markedCount = s.marked
+                    }
+
+                    function sinceMark() {
+                        window.ask("app_objects", { since_mark: true, holder: window.holder }, "since-mark")
+                    }
+
+                    // The components first, then the places objects were
+                    // made at; a row opens its first object.
+                    function showSince(s) {
+                        var rows = []
+                        for (var i = 0; i < s.components.length; ++i) {
+                            var c = s.components[i]
+                            rows.push({ what: c.kind + " " + c.name, count: c.instances, bytes: -1,
+                                        at: c.at || c.url, handle: c.handles[0] || "" })
+                        }
+                        for (var j = 0; j < s.places.length; ++j) {
+                            var p = s.places[j]
+                            rows.push({ what: p.type + (p.object_names.length > 0 ? " (" + p.object_names.join(", ") + ")" : ""),
+                                        count: p.count, bytes: p.bytes, at: p.at, handle: p.handles[0] || "" })
+                        }
+                        since = { made: s.made, gone: s.gone, bytes: s.bytes, seconds: s.since_ms / 1000,
+                                  rows: rows }
+                    }
+
+                    function load() {
+                        window.ask("app_objects", { components: true }, "components")
+                        if (picked !== "")
+                            instances()
+                    }
+
+                    function instances() {
+                        window.ask("app_objects", { component: picked, offset: offset, limit: limit },
+                                   "component")
+                    }
+
+                    function show(s) {
+                        var top = 1
+                        for (var i = 0; i < s.components.length; ++i)
+                            top = Math.max(top, s.components[i].bytes)
+                        most = top
+                        live = s.instances
+                        leftOut = s.left_out
+                        list = s.components
+                    }
+
+                    function open(id) {
+                        picked = id
+                        offset = 0
+                        instances()
+                    }
+
+                    // A component gone with a reload is let go of.
+                    function showInstances(ok, s) {
+                        if (!ok) {
+                            picked = ""
+                            shown = null
+                            return
+                        }
+                        shown = s
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 10
+                        Text { text: "Components"; color: theme.text; font.pixelSize: 19; font.bold: true }
+                        Text {
+                            Layout.fillWidth: true
+                            elide: Text.ElideRight
+                            text: components.list.length + " loaded · " + components.live + " instances live"
+                                  + (components.leftOut > 0 ? " · " + components.leftOut + " not listed" : "")
+                            color: theme.subtle
+                        }
+                        Button {
+                            text: "Mark"
+                            onClicked: components.mark()
+                        }
+                        Button {
+                            text: "Since mark"
+                            enabled: components.markedCount >= 0
+                            onClicked: components.sinceMark()
+                        }
+                        Button {
+                            text: "Refresh"
+                            onClicked: components.load()
+                        }
+                    }
+
+                    // What was made since the mark and is still alive.
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: sinceColumn.implicitHeight + 16
+                        radius: 9
+                        color: theme.card
+                        border.color: components.since && components.since.made > 0 ? theme.warn : theme.rule
+                        visible: components.markedCount >= 0
+                        Column {
+                            id: sinceColumn
+                            x: 8; y: 8
+                            width: parent.width - 16
+                            spacing: 2
+                            Text {
+                                width: parent.width
+                                elide: Text.ElideRight
+                                text: !components.since
+                                      ? "Marked: " + components.markedCount + " objects alive. Do a step and undo it, then press Since mark."
+                                      : components.since.made === 0
+                                        ? "Nothing made since the mark " + components.since.seconds.toFixed(1) + " s ago is alive"
+                                        : components.since.made + " objects made since the mark "
+                                          + components.since.seconds.toFixed(1) + " s ago are alive, "
+                                          + window.bytes(components.since.bytes) + "; "
+                                          + components.since.gone + " of those marked are gone"
+                                color: components.since && components.since.made > 0 ? theme.warn : theme.subtle
+                                font.pixelSize: 12
+                            }
+                            Repeater {
+                                model: window.page === 11 && components.since ? components.since.rows.slice(0, 12) : null
+                                delegate: Row {
+                                    id: sinceRow
+                                    required property var modelData
+                                    spacing: 10
+                                    Accessible.role: Accessible.ListItem
+                                    Accessible.name: modelData.what + " ×" + modelData.count + " at " + modelData.at
+                                    Text {
+                                        width: 220
+                                        text: sinceRow.modelData.what
+                                        elide: Text.ElideRight
+                                        color: sinceRow.modelData.handle !== "" ? theme.accent : theme.text
+                                        font.pixelSize: 12
+                                        font.underline: sinceHover.containsMouse
+                                        MouseArea {
+                                            id: sinceHover
+                                            anchors.fill: parent
+                                            enabled: sinceRow.modelData.handle !== ""
+                                            hoverEnabled: enabled
+                                            onClicked: {
+                                                window.page = 3
+                                                objects.load(true)
+                                                objects.pick(sinceRow.modelData.handle, sinceRow.modelData.what)
+                                            }
+                                        }
+                                    }
+                                    Text {
+                                        width: 50
+                                        horizontalAlignment: Text.AlignRight
+                                        text: "×" + sinceRow.modelData.count
+                                        color: theme.text
+                                        font.family: theme.mono
+                                        font.pixelSize: 12
+                                    }
+                                    Text {
+                                        width: 80
+                                        horizontalAlignment: Text.AlignRight
+                                        text: sinceRow.modelData.bytes < 0 ? "" : window.bytes(sinceRow.modelData.bytes)
+                                        color: theme.text
+                                        font.family: theme.mono
+                                        font.pixelSize: 12
+                                    }
+                                    Text {
+                                        width: sinceColumn.width - 380
+                                        text: sinceRow.modelData.at
+                                        elide: Text.ElideLeft
+                                        color: theme.subtle
+                                        font.pixelSize: 11
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        spacing: 10
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            radius: 9
+                            color: theme.card
+                            border.color: theme.rule
+                            clip: true
+                            ListView {
+                                anchors.fill: parent
+                                anchors.margins: 6
+                                clip: true
+                                model: window.page === 11 ? components.list : []
+                                ScrollBar.vertical: ScrollBar {}
+                                delegate: Item {
+                                    id: compRow
+                                    required property int index
+                                    required property var modelData
+                                    readonly property bool current: modelData.component === components.picked
+                                    width: ListView.view.width
+                                    height: 24
+                                    Rectangle {
+                                        anchors.fill: parent
+                                        radius: 4
+                                        color: compRow.current ? theme.cardAlt
+                                             : compRow.index % 2 ? theme.cardAlt : "transparent"
+                                        border.color: compRow.current ? theme.accent : "transparent"
+                                    }
+                                    Row {
+                                        x: 6
+                                        height: parent.height
+                                        spacing: 10
+                                        Text {
+                                            width: 60
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            text: compRow.modelData.kind
+                                            color: theme.subtle
+                                            font.pixelSize: 11
+                                        }
+                                        Text {
+                                            width: 120
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            text: compRow.modelData.name
+                                            color: theme.text
+                                            elide: Text.ElideRight
+                                            font.pixelSize: 12
+                                        }
+                                        // A file by its name; anything else
+                                        // by where in its file it is, so that
+                                        // two delegates of one type differ.
+                                        Text {
+                                            width: 200
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            text: compRow.modelData.kind === "file"
+                                                  ? compRow.modelData.url.substring(compRow.modelData.url.lastIndexOf("/") + 1)
+                                                  : compRow.modelData.component
+                                            color: theme.subtle
+                                            elide: Text.ElideLeft
+                                            font.pixelSize: 11
+                                        }
+                                        Text {
+                                            width: 50
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            horizontalAlignment: Text.AlignRight
+                                            text: compRow.modelData.instances
+                                            color: compRow.modelData.instances > 0 ? theme.text : theme.subtle
+                                            font.family: theme.mono
+                                            font.pixelSize: 12
+                                        }
+                                        Text {
+                                            width: 80
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            horizontalAlignment: Text.AlignRight
+                                            text: window.bytes(compRow.modelData.bytes)
+                                            color: theme.text
+                                            font.family: theme.mono
+                                            font.pixelSize: 12
+                                        }
+                                        Rectangle {
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            height: 10
+                                            radius: 2
+                                            width: Math.max(1, (compRow.width - 580) * compRow.modelData.bytes / components.most)
+                                            color: theme.accent
+                                        }
+                                    }
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        Accessible.role: Accessible.ListItem
+                                        Accessible.name: compRow.modelData.kind + " " + compRow.modelData.name + ", "
+                                                         + compRow.modelData.instances
+                                                         + (compRow.modelData.instances === 1 ? " instance, " : " instances, ")
+                                                         + window.bytes(compRow.modelData.bytes)
+                                        onClicked: components.open(compRow.modelData.component)
+                                    }
+                                }
+                            }
+                            Text {
+                                anchors.centerIn: parent
+                                visible: components.list.length === 0
+                                text: "No component is loaded"
+                                color: theme.subtle
+                            }
+                        }
+
+                        // The instances of the one picked; each opens on
+                        // the Objects page.
+                        Rectangle {
+                            Layout.preferredWidth: 300
+                            Layout.fillHeight: true
+                            radius: 9
+                            color: theme.card
+                            border.color: theme.rule
+                            clip: true
+                            ColumnLayout {
+                                anchors.fill: parent
+                                anchors.margins: 8
+                                spacing: 6
+                                Text {
+                                    Layout.fillWidth: true
+                                    elide: Text.ElideRight
+                                    text: !components.shown ? "Pick a component to list its instances"
+                                        : components.shown.name + " · " + components.shown.count
+                                          + (components.shown.count === 1 ? " instance" : " instances")
+                                    color: components.shown ? theme.text : theme.subtle
+                                    font.bold: components.shown !== null
+                                }
+                                ListView {
+                                    Layout.fillWidth: true
+                                    Layout.fillHeight: true
+                                    clip: true
+                                    model: window.page === 11 && components.shown ? components.shown.instances : []
+                                    ScrollBar.vertical: ScrollBar {}
+                                    delegate: ItemDelegate {
+                                        id: instRow
+                                        required property var modelData
+                                        width: ListView.view.width
+                                        height: 26
+                                        text: instRow.modelData.handle + "  " + instRow.modelData.type
+                                              + (instRow.modelData.object_name ? "  \"" + instRow.modelData.object_name + "\"" : "")
+                                              + "  " + window.bytes(instRow.modelData.bytes)
+                                        font.pixelSize: 12
+                                        onClicked: {
+                                            window.page = 3
+                                            objects.load(true)
+                                            objects.pick(instRow.modelData.handle,
+                                                         instRow.modelData.object_name || instRow.modelData.handle)
+                                        }
+                                    }
+                                }
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    visible: components.shown !== null && components.shown.count > components.limit
+                                    Button {
+                                        text: "Previous"
+                                        enabled: components.offset > 0
+                                        onClicked: {
+                                            components.offset = Math.max(0, components.offset - components.limit)
+                                            components.instances()
+                                        }
+                                    }
+                                    Button {
+                                        text: "Next"
+                                        enabled: components.shown !== null && components.shown.next_offset !== null
+                                        onClicked: {
+                                            components.offset = components.shown.next_offset
+                                            components.instances()
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // ----- Bindings ----------------------------------------
+                // Which bindings and handlers run most and take longest,
+                // while this window records: where each is written, what
+                // it writes, its runs and their time, and what set it
+                // off. A heading sorts by it; a row opens the object on
+                // the Objects page. The binding loops the engine broke
+                // are listed whether or not anyone records. Asked when
+                // shown and when a pass is drawn, at most once a second
+                // as the watch settles.
+                ColumnLayout {
+                    id: hot
+                    spacing: 10
+                    property bool recording: false
+                    property real windowMs: 0
+                    property int count: 0
+                    property int dropped: 0
+                    property string sort: "total"
+                    property var rows: []
+                    property var loops: []
+                    property real most: 1
+                    readonly property var columns: [
+                        { key: "runs", name: "runs", width: 60 },
+                        { key: "total", name: "total", width: 76 },
+                        { key: "own", name: "own", width: 76 },
+                        { key: "longest", name: "longest", width: 76 }
+                    ]
+
+                    function load() {
+                        window.ask("app_frames", { bindings: true, sort: sort, max: 200 }, "bindings")
+                    }
+
+                    function record(on) {
+                        window.ask("app_frames", { bindings: true, sort: sort, max: 200, record: on,
+                                                   holder: window.holder }, "bindings")
+                    }
+
+                    function sortBy(key) {
+                        sort = key
+                        load()
+                    }
+
+                    function show(s) {
+                        recording = s.recording
+                        windowMs = s.window_ms || 0
+                        count = s.count
+                        dropped = s.dropped
+                        var top = 1
+                        for (var i = 0; i < s.bindings.length; ++i)
+                            top = Math.max(top, s.bindings[i][sort + "_us"] || s.bindings[i].runs)
+                        most = top
+                        rows = s.bindings
+                        loops = s.loops
+                    }
+
+                    function causes(b) {
+                        var out = []
+                        for (var i = 0; i < b.causes.length; ++i)
+                            out.push(b.causes[i].type + "." + b.causes[i].name + " ×" + b.causes[i].runs)
+                        return out.join(", ")
+                    }
+
+                    function place(at) {
+                        return at ? at.substring(at.lastIndexOf("/") + 1) : "—"
+                    }
+
+                    function open(handle, name) {
+                        window.page = 3
+                        objects.load(true)
+                        objects.pick(handle, name)
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 10
+                        Text { text: "Bindings"; color: theme.text; font.pixelSize: 19; font.bold: true }
+                        Text {
+                            Layout.fillWidth: true
+                            elide: Text.ElideRight
+                            text: (hot.recording ? "profiling for " + (hot.windowMs / 1000).toFixed(1) + " s"
+                                                 : "not profiling")
+                                  + " · " + hot.count + " ran"
+                                  + (hot.rows.length < hot.count ? " · " + hot.rows.length + " shown" : "")
+                                  + (hot.dropped > 0 ? " · " + hot.dropped + " runs not told apart" : "")
+                            color: hot.recording ? theme.good : theme.subtle
+                        }
+                        Button {
+                            text: hot.recording ? "Stop" : "Record"
+                            onClicked: hot.record(!hot.recording)
+                        }
+                        Button {
+                            text: "Refresh"
+                            onClicked: hot.load()
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        radius: 9
+                        color: theme.card
+                        border.color: theme.rule
+                        clip: true
+
+                        // The headings: a number's sorts by it.
+                        Row {
+                            id: hotHead
+                            x: 12; y: 8
+                            height: 22
+                            spacing: 10
+                            Text {
+                                width: 260
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "binding or handler"
+                                color: theme.subtle
+                                font.pixelSize: 11
+                                font.bold: true
+                            }
+                            Repeater {
+                                model: hot.columns
+                                delegate: Text {
+                                    required property var modelData
+                                    width: modelData.width
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    horizontalAlignment: Text.AlignRight
+                                    text: modelData.name + (hot.sort === modelData.key ? " ▾" : "")
+                                    color: hot.sort === modelData.key ? theme.accent : theme.subtle
+                                    font.pixelSize: 11
+                                    font.bold: true
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        Accessible.role: Accessible.ColumnHeader
+                                        Accessible.name: "sort by " + parent.modelData.name
+                                        onClicked: hot.sortBy(parent.modelData.key)
+                                    }
+                                }
+                            }
+                            Text {
+                                width: 150
+                                leftPadding: 14
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "where"
+                                color: theme.subtle
+                                font.pixelSize: 11
+                                font.bold: true
+                            }
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: "set off by"
+                                color: theme.subtle
+                                font.pixelSize: 11
+                                font.bold: true
+                            }
+                        }
+
+                        ListView {
+                            anchors.fill: parent
+                            anchors.margins: 6
+                            anchors.topMargin: 34
+                            clip: true
+                            model: window.page === 12 ? hot.rows : []
+                            ScrollBar.vertical: ScrollBar {}
+                            delegate: Item {
+                                id: hotRow
+                                required property int index
+                                required property var modelData
+                                readonly property real share: (modelData[hot.sort + "_us"] !== undefined
+                                                               ? modelData[hot.sort + "_us"] : modelData.runs) / hot.most
+                                width: ListView.view.width
+                                height: 26
+                                Rectangle {
+                                    anchors.fill: parent
+                                    radius: 4
+                                    color: hotRow.index % 2 ? theme.cardAlt : "transparent"
+                                }
+                                // How it compares with the top row, behind it.
+                                Rectangle {
+                                    x: 0; y: parent.height - 3
+                                    height: 2
+                                    width: Math.max(1, parent.width * hotRow.share)
+                                    color: hotRow.modelData.kind === "handler" ? theme.violet : theme.accent
+                                    opacity: 0.6
+                                }
+                                Row {
+                                    x: 6
+                                    height: parent.height
+                                    spacing: 10
+                                    Text {
+                                        width: 260
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        elide: Text.ElideRight
+                                        text: hotRow.modelData.type + "." + hotRow.modelData.name
+                                              + "  " + hotRow.modelData.object
+                                        color: hotRow.modelData.kind === "handler" ? theme.violet : theme.text
+                                        font.pixelSize: 12
+                                    }
+                                    Text {
+                                        width: 60
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        horizontalAlignment: Text.AlignRight
+                                        text: hotRow.modelData.runs
+                                        color: theme.text
+                                        font.family: theme.mono
+                                        font.pixelSize: 12
+                                    }
+                                    Repeater {
+                                        model: ["total_us", "own_us", "longest_us"]
+                                        delegate: Text {
+                                            required property string modelData
+                                            width: 76
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            horizontalAlignment: Text.AlignRight
+                                            text: window.ms(hotRow.modelData[modelData])
+                                            color: theme.text
+                                            font.family: theme.mono
+                                            font.pixelSize: 12
+                                        }
+                                    }
+                                    Text {
+                                        width: 150
+                                        leftPadding: 14
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        elide: Text.ElideLeft
+                                        text: hot.place(hotRow.modelData.at)
+                                        color: theme.subtle
+                                        font.pixelSize: 11
+                                    }
+                                    Text {
+                                        width: Math.max(60, hotRow.width - 790)
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        elide: Text.ElideRight
+                                        text: hot.causes(hotRow.modelData) || "—"
+                                        color: theme.subtle
+                                        font.pixelSize: 11
+                                    }
+                                }
+                                MouseArea {
+                                    anchors.fill: parent
+                                    Accessible.role: Accessible.ListItem
+                                    Accessible.name: hotRow.modelData.kind + " " + hotRow.modelData.type + "."
+                                                     + hotRow.modelData.name + ", " + hotRow.modelData.runs + " runs, "
+                                                     + window.ms(hotRow.modelData.total_us)
+                                    onClicked: hot.open(hotRow.modelData.object,
+                                                        hotRow.modelData.type + "." + hotRow.modelData.name)
+                                }
+                            }
+                        }
+                        Text {
+                            anchors.centerIn: parent
+                            visible: hot.rows.length === 0
+                            text: hot.recording ? "No binding has run since profiling began"
+                                                : "Press Record to count each binding's runs and time"
+                            color: theme.subtle
+                        }
+                    }
+
+                    // The binding loops the engine broke: each with the
+                    // property it was at and the way round.
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: Math.min(160, 40 + hot.loops.length * 24)
+                        radius: 9
+                        color: theme.card
+                        border.color: theme.rule
+                        clip: true
+                        Text {
+                            x: 10; y: 8
+                            text: hot.loops.length === 0 ? "No binding loop" : "Binding loops"
+                            color: hot.loops.length === 0 ? theme.subtle : theme.bad
+                            font.pixelSize: 11
+                            font.bold: true
+                        }
+                        ListView {
+                            anchors.fill: parent
+                            anchors.margins: 6
+                            anchors.topMargin: 28
+                            clip: true
+                            model: window.page === 12 ? hot.loops : []
+                            delegate: Item {
+                                id: loopRow
+                                required property var modelData
+                                width: ListView.view.width
+                                height: 24
+                                Text {
+                                    x: 6
+                                    width: parent.width - 12
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    elide: Text.ElideRight
+                                    text: {
+                                        var c = []
+                                        for (var i = 0; i < loopRow.modelData.cycle.length; ++i)
+                                            c.push(loopRow.modelData.cycle[i].type + "." + loopRow.modelData.cycle[i].property)
+                                        return loopRow.modelData.type + "." + loopRow.modelData.property
+                                               + " " + loopRow.modelData.object + " at " + hot.place(loopRow.modelData.at)
+                                               + " · " + loopRow.modelData.times + "× · through " + c.join(" → ")
+                                    }
+                                    color: theme.text
+                                    font.pixelSize: 12
+                                }
+                                MouseArea {
+                                    anchors.fill: parent
+                                    Accessible.role: Accessible.ListItem
+                                    Accessible.name: "binding loop at " + loopRow.modelData.type + "." + loopRow.modelData.property
+                                    onClicked: hot.open(loopRow.modelData.object,
+                                                        loopRow.modelData.type + "." + loopRow.modelData.property)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // ----- Growth ------------------------------------------
+                // The instances of each component over time, while this
+                // window samples: a component whose count goes up and
+                // does not come down, as an action is repeated or while
+                // the application rests, is marked and shown first. The
+                // application samples at its own passes at most once a
+                // second and at each answer, so one at rest is not woken
+                // for it. Asked when shown and when a pass is drawn.
+                ColumnLayout {
+                    id: growth
+                    spacing: 10
+                    property bool recording: false
+                    property real windowMs: 0
+                    property int samples: 0
+                    property int growing: 0
+                    property int count: 0
+                    property var list: []
+
+                    function load() {
+                        window.ask("app_frames", { growth: true, max: 60 }, "growth")
+                    }
+
+                    function record(on) {
+                        window.ask("app_frames", { growth: true, max: 60, record: on, holder: window.holder },
+                                   "growth")
+                    }
+
+                    function show(s) {
+                        recording = s.recording
+                        windowMs = s.window_ms
+                        samples = s.samples
+                        growing = s.growing
+                        count = s.count
+                        list = s.components
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 10
+                        Text { text: "Growth"; color: theme.text; font.pixelSize: 19; font.bold: true }
+                        Text {
+                            Layout.fillWidth: true
+                            elide: Text.ElideRight
+                            text: (growth.recording ? "sampling for " + (growth.windowMs / 1000).toFixed(1) + " s · "
+                                                      + growth.samples + " samples"
+                                                    : "not sampling")
+                                  + " · " + growth.growing + " of " + growth.count + " keep growing"
+                            color: growth.growing > 0 ? theme.bad : growth.recording ? theme.good : theme.subtle
+                        }
+                        Button {
+                            text: growth.recording ? "Stop" : "Record"
+                            onClicked: growth.record(!growth.recording)
+                        }
+                        Button {
+                            text: "Refresh"
+                            onClicked: growth.load()
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        radius: 9
+                        color: theme.card
+                        border.color: theme.rule
+                        clip: true
+                        ListView {
+                            id: growthView
+                            anchors.fill: parent
+                            anchors.margins: 6
+                            clip: true
+                            spacing: 6
+                            model: window.page === 13 ? growth.list : []
+                            ScrollBar.vertical: ScrollBar {}
+                            // One chart a component: its instances at each
+                            // sample, scaled to its own highest.
+                            delegate: Rectangle {
+                                id: chart
+                                required property int index
+                                required property var modelData
+                                readonly property real top: Math.max(1, modelData.max)
+                                width: ListView.view.width
+                                height: 64
+                                radius: 6
+                                color: chart.index % 2 ? theme.cardAlt : "transparent"
+                                border.color: chart.modelData.growing ? theme.bad : "transparent"
+                                Accessible.role: Accessible.ListItem
+                                Accessible.name: chart.modelData.kind + " " + chart.modelData.name
+                                                 + (chart.modelData.growing ? ", keeps growing" : "")
+                                                 + ", " + chart.modelData.first + " to " + chart.modelData.last + " instances"
+                                Column {
+                                    x: 10
+                                    width: 250
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    spacing: 2
+                                    Text {
+                                        width: parent.width
+                                        elide: Text.ElideRight
+                                        text: chart.modelData.name + "  " + chart.modelData.kind
+                                        color: chart.modelData.growing ? theme.bad : theme.text
+                                        font.pixelSize: 12
+                                        font.bold: chart.modelData.growing
+                                    }
+                                    Text {
+                                        width: parent.width
+                                        elide: Text.ElideLeft
+                                        text: chart.modelData.kind === "file"
+                                              ? chart.modelData.url.substring(chart.modelData.url.lastIndexOf("/") + 1)
+                                              : chart.modelData.component
+                                        color: theme.subtle
+                                        font.pixelSize: 11
+                                    }
+                                    Text {
+                                        text: chart.modelData.first + " → " + chart.modelData.last + " instances · "
+                                              + chart.modelData.rises + " up, " + chart.modelData.falls + " down · "
+                                              + window.bytes(chart.modelData.bytes)
+                                        color: theme.subtle
+                                        font.pixelSize: 11
+                                    }
+                                }
+                                // The series, a bar a sample.
+                                Item {
+                                    id: plot
+                                    x: 270
+                                    y: 8
+                                    width: chart.width - 280
+                                    height: chart.height - 16
+                                    Rectangle {
+                                        anchors.bottom: parent.bottom
+                                        width: parent.width
+                                        height: 1
+                                        color: theme.rule
+                                    }
+                                    Repeater {
+                                        model: chart.modelData.series
+                                        delegate: Rectangle {
+                                            required property int index
+                                            required property var modelData
+                                            readonly property real step: plot.width / Math.max(1, chart.modelData.series.length)
+                                            x: index * step
+                                            width: Math.max(1, step - 1)
+                                            height: Math.max(1, plot.height * modelData[1] / chart.top)
+                                            anchors.bottom: parent.bottom
+                                            color: chart.modelData.growing ? theme.bad : theme.accent
+                                            opacity: 0.75
+                                        }
+                                    }
+                                    Text {
+                                        anchors.right: parent.right
+                                        anchors.top: parent.top
+                                        text: chart.top
+                                        color: theme.subtle
+                                        font.pixelSize: 10
+                                    }
+                                }
+                            }
+                        }
+                        Text {
+                            anchors.centerIn: parent
+                            visible: growth.list.length === 0
+                            text: growth.recording ? "No component has instances yet"
+                                                   : "Press Record, then repeat an action or let the application rest"
+                            color: theme.subtle
+                        }
+                    }
+                }
+
+                // ----- Audit -------------------------------------------
+                // The design audit of what the application shows
+                // (`app_audit`), run when Run audit is pressed and never
+                // otherwise: it lays the scene out again at each point of
+                // the matrix, which is not work to do on every change. The
+                // findings are grouped by rule, the worst first. The
+                // inspector has no way to draw in the application, and
+                // this window adds none: the box that marks a finding is
+                // drawn here, on a picture of the window the inspector
+                // gave, from the bounds the finding has.
+                ColumnLayout {
+                    id: audit
+                    spacing: 10
+                    property bool running: false
+                    property bool asked: false
+                    property string matrix: "current"
+                    // The area whose rules are audited; empty is all.
+                    property string area: ""
+                    property bool touch: false
+                    // The checks that act press keys and toggle controls
+                    // in the application, and so run its handlers: off
+                    // until the user turns them on.
+                    property bool act: false
+                    property var report: null
+                    property var rows: []
+                    property int picked: -1
+                    property string note: ""
+                    property string picture: ""
+                    property string pictureNote: ""
+                    // The window's size in logical pixels, which the
+                    // finding's bounds are in.
+                    property real winWidth: 0
+                    property real winHeight: 0
+                    // From the rules' table, not a list kept here.
+                    readonly property var areaNames: ["All areas"].concat(client.auditAreas().split(","))
+                    readonly property var finding: report && picked >= 0 ? report.findings[picked] : null
+                    readonly property var order: ({ error: 0, warning: 1, hint: 2 })
+
+                    function run() {
+                        running = true
+                        asked = true
+                        note = ""
+                        picked = -1
+                        picture = ""
+                        pictureNote = ""
+                        var args = { matrix: matrix, touch: touch, act: act, max_findings: 500 }
+                        if (area !== "")
+                            args.rules = [area]
+                        window.ask("app_audit", args, "audit")
+                        window.ask("app_status", {}, "audit-status")
+                    }
+
+                    // The rules in the findings, the worst first, each
+                    // over its findings: a flat list for the view, a
+                    // header row and a row a finding.
+                    function group(findings) {
+                        var codes = []
+                        var byCode = {}
+                        for (var i = 0; i < findings.length; ++i) {
+                            var f = findings[i]
+                            if (!byCode[f.code]) {
+                                byCode[f.code] = []
+                                codes.push(f.code)
+                            }
+                            byCode[f.code].push(i)
+                        }
+                        codes.sort(function(a, b) {
+                            var d = order[findings[byCode[a][0]].severity] - order[findings[byCode[b][0]].severity]
+                            return d !== 0 ? d : (a < b ? -1 : a > b ? 1 : 0)
+                        })
+                        var out = []
+                        for (var c = 0; c < codes.length; ++c) {
+                            var first = findings[byCode[codes[c]][0]]
+                            out.push({ kind: "rule", code: codes[c], severity: first.severity,
+                                       area: first.area, count: byCode[codes[c]].length })
+                            for (var k = 0; k < byCode[codes[c]].length; ++k)
+                                out.push({ kind: "finding", code: codes[c], index: byCode[codes[c]][k] })
+                        }
+                        return out
+                    }
+
+                    function show(ok, s, r) {
+                        running = false
+                        if (!ok) {
+                            note = window.refusal(r)
+                            report = null
+                            rows = []
+                            return
+                        }
+                        report = s
+                        rows = group(s.findings)
+                    }
+
+                    function showStatus(s) {
+                        if (s.windows && s.windows.length > 0) {
+                            winWidth = s.windows[0].width
+                            winHeight = s.windows[0].height
+                        }
+                    }
+
+                    function select(i) {
+                        picked = i
+                        if (picture === "" && report && report.findings[i].bounds) {
+                            pictureNote = ""
+                            window.ask("app_screenshot", { max_size: 1280 }, "audit-shot")
+                        }
+                    }
+
+                    function showPicture(ok, r) {
+                        pictureNote = ok ? "" : window.refusal(r)
+                        if (!ok)
+                            return
+                        for (var i = 0; i < r.content.length; ++i)
+                            if (r.content[i].type === "image")
+                                picture = "data:" + r.content[i].mimeType + ";base64," + r.content[i].data
+                    }
+
+                    // What the report says in a line.
+                    function summary() {
+                        if (running)
+                            return "Auditing…"
+                        if (note !== "")
+                            return note
+                        if (report === null)
+                            return "Not run"
+                        var c = report.counts
+                        return c.error + (c.error === 1 ? " error" : " errors") + ", "
+                               + c.warning + (c.warning === 1 ? " warning" : " warnings") + ", "
+                               + c.hint + (c.hint === 1 ? " hint" : " hints")
+                               + " at " + report.points.join("; ")
+                               + (report.leftOut > 0 ? ", " + report.leftOut + " more left out" : "")
+                               + (report.notChecked.length > 0
+                                  ? "; " + report.notChecked.length + " acting checks skipped" : "")
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 10
+                        Text { text: "Audit"; color: theme.text; font.pixelSize: 19; font.bold: true }
+                        Text {
+                            Accessible.role: Accessible.StaticText
+                            Accessible.name: text
+                            Layout.fillWidth: true
+                            elide: Text.ElideRight
+                            text: audit.summary()
+                            color: audit.report && (audit.report.counts.error > 0) ? theme.bad : theme.subtle
+                        }
+                    }
+
+                    Flow {
+                        Layout.fillWidth: true
+                        spacing: 10
+                        ComboBox {
+                            model: ["Current settings", "Full matrix"]
+                            Accessible.name: "Settings to audit under"
+                            onActivated: function(index) { audit.matrix = index === 1 ? "full" : "current" }
+                        }
+                        ComboBox {
+                            model: audit.areaNames
+                            Accessible.name: "Rules to audit"
+                            onActivated: function(index) { audit.area = index === 0 ? "" : audit.areaNames[index] }
+                        }
+                        CheckBox {
+                            text: "Touch sizes"
+                            onToggled: audit.touch = checked
+                        }
+                        CheckBox {
+                            text: "Acting checks"
+                            Accessible.description: "Presses keys and toggles controls in the application, "
+                                                    + "which runs its own handlers"
+                            ToolTip.text: Accessible.description
+                            ToolTip.visible: hovered
+                            onToggled: audit.act = checked
+                        }
+                        Button {
+                            text: audit.running ? "Auditing…" : "Run audit"
+                            enabled: !audit.running
+                            highlighted: true
+                            onClicked: audit.run()
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        spacing: 10
+
+                        // The findings, by rule.
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            Layout.preferredWidth: 1
+                            Layout.minimumWidth: 0
+                            radius: 9
+                            color: theme.card
+                            border.color: theme.rule
+                            clip: true
+                            ListView {
+                                id: auditView
+                                anchors.fill: parent
+                                anchors.margins: 6
+                                clip: true
+                                spacing: 2
+                                model: window.page === 14 ? audit.rows : null
+                                ScrollBar.vertical: ScrollBar { Accessible.name: "Scroll the findings" }
+                                delegate: Item {
+                                    id: arow
+                                    required property int index
+                                    required property var modelData
+                                    readonly property bool isRule: modelData.kind === "rule"
+                                    readonly property var f: isRule ? null : audit.report.findings[modelData.index]
+                                    width: ListView.view.width
+                                    height: isRule ? 34 : 66
+                                    Row {
+                                        visible: arow.isRule
+                                        Accessible.role: Accessible.StaticText
+                                        Accessible.name: arow.isRule ? arow.modelData.code + ", " + arow.modelData.severity
+                                                         + ", " + arow.modelData.count + (arow.modelData.count === 1 ? " finding" : " findings") : ""
+                                        x: 8
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        spacing: 8
+                                        Text {
+                                            text: arow.isRule ? arow.modelData.severity : ""
+                                            color: theme.text
+                                            font.bold: true
+                                            font.pixelSize: 13
+                                        }
+                                        Text {
+                                            text: arow.isRule ? arow.modelData.code : ""
+                                            color: theme.text
+                                            font.family: theme.mono
+                                            font.pixelSize: 13
+                                        }
+                                        Text {
+                                            text: arow.isRule ? "× " + arow.modelData.count : ""
+                                            color: theme.subtle
+                                            font.pixelSize: 13
+                                        }
+                                    }
+                                    ItemDelegate {
+                                        visible: !arow.isRule
+                                        anchors.fill: parent
+                                        highlighted: !arow.isRule && audit.picked === arow.modelData.index
+                                        Accessible.name: arow.isRule ? "" : (arow.f.name || arow.f.role || arow.f.locator || "item")
+                                                         + ". " + arow.f.message
+                                        onClicked: audit.select(arow.modelData.index)
+                                        background: Rectangle {
+                                            radius: 6
+                                            color: parent.highlighted ? theme.accentSoft : "transparent"
+                                            Rectangle {
+                                                visible: parent.parent.highlighted
+                                                width: 3; height: 24; radius: 2
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                color: theme.accent
+                                            }
+                                        }
+                                        contentItem: Column {
+                                            leftPadding: 10
+                                            spacing: 2
+                                            Text {
+                                                Accessible.role: Accessible.StaticText
+                                                Accessible.name: text
+                                                width: parent.width - 16
+                                                elide: Text.ElideRight
+                                                text: arow.isRule ? "" : (arow.f.name || arow.f.role || "item")
+                                                      + (arow.f.locator ? "  " + arow.f.locator : "")
+                                                color: theme.text
+                                                font.pixelSize: 13
+                                                font.bold: true
+                                            }
+                                            Text {
+                                                Accessible.role: Accessible.StaticText
+                                                Accessible.name: text
+                                                width: parent.width - 16
+                                                elide: Text.ElideRight
+                                                text: arow.isRule ? "" : arow.f.message
+                                                color: theme.text
+                                                font.pixelSize: 12
+                                            }
+                                            Text {
+                                                Accessible.role: Accessible.StaticText
+                                                Accessible.name: text
+                                                width: parent.width - 16
+                                                elide: Text.ElideLeft
+                                                text: arow.isRule ? "" : (arow.f.measured ? arow.f.measured + " · " : "")
+                                                      + (arow.f.source || "")
+                                                color: theme.subtle
+                                                font.pixelSize: 12
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            Text {
+                                Accessible.role: Accessible.StaticText
+                                Accessible.name: text
+                                anchors.centerIn: parent
+                                width: parent.width - 24
+                                horizontalAlignment: Text.AlignHCenter
+                                wrapMode: Text.Wrap
+                                visible: audit.rows.length === 0
+                                text: audit.running ? "Auditing…"
+                                    : audit.note !== "" ? audit.note
+                                    : audit.report !== null ? "Nothing found at " + audit.report.points.join("; ")
+                                    : "Press Run audit to hold what the application shows to the design rules"
+                                color: theme.subtle
+                            }
+                        }
+
+                        // The finding picked: what is wrong, the fix, and where.
+                        Rectangle {
+                            Layout.fillHeight: true
+                            Layout.preferredWidth: 380
+                            Layout.minimumWidth: 0
+                            visible: window.width >= 900
+                            radius: 9
+                            color: theme.card
+                            border.color: theme.rule
+                            clip: true
+                            Flickable {
+                                anchors.fill: parent
+                                anchors.margins: 12
+                                contentWidth: width
+                                contentHeight: detail.implicitHeight
+                                clip: true
+                                ScrollBar.vertical: ScrollBar { Accessible.name: "Scroll the finding" }
+                                ColumnLayout {
+                                    id: detail
+                                    width: parent.width
+                                    spacing: 8
+                                    visible: audit.finding !== null
+                                    Text {
+                                        Accessible.role: Accessible.StaticText
+                                        Accessible.name: text
+                                        Layout.fillWidth: true
+                                        text: audit.finding ? audit.finding.code + "  (" + audit.finding.severity + ")" : ""
+                                        wrapMode: Text.Wrap
+                                        color: theme.text
+                                        font.bold: true
+                                        font.pixelSize: 15
+                                    }
+                                    Text {
+                                        Accessible.role: Accessible.StaticText
+                                        Accessible.name: text
+                                        Layout.fillWidth: true
+                                        text: audit.finding ? audit.finding.message : ""
+                                        wrapMode: Text.Wrap
+                                        color: theme.text
+                                    }
+                                    Text { text: "Fix"; color: theme.subtle; font.pixelSize: 12 }
+                                    Text {
+                                        Accessible.role: Accessible.StaticText
+                                        Accessible.name: text
+                                        Layout.fillWidth: true
+                                        text: audit.finding ? audit.finding.fix : ""
+                                        wrapMode: Text.Wrap
+                                        color: theme.text
+                                    }
+                                    Button {
+                                        text: "Open guide"
+                                        onClicked: Qt.openUrlExternally(client.guideUrl(audit.finding.guide))
+                                    }
+                                    Text {
+                                        Accessible.role: Accessible.StaticText
+                                        Accessible.name: text
+                                        Layout.fillWidth: true
+                                        text: audit.finding ? audit.finding.guide : ""
+                                        elide: Text.ElideLeft
+                                        color: theme.subtle
+                                        font.family: theme.mono
+                                        font.pixelSize: 12
+                                    }
+                                    Text {
+                                        Accessible.role: Accessible.StaticText
+                                        Accessible.name: text
+                                        Layout.fillWidth: true
+                                        visible: audit.finding !== null && !!audit.finding.measured
+                                        text: audit.finding && audit.finding.measured ? "Measured: " + audit.finding.measured : ""
+                                        wrapMode: Text.Wrap
+                                        color: theme.text
+                                    }
+                                    Text {
+                                        Accessible.role: Accessible.StaticText
+                                        Accessible.name: text
+                                        Layout.fillWidth: true
+                                        visible: audit.finding !== null && !!audit.finding.source
+                                        text: audit.finding && audit.finding.source ? "Made at " + audit.finding.source : ""
+                                        wrapMode: Text.WrapAnywhere
+                                        color: theme.text
+                                        font.family: theme.mono
+                                        font.pixelSize: 12
+                                    }
+                                    Text {
+                                        Accessible.role: Accessible.StaticText
+                                        Accessible.name: text
+                                        Layout.fillWidth: true
+                                        visible: audit.finding !== null && !!audit.finding.locator
+                                        text: audit.finding && audit.finding.locator
+                                              ? "Locator " + audit.finding.locator
+                                                + (audit.finding.role ? " · " + audit.finding.role : "") : ""
+                                        wrapMode: Text.WrapAnywhere
+                                        color: theme.text
+                                        font.family: theme.mono
+                                        font.pixelSize: 12
+                                    }
+                                    Text {
+                                        Accessible.role: Accessible.StaticText
+                                        Accessible.name: text
+                                        Layout.fillWidth: true
+                                        visible: audit.finding !== null && !!audit.finding.bounds
+                                        text: audit.finding && audit.finding.bounds
+                                              ? "Bounds " + audit.finding.bounds.x + ", " + audit.finding.bounds.y
+                                                + "  " + audit.finding.bounds.width + " × " + audit.finding.bounds.height
+                                              : ""
+                                        wrapMode: Text.WrapAnywhere
+                                        color: theme.text
+                                        font.family: theme.mono
+                                        font.pixelSize: 12
+                                    }
+                                    Text {
+                                        Accessible.role: Accessible.StaticText
+                                        Accessible.name: text
+                                        Layout.fillWidth: true
+                                        visible: audit.finding !== null && !!audit.finding.points
+                                        text: audit.finding && audit.finding.points ? "Shows at " + audit.finding.points.join("; ") : ""
+                                        wrapMode: Text.Wrap
+                                        color: theme.text
+                                    }
+                                    // The window as it is now, with the box
+                                    // where the finding's item was.
+                                    Item {
+                                        id: shot
+                                        Layout.fillWidth: true
+                                        Layout.preferredHeight: 200
+                                        visible: audit.finding !== null && !!audit.finding.bounds
+                                        clip: true
+                                        Image {
+                                            id: shotImage
+                                            anchors.fill: parent
+                                            fillMode: Image.PreserveAspectFit
+                                            source: audit.picture
+                                            Accessible.name: "The window as drawn now"
+                                        }
+                                        Rectangle {
+                                            readonly property real k: audit.winWidth > 0 ? shotImage.paintedWidth / audit.winWidth : 0
+                                            readonly property var b: audit.finding && audit.finding.bounds ? audit.finding.bounds : null
+                                            visible: b !== null && k > 0 && shotImage.status === Image.Ready
+                                            x: b ? (shotImage.width - shotImage.paintedWidth) / 2 + b.x * k : 0
+                                            y: b ? (shotImage.height - shotImage.paintedHeight) / 2 + b.y * k : 0
+                                            width: b ? Math.max(2, b.width * k) : 0
+                                            height: b ? Math.max(2, b.height * k) : 0
+                                            color: Qt.rgba(1, 0, 0, 0.14)
+                                            border.color: theme.bad
+                                            border.width: 2
+                                        }
+                                    }
+                                    Text {
+                                        Accessible.role: Accessible.StaticText
+                                        Accessible.name: text
+                                        Layout.fillWidth: true
+                                        visible: shot.visible
+                                        text: audit.pictureNote !== "" ? audit.pictureNote
+                                            : "The picture is the window as it is now; the box is where the finding put the item"
+                                              + (audit.finding && audit.finding.points && audit.finding.points[0] !== "current"
+                                                 ? " at " + audit.finding.points[0] : "")
+                                        wrapMode: Text.Wrap
+                                        color: theme.subtle
+                                        font.pixelSize: 12
+                                    }
+                                }
+                                Text {
+                                    Accessible.role: Accessible.StaticText
+                                    Accessible.name: text
+                                    width: parent.width
+                                    visible: audit.finding === null
+                                    text: "Pick a finding to see the fix and where it is"
+                                    wrapMode: Text.Wrap
+                                    color: theme.subtle
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // What the last refusal or failure said.
+            Text {
+                id: status
+                Layout.fillWidth: true
+                Layout.leftMargin: 18
+                Layout.rightMargin: 18
+                Layout.bottomMargin: 10
+                elide: Text.ElideRight
+                color: theme.bad
+                visible: text !== ""
+            }
+        }
+    }
+}

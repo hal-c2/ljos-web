@@ -2,7 +2,10 @@
 // Qt Quick Controls (ljos-ui's `crates/ljos_controls/qml/QtQuick`), its
 // own controls (`Ljos.Controls`, `Ljos.Controls.Basic`, beside them in
 // `crates/ljos_controls/qml/Ljos`), and the design they are drawn with
-// (`Ljos.Design`, ljos-ui's `crates/ljos_design_qml/qml`). Written for
+// (`Ljos.Design`, ljos-ui's `crates/ljos_design_qml/qml`), and the window
+// `ljos observe` opens (`Ljos.Observer`'s `Observer`, ljos-ui's
+// `crates/ljos_cli/src/observe/Observer.qml`), which a page opens on its
+// own objects (`Ljos/Observer/index.ts` answers its tools). Written for
 // Ljós from Qt's documentation and from what a running Qt shows (ljos-ui's
 // CLEAN_ROOM.md), with Ljós's metrics. They are copied into `controls/` at
 // one commit of ljos-ui, which `controls/LJOS_UI.json` names with a hash of
@@ -17,11 +20,13 @@
 // `ljos_controls::style`, `ljos_controls::ljos`, `ljos_controls::ljos_style`):
 // `check` holds both to the commit.
 //
-// `node controls.js write DIR REV [DESIGN]` copies them from DIR, ljos-ui's
-// `crates/ljos_controls/qml` at REV (`mise run controls`), and Ljos.Design
-// from DESIGN, its `crates/ljos_design_qml/qml` at REV. Without DESIGN,
-// that directory is read at REV out of the ljos-ui checkout `mise run
-// controls` was given (LJOS_UI, else `../ljos-ui`), which has it.
+// `node controls.js write DIR REV [DESIGN [OBSERVE]]` copies them from DIR,
+// ljos-ui's `crates/ljos_controls/qml` at REV (`mise run controls`),
+// Ljos.Design from DESIGN, its `crates/ljos_design_qml/qml` at REV, and the
+// Observer from OBSERVE, its `crates/ljos_cli/src/observe` at REV. Without
+// DESIGN or OBSERVE, that directory is read at REV out of the ljos-ui
+// checkout `mise run controls` was given (LJOS_UI, else `../ljos-ui`),
+// which has it.
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
@@ -38,6 +43,17 @@ const FROM = "crates/ljos_controls/qml";
 const DESIGN_FROM = "crates/ljos_design_qml/qml";
 const DESIGN = "Ljos/Design";
 const OWN = "Ljos/Controls";
+// The Observer's window is a file of the `ljos` program, not of a QML
+// module: it is copied to the module the web gives it.
+const OBSERVE_FROM = "crates/ljos_cli/src/observe";
+const OBSERVER = "Ljos/Observer";
+const OBSERVED = ["Observer.qml"];
+// The types of a module of Ljós's that the web has as QML of its own, kept
+// beside the runtime's code of the module (`Ljos/Observer/`) and named in
+// the qmldir from there: natively `InspectorClient` is Rust of the `ljos`
+// program, and `Inspector` is no type at all but the application's own
+// inspector, which a page has none of.
+const WEB_OWN = { [OBSERVER]: ["Inspector.qml", "InspectorClient.qml"] };
 // The controls of Ljós's own API that have a look of their own drawn as
 // Basic would, which stand in for Basic's of the same name in
 // `Ljos.Controls.Basic` (its TabButton has `iconName`).
@@ -150,6 +166,8 @@ export function qmldirs(files, read = () => "") {
         if (!names.includes(name) && basic.has(name)) lines.push(entry(OWN, name, borrowed(OWN, name)));
       }
     }
+    // From `controls/<directory>` to the runtime's `<directory>`.
+    for (const name of WEB_OWN[directory] ?? []) lines.push(`${name.slice(0, -4)} 1.0 ${"../".repeat(directory.split("/").length + 1)}${directory}/${name}`);
     const style = dirname(directory) === STYLES ? directory.split("/").at(-1) : null;
     if (styles.includes(style) && style !== DEFAULT) lines.push(`import ${uri(STYLES)}.${DEFAULT} auto`);
     // What no style draws (`Action`, `AbstractButton`) is Templates', and is
@@ -198,8 +216,9 @@ export function check(root = CONTROLS) {
 // What `controls/LJOS_UI.json` says: the commit and where in ljos-ui.
 export const source = (root = CONTROLS) => JSON.parse(readFileSync(join(root, SOURCE), "utf8"));
 
-// Copies the QML of `from` (ljos-ui's `crates/ljos_controls/qml`) and of
-// `design` (its `crates/ljos_design_qml/qml`), both at `rev`, into `root`.
+// Copies the QML of `from` (ljos-ui's `crates/ljos_controls/qml`), of
+// `design` (its `crates/ljos_design_qml/qml`) and of `observe` (its
+// `crates/ljos_cli/src/observe`), all at `rev`, into `root`.
 //
 // The tree is made in a directory of its own beside `root` and then put
 // in `root`'s place, so `root` is only ever a whole tree: two writes at
@@ -207,7 +226,7 @@ export const source = (root = CONTROLS) => JSON.parse(readFileSync(join(root, SO
 // the last to finish is the one kept. Wiping `root` and writing into it
 // made one write delete the files the other was writing, which failed
 // with ENOTEMPTY and left tracked files deleted.
-export function write(from, rev, root = CONTROLS, design) {
+export function write(from, rev, root = CONTROLS, design, observe) {
   const listed = (directory, keep) =>
     walk(directory)
       .map((file) => posix(relative(directory, file)))
@@ -216,6 +235,7 @@ export function write(from, rev, root = CONTROLS, design) {
   const copied = [
     ...listed(from, (file) => taken(file) && !file.startsWith(`${DESIGN}/`)),
     ...(design ? listed(design, (file) => file.startsWith(`${DESIGN}/`) && file.endsWith(".qml")) : []),
+    ...(observe ? OBSERVED.map((file) => [`${OBSERVER}/${file}`, join(observe, file)]) : []),
   ].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
   mkdirSync(dirname(root), { recursive: true });
   // Beside `root`, so it is on its file system and moves into place whole.
@@ -231,7 +251,12 @@ export function write(from, rev, root = CONTROLS, design) {
       mkdirSync(dirname(join(fresh, file)), { recursive: true });
       writeFileSync(join(fresh, file), text);
     }
-    const paths = { [FROM]: [`${STYLES}/`, `${OWN}/`], ...(design ? { [DESIGN_FROM]: [`${DESIGN}/`] } : {}) };
+    const paths = {
+      [FROM]: [`${STYLES}/`, `${OWN}/`],
+      ...(design ? { [DESIGN_FROM]: [`${DESIGN}/`] } : {}),
+      // Its files are put in `Ljos/Observer/`, not under their own path.
+      ...(observe ? { [OBSERVE_FROM]: [`${OBSERVER}/`] } : {}),
+    };
     const said = { repository: "https://github.com/hal-c2/ljos-ui", paths, rev, files: sums };
     writeFileSync(join(fresh, SOURCE), JSON.stringify(said, null, 2) + "\n");
     publish(fresh, root);
@@ -286,30 +311,32 @@ function publish(fresh, root) {
   }
 }
 
-// Ljos.Design's QML at `rev`, out of a checkout of ljos-ui: the directory
-// it was read into, which the caller removes.
-function designAt(checkout, rev) {
-  const into = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "ljos-design-"));
-  const archive = execFileSync("git", ["-C", checkout, "archive", rev, DESIGN_FROM], { maxBuffer: 1 << 28 });
+// The directory `path` of ljos-ui at `rev`, out of a checkout of it: the
+// directory it was read into, which the caller removes.
+function readAt(checkout, rev, path) {
+  const into = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "ljos-ui-"));
+  const archive = execFileSync("git", ["-C", checkout, "archive", rev, path], { maxBuffer: 1 << 28 });
   execFileSync("tar", ["x", "-C", into], { input: archive });
-  return { dir: join(into, DESIGN_FROM), remove: () => rmSync(into, { recursive: true, force: true }) };
+  return { dir: join(into, path), remove: () => rmSync(into, { recursive: true, force: true }) };
 }
 
 if (process.argv[1] === import.meta.filename) {
-  const [command, from, rev, design] = process.argv.slice(2);
+  const [command, from, rev, design, observe] = process.argv.slice(2);
   if (command === "write" && from && /^[0-9a-f]{40}$/.test(rev ?? "")) {
-    const read = design ? { dir: design, remove: () => {} } : designAt(process.env.usage_ljos_ui ?? process.env.LJOS_UI ?? "../ljos-ui", rev);
+    const checkout = process.env.usage_ljos_ui ?? process.env.LJOS_UI ?? "../ljos-ui";
+    const given = (dir, path) => (dir ? { dir, remove: () => {} } : readAt(checkout, rev, path));
+    const read = [given(design, DESIGN_FROM), given(observe, OBSERVE_FROM)];
     try {
-      console.log(`controls: ${write(from, rev, CONTROLS, read.dir)} files of ljos-ui ${rev}`);
+      console.log(`controls: ${write(from, rev, CONTROLS, read[0].dir, read[1].dir)} files of ljos-ui ${rev}`);
     } finally {
-      read.remove();
+      for (const each of read) each.remove();
     }
   } else if (command === "check") {
     const problems = check();
     for (const problem of problems) console.error(problem);
     process.exit(problems.length > 0 ? 1 : 0);
   } else {
-    console.error("usage: node controls.js write DIR REV [DESIGN] | check");
+    console.error("usage: node controls.js write DIR REV [DESIGN [OBSERVE]] | check");
     process.exit(2);
   }
 }

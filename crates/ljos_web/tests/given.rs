@@ -351,25 +351,14 @@ fn a_type_ljos_models_lacks_is_not_a_type_of_anything_the_file_imports() {
 }
 
 #[test]
-fn an_import_of_ljos_observer_says_it_is_not_on_the_web_and_why() {
+fn an_import_of_ljos_observer_is_not_refused() {
+    // The page answers the Observer's tools of its own objects, so the
+    // window `ljos observe` opens runs here too. Its types are QML of the
+    // runtime's (`controls/Ljos/Observer`), which a page built with them
+    // has, as it has Ljós's controls.
     let files = BTreeMap::from([(
         "Main.qml".to_string(),
         "import QtQuick\nimport Ljos.Observer\nItem { }\n".to_string(),
     )]);
-    let diagnostics = compile(&request(files, "Main.qml")).expect_err("refused");
-    assert_eq!(diagnostics.len(), 1, "{diagnostics:?}");
-    assert_eq!(
-        (diagnostics[0].line, diagnostics[0].column),
-        (Some(2), Some(1))
-    );
-    assert!(
-        diagnostics[0]
-            .message
-            .starts_with("module \"Ljos.Observer\" is not on the web: "),
-        "{diagnostics:?}"
-    );
-    assert!(
-        diagnostics[0].message.contains("ljos-web/inspect"),
-        "{diagnostics:?}"
-    );
+    compile(&request(files, "Main.qml")).expect("compiles");
 }
