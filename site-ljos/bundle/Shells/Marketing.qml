@@ -1,7 +1,6 @@
 import QtQuick
 import Ljos.Core
 import Ljos.Blocks
-import Ljos.Controls as C
 
 // ljos.dev's own shell, and every page's as the build writes it: a
 // header with the name, where to go, search and the reader's choices,
@@ -32,11 +31,12 @@ Rectangle {
     // has the room to span.
     readonly property int pageWidest: 1200
 
-    // The colours and type the site draws in, for this shell's own lines.
+    // The colours the site draws in, for this shell's own lines: none of
+    // its own before it is given the site.
     QtObject {
         id: look
-        readonly property color canvas: shell.site ? shell.site.theme.canvas : C.Theme.canvas
-        readonly property color divider: shell.site ? shell.site.theme.divider : C.Theme.border
+        readonly property color canvas: shell.site ? shell.site.theme.canvas : "transparent"
+        readonly property color divider: shell.site ? shell.site.theme.divider : "transparent"
     }
 
     width: parent ? parent.width : 1440

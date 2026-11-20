@@ -53,6 +53,20 @@ test("no page's first load holds the compiler's modules or a whole namespace", (
   expect([...later].some((file) => named(file, "modules-")), "a modules-* chunk").toBe(true);
 });
 
+// Every page is written in the Marketing shell; the others a reader
+// picks come with the pick (bundle/Shells/later.js,
+// features/shells.feature), and so do the switcher's choices and a
+// shell's source with the first look at them.
+test("no page's first load holds a shell it is not written in, nor what picks one", () => {
+  expect(reaching(["Workbench-", "Desktop-"])).toEqual({});
+  const later = new Set(report.flatMap(({ later }) => later.files.map((entry) => entry.file)));
+  for (const shell of ["Workbench-", "Desktop-"]) expect([...later].some((file) => named(file, shell)), `a ${shell}* chunk a pick fetches`).toBe(true);
+  // The shell choices and a shell's source are drawn in Ljós's own
+  // controls, which reading a page does not need (bundle/Site/later.js).
+  expect(reaching(["ShellChoices-", "ShellSource-"])).toEqual({});
+  for (const panel of ["ShellChoices-", "ShellSource-"]) expect([...later].some((file) => named(file, panel)), `a ${panel}* chunk opening it fetches`).toBe(true);
+});
+
 // A docs page's reading is its own: in its HTML's props, not in a
 // script every page loads. Another page's headings are in none of
 // a page's first-load files.

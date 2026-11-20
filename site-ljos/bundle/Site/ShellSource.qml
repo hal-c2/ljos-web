@@ -35,10 +35,15 @@ C.Popup {
 
     modal: true
     focus: true
-    width: parent ? Math.min(parent.width - 2 * Theme.m, 860) : 860
-    height: parent ? Math.min(parent.height - 2 * Theme.xl, 720) : 720
-    x: parent ? Math.round((parent.width - width) / 2) : 0
-    y: parent ? Math.round((parent.height - height) / 2) : 0
+    // What it stands centred in, its top left where its parent's is: its
+    // parent, or the page where it is loaded into a place of no size (a
+    // place the page's size would stand over the page and take its
+    // presses while the panel is shut).
+    property Item room: parent
+    width: room ? Math.min(room.width - 2 * Theme.m, 860) : 860
+    height: room ? Math.min(room.height - 2 * Theme.xl, 720) : 720
+    x: room ? Math.round((room.width - width) / 2) : 0
+    y: room ? Math.round((room.height - height) / 2) : 0
     padding: Theme.m
 
     contentItem: Item {
