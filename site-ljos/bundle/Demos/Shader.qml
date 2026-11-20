@@ -1,10 +1,12 @@
+// Ljos.Core before QtQuick so t`` is available while shared names stay QtQuick's.
+import Ljos.Core
 import QtQuick
+import "logic/shader.ts" as ShaderLogic
 
-// An item painted entirely by a fragment shader of its own
-// (light.frag beside this file). The QML properties below are the
-// shader's uniforms: moving the pointer stirs the light, tapping
-// cycles the colours, and time only advances while the page says
-// the demo is on screen and motion is welcome.
+// A custom GLSL fragment shader (light.frag) wired straight to QML properties
+// as uniforms, with loop timing and palette maths in logic/shader.ts.
+// Move the pointer to stir the waves; tap or press Space to cycle palettes.
+// Try changing loopSeconds, startPalette, or the wave constants in light.frag.
 Rectangle {
     id: root
     width: 720
@@ -12,13 +14,17 @@ Rectangle {
     color: look.canvas
     activeFocusOnTab: true
 
+    // Remix knobs: one-line edits change the cycle speed and opening palette.
+    property real loopSeconds: 24
+    property real calmLoopSeconds: 72
+    property int startPalette: 0
+    property int paletteCount: 3
+
+    // Host contract: DemoFrame pauses off-screen demos and slows calm ones.
     property bool active: true
     property bool calm: false
-    // How fast the shader's time goes, a second: its loop (four whole
-    // turns of every wave) in 24 s, or in 72 s when calm is asked for.
-    readonly property real pace: (calm ? 1 / 72 : 1 / 24) * 4 * Math.PI
-    // Drawn once its shader is: a page that shows a picture until then
-    // (Site/DemoFrame.qml) keeps it till.
+    readonly property real pace: ShaderLogic.radiansPerSecond(calm, loopSeconds, calmLoopSeconds)
+    // Stays false until the shader compiles so the poster holds until then.
     readonly property bool ready: effect.status === ShaderEffect.Compiled
 
     Keys.onPressed: (event) => {
@@ -28,9 +34,6 @@ Rectangle {
         }
     }
 
-    // The colours this app draws with, for the scheme the reader chose:
-    // each the dark it was drawn in or a light that keeps the text on it
-    // as readable.
     QtObject {
         id: look
         readonly property bool dark: Application.styleHints.colorScheme === Qt.ColorScheme.Dark
@@ -42,38 +45,35 @@ Rectangle {
     ShaderEffect {
         id: effect
         anchors.fill: parent
-        // The uniforms, in the order light.frag declares them.
+        // Uniforms in the exact order light.frag declares them.
         property real time: 0
         property point pointer: Qt.point(0.3, 0.6)
-        // Which of the three colourings the reader tapped to; the
-        // shader has each in a dark and a light, and is told both.
-        property int choice: 0
-        property real palette: choice + (look.dark ? 0 : 3)
+        property int choice: root.startPalette
+        property real palette: ShaderLogic.paletteIndex(choice, look.dark, root.paletteCount)
         property point resolution: Qt.point(Math.max(width, 1), Math.max(height, 1))
         fragmentShader: "light.frag.qsb"
 
         function cycle() {
-            choice = (choice + 1) % 3;
+            choice = ShaderLogic.nextPalette(choice, root.paletteCount);
         }
 
-        // Moved on each frame by its pace (as Orbit's turn), wrapping at
-        // a whole loop: a new pace is taken at once, and paused off
-        // screen it goes on where it was rather than from 0.
+        // Paused off screen so an idle card runs at 0 % CPU and resumes in phase.
         FrameAnimation {
             running: true
             paused: !root.active
-            onTriggered: effect.time = (effect.time + frameTime * root.pace) % (4 * Math.PI)
+            onTriggered: effect.time = ShaderLogic.advanceTime(effect.time, frameTime, root.pace)
         }
     }
 
     MouseArea {
         anchors.fill: parent
         hoverEnabled: true
-        Accessible.name: qsTr("Shader canvas. Move the pointer to stir the light; tap to change the colours.")
+        Accessible.name: t`Shader canvas. Move the pointer to stir the light; tap to change the colours.`
         Accessible.role: Accessible.Button
         Accessible.onPressAction: effect.cycle()
         onPositionChanged: (mouse) => {
-            effect.pointer = Qt.point(mouse.x / Math.max(width, 1), 1.0 - mouse.y / Math.max(height, 1));
+            const uv = ShaderLogic.pointerUv(mouse.x, mouse.y, width, height);
+            effect.pointer = Qt.point(uv.x, uv.y);
         }
         onClicked: effect.cycle()
     }
@@ -84,7 +84,7 @@ Rectangle {
         anchors.margins: 14
         color: look.ink
         font.pixelSize: 14
-        text: qsTr("Move to stir the light · tap for other colours")
+        text: t`Move to stir the light · tap for other colours`
     }
     Text {
         anchors.right: parent.right
@@ -92,6 +92,6 @@ Rectangle {
         anchors.margins: 14
         color: look.muted
         font.pixelSize: 13
-        text: qsTr("A custom fragment shader")
+        text: t`A custom fragment shader`
     }
 }
