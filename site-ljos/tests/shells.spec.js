@@ -172,11 +172,59 @@ const frames = () => {
   document.addEventListener("DOMContentLoaded", () => (window.__atFirst = look()));
   const each = () => {
     const opacity = look();
-    if (opacity !== "") seen.push({ shell: document.documentElement.dataset.ljosShellShowing ?? "", opacity });
+    if (opacity !== "") seen.push({ shell: document.documentElement.dataset.ljosShellShowing ?? "", opacity, t: performance.now() });
     requestAnimationFrame(each);
   };
   requestAnimationFrame(each);
 };
+
+// The head's watchdog (assets/head.html: 2500 ms waiting, then a 160 ms
+// fade) held where it stands as the page loads, to be set going when a
+// test says (`__fade(at, run)`, at in the watchdog's own ms), so a test
+// can have it show the page at one moment of the kept shell's coming
+// and not another.
+const watchdog = () => {
+  const find = () => document.getAnimations().find((animation) => animation.animationName === "ljos-shell-late");
+  addEventListener("animationstart", (event) => {
+    if (event.animationName === "ljos-shell-late") window.__fadeAt = performance.now();
+  });
+  window.__fade = (at, run) => {
+    const animation = find();
+    animation.currentTime = at;
+    if (run) animation.play();
+    else animation.pause();
+    return performance.now();
+  };
+  document.addEventListener("DOMContentLoaded", () => find()?.pause());
+};
+
+// When the head's script runs (as near as a page's own script can be,
+// before it), when a view transition starts, and when the browser
+// shows the page again after its update: until then it holds the last
+// picture, whatever the page's styles say (the frames above read the
+// styles).
+const transitions = () => {
+  window.__headAt = performance.now();
+  const start = Document.prototype.startViewTransition;
+  if (!start) return;
+  Document.prototype.startViewTransition = function (...args) {
+    window.__swapAt ??= performance.now();
+    const transition = start.apply(this, args);
+    const letGo = () => (window.__letGoAt ??= performance.now());
+    transition.updateCallbackDone.then(letGo, letGo);
+    return transition;
+  };
+};
+
+// A late shell's module as the page's loader has it: its request done,
+// the module run (an import of the same address settles only once the
+// one the loader waits on has run), and the frames its turn would be
+// shown in.
+async function settled(page, response) {
+  await response.finished();
+  await page.evaluate((url) => import(url).then(() => {}, () => {}), response.url());
+  await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(() => done()))));
+}
 
 // The frames in which a shell other than `kept` could be seen.
 const seenOtherThan = (page, kept) => page.evaluate((kept) => window.__seen.filter(({ shell, opacity }) => shell !== kept && opacity !== "0"), kept);
@@ -230,27 +278,104 @@ test("a kept shell that comes after the head's watchdog showed the page does not
     await page.addInitScript(frames);
     // Its module comes long after the head stopped waiting for it.
     let asked = false;
-    let came;
-    const delivered = new Promise((done) => (came = done));
     await page.route("**/Desktop-*.js", async (route) => {
       asked = true;
       await new Promise((done) => setTimeout(done, 5_000));
       await route.continue().catch(() => {});
-      came();
     });
+    const came = page.waitForResponse("**/Desktop-*.js", { timeout: 40_000 });
     await page.goto(at("/start/first-app/"));
     await page.waitForSelector(HYDRATED, { timeout: 40_000 });
     // The watchdog's: the page shows, as written.
     await expect(page.locator("#app")).toHaveCSS("opacity", "1", { timeout: 10_000 });
     const sawFrom = await page.evaluate(() => window.__seen.length);
-    if (asked) {
-      await delivered;
-      // What the module's arrival would set off, given its turn.
-      await page.evaluate(() => new Promise((done) => setTimeout(() => requestAnimationFrame(() => done()), 500)));
-    }
+    // What the module's arrival would set off, given its turn.
+    if (asked) await settled(page, await came);
     expect(await showing(page), "the page stays in the shell the reader sees").toBe("marketing");
     const after = await page.evaluate((from) => window.__seen.slice(from).filter(({ shell }) => shell !== "marketing"), sawFrom);
     expect(after, "frames in which another shell came").toEqual([]);
+    await expect(page.locator("#app")).toHaveCSS("opacity", "1");
+  } finally {
+    await context.close();
+  }
+});
+
+test("when the head's watchdog shows the page during the kept shell's swap, the page is seen at once", async ({ browser }) => {
+  const context = await reader(browser, { kept: "desktop" });
+  try {
+    const page = await context.newPage();
+    await page.addInitScript(frames);
+    await page.addInitScript(transitions);
+    // The page is taken over late, as on a slow phone: the kept shell's
+    // swap starts in the second before the head's watchdog shows the
+    // page (2.5 s)…
+    await page.route("**/assets/index-*.js", async (route) => {
+      await new Promise((done) => setTimeout(done, 1_600));
+      await route.continue().catch(() => {});
+    });
+    // …and its module does not come while the test looks: the swap
+    // waits for it.
+    await page.route("**/Desktop-*.js", async (route) => {
+      await new Promise((done) => setTimeout(done, 5_000));
+      await route.continue().catch(() => {});
+    });
+    await page.goto(at("/start/first-app/"));
+    await page.waitForFunction(() => window.__letGoAt !== undefined, null, { polling: 50, timeout: 40_000 });
+    const { headAt, swapAt, letGoAt } = await page.evaluate(() => ({ headAt: window.__headAt, swapAt: window.__swapAt, letGoAt: window.__letGoAt }));
+    // Only a swap that starts in that second tells a page shown with the
+    // watchdog from one shown when the swap gives up waiting (a second,
+    // shells.js `swap`).
+    expect(swapAt - headAt, "ms from the head's script to the kept shell's swap").toBeGreaterThan(1_700);
+    expect(swapAt - headAt, "ms from the head's script to the kept shell's swap").toBeLessThan(2_500);
+    expect(letGoAt - headAt, "ms from the head's script to the page shown again (the watchdog's is 2500)").toBeLessThan(2_700);
+    await page.waitForFunction((from) => window.__seen.some(({ t, opacity }) => t > from && opacity !== "0"), letGoAt, { polling: 50, timeout: 5_000 });
+    const first = await page.evaluate((from) => window.__seen.find(({ t, opacity }) => t > from && opacity !== "0"), letGoAt);
+    expect(first.shell, "the page is seen in the shell it is written in").toBe("marketing");
+    await expect(page.locator("#app")).toHaveCSS("opacity", "1");
+    expect(await showing(page)).toBe("marketing");
+  } finally {
+    await context.close();
+  }
+});
+
+test("a kept shell that comes while the head's watchdog fades the page in does not replace it", async ({ browser }) => {
+  const context = await reader(browser, { kept: "desktop" });
+  try {
+    const page = await context.newPage();
+    await page.addInitScript(frames);
+    await page.addInitScript(watchdog);
+    let asked;
+    const wanted = new Promise((done) => (asked = done));
+    let release;
+    const released = new Promise((done) => (release = done));
+    await page.route("**/Desktop-*.js", async (route) => {
+      asked();
+      await released;
+      await route.continue().catch(() => {});
+    });
+    const came = page.waitForResponse("**/Desktop-*.js", { timeout: 40_000 });
+    await page.goto(at("/start/first-app/"));
+    await page.waitForSelector(HYDRATED, { timeout: 40_000 });
+    await wanted;
+    // The swap to it has stopped waiting (a second, shells.js `swap`):
+    // the page is still held back, and the module still on its way.
+    await page.waitForFunction(() => !("ljosSwap" in document.documentElement.dataset), null, { polling: 50 });
+    expect(await page.evaluate(() => getComputedStyle(document.getElementById("app")).opacity)).toBe("0");
+    // The watchdog half way through its fade, held there: the reader
+    // sees Marketing coming in.
+    await page.evaluate(() => window.__fade(2580, false));
+    await page.waitForFunction(() => window.__fadeAt !== undefined, null, { polling: 50 });
+    const fadeAt = await page.evaluate(() => window.__fadeAt);
+    const opacity = Number(await page.evaluate(() => getComputedStyle(document.getElementById("app")).opacity));
+    expect(opacity, "the page is half seen").toBeGreaterThan(0);
+    expect(opacity, "the page is half seen").toBeLessThan(1);
+    // Now the module comes.
+    release();
+    await settled(page, await came);
+    expect(await showing(page), "the page stays in the shell the reader sees").toBe("marketing");
+    const after = await page.evaluate((from) => window.__seen.filter(({ t, shell }) => t >= from && shell !== "marketing"), fadeAt);
+    expect(after, "frames in which another shell came").toEqual([]);
+    await page.evaluate(() => window.__fade(2660, true));
     await expect(page.locator("#app")).toHaveCSS("opacity", "1");
   } finally {
     await context.close();
