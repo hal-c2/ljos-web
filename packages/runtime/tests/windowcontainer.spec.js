@@ -78,3 +78,24 @@ test("a window ended with the item that holds it leaves nothing of itself on the
   await expect.poll(windows).toBe(1);
   expect(await pixels(page, [[40, 30]])).toEqual([WHITE]);
 });
+
+test("a field in a window an item holds is given the keys typed into it, Return too", async ({ page }) => {
+  await open(page, "windowcontainerkeys");
+  // The window around it has had keys first, as a page has before it
+  // opens what it holds.
+  await page.mouse.click(30, 20);
+  await page.keyboard.type("out");
+  await page.keyboard.press("Enter");
+  await expect.poll(() => page.evaluate(() => window.scene.outerAccepted)).toBe("out");
+  await page.evaluate(() => window.scene.hold());
+  await expect(page.getByRole("textbox")).toHaveCount(2);
+  await page.mouse.click(150, 30);
+  await page.keyboard.type("in");
+  await page.keyboard.press("Enter");
+  await expect.poll(() => page.evaluate(() => window.scene.innerAccepted)).toBe("in");
+  // And back.
+  await page.mouse.click(30, 20);
+  await page.keyboard.type("!");
+  await page.keyboard.press("Enter");
+  await expect.poll(() => page.evaluate(() => window.scene.outerAccepted)).toBe("out!");
+});
