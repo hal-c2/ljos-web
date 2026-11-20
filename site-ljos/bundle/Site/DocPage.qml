@@ -1,3 +1,6 @@
+// Ljós's Core before QtQuick: only its t`` is wanted here, and any name
+// both have stays QtQuick's, the later import.
+import Ljos.Core
 import QtQuick
 import Site
 import "../nav.js" as Nav
@@ -49,10 +52,12 @@ Column {
     spacing: Theme.m
 
     Text {
+        id: missingDoc
+        readonly property string startLink: Nav.anchor(Nav.at(Content.base, "/start/"), t`What is Ljós?`, true)
         width: parent.width
         visible: !doc.page && doc.route !== ""
         textFormat: Text.RichText
-        text: "There is no page at this address. The docs begin at " + Nav.anchor(Nav.at(Content.base, "/start/"), "What is Ljós?", true) + "."
+        text: t`There is no page at this address. The address may have moved — search, or begin at ${missingDoc.startLink}.`
         color: Theme.text
         linkColor: Theme.link
         font.family: Theme.sans
@@ -447,17 +452,21 @@ Column {
             color: Theme.border
         }
         NavLink {
+            id: prevLink
             visible: doc.previous !== null
-            label: doc.previous ? "← " + doc.previous.title : ""
+            readonly property string title: doc.previous ? doc.previous.title : ""
+            label: doc.previous ? t`← ${prevLink.title}` : ""
             to: doc.previous ? doc.previous.route : "/"
-            Accessible.name: doc.previous ? "Previous: " + doc.previous.title : ""
+            Accessible.name: doc.previous ? t`Previous: ${prevLink.title}` : ""
         }
         NavLink {
+            id: nextLink
             visible: doc.next !== null
             x: parent.width - width
-            label: doc.next ? doc.next.title + " →" : ""
+            readonly property string title: doc.next ? doc.next.title : ""
+            label: doc.next ? t`${nextLink.title} →` : ""
             to: doc.next ? doc.next.route : "/"
-            Accessible.name: doc.next ? "Next: " + doc.next.title : ""
+            Accessible.name: doc.next ? t`Next: ${nextLink.title}` : ""
         }
     }
 }
