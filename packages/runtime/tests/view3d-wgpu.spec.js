@@ -1545,6 +1545,24 @@ test.describe("a View3D no one asked a renderer of", () => {
     await drawingOnScript(page);
     expect((await page.evaluate(RENDERERS)).map(({ renderer }) => renderer)).toEqual(["js", "js"]);
   });
+
+  // A view made again after a loss that fails for a reason of its own,
+  // where WebGPU still has an adapter, says why it stopped; the page keeps
+  // WebGPU, and the other view draws on wgpu as before.
+  test.describe("a view that fails of itself after a loss", () => {
+    test.use({ told: [/^View3D: (?!the GPU was lost)/] });
+
+    test("a view made again after a loss that fails for a reason of its own stops alone, and the page keeps WebGPU", async ({ page }) => {
+      await twoOnWgpu(page);
+      await page.evaluate(() => (document.querySelectorAll(".qq-view3d")[1].getContext = () => null));
+      await page.evaluate(LOST_AND_SETTLED);
+      const [first, second] = await page.evaluate(RENDERERS);
+      expect(first).toEqual({ renderer: "wgpu", lost: 1, error: null });
+      expect(second.renderer).toBe("wgpu");
+      expect(second.error).toBeTruthy();
+      expect(second.error).not.toBe("the GPU was lost, and none is to be had again");
+    });
+  });
 });
 
 test("a page whose View3D draws on wgpu asks for the renderer before its first view is made", async ({ page }) => {
