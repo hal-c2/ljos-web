@@ -13,7 +13,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, isAbsolute, join, posix, resolve } from "node:path";
+import { dirname, isAbsolute, join, posix, relative, resolve, sep } from "node:path";
 import { build } from "vite";
 import { findTheme } from "./find-theme.ts";
 import { provided } from "./modules.js";
@@ -335,6 +335,10 @@ export function replaceSite(from, out, rename = renameSync) {
 // has been painted. `css`: stylesheets the page carries after the
 // runtime's own (`ljos-web/codeblock.css`, whose `tok-*` rules colour the
 // code a site's rich text holds through its `--ljos-code-*` theme).
+// `inspect`: a function of a file's path in the bundle (`Pantry/Basket.qml`),
+// true for each file compiled with where its objects are written, for a site
+// whose readers look into one of its apps (an Observer on it); its places
+// name each file by that path. Otherwise no file carries them.
 // What it wrote, and its size.
 //
 // A site's controls are Ljós's whether or not the machine that builds it
@@ -645,13 +649,16 @@ function rendering(args, input, signal) {
   });
 }
 
-export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", qt, styles = "ljos", with: standins = [], liveShell = false, prerender = false, css = [], head = "", logLevel = "warn", jobs } = {}) {
+export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", qt, styles = "ljos", with: standins = [], liveShell = false, prerender = false, css = [], head = "", logLevel = "warn", jobs, inspect } = {}) {
   if (!dir) throw new SiteError("which bundle? buildSite({ dir })");
   if (!Array.isArray(css) || css.some((path) => typeof path !== "string" || !path.endsWith(".css") || !existsSync(path))) {
     throw new SiteError(`css is a list of .css files that exist, not ${JSON.stringify(css)}`);
   }
   if (prerender && liveShell) throw new SiteError("a site with a live shell is not prerendered: its page is the shell host's to make (choose one of prerender and liveShell)");
   if (typeof head !== "string") throw new SiteError("head is the HTML every page's head is given, a string");
+  if (inspect !== undefined && typeof inspect !== "function") {
+    throw new SiteError(`inspect is a function of a file's path in the bundle, true for those compiled with their places, not ${JSON.stringify(inspect)}`);
+  }
   if (jobs !== undefined && (!Number.isInteger(jobs) || jobs < 1)) throw new SiteError(`jobs is how many renders may run at once, a whole number from 1, not ${JSON.stringify(jobs)}`);
   // Only a prerendered site runs renders, so only it asks how many: a
   // live shell's build is not refused over a setting it never uses.
@@ -735,7 +742,15 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
     // What the compiler said of the bundle's files, for both builds: it
     // says the same to each, and a run holds the event loop they share.
     const answers = new Map();
-    const plugin = () => qml({ qmlc, args: ["--root", dir], qt, styles, standins, theme: theme ? join(dir, theme) : false, liveShell, answers });
+    // A bundle's file is named by its path there; what is not the bundle's
+    // (a module of the runtime's) is never inspected.
+    const placed = inspect
+      ? (file) => {
+          const path = relative(dir, file).split(sep).join("/");
+          return !path.startsWith("../") && !isAbsolute(path) && inspect(path) ? path : false;
+        }
+      : false;
+    const plugin = () => qml({ qmlc, args: ["--root", dir], qt, styles, standins, theme: theme ? join(dir, theme) : false, liveShell, answers, inspect: placed });
     // The page's build and, for a prerender, the server bundle of the same
     // entry, at once: neither reads what the other writes, and each has a
     // plugin of its own. The compiler is run to its end in the plugin's
