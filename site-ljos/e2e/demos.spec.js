@@ -205,9 +205,10 @@ test.describe("/demos/", () => {
     const guide = await started(page, "A whole app");
     await press(guide.getByRole("textbox", { name: /Search/ }));
     await page.keyboard.type("gannet");
-    // The one species it names, beside the demo's own Pause.
+    // The one species it names, beside the demo's own Pause and the
+    // Observer on it.
     const named = () => guide.getByRole("button").evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label")));
-    await expect.poll(named).toEqual(["Northern gannet", "Pause the field guide"]);
+    await expect.poll(named).toEqual(["Northern gannet", "Pause the field guide", "Observer for the field guide"]);
   });
 
   test("the motion demo's puck springs after a press", async ({ page, errors, wasm }) => {

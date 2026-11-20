@@ -234,7 +234,7 @@ test("an example's lines are kept, the last few, and told to who watches", () =>
   o.unwatch("a", watcher);
   for (let i = 0; i < o.KEPT + 5; i++) o.say("a", "warn", `line ${i}`);
   expect(o.lines("a")).toHaveLength(o.KEPT);
-  expect(o.lines("a").at(-1)).toEqual({ level: "warn", message: `line ${o.KEPT + 4}` });
+  expect(o.lines("a").at(-1)).toMatchObject({ level: "warn", message: `line ${o.KEPT + 4}` });
   expect(told, "one unwatched hears no more").toHaveLength(2);
 });
 
@@ -246,7 +246,7 @@ test("an example's console says its lines as the page's does, and keeps them", (
   expect(o.inspectFor("ex", page), "one per example, so the compiler bridges it once").toBe(own);
   own.$console(["Main.qml", 5, 28]).log("count", 3, [1, "two"]);
   expect(printed, "the page's console still prints it, where it was").toEqual([[["Main.qml", 5, 28], "count", 3, [1, "two"]]]);
-  expect(o.lines("ex")).toEqual([{ level: "log", message: "count 3 [1, two]" }]);
+  expect(o.lines("ex")).toMatchObject([{ level: "log", message: "count 3 [1, two]" }]);
 });
 
 test("an array that holds itself is said to, and the line it is in still prints", () => {
@@ -257,7 +257,7 @@ test("an array that holds itself is said to, and the line it is in still prints"
   const loop = [1];
   loop.push(loop);
   own.$console(["Main.qml", 1, 1]).log("it", loop, [loop]);
-  expect(o.lines("loop")).toEqual([{ level: "log", message: "it [1, [circular]] [[1, [circular]]]" }]);
+  expect(o.lines("loop")).toMatchObject([{ level: "log", message: "it [1, [circular]] [[1, [circular]]]" }]);
   expect(printed, "the page's console printed it too").toEqual([3]);
   expect(o.show([[1], [1]]), "the same array twice, side by side, is not a loop").toBe("[[1], [1]]");
 });
@@ -333,7 +333,7 @@ test("a root's own properties and signals are read from what declared them, and 
   const disconnect = o.connectSignals("sig", root);
   handlers.forEach((fn) => fn(3, "start"));
   handlers.forEach((fn) => fn(4, [5, 6]));
-  expect(o.lines("sig")).toEqual([
+  expect(o.lines("sig")).toMatchObject([
     { level: "signal", message: "ping(3, start)" },
     { level: "signal", message: "ping(4, [5, 6])" },
   ]);

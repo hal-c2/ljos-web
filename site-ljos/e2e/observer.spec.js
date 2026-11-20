@@ -13,7 +13,7 @@ const isObserver = (url) => /Observer/.test(new URL(url).pathname);
 // The dock (Site/ObserverDock.qml): the pane named Observer, and the app in it.
 // The site's menu has a link of that name too: the dock is the group.
 const dock = (page) => page.getByRole("group", { name: "Observer", exact: true });
-const observerButton = (block) => block.toolbar.getByRole("button", { name: /^Observe / });
+const observerButton = (block) => block.toolbar.getByRole("button", { name: /^Observer for / });
 const pageTab = (page, name) => page.getByRole("tab", { name, exact: true });
 // What Ljós's Observer lays its pages out for (Site/ObserverPanel.qml).
 const OBSERVER_WIDTH = 680;
@@ -35,7 +35,7 @@ test.beforeEach(({ wasm }) => {
 
 test("a running example's toolbar offers the Observer, and one not running does not", async ({ page, errors }) => {
   await open(page, ROUTE);
-  const before = await page.getByRole("button", { name: /^Observe / }).count();
+  const before = await page.getByRole("button", { name: /^Observer for / }).count();
   expect(before, "no toolbar offers it before its example runs").toBe(0);
   const block = await run(page, 0);
   await expect(observerButton(block)).toBeVisible();
@@ -204,7 +204,7 @@ test("the Pantry is looked into while its shell is rewritten", async ({ page }) 
   await open(page, "/");
   const pantry = page.getByLabel("The Pantry, running");
   await centre(pantry);
-  const button = page.getByRole("button", { name: "Observe the Pantry" });
+  const button = page.getByRole("button", { name: "Observer for the Pantry" });
   await press(button);
   await expect(button).toHaveAttribute("aria-pressed", "true");
   await pageTab(page, "Objects").click();

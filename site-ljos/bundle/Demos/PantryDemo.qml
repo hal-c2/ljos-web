@@ -207,7 +207,7 @@ Column {
             checkable: true
             checked: demo.observing
             text: t({ message: "Observer", context: "stage" })
-            label: t`Observe the Pantry`
+            label: t`Observer for the Pantry`
             onPressed: Observing.toggle(demo.observerKey, stage.item, null, t`the Pantry`)
         }
     }
