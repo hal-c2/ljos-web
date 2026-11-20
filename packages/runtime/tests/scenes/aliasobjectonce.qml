@@ -21,6 +21,6 @@ Item {
     }
 
     function read() {
-        return [root.count, host.thing !== null, root.outerCount, outer.thing !== null]
+        return [root.count, host.thing != null, root.outerCount, outer.thing != null]
     }
 }
