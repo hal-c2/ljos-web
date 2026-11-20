@@ -355,17 +355,37 @@ test.describe("examples", () => {
       if (/hit: under/.test(message.text())) old++;
       if (/hit: edited/.test(message.text())) edited++;
     });
-    const typed = Date.now();
+    // The times are the page's own, taken as each thing happens: the edit
+    // (its input event), the press (its pointerdown) and Run's label
+    // turning to Starting or Stop (seen by an observer as the toolbar
+    // changes). Times taken in the test would also count Playwright's
+    // round trips and its polling, and could fail though the page kept
+    // within the 300 ms.
+    await block.toolbar.evaluate((toolbar) => {
+      const times = (window.__debounceTimes = {});
+      const first = (name) => (event) => (times[name] ??= event.timeStamp);
+      document.addEventListener("beforeinput", first("typed"), { capture: true });
+      document.addEventListener("pointerdown", first("pressed"), { capture: true });
+      const started = () =>
+        [...toolbar.querySelectorAll("*")].some((each) =>
+          /^(Starting|Stop) this example/.test(each.getAttribute("aria-label") ?? ""),
+        );
+      new MutationObserver((_, observer) => {
+        if (!started()) return;
+        times.started = performance.now();
+        observer.disconnect();
+      }).observe(toolbar, { subtree: true, childList: true, attributes: true, characterData: true });
+    });
     await page.keyboard.insertText(written.replace(said, 'console.log("hit: edited")'));
     const at = await runs.boundingBox();
     await page.mouse.click(at.x + at.width / 2, at.y + at.height / 2);
-    const waited = Date.now() - typed;
-    expect(waited, "Run was pressed while the edit's 300 ms debounce still waited").toBeLessThan(300);
     // The click hit Run: Run starts the example as it is pressed, and the
     // edit's debounce, which runs the edit too, only once its 300 ms are
     // out. A click that missed would pass what follows on main as well.
     await expect(runButton(block.toolbar, /^(Starting|Stop) this example/), "the click started it").toBeVisible({ timeout: 2_000 });
-    expect(Date.now() - typed, "started by Run, before the edit's debounce ran out").toBeLessThan(300);
+    const times = await page.waitForFunction(() => window.__debounceTimes.started && window.__debounceTimes).then((handle) => handle.jsonValue());
+    expect(times.pressed - times.typed, "Run was pressed while the edit's 300 ms debounce still waited").toBeLessThan(300);
+    expect(times.started - times.typed, "started by Run, before the edit's debounce ran out").toBeLessThan(300);
     await expect.poll(() => edited, { message: "the edit ran", timeout: 30_000 }).toBe(1);
     // The debounce's 300 ms, and a compile and a reload after it.
     await page.waitForTimeout(1_500);
