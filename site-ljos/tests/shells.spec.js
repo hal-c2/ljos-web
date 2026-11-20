@@ -61,7 +61,9 @@ async function press(locator) {
   await locator.page().mouse.click(box.x + box.width / 2, box.y + box.height / 2);
 }
 
-const switcher = (page) => page.getByRole("button", { name: "Shell", exact: true }).filter({ visible: true }).first();
+// Named "Shell: <the one shown>" where its words show, "Shell" as an icon.
+const SWITCHER = /^Shell(: \w+)?$/;
+const switcher = (page) => page.getByRole("button", { name: SWITCHER }).filter({ visible: true }).first();
 
 // Picks `name` in the shell switcher and waits until it frames the page
 // and the swap's transition is over.
@@ -89,7 +91,7 @@ for (const route of ["/", "/start/first-app/"]) {
           await expect(region(page, named)).toBeVisible();
           await pick(page, to);
           await expect(region(page, named), "the page is still shown").toBeVisible();
-          await expect(switcher(page)).toHaveAccessibleDescription(LABEL[to]);
+          await expect(switcher(page)).toHaveAccessibleName(`Shell: ${LABEL[to]}`);
           expect(said, "what the page said").toEqual([]);
         } finally {
           await context.close();
@@ -170,11 +172,14 @@ test("the pick is kept, and a reload puts it in before the page is seen", async 
         const app = document.getElementById("app");
         return app ? getComputedStyle(app).opacity : "";
       };
-      new MutationObserver(() => seen.push({ shell: document.documentElement.dataset.ljosShellShowing ?? "", opacity: look() })).observe(document.documentElement, {
+      document.addEventListener("DOMContentLoaded", () => (window.__atFirst = look()));
+      // The script runs before there is a root to watch, so the document
+      // is watched, the root's attributes with it.
+      new MutationObserver(() => seen.push({ shell: document.documentElement.dataset.ljosShellShowing ?? "", opacity: look() })).observe(document, {
+        subtree: true,
         attributes: true,
         attributeFilter: ["data-ljos-shell-showing"],
       });
-      document.addEventListener("DOMContentLoaded", () => (window.__atFirst = look()));
     });
     await page.reload();
     await page.waitForSelector(HYDRATED);
@@ -217,7 +222,7 @@ test("a phone has one menu control, and the switcher says why it shows marketing
     await press(controls.first());
     const menu = region(page, "Menu");
     await expect(menu).toBeVisible();
-    await press(menu.getByRole("button", { name: "Shell", exact: true }));
+    await press(menu.getByRole("button", { name: SWITCHER }));
     await expect(page.getByText("Workbench and Desktop need a wider window. This one shows Marketing.", { exact: true })).toBeVisible();
   } finally {
     await context.close();
@@ -227,10 +232,11 @@ test("a phone has one menu control, and the switcher says why it shows marketing
 // What `data-ljos-swap` was set to, each time (shells.js `swap`).
 const swaps = () => {
   const seen = (window.__swaps = []);
+  // Before there is a root: the document is watched, the root with it.
   new MutationObserver(() => {
     const kind = document.documentElement.dataset.ljosSwap;
     if (kind) seen.push(kind);
-  }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-ljos-swap"] });
+  }).observe(document, { subtree: true, attributes: true, attributeFilter: ["data-ljos-swap"] });
 };
 
 test("a swap moves the next shell into place", async ({ browser }) => {

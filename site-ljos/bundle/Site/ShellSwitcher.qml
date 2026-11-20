@@ -1,13 +1,16 @@
 import QtQuick
 import Site
 import Ljos.Core
-import Ljos.Controls as C
+import "later.js" as Later
 
 // Which shell frames the site: a button naming the one shown, and a
 // popover with the three and what each is, the note a narrow window
 // needs, and the way to the shell's own QML. Picking one swaps the shell
 // live (Main.qml): the page and what the reader did on it stay.
-Item {
+// The button is drawn as the header's others are; the popover is drawn
+// with Ljós's own controls and comes the first time it is pressed
+// (Site/ShellChoices.qml), so no page's first load carries them.
+Rectangle {
     id: switcher
 
     property var preferences: null
@@ -15,144 +18,129 @@ Item {
     property bool compact: false
     // Asked to show a shell's own QML (Site/ShellSource.qml).
     signal sourceAsked(string name)
+    // About to show the choices, drawn in Ljós's own controls (Main.qml
+    // gives those the site's colours).
+    signal choosing
 
     readonly property string shown: preferences ? preferences.shown : "marketing"
+    readonly property string label: preferences ? preferences.labelOf(shown) : ""
+    readonly property bool opened: choices.item ? choices.item.opened : false
 
-    implicitWidth: button.implicitWidth
-    implicitHeight: button.implicitHeight
+    function toggle() {
+        if (choices.item) {
+            choices.item.toggle();
+        } else {
+            switcher.choosing();
+            choices.active = true;
+        }
+    }
 
-    C.Button {
-        id: button
-        subtle: true
-        chevron: !switcher.compact
-        iconName: "settings"
-        display: switcher.compact ? C.Button.IconOnly : C.Button.TextBesideIcon
-        text: switcher.preferences ? switcher.preferences.labelOf(switcher.shown) : ""
-        Accessible.name: t`Shell`
-        Accessible.description: switcher.preferences ? switcher.preferences.labelOf(switcher.shown) : ""
-        onClicked: choices.opened ? choices.close() : choices.open()
+    implicitWidth: switcher.compact ? 40 : row.implicitWidth + 2 * Theme.xs
+    implicitHeight: 40
+    radius: Theme.radiusSmall
+    color: hit.pressed ? Theme.surfacePressed : hit.containsMouse || switcher.opened ? Theme.surfaceHover : "transparent"
+    border.width: activeFocus ? 2 : 0
+    border.color: Theme.focusRing
 
-        C.Popover {
-            id: choices
-            edge: Qt.BottomEdge
-            width: 320
-            padding: Theme.xs
+    activeFocusOnTab: true
+    Accessible.role: Accessible.Button
+    // Where its words show, the name holds them (a reader who says what
+    // they see, "Marketing", finds it); where only the icon does, the
+    // name says what it is for.
+    Accessible.name: switcher.compact || !label ? t`Shell` : t`Shell: ${label}`
+    Accessible.onPressAction: () => switcher.toggle()
+    Keys.onPressed: (event) => {
+        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+            switcher.toggle();
+            event.accepted = true;
+        }
+    }
 
-            contentItem: Column {
-                spacing: Theme.xxs
+    Row {
+        id: row
+        anchors.centerIn: parent
+        spacing: Theme.xs
 
-                Text {
-                    leftPadding: Theme.xs
-                    topPadding: Theme.xxs
-                    bottomPadding: Theme.xxs
-                    text: t`Shell`
-                    color: Theme.textMuted
-                    font.family: Theme.sans
-                    font.pixelSize: Theme.captionSize
-                    font.weight: Font.DemiBold
-                }
-                Repeater {
-                    model: switcher.preferences ? switcher.preferences.shells : []
+        // A window with a pane beside its page: what a shell is.
+        Rectangle {
+            anchors.verticalCenter: parent.verticalCenter
+            width: 18
+            height: 16
+            radius: 3
+            color: "transparent"
+            border.width: 2
+            border.color: Theme.text
 
-                    Rectangle {
-                        id: row
-                        required property var modelData
-                        readonly property bool picked: switcher.preferences.shell === modelData.name
-
-                        width: 304
-                        height: words.implicitHeight + 2 * Theme.xs
-                        radius: Theme.radiusSmall
-                        color: rowArea.pressed ? Theme.surfacePressed : row.picked ? Theme.surfaceSelected : rowArea.containsMouse ? Theme.surfaceHover : "transparent"
-                        activeFocusOnTab: true
-                        Accessible.role: Accessible.RadioButton
-                        Accessible.name: modelData.label
-                        Accessible.description: modelData.about
-                        Accessible.checkable: true
-                        Accessible.checked: row.picked
-                        Accessible.onPressAction: () => row.pick()
-                        Keys.onPressed: (event) => {
-                            if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
-                                row.pick();
-                                event.accepted = true;
-                            }
-                        }
-
-                        function pick() {
-                            switcher.preferences.setShell(modelData.name);
-                            choices.close();
-                        }
-
-                        C.Icon {
-                            x: Theme.xs
-                            y: Theme.xs + 2
-                            name: "check"
-                            size: 16
-                            color: Theme.accent
-                            visible: row.picked
-                        }
-                        Column {
-                            id: words
-                            x: Theme.xs + 24
-                            y: Theme.xs
-                            width: row.width - x - Theme.xs
-                            spacing: 2
-
-                            Text {
-                                width: parent.width
-                                text: row.modelData.label
-                                color: Theme.text
-                                font.family: Theme.sans
-                                font.pixelSize: Theme.captionSize + 1
-                                font.weight: Font.DemiBold
-                            }
-                            Text {
-                                width: parent.width
-                                text: row.modelData.about
-                                color: Theme.textMuted
-                                font.family: Theme.sans
-                                font.pixelSize: Theme.captionSize
-                                lineHeightMode: Text.FixedHeight
-                                lineHeight: 18
-                                wrapMode: Text.Wrap
-                            }
-                        }
-                        MouseArea {
-                            id: rowArea
-                            anchors.fill: parent
-                            Accessible.ignored: true
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: row.pick()
-                        }
-                    }
-                }
-                Text {
-                    visible: switcher.preferences !== null && !switcher.preferences.wide
-                    width: 304
-                    leftPadding: Theme.xs
-                    rightPadding: Theme.xs
-                    topPadding: Theme.xxs
-                    text: t`Workbench and Desktop need a wider window. This one shows Marketing.`
-                    color: Theme.textMuted
-                    font.family: Theme.sans
-                    font.pixelSize: Theme.captionSize
-                    wrapMode: Text.Wrap
-                }
-                Rectangle {
-                    width: 304
-                    height: 1
-                    color: Theme.divider
-                }
-                C.Button {
-                    subtle: true
-                    iconName: "code"
-                    text: t`View this shell's source`
-                    onClicked: {
-                        choices.close();
-                        switcher.sourceAsked(switcher.shown);
-                    }
-                }
+            Rectangle {
+                x: 6
+                y: 2
+                width: 2
+                height: parent.height - 4
+                color: Theme.text
             }
         }
+        Text {
+            anchors.verticalCenter: parent.verticalCenter
+            visible: !switcher.compact
+            text: switcher.label
+            color: Theme.text
+            font.family: Theme.sans
+            font.pixelSize: Theme.captionSize + 1
+            font.weight: Font.DemiBold
+        }
+        // It opens: a chevron, two strokes meeting below.
+        Item {
+            anchors.verticalCenter: parent.verticalCenter
+            visible: !switcher.compact
+            width: 12
+            height: 8
+
+            Rectangle {
+                x: 1
+                y: 3
+                width: 7
+                height: 2
+                radius: 1
+                color: Theme.textMuted
+                rotation: 40
+            }
+            Rectangle {
+                x: 4
+                y: 3
+                width: 7
+                height: 2
+                radius: 1
+                color: Theme.textMuted
+                rotation: -40
+            }
+        }
+    }
+
+    // Under the button's own presses: the choices stand over the button
+    // only as the item their popover opens beside.
+    Loader {
+        id: choices
+        anchors.fill: parent
+        active: false
+        source: Later.shellChoices
+        onLoaded: {
+            item.preferences = Qt.binding(() => switcher.preferences);
+            item.shown = Qt.binding(() => switcher.shown);
+            item.toggle();
+        }
+    }
+    Connections {
+        target: choices.item
+        function onSourceAsked(name) {
+            switcher.sourceAsked(name);
+        }
+    }
+    MouseArea {
+        id: hit
+        anchors.fill: parent
+        hoverEnabled: true
+        Accessible.ignored: true
+        cursorShape: Qt.PointingHandCursor
+        onClicked: switcher.toggle()
     }
 }

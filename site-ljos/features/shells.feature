@@ -10,7 +10,8 @@ Feature: The site is shown in a shell the reader picks
   live, and keeps their page, their place on it and what they did in
   an example on it.
 
-  Covered by site-ljos/tests/shells.spec.js.
+  Covered by site-ljos/tests/shells.spec.js, and the first load by
+  site-ljos/tests/payload.spec.js.
 
   Background:
     Given the built site, served at its base
@@ -56,6 +57,12 @@ Feature: The site is shown in a shell the reader picks
     When they reload the page
     Then the page is framed by the Desktop shell
     And the page was not shown in the Marketing shell before it was
+
+  Scenario: A page's first load carries only the shell it is written in
+    Given any page the build wrote
+    Then what it loads before a reader does anything holds no Workbench or Desktop shell
+    And each of those comes the first time a reader picks it
+    And the shell choices and a shell's source come the first time a reader opens them
 
   Scenario: A reader with no script gets the Marketing shell
     Given a reader whose kept shell is Desktop
