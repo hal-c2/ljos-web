@@ -215,7 +215,7 @@ Column {
             width: points.cardWidth
             height: landing.wide ? points.tallest : contentHeight
             title: t`Stable, light, and 0 % CPU at rest`
-            body: t`A failing part restarts or shows a fallback instead of closing the window, and an app at rest uses 0 % CPU. Measured natively on Linux (2026-10-18), seven sample apps held 57.4–91.2 MiB private memory against qml6's 87.3–245 MiB — not this web page, and qml6 stayed ahead on startup (2026-10-15) and animation frame cost (2026-10-18). One engine targets Linux, macOS, Windows, Android, iOS and the web.`
+            body: t`A failing part restarts or shows a fallback instead of closing the window, and an app at rest uses 0 % CPU. In the project's own benchmark (2026-11-10, a mail window of 1 000 rows, native builds on Linux, not this web page), Ljós drew its first frame in 59–88 ms against qml6's 558–820 ms, held 23 MiB of private memory against 130 MiB, and scrolled at the same frame rate on a third of the CPU. One engine targets Linux, macOS, Windows, Android, iOS and the web.`
             onFollowed: (link) => landing.follow(link)
         }
     }
