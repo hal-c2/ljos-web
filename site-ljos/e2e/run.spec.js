@@ -328,6 +328,36 @@ test.describe("examples", () => {
     expect(unexpected(errors).filter((text) => !/ShellLoader|Main\.qml/.test(text))).toEqual([]);
   });
 
+  // An edit made while stopped waits out its debounce; Run pressed before
+  // it runs out runs the edit, and the debounce does not run it again.
+  test("Run during an edit's debounce runs the edit once", async ({ page, errors }) => {
+    await open(page, "/ui/items/");
+    const block = await run(page, 1);
+    await expect(block.values, "it ran, and said what it hit").toContainText("hit: under");
+    await press(runButton(block.toolbar, "Stop this example"));
+    await expect(runButton(block.toolbar), "stopped").toBeVisible({ timeout: 30_000 });
+    // The example's code with what it logs changed, written over it in
+    // one edit.
+    const written = livePages().find(({ route }) => route === "/ui/items/").examples[1].code;
+    const said = 'console.log("hit: " + nameAt(10, 10))';
+    expect(written, "the example logs what it hit").toContain(said);
+    await intoCode(block);
+    await page.keyboard.press("ControlOrMeta+a");
+    let old = 0;
+    let edited = 0;
+    page.on("console", (message) => {
+      if (/hit: under/.test(message.text())) old++;
+      if (/hit: edited/.test(message.text())) edited++;
+    });
+    await page.keyboard.insertText(written.replace(said, 'console.log("hit: edited")'));
+    await press(runButton(block.toolbar));
+    await expect.poll(() => edited, { message: "the edit ran", timeout: 30_000 }).toBe(1);
+    // The debounce's 300 ms, and a compile and a reload after it.
+    await page.waitForTimeout(1_500);
+    expect({ old, edited }, "the edit ran once, and the code before it not at all").toEqual({ old: 0, edited: 1 });
+    expect(unexpected(errors)).toEqual([]);
+  });
+
   // Three ten-pixel items in a Row: a sliver, which once stood as a
   // line across the page. It runs in a window a reader can see, at its
   // own size in the middle of it (a window's least size never stretches
