@@ -77,3 +77,11 @@ test("a Connections hears childrenChanged once the move has settled, and writes 
   expect(await page.evaluate(() => window.scene.before()), "nothing heard as it is made").toBe(0);
   expect(await page.evaluate(() => window.scene.move())).toEqual([1, [2], 1]);
 });
+
+// Only the effect's first read takes the same items as no change: once the
+// scene is made, a list property given a new array with the same items in
+// it has changed, and its own handler hears it once.
+test("a list property given a new array with the same items is heard once the scene is made", async ({ page }) => {
+  await open(page, "connectionchildren");
+  expect(await page.evaluate(() => window.scene.copy())).toEqual([0, 1]);
+});
