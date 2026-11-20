@@ -60,6 +60,17 @@ QtObject {
         return titled === null ? to : titled.endsWith(Content.after) ? titled.slice(0, titled.length - Content.after.length) : titled;
     }
 
+    // A heading's name as the page has it: an address (a link's, as the
+    // markdown wrote it, or the browser's) carries what is not ASCII in
+    // it percent-encoded. One that is not a valid escape is as written.
+    function anchorOf(fragment) {
+        try {
+            return decodeURIComponent(fragment);
+        } catch (error) {
+            return fragment;
+        }
+    }
+
     // Goes to a route of the site's, or another site's address.
     function go(to) {
         Nav.go(Nav.at(Content.base, to));
@@ -72,7 +83,7 @@ QtObject {
         var to = hash >= 0 ? href.slice(0, hash) : href;
         if (hash >= 0 && router.docsRoute && router.view && (to === "" || to === Nav.at(Content.base, router.route))) {
             router.went();
-            router.view.land(href.slice(hash + 1));
+            router.view.land(router.anchorOf(href.slice(hash + 1)));
             return;
         }
         Nav.go(href);
@@ -91,12 +102,7 @@ QtObject {
         if (typeof offset === "number") {
             router.view.restore(offset);
         } else if (fragment) {
-            // A heading's name as the page has it: an address carries
-            // what is not ASCII in it percent-encoded.
-            var anchor = fragment.slice(1);
-            try {
-                anchor = decodeURIComponent(anchor);
-            } catch (error) {}
+            var anchor = router.anchorOf(fragment.slice(1));
             Qt.callLater(() => router.view.land(anchor));
         } else {
             router.view.top();
