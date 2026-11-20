@@ -1,5 +1,6 @@
 import QtQuick
 import Site
+import Ljos.Core
 
 // The narrow layout's menu: three bars that become a cross while the
 // menu is open.
@@ -10,7 +11,7 @@ IconButton {
 
     // The label says what a press does, so the state is said once:
     // a button that also said it was checked would say it twice.
-    label: open ? "Close the menu" : "Open the menu"
+    label: open ? t`Close menu` : t`Menu`
 
     Repeater {
         model: 3

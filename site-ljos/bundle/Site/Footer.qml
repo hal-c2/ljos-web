@@ -1,5 +1,6 @@
 import QtQuick
 import Site
+import Ljos.Core
 import "../nav.js" as Nav
 
 // Under every page: what Ljós is in a line, where to go, the principles
@@ -46,7 +47,7 @@ Rectangle {
             }
             Text {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "Ljós — malleable software, everywhere"
+                text: t`Typed apps you can see inside and drive while they run.`
                 color: Theme.text
                 font.family: Theme.sans
                 font.pixelSize: Theme.bodySize
@@ -57,16 +58,17 @@ Rectangle {
             width: parent.width
             spacing: Theme.l
 
-            NavLink { label: "Docs"; to: "/start/"; muted: true; size: Theme.captionSize + 1; line: Theme.captionLine }
-            NavLink { label: "Demos"; to: "/demos/"; muted: true; size: Theme.captionSize + 1; line: Theme.captionLine }
-            NavLink { label: "Your first app"; to: "/start/first-app/"; muted: true; size: Theme.captionSize + 1; line: Theme.captionLine }
-            NavLink { label: "GitHub"; to: "https://github.com/hal-c2/ljos-ui"; muted: true; size: Theme.captionSize + 1; line: Theme.captionLine }
+            NavLink { label: t`Docs`; to: "/start/"; muted: true; size: Theme.captionSize + 1; line: Theme.captionLine }
+            NavLink { label: t`Demos`; to: "/demos/"; muted: true; size: Theme.captionSize + 1; line: Theme.captionLine }
+            NavLink { label: t`Your first app`; to: "/start/first-app/"; muted: true; size: Theme.captionSize + 1; line: Theme.captionLine }
+            NavLink { label: t`GitHub`; to: "https://github.com/hal-c2/ljos-ui"; muted: true; size: Theme.captionSize + 1; line: Theme.captionLine }
             // How the project means to work together, on every page.
-            NavLink { label: "Community principles"; to: "https://community-software.org/"; muted: true; size: Theme.captionSize + 1; line: Theme.captionLine }
+            NavLink { label: t`Community principles`; to: "https://community-software.org/"; muted: true; size: Theme.captionSize + 1; line: Theme.captionLine }
+            NavLink { label: t`MIT licence`; to: "https://github.com/hal-c2/ljos-ui/blob/main/LICENSE"; muted: true; size: Theme.captionSize + 1; line: Theme.captionLine }
         }
         Text {
             width: parent.width
-            text: "MIT licensed. This site is itself a Ljós app, written out as HTML at build time and brought to life in the page."
+            text: "This site is itself a Ljós app, written out as HTML at build time and brought to life in the page."
             color: Theme.textMuted
             font.family: Theme.sans
             font.pixelSize: Theme.captionSize

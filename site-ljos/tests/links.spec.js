@@ -60,7 +60,7 @@ test(`every page's header links to the front page, the docs and the demos, at ${
   const missing = [];
   for (const { at, links } of pages) {
     for (const [name, href] of [
-      ["Ljós — front page", base],
+      ["Ljós, home", base],
       ["Docs", `${base}start/`],
       ["Demos", `${base}demos/`],
     ]) {
@@ -406,7 +406,7 @@ test("the site's 404 page has the header, says so, and links home at the base", 
   expect(html).toMatch(/<h1>Page not found<\/h1>/);
   const links = linksIn(html);
   expect(links).toEqual(expect.arrayContaining([
-    { name: "Ljós — front page", href: base },
+    { name: "Ljós, home", href: base },
     { name: "Docs", href: `${base}start/` },
     { name: "Go to the front page", href: base },
     { name: "Community principles", href: "https://community-software.org/" },
