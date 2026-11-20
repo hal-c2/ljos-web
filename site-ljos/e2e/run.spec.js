@@ -343,14 +343,24 @@ test.describe("examples", () => {
     expect(written, "the example logs what it hit").toContain(said);
     await intoCode(block);
     await page.keyboard.press("ControlOrMeta+a");
+    // Run is brought into view before the edit, so that only the edit, one
+    // measure (the edit moves Run) and the click come between them: the
+    // debounce must still be waiting when Run is pressed, or this would not
+    // test Run during it.
+    const runs = runButton(block.toolbar);
+    await centre(runs);
     let old = 0;
     let edited = 0;
     page.on("console", (message) => {
       if (/hit: under/.test(message.text())) old++;
       if (/hit: edited/.test(message.text())) edited++;
     });
+    const typed = Date.now();
     await page.keyboard.insertText(written.replace(said, 'console.log("hit: edited")'));
-    await press(runButton(block.toolbar));
+    const at = await runs.boundingBox();
+    await page.mouse.click(at.x + at.width / 2, at.y + at.height / 2);
+    const waited = Date.now() - typed;
+    expect(waited, "Run was pressed while the edit's 300 ms debounce still waited").toBeLessThan(300);
     await expect.poll(() => edited, { message: "the edit ran", timeout: 30_000 }).toBe(1);
     // The debounce's 300 ms, and a compile and a reload after it.
     await page.waitForTimeout(1_500);
