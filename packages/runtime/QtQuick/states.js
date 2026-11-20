@@ -7,7 +7,7 @@
 // a Behavior, and reads as what the transition's animations show until they
 // are done.
 import { createEffect, createMemo, createRoot, runWithOwner } from "solid-js";
-import { bound, contents, defineType, flush, group, QtObject, replace, slot, whenComplete } from "../object.ts";
+import { bound, contents, defineType, flush, group, QtObject, replace, slot, whenComplete, writtenBy } from "../object.ts";
 import { follow, parallel } from "./animation/Animation.js";
 import { drain, later } from "./animation/clock.js";
 import { display, Property } from "./animation/property.js";
@@ -49,7 +49,7 @@ function attach(states, property, value) {
   entry.dispose = runWithOwner(states.self.$owner, () =>
     createRoot((dispose) => {
       follow(createMemo(value, SYNC), (given) => {
-        if (entry.live) object[key] = given;
+        if (entry.live) writtenBy("override", () => (object[key] = given));
       });
       return dispose;
     }),
@@ -88,7 +88,7 @@ function binding(states, owner, property, value, memos, index, restoring, explic
       states,
       property,
       restoring,
-      explicit ? () => (detach(states, property), (property.object[property.key] = value())) : () => attach(states, property, value),
+      explicit ? () => (detach(states, property), writtenBy("override", () => (property.object[property.key] = value()))) : () => attach(states, property, value),
       value,
     );
   }
@@ -114,7 +114,7 @@ function reverting(states, revert) {
     states,
     property,
     true,
-    () => (detach(states, property), (property.object[property.key] = saved.value)),
+    () => (detach(states, property), writtenBy("release", () => (property.object[property.key] = saved.value))),
     () => saved.value,
   );
 }

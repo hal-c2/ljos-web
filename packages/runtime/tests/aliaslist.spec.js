@@ -35,6 +35,14 @@ test("a list written to an alias of an item's list ends what was bound to it", a
   expect(await page.evaluate(() => window.scene.reboundNow())).toEqual({ children: "six", fiveInside: false });
 });
 
+// A state's change of the alias is not a script's write: the binding is
+// overridden while the state lasts and given back when it ends, following
+// what it reads again, as Qt 6.12 has it (measured with qml6).
+test("a state that changes an alias of an item's list gives its binding back when it ends", async ({ page }) => {
+  await open(page, "aliaslist");
+  expect(await page.evaluate(() => window.scene.throughState())).toEqual(["seven", "nine", "nine", "eight", "seven"]);
+});
+
 // `property alias kept: inner.resources`: what it is given is the item's
 // without the item drawing it, so an item keeps the parent it has, and a
 // declared one has none, as in Qt 6.12. A binding's list is the whole.
@@ -88,4 +96,19 @@ test("an item a Loader unloads is no longer held by what it held", async ({ page
   expect(await holders(), "held while loaded").toBe(1);
   await page.evaluate(() => window.scene.unload());
   await expect.poll(holders, { message: "let go once unloaded" }).toBe(0);
+});
+
+// What the item lets go of when it ends is what it holds then: holding
+// and letting go again and again adds nothing to its owner's cleanup.
+test("an item that holds its resources again and again lets go of them once", async ({ page }) => {
+  await open(page, "aliaslist");
+  const cleanups = () =>
+    page.evaluate(() => {
+      const disposal = window.scene.bothInner().$owner?._disposal;
+      return disposal ? [].concat(disposal).length : 0;
+    });
+  await page.evaluate(() => window.scene.reorderHeld());
+  const once = await cleanups();
+  await page.evaluate(() => window.scene.reholdHeld(8));
+  expect(await cleanups()).toBe(once);
 });
