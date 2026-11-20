@@ -494,10 +494,14 @@ function siteHead() {
   const shellKey = new Function(`${shells}\nreturn key;`)();
   const wideFrom = /readonly property int wideFrom:\s*(\d+)/.exec(readFileSync(join(bundle, "Site/Theme.qml"), "utf8"))?.[1];
   if (!wideFrom) throw new Error("site-ljos: Site/Theme.qml names no wideFrom for the head's shell script");
+  // How long the head waits for a kept shell before it shows the page
+  // anyway: its fade's delay and its script's timer, one number.
+  const shellWait = 2500;
   return readFileSync(join(bundle, "assets/head.html"), "utf8")
     .replace("%SCHEME_KEY%", () => JSON.stringify(key))
     .replace("%SHELL_KEY%", () => JSON.stringify(shellKey))
     .replace("%WIDE_FROM%", () => wideFrom)
+    .replaceAll("%SHELL_WAIT%", () => String(shellWait))
     .replace("%LJOS_TOKENS%", () => tokens)
     .replaceAll("%LIGHT_CANVAS%", light.canvas)
     .replaceAll("%DARK_CANVAS%", dark.canvas);
