@@ -46,9 +46,6 @@ async function chunk() {
   // What the page compiled as it loaded, so the wasm is fetched once.
   const compiled = await made();
   ({ memory } = await loaded.default(compiled && { module_or_path: compiled }));
-  // Views that asked together each make it: one whose making trapped
-  // leaves the wasm to the others, which are not to call into it.
-  if (stopped) return;
   NAMES = loaded.propNames();
   module = loaded;
 }
