@@ -2,7 +2,8 @@
 // that has no signal of its own, and writes in its handler. `doubled` is
 // bound to what the handler writes: Qt runs the handler once the move has
 // settled, so the handler reads the binding already up to date, and its
-// write needs no flush of its own.
+// write needs no flush of its own. It hears nothing as the scene is made:
+// a list read again with the same items in it is no change.
 import QtQuick
 
 Item {
@@ -24,6 +25,10 @@ Item {
             root.heard++;
             root.seen.push(root.doubled);
         }
+    }
+
+    function before() {
+        return root.heard;
     }
 
     function move() {

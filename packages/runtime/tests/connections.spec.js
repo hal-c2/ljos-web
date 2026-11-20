@@ -70,7 +70,10 @@ test("a Connections whose target is Component hears of its own completion", asyn
 // once what changed has settled, as every other change is: the handler
 // reads bindings up to date, and its write asks for no flush inside the one
 // that found the change (no FLUSH_IN_EFFECT_CALLBACK, which open.js fails).
+// Nothing is heard as the scene is made: `children` is a new list each time
+// it is read, and the same items in a new list are no change.
 test("a Connections hears childrenChanged once the move has settled, and writes outside the flush", async ({ page }) => {
   await open(page, "connectionchildren");
+  expect(await page.evaluate(() => window.scene.before()), "nothing heard as it is made").toBe(0);
   expect(await page.evaluate(() => window.scene.move())).toEqual([1, [2], 1]);
 });

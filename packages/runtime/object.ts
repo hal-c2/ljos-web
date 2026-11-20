@@ -2345,6 +2345,10 @@ function flatten(made: unknown, into: QObject[]): QObject[] {
   return into;
 }
 
+function sameItems(value: unknown, last: unknown): boolean {
+  return Array.isArray(value) && Array.isArray(last) && value.length === last.length && value.every((item, index) => Object.is(item, last[index]));
+}
+
 // Runs `handler` when the property changes from what it is now, or from what
 // it is once the objects being created all are.
 export function onChange(self: QObject, name: string, handler: Handler, first?: First): void {
@@ -2360,14 +2364,20 @@ export function onChange(self: QObject, name: string, handler: Handler, first?: 
     : Object.is;
   const watch = (firsts?: Works) => {
     let last = untrack(read);
+    let fresh = true;
     first?.(last, firsts);
     runWithOwner(owner, () =>
       createEffect(
         read,
         (value) => {
           // Reading it again is not a change: what it was computed from may
-          // have changed and left it as it was.
-          if (same(value, last)) return;
+          // have changed and left it as it was. The effect's first read is
+          // the second of all, after `last`, with nothing changed between
+          // unless the objects being made changed it; a list (`children`)
+          // is a new array each read, and the same items in it are no change.
+          const unchanged = same(value, last) || (fresh && sameItems(value, last));
+          fresh = false;
+          if (unchanged) return;
           last = value;
           after(() => heard(handler, undefined, self));
         },
