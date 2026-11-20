@@ -2143,6 +2143,21 @@ export function writtenBy<T>(by: Writer, write: () => T): T {
 
 // The setters of aliases, so that an alias of an alias passes on who writes.
 const aliasSetters = new WeakSet<(value: unknown) => void>();
+const isAlias = (object: object, name: string): boolean => {
+  const set = Object.getOwnPropertyDescriptor(object, name)?.set;
+  return Boolean(set && aliasSetters.has(set));
+};
+// Whether what an alias is given is objects declared for an alias of it:
+// added to what the list holds, as its own declared objects are (Qt 6.12).
+let adding = false;
+function asDeclared(write: () => void): void {
+  adding = true;
+  try {
+    write();
+  } finally {
+    adding = false;
+  }
+}
 
 function defineAlias(self: QObject, name: string, [target, ...path]: AliasPath): void {
   const last = path.at(-1) as string;
@@ -2181,6 +2196,8 @@ function defineAlias(self: QObject, name: string, [target, ...path]: AliasPath):
   let written = false;
   let overridden = false;
   const set = (value: unknown): void => {
+    const add = adding;
+    adding = false;
     const object = holder();
     if (!path.length || !object) return;
     const by = writer;
@@ -2200,9 +2217,10 @@ function defineAlias(self: QObject, name: string, [target, ...path]: AliasPath):
     // Only this alias is the state's: what the write runs (a handler
     // writing another alias) writes as a script does. An alias of an
     // alias is this alias, so the state's write goes on to it.
-    const inner = Object.getOwnPropertyDescriptor(object, last)?.set;
-    writtenBy(inner && aliasSetters.has(inner) ? by : "script", () => {
-      if (held) intoHeldList(object, last, value, false);
+    const through = isAlias(object, last);
+    writtenBy(through ? by : "script", () => {
+      if (held) intoHeldList(object, last, value, add);
+      else if (through && add) asDeclared(() => (object[last] = value));
       else object[last] = value;
     });
   };
@@ -2248,6 +2266,8 @@ function defineAlias(self: QObject, name: string, [target, ...path]: AliasPath):
           // A binding that could not be evaluated has nothing to assign.
           if (written || overridden || !object || (value === undefined && binding!.failing)) return;
           if (isHeldList(object, last)) return intoHeldList(object, last, value, declared);
+          // Declared for an alias of an alias: added by the alias it names.
+          if (declared && isAlias(object, last)) return asDeclared(() => (object[last] = value));
           // It is a binding all the same: a value the property cannot hold
           // leaves it what it held, and is told of.
           try {

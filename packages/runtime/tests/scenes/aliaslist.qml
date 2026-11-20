@@ -104,6 +104,14 @@ Item {
     AliasListHost {
         id: plainHost
     }
+    // An object declared for an alias of an alias of a list, whose own
+    // binding reads what the test changes.
+    AliasListRelay {
+        id: declaredRelay
+        relayed: [
+            Rectangle { objectName: root.flag ? "on" : "off" }
+        ]
+    }
     // A list whose binding a script's write ends before the state begins.
     AliasListHost {
         id: assignedHost
@@ -253,6 +261,13 @@ Item {
         root.flag = false
         seen.push(names(assignedHost.inner.children))
         return seen
+    }
+    function declaredRelayOnce() {
+        const children = () => declaredRelay.host.inner.children
+        const first = children()[children().length - 1]
+        const before = names(children())
+        root.flag = false
+        return [before, names(children()), children()[children().length - 1] === first]
     }
     function holdInLoader() {
         loading.active = true
