@@ -249,8 +249,9 @@ export function inspect(root) {
     },
 
     // The object tree: each object with its depth, type, id, objectName,
-    // whether it is an item and how many are below it, and the same as an
-    // indented outline, `Type#id "objectName"` a line.
+    // whether it is an item, how many are below it and where it is written
+    // (as `pick` says it, or null), and the same as an indented outline,
+    // `Type#id "objectName"` a line.
     outline() {
       const objects = [];
       const lines = [];
@@ -264,6 +265,7 @@ export function inspect(root) {
           object_name: object.objectName ?? "",
           item: Boolean(object.$node),
           children: children.length,
+          source: source(object),
         };
         objects.push(row);
         lines.push(`${"  ".repeat(depth)}${row.type}${row.id ? `#${row.id}` : ""}${row.object_name ? ` "${row.object_name}"` : ""}`);
