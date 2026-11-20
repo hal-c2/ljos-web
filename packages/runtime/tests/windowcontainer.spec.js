@@ -66,3 +66,15 @@ test("a window an item holds is where the item is, of its size, and shown when i
   ]);
   expect(await pixels(page, POINTS)).toEqual([WHITE, WHITE, BLUE, BLUE, WHITE, YELLOW]);
 });
+
+// Qt ends a window with the item that holds it when the window is the
+// item's own: nothing of it is left to be shown on its own.
+test("a window ended with the item that holds it leaves nothing of itself on the page", async ({ page }) => {
+  await open(page, "windowcontainergone");
+  expect(await pixels(page, [[40, 30]])).toEqual([RED]);
+  const windows = () => page.evaluate(() => document.querySelectorAll(".qq-window").length);
+  expect(await windows()).toBe(2);
+  await page.evaluate(() => window.scene.end());
+  await expect.poll(windows).toBe(1);
+  expect(await pixels(page, [[40, 30]])).toEqual([WHITE]);
+});
