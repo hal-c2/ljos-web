@@ -39,7 +39,10 @@ fn a_bound_type_is_written_before_the_value_and_a_new_type_writes_it_again() {
             ),
         ] {
             let code = compiled(source, hydratable);
-            let read = |call: &str| code.find(call).unwrap_or_else(|| panic!("{call} in\n{code}"));
+            let read = |call: &str| {
+                code.find(call)
+                    .unwrap_or_else(|| panic!("{call} in\n{code}"))
+            };
             let first = if source.find("kind()") < source.find("initial()") {
                 ("kind()", "initial()")
             } else {
@@ -98,19 +101,44 @@ fn a_value_without_its_own_bound_type_is_written_when_it_changes() {
     );
 }
 
-/// A `class:type` or `style:type` names a class or a style property, not
-/// the input's type: the value is written where it was, when it changes.
+/// Solid 2 reserves no namespace but `prop:`, so `class:type` and
+/// `style:type` are attributes of those whole names, not the input's type:
+/// the value is written where it was, when it changes. `prop:type` is the
+/// type.
 #[test]
-fn a_class_or_style_named_type_is_not_the_inputs_type() {
-    for source in [
-        "const v = <input defaultValue={initial()} class:type={on()} />;",
-        "const v = <input defaultValue={initial()} style:type={look()} />;",
+fn only_type_or_prop_type_is_the_inputs_type() {
+    for (source, write) in [
+        (
+            "const v = <input defaultValue={initial()} class:type={on()} />;",
+            r#""class:type""#,
+        ),
+        (
+            "const v = <input defaultValue={initial()} style:type={look()} />;",
+            r#""style:type""#,
+        ),
     ] {
         let body = effect(source, false);
+        let at = |write: &str| {
+            body.find(write)
+                .unwrap_or_else(|| panic!("{write} in\n{body}"))
+        };
         assert!(!body.contains("||"), "{source}\n{body}");
-        assert!(
-            body.find(r#""defaultValue""#) < body.find(r#""type""#),
-            "{source}\n{body}"
-        );
+        assert!(at(r#""defaultValue""#) < at(write), "{source}\n{body}");
     }
+    let source = "const v = <input defaultValue={initial()} prop:type={kind()} />;";
+    let body = effect(source, false);
+    let at = |write: &str| {
+        body.find(write)
+            .unwrap_or_else(|| panic!("{write} in\n{body}"))
+    };
+    assert!(
+        at("_el$.type = t") < at(r#"(_el$, "defaultValue""#),
+        "{source}\n{body}"
+    );
+    assert!(
+        body.contains(
+            r#"(e !== _p$?.e || t !== _p$?.t) && _$setProperty(_el$, "defaultValue", e)"#
+        ),
+        "{source}\n{body}"
+    );
 }
