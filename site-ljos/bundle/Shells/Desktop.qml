@@ -28,13 +28,21 @@ Rectangle {
     readonly property int hydratedMs: site ? site.hydratedIn : -1
     readonly property int aliveCount: site ? site.alive : 0
 
-    // The pages open, in the order they were opened.
-    property var tabs: [route]
-    onRouteChanged: {
+    // The pages open, in the order they were opened. Opened as the
+    // reader goes, never bound to the route: a binding would make the
+    // list the route alone again on every move, and lose the others.
+    property var tabs: []
+    function opened() {
+        if (!shell.router)
+            return;
         if (shell.tabs.indexOf(shell.route) < 0)
             shell.tabs = shell.tabs.concat([shell.route]);
         tabBar.currentIndex = shell.tabs.indexOf(shell.route);
     }
+    onRouteChanged: shell.opened()
+    // Given the site once made, as a shell that comes later is.
+    onRouterChanged: shell.opened()
+    Component.onCompleted: shell.opened()
 
     function close(at) {
         if (shell.tabs.length < 2)
