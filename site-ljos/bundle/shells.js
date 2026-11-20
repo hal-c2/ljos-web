@@ -185,7 +185,7 @@ function shown() {
 
 // Whether the head's watchdog (assets/head.html) has shown the page
 // already, the kept shell not yet in: it says so on the root,
-// `data-ljos-shell-late`, when its animation ends.
+// `data-ljos-shell-late`, on its timer or as its fade starts.
 function late() {
     var document = globalThis.document;
     return !!(document && document.documentElement && "ljosShellLate" in document.documentElement.dataset);
