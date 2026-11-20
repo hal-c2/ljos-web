@@ -1173,10 +1173,15 @@ class Slot {
     // (`QtQuick/Templates/parts.js`).
     const given = kind?.made ? () => (kind.made as (value: unknown) => unknown)(props[key]) : () => props[key];
     // One a nonvisual object holds (`property Timer pulse: Timer {}` in a
-    // QtObject) is among no items, but still declared in it.
+    // QtObject) is among no items, but still declared in it. So is one a
+    // property the QML declares holds (`property Item made: Item {}`): it is
+    // the property's, and in no visual list until something puts it in one,
+    // as Qt has it. A type's own property (a Control's `background`) makes
+    // its item the type's child.
+    const own = declares(props.$declare, key);
     const make = () =>
       complete(() => {
-        const visual = self.$contentItem ?? (self.$node ? self : null);
+        const visual = own ? null : (self.$contentItem ?? (self.$node ? self : null));
         return inside(visual, visual ? given : () => declaredIn(self, given));
       }, "value");
     const made = props.$made?.includes(key);
@@ -2057,6 +2062,13 @@ function derive(Type: QmlType, declared: Declared | readonly Declared[]): QmlTyp
     derivedTypes.set(declared, Derived);
   }
   return Derived;
+}
+
+// Whether the QML declares `key` (`property Item made`), and not the type.
+function declares(declared: Declared | readonly Declared[] | undefined, key: string): boolean {
+  if (!declared) return false;
+  if (isList(declared)) return declared.some((one) => declares(one, key));
+  return !!declared.properties && Object.hasOwn(declared.properties, key);
 }
 
 // `property alias text: label.text`: the property is another object's.

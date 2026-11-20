@@ -232,6 +232,14 @@ test("an item property's item that a resources read makes first has the parent i
   expect(first).toBe(second);
 });
 
+// A declared property's item is the property's, and in no visual list: Qt
+// gives it no parent until something puts it in one.
+test("an item made inline as a declared property's value has no parent until it is put in a visual list", async ({ page }) => {
+  await open(page, "propertyitemparent");
+  expect(await page.evaluate(() => window.scene.read())).toEqual([false, false, null, 1, null]);
+  expect(await page.evaluate(() => window.scene.put())).toEqual([true, 1]);
+});
+
 test("what is destroyed is gone from the resources that held it", async ({ page }) => {
   await open(page, "resourcesheld");
   await page.evaluate(() => window.scene.drop());
