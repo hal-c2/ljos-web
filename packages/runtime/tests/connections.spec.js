@@ -119,3 +119,22 @@ test("a Connections whose target the same change replaces through a binding hear
   await open(page, "connectionswitch");
   expect(await page.evaluate(() => window.scene.replaced())).toEqual([0]);
 });
+
+// A Connections whose target is switched around a change of `children`
+// hears what its target was when the change was made (Qt 6.12.0, qml6
+// offscreen, gives the same three results).
+test("a Connections hears a change made before its target is switched, from the old target", async ({ page }) => {
+  await open(page, "connectiontarget");
+  expect(await page.evaluate(() => window.scene.changeThenSwitch())).toEqual(["box"]);
+});
+
+test("a Connections switched to another target no longer hears the old one", async ({ page }) => {
+  await open(page, "connectiontarget");
+  await page.evaluate(() => window.scene.changeThenSwitch());
+  expect(await page.evaluate(() => window.scene.switchThenChange())).toEqual([]);
+});
+
+test("a Connections hears a move that switches its target away, from the old target", async ({ page }) => {
+  await open(page, "connectiontarget");
+  expect(await page.evaluate(() => window.scene.changeSwitches())).toEqual([["box3"], "other3"]);
+});
