@@ -216,6 +216,22 @@ fn a_file_of_a_module_of_only_qml_has_the_types_its_qmldir_keeps_elsewhere() {
     assert_contains(&code, r#"import Glow from "../../../glow/Glow.qml";"#);
 }
 
+#[test]
+fn a_module_of_only_qml_a_part_of_the_project_imports_is_its_qmldir_too() {
+    // `Main.qml` imports nothing of `Vendor.Shapes`; `Panel.qml`, which it
+    // is made of, is a `Badge` of that module. What `Main` gives the panel
+    // is typed by what the badge declares: an object given its Component
+    // `face` is a component, made where the badge shows it.
+    let code = compiled(&[
+        "--root",
+        "qtonly/parts",
+        "--qt",
+        "qtonly/qt",
+        "qtonly/parts/Main.qml",
+    ]);
+    assert_contains(&code, "$component(");
+}
+
 /// `qmlc` on `unknown/Main.qml` with a `PATH` of only the tools written
 /// here, each a script answering `QT_VERSION` with `version` and
 /// `QT_INSTALL_QML` with a directory that has `No.Such.Module`.
