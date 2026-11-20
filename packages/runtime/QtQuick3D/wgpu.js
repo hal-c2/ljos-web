@@ -46,6 +46,9 @@ async function chunk() {
   // What the page compiled as it loaded, so the wasm is fetched once.
   const compiled = await made();
   ({ memory } = await loaded.default(compiled && { module_or_path: compiled }));
+  // Views that asked together each make it: one whose making trapped
+  // leaves the wasm to the others, which are not to call into it.
+  if (stopped) return;
   NAMES = loaded.propNames();
   module = loaded;
 }
@@ -847,6 +850,9 @@ export function drawOn(self, canvas, told, instead) {
         // What took the view's picture asks it again, of what draws now.
         return void setDraws((times) => times + 1);
       }
+      // A renderer that trapped as it was first made is not kept, and is
+      // not made again: a failed fetch alone is asked for again.
+      if (stopped) return;
       if (!module) await chunk();
       if (stopped) return;
       const view = await module.View3d.create(canvas, host);
