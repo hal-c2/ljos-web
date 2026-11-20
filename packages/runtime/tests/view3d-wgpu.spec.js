@@ -914,6 +914,27 @@ for (const backend of ["webgpu", "webgl2"]) {
         await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
         expect(await page.evaluate(() => [...document.querySelectorAll(".qq-view3d")].map((view) => view.$view3d.due))).toEqual([false, false]);
       });
+
+      // A trap as the renderer is first made (as it reads its names) leaves
+      // no renderer kept, which a view after asks for again, as it does
+      // after a fetch that failed: a renderer that trapped is not asked.
+      test("that trapped as it was first made is not made again for the next view", async ({ page }) => {
+        await page.route(/\/wgpu\/ljos_web_3d\.js(\?|$)/, async (route) => {
+          const response = await route.fetch();
+          const glue = (await response.text()).replace("export function propNames(", "function propNamesOfWasm(");
+          const trap = 'export function propNames() { self.namesAsked = (self.namesAsked ?? 0) + 1; throw new WebAssembly.RuntimeError("unreachable"); }';
+          await route.fulfill({ response, body: `${glue}\n${trap}\n` });
+        });
+        if (backend === "webgl2") await page.addInitScript(HIDDEN);
+        await page.goto("/?scene=wgpu_trapped&view3d=wgpu");
+        await page.waitForFunction(() => window.ready);
+        const error = (index) => page.evaluate((index) => document.querySelectorAll(".qq-view3d")[index]?.$view3d.error, index);
+        await expect.poll(() => error(0)).toMatch(/^the renderer stopped: RuntimeError: unreachable/);
+        await page.evaluate(() => (window.objects.later.active = true));
+        await expect.poll(() => error(1)).toMatch(/^the renderer stopped: RuntimeError: unreachable/);
+        await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+        expect(await page.evaluate(() => self.namesAsked), "the renderer is not made again once it trapped").toBe(1);
+      });
     });
 
     test.describe("a chunk that did not arrive", () => {
