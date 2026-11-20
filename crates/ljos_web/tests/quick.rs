@@ -2559,6 +2559,64 @@ fn directories_imported_under_one_name_are_one_namespace() {
 }
 
 #[test]
+fn a_module_of_the_project_and_a_directory_imported_under_one_name_are_one_namespace() {
+    // `import Parts as P` and `import "extra" as P`, in either order: the
+    // name has the types of both, as it has two directories' (and as Qt
+    // and the types have it), and where both have a type (`Shot`) it is
+    // the one imported last.
+    for (imports, shot, other) in [
+        (
+            "import Parts as P\nimport \"extra\" as P",
+            "./extra/Shot.qml",
+            "./parts/Shot.qml",
+        ),
+        (
+            "import \"extra\" as P\nimport Parts as P",
+            "./parts/Shot.qml",
+            "./extra/Shot.qml",
+        ),
+    ] {
+        let main = format!(
+            "import QtQuick\n{imports}\nItem {{\n    property int hour: P.Clock.hour\n    P.Dial {{ }}\n    P.Knob {{ }}\n    P.Shot {{ }}\n}}"
+        );
+        let files = [
+            ("Main", main.as_str()),
+            (
+                "parts/Clock",
+                "pragma Singleton\nimport QtQuick\nQtObject { property int hour: 3 }",
+            ),
+            ("parts/Dial", "import QtQuick\nItem { }"),
+            ("parts/Shot", "import QtQuick\nItem { }"),
+            ("extra/Knob", "import QtQuick\nItem { }"),
+            ("extra/Shot", "import QtQuick\nRectangle { }"),
+        ];
+        let mut project = Project::new();
+        for (file, source) in &files {
+            project
+                .add(file, source)
+                .unwrap_or_else(|errors| panic!("{file}: {errors:?}"));
+        }
+        for member in ["Clock", "Dial", "Shot"] {
+            project.add_type("Parts", member, &format!("parts/{member}"));
+        }
+        let options = Options {
+            name: "Main".to_string(),
+            project: Some(project),
+            ..Options::default()
+        };
+        let code = lowered_source(&main, &options)
+            .and_then(|code| compile(&main, &options).map(|_| code))
+            .unwrap_or_else(|errors| panic!("{imports}: {errors:?}"));
+        assert_contains(&code, r#"import P$Clock from "./parts/Clock.qml";"#);
+        assert_contains(&code, r#"import P$Dial from "./parts/Dial.qml";"#);
+        assert_contains(&code, r#"import P$Knob from "./extra/Knob.qml";"#);
+        assert_contains(&code, &format!(r#"import P$Shot from "{shot}";"#));
+        assert_lacks(&code, other);
+        assert_contains(&code, "hour={P.Clock().hour}");
+    }
+}
+
+#[test]
 fn a_directory_s_plain_file_comes_before_its_ui_file() {
     // `Screen.qml` and `Screen.ui.qml` side by side: `Parts.Screen` is the
     // plain one, as the checker takes it, whatever order the project
