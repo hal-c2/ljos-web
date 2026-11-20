@@ -1,10 +1,11 @@
+// Ljos.Core before QtQuick so t`` is available while shared names stay QtQuick's.
+import Ljos.Core
 import QtQuick
 import QtQuick.Controls
 
-// A note the visitor types. The text belongs to this block, not to
-// any shell, so rewriting the shell around it never loses a word.
-// A TextField, not a bare TextInput: the control labels its field
-// for assistive technology as the same control does anywhere.
+// A note block whose text belongs to the block itself, not the shell around it:
+// rewriting Shell.qml keeps every word the reader typed. Try changing label or
+// placeholder below, or binding to note.text from Shell.qml.
 Rectangle {
     id: note
     width: 300
@@ -12,11 +13,12 @@ Rectangle {
     radius: 8
     color: look.raised
 
+    // Remix knobs: customise the field's heading and placeholder in one line.
+    property string label: t`Note for the baker`
+    property string placeholder: t`Note for the baker…`
+
     readonly property string text: field.text
 
-    // The colours this app draws with, for the scheme the reader chose:
-    // each the dark it was drawn in or a light that keeps the text on it
-    // as readable.
     QtObject {
         id: look
         readonly property bool dark: Application.styleHints.colorScheme === Qt.ColorScheme.Dark
@@ -32,8 +34,10 @@ Rectangle {
         y: 8
         color: look.muted1
         font.pixelSize: 12
-        text: qsTr("Note for the baker")
+        text: note.label
     }
+    // TextField (rather than a bare TextInput) exposes its placeholder as the
+    // field's accessible name, so we intentionally leave the outer box unnamed.
     TextField {
         id: field
         objectName: "noteField"
@@ -44,9 +48,6 @@ Rectangle {
         palette.base: look.canvas
         palette.text: look.ink
         palette.placeholderText: look.muted2
-        // No Accessible.name: the control says its placeholder,
-        // as every TextField does; naming the wrapper here would
-        // label the box around the field instead of the field.
-        placeholderText: qsTr("Note for the baker…")
+        placeholderText: note.placeholder
     }
 }
