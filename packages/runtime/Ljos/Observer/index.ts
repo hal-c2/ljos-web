@@ -107,9 +107,9 @@ interface Frame {
   total_us: number;
   passes: Record<"timers_us" | "animations_us" | "layout_us" | "create_us" | "scene_us" | "other_us", number>;
   bindings_us: null;
-  binding_runs: number;
+  binding_runs: number | null;
   text_us: null;
-  text_layouts: number;
+  text_layouts: number | null;
   render_us: null;
   present_us: null;
   paint: null;
@@ -155,6 +155,15 @@ interface State {
   watches: Set<Watch>;
   // What the client edited, to say so and to take it back.
   edited: WeakMap<object, Set<string>>;
+  // The objects this application's answers named, by handle: a handle is
+  // the page's, but a client asks only of the application its token serves.
+  // A reload starts it again, as natively a reload makes every handle stale.
+  owned: WeakSet<object>;
+  // When each item followed was last asked of, by handle: one no watch has
+  // asked of for a while is no longer counted.
+  itemAsked: Map<string, number>;
+  // A tree too big for one answer is gone on from where it stopped.
+  cursors: Map<string, { rows: Record<string, unknown>[]; at: number }>;
   observer: MutationObserver | null;
   unlisten: () => void;
   bornAt: number;
@@ -181,6 +190,21 @@ function handle(object: QObject): string {
     byHandle.set(named, new WeakRef(object));
   }
   return named;
+}
+
+// A handle in an answer of `state`'s: the object is then one its client may
+// ask of.
+function handed(state: State, object: QObject): string {
+  state.owned.add(object);
+  return handle(object);
+}
+
+// What a handle names, if it is one of `state`'s and still there.
+function owned(state: State, named: string): QObject {
+  const object = byHandle.get(named)?.deref();
+  if (!object || object.$destroyed || object.$gone) throw new Refused("stale_ref", `\`${named}\` is gone: list the objects again`);
+  if (!state.owned.has(object)) throw new Refused("not_found", `\`${named}\` is no object of this application: list its objects`);
+  return object;
 }
 
 function forget(): void {
@@ -292,6 +316,7 @@ function noticed(state: State, records: MutationRecord[]): void {
 
 function passed(state: State, records: MutationRecord[], cause: string, at: number): void {
   const us = Math.max(0, Math.round((performance.now() - at) * 1000));
+  const alone = served.size === 1;
   const frame: Frame = {
     frame: state.counts.frames + 1,
     window: null,
@@ -314,9 +339,11 @@ function passed(state: State, records: MutationRecord[], cause: string, at: numb
     // How long they took is not told: a clock read for each would cost
     // what they cost.
     bindings_us: null,
-    binding_runs: work.bindingRuns - state.bindingRuns,
+    // The runtime counts the page's work, not each application's: with
+    // more than one served, what ran is not told as any one's.
+    binding_runs: alone ? work.bindingRuns - state.bindingRuns : null,
     text_us: null,
-    text_layouts: work.textLayouts - state.textLayouts,
+    text_layouts: alone ? work.textLayouts - state.textLayouts : null,
     render_us: null,
     present_us: null,
     paint: null,
@@ -384,16 +411,21 @@ function pageLog(): LogSource {
         const listeners = new Set<() => void>();
         consoleListeners = listeners;
         const said = new Map(LEVELS.map((name) => [name, console[name]]));
+        const wrappers = new Map<(typeof LEVELS)[number], (...args: unknown[]) => void>();
         for (const name of LEVELS) {
           const before = said.get(name)!;
           const wrapped = (...args: unknown[]) => {
             before.apply(console, args);
             for (const listener of [...listeners]) listener();
           };
+          wrappers.set(name, wrapped);
           console[name] = wrapped;
         }
+        // Only a method that is still this wrapper is given back: one
+        // something wrapped over it since keeps calling this one, which
+        // then tells no listener.
         unwrapConsole = () => {
-          for (const name of LEVELS) console[name] = said.get(name)!;
+          for (const name of LEVELS) if (console[name] === wrappers.get(name)) console[name] = said.get(name)!;
         };
       }
       const listeners = consoleListeners;
@@ -430,6 +462,9 @@ export function serve(root: QObject, options: ServeOptions = {}): Served {
     recording: false,
     watches: new Set(),
     edited: new WeakMap(),
+    owned: new WeakSet(),
+    itemAsked: new Map(),
+    cursors: new Map(),
     observer: null,
     unlisten: () => {},
     bornAt: performance.now(),
@@ -449,6 +484,10 @@ export function serve(root: QObject, options: ServeOptions = {}): Served {
       if (!served.has(token)) return;
       state.root = next;
       state.edited = new WeakMap();
+      state.owned = new WeakSet();
+      state.itemCounts.clear();
+      state.itemAsked.clear();
+      state.cursors.clear();
       observe(state);
       bump(state, "reloads");
     },
@@ -557,14 +596,39 @@ function rest(): Record<string, unknown> {
   return { wake_in_ms: null, frame_owed: false, animating: jobs > 0, at_rest: jobs === 0, pointer: false };
 }
 
+// An item no watch has asked of for this long, and none waits on, is no
+// longer counted: every pass looks for the items followed in what it changed.
+const FOLLOWED_MS = 60_000;
+
+function unfollow(state: State, now: number): void {
+  const waited = new Set<string>();
+  for (const watching of state.watches) for (const named of watching.items.keys()) waited.add(named);
+  for (const [named, at] of state.itemAsked) {
+    if (now - at < FOLLOWED_MS || waited.has(named)) continue;
+    state.itemAsked.delete(named);
+    state.itemCounts.delete(named);
+  }
+}
+
 function watch(state: State, args: Args): Promise<Result> {
   const since = (args.since ?? null) as (Partial<Counts> & { items?: Record<string, number> }) | null;
   const asked = Array.isArray(args.items) ? args.items.filter((item): item is string => typeof item === "string") : [];
   if (asked.length > MOST_ITEMS) throw new Refused("invalid_argument", `a watch follows at most ${MOST_ITEMS} items`);
+  for (const named of asked) owned(state, named);
+  const now = performance.now();
   for (const named of asked) {
-    if (!byHandle.get(named)?.deref()) throw new Refused("stale_ref", `\`${named}\` is gone: list the objects again`);
     if (!state.itemCounts.has(named)) state.itemCounts.set(named, 0);
+    state.itemAsked.set(named, now);
   }
+  unfollow(state, now);
+  const holder = typeof args.holder === "string" && args.holder !== "" ? args.holder : null;
+  // A holder follows the application with one watch at a time: asked again,
+  // it wants what it asks now, so the watch it had out is answered at once,
+  // a question with no counts to compare with included. The Observer counts
+  // on it: an item picked is followed by a new watch while the one following
+  // every pass is still out, and it asks again only once no watch of its
+  // own is waiting.
+  if (holder !== null) for (const earlier of [...state.watches]) if (earlier.holder === holder) earlier.answer();
   const reply = (waited: number, settled: boolean, changed: string[]): Result =>
     answered({ counts: countsOf(state, asked), changed, waited, settled, rest: rest() });
   // No counts to compare with: what they are now.
@@ -573,13 +637,6 @@ function watch(state: State, args: Args): Promise<Result> {
   for (const named of asked) items.set(named, since.items?.[named] ?? state.itemCounts.get(named) ?? 0);
   const wait = Math.min(Math.max(0, number(args.wait_ms, 10_000)), MOST_WAIT_MS);
   const settleMs = Math.min(Math.max(0, number(args.settle_ms, 0)), MOST_SETTLE_MS);
-  const holder = typeof args.holder === "string" && args.holder !== "" ? args.holder : null;
-  // A holder follows the application with one watch at a time: asked again,
-  // it wants what it asks now, so the watch it had out is answered at once.
-  // The Observer counts on it: an item picked is followed by a new watch
-  // while the one following every pass is still out, and it asks again only
-  // once no watch of its own is waiting.
-  if (holder !== null) for (const earlier of [...state.watches]) if (earlier.holder === holder) earlier.answer();
   return new Promise((resolve) => {
     const watching: Watch = {
       since,
@@ -639,7 +696,7 @@ function bounds(state: State, object: QObject): [number, number, number, number]
 function shownRow(state: State, row: Row, depth: number, hidden?: number): Record<string, unknown> {
   const object = row.object as QObject & { visible?: boolean };
   const shown: Record<string, unknown> = {
-    handle: handle(object),
+    handle: handed(state, object),
     depth,
     type: row.type,
     id: row.id || null,
@@ -659,8 +716,6 @@ function shownRow(state: State, row: Row, depth: number, hidden?: number): Recor
   return shown;
 }
 
-// A tree too big for one answer is gone on from where it stopped.
-const cursors = new Map<string, { rows: Record<string, unknown>[]; at: number }>();
 let cursorsMade = 0;
 
 function objects(state: State, args: Args): Result {
@@ -671,10 +726,10 @@ function objects(state: State, args: Args): Result {
   }
   const max = Math.max(1, number(args.max, 3000));
   if (typeof args.cursor === "string") {
-    const kept = cursors.get(args.cursor);
+    const kept = state.cursors.get(args.cursor);
     if (!kept) throw new Refused("stale_ref", "the cursor is gone: ask for the tree again");
-    cursors.delete(args.cursor);
-    return page(kept.rows, kept.at, max);
+    state.cursors.delete(args.cursor);
+    return page(state, kept.rows, kept.at, max);
   }
   forget();
   const { rows } = tree(state);
@@ -696,18 +751,18 @@ function objects(state: State, args: Args): Result {
     if (depth > deepest) continue;
     shown.push(shownRow(state, row, depth, depth === deepest && row.children > 0 ? row.children : undefined));
   }
-  return page(shown, 0, max);
+  return page(state, shown, 0, max);
 }
 
-function page(rows: Record<string, unknown>[], at: number, max: number): Result {
+function page(state: State, rows: Record<string, unknown>[], at: number, max: number): Result {
   const part = rows.slice(at, at + max);
   const more = at + max < rows.length;
   const structured: Record<string, unknown> = { objects: part, truncated: more };
   if (more) {
     const cursor = `c${++cursorsMade}`;
-    cursors.set(cursor, { rows, at: at + max });
+    state.cursors.set(cursor, { rows, at: at + max });
     // A cursor nobody goes on with is let go of.
-    if (cursors.size > 8) cursors.delete(cursors.keys().next().value!);
+    if (state.cursors.size > 8) state.cursors.delete(state.cursors.keys().next().value!);
     structured.next_cursor = cursor;
   }
   return answered(structured, `${part.length} objects${more ? ", more to come" : ""}`);
@@ -718,11 +773,7 @@ function page(rows: Record<string, unknown>[], at: number, max: number): Result 
 // What a target names: a handle, `id=name`, `#objectName`, or an id.
 function target(state: State, named: unknown): QObject {
   if (typeof named !== "string" || named === "") throw new Refused("invalid_argument", "`target` is to be a handle, `id=name`, `#objectName` or an id");
-  if (named.startsWith("@")) {
-    const object = byHandle.get(named)?.deref();
-    if (!object || object.$destroyed || object.$gone) throw new Refused("stale_ref", `\`${named}\` is gone: list the objects again`);
-    return object;
-  }
+  if (named.startsWith("@")) return owned(state, named);
   const { rows } = tree(state);
   const id = named.startsWith("id=") ? named.slice(3) : named.startsWith("#") ? null : named;
   const name = named.startsWith("#") ? named.slice(1) : null;
@@ -767,6 +818,11 @@ function propertiesOf(object: QObject): Property[] {
       if (members) {
         for (const member of members) {
           const group = () => dynamic[name] as Record<string, unknown> | null | undefined;
+          // Each member is a slot of the object's own (`font$bold`), as
+          // a property is: a write covers what it had, and a Revert gives
+          // that back, a binding of `font.bold` included.
+          const key = `${name}$${member}`;
+          const value = group()?.[member];
           found.push({
             name: `${name}.${member}`,
             read: () => group()?.[member],
@@ -774,8 +830,10 @@ function propertiesOf(object: QObject): Property[] {
               const held = group();
               if (held) held[member] = value;
             },
-            slot: undefined,
-            type: typeName(undefined, group()?.[member]),
+            get slot() {
+              return object.$slots[key];
+            },
+            type: typeName(object.$slots[key], value),
           });
         }
         continue;
@@ -811,17 +869,17 @@ function provenance(slotted: Slot | undefined): string {
   return "default";
 }
 
-function valueText(value: unknown): { value: string | null; handle?: string; items?: string[] } {
+function valueText(state: State, value: unknown): { value: string | null; handle?: string; items?: string[] } {
   if (value === undefined || value === null) return { value: null };
   if (typeof value === "string") return { value };
   if (typeof value === "number" || typeof value === "boolean") return { value: String(value) };
   const object = value as QObject;
   if (object.$type) {
     const id = object.$props?.$id;
-    return { value: `${object.$type.typeName}${typeof id === "string" && id ? `#${id}` : ""}`, handle: handle(object) };
+    return { value: `${object.$type.typeName}${typeof id === "string" && id ? `#${id}` : ""}`, handle: handed(state, object) };
   }
   if (Array.isArray(value) && value.length > 0 && value.every((each) => (each as QObject)?.$type)) {
-    return { value: `[${value.length} objects]`, items: value.map((each) => handle(each as QObject)) };
+    return { value: `[${value.length} objects]`, items: value.map((each) => handed(state, each as QObject)) };
   }
   const text = value as { toString?: () => string };
   if (typeof text.toString === "function" && text.toString !== Object.prototype.toString) return { value: text.toString() };
@@ -847,7 +905,7 @@ function inspected(state: State, args: Args): Result {
       omitted++;
       continue;
     }
-    const shown: Record<string, unknown> = { name: property.name, type: property.type, ...valueText(property.read()), provenance: said };
+    const shown: Record<string, unknown> = { name: property.name, type: property.type, ...valueText(state, property.read()), provenance: said };
     if (mine) {
       shown.assigned_by = "devtools";
       shown.binding_kept = Boolean(property.slot?.bound);
@@ -856,7 +914,7 @@ function inspected(state: State, args: Args): Result {
   }
   const item = object as QObject & { visible?: boolean; enabled?: boolean; activeFocus?: boolean };
   const structured: Record<string, unknown> = {
-    ref: handle(object),
+    ref: handed(state, object),
     type: row?.type ?? object.$type.typeName,
     types: [...object.$type.chain].reverse().map((type) => type.typeName),
     id: row?.id || null,
@@ -883,7 +941,7 @@ function propertyOf(object: QObject, name: unknown): Property {
 function setProperty(state: State, args: Args): Result {
   const object = target(state, args.target);
   const property = propertyOf(object, args.property);
-  const previous = valueText(property.read()).value;
+  const previous = valueText(state, property.read()).value;
   if (args.binding !== undefined) {
     throw new Refused(
       "unsupported",
@@ -897,7 +955,7 @@ function setProperty(state: State, args: Args): Result {
     flush();
     state.edited.get(object)?.delete(property.name);
     const restored = slotted.bound ? "binding" : "value";
-    return answered({ property: property.name, value: valueText(property.read()).value, previous, restored });
+    return answered({ property: property.name, value: valueText(state, property.read()).value, previous, restored });
   }
   if (!("value" in args)) throw new Refused("invalid_argument", "give `value`, `binding` or `revert`");
   try {
@@ -912,14 +970,14 @@ function setProperty(state: State, args: Args): Result {
   if (!mine) state.edited.set(object, (mine = new Set()));
   mine.add(property.name);
   const bound = Boolean(property.slot?.bound);
-  return answered({ property: property.name, value: valueText(property.read()).value, previous, bound, binding_kept: bound });
+  return answered({ property: property.name, value: valueText(state, property.read()).value, previous, bound, binding_kept: bound });
 }
 
 function getProperty(state: State, args: Args): Result {
   const object = target(state, args.target);
   const property = propertyOf(object, args.property);
   flush();
-  return answered({ property: property.name, type: property.type, ...valueText(property.read()), provenance: provenance(property.slot) });
+  return answered({ property: property.name, type: property.type, ...valueText(state, property.read()), provenance: provenance(property.slot) });
 }
 
 // ----- app_screenshot -----------------------------------------------------------
@@ -1044,11 +1102,11 @@ function processes(state: State, args: Args): Result {
       if (!made || (kind && made !== kind)) continue;
       const timed = row.object as QObject & { running?: boolean; interval?: number; repeat?: boolean };
       const named = row.id || row.object_name || row.type;
-      const locator = row.id ? `id=${row.id}` : handle(row.object);
+      const locator = row.id ? `id=${row.id}` : handed(state, row.object);
       rows.push(
         made === "timer"
-          ? { kind: "timer", name: named, handle: handle(row.object), locator, state: timed.running ? "waiting" : "frozen", interval_ms: timed.interval ?? null, repeat: timed.repeat === true, due_in_us: null, wakeups: null }
-          : { kind: "animation", name: named, handle: handle(row.object), locator, state: timed.running ? "running" : "stopped" },
+          ? { kind: "timer", name: named, handle: handed(state, row.object), locator, state: timed.running ? "waiting" : "frozen", interval_ms: timed.interval ?? null, repeat: timed.repeat === true, due_in_us: null, wakeups: null }
+          : { kind: "animation", name: named, handle: handed(state, row.object), locator, state: timed.running ? "running" : "stopped" },
       );
     }
   }
@@ -1103,26 +1161,44 @@ interface Serving extends QObject {
   last: QObject & { tokenFile: string; url: string };
 }
 
-const serving = new WeakMap<Serving, { complete: boolean; served: Served | null }>();
+interface Held {
+  complete: boolean;
+  served: Served | null;
+  // What it was served with: another log or title is another application.
+  logs: LogSource | null;
+  title: string;
+}
+
+const serving = new WeakMap<Serving, Held>();
 
 // `Inspector { target: item }`: serves `target` while it is set, under the
 // token `tokenFile` says, which an `InspectorClient` is given. A new target
 // is a reload of the one served; the Inspector gone, nothing is. `logs`
 // and `title` are as `serve` takes them, read as the target is first
-// served. Called once it is complete, and as its target changes.
+// served; given another, the target is served anew, under a new token: a
+// holder that moves the Observer from one application to another gives it
+// the other's root, log and title, and what the Observer shows is then all
+// the other's. Called once it is complete, and as each of them changes.
 export function follow(inspector: Serving, completed = false): void {
   untrack(() => {
     let held = serving.get(inspector);
-    if (!held) serving.set(inspector, (held = { complete: false, served: null }));
+    if (!held) serving.set(inspector, (held = { complete: false, served: null, logs: null, title: "" }));
     if (completed) held.complete = true;
     // A target set before the object is complete is served as it completes.
     if (!held.complete) return;
     const next = inspector.target;
-    if (!next) {
-      held.served?.close();
+    const logs = inspector.logs ?? null;
+    const title = inspector.title;
+    if (held.served && (!next || held.logs !== logs || held.title !== title)) {
+      held.served.close();
       held.served = null;
-    } else if (held.served) held.served.reload(next);
-    else held.served = serve(next, { ...(inspector.logs ? { logs: inspector.logs } : {}), title: inspector.title });
+    }
+    if (next && held.served) held.served.reload(next);
+    else if (next) {
+      held.served = serve(next, { ...(logs ? { logs } : {}), title });
+      held.logs = logs;
+      held.title = title;
+    }
     const token = held.served?.token ?? "";
     const url = held.served?.url ?? "";
     if (inspector.last.tokenFile !== token) inspector.last.tokenFile = token;
@@ -1154,7 +1230,9 @@ export function call(client: Client, tool: unknown, argumentsText: unknown): num
   serials.set(client, serial);
   untrack(() => (client.last.pending = client.last.pending + 1));
   const name = String(tool);
-  void ask(client, name, argumentsText).then(
+  // The token as the call is made: the application it is asked of.
+  const asked = untrack(() => String(client.tokenFile));
+  void ask(client, name, argumentsText, asked).then(
     (result) =>
       finish(
         client,
@@ -1182,13 +1260,16 @@ export function guideUrl(guide: unknown): string {
   return `https://github.com/olafura/ljos-ui/blob/main/${String(guide)}`;
 }
 
-async function ask(client: Client, tool: string, argumentsText: unknown): Promise<Result> {
+async function ask(client: Client, tool: string, argumentsText: unknown, asked: string): Promise<Result> {
   // Never inside the call: QML connects to `answered` once it has the serial.
   await Promise.resolve();
-  // The token as it is when the call is answered, as a native client reads
-  // its token file when it connects: an Observer made in the same pass as
-  // the inspector it is given asks before that inspector is served.
+  // A call made with no token yet is asked of the one there is now, as a
+  // native client reads its token file when it connects: an Observer made
+  // in the same pass as the inspector it is given asks before that
+  // inspector is served. One made with a token is never asked of another:
+  // an edit meant for one application would change the next one's.
   const token = untrack(() => String(client.tokenFile));
+  if (asked !== "" && token !== asked) throw new Error(`the client was given another token (\`${token || "none"}\`) before \`${asked}\` answered: ask again`);
   const state = served.get(token);
   if (!state) throw new Unreached(token ? `nothing on this page is served as \`${token}\`` : "no inspector is given: `tokenFile` is empty");
   const url = urlOf(token);

@@ -11,6 +11,8 @@ Item {
     property alias inspector: inspector
     property alias client: client
     property alias spinner: spinner
+    property alias other: other
+    property alias otherInspector: otherInspector
     property var answers: []
 
     Rectangle {
@@ -30,7 +32,17 @@ Item {
         Timer { id: tick; interval: 50; onTriggered: app.count++ }
     }
 
-    Inspector { id: inspector; target: app }
+    Inspector { id: inspector; target: app; title: "app" }
+
+    // Another application on the same page, served under a token of its own
+    // once a test gives its Inspector the target.
+    Rectangle {
+        id: other
+        objectName: "other"
+        x: 310; width: 80; height: 80
+        Text { id: otherLabel; objectName: "otherLabel"; text: "other" }
+    }
+    Inspector { id: otherInspector; title: "other" }
 
     InspectorClient {
         id: client

@@ -11,7 +11,7 @@ QtObject {
     // What is served: the root of an application.
     property var target: null
     // Where its log comes from (`ljos-web/Ljos/Observer`'s LogSource): the
-    // page's console when null. Read as the target is first served.
+    // page's console when null. Given another, the target is served anew.
     property var logs: null
     // The title the application's window is said to have.
     property string title
@@ -27,6 +27,9 @@ QtObject {
     }
 
     onTargetChanged: Inspecting.follow(inspector)
+    // Another log or title is another application's: served anew.
+    onLogsChanged: Inspecting.follow(inspector)
+    onTitleChanged: Inspecting.follow(inspector)
     Component.onCompleted: Inspecting.follow(inspector, true)
     Component.onDestruction: Inspecting.release(inspector)
 }
