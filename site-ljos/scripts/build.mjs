@@ -279,11 +279,13 @@ const rooted = (value) =>
 // the sidebar already names every docs page (`Nav.titled`): each
 // page loads the shell, so a second list of every title would be in
 // every page's first load.
+const after = " — Ljós";
+// The demos page's own name, which search.json lists it by too.
+const demosTitle = "Live demos";
 const own = {
   "/": "Ljós — malleable software, everywhere",
-  "/demos/": "Live demos — Ljós",
+  "/demos/": `${demosTitle}${after}`,
 };
-const after = " — Ljós";
 // The pro demos' pages are the site's own too (scripts/pro.mjs).
 Object.assign(own, Pro.titles(Pro.demos, after));
 const titles = {
@@ -670,7 +672,7 @@ writeFileSync(
   join(out, "search.json"),
   JSON.stringify([
     ...site.pages.map(({ route, title, headings }) => ({ route, title, headings: headings.map(({ plain, anchor }) => ({ plain, anchor })) })),
-    { route: "/demos/", title: "Live demos", headings: [] },
+    { route: "/demos/", title: demosTitle, headings: [] },
     ...Pro.demos.map((demo) => ({ route: Pro.route(demo), title: demo.title, headings: [] })),
   ]),
 );
