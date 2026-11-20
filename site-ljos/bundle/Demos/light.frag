@@ -1,5 +1,9 @@
 #version 440
 
+// Interfering light waves coloured through dark (0-2) and light (3-5) ramps.
+// Shader.qml binds the uniforms below by name; try changing the wave constants
+// or ramp colour stops to reshape the surface.
+
 layout(location = 0) in vec2 qt_TexCoord0;
 layout(location = 0) out vec4 fragColor;
 layout(std140, binding = 0) uniform buf {
@@ -11,12 +15,12 @@ layout(std140, binding = 0) uniform buf {
     vec2 resolution;
 } ubuf;
 
-// Light on water, worked out per pixel: a handful of travelling waves
-// interfere, one of them centred where the pointer is, and the sums
-// are coloured through one of three ramps, each dark (0-2) or light
-// (3-5) for the reader's colour scheme. Written for this page —
-// the build turns it into what the browser draws with, with no
-// shader compiler of anyone else's in the way.
+// Remix knobs: amplitude of the ambient ripples, pointer wake, and warm glow.
+const float WAVE_STRENGTH = 0.22;
+const float STIR_STRENGTH = 0.55;
+const float GLOW_STRENGTH = 0.25;
+const float GLOW_FALLOFF = 2.6;
+
 vec3 ramp(float v) {
     int which = int(ubuf.palette + 0.5);
     vec3 deep = vec3(0.05, 0.07, 0.12);
@@ -31,9 +35,8 @@ vec3 ramp(float v) {
         mid = vec3(0.14, 0.45, 0.38);
         crest = vec3(0.92, 0.97, 0.78);
     } else if (which == 3) {
-        // The light ones keep the darkest of what a ramp shows pale, so
-        // the dark words drawn over them stay readable: the muted caption
-        // (#3d4454) is at 5:1 or more on every stop of all three.
+        // Light ramps keep every stop pale so the dark captions over them stay
+        // above 5:1 contrast across the whole canvas.
         deep = vec3(0.94, 0.95, 0.97);
         mid = vec3(0.66, 0.78, 0.92);
         crest = vec3(0.99, 0.82, 0.52);
@@ -57,15 +60,17 @@ void main() {
     vec2 hand = vec2(ubuf.pointer.x * aspect, ubuf.pointer.y);
     float t = ubuf.time;
 
+    // Each time multiplier is a half-integer so the sum loops seamlessly at 4*pi.
     float waves = 0.0;
     waves += sin(p.x * 6.0 + t * 1.0) * 0.5;
     waves += sin(p.y * 8.0 - t * 1.5) * 0.5;
     waves += sin((p.x + p.y) * 5.0 + t * 0.5) * 0.5;
     waves += sin(length(p - vec2(aspect * 0.72, 0.30)) * 14.0 - t * 2.0) * 0.6;
-    float stirred = sin(length(p - hand) * 18.0 - t * 2.0) * exp(-length(p - hand) * 1.6);
-    float v = clamp(0.5 + (waves * 0.22 + stirred * 0.55), 0.0, 1.0);
 
-    float glow = exp(-length(p - hand) * 2.6) * 0.25;
+    float stirred = sin(length(p - hand) * 18.0 - t * 2.0) * exp(-length(p - hand) * 1.6);
+    float v = clamp(0.5 + (waves * WAVE_STRENGTH + stirred * STIR_STRENGTH), 0.0, 1.0);
+
+    float glow = exp(-length(p - hand) * GLOW_FALLOFF) * GLOW_STRENGTH;
     vec3 colour = ramp(v) + glow * vec3(1.0, 0.80, 0.45);
     fragColor = vec4(colour, 1.0) * ubuf.qt_Opacity;
 }
