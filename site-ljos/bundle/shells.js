@@ -144,8 +144,9 @@ function compiled(file, text) {
 // head.html: a rise and a scale, or with reduced motion a crossfade).
 // The transition is let go when `arrived` says the new shell is in,
 // and in any case after a second, so a shell that never comes does not
-// hold the page still. Answers false where there are none, for the
-// shell to fade itself in instead.
+// hold the page still; at once if `change()` answers false, having
+// changed nothing. Answers false where there are none, for the shell
+// to fade itself in instead.
 function swap(change, calm, arrived) {
     var document = globalThis.document;
     var root = document && document.documentElement;
@@ -155,7 +156,8 @@ function swap(change, calm, arrived) {
     }
     root.dataset.ljosSwap = calm ? "calm" : "rich";
     var transition = document.startViewTransition(function () {
-        change();
+        if (change() === false)
+            return undefined;
         return new Promise(function (done) {
             var waited = globalThis.setTimeout(done, 1000);
             arrived(function () {
