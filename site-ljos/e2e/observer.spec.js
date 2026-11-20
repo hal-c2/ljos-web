@@ -15,7 +15,7 @@ const isObserver = (url) => /Observer/.test(new URL(url).pathname);
 const dock = (page) => page.getByRole("group", { name: "Observer", exact: true });
 const observerButton = (block) => block.toolbar.getByRole("button", { name: /^Observer for / });
 const pageTab = (page, name) => page.getByRole("tab", { name, exact: true });
-// What Ljós's Observer lays its pages out for (Site/ObserverPanel.qml).
+// What Ljós's Observer lays its pages out for (`Theme.observerWidth`, which the dock gives the panel).
 const OBSERVER_WIDTH = 680;
 
 async function observed(page, index = 0) {
