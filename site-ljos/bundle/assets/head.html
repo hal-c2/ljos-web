@@ -13,10 +13,13 @@
      it, the page waits unseen until it is in (shells.js `shown`), so
      the reader never sees one shell turn into another; if that never
      comes, it shows anyway, and says so (`data-ljos-shell-late`) as
-     soon as the page starts to show: the page then stays in the shell
-     it is being shown in (Main.qml `late`). A
-     reader with no script runs none of this. -->
-<script>try{const k=localStorage.getItem(%SHELL_KEY%);if((k==="workbench"||k==="desktop")&&innerWidth>=%WIDE_FROM%){const r=document.documentElement;r.dataset.ljosShell=k;addEventListener("animationstart",e=>{if(e.animationName==="ljos-shell-late"&&!("ljosShellShown"in r.dataset))r.dataset.ljosShellLate=""})}}catch{}</script>
+     the page starts to show: the page then stays in the shell it is
+     being shown in (Main.qml `late`). Said on a timer as well as when
+     the fade starts: a browser in the middle of a view transition
+     sends no animation events until the transition is let go, which
+     is what being late has to do. A reader with no script runs none
+     of this. -->
+<script>try{const k=localStorage.getItem(%SHELL_KEY%);if((k==="workbench"||k==="desktop")&&innerWidth>=%WIDE_FROM%){const r=document.documentElement;r.dataset.ljosShell=k;const l=()=>{if(!("ljosShellShown"in r.dataset))r.dataset.ljosShellLate=""};setTimeout(l,%SHELL_WAIT%);addEventListener("animationstart",e=>{if(e.animationName==="ljos-shell-late")l()})}}catch{}</script>
 <!-- The design tokens as the HTML around the app reads them: the
      build writes tokens.js's colours here as `--ljos-<role>` and
      `--ljos-code-<tag>` (which the code blocks' `.tok-<tag>` classes
@@ -63,7 +66,7 @@
   .tok-invalid { color: var(--ljos-code-invalid); }
   .tok-topic { color: var(--ljos-code-topic); }
   /* The kept shell's page, held back until it is in (above). */
-  :root[data-ljos-shell]:not([data-ljos-shell-shown]) #app { opacity: 0; animation: ljos-shell-late 160ms ease-out 2500ms forwards; }
+  :root[data-ljos-shell]:not([data-ljos-shell-shown]) #app { opacity: 0; animation: ljos-shell-late 160ms ease-out %SHELL_WAIT%ms forwards; }
   :root[data-ljos-shell][data-ljos-shell-shown] #app { animation: ljos-shell-in 160ms ease-out; }
   @keyframes ljos-shell-late { to { opacity: 1; } }
   @keyframes ljos-shell-in { from { opacity: 0; } }
