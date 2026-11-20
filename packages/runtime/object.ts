@@ -2345,8 +2345,11 @@ function flatten(made: unknown, into: QObject[]): QObject[] {
   return into;
 }
 
+// Every index, holes too: `every` skips a hole, and `Array(1)` is not `[42]`.
 function sameItems(value: unknown, last: unknown): boolean {
-  return Array.isArray(value) && Array.isArray(last) && value.length === last.length && value.every((item, index) => Object.is(item, last[index]));
+  if (!Array.isArray(value) || !Array.isArray(last) || value.length !== last.length) return false;
+  for (let index = 0; index < value.length; index++) if (!Object.is(value[index], last[index])) return false;
+  return true;
 }
 
 // Runs `handler` when the property changes from what it is now, or from what
@@ -2377,8 +2380,9 @@ export function onChange(self: QObject, name: string, handler: Handler, first?: 
           // is a new array each read, and the same items in it are no change.
           const unchanged = same(value, last) || (fresh && sameItems(value, last));
           fresh = false;
-          if (unchanged) return;
+          // The next change is from this array, not from the one read before.
           last = value;
+          if (unchanged) return;
           after(() => heard(handler, undefined, self));
         },
       ),
