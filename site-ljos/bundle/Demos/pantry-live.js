@@ -64,7 +64,9 @@ async function compileWith() {
 async function moduleFor() {
     const compile = await compileWith();
     const files = Object.assign({}, project, { "Shell.qml": shellText });
-    const made = await compile({ files: files, entry: "Shell.qml" });
+    // With its places, as the shell the build compiled has them: the
+    // Observer's tree names a rewritten shell's blocks as it did the app's.
+    const made = await compile({ files: files, entry: "Shell.qml", inspect: true });
     said = (made.diagnostics || []).filter(function (d) {
         return (d.file || "Shell.qml") === "Shell.qml" && d.line;
     });
