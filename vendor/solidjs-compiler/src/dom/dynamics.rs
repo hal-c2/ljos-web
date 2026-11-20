@@ -496,16 +496,16 @@ fn is_value_key(key: &str) -> bool {
 /// `wrapDynamics` keeps the written order and skips the unchanged value, so
 /// a text field that becomes a checkbox keeps submitting "" (solid#4017's
 /// case, with the type bound); this departs from it there and nowhere else.
-/// A `class:type` or `style:type` names a class or a style, not the input's
-/// type, and stays where it is.
+/// Only `type` and `prop:type` are that type: Solid 2 reserves no namespace
+/// but `prop:`, so `class:type` or `style:type` is an attribute of that whole
+/// name, and its write stays where it is.
 fn commit_order(
     slots: &[DynamicSlot<'_>],
 ) -> (std::vec::Vec<usize>, std::vec::Vec<(String, usize)>) {
     let mut order: std::vec::Vec<usize> = (0..slots.len()).collect();
     let mut types = std::vec::Vec::new();
     for (index, slot) in slots.iter().enumerate() {
-        let local = slot.key.rsplit(':').next().unwrap_or(&slot.key);
-        if !slot.checkable_input || slot.class_property || slot.style_property || local != "type" {
+        if !slot.checkable_input || slot.key.trim_start_matches("prop:") != "type" {
             continue;
         }
         let place = order.iter().position(|&at| at == index).unwrap_or(index);
