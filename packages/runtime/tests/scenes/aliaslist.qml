@@ -2,8 +2,9 @@ import QtQuick
 
 // Objects given to an alias of an item's `data`: declared ones are added
 // to what the item has, and a binding's list is the whole of it, as Qt
-// 6.12 has them, and so is a list a script writes to it. One of its
-// `resources` holds what it is given without drawing it.
+// 6.12 has them, and so is a list a script writes to it, in its order; that
+// write ends the binding. One of its `resources` holds what it is given
+// without drawing it.
 Item {
     id: root
     objectName: "root"
@@ -13,6 +14,12 @@ Item {
     property Item one: Rectangle { objectName: "one" }
     property Item two: Rectangle { objectName: "two" }
     property Item three: Rectangle { objectName: "three" }
+    property Item alpha: Rectangle { objectName: "alpha" }
+    property Item beta: Rectangle { objectName: "beta" }
+    property Item gamma: Rectangle { objectName: "gamma" }
+    property Item four: Rectangle { objectName: "four" }
+    property Item five: Rectangle { objectName: "five" }
+    property Item six: Rectangle { objectName: "six" }
 
     AliasListHost {
         id: declared
@@ -31,6 +38,15 @@ Item {
         id: written
     }
 
+    AliasListHost {
+        id: ordered
+    }
+
+    AliasListHost {
+        id: rebound
+        content: root.flag ? [root.four] : [root.five]
+    }
+
     Rectangle { id: drawn; objectName: "drawn" }
     Rectangle { id: other; objectName: "other" }
     AliasListHost {
@@ -47,6 +63,24 @@ Item {
 
     function write() {
         written.content = [three]
+    }
+    function reorder() {
+        ordered.content = [alpha, beta, gamma]
+        const first = names(ordered.inner.children)
+        ordered.content = [gamma, alpha, beta]
+        return [first, names(ordered.inner.children)]
+    }
+    function writeOverBinding() {
+        rebound.content = [six]
+    }
+    function reboundNow() {
+        return { children: names(rebound.inner.children), fiveInside: five.parent === rebound.inner }
+    }
+    function heldOne() {
+        return drawn
+    }
+    function otherOne() {
+        return other
     }
     function names(list) {
         return Array.from(list, (each) => each.objectName).join(",")

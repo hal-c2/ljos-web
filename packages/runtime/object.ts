@@ -2089,23 +2089,26 @@ function isHeldList(object: Held, name: string): object is Holding {
 
 // What an object's list is given through an alias. Qt 6.12: the objects
 // declared for it are added to what is in it, and a list written or bound
-// to it is the whole of it, what it no longer has being left without a
-// parent. An item joins by its `parent`, as one moved by a program does,
-// and anything else by being added. `resources` holds without drawing
-// (`$hold`), so an item given to it keeps the parent it has.
+// to it is the whole of it, in its order, what it no longer has being left
+// without a parent. What already starts the list as written stays; from
+// the first that differs on, what it has is taken out and the rest given
+// again in order, as Qt clears and appends. An item joins by its `parent`,
+// as one moved by a program does, and anything else by being added.
+// `resources` holds without drawing (`$hold`), so an item given to it keeps
+// the parent it has.
 function intoHeldList(object: Holding, name: string, value: unknown, declared: boolean): void {
   const hold = name === "resources" ? object.$hold?.bind(object) : undefined;
   const next = flatten(value, []);
-  const before = untrack(() => [...((object[name] as readonly QObject[] | undefined) ?? [])]);
+  let kept = 0;
   if (!declared) {
-    for (const child of before) {
-      if (next.includes(child)) continue;
+    const before = untrack(() => [...((object[name] as readonly QObject[] | undefined) ?? [])]);
+    while (kept < before.length && kept < next.length && before[kept] === next[kept]) kept++;
+    for (const child of before.slice(kept)) {
       if (child.$node && !hold) (child as Dynamic).parent = null;
       else object.$remove?.(child);
     }
   }
-  for (const child of next) {
-    if (!declared && before.includes(child)) continue;
+  for (const child of next.slice(kept)) {
     if (hold) hold(child);
     else if (child.$node) (child as Dynamic).parent = object;
     else object.$add(child);
@@ -2143,6 +2146,9 @@ function defineAlias(self: QObject, name: string, [target, ...path]: AliasPath):
     : evaluate;
   // A binding like any other: one that cannot be evaluated yet is told of.
   const binding = given ? guarded(name, give) : null;
+  // A script's write to the alias ends what was bound to it, as any
+  // assignment ends a property's binding (Qt 6.12).
+  let written = false;
   Object.defineProperty(self, name, {
     get: path.length
       ? () => (early?.() ? binding!() : holder()?.[last])
@@ -2151,6 +2157,7 @@ function defineAlias(self: QObject, name: string, [target, ...path]: AliasPath):
     set(value: unknown) {
       const object = holder();
       if (!path.length || !object) return;
+      written = true;
       if (isHeldList(object, last)) intoHeldList(object, last, value, false);
       else object[last] = value;
     },
@@ -2187,7 +2194,7 @@ function defineAlias(self: QObject, name: string, [target, ...path]: AliasPath):
         settled(() => {
           const object = holder();
           // A binding that could not be evaluated has nothing to assign.
-          if (!object || (value === undefined && binding!.failing)) return;
+          if (written || !object || (value === undefined && binding!.failing)) return;
           if (isHeldList(object, last)) return intoHeldList(object, last, value, declared);
           // It is a binding all the same: a value the property cannot hold
           // leaves it what it held, and is told of.
@@ -3233,7 +3240,7 @@ export function heldBy(holder: QObject, objects: readonly QObject[]): void {
   if (getOwner()) onCleanup(() => letGo(holder, objects));
 }
 
-function letGo(holder: QObject, objects: readonly QObject[]): void {
+export function letGo(holder: QObject, objects: readonly QObject[]): void {
   for (const object of objects) holders.get(object)?.delete(holder);
 }
 
