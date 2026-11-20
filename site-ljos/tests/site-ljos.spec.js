@@ -82,8 +82,10 @@ const shown = (locator) => locator.filter({ visible: true });
 test("the landing page leads with your own shell, and never pitches compatibility", async ({ page }) => {
   await page.goto("/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
-  // The footer says the same words, smaller, at the page's end.
-  await expect(page.getByText("Typed apps you can see inside and drive while they run.", { exact: true }).first()).toBeInViewport();
+  // The page opens on its name; the footer, at the page's end, says in
+  // a line what Ljós is.
+  await expect(page.getByText("Ljós — malleable software, everywhere", { exact: true }).first()).toBeInViewport();
+  await expect(page.getByText("Typed apps you can see inside and drive while they run.", { exact: true }).last()).toBeAttached();
   // The page's own words: the code in a field is the reader's to
   // edit, and an `import QtQuick` there pitches nothing.
   const words = await page.locator("#app").evaluate((app) => {
@@ -518,8 +520,9 @@ test("light and dark are the reader's", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "light" });
   await page.goto("/start/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
-  // The header's own ground, at a point nothing else covers.
-  const ground = () => page.evaluate(() => getComputedStyle(document.elementFromPoint(700, 28)).backgroundColor);
+  // The header's own ground, above its controls (each 40 high in its
+  // 64), where nothing else covers it whatever the header holds.
+  const ground = () => page.evaluate(() => getComputedStyle(document.elementFromPoint(700, 4)).backgroundColor);
   const before = await ground();
   expect(before).not.toBe("rgba(0, 0, 0, 0)");
   await page.getByRole("button", { name: "Use the dark theme" }).click();
