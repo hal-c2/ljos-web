@@ -1207,8 +1207,8 @@ in the inspector's own shapes, answered from `inspect(root)` (A16):
 | `app_processes` | this page's one thread, and the timers and animations of the tree |
 
 What a page cannot answer is refused in the inspector's own error shape,
-`unsupported`, with why: `app_trace` and `app_audit` (no native process to
-trace or audit), a kind of process other than a thread, timer or
+`unsupported`, with why: `app_trace` and `app_audit` (the records of signals,
+changes and binding runs, and the design audit, are `ljos run`'s), a kind of process other than a thread, timer or
 animation, memory, and a binding typed in the Observer.
 
 - DECISION: `Ljos.Observer` runs on the web (it was refused by qmlc
@@ -1223,6 +1223,14 @@ animation, memory, and a binding typed in the Observer.
   a pass is one task's changes to the page, so frames and paints are one
   count; render, binding and text times are not measured (null), and a
   pass's time goes to what woke it.
+- DECISION: a holder waits on one `app_watch` at a time: asked again, the
+  watch it had out is answered at once, with nothing changed. The
+  Observer follows an item picked with a new watch while the one that
+  follows every pass is still out, and asks again only once none of its
+  own is waiting; kept waiting, that first watch would be answered by
+  the next pass, for nothing the Observer still follows, and leave no
+  watch out. An item is counted by the pass's changes inside its nodes,
+  where natively it is by where the pass changed the picture.
 - DECISION: an Observer edit keeps the binding under the value, as every
   property write on the web does, and Revert gives it back. A binding
   typed in the Observer is refused: the page's QML was compiled before it
