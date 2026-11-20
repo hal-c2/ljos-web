@@ -119,12 +119,17 @@ Rectangle {
         }
         var moved = Frames.swap(() => {
             // Asked for again meanwhile (the head's watchdog gave up on
-            // a kept shell): the later ask stands.
+            // a kept shell): the later ask stands, and this swap has
+            // nothing to wait for.
             if (sitePreferences.shown !== name)
-                return;
+                return false;
             main.userShell = null;
             main.framed = name;
-        }, sitePreferences.calm, (done) => main.arrived = done);
+            return true;
+        }, sitePreferences.calm, (done) => {
+            main.letGo();
+            main.arrived = done;
+        });
         if (!moved)
             fadeIn.armed = true;
     }
@@ -173,6 +178,17 @@ Rectangle {
         });
     }
 
+    // A swap waiting for its shell to come is let go: the browser shows
+    // the page again (shells.js `swap`). Called when the shell is in,
+    // and wherever a swap is given up, so the browser does not hold the
+    // page's last picture until the swap's own fallback.
+    function letGo() {
+        var release = main.arrived;
+        main.arrived = null;
+        if (release)
+            release();
+    }
+
     // The head's watchdog showed the page while the kept shell was still
     // on its way: what the reader now sees is Marketing, so the kept
     // shell is not put over it, which would be the very jump the page
@@ -180,7 +196,7 @@ Rectangle {
     function late() {
         if (!main.revealing)
             return;
-        main.arrived = null;
+        main.letGo();
         fadeIn.armed = false;
         main.framed = "marketing";
         sitePreferences.shell = "marketing";
@@ -506,11 +522,7 @@ Rectangle {
                 return;
             if ("site" in loader.item && loader.item.site !== main)
                 loader.item.site = main;
-            if (main.arrived) {
-                var done = main.arrived;
-                main.arrived = null;
-                done();
-            }
+            main.letGo();
             if (fadeIn.armed) {
                 fadeIn.armed = false;
                 fadeIn.target = loader.item;
