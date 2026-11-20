@@ -181,9 +181,9 @@ impl<'a> AstDomTransform<'a, '_> {
         let span = dynamics
             .first()
             .map_or_else(Span::default, |slot| slot.span);
-        let types = type_first(&mut dynamics);
+        let (order, types) = commit_order(&dynamics);
         let mut value_props = self.ast().vec();
-        let mut statements = self.ast().vec();
+        let mut written: std::vec::Vec<Option<Statement<'a>>> = std::vec::Vec::new();
         let mut param_names = std::vec::Vec::new();
         let held_name = get_numbered_id(dynamics.len());
         let mut uses_held = false;
@@ -192,7 +192,7 @@ impl<'a> AstDomTransform<'a, '_> {
             let prop_name = get_numbered_id(index);
             let slot_span = slot.span;
             // The `type` this value is written under, when that is bound in
-            // this effect too (see `type_first`).
+            // this effect too (see `commit_order`).
             let type_name = (slot.checkable_input && is_value_key(&slot.key))
                 .then(|| types.iter().find(|(elem, _)| *elem == slot.elem))
                 .flatten()
@@ -260,7 +260,7 @@ impl<'a> AstDomTransform<'a, '_> {
                 } else {
                     set_attr
                 };
-                statements.push(self.ast().statement_expression(slot_span, set_attr));
+                written.push(Some(self.ast().statement_expression(slot_span, set_attr)));
             } else {
                 let changed = if slot.key == "textContent" {
                     // `!_p$ || <v> !== _p$.<v>`
@@ -309,7 +309,7 @@ impl<'a> AstDomTransform<'a, '_> {
                         checkable_input: slot.checkable_input,
                     },
                 );
-                statements.push(self.ast().statement_expression(
+                written.push(Some(self.ast().statement_expression(
                     slot_span,
                     self.ast().expression_logical(
                         slot_span,
@@ -317,10 +317,12 @@ impl<'a> AstDomTransform<'a, '_> {
                         LogicalOperator::And,
                         set_attr,
                     ),
-                ));
+                )));
             }
             param_names.push(prop_name);
         }
+        let mut statements = self.ast().vec();
+        statements.extend(order.into_iter().filter_map(|at| written[at].take()));
         if uses_held {
             self.template_state.uses_held_read = true;
             let read = self.call_identifier(span, "_$heldRead", std::vec::Vec::new());
@@ -484,42 +486,38 @@ fn is_value_key(key: &str) -> bool {
     matches!(key.trim_start_matches("prop:"), "value" | "defaultValue")
 }
 
-/// Moves the bound `type` of an input that may be checkable ahead of that
-/// input's value writes, and returns where each such `type` now is, by
-/// element. `setProperty` decides on the live `type` whether a nullish value
-/// clears to "" or removes the attribute (restoring the checked box's "on"),
-/// so the value write has to come after the type write, and run again when
-/// only the type changed. Babel's `wrapDynamics` keeps the written order and
-/// skips the unchanged value, so a text field that becomes a checkbox keeps
-/// submitting "" (solid#4017's case, with the type bound); this departs from
-/// it there and nowhere else.
-fn type_first(slots: &mut std::vec::Vec<DynamicSlot<'_>>) -> std::vec::Vec<(String, usize)> {
+/// The order the writes of one effect are made in, and, by element, the
+/// slot of each bound `type` of an input that may be checkable. The values
+/// are still read in the order written; only that `type`'s write is moved
+/// ahead of the same input's value writes. `setProperty` decides on the live
+/// `type` whether a nullish value clears to "" or removes the attribute
+/// (restoring the checked box's "on"), so the value write has to come after
+/// the type write, and run again when only the type changed. Babel's
+/// `wrapDynamics` keeps the written order and skips the unchanged value, so
+/// a text field that becomes a checkbox keeps submitting "" (solid#4017's
+/// case, with the type bound); this departs from it there and nowhere else.
+/// A `class:type` or `style:type` names a class or a style, not the input's
+/// type, and stays where it is.
+fn commit_order(
+    slots: &[DynamicSlot<'_>],
+) -> (std::vec::Vec<usize>, std::vec::Vec<(String, usize)>) {
+    let mut order: std::vec::Vec<usize> = (0..slots.len()).collect();
     let mut types = std::vec::Vec::new();
-    let mut index = 0;
-    while index < slots.len() {
-        let slot = &slots[index];
+    for (index, slot) in slots.iter().enumerate() {
         let local = slot.key.rsplit(':').next().unwrap_or(&slot.key);
-        if slot.checkable_input && local == "type" {
-            let first_value = slots[..index]
-                .iter()
-                .position(|other| other.elem == slot.elem && is_value_key(&other.key));
-            let at = match first_value {
-                Some(at) => {
-                    let moved = slots.remove(index);
-                    slots.insert(at, moved);
-                    for (_, place) in &mut types {
-                        if *place >= at {
-                            *place += 1;
-                        }
-                    }
-                    at
-                }
-                None => index,
-            };
-            types.push((slots[at].elem.clone(), at));
+        if !slot.checkable_input || slot.class_property || slot.style_property || local != "type" {
+            continue;
         }
-        index += 1;
+        let place = order.iter().position(|&at| at == index).unwrap_or(index);
+        let first_value = order[..place].iter().position(|&at| {
+            slots[at].elem == slot.elem && is_value_key(&slots[at].key)
+        });
+        if let Some(to) = first_value {
+            order.remove(place);
+            order.insert(to, index);
+        }
+        types.push((slot.elem.clone(), index));
     }
-    types
+    (order, types)
 }
 
