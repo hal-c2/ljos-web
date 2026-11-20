@@ -5,7 +5,7 @@
 // so they are computed here, anchors included, and the element is only told
 // the result.
 import { onCleanup, runWithOwner } from "solid-js";
-import { contents, defineType, derived, effect, flush, group, heldBy, inside, kinds, parental, parented, QtObject, settle, typed } from "../object.ts";
+import { contents, defineType, derived, effect, flush, group, heldBy, inside, letGo, kinds, parental, parented, QtObject, settle, typed } from "../object.ts";
 import { Rect } from "../QtQml/values.ts";
 import { drawing, drawn } from "./drawn.ts";
 import { declared, forceActiveFocus, nextItemInFocusChain, reachable, setFocus, under } from "./focus.ts";
@@ -389,11 +389,15 @@ export const Item = defineType("Item", QtObject, {
       runWithOwner(null, () => heldBy(this, [object]));
       this.$touch((version) => version + 1);
     },
-    // Takes one out, whether it was made with this or added later.
+    // Takes one out, whether it was made with this or added later. One it
+    // held (`$hold`) is no longer held by it.
     $remove(item) {
       const index = this.$extra?.indexOf(item) ?? -1;
       const held = this.$held?.includes(item);
-      if (held) this.$held = this.$held.filter((object) => object !== item);
+      if (held) {
+        this.$held = this.$held.filter((object) => object !== item);
+        letGo(this, [item]);
+      }
       if (index >= 0) this.$extra.splice(index, 1);
       else if (this.$static.includes(item)) this.$static = this.$static.filter((child) => child !== item);
       else if (!held) return;
