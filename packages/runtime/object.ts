@@ -1177,8 +1177,10 @@ class Slot {
     // property the QML declares holds (`property Item made: Item {}`): it is
     // the property's, and in no visual list until something puts it in one,
     // as Qt has it. A type's own property (a Control's `background`) makes
-    // its item the type's child.
-    const own = declares(props.$declare, key);
+    // its item the type's child. What decides it is the property's own
+    // declaration, not the name it is given by: an alias of it
+    // (`exposed: inner.made`) gives it under the alias's.
+    const own = declares(self.$props?.$declare, this.key);
     const make = () =>
       complete(() => {
         const visual = own ? null : (self.$contentItem ?? (self.$node ? self : null));
@@ -2230,7 +2232,9 @@ function create(Type: QmlType, props: Props): QObject {
       else if (madeApart && parent) hidden(self, "$declaredIn", parent);
       // What is made later inside an object bounded (a Repeater's delegate, a
       // Loader's item) is bounded as it is.
-      const boundary = fault ?? parent?.$fault;
+      // One a property holds, made in no visual parent, is bounded as the
+      // object that holds it.
+      const boundary = fault ?? parent?.$fault ?? holder?.$fault;
       if (boundary) hidden(self, "$fault", boundary);
       // A root that may be reloaded knows what was made in what, so that a
       // reload can tell which object of the new tree is which of the old.
