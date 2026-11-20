@@ -2108,7 +2108,10 @@ function defineAlias(self: QObject, name: string, [target, ...path]: AliasPath):
     const aliased = target.$type && slot(target as unknown as QObject, key);
     if (!aliased) return false;
     setEarly!(false);
-    aliased.bind(self.$props, name);
+    // An object a read before this made is the one the target is given.
+    const kept = made;
+    made = null;
+    aliased.bind(kept ? Object.create(self.$props, { [name]: { get: () => kept.value, enumerable: true } }) : self.$props, name);
     return true;
   };
   // A declared object is the target's as the objects properties hold are
