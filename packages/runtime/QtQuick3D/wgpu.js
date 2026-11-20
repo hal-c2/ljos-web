@@ -557,6 +557,10 @@ const LOSSES_IN = 60_000;
 let losses = [];
 let counting = false;
 let givenUp = null;
+// The views that draw on the JavaScript renderer once WebGPU is given up,
+// each by what retires it from wgpu: one already made again on wgpu when
+// another found WebGPU gone goes with it.
+const retiring = new Set();
 function lostOnce(message) {
   if (givenUp || counting) return givenUp;
   // The views of one device are told of losing it in the same task.
@@ -848,6 +852,13 @@ export function drawOn(self, canvas, told, instead) {
     make();
   };
   let host = new Host(self, setArrivals, arrivals, request, lost);
+  const retire = () => {
+    if (gone) return;
+    end();
+    instead(gaveCanvas);
+    setDraws((times) => times + 1);
+  };
+  if (instead) retiring.add(retire);
   const stop = () => {
     state.error = stopped;
     due = false;
@@ -941,7 +952,11 @@ export function drawOn(self, canvas, told, instead) {
         // or gave up; a view that fails for a reason of its own, with an
         // adapter still there, stops alone.
         const none = !givenUp && state.lost && !(await navigator.gpu?.requestAdapter().catch(() => null));
-        if ((none || givenUp) && !gone) return void giveUp((givenUp ??= `the GPU was lost, and none is to be had again: ${error?.message ?? error}`));
+        if ((none || givenUp) && !gone) {
+          givenUp ??= `the GPU was lost, and none is to be had again: ${error?.message ?? error}`;
+          for (const other of [...retiring]) other();
+          return void (gone || giveUp(givenUp));
+        }
         state.error = String(error?.message ?? error);
         console.error(`View3D: ${state.error}`);
       });
@@ -1020,8 +1035,13 @@ export function drawOn(self, canvas, told, instead) {
     },
   );
 
-  return () => {
+  // Once, whether the view is retired from wgpu or let go, or both.
+  let ended = false;
+  function end() {
+    if (ended) return;
+    ended = true;
     gone = true;
+    retiring.delete(retire);
     stopping.delete(stop);
     for (const end of followers.values()) end();
     followers.clear();
@@ -1043,6 +1063,7 @@ export function drawOn(self, canvas, told, instead) {
       setMade(null);
       into(() => view.free());
     }
-  };
+  }
+  return end;
 }
 
