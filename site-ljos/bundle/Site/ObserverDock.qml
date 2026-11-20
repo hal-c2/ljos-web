@@ -12,21 +12,31 @@ import "../observing.js" as Observing
 // Observer unmade, and what it served of the app let go of. The
 // Observer itself (Site/ObserverPanel.qml) is fetched the first time a
 // reader opens it (observing.js).
+//
+// The dock itself has no size: it is told the room it stands in (`room`
+// wide, `roomHeight` tall, from where it is placed) and covers only what
+// it shows there. An item over the page takes the clicks a browser gives
+// what is under it, links and all, even with nothing in it to press.
 Item {
     id: dock
+    width: 0
+    height: 0
+
+    property real room: 0
+    property real roomHeight: 0
 
     // What is shown: { key, target, logs, title }, or null.
     property var shown: null
     readonly property bool open: shown !== null
-    readonly property bool sheet: width < Theme.wideFrom
+    readonly property bool sheet: room < Theme.wideFrom
     // Made while open, and while it slides away.
     property bool held: false
 
     // Docked, it is never narrower than Ljós's Observer lays its pages out
     // for: a narrower dock left a value no room to be read or edited. A
     // sheet is the phone's width, and the panel scrolls sideways in it.
-    readonly property int panelWidth: sheet ? width : Math.min(760, Math.max(Theme.observerWidth, Math.round(width * 0.5)))
-    readonly property int panelHeight: sheet ? Math.round(height * 0.72) : height
+    readonly property int panelWidth: sheet ? room : Math.min(760, Math.max(Theme.observerWidth, Math.round(room * 0.5)))
+    readonly property int panelHeight: sheet ? Math.round(roomHeight * 0.72) : roomHeight
 
     function show(what) {
         held = true;
@@ -42,7 +52,8 @@ Item {
     // A press beside a sheet closes it, as beside any sheet; a docked
     // panel leaves the page to be clicked in.
     Rectangle {
-        anchors.fill: parent
+        width: dock.room
+        height: dock.roomHeight
         visible: dock.sheet && (dock.open || slide.running)
         color: Theme.scrim
         opacity: dock.open ? 1 : 0
@@ -63,8 +74,8 @@ Item {
         visible: dock.held
         width: dock.panelWidth
         height: dock.panelHeight
-        x: dock.sheet ? 0 : dock.open ? dock.width - width : dock.width
-        y: dock.sheet ? (dock.open ? dock.height - height : dock.height) : 0
+        x: dock.sheet ? 0 : dock.open ? dock.room - width : dock.room
+        y: dock.sheet ? (dock.open ? dock.roomHeight - height : dock.roomHeight) : 0
         radius: dock.sheet ? Theme.radiusLarge : 0
         color: Theme.surface
         border.color: Theme.divider

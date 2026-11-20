@@ -565,8 +565,8 @@ Rectangle {
         id: observerDock
         z: 4
         anchors.left: parent.left
-        anchors.right: parent.right
         anchors.top: header.bottom
-        anchors.bottom: parent.bottom
+        room: parent.width
+        roomHeight: parent.height - header.height
     }
 }

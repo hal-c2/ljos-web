@@ -31,6 +31,7 @@ Feature: The Observer looks into what runs on the page
     Then it stands along the right of the window, under the header
     And it is as wide as the Observer's pages are laid out for, so each value it shows can be edited
     And the page reflows beside it, so the example can still be pressed
+    And a link on the page beside it is followed when it is clicked
 
   Scenario: On a phone it is a sheet
     Given a window narrower than 1000 pixels
@@ -73,6 +74,7 @@ Feature: The Observer looks into what runs on the page
     Given the Observer is open on an example
     When the reader closes it, or stops the example
     Then the Observer slides away, and nothing of it is left in the page
+    And nothing of it stands over the page: a link anywhere on it is followed when it is clicked
     And the example no longer serves an inspector
 
   Scenario: The flagship demo is looked into while its shell is rewritten
