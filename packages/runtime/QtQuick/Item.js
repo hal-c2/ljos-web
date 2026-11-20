@@ -5,7 +5,7 @@
 // so they are computed here, anchors included, and the element is only told
 // the result.
 import { onCleanup, runWithOwner } from "solid-js";
-import { contents, defineType, derived, effect, flush, group, heldBy, inside, letGo, kinds, parental, parented, QtObject, settle, typed } from "../object.ts";
+import { contents, defineType, derived, effect, flush, group, heldBy, inside, letGo, kinds, native, parental, parented, QtObject, settle, typed } from "../object.ts";
 import { Rect } from "../QtQml/values.ts";
 import { drawing, drawn } from "./drawn.ts";
 import { declared, forceActiveFocus, nextItemInFocusChain, reachable, setFocus, under } from "./focus.ts";
@@ -173,10 +173,10 @@ function transform(self) {
     const all = Array.isArray(list) ? list : [list];
     for (let index = all.length - 1; index >= 0; index--) css += ` ${all[index].$css()}`;
   }
-  const scale = over?.scale ?? self.scale;
-  const rotation = over?.rotation ?? self.rotation;
+  const scale = over?.scale ?? native(self, "scale");
+  const rotation = over?.rotation ?? native(self, "rotation");
   if (scale !== 1 || rotation !== 0) {
-    const [fx, fy] = ORIGINS[self.transformOrigin] ?? ORIGINS[4];
+    const [fx, fy] = ORIGINS[native(self, "transformOrigin")] ?? ORIGINS[4];
     const x = fx * self.width;
     const y = fy * self.height;
     css += ` translate(${x}px,${y}px) scale(${scale}) rotate(${rotation}deg) translate(${-x}px,${-y}px)`;
@@ -448,7 +448,7 @@ export const Item = defineType("Item", QtObject, {
       },
     );
     effect(
-      () => [self.visible, drawn(self, "opacity"), self.z, self.clip, self.z < 0 ? self.parent : null],
+      () => [native(self, "visible"), drawn(self, "opacity"), native(self, "z"), native(self, "clip"), native(self, "z") < 0 ? self.parent : null],
       ([visible, opacity, z, clip, above]) => {
         above?.$lower?.();
         node.style.display = visible ? "" : "none";
