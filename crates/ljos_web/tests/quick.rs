@@ -2558,6 +2558,77 @@ fn directories_imported_under_one_name_are_one_namespace() {
     assert_contains(&code, "const P = $namespace(");
 }
 
+/// `Main` lowered with `Parts` a module of the package (installed), whose
+/// `Clock` is the file `parts/Clock`.
+fn lowered_with_package(files: &[(&str, &str)]) -> String {
+    let mut project = Project::new();
+    for (file, source) in files {
+        project
+            .add(file, source)
+            .unwrap_or_else(|errors| panic!("{file}: {errors:?}"));
+    }
+    project.add_type("Parts", "Clock", "parts/Clock");
+    let options = Options {
+        name: "Main".to_string(),
+        project: Some(project),
+        installed: vec!["Parts".to_string()],
+        ..Options::default()
+    };
+    let main = files
+        .iter()
+        .find(|(file, _)| *file == "Main")
+        .expect("Main")
+        .1;
+    lowered_source(main, &options).unwrap_or_else(|errors| panic!("{errors:?}"))
+}
+
+#[test]
+fn a_module_of_the_package_and_a_directory_under_one_name_are_one_namespace() {
+    // `import Parts as P` and `import "extra" as P`, in either order: the
+    // name has the types of both. A singleton of the package is the object
+    // it exports and one of the directory the function of its file, each
+    // read as what it is; where both have a type (`Clock`) it is the one
+    // imported last, as it is to the types.
+    let parts = (
+        "parts/Clock",
+        "pragma Singleton\nimport QtQuick\nQtObject { property int hour: 3 }",
+    );
+    let extra = [
+        (
+            "extra/Clock",
+            "pragma Singleton\nimport QtQuick\nQtObject { property int hour: 4 }",
+        ),
+        (
+            "extra/Tick",
+            "pragma Singleton\nimport QtQuick\nQtObject { property int beat: 1 }",
+        ),
+        ("extra/Dial", "import QtQuick\nItem { }"),
+    ];
+    let body = "Item {\n    property int hour: P.Clock.hour\n    property int beat: P.Tick.beat\n    P.Dial { }\n}";
+
+    // The directory last: its `Clock` is the one.
+    let main = format!("import QtQuick\nimport Parts as P\nimport \"extra\" as P\n{body}");
+    let code = lowered_with_package(&[("Main", &main), parts, extra[0], extra[1], extra[2]]);
+    assert_contains(&code, r#"import * as P$0 from "ljos-web/Parts";"#);
+    assert_contains(&code, r#"import P$Clock from "./extra/Clock.qml";"#);
+    assert_contains(&code, r#"import P$Dial from "./extra/Dial.qml";"#);
+    assert_contains(&code, "hour={P.Clock().hour}");
+    assert_contains(&code, "beat={P.Tick().beat}");
+    assert_contains(&code, "const P = $namespace(");
+    assert_contains(&code, "}, P$0);");
+
+    // The package last: its `Clock` is the one, read as its object, and
+    // the directory's is not imported.
+    let main = format!("import QtQuick\nimport \"extra\" as P\nimport Parts as P\n{body}");
+    let code = lowered_with_package(&[("Main", &main), parts, extra[0], extra[1], extra[2]]);
+    assert_contains(&code, r#"import * as P$0 from "ljos-web/Parts";"#);
+    assert_lacks(&code, "./extra/Clock.qml");
+    assert_contains(&code, r#"import P$Dial from "./extra/Dial.qml";"#);
+    assert_contains(&code, "hour={P.Clock.hour}");
+    assert_contains(&code, "beat={P.Tick().beat}");
+    assert_contains(&code, "}, P$0);");
+}
+
 #[test]
 fn a_module_of_the_project_and_a_directory_imported_under_one_name_are_one_namespace() {
     // `import Parts as P` and `import "extra" as P`, in either order: the
