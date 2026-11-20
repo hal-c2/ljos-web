@@ -29,6 +29,10 @@ Rectangle {
     function toggle() {
         if (choices.item) {
             choices.item.toggle();
+        } else if (choices.status === Loader.Error) {
+            // Its module did not come (a dropped connection): the press
+            // asks for it again, as the first did.
+            choices.setSource(Later.shellChoices);
         } else {
             switcher.choosing();
             choices.active = true;
