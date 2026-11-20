@@ -495,11 +495,9 @@ Column {
                 // Ljós's Observer on the app running here: its objects,
                 // properties, frames and log, as `ljos observe` shows a
                 // native one's. Only while it runs.
-                StageButton {
+                ObserverButton {
                     visible: stage.status === ShellLoader.Ready && stage.item !== null
-                    checkable: true
                     checked: block.observing
-                    text: t({ message: "Observer", context: "stage" })
                     label: t`Observer for ${block.what}`
                     onPressed: block.toggleObserver()
                 }

@@ -198,15 +198,13 @@ Column {
 
         // Ljós's Observer on the app while it runs: its objects,
         // properties, frames and log, under whichever shell stands.
-        StageButton {
+        ObserverButton {
             id: observerButton
             anchors.right: parent.right
             anchors.rightMargin: 6
             anchors.verticalCenter: parent.verticalCenter
             visible: stage.item !== null
-            checkable: true
             checked: demo.observing
-            text: t({ message: "Observer", context: "stage" })
             label: t`Observer for the Pantry`
             onPressed: Observing.toggle(demo.observerKey, stage.item, null, t`the Pantry`)
         }

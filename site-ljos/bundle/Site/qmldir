@@ -22,5 +22,6 @@ MotionToggle 1.0 MotionToggle.qml
 FeatureCard 1.0 FeatureCard.qml
 Runner 1.0 Runner.qml
 StageButton 1.0 StageButton.qml
+ObserverButton 1.0 ObserverButton.qml
 ProDemoPage 1.0 ProDemoPage.qml
 ObserverDock 1.0 ObserverDock.qml

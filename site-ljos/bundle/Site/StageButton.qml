@@ -21,6 +21,14 @@ Rectangle {
     property bool checkable: false
     property bool checked: false
     signal pressed
+    // A pointer came onto it, focus was brought to it or a finger landed
+    // on it: what a press would start can be got ready ahead of it.
+    signal approached
+
+    onActiveFocusChanged: {
+        if (activeFocus)
+            approached();
+    }
 
     readonly property bool live: enabled && !busy
 
@@ -89,6 +97,11 @@ Rectangle {
         hoverEnabled: true
         Accessible.ignored: true
         cursorShape: button.busy ? Qt.BusyCursor : button.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+        onContainsMouseChanged: {
+            if (containsMouse)
+                button.approached();
+        }
+        onPressed: button.approached()
         onClicked: {
             if (button.live)
                 button.pressed();

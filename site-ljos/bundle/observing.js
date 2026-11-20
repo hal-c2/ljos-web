@@ -4,7 +4,7 @@
 // (Site/ObserverDock.qml). A toolbar asks for it by its stage's key; the
 // dock shows what was asked last, and each toolbar's Observer button
 // follows whether it is its own. Nothing of the Observer is fetched
-// until a reader opens it: `panel` imports it then.
+// until a stage offers it (`prefetchWhenIdle`, `prefetch`, `panel`).
 
 // The dock, once the shell has made it.
 var dock = null;
@@ -88,7 +88,43 @@ function tell() {
     });
 }
 
+// The Observer's chunk once it was asked for. It is fetched once, by
+// whichever asks first: the press, a reader coming near a button
+// (`prefetch`) or the page having nothing else to do (`prefetchWhenIdle`).
+var chunk = null;
+var idleAsked = false;
+
+// Fetches the Observer ahead of the press, so that it opens at once: an
+// Observer button calls it when a pointer comes onto it, focus is brought
+// to it or a finger lands on it.
+function prefetch() {
+    if (chunk === null) {
+        chunk = import("ljos-web/observer/ObserverPanel.qml");
+        // One that failed (the network went) is asked for again next time.
+        chunk.catch(function () {
+            chunk = null;
+        });
+    }
+    return chunk;
+}
+
+// Fetches it once the page is idle, after it was hydrated and the stage
+// that offers the Observer drew: an Observer button calls it when it is
+// shown. It asks once and does nothing more, so a page at rest stays at
+// rest. A browser that cannot say when it is idle waits for the reader.
+function prefetchWhenIdle() {
+    if (chunk !== null || idleAsked)
+        return;
+    var idle = globalThis.requestIdleCallback;
+    if (typeof idle !== "function")
+        return;
+    idleAsked = true;
+    idle.call(globalThis, function () {
+        prefetch();
+    });
+}
+
 // The Observer itself, as a Loader's source: a chunk of its own.
 function panel() {
-    return import("ljos-web/observer/ObserverPanel.qml");
+    return prefetch();
 }
