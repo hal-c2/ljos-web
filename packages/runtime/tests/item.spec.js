@@ -266,6 +266,19 @@ test("an item made as a declared property's value has its owner's error boundary
   expect(answer).toEqual([true, true, null]);
 });
 
+// An alias of an alias is assigned once all is made: what it is given is
+// still the declared property's, parentless, under its owner's boundary.
+test("an item given through an alias of an alias of a declared property has no parent and its owner's error boundary", async ({ page }) => {
+  await open(page, "propertyitemparent");
+  expect(await page.evaluate(() => window.scene.throughChain())).toEqual(["madeChain", null, 0]);
+  const answer = await page.evaluate(() => {
+    const boundary = () => {};
+    Object.defineProperty(window.scene.boundingItem(), "$fault", { value: boundary, configurable: true });
+    return window.scene.chainLater();
+  });
+  expect(answer).toEqual(["madeChainLater", true, null]);
+});
+
 test("what is destroyed is gone from the resources that held it", async ({ page }) => {
   await open(page, "resourcesheld");
   await page.evaluate(() => window.scene.drop());
