@@ -12,10 +12,11 @@
      has been taken over. Where one is kept and the window has room for
      it, the page waits unseen until it is in (shells.js `shown`), so
      the reader never sees one shell turn into another; if that never
-     comes, it shows anyway, and says so (`data-ljos-shell-late`): the
-     page then stays in the shell it was shown in (Main.qml `late`). A
+     comes, it shows anyway, and says so (`data-ljos-shell-late`) as
+     soon as the page starts to show: the page then stays in the shell
+     it is being shown in (Main.qml `late`). A
      reader with no script runs none of this. -->
-<script>try{const k=localStorage.getItem(%SHELL_KEY%);if((k==="workbench"||k==="desktop")&&innerWidth>=%WIDE_FROM%){const r=document.documentElement;r.dataset.ljosShell=k;addEventListener("animationend",e=>{if(e.animationName==="ljos-shell-late"&&!("ljosShellShown"in r.dataset))r.dataset.ljosShellLate=""})}}catch{}</script>
+<script>try{const k=localStorage.getItem(%SHELL_KEY%);if((k==="workbench"||k==="desktop")&&innerWidth>=%WIDE_FROM%){const r=document.documentElement;r.dataset.ljosShell=k;addEventListener("animationstart",e=>{if(e.animationName==="ljos-shell-late"&&!("ljosShellShown"in r.dataset))r.dataset.ljosShellLate=""})}}catch{}</script>
 <!-- The design tokens as the HTML around the app reads them: the
      build writes tokens.js's colours here as `--ljos-<role>` and
      `--ljos-code-<tag>` (which the code blocks' `.tok-<tag>` classes
