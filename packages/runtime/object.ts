@@ -2125,6 +2125,22 @@ function intoHeldList(object: Holding, name: string, value: unknown, declared: b
   }
 }
 
+// Who writes a property that has no slot (an alias): a script, whose
+// assignment ends its binding, or a state, which overrides the binding
+// while it lasts ("override") and gives it back when it ends ("release"),
+// as Qt 6.12 does.
+type Writer = "script" | "override" | "release";
+let writer: Writer = "script";
+export function writtenBy<T>(by: Writer, write: () => T): T {
+  const before = writer;
+  writer = by;
+  try {
+    return write();
+  } finally {
+    writer = before;
+  }
+}
+
 function defineAlias(self: QObject, name: string, [target, ...path]: AliasPath): void {
   const last = path.at(-1) as string;
   const holder = (): Held => path.slice(0, -1).reduce<Held>((object, member) => object?.[member] as Held, target);
@@ -2157,8 +2173,10 @@ function defineAlias(self: QObject, name: string, [target, ...path]: AliasPath):
   // A binding like any other: one that cannot be evaluated yet is told of.
   const binding = given ? guarded(name, give) : null;
   // A script's write to the alias ends what was bound to it, as any
-  // assignment ends a property's binding (Qt 6.12).
+  // assignment ends a property's binding (Qt 6.12). A state's only holds it
+  // off while the state lasts.
   let written = false;
+  let overridden = false;
   Object.defineProperty(self, name, {
     get: path.length
       ? () => (early?.() ? binding!() : holder()?.[last])
@@ -2167,7 +2185,14 @@ function defineAlias(self: QObject, name: string, [target, ...path]: AliasPath):
     set(value: unknown) {
       const object = holder();
       if (!path.length || !object) return;
-      written = true;
+      if (writer === "script") written = true;
+      else overridden = writer === "override";
+      // A state that ends gives the binding back: what it gives now, not
+      // what it gave as the state began.
+      if (writer === "release" && binding && !written) {
+        const now = untrack(binding);
+        if (now !== undefined || !binding.failing) value = now;
+      }
       if (isHeldList(object, last)) intoHeldList(object, last, value, false);
       else object[last] = value;
     },
@@ -2204,7 +2229,7 @@ function defineAlias(self: QObject, name: string, [target, ...path]: AliasPath):
         settled(() => {
           const object = holder();
           // A binding that could not be evaluated has nothing to assign.
-          if (written || !object || (value === undefined && binding!.failing)) return;
+          if (written || overridden || !object || (value === undefined && binding!.failing)) return;
           if (isHeldList(object, last)) return intoHeldList(object, last, value, declared);
           // It is a binding all the same: a value the property cannot hold
           // leaves it what it held, and is told of.

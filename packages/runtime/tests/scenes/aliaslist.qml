@@ -21,6 +21,9 @@ Item {
     property Item five: Rectangle { objectName: "five" }
     property Item six: Rectangle { objectName: "six" }
     property QtObject tick: Timer { objectName: "tick" }
+    property Item seven: Rectangle { objectName: "seven" }
+    property Item eight: Rectangle { objectName: "eight" }
+    property Item nine: Rectangle { objectName: "nine" }
 
     AliasListHost {
         id: declared
@@ -49,6 +52,19 @@ Item {
 
     AliasListHost {
         id: loose
+    }
+
+    AliasListHost {
+        id: staged
+        content: root.flag ? [root.seven] : [root.eight]
+    }
+
+    states: State {
+        name: "over"
+        PropertyChanges {
+            target: staged
+            content: [root.nine]
+        }
     }
 
     AliasListHost {
@@ -108,6 +124,20 @@ Item {
     }
     // A loaded host holds `shared` in its resources until the Loader ends
     // it, which disposes of it without destroying it.
+    // A state that changes the alias overrides its binding while it lasts;
+    // once it ends, the binding gives the list again and follows on.
+    function throughState() {
+        const seen = [names(staged.inner.children)]
+        root.state = "over"
+        seen.push(names(staged.inner.children))
+        root.flag = false
+        seen.push(names(staged.inner.children))
+        root.state = ""
+        seen.push(names(staged.inner.children))
+        root.flag = true
+        seen.push(names(staged.inner.children))
+        return seen
+    }
     function holdInLoader() {
         loading.active = true
         loading.item.kept = [shared]
@@ -117,6 +147,14 @@ Item {
     }
     function sharedOne() {
         return shared
+    }
+    // The held ones given again in another order, `times` times over.
+    function reholdHeld(times) {
+        for (let i = 0; i < times; i++)
+            both.kept = i % 2 ? [alpha, beta] : [beta, alpha]
+    }
+    function bothInner() {
+        return both.inner
     }
     function writeOverBinding() {
         rebound.content = [six]
