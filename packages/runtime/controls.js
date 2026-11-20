@@ -315,9 +315,16 @@ function publish(fresh, root) {
 // directory it was read into, which the caller removes.
 function readAt(checkout, rev, path) {
   const into = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "ljos-ui-"));
-  const archive = execFileSync("git", ["-C", checkout, "archive", rev, path], { maxBuffer: 1 << 28 });
-  execFileSync("tar", ["x", "-C", into], { input: archive });
-  return { dir: join(into, path), remove: () => rmSync(into, { recursive: true, force: true }) };
+  const remove = () => rmSync(into, { recursive: true, force: true });
+  try {
+    const archive = execFileSync("git", ["-C", checkout, "archive", rev, path], { maxBuffer: 1 << 28 });
+    execFileSync("tar", ["x", "-C", into], { input: archive });
+  } catch (error) {
+    // A rev without `path` leaves no empty directory behind.
+    remove();
+    throw error;
+  }
+  return { dir: join(into, path), remove };
 }
 
 if (process.argv[1] === import.meta.filename) {
@@ -325,8 +332,12 @@ if (process.argv[1] === import.meta.filename) {
   if (command === "write" && from && /^[0-9a-f]{40}$/.test(rev ?? "")) {
     const checkout = process.env.usage_ljos_ui ?? process.env.LJOS_UI ?? "../ljos-ui";
     const given = (dir, path) => (dir ? { dir, remove: () => {} } : readAt(checkout, rev, path));
-    const read = [given(design, DESIGN_FROM), given(observe, OBSERVE_FROM)];
+    // Each read is let go of however a later one ends: a rev with Design
+    // but no Observer leaves neither behind.
+    const read = [];
     try {
+      read.push(given(design, DESIGN_FROM));
+      read.push(given(observe, OBSERVE_FROM));
       console.log(`controls: ${write(from, rev, CONTROLS, read[0].dir, read[1].dir)} files of ljos-ui ${rev}`);
     } finally {
       for (const each of read) each.remove();
