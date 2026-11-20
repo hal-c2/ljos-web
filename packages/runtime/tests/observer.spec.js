@@ -103,9 +103,10 @@ test("a pass is counted when input changes the application, and a watch waits fo
   await page.evaluate(() => window.scene.tickOnce());
   await page.waitForFunction(() => window.objects.app.count === 1);
   await page.evaluate(() => window.scene.spinOnce());
-  await page.waitForTimeout(500);
-  const later = (await call(page, "app_frames", { since: frames.next_since, max: 600 })).result.structuredContent.frames;
-  expect(later.map((frame) => frame.woke[0])).toEqual(expect.arrayContaining(["timer", "animation"]));
+  // Until the passes they made are counted, not for a time that may be short.
+  await expect
+    .poll(async () => (await call(page, "app_frames", { since: frames.next_since, max: 600 })).result.structuredContent.frames.map((frame) => frame.woke[0]), { timeout: 10_000 })
+    .toEqual(expect.arrayContaining(["timer", "animation"]));
 });
 
 // The Observer's Frames page lists each pass's binding runs and text
@@ -163,6 +164,29 @@ test("a holder waits on one watch at a time: asking again answers the one it had
   expect((await later).result.structuredContent.waited).toBeGreaterThanOrEqual(1400);
   // Another holder's is its own.
   expect((await other).result.structuredContent.waited).toBeGreaterThanOrEqual(1400);
+});
+
+test("a holder asking for the counts as they are answers the watch it had out", async ({ page }) => {
+  await opened(page);
+  const counts = (await call(page, "app_watch", {})).result.structuredContent.counts;
+  const earlier = call(page, "app_watch", { since: { paints: counts.paints }, wait_ms: 3_600_000, holder: "observer" });
+  await page.waitForTimeout(200);
+  // As the Observer asks when an item is picked: no counts to compare with.
+  expect((await call(page, "app_watch", { holder: "observer" })).ok).toBe(true);
+  expect((await earlier).result.structuredContent.waited).toBeLessThan(1000);
+});
+
+// The runtime counts the work of the whole page: with two applications
+// served, what a pass ran is no one application's to be told as its.
+test("with two applications served a pass does not say what bindings it ran", async ({ page }) => {
+  await opened(page);
+  await page.evaluate(() => (window.objects.otherInspector.target = window.objects.other));
+  const { next_since } = (await call(page, "app_frames", { max: 600 })).result.structuredContent;
+  await page.mouse.click(20, 70);
+  await page.waitForFunction(() => window.objects.app.count === 1);
+  await expect.poll(async () => (await call(page, "app_frames", { since: next_since, max: 600 })).result.structuredContent.frames.length).toBeGreaterThan(0);
+  const frames = (await call(page, "app_frames", { since: next_since, max: 600 })).result.structuredContent.frames;
+  for (const frame of frames) expect([frame.binding_runs, frame.text_layouts]).toEqual([null, null]);
 });
 
 test("at rest nothing is counted, and a watch holds until its wait is over", async ({ page }) => {
@@ -236,10 +260,96 @@ test("with no inspector served the client says it is not connected", async ({ pa
   expect((await call(page, "app_status")).ok).toBe(true);
 });
 
+// Handles are the page's, but what a client may ask of is what its token
+// serves: an object of another application on the page is not its to
+// read or change.
+test("a handle of another served application is refused", async ({ page }) => {
+  await opened(page);
+  const ask = (token) => page.evaluate((token) => (window.objects.client.tokenFile = token), token);
+  const mine = await page.evaluate(() => window.objects.inspector.tokenFile);
+  await ask(await page.evaluate(() => (window.objects.otherInspector.target = window.objects.other) && window.objects.otherInspector.tokenFile));
+  const theirs = (await call(page, "app_objects", { max: 3000 })).result.structuredContent.objects.find((row) => row.id === "otherLabel").handle;
+  expect((await call(page, "app_inspect", { target: theirs })).ok).toBe(true);
+  await ask(mine);
+  for (const [tool, args] of [
+    ["app_inspect", { target: theirs }],
+    ["app_set_property", { target: theirs, property: "text", value: "taken" }],
+    ["app_watch", { items: [theirs] }],
+  ]) {
+    const refused = await call(page, tool, args);
+    expect(refused.ok).toBe(false);
+    expect(refused.result.error.code).toBe("not_found");
+  }
+  expect(await page.evaluate(() => window.objects.other.children[0].text)).toBe("other");
+});
+
+test("an edit of a grouped property is taken back by Revert", async ({ page }) => {
+  await opened(page);
+  const bold = () => page.evaluate(() => window.objects.app.children[0].font.bold);
+  expect(await bold()).toBe(false);
+  expect((await call(page, "app_set_property", { target: "id=label", property: "font.bold", value: true })).ok).toBe(true);
+  expect(await bold()).toBe(true);
+  const edited = (await call(page, "app_inspect", { target: "id=label" })).result.structuredContent.properties.find((p) => p.name === "font.bold");
+  expect(edited).toMatchObject({ value: "true", assigned_by: "devtools" });
+  const back = await call(page, "app_set_property", { target: "id=label", property: "font.bold", revert: true });
+  expect(back.ok).toBe(true);
+  expect(back.result.structuredContent).toMatchObject({ value: "false", previous: "true", restored: "value" });
+  expect(await bold()).toBe(false);
+  // Nothing of the client's is left on it.
+  const after = (await call(page, "app_inspect", { target: "id=label", all: true })).result.structuredContent.properties.find((p) => p.name === "font.bold");
+  expect(after.assigned_by).toBeUndefined();
+});
+
+test("a call is answered by the application its token named when it was made", async ({ page }) => {
+  await opened(page);
+  const answer = await page.evaluate(async () => {
+    const { client, otherInspector, other } = window.objects;
+    otherInspector.target = other;
+    const answers = window.scene.answers;
+    const serial = client.call("app_set_property", JSON.stringify({ target: "id=app", property: "count", value: 9 }));
+    // The client is given another token before the call is answered.
+    client.tokenFile = otherInspector.tokenFile;
+    while (!answers.some((each) => each.serial === serial)) await new Promise((done) => setTimeout(done, 5));
+    return answers.find((each) => each.serial === serial);
+  });
+  expect(answer.ok).toBe(false);
+  expect(answer.result).toContain("token");
+  expect(await page.evaluate(() => window.objects.app.count)).toBe(0);
+});
+
+// A holder that moves the Observer from one application to another gives
+// the Inspector the other's root, log and title: what the Observer shows is
+// then all the other's, its log and frames included.
+test("an Inspector given another log or title serves its target anew", async ({ page }) => {
+  await opened(page);
+  const first = await page.evaluate(() => window.objects.inspector.tokenFile);
+  const title = async () => (await call(page, "app_status")).result.structuredContent.windows[0].title;
+  expect(await title()).toBe("app");
+  await page.evaluate(() => {
+    const { inspector, other } = window.objects;
+    const line = { level: "info", category: "default", message: "from the other", file: null, line: null };
+    inspector.logs = { lines: (since, limit) => [{ seq: 0, line }].filter(({ seq }) => seq >= since).slice(0, limit), count: () => 1, listen: () => () => {} };
+    inspector.title = "the other";
+    inspector.target = other;
+  });
+  const second = await page.evaluate(() => window.objects.inspector.tokenFile);
+  expect(second).not.toBe(first);
+  expect(second).not.toBe("");
+  expect(await title()).toBe("the other");
+  const logs = (await call(page, "app_logs", {})).result.structuredContent.entries.map((entry) => entry.message);
+  expect(logs).toEqual(["from the other"]);
+  const ids = (await call(page, "app_objects", { max: 3000 })).result.structuredContent.objects.map((row) => row.id);
+  expect(ids).toContain("otherLabel");
+  expect(ids).not.toContain("label");
+});
+
 test("the Observer runs on the page, and shows the application's tree", async ({ page }) => {
   await opened(page, "inspectobserver");
   // The Overview's numbers come from app_metrics and app_processes.
   await expect(page.getByText("Objects", { exact: true }).first()).toBeVisible({ timeout: 15000 });
   await page.mouse.click(50, 50);
   await page.waitForFunction(() => window.objects.app.count === 1);
+  // The Objects page lists the application's own items.
+  await page.getByRole("tab", { name: "Objects", exact: true }).first().click();
+  await expect(page.getByText(/\blabel\b/).first()).toBeVisible({ timeout: 15000 });
 });
