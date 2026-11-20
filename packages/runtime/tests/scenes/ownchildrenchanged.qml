@@ -31,6 +31,16 @@ Item {
         function onChildrenChanged() { root.heardByConnections++ }
     }
 
+    // Made into by a binding: the binding's work settled, it heard once.
+    Item {
+        id: kept
+        property int heard: 0
+        onChildrenChanged: heard++
+    }
+    property bool go: false
+    property int during: go ? makeIn() : -1
+    function makeIn() { made.createObject(kept); return kept.children.length }
+
     Component { id: made; Item {} }
     Component { id: loose; Timer {} }
 
@@ -47,5 +57,10 @@ Item {
         other.parent = null;
         const out = own.heard;
         return [moved, left, again, created, timed, out, full.heard, root.heardByConnections];
+    }
+
+    function bound() {
+        go = true;
+        return [during, kept.heard, kept.children.length];
     }
 }
