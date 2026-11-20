@@ -108,6 +108,25 @@ test("a pass is counted when input changes the application, and a watch waits fo
   expect(later.map((frame) => frame.woke[0])).toEqual(expect.arrayContaining(["timer", "animation"]));
 });
 
+// The Observer's Frames page lists each pass's binding runs and text
+// layouts as counts, as the native inspector answers them; at rest none
+// run, so none are counted.
+test("a pass says how many bindings it ran and how much text it laid out", async ({ page }) => {
+  await opened(page);
+  await page.waitForTimeout(300);
+  const { next_since } = (await call(page, "app_frames", { max: 600 })).result.structuredContent;
+  await page.mouse.click(20, 70);
+  await page.waitForFunction(() => window.objects.app.count === 1);
+  await page.waitForTimeout(200);
+  const frames = (await call(page, "app_frames", { since: next_since, max: 600 })).result.structuredContent.frames;
+  const pressed = frames.find((frame) => frame.woke[0] === "input");
+  expect(pressed.binding_runs).toBeGreaterThan(0);
+  expect(pressed.text_layouts).toBeGreaterThan(0);
+  for (const frame of frames) {
+    expect(Number.isInteger(frame.binding_runs) && Number.isInteger(frame.text_layouts)).toBe(true);
+  }
+});
+
 test("a watch on a picked item wakes for a pass that changed it, as the Observer's Objects page asks", async ({ page }) => {
   await opened(page);
   const rows = (await call(page, "app_objects", { max: 3000 })).result.structuredContent.objects;

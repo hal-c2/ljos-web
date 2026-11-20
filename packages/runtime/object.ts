@@ -671,11 +671,17 @@ interface Failure {
   error: unknown;
 }
 
+// What the runtime has done, counted where it is done: each binding
+// evaluated, each text laid out. An increment apiece, so it costs nothing
+// while no one reads it; an Observer's frames say what each pass added.
+export const work = { bindingRuns: 0, textLayouts: 0 };
+
 function guarded(key: string, compute: () => unknown, pure = true, self?: QObject): Guard {
   let last: unknown;
   let ran = false;
   let failed: Failure | null = null;
   const guard: Guard = Object.assign(() => {
+    work.bindingRuns++;
     // Evaluated again, so not ended: what cleaned up was this. One kept for
     // later is spoken for by this evaluation.
     if (failed?.kept) failed.again = true;
@@ -1815,12 +1821,44 @@ export function defineType<
     else defineProperty(Type, proto, property, initial);
   }
   for (const signalName of spec.signals ?? []) defineSignal(proto, signalName);
-  if (spec.methods) Object.defineProperties(proto, Object.getOwnPropertyDescriptors(spec.methods));
+  if (spec.methods) defineMethods(proto, spec.methods);
   for (const changed of spec.changes ?? []) defineChange(proto, changed);
   const { attached } = spec;
   if (attached) Type.attached = (self) => attach(name, attached, self);
   Object.defineProperty(Type, Symbol.hasInstance, { value: isA });
   return Type;
+}
+
+// A method read off an object is that object's, as in QML: given as a
+// value (`Qt.callLater(view.positionViewAtEnd)`, a signal's `connect`) it
+// is still called on the object, and reading it again gives the same
+// function, so that `callLater` asks for one call. It is bound once, on
+// the object, the first time it is read; read off a type, as a type that
+// extends it calls what it extends, it is the type's own. A `$` method is
+// the runtime's, never read by a file, and stays a plain value: a type that
+// extends another takes it by its descriptor (TimelineAnimation's
+// `$transition`), and binding it would cost each object for nothing.
+function defineMethods(proto: object, methods: object): void {
+  for (const [name, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(methods))) {
+    const method: unknown = descriptor.value;
+    if (typeof method !== "function" || name.startsWith("$")) {
+      Object.defineProperty(proto, name, descriptor);
+      continue;
+    }
+    Object.defineProperty(proto, name, {
+      configurable: true,
+      enumerable: descriptor.enumerable ?? false,
+      get(this: object) {
+        if (!Object.hasOwn(this, "$type")) return method;
+        const bound = method.bind(this);
+        if (Object.isExtensible(this)) hidden(this, name, bound);
+        return bound;
+      },
+      set(this: object, value: unknown) {
+        hidden(this, name, value);
+      },
+    });
+  }
 }
 
 // `item instanceof Shape`: the object is of the type, or of one that extends

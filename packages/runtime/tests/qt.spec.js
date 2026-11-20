@@ -602,6 +602,32 @@ test("callLater calls once, with the last arguments", async ({ page }) => {
   expect(log).toEqual(["before", 2]);
 });
 
+// A method read off an object is that object's, as in QML: a view's
+// `Qt.callLater(view.positionViewAtEnd)` calls it on the view, and asking
+// for it twice is asking for the same call.
+test("a method read off an object is that object's, and callLater calls it on it", async ({ page }) => {
+  await open(page, "qt");
+  const seen = await page.evaluate(async () => {
+    const { Qt, bar, follower, root } = window.objects;
+    const map = follower.mapToItem;
+    const where = map(root, 0, 0).y;
+    let calls = 0;
+    const counted = follower.mapToItem;
+    Qt.callLater(bar.forceActiveFocus);
+    Qt.callLater(bar.forceActiveFocus);
+    Qt.callLater(() => calls++);
+    await Promise.resolve();
+    return {
+      where,
+      same: bar.forceActiveFocus === bar.forceActiveFocus && counted === map,
+      own: bar.forceActiveFocus !== follower.forceActiveFocus,
+      focused: bar.activeFocus,
+      calls,
+    };
+  });
+  expect(seen).toEqual({ where: 20, same: true, own: true, focused: true, calls: 1 });
+});
+
 test("settings are kept in the page's storage, as text", async ({ page }) => {
   await open(page, "settings");
   const stored = () => page.evaluate(() => Object.fromEntries(Object.entries(localStorage).sort()));
