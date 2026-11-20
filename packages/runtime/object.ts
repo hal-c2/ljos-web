@@ -2099,6 +2099,10 @@ function intoHeldList(object: Holding, name: string, value: unknown, declared: b
       else if (child.$node && object.$release) object.$release(child);
       else object.$remove?.(child);
     }
+    // `resources` reads what it holds before what it has without holding
+    // (a Timer given to `data`): one of those that starts the list is
+    // held, in its place, so what is held after it reads after it.
+    if (hold) for (const child of before.slice(0, kept)) hold(child);
   }
   for (const child of next.slice(kept)) {
     if (hold) hold(child);

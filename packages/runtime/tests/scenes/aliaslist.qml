@@ -20,6 +20,7 @@ Item {
     property Item four: Rectangle { objectName: "four" }
     property Item five: Rectangle { objectName: "five" }
     property Item six: Rectangle { objectName: "six" }
+    property QtObject tick: Timer { objectName: "tick" }
 
     AliasListHost {
         id: declared
@@ -47,12 +48,24 @@ Item {
     }
 
     AliasListHost {
+        id: loose
+    }
+
+    AliasListHost {
         id: rebound
         content: root.flag ? [root.four] : [root.five]
     }
 
     Rectangle { id: drawn; objectName: "drawn" }
     Rectangle { id: other; objectName: "other" }
+    Rectangle { id: shared; objectName: "shared" }
+    Loader {
+        id: loading
+        active: false
+        sourceComponent: Component {
+            AliasListHost {}
+        }
+    }
     AliasListHost {
         id: keeping
         kept: [
@@ -82,6 +95,28 @@ Item {
         const first = [names(both.inner.children), names(both.inner.resources)]
         both.kept = [beta, alpha]
         return [first, [names(both.inner.children), names(both.inner.resources)]]
+    }
+    // An object the item has among its resources without holding it (a
+    // Timer given to its data) starts the list written to them, and keeps
+    // its place ahead of what follows it.
+    function holdAfterLoose() {
+        loose.content = [tick]
+        loose.kept = [tick, alpha]
+        const first = names(loose.inner.resources)
+        loose.kept = [tick, alpha, beta]
+        return [first, names(loose.inner.resources)]
+    }
+    // A loaded host holds `shared` in its resources until the Loader ends
+    // it, which disposes of it without destroying it.
+    function holdInLoader() {
+        loading.active = true
+        loading.item.kept = [shared]
+    }
+    function unload() {
+        loading.active = false
+    }
+    function sharedOne() {
+        return shared
     }
     function writeOverBinding() {
         rebound.content = [six]

@@ -381,12 +381,14 @@ export const Item = defineType("Item", QtObject, {
       this.$touch((version) => version + 1);
     },
     // Holds one `resources` is given once this is made (through an alias
-    // of it): this item's, but not drawn by it. The holder lasts as long
-    // as this does, not as the effect that gave it, so no owner takes it.
+    // of it): this item's, but not drawn by it. The hold lasts as long as
+    // this does, not as the effect that gave it, so it is this item's
+    // owner's, and ends with it however it ends (a Loader disposes of it
+    // without destroying it).
     $hold(object) {
       if (this.$held?.includes(object)) return;
       this.$held = [...(this.$held ?? []), object];
-      runWithOwner(null, () => heldBy(this, [object]));
+      runWithOwner(this.$owner ?? null, () => heldBy(this, [object]));
       this.$touch((version) => version + 1);
     },
     // No longer holds one it held (`$hold`), which stays among what this

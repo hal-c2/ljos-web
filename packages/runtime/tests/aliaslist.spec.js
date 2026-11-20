@@ -64,3 +64,28 @@ test("items held in resources and given again in another order are still drawn",
     ["alpha,beta", "beta,alpha"],
   ]);
 });
+
+// An object in the item's resources that it does not hold (a Timer given
+// to its data) and that starts the list written to them keeps its place
+// ahead of what is held after it, as Qt 6.12 has it.
+test("a list written to an alias of an item's resources keeps what starts it first", async ({ page }) => {
+  await open(page, "aliaslist");
+  expect(await page.evaluate(() => window.scene.holdAfterLoose())).toEqual(["tick,alpha", "tick,alpha,beta"]);
+});
+
+// An item that holds an object through its resources lets go of it when
+// it ends, also when a Loader disposes of it rather than destroying it:
+// what outlives the item does not keep it.
+test("an item a Loader unloads is no longer held by what it held", async ({ page }) => {
+  await open(page, "aliaslist");
+  const object = await page.evaluateHandle(async () => {
+    const address = performance.getEntriesByType("resource").find(({ name }) => /\/object\.ts(\?|$)/.test(name)).name;
+    return await import(address);
+  });
+  const holders = () => page.evaluate((object) => object.holdersOf(window.scene.sharedOne()), object);
+  expect(await holders()).toBe(0);
+  await page.evaluate(() => window.scene.holdInLoader());
+  expect(await holders(), "held while loaded").toBe(1);
+  await page.evaluate(() => window.scene.unload());
+  await expect.poll(holders, { message: "let go once unloaded" }).toBe(0);
+});
