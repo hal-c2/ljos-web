@@ -118,6 +118,10 @@ Rectangle {
             return;
         }
         var moved = Frames.swap(() => {
+            // Asked for again meanwhile (the head's watchdog gave up on
+            // a kept shell): the later ask stands.
+            if (sitePreferences.shown !== name)
+                return;
             main.userShell = null;
             main.framed = name;
         }, sitePreferences.calm, (done) => main.arrived = done);
@@ -144,19 +148,43 @@ Rectangle {
         Frames.whenHydrated((ms) => {
             main.hydratedIn = ms;
             var kept = Frames.picked();
-            if (kept !== "" && kept !== sitePreferences.shell) {
+            // The head's watchdog has shown the page as written already:
+            // the reader is reading Marketing, which stays on this page
+            // (the pick is still kept for the next).
+            if (kept !== "" && kept !== sitePreferences.shell && !Frames.late()) {
                 main.revealing = true;
                 sitePreferences.shell = kept;
                 // Too narrow for it: the marketing shell stays, as written.
-                if (sitePreferences.shown === main.framed) {
+                // Asked of the window, not of what is framed: where there
+                // are no view transitions the swap is made at once, so
+                // `framed` is the kept shell's name already while its
+                // module is still on its way, and the page must wait for
+                // it (loader.onItemChanged shows it).
+                if (sitePreferences.narrowed) {
                     main.revealing = false;
                     Frames.shown();
+                } else {
+                    Frames.whenLate(() => main.late());
                 }
             } else {
                 Frames.shown();
             }
             Qt.callLater(main.count);
         });
+    }
+
+    // The head's watchdog showed the page while the kept shell was still
+    // on its way: what the reader now sees is Marketing, so the kept
+    // shell is not put over it, which would be the very jump the page
+    // was held back to spare them.
+    function late() {
+        if (!main.revealing)
+            return;
+        main.arrived = null;
+        fadeIn.armed = false;
+        main.framed = "marketing";
+        sitePreferences.shell = "marketing";
+        main.revealing = false;
     }
 
     // Ljós's own controls draw in the site's colours (Site/ControlsLook.qml)
