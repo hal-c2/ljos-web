@@ -328,6 +328,32 @@ test.describe("examples", () => {
     expect(unexpected(errors).filter((text) => !/ShellLoader|Main\.qml/.test(text))).toEqual([]);
   });
 
+  // On a phone the code is wider than its editor, which scrolls it
+  // sideways once CodeMirror has come: a press on the code a reader sees
+  // takes them into it again after Stop, as the first press did.
+  test("at a phone's width a press on a stopped example's code takes the reader into it", async ({ page, errors }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await open(page, "/ui/items/");
+    const block = await run(page, 1);
+    await expect(block.values, "it ran, and said what it hit").toContainText("hit: under");
+    await intoCode(block);
+    const content = block.block.locator(".cm-content");
+    const scroller = block.block.locator(".cm-scroller");
+    expect((await content.boundingBox()).width, "the code is wider than its editor, as on a phone").toBeGreaterThan((await scroller.boundingBox()).width);
+    await press(runButton(block.toolbar, "Stop this example"));
+    await expect(runButton(block.toolbar), "stopped").toBeVisible({ timeout: 30_000 });
+    // Out of the editor as a keyboard reader leaves it (its description
+    // says how), so the press below is what brings them back.
+    await page.keyboard.press("Escape");
+    await page.keyboard.press("Tab");
+    await expect(block.block.locator(".cm-editor.cm-focused"), "the reader has left the code").toHaveCount(0);
+    await intoCode(block);
+    await page.keyboard.press("Control+End");
+    await page.keyboard.type("\n// mine");
+    await expect(runButton(block.toolbar, "Reset this example to as written"), "what they typed went into the code").toBeVisible();
+    expect(unexpected(errors)).toEqual([]);
+  });
+
   // An edit made while stopped waits out its debounce; Run pressed before
   // it runs out runs the edit, and the debounce does not run it again.
   test("Run during an edit's debounce runs the edit once", async ({ page, errors }) => {

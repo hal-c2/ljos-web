@@ -143,10 +143,36 @@ export async function centre(locator) {
   );
 }
 
+// Where a hand goes to an element, with its whole box. An element can be
+// larger than what a reader sees of it: CodeMirror's lines are as wide as
+// the longest, and on a phone its editor scrolls them sideways, so the
+// middle of that box is off the page, where a press reaches nothing.
+// The point is the one it always was while that is in sight, and the
+// middle of the part in sight (the box cut by the window and by every
+// ancestor that clips) when it is not.
 export async function centreOf(locator) {
   const box = await locator.boundingBox();
   expect(box, "the element is laid out").toBeTruthy();
-  return { x: box.x + box.width / 2, y: box.y + Math.min(box.height / 2, 400), box };
+  const point = { x: box.x + box.width / 2, y: box.y + Math.min(box.height / 2, 400) };
+  const seen = await locator.evaluate((element) => {
+    let { left, top, right, bottom } = element.getBoundingClientRect();
+    const cut = (r) => {
+      left = Math.max(left, r.left);
+      top = Math.max(top, r.top);
+      right = Math.min(right, r.right);
+      bottom = Math.min(bottom, r.bottom);
+    };
+    for (let up = element.parentElement; up; up = up.parentElement) {
+      const { overflowX, overflowY } = getComputedStyle(up);
+      if (overflowX !== "visible" || overflowY !== "visible") cut(up.getBoundingClientRect());
+    }
+    cut({ left: 0, top: 0, right: innerWidth, bottom: innerHeight });
+    return { left, top, right, bottom };
+  });
+  const anyInSight = seen.right > seen.left && seen.bottom > seen.top;
+  const inSight = point.x >= seen.left && point.x < seen.right && point.y >= seen.top && point.y < seen.bottom;
+  // Nothing in sight (a box only measured, never pressed) keeps the point.
+  return { ...(inSight || !anyInSight ? point : { x: (seen.left + seen.right) / 2, y: (seen.top + seen.bottom) / 2 }), box };
 }
 
 // A live example: its picture, and the window the picture is drawn in
