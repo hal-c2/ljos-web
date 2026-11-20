@@ -28,6 +28,11 @@ sheet.replaceSync(`
 document.adoptedStyleSheets.push(sheet);
 
 const { ScreenOrientation } = enums;
+
+// The windows that have ended. A window an item holds ends with that item
+// when it is the item's own, and its holder, ending after it, lets it go:
+// one that has ended is not given back to the scene to be shown.
+const ended = new WeakSet();
 const ORIENTATIONS = {
   "portrait-primary": ScreenOrientation.PortraitOrientation,
   "landscape-primary": ScreenOrientation.LandscapeOrientation,
@@ -290,6 +295,7 @@ export const Window = defineType("Window", QtObject, {
     // one that lets it go: it is then a window of its own again, shown if
     // it was.
     $hold(holder) {
+      if (ended.has(this)) return;
       const element = this.$element;
       const shown = untrack(() => this.visible);
       this.$setHeldBy(holder);
@@ -336,7 +342,10 @@ export const Window = defineType("Window", QtObject, {
     // itself over the scene, and is nobody's child item.
     if (root) self.$node = element;
     else top(self).$node?.append(element);
-    onCleanup(() => element.remove());
+    onCleanup(() => {
+      ended.add(self);
+      element.remove();
+    });
 
     [self.$state, self.$setState] = signal(undefined, self.$owner);
     [self.$fill, self.$setFill] = signal(root, self.$owner);
