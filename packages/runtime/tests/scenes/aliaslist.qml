@@ -31,6 +31,10 @@ Item {
     property Item over: Rectangle { objectName: "nine" }
     property Item given: Rectangle { objectName: "ten" }
     property Item lent: Rectangle { objectName: "eleven" }
+    property Item bound: Rectangle { objectName: "bound" }
+    property Item unbound: Rectangle { objectName: "unbound" }
+    property Item scripted: Rectangle { objectName: "scripted" }
+    property Item stated: Rectangle { objectName: "stated" }
     property bool echoing: false
 
     AliasListHost {
@@ -100,6 +104,11 @@ Item {
     AliasListHost {
         id: plainHost
     }
+    // A list whose binding a script's write ends before the state begins.
+    AliasListHost {
+        id: assignedHost
+        content: root.flag ? [root.bound] : [root.unbound]
+    }
 
     states: [
         State {
@@ -125,6 +134,10 @@ Item {
             PropertyChanges {
                 target: plainHost
                 content: [root.lent]
+            }
+            PropertyChanges {
+                target: assignedHost
+                content: [root.stated]
             }
         }
     ]
@@ -227,6 +240,18 @@ Item {
         seen.push([names(madeHost.inner.children), names(plainHost.inner.children)])
         root.state = ""
         seen.push([names(madeHost.inner.children), names(plainHost.inner.children)])
+        return seen
+    }
+    // A list whose binding a script ended, through a state and out of it.
+    function assignedThroughState() {
+        assignedHost.content = [root.scripted]
+        const seen = [names(assignedHost.inner.children)]
+        root.state = "made"
+        seen.push(names(assignedHost.inner.children))
+        root.state = ""
+        seen.push(names(assignedHost.inner.children))
+        root.flag = false
+        seen.push(names(assignedHost.inner.children))
         return seen
     }
     function holdInLoader() {
