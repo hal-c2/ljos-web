@@ -1,19 +1,23 @@
+// Ljos.Core before QtQuick so t`` is available while shared names stay QtQuick's.
+import Ljos.Core
 import QtQuick
 import Ljos.Blocks
 
-// The basket block: the app's own data, which no shell owns. Its
-// state is read-only (`count`, `total`, the per-good counts and
-// prices), its actions are its functions, and `added` is its event.
-// Whichever shell is showing, there is one basket for the page, so
-// what was bought survives every rewrite of the interface around it.
-// It also contributes the app's status line to the "status" slot:
-// whichever shell places a StatusSlot shows it there.
+// The basket block owns the app's state, actions, and status contribution.
+// Because no shell owns this block, rewriting Shell.qml keeps everything
+// already in the basket. Try changing a price below or calling emptyBasket()
+// from a button in Shell.qml.
 Rectangle {
     id: basket
     width: 300
     height: 64
     radius: 8
     color: look.basket
+
+    // Remix knobs: change any item price in one line.
+    readonly property real teaPrice: 3.5
+    readonly property real breadPrice: 2.25
+    readonly property real jamPrice: 4.0
 
     property int teaBought: 0
     property int breadBought: 0
@@ -24,10 +28,7 @@ Rectangle {
     readonly property int teaCount: teaBought
     readonly property int breadCount: breadBought
     readonly property int jamCount: jamBought
-    readonly property real teaPrice: 3.5
-    readonly property real breadPrice: 2.25
-    readonly property real jamPrice: 4.0
-    readonly property string summary: count + " in the basket · £" + total.toFixed(2)
+    readonly property string summary: t`${count} in the basket · £${total.toFixed(2)}`
 
     signal added(int count)
 
@@ -50,9 +51,6 @@ Rectangle {
         added(count);
     }
 
-    // The colours this app draws with, for the scheme the reader chose:
-    // each the dark it was drawn in or a light that keeps the text on it
-    // as readable.
     QtObject {
         id: look
         readonly property bool dark: Application.styleHints.colorScheme === Qt.ColorScheme.Dark
@@ -62,6 +60,7 @@ Rectangle {
         readonly property color ink: dark ? "#f5eeda" : "#1b1f2a"
     }
 
+    // Contributes the live summary into whichever shell places a StatusSlot.
     Contribution {
         slot: "status"
         delegate: Component {
@@ -80,7 +79,7 @@ Rectangle {
         y: 10
         color: look.ink
         font.pixelSize: 18
-        text: qsTr("Basket")
+        text: t`Basket`
     }
     Text {
         objectName: "basketSummary"
