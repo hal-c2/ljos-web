@@ -22,7 +22,10 @@ Item {
     // Made while open, and while it slides away.
     property bool held: false
 
-    readonly property int panelWidth: sheet ? width : Math.min(620, Math.max(480, Math.round(width * 0.42)))
+    // Docked, it is never narrower than Ljós's Observer lays its pages out
+    // for: a narrower dock left a value no room to be read or edited. A
+    // sheet is the phone's width, and the panel scrolls sideways in it.
+    readonly property int panelWidth: sheet ? width : Math.min(760, Math.max(Theme.observerWidth, Math.round(width * 0.5)))
     readonly property int panelHeight: sheet ? Math.round(height * 0.72) : height
 
     function show(what) {

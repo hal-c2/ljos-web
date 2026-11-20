@@ -146,6 +146,9 @@ QtObject {
     readonly property int tocWidth: 224
     readonly property int headerHeight: 64
     readonly property int wideFrom: 1000
+    // What Ljós's Observer lays its pages out for: its list of pages, an
+    // object tree and the values beside it, each value wide enough to edit.
+    readonly property int observerWidth: 680
 
     // Motion, in ms, with its easing (out: fast, then settling).
     readonly property int enterSmall: 150

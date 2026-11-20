@@ -15,6 +15,8 @@ const isObserver = (url) => /Observer/.test(new URL(url).pathname);
 const dock = (page) => page.getByRole("group", { name: "Observer", exact: true });
 const observerButton = (block) => block.toolbar.getByRole("button", { name: /^Observe / });
 const pageTab = (page, name) => page.getByRole("tab", { name, exact: true });
+// What Ljós's Observer lays its pages out for (Site/ObserverPanel.qml).
+const OBSERVER_WIDTH = 680;
 
 async function observed(page, index = 0) {
   await open(page, ROUTE);
@@ -55,9 +57,18 @@ test("nothing of the Observer is fetched until it is opened", async ({ page }) =
 test("on a wide window it is docked along the right, and the example can still be pressed", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   const block = await observed(page);
+  // It slides in: read once it has come to rest.
+  await expect.poll(async () => Math.round(await dock(page).boundingBox().then((box) => box.x + box.width))).toBe(1280);
   const box = await dock(page).boundingBox();
-  expect(Math.round(box.x + box.width)).toBe(1280);
   expect(box.height).toBeGreaterThan(600);
+  // As wide as the Observer's pages are laid out for: a value it shows
+  // has room to be read and edited.
+  expect(box.width).toBeGreaterThanOrEqual(OBSERVER_WIDTH);
+  await pageTab(page, "Objects").click();
+  await page.getByRole("listitem", { name: "Rectangle#root" }).click();
+  const value = await page.getByRole("button", { name: "count", exact: true }).boundingBox();
+  expect(value.width, "the count's value has room").toBeGreaterThan(60);
+  expect(value.x + value.width).toBeLessThanOrEqual(1280);
   const button = block.stage.getByRole("button", { name: "Increment" });
   const stage = await button.boundingBox();
   expect(stage.x + stage.width, "the page reflows beside it").toBeLessThanOrEqual(box.x + 1);
@@ -68,10 +79,26 @@ test("on a wide window it is docked along the right, and the example can still b
 test("on a phone it is a sheet over the lower part of the screen, and a press above it closes it", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await observed(page);
+  // It slides up: read once it has come to rest.
+  // The header above it may end between pixels, so its foot may too.
+  await expect.poll(async () => Math.abs(844 - (await dock(page).boundingBox().then((box) => box.y + box.height)))).toBeLessThanOrEqual(1);
   const box = await dock(page).boundingBox();
   expect(box.width).toBe(390);
-  expect(Math.round(box.y + box.height)).toBe(844);
   expect(box.y).toBeGreaterThan(100);
+  // The Observer keeps the width its pages are laid out for, and what is
+  // past the screen's edge is scrolled to: a value is edited as on a
+  // wide window.
+  await pageTab(page, "Objects").click();
+  await page.getByRole("listitem", { name: "Rectangle#root" }).click();
+  const count = page.getByRole("button", { name: "count", exact: true });
+  expect((await count.boundingBox()).width).toBeGreaterThan(60);
+  // Where a reader's finger lands: the value's field, unmade until then,
+  // lies over it, and a press goes through it as in Qt.
+  await press(count);
+  const field = page.getByRole("textbox", { name: "count" });
+  await field.fill("4");
+  await field.press("Enter");
+  await expect(count).toHaveAccessibleDescription("4");
   await page.mouse.click(195, box.y / 2);
   await expect(dock(page)).toBeHidden();
 });
@@ -94,7 +121,7 @@ test("what the reader does in the app the Observer shows, and what the Observer 
   await press(block.stage.getByRole("button", { name: "Increment" }));
   await expect(count).toHaveAccessibleDescription("1");
   // The Observer's edit, drawn.
-  await count.click();
+  await press(count);
   const field = page.getByRole("textbox", { name: "count" });
   await field.fill("7");
   await field.press("Enter");
@@ -108,6 +135,8 @@ test("frames are counted while the app moves, and at rest the count holds", asyn
   const rows = page.getByRole("listitem", { name: /^frame \d+ of / });
   await press(block.stage.getByRole("button", { name: "Increment" }));
   await expect(rows.filter({ hasText: "" }).last()).toHaveAccessibleName(/woke by input/);
+  // The press ran the count's bindings and laid out its new words.
+  await expect(rows.last()).toContainText(/bindings .*\([1-9]\d*\) · text .*\([1-9]\d*\)/);
   const counted = await rows.count();
   // Two seconds of nobody touching the page: nothing is drawn, so nothing is counted.
   await page.waitForTimeout(2_000);
@@ -181,11 +210,18 @@ test("the Pantry is looked into while its shell is rewritten", async ({ page }) 
   await expect(page.getByText("1 in the basket · £3.50").first()).toBeVisible();
   await expect(page.getByRole("listitem", { name: /^frame \d+ of .*woke by input/ }).last()).toBeVisible();
   // A new shell applied: the Observer follows it, as it follows a reload.
-  await page.getByRole("textbox", { name: "Edit the Pantry's Shell.qml" }).first().click();
-  const editor = page.locator('.cm-content[aria-label="Edit the Pantry\'s Shell.qml"]').first();
-  await expect(editor).toBeFocused({ timeout: 30_000 });
-  const text = await editor.innerText();
-  await editor.fill(text.replace('"The Corner Pantry"', '"Observed Pantry"'));
+  // The code is taller than the frame it scrolls in: brought to the middle
+  // whole, it would be scrolled inside its frame. Its caption is brought
+  // there, and a line near its top pressed.
+  const code = page.getByRole("textbox", { name: "Edit the Pantry's Shell.qml" }).first();
+  // The highlighted code keeps its runs of spaces as no-break ones.
+  const text = (await code.innerText()).replaceAll("\u00a0", " ");
+  await centre(page.getByText("Shell.qml — the app's shell, yours to rewrite"));
+  const top = await code.boundingBox();
+  await page.mouse.click(top.x + 80, top.y + 30);
+  await expect(page.locator(".cm-editor.cm-focused"), "the code editor has the keyboard").toBeVisible({ timeout: 30_000 });
+  await page.keyboard.press("ControlOrMeta+a");
+  await page.keyboard.insertText(text.replace('"The Corner Pantry"', '"Observed Pantry"'));
   await expect(page.getByText("Observed Pantry", { exact: true })).toBeVisible({ timeout: 30_000 });
   await pageTab(page, "Objects").click();
   await expect(page.getByRole("listitem", { name: /^Basket/ }).first()).toBeVisible();
