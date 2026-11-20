@@ -121,11 +121,14 @@ test("the outline is the object tree: types, ids, objectNames, children in order
     ].join("\n"),
   );
   const rows = await ask(page, () => window.inspector.outline().objects.map(({ object, ...row }) => row));
-  expect(rows[0]).toEqual({ depth: 0, type: "Rectangle", id: "root", object_name: "main", item: true, children: 12 });
-  expect(rows[1]).toEqual({ depth: 1, type: "Timer", id: "timer", object_name: "", item: false, children: 0 });
+  const root = { file: "scenes/inspected.qml", line: 5, column: 1 };
+  expect(rows[0]).toEqual({ depth: 0, type: "Rectangle", id: "root", object_name: "main", item: true, children: 12, source: root });
+  expect(rows[1]).toMatchObject({ depth: 1, type: "Timer", id: "timer", object_name: "", item: false, children: 0 });
+  expect(rows[1].source.file).toBe("scenes/inspected.qml");
   // An object is listed with the id written at its own place, in whichever
-  // file: Card's `label` is Card's, beside the root's.
-  expect(rows[5]).toEqual({ depth: 2, type: "Rectangle", id: "label", object_name: "cardLabel", item: true, children: 0 });
+  // file: Card's `label` is Card's, beside the root's, and is written there.
+  const card = { file: "scenes/inspected/Card.qml", line: 7, column: 5 };
+  expect(rows[5]).toEqual({ depth: 2, type: "Rectangle", id: "label", object_name: "cardLabel", item: true, children: 0, source: card });
 });
 
 test("the object at a point names its file, line and column", async ({ page }) => {
