@@ -166,6 +166,72 @@ test("with script, the sidebar navigates and the contents list lands on its head
   expect(errors).toEqual([]);
 });
 
+test("a link in a docs page's text to a heading on it whose name is not ASCII lands on that heading", async ({ browser }) => {
+  const context = await browser.newContext({ reducedMotion: "no-preference", viewport: { width: 1440, height: 900 } });
+  try {
+    const page = await context.newPage();
+    await page.goto("/language/porting-from-qt/");
+    await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+    const named = "Where Ljós and Qt differ";
+    const heading = page.getByRole("heading", { name: named, exact: true }).filter({ visible: true }).first();
+    await expect(heading, "the heading starts out of view").not.toBeInViewport();
+    // Its anchor as the page has it, written into an address as markdown
+    // writes one: what is not ASCII in it percent-encoded.
+    const at = `${(process.env.LJOS_SITE_BASE ?? "/").replace(/\/?$/, "/")}search.json`;
+    const { anchor } = await page.evaluate(
+      async ([named, at]) => {
+        const all = await (await fetch(at)).json();
+        return all.find((one) => one.route === "/language/porting-from-qt/").headings.find((one) => one.plain === named);
+      },
+      [named, at],
+    );
+    expect(anchor).toMatch(/[^\x00-\x7f]/);
+    const link = page.getByRole("region", { name: "Bringing existing QML", exact: true }).locator("a[data-link]").first();
+    await link.evaluate((element, to) => {
+      element.dataset.link = to;
+      element.click();
+    }, `#${encodeURIComponent(anchor)}`);
+    await expect(heading).toBeInViewport();
+  } finally {
+    await context.close();
+  }
+});
+
+test("search finds the demos it says it searches, and says a query with markup as written", async ({ browser }) => {
+  const context = await browser.newContext({ reducedMotion: "no-preference", viewport: { width: 1440, height: 900 } });
+  try {
+    const page = await context.newPage();
+    await page.goto("/start/");
+    await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+    const field = page.getByRole("textbox", { name: "Search", exact: true }).filter({ visible: true }).first();
+    await field.click();
+    await page.keyboard.type("Svala GT cockpit");
+    await expect(page.getByRole("list", { name: "Search results" }).getByText("Svala GT cockpit", { exact: true })).toBeVisible();
+    await page.keyboard.press("ControlOrMeta+A");
+    await page.keyboard.type("<b>AbsentType</b>");
+    await expect(page.getByText("Nothing matches “<b>AbsentType</b>”. Try a type name, like ListView.", { exact: true })).toBeVisible();
+  } finally {
+    await context.close();
+  }
+});
+
+test("on a phone the footer's words wrap inside the page", async ({ browser }) => {
+  const context = await browser.newContext({ reducedMotion: "no-preference", viewport: { width: 390, height: 844 } });
+  try {
+    const page = await context.newPage();
+    await page.goto("/");
+    await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+    const tagline = page.getByText("Typed apps you can see inside and drive while they run.", { exact: true }).filter({ visible: true }).last();
+    await tagline.scrollIntoViewIfNeeded();
+    const box = await tagline.boundingBox();
+    expect(box, "the tagline is laid out").toBeTruthy();
+    expect(box.x, "its start").toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width, "its end, inside the window").toBeLessThanOrEqual(390);
+  } finally {
+    await context.close();
+  }
+});
+
 test("a code block is its picture until the reader reaches for it, then runs beside its code, edits keep its state, and a broken edit keeps the last good result", async ({ page }) => {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));

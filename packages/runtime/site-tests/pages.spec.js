@@ -468,13 +468,21 @@ test.describe("a site whose schemes differ only in how they are drawn", () => {
 
   const words = (page) => page.getByText(/^(Narrow|Wide)$/).filter({ visible: true }).evaluate((node) => getComputedStyle(node).color);
 
-  const paint = (page) => page.evaluate(() => [...document.querySelectorAll("path")].filter((path) => path.getClientRects().length > 0).map((path) => getComputedStyle(path).fill));
+  // Its fill and its stroke, each an attribute of its own named by scheme.
+  const paint = (page) =>
+    page.evaluate(() =>
+      [...document.querySelectorAll("path")]
+        .filter((path) => path.getClientRects().length > 0)
+        .map((path) => ({ fill: getComputedStyle(path).fill, stroke: getComputedStyle(path).stroke })),
+    );
 
-  for (const [scheme, width, text, ink] of [
-    ["light", 390, "Narrow", "rgb(34, 34, 34)"],
-    ["dark", 390, "Narrow", "rgb(238, 238, 238)"],
-    ["light", 1200, "Wide", "rgb(34, 34, 34)"],
-    ["dark", 1200, "Wide", "rgb(238, 238, 238)"],
+  const LIGHT_STROKE = "rgb(0, 85, 170)";
+  const DARK_STROKE = "rgb(255, 204, 0)";
+  for (const [scheme, width, text, ink, stroke] of [
+    ["light", 390, "Narrow", "rgb(34, 34, 34)", LIGHT_STROKE],
+    ["dark", 390, "Narrow", "rgb(238, 238, 238)", DARK_STROKE],
+    ["light", 1200, "Wide", "rgb(34, 34, 34)", LIGHT_STROKE],
+    ["dark", 1200, "Wide", "rgb(238, 238, 238)", DARK_STROKE],
   ]) {
     test(`a browser asking for ${scheme} at ${width} is shown its colours, with JavaScript off`, async ({ browser }) => {
       const context = await browser.newContext({ javaScriptEnabled: false, colorScheme: scheme, viewport: { width, height: 800 } });
@@ -484,16 +492,16 @@ test.describe("a site whose schemes differ only in how they are drawn", () => {
         await expect(page.getByText(text, { exact: true }).filter({ visible: true })).toHaveCount(1);
         expect(await words(page)).toBe(ink);
         expect(await moon(page), "the moon is shown in the dark only").toBe(scheme === "dark");
-        expect(await paint(page), "the shape is painted in its scheme's ink").toEqual([ink]);
+        expect(await paint(page), "the shape is filled and stroked in its scheme's ink").toEqual([{ fill: ink, stroke }]);
       } finally {
         await context.close();
       }
     });
   }
 
-  for (const [asked, chosen, ink] of [
-    ["dark", "light", "rgb(34, 34, 34)"],
-    ["light", "dark", "rgb(238, 238, 238)"],
+  for (const [asked, chosen, ink, stroke] of [
+    ["dark", "light", "rgb(34, 34, 34)", LIGHT_STROKE],
+    ["light", "dark", "rgb(238, 238, 238)", DARK_STROKE],
   ]) {
     test(`the page's own ${chosen} wins over a browser asking for ${asked}, before and after it hydrates`, async ({ browser }) => {
       const context = await browser.newContext({ colorScheme: asked, viewport: { width: 390, height: 844 } });
@@ -517,7 +525,7 @@ test.describe("a site whose schemes differ only in how they are drawn", () => {
         await expect(page.getByText("Narrow", { exact: true }).filter({ visible: true })).toHaveCount(1);
         expect(await words(page)).toBe(ink);
         expect(await moon(page)).toBe(chosen === "dark");
-        expect(await paint(page)).toEqual([ink]);
+        expect(await paint(page)).toEqual([{ fill: ink, stroke }]);
         release();
         await page.waitForSelector('#app[data-ljos-hydrated="true"]');
         await page.unroute("**/*.js");
@@ -526,7 +534,7 @@ test.describe("a site whose schemes differ only in how they are drawn", () => {
         // Hydrated, the colours are the page's own bindings', in the
         // scheme its root says, and no longer the head's names for them.
         await expect.poll(() => words(page)).toBe(ink);
-        await expect.poll(() => paint(page)).toEqual([ink]);
+        await expect.poll(() => paint(page)).toEqual([{ fill: ink, stroke }]);
         expect(await page.evaluate(() => document.querySelector("#app").innerHTML.includes("var(--ljos-scheme-"))).toBe(false);
         // Said in the scheme shown, and nothing of the other left.
         await expect(page.getByRole("button", { name: chosen === "dark" ? "Use the light theme" : "Use the dark theme" })).toHaveCount(1);
