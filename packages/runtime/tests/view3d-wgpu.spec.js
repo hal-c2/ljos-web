@@ -1546,6 +1546,33 @@ test.describe("a View3D no one asked a renderer of", () => {
     expect((await page.evaluate(RENDERERS)).map(({ renderer }) => renderer)).toEqual(["js", "js"]);
   });
 
+  // WebGPU found to have no adapter after a loss by one view made again is
+  // given up for the page then: a view already made again on wgpu goes to
+  // the JavaScript renderer with it, without waiting to be lost or made
+  // again.
+  test("a view already made again on wgpu goes to the JavaScript renderer when another finds no adapter after", async ({ page }) => {
+    await page.addInitScript(() => {
+      window.adapterGone = false;
+      if (!self.GPU) return;
+      const ask = GPU.prototype.requestAdapter;
+      GPU.prototype.requestAdapter = function (...args) {
+        return window.adapterGone ? Promise.resolve(null) : ask.apply(this, args);
+      };
+    });
+    await twoOnWgpu(page);
+    // The second view, made again after the first, finds no adapter.
+    await page.evaluate(() => {
+      document.querySelectorAll(".qq-view3d")[1].getContext = () => {
+        window.adapterGone = true;
+        return null;
+      };
+    });
+    await page.evaluate(() => window.loseGpu());
+    await drawingOnScript(page);
+    const drawing = { renderer: "js", lost: 0, error: null };
+    expect(await page.evaluate(RENDERERS)).toEqual([drawing, drawing]);
+  });
+
   // A view made again after a loss that fails for a reason of its own,
   // where WebGPU still has an adapter, says why it stopped; the page keeps
   // WebGPU, and the other view draws on wgpu as before.
