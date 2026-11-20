@@ -45,16 +45,6 @@ pub(crate) fn lower<'a>(
 /// `Qt.labs.settings`, which Qt's table may not have.
 const RUNTIME: &str = include_str!("../../../../packages/runtime/package.json");
 
-/// Ljós's own modules that a page cannot have, and why: said instead of
-/// "not installed", which would send whoever reads it looking for one.
-/// `Ljos.Observer` is the `ljos observe` window's: its `InspectorClient`
-/// reads a token file from disk and calls an inspector over the network. A
-/// page has its own objects, bindings and log through `ljos-web/inspect`.
-const NOT_ON_THE_WEB: &[(&str, &str)] = &[(
-    "Ljos.Observer",
-    "its InspectorClient calls an inspector that a token file on disk names, which a page cannot read; a page inspects itself with `inspect(root)` from `ljos-web/inspect`",
-)];
-
 /// Whether `uri` is had by other than the project: Qt's table, the runtime or
 /// the Qt that is installed.
 pub(crate) fn provided(uri: &str, options: &Options) -> bool {
@@ -84,12 +74,6 @@ pub(crate) fn uninstalled(
                 return None;
             };
             let uri = uri.to_string();
-            if let Some((_, why)) = NOT_ON_THE_WEB.iter().find(|(module, _)| *module == uri) {
-                return Some(Error::new(
-                    format!("module \"{uri}\" is not on the web: {why}"),
-                    import.span,
-                ));
-            }
             (!installed(&uri))
                 .then(|| Error::new(format!("module \"{uri}\" is not installed"), import.span))
         })

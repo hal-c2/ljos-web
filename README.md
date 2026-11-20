@@ -445,8 +445,8 @@ same type (`-I mocks`) or the project's own QML wins. A site build takes none.
 of a JSON array in `json` or in the file `source` names, as Ljós has it
 natively. A dev server reads the file again when it is saved, a built site
 when `reload()` is called, and a page that compiles QML reads it from the
-files given to `compile`. `Ljos.Observer` is refused by qmlc: a page inspects
-itself with `ljos-web/inspect` (docs/LJOS_WEB.md, A19).
+files given to `compile`. `import Ljos.Observer` runs Ljós's Observer in the
+page, on an item an `Inspector` serves (docs/LJOS_WEB.md, A19).
 
 ```qml
 import QtQuick

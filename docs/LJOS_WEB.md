@@ -1158,7 +1158,7 @@ described) are not checked.
 - DECISION: what is given a stand-in is ordinary state: it shows at
   once, as any property's change does.
 
-### A19. Ljós's own modules: `Ljos.Models`, and `Ljos.Observer` refused
+### A19. Ljós's own modules: `Ljos.Models` and `Ljos.Observer`
 
 `import Ljos.Models` is `ljos-web/Ljos/Models`, a module of the runtime
 that only a page importing it carries. Its `JsonListModel` is the native
@@ -1186,15 +1186,64 @@ server. A compile's files that are not code (QML, scripts, a `qmldir`) are
 provided at their address, so a page that compiles QML reads them as it
 was given them.
 
-`import Ljos.Observer` is refused by qmlc with why: its `InspectorClient`
-calls an inspector a token file on disk names. A page has neither; it
-inspects itself with `inspect(root)` (A16).
+`import Ljos.Observer` is `ljos-web/Ljos/Observer`: ljos-ui's
+`Observer.qml`, copied unchanged by `controls.js`, and the two types it
+stands on. `Inspector { target: item }` serves `item` to the page, and
+says under what token (`tokenFile`, `page:N`) and at what address
+(`url`, `page://N`). `InspectorClient { tokenFile: … }` is the native
+client, member for member: `call(tool, arguments)` returns a serial at
+once, and the answer comes later by `answered(serial, tool, ok, result)`,
+in the inspector's own shapes, answered from `inspect(root)` (A16):
 
-- DECISION: `Ljos.Observer` is an error, not a type that fails at run
-  time. It is no module of Qt's type table, only of the `ljos observe`
-  window, and what it does (read a token file, call a process over the
-  network) is what a page cannot; an error at compile time names that,
-  where an empty type would fail later and say less.
+| Tool | Answered from |
+|---|---|
+| `app_objects` | the outline: handles (`@N`), ids, types, depth, `hidden`, where each is written |
+| `app_inspect`, `app_get_property` | a pick, and each property's value and provenance (animated, assigned, bound, default) |
+| `app_set_property` | a write, which keeps a binding under it; `revert` gives the binding back |
+| `app_logs` | the page's log (`console.$inspected`), or the one the host gives (`logs`) |
+| `app_screenshot` | A17's picture, a PNG |
+| `app_frames`, `app_metrics`, `app_status` | the runtime's own frame clock, measured only while something is served |
+| `app_watch` | resolves when a pass is drawn, a line is logged or the item is served again; nothing polls |
+| `app_processes` | this page's one thread, and the timers and animations of the tree |
+
+What a page cannot answer is refused in the inspector's own error shape,
+`unsupported`, with why: `app_trace` and `app_audit` (no native process to
+trace or audit), a kind of process other than a thread, timer or
+animation, memory, and a binding typed in the Observer.
+
+- DECISION: `Ljos.Observer` runs on the web (it was refused by qmlc
+  until the site's Observer). The token is the page's own and nothing
+  crosses a network: an inspector and its client meet in the page,
+  which is what lets the site put the Observer beside every example.
+- DECISION: a frame is measured from outside the runtime: a
+  MutationObserver on the served item's nodes, the frame clock's and
+  `requestAnimationFrame`'s callers wrapped, all only while something is
+  served. A page with no `Inspector` carries none of it (`test:size` is
+  unchanged), and one whose inspector is closed is as it was. On the web
+  a pass is one task's changes to the page, so frames and paints are one
+  count; render, binding and text times are not measured (null), and a
+  pass's time goes to what woke it.
+- DECISION: an Observer edit keeps the binding under the value, as every
+  property write on the web does, and Revert gives it back. A binding
+  typed in the Observer is refused: the page's QML was compiled before it
+  was served, and a page that compiles QML compiles a whole file.
+- DECISION: `Inspector` and `InspectorClient` are QML files of the
+  module (`packages/runtime/Ljos/Observer/`, which the module's `qmldir`
+  names), and what they do is plain JavaScript they import
+  (`inspecting.mjs`, the same module as `ljos-web/Ljos/Observer`). Qt's
+  type table has no `Ljos.Observer` (natively `ljos observe` registers its
+  client), and a QML file's type is one qmlc knows from its `qmldir`, as
+  any module of QML on Qt's import path is.
+- DECISION: a member the native client has as readonly is a readonly
+  property bound to an inner object's, which the JavaScript writes: QML
+  has no other way to say a property only its own type sets.
+- DECISION: qmlc takes a module Qt's table does not describe, which a file
+  imports and the installed Qt has (`--qt`), from that module's `qmldir`,
+  as Qt does. A module of the table stays the table's, whatever `qmldir`
+  is installed for it, so `Ljos.Controls` is still the runtime's.
+- DECISION: the in-page compiler has no `Ljos.Observer`, as it has no
+  `Ljos.Controls`: a QML module of Ljós's own is what a page was built
+  with, not what an example typed in the page may import.
 - DECISION: a move is said as the rows between its ends changing. Finding
   moves pairs rows by a guess at what identifies one, which JSON does not
   say.

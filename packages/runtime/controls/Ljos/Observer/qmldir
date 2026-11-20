@@ -1,0 +1,5 @@
+# Written by ljos-web (packages/runtime/controls.js) for Ljós's own QML: not Qt's.
+module Ljos.Observer
+Observer 1.0 Observer.qml
+Inspector 1.0 ../../../Ljos/Observer/Inspector.qml
+InspectorClient 1.0 ../../../Ljos/Observer/InspectorClient.qml

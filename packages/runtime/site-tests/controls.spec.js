@@ -265,13 +265,22 @@ test("Ljós's own modules name Basic's file of each control they have no file of
   expect(DRAWN).not.toContain("RangeSlider");
 });
 
-test("Ljós's own modules and Ljos.Design are copied with its controls, and their qmldirs are as the engine makes them", () => {
+test("Ljós's own modules, Ljos.Design and the Observer are copied with its controls, and their qmldirs are as the engine makes them", () => {
   const files = Object.keys(source().files);
-  for (const file of ["Ljos/Controls/Button.qml", "Ljos/Controls/Theme.qml", "Ljos/Controls/impl/PopupShade.qml", "Ljos/Controls/Basic/TabButton.qml", "Ljos/Design/Colors.qml"]) {
+  for (const file of ["Ljos/Controls/Button.qml", "Ljos/Controls/Theme.qml", "Ljos/Controls/impl/PopupShade.qml", "Ljos/Controls/Basic/TabButton.qml", "Ljos/Design/Colors.qml", "Ljos/Observer/Observer.qml"]) {
     expect(files).toContain(file);
   }
   expect(source().paths).toEqual({
     "crates/ljos_controls/qml": ["QtQuick/Controls/", "Ljos/Controls/"],
     "crates/ljos_design_qml/qml": ["Ljos/Design/"],
+    "crates/ljos_cli/src/observe": ["Ljos/Observer/"],
   });
+  // The window `ljos observe` opens, as a type of the module its client is.
+  const observer = qmldirs(["Ljos/Observer/Observer.qml"]).get("Ljos/Observer/qmldir");
+  expect(observer).toContain("\nObserver 1.0 Observer.qml\n");
+  // And the web's own QML of the module, kept with the runtime's code of it.
+  for (const name of ["Inspector", "InspectorClient"]) {
+    expect(observer).toContain(`\n${name} 1.0 ../../../Ljos/Observer/${name}.qml\n`);
+    expect(existsSync(new URL(`../Ljos/Observer/${name}.qml`, import.meta.url))).toBe(true);
+  }
 });

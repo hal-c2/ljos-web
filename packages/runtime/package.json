@@ -102,6 +102,7 @@
     "./Ljos/Ui": "./Ljos/Ui/index.js",
     "./Ljos/Layout": "./Ljos/Layout/index.ts",
     "./Ljos/Core": "./Ljos/Core/index.js",
+    "./Ljos/Observer": "./Ljos/Observer/index.ts",
     "./vite": "./vite.js",
     "./site": "./site.js",
     "./markdown": "./markdown.js",

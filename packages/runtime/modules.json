@@ -48,6 +48,11 @@
       "needs": []
     },
     {
+      "module": "Ljos.Observer",
+      "from": "runtime",
+      "needs": []
+    },
+    {
       "module": "Ljos.Ui",
       "from": "runtime",
       "needs": []
