@@ -262,3 +262,20 @@ test("a property a file declares again is the file's, and the item is drawn by i
   expect(await read()).toEqual([20000, 45, 20, "translate(0px, 0px)", true]);
   expect(await rect(page, "page")).toEqual({ x: 0, y: 0, width: 200, height: 50 });
 });
+
+test("an item in one whose file declares its own visible and opacity is shown, hit and mapped by the native ones", async ({ page }) => {
+  await page.goto("/?scene=shadowed&inspect");
+  await page.waitForFunction(() => window.ready);
+  expect(await page.evaluate(() => [window.objects.panel.visible, window.objects.panel.opacity, window.objects.inner.visible])).toEqual([false, 0, true]);
+  expect(await rect(page, "inner")).toEqual({ x: 0, y: 60, width: 100, height: 40 });
+  // What is drawn at a point is picked, by the native visible and opacity.
+  expect(await page.evaluate(() => window.inspector.pick(50, 80)?.object.objectName)).toBe("inner");
+  // A point of a file's `scale` item is mapped by the item's own scale, 1.
+  expect(await page.evaluate(() => {
+    const { page, $root } = window.objects;
+    const at = window.objects.page.mapToItem(null, 10, 10);
+    void page;
+    void $root;
+    return [at.x, at.y];
+  })).toEqual([10, 10]);
+});

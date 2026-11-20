@@ -1,5 +1,5 @@
 import { signal } from "#kernel";
-import { native, type QObject } from "../object.ts";
+import { declaredOver, native, type QObject } from "../object.ts";
 // What is drawn of an object while an animator has it. Qt's animators move
 // an item where the scene is drawn and tell the property where it got to
 // only when they end, so whatever draws one of these properties asks here
@@ -26,6 +26,9 @@ export function drawing(self: Drawable): Values | null {
 
 // What is drawn for a property: what an animator shows, or what it says.
 export function drawn(self: Drawable, key: string): unknown {
+  // A file's own property by that name is what its animator moves: the
+  // item is drawn by the type's own, which no animator has.
+  if (declaredOver(self as unknown as QObject, key)) return native(self as unknown as QObject, key);
   const value = drawing(self)?.[key];
   return value === undefined ? native(self as unknown as QObject, key) : value;
 }

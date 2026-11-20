@@ -11,7 +11,8 @@
 // props, and `$console` and `$bound` around what logs and what binds. A page
 // built without it has none of them and never imports this module; an
 // object of such a file is listed and clicked all the same, with no place.
-import { flush } from "./object.ts";
+import { flush, native } from "./object.ts";
+import { drawn as drawnOf } from "./QtQuick/drawn.ts";
 
 // What each of `console`'s calls is, as Qt's message types: qml6 says
 // `console.log` is a debug message and `console.error` a critical one.
@@ -286,7 +287,9 @@ export function inspect(root) {
       for (let element of document.elementsFromPoint(clientX, clientY)) {
         while (element && !items.has(element)) element = element.parentElement;
         const object = element && items.get(element);
-        if (!object || object.opacity === 0 || !object.visible) continue;
+        // As it is drawn: a file may declare a `visible` or `opacity` of its
+        // own, which does not hide the item.
+        if (!object || drawnOf(object, "opacity") === 0 || native(object, "visible") === false) continue;
         return { object, type: typeOf(object), id: idOf(object), source: source(object) };
       }
       return null;

@@ -9,6 +9,8 @@ Item {
     property alias page: page
     property alias bar: bar
     property alias scaled: scaled
+    property alias panel: panel
+    property alias inner: inner
 
     Item {
         id: page
@@ -20,6 +22,17 @@ Item {
             scale = Math.max(scale, by)
         }
         Rectangle { id: bar; width: page.scale / 1000; height: 10 }
+    }
+
+    // Its own `visible` and `opacity`, of what it is about: it is still
+    // shown, whole, and so is what is in it.
+    Item {
+        id: panel
+        objectName: "panel"
+        x: 0; y: 60; width: 100; height: 40
+        property bool visible: false
+        property real opacity: 0
+        Rectangle { id: inner; objectName: "inner"; width: 100; height: 40; color: "teal" }
     }
 
     // Not declared again: the item's own, drawn.
