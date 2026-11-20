@@ -182,6 +182,40 @@ fn the_modules_of_qt_the_runtime_and_the_stand_ins_are_installed() {
     );
 }
 
+#[test]
+fn a_module_of_only_qml_in_the_installed_qt_is_its_qmldir() {
+    // `Vendor.Shapes` is QML a Qt install has and Qt's table does not
+    // describe, as any module of QML files on Qt's import path: its types
+    // are what its `qmldir` says, one of them kept outside it. A module the
+    // table has (`QtQuick.Controls`) is still the table's, whatever `qmldir`
+    // the install has for it.
+    let code = compiled(&[
+        "--root",
+        "qtonly/app",
+        "--qt",
+        "qtonly/qt",
+        "qtonly/app/Main.qml",
+    ]);
+    assert_contains(&code, r#"import Star from "../qt/Vendor/Shapes/Star.qml";"#);
+    assert_contains(&code, r#"import Glow from "../glow/Glow.qml";"#);
+    assert_contains(&code, r#"from "ljos-web/QtQuick/Controls""#);
+    assert!(!code.contains("Controls/Button.qml"), "{code}");
+}
+
+#[test]
+fn a_file_of_a_module_of_only_qml_has_the_types_its_qmldir_keeps_elsewhere() {
+    // Compiled for a project elsewhere, as a tool that compiles each file
+    // the project's page takes does.
+    let code = compiled(&[
+        "--root",
+        "qtonly/app",
+        "--qt",
+        "qtonly/qt",
+        "qtonly/qt/Vendor/Shapes/Badge.qml",
+    ]);
+    assert_contains(&code, r#"import Glow from "../../../glow/Glow.qml";"#);
+}
+
 /// `qmlc` on `unknown/Main.qml` with a `PATH` of only the tools written
 /// here, each a script answering `QT_VERSION` with `version` and
 /// `QT_INSTALL_QML` with a directory that has `No.Such.Module`.
