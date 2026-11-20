@@ -544,10 +544,30 @@ class Host {
   }
 }
 
-// How many times a view is made again for a GPU lost, within `LOSSES_IN`
-// milliseconds of the first: past that, the GPU is taken as gone for it.
+// How many times the page's views are made again for a GPU lost, within
+// `LOSSES_IN` milliseconds of the first: past that, the GPU is taken as gone.
 const LOSSES = 3;
 const LOSSES_IN = 60_000;
+
+// The GPU lost is the page's, as its device is: each loss counts once,
+// whatever views it took, and once it is lost too often, or has no adapter
+// after, WebGPU is given up for the page (`givenUp`, why). Every view then
+// does alike, the ones there and any made after, so none shows a picture
+// one on the other renderer drew.
+let losses = [];
+let counting = false;
+let givenUp = null;
+function lostOnce(message) {
+  if (givenUp || counting) return givenUp;
+  // The views of one device are told of losing it in the same task.
+  counting = true;
+  setTimeout(() => (counting = false));
+  const now = performance.now();
+  losses = losses.filter((at) => now - at < LOSSES_IN);
+  losses.push(now);
+  if (losses.length > LOSSES) givenUp = `the GPU was lost: ${message}`;
+  return givenUp;
+}
 
 // The views that gave a new picture to what shows it in this task. One
 // asked to draw again in it waits for the next animation frame: views that
@@ -595,6 +615,9 @@ export function drawOn(self, canvas, told, instead) {
   let due = false;
   let frame = 0;
   let gone = false;
+  // Whether WebGPU was given the canvas: what draws instead then draws on
+  // one of its own.
+  let gaveCanvas = false;
   let wanted = false;
   let own = false;
   const state = (canvas.$view3d = {
@@ -798,30 +821,28 @@ export function drawOn(self, canvas, told, instead) {
   // browser whose GPU process gave up may have no adapter after) or is lost
   // too often to go on, draws on the JavaScript renderer instead, as where
   // WebGPU had no adapter from the start: on a canvas of its own, as this
-  // one keeps WebGPU's context.
-  const fallBack = () => {
+  // one keeps WebGPU's context, if it was given it. One a renderer was asked
+  // of says why it stops.
+  const giveUp = (why) => {
+    if (!instead) {
+      state.error = why;
+      return void console.error(`View3D: ${state.error}`);
+    }
     gone = true;
-    instead(true);
+    instead(gaveCanvas);
     setDraws((times) => times + 1);
   };
-  let losses = [];
   const lost = (message) => {
     const view = made();
     if (gone || stopped || !view) return;
-    const now = performance.now();
-    losses = losses.filter((at) => now - at < LOSSES_IN);
-    losses.push(now);
     setMade(null);
     queueMicrotask(() => into(() => view.free()));
     for (const end of followers.values()) end();
     followers.clear();
     changed.clear();
     members.clear();
-    if (losses.length > LOSSES) {
-      if (instead) return void fallBack();
-      state.error = `the GPU was lost: ${message}`;
-      return void console.error(`View3D: ${state.error}`);
-    }
+    const why = lostOnce(message);
+    if (why) return void giveUp(why);
     state.lost++;
     host = new Host(self, setArrivals, arrivals, request, lost);
     make();
@@ -886,6 +907,7 @@ export function drawOn(self, canvas, told, instead) {
     queue = queue
       .then(async () => {
         if (gone) return;
+        if (givenUp) return void giveUp(givenUp);
         // Before the renderer is fetched or the canvas taken, so what draws
         // instead has both.
         if (instead && !(await adapted())) {
@@ -902,6 +924,7 @@ export function drawOn(self, canvas, told, instead) {
         if (stopped) return;
         if (!module) await chunk();
         if (stopped) return;
+        gaveCanvas = true;
         const view = await module.View3d.create(canvas, host);
         if (gone) return void into(() => view.free());
         if (stopped) return;
@@ -913,7 +936,9 @@ export function drawOn(self, canvas, told, instead) {
       })
       .catch((error) => {
         if (trapped(error)) return;
-        if (state.lost && instead && !gone) return void fallBack();
+        // A view made again for a GPU lost, where WebGPU has no adapter
+        // after, and one made while another found that.
+        if ((state.lost || givenUp) && !gone) return void giveUp((givenUp ??= `the GPU was lost, and none is to be had again: ${error?.message ?? error}`));
         state.error = String(error?.message ?? error);
         console.error(`View3D: ${state.error}`);
       });

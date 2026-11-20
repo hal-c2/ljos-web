@@ -1516,6 +1516,11 @@ function probed(map) {
   let made = probes.get(from);
   if (made !== undefined) return made;
   if (map.data?.baked && map.data.sides === 6) {
+    // Let go of once a context lost had it: read again, and made once here.
+    if (!map.data.levels && map.data.reread) {
+      map.data.reread();
+      return null;
+    }
     probes.set(from, (made = baked(map.data)));
     return made;
   }
