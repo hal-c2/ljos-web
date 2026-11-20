@@ -1,3 +1,6 @@
+// Ljós's Core before QtQuick: only its t`` is wanted here, and any name
+// both have stays QtQuick's, the later import.
+import Ljos.Core
 import QtQuick
 import Ljos.Blocks
 import Site
@@ -5,13 +8,12 @@ import Demos
 import "../Demos/later.js" as Later
 import "../nav.js" as Nav
 
-// The front page. It leads with what malleable means here: the
-// person using an app replaces its interface with a shell of their
-// own, and the app's shell — with what broke, and where — is what
-// stands when theirs does not work. Then, in order: typed
-// TypeScript, a running app you can observe and drive, and
-// stability at rest. Existing QML is a way in, named once, in
-// passing; the porting page is where that story is told.
+// The front page. It opens with typed, observable and drivable apps,
+// proves shell replacement live with the Pantry, then covers
+// TypeScript first, the Observer and MCP, stability and memory at rest,
+// the 3D showcase, community principles and where to read next.
+// Existing QML is named once, as the way in; the porting page tells
+// that story.
 Column {
     id: landing
 
@@ -38,7 +40,7 @@ Column {
         spacing: Theme.l
 
         Text {
-            text: "Malleable software"
+            text: t`Typed, malleable UI`
             color: Theme.link
             font.family: Theme.sans
             font.pixelSize: Theme.captionSize + 1
@@ -49,7 +51,7 @@ Column {
         }
         Text {
             width: Math.min(parent.width, 880)
-            text: "Ljós — malleable software, everywhere"
+            text: t`Ljós — malleable software, everywhere`
             color: Theme.text
             font.family: Theme.sans
             font.pixelSize: landing.wide ? Theme.heroSize : Theme.compactHeroSize
@@ -71,7 +73,7 @@ Column {
             lineHeightMode: Text.FixedHeight
             lineHeight: landing.wide ? Theme.subtitleLine + 2 : Theme.subtitleLine - 2
             wrapMode: Text.Wrap
-            text: "A Rust UI toolkit for apps that the people who use them — and their agents — can reshape while they run. Interfaces are declarative, scripts are typed TypeScript, and every part of a running app can be observed and driven."
+            text: t`Typed apps you can see inside and drive while they run. Ljós is a Rust UI toolkit with strict TypeScript scripts under declarative pages, where every part of a running app answers to the Observer and to agents over MCP — and people can reshape an app's shell without losing its state.`
             onLinkActivated: (link) => landing.follow(link)
         }
         Flow {
@@ -80,15 +82,15 @@ Column {
 
             LinkButton {
                 primary: true
-                label: "What is Ljós?"
+                label: t`What is Ljós?`
                 href: "/start/"
             }
             LinkButton {
-                label: "Your first app"
+                label: t`Your first app`
                 href: "/start/first-app/"
             }
             LinkButton {
-                label: "See the demos"
+                label: t`See the demos`
                 href: "/demos/"
             }
         }
@@ -102,7 +104,7 @@ Column {
 
         Text {
             width: parent.width
-            text: "Your own shell"
+            text: t`Your own shell`
             color: Theme.text
             font.family: Theme.sans
             font.pixelSize: landing.wide ? Theme.headlineSize + 4 : Theme.headlineSize - 2
@@ -123,7 +125,7 @@ Column {
             lineHeightMode: Text.FixedHeight
             lineHeight: Theme.bodyLine + 4
             wrapMode: Text.Wrap
-            text: "Most programs are finished before you meet them. A Ljós app does the work and keeps the state; its interface is a shell, built from blocks the app and its plugins offer into named <code>Slot</code>s. Ship your own shell, and let each person replace it with a <code>shell.qml</code> of theirs: <code>ShellLoader</code> — <code>import Ljos.Blocks</code> — shows theirs in your shell's place."
+            text: t`A Ljós app keeps its own data and logic, while its interface is a shell: menus, sidebars and panels filled by blocks placed into named <code>Slot</code>s. Ship a default shell, and let people or their agents replace it with a <code>shell.qml</code> of their own through <code>ShellLoader</code> from <code>Ljos.Blocks</code>.`
             onLinkActivated: (link) => landing.follow(link)
         }
         Text {
@@ -136,7 +138,7 @@ Column {
             lineHeightMode: Text.FixedHeight
             lineHeight: Theme.bodyLine + 4
             wrapMode: Text.Wrap
-            text: "The state stays and the work goes on. A broken edit falls back to the app's shell, with <code>error</code> saying what broke and where, so an experiment never bricks the app. The compiler and the lints ship in the app, so the edit is checked the way your own code is: the interface belongs to whoever is looking at it."
+            text: t`When the shell changes, the app keeps running and keeps its state. The same compiler and lints check each edit before it loads; if an edit fails to compile, <code>ShellLoader</code> falls back to the app's own shell and reports what broke and where in <code>error</code>.`
             onLinkActivated: (link) => landing.follow(link)
         }
         CodeBlock {
@@ -170,7 +172,7 @@ Column {
                         lineHeightMode: Text.FixedHeight
                         lineHeight: Theme.bodyLine
                         wrapMode: Text.Wrap
-                        text: "<b>Rewrite this app's shell.</b> A small app whose shell you edit below, on the page. Move where a <code>Slot</code> contribution lands and it moves; break the shell and the app's own shell stands in its place, with the error shown; the app's data and state survive both."
+                        text: t`<b>Try rewriting this app's shell live.</b> Add an item to the basket below, then edit the <code>Shell.qml</code> source under it: move a <code>Slot</code> and the running app rearranges while the basket keeps its items. Introduce a typo and the app falls back to its built-in shell with the compiler error shown, then fix it or press Reset to return.`
                     }
                     PantryDemo {
                         width: parent.width
@@ -196,24 +198,24 @@ Column {
             id: typed
             width: points.cardWidth
             height: landing.wide ? points.tallest : contentHeight
-            title: "TypeScript first"
-            body: "Interfaces are declarative; scripts are typed TypeScript, checked before anything runs. Handlers, functions and bindings carry their types, and the compiler says so where they do not add up. Logic, models and native types can stay in Rust, driven from the interface like anything else. Existing QML runs as a way in — <a href=\"/language/porting-from-qt/\">bringing an app along</a> has its own page."
+            title: t`TypeScript first`
+            body: t`Write logic in strict TypeScript modules, with declarative pages over them. Handlers, functions and bindings are type-checked in Rust before anything runs, while heavy logic and native models can stay in Rust. Existing QML runs as the way in — <a href="/language/porting-from-qt/">bringing an app along</a> covers <code>ljos check --port</code> and <code>ljos migrate</code>.`
             onFollowed: (link) => landing.follow(link)
         }
         FeatureCard {
             id: observed
             width: points.cardWidth
             height: landing.wide ? points.tallest : contentHeight
-            title: "Observe and drive a running app"
-            body: "Every part of a running app can be observed and driven. <code>ljos observe</code> opens on its live objects, properties, bindings, frames and wakes, and sends real input; a coding agent gets the same view over <a href=\"/start/mcp/\">MCP</a>. What an agent can reshape, it can also check."
+            title: t`See inside and drive a running app`
+            body: t`Start a native build with <code>ljos run --mcp</code> and open the Observer with <code>ljos observe</code> to inspect live objects, properties, bindings, memory, frames and wakes. An agent gets the same view over <a href="/start/mcp/">MCP</a>, clicking buttons, typing text and reading results through the same input path a person uses.`
             onFollowed: (link) => landing.follow(link)
         }
         FeatureCard {
             id: stable
             width: points.cardWidth
             height: landing.wide ? points.tallest : contentHeight
-            title: "Stable, and still at rest"
-            body: "Work runs when input, a timer, an animation or a message asks for it; nothing polls, and an app at rest uses 0 % CPU. A fault restarts the part of the interface that caused it, not the window. The same engine renders on Linux, macOS, Windows, Android, iOS — and the web, where this site is itself a Ljós page."
+            title: t`Stable, light, and 0 % CPU at rest`
+            body: t`A failing part restarts or shows a fallback instead of closing the window, and an app at rest uses 0 % CPU. Measured natively on Linux (2026-10-18), seven sample apps held 57.4–91.2 MiB private memory against qml6's 87.3–245 MiB — not this web page, and qml6 stayed ahead on startup (2026-10-15) and animation frame cost (2026-10-18). One engine targets Linux, macOS, Windows, Android, iOS and the web.`
             onFollowed: (link) => landing.follow(link)
         }
     }
@@ -226,7 +228,7 @@ Column {
 
         Text {
             width: parent.width
-            text: "See it run"
+            text: t`See it run`
             color: Theme.text
             font.family: Theme.sans
             font.pixelSize: landing.wide ? Theme.headlineSize + 4 : Theme.headlineSize - 2
@@ -253,8 +255,8 @@ Column {
                         needs: "webgl2"
                         picture: "/pictures/demo-orbit.webp"
                         pictureDark: "/pictures/demo-orbit-dark.webp"
-                        what: "the 3D demo"
-                        description: "A lit 3D scene of shapes on a floor, which a drag turns."
+                        what: t`the 3D demo`
+                        description: t`A lit 3D scene of shapes on a floor, which a drag turns.`
                         source: Later.orbit
                     }
                     Text {
@@ -267,7 +269,7 @@ Column {
                         lineHeightMode: Text.FixedHeight
                         lineHeight: Theme.bodyLine
                         wrapMode: Text.Wrap
-                        text: Nav.linked(Content.base, "The <a href=\"/demos/\">live demos</a> run in this page: a shell you rewrite, a 3D scene you can orbit, a shader effect, a whole app, and motion — each a complete Ljós app, each with a picture and its words where wasm or WebGL 2 is missing.")
+                        text: Nav.linked(Content.base, t`Press Run to start this 3D scene, drag to orbit it, and switch between light and dark themes in the header to watch it follow. The <a href="/demos/">live demos</a> add a car cockpit and a smartwatch whose files you can edit, plus a shader effect, a bird field guide and a motion study — each a complete Ljós app that falls back to a picture and its description where WebAssembly or WebGL 2 is unavailable.`)
                         onLinkActivated: (link) => landing.follow(link)
                     }
                 }
@@ -283,7 +285,7 @@ Column {
 
         Text {
             width: parent.width
-            text: "Built together"
+            text: t`Built together`
             color: Theme.text
             font.family: Theme.sans
             font.pixelSize: landing.wide ? Theme.headlineSize + 4 : Theme.headlineSize - 2
@@ -304,7 +306,7 @@ Column {
             lineHeightMode: Text.FixedHeight
             lineHeight: Theme.bodyLine
             wrapMode: Text.Wrap
-            text: "Ljós strives to follow the <a href=\"https://community-software.org/\">Community Software</a> principles: we build it together, as peers, in the open.<br><br>Everyone is welcome.<br>We are peers.<br>Every contribution counts.<br>Influence grows from participation.<br>Be kind to people, rigorous with ideas.<br>“No” and “not yet” are valid answers.<br>Look after yourself and each other.<br><br>Code is one way to help. Testing, writing docs, design, translation and accessibility reviews count just as much, and questions from newcomers are welcome."
+            text: t`Ljós strives to follow the <a href="https://community-software.org/">Community Software</a> principles: we build it together, as peers, in the open.<br><br>Everyone is welcome.<br>We are peers.<br>Every contribution counts.<br>Influence grows from participation.<br>Be kind to people, rigorous with ideas.<br>“No” and “not yet” are valid answers.<br>Look after yourself and each other.<br><br>Code is one way to help. Testing, docs, design, translation and accessibility reviews count as much, and questions from newcomers are welcome.`
             onLinkActivated: (link) => landing.follow(link)
         }
     }
@@ -317,7 +319,7 @@ Column {
 
         Text {
             width: parent.width
-            text: "Start reading"
+            text: t`Start reading`
             color: Theme.text
             font.family: Theme.sans
             font.pixelSize: landing.wide ? Theme.headlineSize + 4 : Theme.headlineSize - 2
@@ -344,36 +346,36 @@ Column {
                 id: map
                 width: reading.cardWidth
                 height: landing.wide ? reading.tallestTop : contentHeight
-                title: "What is Ljós?"
+                title: t`What is Ljós?`
                 href: "/start/"
-                body: "The map of these docs."
+                body: t`An overview of the toolkit and a map of the docs.`
                 onFollowed: (link) => landing.follow(link)
             }
             FeatureCard {
                 id: first
                 width: reading.cardWidth
                 height: landing.wide ? reading.tallestTop : contentHeight
-                title: "Your first app"
+                title: t`Your first app`
                 href: "/start/first-app/"
-                body: "A file, a window, live edits."
+                body: t`Write a file, open a window, and watch live edits apply without losing state.`
                 onFollowed: (link) => landing.follow(link)
             }
             FeatureCard {
                 id: demosCard
                 width: reading.cardWidth
                 height: landing.wide ? reading.tallestBottom : contentHeight
-                title: "Live demos"
+                title: t`Live demos`
                 href: "/demos/"
-                body: "Every embedded example in one place."
+                body: t`Run every embedded app in the browser, and edit the shell and multi-file demos.`
                 onFollowed: (link) => landing.follow(link)
             }
             FeatureCard {
                 id: goals
                 width: reading.cardWidth
                 height: landing.wide ? reading.tallestBottom : contentHeight
-                title: "Goals and principles"
+                title: t`Goals and principles`
                 href: "/quality/principles/"
-                body: "What Ljós does, what it leaves out, and why."
+                body: t`What Ljós builds, what it leaves out, and why agents are first-class users.`
                 onFollowed: (link) => landing.follow(link)
             }
         }
