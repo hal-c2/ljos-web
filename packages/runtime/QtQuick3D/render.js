@@ -2473,6 +2473,9 @@ export function draw(scene, canvas, paper, ways = 0) {
     canvas.width = canvas.height = 0;
     return false;
   }
+  // A context the browser lost (its GPU process went down) draws nothing
+  // and hands over no picture: the canvas keeps the last one.
+  if (gl.isContextLost()) return false;
   if (surface.width !== width) surface.width = width;
   if (surface.height !== height) surface.height = height;
   turn++;
@@ -2576,6 +2579,8 @@ export function draw(scene, canvas, paper, ways = 0) {
   if (grade) finished(grade, picture);
   else if (effects) shown(picture, environment.tonemap);
   if (ways) retained(canvas, width, height, ways);
+  // Lost as it drew, it has no picture to give.
+  if (gl.isContextLost()) return false;
   // The picture leaves the surface for the canvas: nothing is copied.
   paper.transferFromImageBitmap(surface.transferToImageBitmap());
   return true;

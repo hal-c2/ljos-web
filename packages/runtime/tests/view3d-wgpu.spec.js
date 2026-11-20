@@ -1252,6 +1252,34 @@ test("a page with a View3D on the JavaScript renderer fetches none of the wgpu o
   expect(fetched.filter((url) => /ljos_web_3d/.test(url) && !/\.wasm\?import&url$/.test(url))).toEqual([]);
 });
 
+// The JavaScript renderer draws every view with one WebGL 2 context, which
+// the browser may lose (a GPU process that went down takes it, as it takes
+// WebGPU's device): a view keeps the picture it last drew, and no frame
+// throws for the picture it can no longer hand over.
+test("a view on the JavaScript renderer whose context is lost keeps its last picture, and throws nothing", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.addInitScript(() => {
+    const get = OffscreenCanvas.prototype.getContext;
+    OffscreenCanvas.prototype.getContext = function (kind, ...rest) {
+      const made = get.call(this, kind, ...rest);
+      if (kind === "webgl2" && made) window.drawing = made;
+      return made;
+    };
+  });
+  await page.goto("/?scene=shaded3d&view3d=js");
+  await page.waitForFunction(() => window.ready && document.querySelector(".qq-view3d")?.$view3d?.frames > 0);
+  const frames = await page.evaluate(() => document.querySelector(".qq-view3d").$view3d.frames);
+  await page.evaluate(() => window.drawing.getExtension("WEBGL_lose_context").loseContext());
+  // A change the view draws again for, and the frames it would be drawn in.
+  await page.evaluate(() => (window.objects.height = 290));
+  await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(done, 100)))));
+  expect(errors).toEqual([]);
+  expect(await page.evaluate(() => document.querySelector(".qq-view3d").$view3d.frames), "no picture drawn without a context").toBe(frames);
+  const [r, g, b] = (await pixels(page, [[50, 60]]))[0].split(" ").map(Number);
+  expect([r, g, b], "the model it last drew, not the window's colour").not.toEqual(CLEAR);
+});
+
 // Where neither the page nor the build asks for a renderer, a View3D is on
 // wgpu if WebGPU has an adapter for the page, and on the JavaScript one if
 // not: a browser may have WebGPU and no GPU it lets it use.
