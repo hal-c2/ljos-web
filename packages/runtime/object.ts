@@ -2163,16 +2163,21 @@ function defineAlias(self: QObject, name: string, [target, ...path]: AliasPath):
     set(value: unknown) {
       const object = holder();
       if (!path.length || !object) return;
-      if (writer === "script") written = true;
-      else overridden = writer === "override";
+      const by = writer;
+      if (by === "script") written = true;
+      else overridden = by === "override";
       // A state that ends gives the binding back: what it gives now, not
       // what it gave as the state began.
-      if (writer === "release" && binding && !written) {
+      if (by === "release" && binding && !written) {
         const now = untrack(binding);
         if (now !== undefined || !binding.failing) value = now;
       }
-      if (isHeldList(object, last)) intoHeldList(object, last, value, false);
-      else object[last] = value;
+      // Only this alias is the state's: what the write runs (a handler
+      // writing another alias) writes as a script does.
+      writtenBy("script", () => {
+        if (isHeldList(object, last)) intoHeldList(object, last, value, false);
+        else object[last] = value;
+      });
     },
     enumerable: true,
     configurable: true,
