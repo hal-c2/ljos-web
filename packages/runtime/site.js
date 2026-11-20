@@ -457,6 +457,11 @@ const ATTRIBUTE = /\s([^\s="'>/]+)(?:="([^"]*)")?/g;
 // What an element says rather than draws: the light words stand in a page
 // with no script, which cannot switch the scheme either.
 const SAID = /^(aria-[a-z]+|title|alt)$/;
+// What a shape is painted in, said as an attribute of its own rather
+// than in its style (`<path fill="#222">`): a custom property stands in
+// one as it does in a style, so an icon drawn in the page's ink keeps
+// the page one render.
+const PAINT = /^(fill|stroke|stop-color|flood-color|lighting-color)$/;
 const HIDDEN = "display: none";
 
 // A name for what is `light` in the light scheme and `dark` in the dark.
@@ -514,6 +519,7 @@ function shareTag(light, dark, named) {
     let shared = value;
     if (value !== other) {
       if (key === "style") shared = shareStyle(value, other, item, named);
+      else if (PAINT.test(key)) shared = shareColours(value, other, named);
       else if (SAID.test(key)) said.push([key, other]);
       else shared = null;
       if (shared === null) return null;
