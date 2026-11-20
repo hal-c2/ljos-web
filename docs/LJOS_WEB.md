@@ -1224,13 +1224,26 @@ animation, memory, and a binding typed in the Observer.
   count; render, binding and text times are not measured (null), and a
   pass's time goes to what woke it.
 - DECISION: a holder waits on one `app_watch` at a time: asked again, the
-  watch it had out is answered at once, with nothing changed. The
+  watch it had out is answered at once, with what changed since it was
+  asked (nothing, if no pass came in between; a pass that came while it
+  settled is in its `changed`). The
   Observer follows an item picked with a new watch while the one that
   follows every pass is still out, and asks again only once none of its
   own is waiting; kept waiting, that first watch would be answered by
   the next pass, for nothing the Observer still follows, and leave no
   watch out. An item is counted by the pass's changes inside its nodes,
   where natively it is by where the pass changed the picture.
+- DECISION: a handle answers only for the application whose answers
+  named it: `@N` from one served item is `not_found` to another's token,
+  and a reload makes its handles stale. A call is answered by the
+  application its client's token named when it was made: if the token
+  changed before the answer, it is refused.
+- DECISION: with more than one application served, a pass's
+  `binding_runs` and `text_layouts` are null: the runtime counts them for
+  the page, and no one application's pass is told apart from another's.
+- DECISION: an `Inspector` given another `logs` or `title` serves its
+  target anew, under a new token, so no client keeps reading the log it
+  was given before.
 - DECISION: an Observer edit keeps the binding under the value, as every
   property write on the web does, and Revert gives it back. A binding
   typed in the Observer is refused: the page's QML was compiled before it
