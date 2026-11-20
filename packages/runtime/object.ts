@@ -810,6 +810,7 @@ function graphed<T>(owner: Owner | null, compute: () => T, first?: T, own = fals
     const spent = made;
     if (spent) after(spent);
     evaluating = true;
+    deep++;
     if (counted) bindings++;
     try {
       held = runWithOwner(PARKED, () =>
@@ -820,6 +821,7 @@ function graphed<T>(owner: Owner | null, compute: () => T, first?: T, own = fals
       ) as T;
     } finally {
       evaluating = false;
+      deep--;
       if (counted) bindings--;
     }
     done = true;
@@ -850,7 +852,7 @@ function graphed<T>(owner: Owner | null, compute: () => T, first?: T, own = fals
         follow(index as number, owner);
         return held;
       }
-      return read.start()();
+      return settledOwed(read.start()());
     },
     { start, begin: start, busy: () => evaluating },
   );
@@ -935,6 +937,7 @@ function ringed<T>(owner: Owner | null, compute: () => T, first: T | undefined, 
     record.outer = evaluated;
     evaluated = record;
     evaluating = true;
+    deep++;
     bindings++;
     record.heard = 0;
     record.own = false;
@@ -942,6 +945,7 @@ function ringed<T>(owner: Owner | null, compute: () => T, first: T | undefined, 
       value = compute();
     } finally {
       evaluating = false;
+      deep--;
       bindings--;
       evaluated = record.outer;
       record.outer = null;
@@ -1006,7 +1010,7 @@ function ringed<T>(owner: Owner | null, compute: () => T, first: T | undefined, 
       return weak(reader, asking);
     }
     if (reader && back?.has(reader)) return weak(reader, asking);
-    if (!asking) return read.start()();
+    if (!asking) return settledOwed(read.start()());
     // Only what it did not read before can close a ring, and only around
     // what something was computed from.
     if (asking.done && asking.asked && !asking.from?.has(record) && !asking.fresh?.has(record)) {
@@ -1039,6 +1043,22 @@ let evaluated: Ring | null = null;
 // How many bindings are being evaluated, one inside another, on either
 // kernel: the graph's evaluations are not `ringed`'s, and set no `evaluated`.
 let bindings = 0;
+// The same, with what the wasm kernel's graph evaluates that is no binding:
+// nothing settles while the graph is computing.
+let deep = 0;
+// An object a binding made into an item: the item is told of it (its own
+// `onChildrenChanged`) once the binding read from outside all of them has
+// been computed, before the reader goes on, as when it is made outside one.
+// Qt tells it inside the binding; here nothing is told while one computes.
+// A computation that reads it is in a flush, which tells it at its end.
+let owed = false;
+function settledOwed<T>(value: T): T {
+  if (owed && deep === 0 && !getObserver()) {
+    owed = false;
+    settle();
+  }
+  return value;
+}
 // Counts the changes of values, and the changes that began of themselves.
 let clock = 0;
 let waves = 0;
@@ -2532,9 +2552,12 @@ export function $component(file: File): Component {
     hidden(object as QObject, "$dispose", dispose);
     item?.$add?.(object as QObject);
     // The parent has heard of its new child (`onChildrenChanged`) when the
-    // call returns, as when a `parent` is assigned. A binding that makes one
-    // is settled with the rest.
-    if (item?.$add && bindings === 0) settle();
+    // call returns, as when a `parent` is assigned; one made by a binding,
+    // when the binding is read (`settledOwed`).
+    if (item?.$add) {
+      if (deep === 0) settle();
+      else owed = true;
+    }
     return object;
   };
   return make;
