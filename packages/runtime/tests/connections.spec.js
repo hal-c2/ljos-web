@@ -85,3 +85,18 @@ test("a list property given a new array with the same items is heard once the sc
   await open(page, "connectionchildren");
   expect(await page.evaluate(() => window.scene.copy())).toEqual([0, 1]);
 });
+
+// A change of a list with no signal of its own is told once its flush has
+// settled, by when a handler may have given its Connections another
+// target. A change made while the old one was the target is heard, as Qt
+// hears it the moment it is made; one made once the new one was is not.
+test("a Connections whose target is replaced in the flush hears what changed while it was the target", async ({ page }) => {
+  await open(page, "connectionswitch");
+  expect(await page.evaluate(() => window.scene.changed()), "changed while box was the target").toEqual([0]);
+  expect(await page.evaluate(() => window.scene.switched()), "changed once box was again").toEqual([0]);
+});
+
+test("a Connections whose target the same change replaces does not hear it of the old target", async ({ page }) => {
+  await open(page, "connectionswitch");
+  expect(await page.evaluate(() => window.scene.replaced())).toEqual([]);
+});
