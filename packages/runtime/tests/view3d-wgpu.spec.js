@@ -1553,21 +1553,34 @@ test.describe("a View3D no one asked a renderer of", () => {
   test("a view already made again on wgpu goes to the JavaScript renderer when another finds no adapter after", async ({ page }) => {
     await page.addInitScript(() => {
       window.adapterGone = false;
+      // The answer of no adapter waits to be let go, so the first view is
+      // seen made again on wgpu before WebGPU is given up.
+      window.noAdapter = new Promise((done) => (window.letNoAdapterGo = () => done(null)));
       if (!self.GPU) return;
       const ask = GPU.prototype.requestAdapter;
       GPU.prototype.requestAdapter = function (...args) {
-        return window.adapterGone ? Promise.resolve(null) : ask.apply(this, args);
+        return window.adapterGone ? window.noAdapter : ask.apply(this, args);
       };
     });
     await twoOnWgpu(page);
     // The second view, made again after the first, finds no adapter.
     await page.evaluate(() => {
-      document.querySelectorAll(".qq-view3d")[1].getContext = () => {
+      const [first, second] = document.querySelectorAll(".qq-view3d");
+      window.first = { canvas: first, frames: first.$view3d.frames };
+      second.getContext = () => {
         window.adapterGone = true;
         return null;
       };
     });
     await page.evaluate(() => window.loseGpu());
+    await page.waitForFunction(() => window.adapterGone);
+    await page.waitForFunction(() => {
+      const { canvas, frames } = window.first;
+      const state = canvas.$view3d;
+      return state.renderer === "wgpu" && state.lost === 1 && state.frames > frames;
+    });
+    expect(await page.evaluate(() => window.first.canvas.isConnected)).toBe(true);
+    await page.evaluate(() => window.letNoAdapterGo());
     await drawingOnScript(page);
     const drawing = { renderer: "js", lost: 0, error: null };
     expect(await page.evaluate(RENDERERS)).toEqual([drawing, drawing]);
