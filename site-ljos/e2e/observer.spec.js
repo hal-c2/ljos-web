@@ -74,6 +74,9 @@ test("on a wide window it is docked along the right, and the example can still b
   expect(stage.x + stage.width, "the page reflows beside it").toBeLessThanOrEqual(box.x + 1);
   await press(button);
   await expect(block.stage.getByText("Count: 1")).toBeVisible();
+  // A click a browser would give the page beside it reaches its link:
+  // nothing of the dock stands over the page but the panel itself.
+  await page.getByRole("link", { name: "Hot Reload", exact: true }).first().click({ trial: true, timeout: 5_000 });
 });
 
 test("on a phone it is a sheet over the lower part of the screen, and a press above it closes it", async ({ page }) => {
@@ -179,6 +182,10 @@ test("closing it lets go of the app, and nothing of it is left in the page", asy
     });
   await expect.poll(counting, { message: "no inspector is served" }).toBe(false);
   await expect(observerButton(block)).toHaveAttribute("aria-pressed", "false");
+  // Closed, nothing of it stands over the page to take a click.
+  for (const name of ["What is Ljós?", "Hot Reload"]) {
+    await page.getByRole("link", { name, exact: true }).first().click({ trial: true, timeout: 5_000 });
+  }
 });
 
 test("one Observer at a time: pressed on another example, it moves there", async ({ page }) => {
