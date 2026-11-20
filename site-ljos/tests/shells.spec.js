@@ -183,7 +183,20 @@ const frames = () => {
 // test says (`__fade(at, run)`, at in the watchdog's own ms), so a test
 // can have it show the page at one moment of the kept shell's coming
 // and not another.
+//
+// The head also says the page is late on its own timer
+// (`setTimeout(l, %SHELL_WAIT%)`), which would come before any fade a
+// test sets going: that timer is held back here, so only the fade
+// starting can say so.
 const watchdog = () => {
+  const wait = window.setTimeout;
+  window.setTimeout = function (run, ms, ...rest) {
+    if (document.readyState === "loading" && ms === 2500 && !window.__heldTimer) {
+      window.__heldTimer = run;
+      return 0;
+    }
+    return wait.call(this, run, ms, ...rest);
+  };
   const find = () => document.getAnimations().find((animation) => animation.animationName === "ljos-shell-late");
   addEventListener("animationstart", (event) => {
     if (event.animationName === "ljos-shell-late") window.__fadeAt = performance.now();
@@ -361,6 +374,10 @@ test("a kept shell that comes while the head's watchdog fades the page in does n
     // the page is still held back, and the module still on its way.
     await page.waitForFunction(() => !("ljosSwap" in document.documentElement.dataset), null, { polling: 50 });
     expect(await page.evaluate(() => getComputedStyle(document.getElementById("app")).opacity)).toBe("0");
+    // Nothing has said the page is late yet: the head's timer is held
+    // back, and its fade has not started.
+    expect(await page.evaluate(() => typeof window.__heldTimer), "the head's timer is held back").toBe("function");
+    expect(await page.evaluate(() => "ljosShellLate" in document.documentElement.dataset)).toBe(false);
     // The watchdog half way through its fade, held there: the reader
     // sees Marketing coming in.
     await page.evaluate(() => window.__fade(2580, false));
