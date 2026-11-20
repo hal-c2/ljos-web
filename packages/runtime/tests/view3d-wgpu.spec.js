@@ -1280,6 +1280,36 @@ test("a view on the JavaScript renderer whose context is lost keeps its last pic
   expect([r, g, b], "the model it last drew, not the window's colour").not.toEqual(CLEAR);
 });
 
+// A browser that lost the context may give it back, as one whose GPU
+// process came up again does: all that was made on the lost one is made
+// again, and the view draws the picture last asked of it.
+test("a view on the JavaScript renderer whose context is given back draws again", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await page.addInitScript(() => {
+    const get = OffscreenCanvas.prototype.getContext;
+    OffscreenCanvas.prototype.getContext = function (kind, ...rest) {
+      const made = get.call(this, kind, ...rest);
+      if (kind === "webgl2" && made) window.drawing = made;
+      return made;
+    };
+  });
+  await page.goto("/?scene=shaded3d&view3d=js");
+  await page.waitForFunction(() => window.ready && document.querySelector(".qq-view3d")?.$view3d?.frames > 0);
+  const frames = await page.evaluate(() => {
+    window.losing = window.drawing.getExtension("WEBGL_lose_context");
+    window.losing.loseContext();
+    return document.querySelector(".qq-view3d").$view3d.frames;
+  });
+  await page.evaluate(() => (window.objects.height = 290));
+  await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => setTimeout(done, 50))));
+  await page.evaluate(() => window.losing.restoreContext());
+  await page.waitForFunction((was) => document.querySelector(".qq-view3d").$view3d.frames > was, frames);
+  expect(errors).toEqual([]);
+  const [r, g, b] = (await pixels(page, [[50, 60]]))[0].split(" ").map(Number);
+  expect([r, g, b], "the model, not the window's colour").not.toEqual(CLEAR);
+});
+
 // Where neither the page nor the build asks for a renderer, a View3D is on
 // wgpu if WebGPU has an adapter for the page, and on the JavaScript one if
 // not: a browser may have WebGPU and no GPU it lets it use.

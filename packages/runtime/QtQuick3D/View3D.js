@@ -20,7 +20,7 @@ import { Item } from "../QtQuick/Item.js";
 import * as math from "./math.js";
 import { inside, Node } from "./Node.js";
 import { met } from "./pick.js";
-import { draw } from "./render.js";
+import { draw, restored } from "./render.js";
 import { SceneEnvironment } from "./scene.js";
 import { paced } from "./paced.js";
 import { chosen, drawOn, gave, gaveNow, renderer } from "./wgpu.js";
@@ -341,8 +341,15 @@ export const View3D = defineType("View3D", Item, {
           drawn();
         });
       };
+      // A context lost and given back draws the last picture asked for again.
+      const unheard = restored(() => {
+        if (due || !last) return;
+        due = last;
+        soon();
+      });
       if (getOwner())
         onCleanup(() => {
+          unheard();
           if (waiting) cancelAnimationFrame(waiting);
           clearTimeout(resting);
         });
