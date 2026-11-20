@@ -389,6 +389,14 @@ export const Item = defineType("Item", QtObject, {
       runWithOwner(null, () => heldBy(this, [object]));
       this.$touch((version) => version + 1);
     },
+    // No longer holds one it held (`$hold`), which stays among what this
+    // draws if it is: taken out of `resources` alone, as Qt does.
+    $release(object) {
+      if (!this.$held?.includes(object)) return;
+      this.$held = this.$held.filter((each) => each !== object);
+      letGo(this, [object]);
+      this.$touch((version) => version + 1);
+    },
     // Takes one out, whether it was made with this or added later. One it
     // held (`$hold`) is no longer held by it.
     $remove(item) {

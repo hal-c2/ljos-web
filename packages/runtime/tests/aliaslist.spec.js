@@ -53,3 +53,14 @@ test("objects given to an alias of an item's resources are held, not drawn", asy
   // What the list no longer has is no longer held by the item.
   expect(await holders()).toEqual([drawn - 1, other + 1]);
 });
+
+// Taking an item out of the resources it is held in, to give it again in
+// another order, leaves it drawn by the item that has it among its
+// children, as Qt 6.12 does.
+test("items held in resources and given again in another order are still drawn", async ({ page }) => {
+  await open(page, "aliaslist");
+  expect(await page.evaluate(() => window.scene.reorderHeld())).toEqual([
+    ["alpha,beta", "alpha,beta"],
+    ["alpha,beta", "beta,alpha"],
+  ]);
+});
