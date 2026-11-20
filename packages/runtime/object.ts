@@ -2127,6 +2127,9 @@ export function writtenBy<T>(by: Writer, write: () => T): T {
   }
 }
 
+// The setters of aliases, so that an alias of an alias passes on who writes.
+const aliasSetters = new WeakSet<(value: unknown) => void>();
+
 function defineAlias(self: QObject, name: string, [target, ...path]: AliasPath): void {
   const last = path.at(-1) as string;
   const holder = (): Held => path.slice(0, -1).reduce<Held>((object, member) => object?.[member] as Held, target);
@@ -2155,30 +2158,39 @@ function defineAlias(self: QObject, name: string, [target, ...path]: AliasPath):
   // off while the state lasts.
   let written = false;
   let overridden = false;
+  const set = (value: unknown): void => {
+    const object = holder();
+    if (!path.length || !object) return;
+    const by = writer;
+    if (by === "script") written = true;
+    else overridden = by === "override";
+    const held = isHeldList(object, last);
+    // Qt 6.12: a list with no binding (none given, one declared, or one a
+    // script's write ended) keeps what the state gave it once the state
+    // ends. Only a binding comes back.
+    if (by === "release" && held && (!binding || written || declared)) return;
+    // A state that ends gives the binding back: what it gives now, not
+    // what it gave as the state began.
+    if (by === "release" && binding && !written) {
+      const now = untrack(binding);
+      if (now !== undefined || !binding.failing) value = now;
+    }
+    // Only this alias is the state's: what the write runs (a handler
+    // writing another alias) writes as a script does. An alias of an
+    // alias is this alias, so the state's write goes on to it.
+    const inner = Object.getOwnPropertyDescriptor(object, last)?.set;
+    writtenBy(inner && aliasSetters.has(inner) ? by : "script", () => {
+      if (held) intoHeldList(object, last, value, false);
+      else object[last] = value;
+    });
+  };
+  aliasSetters.add(set);
   Object.defineProperty(self, name, {
     get: path.length
       ? () => (early?.() ? binding!() : holder()?.[last])
       : // A Component is what it is from the start; an object, once made.
         () => (target.$type || !target.$track ? target : (target.$track(), null)),
-    set(value: unknown) {
-      const object = holder();
-      if (!path.length || !object) return;
-      const by = writer;
-      if (by === "script") written = true;
-      else overridden = by === "override";
-      // A state that ends gives the binding back: what it gives now, not
-      // what it gave as the state began.
-      if (by === "release" && binding && !written) {
-        const now = untrack(binding);
-        if (now !== undefined || !binding.failing) value = now;
-      }
-      // Only this alias is the state's: what the write runs (a handler
-      // writing another alias) writes as a script does.
-      writtenBy("script", () => {
-        if (isHeldList(object, last)) intoHeldList(object, last, value, false);
-        else object[last] = value;
-      });
-    },
+    set,
     enumerable: true,
     configurable: true,
   });

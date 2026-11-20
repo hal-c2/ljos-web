@@ -43,6 +43,25 @@ test("a state that changes an alias of an item's list gives its binding back whe
   expect(await page.evaluate(() => window.scene.throughState())).toEqual(["seven", "nine", "nine", "eight", "seven"]);
 });
 
+// A state that changes an alias of the alias overrides the inner alias's
+// binding in the same way, and gives it back, as Qt 6.12 has it.
+test("a state that changes an alias of an alias of an item's list gives the binding back", async ({ page }) => {
+  await open(page, "aliaslist");
+  expect(await page.evaluate(() => window.scene.throughRelay())).toEqual(["seven", "nine", "nine", "eight", "seven"]);
+});
+
+// Qt 6.12: a list with no binding, declared or not, keeps what the state
+// gave it once the state ends; only a binding comes back (measured with
+// qml6).
+test("a list alias with no binding keeps a state's list once the state ends", async ({ page }) => {
+  await open(page, "aliaslist");
+  expect(await page.evaluate(() => window.scene.unboundThroughState())).toEqual([
+    ["own,given", "own"],
+    ["ten", "eleven"],
+    ["ten", "eleven"],
+  ]);
+});
+
 // Only the alias the state changes is written by the state: a handler
 // that write runs, writing another alias, writes it as a script does, as
 // Qt 6.12 has it (measured with qml6).
