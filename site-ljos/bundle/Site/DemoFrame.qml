@@ -241,14 +241,12 @@ Item {
 
         // Ljós's Observer on the demo while it runs: its objects,
         // properties, frames and log.
-        StageButton {
+        ObserverButton {
             anchors.right: parent.right
             anchors.rightMargin: Theme.s
             anchors.verticalCenter: parent.verticalCenter
             visible: frame.drawn && frame.observed !== null
-            checkable: true
             checked: frame.observing
-            text: t({ message: "Observer", context: "stage" })
             label: t`Observer for ${frame.what}`
             onPressed: Observing.toggle(frame.key, frame.observed, null, frame.what)
         }

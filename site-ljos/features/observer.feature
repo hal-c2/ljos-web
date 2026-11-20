@@ -6,7 +6,9 @@ Feature: The Observer looks into what runs on the page
   and where they come from, the frames the app drew and why, and what
   it logged. What the Observer changes, the app shows; what the reader
   does in the app, the Observer shows. Nothing of the Observer is
-  fetched until a reader opens it, and closed it costs nothing.
+  fetched until a stage offers it. Then it is fetched once, while the
+  page is idle or as the reader comes near its button, so that it opens
+  at once. Closed, it costs nothing.
 
   Covered by site-ljos/e2e/observer.spec.js, and for the inspector and
   its client by packages/runtime/tests/observer.spec.js.
@@ -19,11 +21,26 @@ Feature: The Observer looks into what runs on the page
     Then its toolbar has an "Observer" button, which a demo's has too once it runs
     And before it runs neither has one
 
-  Scenario: The Observer is fetched only when it is opened
-    When a reader opens a page and runs an example
+  Scenario: Nothing of the Observer is fetched for a page that offers none
+    When a reader opens a page and none of its examples has run
+    Then nothing of the Observer has been fetched, even once the page is idle
+
+  Scenario: The Observer is fetched once, ahead of the press
+    When a reader runs an example, so its toolbar offers the Observer
+    Then the Observer's chunk is fetched once the page is idle, and only once
+    And pressing the example's "Observer" opens it without fetching anything more
+
+  Scenario Outline: Coming near the Observer button fetches it
+    Given a browser that cannot say when the page is idle
+    When a reader runs an example
     Then nothing of the Observer has been fetched
-    When they press the example's "Observer"
-    Then the Observer's chunk is fetched, and the Observer opens
+    When <the reader comes near> the example's "Observer"
+    Then the Observer's chunk is fetched once, before it is pressed
+
+    Examples:
+      | the reader comes near      |
+      | a pointer comes onto       |
+      | focus is brought to        |
 
   Scenario: On a wide screen it is docked beside the page
     Given a window 1000 pixels wide or wider

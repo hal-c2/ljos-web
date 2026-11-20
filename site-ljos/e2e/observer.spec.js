@@ -1,5 +1,5 @@
 // The Observer a stage's toolbar opens (features/observer.feature): Ljós's
-// own, on the app that stage runs, fetched only when it is opened, docked
+// own, on the app that stage runs, fetched once a stage offers it, docked
 // on a wide window and a sheet on a phone, and gone again once closed.
 // The example is the first app of the docs' Start, whose ids (root, label,
 // bumpButton) and `count` the reader meets on that page.
@@ -42,16 +42,82 @@ test("a running example's toolbar offers the Observer, and one not running does 
   expect(unexpected(errors)).toEqual([]);
 });
 
-test("nothing of the Observer is fetched until it is opened", async ({ page }) => {
+// Once the page has nothing else to do: a callback the browser runs when
+// it is idle runs after those asked for before it.
+const idle = (page) => page.evaluate(() => new Promise((done) => requestIdleCallback(() => done())));
+
+test("nothing of the Observer is fetched while no stage on the page offers it", async ({ page }) => {
+  const fetched = [];
+  page.on("request", (request) => isObserver(request.url()) && fetched.push(request.url()));
+  await open(page, ROUTE);
+  await idle(page);
+  await frames(page);
+  expect(fetched, "a page whose examples have not run fetches none of it").toEqual([]);
+});
+
+test("once a stage offers it, it is fetched once while the page is idle, and opening it fetches nothing more", async ({ page }) => {
   const fetched = [];
   page.on("request", (request) => isObserver(request.url()) && fetched.push(request.url()));
   await open(page, ROUTE);
   const block = await run(page, 0);
+  await expect(observerButton(block)).toBeVisible();
+  await expect.poll(() => fetched.length, { message: "it is fetched ahead, while the page is idle" }).toBe(1);
+  await idle(page);
   await frames(page);
-  expect(fetched, "running an example fetches none of it").toEqual([]);
+  expect(fetched, "and once").toHaveLength(1);
   await press(observerButton(block));
   await expect(dock(page)).toBeVisible();
-  await expect.poll(() => fetched.length, { message: "opening it fetches its chunk" }).toBeGreaterThan(0);
+  await expect(page.getByText("Overview", { exact: true }).first()).toBeVisible({ timeout: 30_000 });
+  expect(fetched, "opening it fetches nothing more").toHaveLength(1);
+});
+
+// A browser that cannot say when it is idle (no requestIdleCallback)
+// fetches the Observer only once the reader comes near it.
+const noIdle = (page) =>
+  page.addInitScript(() => {
+    window.requestIdleCallback = undefined;
+  });
+
+test("a pointer coming onto the Observer button fetches it ahead of the press", async ({ page }) => {
+  await noIdle(page);
+  const fetched = [];
+  page.on("request", (request) => isObserver(request.url()) && fetched.push(request.url()));
+  await open(page, ROUTE);
+  const block = await run(page, 0);
+  await expect(observerButton(block)).toBeVisible();
+  await frames(page);
+  expect(fetched, "without an idle callback, it waits for the reader").toEqual([]);
+  await centre(observerButton(block));
+  await observerButton(block).hover();
+  await expect.poll(() => fetched.length, { message: "the pointer on the button fetches it" }).toBe(1);
+  await press(observerButton(block));
+  await expect(dock(page)).toBeVisible();
+  expect(fetched, "the press fetches nothing more").toHaveLength(1);
+});
+
+test("focus brought to the Observer button fetches it ahead of the press", async ({ page }) => {
+  await noIdle(page);
+  const fetched = [];
+  page.on("request", (request) => isObserver(request.url()) && fetched.push(request.url()));
+  await open(page, ROUTE);
+  const block = await run(page, 0);
+  await expect(observerButton(block)).toBeVisible();
+  await frames(page);
+  expect(fetched).toEqual([]);
+  // As a keyboard reader goes: into the code, out with Escape, and Tab
+  // past Stop, Edit and Source. A button's focus is the runtime's, as an
+  // item's is in Qt, so only keys bring it there, not the page's focus().
+  await press(block.block.getByRole("textbox").first());
+  await expect(block.block.locator(".cm-editor.cm-focused"), "the code editor has the keyboard").toBeVisible({ timeout: 30_000 });
+  await page.keyboard.press("Escape");
+  for (let tab = 0; tab < 3; tab += 1) await page.keyboard.press("Tab");
+  await frames(page);
+  expect(fetched, "focus on the buttons before it fetches nothing").toEqual([]);
+  await page.keyboard.press("Tab");
+  await expect.poll(() => fetched.length, { message: "focus on the button fetches it" }).toBe(1);
+  await page.keyboard.press("Enter");
+  await expect(dock(page)).toBeVisible();
+  expect(fetched, "the press fetches nothing more").toHaveLength(1);
 });
 
 test("on a wide window it is docked along the right, and the example can still be pressed", async ({ page }) => {

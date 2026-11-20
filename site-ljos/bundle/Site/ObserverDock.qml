@@ -10,8 +10,8 @@ import "../observing.js" as Observing
 // and on a phone a sheet over the lower part of the screen, the app
 // above it. It slides in, and out again when closed; only then is the
 // Observer unmade, and what it served of the app let go of. The
-// Observer itself (`ljos-web/observer/ObserverPanel.qml`) is fetched the first time a
-// reader opens it (observing.js).
+// Observer itself (`ljos-web/observer/ObserverPanel.qml`) is fetched
+// once a stage offers it, ahead of the first press (observing.js).
 //
 // The dock itself has no size: it is told the room it stands in (`room`
 // wide, `roomHeight` tall, from where it is placed) and covers only what
