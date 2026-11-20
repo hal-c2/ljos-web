@@ -5,7 +5,7 @@
 // out, so plain text is measured and broken into lines here and the element
 // is given the lines. Markup is the browser's to set: it is measured in an
 // element off the page.
-import { $string, defineType, derived, effect, flush, kinds, slot, typed } from "../object.ts";
+import { $string, defineType, derived, effect, flush, kinds, slot, typed, work } from "../object.ts";
 import { color, css } from "./color.ts";
 import { given, lazy, sized } from "./compute.ts";
 import {
@@ -157,6 +157,7 @@ function paragraphs(text, whole) {
 // The lines of a plain text: wrapped to `limit`, no more than `most` and no
 // taller together than `ceiling`, the last one elided when there was more.
 export function arrange(text, font, limit, mode, elide, most, ceiling, pitch, align, whole) {
+  work.textLayouts++;
   const lines = [];
   const wraps = mode !== 0 && limit !== Infinity;
   const { parts, open } = paragraphs(text, whole);

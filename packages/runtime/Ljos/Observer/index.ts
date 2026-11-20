@@ -30,7 +30,7 @@
 // counts moves, or when its wait is over: at rest no timer runs but the one
 // the longest wait asks for.
 import { untrack } from "#kernel";
-import { flush } from "../../object.ts";
+import { flush, work } from "../../object.ts";
 import type { QObject, QmlType, Slot } from "../../object.ts";
 import { inspect } from "../../inspect.js";
 
@@ -107,9 +107,9 @@ interface Frame {
   total_us: number;
   passes: Record<"timers_us" | "animations_us" | "layout_us" | "create_us" | "scene_us" | "other_us", number>;
   bindings_us: null;
-  binding_runs: null;
+  binding_runs: number;
   text_us: null;
-  text_layouts: null;
+  text_layouts: number;
   render_us: null;
   present_us: null;
   paint: null;
@@ -158,6 +158,9 @@ interface State {
   observer: MutationObserver | null;
   unlisten: () => void;
   bornAt: number;
+  // The runtime's work counts as the last pass left them.
+  bindingRuns: number;
+  textLayouts: number;
 }
 
 const served = new Map<string, State>();
@@ -308,14 +311,18 @@ function passed(state: State, records: MutationRecord[], cause: string, at: numb
       scene_us: 0,
       other_us: cause === "input" || cause === "message" ? us : 0,
     },
+    // How long they took is not told: a clock read for each would cost
+    // what they cost.
     bindings_us: null,
-    binding_runs: null,
+    binding_runs: work.bindingRuns - state.bindingRuns,
     text_us: null,
-    text_layouts: null,
+    text_layouts: work.textLayouts - state.textLayouts,
     render_us: null,
     present_us: null,
     paint: null,
   };
+  state.bindingRuns = work.bindingRuns;
+  state.textLayouts = work.textLayouts;
   state.frames.push(frame);
   if (state.frames.length > KEPT_FRAMES) state.frames.shift();
   state.framesTotalUs += us;
@@ -426,6 +433,8 @@ export function serve(root: QObject, options: ServeOptions = {}): Served {
     observer: null,
     unlisten: () => {},
     bornAt: performance.now(),
+    bindingRuns: work.bindingRuns,
+    textLayouts: work.textLayouts,
   };
   state.unlisten = logs.listen(() => {
     state.counts.logs = logs.count();
