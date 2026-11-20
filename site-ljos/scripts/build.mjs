@@ -654,12 +654,18 @@ cpSync(join(bundle, "assets/ljos-mark.svg"), join(out, "favicon.svg"));
 for (const name of ["apple-touch-icon.png", "og-image.png"]) cpSync(join(bundle, "assets", name), join(out, name));
 // The pictures a demo's frame shows until the demo runs, or instead of
 // it where it cannot: named by the pages as strings, like a live block's.
-// What the search looks through (Site/Search.qml): every page's title
-// and headings, fetched as a reader first searches, so no page's first
-// load holds the others' (each page's own reading is in its props).
+// What the search looks through (Site/Search.qml): every docs page's
+// title and headings, then the demos' pages by their titles (the field
+// says it searches both), fetched as a reader first searches, so no
+// page's first load holds the others' (each page's own reading is in
+// its props).
 writeFileSync(
   join(out, "search.json"),
-  JSON.stringify(site.pages.map(({ route, title, headings }) => ({ route, title, headings: headings.map(({ plain, anchor }) => ({ plain, anchor })) }))),
+  JSON.stringify([
+    ...site.pages.map(({ route, title, headings }) => ({ route, title, headings: headings.map(({ plain, anchor }) => ({ plain, anchor })) })),
+    { route: "/demos/", title: "Live demos", headings: [] },
+    ...Pro.demos.map((demo) => ({ route: Pro.route(demo), title: demo.title, headings: [] })),
+  ]),
 );
 mkdirSync(join(out, "pictures"), { recursive: true });
 for (const name of readdirSync(join(bundle, "assets")).filter((name) => /^demo-.*\.webp$/.test(name))) cpSync(join(bundle, "assets", name), join(out, "pictures", name));
