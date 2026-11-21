@@ -396,8 +396,9 @@ test("the Pantry is looked into while its shell is rewritten", async ({ page }) 
   await press(button);
   await expect(button).toHaveAttribute("aria-pressed", "true");
   await pageTab(page, "Objects").click();
-  // The tree starts at the app's shell, and holds its blocks.
-  await expect(page.getByRole("listitem", { name: /^PantryShell|^Rectangle/ }).first()).toBeVisible({ timeout: 30_000 });
+  // The tree starts at the app's shell, named as the shell it is, and
+  // holds its blocks.
+  await expect(page.getByRole("listitem").first()).toHaveAccessibleName(/^PantryShell\b/, { timeout: 30_000 });
   await expect(page.getByRole("listitem", { name: /^Basket/ }).first()).toBeVisible();
   // A press in the app is a frame woken by input.
   await pageTab(page, "Frames").click();
