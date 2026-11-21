@@ -6,6 +6,9 @@ import { expect, test } from "@playwright/test";
 
 const SIZES = [
   ["phone", { width: 390, height: 844 }],
+  // A frame narrower than its picture is tall enough for the stacked
+  // field guide, with the demos still side by side: the floors hold here.
+  ["tablet", { width: 768, height: 1024 }],
   ["desktop", { width: 1280, height: 800 }],
 ];
 
@@ -80,6 +83,15 @@ function misfits(button) {
     return part.right - part.left > 0.5 && part.bottom - part.top > 0.5 ? part : null;
   };
 
+  // The demo's own area: the frame's child as wide as the frame that
+  // clips, above the toolbar. It fades in once the demo has drawn, and
+  // until it is wholly shown, what is in it is not measured as it is.
+  const area = [...frame.children].find((child) => {
+    const box = child.getBoundingClientRect();
+    return getComputedStyle(child).overflow !== "visible" && box.left <= edge.left + slack && box.right >= edge.right - slack && box.height < edge.height - slack;
+  });
+  const shown = area ? Number(getComputedStyle(area).opacity) : null;
+
   const outside = [];
   const words = [];
   const walker = document.createTreeWalker(frame, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
@@ -113,7 +125,7 @@ function misfits(button) {
       if (Math.min(a.right, b.right) - Math.max(a.left, b.left) > slack && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > slack)
         over.push(`${named(words[i].node)} at ${say(a)} over ${named(words[j].node)} at ${say(b)}`);
     }
-  return { frame: say(edge), outside: [...new Set(outside)], over };
+  return { frame: say(edge), shown, outside: [...new Set(outside)], over };
 }
 
 // Every demo is measured, and each one's misfits said, though one fails.
@@ -121,6 +133,8 @@ const softly = expect.configure({ soft: true });
 
 async function fits(button) {
   const found = await button.evaluate(misfits);
+  if (found.shown === null) return [`the frame ${found.frame} has no area of its own that clips the demo`];
+  if (found.shown !== 1) return [`the demo is not wholly shown yet: its area's opacity is ${found.shown}`];
   return [...found.outside.map((part) => `outside the frame ${found.frame}: ${part}`), ...found.over.map((pair) => `drawn over: ${pair}`)];
 }
 
