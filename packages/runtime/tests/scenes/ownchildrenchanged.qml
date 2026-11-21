@@ -54,6 +54,18 @@ Item {
     property int after: goOn ? makeOnce() * factor : -1
     function makeOnce() { if (!once.made) { once.made = true; made.createObject(changing) } return 1 }
 
+    // The same, where the item's handler assigns the property whose binding
+    // made the child: the assignment is what the property is, and holds.
+    readonly property var onceMore: ({ made: false })
+    Item {
+        id: assigning
+        property int heard: 0
+        onChildrenChanged: { heard++; root.taken = 42 }
+    }
+    property bool goTake: false
+    property int taken: goTake ? makeTaken() : -1
+    function makeTaken() { if (!onceMore.made) { onceMore.made = true; made.createObject(assigning) } return 1 }
+
     // A type of its own whose `children` is a property it declares: a list
     // given again holding the same is a change, as a `var` is.
     component Own: Item { property var children: [] }
@@ -89,6 +101,14 @@ Item {
     function reread() {
         goOn = true;
         return [after, changing.heard, changing.children.length, factor];
+    }
+
+    function assigned() {
+        goTake = true;
+        const first = taken;
+        const again = taken;
+        goTake = false;
+        return [first, again, assigning.heard, assigning.children.length, taken];
     }
 
     function overridden() {

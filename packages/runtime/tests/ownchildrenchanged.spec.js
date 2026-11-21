@@ -28,6 +28,14 @@ test("a binding that made into an item is read as it is once the item heard of i
   expect(await page.evaluate(() => window.scene.reread())).toEqual([2, 1, 1, 2]);
 });
 
+// The same, where the item's handler assigns the property whose binding made
+// the child: read from outside, the property is what was assigned, and the
+// binding is gone, as qml6 has it ([42, 42, 1, 1, 42]).
+test("a binding that made into an item is read as what the item's handler assigned it", async ({ page }) => {
+  await open(page, "ownchildrenchanged");
+  expect(await page.evaluate(() => window.scene.assigned())).toEqual([42, 42, 1, 1, 42]);
+});
+
 // A type that declares a `children` of its own: the same list given again
 // is a change, as qml6 tells it of a `var`: heard once more.
 test("a children a type declares itself changes when given again", async ({ page }) => {
