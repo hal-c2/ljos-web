@@ -914,3 +914,154 @@ for (const [route, { draws, empty }] of Object.entries(AT_START)) {
     });
   }
 }
+
+// On a phone the reader sees what an example does before how: its
+// stage comes first, and code longer than a screenful folds after
+// about twelve lines until they ask for all of it. On a desktop
+// nothing folds.
+const FOLDED = 12;
+const LONG = 15;
+
+// Each block's code as the page lays it out, with the card it is in:
+// the card's group where it has one, else what holds the code and the
+// example's picture.
+const folds = (page) =>
+  page.evaluate(() => {
+    const shown = (node) => {
+      const box = node.getBoundingClientRect();
+      return (
+        box.width > 0 &&
+        box.height > 0 &&
+        getComputedStyle(node).visibility !== "hidden"
+      );
+    };
+    const PICTURE = 'img[alt="What this example draws"]';
+    const holding = (node) => {
+      const group = node.closest('[role="group"][aria-label^="Code"]');
+      if (group) return group;
+      let up = node.parentElement;
+      for (
+        let i = 0;
+        i < 10 && up && up.id !== "app";
+        i++, up = up.parentElement
+      )
+        if ([...up.querySelectorAll(PICTURE)].some(shown)) return up;
+      return node.parentElement;
+    };
+    return [...document.querySelectorAll("#app .qq-rich")]
+      .filter(
+        (node) =>
+          shown(node) &&
+          getComputedStyle(node).fontFamily.startsWith("ui-monospace"),
+      )
+      .map((code, index) => {
+        const card = holding(code);
+        const picture = [...card.querySelectorAll(PICTURE)].find(shown);
+        const line = parseFloat(getComputedStyle(code).lineHeight);
+        let window = code.parentElement;
+        while (
+          window !== card &&
+          getComputedStyle(window).overflow === "visible"
+        )
+          window = window.parentElement;
+        const box = code.getBoundingClientRect();
+        return {
+          index,
+          name: card.getAttribute("aria-label") ?? `code block ${index + 1}`,
+          lines: Math.round(box.height / line),
+          line,
+          shownHeight: Math.min(
+            window.getBoundingClientRect().height,
+            box.height,
+          ),
+          codeTop: box.top,
+          pictureTop: picture ? picture.getBoundingClientRect().top : null,
+          showsAll: [...card.querySelectorAll('[role="button"], button')].some(
+            (node) =>
+              shown(node) &&
+              /^Show all\b/.test(
+                node.getAttribute("aria-label") ?? node.textContent.trim(),
+              ),
+          ),
+        };
+      });
+  });
+
+for (const route of ["/quality/motion/", "/data/repeater-and-delegates/"]) {
+  test(`${route} on a phone shows each example's stage before its code`, async ({
+    browser,
+  }) => {
+    const { context, page } = await opened(
+      browser,
+      { width: 390, height: 844 },
+      "light",
+      route,
+    );
+    try {
+      const live = (await folds(page)).filter(
+        (card) => card.pictureTop !== null,
+      );
+      expect(live.length, "live examples on the page").toBeGreaterThan(0);
+      for (const card of live)
+        expect(
+          card.pictureTop,
+          `${card.name}: its stage is above its code`,
+        ).toBeLessThan(card.codeTop);
+    } finally {
+      await context.close();
+    }
+  });
+}
+
+for (const [view, viewport] of [
+  ["phone", { width: 390, height: 844 }],
+  ["desktop", { width: 1440, height: 900 }],
+]) {
+  test(`/quality/motion/'s long code ${view === "phone" ? "folds after about twelve lines on a phone, and Show all shows all of it" : "never folds on a desktop"}`, async ({
+    browser,
+  }) => {
+    const { context, page } = await opened(
+      browser,
+      viewport,
+      "light",
+      "/quality/motion/",
+    );
+    try {
+      const all = (await folds(page)).filter((card) => card.lines > 0);
+      const long = all.filter((card) => card.lines > LONG);
+      expect(long.length, "examples longer than a screenful").toBeGreaterThan(
+        0,
+      );
+      for (const card of all) {
+        if (view === "phone" && card.lines > LONG) {
+          expect(
+            card.shownHeight,
+            `${card.name}: lines shown before Show all`,
+          ).toBeLessThanOrEqual((FOLDED + 1) * card.line + 32);
+          expect(card.showsAll, `${card.name}: offers Show all`).toBe(true);
+        } else {
+          expect(
+            card.shownHeight,
+            `${card.name}: every line shown`,
+          ).toBeGreaterThanOrEqual(card.lines * card.line - 1);
+          expect(card.showsAll, `${card.name}: offers no Show all`).toBe(false);
+        }
+      }
+      if (view === "phone") {
+        const first = long[0];
+        // Only a long block offers it, and this is the first.
+        await page
+          .getByRole("button", { name: /^Show all\b/ })
+          .first()
+          .click();
+        await expect
+          .poll(async () => (await folds(page))[first.index].shownHeight, {
+            message: `${first.name}: all of it once asked`,
+          })
+          .toBeGreaterThanOrEqual(first.lines * first.line - 1);
+      }
+    } finally {
+      await context.close();
+    }
+  });
+}
