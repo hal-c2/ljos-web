@@ -214,8 +214,14 @@ export function readOut(tool, uri, folder, directory) {
       try {
         renameSync(own, directory);
       } catch (error) {
-        // Another build put the folder in place first: its is as good.
-        if (names().length === 0) throw error;
+        // Another build put the folder in place first: its is as good. A
+        // folder in the way with nothing of Qt's in it no build put there
+        // (one is only ever put in place with names in it). It is not taken
+        // away here: a build that took one away could take another's that
+        // had just been put in its place.
+        if (names().length === 0) {
+          throw new Error(`ljos-web: ${directory} is in the way of what is read out of Qt and holds nothing of it; take it away and build again`, { cause: error });
+        }
       }
     }
   } finally {

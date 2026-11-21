@@ -3,7 +3,7 @@
 // see a folder whole or not at all, and neither takes away what the other
 // reads.
 import { spawn } from "node:child_process";
-import { chmodSync, existsSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -71,6 +71,29 @@ test("what Qt read nothing of is not kept, and the next build asks it again", as
     expect(await reading(silent, directory)).toEqual({ code: 0, err: "", names: [] });
     expect(existsSync(directory)).toBe(false);
     expect(await reading(quick, directory)).toEqual({ code: 0, err: "", names: ["white.png"] });
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+// No build leaves a folder with nothing of Qt's in it, but one could be left
+// by hand. It is not taken away, as it could be another build's that has
+// just been put in place; the build says which it is and what to do.
+test("a folder in the way that holds nothing of Qt's is named, and left as it is", async () => {
+  const root = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "ljos-read-out-"));
+  try {
+    const quick = join(root, "quick-qml");
+    writeFileSync(quick, `#!/bin/sh\nprintf 'qml: kept white.png ${WHITE}\\n' >&2\n`);
+    chmodSync(quick, 0o755);
+    const directory = join(root, "cache", "maps");
+    mkdirSync(directory, { recursive: true });
+    writeFileSync(join(directory, ".stray"), "");
+
+    const read = await reading(quick, directory);
+    expect(read.code).not.toBe(0);
+    expect(read.err).toContain(`${directory} is in the way of what is read out of Qt and holds nothing of it; take it away and build again`);
+    expect(readdirSync(directory)).toEqual([".stray"]);
+    expect(readdirSync(join(root, "cache"))).toEqual(["maps"]);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
