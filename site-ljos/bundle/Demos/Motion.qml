@@ -67,17 +67,22 @@ Rectangle {
         // phone turned) keeps a puck the reader has led inside it. Before
         // the first gesture the puck's centring binding already does.
         // The reader's last target is kept, clamped to the new tray, not
-        // the springing x and y. The puck is placed there, not sprung: a
-        // spring from where it stood would draw it past the tray's edge.
-        // Where it stands is given first, which stops a spring still on
-        // its way: the target alone may be the one the spring already
-        // heads for, and giving that again changes nothing.
+        // the springing x and y. Where the clamp moved the target, or the
+        // puck stands past the tray's new edge, it is placed there, not
+        // sprung: a spring from where it stood would draw it past the edge.
+        // Otherwise it springs on to a target the tray still holds.
         function keepPuck() {
             if (!puck.led)
                 return;
             const inside = MotionLogic.clampPuck(puck.goalX + puck.width / 2, puck.goalY + puck.height / 2, puck.width, width, height);
+            const past = puck.x < 0 || puck.y < 0 || puck.x + puck.width > width || puck.y + puck.height > height;
+            if (inside.x === puck.goalX && inside.y === puck.goalY && !past)
+                return;
             puck.goalX = inside.x;
             puck.goalY = inside.y;
+            // Where it stands is given first, which stops a spring still
+            // on its way: the target alone may be the one the spring
+            // already heads for, and giving that again changes nothing.
             puck.placing = true;
             puck.x = puck.x;
             puck.y = puck.y;
