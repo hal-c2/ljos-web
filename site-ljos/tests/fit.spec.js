@@ -162,10 +162,10 @@ async function openAbout(page, size, pause) {
 // element in the tray. Given a time, the farthest past each edge it is
 // drawn on any frame in that time, so a puck that springs back into the
 // tray from past its edge is seen past it, not only once it has settled.
-// Given a time, it comes back once its first frame is sampled and keeps
-// what it finds in the page (`sampled`): what the test does next, a
-// resize, is sampled from its first frame, not only once the page has
-// been reached.
+// Given a time, it takes its first reading at once, before the next
+// frame, comes back, and keeps what it finds in the page (`sampled`):
+// what the test does next, a resize, is sampled from where the puck
+// stood before it, not only once the page has been reached.
 function puckPast(area, ms = 0) {
   const tray = area.parentElement;
   const past = () => {
@@ -193,8 +193,9 @@ function puckPast(area, ms = 0) {
 
 // On how many frames in a time Motion's puck moves, read from its
 // tray's pointer area: a puck that springs on moves on many, one placed
-// where it is going stands still. Like `puckPast` given a time, it comes
-// back once its first frame is sampled and keeps the count in the page.
+// where it is going stands still. Like `puckPast` given a time, it
+// takes its first reading at once, comes back, and keeps the count in
+// the page.
 function puckMoves(area, ms) {
   const tray = area.parentElement;
   const puck = [...tray.querySelectorAll("*")].find((element) => {
@@ -218,7 +219,16 @@ function puckMoves(area, ms) {
 }
 
 // What the sampler last started in the page found, once its time is up.
-const sampled = (page) => page.evaluate(() => globalThis.sampling);
+// It is read once: a sampler called without a time keeps nothing, and a
+// read with no sampler started fails, rather than an older result being
+// taken for this one.
+const sampled = (page) =>
+  page.evaluate(() => {
+    const sampling = globalThis.sampling;
+    globalThis.sampling = undefined;
+    if (!sampling) throw new Error("no sampler given a time was started before this read");
+    return sampling;
+  });
 
 // Motion running at a desk's width, its puck led into its tray's
 // bottom-right corner and settled there.
