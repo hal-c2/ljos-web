@@ -79,15 +79,24 @@ Rectangle {
         onClicked: effect.cycle()
     }
 
+    // The hint beside the badge where both fit on one line, over it
+    // where not; a hint wider than the card wraps.
+    readonly property bool stacked: hint.implicitWidth + badge.implicitWidth + 3 * 14 > width
+
     Text {
+        id: hint
         anchors.left: parent.left
-        anchors.bottom: parent.bottom
+        anchors.bottom: root.stacked ? badge.top : parent.bottom
         anchors.margins: 14
+        anchors.bottomMargin: root.stacked ? 6 : 14
+        width: Math.min(implicitWidth, root.width - 28)
+        wrapMode: Text.Wrap
         color: look.ink
         font.pixelSize: 14
         text: t`Move to stir the light · tap for other colours`
     }
     Text {
+        id: badge
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.margins: 14
