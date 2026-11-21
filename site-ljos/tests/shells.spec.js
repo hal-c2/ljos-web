@@ -162,6 +162,38 @@ test("the reader's place on a docs page is kept across a swap", async ({ browser
   }
 });
 
+// The page reflows as the window narrows (the shell's page is as wide
+// as it may grow, so its blocks and what is in them grow shorter): the
+// reader stays at the block they were reading, not at the same distance
+// from the top, which is somewhere else by then.
+test("the reader's place on the page is kept when the window narrows", async ({ browser }) => {
+  const context = await reader(browser, { viewport: { width: 1280, height: 800 } });
+  try {
+    const page = await context.newPage();
+    await open(page, "/demos/");
+    const heading = page.getByRole("heading", { name: "Motion", exact: true }).filter({ visible: true }).first();
+    await heading.evaluate((element) => element.scrollIntoView({ block: "center" }));
+    await expect(heading).toBeInViewport();
+    // Where the reader is is kept once they are still (PageView's
+    // `keeping`), a quarter second after the page stops moving.
+    const kept = () =>
+      heading.evaluate((node) => {
+        let scroller = null;
+        for (let up = node.parentElement; up && !scroller; up = up.parentElement) {
+          const overflow = getComputedStyle(up).overflowY;
+          if ((overflow === "auto" || overflow === "scroll") && up.scrollHeight > up.clientHeight) scroller = up;
+        }
+        return scroller !== null && scroller.scrollTop > 0 && Math.abs((history.state?.offset ?? 0) - scroller.scrollTop) < 1;
+      });
+    await expect.poll(kept, { message: "the page keeps where the reader stopped" }).toBe(true);
+    const before = await heading.boundingBox();
+    await page.setViewportSize({ width: 1040, height: 800 });
+    await expect(heading, `the heading is still in view (it was at ${Math.round(before.y)})`).toBeInViewport();
+  } finally {
+    await context.close();
+  }
+});
+
 // From the first paint on, each frame: which shell framed the page and
 // how much of the page could be seen (sampled as painted, not as
 // attributes change: a shell can come between two changes).

@@ -48,6 +48,80 @@ Flickable {
         view.contentY = 0;
     }
 
+    // Where the reader is on the page, as a browser's scroll anchoring
+    // keeps it: the block at the top of the view and how far into it.
+    // When the page is laid out again at another width (a narrowed
+    // window, a shell whose page is narrower, the Observer docked
+    // beside it), its blocks grow taller or shorter, and the same
+    // distance from the top is somewhere else; the reader is put back
+    // in the block they were reading instead.
+    property var placeBlock: null
+    property real placeInto: 0
+    // While the page is being laid out again: its height changes as
+    // each block takes the new width, and the reader is put back after
+    // each change, not only after the first.
+    property bool placing: false
+
+    function mark() {
+        var y = view.contentY;
+        var at = column;
+        var found = null;
+        // Down to the outermost block at the view's top that fits in the
+        // view: finer than the page's sections, coarse enough to be
+        // laid out the same at any width (a demo, a paragraph).
+        while (at) {
+            var next = null;
+            var kids = at.children;
+            for (var i = 0; i < kids.length && !next; i++) {
+                var kid = kids[i];
+                if (!kid.visible || kid.height <= 0)
+                    continue;
+                var kidTop = kid.mapToItem(column, 0, 0).y;
+                if (kidTop <= y && y < kidTop + kid.height)
+                    next = kid;
+            }
+            if (!next)
+                break;
+            found = next;
+            at = next.height > view.height ? next : null;
+        }
+        view.placeBlock = found;
+        view.placeInto = found ? (y - found.mapToItem(column, 0, 0).y) / found.height : 0;
+    }
+    // Only while the marked block is still on the page: it may have
+    // gone with the page it stood on.
+    function placed() {
+        for (var up = view.placeBlock; up; up = up.parent) {
+            if (up === column)
+                return true;
+        }
+        return false;
+    }
+    function place() {
+        if (!view.placing || !placed())
+            return;
+        var to = view.placeBlock.mapToItem(column, 0, 0).y + view.placeInto * view.placeBlock.height;
+        view.contentY = Math.max(0, Math.min(to, view.contentHeight - view.height));
+    }
+    function reflowed() {
+        if (!placed())
+            return;
+        view.placing = true;
+        settling.restart();
+        Qt.callLater(view.place);
+    }
+    onWidthChanged: reflowed()
+    onMeasureChanged: reflowed()
+    onGutterChanged: reflowed()
+    Timer {
+        id: settling
+        interval: 300
+        onTriggered: {
+            view.placing = false;
+            view.mark();
+        }
+    }
+
     // Where the reader leaves the page is kept once it is still.
     onContentYChanged: {
         keeping.restart();
@@ -65,12 +139,19 @@ Flickable {
     onYChanged: seen()
     onHeightChanged: seen()
     onParentChanged: Qt.callLater(seen)
-    onContentHeightChanged: Running.moved()
+    onContentHeightChanged: {
+        place();
+        Running.moved();
+    }
     Component.onCompleted: seen()
     Timer {
         id: keeping
         interval: 250
-        onTriggered: Nav.keep()
+        onTriggered: {
+            if (!view.placing)
+                view.mark();
+            Nav.keep();
+        }
     }
 
     Column {
@@ -100,6 +181,7 @@ Flickable {
             Loader {
                 id: pageLoader
                 readonly property string route: view.router ? view.router.route : "/"
+                onRouteChanged: view.placeBlock = null
                 visible: !docItem.visible
                 active: visible
                 width: Math.min(view.measure, view.width - 2 * view.gutter)
