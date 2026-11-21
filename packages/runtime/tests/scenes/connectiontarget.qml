@@ -48,6 +48,26 @@ Item {
         }
     }
 
+    // The same with a property that is no list: r's width moves the target
+    // to wide, in one write.
+    Rectangle { id: r; objectName: "r"; width: 10 }
+    Rectangle { id: wide; objectName: "wide"; width: 10 }
+    property var heardWidth: []
+
+    Connections {
+        id: scalar
+        target: r.width > 50 ? wide : r
+
+        function onWidthChanged() {
+            root.heardWidth.push(r.width);
+        }
+    }
+
+    function widthSwitches() {
+        r.width = 60;
+        return [root.heardWidth.splice(0), scalar.target.objectName];
+    }
+
     function changeThenSwitch() {
         first.parent = box;
         switched.target = other;
