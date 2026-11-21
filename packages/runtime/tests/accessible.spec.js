@@ -109,6 +109,10 @@ test("what is said is what ARIA allows on the role it is said with", async ({ pa
   expect(said.aside).toEqual({ role: "complementary", "aria-label": "On this page" });
   expect(said.footer).toEqual({ role: "contentinfo" });
   await expect(page.getByRole("region", { name: "The page" })).toHaveCount(1);
+  // The client area of a window, between its header and its footer,
+  // is what the window is for: ARIA's main, which needs no name.
+  expect(said.client).toEqual({ role: "main" });
+  await expect(page.getByRole("main")).toHaveCount(1);
   // A control of a value says it, and where it lies; a slider with no
   // value to say is none to ARIA, which asks one of it.
   expect(said.progress).toEqual({ role: "progressbar", "aria-valuenow": "0.25", "aria-valuemin": "0", "aria-valuemax": "1" });
