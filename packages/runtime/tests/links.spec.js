@@ -31,6 +31,8 @@ test("an item that is a link is an a, with its address and its name", async ({ p
     script: { tag: "a", href: null, role: "link", name: "Script" },
     // A link that is not enabled has no address until it is.
     off: { tag: "a", href: null, role: "link", name: "Off" },
+    // A file's own `enabled` is not whether the link is.
+    declared: { tag: "a", href: "/declared/", role: "link", name: "Declared" },
   });
   await page.evaluate(() => window.scene.enable());
   await expect(page.getByRole("link", { name: "Off" })).toHaveAttribute("href", "/off/");

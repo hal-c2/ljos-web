@@ -6,7 +6,7 @@
 // plain press does is still the program's (pointer.js).
 import { untrack } from "#kernel";
 import { shellShown } from "../guard.js";
-import { effect } from "../object.ts";
+import { effect, native } from "../object.ts";
 import { followable } from "./richtext.js";
 
 const LINK = 30;
@@ -28,11 +28,12 @@ export function tagOf(props) {
 // as rich text's links are left (richtext.js), and so does a shell a
 // visitor dropped being shown: what it wrote is followed by nobody. A
 // link that is not enabled goes nowhere either: nothing in it holds a
-// press then, and a press nobody holds is the browser's to follow.
+// press then, and a press nobody holds is the browser's to follow. It is
+// the item's own `enabled`: a file's of that name is its value, no more.
 export function addressed(self, node) {
   if (node.localName !== "a") return;
   effect(
-    () => (shellShown() || !self.enabled || self.href === undefined || self.href === null ? "" : String(self.href)),
+    () => (shellShown() || !native(self, "enabled") || self.href === undefined || self.href === null ? "" : String(self.href)),
     (href) => {
       if (href && followable(href)) node.setAttribute("href", href); // guarded
       else node.removeAttribute("href");
