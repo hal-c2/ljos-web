@@ -31,7 +31,10 @@ const QT = [
 
 // Qt 6.11 says `Unable to assign QObject to QQuickRectangle`.
 const BOUND = /Unable to assign QObject to Rectangle$/;
-test.use({ told: [BOUND] });
+// Qt 6.11 says `Unable to assign [undefined] to QQuickRectangle*`.
+const UNDEFINED = /Unable to assign \[undefined\] to Rectangle\*$/;
+const INITIAL = /Could not set initial property (thing|n)$/;
+test.use({ told: [[BOUND, UNDEFINED, INITIAL], { option: true }] });
 
 test("a property typed with an object type refuses an object of another type", async ({ page }) => {
   const warned = [];
@@ -40,4 +43,16 @@ test("a property typed with an object type refuses an object of another type", a
   expect(await page.evaluate(() => window.scene.run())).toEqual(QT);
   // `direct: plain` as it is made, and `chosen` once `k` makes it `plain`.
   expect(warned).toHaveLength(2);
+});
+
+// An object named before it is made is taken once it is; a binding given in
+// place of an object keeps it when it is refused; an object made with a
+// value it refuses, of any type, is not made, as `createObject` fails in qml6; a binding
+// that becomes undefined leaves the object it had.
+test("a property typed with an object type keeps what it had when refused", async ({ page }) => {
+  const warned = [];
+  page.on("console", (message) => [BOUND, UNDEFINED, INITIAL].some((told) => told.test(message.text())) && warned.push(message.text()));
+  await open(page, "objecttyped");
+  expect(await page.evaluate(() => window.scene.more())).toEqual(["selected later", "binding ok rect", "created none", "counted none", "fading rect", "faded rect"]);
+  expect(warned.map((text) => [BOUND, UNDEFINED, INITIAL].findIndex((told) => told.test(text))).sort()).toEqual([0, 1, 2, 2]);
 });
