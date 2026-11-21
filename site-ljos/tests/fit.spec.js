@@ -29,8 +29,9 @@ async function runDemo(page, what) {
 //
 // A part is what is shown of an element or a run of words: what an
 // ancestor inside the demo clips away (a list's rows past its end) is
-// not shown, but a clip as wide as the frame is the frame's own edge,
-// and a part that edge cuts is a part that does not fit. Each finding
+// not shown, but a clip as wide as the frame is the edge of the demo's
+// own area: a part that edge cuts is a part that does not fit, though
+// it stays inside the frame by running under the toolbar. Each finding
 // is said with the words or the element it is, so a failure says what
 // did not fit and by how much.
 function misfits(button) {
@@ -45,17 +46,20 @@ function misfits(button) {
     return words ? JSON.stringify(words.slice(0, 48)) : `<${node.tagName.toLowerCase()}>`;
   };
 
-  // What of the element `from` up to the frame shows: null where an
-  // ancestor hides it, else the box its clipping ancestors leave.
+  // What of the element up to the frame shows: null where an ancestor
+  // hides it, else the box its clipping ancestors leave, and the edge it
+  // must fit inside: the innermost frame-wide clip's, else the frame's.
   const shownWithin = (element, includeSelf) => {
     let clip = { left: -Infinity, top: -Infinity, right: Infinity, bottom: Infinity };
+    let bound = null;
     for (let at = element; at && at !== frame; at = at.parentElement) {
       const style = getComputedStyle(at);
       if (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0) return null;
       if ((at !== element || includeSelf) && style.overflow !== "visible") {
         const box = at.getBoundingClientRect();
         const framesEdge = box.left <= edge.left + slack && box.right >= edge.right - slack;
-        if (!framesEdge)
+        if (framesEdge) bound ??= box;
+        else
           clip = {
             left: Math.max(clip.left, box.left),
             top: Math.max(clip.top, box.top),
@@ -64,7 +68,7 @@ function misfits(button) {
           };
       }
     }
-    return clip;
+    return { clip, bound: bound ?? edge };
   };
   const cut = (box, clip) => {
     const part = {
@@ -83,8 +87,9 @@ function misfits(button) {
     const text = node.nodeType === Node.TEXT_NODE;
     if (text && node.textContent.trim() === "") continue;
     const element = text ? node.parentElement : node;
-    const clip = shownWithin(element, text);
-    if (!clip) continue;
+    const shown = shownWithin(element, text);
+    if (!shown) continue;
+    const { clip, bound } = shown;
     let boxes;
     if (text) {
       const range = document.createRange();
@@ -94,8 +99,8 @@ function misfits(button) {
     for (const box of boxes) {
       const part = cut(box, clip);
       if (!part) continue;
-      if (part.left < edge.left - slack || part.top < edge.top - slack || part.right > edge.right + slack || part.bottom > edge.bottom + slack)
-        outside.push(`${named(node)} at ${say(part)}`);
+      if (part.left < bound.left - slack || part.top < bound.top - slack || part.right > bound.right + slack || part.bottom > bound.bottom + slack)
+        outside.push(`${named(node)} at ${say(part)}${bound === edge ? "" : ` (its area ${say(bound)})`}`);
       if (text) words.push({ node, part });
     }
   }
@@ -119,6 +124,25 @@ async function fits(button) {
   return [...found.outside.map((part) => `outside the frame ${found.frame}: ${part}`), ...found.over.map((pair) => `drawn over: ${pair}`)];
 }
 
+// Motion's tallest state is its About card open, the state its frame's
+// height floor is sized for, so it is measured open too. The card grows
+// to its open height over a few frames; it is measured once it has
+// stopped, as a cut-off card would only show once it has.
+async function openAbout(page, size, pause) {
+  const about = page.getByRole("button", { name: /^About this motion/ });
+  await about.click();
+  const settled = () =>
+    about.evaluate(
+      (card) =>
+        new Promise((done) => {
+          const height = card.getBoundingClientRect().height;
+          requestAnimationFrame(() => requestAnimationFrame(() => done(height > 42 && card.getBoundingClientRect().height === height)));
+        }),
+    );
+  await expect.poll(settled, { message: "the About card opens and stops growing" }).toBe(true);
+  await softly.poll(() => fits(pause), { message: `the motion demo with its About card open at ${size} width stands inside its frame` }).toEqual([]);
+}
+
 for (const [size, viewport] of SIZES) {
   test.describe(`at ${size} width`, () => {
     test.use({ viewport, reducedMotion: "no-preference" });
@@ -131,6 +155,7 @@ for (const [size, viewport] of SIZES) {
       for (const what of DEMOS) {
         const pause = await runDemo(page, what);
         await softly.poll(() => fits(pause), { message: `${what} at ${size} width stands inside its frame` }).toEqual([]);
+        if (what === "the motion demo") await openAbout(page, size, pause);
         await pause.click();
         await expect(page.getByRole("button", { name: `Resume ${what}` })).toBeVisible();
       }
