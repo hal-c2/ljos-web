@@ -97,6 +97,18 @@ test("a Connections whose target is replaced in the flush hears what changed whi
   expect(await page.evaluate(() => window.scene.switched()), "other changed once box was again, then box").toEqual([0, 1]);
 });
 
+// The case above counts what was heard, which does not say of which
+// target: each is changed alone here, on a scene of its own.
+test("a Connections whose target is replaced in the flush does not hear the old target changed after it", async ({ page }) => {
+  await open(page, "connectionswitch");
+  expect(await page.evaluate(() => window.scene.switchedOld())).toEqual([]);
+});
+
+test("a Connections whose target is replaced in the flush hears the new target changed after it", async ({ page }) => {
+  await open(page, "connectionswitch");
+  expect(await page.evaluate(() => window.scene.switchedNew())).toEqual([0]);
+});
+
 // Qt 6.11: `box.childrenChanged` is told as `third` is added, before
 // `third.parentChanged` gives the binding, and so the Connections, another
 // target: the change was made while `box` was the target, and is heard.

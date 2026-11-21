@@ -18,6 +18,8 @@ Item {
 
     signal changeThenSwitch()
     signal switchThenChange()
+    signal switchThenChangeOld()
+    signal switchThenChangeNew()
 
     onChangeThenSwitch: {
         first.parent = box;
@@ -27,6 +29,16 @@ Item {
         hearing.target = box;
         second.parent = other;
         fourth.parent = box;
+    }
+    // Each target apart, on a scene of its own: a change of the old target
+    // after the switch is not heard, one of the new target is.
+    onSwitchThenChangeOld: {
+        hearing.target = other;
+        second.parent = box;
+    }
+    onSwitchThenChangeNew: {
+        hearing.target = other;
+        second.parent = other;
     }
 
     Item { id: box; objectName: "box" }
@@ -58,6 +70,16 @@ Item {
 
     function switched() {
         root.switchThenChange();
+        return root.heard.slice();
+    }
+
+    function switchedOld() {
+        root.switchThenChangeOld();
+        return root.heard.slice();
+    }
+
+    function switchedNew() {
+        root.switchThenChangeNew();
         return root.heard.slice();
     }
 }
