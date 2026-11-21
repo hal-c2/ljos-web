@@ -90,8 +90,9 @@ export const Connections = defineType("Connections", QtObject, {
           // Inside one flush (`gather`, an effect) the two are not told
           // apart: a change made there after the switch is heard from the
           // old target too, where Qt would not hear it. Only a property with
-          // no signal of its own (`children`) has anything to tell here; a
-          // signal is told as it is emitted.
+          // no signal of its own (`children`) has anything to tell here: a
+          // signal (`widthChanged`) is the signal's to tell, connected or not
+          // when it is emitted, and settles nothing.
           for (const settle of settles) settle();
           settles = [];
           disconnect?.();

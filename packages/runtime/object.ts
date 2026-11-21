@@ -2619,7 +2619,8 @@ function first(self: QObject, name: string, key: string, value: unknown, firsts:
 
 // `target.onSignal` from outside the object: a signal it emits, or the change
 // of one of its properties (`widthChanged`). What it returns is `onChange`'s:
-// a signal is told as it is emitted, and has nothing left to tell.
+// a signal is the signal's to tell, to whoever is connected when it is
+// emitted, so there is nothing here for it to settle.
 export function connect(target: QObject, name: string, listener: Handler): () => void {
   const emitted = dynamic(target)[name] as Signal | null | undefined;
   if (typeof emitted?.connect === "function") {
