@@ -1498,6 +1498,38 @@ test.describe("a View3D no one asked a renderer of", () => {
     expect([r, g, b], "the model, not the window's colour").not.toEqual(CLEAR);
   });
 
+  // A device lost while its view is made, before the view is kept, is a
+  // loss as any other: the view is made again and draws.
+  test("a view whose device is lost while it is made is made again, and draws", async ({ page }) => {
+    await page.addInitScript(LOSABLE);
+    await page.addInitScript(() => {
+      window.loseWhileMade = 0;
+      if (!self.GPUAdapter) return;
+      const ask = GPUAdapter.prototype.requestDevice;
+      GPUAdapter.prototype.requestDevice = async function (...args) {
+        const device = await ask.apply(this, args);
+        if (window.loseWhileMade && window.loseWhileMade--) device.destroy();
+        return device;
+      };
+    });
+    await page.goto("/?scene=shaded3d");
+    await page.waitForFunction(() => window.ready);
+    test.skip(!(await page.evaluate(async () => !!(await navigator.gpu?.requestAdapter()))), "WebGPU has no adapter here");
+    expect(await (await drawn(page)).jsonValue()).toBe("wgpu");
+    await page.evaluate(async () => {
+      window.frames = document.querySelector(".qq-view3d").$view3d.frames;
+      window.loseWhileMade = 1;
+      await window.loseGpu();
+    });
+    // Drawn again, on a device not lost.
+    await page.waitForFunction(() => {
+      const state = document.querySelector(".qq-view3d").$view3d;
+      if (state.error) throw new Error(state.error);
+      return state.lost === 2 && window.gpuDevices.at(-1).lost === false && state.frames > window.frames;
+    });
+    expect(await page.evaluate(RENDERERS)).toEqual([{ renderer: "wgpu", lost: 2, error: null }]);
+  });
+
   // A GPU that keeps dying is given up for the page, at the fourth loss
   // within a minute: every view draws on the JavaScript renderer.
   const twoOnWgpu = async (page) => {
@@ -1584,6 +1616,45 @@ test.describe("a View3D no one asked a renderer of", () => {
     await drawingOnScript(page);
     const drawing = { renderer: "js", lost: 0, error: null };
     expect(await page.evaluate(RENDERERS)).toEqual([drawing, drawing]);
+  });
+
+  // WebGPU found to have no adapter after a loss is given up for the page
+  // though the view that found it was let go meanwhile: the others go to
+  // the JavaScript renderer all the same.
+  test("views go to the JavaScript renderer when one let go while made again finds no adapter after", async ({ page }) => {
+    await page.addInitScript(() => {
+      window.adapterGone = false;
+      window.noAdapter = new Promise((done) => (window.letNoAdapterGo = () => done(null)));
+      if (!self.GPU) return;
+      const ask = GPU.prototype.requestAdapter;
+      GPU.prototype.requestAdapter = function (...args) {
+        return window.adapterGone ? window.noAdapter : ask.apply(this, args);
+      };
+    });
+    await twoOnWgpu(page);
+    await page.evaluate(() => {
+      const [first, second] = document.querySelectorAll(".qq-view3d");
+      window.first = { canvas: first, frames: first.$view3d.frames };
+      second.getContext = () => {
+        window.adapterGone = true;
+        return null;
+      };
+    });
+    await page.evaluate(() => window.loseGpu());
+    await page.waitForFunction(() => window.adapterGone);
+    // The second view is let go while it asks whether WebGPU has an adapter.
+    await page.evaluate(() => (window.objects.second.active = false));
+    await page.waitForFunction(() => {
+      const { canvas, frames } = window.first;
+      const state = canvas.$view3d;
+      return document.querySelectorAll(".qq-view3d").length === 1 && state.renderer === "wgpu" && state.lost === 1 && state.frames > frames;
+    });
+    await page.evaluate(() => window.letNoAdapterGo());
+    await page.waitForFunction(() => {
+      const views = [...document.querySelectorAll(".qq-view3d")];
+      return views.length === 1 && views[0].$view3d.renderer === "js" && views[0].$view3d.frames > 0;
+    });
+    expect(await page.evaluate(RENDERERS)).toEqual([{ renderer: "js", lost: 0, error: null }]);
   });
 
   // A view made again after a loss that fails for a reason of its own,
