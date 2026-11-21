@@ -303,7 +303,7 @@ export interface Group<G extends PropertySpecs = PropertySpecs> {
   readonly [GROUP]: G;
 }
 export const group = <G extends PropertySpecs>(properties: G): Group<G> => ({ [GROUP]: properties });
-const isGroup = (initial: unknown): initial is Group =>
+export const isGroup = (initial: unknown): initial is Group =>
   Boolean((initial as Partial<Group> | null | undefined)?.[GROUP]);
 
 // A member of a group that is a second name for another member of it
@@ -1883,10 +1883,12 @@ export function defineType<
 // the runtime's, never read by a file, and stays a plain value: a type that
 // extends another takes it by its descriptor (TimelineAnimation's
 // `$transition`), and binding it would cost each object for nothing.
+// A symbol's method (`[Symbol.iterator]`) is the protocol's, and kept as
+// it was given.
 function defineMethods(proto: object, methods: object): void {
-  for (const [name, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(methods))) {
+  for (const [name, descriptor] of Reflect.ownKeys(methods).map((key) => [key, Object.getOwnPropertyDescriptor(methods, key)!] as const)) {
     const method: unknown = descriptor.value;
-    if (typeof method !== "function" || name.startsWith("$")) {
+    if (typeof name === "symbol" || typeof method !== "function" || name.startsWith("$")) {
       Object.defineProperty(proto, name, descriptor);
       continue;
     }
