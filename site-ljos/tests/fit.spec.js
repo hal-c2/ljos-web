@@ -187,41 +187,52 @@ function puckPast(area, ms = 0) {
   });
 }
 
-// A puck the reader led into the tray's corner stays in the tray when
-// the frame narrows past Motion's compact width, where the tray is
-// shorter: a turned phone, a narrowed window.
+// Motion running at a desk's width, its puck led into its tray's
+// bottom-right corner and settled there.
+async function puckInCorner(page) {
+  await page.goto("/demos/");
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  const pause = await runDemo(page, "the motion demo");
+  await expect.poll(() => fits(pause), { message: "the motion demo is shown and fits" }).toEqual([]);
+  const tray = page.getByRole("group", { name: /^Spring tray/ });
+  await tray.scrollIntoViewIfNeeded();
+  const box = await tray.boundingBox();
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width - 2, box.y + box.height - 2, { steps: 4 });
+  await page.mouse.up();
+  // How far the puck stands from the tray's right and bottom edges.
+  const corner = async () => {
+    const past = await tray.evaluate(puckPast);
+    const off = (by) => (Math.abs(by) <= 1 ? 0 : Math.round(-by));
+    return { right: off(past.right), bottom: off(past.bottom) };
+  };
+  await expect.poll(corner, { message: "the puck springs into the tray's bottom-right corner" }).toEqual({ right: 0, bottom: 0 });
+  return { tray, box };
+}
+
+// The window narrowed a little (1280 to 1040), the demo still on screen
+// and running: where the puck is drawn past its tray on any frame as the
+// tray narrows and for a second after.
+async function narrowedPast(page, tray) {
+  const sampling = tray.evaluate(puckPast, 1500);
+  await page.setViewportSize({ width: 1040, height: 800 });
+  const past = await sampling;
+  const shown = await tray.boundingBox();
+  expect(shown.y + shown.height > 0 && shown.y < 800, `the tray is still on screen, so the demo runs (${JSON.stringify(shown)})`).toBe(true);
+  return Object.entries(past)
+    .filter(([, by]) => by > 1)
+    .map(([side, by]) => `drawn past the tray's ${side} edge by ${Math.round(by)}`);
+}
+
+// A puck the reader led stays in its tray when the frame narrows: a
+// turned phone, a narrowed window.
 test.describe("when the frame narrows", () => {
   test.use({ viewport: { width: 1280, height: 800 }, reducedMotion: "no-preference" });
 
   test("Motion's puck stays in its tray", async ({ page }) => {
-    await page.goto("/demos/");
-    await page.waitForSelector('#app[data-ljos-hydrated="true"]');
-    const pause = await runDemo(page, "the motion demo");
-    await expect.poll(() => fits(pause), { message: "the motion demo is shown and fits" }).toEqual([]);
-    const tray = page.getByRole("group", { name: /^Spring tray/ });
-    await tray.scrollIntoViewIfNeeded();
-    const box = await tray.boundingBox();
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-    await page.mouse.down();
-    await page.mouse.move(box.x + box.width - 2, box.y + box.height - 2, { steps: 4 });
-    await page.mouse.up();
-    // How far the puck stands from the tray's right and bottom edges.
-    const corner = async () => {
-      const past = await tray.evaluate(puckPast);
-      const off = (by) => (Math.abs(by) <= 1 ? 0 : Math.round(-by));
-      return { right: off(past.right), bottom: off(past.bottom) };
-    };
-    await expect.poll(corner, { message: "the puck springs into the tray's bottom-right corner" }).toEqual({ right: 0, bottom: 0 });
-    // A window narrowed a little, the demo still on screen and running:
-    // every frame drawn as the tray narrows and for a second after.
-    const sampling = tray.evaluate(puckPast, 1500);
-    await page.setViewportSize({ width: 1040, height: 800 });
-    const drawnPast = Object.entries(await sampling)
-      .filter(([, by]) => by > 1)
-      .map(([side, by]) => `drawn past the tray's ${side} edge by ${Math.round(by)}`);
-    const shown = await tray.boundingBox();
-    expect(shown.y + shown.height > 0 && shown.y < 800, `the tray is still on screen, so the demo runs (${JSON.stringify(shown)})`).toBe(true);
-    expect(drawnPast, "the puck is never drawn past the tray as it narrows").toEqual([]);
+    const { tray } = await puckInCorner(page);
+    expect(await narrowedPast(page, tray), "the puck in the corner is never drawn past the tray as it narrows").toEqual([]);
     // Then past Motion's compact width, where the tray is shorter too.
     await page.setViewportSize({ width: 390, height: 844 });
     const outside = async () =>
@@ -229,6 +240,19 @@ test.describe("when the frame narrows", () => {
         .filter(([, by]) => by > 1)
         .map(([side, by]) => `past the tray's ${side} edge by ${Math.round(by)}`);
     await expect.poll(outside, { message: "the puck is inside the narrowed tray" }).toEqual([]);
+  });
+
+  // Led from the corner toward a point the narrowed tray still holds
+  // (the tray narrows by 64 px, the puck is 54 across), so the clamp
+  // leaves its target as it was, and the tray narrows while it is still
+  // on its way there: it is still drawn inside.
+  test("Motion's puck on its way stays in its tray", async ({ page }) => {
+    const { tray, box } = await puckInCorner(page);
+    await page.mouse.move(box.x + box.width - 2, box.y + box.height - 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width - 100, box.y + box.height / 2, { steps: 2 });
+    await page.mouse.up();
+    expect(await narrowedPast(page, tray), "the puck on its way is never drawn past the tray as it narrows").toEqual([]);
   });
 });
 
