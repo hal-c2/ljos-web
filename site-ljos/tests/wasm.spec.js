@@ -91,13 +91,15 @@ const read = (page, placed) =>
         const style = getComputedStyle(node);
         // What no reader sees, and the notes only one side has (what
         // holds it is hidden on the other): a live block's, and a demo's
-        // that stands as its picture (DemoFrame).
+        // that stands as its picture (DemoFrame). What holds a block's
+        // stage too says only the note when its picture has no words,
+        // but stands on both sides.
         if (style.display === "none") return;
         // An icon drawn as a shape is an `svg`, which has no innerText.
         const said = (node.innerText ?? node.textContent).replace(/\s+/g, " ").trim();
         // A demo's Run button stands only where it can run.
         if (node.getAttribute("role") === "button" && /^Run /.test(node.getAttribute("aria-label") ?? "")) return;
-        if (/^Live editing needs WebAssembly[^.]*\.$/.test(said) || (/^A picture of the demo: it runs in a browser with [^,.]+, which this one does not offer\.$/.test(said) && !node.querySelector("img"))) return;
+        if ((/^Live editing needs WebAssembly[^.]*\.$/.test(said) && !node.querySelector(picture)) || (/^A picture of the demo: it runs in a browser with [^,.]+, which this one does not offer\.$/.test(said) && !node.querySelector("img"))) return;
         const box = node.getBoundingClientRect();
         const at = placed ? ` ${Math.round(box.x)},${Math.round(box.y)} ${Math.round(box.width)}x${Math.round(box.height)}` : "";
         out.push(`${"  ".repeat(depth)}<${node.tagName.toLowerCase()} ${style.display} ${style.visibility} ${style.color} ${style.backgroundColor}${at}>`);
@@ -111,14 +113,17 @@ const read = (page, placed) =>
 
 // Each live block: whether the build's picture shows, and what the
 // block says under its stage. The picture is in its rich text, in the
-// window, on the stage.
+// window, on the stage; a block has one for each scheme, of which the
+// page shows the one it is in, so a stage is one block.
 const blocks = (page) =>
-  page.locator(PICTURE).evaluateAll((imgs) =>
-    imgs.map((img) => {
+  page.locator(PICTURE).evaluateAll((imgs) => {
+    const stages = new Map();
+    for (const img of imgs) {
       const stage = img.parentElement.parentElement.parentElement.parentElement;
-      return { picture: img.checkVisibility(), said: stage.nextElementSibling?.innerText.trim() ?? "" };
-    }),
-  );
+      stages.set(stage, (stages.get(stage) ?? false) || img.checkVisibility());
+    }
+    return [...stages].map(([stage, picture]) => ({ picture, said: stage.nextElementSibling?.innerText.trim() ?? "" }));
+  });
 
 // Where the first live block's stage or the first note starts, in the
 // page; the page's height where there is neither.
