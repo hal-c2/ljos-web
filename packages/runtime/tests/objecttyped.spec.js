@@ -184,3 +184,54 @@ test("an object a layer's binding made outlives a change to what that binding re
   });
   expect(said).toEqual(["again new", "refused kept n 8 ended 1", "removed ended 2"]);
 });
+
+// The object a layer's binding made, put back over the property as a plain
+// value, is the property's again: it is not ended under it, and ends once
+// the layer is taken off.
+test("an object a layer's binding made stays alive when it is put over the property as a plain value", async ({ page }) => {
+  await open(page, "objectlayered");
+  const said = await page.evaluate(async () => {
+    const root = window.scene;
+    // Read, as the wasm kernel runs a binding when what it gives is read.
+    const settle = async () => (window.flush(), root.made, await new Promise((resolve) => setTimeout(resolve)));
+    const over = window.override(root, "made", { binding: () => root.make() });
+    await settle();
+    const first = root.made;
+    over.set({ value: first });
+    await settle();
+    root.pick = 4;
+    await settle();
+    const said = [`plain ${root.made === first ? "kept" : "lost"} n ${first.n} ended ${root.ended}`];
+    over.remove();
+    await settle();
+    said.push(`removed ended ${root.ended}`);
+    return said;
+  });
+  expect(said).toEqual(["plain kept n 4 ended 0", "removed ended 1"]);
+});
+
+// What an evaluation the type refuses made is no one's: it ends after that
+// evaluation, each time, and what the property has stays.
+test("an object a refused evaluation of a layer's binding made ends after it", async ({ page }) => {
+  await open(page, "objectlayered");
+  const said = await page.evaluate(async () => {
+    const root = window.scene;
+    const { plain } = root.named;
+    // Read, as the wasm kernel runs a binding when what it gives is read.
+    const settle = async () => (window.flush(), root.made, await new Promise((resolve) => setTimeout(resolve)));
+    const over = window.override(root, "made", { binding: () => root.make() });
+    await settle();
+    const first = root.made;
+    over.set({ binding: () => (root.pick, root.make(), plain) });
+    await settle();
+    const said = [`refused ${root.made === first ? "kept" : "lost"} ended ${root.ended}`];
+    root.pick = 9;
+    await settle();
+    said.push(`again ${root.made === first ? "kept" : "lost"} ended ${root.ended}`);
+    over.remove();
+    await settle();
+    said.push(`removed ended ${root.ended}`);
+    return said;
+  });
+  expect(said).toEqual(["refused kept ended 1", "again kept ended 2", "removed ended 3"]);
+});
