@@ -41,6 +41,28 @@ Item {
     property int during: go ? makeIn() : -1
     function makeIn() { made.createObject(kept); return kept.children.length }
 
+    // The same, where what the item does on hearing of it changes what the
+    // binding goes on to read: the binding is what it is once that is done.
+    property int factor: 1
+    readonly property var once: ({ made: false })
+    Item {
+        id: changing
+        property int heard: 0
+        onChildrenChanged: { heard++; root.factor = 2 }
+    }
+    property bool goOn: false
+    property int after: goOn ? makeOnce() * factor : -1
+    function makeOnce() { if (!once.made) { once.made = true; made.createObject(changing) } return 1 }
+
+    // A type of its own whose `children` is a property it declares: a list
+    // given again holding the same is a change, as a `var` is.
+    component Own: Item { property var children: [] }
+    Own {
+        id: overriding
+        property int heard: 0
+        onChildrenChanged: heard++
+    }
+
     Component { id: made; Item {} }
     Component { id: loose; Timer {} }
 
@@ -62,5 +84,17 @@ Item {
     function bound() {
         go = true;
         return [during, kept.heard, kept.children.length];
+    }
+
+    function reread() {
+        goOn = true;
+        return [after, changing.heard, changing.children.length, factor];
+    }
+
+    function overridden() {
+        overriding.children = [1, 2];
+        const first = overriding.heard;
+        overriding.children = [1, 2];
+        return overriding.heard - first;
     }
 }
