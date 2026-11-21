@@ -88,15 +88,22 @@ test("a list property given a new array with the same items is heard once the sc
 
 // A change of a list with no signal of its own is told once its flush has
 // settled, by when a handler may have given its Connections another
-// target. A change made while the old one was the target is heard, as Qt
-// hears it the moment it is made; one made once the new one was is not.
+// target. A change made while an object was the target is heard, as Qt
+// hears it the moment it is made: of the old target before the switch, of
+// the new one after it; a change of the old one after the switch is not.
 test("a Connections whose target is replaced in the flush hears what changed while it was the target", async ({ page }) => {
   await open(page, "connectionswitch");
-  expect(await page.evaluate(() => window.scene.changed()), "changed while box was the target").toEqual([0]);
-  expect(await page.evaluate(() => window.scene.switched()), "changed once box was again").toEqual([0]);
+  expect(await page.evaluate(() => window.scene.changed()), "box changed while it was the target").toEqual([0]);
+  expect(await page.evaluate(() => window.scene.switched()), "other changed once box was again, then box").toEqual([0, 1]);
 });
 
-test("a Connections whose target the same change replaces does not hear it of the old target", async ({ page }) => {
+// Qt 6.11: `box.childrenChanged` is told as `third` is added, before
+// `third.parentChanged` gives the binding, and so the Connections, another
+// target: the change was made while `box` was the target, and is heard.
+// Ljós finds it once the flush settles, after the binding has replaced the
+// target and let go of `box`'s listener (hal-c2/ljos-web#144).
+test("a Connections whose target the same change replaces through a binding hears it of the old target", async ({ page }) => {
+  test.fail(true, "hal-c2/ljos-web#144: the change is found after the target is replaced");
   await open(page, "connectionswitch");
-  expect(await page.evaluate(() => window.scene.replaced())).toEqual([]);
+  expect(await page.evaluate(() => window.scene.replaced())).toEqual([0]);
 });
