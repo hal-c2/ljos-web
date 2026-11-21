@@ -362,3 +362,43 @@ fn an_import_of_ljos_observer_is_not_refused() {
     )]);
     compile(&request(files, "Main.qml")).expect("compiles");
 }
+
+#[test]
+fn files_imported_before_a_module_whose_types_are_not_known_under_one_name_are_warned_of() {
+    // Qt takes the type imported last. The compiler can say so of a module
+    // whose types it knows; of one the page has installed but neither Qt's
+    // table nor the project describes, a file of `parts` named as one of
+    // its types would be taken instead: it warns.
+    let compiled_with = |imports: &str| {
+        let files = BTreeMap::from([
+            (
+                "Main.qml".to_string(),
+                format!("import QtQuick\n{imports}\nItem {{ P.Panel {{ }} }}\n"),
+            ),
+            (
+                "parts/Panel.qml".to_string(),
+                "import QtQuick\nItem { }\n".to_string(),
+            ),
+        ]);
+        let request = Request {
+            installed: vec!["Acme.Widgets".to_string()],
+            ..request(files, "Main.qml")
+        };
+        compile(&request).expect("compiles")
+    };
+
+    let unsure = compiled_with("import \"parts\" as P\nimport Acme.Widgets as P");
+    assert_eq!(unsure.warnings.len(), 1, "{:?}", unsure.warnings);
+    assert!(
+        unsure.warnings[0].contains("`import Acme.Widgets as P` comes after files imported as P"),
+        "{:?}",
+        unsure.warnings
+    );
+
+    // The module first: the files are taken over it, as Qt takes them.
+    let first = compiled_with("import Acme.Widgets as P\nimport \"parts\" as P");
+    assert_eq!(first.warnings, Vec::<String>::new());
+    // A module of Qt's table, whose types are known, after them.
+    let known = compiled_with("import \"parts\" as P\nimport QtQuick.Controls as P");
+    assert_eq!(known.warnings, Vec::<String>::new());
+}

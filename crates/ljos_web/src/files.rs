@@ -248,6 +248,9 @@ impl<'f> Load<'f> {
         } else {
             compile(&source, options)
         };
+        if let (false, Some(project)) = (is_script, &options.project) {
+            warnings.extend(crate::quick::unsure_namespaces(project, options));
+        }
         Some(Compiled {
             result,
             source,

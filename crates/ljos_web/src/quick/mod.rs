@@ -152,6 +152,47 @@ fn namespace_files<'p>(
     any.then_some(namespace)
 }
 
+/// What can be wrong with a name the file imports files under and then a
+/// module whose types the compiler does not know (`import "parts" as P`,
+/// `import Acme.Widgets as P`, a module the page has installed): neither
+/// Qt's table nor the project lists them, so a file of the same name as one
+/// of the module's types is taken over it, where Qt, which takes the type
+/// imported last, would take the module's. One warning a name, naming the first such module.
+pub(crate) fn unsure_namespaces(project: &Project, options: &Options) -> Vec<String> {
+    use qml_front::project::Source;
+    let Some(summary) = project.summary(&options.name) else {
+        return Vec::new();
+    };
+    let mut files: Vec<&str> = Vec::new();
+    let mut warned: Vec<&str> = Vec::new();
+    let mut warnings = Vec::new();
+    for import in &summary.imports {
+        let Some(alias) = import.alias.as_deref() else {
+            continue;
+        };
+        match &import.source {
+            Source::Path(path) if qml_front::project::is_script(path) => {}
+            Source::Path(_) => files.push(alias),
+            source @ Source::Module(uri) => {
+                if own_module(source, project, options).is_some() {
+                    files.push(alias);
+                } else if files.contains(&alias)
+                    && !warned.contains(&alias)
+                    && !QtTypeOracle.has_module(uri)
+                    && project.module_types(uri).is_none()
+                {
+                    warned.push(alias);
+                    warnings.push(format!(
+                        "{}: `import {uri} as {alias}` comes after files imported as {alias}, and which types {uri} has is not known here: a file there named as one of them is taken over it, where Qt takes {uri}'s; import {uri} first, or under another name",
+                        options.name
+                    ));
+                }
+            }
+        }
+    }
+    warnings
+}
+
 /// The same, of a document the module of another takes in: `files` is how
 /// many QML files that one names by their path so far, and counts on. With
 /// `text` it is one written as a text of the other.
