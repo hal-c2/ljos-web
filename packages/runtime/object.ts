@@ -2543,6 +2543,7 @@ const alike = (value: unknown, last: unknown): boolean => Object.is(value, last)
 // it is once the objects being created all are. What it returns tells of a
 // change the flush has made and not told yet, now: for one who stops
 // listening in that flush, because of that change, and was still to hear it.
+// `connect` comes here only for a property with no signal of its own.
 export function onChange(self: QObject, name: string, handler: Handler, first?: First): () => void {
   const owner = getOwner();
   // `fontChanged`: a group is the one object whatever is in it, and changes

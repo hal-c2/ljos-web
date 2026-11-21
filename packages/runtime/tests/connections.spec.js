@@ -138,3 +138,13 @@ test("a Connections hears a move that switches its target away, from the old tar
   await open(page, "connectiontarget");
   expect(await page.evaluate(() => window.scene.changeSwitches())).toEqual([["box3"], "other3"]);
 });
+
+// A move of the target through the very property it is told the change of
+// is not heard (Qt 6.12.0 gives the same): the binding of `target` is told
+// of `widthChanged` first, as it asked for it first, and the Connections no
+// longer listens to `r`. A property with a signal is told as it is emitted,
+// so nothing of it is left to tell when the target is switched.
+test("a Connections whose target moves away through the property it hears does not hear that change", async ({ page }) => {
+  await open(page, "connectiontarget");
+  expect(await page.evaluate(() => window.scene.widthSwitches())).toEqual([[], "wide"]);
+});
