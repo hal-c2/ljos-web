@@ -1,0 +1,201 @@
+// Pure helpers for the agent replay (AgentStage.qml): what a step sends,
+// how its arguments and the inspector's answer read in the log, and the
+// card's state written back as the declarative source it amounts to. The
+// stage holds the state; nothing here keeps any.
+
+export interface Step {
+    readonly tool: string
+    readonly args: Record<string, unknown>
+    // What the agent says it is about to do, or "" to go on from the last.
+    readonly say: string
+    // How long the step stands before the next one starts, in ms.
+    readonly wait: number
+}
+
+export interface Ticket {
+    readonly key: string
+    readonly title: string
+    readonly state: string
+    readonly crew: string
+}
+
+// What the inspector answers a call with, read from the client's JSON text.
+export interface Answer {
+    readonly structured: Record<string, unknown>
+    readonly text: string
+    readonly image: string
+}
+
+// The ref a found control was given, put where a step names `$found`: a
+// replay cannot know a handle ahead of the page that mints it.
+export function withFound(args: Record<string, unknown>, found: string): Record<string, unknown> {
+    const out: Record<string, unknown> = {}
+    for (const name of Object.keys(args)) {
+        const value = args[name]
+        out[name] = value === "$found" ? found : value
+    }
+    return out
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+// The client's answer text, ok or not: `{structuredContent, content}` when
+// the tool answered, `{error: {code, message}}` when it refused.
+export function parsed(ok: boolean, text: string): Answer {
+    let data: unknown = null
+    try {
+        data = JSON.parse(text)
+    } catch {
+        return { structured: {}, text, image: "" }
+    }
+    if (!ok) {
+        const error = isRecord(data) && isRecord(data.error) ? data.error : {}
+        const code = typeof error.code === "string" ? error.code : "error"
+        const message = typeof error.message === "string" ? error.message : text
+        return { structured: { code, message }, text: `${code}: ${message}`, image: "" }
+    }
+    const structured = isRecord(data) && isRecord(data.structuredContent) ? data.structuredContent : {}
+    const content = isRecord(data) && Array.isArray(data.content) ? data.content : []
+    let said = ""
+    let image = ""
+    for (const part of content) {
+        if (!isRecord(part)) continue
+        if (part.type === "text" && typeof part.text === "string" && said === "") said = part.text
+        if (part.type === "image" && typeof part.data === "string") image = `data:${typeof part.mimeType === "string" ? part.mimeType : "image/png"};base64,${part.data}`
+    }
+    return { structured, text: said, image }
+}
+
+// A value as the log shows it: short, one line, and an array of records as
+// how many there are, so a call that sends four tickets reads as one.
+export function shown(value: unknown): string {
+    if (typeof value === "string") return JSON.stringify(value)
+    if (Array.isArray(value)) {
+        if (value.length > 1 && value.every(isRecord)) return `[${value.length} × {${Object.keys(value[0] as Record<string, unknown>).join(", ")}}]`
+        return `[${value.map(shown).join(", ")}]`
+    }
+    if (isRecord(value)) return `{${Object.keys(value).map((name) => `${name}: ${shown(value[name])}`).join(", ")}}`
+    return String(value)
+}
+
+export function argsText(args: Record<string, unknown>): string {
+    const names = Object.keys(args)
+    if (names.length === 0) return "{}"
+    return `{ ${names.map((name) => `${name}: ${shown(args[name])}`).join(", ")} }`
+}
+
+function clipped(text: string, most: number): string {
+    return text.length > most ? `${text.slice(0, most - 1)}…` : text
+}
+
+// What came back, in a few words: what the answer is about, not all of it.
+export function summary(tool: string, ok: boolean, answer: Answer): string {
+    const s = answer.structured
+    if (!ok) return clipped(answer.text, 120)
+    switch (tool) {
+        case "app_status": {
+            const windows = Array.isArray(s.windows) ? s.windows : []
+            const first = isRecord(windows[0]) ? windows[0] : {}
+            return `${String(s.objects ?? 0)} objects · ${Math.round(Number(first.width ?? 0))}×${Math.round(Number(first.height ?? 0))} · ${Array.isArray(s.capabilities) ? s.capabilities.length : 0} tools`
+        }
+        case "app_objects":
+            return `${Array.isArray(s.objects) ? s.objects.length : 0} objects${s.truncated === true ? ", more to come" : ""}`
+        case "app_set_property":
+            return `${String(s.property)}: ${clipped(shown(s.previous ?? null), 24)} → ${clipped(shown(s.value ?? null), 40)}`
+        case "app_get_property":
+            return `${String(s.property)} = ${clipped(shown(s.value ?? null), 60)}`
+        case "app_find": {
+            const matches = Array.isArray(s.matches) ? s.matches : []
+            const first = isRecord(matches[0]) ? matches[0] : null
+            return first ? `${String(s.count)} match · ${String(first.role)} “${clipped(String(first.name ?? ""), 32)}” → ${String(first.ref)}` : "no match"
+        }
+        case "app_click":
+            return Array.isArray(s.at) ? `clicked at ${s.at.join(", ")}` : answer.text
+        case "app_screenshot":
+            return `${String(s.width)}×${String(s.height)} PNG`
+        default:
+            return clipped(answer.text, 120)
+    }
+}
+
+// The first match's ref: what the next step presses.
+export function refOf(answer: Answer): string {
+    const matches = answer.structured.matches
+    if (!Array.isArray(matches) || !isRecord(matches[0])) return ""
+    const ref = matches[0].ref
+    return typeof ref === "string" ? ref : ""
+}
+
+// How many lines the app's log has: what the next watch waits past.
+export function logsCounted(answer: Answer): number {
+    const counts = answer.structured.counts
+    return isRecord(counts) && typeof counts.logs === "number" ? counts.logs : -1
+}
+
+export interface LogEntry {
+    readonly seq: number
+    readonly message: string
+}
+
+export function logEntries(answer: Answer): LogEntry[] {
+    const entries = answer.structured.entries
+    if (!Array.isArray(entries)) return []
+    return entries.filter(isRecord).map((entry) => ({ seq: Number(entry.seq), message: String(entry.message ?? "") }))
+}
+
+export function nextSince(answer: Answer, fallback: number): number {
+    const next = answer.structured.next_since
+    return typeof next === "number" ? next : fallback
+}
+
+// The card as declarative source: what the agent's calls amount to, written
+// as a person would have written it.
+export function sourceOf(heading: string, filters: readonly string[], tickets: readonly Ticket[], crews: Record<string, string>): string {
+    const lines = ["DispatchCard {", `    heading: ${JSON.stringify(heading)}`, `    filters: ${JSON.stringify(filters)}`]
+    if (tickets.length === 0) lines.push("    tickets: []")
+    else {
+        lines.push("    tickets: [")
+        for (const ticket of tickets) {
+            const crew = crews[ticket.key] ?? ticket.crew
+            lines.push(`        { key: ${JSON.stringify(ticket.key)}, state: ${JSON.stringify(ticket.state)}, crew: ${JSON.stringify(crew)},`)
+            lines.push(`          title: ${JSON.stringify(ticket.title)} },`)
+        }
+        lines.push("    ]")
+    }
+    lines.push("}")
+    return lines.join("\n")
+}
+
+// An object row of `app_objects`, as the stage's tree lists it.
+export interface TreeRow {
+    readonly ref: string
+    readonly depth: number
+    readonly label: string
+}
+
+export function treeRows(answer: Answer): TreeRow[] {
+    const objects = answer.structured.objects
+    if (!Array.isArray(objects)) return []
+    return objects.filter(isRecord).map((row) => {
+        const named = typeof row.id === "string" ? `#${row.id}` : typeof row.object_name === "string" ? ` "${row.object_name}"` : ""
+        return { ref: String(row.handle ?? ""), depth: Number(row.depth ?? 0), label: `${String(row.type ?? "Object")}${named}` }
+    })
+}
+
+export interface PropertyRow {
+    readonly name: string
+    readonly value: string
+    readonly mine: boolean
+}
+
+export function propertyRows(answer: Answer): PropertyRow[] {
+    const properties = answer.structured.properties
+    if (!Array.isArray(properties)) return []
+    return properties.filter(isRecord).map((row) => ({
+        name: String(row.name ?? ""),
+        value: clipped(row.value === null || row.value === undefined ? "null" : String(row.value), 48),
+        mine: row.assigned_by === "devtools",
+    }))
+}

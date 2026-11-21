@@ -2,3 +2,8 @@ module Demos
 singleton PantryProject 1.0 PantryProject.qml
 PantryDemo 1.0 PantryDemo.qml
 PantryShell 1.0 PantryShell.qml
+singleton AgentReplay 1.0 AgentReplay.qml
+DispatchCard 1.0 DispatchCard.qml
+AgentLogRow 1.0 AgentLogRow.qml
+AgentView 1.0 AgentView.qml
+AgentPoster 1.0 AgentPoster.qml
