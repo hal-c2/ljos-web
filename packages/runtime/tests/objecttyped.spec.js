@@ -452,3 +452,29 @@ test("an object a layer's binding moved off stays alive when it is put back as a
   });
   expect(said).toEqual(["moved true back true ended 0", "removed ended 1"]);
 });
+
+// Made with a parent, what a refused evaluation made is still that
+// evaluation's, not the parent's: it ends after it, each time.
+test("an object a refused evaluation of a layer's binding made with a parent ends after it", async ({ page }) => {
+  await open(page, "objectlayered");
+  const said = await page.evaluate(async () => {
+    const root = window.scene;
+    const { plain } = root.named;
+    // Read, as the wasm kernel runs a binding when what it gives is read.
+    const settle = async () => (window.flush(), root.made, await new Promise((resolve) => setTimeout(resolve)));
+    const over = window.override(root, "made", { binding: () => root.makeIn() });
+    await settle();
+    const first = root.made;
+    over.set({ binding: () => (root.pick, root.makeIn(), plain) });
+    await settle();
+    const said = [`refused ${root.made === first ? "kept" : "lost"} ended ${root.ended}`];
+    root.pick = 9;
+    await settle();
+    said.push(`again ${root.made === first ? "kept" : "lost"} ended ${root.ended}`);
+    over.remove();
+    await settle();
+    said.push(`removed ended ${root.ended}`);
+    return said;
+  });
+  expect(said).toEqual(["refused kept ended 1", "again kept ended 2", "removed ended 3"]);
+});

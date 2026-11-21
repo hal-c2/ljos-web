@@ -3180,7 +3180,9 @@ export function instantiate(
   component: (data?: Props) => QObject | null,
   data?: Props,
   item?: QObject | null,
-  owner: Owner | null = item?.$owner ?? (maker && getOwner() === makerFor ? maker : getOwner()),
+  // What a layer's typed binding makes is its own even with a parent (`item`),
+  // which is still where it is shown: the layer ends it once nothing holds it.
+  owner: Owner | null = (maker && getOwner() === makerFor ? maker : null) ?? item?.$owner ?? getOwner(),
 ): Instantiated {
   // What the object makes as it is made is its own, not the maker's.
   const before = maker;

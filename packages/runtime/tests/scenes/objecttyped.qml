@@ -69,6 +69,7 @@ Item {
     property bool bump: false
     Component { id: builder; Rectangle { property int n: root.pick; Component.onDestruction: { root.ended++; if (root.bump) root.k++ } } }
     function make() { return builder.createObject(null) }
+    function makeIn() { return builder.createObject(root) }
 
     function more() {
         const is = (value) => value === null ? "null" : value === undefined ? "undefined" : value === rect ? "rect" : value === later ? "later" : value === plain ? "plain" : typeof value;
