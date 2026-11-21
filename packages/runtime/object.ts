@@ -1524,6 +1524,9 @@ class Layer {
   // the binding before it ends at once, so what it made must not end with
   // it, nor with its next evaluation.
   declare kept: { value: unknown; end: () => void } | null;
+  // Roots a binding moved off, ending after the evaluation that moved off
+  // them: until then the layer may take what one holds back.
+  declare ending: { value: unknown; end: () => void }[];
 
   constructor(slot: Slot) {
     this.slot = slot;
@@ -1531,6 +1534,7 @@ class Layer {
     this.bound = null;
     this.end = null;
     this.kept = null;
+    this.ending = [];
   }
 
   read(): unknown {
@@ -1559,10 +1563,12 @@ class Layer {
         ? null
         : this.kept?.value === had
           ? this.kept
-          : { value: had, end: () => {} }
-      : made !== undefined && this.kept?.value === made
-        ? this.kept
-        : null;
+          : (this.takeBack(had) ?? { value: had, end: () => {} })
+      : made === undefined
+        ? null
+        : this.kept?.value === made
+          ? this.kept
+          : this.takeBack(made);
     if (kept === this.kept) this.kept = null;
     this.drop();
     this.kept = kept;
@@ -1576,7 +1582,7 @@ class Layer {
           const typed = slot.kind ? converted(slot.key, slot.kind, guard, had) : guard;
           // Only an object type's binding can make what it gives; a value's
           // pays for no root of its own.
-          const compute = slot.kind?.object ? () => this.keeping(typed) : typed;
+          const compute = slot.kind?.object ? () => this.keeping(typed, end) : typed;
           this.bound = ringed(getOwner(), compute, had, true);
           this.bound.start();
         }),
@@ -1591,15 +1597,40 @@ class Layer {
   // refused leaves it), what this evaluation made is no one's. Either ends
   // after the evaluation: what ends may write, and a write inside it would
   // run it again.
-  keeping(typed: () => unknown): unknown {
+  // A binding that took its own layer off as it ran (`ended`, its root, is
+  // no longer the layer's) keeps nothing; nor does one that gave nothing.
+  keeping(typed: () => unknown, ended: () => void): unknown {
     const { value, end } = madeApart(typed);
     const kept = this.kept;
-    if (kept && kept.value === value) queueMicrotask(end);
-    else {
-      this.kept = { value, end };
-      if (kept) queueMicrotask(kept.end);
+    if (this.end !== ended || kept?.value === value) {
+      queueMicrotask(end);
+      return value;
     }
+    // The property has something else now: what held what it had ends, and
+    // this root holds what it has, unless one about to end already does.
+    const holds = value == null ? null : (this.takeBack(value) ?? { value, end });
+    if (holds?.end !== end) queueMicrotask(end);
+    this.kept = holds;
+    if (kept) this.later(kept);
     return value;
+  }
+
+  // Ends what `kept` holds after this evaluation, unless the layer takes it
+  // back first.
+  later(kept: { value: unknown; end: () => void }): void {
+    this.ending.push(kept);
+    queueMicrotask(() => {
+      const at = this.ending.indexOf(kept);
+      if (at < 0) return;
+      this.ending.splice(at, 1);
+      kept.end();
+    });
+  }
+
+  // What holds `value` among the roots about to end, now the layer's again.
+  takeBack(value: unknown): { value: unknown; end: () => void } | null {
+    const at = this.ending.findIndex((kept) => kept.value === value);
+    return at < 0 ? null : this.ending.splice(at, 1)[0]!;
   }
 
   drop(): void {

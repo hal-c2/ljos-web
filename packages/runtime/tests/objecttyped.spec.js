@@ -384,3 +384,71 @@ test("an object a layer's binding made ends with the layer when its ending chang
   });
   expect(said).toEqual(["removed made 1 ended 1"]);
 });
+
+// A binding whose first evaluation the type refuses, with nothing under it to
+// keep, leaves the property with nothing: what that evaluation made ends.
+test("an object a layer's binding made ends when its first evaluation is refused and the property is left with nothing", async ({ page }) => {
+  await open(page, "objectlayered");
+  const said = await page.evaluate(async () => {
+    const root = window.scene;
+    const { plain } = root.named;
+    // Read, as the wasm kernel runs a binding when what it gives is read.
+    const settle = async () => (window.flush(), root.made, await new Promise((resolve) => setTimeout(resolve)));
+    const over = window.override(root, "made", { binding: () => (root.make(), plain) });
+    await settle();
+    const said = [`refused ${root.made == null ? "nothing" : "something"} ended ${root.ended}`];
+    over.remove();
+    await settle();
+    said.push(`removed ended ${root.ended}`);
+    return said;
+  });
+  expect(said).toEqual(["refused nothing ended 1", "removed ended 1"]);
+});
+
+// A binding that takes its own layer off as it runs keeps nothing: the layer
+// is gone, and what that evaluation made ends with it.
+test("an object a layer's binding made ends when that binding takes its layer off", async ({ page }) => {
+  await open(page, "objectlayered");
+  const said = await page.evaluate(async () => {
+    const root = window.scene;
+    // Read, as the wasm kernel runs a binding when what it gives is read.
+    const settle = async () => (window.flush(), root.made, await new Promise((resolve) => setTimeout(resolve)));
+    const over = window.override(root, "made", { value: null });
+    over.set({
+      binding: () => {
+        const made = root.make();
+        over.remove();
+        return made;
+      },
+    });
+    await settle();
+    return [`removed ended ${root.ended}`];
+  });
+  expect(said).toEqual(["removed ended 1"]);
+});
+
+// An object the binding moved off is ended after the evaluation; put back as a
+// plain value before then, it is the layer's again and stays.
+test("an object a layer's binding moved off stays alive when it is put back as a plain value before it ends", async ({ page }) => {
+  await open(page, "objectlayered");
+  const said = await page.evaluate(async () => {
+    const root = window.scene;
+    const { other } = root.named;
+    // Read, as the wasm kernel runs a binding when what it gives is read.
+    const settle = async () => (window.flush(), root.made, await new Promise((resolve) => setTimeout(resolve)));
+    const over = window.override(root, "made", { binding: () => (root.pick > 0 ? other : root.make()) });
+    await settle();
+    const first = root.made;
+    root.pick = 1;
+    window.flush();
+    const moved = root.made === other;
+    over.set({ value: first });
+    await settle();
+    const said = [`moved ${moved} back ${root.made === first} ended ${root.ended}`];
+    over.remove();
+    await settle();
+    said.push(`removed ended ${root.ended}`);
+    return said;
+  });
+  expect(said).toEqual(["moved true back true ended 0", "removed ended 1"]);
+});
