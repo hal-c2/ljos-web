@@ -839,12 +839,18 @@ export function drawOn(self, canvas, told, instead) {
     setDraws((times) => times + 1);
   };
   // A loss told while the view is made, before it is kept, is acted on
-  // once it is.
+  // in place of keeping it.
   let lostWhileMade = null;
   const lost = (message) => {
     const view = made();
     if (gone || stopped) return;
     if (!view) return void (lostWhileMade ??= message);
+    remake(view, message);
+  };
+  // `view` is handed over, not read: what `setMade` keeps reads back only
+  // once Solid flushes the write, so the call that made the view would
+  // read none.
+  const remake = (view, message) => {
     lostWhileMade = null;
     setMade(null);
     queueMicrotask(() => into(() => view.free()));
@@ -952,8 +958,9 @@ export function drawOn(self, canvas, told, instead) {
         if (stopped) return;
         // The context the view draws with, which a canvas gives again.
         if (state.backend === "webgl2") gl = canvas.getContext("webgl2");
+        // Lost before it is kept, it is never kept: it is made again.
+        if (lostWhileMade !== null) return void remake(view, lostWhileMade);
         setMade(() => view);
-        if (lostWhileMade !== null) lost(lostWhileMade);
       })
       .catch(async (error) => {
         if (trapped(error)) return;
