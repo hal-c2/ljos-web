@@ -1550,9 +1550,19 @@ class Layer {
     // What the property has as the layer is put or changed: what a binding
     // the property's type refuses leaves it with, the first time as after.
     const had = binding && slot.kind ? untrack(() => (this.bound || this.value !== undefined ? this.read() : this.below())) : undefined;
-    // What a binding before made stays while the property has it; what came
-    // from under the layer, or a plain value, is held by nothing here.
-    const kept = had === undefined ? null : this.kept?.value === had ? this.kept : { value: had, end: () => {} };
+    const made = binding ? undefined : slot.made(value);
+    // What a binding before made stays while the property has it, as what a
+    // refused binding leaves it or as a plain value that is that object;
+    // what came from under the layer, or another value, is held by nothing here.
+    const kept = binding
+      ? had === undefined
+        ? null
+        : this.kept?.value === had
+          ? this.kept
+          : { value: had, end: () => {} }
+      : made !== undefined && this.kept?.value === made
+        ? this.kept
+        : null;
     if (kept === this.kept) this.kept = null;
     this.drop();
     this.kept = kept;
@@ -1569,7 +1579,7 @@ class Layer {
           this.bound.start();
         }),
       );
-    } else this.value = slot.made(value);
+    } else this.value = made;
     slot.changed();
   }
 
