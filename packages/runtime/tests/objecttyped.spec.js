@@ -56,3 +56,44 @@ test("a property typed with an object type keeps what it had when refused", asyn
   expect(await page.evaluate(() => window.scene.more())).toEqual(["selected later", "binding ok rect", "created none", "counted none", "fading rect", "faded rect"]);
   expect(warned.map((text) => [BOUND, UNDEFINED, INITIAL].findIndex((told) => told.test(text))).sort()).toEqual([0, 1, 2, 2]);
 });
+
+// The same where a Binding holds the property: a binding given it that is
+// refused keeps what the Binding gave, and one that is not is taken, as qml6
+// has it.
+test("a property typed with an object type that a Binding holds keeps it when refused", async ({ page }) => {
+  await open(page, "objecttyped");
+  expect(await page.evaluate(() => window.scene.layers())).toEqual(["layered rect", "refused rect", "taken other"]);
+});
+
+// The same under something put over it (a theme's role, what a Block's use
+// writes inside it), which qml6 has no counterpart of: a layer's binding that
+// is refused keeps what the property had, the first time as after, and one
+// that is not is taken.
+test("a property typed with an object type under a layer keeps what it had when the layer's binding is refused", async ({ page }) => {
+  const warned = [];
+  page.on("console", (message) => BOUND.test(message.text()) && warned.push(message.text()));
+  await open(page, "objectlayered");
+  const said = await page.evaluate(() => {
+    const root = window.scene;
+    const { rect, other, plain } = root.named;
+    const is = (value) => (value === null ? "null" : value === undefined ? "undefined" : value === rect ? "rect" : value === other ? "other" : typeof value);
+    const read = () => (window.flush(), is(root.overlaid));
+    const said = [`had ${read()}`];
+    const over = window.override(root, "overlaid", { binding: () => (root.pick === 2 ? other : plain) });
+    said.push(`refused ${read()}`);
+    root.pick = 2;
+    said.push(`taken ${read()}`);
+    over.set({ binding: () => plain });
+    said.push(`set refused ${read()}`);
+    over.set({ value: rect });
+    said.push(`set ${read()}`);
+    // An assignment of a binding goes to the layer over the property.
+    root.bindPlain();
+    said.push(`bound refused ${read()}`);
+    over.remove();
+    said.push(`removed ${read()}`);
+    return said;
+  });
+  expect(said).toEqual(["had rect", "refused rect", "taken other", "set refused other", "set rect", "bound refused rect", "removed rect"]);
+  expect(warned).toHaveLength(3);
+});
