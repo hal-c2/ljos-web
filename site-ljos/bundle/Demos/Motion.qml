@@ -66,16 +66,19 @@ Rectangle {
         // A tray that changes size (a window narrowed past compactBelow, a
         // phone turned) keeps a puck the reader has led inside it. Before
         // the first gesture the puck's centring binding already does.
-        // The goal is clamped, not the springing x and y, so a puck still
-        // in flight keeps heading where it was led.
+        // The reader's last target is kept, clamped to the new tray, not
+        // the springing x and y. The puck is placed there, not sprung: a
+        // spring from where it stood would draw it past the tray's edge.
         function keepPuck() {
             if (!puck.led)
                 return;
             const inside = MotionLogic.clampPuck(puck.goalX + puck.width / 2, puck.goalY + puck.height / 2, puck.width, width, height);
             puck.goalX = inside.x;
             puck.goalY = inside.y;
+            puck.placing = true;
             puck.x = inside.x;
             puck.y = inside.y;
+            puck.placing = false;
         }
         onWidthChanged: keepPuck()
         onHeightChanged: keepPuck()
@@ -103,9 +106,11 @@ Rectangle {
             // Wait for the first pointer gesture before enabling springs so
             // initial layout sizing does not launch the puck on its own.
             property bool led: false
+            // Set while the tray places the puck itself (keepPuck).
+            property bool placing: false
 
             Behavior on x {
-                enabled: root.active && puck.led
+                enabled: root.active && puck.led && !puck.placing
                 SpringAnimation {
                     spring: root.spring.spring
                     damping: root.spring.damping
@@ -113,7 +118,7 @@ Rectangle {
                 }
             }
             Behavior on y {
-                enabled: root.active && puck.led
+                enabled: root.active && puck.led && !puck.placing
                 SpringAnimation {
                     spring: root.spring.spring
                     damping: root.spring.damping
