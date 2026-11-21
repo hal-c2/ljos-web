@@ -71,7 +71,7 @@ plain("a write from a rev that lacks one of the directories it reads leaves none
     mkdirSync(from);
     const run = await new Promise((resolve) => {
       const child = spawn(process.execPath, [CONTROLS_JS, "write", from, rev], {
-        env: { ...process.env, LJOS_UI: repo, usage_ljos_ui: "", TMPDIR: temporary },
+        env: { ...process.env, LJOS_UI: repo, usage_ljos_ui: repo, TMPDIR: temporary },
         stdio: ["ignore", "ignore", "pipe"],
       });
       child.stderr.resume();
