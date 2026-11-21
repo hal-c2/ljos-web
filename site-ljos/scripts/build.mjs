@@ -501,8 +501,10 @@ try {
     // DECISION (SITE-6 PR D): the Pantry is the app a reader opens the
     // Observer on from the landing, so its shell and blocks say where each
     // object is written (the tree names Basket, not the Rectangle it is
-    // made of); every other file of the site carries none of it.
-    inspect: (path) => path === "Demos/PantryShell.qml" || path.startsWith("Pantry/"),
+    // made of), and the demo that writes `PantryShell {}` says so, so that
+    // its root is named as the shell it is; every other file of the site
+    // carries none of it.
+    inspect: (path) => path === "Demos/PantryShell.qml" || path === "Demos/PantryDemo.qml" || path.startsWith("Pantry/"),
     prerender: {
       sizes: [
         { width: 390, height: 844 },
