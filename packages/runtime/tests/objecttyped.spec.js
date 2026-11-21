@@ -34,7 +34,9 @@ const BOUND = /Unable to assign QObject to Rectangle$/;
 // Qt 6.11 says `Unable to assign [undefined] to QQuickRectangle*`.
 const UNDEFINED = /Unable to assign \[undefined\] to Rectangle\*$/;
 const INITIAL = /Could not set initial property (thing|n)$/;
-test.use({ told: [[BOUND, UNDEFINED, INITIAL], { option: true }] });
+// Qt 6.11 says `Unable to assign QString to int`.
+const TEXT = /level: Unable to assign QString to int$/;
+test.use({ told: [[BOUND, UNDEFINED, INITIAL, TEXT], { option: true }] });
 
 test("a property typed with an object type refuses an object of another type", async ({ page }) => {
   const warned = [];
@@ -98,35 +100,54 @@ test("a property typed with an object type under a layer keeps what it had when 
   expect(warned).toHaveLength(3);
 });
 
-// What a layer's binding made itself, and still holds when the binding that
-// replaces it is refused, is not ended with that binding: it goes on following
-// what it binds to, until a binding the property takes, or the layer's
-// removal, lets go of it.
-test("an object a layer's binding made outlives the binding that replaces it and is refused", async ({ page }) => {
+// A value-typed property under a layer keeps what it had the same way: a
+// refused binding leaves the value, and one it takes is followed.
+test("a property typed with a value type under a layer keeps what it had when the layer's binding is refused", async ({ page }) => {
+  const warned = [];
+  page.on("console", (message) => TEXT.test(message.text()) && warned.push(message.text()));
   await open(page, "objectlayered");
   const said = await page.evaluate(() => {
     const root = window.scene;
-    const { plain, other } = root.named;
-    const read = () => (window.flush(), root.overlaid);
-    const said = [];
-    const over = window.override(root, "overlaid", { binding: () => root.makeRect() });
-    const made = read();
-    root.k = 3;
-    said.push(`made ${made.n} ended ${root.ended}`);
-    over.set({ binding: () => plain });
-    root.k = 4;
-    said.push(`refused ${read() === made} ${made.n} ended ${root.ended}`);
-    over.set({ binding: () => plain });
-    root.k = 5;
-    said.push(`refused again ${read() === made} ${made.n} ended ${root.ended}`);
-    over.set({ binding: () => other });
-    said.push(`taken ${read() === other} ended ${root.ended}`);
-    const again = (over.set({ binding: () => root.makeRect() }), read());
-    over.set({ binding: () => plain });
-    said.push(`refused ${read() === again} ended ${root.ended}`);
+    const read = () => (window.flush(), String(root.level));
+    const said = [`had ${read()}`];
+    const over = window.override(root, "level", { binding: () => (root.pick === 7 ? 9 : "abc") });
+    said.push(`refused ${read()}`);
+    root.pick = 7;
+    said.push(`taken ${read()}`);
+    over.set({ binding: () => "abc" });
+    said.push(`set refused ${read()}`);
     over.remove();
-    said.push(`removed ended ${root.ended}`);
+    said.push(`removed ${read()}`);
     return said;
   });
-  expect(said).toEqual(["made 3 ended 0", "refused true 4 ended 0", "refused again true 5 ended 0", "taken true ended 1", "refused true ended 1", "removed ended 2"]);
+  expect(said).toEqual(["had 3", "refused 3", "taken 9", "set refused 9", "removed 3"]);
+  expect(warned).toHaveLength(2);
+});
+
+// The object a layer's binding made stays alive while a binding put over it
+// that is refused keeps it: it follows what it is bound to and is not
+// destroyed, until the layer is given something of its own.
+test("an object a layer's binding made stays alive while a refused binding keeps it", async ({ page }) => {
+  await open(page, "objectlayered");
+  const said = await page.evaluate(async () => {
+    const root = window.scene;
+    const { plain } = root.named;
+    const over = window.override(root, "made", { binding: () => root.make() });
+    window.flush();
+    const first = root.made;
+    const said = [`made ${first ? "rect" : String(first)}`];
+    over.set({ binding: () => plain });
+    root.pick = 5;
+    window.flush();
+    await new Promise((resolve) => setTimeout(resolve));
+    said.push(`refused ${root.made === first ? "kept" : "lost"} n ${first.n} ended ${root.ended}`);
+    over.set({ binding: () => plain });
+    await new Promise((resolve) => setTimeout(resolve));
+    said.push(`refused again ${root.made === first ? "kept" : "lost"} ended ${root.ended}`);
+    over.set({ value: null });
+    window.flush();
+    said.push(`set null ${String(root.made)} ended ${root.ended}`);
+    return said;
+  });
+  expect(said).toEqual(["made rect", "refused kept n 5 ended 0", "refused again kept ended 0", "set null null ended 1"]);
 });

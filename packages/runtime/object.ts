@@ -1518,16 +1518,17 @@ class Layer {
   declare value: unknown;
   declare bound: Bound | null;
   declare end: (() => void) | null;
-  // The roots of bindings put before this one, while the property still
-  // has what they gave: what they made lives until it has something else.
-  declare kept: (() => void)[];
+  // The roots of bindings this layer had before, kept while the property
+  // still has what one of them made: a binding put over it that the type
+  // refuses keeps that, so it must stay alive until one gives its own.
+  declare held: (() => void)[];
 
   constructor(slot: Slot) {
     this.slot = slot;
     this.value = undefined;
     this.bound = null;
     this.end = null;
-    this.kept = [];
+    this.held = [];
   }
 
   read(): unknown {
@@ -1547,15 +1548,13 @@ class Layer {
     // What the property has as the layer is put or changed: what a binding
     // the property's type refuses leaves it with, the first time as after.
     const had = binding && slot.kind ? untrack(() => (this.bound || this.value !== undefined ? this.read() : this.below())) : undefined;
-    // A binding the property's type may refuse leaves it with `had`, which
-    // the binding before may have made.
-    const kept = binding && slot.kind ? [...this.kept, ...(this.end ? [this.end] : [])] : [];
-    if (kept.length) {
-      this.kept = [];
+    if (had === undefined) this.drop();
+    else {
+      if (this.end) this.held.push(this.end);
       this.end = null;
+      this.bound = null;
+      this.value = undefined;
     }
-    this.drop();
-    this.kept = kept;
     if (binding) {
       const below = () => this.below();
       // Its own root: the layer may be taken off long before the object ends.
@@ -1563,23 +1562,39 @@ class Layer {
         createRoot((end) => {
           this.end = end;
           const guard = guarded(slot.key, () => binding(below), true, slot.self);
-          const convert = slot.kind ? converted(slot.key, slot.kind, guard, had) : guard;
-          const taking = kept.length
-            ? () => {
-                const value = convert();
-                if (value !== had) this.letGo();
-                return value;
-              }
-            : convert;
-          this.bound = ringed(getOwner(), taking, had, true);
+          const typed = slot.kind ? converted(slot.key, slot.kind, guard, had) : guard;
+          // Once it gives something of its own, what the roots before made
+          // is no one's: they end, after the computation that found it (as
+          // it starts, right after it).
+          let started = false;
+          const compute = () => {
+            const value = typed();
+            if (started && value !== had && this.held.length) {
+              const held = this.held.splice(0);
+              queueMicrotask(() => held.forEach((end) => end()));
+            }
+            return value;
+          };
+          this.bound = ringed(getOwner(), compute, had, true);
           this.bound.start();
+          started = true;
         }),
       );
-    } else this.value = slot.made(value);
+      if (untrack(() => this.bound!()) !== had) this.release();
+    } else {
+      this.release();
+      this.value = slot.made(value);
+    }
     slot.changed();
   }
 
+  // Ends the roots kept for what the property had.
+  release(): void {
+    for (const end of this.held.splice(0)) end();
+  }
+
   drop(): void {
+    this.release();
     this.end?.();
     this.end = null;
     this.letGo();
