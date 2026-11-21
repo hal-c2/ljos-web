@@ -54,6 +54,16 @@ Rectangle {
     // Where the page is put: the item the shown shell's `site.page` slot
     // holds. Null until a shell is in; the page stands in this item then.
     property var pageHost: null
+    // Where that item stands in the site, kept as the shell lays it out:
+    // what stands over the page (the Observer) is placed by it.
+    property real pageLeft: 0
+    property real pageTop: 0
+    property real pageWidth: 0
+    property real pageHeight: 0
+    // How much of the right the Observer a stage opened is docked over
+    // (Site/ObserverDock.qml): the page gives it the room, and a shell
+    // lets what else is beside the page go (Marketing's contents).
+    readonly property int docked: observerDock.open && !observerDock.sheet ? observerDock.panelWidth : 0
     // The shell framing the page, by name, and one the reader wrote and
     // applied (Site/ShellSource.qml), which is shown over it.
     property string framed: "marketing"
@@ -73,6 +83,17 @@ Rectangle {
 
     // Each search the shell shows, to find the one the reader can see.
     property var searches: []
+
+    function placePage() {
+        if (!main.pageHost)
+            return;
+        var at = main.pageHost.mapToItem(main, 0, 0);
+        main.pageLeft = at.x;
+        main.pageTop = at.y;
+        main.pageWidth = main.pageHost.width;
+        main.pageHeight = main.pageHost.height;
+    }
+    onPageHostChanged: Qt.callLater(placePage)
 
     function find() {
         if (!sitePreferences.wide)
@@ -281,6 +302,7 @@ Rectangle {
     PageView {
         id: pageView
         parent: main.pageHost ?? main
+        covered: Math.max(0, main.pageLeft + main.pageWidth - (main.width - main.docked))
         router: siteRouter
         wide: sitePreferences.wide && pageView.width >= 720
         widest: loader.item && loader.item.pageWidest ? loader.item.pageWidest : Theme.pageWidth
@@ -300,6 +322,11 @@ Rectangle {
                 // one's goes, so the page is never out of the window.
                 Component.onCompleted: main.pageHost = host
                 Component.onDestruction: if (main.pageHost === host) main.pageHost = null
+                // A shell sizes the page's place as it lays out, the
+                // window, its sidebar or its header changing: each
+                // change it makes reaches this item's size.
+                onWidthChanged: Qt.callLater(main.placePage)
+                onHeightChanged: Qt.callLater(main.placePage)
             }
         }
     }
@@ -534,6 +561,19 @@ Rectangle {
             }
             Qt.callLater(main.count);
         }
+    }
+
+    // The Observer a stage's toolbar opens, over whichever shell is
+    // shown: from the page's top to its foot, docked along the right of
+    // the window or a sheet across it, and leaving what the shell puts
+    // left of the page (a sidebar, a tree) where it is.
+    ObserverDock {
+        id: observerDock
+        z: 4
+        y: main.pageTop
+        room: main.width
+        roomHeight: main.pageHeight
+        beside: main.pageLeft
     }
 
     // A browser without view transitions: the new shell fades in, as
