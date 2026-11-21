@@ -35,6 +35,16 @@ Item {
         Rectangle { id: inner; objectName: "inner"; width: 100; height: 40; color: "teal" }
     }
 
+    // Drawn at opacity 0, and what is in it with it, whatever its own
+    // opacity: what is under them is what is seen.
+    Rectangle { id: below; objectName: "below"; x: 150; y: 60; width: 100; height: 40; color: "orange" }
+    Item {
+        id: faded
+        x: 150; y: 60; width: 100; height: 40
+        opacity: 0
+        Rectangle { id: unseen; objectName: "unseen"; width: 100; height: 40; color: "teal" }
+    }
+
     // Not declared again: the item's own, drawn.
     Item { id: scaled; width: 10; height: 10; scale: 2 }
 }

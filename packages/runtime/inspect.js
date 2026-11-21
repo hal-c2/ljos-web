@@ -284,12 +284,22 @@ export function inspect(root) {
       if (!inside(shape, [x, y])) return null;
       const [clientX, clientY] = toPage(shape, [x, y]);
       const items = drawn();
+      // Whether what an element draws is seen: an item and all it holds are
+      // drawn at its opacity, so one inside a wholly transparent item is
+      // not, whatever its own opacity says. As it is drawn: a file may
+      // declare a `visible` or `opacity` of its own, which does not hide
+      // the item.
+      const seen = (element) => {
+        for (let at = element; at; at = at.parentElement) {
+          const object = items.get(at);
+          if (object && drawnOf(object, "opacity") === 0) return false;
+        }
+        return true;
+      };
       for (let element of document.elementsFromPoint(clientX, clientY)) {
         while (element && !items.has(element)) element = element.parentElement;
         const object = element && items.get(element);
-        // As it is drawn: a file may declare a `visible` or `opacity` of its
-        // own, which does not hide the item.
-        if (!object || drawnOf(object, "opacity") === 0 || native(object, "visible") === false) continue;
+        if (!object || native(object, "visible") === false || !seen(element)) continue;
         return { object, type: typeOf(object), id: idOf(object), source: source(object) };
       }
       return null;
@@ -332,7 +342,9 @@ export function inspect(root) {
       if (target !== undefined && target !== null) {
         const object = find(target);
         if (!object) return failed("not_found", `no object is \`${target}\``);
-        if (!object.$node || !object.visible) return failed("not_actionable", `\`${target}\` is not shown, so there is nothing to picture`);
+        // Shown as it is drawn: the item's own `visible`, which counts its
+        // parents', not one its file declares over it.
+        if (!object.$node || native(object, "visible") === false) return failed("not_actionable", `\`${target}\` is not shown, so there is nothing to picture`);
         const box = object.$node.getBoundingClientRect();
         const x0 = Math.max((box.left - shape.box.left) / shape.scale, 0);
         const y0 = Math.max((box.top - shape.box.top) / shape.scale, 0);

@@ -270,6 +270,8 @@ test("an item in one whose file declares its own visible and opacity is shown, h
   expect(await rect(page, "inner")).toEqual({ x: 0, y: 60, width: 100, height: 40 });
   // What is drawn at a point is picked, by the native visible and opacity.
   expect(await page.evaluate(() => window.inspector.pick(50, 80)?.object.objectName)).toBe("inner");
+  // One in an item drawn at opacity 0 is drawn with it, and not seen.
+  expect(await page.evaluate(() => window.inspector.pick(200, 80)?.object.objectName)).toBe("below");
   // A point of a file's `scale` item is mapped by the item's own scale, 1.
   expect(await page.evaluate(() => {
     const { page, $root } = window.objects;
