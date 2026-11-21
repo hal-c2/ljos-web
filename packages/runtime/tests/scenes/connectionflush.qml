@@ -11,6 +11,8 @@ Item {
     height: 100
 
     property var heard: []
+    property bool useOther: false
+    property var followed: []
 
     Item { id: box; objectName: "box" }
     Item { id: other; objectName: "other" }
@@ -27,6 +29,17 @@ Item {
             // is the new one whichever object changed. Each state changes
             // one object, so what is heard is that object's change.
             root.heard.push("heard");
+        }
+    }
+
+    // Its target a binding of its own: where it is told to look is
+    // written, and which object it hears follows.
+    Connections {
+        id: following
+        target: root.useOther ? other : box
+
+        function onChildrenChanged() {
+            root.followed.push("heard");
         }
     }
 
@@ -54,8 +67,28 @@ Item {
             name: "bindThenChange"
             PropertyChanges { hearing.target: other }
             ParentChange { target: second; parent: box }
+        },
+        // What the target's own binding reads is written, then the old
+        // target changes: Qt evaluates the binding at the write, so the
+        // change is the new target's no longer.
+        State {
+            name: "rebindThenChange"
+            PropertyChanges { root.useOther: true; explicit: true }
+            ParentChange { target: second; parent: box }
         }
     ]
+
+    // The same in a script, as one flush.
+    function rebindThenChange() {
+        root.useOther = true;
+        second.parent = box;
+        return root.followed.slice();
+    }
+
+    function followedAfter(name) {
+        root.state = name;
+        return root.followed.slice();
+    }
 
     function entered(name) {
         root.state = name;
