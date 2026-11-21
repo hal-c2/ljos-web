@@ -1518,12 +1518,16 @@ class Layer {
   declare value: unknown;
   declare bound: Bound | null;
   declare end: (() => void) | null;
+  // The roots of bindings put before this one, while the property still
+  // has what they gave: what they made lives until it has something else.
+  declare kept: (() => void)[];
 
   constructor(slot: Slot) {
     this.slot = slot;
     this.value = undefined;
     this.bound = null;
     this.end = null;
+    this.kept = [];
   }
 
   read(): unknown {
@@ -1543,7 +1547,15 @@ class Layer {
     // What the property has as the layer is put or changed: what a binding
     // the property's type refuses leaves it with, the first time as after.
     const had = binding && slot.kind ? untrack(() => (this.bound || this.value !== undefined ? this.read() : this.below())) : undefined;
+    // A binding the property's type may refuse leaves it with `had`, which
+    // the binding before may have made.
+    const kept = binding && slot.kind ? [...this.kept, ...(this.end ? [this.end] : [])] : [];
+    if (kept.length) {
+      this.kept = [];
+      this.end = null;
+    }
     this.drop();
+    this.kept = kept;
     if (binding) {
       const below = () => this.below();
       // Its own root: the layer may be taken off long before the object ends.
@@ -1551,7 +1563,15 @@ class Layer {
         createRoot((end) => {
           this.end = end;
           const guard = guarded(slot.key, () => binding(below), true, slot.self);
-          this.bound = ringed(getOwner(), slot.kind ? converted(slot.key, slot.kind, guard, had) : guard, had, true);
+          const convert = slot.kind ? converted(slot.key, slot.kind, guard, had) : guard;
+          const taking = kept.length
+            ? () => {
+                const value = convert();
+                if (value !== had) this.letGo();
+                return value;
+              }
+            : convert;
+          this.bound = ringed(getOwner(), taking, had, true);
           this.bound.start();
         }),
       );
@@ -1562,8 +1582,15 @@ class Layer {
   drop(): void {
     this.end?.();
     this.end = null;
+    this.letGo();
     this.bound = null;
     this.value = undefined;
+  }
+
+  letGo(): void {
+    const kept = this.kept;
+    this.kept = [];
+    for (const end of kept) end();
   }
 }
 
