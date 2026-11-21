@@ -2335,8 +2335,10 @@ test("an Effect is run over the picture of a scene, as Qt runs one", async ({ pa
     [[25, 55, 83], [186, 109, 55], [109, 152, 186], [25, 55, 83], [25, 55, 83], [25, 55, 83], [25, 55, 83], [25, 55, 83], [25, 55, 83], [25, 55, 83], [25, 55, 83]],
     [[15, 38, 60], [150, 80, 38], [80, 118, 150], [15, 38, 60], [15, 38, 60], [15, 38, 60], [15, 38, 60], [15, 38, 60], [15, 38, 60], [15, 38, 60], [15, 38, 60]],
     // What it leaves seen through: what is behind the view shows. The
-    // row its two halves meet in is one or the other.
-    [[255, 255, 255], [255, 255, 255], [255, 255, 255], null, [35, 92, 85], [255, 255, 255], [255, 255, 255], [35, 92, 85], [35, 92, 85], [255, 255, 255], [35, 92, 85]],
+    // row its two halves meet in is one or the other: its middle is half
+    // way up, and which side of that a GPU puts it on is the GPU's, so
+    // neither place on that row is looked at.
+    [[255, 255, 255], null, [255, 255, 255], null, [35, 92, 85], [255, 255, 255], [255, 255, 255], [35, 92, 85], [35, 92, 85], [255, 255, 255], [35, 92, 85]],
   ]);
   near(await painted(page, points), points.map(([, colour]) => colour), "", 3);
 });
@@ -2357,7 +2359,8 @@ test("the passes of an Effect read and draw into what Qt has them", async ({ pag
     // Past its edges the picture is as at them.
     [[30, 64, 96], [255, 128, 64], [30, 64, 96], [128, 192, 255], [30, 64, 96], [30, 64, 96], [30, 64, 96], [30, 64, 96], [30, 64, 96], [30, 64, 96], [30, 64, 96]],
     // Nothing behind the scene: nothing is there in the picture either.
-    [[0, 0, 0], [255, 255, 255], [255, 255, 255], null, [16, 48, 16], [0, 0, 0], [0, 0, 0], [16, 48, 16], [16, 48, 16], [0, 0, 0], [16, 48, 16]],
+    // The row its halves meet in is one or the other, as above.
+    [[0, 0, 0], null, [255, 255, 255], null, [16, 48, 16], [0, 0, 0], [0, 0, 0], [16, 48, 16], [16, 48, 16], [0, 0, 0], [16, 48, 16]],
     // What a shader says before it is compiled, it does not say in what is
     // only written about it: half of each colour, and not twice.
     [[19, 44, 69], [187, 93, 44], [93, 140, 187], [19, 44, 69], [19, 44, 69], [19, 44, 69], [19, 44, 69], [19, 44, 69], [19, 44, 69], [19, 44, 69], [19, 44, 69]],
