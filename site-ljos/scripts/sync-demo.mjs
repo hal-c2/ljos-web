@@ -13,6 +13,7 @@ import { changedIn, demos, listedIn, sha256, shippedBy, targetOf } from "./pro.m
 const [name, checkout] = process.argv.slice(2);
 const demo = demos.find((entry) => entry.name === name);
 if (!demo || !checkout) throw new Error(`usage: node scripts/sync-demo.mjs <${demos.map((entry) => entry.name).join("|")}> <checkout>`);
+if (!demo.upstream) throw new Error(`${name} is the site's own: its files are edited where they are, in bundle/Demos/${demo.dir}`);
 const { path: example, repository } = demo.upstream;
 const shipped = shippedBy(demo);
 const target = targetOf(demo);
