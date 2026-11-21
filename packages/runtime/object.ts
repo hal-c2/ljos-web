@@ -535,7 +535,9 @@ export function $instance(type: QmlType | null, name: string): Typed<null> {
 function converted(key: string, kind: Kind, compute: () => unknown, last?: unknown): () => unknown {
   return () => {
     const value = compute();
-    if (value === undefined) return value;
+    // What is not made yet reads undefined until it is; an object property
+    // whose binding gave an object and now gives undefined keeps the object.
+    if (value === undefined && !(kind.object && last != null)) return value;
     const made = kind(value);
     if (made === KEPT) return last;
     if (made !== REFUSED) return (last = made);
@@ -546,9 +548,9 @@ function converted(key: string, kind: Kind, compute: () => unknown, last?: unkno
 
 // What Qt tells of a value the property's type refuses, where nothing
 // throws: a binding's, or one given as the object is made. An object type
-// is named with no `*` here, as Qt names it.
+// is named with no `*` here when it is given an object, as Qt names it.
 function unable(key: string, kind: Kind, value: unknown): void {
-  const [given, to] = kind.object ? [named(value).replace(/\*$/, ""), kind.type.replace(/\*$/, "")] : [named(value), kind.type];
+  const [given, to] = kind.object && value !== undefined ? [named(value).replace(/\*$/, ""), kind.type.replace(/\*$/, "")] : [named(value), kind.type];
   console.warn(`${key.replaceAll("$", ".")}: Unable to assign ${given} to ${to}`);
 }
 
@@ -1242,7 +1244,7 @@ class Slot {
     const made = props.$made?.includes(key);
     const compute = descriptor?.get ? guarded(key, made ? apart(make) : make, !made, self) : null;
     this.bound = compute ? ringed(self.$owner, kind ? converted(key, kind, compute, this.given) : compute, undefined, true) : null;
-    this.given = descriptor && !descriptor.get ? this.made(descriptor.value) : undefined;
+    this.given = descriptor && !descriptor.get ? this.made(descriptor.value, initially.has(props)) : undefined;
     this.bound?.start();
   }
 
@@ -1434,7 +1436,7 @@ class Slot {
     // binding, is what the property had.
     const had = untrack(() => this.own());
     const guard = guarded(this.key, () => compute.call(self), true, self);
-    this.bound = ringed(self.$owner, this.kind ? converted(this.key, this.kind, guard) : guard, had, true);
+    this.bound = ringed(self.$owner, this.kind ? converted(this.key, this.kind, guard, had) : guard, had, true);
     this.bound.begin();
     this.assigned = false;
     this.value = undefined;
@@ -1444,11 +1446,11 @@ class Slot {
 
   // What the property is given without a binding, as its type has it; what
   // cannot be of the type is as good as nothing.
-  made(value: unknown): unknown {
+  made(value: unknown, quiet = false): unknown {
     if (!this.kind || value === undefined) return value;
     const made = this.kind(value);
     // `property Rectangle direct: plain`, where `plain` is a QtObject.
-    if (made === REFUSED && this.kind.object) unable(this.key, this.kind, value);
+    if (made === REFUSED && this.kind.object && !quiet) unable(this.key, this.kind, value);
     return made === REFUSED || made === KEPT ? undefined : made;
   }
 
@@ -2683,6 +2685,10 @@ export interface Component {
 // What a QML file's module exports: its root's type.
 export type File = (props?: Props) => QObject | null;
 
+// What `createObject` is given: a value refused there is told of as the
+// object not being made, not as the property's own refusal.
+const initially = new WeakSet<Props>();
+
 export function $component(file: File): Component {
   const make = file as Component;
   make.$component = true;
@@ -2695,14 +2701,33 @@ export function $component(file: File): Component {
   make.createObject = (item, properties) => {
     // What it is given it has before it is complete: a Behavior on one of
     // them starts from there, and animates nothing to get there.
+    // One it refuses is not made, and says so, as `createObject` fails in
+    // Qt: `Could not set initial property n`.
     const given = (data?: Props) => {
       const object = make(data) as Dynamic;
       for (const [name, value] of Object.entries(properties ?? {})) {
-        if (name in object) object[name] = value;
+        if (!(name in object)) continue;
+        try {
+          object[name] = value;
+        } catch (error) {
+          if ((error as { refused?: boolean } | null)?.refused) throw Object.assign(error as object, { initial: name });
+          throw error;
+        }
       }
       return object;
     };
-    const { object, dispose } = instantiate(given, properties ?? {}, item);
+    const data: Props = { ...properties };
+    initially.add(data);
+    let made: Instantiated;
+    try {
+      made = instantiate(given, data, item);
+    } catch (error) {
+      const initial = (error as { initial?: string } | null)?.initial;
+      if (initial === undefined) throw error;
+      console.warn(`Could not set initial property ${initial}`);
+      return null;
+    }
+    const { object, dispose } = made;
     hidden(object as QObject, "$dispose", dispose);
     item?.$add?.(object as QObject);
     // The parent has heard of its new child (`onChildrenChanged`) when the
@@ -2743,6 +2768,7 @@ export function $file(File: File, context?: Context | null): Component {
 // What a component is given, and the context it is made in.
 function within(properties: Props | undefined, context: Context): Props {
   const props: Props = { $context: context };
+  if (properties && initially.has(properties)) initially.add(props);
   for (const key of Object.keys(properties ?? {})) {
     if (key !== "$context") Object.defineProperty(props, key, Object.getOwnPropertyDescriptor(properties!, key)!);
   }
