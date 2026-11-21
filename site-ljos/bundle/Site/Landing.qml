@@ -73,7 +73,7 @@ Column {
             lineHeightMode: Text.FixedHeight
             lineHeight: landing.wide ? Theme.subtitleLine + 2 : Theme.subtitleLine - 2
             wrapMode: Text.Wrap
-            text: t`Typed apps you can see inside and drive while they run. Ljós is a Rust UI toolkit with strict TypeScript scripts under declarative pages, where every part of a running app answers to the Observer and to agents over MCP — and people can reshape an app's shell without losing its state.`
+            text: t`Ljós is a UI toolkit for typed apps you can see inside and drive while they run: strict TypeScript under declarative pages, open to the Observer and to agents over MCP, with a shell people reshape as it runs.`
             onLinkActivated: (link) => landing.follow(link)
         }
         Flow {
