@@ -15,7 +15,7 @@ QtObject {
     readonly property string explore: t`Explore demos`
     readonly property string github: t`GitHub`
     readonly property string heroWhat: t`the agent replay`
-    readonly property string heroCaption: t`Edit the source, inspect any live property in Observer, or step the recorded agent trace while the app keeps running.`
+    readonly property string heroCaption: t`Read the source the card's state amounts to, inspect any live property in the Observer, or step the recorded agent trace while the app keeps running.`
 
     // 2. Agentic first.
     readonly property string agenticEyebrow: t`Agentic first`
