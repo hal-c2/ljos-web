@@ -1498,8 +1498,9 @@ test.describe("a View3D no one asked a renderer of", () => {
     expect([r, g, b], "the model, not the window's colour").not.toEqual(CLEAR);
   });
 
-  // A device lost while its view is made, before the view is kept, is a
-  // loss as any other: the view is made again and draws.
+  // A device lost while its view is made is a loss as any other: the view
+  // is made again and draws. Chrome tells the loss in a task of its own,
+  // after the view is kept.
   test("a view whose device is lost while it is made is made again, and draws", async ({ page }) => {
     await page.addInitScript(LOSABLE);
     await page.addInitScript(() => {
@@ -1522,6 +1523,52 @@ test.describe("a View3D no one asked a renderer of", () => {
       await window.loseGpu();
     });
     // Drawn again, on a device not lost.
+    await page.waitForFunction(() => {
+      const state = document.querySelector(".qq-view3d").$view3d;
+      if (state.error) throw new Error(state.error);
+      return state.lost === 2 && window.gpuDevices.at(-1).lost === false && state.frames > window.frames;
+    });
+    expect(await page.evaluate(RENDERERS)).toEqual([{ renderer: "wgpu", lost: 2, error: null }]);
+  });
+
+  // A loss told before the view is kept: wgpu asks `device.lost` once the
+  // device is made, and one already lost whose `then` answers at once tells
+  // it inside the call that makes the view, before that call returns to
+  // the page. That view is never kept: it is made again and draws, and
+  // does not stay on the lost device.
+  test("a view whose device's loss is told before the view is kept is made again, and draws", async ({ page }) => {
+    await page.addInitScript(LOSABLE);
+    await page.addInitScript(() => {
+      window.toldAtOnce = 0;
+      if (!self.GPUAdapter) return;
+      const ask = GPUAdapter.prototype.requestDevice;
+      GPUAdapter.prototype.requestDevice = async function (...args) {
+        const device = await ask.apply(this, args);
+        if (!(window.toldAtOnce && window.toldAtOnce--)) return device;
+        device.destroy();
+        const info = await device.lost;
+        Object.defineProperty(device, "lost", {
+          value: {
+            then(told) {
+              told(info);
+              return this;
+            },
+          },
+        });
+        return device;
+      };
+    });
+    await page.goto("/?scene=shaded3d");
+    await page.waitForFunction(() => window.ready);
+    test.skip(!(await page.evaluate(async () => !!(await navigator.gpu?.requestAdapter()))), "WebGPU has no adapter here");
+    expect(await (await drawn(page)).jsonValue()).toBe("wgpu");
+    await page.evaluate(async () => {
+      window.frames = document.querySelector(".qq-view3d").$view3d.frames;
+      window.toldAtOnce = 1;
+      await window.loseGpu();
+    });
+    // Drawn again, on a device not lost: the first remaking's device was
+    // lost before its view was kept, so the view was made a second time.
     await page.waitForFunction(() => {
       const state = document.querySelector(".qq-view3d").$view3d;
       if (state.error) throw new Error(state.error);
