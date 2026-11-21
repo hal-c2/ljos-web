@@ -113,9 +113,78 @@ test("a Connections whose target is replaced in the flush hears the new target c
 // `third.parentChanged` gives the binding, and so the Connections, another
 // target: the change was made while `box` was the target, and is heard.
 // Ljós finds it once the flush settles, after the binding has replaced the
-// target and let go of `box`'s listener (hal-c2/ljos-web#144).
+// target: what `box` changed is told as its listener is let go (#144).
 test("a Connections whose target the same change replaces through a binding hears it of the old target", async ({ page }) => {
-  test.fail(true, "hal-c2/ljos-web#144: the change is found after the target is replaced");
   await open(page, "connectionswitch");
   expect(await page.evaluate(() => window.scene.replaced())).toEqual([0]);
+});
+
+// A Connections whose target is switched around a change of `children`
+// hears what its target was when the change was made (Qt 6.12.0, qml6
+// offscreen, gives the same three results).
+test("a Connections hears a change made before its target is switched, from the old target", async ({ page }) => {
+  await open(page, "connectiontarget");
+  expect(await page.evaluate(() => window.scene.changeThenSwitch())).toEqual(["box"]);
+});
+
+test("a Connections switched to another target no longer hears the old one", async ({ page }) => {
+  await open(page, "connectiontarget");
+  await page.evaluate(() => window.scene.changeThenSwitch());
+  expect(await page.evaluate(() => window.scene.switchThenChange())).toEqual([]);
+});
+
+test("a Connections hears a move that switches its target away, from the old target", async ({ page }) => {
+  await open(page, "connectiontarget");
+  expect(await page.evaluate(() => window.scene.changeSwitches())).toEqual([["box3"], "other3"]);
+});
+
+// A move of the target through the very property it is told the change of
+// is not heard (Qt 6.12.0 gives the same): the binding of `target` is told
+// of `widthChanged` first, as it asked for it first, and the Connections no
+// longer listens to `r`. A property with a signal is the signal's to tell:
+// the switch settles nothing of it.
+test("a Connections whose target moves away through the property it hears does not hear that change", async ({ page }) => {
+  await open(page, "connectiontarget");
+  expect(await page.evaluate(() => window.scene.widthSwitches())).toEqual([[], "wide"]);
+});
+
+// So is one whose target watched that property before the Connections did,
+// with a handler of its own (Qt 6.12.0 gives the same): the handler on the
+// target is told, the Connections is not.
+test("a Connections does not hear a move through a property its target already watched", async ({ page }) => {
+  await open(page, "connectiontarget");
+  expect(await page.evaluate(() => window.scene.watchedWidthSwitches())).toEqual([[], "wide2", 1]);
+});
+
+// The same switches inside one flush: a state's changes, in the order they
+// are written. Qt 6.12.0 (qml6 offscreen) hears each of these, from the
+// object named: box, nothing, other, box.
+for (const [name, heard, about] of [
+  ["changeThenSwitch", ["heard"], "a change of the old target before the switch is heard"],
+  ["switchThenChange", [], "a change of the old target after the switch is not heard"],
+  ["switchThenChangeNew", ["heard"], "a change of the new target after the switch is heard"],
+  ["bindThenChange", ["heard"], "a binding given to the target is not evaluated before the change"],
+]) {
+  test(`a Connections switched in a state's flush: ${about}`, async ({ page }) => {
+    await open(page, "connectionflush");
+    expect(await page.evaluate((name) => window.scene.entered(name), name)).toEqual(heard);
+  });
+}
+
+// A target given by a binding of its own (`root.useOther ? other : box`):
+// what it reads is written, then the old target changes. Qt 6.12.0 (qml6
+// offscreen) hears nothing, in a state's flush and in a script: the binding
+// was evaluated at the write. A script's writes are settled as they are
+// made, so Ljós hears nothing there either; in a state's flush the binding
+// is evaluated when it is next read, after the change, so the old target's
+// change is still heard (Connections.ts, `// Qt 6.12.0:`). Pinned until
+// a kernel tells of a binding made stale at the write.
+test.fail("a Connections whose target binding is moved in a state's flush does not hear the old target changed after it", async ({ page }) => {
+  await open(page, "connectionflush");
+  expect(await page.evaluate(() => window.scene.followedAfter("rebindThenChange"))).toEqual([]);
+});
+
+test("a Connections whose target binding is moved in a script does not hear the old target changed after it", async ({ page }) => {
+  await open(page, "connectionflush");
+  expect(await page.evaluate(() => window.scene.rebindThenChange())).toEqual([]);
 });

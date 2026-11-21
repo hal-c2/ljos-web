@@ -22,18 +22,19 @@ const signalName = (handler: string): string => handler[2]!.toLowerCase() + hand
 
 // Runs `listener` when `target` emits `name`, or when the property a
 // `fooChanged` is about has another value: reading it again is not a change.
-// False when the target has neither. `connect` is what does it, as for a
+// `connect` is what does it, as for a
 // handler written on the object itself: a change of a property with no
 // signal of its own (`children`) is found in Solid's flush, and told after
 // it like any other, so what the handler writes is settled by a flush of its
 // own and what it reads is up to date.
-function listen(target: Dynamic, name: string, listener: Handler): boolean {
+// False when the target has neither; otherwise what tells of a change the
+// flush made to the target and has not told yet.
+function listen(target: Dynamic, name: string, listener: Handler): (() => void) | false {
   const emitted = target[name] as Partial<Signal> | undefined;
   const isSignal = typeof emitted?.connect === "function" && typeof emitted.disconnect === "function";
   const property = /^(\w+)Changed$/.exec(name)?.[1];
   if (!isSignal && (property === undefined || !(property in target))) return false;
-  connect(target, name, listener);
-  return true;
+  return connect(target, name, listener);
 }
 
 export const Connections = defineType("Connections", QtObject, {
@@ -70,6 +71,73 @@ export const Connections = defineType("Connections", QtObject, {
     if (onDestruction) onCleanup(() => own() && untrack(() => self.enabled && onDestruction()));
     whenComplete(() => {
       let disconnect: (() => void) | null = null;
+      let settles: (() => void)[] = [];
+      let connected: unknown = undefined;
+      let started = false;
+      // Whether `target` was given a value since the listeners were last
+      // moved.
+      let written = false;
+      // The target as the effect below reads it, untracked: an object that
+      // is named and not made yet is no target until it is.
+      const current = (): Dynamic | null | undefined => {
+        const target = untrack(() => self.target) as Dynamic | null | undefined;
+        return target != null && typeof target.$track === "function" && !target.$props ? null : target;
+      };
+      // The listeners go to `target`, from now on: what it changes after
+      // this is heard, what it changed before is not.
+      const moveTo = (target: Dynamic | null | undefined): void => {
+        if (started && Object.is(target, connected)) return;
+        started = true;
+        connected = target;
+        settles = [];
+        disconnect?.();
+        disconnect = null;
+        if (target == null || (target as unknown) === Component) return;
+        disconnect = runWithOwner(self.$owner, () =>
+          createRoot((dispose): (() => void) => {
+            untrack(() => {
+              for (const handler of handlers) {
+                // A handler reads what it likes: it is run, not kept up to date.
+                const heard = listen(target, signalName(handler), (...args: unknown[]) =>
+                  untrack(() => self.enabled && (props[handler] as Handler | undefined)?.(...args)),
+                );
+                if (heard) {
+                  settles.push(heard);
+                  continue;
+                }
+                if (self.ignoreUnknownSignals) continue;
+                console.warn(
+                  `QML Connections: Detected function "${handler}" in Connections element. This is probably intended to be a signal handler but no signal of the target matches the name.`,
+                );
+              }
+            });
+            return dispose;
+          }),
+        );
+      };
+      // A target given a value is the target from the write on, as in Qt,
+      // which moves its connections the moment it is written and not once
+      // the flush is done: what the old target changed before the write
+      // (in a state's `explicit` change, applied where it is written) is
+      // told as the old target's, what either changes after it in the same
+      // flush is the new one's. A binding given to it (`Qt.binding`, a
+      // state's change that is not `explicit`) has no value until it is
+      // read again, as the effect below does: a target it moves there is
+      // the binding's move. Only a property with no signal of its own
+      // (`children`) has anything to tell here: a signal (`widthChanged`)
+      // is the signal's to tell, connected or not when it is emitted, and
+      // settles nothing.
+      // Qt 6.12.0: a binding runs again as soon as what it reads is written.
+      // Here it runs again when it is read, so when one flush writes what a
+      // target binding reads and then changes the old target, the old
+      // target's change is still heard, where Qt has moved away first.
+      const given = slot(self, "target")!;
+      given.written = () => {
+        for (const settle of settles) settle();
+        const top = given.layers?.at(-1);
+        written = top ? !top.bound : given.assigned || !given.bound;
+        if (written) moveTo(current());
+      };
       createRenderEffect(
         () => {
           const target = self.target as Dynamic | null | undefined;
@@ -79,26 +147,15 @@ export const Connections = defineType("Connections", QtObject, {
           return [pending ? null : target] as const;
         },
         ([target]) => {
-          disconnect?.();
-          disconnect = null;
-          if (target == null || (target as unknown) === Component) return;
-          disconnect = runWithOwner(self.$owner, () =>
-            createRoot((dispose): (() => void) => {
-              untrack(() => {
-                for (const handler of handlers) {
-                  // A handler reads what it likes: it is run, not kept up to date.
-                  const heard = listen(target, signalName(handler), (...args: unknown[]) =>
-                    untrack(() => self.enabled && (props[handler] as Handler | undefined)?.(...args)),
-                  );
-                  if (heard || self.ignoreUnknownSignals) continue;
-                  console.warn(
-                    `QML Connections: Detected function "${handler}" in Connections element. This is probably intended to be a signal handler but no signal of the target matches the name.`,
-                  );
-                }
-              });
-              return dispose;
-            }),
-          );
+          // Not written, so moved by a binding (`target: item.parent === a
+          // ? b : a`, and `item` moved into `a`): the change that moved it is
+          // the old target's, as Qt tells it before the binding runs again.
+          const moved = !written;
+          written = false;
+          // The same target: its listeners have what it changed since.
+          if (started && Object.is(target, connected)) return;
+          if (moved) for (const settle of settles) settle();
+          moveTo(target);
         },
       );
     });

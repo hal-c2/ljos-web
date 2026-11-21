@@ -1127,6 +1127,7 @@ class Slot {
   declare cell: number | undefined;
   declare given$: (() => unknown) | null;
   declare working: boolean;
+  declare written: (() => void) | null;
 
   constructor(
     self: QObject,
@@ -1178,6 +1179,10 @@ class Slot {
     // Whether what the property takes from its group, or works out under it,
     // is being worked out: see `base`.
     this.working = false;
+    // What the object's type does the moment the property is written, before
+    // anything that reads it runs again: a Connections tells what its old
+    // target changed before the write (`QtQuick/Connections.ts`).
+    this.written = null;
     // A binding is evaluated as it is taken, and may read the property it
     // is for: the slot is there to be found before it is.
     self.$slots[key] = this;
@@ -1349,6 +1354,7 @@ class Slot {
   }
 
   changed(): void {
+    this.written?.();
     // A Controller that handles `updated` is told its host was written to
     // (Ljos/Core/controller.js); nothing is asked of any other object.
     this.self.$written?.();
@@ -2341,7 +2347,10 @@ function onto(target: unknown, props: Props, key: string, rest: string): void {
   const had = Object.getOwnPropertyDescriptor(target.$props, rest);
   if (had && had.get === given.get && had.value === given.value) return;
   const handled = /^on([A-Z_])(\w*)$/.exec(rest);
-  if (handled) return connect(target, handled[1]!.toLowerCase() + handled[2]!, (...args: unknown[]) => (props[key] as Handler | undefined)?.(...args));
+  if (handled) {
+    connect(target, handled[1]!.toLowerCase() + handled[2]!, (...args: unknown[]) => (props[key] as Handler | undefined)?.(...args));
+    return;
+  }
   const held = slot(target, rest);
   if (held) return held.bind(props, key);
   if (rest.includes("$")) return through(target, props, key, rest);
@@ -2537,8 +2546,11 @@ const computed = (self: QObject, name: string): boolean =>
 const alike = (value: unknown, last: unknown): boolean => Object.is(value, last) || sameItems(value, last);
 
 // Runs `handler` when the property changes from what it is now, or from what
-// it is once the objects being created all are.
-export function onChange(self: QObject, name: string, handler: Handler, first?: First): void {
+// it is once the objects being created all are. What it returns tells of a
+// change the flush has made and not told yet, now: for one who stops
+// listening in that flush, because of that change, and was still to hear it.
+// `connect` comes here only for a property with no signal of its own.
+export function onChange(self: QObject, name: string, handler: Handler, first?: First): () => void {
   const owner = getOwner();
   // `fontChanged`: a group is the one object whatever is in it, and changes
   // when anything in it does.
@@ -2551,10 +2563,17 @@ export function onChange(self: QObject, name: string, handler: Handler, first?: 
     : computed(self, name)
       ? alike
       : Object.is;
+  let settle = () => {};
   const watch = (firsts?: Works) => {
     let last = untrack(read);
     let fresh = true;
     first?.(last, firsts);
+    settle = () => {
+      const value = untrack(read);
+      if (same(value, last) || sameItems(value, last)) return;
+      last = value;
+      after(() => heard(handler, undefined, self));
+    };
     runWithOwner(owner, () =>
       createEffect(
         read,
@@ -2576,6 +2595,7 @@ export function onChange(self: QObject, name: string, handler: Handler, first?: 
   };
   if (watches) watches.push(watch);
   else watch();
+  return () => settle();
 }
 
 // What an object is given as it is made is a change to whoever heard of the
@@ -2604,16 +2624,25 @@ function first(self: QObject, name: string, key: string, value: unknown, firsts:
 }
 
 // `target.onSignal` from outside the object: a signal it emits, or the change
-// of one of its properties (`widthChanged`).
-export function connect(target: QObject, name: string, listener: Handler): void {
+// of one of its properties (`widthChanged`). What it returns is `onChange`'s:
+// a signal is the signal's to tell, to whoever is connected when it is
+// emitted, so there is nothing here for it to settle; a computed list's
+// change is the listener's own, and is.
+export function connect(target: QObject, name: string, listener: Handler): () => void {
+  const property = /^(\w+)Changed$/.exec(name)?.[1];
+  // A list the type computes (`children`) has a change signal, which it
+  // emits once the flush has settled: by then a listener that stopped
+  // listening in the flush would not hear it. Heard as its own change, it
+  // can be told it as it stops.
+  if (property && computed(target, property)) return onChange(target, property, listener);
   const emitted = dynamic(target)[name] as Signal | null | undefined;
   if (typeof emitted?.connect === "function") {
     emitted.connect(listener);
     onCleanup(() => emitted.disconnect(listener));
-    return;
+    return () => {};
   }
-  const property = /^(\w+)Changed$/.exec(name)?.[1];
-  if (property && property in target) onChange(target, property, listener);
+  if (property && property in target) return onChange(target, property, listener);
+  return () => {};
 }
 
 function attach(name: string, Attached: QmlType, self: QObject | null | undefined): QObject | undefined {
