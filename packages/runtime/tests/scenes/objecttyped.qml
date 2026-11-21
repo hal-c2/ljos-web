@@ -65,7 +65,9 @@ Item {
     // Put over by a layer whose binding makes the object it holds.
     property Rectangle made
     property int ended: 0
-    Component { id: builder; Rectangle { property int n: root.pick; Component.onDestruction: root.ended++ } }
+    // Set, an object that ends changes `k`, which a binding may read.
+    property bool bump: false
+    Component { id: builder; Rectangle { property int n: root.pick; Component.onDestruction: { root.ended++; if (root.bump) root.k++ } } }
     function make() { return builder.createObject(null) }
 
     function more() {

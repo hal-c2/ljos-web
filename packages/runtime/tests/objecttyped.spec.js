@@ -235,3 +235,24 @@ test("an object a refused evaluation of a layer's binding made ends after it", a
   });
   expect(said).toEqual(["refused kept ended 1", "again kept ended 2", "removed ended 3"]);
 });
+
+// Taking the layer off ends its binding before the object that binding made,
+// so a change the object makes as it ends runs no binding that keeps anew.
+test("an object a layer's binding made ends with the layer when its ending changes what that binding read", async ({ page }) => {
+  await open(page, "objectlayered");
+  const said = await page.evaluate(async () => {
+    const root = window.scene;
+    // Read, as the wasm kernel runs a binding when what it gives is read.
+    const settle = async () => (window.flush(), root.made, await new Promise((resolve) => setTimeout(resolve)));
+    let made = 0;
+    const over = window.override(root, "made", { binding: () => (root.k, made++, root.make()) });
+    await settle();
+    root.bump = true;
+    over.remove();
+    await settle();
+    root.k++;
+    await settle();
+    return [`removed made ${made} ended ${root.ended}`];
+  });
+  expect(said).toEqual(["removed made 1 ended 1"]);
+});

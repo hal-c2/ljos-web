@@ -1601,13 +1601,16 @@ class Layer {
   }
 
   drop(): void {
-    this.kept?.end();
+    // The binding ends before what it kept: ending that object may change
+    // what the binding reads, and a binding still running would keep anew.
+    const kept = this.kept;
     this.kept = null;
     this.end?.();
     this.end = null;
     this.letGo();
     this.bound = null;
     this.value = undefined;
+    kept?.end();
   }
 
   letGo(): void {
