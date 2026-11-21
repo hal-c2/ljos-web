@@ -215,10 +215,12 @@ const watchdog = () => {
 // (shells.js `swap`): that second is held back here, so a test can show
 // it is something else that lets the swap go, by order and not by the
 // clock. The swap's second resolves the view transition's promise: a
-// native resolving function, which no page script's own timer passes.
+// native resolving function, which has no name. No page script's own
+// timer passes one; one it bound is native too, but named "bound …".
 const fallback = () => {
   const wait = window.setTimeout;
-  const resolves = (run) => typeof run === "function" && /\[native code\]/.test(String(run));
+  const resolves = (run) =>
+    typeof run === "function" && run.name === "" && /\[native code\]/.test(String(run));
   window.setTimeout = function (run, ms, ...rest) {
     if (
       ms === 1000 &&
