@@ -8,8 +8,8 @@ import { expect, test as base } from "@playwright/test";
 // say it waited.
 const DRIVER = /GL Driver Message \(OpenGL, Performance/;
 // Nor is the browser's saying WebGPU has no adapter for the page: a View3D
-// asks for one to know whether to draw on wgpu, and draws on the JavaScript
-// renderer when there is none.
+// on wgpu asks for one to know whether to draw on WebGPU, and draws on
+// WebGL 2 when there is none.
 const NO_ADAPTER = /^No available adapters\.$/;
 
 // The parts of the test running in this worker, each `{ title, since,
@@ -68,9 +68,16 @@ export const test = base.extend({
 
 export { expect };
 
+// A scene's View3D is drawn by the JavaScript renderer, whose pictures
+// the scene specs hold against Qt's, unless the run is built for one
+// (`wgpu.config.js`) or the spec names one in the scene's address: no
+// one asking would put it on wgpu wherever its chunk is built, on WebGL 2
+// in a headless browser. A spec of that default goes to the page itself.
+const VIEW3D = process.env.VITE_LJOS_VIEW3D ? "" : "&view3d=js";
+
 // Opens `scenes/<scene>.js` and waits for it.
 export async function open(page, scene) {
-  await page.goto(`/?scene=${scene}`);
+  await page.goto(`/?scene=${scene}${/(^|&)view3d=/.test(scene) ? "" : VIEW3D}`);
   await page.waitForFunction(() => window.ready);
 }
 
