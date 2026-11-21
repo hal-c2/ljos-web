@@ -63,6 +63,32 @@ Item {
         }
     }
 
+    // The same with a target that watched its width before the
+    // Connections did: its own handler is no other listener's.
+    Rectangle {
+        id: r2
+        objectName: "r2"
+        width: 10
+        property int own: 0
+        onWidthChanged: own++
+    }
+    Rectangle { id: wide2; objectName: "wide2"; width: 10 }
+    property var heardWidth2: []
+
+    Connections {
+        id: scalar2
+        target: r2.width > 50 ? wide2 : r2
+
+        function onWidthChanged() {
+            root.heardWidth2.push(r2.width);
+        }
+    }
+
+    function watchedWidthSwitches() {
+        r2.width = 60;
+        return [root.heardWidth2.splice(0), scalar2.target.objectName, r2.own];
+    }
+
     function widthSwitches() {
         r.width = 60;
         return [root.heardWidth.splice(0), scalar.target.objectName];
