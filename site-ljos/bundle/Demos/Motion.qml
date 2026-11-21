@@ -63,6 +63,22 @@ Rectangle {
         height: root.compact ? 132 : 168
         color: look.panel
         radius: 10
+        // A tray that changes size (a window narrowed past compactBelow, a
+        // phone turned) keeps a puck the reader has led inside it. Before
+        // the first gesture the puck's centring binding already does.
+        // The goal is clamped, not the springing x and y, so a puck still
+        // in flight keeps heading where it was led.
+        function keepPuck() {
+            if (!puck.led)
+                return;
+            const inside = MotionLogic.clampPuck(puck.goalX + puck.width / 2, puck.goalY + puck.height / 2, puck.width, width, height);
+            puck.goalX = inside.x;
+            puck.goalY = inside.y;
+            puck.x = inside.x;
+            puck.y = inside.y;
+        }
+        onWidthChanged: keepPuck()
+        onHeightChanged: keepPuck()
 
         Text {
             x: 14

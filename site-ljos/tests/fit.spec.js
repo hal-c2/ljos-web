@@ -157,6 +157,54 @@ async function openAbout(page, size, pause) {
   await softly.poll(() => fits(pause), { message: `the motion demo with its About card open at ${size} width stands inside its frame` }).toEqual([]);
 }
 
+// Where Motion's puck is drawn past its tray's edges, read from the
+// tray's pointer area (which fills the tray): the puck is the round
+// element in the tray.
+function puckPast(area) {
+  const tray = area.parentElement;
+  const edge = tray.getBoundingClientRect();
+  const puck = [...tray.querySelectorAll("*")].find((element) => {
+    const width = element.getBoundingClientRect().width;
+    return width > 20 && parseFloat(getComputedStyle(element).borderTopLeftRadius) >= width / 2 - 1;
+  });
+  const box = puck.getBoundingClientRect();
+  return { left: edge.left - box.left, top: edge.top - box.top, right: box.right - edge.right, bottom: box.bottom - edge.bottom };
+}
+
+// A puck the reader led into the tray's corner stays in the tray when
+// the frame narrows past Motion's compact width, where the tray is
+// shorter: a turned phone, a narrowed window.
+test.describe("when the frame narrows", () => {
+  test.use({ viewport: { width: 1280, height: 800 }, reducedMotion: "no-preference" });
+
+  test("Motion's puck stays in its tray", async ({ page }) => {
+    await page.goto("/demos/");
+    await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+    const pause = await runDemo(page, "the motion demo");
+    await expect.poll(() => fits(pause), { message: "the motion demo is shown and fits" }).toEqual([]);
+    const tray = page.getByRole("group", { name: /^Spring tray/ });
+    await tray.scrollIntoViewIfNeeded();
+    const box = await tray.boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width - 2, box.y + box.height - 2, { steps: 4 });
+    await page.mouse.up();
+    // How far the puck stands from the tray's right and bottom edges.
+    const corner = async () => {
+      const past = await tray.evaluate(puckPast);
+      const off = (by) => (Math.abs(by) <= 1 ? 0 : Math.round(-by));
+      return { right: off(past.right), bottom: off(past.bottom) };
+    };
+    await expect.poll(corner, { message: "the puck springs into the tray's bottom-right corner" }).toEqual({ right: 0, bottom: 0 });
+    await page.setViewportSize({ width: 390, height: 844 });
+    const outside = async () =>
+      Object.entries(await tray.evaluate(puckPast))
+        .filter(([, by]) => by > 1)
+        .map(([side, by]) => `past the tray's ${side} edge by ${Math.round(by)}`);
+    await expect.poll(outside, { message: "the puck is inside the narrowed tray" }).toEqual([]);
+  });
+});
+
 for (const [size, viewport] of SIZES) {
   test.describe(`at ${size} width`, () => {
     test.use({ viewport, reducedMotion: "no-preference" });
