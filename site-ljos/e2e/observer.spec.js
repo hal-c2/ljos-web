@@ -226,6 +226,33 @@ test("on a phone it is a sheet over the lower part of the screen, and a press ab
   await expect(dock(page)).toBeHidden();
 });
 
+// A closed sheet still follows the room it would rise into. When the window
+// changes size (a phone turned, its toolbar hidden), nothing of the dock may
+// stand over the page while it does: a press there is the page's.
+test("on a phone, a dock never opened takes no press while the window changes size", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await open(page, ROUTE);
+  const heading = page.getByRole("heading", { level: 1 }).first();
+  await expect(heading).toBeVisible();
+  await heading.evaluate((node) => {
+    window.__taken = [];
+    const until = () => performance.now() + 600;
+    let end = Infinity;
+    addEventListener("resize", () => { end = until(); }, { once: true });
+    const look = () => {
+      const r = node.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.left + Math.min(r.width / 2, 40), r.top + r.height / 2);
+      if (!node.contains(hit)) window.__taken.push(`${hit?.tagName}.${hit?.className} ${hit?.getAttribute("aria-hidden") ?? ""}`);
+      if (performance.now() < end) requestAnimationFrame(look);
+      else window.__looked = true;
+    };
+    requestAnimationFrame(look);
+  });
+  await page.setViewportSize({ width: 390, height: 700 });
+  await page.waitForFunction(() => window.__looked === true);
+  expect(await page.evaluate(() => window.__taken), "what took a press meant for the heading").toEqual([]);
+});
+
 test("its tree is the example's objects, by the ids the example gives them", async ({ page }) => {
   await observed(page);
   await pageTab(page, "Objects").click();
