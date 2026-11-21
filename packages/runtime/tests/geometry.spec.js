@@ -99,3 +99,18 @@ test("an item contains the points inside it, and finds the child at one", async 
   });
   expect(answers).toEqual([true, false, true, false, true, null, false, null, true, null]);
 });
+
+// What is given where an item is taken need not be one a type made: a plain
+// `{ x, y, scale, … }` is mapped by what it says.
+test("a plain object is mapped as an item with its numbers", async ({ page }) => {
+  await open(page, "geometry");
+  const mapped = await page.evaluate(async () => {
+    const address = performance.getEntriesByType("resource").find(({ name }) => /\/QtQuick\/geometry\.ts(\?|$)/.test(name)).name;
+    const { origin, toScene } = await import(address);
+    const plain = { x: 5, y: 7, width: 20, height: 10, scale: 2, rotation: 0, transformOrigin: 4, children: [] };
+    return [origin(plain), toScene(plain)];
+  });
+  expect(mapped[0]).toEqual({ x: 10, y: 5 });
+  // Scaled by 2 about its centre (10, 5), then moved to (5, 7).
+  expect(mapped[1].map(round)).toEqual([2, 0, 0, 2, -5, 2]);
+});
