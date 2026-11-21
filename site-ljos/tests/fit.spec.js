@@ -162,6 +162,10 @@ async function openAbout(page, size, pause) {
 // element in the tray. Given a time, the farthest past each edge it is
 // drawn on any frame in that time, so a puck that springs back into the
 // tray from past its edge is seen past it, not only once it has settled.
+// Given a time, it comes back once its first frame is sampled and keeps
+// what it finds in the page (`sampled`): what the test does next, a
+// resize, is sampled from its first frame, not only once the page has
+// been reached.
 function puckPast(area, ms = 0) {
   const tray = area.parentElement;
   const past = () => {
@@ -176,7 +180,7 @@ function puckPast(area, ms = 0) {
   const worst = past();
   if (!ms) return worst;
   const end = performance.now() + ms;
-  return new Promise((done) => {
+  globalThis.sampling = new Promise((done) => {
     const frame = () => {
       const now = past();
       for (const side in worst) worst[side] = Math.max(worst[side], now[side]);
@@ -189,7 +193,8 @@ function puckPast(area, ms = 0) {
 
 // On how many frames in a time Motion's puck moves, read from its
 // tray's pointer area: a puck that springs on moves on many, one placed
-// where it is going stands still.
+// where it is going stands still. Like `puckPast` given a time, it comes
+// back once its first frame is sampled and keeps the count in the page.
 function puckMoves(area, ms) {
   const tray = area.parentElement;
   const puck = [...tray.querySelectorAll("*")].find((element) => {
@@ -200,7 +205,7 @@ function puckMoves(area, ms) {
   let last = at();
   let moves = 0;
   const end = performance.now() + ms;
-  return new Promise((done) => {
+  globalThis.sampling = new Promise((done) => {
     const frame = () => {
       const now = at();
       if (Math.abs(now - last) > 0.5) moves++;
@@ -211,6 +216,9 @@ function puckMoves(area, ms) {
     requestAnimationFrame(frame);
   });
 }
+
+// What the sampler last started in the page found, once its time is up.
+const sampled = (page) => page.evaluate(() => globalThis.sampling);
 
 // Motion running at a desk's width, its puck led into its tray's
 // bottom-right corner and settled there.
@@ -240,9 +248,9 @@ async function puckInCorner(page) {
 // and running: where the puck is drawn past its tray on any frame as the
 // tray narrows and for a second after.
 async function narrowedPast(page, tray) {
-  const sampling = tray.evaluate(puckPast, 1500);
+  await tray.evaluate(puckPast, 1500);
   await page.setViewportSize({ width: 1040, height: 800 });
-  const past = await sampling;
+  const past = await sampled(page);
   const shown = await tray.boundingBox();
   expect(shown.y + shown.height > 0 && shown.y < 800, `the tray is still on screen, so the demo runs (${JSON.stringify(shown)})`).toBe(true);
   return Object.entries(past)
@@ -292,9 +300,9 @@ test.describe("when the frame narrows", () => {
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 2 });
     await page.mouse.up();
     await expect.poll(async () => (await tray.evaluate(puckPast)).right < -60, { message: "the puck is on its way, well inside the tray" }).toBe(true);
-    const moving = tray.evaluate(puckMoves, 500);
+    await tray.evaluate(puckMoves, 500);
     await page.setViewportSize({ width: 1060, height: 800 });
-    expect(await moving, "the frames the puck moves on as the tray narrows a little").toBeGreaterThan(5);
+    expect(await sampled(page), "the frames the puck moves on as the tray narrows a little").toBeGreaterThan(5);
   });
 });
 
