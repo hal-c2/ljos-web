@@ -247,23 +247,32 @@ Rectangle {
         }
     }
 
+    // The hint beside the credit where both fit on one line, over it
+    // where not; a hint wider than the scene wraps.
+    readonly property bool stacked: hint.implicitWidth + credit.implicitWidth + 2 * 16 + 3 * 10 > width
+
     Rectangle {
         anchors.left: parent.left
-        anchors.bottom: parent.bottom
+        anchors.bottom: root.stacked ? creditPill.top : parent.bottom
         anchors.margins: 10
-        width: hint.implicitWidth + 16
-        height: hint.implicitHeight + 8
-        radius: height / 2
+        anchors.bottomMargin: root.stacked ? 6 : 10
+        width: Math.min(hint.implicitWidth, root.width - 36) + 16
+        height: hint.height + 8
+        // A wrapped hint keeps the rounding of one line, not an oval.
+        radius: Math.min(height / 2, 14)
         color: look.pill
         Text {
             id: hint
             anchors.centerIn: parent
+            width: Math.min(implicitWidth, root.width - 36)
+            wrapMode: Text.Wrap
             color: look.onPill
             font.pixelSize: 14
             text: t`Drag to orbit · scroll or pinch to zoom`
         }
     }
     Rectangle {
+        id: creditPill
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.margins: 10
