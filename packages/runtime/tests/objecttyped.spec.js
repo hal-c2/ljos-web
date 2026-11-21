@@ -255,6 +255,31 @@ test("a layer's binding refused once it has made what the property has keeps it"
   expect(said).toEqual(["refused true 6 ended 0", "made again true ended 1", "removed ended 2"]);
 });
 
+// An object a layer's binding constructs itself, not through a component,
+// is the layer's as one `createObject` made is: a refused evaluation after it
+// leaves it alive, and the layer's removal ends it.
+test("an object a layer's binding constructed itself stays alive while a refused evaluation keeps it", async ({ page }) => {
+  await open(page, "objectlayered");
+  const said = await page.evaluate(async () => {
+    const root = window.scene;
+    const { plain, rect } = root.named;
+    const Rect = rect.$type;
+    // A read, for a kernel that evaluates a binding when it is read.
+    const settle = async () => (window.flush(), root.made, await new Promise((resolve) => setTimeout(resolve)));
+    const over = window.override(root, "made", { binding: () => (root.pick > 5 ? plain : Rect({ Component$onDestruction: () => root.ended++ })) });
+    await settle();
+    const made = root.made;
+    root.pick = 6;
+    await settle();
+    const said = [`refused ${root.made === made} ended ${root.ended}`];
+    over.remove();
+    await settle();
+    said.push(`removed ended ${root.ended}`);
+    return said;
+  });
+  expect(said).toEqual(["refused true ended 0", "removed ended 1"]);
+});
+
 // Only the binding now on the layer is followed: one that a later binding
 // replaced is told of no more, so each change warns once, for the current one.
 test("a refused binding a layer gave up is no longer followed", async ({ page }) => {

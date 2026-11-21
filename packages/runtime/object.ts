@@ -2537,9 +2537,14 @@ function create(Type: QmlType, props: Props): QObject {
   declaring = null;
   const madeApart = heldNow;
   heldNow = false;
+  // One a layer's typed binding constructs itself is the layer's, as what it
+  // has `instantiate` make is (`madeApart`); what it makes in turn is its own.
+  const apart = maker && getOwner() === makerFor ? maker : null;
+  const outerMaker = maker;
+  if (apart) maker = null;
   kindNow(Type.typeName ?? "");
   try {
-    return complete(() => {
+    const made = (): QObject => complete(() => {
       Object.setPrototypeOf(self, Type.proto);
       hidden(self, "$type", Type);
       hidden(self, "$props", props);
@@ -2622,10 +2627,12 @@ function create(Type: QmlType, props: Props): QObject {
       if (props.$self) self.$touch(next);
       return self;
     });
+    return apart ? runWithOwner(apart, () => untrack(made)) : made();
   } finally {
     kindNow(outerKind);
     declaring = holder;
     heldNow = madeApart;
+    maker = outerMaker;
   }
 }
 
