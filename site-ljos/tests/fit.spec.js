@@ -187,6 +187,31 @@ function puckPast(area, ms = 0) {
   });
 }
 
+// On how many frames in a time Motion's puck moves, read from its
+// tray's pointer area: a puck that springs on moves on many, one placed
+// where it is going stands still.
+function puckMoves(area, ms) {
+  const tray = area.parentElement;
+  const puck = [...tray.querySelectorAll("*")].find((element) => {
+    const width = element.getBoundingClientRect().width;
+    return width > 20 && parseFloat(getComputedStyle(element).borderTopLeftRadius) >= width / 2 - 1;
+  });
+  const at = () => puck.getBoundingClientRect().left - tray.getBoundingClientRect().left;
+  let last = at();
+  let moves = 0;
+  const end = performance.now() + ms;
+  return new Promise((done) => {
+    const frame = () => {
+      const now = at();
+      if (Math.abs(now - last) > 0.5) moves++;
+      last = now;
+      if (performance.now() < end) requestAnimationFrame(frame);
+      else done(moves);
+    };
+    requestAnimationFrame(frame);
+  });
+}
+
 // Motion running at a desk's width, its puck led into its tray's
 // bottom-right corner and settled there.
 async function puckInCorner(page) {
@@ -253,6 +278,23 @@ test.describe("when the frame narrows", () => {
     await page.mouse.move(box.x + box.width - 100, box.y + box.height / 2, { steps: 2 });
     await page.mouse.up();
     expect(await narrowedPast(page, tray), "the puck on its way is never drawn past the tray as it narrows").toEqual([]);
+  });
+
+  // Led from the corner toward the tray's middle, and the tray narrowed a
+  // little once the puck is well inside it: the clamp leaves its target
+  // as it was, and nothing is past the edge, so it springs on there
+  // rather than jumping (a scrollbar that comes, a window a little
+  // narrower).
+  test("Motion's puck springs on when the tray narrows a little", async ({ page }) => {
+    const { tray, box } = await puckInCorner(page);
+    await page.mouse.move(box.x + box.width - 2, box.y + box.height - 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 2 });
+    await page.mouse.up();
+    await expect.poll(async () => (await tray.evaluate(puckPast)).right < -60, { message: "the puck is on its way, well inside the tray" }).toBe(true);
+    const moving = tray.evaluate(puckMoves, 500);
+    await page.setViewportSize({ width: 1060, height: 800 });
+    expect(await moving, "the frames the puck moves on as the tray narrows a little").toBeGreaterThan(5);
   });
 });
 
