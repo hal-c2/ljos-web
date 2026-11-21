@@ -51,6 +51,17 @@ Item {
         Item { id: middle; property alias caption: label.text }
         // A file's own `font`: one value, over the group a Text has.
         Text { id: fonted; objectName: "fonted"; property string font: "serif" }
+        // A button as a reader hears it, for a locator to find by role and
+        // name.
+        Rectangle {
+            id: hold
+            objectName: "hold"
+            x: 0; y: 150; width: 120; height: 40
+            Accessible.role: Accessible.Button
+            Accessible.name: "Hold a table"
+            property int held: 0
+            MouseArea { anchors.fill: parent; onClicked: hold.held++ }
+        }
     }
 
     Inspector { id: inspector; target: app; title: "app" }

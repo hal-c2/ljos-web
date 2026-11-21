@@ -612,6 +612,8 @@ const TOOLS: Record<string, Tool> = {
   app_inspect: (state, args) => inspected(state, args),
   app_set_property: (state, args) => setProperty(state, args),
   app_get_property: (state, args) => getProperty(state, args),
+  app_click: (state, args) => clicked(state, args),
+  app_find: (state, args) => found(state, args),
   app_screenshot: (state, args) => screenshot(state, args),
   app_logs: (state, args) => logsOf(state, args),
   app_metrics: (state, args) => metrics(state, args),
@@ -1122,6 +1124,139 @@ function getProperty(state: State, args: Args): Result {
   const property = propertyOf(object, args.property);
   flush();
   return answered({ property: property.name, type: property.type, ...valueText(state, property.read()), provenance: provenance(property.slot) });
+}
+
+// ----- app_click, app_find -------------------------------------------------------
+
+// Two places, to say a point as the native inspector says it.
+const placed = (value: number): number => Math.round(value * 100) / 100;
+
+// A click as a person makes one, through `inspect(root).click`: what is drawn
+// on top at the point gets it, by the same handlers a mouse reaches.
+function clicked(state: State, args: Args): Result {
+  const at = inspect(state.root);
+  let done: { at?: [number, number]; error?: string; message?: string };
+  let named: string | null = null;
+  if (Array.isArray(args.at)) {
+    const [x, y] = args.at as unknown[];
+    if (typeof x !== "number" || typeof y !== "number") throw new Refused("invalid_argument", "`at` is to be `[x, y]`, in the root's logical pixels");
+    done = at.click({ at: [x, y] });
+  } else if (args.target !== undefined) {
+    named = String(args.target);
+    done = at.click(target(state, args.target));
+  } else throw new Refused("invalid_argument", "give `target` (a handle, `id=name`, `#objectName` or an id) or `at: [x, y]`");
+  if (!done.at) throw new Refused(done.error ?? "internal", done.message ?? "the click went nowhere");
+  const point = [placed(done.at[0]), placed(done.at[1])];
+  return answered({ at: point, settled: true }, `clicked ${named !== null ? `\`${named}\` ` : ""}at ${point[0]},${point[1]}`);
+}
+
+// What a reader hears an object as: the role and name its element is given
+// (`Accessible`), and a text's own words when it has no name.
+function heard(object: QObject): { role: string | null; name: string } {
+  const node = object.$node as Element | undefined;
+  const role = node?.getAttribute?.("role") ?? null;
+  const label = node?.getAttribute?.("aria-label");
+  const text = (object as { text?: unknown }).text;
+  return { role, name: label ?? (typeof text === "string" ? text : "") };
+}
+
+function shown(object: QObject): boolean {
+  const node = object.$node as (Element & { checkVisibility?: () => boolean }) | undefined;
+  if (!node) return false;
+  return node.checkVisibility ? node.checkVisibility() : native(object, "visible") !== false;
+}
+
+const LOCATORS = "`text=words`, `role=button[name=\"Words\"]`, `name~=regex`, `#objectName`, `id=name`, `@handle` or `at=X,Y`";
+
+// Which rows a locator names. What is matched by what it shows (text, role,
+// name, a point) is only what is shown; what is named by id or handle is
+// named whether shown or not, as `target` names it.
+function located(state: State, rows: Row[], locator: string): Row[] {
+  if (locator.startsWith("@")) {
+    const object = owned(state, locator);
+    return rows.filter((row) => row.object === object);
+  }
+  if (locator.startsWith("#")) {
+    const name = locator.slice(1);
+    const named = rows.filter((row) => row.object_name === name);
+    return named.length ? named : rows.filter((row) => row.id === name);
+  }
+  if (locator.startsWith("id=")) return rows.filter((row) => row.id === locator.slice(3));
+  const items = rows.filter((row) => row.item && shown(row.object));
+  if (locator.startsWith("text=")) {
+    // A person looks for words, not their case.
+    const words = locator.slice(5).toLowerCase();
+    return items.filter((row) => {
+      const text = (row.object as { text?: unknown }).text;
+      return typeof text === "string" && text.toLowerCase().includes(words);
+    });
+  }
+  if (locator.startsWith("name~=")) {
+    let pattern: RegExp;
+    try {
+      pattern = new RegExp(locator.slice(6));
+    } catch (error) {
+      throw new Refused("invalid_argument", `\`${locator}\` is no regular expression: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    return items.filter((row) => pattern.test(heard(row.object).name));
+  }
+  if (locator.startsWith("role=")) {
+    const parts = /^role=([a-z]+)(?:\[name=(?:"((?:[^"\\]|\\.)*)"|'((?:[^'\\]|\\.)*)')\])?$/.exec(locator);
+    if (!parts) throw new Refused("invalid_argument", `\`${locator}\` is to be \`role=button\` or \`role=button[name="Words"]\``);
+    const role = parts[1]!;
+    const name = parts[2] ?? parts[3];
+    return items.filter((row) => {
+      const said = heard(row.object);
+      return said.role === role && (name === undefined || said.name.trim() === name.replace(/\\(.)/g, "$1"));
+    });
+  }
+  if (locator.startsWith("at=")) {
+    const [x, y] = locator.slice(3).split(",").map(Number);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) throw new Refused("invalid_argument", "`at=X,Y` is a point of the root, in logical pixels");
+    // What is drawn on top there, and what holds it.
+    const root = rootItem(state) as QObject & { width?: number };
+    const item = root.$node as Element | undefined;
+    if (!item || typeof document === "undefined") return [];
+    const box = item.getBoundingClientRect();
+    const scale = root.width ? box.width / root.width : 1;
+    let element: Element | null = document.elementFromPoint(box.left + x! * scale, box.top + y! * scale);
+    const byNode = new Map(items.map((row) => [row.object.$node as unknown, row]));
+    while (element && element !== item.parentElement) {
+      const row = byNode.get(element);
+      if (row) return [row];
+      element = element.parentElement;
+    }
+    return [];
+  }
+  throw new Refused("invalid_argument", `\`${locator}\` is no locator this page reads: give ${LOCATORS}`);
+}
+
+function found(state: State, args: Args): Result {
+  if (typeof args.locator !== "string" || args.locator === "") throw new Refused("invalid_argument", `\`locator\` is to be ${LOCATORS}`);
+  const max = Math.max(1, number(args.max, 50));
+  const { rows } = tree(state);
+  // Each row's path, its types from the root down, for telling apart what
+  // has the same name.
+  const paths = new Map<Row, string>();
+  const above: string[] = [];
+  for (const row of rows) {
+    above.length = row.depth;
+    above.push(row.id ? `${row.type}#${row.id}` : row.type);
+    paths.set(row, above.join("/"));
+  }
+  const all = located(state, rows, args.locator);
+  const matches = all.slice(0, max).map((row) => {
+    const said = heard(row.object);
+    const match: Record<string, unknown> = { ref: handed(state, row.object), role: said.role, name: said.name, path: paths.get(row) };
+    if (row.object_name) match.obj = row.object_name;
+    if (row.id) match.id = row.id;
+    const box = bounds(state, row.object);
+    if (box) match.bounds = box.map(placed);
+    match.states = row.item ? [shown(row.object) ? "visible" : "hidden"] : [];
+    return match;
+  });
+  const truncated = all.length > max;
+  return answered({ matches, count: matches.length, total: all.length, truncated }, `(${matches.length} match${matches.length === 1 ? "" : "es"}${truncated ? `, of ${all.length}` : ""})`);
 }
 
 // ----- app_screenshot -----------------------------------------------------------

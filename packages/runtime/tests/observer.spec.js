@@ -239,6 +239,54 @@ test("what a page cannot answer is refused with why", async ({ page }) => {
   expect((await call(page, "app_inspect", { target: "id=nobody" })).result.error.code).toBe("not_found");
 });
 
+test("a click lands where a person's would, by target or at a point", async ({ page }) => {
+  await opened(page);
+  const clicked = await call(page, "app_click", { target: "id=area" });
+  expect(clicked.ok).toBe(true);
+  // At the centre of the MouseArea, in the root's own pixels.
+  expect(clicked.result.structuredContent.at).toEqual([50, 75]);
+  expect(clicked.result.content[0].text).toBe("clicked `id=area` at 50,75");
+  expect(await page.evaluate(() => window.objects.app.count)).toBe(1);
+  // A point goes to whatever is drawn on top there.
+  expect((await call(page, "app_click", { at: [10, 60] })).ok).toBe(true);
+  expect(await page.evaluate(() => window.objects.app.count)).toBe(2);
+  // What is not there, or not on the root, is refused as natively.
+  expect((await call(page, "app_click", { target: "id=nobody" })).result.error.code).toBe("not_found");
+  expect((await call(page, "app_click", { at: [1000, 1000] })).result.error.code).toBe("not_actionable");
+  expect((await call(page, "app_click", {})).result.error.code).toBe("invalid_argument");
+});
+
+test("a locator finds what is shown, by text, name, id or role, and its ref is a target", async ({ page }) => {
+  await opened(page);
+  const byText = (await call(page, "app_find", { locator: "text=N=0" })).result;
+  expect(byText.structuredContent).toMatchObject({ count: 1, total: 1, truncated: false });
+  const [label] = byText.structuredContent.matches;
+  expect(label).toMatchObject({ id: "label", obj: "label", name: "n=0" });
+  expect(label.ref).toMatch(/^@\d+$/);
+  expect(label.bounds).toHaveLength(4);
+  expect(byText.content[0].text).toBe("(1 match)");
+  // The ref names the object to the other tools.
+  expect((await call(page, "app_get_property", { target: label.ref, property: "text" })).result.structuredContent.value).toBe("n=0");
+
+  const byRole = (await call(page, "app_find", { locator: 'role=button[name="Hold a table"]' })).result.structuredContent;
+  expect(byRole.matches.map((match) => match.id)).toEqual(["hold"]);
+  expect(byRole.matches[0]).toMatchObject({ role: "button", name: "Hold a table", bounds: [0, 150, 120, 40] });
+  await call(page, "app_click", { target: byRole.matches[0].ref });
+  expect(await page.evaluate(() => window.objects.app.children.find((child) => child.objectName === "hold").held)).toBe(1);
+
+  expect((await call(page, "app_find", { locator: "#hold" })).result.structuredContent.count).toBe(1);
+  expect((await call(page, "app_find", { locator: "id=area" })).result.structuredContent.count).toBe(1);
+  expect((await call(page, "app_find", { locator: "name~=^Hold a" })).result.structuredContent.count).toBe(1);
+  // No match is an answer, not an error.
+  const none = await call(page, "app_find", { locator: "text=nothing here" });
+  expect(none.ok).toBe(true);
+  expect(none.result.structuredContent).toMatchObject({ matches: [], count: 0 });
+  // A locator this page cannot read is refused with what it can.
+  const odd = await call(page, "app_find", { locator: "xpath=//button" });
+  expect(odd.result.error.code).toBe("invalid_argument");
+  expect(odd.result.error.message).toContain("text=");
+});
+
 test("the processes are this page's one thread and its timers", async ({ page }) => {
   await opened(page);
   const { structuredContent } = (await call(page, "app_processes", {})).result;
