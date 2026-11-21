@@ -203,15 +203,23 @@ function lifted(event) {
   self.flickStarted();
 }
 
-// A wheel that only turns one way moves content that only goes the other.
+// A wheel that only turns one way moves content that only goes the other,
+// as far as it goes: at its end the wheel is left to the browser, which
+// scrolls what the Flickable is in, so a row in a page never holds the
+// page still. Not passive for that: the turn it takes is kept from the page.
 function wheeled(event) {
   const viewport = event.currentTarget;
   if (event.deltaX || !event.deltaY || event.ctrlKey) return;
   if (viewport.scrollHeight > viewport.clientHeight || viewport.scrollWidth <= viewport.clientWidth) return;
-  if (getComputedStyle(viewport).overflowX !== "hidden") viewport.scrollLeft += event.deltaY;
+  if (viewport.style.overflowX === "hidden") return;
+  const room = event.deltaY > 0 ? viewport.scrollWidth - viewport.clientWidth - viewport.scrollLeft : viewport.scrollLeft;
+  if (room < 1) return;
+  event.preventDefault();
+  viewport.scrollLeft += event.deltaY;
 }
 
 const PASSIVE = { passive: true };
+const ACTIVE = { passive: false };
 
 // The mouse. A finger's drag is the browser's, and a mouse has none there:
 // its drag is Qt's, which moves the content by what the mouse has moved and
@@ -606,7 +614,7 @@ export const Flickable = defineType("Flickable", Item, {
     self.$node.append(viewport);
     viewport.addEventListener("scroll", scrolled, PASSIVE);
     viewport.addEventListener("scrollend", ended, PASSIVE);
-    viewport.addEventListener("wheel", wheeled, PASSIVE);
+    viewport.addEventListener("wheel", wheeled, ACTIVE);
     viewport.addEventListener("touchstart", touched, PASSIVE);
     viewport.addEventListener("touchend", lifted, PASSIVE);
     viewport.addEventListener("touchcancel", lifted, PASSIVE);
@@ -643,7 +651,11 @@ export const Flickable = defineType("Flickable", Item, {
         const changed = viewport.isConnected && (x !== style.overflowX || y !== style.overflowY);
         style.overflowX = x;
         style.overflowY = y;
-        style.overscrollBehavior = bounds === StopAtBounds ? "none" : "contain";
+        // Its overscroll is its own only along a way it scrolls: along the
+        // other a wheel or a finger goes on to what it is in.
+        const kept = bounds === StopAtBounds ? "none" : "contain";
+        style.overscrollBehaviorX = x === "hidden" ? "auto" : kept;
+        style.overscrollBehaviorY = y === "hidden" ? "auto" : kept;
         if (!changed) return;
         // Chromium goes on scrolling, with a wheel, an element that was
         // scrollable when it was last laid out: lay it out again.
