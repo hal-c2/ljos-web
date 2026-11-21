@@ -23,13 +23,19 @@ export function advanceTime(time: number, dt: number, pace: number): number {
     return next < 0 ? next + LOOP_RADIANS : next
 }
 
+// A remixed start palette can be any integer; it still names one of the
+// scheme's ramps, counted round from the first.
+function wrapPalette(choice: number, count: number): number {
+    return ((choice % count) + count) % count
+}
+
 export function nextPalette(choice: number, count: number): number {
-    return (choice + 1) % count
+    return wrapPalette(choice + 1, count)
 }
 
 // light.frag stores dark palettes in 0..count-1 and light palettes in count..2*count-1.
 export function paletteIndex(choice: number, dark: boolean, count: number): number {
-    return choice + (dark ? 0 : count)
+    return wrapPalette(choice, count) + (dark ? 0 : count)
 }
 
 // Normalises pointer coordinates into shader UV space with Y flipped so 0 sits
