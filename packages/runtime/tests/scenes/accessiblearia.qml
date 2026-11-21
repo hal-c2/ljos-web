@@ -1,7 +1,8 @@
 // What a reader is told where Qt's roles and ARIA's words differ: a
 // button that checks is a toggle, a heading has a level, and a name
 // with no role names a group, as native Ljós has it; a part of a page
-// is a landmark a reader can go to; a control of a value says its value,
+// is a landmark a reader can go to, and a window's client area is its
+// main content; a control of a value says its value,
 // which ARIA asks of a slider; the chosen item of a list is its current
 // one. Every attribute
 // is one ARIA allows on the role it is said with.
@@ -44,6 +45,7 @@ Item {
         Rectangle { id: section; width: 40; height: 40; Accessible.role: Accessible.Section; Accessible.name: "The page" }
         Rectangle { id: aside; width: 40; height: 40; Accessible.role: Accessible.ComplementaryContent; Accessible.name: "On this page" }
         Rectangle { id: footer; width: 40; height: 40; Accessible.role: Accessible.Footer }
+        Rectangle { id: client; width: 40; height: 40; Accessible.role: Accessible.Client }
         T.ProgressBar { id: progress; width: 80; height: 10; value: root.on ? 0.75 : 0.25 }
         T.ProgressBar { id: busy; width: 80; height: 10; value: 0.5; indeterminate: !root.on }
         T.SpinBox { id: spin; width: 80; height: 20; from: 1; to: 9; value: 3 }
@@ -57,7 +59,7 @@ Item {
     }
 
     function items() {
-        return { menu, bold, plain, entry, title, subtitle, named, picture, blank, caret, section, aside, footer, progress, busy, spin, puck, result }
+        return { menu, bold, plain, entry, title, subtitle, named, picture, blank, caret, section, aside, footer, client, progress, busy, spin, puck, result }
     }
 
     function step() {

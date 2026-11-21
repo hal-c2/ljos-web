@@ -66,6 +66,10 @@ const ARIA: Record<number, string | undefined> = {
   // A section is a part of the page, as ARIA's region is: a named one is a
   // landmark a reader can go to, as Core-AAM maps it.
   [Role.Section]: "region",
+  // A window's client area is what is inside its frame, between its
+  // header and its footer: what the window is for, which is ARIA's
+  // main. A page has one, as a window has one client area.
+  [Role.Client]: "main",
 };
 
 const Polite = 0;
