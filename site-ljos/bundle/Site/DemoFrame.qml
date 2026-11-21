@@ -47,9 +47,16 @@ Item {
     // near the screen and when it is on it.
     property var scroller: null
     property real aspect: 420 / 720
+    // The least height the demo's own area is given. A demo narrower
+    // than its poster stacks what stood side by side, and needs more
+    // height than the poster's shape gives at that width; a floor
+    // rather than a breakpoint, so a wide frame keeps the poster's shape.
+    property int least: 0
 
-    // The demo's own area, its poster's shape; the toolbar under it.
-    readonly property int surfaceHeight: Math.round(width * aspect)
+    // The demo's own area, its poster's shape or taller (`least`); the
+    // toolbar under it.
+    readonly property int pictureHeight: Math.round(width * aspect)
+    readonly property int surfaceHeight: Math.max(pictureHeight, least)
     readonly property int barHeight: 48
     height: surfaceHeight + barHeight
 
@@ -93,8 +100,8 @@ Item {
         clip: true
 
         // The picture is in the page as written (Nav.picture), so it
-        // stands before the page runs and where it never does. It is
-        // the frame's shape, so it fills the frame as it is.
+        // stands before the page runs and where it never does. It keeps
+        // its own shape, in the middle of an area made taller than it.
         // Both are in the page, each shown in its scheme, so the page as
         // written already shows the reader's (the build writes a
         // difference of only what is shown as one page for both schemes).
@@ -104,12 +111,12 @@ Item {
                 required property string modelData
                 required property int index
                 x: 1
-                y: 1
+                y: 1 + Math.round((frame.surfaceHeight - frame.pictureHeight) / 2)
                 width: frame.width - 2
-                height: frame.surfaceHeight - 1
+                height: frame.pictureHeight - 1
                 visible: modelData !== "" && (frame.pictureDark === "" || (index === 1) === Theme.dark) && !(frame.drawn && loader.opacity === 1)
                 textFormat: Text.RichText
-                text: modelData === "" ? "" : Nav.picture(frame.route, modelData, frame.width - 2, frame.surfaceHeight - 1, frame.description)
+                text: modelData === "" ? "" : Nav.picture(frame.route, modelData, frame.width - 2, frame.pictureHeight - 1, frame.description)
             }
         }
 
@@ -145,6 +152,10 @@ Item {
         id: loader
         width: frame.width
         height: frame.surfaceHeight
+        // Whatever a demo draws past its area is cut at the frame's
+        // edge: a demo never draws over the page around it, nor under
+        // its own toolbar.
+        clip: true
         // DECISION: made when the reader presses Run, not as the frame
         // nears the screen: a demo the reader never asks for costs them
         // no GPU device, and one the budget stops gives its device back.
