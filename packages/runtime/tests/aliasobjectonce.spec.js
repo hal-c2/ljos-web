@@ -34,3 +34,12 @@ for (const made of ["inState", "inScript"]) {
     expect(await page.evaluate((made) => window.scene[made](), made)).toEqual([true]);
   });
 }
+
+// A state that overrides such an alias gives back the object declared as it
+// ends, the one made, each time it ends. Qt 6.12.0 gives this.
+test("an alias an object was declared for is given that object back each time a state ends", async ({ page }) => {
+  await open(page, "aliasobjectrelease");
+  const before = [1, true, false, 1, true, false];
+  const during = [1, false, true, 1, false, true];
+  expect(await page.evaluate(() => window.scene.read())).toEqual([before, during, before, during, before]);
+});
