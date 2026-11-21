@@ -19,6 +19,10 @@ Rectangle {
     property real maxWingspanCm: 200
     property int listWidth: 272
     property int rowHeight: 52
+    // Narrower than this, the list stands over the detail, not beside it.
+    property int stackBelow: 600
+
+    readonly property bool narrow: width < stackBelow
 
     // Host contract: DemoFrame pauses off-screen demos and sets calm for reduced motion.
     property bool active: true
@@ -71,7 +75,9 @@ Rectangle {
             width: parent.width
             spacing: 14
             Text {
-                width: 330
+                id: heading
+                // Narrow, the heading takes only its words and leaves the rest to search.
+                width: root.narrow ? implicitWidth : 330
                 height: 40
                 verticalAlignment: Text.AlignVCenter
                 color: look.ink
@@ -82,7 +88,7 @@ Rectangle {
             }
             TextField {
                 id: search
-                width: parent.width - 344
+                width: parent.width - heading.width - 14
                 palette.base: look.raised
                 palette.text: look.ink
                 palette.placeholderText: look.muted
@@ -91,15 +97,17 @@ Rectangle {
             }
         }
 
-        Row {
+        // Wide, the list beside the detail; narrow, two rows and a half
+        // of the list (so it reads as one that scrolls) over the detail.
+        Item {
+            id: body
             width: parent.width
             height: parent.height - 52
-            spacing: 14
 
             ListView {
                 id: list
-                width: root.listWidth
-                height: parent.height
+                width: root.narrow ? body.width : root.listWidth
+                height: root.narrow ? Math.round(root.rowHeight * 2.5 + spacing * 2) : body.height
                 clip: true
                 spacing: 6
                 model: shown
@@ -137,113 +145,131 @@ Rectangle {
                 }
             }
 
-            Column {
-                width: parent.width - root.listWidth - 14
-                spacing: 7
-                Text {
-                    width: parent.width
-                    color: look.ink
-                    font.pixelSize: 26
-                    font.bold: true
-                    elide: Text.ElideRight
-                    text: root.bird.name
-                }
-                Text {
-                    width: parent.width
-                    color: look.muted
-                    font.pixelSize: 14
-                    font.italic: true
-                    elide: Text.ElideRight
-                    text: t`${root.bird.latin} · ${root.bird.season.toLowerCase()}`
-                }
-                Row {
-                    spacing: 10
+            // The detail scrolls where the frame leaves it less height
+            // than it needs, and holds still where it fits.
+            Flickable {
+                id: detail
+                x: root.narrow ? 0 : root.listWidth + 14
+                y: root.narrow ? list.height + 12 : 0
+                width: root.narrow ? body.width : body.width - root.listWidth - 14
+                height: body.height - y
+                contentWidth: width
+                contentHeight: facts.height
+                interactive: contentHeight > height
+                boundsBehavior: Flickable.StopAtBounds
+                clip: true
+
+                Column {
+                    id: facts
+                    width: detail.width
+                    spacing: 7
+                    // A bar leaves room for its label and a value as wide as "200 cm".
+                    readonly property real barWidth: Math.max(48, Math.min(170, width - 86 - 20 - 52))
                     Text {
-                        width: 86
-                        color: look.muted
-                        font.pixelSize: 13
+                        width: parent.width
+                        color: look.ink
+                        font.pixelSize: 26
+                        font.bold: true
                         elide: Text.ElideRight
-                        text: t`Length`
+                        text: root.bird.name
                     }
-                    Rectangle {
-                        width: 170
-                        height: 10
-                        radius: 5
-                        color: look.track
+                    Text {
+                        width: parent.width
+                        color: look.muted
+                        font.pixelSize: 14
+                        font.italic: true
+                        elide: Text.ElideRight
+                        text: t`${root.bird.latin} · ${root.bird.season.toLowerCase()}`
+                    }
+                    Row {
+                        spacing: 10
+                        Text {
+                            width: 86
+                            color: look.muted
+                            font.pixelSize: 13
+                            elide: Text.ElideRight
+                            text: t`Length`
+                        }
                         Rectangle {
-                            width: parent.width * Guide.barRatio(root.bird.lengthCm, root.maxLengthCm)
-                            height: parent.height
+                            width: facts.barWidth
+                            height: 10
                             radius: 5
-                            color: look.accent
+                            color: look.track
+                            Rectangle {
+                                width: parent.width * Guide.barRatio(root.bird.lengthCm, root.maxLengthCm)
+                                height: parent.height
+                                radius: 5
+                                color: look.accent
+                            }
+                        }
+                        Text {
+                            color: look.inkSoft
+                            font.pixelSize: 13
+                            text: t`${root.bird.lengthCm} cm`
+                        }
+                    }
+                    Row {
+                        spacing: 10
+                        Text {
+                            width: 86
+                            color: look.muted
+                            font.pixelSize: 13
+                            elide: Text.ElideRight
+                            text: t`Wingspan`
+                        }
+                        Rectangle {
+                            width: facts.barWidth
+                            height: 10
+                            radius: 5
+                            color: look.track
+                            Rectangle {
+                                width: parent.width * Guide.barRatio(root.bird.wingspanCm, root.maxWingspanCm)
+                                height: parent.height
+                                radius: 5
+                                color: look.growth
+                            }
+                        }
+                        Text {
+                            color: look.inkSoft
+                            font.pixelSize: 13
+                            text: t`${root.bird.wingspanCm} cm`
                         }
                     }
                     Text {
+                        width: parent.width
+                        wrapMode: Text.WordWrap
                         color: look.inkSoft
-                        font.pixelSize: 13
-                        text: t`${root.bird.lengthCm} cm`
+                        font.pixelSize: 14
+                        text: root.bird.blurb
                     }
-                }
-                Row {
-                    spacing: 10
+                    CheckBox {
+                        id: seenBox
+                        palette.text: look.inkSoft
+                        palette.buttonText: look.inkSoft
+                        palette.windowText: look.inkSoft
+                        palette.base: look.raised
+                        text: t`I have seen this one`
+                        checked: Guide.isSeen(root.seen, root.bird.latin)
+                        onToggled: root.seen = Guide.setSeen(root.seen, root.bird.latin, checked)
+                    }
+                    TextArea {
+                        width: parent.width
+                        height: 52
+                        palette.base: look.raised
+                        palette.text: look.ink
+                        palette.placeholderText: look.muted
+                        placeholderText: t`Your notes on this species…`
+                        text: Guide.noteFor(root.notes, root.bird.latin)
+                        // Guard against writing back unchanged text when switching species.
+                        onTextChanged: if (text !== Guide.noteFor(root.notes, root.bird.latin)) root.notes = Guide.setNote(root.notes, root.bird.latin, text)
+                    }
                     Text {
-                        width: 86
-                        color: look.muted
-                        font.pixelSize: 13
+                        width: parent.width
+                        color: look.accentText
+                        font.pixelSize: 14
                         elide: Text.ElideRight
-                        text: t`Wingspan`
+                        text: t`Seen ${root.seenCount} of ${root.totalSpecies}`
                     }
-                    Rectangle {
-                        width: 170
-                        height: 10
-                        radius: 5
-                        color: look.track
-                        Rectangle {
-                            width: parent.width * Guide.barRatio(root.bird.wingspanCm, root.maxWingspanCm)
-                            height: parent.height
-                            radius: 5
-                            color: look.growth
-                        }
-                    }
-                    Text {
-                        color: look.inkSoft
-                        font.pixelSize: 13
-                        text: t`${root.bird.wingspanCm} cm`
-                    }
-                }
-                Text {
-                    width: parent.width
-                    wrapMode: Text.WordWrap
-                    color: look.inkSoft
-                    font.pixelSize: 14
-                    text: root.bird.blurb
-                }
-                CheckBox {
-                    id: seenBox
-                    palette.text: look.inkSoft
-                    palette.buttonText: look.inkSoft
-                    palette.windowText: look.inkSoft
-                    palette.base: look.raised
-                    text: t`I have seen this one`
-                    checked: Guide.isSeen(root.seen, root.bird.latin)
-                    onToggled: root.seen = Guide.setSeen(root.seen, root.bird.latin, checked)
-                }
-                TextArea {
-                    width: parent.width
-                    height: 52
-                    palette.base: look.raised
-                    palette.text: look.ink
-                    palette.placeholderText: look.muted
-                    placeholderText: t`Your notes on this species…`
-                    text: Guide.noteFor(root.notes, root.bird.latin)
-                    // Guard against writing back unchanged text when switching species.
-                    onTextChanged: if (text !== Guide.noteFor(root.notes, root.bird.latin)) root.notes = Guide.setNote(root.notes, root.bird.latin, text)
-                }
-                Text {
-                    width: parent.width
-                    color: look.accentText
-                    font.pixelSize: 14
-                    elide: Text.ElideRight
-                    text: t`Seen ${root.seenCount} of ${root.totalSpecies}`
                 }
             }
         }
