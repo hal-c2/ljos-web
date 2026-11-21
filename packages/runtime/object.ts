@@ -1279,7 +1279,12 @@ class Slot {
   base(): unknown {
     const back = this.assigned && this.back();
     if (this.assigned && !back) return this.value;
-    let value = back ? undefined : this.bound ? this.bound() : this.given;
+    const bound = back ? null : this.bound;
+    let value = bound ? bound() : back ? undefined : this.given;
+    // What an item the binding made into does on hearing of it, once the
+    // binding is read (`settledOwed`), can assign the property or bind it
+    // anew: that is what it then is.
+    if (bound && (this.assigned || this.bound !== bound)) return this.base();
     if (value !== undefined) return value;
     const resolution = resolves(this.initial);
     const resolving = resolution !== undefined;
