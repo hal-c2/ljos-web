@@ -159,16 +159,32 @@ async function openAbout(page, size, pause) {
 
 // Where Motion's puck is drawn past its tray's edges, read from the
 // tray's pointer area (which fills the tray): the puck is the round
-// element in the tray.
-function puckPast(area) {
+// element in the tray. Given a time, the farthest past each edge it is
+// drawn on any frame in that time, so a puck that springs back into the
+// tray from past its edge is seen past it, not only once it has settled.
+function puckPast(area, ms = 0) {
   const tray = area.parentElement;
-  const edge = tray.getBoundingClientRect();
-  const puck = [...tray.querySelectorAll("*")].find((element) => {
-    const width = element.getBoundingClientRect().width;
-    return width > 20 && parseFloat(getComputedStyle(element).borderTopLeftRadius) >= width / 2 - 1;
+  const past = () => {
+    const edge = tray.getBoundingClientRect();
+    const puck = [...tray.querySelectorAll("*")].find((element) => {
+      const width = element.getBoundingClientRect().width;
+      return width > 20 && parseFloat(getComputedStyle(element).borderTopLeftRadius) >= width / 2 - 1;
+    });
+    const box = puck.getBoundingClientRect();
+    return { left: edge.left - box.left, top: edge.top - box.top, right: box.right - edge.right, bottom: box.bottom - edge.bottom };
+  };
+  const worst = past();
+  if (!ms) return worst;
+  const end = performance.now() + ms;
+  return new Promise((done) => {
+    const frame = () => {
+      const now = past();
+      for (const side in worst) worst[side] = Math.max(worst[side], now[side]);
+      if (performance.now() < end) requestAnimationFrame(frame);
+      else done(worst);
+    };
+    requestAnimationFrame(frame);
   });
-  const box = puck.getBoundingClientRect();
-  return { left: edge.left - box.left, top: edge.top - box.top, right: box.right - edge.right, bottom: box.bottom - edge.bottom };
 }
 
 // A puck the reader led into the tray's corner stays in the tray when
@@ -196,6 +212,17 @@ test.describe("when the frame narrows", () => {
       return { right: off(past.right), bottom: off(past.bottom) };
     };
     await expect.poll(corner, { message: "the puck springs into the tray's bottom-right corner" }).toEqual({ right: 0, bottom: 0 });
+    // A window narrowed a little, the demo still on screen and running:
+    // every frame drawn as the tray narrows and for a second after.
+    const sampling = tray.evaluate(puckPast, 1500);
+    await page.setViewportSize({ width: 1040, height: 800 });
+    const drawnPast = Object.entries(await sampling)
+      .filter(([, by]) => by > 1)
+      .map(([side, by]) => `drawn past the tray's ${side} edge by ${Math.round(by)}`);
+    const shown = await tray.boundingBox();
+    expect(shown.y + shown.height > 0 && shown.y < 800, `the tray is still on screen, so the demo runs (${JSON.stringify(shown)})`).toBe(true);
+    expect(drawnPast, "the puck is never drawn past the tray as it narrows").toEqual([]);
+    // Then past Motion's compact width, where the tray is shorter too.
     await page.setViewportSize({ width: 390, height: 844 });
     const outside = async () =>
       Object.entries(await tray.evaluate(puckPast))
