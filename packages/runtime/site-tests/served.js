@@ -91,11 +91,13 @@ export function serve(directory, { below = "/", headers = () => ({}) } = {}) {
 // One part of a test, or of a shared hook given by `shared`, as a step the
 // report names and times. A part given a `timeout` fails on its own when
 // that runs out, naming itself, and leaves the rest of the test's time to
-// what follows it (a `finally` that stops a server, the report).
-export function part(title, run, { timeout } = {}) {
+// what follows it (a `finally` that stops a server, the report). `within`
+// says where inside itself a part is, as text (a site build's own parts,
+// `buildSite({ timings })`), for a part that does not end.
+export function part(title, run, { timeout, within } = {}) {
   const watched = watching.at(-1);
   if (!watched) throw new Error(`part "${title}" runs outside a test and outside a hook given by shared(): nothing would say where it stalled`);
-  const at = { title, since: Date.now(), took: null };
+  const at = { title, since: Date.now(), took: null, within };
   watched.parts.push(at);
   return test.step(
     title,
@@ -107,8 +109,19 @@ export function part(title, run, { timeout } = {}) {
       }
     },
     { timeout },
-  );
+  ).catch((error) => {
+    // Its own time ran out: the step's error says only that it did.
+    if (at.took === null && within && error instanceof Error) error.message += `\n${title}, within: ${within()}`;
+    throw error;
+  });
 }
+
+// What a site build given `timings` has done so far, as `part`'s
+// `within`: each part's milliseconds, and the one under way.
+export const building = (timings) => () =>
+  Object.entries(timings)
+    .map(([name, took]) => (took === null ? `${name} under way` : `${name} ${took}`))
+    .join(", ") || "not started";
 
 // A shared hook (`beforeAll`, `afterAll`), watched from its start: no
 // test's fixture runs around it, so it is its own. Its body is one part,
@@ -182,7 +195,9 @@ function end(watch) {
 // What a test that did not pass was waiting for, as text.
 function stalled(watch) {
   const now = Date.now();
-  const lines = watch.parts.map(({ title, since, took }) => (took === null ? `${title}: unfinished after ${now - since} ms` : `${title}: ${took} ms`));
+  const lines = watch.parts.map(({ title, since, took, within }) =>
+    took === null ? `${title}: unfinished after ${now - since} ms${within ? ` (${within()})` : ""}` : `${title}: ${took} ms`,
+  );
   for (const server of servers) lines.push(`server ${server.state()}`);
   const waits = process.getActiveResourcesInfo().reduce((count, name) => count.set(name, (count.get(name) ?? 0) + 1), new Map());
   lines.push(`Node waits on: ${[...waits].map(([name, n]) => `${name} ×${n}`).join(", ") || "nothing"}`);

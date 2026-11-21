@@ -1,10 +1,16 @@
 // A live shell (docs/LJOS_WEB.md A9): a visitor drops a shell of their own
 // over a site's blocks. The page is tests/drop.html, a site built with
 // `liveShell` whose own shell is scenes/drop/Shell.qml.
-import { expect, test } from "./open.js";
+import { expect, phase, test } from "./open.js";
 
 async function opened(page) {
   await page.goto("/drop.html");
+  await arrived(page);
+}
+
+// The page the browser is on, once it has made its shell: one a reload or
+// Reset brought, which is the next visit already, with no other load.
+async function arrived(page) {
   await page.waitForFunction(() => window.ready);
   await page.evaluate(() => {
     const search = (from, name) => {
@@ -822,15 +828,18 @@ Column {
     });
   });
 
+  // Six visits, two of them compiling the kept shell in the page, each a
+  // phase: a test that runs out of time says which visit it was in.
   test("A kept shell keeps a block's writes off the next page, and says so once, until Reset", async ({ page }) => {
     const warned = [];
     page.on("console", (message) => message.text().startsWith("not kept") && warned.push(message.text()));
     await fetched(page);
     await page.route("**/slow-answer", (route) => route.fulfill({ body: "" }));
-    await page.goto("/drop.html");
-    await page.evaluate(() => void indexedDB.deleteDatabase("ljos-web.LocalStorage"));
-    const site = async () => {
-      await opened(page);
+    // A visit is the page the browser is on, from the reload or the Reset
+    // that brought it: loading it again would be one more visit, and only
+    // the first, after the database is deleted, is a load of its own.
+    const site = async (loaded) => {
+      await (loaded ? arrived(page) : opened(page));
       await page.evaluate(() => {
         const element = document.createElement("div");
         document.body.append(element);
@@ -850,35 +859,48 @@ Column {
     const found = async () => (await keeps()).evaluate((block) => [block.fromSettings, block.fromDatabase]);
     const shell = `import QtQuick\nimport Shop\n\nColumn {\n    Keeps { objectName: "keeps" }\n}\n`;
 
-    await site();
-    expect(await write("first.svg")).toBe(true);
-    expect(warned).toEqual([]);
-    await page.evaluate((text) => window.keeping.drop(text), shell);
+    await phase("the first visit keeps what it writes and drops a shell", async () => {
+      await page.goto("/drop.html");
+      await page.evaluate(() => void indexedDB.deleteDatabase("ljos-web.LocalStorage"));
+      await site(false);
+      expect(await write("first.svg")).toBe(true);
+      expect(warned).toEqual([]);
+      await page.evaluate((text) => window.keeping.drop(text), shell);
+    });
 
-    // The next visit: the shell is shown again, with no one dropping it.
-    await page.reload();
-    await site();
-    expect(await page.evaluate(() => window.keeping.text)).toBe(shell);
-    await expect.poll(found).toEqual(["first.svg", "first.svg"]);
-    expect(await write("second.svg")).toBe(false);
-    expect(await write("third.svg")).toBe(false);
-    expect(warned.length).toBe(1);
-    // This page still reads what it wrote.
-    expect((await found())[0]).toBe("third.svg");
+    await phase("the next visit shows the kept shell and keeps none of its writes", async () => {
+      // No one drops it again.
+      await page.reload();
+      await site(true);
+      expect(await page.evaluate(() => window.keeping.text)).toBe(shell);
+      await expect.poll(found).toEqual(["first.svg", "first.svg"]);
+      expect(await write("second.svg")).toBe(false);
+      expect(await write("third.svg")).toBe(false);
+      expect(warned.length).toBe(1);
+      // This page still reads what it wrote.
+      expect((await found())[0]).toBe("third.svg");
+    });
 
-    await page.reload();
-    await site();
-    await expect.poll(found).toEqual(["first.svg", "first.svg"]);
-    expect(await write("fourth.svg")).toBe(false);
+    await phase("a later visit still keeps none", async () => {
+      await page.reload();
+      await site(true);
+      await expect.poll(found).toEqual(["first.svg", "first.svg"]);
+      expect(await write("fourth.svg")).toBe(false);
+    });
 
-    await Promise.all([page.waitForEvent("load"), page.evaluate(() => void window.keeping.reset())]);
-    await site();
-    expect(await page.evaluate(() => window.keeping.text)).toBe(null);
-    await expect.poll(found).toEqual(["first.svg", "first.svg"]);
-    expect(await write("fifth.svg")).toBe(true);
-    await page.reload();
-    await site();
-    expect((await found())[0]).toBe("fifth.svg");
+    await phase("after Reset what is written is kept", async () => {
+      await Promise.all([page.waitForEvent("load"), page.evaluate(() => void window.keeping.reset())]);
+      await site(true);
+      expect(await page.evaluate(() => window.keeping.text)).toBe(null);
+      await expect.poll(found).toEqual(["first.svg", "first.svg"]);
+      expect(await write("fifth.svg")).toBe(true);
+    });
+
+    await phase("the visit after reads it", async () => {
+      await page.reload();
+      await site(true);
+      expect((await found())[0]).toBe("fifth.svg");
+    });
   });
 
   test("No other sink fetches what a shell names", async ({ page }) => {
