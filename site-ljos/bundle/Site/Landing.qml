@@ -172,7 +172,7 @@ Column {
                         lineHeightMode: Text.FixedHeight
                         lineHeight: Theme.bodyLine
                         wrapMode: Text.Wrap
-                        text: t`<b>Try rewriting this app's shell live.</b> Add an item to the basket below, then edit the <code>Shell.qml</code> source under it: move a <code>Slot</code> and the running app rearranges while the basket keeps its items. Introduce a typo and the app falls back to its built-in shell with the compiler error shown, then fix it or press Reset to return.`
+                        text: t`<b>Try rewriting this app's shell live.</b> Add an item to the basket below, then edit the <code>Shell.qml</code> source under it: move a <code>Slot</code> and the running app rearranges while the basket keeps its items. Introduce a typo and the last shell that compiled keeps running, with the compiler error shown beside the editor; fix it, or press Reset to go back to the app's own shell.`
                     }
                     PantryDemo {
                         width: parent.width
