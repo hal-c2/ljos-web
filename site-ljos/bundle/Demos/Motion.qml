@@ -23,6 +23,11 @@ Rectangle {
     property int tileMoveMs: 520
     property int calmMoveMs: 300
     property int cardOpenHeight: 118
+    // Narrower than this, the tray and the tiles are shorter and the
+    // controls wrap onto two lines.
+    property int compactBelow: 520
+
+    readonly property bool compact: width < compactBelow
 
     // Host contract: DemoFrame pauses off-screen demos and sets calm for reduced motion.
     property bool active: true
@@ -55,13 +60,15 @@ Rectangle {
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.margins: 16
-        height: 168
+        height: root.compact ? 132 : 168
         color: look.panel
         radius: 10
 
         Text {
             x: 14
             y: 10
+            width: parent.width - 28
+            elide: Text.ElideRight
             color: look.muted1
             font.pixelSize: 13
             text: t`Press and move — the puck springs after you`
@@ -145,20 +152,22 @@ Rectangle {
         anchors.right: parent.right
         anchors.top: tray.bottom
         anchors.margins: 16
-        height: 76
+        height: root.compact ? 56 : 76
         orientation: ListView.Horizontal
-        spacing: 10
+        spacing: root.compact ? 6 : 10
         interactive: false
         model: tiles
         delegate: Rectangle {
             required property string label
             required property string tone
             width: (strip.width - strip.spacing * 5) / 6
-            height: 64
+            height: root.compact ? 48 : 64
             radius: 10
             color: tone
             Text {
                 anchors.centerIn: parent
+                // A tile narrower than its word shrinks the word to fit.
+                scale: Math.min(1, (parent.width - 8) / Math.max(1, implicitWidth))
                 color: look.onTile
                 font.pixelSize: 17
                 font.bold: true
@@ -182,8 +191,10 @@ Rectangle {
     }
 
     // --- Controls ---------------------------------------------------------
-    Row {
+    // Side by side where both fit; the card under the button where not.
+    Flow {
         anchors.left: parent.left
+        anchors.right: parent.right
         anchors.top: strip.bottom
         anchors.margins: 16
         spacing: 12
@@ -231,7 +242,7 @@ Rectangle {
 
         Rectangle {
             id: card
-            width: 300
+            width: Math.min(300, parent.width)
             height: open ? root.cardOpenHeight : 42
             radius: 8
             color: look.raised

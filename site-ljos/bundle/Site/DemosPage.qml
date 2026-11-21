@@ -196,6 +196,8 @@ Column {
                     scroller: demos.scroller
                     needs: "wasm"
                     route: "/demos/"
+                    // Narrow, Motion's controls wrap onto two lines.
+                    least: 440
                     picture: "/pictures/demo-motion.webp"
                     pictureDark: "/pictures/demo-motion-dark.webp"
                     what: t`the motion demo`
