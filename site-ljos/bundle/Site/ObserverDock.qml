@@ -35,13 +35,15 @@ Item {
     // A sheet on a phone, and wherever docking would leave the page beside
     // it narrower than it is read at.
     readonly property bool sheet: room < Theme.wideFrom || room - beside - dockedWidth < Theme.pageNarrowest
-    // Made while open, and while it slides or fades away.
+    // Made while open, and while it slides or fades away. Only then is
+    // anything of the dock over the page: a closed panel still follows
+    // the room it would open into, and slides there unseen when the window
+    // changes size, which is no sheet going away.
     property bool held: false
     // Asked for less motion, the panel does not travel: it stands where
     // it opens to and fades, as everything that moves on the site does
     // then (Theme.calm).
     readonly property bool still: Theme.calm
-    readonly property bool moving: slideX.running || slideY.running || fade.running
     // The stage the panel was made for. Moved to another stage, the
     // Observer is made anew: nothing of the first one's (the page it was
     // left on, an item picked, a value being edited) is about the second.
@@ -80,7 +82,7 @@ Item {
     Rectangle {
         width: dock.room
         height: dock.roomHeight
-        visible: dock.sheet && (dock.open || dock.moving)
+        visible: dock.sheet && dock.held
         color: Theme.scrim
         opacity: dock.open ? 1 : 0
         Behavior on opacity {
