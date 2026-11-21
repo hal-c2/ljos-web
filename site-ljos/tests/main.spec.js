@@ -114,10 +114,17 @@ test("a page shown in place has one main landmark, as one loaded does", async ({
   await page.goto(base);
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
   expect(await landmarks(page)).toEqual(ONE);
-  for (const route of ["start/", "demos/", ""]) {
+  // Each named for the page it holds, so the landmarks asked of below are
+  // the new page's, not the one it was shown in place of.
+  for (const [route, name] of [
+    ["start/", "What is Ljós?"],
+    ["demos/", "Live demos"],
+    ["", "Home"],
+  ]) {
     await page.evaluate((to) => document.querySelector(`a[href="${to}"]`).click(), `${base}${route}`);
-    await page.waitForURL(`**${base}${route}`);
-    await expect(page.getByRole("main")).toHaveCount(1);
+    // A glob ending in `/` matches every page; the path is asked outright.
+    await page.waitForURL((url) => url.pathname === `${base}${route}`);
+    await expect(page.getByRole("main", { name, exact: true })).toHaveCount(1);
     expect(await landmarks(page), `/${route} shown in place`).toEqual(ONE);
   }
 });
