@@ -292,6 +292,46 @@ Item {
   }
 });
 
+// A reader who asked for the dark scheme is first shown the example as
+// it is made in the dark: one that paints from the palette paints its
+// dark colours there, made by the same bundle a second time.
+plain("asked for the dark scheme too, each example is made in both, each from its own palette", async ({}, info) => {
+  info.setTimeout(180_000);
+  const one = (code) => assemble(extractBlocks("```qml\n" + code.trimEnd() + "\n```\n"), {}).examples[0];
+  const painted = one(`import QtQuick
+
+Rectangle {
+    width: 40
+    height: 40
+    color: palette.window
+}
+`);
+  const cacheDir = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "ljos-codeblock-test-"));
+  try {
+    const { manifest, failures } = await renderPrerenders([painted], { cacheDir, qmlc, dark: true });
+    expect(failures).toEqual([]);
+    const { html, htmlDark } = loadPrerenders(cacheDir)[hashExample(painted)];
+    expect(htmlDark).toBeDefined();
+    // The rectangle's fill, as the prerender writes it.
+    const lightness = (fragment) => {
+      const [r, g, b] = /data-hk="[^"]*:Rectangle"[^>]*background: #(..)(..)(..);/
+        .exec(fragment)
+        .slice(1)
+        .map((hex) => parseInt(hex, 16));
+      return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+    };
+    expect(lightness(html)).toBeGreaterThan(0.5);
+    expect(lightness(htmlDark)).toBeLessThan(0.5);
+    // Kept with the light one, and asked of the cache again only where
+    // the dark one is missing.
+    expect(manifest[hashExample(painted)].dark).toMatch(/^[0-9a-f]{16}-dark\.html$/);
+    const again = await renderPrerenders([painted], { cacheDir, qmlc, dark: true });
+    expect(again.manifest[hashExample(painted)]).toEqual(manifest[hashExample(painted)]);
+  } finally {
+    rmSync(cacheDir, { recursive: true, force: true });
+  }
+});
+
 // A batch of examples is one bundle: what the runtime lacks is told for
 // all of them in it (`lacking`), where a stopped build names one a build
 // and a batch of a dozen such examples is built a dozen times.
@@ -457,6 +497,7 @@ plain("a prerender's stamp answers for the compiler's bytes now and the 3D rende
     const first = prerenderStamp({ qmlc: compiler, env: {} });
     expect(prerenderStamp({ qmlc: compiler, env: {} })).toBe(first);
     expect(prerenderStamp({ qmlc: compiler, env: { VITE_LJOS_VIEW3D: "wgpu" } })).not.toBe(first);
+    expect(prerenderStamp({ qmlc: compiler, dark: true, env: {} })).not.toBe(first);
     writeFileSync(compiler, "two");
     expect(prerenderStamp({ qmlc: compiler, env: {} })).not.toBe(first);
   } finally {

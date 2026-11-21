@@ -757,6 +757,9 @@ Column {
                     // middle of it.
                     readonly property int least: 96
                     readonly property int leastWide: Math.min(2 * least, width - 2 * pad)
+                    function pictureOf(src) {
+                        return "<img src=\"" + src + "\" width=\"" + pictureWidth + "\" height=\"" + Math.round(pictureHeight) + "\" alt=\"What this example draws\">";
+                    }
                     height: frame.height + 2 * pad
                     color: Theme.stage
 
@@ -813,12 +816,43 @@ Column {
                             // fallback stands, status Fallback), and always where
                             // there is no compiler. Once Ready a failed edit
                             // keeps the last good result, so the picture never
-                            // comes back over it.
-                            visible: block.isLive && stage.status !== ShellLoader.Ready
+                            // comes back over it. Each scheme has its own
+                            // picture, drawn from the example as it runs in
+                            // that scheme: the dark page's window holds the
+                            // app in the dark, never a light card on it. Two
+                            // items, not one whose source changes: the page's
+                            // two renders then differ only in which is shown,
+                            // and share one tree.
+                            visible: block.isLive && stage.status !== ShellLoader.Ready && !(Theme.dark && block.live.pictureDark)
                             x: frame.appX
                             y: frame.appY
                             textFormat: Text.RichText
-                            text: block.isLive ? "<img src=\"" + block.live.picture + "\" width=\"" + stageBox.pictureWidth + "\" height=\"" + Math.round(stageBox.pictureHeight) + "\" alt=\"What this example draws\">" : ""
+                            text: block.isLive ? stageBox.pictureOf(block.live.picture) : ""
+                        }
+                        Text {
+                            visible: block.isLive && stage.status !== ShellLoader.Ready && Theme.dark && !!block.live.pictureDark
+                            x: frame.appX
+                            y: frame.appY
+                            textFormat: Text.RichText
+                            text: block.isLive && block.live.pictureDark ? stageBox.pictureOf(block.live.pictureDark) : ""
+                        }
+                        // An example that draws nothing before the reader
+                        // runs it (its point is what it says, or it waits for
+                        // a press) says so, rather than show an empty window
+                        // that reads as one that failed.
+                        Text {
+                            visible: block.isLive && !!block.live.blank && stage.status !== ShellLoader.Ready
+                            x: Theme.s
+                            width: frame.width - 2 * Theme.s
+                            anchors.verticalCenter: parent.verticalCenter
+                            horizontalAlignment: Text.AlignHCenter
+                            wrapMode: Text.Wrap
+                            text: t`Nothing drawn yet. Run it to see what it does.`
+                            color: Theme.textMuted
+                            font.family: Theme.sans
+                            font.pixelSize: Theme.captionSize
+                            lineHeight: Theme.captionLine
+                            lineHeightMode: Text.FixedHeight
                         }
                         // The window fits its app to itself, as a window does:
                         // what it draws is laid out at its picture's size, never
