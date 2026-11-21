@@ -214,11 +214,18 @@ const watchdog = () => {
 // The kept shell's swap waits for its shell, and in any case a second
 // (shells.js `swap`): that second is held back here, so a test can show
 // it is something else that lets the swap go, by order and not by the
-// clock.
+// clock. The swap's second resolves the view transition's promise: a
+// native resolving function, which no page script's own timer passes.
 const fallback = () => {
   const wait = window.setTimeout;
+  const resolves = (run) => typeof run === "function" && /\[native code\]/.test(String(run));
   window.setTimeout = function (run, ms, ...rest) {
-    if (ms === 1000 && "ljosSwap" in document.documentElement.dataset && !window.__heldFallback) {
+    if (
+      ms === 1000 &&
+      "ljosSwap" in document.documentElement.dataset &&
+      resolves(run) &&
+      !window.__heldFallback
+    ) {
       window.__heldFallback = run;
       return 0;
     }
