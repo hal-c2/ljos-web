@@ -60,11 +60,14 @@ for (const scheme of ["light", "dark"]) {
   });
 }
 
-// The light window's paper is the build's: an example's picture and the
-// example running in the light are drawn on the same ground.
-test("an example's picture is drawn on the light window's paper", () => {
+// Each scheme's window paper is the build's: an example's picture and
+// the example running in that scheme are drawn on the same ground, read
+// from tokens.js as Theme reads it, never a colour of the build's own.
+test("an example's pictures are drawn on each scheme's window paper", () => {
   const build = readFileSync(join(here, "../scripts/build.mjs"), "utf8");
-  expect(build).toContain(`background:${tokens.light.paper}`);
+  expect(build).toContain("background:${lightTone.paper}");
+  expect(build).toContain("background:${darkTone.paper}");
+  expect(build).not.toContain(`background:${tokens.light.paper}`);
 });
 
 // A running example is a window on a stage, and reads as one: what the

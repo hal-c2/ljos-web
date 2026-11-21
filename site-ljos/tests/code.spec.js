@@ -648,28 +648,27 @@ const STAGES = [
 // Each live example's window, as the reader sees it before running it:
 // the picture's box's first ancestor that clips, which is the window.
 // What it draws is told from its pixels: how many differ from the
-// colour most of it is, and how light that colour is.
+// colour most of it is, and how light that colour is. Each window is
+// shot where it is once scrolled to: the page scrolls inside its own
+// view, so a box read before scrolling to the next is stale by then.
 async function windows(page) {
-  const boxes = await page.evaluate(() =>
-    [...document.querySelectorAll('#app img[alt="What this example draws"]')]
-      .filter((img) => img.getBoundingClientRect().width > 0)
-      .map((img) => {
-        let frame = img.parentElement;
-        while (frame && getComputedStyle(frame).overflow === "visible")
-          frame = frame.parentElement;
-        frame.scrollIntoView({ block: "center" });
-        const box = frame.getBoundingClientRect();
-        return {
-          x: box.left + window.scrollX,
-          y: box.top + window.scrollY,
-          width: box.width,
-          height: box.height,
-        };
-      }),
-  );
+  const frames = [];
+  for (const img of await page
+    .locator('#app img[alt="What this example draws"]')
+    .elementHandles())
+    if (await img.evaluate((node) => node.getBoundingClientRect().width > 0))
+      frames.push(
+        await img.evaluateHandle((node) => {
+          let frame = node.parentElement;
+          while (frame && getComputedStyle(frame).overflow === "visible")
+            frame = frame.parentElement;
+          return frame;
+        }),
+      );
   const out = [];
-  for (const [index, clip] of boxes.entries()) {
-    const shot = await page.screenshot({ clip, fullPage: true });
+  for (const [index, frame] of frames.entries()) {
+    await frame.evaluate((node) => node.scrollIntoView({ block: "center" }));
+    const shot = await frame.screenshot();
     out.push({
       index,
       ...(await page.evaluate(async (png) => {
