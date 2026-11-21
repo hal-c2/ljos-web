@@ -30,7 +30,7 @@
 // counts moves, or when its wait is over: at rest no timer runs but the one
 // the longest wait asks for.
 import { untrack } from "#kernel";
-import { flush, work } from "../../object.ts";
+import { flush, native, work } from "../../object.ts";
 import type { QObject, QmlType, Slot } from "../../object.ts";
 import { inspect } from "../../inspect.js";
 
@@ -138,6 +138,15 @@ interface Watch {
   answer: () => void;
 }
 
+// What the property had before the Observer's first edit of it, and what
+// that edit (or the last of them) left it with: a Revert gives back the one
+// only while the other is still there.
+interface Edit {
+  assigned: boolean;
+  value: unknown;
+  left: unknown;
+}
+
 interface State {
   token: string;
   root: QObject;
@@ -154,11 +163,13 @@ interface State {
   recording: boolean;
   watches: Set<Watch>;
   // What the client edited, to say so and to take it back.
-  edited: WeakMap<object, Set<string>>;
-  // The objects this application's answers named, by handle: a handle is
-  // the page's, but a client asks only of the application its token serves.
-  // A reload starts it again, as natively a reload makes every handle stale.
-  owned: WeakSet<object>;
+  edited: WeakMap<object, Map<string, Edit>>;
+  // The objects this application's answers named, each with the reload it
+  // was named in: a handle is the page's, but a client asks only of the
+  // application its token serves. One named before the last reload is
+  // stale, as natively a reload makes every handle stale, even when the
+  // object is still there; named again, it is the application's again.
+  owned: WeakMap<object, number>;
   // When each item followed was last asked of, by handle: one no watch has
   // asked of for a while is no longer counted.
   itemAsked: Map<string, number>;
@@ -181,10 +192,18 @@ let tokens = 0;
 const handleOf = new WeakMap<object, string>();
 const byHandle = new Map<string, WeakRef<QObject>>();
 let handles = 0;
+// How many handles the page may keep before those of objects gone are let
+// go of: twice what was kept after the last time, so that minting one
+// costs as much as ever on the whole, whatever asks for it.
+let sweepAt = 64;
 
 function handle(object: QObject): string {
   let named = handleOf.get(object);
   if (!named) {
+    if (byHandle.size >= sweepAt) {
+      forget();
+      sweepAt = Math.max(64, byHandle.size * 2);
+    }
     named = `@${++handles}`;
     handleOf.set(object, named);
     byHandle.set(named, new WeakRef(object));
@@ -192,10 +211,20 @@ function handle(object: QObject): string {
   return named;
 }
 
+// How many handles the page keeps, of objects there or gone.
+export function heldHandles(): number {
+  return byHandle.size;
+}
+
+// How many items what is served as `token` still follows for watches.
+export function followedItems(token: string): number {
+  return served.get(token)?.itemCounts.size ?? 0;
+}
+
 // A handle in an answer of `state`'s: the object is then one its client may
 // ask of.
 function handed(state: State, object: QObject): string {
-  state.owned.add(object);
+  state.owned.set(object, state.counts.reloads);
   return handle(object);
 }
 
@@ -203,10 +232,14 @@ function handed(state: State, object: QObject): string {
 function owned(state: State, named: string): QObject {
   const object = byHandle.get(named)?.deref();
   if (!object || object.$destroyed || object.$gone) throw new Refused("stale_ref", `\`${named}\` is gone: list the objects again`);
-  if (!state.owned.has(object)) throw new Refused("not_found", `\`${named}\` is no object of this application: list its objects`);
+  const at = state.owned.get(object);
+  if (at === undefined) throw new Refused("not_found", `\`${named}\` is no object of this application: list its objects`);
+  if (at !== state.counts.reloads) throw new Refused("stale_ref", `\`${named}\` was named before the application was reloaded: list its objects again`);
   return object;
 }
 
+// Lets go of the handles of objects that are gone: as handles are minted,
+// and as the tree is listed again.
 function forget(): void {
   for (const [named, ref] of byHandle) {
     const object = ref.deref();
@@ -306,8 +339,18 @@ function stepped(at: number): void {
   }
 }
 
-// What changed in a root outside a step: input's, or a message's.
+// What changed in a root outside a step: input's, or a message's. A step
+// of the clock not yet over (`started` is its until `stepped` runs) is what
+// the records are of, whichever comes first: something that changed the
+// page just before the step, in the same task, had them delivered before
+// the step's own microtask, and with them what the step changed. What is
+// delivered together is one pass, and a pass the clock stepped in is the
+// clock's.
 function noticed(state: State, records: MutationRecord[]): void {
+  if (started && started.cause !== "input") {
+    passed(state, records, started.cause, started.at);
+    return;
+  }
   const now = performance.now();
   const input = started?.cause === "input" && now - started.at < INPUT_MS ? started : null;
   if (input) started = null;
@@ -356,7 +399,10 @@ function passed(state: State, records: MutationRecord[], cause: string, at: numb
   state.framesMaxUs = Math.max(state.framesMaxUs, us);
   state.lastUs = us;
   if (us > BUDGET_US) state.overruns++;
-  // An item followed counts the passes that changed something in it.
+  // An item followed counts the passes that changed something in it; one no
+  // watch follows any more is let go of first, as a pass is when it is
+  // looked for.
+  if (state.itemCounts.size > 0) unfollow(state, performance.now());
   const touched = new Set<string>();
   for (const named of state.itemCounts.keys()) {
     const node = byHandle.get(named)?.deref()?.$node;
@@ -462,7 +508,7 @@ export function serve(root: QObject, options: ServeOptions = {}): Served {
     recording: false,
     watches: new Set(),
     edited: new WeakMap(),
-    owned: new WeakSet(),
+    owned: new WeakMap(),
     itemAsked: new Map(),
     cursors: new Map(),
     observer: null,
@@ -484,7 +530,6 @@ export function serve(root: QObject, options: ServeOptions = {}): Served {
       if (!served.has(token)) return;
       state.root = next;
       state.edited = new WeakMap();
-      state.owned = new WeakSet();
       state.itemCounts.clear();
       state.itemAsked.clear();
       state.cursors.clear();
@@ -694,7 +739,7 @@ function bounds(state: State, object: QObject): [number, number, number, number]
 }
 
 function shownRow(state: State, row: Row, depth: number, hidden?: number): Record<string, unknown> {
-  const object = row.object as QObject & { visible?: boolean };
+  const object = row.object;
   const shown: Record<string, unknown> = {
     handle: handed(state, object),
     depth,
@@ -708,7 +753,9 @@ function shownRow(state: State, row: Row, depth: number, hidden?: number): Recor
     at: row.source ? `${row.source.file}:${row.source.line}` : null,
   };
   if (row.item) {
-    shown.visible = object.visible !== false;
+    // Whether it is shown: the item's own, which a file may declare a
+    // `visible` over that is no showing of it (`shadowed.qml`).
+    shown.visible = native(object, "visible") !== false;
     const box = bounds(state, object);
     if (box) shown.bounds = box;
   }
@@ -856,6 +903,29 @@ function propertiesOf(object: QObject): Property[] {
       });
     }
   }
+  // `property alias caption: label.text`: the file's own, though no type
+  // declares it. It is read and written through the alias, and what it has
+  // is the slot it names, so that it is told as bound or assigned, and a
+  // Revert takes back what was written to it.
+  for (const [name, [held, ...path]] of Object.entries(object.$props?.$aliases ?? {})) {
+    if (seen.has(name) || name.startsWith("$")) continue;
+    seen.add(name);
+    const aliased = path.length > 0 && held.$type ? (held as unknown as QObject) : null;
+    const key = path.join("$");
+    const slotOf = () => (aliased ? aliased.$slots[key] : undefined);
+    const value = dynamic[name];
+    found.push({
+      name,
+      read: () => dynamic[name],
+      write: (value) => {
+        dynamic[name] = value;
+      },
+      get slot() {
+        return slotOf();
+      },
+      type: typeName(slotOf(), value),
+    });
+  }
   return found;
 }
 
@@ -912,7 +982,9 @@ function inspected(state: State, args: Args): Result {
     }
     properties.push(shown);
   }
-  const item = object as QObject & { visible?: boolean; enabled?: boolean; activeFocus?: boolean };
+  // Whether it is shown and takes input: the item's own, as it is drawn and
+  // hit; what a file declares over them is in its properties.
+  const item = object as QObject & { activeFocus?: boolean };
   const structured: Record<string, unknown> = {
     ref: handed(state, object),
     type: row?.type ?? object.$type.typeName,
@@ -920,7 +992,7 @@ function inspected(state: State, args: Args): Result {
     id: row?.id || null,
     object_name: row?.object_name || null,
     source: row?.source ?? null,
-    state: { visible: item.visible !== false, enabled: item.enabled !== false, focus: item.activeFocus === true },
+    state: { visible: native(object, "visible") !== false, enabled: native(object, "enabled") !== false, focus: item.activeFocus === true },
     properties,
     omitted,
     truncated: false,
@@ -949,15 +1021,30 @@ function setProperty(state: State, args: Args): Result {
     );
   }
   if (args.revert === true) {
+    // Only what the Observer did is taken back, as natively: the property
+    // has what it had before the Observer's first edit, an assignment of
+    // the application's or the binding under the edit. One the application
+    // wrote again since is the application's, and is kept.
+    const edits = state.edited.get(object);
+    const edit = edits?.get(property.name);
     const slotted = property.slot;
-    if (!slotted) throw new Refused("not_actionable", `\`${property.name}\` has nothing to go back to`);
-    slotted.reset();
-    flush();
-    state.edited.get(object)?.delete(property.name);
-    const restored = slotted.bound ? "binding" : "value";
+    if (!edit || !slotted) throw new Refused("not_actionable", `the Observer did not change \`${property.name}\`, so there is nothing to revert`);
+    edits!.delete(property.name);
+    let restored: string;
+    if (!slotted.assigned || !Object.is(slotted.value, edit.left)) restored = "none";
+    else {
+      if (edit.assigned) property.write(edit.value);
+      else slotted.reset();
+      flush();
+      restored = slotted.assigned ? "value" : slotted.bound ? "binding" : "value";
+    }
     return answered({ property: property.name, value: valueText(state, property.read()).value, previous, restored });
   }
   if (!("value" in args)) throw new Refused("invalid_argument", "give `value`, `binding` or `revert`");
+  // What it had before the Observer first changed it, kept until a Revert.
+  const before = state.edited.get(object)?.get(property.name);
+  const had = property.slot;
+  const kept = before ?? { assigned: had?.assigned === true, value: had?.assigned ? had.value : undefined };
   try {
     property.write(args.value);
   } catch (error) {
@@ -967,8 +1054,8 @@ function setProperty(state: State, args: Args): Result {
   // An assignment covers a binding and keeps it under it, so that Revert
   // brings it back: `keep_binding` is how the web runtime always assigns.
   let mine = state.edited.get(object);
-  if (!mine) state.edited.set(object, (mine = new Set()));
-  mine.add(property.name);
+  if (!mine) state.edited.set(object, (mine = new Map()));
+  mine.set(property.name, { assigned: kept.assigned, value: kept.value, left: property.slot?.value });
   const bound = Boolean(property.slot?.bound);
   return answered({ property: property.name, value: valueText(state, property.read()).value, previous, bound, binding_kept: bound });
 }
@@ -1230,8 +1317,11 @@ export function call(client: Client, tool: unknown, argumentsText: unknown): num
   serials.set(client, serial);
   untrack(() => (client.last.pending = client.last.pending + 1));
   const name = String(tool);
-  // The token as the call is made: the application it is asked of.
-  const asked = untrack(() => String(client.tokenFile));
+  // The token as the call is made, and the root it serves then: the
+  // application it is asked of. A reload under the same token is another
+  // root, which the call is not for.
+  const token = untrack(() => String(client.tokenFile));
+  const asked: Asked = { token, reloads: served.get(token)?.counts.reloads ?? null };
   void ask(client, name, argumentsText, asked).then(
     (result) =>
       finish(
@@ -1248,8 +1338,9 @@ export function call(client: Client, tool: unknown, argumentsText: unknown): num
             }
           : { ok: true, text: JSON.stringify(result) },
         true,
+        asked,
       ),
-    (error: unknown) => finish(client, serial, name, { ok: false, text: error instanceof Error ? error.message : String(error) }, !(error instanceof Unreached)),
+    (error: unknown) => finish(client, serial, name, { ok: false, text: error instanceof Error ? error.message : String(error) }, !(error instanceof Unreached), asked),
   );
   return serial;
 }
@@ -1260,7 +1351,15 @@ export function guideUrl(guide: unknown): string {
   return `https://github.com/olafura/ljos-ui/blob/main/${String(guide)}`;
 }
 
-async function ask(client: Client, tool: string, argumentsText: unknown, asked: string): Promise<Result> {
+// What a call was asked of: the token, and how many times what it serves
+// had been reloaded (null with nothing served yet). A call made with no
+// token is asked of the one there is as it runs, which `ask` then writes.
+interface Asked {
+  token: string;
+  reloads: number | null;
+}
+
+async function ask(client: Client, tool: string, argumentsText: unknown, asked: Asked): Promise<Result> {
   // Never inside the call: QML connects to `answered` once it has the serial.
   await Promise.resolve();
   // A call made with no token yet is asked of the one there is now, as a
@@ -1269,9 +1368,13 @@ async function ask(client: Client, tool: string, argumentsText: unknown, asked: 
   // inspector is served. One made with a token is never asked of another:
   // an edit meant for one application would change the next one's.
   const token = untrack(() => String(client.tokenFile));
-  if (asked !== "" && token !== asked) throw new Error(`the client was given another token (\`${token || "none"}\`) before \`${asked}\` answered: ask again`);
+  if (asked.token !== "" && token !== asked.token) throw new Error(`the client was given another token (\`${token || "none"}\`) before \`${asked.token}\` answered: ask again`);
+  asked.token = token;
   const state = served.get(token);
   if (!state) throw new Unreached(token ? `nothing on this page is served as \`${token}\`` : "no inspector is given: `tokenFile` is empty");
+  if (asked.reloads !== null && state.counts.reloads !== asked.reloads) {
+    throw new Error(`the application served as \`${token}\` was reloaded before the call was answered: ask again`);
+  }
   const url = urlOf(token);
   if (client.last.url !== url) client.last.url = url;
   let args: Args;
@@ -1285,12 +1388,17 @@ async function ask(client: Client, tool: string, argumentsText: unknown, asked: 
   return answer(state, tool, args);
 }
 
-function finish(client: Client, serial: number, tool: string, result: { ok: boolean; text: string }, reached: boolean): void {
+function finish(client: Client, serial: number, tool: string, result: { ok: boolean; text: string }, reached: boolean, asked: Asked): void {
   if (client.$destroyed || client.$gone) return;
   const last = client.last;
-  if (last.connected !== reached) last.connected = reached;
-  const why = reached ? "" : result.text;
-  if (last.error !== why) last.error = why;
+  // Whether the client is connected is said by what it asks now: a call
+  // asked of the token it had before (a watch answered late) says nothing
+  // of the one it has.
+  if (untrack(() => String(client.tokenFile)) === asked.token) {
+    if (last.connected !== reached) last.connected = reached;
+    const why = reached ? "" : result.text;
+    if (last.error !== why) last.error = why;
+  }
   last.pending = Math.max(0, last.pending - 1);
   client.answered(serial, tool, result.ok, result.text);
 }

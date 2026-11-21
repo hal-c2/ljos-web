@@ -22,6 +22,10 @@ Item {
         color: count % 2 ? "teal" : "white"
         property int count: 0
         property int doubled: count * 2
+        // A member another item holds, by another name.
+        property alias caption: label.text
+        // An object the application makes and lets go of again (churn).
+        property QtObject current: null
         Text { id: label; objectName: "label"; text: "n=" + app.count }
         MouseArea { id: area; x: 0; y: 50; width: 100; height: 50; onClicked: app.count++ }
         Rectangle {
@@ -30,6 +34,16 @@ Item {
             NumberAnimation on rotation { id: spin; running: false; from: 0; to: 360; duration: 300 }
         }
         Timer { id: tick; interval: 50; onTriggered: app.count++ }
+        // Its own `visible` and `enabled`, of what it is about: it is still
+        // shown, and takes input.
+        Item {
+            id: shown
+            objectName: "shown"
+            x: 200; y: 120; width: 10; height: 10
+            property bool visible: false
+            property bool enabled: false
+        }
+        Component { id: made; Item {} }
     }
 
     Inspector { id: inspector; target: app; title: "app" }
@@ -54,4 +68,9 @@ Item {
     function spinOnce() { spin.start() }
     function tickOnce() { tick.start() }
     function say(line) { console.log(line) }
+    function churn() {
+        const before = app.current;
+        app.current = made.createObject(app);
+        if (before) before.destroy();
+    }
 }

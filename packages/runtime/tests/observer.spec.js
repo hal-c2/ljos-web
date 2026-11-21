@@ -343,6 +343,173 @@ test("an Inspector given another log or title serves its target anew", async ({ 
   expect(ids).not.toContain("label");
 });
 
+// The page's instance of the Observer's module, for what only it can say.
+const observerModule = () => performance.getEntriesByType("resource").find(({ name }) => /\/Ljos\/Observer\/index\.ts(\?|$)/.test(name)).name;
+
+test("a handle named before a reload is stale, though its object is still there", async ({ page }) => {
+  await opened(page);
+  const named = async () => (await call(page, "app_objects", { max: 3000 })).result.structuredContent.objects.find((row) => row.id === "label").handle;
+  const before = await named();
+  // Reloaded twice, back to the same root: the label is still there.
+  await page.evaluate(() => {
+    const { inspector, other, app } = window.objects;
+    inspector.target = other;
+    inspector.target = app;
+  });
+  const stale = await call(page, "app_inspect", { target: before });
+  expect(stale.ok).toBe(false);
+  expect(stale.result.error.code).toBe("stale_ref");
+  expect(stale.result.error.message).toContain("reloaded");
+  // Listed again, it is asked of.
+  expect((await call(page, "app_inspect", { target: await named() })).ok).toBe(true);
+});
+
+test("Revert gives back the value the application had before the Observer's edit", async ({ page }) => {
+  await opened(page);
+  await page.evaluate(() => (window.objects.app.count = 5));
+  expect((await call(page, "app_set_property", { target: "id=app", property: "count", value: 9 })).ok).toBe(true);
+  expect(await page.evaluate(() => window.objects.app.count)).toBe(9);
+  const back = await call(page, "app_set_property", { target: "id=app", property: "count", revert: true });
+  expect(back.ok).toBe(true);
+  expect(back.result.structuredContent.restored).toBe("value");
+  expect(await page.evaluate(() => window.objects.app.count)).toBe(5);
+});
+
+test("Revert of what the Observer did not change is refused, and changes nothing", async ({ page }) => {
+  await opened(page);
+  await page.evaluate(() => (window.objects.app.count = 5));
+  const refused = await call(page, "app_set_property", { target: "id=app", property: "count", revert: true });
+  expect(refused.ok).toBe(false);
+  expect(refused.result.error.code).toBe("not_actionable");
+  expect(await page.evaluate(() => window.objects.app.count)).toBe(5);
+});
+
+test("Revert after the application wrote the value again keeps the application's", async ({ page }) => {
+  await opened(page);
+  await call(page, "app_set_property", { target: "id=app", property: "count", value: 9 });
+  await page.evaluate(() => (window.objects.app.count = 7));
+  const back = await call(page, "app_set_property", { target: "id=app", property: "count", revert: true });
+  expect(back.ok).toBe(true);
+  expect(back.result.structuredContent.restored).toBe("none");
+  expect(await page.evaluate(() => window.objects.app.count)).toBe(7);
+});
+
+test("an alias is listed, read and changed as the member it names, and Revert gives its binding back", async ({ page }) => {
+  await opened(page);
+  const listed = (await call(page, "app_inspect", { target: "id=app" })).result.structuredContent.properties.find((p) => p.name === "caption");
+  expect(listed).toMatchObject({ value: "n=0" });
+  expect((await call(page, "app_get_property", { target: "id=app", property: "caption" })).result.structuredContent.value).toBe("n=0");
+  expect((await call(page, "app_set_property", { target: "id=app", property: "caption", value: "hello" })).ok).toBe(true);
+  expect(await page.evaluate(() => window.objects.app.children[0].text)).toBe("hello");
+  const back = await call(page, "app_set_property", { target: "id=app", property: "caption", revert: true });
+  expect(back.result.structuredContent.restored).toBe("binding");
+  await page.evaluate(() => window.objects.app.count++);
+  expect(await page.evaluate(() => window.objects.app.children[0].text)).toBe("n=1");
+});
+
+// The item's own `visible` and `enabled` say whether it is shown and takes
+// input; a file's of the same name are its values, edited as any other.
+test("an item whose file declares its own visible and enabled is told as shown and enabled", async ({ page }) => {
+  await opened(page);
+  const row = (await call(page, "app_objects", { max: 3000 })).result.structuredContent.objects.find((each) => each.id === "shown");
+  expect(row.visible).toBe(true);
+  const seen = (await call(page, "app_inspect", { target: "id=shown" })).result.structuredContent;
+  expect(seen.state).toMatchObject({ visible: true, enabled: true });
+  expect(seen.properties.find((p) => p.name === "visible")).toMatchObject({ value: "false" });
+  expect((await call(page, "app_screenshot", { target: "id=shown" })).ok).toBe(true);
+});
+
+// What changed the page just before a step of the clock, in the same task,
+// has its records delivered before the step's own: with them come what the
+// step changed, which is the clock's pass.
+test("a pass the clock stepped in is the clock's, though something changed the page just before it", async ({ page }) => {
+  await page.goto("/?scene=inspectobserved&still");
+  await page.waitForFunction(() => window.ready);
+  await page.waitForFunction(() => window.objects.inspector.tokenFile !== "");
+  const { next_since } = (await call(page, "app_frames", { max: 600 })).result.structuredContent;
+  await page.evaluate(() => {
+    window.objects.app.$node.setAttribute("data-poked", "yes");
+    window.scene.tickOnce();
+    window.clock.advance(60);
+  });
+  expect(await page.evaluate(() => window.objects.app.count)).toBe(1);
+  await expect
+    .poll(async () => (await call(page, "app_frames", { since: next_since, max: 600 })).result.structuredContent.frames.map((frame) => frame.woke[0]))
+    .toEqual(["timer"]);
+});
+
+test("a call is refused when what its token serves is reloaded before it is answered", async ({ page }) => {
+  await opened(page);
+  const answer = await page.evaluate(async () => {
+    const { client, inspector, other, app } = window.objects;
+    const answers = window.scene.answers;
+    const serial = client.call("app_set_property", JSON.stringify({ target: "id=app", property: "count", value: 9 }));
+    // Reloaded under the same token before the call is asked.
+    inspector.target = other;
+    inspector.target = app;
+    while (!answers.some((each) => each.serial === serial)) await new Promise((done) => setTimeout(done, 5));
+    return answers.find((each) => each.serial === serial);
+  });
+  expect(answer.ok).toBe(false);
+  expect(answer.result).toContain("reloaded");
+  expect(await page.evaluate(() => window.objects.app.count)).toBe(0);
+});
+
+test("a watch answered after the client moved to another token says nothing of that token", async ({ page }) => {
+  await opened(page);
+  const since = (await call(page, "app_watch", {})).result.structuredContent.counts;
+  const told = await page.evaluate(async (since) => {
+    const { client } = window.objects;
+    const answers = window.scene.answers;
+    const answered = async (serial) => {
+      while (!answers.some((each) => each.serial === serial)) await new Promise((done) => setTimeout(done, 5));
+      return answers.find((each) => each.serial === serial);
+    };
+    const watch = client.call("app_watch", JSON.stringify({ since, wait_ms: 800 }));
+    await new Promise((done) => setTimeout(done, 100));
+    client.tokenFile = "nothing-served";
+    await answered(client.call("app_status", "{}"));
+    const moved = [client.connected, client.error !== ""];
+    const late = await answered(watch);
+    return { moved, late: late.ok, after: [client.connected, client.error !== ""], pending: client.pending };
+  }, since);
+  expect(told.moved).toEqual([false, true]);
+  expect(told.late).toBe(true);
+  expect(told.after).toEqual([false, true]);
+  expect(told.pending).toBe(0);
+});
+
+test("an item no watch has asked of for a minute is no longer followed, with no watch to ask again", async ({ page }) => {
+  await opened(page);
+  const app = (await call(page, "app_objects", { max: 3000 })).result.structuredContent.objects.find((row) => row.id === "app").handle;
+  await call(page, "app_watch", { items: [app] });
+  const address = await page.evaluate(observerModule);
+  const followed = () => page.evaluate(async (address) => (await import(address)).followedItems(window.objects.inspector.tokenFile), address);
+  expect(await followed()).toBe(1);
+  // A minute on, by the page's clock, and a pass.
+  await page.evaluate(() => {
+    const real = performance.now.bind(performance);
+    performance.now = () => real() + 61_000;
+  });
+  await page.mouse.click(20, 70);
+  await page.waitForFunction(() => window.objects.app.count === 1);
+  await expect.poll(followed).toBe(0);
+});
+
+test("handles of objects gone are let go of, whatever asks for handles", async ({ page }) => {
+  await opened(page);
+  const address = await page.evaluate(observerModule);
+  const held = () => page.evaluate(async (address) => (await import(address)).heldHandles(), address);
+  const before = await held();
+  // Each round the application makes an object and lets the one before
+  // go, and the Observer is told it through app_inspect alone.
+  for (let round = 0; round < 200; round++) {
+    await page.evaluate(() => window.scene.churn());
+    expect((await call(page, "app_inspect", { target: "id=app" })).ok).toBe(true);
+  }
+  expect((await held()) - before).toBeLessThan(150);
+});
+
 test("the Observer runs on the page, and shows the application's tree", async ({ page }) => {
   await opened(page, "inspectobserver");
   // The Overview's numbers come from app_metrics and app_processes.
