@@ -15,7 +15,7 @@
       ]
     },
     "title": "Svala GT cockpit",
-    "description": "An instrument cluster over a touchscreen for Svala GT, a made-up car: open doors on the 3D model, set climate, play media, follow the map, and edit every file live.",
+    "description": "An instrument cluster and touchscreen for Svala GT, a made-up car: open doors on the 3D model, set climate, play media, follow the map, edit every file live.",
     "summary": "An instrument cluster over a touchscreen for Svala GT, a made-up car. Press Run to open doors on the 3D car, set the climate, control media and follow the route. Declarative pages sit over strict TypeScript scripts; the drive runs on timers and nothing ticks when nothing changes.",
     "tryThis": "Edit any file below and the cockpit rebuilds as soon as it compiles. Try changing the cyan accent in Theme.qml, or edit the first leg of the route in logic/drive.ts.",
     "card": "A car's cockpit",
