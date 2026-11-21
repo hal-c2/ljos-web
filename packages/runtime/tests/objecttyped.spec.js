@@ -185,6 +185,109 @@ test("an object a layer's binding made outlives a change to what that binding re
   expect(said).toEqual(["again new", "refused kept n 8 ended 1", "removed ended 2"]);
 });
 
+// What a layer's binding made itself, and still holds when the binding that
+// replaces it is refused, is not ended with that binding: it goes on following
+// what it binds to, until a binding the property takes, or the layer's
+// removal, lets go of it.
+test("an object a layer's binding made outlives the binding that replaces it and is refused", async ({ page }) => {
+  await open(page, "objectlayered");
+  const said = await page.evaluate(async () => {
+    const root = window.scene;
+    const { plain, other } = root.named;
+    const settle = async () => (window.flush(), await new Promise((resolve) => setTimeout(resolve)));
+    const said = [];
+    const over = window.override(root, "made", { binding: () => root.make() });
+    await settle();
+    const made = root.made;
+    root.pick = 3;
+    await settle();
+    said.push(`made ${made.n} ended ${root.ended}`);
+    over.set({ binding: () => plain });
+    root.pick = 4;
+    await settle();
+    said.push(`refused ${root.made === made} ${made.n} ended ${root.ended}`);
+    over.set({ binding: () => plain });
+    root.pick = 5;
+    await settle();
+    said.push(`refused again ${root.made === made} ${made.n} ended ${root.ended}`);
+    over.set({ binding: () => other });
+    await settle();
+    said.push(`taken ${root.made === other} ended ${root.ended}`);
+    over.set({ binding: () => root.make() });
+    await settle();
+    const again = root.made;
+    over.set({ binding: () => plain });
+    await settle();
+    said.push(`refused ${root.made === again} ended ${root.ended}`);
+    over.remove();
+    await settle();
+    said.push(`removed ended ${root.ended}`);
+    return said;
+  });
+  expect(said).toEqual(["made 3 ended 0", "refused true 4 ended 0", "refused again true 5 ended 0", "taken true ended 1", "refused true ended 1", "removed ended 2"]);
+});
+
+// The same binding evaluated again and refused, after it made what the
+// property has, keeps that: it is not ended until the binding makes another.
+test("a layer's binding refused once it has made what the property has keeps it", async ({ page }) => {
+  await open(page, "objectlayered");
+  const said = await page.evaluate(async () => {
+    const root = window.scene;
+    const { plain } = root.named;
+    // A read, for a kernel that evaluates a binding when it is read.
+    const settle = async () => (window.flush(), root.made, await new Promise((resolve) => setTimeout(resolve)));
+    const said = [];
+    const over = window.override(root, "made", { binding: () => (root.pick > 5 ? plain : root.make()) });
+    await settle();
+    const made = root.made;
+    root.pick = 6;
+    await settle();
+    said.push(`refused ${root.made === made} ${made.n} ended ${root.ended}`);
+    root.pick = 0;
+    await settle();
+    const again = root.made;
+    said.push(`made again ${again !== made && again !== plain} ended ${root.ended}`);
+    over.remove();
+    await settle();
+    said.push(`removed ended ${root.ended}`);
+    return said;
+  });
+  expect(said).toEqual(["refused true 6 ended 0", "made again true ended 1", "removed ended 2"]);
+});
+
+// Only the binding now on the layer is followed: one that a later binding
+// replaced is told of no more, so each change warns once, for the current one.
+test("a refused binding a layer gave up is no longer followed", async ({ page }) => {
+  const warned = [];
+  page.on("console", (message) => BOUND.test(message.text()) && warned.push(message.text()));
+  await open(page, "objectlayered");
+  const counts = await page.evaluate(async () => {
+    const root = window.scene;
+    const { plain } = root.named;
+    // A read, for a kernel that evaluates a binding when it is read.
+    const settle = async () => (window.flush(), root.made, await new Promise((resolve) => setTimeout(resolve)));
+    const over = window.override(root, "made", { binding: () => (root.pick, root.make()) });
+    await settle();
+    root.pick = 1;
+    await settle();
+    over.set({ binding: () => (root.pick, plain) });
+    await settle();
+    root.pick = 2;
+    await settle();
+    root.pick = 3;
+    await settle();
+    over.set({ binding: () => (root.pick, plain) });
+    await settle();
+    root.pick = 4;
+    await settle();
+    over.remove();
+    await settle();
+    return root.ended;
+  });
+  expect(counts).toBe(2);
+  expect(warned).toHaveLength(5);
+});
+
 // The object a layer's binding made, put back over the property as a plain
 // value, is the property's again: it is not ended under it, and ends once
 // the layer is taken off.
