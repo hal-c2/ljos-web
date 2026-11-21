@@ -170,6 +170,8 @@ Column {
                     scroller: demos.scroller
                     needs: "wasm"
                     route: "/demos/"
+                    // Narrow, the guide stacks its list over its detail.
+                    least: 560
                     picture: "/pictures/demo-app.webp"
                     pictureDark: "/pictures/demo-app-dark.webp"
                     what: t`the field guide`
