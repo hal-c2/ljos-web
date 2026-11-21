@@ -1492,8 +1492,11 @@ class Layer {
   }
 
   put({ value, binding }: LayerContent): void {
-    this.drop();
     const slot = this.slot;
+    // What the property has as the layer is put or changed: what a binding
+    // the property's type refuses leaves it with, the first time as after.
+    const had = binding && slot.kind ? untrack(() => (this.bound || this.value !== undefined ? this.read() : this.below())) : undefined;
+    this.drop();
     if (binding) {
       const below = () => this.below();
       // Its own root: the layer may be taken off long before the object ends.
@@ -1501,7 +1504,7 @@ class Layer {
         createRoot((end) => {
           this.end = end;
           const guard = guarded(slot.key, () => binding(below), true, slot.self);
-          this.bound = ringed(getOwner(), slot.kind ? converted(slot.key, slot.kind, guard) : guard, undefined, true);
+          this.bound = ringed(getOwner(), slot.kind ? converted(slot.key, slot.kind, guard, had) : guard, had, true);
           this.bound.start();
         }),
       );
