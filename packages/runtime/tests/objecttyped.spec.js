@@ -151,3 +151,36 @@ test("an object a layer's binding made stays alive while a refused binding keeps
   });
   expect(said).toEqual(["made rect", "refused kept n 5 ended 0", "refused again kept ended 0", "set null null ended 1"]);
 });
+
+// A binding put over it that is refused ends the one before at once: a
+// change to what that one read makes nothing again and ends nothing, while
+// a layer's binding that gives something new ends what it made before (on
+// the wasm kernel once its next evaluation is over, so it is counted after
+// the refusal).
+test("an object a layer's binding made outlives a change to what that binding read once a refused binding is put over it", async ({ page }) => {
+  await open(page, "objectlayered");
+  const said = await page.evaluate(async () => {
+    const root = window.scene;
+    const { plain } = root.named;
+    const settle = async () => (window.flush(), await new Promise((resolve) => setTimeout(resolve)));
+    const over = window.override(root, "made", { binding: () => (root.pick > 100 ? null : root.make()) });
+    await settle();
+    const first = root.made;
+    root.pick = 6;
+    await settle();
+    const second = root.made;
+    const said = [`again ${second !== first ? "new" : "same"}`];
+    over.set({ binding: () => plain });
+    await settle();
+    root.pick = 7;
+    await settle();
+    root.pick = 8;
+    await settle();
+    said.push(`refused ${root.made === second ? "kept" : "lost"} n ${second.n} ended ${root.ended}`);
+    over.remove();
+    await settle();
+    said.push(`removed ended ${root.ended}`);
+    return said;
+  });
+  expect(said).toEqual(["again new", "refused kept n 8 ended 1", "removed ended 2"]);
+});

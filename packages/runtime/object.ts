@@ -1518,17 +1518,19 @@ class Layer {
   declare value: unknown;
   declare bound: Bound | null;
   declare end: (() => void) | null;
-  // The roots of bindings this layer had before, kept while the property
-  // still has what one of them made: a binding put over it that the type
-  // refuses keeps that, so it must stay alive until one gives its own.
-  declare held: (() => void)[];
+  // What the property has from a typed binding of this layer, and the root
+  // that holds what the evaluation giving it made. That root is the layer's,
+  // not the evaluation's: a refused binding put over it keeps the value, and
+  // the binding before it ends at once, so what it made must not end with
+  // it, nor with its next evaluation.
+  declare kept: { value: unknown; end: () => void } | null;
 
   constructor(slot: Slot) {
     this.slot = slot;
     this.value = undefined;
     this.bound = null;
     this.end = null;
-    this.held = [];
+    this.kept = null;
   }
 
   read(): unknown {
@@ -1548,13 +1550,12 @@ class Layer {
     // What the property has as the layer is put or changed: what a binding
     // the property's type refuses leaves it with, the first time as after.
     const had = binding && slot.kind ? untrack(() => (this.bound || this.value !== undefined ? this.read() : this.below())) : undefined;
-    if (had === undefined) this.drop();
-    else {
-      if (this.end) this.held.push(this.end);
-      this.end = null;
-      this.bound = null;
-      this.value = undefined;
-    }
+    // What a binding before made stays while the property has it; what came
+    // from under the layer, or a plain value, is held by nothing here.
+    const kept = had === undefined ? null : this.kept?.value === had ? this.kept : { value: had, end: () => {} };
+    if (kept === this.kept) this.kept = null;
+    this.drop();
+    this.kept = kept;
     if (binding) {
       const below = () => this.below();
       // Its own root: the layer may be taken off long before the object ends.
@@ -1563,38 +1564,35 @@ class Layer {
           this.end = end;
           const guard = guarded(slot.key, () => binding(below), true, slot.self);
           const typed = slot.kind ? converted(slot.key, slot.kind, guard, had) : guard;
-          // Once it gives something of its own, what the roots before made
-          // is no one's: they end, after the computation that found it (as
-          // it starts, right after it).
-          let started = false;
-          const compute = () => {
-            const value = typed();
-            if (started && value !== had && this.held.length) {
-              const held = this.held.splice(0);
-              queueMicrotask(() => held.forEach((end) => end()));
-            }
-            return value;
-          };
+          const compute = slot.kind ? () => this.keeping(typed) : typed;
           this.bound = ringed(getOwner(), compute, had, true);
           this.bound.start();
-          started = true;
         }),
       );
-      if (untrack(() => this.bound!()) !== had) this.release();
-    } else {
-      this.release();
-      this.value = slot.made(value);
-    }
+    } else this.value = slot.made(value);
     slot.changed();
   }
 
-  // Ends the roots kept for what the property had.
-  release(): void {
-    for (const end of this.held.splice(0)) end();
+  // One evaluation of a typed binding, with what it makes held by a root of
+  // the layer's. Once it gives something other than what the property has,
+  // the root behind that ends; if it gives the same (a value the type
+  // refused leaves it), what this evaluation made is no one's. Either ends
+  // after the evaluation: what ends may write, and a write inside it would
+  // run it again.
+  keeping(typed: () => unknown): unknown {
+    const { value, end } = madeApart(typed);
+    const kept = this.kept;
+    if (kept && kept.value === value) queueMicrotask(end);
+    else {
+      this.kept = { value, end };
+      if (kept) queueMicrotask(kept.end);
+    }
+    return value;
   }
 
   drop(): void {
-    this.release();
+    this.kept?.end();
+    this.kept = null;
     this.end?.();
     this.end = null;
     this.letGo();
@@ -3109,12 +3107,46 @@ export interface Instantiated {
   dispose: () => void;
 }
 
+// Who owns the objects being made, in place of the current owner, and the
+// owner it stands in for: set while a layer's typed binding is evaluated
+// (`madeApart`). Only what the evaluation makes itself: a computation it starts
+// on the way owns what it makes as before.
+let maker: Owner | null = null;
+let makerFor: Owner | null = null;
+
+// Runs `compute` with what it makes owned by a root of its own, not by the
+// computation it runs in: given back with what it gave.
+function madeApart<T>(compute: () => T): { value: T; end: () => void } {
+  const [owner, end] = runWithOwner(null, () => createRoot((end) => [getOwner(), end] as const));
+  const [before, beforeFor] = [maker, makerFor];
+  [maker, makerFor] = [owner, getOwner()];
+  try {
+    return { value: compute(), end };
+  } catch (error) {
+    end();
+    throw error;
+  } finally {
+    [maker, makerFor] = [before, beforeFor];
+  }
+}
+
 export function instantiate(
   component: (data?: Props) => QObject | null,
   data?: Props,
   item?: QObject | null,
-  owner: Owner | null = item?.$owner ?? getOwner(),
+  owner: Owner | null = item?.$owner ?? (maker && getOwner() === makerFor ? maker : getOwner()),
 ): Instantiated {
+  // What the object makes as it is made is its own, not the maker's.
+  const before = maker;
+  maker = null;
+  try {
+    return instantiateUnder(component, data, item, owner);
+  } finally {
+    maker = before;
+  }
+}
+
+function instantiateUnder(component: (data?: Props) => QObject | null, data: Props | undefined, item: QObject | null | undefined, owner: Owner | null): Instantiated {
   return runWithOwner(owner, () =>
     createRoot((dispose) => {
       try {
