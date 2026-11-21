@@ -21,7 +21,12 @@ Flickable {
     // The docs page: its headings are landed on by name.
     readonly property alias doc: docItem
 
-    width: parent ? parent.width : 0
+    // How much of the right of the place it stands in something over
+    // the page covers (the Observer docked there): the page gives it
+    // that room, so what the reader clicks in stays beside it.
+    property real covered: 0
+
+    width: parent ? Math.max(0, parent.width - covered) : 0
     height: parent ? parent.height : 0
 
     // A web page: the wheel, the scrollbar, a finger and the keys scroll
@@ -77,33 +82,40 @@ Flickable {
             height: view.wide ? Theme.xxl : Theme.xl
         }
 
-        // Only this route's page is made, so the HTML the build writes
-        // for a route holds that page and no other. The landing and
-        // demos pages load by route; a docs page stands here directly,
-        // its page bound as it is made, so a prerender, which writes the
-        // page as it first stands, holds it whole.
-        Loader {
-            id: pageLoader
-            readonly property string route: view.router ? view.router.route : "/"
-            visible: !docItem.visible
-            Accessible.role: Accessible.Section
-            Accessible.name: route === "/demos/" ? "Live demos" : view.router && view.router.pro ? view.router.pro.title : "Home"
-            active: visible
-            width: Math.min(view.measure, view.width - 2 * view.gutter)
-            x: Math.round((view.width - width) / 2)
-            sourceComponent: route === "/" ? landingPage : route === "/demos/" ? demosPage : view.router && view.router.pro ? proPage : emptyPage
-        }
-        DocPage {
-            id: docItem
-            visible: view.router !== null && view.router.docsRoute
-            Accessible.role: Accessible.Section
-            Accessible.name: docItem.page ? docItem.page.title : ""
-            width: Math.min(view.measure, view.width - 2 * view.gutter)
-            x: Math.round((view.width - width) / 2)
-            route: visible ? view.router.route : ""
-            page: view.router ? view.router.page : null
-            scroller: view
-            onFollowed: (href) => view.router.follow(href)
+        // The page's own content, between the shell above it and the
+        // footer: the client area, which a reader is taken to as the
+        // page's main landmark, named for the page. The footer and the
+        // docs beside it are landmarks of their own.
+        Column {
+            width: view.width
+            Accessible.role: Accessible.Client
+            Accessible.name: docItem.visible ? (docItem.page ? docItem.page.title : "") : pageLoader.route === "/demos/" ? "Live demos" : view.router && view.router.pro ? view.router.pro.title : "Home"
+
+            // Only this route's page is made, so the HTML the build
+            // writes for a route holds that page and no other. The
+            // landing and demos pages load by route; a docs page stands
+            // here directly, its page bound as it is made, so a
+            // prerender, which writes the page as it first stands, holds
+            // it whole.
+            Loader {
+                id: pageLoader
+                readonly property string route: view.router ? view.router.route : "/"
+                visible: !docItem.visible
+                active: visible
+                width: Math.min(view.measure, view.width - 2 * view.gutter)
+                x: Math.round((view.width - width) / 2)
+                sourceComponent: route === "/" ? landingPage : route === "/demos/" ? demosPage : view.router && view.router.pro ? proPage : emptyPage
+            }
+            DocPage {
+                id: docItem
+                visible: view.router !== null && view.router.docsRoute
+                width: Math.min(view.measure, view.width - 2 * view.gutter)
+                x: Math.round((view.width - width) / 2)
+                route: visible ? view.router.route : ""
+                page: view.router ? view.router.page : null
+                scroller: view
+                onFollowed: (href) => view.router.follow(href)
+            }
         }
 
         Item {

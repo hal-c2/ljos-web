@@ -24,7 +24,9 @@ Rectangle {
     readonly property bool calm: site ? site.preferences.calm : false
     readonly property bool docs: router !== null && router.docsRoute
     readonly property bool sidebarShown: wide && docs
-    readonly property bool tocShown: sidebarShown && width >= 1200 && router.headings.length > 0
+    // With the Observer docked over the right, what is on the page goes,
+    // so the app the reader clicks in keeps the room beside it.
+    readonly property bool tocShown: sidebarShown && width >= 1200 && router.headings.length > 0 && !(site && site.docked > 0)
     readonly property int gutter: wide ? 32 : 20
     readonly property bool menuOpen: site ? site.menuOpen && !wide : false
     // A page other than the docs is this wide at most here: a front page
