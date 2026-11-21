@@ -83,6 +83,19 @@ Column {
     property bool observing: false
     readonly property string what: t`this example`
     readonly property string fileName: isLive ? live.display[currentFile].name : ""
+    // Copy has just copied: it says so for a moment.
+    property bool copied: false
+    readonly property string language: languageOf(isLive ? (live.display[currentFile].lang || "qml") : lang)
+    // What the card is of, as its name and Copy say it: a live block's
+    // entry file, or a plain block's file, or else its language.
+    readonly property string title: isLive ? live.entry : (file || language)
+    // The file named in the head: none where tabs name them.
+    readonly property string fileShown: isLive ? (live.display.length > 1 && sourceShown ? "" : (live.display.length > 1 ? live.entry : fileName)) : file
+    readonly property string harnessName: isLive ? (live.harness || "") : harness
+    readonly property var chips: (isLive ? live.before : before) ? [language, t`Before`] : [language]
+    // How far the code and the head's words sit from the card's edge:
+    // less on a phone, where every column of code counts.
+    readonly property int inset: width < 480 ? Theme.s : Theme.m
 
     width: parent ? parent.width : 640
     spacing: 0
@@ -262,472 +275,655 @@ Column {
         onTriggered: block.apply()
     }
 
-    Rectangle {
-        width: parent.width
-        height: headRow.implicitHeight + 10
-        color: Theme.surface
-        border.color: Theme.divider
-        border.width: 1
-
-        Row {
-            id: headRow
-            anchors.left: parent.left
-            anchors.leftMargin: 10
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: 14
-
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                color: Theme.textMuted
-                font.family: Theme.mono
-                font.pixelSize: 11
-                text: {
-                    if (block.isLive)
-                        return (block.live.before ? "Before · " : "") + (block.live.harness ? block.live.entry + " (in the " + block.live.harness + " harness)" : block.live.entry);
-                    var parts = [block.lang || "text"];
-                    if (block.file)
-                        parts.push(block.file);
-                    if (block.harness)
-                        parts.push("harness=" + block.harness);
-                    if (block.before)
-                        parts.push("before");
-                    return parts.join("  ");
-                }
-            }
+    // How a language is named in the card's chip.
+    function languageOf(name) {
+        switch (String(name || "text").toLowerCase()) {
+        case "qml":
+            return "QML";
+        case "ts":
+        case "typescript":
+        case "lts":
+            return "TypeScript";
+        case "js":
+        case "javascript":
+        case "mjs":
+            return "JavaScript";
+        case "sh":
+        case "bash":
+        case "shell":
+        case "console":
+            return t({ message: "Shell", context: "code language" });
+        case "rust":
+        case "rs":
+            return "Rust";
+        case "toml":
+            return "TOML";
+        case "json":
+            return "JSON";
+        case "xml":
+            return "XML";
+        case "gherkin":
+        case "feature":
+            return "Gherkin";
+        case "text":
+        case "txt":
+        case "plain":
+        case "plaintext":
+            return t({ message: "Text", context: "code language" });
         }
+        return name;
     }
 
-    // Plain code: highlighted at build time, as written.
+    // The code the card shows now, as the reader would paste it: a
+    // live block's edits included.
+    function shownCode() {
+        if (!isLive)
+            return code.replace(/\n$/, "");
+        var area = editors.itemAt(currentFile);
+        return area ? area.text : live.display[currentFile].code;
+    }
+
+    function copyCode() {
+        Editor.copy(shownCode()).then(function (done) {
+            if (!done)
+                return;
+            block.copied = true;
+            copiedFor.restart();
+        });
+    }
+
+    // Copy says it copied for a moment, then is Copy again.
+    Timer {
+        id: copiedFor
+        interval: 1500
+        onTriggered: block.copied = false
+    }
+
+    // One card: its head (what the code is, and Copy), the code, and a
+    // live block's stage under it, parted by hairlines, not each in a
+    // box of its own.
     Rectangle {
-        visible: !block.isLive
+        id: card
         width: parent.width
-        height: visible ? body.implicitHeight + 20 : 0
+        height: cardColumn.height + 2
+        radius: Theme.radius
         color: Theme.codeBg
         border.color: Theme.divider
         border.width: 1
+        clip: true
+        Accessible.role: Accessible.Grouping
+        Accessible.name: t`Code: ${block.title}`
 
-        Text {
-            id: body
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.top: parent.top
-            anchors.margins: 10
-            color: Theme.codeFg
-            font.family: Theme.mono
-            font.pixelSize: 12
-            // As a live block's editor sets its lines (CodeEditor): a
-            // height the build and the browser agree on.
-            lineHeightMode: Text.FixedHeight
-            lineHeight: 18
-            textFormat: Text.RichText
-            wrapMode: Text.Wrap
-            // The colouring (packed by the build, Editor.richOf) is
-            // spans, markup rich text takes; a <pre> around them is
-            // not (its words come back as text). Lines are breaks,
-            // and a line's leading spaces are the indentation, kept.
-            text: Editor.richOf(block.rich).split("\n").map(function (line) {
-                var indent = /^ */.exec(line)[0];
-                return "&nbsp;".repeat(indent.length) + line.slice(indent.length);
-            }).join("<br/>")
-        }
-    }
+        Column {
+            id: cardColumn
+            x: 1
+            y: 1
+            width: parent.width - 2
 
-    // Live: the editor (one file at a time, tabs where there are
-    // several), then the stage.
-    Column {
-        visible: block.isLive
-        width: parent.width
-        spacing: 0
-
-        Row {
-            visible: block.isLive && block.sourceShown && block.live.display.length > 1
-            spacing: 6
-            // What holds the tabs, so a reader hears them as one set.
-            Accessible.role: Accessible.PageTabList
-
-            Repeater {
-                model: block.isLive ? block.live.display : []
-
-                Rectangle {
-                    required property var modelData
-                    required property int index
-
-                    width: tabWords.implicitWidth + 16
-                    height: tabWords.implicitHeight + 8
-                    color: index === block.currentFile ? Theme.codeBg : Theme.surface
-                    border.color: Theme.divider
-                    border.width: 1
-                    activeFocusOnTab: true
-                    // A tab, named by its file: the toolbar's Edit is
-                    // the one that says "Edit".
-                    Accessible.role: Accessible.PageTab
-                    Accessible.name: modelData.name
-                    Accessible.selected: index === block.currentFile
-                    Accessible.onPressAction: () => block.currentFile = index
-                    Keys.onPressed: (event) => {
-                        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
-                            block.currentFile = index;
-                            event.accepted = true;
-                        }
-                    }
-
-                    Text {
-                        id: tabWords
-                        anchors.centerIn: parent
-                        text: modelData.name
-                        color: Theme.codeFg
-                        font.family: Theme.mono
-                        font.pixelSize: 11
-                        font.bold: index === block.currentFile
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        Accessible.ignored: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: block.currentFile = index
-                    }
-                }
-            }
-        }
-
-        Rectangle {
-            visible: block.sourceShown
-            width: parent.width
-            height: visible ? editorBox.implicitHeight : 0
-            color: Theme.codeBg
-            border.color: block.editing ? Theme.focusRing : Theme.divider
-            border.width: block.editing ? 2 : 1
-
-            Column {
-                id: editorBox
+            Rectangle {
+                id: head
                 width: parent.width
-                // The code's first and last lines clear the box's edges.
-                topPadding: 8
-                bottomPadding: 8
+                height: Math.max(named.height, copyButton.height) + 2 * Theme.xs
+                color: Theme.surface
 
-                Repeater {
-                    id: editors
-                    model: block.isLive ? block.live.display : []
+                Flow {
+                    id: named
+                    x: block.inset
+                    y: Math.round((head.height - height) / 2)
+                    width: head.width - x - copyButton.width - Theme.xs - Theme.s
+                    spacing: Theme.xs
 
-                    // Highlighted by the build; CodeMirror once the
-                    // reader is in it (CodeEditor).
-                    CodeEditor {
-                        required property var modelData
-                        required property int index
+                    // A live block of several files: a tab each, which
+                    // name the files; of one, its name.
+                    Row {
+                        visible: block.isLive && block.sourceShown && block.live.display.length > 1
+                        // What holds the tabs, so a reader hears them as one set.
+                        Accessible.role: Accessible.PageTabList
 
-                        visible: index === block.currentFile
-                        width: block.width - 20
-                        x: 10
-                        code: modelData.code
-                        rich: modelData.rich || ""
-                        lang: modelData.lang || "qml"
-                        label: "Edit " + modelData.name
-                        errors: told
-                        onTextChanged: {
-                            block.recheck();
-                            if (block.started || text !== code)
-                                debounce.restart();
+                        Repeater {
+                            model: block.isLive ? block.live.display : []
+
+                            Item {
+                                id: tab
+                                required property var modelData
+                                required property int index
+                                readonly property bool current: index === block.currentFile
+
+                                width: tabWords.implicitWidth + 2 * Theme.xs
+                                height: 32
+                                activeFocusOnTab: true
+                                // A tab, named by its file: the toolbar's Edit is
+                                // the one that says "Edit".
+                                Accessible.role: Accessible.PageTab
+                                Accessible.name: modelData.name
+                                Accessible.selected: current
+                                Accessible.onPressAction: () => block.currentFile = index
+                                Keys.onPressed: (event) => {
+                                    if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                                        block.currentFile = index;
+                                        event.accepted = true;
+                                    }
+                                }
+
+                                Text {
+                                    id: tabWords
+                                    anchors.centerIn: parent
+                                    text: tab.modelData.name
+                                    color: tab.current ? Theme.text : Theme.textMuted
+                                    font.family: Theme.mono
+                                    font.pixelSize: Theme.captionSize
+                                    font.weight: tab.current ? Font.DemiBold : Font.Normal
+                                }
+                                // The file shown: underlined in the accent.
+                                Rectangle {
+                                    visible: tab.current
+                                    anchors.bottom: parent.bottom
+                                    width: parent.width
+                                    height: 2
+                                    radius: 1
+                                    color: Theme.accent
+                                }
+                                Rectangle {
+                                    visible: tab.activeFocus
+                                    anchors.fill: parent
+                                    radius: Theme.radiusSmall
+                                    color: "transparent"
+                                    border.color: Theme.focusRing
+                                    border.width: 2
+                                }
+                                MouseArea {
+                                    anchors.fill: parent
+                                    Accessible.ignored: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: block.currentFile = tab.index
+                                }
+                            }
                         }
-                        onActiveFocusChanged: block.editing = activeFocus
+                    }
+                    Text {
+                        visible: block.fileShown !== ""
+                        height: 32
+                        verticalAlignment: Text.AlignVCenter
+                        text: block.fileShown
+                        color: Theme.text
+                        font.family: Theme.mono
+                        font.pixelSize: Theme.captionSize
+                        font.weight: Font.DemiBold
+                    }
+                    // The language, and an example that is the "before"
+                    // of a pair, as chips.
+                    Repeater {
+                        model: block.chips
+
+                        Item {
+                            required property string modelData
+                            width: chipBox.width
+                            height: 32
+
+                            Rectangle {
+                                id: chipBox
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: chipWords.implicitWidth + 2 * Theme.xs
+                                height: chipWords.implicitHeight + Theme.xxs
+                                radius: height / 2
+                                color: Theme.surfaceSelected
+
+                                Text {
+                                    id: chipWords
+                                    anchors.centerIn: parent
+                                    text: modelData
+                                    color: Theme.text
+                                    font.family: Theme.sans
+                                    font.pixelSize: Theme.captionSize
+                                }
+                            }
+                        }
+                    }
+                    Text {
+                        visible: block.harnessName !== ""
+                        height: 32
+                        verticalAlignment: Text.AlignVCenter
+                        text: t`in the ${block.harnessName} harness`
+                        color: Theme.textMuted
+                        font.family: Theme.sans
+                        font.pixelSize: Theme.captionSize
                     }
                 }
-            }
-        }
-
-        // The stage's toolbar: what the reader can do with it, never
-        // over what it draws.
-        Rectangle {
-            width: parent.width
-            height: 48
-            color: Theme.surface
-            border.color: Theme.divider
-            border.width: 1
-
-            Row {
-                anchors.left: parent.left
-                anchors.leftMargin: Theme.s
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: Theme.xs
-
-                // One button through the run's phases, so the focus a
-                // keyboard reader gave it stays as it changes.
                 StageButton {
-                    id: runButton
-                    visible: runner.phase !== ""
-                    primary: runner.phase === "picture"
-                    busy: runner.phase === "loading"
-                    text: runner.phase === "picture" ? t({ message: "Run", context: "stage" }) : runner.phase === "loading" ? t`Starting…` : t`Stop`
-                    label: runner.phase === "picture" ? t`Run ${block.what}` : runner.phase === "loading" ? t`Starting ${block.what}…` : t`Stop ${block.what}`
-                    onPressed: runner.act()
-                }
-                StageButton {
-                    text: t({ message: "Edit", context: "stage" })
-                    label: t`Edit ${block.fileName}`
-                    onPressed: {
-                        block.sourceShown = true;
-                        editors.itemAt(block.currentFile).forceActiveFocus();
-                    }
-                }
-                // Only once there is an edit to undo: a control that
-                // cannot act is not shown, as a screen reader would not
-                // be told it is off.
-                StageButton {
-                    visible: block.edited
-                    text: t`Reset`
-                    label: t`Reset ${block.what} to as written`
-                    onPressed: block.reset()
-                }
-                StageButton {
-                    id: sourceButton
-                    checkable: true
-                    checked: block.sourceShown
-                    text: t({ message: "Source", context: "stage tab" })
-                    label: t`Show the source`
-                    onPressed: {
-                        // Code that hides takes no keys: the reader's
-                        // focus stays on what they pressed, and Edit
-                        // has it to give back to the code.
-                        if (block.sourceShown && block.editing)
-                            sourceButton.forceActiveFocus();
-                        block.sourceShown = !block.sourceShown;
-                    }
-                }
-                // Ljós's Observer on the app running here: its objects,
-                // properties, frames and log, as `ljos observe` shows a
-                // native one's. Only while it runs.
-                ObserverButton {
-                    visible: stage.status === ShellLoader.Ready && stage.item !== null
-                    checked: block.observing
-                    label: t`Observer for ${block.what}`
-                    onPressed: block.toggleObserver()
+                    id: copyButton
+                    anchors.right: parent.right
+                    anchors.rightMargin: Theme.xs
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: block.copied ? t`Copied` : t({ message: "Copy", context: "code" })
+                    label: block.copied ? t`Copied` : t`Copy ${block.isLive ? block.fileName : block.title}`
+                    onPressed: block.copyCode()
                 }
             }
             Rectangle {
-                visible: block.edited
-                anchors.right: parent.right
-                anchors.rightMargin: Theme.s
-                anchors.verticalCenter: parent.verticalCenter
-                width: editedWords.implicitWidth + 2 * Theme.xs
-                height: editedWords.implicitHeight + Theme.xxs
-                radius: height / 2
-                color: Theme.surfaceSelected
-                Text {
-                    id: editedWords
-                    anchors.centerIn: parent
-                    text: t`Edited`
-                    color: Theme.textMuted
-                    font.family: Theme.sans
-                    font.pixelSize: 12
-                }
+                width: parent.width
+                height: 1
+                color: Theme.divider
             }
-        }
 
-        // The stage: a ground of the page's with the example's window
-        // on it. In the window, the picture the build drew of the
-        // result, and the running result over it once compiled. The
-        // picture is an <img> in rich text, not an Image: an Image
-        // paints only when its page runs, and this stage is exactly
-        // what a reader without script is shown — the picture must
-        // stand in the HTML as written.
-        Rectangle {
-            id: stageBox
-            width: parent.width
-            // Room around the window to see it as one, less on a phone.
-            readonly property int pad: width < 480 ? Theme.s : Theme.l
-            readonly property int pictureWidth: block.isLive ? Math.min(block.live.width, width - 2 * pad) : 0
-            readonly property int pictureHeight: block.isLive && block.live.width > 0 ? pictureWidth * block.live.height / block.live.width : 0
-            // An example that draws a sliver (a row of three ten-pixel
-            // items) still has a window the reader can see, twice as
-            // wide as it is tall, with the app at its own size in the
-            // middle of it.
-            readonly property int least: 96
-            readonly property int leastWide: Math.min(2 * least, width - 2 * pad)
-            height: frame.height + 2 * pad
-            color: Theme.stage
-            border.color: Theme.divider
-            border.width: 1
-
-            RectangularShadow {
-                x: frame.x
-                y: frame.y
-                width: frame.width
-                height: frame.height
-                radius: frame.radius
-                offset.y: 8
-                blur: 24
-                color: Theme.stageShadow
-            }
-            // The window's edge: a ring a pixel wider than the window,
-            // under it, so nothing lies over what the app draws. A
-            // pointer over the picture lights it, as a call to run.
-            Rectangle {
-                x: frame.x - 1
-                y: frame.y - 1
-                width: frame.width + 2
-                height: frame.height + 2
-                radius: frame.radius + 1
-                color: runner.hovered ? Theme.accent : Theme.stageEdge
-
-                Behavior on color {
-                    ColorAnimation {
-                        duration: Theme.moveSmall
-                        easing.type: Easing.OutCubic
-                    }
-                }
-            }
-            // The window: the app's own paper, the build's too, so the
-            // picture and the running app stand on the same ground.
-            Rectangle {
-                id: frame
-                x: Math.round((stageBox.width - width) / 2)
-                y: stageBox.pad
-                // The app's own box: as wide as its picture, and as tall
-                // as that or as it grows to be.
-                readonly property int appWidth: stageBox.pictureWidth
-                readonly property int appHeight: Math.max(stageBox.pictureHeight, stage.implicitHeight)
-                readonly property int appX: Math.round((width - appWidth) / 2)
-                readonly property int appY: Math.round((height - appHeight) / 2)
-                width: Math.max(stageBox.leastWide, appWidth)
-                height: Math.max(stageBox.least, appHeight)
-                radius: Theme.radiusSmall
-                color: Theme.paper
+            // Plain code: highlighted at build time, as written, every
+            // line whole. A line wider than the card scrolls inside it
+            // (a wheel, a finger, the keyboard), never the page; a press
+            // and drag selects, as it does in any text.
+            Flickable {
+                id: plainScroll
+                visible: !block.isLive
+                width: parent.width
+                height: visible ? body.height + 2 * Theme.s : 0
+                contentWidth: Math.max(width, body.implicitWidth + 2 * block.inset)
+                contentHeight: height
+                flickableDirection: Flickable.HorizontalFlick
+                boundsBehavior: Flickable.StopAtBounds
+                acceptedButtons: Qt.NoButton
                 clip: true
 
                 Text {
-                    // Until the result runs (Ready): before the reader
-                    // reaches for the block, while its code compiles,
-                    // after a first edit that did not compile (the empty
-                    // fallback stands, status Fallback), and always where
-                    // there is no compiler. Once Ready a failed edit
-                    // keeps the last good result, so the picture never
-                    // comes back over it.
-                    visible: block.isLive && stage.status !== ShellLoader.Ready
-                    x: frame.appX
-                    y: frame.appY
+                    id: body
+                    x: block.inset
+                    y: Theme.s
+                    color: Theme.codeFg
+                    font.family: Theme.mono
+                    font.pixelSize: Theme.codeSize
+                    // As a live block's editor sets its lines (CodeEditor): a
+                    // height the build and the browser agree on.
+                    lineHeightMode: Text.FixedHeight
+                    lineHeight: Theme.codeLine
                     textFormat: Text.RichText
-                    text: block.isLive ? "<img src=\"" + block.live.picture + "\" width=\"" + stageBox.pictureWidth + "\" height=\"" + Math.round(stageBox.pictureHeight) + "\" alt=\"What this example draws\">" : ""
-                }
-                // The window fits its app to itself, as a window does:
-                // what it draws is laid out at its picture's size, never
-                // scaled. A 20 px dot stays a dot in a window of the
-                // least size, not a pill as wide as the window.
-                ShellLoader {
-                    id: stage
-                    x: frame.appX
-                    y: frame.appY
-                    width: frame.appWidth
-                    height: frame.appHeight
-                    fallback: emptyStage
-                    // A start's compile has come, or failed: its marks.
-                    onStatusChanged: if (block.started && status !== ShellLoader.Null) block.marked()
-                    onItemChanged: block.observe()
-                }
-                Component {
-                    id: emptyStage
-                    Item {}
-                }
-                // Shown only when it holds a window: an empty one would
-                // lie over the example the stage runs and take a
-                // reader's press from its text fields.
-                WindowContainer {
-                    visible: window !== null
-                    x: frame.appX
-                    y: frame.appY
-                    width: frame.appWidth
-                    height: frame.appHeight
-                    window: Live.windowOf(stage.item)
-                }
-                // Whether it runs: once the reader asks (Run, a press
-                // on its picture, or an edit of its code), and only then
-                // is the compiler fetched.
-                Runner {
-                    id: runner
-                    spanWidth: frame.width
-                    spanHeight: frame.height
-                    can: block.isLive && block.runs && block.checked
-                    ready: stage.status === ShellLoader.Ready
-                    // A first edit that did not compile: the empty
-                    // fallback stands, and the error is said under the
-                    // block. The fallback stands with no error for want
-                    // of a source too, before the first one comes: that
-                    // is loading.
-                    failed: stage.error !== "" && (stage.status === ShellLoader.Fallback || stage.status === ShellLoader.Error)
-                    stops: true
-                    // Unmade only when the budget stops it or the reader
-                    // does: scrolled past or in a hidden tab it stays as
-                    // the reader left it, what they typed in it kept, and
-                    // never loads again, or says so, behind their back.
-                    // Running.most bounds what that costs.
-                    onStartedChanged: started ? block.start() : block.stop()
+                    wrapMode: Text.NoWrap
+                    // The colouring (packed by the build) as rich text
+                    // shows it: lines are breaks, and every space stays.
+                    text: Editor.shownAs(block.rich, block.code, block.code)
                 }
             }
-        }
 
-        // Why it does not run, right under the window it does not run in.
-        Text {
-            id: told
-            visible: text !== ""
-            width: parent.width
-            text: [block.said || stage.error, block.absent].filter(function (line) { return line !== ""; }).join("\n")
-            color: Theme.danger
-            font.family: Theme.mono
-            font.pixelSize: 12
-            wrapMode: Text.Wrap
-        }
-
-        // What it says of itself: none of it until there is some.
-        Rectangle {
-            id: values
-            visible: block.isLive && (block.declaredNames.length > 0 || block.lines.length > 0)
-            width: parent.width
-            height: visible ? valuesColumn.implicitHeight + 2 * Theme.xs : 0
-            color: Theme.surface
-            border.color: Theme.divider
-            border.width: 1
-            Accessible.role: Accessible.Grouping
-            Accessible.name: t`Values`
-
+            // Live: the editor (one file at a time, tabs in the head where
+            // there are several), then the stage.
             Column {
-                id: valuesColumn
-                x: Theme.s
-                y: Theme.xs
-                width: parent.width - 2 * Theme.s
-                spacing: Theme.xxs
+                visible: block.isLive
+                width: parent.width
+                spacing: 0
 
-                Flow {
+                // The editor's box, which rings while the reader is in it.
+                Rectangle {
+                    visible: block.sourceShown
                     width: parent.width
-                    spacing: Theme.s
+                    height: visible ? editorScroll.height : 0
+                    color: Theme.codeBg
+                    border.color: Theme.focusRing
+                    border.width: block.editing ? 2 : 0
 
-                    Text {
-                        text: t`Values`
-                        color: Theme.textMuted
-                        font.family: Theme.sans
-                        font.pixelSize: 12
-                        font.weight: Font.DemiBold
-                    }
-                    Repeater {
-                        model: block.declaredNames
+                    Flickable {
+                        id: editorScroll
+                        width: parent.width
+                        height: editorBox.height
+                        contentWidth: Math.max(width, editorBox.implicitWidth)
+                        contentHeight: editorBox.height
+                        flickableDirection: Flickable.HorizontalFlick
+                        boundsBehavior: Flickable.StopAtBounds
+                        acceptedButtons: Qt.NoButton
+                        clip: true
 
-                        Text {
-                            required property string modelData
-                            color: Theme.text
-                            font.family: Theme.mono
-                            font.pixelSize: 12
-                            text: modelData + ": " + Observed.show(stage.item ? stage.item[modelData] : undefined)
+                        Column {
+                            id: editorBox
+                            // The code's first and last lines, and its
+                            // first column, clear the box's edges.
+                            topPadding: Theme.s
+                            bottomPadding: Theme.s
+                            leftPadding: block.inset
+                            rightPadding: block.inset
+
+                            Repeater {
+                                id: editors
+                                model: block.isLive ? block.live.display : []
+
+                                // Highlighted by the build; CodeMirror once the
+                                // reader is in it (CodeEditor). As wide as its
+                                // longest line, so the box scrolls to all of it.
+                                CodeEditor {
+                                    required property var modelData
+                                    required property int index
+
+                                    visible: index === block.currentFile
+                                    width: Math.max(editorScroll.width - 2 * block.inset, implicitWidth)
+                                    pixelSize: Theme.codeSize
+                                    lineHeight: Theme.codeLine
+                                    code: modelData.code
+                                    rich: modelData.rich || ""
+                                    lang: modelData.lang || "qml"
+                                    label: "Edit " + modelData.name
+                                    errors: told
+                                    onTextChanged: {
+                                        block.recheck();
+                                        if (block.started || text !== code)
+                                            debounce.restart();
+                                    }
+                                    onActiveFocusChanged: block.editing = activeFocus
+                                }
+                            }
                         }
                     }
                 }
-                Repeater {
-                    model: block.lines
+                Rectangle {
+                    visible: block.sourceShown
+                    width: parent.width
+                    height: visible ? 1 : 0
+                    color: Theme.divider
+                }
+
+                // The stage's toolbar: what the reader can do with it, never
+                // over what it draws.
+                Rectangle {
+                    width: parent.width
+                    height: 48
+                    color: Theme.surface
+
+                    Row {
+                        anchors.left: parent.left
+                        anchors.leftMargin: block.inset
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: Theme.xs
+
+                        // One button through the run's phases, so the focus a
+                        // keyboard reader gave it stays as it changes.
+                        StageButton {
+                            id: runButton
+                            visible: runner.phase !== ""
+                            primary: runner.phase === "picture"
+                            busy: runner.phase === "loading"
+                            text: runner.phase === "picture" ? t({ message: "Run", context: "stage" }) : runner.phase === "loading" ? t`Starting…` : t`Stop`
+                            label: runner.phase === "picture" ? t`Run ${block.what}` : runner.phase === "loading" ? t`Starting ${block.what}…` : t`Stop ${block.what}`
+                            onPressed: runner.act()
+                        }
+                        StageButton {
+                            text: t({ message: "Edit", context: "stage" })
+                            label: t`Edit ${block.fileName}`
+                            onPressed: {
+                                block.sourceShown = true;
+                                editors.itemAt(block.currentFile).forceActiveFocus();
+                            }
+                        }
+                        // Only once there is an edit to undo: a control that
+                        // cannot act is not shown, as a screen reader would not
+                        // be told it is off.
+                        StageButton {
+                            visible: block.edited
+                            text: t`Reset`
+                            label: t`Reset ${block.what} to as written`
+                            onPressed: block.reset()
+                        }
+                        StageButton {
+                            id: sourceButton
+                            checkable: true
+                            checked: block.sourceShown
+                            text: t({ message: "Source", context: "stage tab" })
+                            label: t`Show the source`
+                            onPressed: {
+                                // Code that hides takes no keys: the reader's
+                                // focus stays on what they pressed, and Edit
+                                // has it to give back to the code.
+                                if (block.sourceShown && block.editing)
+                                    sourceButton.forceActiveFocus();
+                                block.sourceShown = !block.sourceShown;
+                            }
+                        }
+                        // Ljós's Observer on the app running here: its objects,
+                        // properties, frames and log, as `ljos observe` shows a
+                        // native one's. Only while it runs.
+                        ObserverButton {
+                            visible: stage.status === ShellLoader.Ready && stage.item !== null
+                            checked: block.observing
+                            label: t`Observer for ${block.what}`
+                            onPressed: block.toggleObserver()
+                        }
+                    }
+                    Rectangle {
+                        visible: block.edited
+                        anchors.right: parent.right
+                        anchors.rightMargin: block.inset
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: editedWords.implicitWidth + 2 * Theme.xs
+                        height: editedWords.implicitHeight + Theme.xxs
+                        radius: height / 2
+                        color: Theme.surfaceSelected
+                        Text {
+                            id: editedWords
+                            anchors.centerIn: parent
+                            text: t`Edited`
+                            color: Theme.text
+                            font.family: Theme.sans
+                            font.pixelSize: Theme.captionSize
+                        }
+                    }
+                }
+                Rectangle {
+                    width: parent.width
+                    height: 1
+                    color: Theme.divider
+                }
+
+                // The stage: a ground of the page's with the example's window
+                // on it. In the window, the picture the build drew of the
+                // result, and the running result over it once compiled. The
+                // picture is an <img> in rich text, not an Image: an Image
+                // paints only when its page runs, and this stage is exactly
+                // what a reader without script is shown — the picture must
+                // stand in the HTML as written.
+                Rectangle {
+                    id: stageBox
+                    width: parent.width
+                    // Room around the window to see it as one, less on a phone.
+                    readonly property int pad: width < 480 ? Theme.s : Theme.l
+                    readonly property int pictureWidth: block.isLive ? Math.min(block.live.width, width - 2 * pad) : 0
+                    readonly property int pictureHeight: block.isLive && block.live.width > 0 ? pictureWidth * block.live.height / block.live.width : 0
+                    // An example that draws a sliver (a row of three ten-pixel
+                    // items) still has a window the reader can see, twice as
+                    // wide as it is tall, with the app at its own size in the
+                    // middle of it.
+                    readonly property int least: 96
+                    readonly property int leastWide: Math.min(2 * least, width - 2 * pad)
+                    height: frame.height + 2 * pad
+                    color: Theme.stage
+
+                    RectangularShadow {
+                        x: frame.x
+                        y: frame.y
+                        width: frame.width
+                        height: frame.height
+                        radius: frame.radius
+                        offset.y: 8
+                        blur: 24
+                        color: Theme.stageShadow
+                    }
+                    // The window's edge: a ring a pixel wider than the window,
+                    // under it, so nothing lies over what the app draws. A
+                    // pointer over the picture lights it, as a call to run.
+                    Rectangle {
+                        x: frame.x - 1
+                        y: frame.y - 1
+                        width: frame.width + 2
+                        height: frame.height + 2
+                        radius: frame.radius + 1
+                        color: runner.hovered ? Theme.accent : Theme.stageEdge
+
+                        Behavior on color {
+                            ColorAnimation {
+                                duration: Theme.moveSmall
+                                easing.type: Easing.OutCubic
+                            }
+                        }
+                    }
+                    // The window: the app's own paper, the build's too, so the
+                    // picture and the running app stand on the same ground.
+                    Rectangle {
+                        id: frame
+                        x: Math.round((stageBox.width - width) / 2)
+                        y: stageBox.pad
+                        // The app's own box: as wide as its picture, and as tall
+                        // as that or as it grows to be.
+                        readonly property int appWidth: stageBox.pictureWidth
+                        readonly property int appHeight: Math.max(stageBox.pictureHeight, stage.implicitHeight)
+                        readonly property int appX: Math.round((width - appWidth) / 2)
+                        readonly property int appY: Math.round((height - appHeight) / 2)
+                        width: Math.max(stageBox.leastWide, appWidth)
+                        height: Math.max(stageBox.least, appHeight)
+                        radius: Theme.radiusSmall
+                        color: Theme.paper
+                        clip: true
+
+                        Text {
+                            // Until the result runs (Ready): before the reader
+                            // reaches for the block, while its code compiles,
+                            // after a first edit that did not compile (the empty
+                            // fallback stands, status Fallback), and always where
+                            // there is no compiler. Once Ready a failed edit
+                            // keeps the last good result, so the picture never
+                            // comes back over it.
+                            visible: block.isLive && stage.status !== ShellLoader.Ready
+                            x: frame.appX
+                            y: frame.appY
+                            textFormat: Text.RichText
+                            text: block.isLive ? "<img src=\"" + block.live.picture + "\" width=\"" + stageBox.pictureWidth + "\" height=\"" + Math.round(stageBox.pictureHeight) + "\" alt=\"What this example draws\">" : ""
+                        }
+                        // The window fits its app to itself, as a window does:
+                        // what it draws is laid out at its picture's size, never
+                        // scaled. A 20 px dot stays a dot in a window of the
+                        // least size, not a pill as wide as the window.
+                        ShellLoader {
+                            id: stage
+                            x: frame.appX
+                            y: frame.appY
+                            width: frame.appWidth
+                            height: frame.appHeight
+                            fallback: emptyStage
+                            // A start's compile has come, or failed: its marks.
+                            onStatusChanged: if (block.started && status !== ShellLoader.Null) block.marked()
+                            onItemChanged: block.observe()
+                        }
+                        Component {
+                            id: emptyStage
+                            Item {}
+                        }
+                        // Shown only when it holds a window: an empty one would
+                        // lie over the example the stage runs and take a
+                        // reader's press from its text fields.
+                        WindowContainer {
+                            visible: window !== null
+                            x: frame.appX
+                            y: frame.appY
+                            width: frame.appWidth
+                            height: frame.appHeight
+                            window: Live.windowOf(stage.item)
+                        }
+                        // Whether it runs: once the reader asks (Run, a press
+                        // on its picture, or an edit of its code), and only then
+                        // is the compiler fetched.
+                        Runner {
+                            id: runner
+                            spanWidth: frame.width
+                            spanHeight: frame.height
+                            can: block.isLive && block.runs && block.checked
+                            ready: stage.status === ShellLoader.Ready
+                            // A first edit that did not compile: the empty
+                            // fallback stands, and the error is said under the
+                            // block. The fallback stands with no error for want
+                            // of a source too, before the first one comes: that
+                            // is loading.
+                            failed: stage.error !== "" && (stage.status === ShellLoader.Fallback || stage.status === ShellLoader.Error)
+                            stops: true
+                            // Unmade only when the budget stops it or the reader
+                            // does: scrolled past or in a hidden tab it stays as
+                            // the reader left it, what they typed in it kept, and
+                            // never loads again, or says so, behind their back.
+                            // Running.most bounds what that costs.
+                            onStartedChanged: started ? block.start() : block.stop()
+                        }
+                    }
+                }
+
+                // Why it does not run, right under the window it does not run in.
+                Rectangle {
+                    visible: told.text !== ""
+                    width: parent.width
+                    height: visible ? told.implicitHeight + 2 * Theme.xs : 0
+                    color: Theme.surface
 
                     Text {
-                        required property var modelData
-                        width: valuesColumn.width
-                        wrapMode: Text.Wrap
-                        color: modelData.level === "warn" || modelData.level === "error" ? Theme.danger : modelData.level === "signal" ? Theme.link : Theme.text
+                        id: told
+                        x: block.inset
+                        y: Theme.xs
+                        width: parent.width - 2 * block.inset
+                        text: [block.said || stage.error, block.absent].filter(function (line) { return line !== ""; }).join("\n")
+                        color: Theme.danger
                         font.family: Theme.mono
-                        font.pixelSize: 12
-                        text: (modelData.level === "signal" ? "↯ " : "› ") + modelData.message
+                        font.pixelSize: Theme.captionSize
+                        lineHeight: Theme.captionLine
+                        lineHeightMode: Text.FixedHeight
+                        wrapMode: Text.Wrap
+                    }
+                }
+
+                // What it says of itself: none of it until there is some.
+                Rectangle {
+                    id: values
+                    visible: block.isLive && (block.declaredNames.length > 0 || block.lines.length > 0)
+                    width: parent.width
+                    height: visible ? valuesColumn.implicitHeight + 2 * Theme.xs + 1 : 0
+                    color: Theme.surface
+                    Accessible.role: Accessible.Grouping
+                    Accessible.name: t`Values`
+
+                    Rectangle {
+                        width: parent.width
+                        height: 1
+                        color: Theme.divider
+                    }
+                    Column {
+                        id: valuesColumn
+                        x: block.inset
+                        y: Theme.xs + 1
+                        width: parent.width - 2 * block.inset
+                        spacing: Theme.xxs
+
+                        Flow {
+                            width: parent.width
+                            spacing: Theme.s
+
+                            Text {
+                                text: t`Values`
+                                color: Theme.textMuted
+                                font.family: Theme.sans
+                                font.pixelSize: Theme.captionSize
+                                font.weight: Font.DemiBold
+                            }
+                            Repeater {
+                                model: block.declaredNames
+
+                                Text {
+                                    required property string modelData
+                                    color: Theme.text
+                                    font.family: Theme.mono
+                                    font.pixelSize: Theme.captionSize
+                                    text: modelData + ": " + Observed.show(stage.item ? stage.item[modelData] : undefined)
+                                }
+                            }
+                        }
+                        Repeater {
+                            model: block.lines
+
+                            Text {
+                                required property var modelData
+                                width: valuesColumn.width
+                                wrapMode: Text.Wrap
+                                color: modelData.level === "warn" || modelData.level === "error" ? Theme.danger : modelData.level === "signal" ? Theme.link : Theme.text
+                                font.family: Theme.mono
+                                font.pixelSize: Theme.captionSize
+                                text: (modelData.level === "signal" ? "↯ " : "› ") + modelData.message
+                            }
+                        }
                     }
                 }
             }

@@ -118,7 +118,7 @@ QtObject {
     readonly property int compactHeroSize: 36
     readonly property int compactHeroLine: 44
     readonly property int codeSize: 14
-    readonly property int codeLine: 20
+    readonly property int codeLine: 22
 
     // Space, on a 4 px grid.
     readonly property int xxs: 4

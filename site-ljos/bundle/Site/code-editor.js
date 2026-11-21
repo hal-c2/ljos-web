@@ -113,6 +113,20 @@ function richOf(packed) {
     return open ? html + "</span>" : html;
 }
 
+// The code on the reader's clipboard: a promise of whether it got
+// there. A page with no clipboard (no secure context, a browser that
+// refuses) is told no, and says nothing was copied.
+function copy(text) {
+    var clipboard = globalThis.navigator ? globalThis.navigator.clipboard : null;
+    if (!clipboard || !clipboard.writeText)
+        return Promise.resolve(false);
+    return clipboard.writeText(String(text)).then(function () {
+        return true;
+    }, function () {
+        return false;
+    });
+}
+
 // Rich text keeps no run of spaces, and lines are breaks: the
 // highlighted code as the Text shows it, every space a space that
 // stays, and code with no highlighting (edited before the editor came)
