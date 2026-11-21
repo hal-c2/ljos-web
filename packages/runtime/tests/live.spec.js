@@ -103,6 +103,7 @@ const SINKS = [
   ["a block's BorderImage", (name) => hostile("border_image", at(name))],
   // Rich text a block sets from what a shell gives it.
   ["rich text's <img>", (name) => hostile("rich", `<img src='${at(name)}'>`)],
+  ["rich text's <picture>", (name) => hostile("rich", `<picture><source type='image/webp' srcset='${at(name)} 1x'><img src='${at(name)}-fallback' loading='eager'></picture>`)],
   ["rich text's style", (name) => hostile("rich", `<span style='background-image:${url(name)}'>x</span>`)],
   ["rich text's style with image-set", (name) => hostile("rich", `<span style='background-image:image-set("${at(name)}" 1x);color:image-set("${at(name)}" 1x)'>x</span>`)],
   ["rich text's bgcolor", (name) => hostile("rich", `<table bgcolor='${url(name)}'><tr><td>x</td></tr></table>`)],

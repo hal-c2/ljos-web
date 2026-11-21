@@ -58,6 +58,13 @@ const KNOWN = new Set(
 // them (`script`, `style`, `head`) or without (`html`, `body`, `qt`).
 const DROPPED = new Set(["script", "style", "head", "title", "meta", "link"]);
 const KEPT = new Set([...KNOWN].filter((name) => !DROPPED.has(name) && !["html", "body", "qt"].includes(name)));
+// A picture in more than one format, which the browser picks from: kept
+// once a string is rich text, though Qt's parser does not know it, so a
+// string that opens with one is not taken for rich text by it. A
+// `source` stands only in a `picture`, and only for a picture.
+KEPT.add("picture");
+KEPT.add("source");
+const pictured = (node) => node.parentNode?.localName === "picture" && /^(image\/[\w.+-]+)?$/i.test(node.getAttribute("type") ?? "");
 // Renamed: elements HTML no longer has, and an `a` that is not a link the
 // browser follows.
 const AS = { font: "span", center: "div", nobr: "span", tt: "code" };
@@ -197,6 +204,14 @@ function copy(from, to, name, inert) {
     if (pixels(read("height") ?? "")) style.height = pixels(read("height"));
     const align = read("align");
     if (align) style.verticalAlign = { top: "top", middle: "middle", bottom: "baseline" }[align] ?? "";
+    // When to fetch it and how to decode it: only the words the web has.
+    if (/^(lazy|eager)$/.test(read("loading") ?? "")) to.setAttribute("loading", read("loading"));
+    if (/^(async|sync|auto)$/.test(read("decoding") ?? "")) to.setAttribute("decoding", read("decoding"));
+  } else if (name === "source") {
+    // Its pictures are fetched as an img's are: only while markup loads.
+    if (!inert && read("srcset")) to.setAttribute("srcset", read("srcset")); // guarded
+    if (read("type")) to.setAttribute("type", read("type"));
+    if (read("media")) to.setAttribute("media", read("media"));
   } else if (name === "table") {
     if (read("border")) to.border = read("border");
     if (read("cellspacing")) to.cellSpacing = read("cellspacing");
@@ -218,7 +233,7 @@ function rebuild(from, to, inert) {
     if (node.nodeType === 3) to.append(node.data);
     if (node.nodeType !== 1) continue;
     const name = node.localName;
-    if (DROPPED.has(name)) continue;
+    if (DROPPED.has(name) || (name === "source" && !pictured(node))) continue;
     if (!KEPT.has(name)) {
       rebuild(node, to, inert);
       continue;
