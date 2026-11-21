@@ -2210,8 +2210,8 @@ function defineAlias(self: QObject, name: string, [target, ...path]: AliasPath):
   // the target before it.
   let unbound = given;
   // An object declared for the alias (`thing: QtObject {}`) is made once, as
-  // Qt makes it: what the reads before completion made, the first
-  // evaluation after it hands on rather than making another.
+  // Qt makes it, wherever it is first read: early, by the target's binding,
+  // or by a state that ends and gives the binding back.
   const declared = given && Boolean(self.$props.$made?.includes(name));
   // What the binding makes is made for the object it is assigned to, as a
   // binding of that object's own would be, whether read early or once all
@@ -2222,14 +2222,7 @@ function defineAlias(self: QObject, name: string, [target, ...path]: AliasPath):
     return object ? declaredIn(object as unknown as QObject, () => self.$props[name]) : self.$props[name];
   };
   let made: { value: unknown } | null = null;
-  const give = declared
-    ? () => {
-        if (unbound && untrack(early!)) return (made ??= { value: evaluate() }).value;
-        const kept = made;
-        made = null;
-        return kept ? kept.value : evaluate();
-      }
-    : evaluate;
+  const give = declared ? () => (made ??= { value: evaluate() }).value : evaluate;
   // A binding like any other: one that cannot be evaluated yet is told of.
   const binding = given ? guarded(name, give) : null;
   // A script's write to the alias ends what was bound to it, as any
@@ -2285,10 +2278,7 @@ function defineAlias(self: QObject, name: string, [target, ...path]: AliasPath):
     if (!aliased) return false;
     unbound = false;
     setEarly!(false);
-    // An object a read before this made is the one the target is given.
-    const kept = made;
-    made = null;
-    aliased.bind(kept ? Object.create(self.$props, { [name]: { get: () => kept.value, enumerable: true } }) : self.$props, name);
+    aliased.bind(declared ? Object.create(self.$props, { [name]: { get: give, enumerable: true } }) : self.$props, name);
     return true;
   };
   // A declared object is the target's as the objects properties hold are
