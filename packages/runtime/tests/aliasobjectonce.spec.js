@@ -15,3 +15,22 @@ test("an object an alias is read for before it is bound is made once", async ({ 
   await open(page, "aliasobjectearly");
   expect(await page.evaluate(() => window.scene.read())).toEqual([1, true, true]);
 });
+
+// An alias of an alias is assigned rather than bound, once the instance is
+// complete: until that assignment reaches the target, a read gives what the
+// instance was given. Here the read is the `Component.onCompleted` of an
+// instance a binding makes (`createObject()`), which runs at once rather
+// than once the scene settles. Qt 6.12.0 gives `[true, true]`.
+test("an alias of an alias read as the instance a binding made completes is what it was given", async ({ page }) => {
+  await open(page, "aliasobjectmade");
+  expect(await page.evaluate(() => window.scene.read())).toEqual([true, true]);
+});
+
+// The same read by instances made in a state's flush, and in a script.
+// Qt 6.12.0 gives `[true]` for each.
+for (const made of ["inState", "inScript"]) {
+  test(`an alias of an alias read as an instance made ${made === "inState" ? "in a state's flush" : "in a script"} completes is what it was given`, async ({ page }) => {
+    await open(page, "aliasobjectflush");
+    expect(await page.evaluate((made) => window.scene[made](), made)).toEqual([true]);
+  });
+}
