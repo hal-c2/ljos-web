@@ -145,6 +145,48 @@ test("on a wide window it is docked along the right, and the example can still b
   await page.getByRole("link", { name: "Hot Reload", exact: true }).first().click({ trial: true, timeout: 5_000 });
 });
 
+// Asked for less motion, the dock does not travel: it fades in where it
+// stands, and out again. Its place and its opacity are read in the page on
+// every frame from the press until it is gone, so a slide however short is
+// seen.
+test("asked for less motion, it fades in and out where it stands, and never slides", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await open(page, ROUTE);
+  const block = await run(page, 0);
+  await expect(observerButton(block)).toBeVisible();
+  const watch = () =>
+    page.evaluate(() => {
+      const seen = [];
+      globalThis.dockSeen = seen;
+      const look = () => {
+        const element = document.querySelector('[role="group"][aria-label="Observer"]');
+        if (element && element.getClientRects().length > 0) {
+          const box = element.getBoundingClientRect();
+          seen.push({ right: Math.round(box.right), opacity: Number(getComputedStyle(element).opacity) });
+        } else if (seen.length > 0) seen.push(null);
+        if (globalThis.dockSeen === seen) requestAnimationFrame(look);
+      };
+      look();
+    });
+  const seen = () => page.evaluate(() => globalThis.dockSeen);
+
+  await watch();
+  await press(observerButton(block));
+  await expect.poll(async () => (await seen()).at(-1)?.opacity, { message: "it comes to rest opaque" }).toBe(1);
+  const opening = await seen();
+  expect(opening.filter((at) => at && at.right !== 1280), "it stands along the right edge as it opens").toEqual([]);
+  expect(opening.some((at) => at && at.opacity < 1), "it fades in").toBe(true);
+
+  await watch();
+  await page.getByRole("button", { name: "Close the Observer" }).click();
+  await expect(dock(page)).toBeHidden();
+  await expect.poll(async () => (await seen()).at(-1), { message: "it is gone" }).toBe(null);
+  const closing = (await seen()).filter(Boolean);
+  expect(closing.filter((at) => at.right !== 1280), "it stands along the right edge as it closes").toEqual([]);
+  expect(closing.some((at) => at.opacity > 0 && at.opacity < 1), "it fades out").toBe(true);
+});
+
 // A docs page keeps its sidebar on a window this wide: docked beside both,
 // the Observer would leave the page too little room to be read, so it is a
 // sheet, as on a phone.
