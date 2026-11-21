@@ -519,7 +519,9 @@ for (const viewport of [
 // clear of the code: a ring around the text itself would cross the
 // first column. Which editor of the page: /quality/motion/'s first
 // example is taller than the window, whose edge would cut its ring
-// wherever it was scrolled to, so its second is read.
+// wherever it was scrolled to, so its second is read, in a window tall
+// enough to hold it whole (code at 14 px on 22 px lines makes it a
+// little over 900).
 for (const [route, name, nth, colorScheme, width] of [
   ["/quality/motion/", "Edit Main.qml", 1, "light", 1440],
   ["/quality/motion/", "Edit Main.qml", 1, "dark", 390],
@@ -527,7 +529,7 @@ for (const [route, name, nth, colorScheme, width] of [
   ["/demos/", "Edit the Pantry's Shell.qml", 0, "light", 390],
 ]) {
   test(`${route}'s code editor's focus ring stands clear of its code at ${width} in ${colorScheme}`, async ({ browser }) => {
-    const context = await browser.newContext({ viewport: { width, height: 900 }, colorScheme });
+    const context = await browser.newContext({ viewport: { width, height: 1100 }, colorScheme });
     try {
       const page = await context.newPage();
       await page.goto(route);
