@@ -684,10 +684,13 @@ builds nothing 3D; it provides the canvas, the frame clock and the
 graph.
 
 As built so far (A25): the wgpu crate is reached through
-`crates/ljos_web_3d` and is the default (hal-c2/ljos-web#46) where
-WebGPU has an adapter for the page; where it has none, a View3D no one
-asked a renderer of draws with `QtQuick3D/render.js`, as a page does with
-`?view3d=js` or `VITE_LJOS_VIEW3D=js`.
+`crates/ljos_web_3d` and is the default (hal-c2/ljos-web#46) wherever the
+browser runs WebAssembly and the build has the renderer: on WebGPU where
+the page is given an adapter, and on WebGL 2 where WebGPU is off or gives
+none, so a scene of glTF models is drawn with them in either browser. A
+View3D draws with `QtQuick3D/render.js` where there is no WebAssembly, in
+a build without the wgpu renderer, where wgpu fails or traps as it first
+makes the view, once its GPU is not to be had again, and where a page asks with `?view3d=js` or `VITE_LJOS_VIEW3D=js`.
 Picking stays in JavaScript (`pick.js`), not wasm.
 
 ### A11. Decisions taken in phase 1 (summary)
@@ -1696,11 +1699,15 @@ committed. Without that directory the switch has nothing to load.
 `size/check.js` holds the budgets below, and fails a page with no
 View3D that has either renderer in it.
 
-DECISION: the default stays `"js"`. The mapping does not yet reach
-`pickable`, pivot, `depthBias`, scope, morph targets, fog, reflection
-probes, clearcoat, subsets, `DefaultMaterial`'s emissive and opacity, or
-mesh-file sources, and `render.js` goes only once `tests/quick3d.spec.js`
-passes on wgpu.
+DECISION: wgpu is the default (hal-c2/ljos-web#46), on WebGPU where the
+page has an adapter and on WebGL 2 where it has none, and `render.js`
+stays for where wgpu cannot draw: no WebAssembly, a build without the
+renderer, a view whose first making fails or traps (it says why and is
+drawn by `render.js`), a GPU lost for good, and `?view3d=js` or
+`VITE_LJOS_VIEW3D=js`. `render.js` goes only once `tests/quick3d.spec.js`
+passes on wgpu; the mapping does not yet reach `pickable`, pivot,
+`depthBias`, scope, morph targets, fog, reflection probes, clearcoat,
+subsets, `DefaultMaterial`'s emissive and opacity, or mesh-file sources.
 
 DECISION: `pick.js` keeps picking. QML's `pick` answers at once with
 JavaScript objects, which a renderer that loads and draws
@@ -1715,7 +1722,9 @@ neither.
 
 DECISION: `QtQuick3D.AssetUtils`' `RuntimeLoader` is a type on both
 renderers, but only wgpu reads the file: the JavaScript renderer draws
-what is declared and has no glTF reader.
+what is declared and has no glTF reader. That is why wgpu, not the
+JavaScript renderer, draws a View3D where WebGPU has no adapter: on its
+WebGL 2 backend it reads the file as on WebGPU.
 
 Known gaps: a live `sourceItem` texture and a `TextureData` that is not
 RGBA8 give no picture; a `.tga` is a picture on both renderers, a `.ktx` only
@@ -1745,9 +1754,10 @@ targets in a CustomMaterial, KTX pictures, what a probe mirrors, a blurred sky, 
 skin, Mask and Opaque with an opacity, a picture given as numbers by fractions,
 affectors, and a view of very many nodes.
 
-DECISION: JavaScript stays the default renderer of View3D until those specs pass,
-and until a scene's rebuild and a view read back as a texture cost less than they
-do: a View3D drawn into another's scene reads back every frame.
+DECISION: wgpu is the default renderer of View3D (A10), as it draws glTF models
+and `render.js` reads none. `render.js` is not removed until those specs pass, and
+until a scene's rebuild and a view read back as a texture cost less than they do:
+a View3D drawn into another's scene reads back every frame.
 
 ### A26. A page written at build time, and taken over when it runs
 

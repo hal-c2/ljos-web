@@ -288,9 +288,9 @@ export const View3D = defineType("View3D", Item, {
     if (wgpu) {
       self.$canvas = { element: canvas };
       self.$view = () => 0;
-      // wgpu taken for want of an ask, and WebGPU with no adapter for the
-      // page: the JavaScript renderer draws on the canvas instead, or on
-      // one in its place where wgpu took the canvas's context (`taken`).
+      // wgpu taken for want of an ask, and its GPU not to be had again: the
+      // JavaScript renderer draws on the canvas instead, or on one in its
+      // place where wgpu took the canvas's context (`taken`).
       const owner = getOwner();
       const instead = chosen()
         ? undefined

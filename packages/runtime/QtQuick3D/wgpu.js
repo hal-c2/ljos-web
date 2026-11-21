@@ -17,7 +17,7 @@
 import { createRenderEffect, createRoot, getOwner, runWithOwner } from "solid-js";
 import { flush, located, slot, effect } from "../object.ts";
 import { color } from "../QtQuick/color.ts";
-import { adapted, made } from "./early.js";
+import { made } from "./early.js";
 import { signal, untrack } from "#kernel";
 import { CustomMaterial } from "./CustomMaterial.js";
 import { handed, text } from "./effects.js";
@@ -600,8 +600,9 @@ export const gave = (view) => {
 // a tool that times the view (tests/perf3d) puts there is told of each build
 // ("sync": the scene read into the renderer), each frame drawn ("draw"),
 // and, on WebGL 2, each frame's GPU work ("gpu", until it was done, as the
-// view is paced by), from when until when. Unset, nothing is timed for it. Where WebGPU gives
-// the page no adapter, `instead`, if given, is called in place of drawing.
+// view is paced by), from when until when. Unset, nothing is timed for it.
+// `instead`, if given, draws the view on the JavaScript renderer once its
+// GPU is not to be had again (`giveUp`).
 export function drawOn(self, canvas, told, instead) {
   const [made, setMade] = signal(null, self.$owner);
   const [arrivals, setArrivals] = signal(0, self.$owner);
@@ -823,9 +824,9 @@ export function drawOn(self, canvas, told, instead) {
   //
   // One no one asked a renderer of, whose GPU is not to be had again (a
   // browser whose GPU process gave up may have no adapter after) or is lost
-  // too often to go on, draws on the JavaScript renderer instead, as where
-  // WebGPU had no adapter from the start: on a canvas of its own, as this
-  // one keeps WebGPU's context, if it was given it. One a renderer was asked
+  // too often to go on, draws on the JavaScript renderer instead: on a
+  // canvas of its own, as this one keeps WebGPU's context, if it was given
+  // it. One a renderer was asked
   // of says why it stops.
   const giveUp = (why) => {
     if (!instead) {
@@ -932,44 +933,51 @@ export function drawOn(self, canvas, told, instead) {
 
   const size = (width, height) => [Math.max(1, Math.round(width * devicePixelRatio)), Math.max(1, Math.round(height * devicePixelRatio))];
   [canvas.width, canvas.height] = untrack(() => size(self.width, self.height));
+  // One no one asked a renderer of that wgpu never made (its WebGL 2 short
+  // of what wgpu needs, its chunk not fetched, the renderer stopped before
+  // it drew) draws on the JavaScript renderer instead, as it did before
+  // wgpu drew where WebGPU is not, and says why; one that drew keeps its
+  // last picture. One a renderer was asked of says why it stops.
+  //
+  // Whether a view was ever kept, which is not `kept`: that one lets go of
+  // a view lost, and one that drew is not handed back for failing to be
+  // made again.
+  let everKept = false;
+  const unmade = (why) => {
+    if (!instead || everKept || gone) return false;
+    console.warn(`View3D: drawn by the JavaScript renderer, as wgpu could not draw it: ${why}`);
+    retire();
+    return true;
+  };
   const make = () => {
     queue = queue
       .then(async () => {
         if (gone) return;
         lostWhileMade = null;
         if (givenUp) return void giveUp(givenUp);
-        // Before the renderer is fetched or the canvas taken, so what draws
-        // instead has both.
-        if (instead && !(await adapted())) {
-          // A view let go while WebGPU was asked has no owner left for what
-          // draws instead to live under.
-          if (gone) return;
-          gone = true;
-          retiring.delete(retire);
-          instead();
-          // What took the view's picture asks it again, of what draws now.
-          return void setDraws((times) => times + 1);
-        }
         // A renderer that trapped as it was first made is not kept, and is
         // not made again: a failed fetch alone is asked for again.
-        if (stopped) return;
+        if (stopped) return void unmade(stopped);
         if (!module) await chunk();
-        if (stopped) return;
+        if (stopped) return void unmade(stopped);
         gaveCanvas = true;
         const view = await module.View3d.create(canvas, host);
         if (gone) return void into(() => view.free());
-        if (stopped) return;
+        // A view the renderer stopped in the making is let go of here, as
+        // nothing keeps it.
+        if (stopped) return void (into(() => view.free()), unmade(stopped));
         state.backend = into(() => view.backend(), null);
-        if (stopped) return;
+        if (stopped) return void (into(() => view.free()), unmade(stopped));
         // The context the view draws with, which a canvas gives again.
         if (state.backend === "webgl2") gl = canvas.getContext("webgl2");
         // Lost before it is kept, it is never kept: it is made again.
         if (lostWhileMade !== null) return void remake(view, lostWhileMade);
         kept = view;
+        everKept = true;
         setMade(() => view);
       })
       .catch(async (error) => {
-        if (trapped(error)) return;
+        if (trapped(error)) return void unmade(stopped);
         // A view made again for a GPU lost gives WebGPU up for the page only
         // where WebGPU has no adapter after, or once another view found that
         // or gave up; a view that fails for a reason of its own, with an
@@ -981,6 +989,7 @@ export function drawOn(self, canvas, told, instead) {
           for (const other of [...retiring]) other();
           return void (gone || giveUp(givenUp));
         }
+        if (unmade(String(error?.message ?? error))) return;
         state.error = String(error?.message ?? error);
         console.error(`View3D: ${state.error}`);
       });
