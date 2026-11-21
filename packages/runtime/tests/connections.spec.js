@@ -113,9 +113,8 @@ test("a Connections whose target is replaced in the flush hears the new target c
 // `third.parentChanged` gives the binding, and so the Connections, another
 // target: the change was made while `box` was the target, and is heard.
 // Ljós finds it once the flush settles, after the binding has replaced the
-// target and let go of `box`'s listener (hal-c2/ljos-web#144).
+// target: what `box` changed is told as its listener is let go (#144).
 test("a Connections whose target the same change replaces through a binding hears it of the old target", async ({ page }) => {
-  test.fail(true, "hal-c2/ljos-web#144: the change is found after the target is replaced");
   await open(page, "connectionswitch");
   expect(await page.evaluate(() => window.scene.replaced())).toEqual([0]);
 });
