@@ -69,6 +69,9 @@ Rectangle {
         // The reader's last target is kept, clamped to the new tray, not
         // the springing x and y. The puck is placed there, not sprung: a
         // spring from where it stood would draw it past the tray's edge.
+        // Where it stands is given first, which stops a spring still on
+        // its way: the target alone may be the one the spring already
+        // heads for, and giving that again changes nothing.
         function keepPuck() {
             if (!puck.led)
                 return;
@@ -76,6 +79,8 @@ Rectangle {
             puck.goalX = inside.x;
             puck.goalY = inside.y;
             puck.placing = true;
+            puck.x = puck.x;
+            puck.y = puck.y;
             puck.x = inside.x;
             puck.y = inside.y;
             puck.placing = false;
