@@ -78,7 +78,7 @@ Item {
         }
     ]
 
-    // The same in a script, as one flush.
+    // The same in a script: each write is settled as it is made.
     function rebindThenChange() {
         root.useOther = true;
         second.parent = box;
