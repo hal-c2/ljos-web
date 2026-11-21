@@ -309,7 +309,10 @@ test("a code example's Copy copies its code, and says so", async ({
     await expect(card.getByText("Copied")).toBeVisible();
     const copied = await page.evaluate(() => navigator.clipboard.readText());
     expect(copied.trim().length).toBeGreaterThan(0);
-    expect(await card.innerText()).toContain(
+    // The card shows every space as one that stays (a no-break space,
+    // as rich text keeps no run of plain ones); what is copied has
+    // plain spaces, as written.
+    expect((await card.innerText()).replace(/\u00a0/g, " ")).toContain(
       copied.trim().split("\n")[0].trim(),
     );
   } finally {
