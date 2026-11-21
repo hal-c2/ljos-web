@@ -166,6 +166,28 @@ const FIRST_FRAME = Number(values["first-frame"]);
 // a new frame each moment, as a turning scene does.
 const MOVES_WITHIN = 500;
 
+// What tells the time (a watch face, a date) is shot at one moment, in
+// one zone and language, wherever and whenever the capture runs: else
+// each deploy's picture differs from the last by the clock alone. The
+// timers are left alone, so what animates still does and a timer that
+// throws is still seen to (Playwright's clock runs them itself, and
+// what one throws never reaches the page).
+const MOMENT = Date.parse("2026-01-01T10:09:30Z");
+function holdTime(moment) {
+  const Real = Date;
+  function Fixed(...given) {
+    if (!new.target) return new Real(moment).toString();
+    return given.length === 0 ? new Real(moment) : new Real(...given);
+  }
+  Fixed.prototype = Real.prototype;
+  Fixed.now = () => moment;
+  Fixed.parse = Real.parse;
+  Fixed.UTC = Real.UTC;
+  globalThis.Date = Fixed;
+}
+const ZONE = "UTC";
+const LANGUAGE = "en-GB";
+
 // The canvases a part shows, each judged blank or not by its own
 // pixels: what is drawn over a canvas (its labels, a control) is hidden
 // while it is read, so a canvas that drew nothing under a label is
@@ -264,7 +286,8 @@ async function save(shot, png) {
 async function visit(browser, gpu, init, site, kernel, target, rank, scheme, viewport) {
   // Sections are shot whole, so the window is as tall as the tallest one.
   const size = target.take === "sections" ? { ...viewport, height: 1400 } : viewport;
-  const context = await browser.newContext({ viewport: { width: size.width, height: size.height }, deviceScaleFactor: 1, colorScheme: scheme, reducedMotion: "no-preference" });
+  const context = await browser.newContext({ viewport: { width: size.width, height: size.height }, deviceScaleFactor: 1, colorScheme: scheme, reducedMotion: "no-preference", timezoneId: ZONE, locale: LANGUAGE });
+  await context.addInitScript(holdTime, MOMENT);
   if (init) await context.addInitScript(init);
   if (target.shell && lists.shellKey) await context.addInitScript(([key, shell]) => localStorage.setItem(key, shell), [lists.shellKey, target.shell]);
   const page = await context.newPage();

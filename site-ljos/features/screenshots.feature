@@ -80,3 +80,9 @@ Feature: Every deploy shows what it draws, beside what the last one drew
     Then its canvas is left out of the comparison, and the rest of the picture still counts
     And the picture says its moving part was not compared
     And a canvas that holds still is compared whole
+
+  Scenario: What tells the time is shot at the same moment every time
+    Given a demo that shows the time and the date, as a watch face does
+    When it is shot twice, a second apart, on machines in different time zones
+    Then both pictures show the same time, date and time zone
+    And the picture is compared whole

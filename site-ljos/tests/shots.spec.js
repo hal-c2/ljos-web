@@ -205,16 +205,27 @@ const turn = (now) => {
   requestAnimationFrame(turn);
 };
 requestAnimationFrame(turn);`),
+  // A face that tells the time, to the millisecond, in the reader's zone
+  // and language.
+  clock: `<!doctype html>
+<html><head><meta charset="utf-8"><title>Fixture</title></head>
+<body style="margin:0;background:#f7f5f0;color:#1a1917;font:16px sans-serif">
+<div id="app" data-ljos-hydrated="true"><h1 id="time" style="font-size:96px;margin:48px"></h1></div>
+<script>const tell = () => {
+  const at = new Date();
+  document.getElementById("time").textContent = at.toLocaleString() + " " + at.getMilliseconds() + " " + Intl.DateTimeFormat().resolvedOptions().timeZone;
+  setTimeout(tell, 10);
+};
+tell();</script></body></html>`,
 };
 
-function capture(kind) {
+function capture(kind, out = scratch(`capture-${kind}`), zone = process.env.TZ) {
   const root = scratch(`site-${kind}`);
   writeFileSync(join(root, "index.html"), sites[kind]);
   const lists = join(root, "lists.json");
   writeFileSync(lists, JSON.stringify({ shells: [""], shellKey: null, pro: [] }));
-  const out = scratch(`capture-${kind}`);
-  const result = spawnSync(process.execPath, [join(scripts, "capture.mjs"), "--site", `solid=${root}`, "--out", out, "--lists", lists, "--only", "shell-default", "--first-frame", "6000", "--sha", "fixture"], { encoding: "utf8" });
-  return { result, manifest: JSON.parse(readFileSync(join(out, "manifest.json"), "utf8")) };
+  const result = spawnSync(process.execPath, [join(scripts, "capture.mjs"), "--site", `solid=${root}`, "--out", out, "--lists", lists, "--only", "shell-default", "--first-frame", "6000", "--sha", "fixture"], { encoding: "utf8", env: { ...process.env, TZ: zone } });
+  return { result, out, manifest: JSON.parse(readFileSync(join(out, "manifest.json"), "utf8")) };
 }
 
 test.describe("a render", () => {
@@ -241,6 +252,21 @@ test.describe("a render", () => {
       expect(shot.moving, shot.id).toHaveLength(1);
       expect(shot.moving[0], shot.id).toMatchObject({ x: 0, width: 360, height: 240 });
       expect(shot.moving[0].y, shot.id).toBeGreaterThan(0);
+    }
+  });
+
+  test("that tells the time shows the same moment each time it is shot, wherever", () => {
+    const first = capture("clock", scratch("capture-clock"), "UTC");
+    expect(first.result.status, first.result.stdout + first.result.stderr).toBe(0);
+    const second = capture("clock", scratch("capture-clock"), "Pacific/Auckland");
+    expect(second.result.status, second.result.stdout + second.result.stderr).toBe(0);
+    const held = compare("--shots", second.out, "--before", join(first.out, "manifest.json"), "--check");
+    expect(held.status, held.stdout + held.stderr).toBe(0);
+    const manifest = JSON.parse(readFileSync(join(second.out, "manifest.json"), "utf8"));
+    for (const shot of manifest.shots) {
+      expect(shot.status, shot.id).toBe("same");
+      expect(shot.diff.ratio, shot.id).toBe(0);
+      expect(shot.moving, shot.id).toEqual([]);
     }
   });
 
