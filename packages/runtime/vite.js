@@ -191,10 +191,10 @@ function extract(tool, uri, folder, directory) {
 // files, and what went wrong running it. Builds that run at once share the
 // cache, so a folder is there whole or not at all: it is read into one of
 // this build's own and put in place when it is done, and one already there
-// is never taken away, as another build may be reading it; one that holds
-// nothing to read is moved aside first. What Qt read
-// nothing of (one that ran out of time on a busy machine reads nothing) is
-// not kept: the next build asks Qt again.
+// is never moved or taken away, as another build may be reading it. Nothing
+// but this puts a folder there (see `READ_OUT`), so one in the way is
+// another build's, whole. What Qt read nothing of (one that ran out of time
+// on a busy machine reads nothing) is not kept: the next build asks Qt again.
 export function readOut(tool, uri, folder, directory) {
   const names = () => {
     try {
@@ -212,32 +212,10 @@ export function readOut(tool, uri, folder, directory) {
     failed = extract(tool, uri, folder, own);
     if (readdirSync(own).some((name) => !name.startsWith(".") && !name.includes("@"))) {
       try {
-        // An empty folder in the way is replaced by this one in the same step.
         renameSync(own, directory);
       } catch (error) {
         // Another build put the folder in place first: its is as good.
-        if (names().length > 0) {
-          // Kept.
-        } else if (error.code === "ENOTEMPTY" || error.code === "EEXIST") {
-          // What a build that stopped half way left, holding nothing anyone
-          // reads, such as Qt's script: moved aside under a name of its own,
-          // never deleted where it is, as another build may be putting its
-          // folder there at the same moment.
-          const stale = mkdtempSync(`${directory}.stale-`);
-          try {
-            renameSync(directory, join(stale, "folder"));
-          } catch (moved) {
-            if (moved.code !== "ENOENT") throw moved;
-          }
-          rmSync(stale, { recursive: true, force: true });
-          try {
-            renameSync(own, directory);
-          } catch (again) {
-            if (names().length === 0) throw again;
-          }
-        } else {
-          throw error;
-        }
+        if (names().length === 0) throw error;
       }
     }
   } finally {
@@ -245,6 +223,11 @@ export function readOut(tool, uri, folder, directory) {
   }
   return { names: names(), failed };
 }
+
+// Where in the cache what is read out of Qt is kept. Builds before
+// `readOut` read straight into the cache's top, and could leave a folder
+// there half read; this is a place of its own, which they never wrote.
+const READ_OUT = "read-out";
 
 // `wave.frag.qsb`: a shader as Qt draws with it, baked by Qt's `qsb` tool
 // from its source, `wave.frag`, when a program is built. What a browser wants
@@ -804,7 +787,7 @@ export default function qml({
       if (!home(owner) || !existsSync(directory)) {
         if (!named(folder)) return [];
         const { bins, version } = found();
-        directory = join(cache, version || "qt", owner, kind);
+        directory = join(cache, READ_OUT, version || "qt", owner, kind);
         const { names, failed } = readOut(join(bins || "", "qml"), owner.replaceAll("/", "."), folder, directory);
         if (failed) console.warn(`ljos-web: the ${kind} of ${owner} could not be read out of Qt: ${failed}`);
         if (names.length === 0) console.warn(`ljos-web: no ${kind} of ${owner} could be read out of Qt's ${owner.replaceAll("/", ".")}`);
@@ -834,7 +817,7 @@ export default function qml({
         return readdirSync(directory).map((name) => [`qrc:/${folder}/${name}`, `${join(directory, name)}?url`]);
       }
       const { bins, version } = found();
-      const directory = join(cache, version || "qt", module, ...folder.split("/"));
+      const directory = join(cache, READ_OUT, version || "qt", module, ...folder.split("/"));
       const { names, failed } = readOut(join(bins || "", "qml"), module.replaceAll("/", "."), `qrc:/${folder}`, directory);
       if (failed) console.warn(`ljos-web: ${folder} of ${module} could not be read out of Qt: ${failed}`);
       if (names.length === 0) console.warn(`ljos-web: nothing of ${folder} could be read out of Qt's ${module.replaceAll("/", ".")}`);

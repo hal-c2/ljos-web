@@ -3,7 +3,7 @@
 // see a folder whole or not at all, and neither takes away what the other
 // reads.
 import { spawn } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -71,27 +71,6 @@ test("what Qt read nothing of is not kept, and the next build asks it again", as
     expect(await reading(silent, directory)).toEqual({ code: 0, err: "", names: [] });
     expect(existsSync(directory)).toBe(false);
     expect(await reading(quick, directory)).toEqual({ code: 0, err: "", names: ["white.png"] });
-  } finally {
-    rmSync(root, { recursive: true, force: true });
-  }
-});
-
-test("a folder a build left holding nothing to read is replaced, and what was left goes", async () => {
-  const root = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "ljos-read-out-"));
-  try {
-    const quick = join(root, "quick-qml");
-    writeFileSync(quick, `#!/bin/sh\nprintf 'qml: kept white.png ${WHITE}\\n' >&2\n`);
-    chmodSync(quick, 0o755);
-    const cache = join(root, "cache");
-    const directory = join(cache, "maps");
-    // What a build that stopped half way leaves: a file of its own and no
-    // picture.
-    mkdirSync(directory, { recursive: true });
-    writeFileSync(join(directory, ".left"), "");
-
-    expect(await reading(quick, directory)).toEqual({ code: 0, err: "", names: ["white.png"] });
-    expect(readdirSync(directory)).not.toContain(".left");
-    expect(readdirSync(cache)).toEqual(["maps"]);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
