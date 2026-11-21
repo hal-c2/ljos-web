@@ -10,7 +10,7 @@
 // reason (known.js): its test still runs, stays green while it fails,
 // and turns red the day it passes, so the change that fixes it must
 // take it out of known.js.
-import { NEEDS_WASM, centre, centreOf, classify, drag, expect, expectFramesAdvance, livePages, liveBlock, open, pinch, press, run, signature, test, unexpected } from "./fixtures.js";
+import { NEEDS_WASM, PICTURE, centre, centreOf, classify, drag, expect, expectFramesAdvance, livePages, liveBlock, open, pinch, press, run, signature, test, unexpected } from "./fixtures.js";
 import { interactions, invisible, still } from "./interactions.js";
 import { brokenExample } from "./known.js";
 
@@ -26,7 +26,7 @@ for (const { route, examples } of pages) {
   test.describe(route, () => {
     test("loads with nothing in its console and every example's picture", async ({ page, errors }) => {
       await open(page, route);
-      const pictures = page.locator('img[alt="What this example draws"]');
+      const pictures = page.locator(PICTURE);
       await expect(pictures).toHaveCount(examples.length);
       // Each picture is there and decoded, not only an element.
       for (const picture of await pictures.all()) {
