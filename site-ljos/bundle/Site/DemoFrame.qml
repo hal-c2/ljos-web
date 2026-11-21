@@ -50,8 +50,10 @@ Item {
     property real aspect: 420 / 720
     // The least height the demo's own area is given. A demo narrower
     // than its poster stacks what stood side by side, and needs more
-    // height than the poster's shape gives at that width; a floor
-    // rather than a breakpoint, so a wide frame keeps the poster's shape.
+    // height than the poster's shape gives at that width. A floor rather
+    // than a breakpoint: the area grows smoothly as the frame narrows,
+    // with no jump where the demo changes its layout, and a frame wide
+    // enough that its picture is that tall keeps the picture's shape.
     property int least: 0
 
     // The demo's own area, its poster's shape or taller (`least`); the
