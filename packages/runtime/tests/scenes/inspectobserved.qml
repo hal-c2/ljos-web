@@ -44,6 +44,13 @@ Item {
             property bool enabled: false
         }
         Component { id: made; Item {} }
+        // An alias of an alias, which ends at `label.text`, and one of an
+        // object, which holds no value of its own.
+        property alias outer: middle.caption
+        property alias held: label
+        Item { id: middle; property alias caption: label.text }
+        // A file's own `font`: one value, over the group a Text has.
+        Text { id: fonted; objectName: "fonted"; property string font: "serif" }
     }
 
     Inspector { id: inspector; target: app; title: "app" }

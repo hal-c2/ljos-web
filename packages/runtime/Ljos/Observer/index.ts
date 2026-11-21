@@ -30,7 +30,7 @@
 // counts moves, or when its wait is over: at rest no timer runs but the one
 // the longest wait asks for.
 import { untrack } from "#kernel";
-import { flush, native, work } from "../../object.ts";
+import { flush, isGroup, native, work } from "../../object.ts";
 import type { QObject, QmlType, Slot } from "../../object.ts";
 import { inspect } from "../../inspect.js";
 
@@ -135,7 +135,8 @@ interface Watch {
   started: number;
   settling: ReturnType<typeof setTimeout> | null;
   waiting: ReturnType<typeof setTimeout> | null;
-  answer: () => void;
+  // `settled` when what changed was given its settle time to say more.
+  answer: (settled?: boolean) => void;
 }
 
 // What the property had before the Observer's first edit of it, and what
@@ -318,6 +319,15 @@ function hook(): void {
   };
 }
 
+// What the runtime counted so far is no one root's once the roots served
+// change: each that is still served counts from here.
+function rebase(): void {
+  for (const each of served.values()) {
+    each.bindingRuns = work.bindingRuns;
+    each.textLayouts = work.textLayouts;
+  }
+}
+
 function unhook(): void {
   if (served.size > 0 || !hooked) return;
   hooked();
@@ -353,7 +363,12 @@ function noticed(state: State, records: MutationRecord[]): void {
   }
   const now = performance.now();
   const input = started?.cause === "input" && now - started.at < INPUT_MS ? started : null;
-  if (input) started = null;
+  // Every root the input changed has its records delivered in this one
+  // checkpoint, each to its own observer: the input is each of theirs, and
+  // let go of once they all were told, before it could name later work.
+  if (input) queueMicrotask(() => {
+    if (started === input) started = null;
+  });
   passed(state, records, input ? "input" : "message", input ? input.at : now);
 }
 
@@ -517,11 +532,19 @@ export function serve(root: QObject, options: ServeOptions = {}): Served {
     bindingRuns: work.bindingRuns,
     textLayouts: work.textLayouts,
   };
-  state.unlisten = logs.listen(() => {
-    state.counts.logs = logs.count();
-    tellWatches(state);
-  });
+  try {
+    state.unlisten = logs.listen(() => {
+      state.counts.logs = logs.count();
+      tellWatches(state);
+    });
+  } catch (error) {
+    // Nothing is served: the page's hooks go again unless another root
+    // still needs them.
+    unhook();
+    throw error;
+  }
   served.set(token, state);
+  rebase();
   observe(state);
   return {
     token,
@@ -538,10 +561,16 @@ export function serve(root: QObject, options: ServeOptions = {}): Served {
     },
     close() {
       if (!served.delete(token)) return;
+      rebase();
       state.observer?.disconnect();
-      state.unlisten();
-      for (const watch of [...state.watches]) watch.answer();
-      unhook();
+      // A log that fails to stop telling still leaves the root closed: its
+      // watches answered and the page's hooks gone with the last one.
+      try {
+        state.unlisten();
+      } finally {
+        for (const watch of [...state.watches]) watch.answer();
+        unhook();
+      }
     },
   };
 }
@@ -631,7 +660,7 @@ function tellWatches(state: State): void {
   for (const watch of state.watches) {
     if (watch.settling || changedOf(state, watch).length === 0) continue;
     // What comes soon after is told with it, as the native settle does.
-    if (watch.settleMs > 0) watch.settling = setTimeout(watch.answer, watch.settleMs);
+    if (watch.settleMs > 0) watch.settling = setTimeout(() => watch.answer(true), watch.settleMs);
     else watch.answer();
   }
 }
@@ -691,17 +720,17 @@ function watch(state: State, args: Args): Promise<Result> {
       started: performance.now(),
       settling: null,
       waiting: null,
-      answer() {
+      answer(settled = false) {
         if (!state.watches.delete(watching)) return;
         if (watching.settling) clearTimeout(watching.settling);
         if (watching.waiting) clearTimeout(watching.waiting);
         const changed = changedOf(state, watching);
-        resolve(reply(Math.round(performance.now() - watching.started), watching.settling !== null, changed));
+        resolve(reply(Math.round(performance.now() - watching.started), settled, changed));
       },
     };
     state.watches.add(watching);
     if (changedOf(state, watching).length > 0) watching.answer();
-    else if (wait > 0) watching.waiting = setTimeout(watching.answer, wait);
+    else if (wait > 0) watching.waiting = setTimeout(() => watching.answer(), wait);
     else watching.answer();
   });
 }
@@ -858,10 +887,13 @@ function propertiesOf(object: QObject): Property[] {
   const types: readonly QmlType[] = [...object.$type.chain].reverse();
   const dynamic = object as unknown as Record<string, unknown>;
   for (const type of types) {
-    for (const name of Object.keys(type.spec.properties ?? {})) {
+    const declared = type.spec.properties ?? {};
+    for (const name of Object.keys(declared)) {
       if (seen.has(name) || name.startsWith("$")) continue;
       seen.add(name);
-      const members = object.$type.groups[name];
+      // A group as the declaration that wins has it: a file's `property
+      // string font` is one value, though its type's `font` is a group.
+      const members = isGroup(declared[name]) ? object.$type.groups[name] : undefined;
       if (members) {
         for (const member of members) {
           const group = () => dynamic[name] as Record<string, unknown> | null | undefined;
@@ -907,11 +939,10 @@ function propertiesOf(object: QObject): Property[] {
   // declares it. It is read and written through the alias, and what it has
   // is the slot it names, so that it is told as bound or assigned, and a
   // Revert takes back what was written to it.
-  for (const [name, [held, ...path]] of Object.entries(object.$props?.$aliases ?? {})) {
+  for (const [name, named] of Object.entries(object.$props?.$aliases ?? {})) {
     if (seen.has(name) || name.startsWith("$")) continue;
     seen.add(name);
-    const aliased = path.length > 0 && held.$type ? (held as unknown as QObject) : null;
-    const key = path.join("$");
+    const [aliased, key] = aliasEnd(named);
     const slotOf = () => (aliased ? aliased.$slots[key] : undefined);
     const value = dynamic[name];
     found.push({
@@ -927,6 +958,20 @@ function propertiesOf(object: QObject): Property[] {
     });
   }
   return found;
+}
+
+// The object and slot an alias ends at: `property alias outer:
+// middle.caption`, where `middle.caption` is an alias itself, is of what
+// that one names. None for an alias of an object, which holds no value.
+type Aliased = readonly [unknown, ...string[]];
+function aliasEnd([held, ...path]: Aliased): [QObject | null, string] {
+  for (let hops = 0; hops < 32; hops++) {
+    const aliased = path.length > 0 && (held as QObject | null)?.$type ? (held as QObject) : null;
+    const further = aliased && path.length === 1 ? (aliased.$props?.$aliases as Record<string, Aliased> | undefined)?.[path[0]!] : undefined;
+    if (!further) return [aliased, path.join("$")];
+    [held, ...path] = further;
+  }
+  return [null, ""];
 }
 
 function provenance(slotted: Slot | undefined): string {
@@ -1028,7 +1073,11 @@ function setProperty(state: State, args: Args): Result {
     const edits = state.edited.get(object);
     const edit = edits?.get(property.name);
     const slotted = property.slot;
-    if (!edit || !slotted) throw new Refused("not_actionable", `the Observer did not change \`${property.name}\`, so there is nothing to revert`);
+    if (!edit) throw new Refused("not_actionable", `the Observer did not change \`${property.name}\`, so there is nothing to revert`);
+    if (!slotted) {
+      edits!.delete(property.name);
+      throw new Refused("not_actionable", `\`${property.name}\` holds no value of its own to go back to`);
+    }
     edits!.delete(property.name);
     let restored: string;
     if (!slotted.assigned || !Object.is(slotted.value, edit.left)) restored = "none";
@@ -1041,10 +1090,18 @@ function setProperty(state: State, args: Args): Result {
     return answered({ property: property.name, value: valueText(state, property.read()).value, previous, restored });
   }
   if (!("value" in args)) throw new Refused("invalid_argument", "give `value`, `binding` or `revert`");
-  // What it had before the Observer first changed it, kept until a Revert.
-  const before = state.edited.get(object)?.get(property.name);
   const had = property.slot;
-  const kept = before ?? { assigned: had?.assigned === true, value: had?.assigned ? had.value : undefined };
+  // Only what a Revert can give back is edited: a property with no value of
+  // its own (an alias of an object), or one with an override over it, which
+  // a write would end and its Revert could not put back.
+  if (!had) throw new Refused("not_actionable", `\`${property.name}\` holds no value of its own that a Revert could give back, so it is not edited`);
+  if (had.layers) throw new Refused("not_actionable", `\`${property.name}\` has an override over it, which an edit would end and a Revert could not put back`);
+  // What it had before the Observer first changed it, kept until a Revert,
+  // while the Observer's edit is what it has: one the application wrote
+  // over since is the application's, and is what a Revert gives back.
+  const earlier = state.edited.get(object)?.get(property.name);
+  const before = earlier && had.assigned && Object.is(had.value, earlier.left) ? earlier : undefined;
+  const kept = before ?? { assigned: had.assigned === true, value: had.assigned ? had.value : undefined };
   try {
     property.write(args.value);
   } catch (error) {
@@ -1216,7 +1273,8 @@ function status(state: State): Result {
         width: item.width ?? 0,
         height: item.height ?? 0,
         scale: globalThis.devicePixelRatio ?? 1,
-        visible: true,
+        // The root's own showing; a root that has none is shown.
+        visible: native(state.root, "visible") !== false && native(item, "visible") !== false,
         appearance: { color_scheme: media("(prefers-color-scheme: dark)") ? "dark" : "light", reduced_motion: media("(prefers-reduced-motion: reduce)"), font_scale: 1 },
         focus: typeof document !== "undefined" && document.hasFocus(),
       },

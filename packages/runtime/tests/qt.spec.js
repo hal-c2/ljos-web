@@ -628,6 +628,26 @@ test("a method read off an object is that object's, and callLater calls it on it
   expect(seen).toEqual({ where: 20, same: true, own: true, focused: true, calls: 1 });
 });
 
+// A method under a symbol is the protocol's: a type that gives
+// `[Symbol.iterator]` is gone through by `for…of`.
+test("a type's method under a symbol is kept as given", async ({ page }) => {
+  await open(page, "qt");
+  const address = await page.evaluate(() => performance.getEntriesByType("resource").find(({ name }) => name.split("?")[0].endsWith("/object.ts")).name);
+  const seen = await page.evaluate(async (address) => {
+    const { defineType } = await import(address);
+    const Counted = defineType("Counted", null, {
+      methods: {
+        *[Symbol.iterator]() {
+          yield 1;
+          yield 2;
+        },
+      },
+    });
+    return [...Counted({})];
+  }, address);
+  expect(seen).toEqual([1, 2]);
+});
+
 test("settings are kept in the page's storage, as text", async ({ page }) => {
   await open(page, "settings");
   const stored = () => page.evaluate(() => Object.fromEntries(Object.entries(localStorage).sort()));

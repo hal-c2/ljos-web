@@ -520,3 +520,174 @@ test("the Observer runs on the page, and shows the application's tree", async ({
   await page.getByRole("tab", { name: "Objects", exact: true }).first().click();
   await expect(page.getByText(/\blabel\b/).first()).toBeVisible({ timeout: 15000 });
 });
+
+// The page's instance of a runtime module, by the end of its address.
+const moduleAt = (page, end) => page.evaluate((end) => performance.getEntriesByType("resource").find(({ name }) => name.split("?")[0].endsWith(end)).name, end);
+
+test("Revert after the application wrote over the Observer's edit, and the Observer edited again, gives back the application's", async ({ page }) => {
+  await opened(page);
+  await page.evaluate(() => (window.objects.app.count = 5));
+  await call(page, "app_set_property", { target: "id=app", property: "count", value: 9 });
+  await page.evaluate(() => (window.objects.app.count = 7));
+  await call(page, "app_set_property", { target: "id=app", property: "count", value: 11 });
+  const back = await call(page, "app_set_property", { target: "id=app", property: "count", revert: true });
+  expect(back.result.structuredContent.restored).toBe("value");
+  expect(await page.evaluate(() => window.objects.app.count)).toBe(7);
+});
+
+test("an alias of an alias is changed as what it ends at, and Revert gives its binding back", async ({ page }) => {
+  await opened(page);
+  expect((await call(page, "app_set_property", { target: "id=app", property: "outer", value: "far" })).ok).toBe(true);
+  expect(await page.evaluate(() => window.objects.app.children[0].text)).toBe("far");
+  const back = await call(page, "app_set_property", { target: "id=app", property: "outer", revert: true });
+  expect(back.ok).toBe(true);
+  expect(back.result.structuredContent.restored).toBe("binding");
+  await page.evaluate(() => window.objects.app.count++);
+  expect(await page.evaluate(() => window.objects.app.children[0].text)).toBe("n=1");
+});
+
+test("what holds no value of its own is not edited, and is told so", async ({ page }) => {
+  await opened(page);
+  const set = await call(page, "app_set_property", { target: "id=app", property: "held", value: null });
+  expect(set.ok).toBe(false);
+  expect(set.result.error.code).toBe("not_actionable");
+  expect(set.result.error.message).toContain("no value of its own");
+  expect(await page.evaluate(() => window.objects.app.held === window.objects.app.children[0])).toBe(true);
+});
+
+test("a property with an override over it is not edited, and the override stays", async ({ page }) => {
+  await opened(page);
+  const address = await moduleAt(page, "/object.ts");
+  await page.evaluate(async (address) => {
+    const { override } = await import(address);
+    window.layered = override(window.objects.app, "doubled", { binding: (below) => below() + 1 });
+  }, address);
+  expect(await page.evaluate(() => window.objects.app.doubled)).toBe(1);
+  const set = await call(page, "app_set_property", { target: "id=app", property: "doubled", value: 50 });
+  expect(set.ok).toBe(false);
+  expect(set.result.error.message).toContain("override");
+  await page.evaluate(() => window.objects.app.count++);
+  expect(await page.evaluate(() => window.objects.app.doubled)).toBe(3);
+});
+
+test("a file's own scalar over a group its type has is one property", async ({ page }) => {
+  await opened(page);
+  const listed = (await call(page, "app_inspect", { target: "id=fonted" })).result.structuredContent.properties.map((p) => p.name);
+  expect(listed).toContain("font");
+  expect(listed).not.toContain("font.bold");
+  expect((await call(page, "app_get_property", { target: "id=fonted", property: "font" })).result.structuredContent.value).toBe("serif");
+});
+
+test("a watch its wait ends while it settles is not told as settled", async ({ page }) => {
+  await opened(page);
+  const since = (await call(page, "app_watch", {})).result.structuredContent.counts;
+  const told = await page.evaluate(async (since) => {
+    const { client } = window.objects;
+    const answers = window.scene.answers;
+    const serial = client.call("app_watch", JSON.stringify({ since, wait_ms: 300, settle_ms: 1000 }));
+    await new Promise((done) => setTimeout(done, 100));
+    window.scene.say("soon after");
+    while (!answers.some((each) => each.serial === serial)) await new Promise((done) => setTimeout(done, 5));
+    return JSON.parse(answers.find((each) => each.serial === serial).result).structuredContent;
+  }, since);
+  expect(told.changed).toContain("logs");
+  expect(told.settled).toBe(false);
+  expect(told.waited).toBeLessThan(900);
+});
+
+test("a served root that is not shown is told as not shown", async ({ page }) => {
+  await opened(page);
+  expect((await call(page, "app_status")).result.structuredContent.windows[0].visible).toBe(true);
+  await page.evaluate(() => (window.objects.app.visible = false));
+  expect((await call(page, "app_status")).result.structuredContent.windows[0].visible).toBe(false);
+});
+
+// Asks `tool` of the root `token` serves, and gives the client back its own.
+const callOf = (page, token, tool, args = {}) =>
+  page.evaluate(
+    async ([token, tool, args]) => {
+      const { client } = window.objects;
+      const answers = window.scene.answers;
+      const own = client.tokenFile;
+      client.tokenFile = token;
+      const serial = client.call(tool, JSON.stringify(args));
+      while (!answers.some((each) => each.serial === serial)) await new Promise((done) => setTimeout(done, 5));
+      client.tokenFile = own;
+      return JSON.parse(answers.find((each) => each.serial === serial).result).structuredContent;
+    },
+    [token, tool, args],
+  );
+
+test("one input that changes two served roots is each one's input", async ({ page }) => {
+  await opened(page);
+  await page.evaluate(() => (window.objects.otherInspector.target = window.objects.other));
+  const tokens = await page.evaluate(() => [window.objects.inspector.tokenFile, window.objects.otherInspector.tokenFile]);
+  await page.evaluate(() =>
+    window.addEventListener("pointerdown", () => {
+      window.objects.app.$node.setAttribute("data-pressed", String(Math.random()));
+      window.objects.other.$node.setAttribute("data-pressed", String(Math.random()));
+    }),
+  );
+  await page.mouse.click(395, 295);
+  for (const token of tokens) {
+    await expect.poll(async () => (await callOf(page, token, "app_frames", { max: 600 })).frames.at(-1)?.woke[0]).toBe("input");
+  }
+});
+
+test("work done while two roots were served is not the one left's", async ({ page }) => {
+  await opened(page);
+  const address = await moduleAt(page, "/object.ts");
+  await page.evaluate(() => (window.objects.otherInspector.target = window.objects.other));
+  await page.evaluate(() => window.objects.app.$node.setAttribute("data-first", "yes"));
+  await expect.poll(async () => (await call(page, "app_frames", { max: 600 })).result.structuredContent.frames.length).toBeGreaterThan(0);
+  await page.evaluate(async (address) => {
+    const { work } = await import(address);
+    // The other's work, while both are served.
+    work.bindingRuns += 10_000;
+    window.objects.otherInspector.target = null;
+    window.objects.app.$node.setAttribute("data-after", "yes");
+  }, address);
+  await expect
+    .poll(async () => (await call(page, "app_frames", { max: 600 })).result.structuredContent.frames.at(-1).binding_runs)
+    .not.toBeNull();
+  const last = (await call(page, "app_frames", { max: 600 })).result.structuredContent.frames.at(-1);
+  expect(last.binding_runs).toBeLessThan(10_000);
+});
+
+test("a root whose log cannot be listened to is not served, and leaves the page as it was", async ({ page }) => {
+  await opened(page);
+  const address = await page.evaluate(observerModule);
+  const left = await page.evaluate(async (address) => {
+    const { serve } = await import(address);
+    window.objects.inspector.target = null;
+    const frame = window.requestAnimationFrame;
+    let refused = "";
+    try {
+      serve(window.objects.other, { logs: { lines: () => [], count: () => 0, listen: () => { throw new Error("no log"); } } });
+    } catch (error) {
+      refused = error.message;
+    }
+    return { refused, same: window.requestAnimationFrame === frame };
+  }, address);
+  expect(left).toEqual({ refused: "no log", same: true });
+});
+
+test("a root closed whose log fails to stop is closed all the same", async ({ page }) => {
+  await opened(page);
+  const address = await page.evaluate(observerModule);
+  const left = await page.evaluate(async (address) => {
+    const { serve } = await import(address);
+    window.objects.inspector.target = null;
+    const frame = window.requestAnimationFrame;
+    const served = serve(window.objects.other, { logs: { lines: () => [], count: () => 0, listen: () => () => { throw new Error("stuck"); } } });
+    const hooked = window.requestAnimationFrame !== frame;
+    let failed = "";
+    try {
+      served.close();
+    } catch (error) {
+      failed = error.message;
+    }
+    return { hooked, failed, same: window.requestAnimationFrame === frame };
+  }, address);
+  expect(left).toEqual({ hooked: true, failed: "stuck", same: true });
+});
