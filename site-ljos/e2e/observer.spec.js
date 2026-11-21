@@ -286,7 +286,11 @@ test("one Observer at a time: pressed on another example, it moves there", async
   // A new Observer, all of it the second example's: it opens on its
   // Overview, not on the page the first was left on, and its tree and log
   // are the second's, as they are when it is opened on the second alone.
-  await expect(pageTab(page, "Overview")).toHaveAttribute("aria-selected", "true");
+  // The Observer's tabs do not say which is selected, so the page shown is
+  // told by what only the Overview draws and by the Objects page's rows,
+  // which the first was left on, being gone.
+  await expect(dock(page).getByText("one point each time the application changed", { exact: true })).toBeVisible();
+  await expect(dock(page).getByRole("listitem", { name: /^\w+(#\w+)?$/ })).toHaveCount(0);
   const moved = { tree: await tree(), logs: await logs() };
   expect(moved.tree).not.toEqual(firstTree);
   await page.getByRole("button", { name: "Close the Observer" }).click();
