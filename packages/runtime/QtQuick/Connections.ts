@@ -84,8 +84,14 @@ export const Connections = defineType("Connections", QtObject, {
           // A change of the old target made in the write that moved the
           // target away (`target: item.parent === a ? b : a`, and `item`
           // moved into `a`) is the old target's: Qt tells it before the
-          // binding of `target` runs again. A target written before a change
-          // is switched in a flush of its own, with nothing left to tell.
+          // binding of `target` runs again. A program's write outside a flush
+          // (a handler's, a function's) has a flush of its own, so a target
+          // it wrote before a change is switched with nothing left to tell.
+          // Inside one flush (`gather`, an effect) the two are not told
+          // apart: a change made there after the switch is heard from the
+          // old target too, where Qt would not hear it. Only a property with
+          // no signal of its own (`children`) has anything to tell here; a
+          // signal is told as it is emitted.
           for (const settle of settles) settle();
           settles = [];
           disconnect?.();
