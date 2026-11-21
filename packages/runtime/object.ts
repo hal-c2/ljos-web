@@ -2202,14 +2202,13 @@ function defineAlias(self: QObject, name: string, [target, ...path]: AliasPath):
   // none is read until then.
   const given = path.length > 0 && name in self.$props;
   const [early, setEarly] = given ? counted(true, getOwner()) : [];
-  // Whether it is still early, as the next read sees it: the signal is told
-  // of it only once the flush runs, and the instance's own read of what its
-  // properties hold (`props.$made`) comes after the binding but before that.
-  let stillEarly = given;
-  const late = (): void => {
-    stillEarly = false;
-    setEarly!(false);
-  };
+  // Whether the target holds the binding yet (`bind()`): from then on a read
+  // is the target's at once, though the signal is told it is late only once
+  // the flush runs, and the instance's own read of what its properties hold
+  // (`props.$made`) comes after the binding but before that. An alias that
+  // is assigned instead stays early until the flush, as nothing has reached
+  // the target before it.
+  let unbound = given;
   // An object declared for the alias (`thing: QtObject {}`) is made once, as
   // Qt makes it: what the reads before completion made, the first
   // evaluation after it hands on rather than making another.
@@ -2225,7 +2224,7 @@ function defineAlias(self: QObject, name: string, [target, ...path]: AliasPath):
   let made: { value: unknown } | null = null;
   const give = declared
     ? () => {
-        if (stillEarly) return (made ??= { value: evaluate() }).value;
+        if (unbound && untrack(early!)) return (made ??= { value: evaluate() }).value;
         const kept = made;
         made = null;
         return kept ? kept.value : evaluate();
@@ -2270,7 +2269,7 @@ function defineAlias(self: QObject, name: string, [target, ...path]: AliasPath):
   aliasSetters.add(set);
   Object.defineProperty(self, name, {
     get: path.length
-      ? () => (early && (early(), stillEarly) ? binding!() : holder()?.[last])
+      ? () => (early && early() && unbound ? binding!() : holder()?.[last])
       : // A Component is what it is from the start; an object, once made.
         () => (target.$type || !target.$track ? target : (target.$track(), null)),
     set,
@@ -2284,7 +2283,8 @@ function defineAlias(self: QObject, name: string, [target, ...path]: AliasPath):
   const bind = (): boolean => {
     const aliased = target.$type && slot(target as unknown as QObject, key);
     if (!aliased) return false;
-    late();
+    unbound = false;
+    setEarly!(false);
     // An object a read before this made is the one the target is given.
     const kept = made;
     made = null;
@@ -2298,7 +2298,7 @@ function defineAlias(self: QObject, name: string, [target, ...path]: AliasPath):
   if (declared) whenMade(() => (bound = bind()));
   whenComplete(() => {
     if (bound || bind()) return;
-    late();
+    setEarly!(false);
     // An alias of an alias, or of an object made later: assigned instead.
     // Assigned when what is bound changes, not whenever it is worked out.
     createRenderEffect(
