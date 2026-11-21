@@ -211,6 +211,21 @@ const watchdog = () => {
   document.addEventListener("DOMContentLoaded", () => find()?.pause());
 };
 
+// The kept shell's swap waits for its shell, and in any case a second
+// (shells.js `swap`): that second is held back here, so a test can show
+// it is something else that lets the swap go, by order and not by the
+// clock.
+const fallback = () => {
+  const wait = window.setTimeout;
+  window.setTimeout = function (run, ms, ...rest) {
+    if (ms === 1000 && "ljosSwap" in document.documentElement.dataset && !window.__heldFallback) {
+      window.__heldFallback = run;
+      return 0;
+    }
+    return wait.call(this, run, ms, ...rest);
+  };
+};
+
 // When the head's script runs (as near as a page's own script can be,
 // before it), when a view transition starts, and when the browser
 // shows the page again after its update: until then it holds the last
@@ -315,38 +330,47 @@ test("a kept shell that comes after the head's watchdog showed the page does not
 
 test("when the head's watchdog shows the page during the kept shell's swap, the page is seen at once", async ({ browser }) => {
   const context = await reader(browser, { kept: "desktop" });
+  let release = () => {};
   try {
     const page = await context.newPage();
     await page.addInitScript(frames);
     await page.addInitScript(transitions);
-    // The page is taken over late, as on a slow phone: the kept shell's
-    // swap starts in the second before the head's watchdog shows the
-    // page (2.5 s)…
-    await page.route("**/assets/index-*.js", async (route) => {
-      await new Promise((done) => setTimeout(done, 1_600));
-      await route.continue().catch(() => {});
-    });
-    // …and its module does not come while the test looks: the swap
-    // waits for it.
+    await page.addInitScript(watchdog);
+    await page.addInitScript(fallback);
+    // The kept shell's module does not come while the test looks: the
+    // swap waits for it.
+    const released = new Promise((done) => (release = done));
+    let responded = false;
     await page.route("**/Desktop-*.js", async (route) => {
-      await new Promise((done) => setTimeout(done, 5_000));
+      await released;
       await route.continue().catch(() => {});
+      responded = true;
     });
     await page.goto(at("/start/first-app/"));
-    await page.waitForFunction(() => window.__letGoAt !== undefined, null, { polling: 50, timeout: 40_000 });
-    const { headAt, swapAt, letGoAt } = await page.evaluate(() => ({ headAt: window.__headAt, swapAt: window.__swapAt, letGoAt: window.__letGoAt }));
-    // Only a swap that starts in that second tells a page shown with the
-    // watchdog from one shown when the swap gives up waiting (a second,
-    // shells.js `swap`).
-    expect(swapAt - headAt, "ms from the head's script to the kept shell's swap").toBeGreaterThan(1_700);
-    expect(swapAt - headAt, "ms from the head's script to the kept shell's swap").toBeLessThan(2_500);
-    expect(letGoAt - headAt, "ms from the head's script to the page shown again (the watchdog's is 2500)").toBeLessThan(2_700);
+    // In order, not by the clock: the swap has started and is waiting
+    // (its own fallback held back), and nothing has said the page is
+    // late, the head's timer and fade both held.
+    await page.waitForFunction(() => typeof window.__heldFallback === "function", null, { polling: 50, timeout: 40_000 });
+    expect(await page.evaluate(() => window.__swapAt !== undefined), "the kept shell's swap has started").toBe(true);
+    expect(await page.evaluate(() => window.__letGoAt), "the swap is still holding the page").toBeUndefined();
+    expect(await page.evaluate(() => "ljosShellLate" in document.documentElement.dataset), "nothing has said the page is late").toBe(false);
+    // Now the head's watchdog: its timer says the page is late as its
+    // fade starts (assets/head.html, both at %SHELL_WAIT%).
+    await page.evaluate(() => {
+      window.__heldTimer();
+      window.__fade(2500, true);
+    });
+    // Only the watchdog can let the swap go now: its fallback never fires.
+    await page.waitForFunction(() => window.__letGoAt !== undefined, null, { polling: 50, timeout: 5_000 });
+    expect(responded, "the Desktop module is still on its way").toBe(false);
+    const letGoAt = await page.evaluate(() => window.__letGoAt);
     await page.waitForFunction((from) => window.__seen.some(({ t, opacity }) => t > from && opacity !== "0"), letGoAt, { polling: 50, timeout: 5_000 });
     const first = await page.evaluate((from) => window.__seen.find(({ t, opacity }) => t > from && opacity !== "0"), letGoAt);
     expect(first.shell, "the page is seen in the shell it is written in").toBe("marketing");
     await expect(page.locator("#app")).toHaveCSS("opacity", "1");
     expect(await showing(page)).toBe("marketing");
   } finally {
+    release();
     await context.close();
   }
 });
@@ -369,7 +393,12 @@ test("a kept shell that comes while the head's watchdog fades the page in does n
     const came = page.waitForResponse("**/Desktop-*.js", { timeout: 40_000 });
     await page.goto(at("/start/first-app/"));
     await page.waitForSelector(HYDRATED, { timeout: 40_000 });
-    await wanted;
+    // The Desktop module is asked for before anything says the page is
+    // late (once it is, Main.qml never asks): whichever comes first.
+    const lateFirst = page
+      .waitForFunction(() => "ljosShellLate" in document.documentElement.dataset, null, { polling: 50, timeout: 40_000 })
+      .then(() => "late");
+    expect(await Promise.race([wanted.then(() => "asked"), lateFirst]), "the Desktop module is asked for before the page is said to be late").toBe("asked");
     // The swap to it has stopped waiting (a second, shells.js `swap`):
     // the page is still held back, and the module still on its way.
     await page.waitForFunction(() => !("ljosSwap" in document.documentElement.dataset), null, { polling: 50 });
