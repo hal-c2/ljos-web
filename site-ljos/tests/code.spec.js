@@ -635,3 +635,110 @@ for (const scheme of SCHEMES) {
     }
   });
 }
+
+// A page whose examples draw nothing of their own (a signal, a
+// property: their point is a value), one whose example draws three
+// unpainted items in a row, and one whose examples draw and move.
+const STAGES = [
+  "/language/signals-and-handlers/",
+  "/data/repeater-and-delegates/",
+  "/quality/motion/",
+];
+
+// Each live example's window, as the reader sees it before running it:
+// the picture's box's first ancestor that clips, which is the window.
+// What it draws is told from its pixels: how many differ from the
+// colour most of it is, and how light that colour is.
+async function windows(page) {
+  const boxes = await page.evaluate(() =>
+    [...document.querySelectorAll('#app img[alt="What this example draws"]')]
+      .filter((img) => img.getBoundingClientRect().width > 0)
+      .map((img) => {
+        let frame = img.parentElement;
+        while (frame && getComputedStyle(frame).overflow === "visible")
+          frame = frame.parentElement;
+        frame.scrollIntoView({ block: "center" });
+        const box = frame.getBoundingClientRect();
+        return {
+          x: box.left + window.scrollX,
+          y: box.top + window.scrollY,
+          width: box.width,
+          height: box.height,
+        };
+      }),
+  );
+  const out = [];
+  for (const [index, clip] of boxes.entries()) {
+    const shot = await page.screenshot({ clip, fullPage: true });
+    out.push({
+      index,
+      ...(await page.evaluate(async (png) => {
+        const bytes = Uint8Array.from(atob(png), (c) => c.charCodeAt(0));
+        const bitmap = await createImageBitmap(
+          new Blob([bytes], { type: "image/png" }),
+        );
+        const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+        const context = canvas.getContext("2d");
+        context.drawImage(bitmap, 0, 0);
+        const { data } = context.getImageData(
+          0,
+          0,
+          bitmap.width,
+          bitmap.height,
+        );
+        const counts = new Map();
+        for (let i = 0; i < data.length; i += 4) {
+          const key = (data[i] << 16) | (data[i + 1] << 8) | data[i + 2];
+          counts.set(key, (counts.get(key) ?? 0) + 1);
+        }
+        const [most] = [...counts].sort((a, b) => b[1] - a[1])[0];
+        const ground = [most >> 16, (most >> 8) & 255, most & 255];
+        let ink = 0;
+        for (let i = 0; i < data.length; i += 4)
+          if (ground.some((c, k) => Math.abs(data[i + k] - c) > 24)) ink += 1;
+        const lightness =
+          (0.2126 * ground[0] + 0.7152 * ground[1] + 0.0722 * ground[2]) / 255;
+        return { ink, lightness, pixels: data.length / 4 };
+      }, shot.toString("base64"))),
+    });
+  }
+  return out;
+}
+
+for (const route of STAGES) {
+  for (const colorScheme of ["light", "dark"]) {
+    test(`${route}'s stages each show something, on a ground of the ${colorScheme} scheme`, async ({
+      browser,
+    }) => {
+      const { context, page } = await opened(
+        browser,
+        { width: 1440, height: 900 },
+        colorScheme,
+        route,
+      );
+      try {
+        const found = await windows(page);
+        expect(found.length, "a window for each live example").toBeGreaterThan(
+          0,
+        );
+        for (const { index, ink, lightness } of found) {
+          // Words or a shape: a few dozen pixels, not the window's own
+          // ground alone.
+          expect(ink, `window ${index}: draws something`).toBeGreaterThan(40);
+          if (colorScheme === "dark")
+            expect(
+              lightness,
+              `window ${index}: stands on the dark scheme's ground`,
+            ).toBeLessThan(0.4);
+          else
+            expect(
+              lightness,
+              `window ${index}: stands on the light scheme's ground`,
+            ).toBeGreaterThan(0.6);
+        }
+      } finally {
+        await context.close();
+      }
+    });
+  }
+}

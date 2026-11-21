@@ -36,8 +36,8 @@ var light = {
     // `paper`: what an app's window shows where the app paints nothing,
     // in the scheme the app runs in, so its own text (dark on light,
     // light on dark, unless it says otherwise) reads on it. The build
-    // draws each example's picture on the light one (scripts/build.mjs
-    // STAGE). A dark window is lighter than its stage, as a raised
+    // draws each example's picture on it, once for each scheme
+    // (scripts/build.mjs STAGES). A dark window is lighter than its stage, as a raised
     // surface is in the dark.
     stage: "#dedad4",
     stageEdge: "#aeaaa5",

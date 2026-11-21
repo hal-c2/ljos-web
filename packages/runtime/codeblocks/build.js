@@ -264,8 +264,8 @@ export function renderStatic(example, { prerender } = {}) {
 // runtime: a test run between the prerender step and the build that
 // embeds it is no other build.
 const STAMP_SKIPS = new Set(["node_modules", "tests", "site-tests", "type-tests", "test-results"]);
-export function prerenderStamp({ qmlc, width = 1280, height = 720, env = process.env } = {}) {
-  const made = JSON.stringify([width, height, kernelNamed(env), env.VITE_LJOS_VIEW3D ?? ""]);
+export function prerenderStamp({ qmlc, width = 1280, height = 720, dark = false, env = process.env } = {}) {
+  const made = JSON.stringify([width, height, kernelNamed(env), env.VITE_LJOS_VIEW3D ?? "", ...(dark ? ["dark"] : [])]);
   // The compiler by its bytes, not where it stands: two checkouts'
   // builds of the same compiler are one.
   const hash = createHash("sha256");
@@ -368,10 +368,15 @@ const run = (command, args, env) =>
 // A `cacheDir` holds one stamp's answers, and drops the rest: a
 // caller that prerenders under several (each kernel, say) gives each
 // its own.
-export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280, height = 720, checked = false, env = process.env } = {}) {
+// `dark` makes each example a second time, as a reader who asked for
+// the dark scheme is first shown it (`{ [hash]: { file, dark } }`, the
+// second `<hash>-dark.html`): an example that paints from the palette
+// paints dark there, and a picture of it drawn from the light one
+// would stand light on a dark page. It is the same bundle, run again.
+export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280, height = 720, dark = false, checked = false, env = process.env } = {}) {
   mkdirSync(cacheDir, { recursive: true });
   const at = join(cacheDir, "manifest.json");
-  const stamp = prerenderStamp({ qmlc, width, height, env });
+  const stamp = prerenderStamp({ qmlc, width, height, dark, env });
   const manifest = {};
   const byHash = new Map(examples.map((example) => [hashExample(example), example]));
   // What another compiler or runtime made is not this one's answer, a
@@ -400,14 +405,14 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
       failures.push({ example, diagnostics: had.diagnostics ?? [] });
       return false;
     }
-    return !had?.file || !existsSync(join(cacheDir, had.file));
+    return !had?.file || !existsSync(join(cacheDir, had.file)) || (dark && !(had.dark && existsSync(join(cacheDir, had.dark))));
   });
   // A cache restored from an older run holds what older compilers and
   // runtimes made too: what this manifest does not name goes, so the
   // cache is only ever this run's answers, not every run's.
   const done = () => {
     save();
-    pruneCache(cacheDir, { keep: new Set(Object.values(manifest).map((had) => had.file)), pattern: /^[0-9a-f]{16}\.html$/ });
+    pruneCache(cacheDir, { keep: new Set(Object.values(manifest).flatMap((had) => [had.file, had.dark])), pattern: /^[0-9a-f]{16}(-dark)?\.html$/ });
     return { manifest, failures };
   };
   if (missing.length === 0) return done();
@@ -503,26 +508,46 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
         await attempt(batch.slice(half));
         return;
       }
-      const ran = await run(process.execPath, [join(import.meta.dirname, "prerender-run.js"), join(stage, "server/entries.mjs"), JSON.stringify({ width, height })], env);
-      if (ran.error) throw new Error(`could not prerender the code blocks: ${ran.error.message}`);
-      if (ran.status !== 0) throw new Error(`the code blocks could not be prerendered:\n${(ran.stderr || ran.stdout).trim()}`);
-      // Each example's own words come back with it; what the process
-      // said outside every example nothing expected, and it stops the
-      // build before any of this batch is kept, so the next run makes
-      // the batch again and is stopped again rather than served.
-      if (ran.stderr.trim()) throw new Error(`the code block prerenderer said, outside any example:\n${ran.stderr.trimEnd()}`);
-      const answered = new Set();
-      for (const line of ran.stdout.split("\n").filter(Boolean)) {
-        const { hash, html, error, logged } = JSON.parse(line);
-        answered.add(hash);
+      // Each scheme's render is a process of its own: what an example
+      // reads of the scheme it reads as it is made, once.
+      const made = async (scheme) => {
+        const ran = await run(process.execPath, [join(import.meta.dirname, "prerender-run.js"), join(stage, "server/entries.mjs"), JSON.stringify({ width, height, ...(scheme ? { scheme } : {}) })], env);
+        if (ran.error) throw new Error(`could not prerender the code blocks: ${ran.error.message}`);
+        if (ran.status !== 0) throw new Error(`the code blocks could not be prerendered:\n${(ran.stderr || ran.stdout).trim()}`);
+        // Each example's own words come back with it; what the process
+        // said outside every example nothing expected, and it stops the
+        // build before any of this batch is kept, so the next run makes
+        // the batch again and is stopped again rather than served.
+        if (ran.stderr.trim()) throw new Error(`the code block prerenderer said, outside any example:\n${ran.stderr.trimEnd()}`);
+        return new Map(
+          ran.stdout
+            .split("\n")
+            .filter(Boolean)
+            .map((line) => JSON.parse(line))
+            .map((answer) => [answer.hash, answer]),
+        );
+      };
+      // One after the other: a lane's memory is budgeted for one.
+      const light = await made(undefined);
+      const inDark = dark ? await made("dark") : null;
+      for (const { hash, html, error, logged } of light.values()) {
         const example = byHash.get(hash);
+        // What the reader is shown first is said as it was made in the
+        // light; the dark one is the same example, and only refuses
+        // where the palette it reads does.
+        const darkly = inDark?.get(hash);
         if (error !== undefined) fail(example, [`${example.entry}:1: ${error}`, ...(logged ?? []).map(unstaged)]);
+        else if (inDark && darkly?.html === undefined)
+          fail(example, [`${example.entry}:1: in the dark scheme: ${darkly ? darkly.error : "the prerender gave no answer for it"}`, ...(darkly?.logged ?? []).map(unstaged)]);
         else {
           const file = `${hash.slice(0, 16)}.html`;
           writeFileSync(join(cacheDir, file), html);
-          manifest[hash] = { file, ...prerenderSize(html), ...(logged?.length ? { logged: logged.map(unstaged) } : {}), stamp };
+          const shade = darkly ? `${hash.slice(0, 16)}-dark.html` : undefined;
+          if (shade) writeFileSync(join(cacheDir, shade), darkly.html);
+          manifest[hash] = { file, ...(shade ? { dark: shade } : {}), ...prerenderSize(html), ...(logged?.length ? { logged: logged.map(unstaged) } : {}), stamp };
         }
       }
+      const answered = new Set(light.keys());
       for (const [, example] of batch) if (!answered.has(hashExample(example))) fail(example, [`${example.entry}:1: the prerender gave no answer for it`]);
       save();
     } finally {
@@ -567,7 +592,14 @@ export function loadPrerenders(cacheDir) {
   const loaded = {};
   for (const [hash, had] of Object.entries(manifest)) {
     if (had?.file && existsSync(join(cacheDir, had.file)))
-      loaded[hash] = { html: readFileSync(join(cacheDir, had.file), "utf8"), width: had.width, height: had.height, stamp: had.stamp, ...(had.logged ? { logged: had.logged } : {}) };
+      loaded[hash] = {
+        html: readFileSync(join(cacheDir, had.file), "utf8"),
+        ...(had.dark && existsSync(join(cacheDir, had.dark)) ? { htmlDark: readFileSync(join(cacheDir, had.dark), "utf8") } : {}),
+        width: had.width,
+        height: had.height,
+        stamp: had.stamp,
+        ...(had.logged ? { logged: had.logged } : {}),
+      };
     else if (had?.failed) loaded[hash] = had;
   }
   return loaded;
