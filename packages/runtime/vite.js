@@ -186,6 +186,18 @@ function extract(tool, uri, folder, directory) {
   return null;
 }
 
+// What Qt's `tool` reads of `folder` out of the plugin of the module `uri`,
+// kept in `directory` of the cache for the builds after: the names of the
+// files, and what went wrong running it.
+export function readOut(tool, uri, folder, directory) {
+  let failed = null;
+  if (!existsSync(directory)) failed = extract(tool, uri, folder, directory);
+  const names = readdirSync(directory).filter((name) => !name.startsWith(".") && !name.includes("@"));
+  // Nothing read is not kept: the next build asks Qt again.
+  if (names.length === 0) rmSync(directory, { recursive: true, force: true });
+  return { names, failed };
+}
+
 // `wave.frag.qsb`: a shader as Qt draws with it, baked by Qt's `qsb` tool
 // from its source, `wave.frag`, when a program is built. What a browser wants
 // of it is the text for OpenGL ES: from the file when it is there and has one,
@@ -765,16 +777,9 @@ export default function qml({
       }
       const { bins, version } = found();
       const directory = join(cache, version || "qt", module, ...folder.split("/"));
-      if (!existsSync(directory)) {
-        const failed = extract(join(bins || "", "qml"), module.replaceAll("/", "."), `qrc:/${folder}`, directory);
-        if (failed) console.warn(`ljos-web: ${folder} of ${module} could not be read out of Qt: ${failed}`);
-      }
-      const names = readdirSync(directory).filter((name) => !name.startsWith(".") && !name.includes("@"));
-      // Nothing read is not kept: the next build asks Qt again.
-      if (names.length === 0) {
-        console.warn(`ljos-web: nothing of ${folder} could be read out of Qt's ${module.replaceAll("/", ".")}`);
-        rmSync(directory, { recursive: true, force: true });
-      }
+      const { names, failed } = readOut(join(bins || "", "qml"), module.replaceAll("/", "."), `qrc:/${folder}`, directory);
+      if (failed) console.warn(`ljos-web: ${folder} of ${module} could not be read out of Qt: ${failed}`);
+      if (names.length === 0) console.warn(`ljos-web: nothing of ${folder} could be read out of Qt's ${module.replaceAll("/", ".")}`);
       return names.map((name) => [`qrc:/${folder}/${name}`, `${join(directory, name)}?url`]);
     });
   };
