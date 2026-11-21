@@ -19,3 +19,18 @@ test("an item made into by a binding hears of its child once the binding has set
   await open(page, "ownchildrenchanged");
   expect(await page.evaluate(() => window.scene.bound())).toEqual([1, 1, 1]);
 });
+
+// The same, where the item's handler changes what the binding goes on to
+// read: read from outside, the binding is what it is once the handler ran,
+// as qml6 has it ([2, 1, 1, 2]), and makes no second child.
+test("a binding that made into an item is read as it is once the item heard of it", async ({ page }) => {
+  await open(page, "ownchildrenchanged");
+  expect(await page.evaluate(() => window.scene.reread())).toEqual([2, 1, 1, 2]);
+});
+
+// A type that declares a `children` of its own: the same list given again
+// is a change, as qml6 tells it of a `var`: heard once more.
+test("a children a type declares itself changes when given again", async ({ page }) => {
+  await open(page, "ownchildrenchanged");
+  expect(await page.evaluate(() => window.scene.overridden())).toBe(1);
+});
