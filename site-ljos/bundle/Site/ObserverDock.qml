@@ -8,7 +8,8 @@ import "../observing.js" as Observing
 // Where the Observer a stage's toolbar opens stands: docked along the
 // right of a wide window, the page still there to click in beside it,
 // and on a phone a sheet over the lower part of the screen, the app
-// above it. It slides in, and out again when closed; only then is the
+// above it. It slides in, and out again when closed (asked for less
+// motion, it fades in and out where it stands); only then is the
 // Observer unmade, and what it served of the app let go of. The
 // Observer itself (`ljos-web/observer/ObserverPanel.qml`) is fetched
 // once a stage offers it, ahead of the first press (observing.js).
@@ -34,8 +35,13 @@ Item {
     // A sheet on a phone, and wherever docking would leave the page beside
     // it narrower than it is read at.
     readonly property bool sheet: room < Theme.wideFrom || room - beside - dockedWidth < Theme.pageNarrowest
-    // Made while open, and while it slides away.
+    // Made while open, and while it slides or fades away.
     property bool held: false
+    // Asked for less motion, the panel does not travel: it stands where
+    // it opens to and fades, as everything that moves on the site does
+    // then (Theme.calm).
+    readonly property bool still: Theme.calm
+    readonly property bool moving: slideX.running || slideY.running || fade.running
     // The stage the panel was made for. Moved to another stage, the
     // Observer is made anew: nothing of the first one's (the page it was
     // left on, an item picked, a value being edited) is about the second.
@@ -74,7 +80,7 @@ Item {
     Rectangle {
         width: dock.room
         height: dock.roomHeight
-        visible: dock.sheet && (dock.open || slide.running)
+        visible: dock.sheet && (dock.open || dock.moving)
         color: Theme.scrim
         opacity: dock.open ? 1 : 0
         Behavior on opacity {
@@ -98,8 +104,9 @@ Item {
         visible: dock.held
         width: dock.panelWidth
         height: dock.panelHeight
-        x: dock.sheet ? 0 : dock.open ? dock.room - width : dock.room
-        y: dock.sheet ? (dock.open ? dock.roomHeight - height : dock.roomHeight) : 0
+        x: dock.sheet ? 0 : dock.open || dock.still ? dock.room - width : dock.room
+        y: dock.sheet ? (dock.open || dock.still ? dock.roomHeight - height : dock.roomHeight) : 0
+        opacity: dock.still && !dock.open ? 0 : 1
         radius: dock.sheet ? Theme.radiusLarge : 0
         color: Theme.surface
         border.color: Theme.divider
@@ -108,19 +115,28 @@ Item {
         Accessible.name: t`Observer`
 
         Behavior on x {
-            enabled: !dock.sheet
+            enabled: !dock.sheet && !dock.still
             NumberAnimation {
-                id: slide
+                id: slideX
                 duration: Theme.enterPanel
                 easing.type: Easing.OutCubic
                 onRunningChanged: if (!running && !dock.open) dock.held = false
             }
         }
         Behavior on y {
-            enabled: dock.sheet
+            enabled: dock.sheet && !dock.still
             NumberAnimation {
+                id: slideY
                 duration: Theme.enterPanel
                 easing.type: Easing.OutCubic
+                onRunningChanged: if (!running && !dock.open) dock.held = false
+            }
+        }
+        Behavior on opacity {
+            enabled: dock.still
+            NumberAnimation {
+                id: fade
+                duration: Theme.enterPanel
                 onRunningChanged: if (!running && !dock.open) dock.held = false
             }
         }
