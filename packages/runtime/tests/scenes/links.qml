@@ -64,8 +64,21 @@ Item {
         Accessible.name: "Off"
     }
 
+    // Its file's own `enabled`, of what it is about: the link is still
+    // enabled, and goes where it says.
+    Item {
+        id: declared
+        property string href: "/declared/"
+        property bool enabled: false
+        y: 200
+        width: 120
+        height: 30
+        Accessible.role: Accessible.Link
+        Accessible.name: "Declared"
+    }
+
     function items() {
-        return { held: held, bare: bare, button: button, script: script, off: off }
+        return { held: held, bare: bare, button: button, script: script, off: off, declared: declared }
     }
 
     function enable() {
