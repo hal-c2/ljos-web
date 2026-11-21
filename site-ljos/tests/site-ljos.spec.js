@@ -186,7 +186,7 @@ test("a link in a docs page's text to a heading on it whose name is not ASCII la
       [named, at],
     );
     expect(anchor).toMatch(/[^\x00-\x7f]/);
-    const link = page.getByRole("region", { name: "Bringing existing QML", exact: true }).locator("a[data-link]").first();
+    const link = page.getByRole("main", { name: "Bringing existing QML", exact: true }).locator("a[data-link]").first();
     await link.evaluate((element, to) => {
       element.dataset.link = to;
       element.click();
