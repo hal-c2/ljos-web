@@ -1127,6 +1127,7 @@ class Slot {
   declare cell: number | undefined;
   declare given$: (() => unknown) | null;
   declare working: boolean;
+  declare written: (() => void) | null;
 
   constructor(
     self: QObject,
@@ -1178,6 +1179,10 @@ class Slot {
     // Whether what the property takes from its group, or works out under it,
     // is being worked out: see `base`.
     this.working = false;
+    // What the object's type does the moment the property is written, before
+    // anything that reads it runs again: a Connections tells what its old
+    // target changed before the write (`QtQuick/Connections.ts`).
+    this.written = null;
     // A binding is evaluated as it is taken, and may read the property it
     // is for: the slot is there to be found before it is.
     self.$slots[key] = this;
@@ -1349,6 +1354,7 @@ class Slot {
   }
 
   changed(): void {
+    this.written?.();
     // A Controller that handles `updated` is told its host was written to
     // (Ljos/Core/controller.js); nothing is asked of any other object.
     this.self.$written?.();
