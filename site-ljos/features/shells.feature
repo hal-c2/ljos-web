@@ -52,6 +52,11 @@ Feature: The site is shown in a shell the reader picks
     When they swap to another shell
     Then that heading is still in view
 
+  Scenario: The reader's place on the page is kept when the window narrows
+    Given a reader at a desk's width who has scrolled the demos page to a demo far down it
+    When they narrow the window, so everything above that demo is laid out again, shorter
+    Then that demo's heading is still in view
+
   Scenario: The pick is kept, and a reload shows it without a jump
     Given a reader who picked the Desktop shell
     When they reload the page
