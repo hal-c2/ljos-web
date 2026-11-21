@@ -103,6 +103,17 @@ fn own_module<'p>(
 struct Namespace<'p> {
     files: std::collections::BTreeMap<String, String>,
     modules: Vec<&'p qml_front::project::Source>,
+    /// The first module imported under the name after files whose types
+    /// are not known ([`known_types`]): a file named as one of them stays in
+    /// [`Self::files`], where Qt would take the module's type.
+    unsure: Option<&'p str>,
+}
+
+/// Whether the compiler knows which types `uri`, a module that is not
+/// files, has: Qt's table or the project lists them. Only then can a file
+/// it has a type of be left out of a [`Namespace`].
+fn known_types(uri: &str, project: &Project) -> bool {
+    QtTypeOracle.has_module(uri) || project.module_types(uri).is_some()
 }
 
 /// See [`Namespace`]. Two of them may share the name (`import "first" as
@@ -112,9 +123,8 @@ struct Namespace<'p> {
 /// none of them is files, or one is a script, which is then what the name
 /// is.
 ///
-/// [`unsure_namespaces`] warns from the same rules: what is files (a
-/// directory, [`own_module`]) and when a module's types are known. Change
-/// them together, or the warning stops saying what this resolves.
+/// [`unsure_namespaces`] warns from what this finds, so the two cannot
+/// differ on what is files or on when a module's types are known.
 fn namespace_files<'p>(
     types: types::Types<'p>,
     name: &str,
@@ -125,6 +135,7 @@ fn namespace_files<'p>(
     let mut namespace = Namespace {
         files: std::collections::BTreeMap::new(),
         modules: Vec::new(),
+        unsure: None,
     };
     let mut any = false;
     for source in types.namespaces(name) {
@@ -142,12 +153,18 @@ fn namespace_files<'p>(
                     namespace.files.extend(files.clone());
                 }
                 None => {
-                    namespace.files.retain(|member, _| {
-                        QtTypeOracle.module_type(uri, member).is_none()
-                            && project
-                                .module_types(uri)
-                                .is_none_or(|types| !types.contains_key(member))
-                    });
+                    if !known_types(uri, project) {
+                        if any && namespace.unsure.is_none() {
+                            namespace.unsure = Some(uri.as_str());
+                        }
+                    } else {
+                        namespace.files.retain(|member, _| {
+                            QtTypeOracle.module_type(uri, member).is_none()
+                                && project
+                                    .module_types(uri)
+                                    .is_none_or(|types| !types.contains_key(member))
+                        });
+                    }
                     namespace.modules.push(source);
                 }
             },
@@ -164,41 +181,36 @@ fn namespace_files<'p>(
 /// imported last, would take the module's. One warning a name, naming the
 /// first such module.
 ///
-/// The rules are [`namespace_files`]'s, which resolves the name: a change to
-/// what is files there, or to when a module's types are known, is one here.
+/// It is what [`namespace_files`], which resolves each name, finds
+/// ([`Namespace::unsure`]), so the warning says what the compile does.
 pub(crate) fn unsure_namespaces(project: &Project, options: &Options) -> Vec<String> {
-    use qml_front::project::Source;
     let Some(summary) = project.summary(&options.name) else {
         return Vec::new();
     };
-    let mut files: Vec<&str> = Vec::new();
-    let mut warned: Vec<&str> = Vec::new();
-    let mut warnings = Vec::new();
-    for import in &summary.imports {
-        let Some(alias) = import.alias.as_deref() else {
-            continue;
-        };
-        match &import.source {
-            Source::Path(path) if qml_front::project::is_script(path) => {}
-            Source::Path(_) => files.push(alias),
-            source @ Source::Module(uri) => {
-                if own_module(source, project, options).is_some() {
-                    files.push(alias);
-                } else if files.contains(&alias)
-                    && !warned.contains(&alias)
-                    && !QtTypeOracle.has_module(uri)
-                    && project.module_types(uri).is_none()
-                {
-                    warned.push(alias);
-                    warnings.push(format!(
-                        "{}: `import {uri} as {alias}` comes after files imported as {alias}, and which types {uri} has is not known here: a file there named as one of them is taken over it, where Qt takes {uri}'s; import {uri} first, or under another name",
-                        options.name
-                    ));
-                }
-            }
+    let types = Types {
+        project,
+        file: &options.name,
+    };
+    let mut names: Vec<&str> = Vec::new();
+    for alias in summary
+        .imports
+        .iter()
+        .filter_map(|import| import.alias.as_deref())
+    {
+        if !names.contains(&alias) {
+            names.push(alias);
         }
     }
-    warnings
+    names
+        .into_iter()
+        .filter_map(|alias| {
+            let uri = namespace_files(types, alias, project, options)?.unsure?;
+            Some(format!(
+                "{}: `import {uri} as {alias}` comes after files imported as {alias}, and which types {uri} has is not known here: a file there named as one of them is taken over it, where Qt takes {uri}'s; import {uri} first, or under another name",
+                options.name
+            ))
+        })
+        .collect()
 }
 
 /// The same, of a document the module of another takes in: `files` is how
