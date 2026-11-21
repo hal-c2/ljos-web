@@ -11,7 +11,12 @@ import { test as base, expect } from "@playwright/test";
 
 const dist = join(resolve(dirname(fileURLToPath(import.meta.url)), ".."), "dist");
 export const siteBase = process.env.LJOS_SITE_BASE ?? "/";
-export const PICTURE = 'img[alt="What this example draws"]';
+// A live block's picture in the light scheme: every block has exactly
+// one, so it counts and finds blocks. A block whose example looks
+// different in the dark has a second, `-dark.png`, that the dark page
+// shows instead (`SHOWN` is whichever of the two a scheme shows).
+export const PICTURE = 'img[alt="What this example draws"]:not([src$="-dark.png"])';
+export const SHOWN = 'img[alt="What this example draws"]';
 export const HYDRATED = '#app[data-ljos-hydrated="true"]';
 // `ljos-web/wasm-check.js`'s NEEDS_WASM, as a reader reads it.
 export const NEEDS_WASM = /Live editing needs WebAssembly/;
@@ -175,10 +180,11 @@ export async function centreOf(locator) {
   return { ...(inSight || !anyInSight ? point : { x: (seen.left + seen.right) / 2, y: (seen.top + seen.bottom) / 2 }), box };
 }
 
-// A live example: its picture, and the window the picture is drawn in
-// (`stage`); once it runs, the running example, which is the one child
-// of the window a reader sees that holds anything (the window keeps
-// the picture's holder and the prerendered copy beside it, hidden).
+// A live example: the picture its scheme shows, and the window the
+// picture is drawn in (`stage`); once it runs, the running example,
+// which is the one child of the window a reader sees that holds
+// anything (the window keeps the pictures' holders and the prerendered
+// copy beside them, hidden).
 // The window stands on the stage's ground; before that ground, a
 // one-pixel rule and before the rule the toolbar (Run, Edit, Reset,
 // Source); after it, the line where the block says what went wrong,
@@ -187,11 +193,10 @@ export async function centreOf(locator) {
 // sit in the card's head, outside the column the ground stands in, so
 // the ground's parent would miss them.
 export function liveBlock(page, index) {
-  const picture = page.locator(PICTURE).nth(index);
-  const stage = picture.locator("xpath=../../..");
+  const stage = page.locator(PICTURE).nth(index).locator("xpath=../../..");
   const ground = stage.locator("xpath=..");
   return {
-    picture,
+    picture: stage.locator(SHOWN).filter({ visible: true }),
     stage,
     running: stage.locator("xpath=./*[*]").filter({ visible: true }).first(),
     toolbar: ground.locator("xpath=preceding-sibling::*[2]"),

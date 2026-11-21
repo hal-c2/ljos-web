@@ -9,9 +9,9 @@
 // most three are started at once; a demo out of view or in a hidden
 // tab pauses and resumes when it is back, and an example stays as the
 // reader left it; reduced motion softens and
-// never stops; one picture stands on light and dark.
+// never stops; each scheme shows the picture drawn in it.
 import AxeBuilder from "@axe-core/playwright";
-import { animationFrames, centre, classify, expect, liveBlock, livePages, open, pageScroll, press, run, runButton, test, unexpected } from "./fixtures.js";
+import { PICTURE, animationFrames, centre, classify, expect, liveBlock, livePages, open, pageScroll, press, run, runButton, test, unexpected } from "./fixtures.js";
 import { brokenExample } from "./known.js";
 
 const examples = livePages().flatMap(({ route, examples }) => examples.filter((example) => !brokenExample(route, example.index)).map((example) => ({ route, example })));
@@ -451,7 +451,7 @@ test.describe("examples", () => {
     await page.keyboard.type(" ljós");
     await expect(field, "what the reader typed is in it").toHaveValue(/ ljós$/);
     // Away: scrolled past, then its tab hidden and shown again.
-    await centre(page.locator('img[alt="What this example draws"]').last());
+    await centre(page.locator(PICTURE).last());
     await expect(block.stage, "it is scrolled past").not.toBeInViewport();
     await animationFrames(page, 60);
     await page.evaluate(() => {
@@ -683,26 +683,31 @@ test.describe("with reduced motion", () => {
   });
 });
 
-// One picture for both schemes, opaque: the page never shows through
-// it. The running example paints its own surface and text from the
-// palette, light or dark (themes.spec.js reads them in dark).
-test("a picture is the same on the page's light or dark, and the page never shows through it", async ({ page }) => {
+// A picture for each scheme, opaque: the page never shows through it.
+// The dark page shows the example drawn in the dark scheme, on dark
+// paper (`<hash>-dark.png`), or the light one's file where the two
+// would be the same picture; as the running example paints its own
+// surface and text from the palette, light or dark (themes.spec.js
+// reads them in dark).
+test("each scheme shows the example's picture drawn in it, and the page never shows through it", async ({ page }) => {
   await open(page, examples[0].route);
-  const picture = page.locator('img[alt="What this example draws"]').first();
-  await expect(picture).toHaveAttribute("src", /Examples\/[0-9a-f]{16}\.png$/);
-  const src = await picture.getAttribute("src");
+  const block = liveBlock(page, 0);
+  await expect(block.picture).toHaveAttribute("src", /Examples\/[0-9a-f]{16}\.png$/);
+  const hash = (await block.picture.getAttribute("src")).match(/([0-9a-f]{16})\.png$/)[1];
   // Its pixels, decoded: nowhere can the page be seen through it.
-  const clear = await picture.evaluate(async (img) => {
-    const bitmap = await createImageBitmap(await (await fetch(img.src)).blob());
-    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
-    const context = canvas.getContext("2d");
-    context.drawImage(bitmap, 0, 0);
-    const { data } = context.getImageData(0, 0, bitmap.width, bitmap.height);
-    let clear = 0;
-    for (let i = 3; i < data.length; i += 4) if (data[i] < 255) clear++;
-    return clear;
-  });
-  expect(clear, "no pixel lets the page through").toBe(0);
+  const clear = () =>
+    block.picture.evaluate(async (img) => {
+      const bitmap = await createImageBitmap(await (await fetch(img.src)).blob());
+      const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+      const context = canvas.getContext("2d");
+      context.drawImage(bitmap, 0, 0);
+      const { data } = context.getImageData(0, 0, bitmap.width, bitmap.height);
+      let clear = 0;
+      for (let i = 3; i < data.length; i += 4) if (data[i] < 255) clear++;
+      return clear;
+    });
+  expect(await clear(), "no pixel of the light picture lets the page through").toBe(0);
   await press(page.getByRole("button", { name: "Use the dark theme" }));
-  await expect(picture, "the same picture stands on the dark page").toHaveAttribute("src", src);
+  await expect(block.picture, "the dark page shows this example's picture in its scheme").toHaveAttribute("src", new RegExp(`Examples/${hash}(-dark)?\\.png$`));
+  expect(await clear(), "no pixel of the dark picture lets the page through").toBe(0);
 });
