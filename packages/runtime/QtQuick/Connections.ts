@@ -22,7 +22,7 @@ const signalName = (handler: string): string => handler[2]!.toLowerCase() + hand
 
 // Runs `listener` when `target` emits `name`, or when the property a
 // `fooChanged` is about has another value: reading it again is not a change.
-// False when the target has neither. `connect` is what does it, as for a
+// `connect` is what does it, as for a
 // handler written on the object itself: a change of a property with no
 // signal of its own (`children`) is found in Solid's flush, and told after
 // it like any other, so what the handler writes is settled by a flush of its
@@ -127,6 +127,10 @@ export const Connections = defineType("Connections", QtObject, {
       // (`children`) has anything to tell here: a signal (`widthChanged`)
       // is the signal's to tell, connected or not when it is emitted, and
       // settles nothing.
+      // Qt 6.12.0: a binding runs again as soon as what it reads is written.
+      // Here it runs again when it is read, so when one flush writes what a
+      // target binding reads and then changes the old target, the old
+      // target's change is still heard, where Qt has moved away first.
       const given = slot(self, "target")!;
       given.written = () => {
         for (const settle of settles) settle();
