@@ -1607,16 +1607,9 @@ class Layer {
     this.kept = null;
     this.end?.();
     this.end = null;
-    this.letGo();
     this.bound = null;
     this.value = undefined;
     kept?.end();
-  }
-
-  letGo(): void {
-    const kept = this.kept;
-    this.kept = [];
-    for (const end of kept) end();
   }
 }
 
