@@ -723,6 +723,47 @@ test("a picture's alt is kept, an empty one too", async ({ page }) => {
   expect(alts).toEqual(["A mark", "", null]);
 });
 
+// A picture in more than one format: the browser takes the first source
+// it can show, and the `img` in it where it can show none. Only a
+// picture's sources are kept, only pictures, and only what picks one;
+// the `img` may say to load once near the screen and to decode apart.
+test("a picture offers its formats, and its img loads lazily", async ({ page }) => {
+  await boxes(page, "markup");
+  const read = await page.evaluate(() => {
+    const { unsafe } = window.objects;
+    unsafe.text =
+      '<picture><source type="image/avif" srcset="a.avif"><source type="image/webp" srcset="a.webp 1x, b.webp 2x" media="(min-width: 1px)" onerror="window.hacked = 5">' +
+      '<source type="text/html" srcset="c.html"><img src="a.png" width="40" height="20" alt="A" loading="lazy" decoding="async"></picture>' +
+      '<source type="image/webp" srcset="d.webp"><img src="b.png" loading="soon" decoding="later">';
+    window.flush();
+    const sources = [...unsafe.$markup.querySelectorAll("source")].map((source) => [
+      source.parentElement.localName,
+      source.getAttribute("type"),
+      source.getAttribute("srcset"),
+      source.getAttribute("media"),
+      source.getAttribute("onerror"),
+    ]);
+    const images = [...unsafe.$markup.querySelectorAll("img")].map((img) => [
+      img.parentElement.localName === "picture",
+      img.getAttribute("loading"),
+      img.getAttribute("decoding"),
+      img.style.width,
+    ]);
+    return { sources, images, hacked: window.hacked };
+  });
+  expect(read).toEqual({
+    sources: [
+      ["picture", "image/avif", "a.avif", null, null],
+      ["picture", "image/webp", "a.webp 1x, b.webp 2x", "(min-width: 1px)", null],
+    ],
+    images: [
+      [true, "lazy", "async", "40px"],
+      [false, null, null, ""],
+    ],
+    hacked: undefined,
+  });
+});
+
 // A link to a page carries its `href`, for a crawler and a new tab;
 // one whose scheme could run a script, however it is hidden, does not.
 test("a link to a page is followable, and a script's is not", async ({ page }) => {
