@@ -138,7 +138,7 @@ Column {
             lineHeightMode: Text.FixedHeight
             lineHeight: Theme.bodyLine + 4
             wrapMode: Text.Wrap
-            text: t`When the shell changes, the app keeps running and keeps its state. The same compiler and lints check each edit before it loads; if an edit fails to compile, <code>ShellLoader</code> falls back to the app's own shell and reports what broke and where in <code>error</code>.`
+            text: t`When the shell changes, the app keeps running and keeps its state. The same compiler and lints check each edit before it loads; if an edit fails to compile, <code>ShellLoader</code> keeps the last shell that compiled and <code>reload()</code> says what broke and where. A shell that cannot run at all gives way to the app's own, with the reason in <code>error</code>.`
             onLinkActivated: (link) => landing.follow(link)
         }
         CodeBlock {
