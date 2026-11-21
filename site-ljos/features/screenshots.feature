@@ -73,3 +73,10 @@ Feature: Every deploy shows what it draws, beside what the last one drew
     Given a demo that draws a blank canvas, or throws as it runs
     Then its shot is marked broken, and the capture fails
     And a good build's shots are not
+
+  Scenario: What moves on its own is checked that it drew, not compared
+    Given a demo whose canvas draws a different frame each moment, as a turning 3D scene does
+    When it is shot twice from the same build
+    Then its canvas is left out of the comparison, and the rest of the picture still counts
+    And the picture says its moving part was not compared
+    And a canvas that holds still is compared whole

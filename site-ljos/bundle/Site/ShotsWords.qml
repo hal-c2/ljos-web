@@ -59,6 +59,7 @@ QtObject {
     function brokenBy(problems) {
         return t`Broken: ${problems}`;
     }
+    readonly property string moving: t`Its moving part was checked that it drew, not compared.`
     function intended(reason) {
         return t`Intended: ${reason}`;
     }

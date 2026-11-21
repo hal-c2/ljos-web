@@ -37,11 +37,36 @@ export function blank(png, { most = 0.995, near = 6 } = {}) {
 // How much of `now` differs from `before`, and a picture of where: the
 // share of pixels pixelmatch calls different (anti-aliasing left out),
 // 1 when the two are not the same size, whose difference is `now` alone.
-export function difference(before, now) {
+// `moving` are boxes of the picture that move on their own (a canvas
+// drawing a new frame each moment): they are left out, and the share
+// is of what is compared.
+export function difference(before, now, moving = []) {
   if (before.width !== now.width || before.height !== now.height) return { ratio: 1, picture: null };
-  const out = new PNG({ width: now.width, height: now.height });
-  const differing = pixelmatch(before.data, now.data, out.data, now.width, now.height, { threshold: 0.1, alpha: 0.25, diffColor: [255, 64, 0], aaColor: [255, 210, 0] });
-  return { ratio: differing / (now.width * now.height), picture: out };
+  const { width, height } = now;
+  let left = 0;
+  let was = before.data;
+  if (moving.length > 0) {
+    // Where it moves, the picture before is taken as the one now.
+    was = Buffer.from(before.data);
+    const out = new Uint8Array(width * height);
+    for (const box of moving) {
+      const x0 = Math.max(0, Math.floor(box.x));
+      const y0 = Math.max(0, Math.floor(box.y));
+      const x1 = Math.min(width, Math.ceil(box.x + box.width));
+      const y1 = Math.min(height, Math.ceil(box.y + box.height));
+      for (let y = y0; y < y1; y += 1)
+        for (let x = x0; x < x1; x += 1) {
+          const at = y * width + x;
+          if (out[at] === 0) left += 1;
+          out[at] = 1;
+          now.data.copy(was, at * 4, at * 4, at * 4 + 4);
+        }
+    }
+  }
+  const out = new PNG({ width, height });
+  const differing = pixelmatch(was, now.data, out.data, width, height, { threshold: 0.1, alpha: 0.25, diffColor: [255, 64, 0], aaColor: [255, 210, 0] });
+  const compared = width * height - left;
+  return { ratio: compared === 0 ? 0 : differing / compared, picture: out };
 }
 
 // The share of a picture's pixels that may differ, anti-aliasing left

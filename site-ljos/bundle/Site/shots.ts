@@ -15,6 +15,13 @@ export interface Viewport {
     readonly height: number
 }
 
+export interface Box {
+    readonly x: number
+    readonly y: number
+    readonly width: number
+    readonly height: number
+}
+
 export interface Picture {
     readonly file: string
     readonly thumb: string
@@ -38,6 +45,10 @@ export interface Shot {
     readonly width: number
     readonly height: number
     readonly health: { readonly ok: boolean; readonly problems: readonly string[] }
+    // Boxes of the picture that move on their own (a canvas drawing a
+    // new frame each moment): checked that they drew, left out of the
+    // comparison. Absent from a manifest written before they were.
+    readonly moving?: readonly Box[]
     readonly before: Picture | null
     readonly diff: { readonly ratio: number; readonly file: string | null } | null
     readonly status: Status
@@ -90,6 +101,9 @@ export async function load(address: string): Promise<Manifest | null> {
         return null
     }
 }
+
+// Whether part of a shot moves on its own, and so was not compared.
+export const moves = (shot: Shot): boolean => (shot.moving ?? []).length > 0
 
 export function counts(shots: readonly Shot[]): { all: number; changed: number; broken: number } {
     return {
@@ -205,6 +219,7 @@ export function issueAddress(manifest: Manifest, shot: Shot, at: (file: string) 
     if (shot.before !== null) lines.push(`Before: ${at(shot.before.file)}${manifest.previous === null ? "" : ` (${manifest.previous.sha.slice(0, 7)})`}`)
     if (shot.diff !== null && shot.diff.file !== null) lines.push(`Difference: ${at(shot.diff.file)} (${share(shot.diff.ratio)} of pixels)`)
     if (shot.health.problems.length > 0) lines.push(`Problems: ${shot.health.problems.join("; ")}`)
+    if (moves(shot)) lines.push("Moving: its moving part was left out of the comparison")
     lines.push("", "What looks wrong:", "")
     const query = new URLSearchParams({ title: `Screenshot: ${shot.title}, ${renderer(shot)}, ${shot.scheme}, ${shot.viewport.name}`, body: lines.join("\n") })
     return `https://github.com/${manifest.repository}/issues/new?${query.toString()}`

@@ -30,6 +30,7 @@ const shot = (id, over) => {
     width: viewport.width,
     height: viewport.height,
     health: { ok: true, problems: [] },
+    moving: [],
     before: { file: `before/${id}.png`, thumb: `before/${id}.webp` },
     diff: { ratio: 0, file: null },
     status: "same",
@@ -50,7 +51,7 @@ const manifest = {
   declared: [],
   shots: [
     shot("shell-default.solid.dom.light.desktop"),
-    shot("shell-default.solid.webgpu.dark.phone", { status: "changed", diff: { ratio: 0.0123, file: "diff/shell-default.solid.webgpu.dark.phone.png" } }),
+    shot("shell-default.solid.webgpu.dark.phone", { status: "changed", diff: { ratio: 0.0123, file: "diff/shell-default.solid.webgpu.dark.phone.png" }, moving: [{ x: 0, y: 120, width: 390, height: 300 }] }),
     shot("demo-cockpit.wasm.webgpu.dark.desktop", {
       status: "changed",
       diff: { ratio: 0.31, file: "diff/demo-cockpit.wasm.webgpu.dark.desktop.png" },
@@ -106,6 +107,7 @@ test("each picture stands beside the one before, named by kernel, renderer, sche
   const same = tile(page, "The front page, default shell: Solid kernel, light, desktop 1440×900");
   await same.scrollIntoViewIfNeeded();
   await expect(same.getByText("Same as before")).toBeVisible();
+  await expect(same.getByText("Its moving part was checked that it drew, not compared.")).toHaveCount(0);
   const [was, now] = [same.getByRole("img", { name: /^Before/ }), same.getByRole("img", { name: /^Now/ })];
   await expect.poll(() => drawnFrom(was)).toMatch(/\/screenshots\/before\/shell-default\.solid\.dom\.light\.desktop\.webp$/);
   await expect.poll(() => drawnFrom(now)).toMatch(/\/screenshots\/now\/shell-default\.solid\.dom\.light\.desktop\.webp$/);
@@ -122,6 +124,8 @@ test("a changed picture says by how much in words, and its difference is a link 
   await changed.scrollIntoViewIfNeeded();
   await expect(changed.getByText("Changed: 1.2 % of pixels")).toBeVisible();
   await expect(changed.getByRole("link", { name: "Difference" })).toHaveAttribute("href", /\/screenshots\/diff\/shell-default\.solid\.webgpu\.dark\.phone\.png$/);
+  // Its canvas turns on its own, so it was checked, not compared.
+  await expect(changed.getByText("Its moving part was checked that it drew, not compared.")).toBeVisible();
   const meant = tile(page, "Svala GT: wasm kernel, WebGPU, dark, desktop 1440×900");
   await expect(meant.getByText("Changed: 31 % of pixels")).toBeVisible();
   await expect(meant.getByText("Intended: The cockpit's dock moved to the left.")).toBeVisible();

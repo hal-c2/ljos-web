@@ -137,6 +137,20 @@ Rectangle {
             }
         }
 
+        // A canvas that turns on its own is never caught on the same
+        // frame twice: it was checked that it drew, and left out.
+        Text {
+            visible: tile.shot !== null && Shots.moves(tile.shot)
+            width: parent.width
+            text: ShotsWords.moving
+            color: Theme.textMuted
+            font.family: Theme.sans
+            font.pixelSize: Theme.captionSize
+            lineHeightMode: Text.FixedHeight
+            lineHeight: Theme.captionLine
+            wrapMode: Text.Wrap
+        }
+
         // Why it changed, where a pull request said it would.
         Text {
             visible: tile.shot !== null && tile.shot.accepted !== null

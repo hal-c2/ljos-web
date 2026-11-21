@@ -8,7 +8,9 @@
 // kernel, in light and dark, at each of the target's sizes; a shot whose
 // part of the page draws on a canvas is taken again with WebGPU taken
 // away (WebGL 2). Each shot is judged as it is taken: a page that threw,
-// a demo that did not start, a canvas that drew nothing make it broken.
+// a demo that did not start, a canvas that drew nothing make it broken;
+// a canvas that moves on its own is named, to be left out of the
+// comparison.
 // Writes <out>/now/<id>.png, a thumbnail beside it (.webp), and
 // <out>/manifest.json, which shots/compare.mjs completes against the
 // deploy before. Exits 1 when any shot is broken.
@@ -19,7 +21,7 @@ import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { chromium } from "@playwright/test";
 import sharp from "sharp";
-import { blank, readPng } from "./pictures.mjs";
+import { blank, difference, readPng } from "./pictures.mjs";
 import { shotId, siteLists, slug, targets } from "./targets.mjs";
 
 const { values } = parseArgs({
@@ -159,18 +161,27 @@ async function run(part, problems) {
 // sees the scene a moment later; one still blank after this never drew.
 const FIRST_FRAME = Number(values["first-frame"]);
 
+// How long a moving canvas is given to show it moves: two reads this
+// far apart that differ (anti-aliasing left out) are of one that draws
+// a new frame each moment, as a turning scene does.
+const MOVES_WITHIN = 500;
+
 // The canvases a part shows, each judged blank or not by its own
 // pixels: what is drawn over a canvas (its labels, a control) is hidden
 // while it is read, so a canvas that drew nothing under a label is
-// still blank.
-async function canvases(page, part, problems) {
+// still blank. A canvas that moves on its own is checked that it drew,
+// and its box, where the part's picture holds it, is given back to be
+// left out of the comparison: two runs of one build never catch it on
+// the same frame.
+async function canvases(page, part, whole, problems) {
   const found = await part.locator("canvas").all();
   let shown = 0;
+  const moving = [];
   for (const canvas of found) {
     const box = await canvas.boundingBox();
     if (box === null || box.width < 8 || box.height < 8 || !(await canvas.isVisible())) continue;
     shown += 1;
-    const empty = async () => {
+    const read = async () => {
       await canvas.evaluate((element) => {
         const hidden = [];
         for (let child = element; child.parentElement; child = child.parentElement)
@@ -182,7 +193,7 @@ async function canvases(page, part, problems) {
         globalThis.__ljosShotHidden = hidden;
       });
       try {
-        return blank(readPng(await canvas.screenshot({ animations: "allow" })));
+        return readPng(await canvas.screenshot({ animations: "allow" }));
       } finally {
         await page.evaluate(() => {
           for (const [element, was] of globalThis.__ljosShotHidden ?? []) element.style.visibility = was;
@@ -191,14 +202,26 @@ async function canvases(page, part, problems) {
       }
     };
     const until = Date.now() + FIRST_FRAME;
-    let still = await empty();
+    let first = await read();
+    let still = blank(first);
     while (still && Date.now() < until) {
       await page.waitForTimeout(500);
-      still = await empty();
+      first = await read();
+      still = blank(first);
     }
-    if (still) problems.push(`blank canvas (${Math.round(box.width)}×${Math.round(box.height)}) after ${FIRST_FRAME / 1000} s`);
+    if (still) {
+      problems.push(`blank canvas (${Math.round(box.width)}×${Math.round(box.height)}) after ${FIRST_FRAME / 1000} s`);
+      continue;
+    }
+    await page.waitForTimeout(MOVES_WITHIN);
+    if (difference(first, await read()).ratio === 0) continue;
+    // Where the canvas is in the part's picture: the window's, or the
+    // part's own box. Read after the scroll that put the part in view.
+    const at = whole ? { x: 0, y: 0 } : await part.boundingBox();
+    const now = (await canvas.boundingBox()) ?? box;
+    moving.push({ x: Math.round(now.x - at.x), y: Math.round(now.y - at.y), width: Math.round(now.width), height: Math.round(now.height) });
   }
-  return shown;
+  return { shown, moving };
 }
 
 const shots = [];
@@ -229,6 +252,7 @@ async function save(shot, png) {
     width,
     height,
     health: { ok, problems: shot.problems },
+    moving: shot.moving,
     before: null,
     diff: null,
     status: ok ? "new" : "broken",
@@ -276,12 +300,12 @@ async function visit(browser, gpu, init, site, kernel, target, rank, scheme, vie
     await run(part, problems);
     await settled(page);
     if (!whole) await part.scrollIntoViewIfNeeded();
-    const drawn = await canvases(page, part, problems);
+    const { shown: drawn, moving } = await canvases(page, part, whole, problems);
     if (drawn > 0 && gpu === "webgpu") onGpu.add(key);
     problems.push(...threw);
     const used = drawn > 0 ? gpu : null;
     const png = whole ? await page.screenshot({ animations: "allow" }) : await part.screenshot({ animations: "allow" });
-    await save({ ...base, rank: [rank, index], id: shotId({ target: name, kernel, gpu: used, scheme, viewport }), target: name, title, gpu: used, problems }, png);
+    await save({ ...base, rank: [rank, index], id: shotId({ target: name, kernel, gpu: used, scheme, viewport }), target: name, title, gpu: used, problems, moving }, png);
   }
   await context.close();
 }

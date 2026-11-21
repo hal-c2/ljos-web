@@ -90,6 +90,19 @@ test.describe("a picture", () => {
     expect(difference(before, picture(100, 90, [247, 245, 240]))).toEqual({ ratio: 1, picture: null });
   });
 
+  test("that moves on its own is compared only where it holds still", () => {
+    const before = picture(100, 100, [247, 245, 240], { x: 0, y: 0, width: 40, height: 40, colour: [232, 163, 61] });
+    const turned = picture(100, 100, [247, 245, 240], { x: 0, y: 0, width: 40, height: 40, colour: [107, 75, 216] });
+    const moving = [{ x: 0, y: 0, width: 40, height: 40 }];
+    expect(difference(before, turned).ratio).toBeGreaterThan(THRESHOLD);
+    expect(difference(before, turned, moving).ratio).toBe(0);
+    // What changes beside it still counts, as a share of what is compared.
+    const beside = picture(100, 100, [26, 25, 23], { x: 0, y: 0, width: 40, height: 40, colour: [107, 75, 216] });
+    expect(difference(before, beside, moving).ratio).toBe(1);
+    // Boxes the picture does not reach are cut to it.
+    expect(difference(before, turned, [{ x: -10, y: -10, width: 60, height: 60 }]).ratio).toBe(0);
+  });
+
   test("changed on purpose is taken only from what a pull request said since the deploy before", () => {
     const list = [
       { ids: ["demo-cockpit.*"], reason: "The cockpit's dock moved to the left.", pr: 140 },
@@ -182,6 +195,16 @@ const sites = {
   good: page(`setTimeout(() => { ${draw} }, 1800);`),
   blank: page(""),
   throws: page(`${draw}\nsetTimeout(() => { throw new Error("the scene has no camera"); }, 100);`),
+  // A scene that turns: each frame another colour, as time goes on.
+  moving: page(`const canvas = document.querySelector("canvas").getContext("2d");
+const turn = (now) => {
+  canvas.fillStyle = "#0e0e10";
+  canvas.fillRect(0, 0, 360, 240);
+  canvas.fillStyle = "#e8a33d";
+  canvas.fillRect(Math.floor(now / 4) % 240, 80, 120, 80);
+  requestAnimationFrame(turn);
+};
+requestAnimationFrame(turn);`),
 };
 
 function capture(kind) {
@@ -204,6 +227,21 @@ test.describe("a render", () => {
       ["webgl2", "webgpu"].flatMap((gpu) => ["dark", "light"].flatMap((scheme) => ["desktop", "phone"].map((size) => `shell-default.solid.${gpu}.${scheme}.${size}`))).sort(),
     );
     for (const shot of manifest.shots) expect(shot.health, shot.id).toEqual({ ok: true, problems: [] });
+    // It holds still once drawn, so all of it is compared.
+    for (const shot of manifest.shots) expect(shot.moving, shot.id).toEqual([]);
+  });
+
+  test("that moves on its own is healthy, and its canvas is marked as left out of the comparison", () => {
+    const { result, manifest } = capture("moving");
+    expect(result.status, result.stdout + result.stderr).toBe(0);
+    expect(manifest.shots.length).toBeGreaterThan(0);
+    for (const shot of manifest.shots) {
+      expect(shot.health, shot.id).toEqual({ ok: true, problems: [] });
+      // The canvas, where the picture holds it: under the fixture's heading.
+      expect(shot.moving, shot.id).toHaveLength(1);
+      expect(shot.moving[0], shot.id).toMatchObject({ x: 0, width: 360, height: 240 });
+      expect(shot.moving[0].y, shot.id).toBeGreaterThan(0);
+    }
   });
 
   test("whose canvas stays blank is broken, and the capture fails", () => {

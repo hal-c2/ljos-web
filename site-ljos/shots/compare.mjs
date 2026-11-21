@@ -83,7 +83,10 @@ for (const shot of manifest.shots) {
   const thumb = `before/${shot.id}.webp`;
   writeFileSync(join(dir, file), bytes);
   await sharp(bytes).resize({ width: thumbWidth, withoutEnlargement: true }).webp({ quality: 80 }).toFile(join(dir, thumb));
-  const { ratio, picture } = difference(readPng(bytes), readPng(readFileSync(join(dir, shot.file))));
+  // What moved on its own then or now is left out: a turning scene is
+  // never caught on the same frame twice.
+  const moving = [...(shot.moving ?? []), ...(was.moving ?? [])];
+  const { ratio, picture } = difference(readPng(bytes), readPng(readFileSync(join(dir, shot.file))), moving);
   const changed = ratio > threshold;
   let diff = { ratio, file: null };
   if (changed && picture !== null) {
