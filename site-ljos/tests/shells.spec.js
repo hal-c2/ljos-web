@@ -14,7 +14,7 @@ const DESKTOP = { width: 1440, height: 900 };
 const PHONE = { width: 390, height: 844 };
 const LABEL = { marketing: "Marketing", workbench: "Workbench", desktop: "Desktop" };
 const SHELLS = Object.keys(LABEL);
-// What each kind of page is named as a part of the page (Site/PageView.qml).
+// What each kind of page's main landmark is named (Site/PageView.qml).
 const PAGES = [
   { route: "/", region: "Home" },
   { route: "/demos/", region: "Live demos" },
@@ -77,6 +77,8 @@ async function pick(page, name) {
 }
 
 const region = (page, name) => page.getByRole("region", { name, exact: true }).filter({ visible: true });
+// The page shown: its content is the main landmark, named for the page.
+const shownPage = (page, name) => page.getByRole("main", { name, exact: true }).filter({ visible: true });
 
 for (const route of ["/", "/start/first-app/"]) {
   const { region: named } = PAGES.find((one) => one.route === route);
@@ -90,9 +92,9 @@ for (const route of ["/", "/start/first-app/"]) {
           const said = listen(page);
           await open(page, route);
           if (from !== "marketing") await pick(page, from);
-          await expect(region(page, named)).toBeVisible();
+          await expect(shownPage(page, named)).toBeVisible();
           await pick(page, to);
-          await expect(region(page, named), "the page is still shown").toBeVisible();
+          await expect(shownPage(page, named), "the page is still shown").toBeVisible();
           await expect(switcher(page)).toHaveAccessibleName(`Shell: ${LABEL[to]}`);
           expect(said, "what the page said").toEqual([]);
         } finally {
@@ -112,7 +114,7 @@ for (const shell of SHELLS) {
       for (const { route, region: named } of PAGES) {
         await open(page, route);
         expect(await showing(page), `${route} is framed by ${shell}`).toBe(shell);
-        await expect(region(page, named), `${route} shows its page`).toBeVisible();
+        await expect(shownPage(page, named), `${route} shows its page`).toBeVisible();
       }
       expect(said, "what the pages said").toEqual([]);
     } finally {
@@ -572,7 +574,7 @@ test("the shell's own QML is shown, a broken edit falls back and says why, and R
     await press(dialog.getByRole("button", { name: "Apply", exact: true }));
     await expect.poll(() => showing(page), { message: "the marketing shell stands in", timeout: 30_000 }).toBe("marketing");
     await expect(dialog.getByText(/Shells\/Workbench\.qml:/)).toBeVisible();
-    await expect(region(page, "Your First App")).toBeVisible();
+    await expect(shownPage(page, "Your First App")).toBeVisible();
     await press(dialog.getByRole("button", { name: "Reset", exact: true }));
     await expect.poll(() => showing(page)).toBe("workbench");
   } finally {

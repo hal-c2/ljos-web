@@ -93,7 +93,12 @@ Rectangle {
         main.pageWidth = main.pageHost.width;
         main.pageHeight = main.pageHost.height;
     }
+    // A shell may move the page's place without changing its size (one
+    // the reader wrote): it is placed again whenever the window or the
+    // shell changes, and as the Observer opens over it.
     onPageHostChanged: Qt.callLater(placePage)
+    onWidthChanged: Qt.callLater(placePage)
+    onHeightChanged: Qt.callLater(placePage)
 
     function find() {
         if (!sitePreferences.wide)
@@ -550,6 +555,7 @@ Rectangle {
             if ("site" in loader.item && loader.item.site !== main)
                 loader.item.site = main;
             main.letGo();
+            Qt.callLater(main.placePage);
             if (fadeIn.armed) {
                 fadeIn.armed = false;
                 fadeIn.target = loader.item;
@@ -574,6 +580,7 @@ Rectangle {
         room: main.width
         roomHeight: main.pageHeight
         beside: main.pageLeft
+        onOpenChanged: if (open) main.placePage()
     }
 
     // A browser without view transitions: the new shell fades in, as
