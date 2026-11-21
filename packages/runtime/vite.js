@@ -10,7 +10,7 @@
 // control, and a program that uses three of them needs those three.
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { availableParallelism } from "node:os";
 import { basename, delimiter, dirname, isAbsolute, join, relative, resolve as resolvePath, sep } from "node:path";
 import { inflateSync } from "node:zlib";
@@ -188,14 +188,42 @@ function extract(tool, uri, folder, directory) {
 
 // What Qt's `tool` reads of `folder` out of the plugin of the module `uri`,
 // kept in `directory` of the cache for the builds after: the names of the
-// files, and what went wrong running it.
+// files, and what went wrong running it. Builds that run at once share the
+// cache, so a folder is there whole or not at all: it is read into one of
+// this build's own and put in place when it is done, and one already there
+// is never taken away, as another build may be reading it. What Qt read
+// nothing of (one that ran out of time on a busy machine reads nothing) is
+// not kept: the next build asks Qt again.
 export function readOut(tool, uri, folder, directory) {
-  let failed = null;
-  if (!existsSync(directory)) failed = extract(tool, uri, folder, directory);
-  const names = readdirSync(directory).filter((name) => !name.startsWith(".") && !name.includes("@"));
-  // Nothing read is not kept: the next build asks Qt again.
-  if (names.length === 0) rmSync(directory, { recursive: true, force: true });
-  return { names, failed };
+  const names = () => {
+    try {
+      return readdirSync(directory).filter((name) => !name.startsWith(".") && !name.includes("@"));
+    } catch {
+      return [];
+    }
+  };
+  const there = names();
+  if (there.length > 0) return { names: there, failed: null };
+  mkdirSync(dirname(directory), { recursive: true });
+  const own = mkdtempSync(`${directory}.reading-`);
+  let failed;
+  try {
+    failed = extract(tool, uri, folder, own);
+    if (readdirSync(own).some((name) => !name.startsWith(".") && !name.includes("@"))) {
+      // An empty folder left by a build that stopped half way holds nothing
+      // anyone reads.
+      if (existsSync(directory) && names().length === 0) rmSync(directory, { recursive: true, force: true });
+      try {
+        renameSync(own, directory);
+      } catch (error) {
+        // Another build put the folder in place first: its is as good.
+        if (names().length === 0) throw error;
+      }
+    }
+  } finally {
+    rmSync(own, { recursive: true, force: true });
+  }
+  return { names: names(), failed };
 }
 
 // `wave.frag.qsb`: a shader as Qt draws with it, baked by Qt's `qsb` tool
@@ -747,10 +775,9 @@ export default function qml({
         if (!named(folder)) return [];
         const { bins, version } = found();
         directory = join(cache, version || "qt", owner, kind);
-        if (!existsSync(directory)) {
-          const failed = extract(join(bins || "", "qml"), owner.replaceAll("/", "."), folder, directory);
-          if (failed) console.warn(`ljos-web: the ${kind} of ${owner} could not be read out of Qt: ${failed}`);
-        }
+        const { names, failed } = readOut(join(bins || "", "qml"), owner.replaceAll("/", "."), folder, directory);
+        if (failed) console.warn(`ljos-web: the ${kind} of ${owner} could not be read out of Qt: ${failed}`);
+        return names.map((name) => [`${folder}/${name}`, join(directory, name)]);
       }
       return readdirSync(directory)
         .filter((name) => !name.startsWith(".") && !name.includes("@"))
