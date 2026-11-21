@@ -612,6 +612,8 @@ function tell() {
 export function flush(): void {
   if (!applying) drain();
   tell();
+  // What a binding owed the item it made into, this flush has told.
+  if (!applying && deep === 0) owed = false;
 }
 
 // What a type's method does once it has changed something, so that what
@@ -852,7 +854,7 @@ function graphed<T>(owner: Owner | null, compute: () => T, first?: T, own = fals
         follow(index as number, owner);
         return held;
       }
-      return settledOwed(read.start()());
+      return settledOwed(() => read.start()());
     },
     { start, begin: start, busy: () => evaluating },
   );
@@ -1010,7 +1012,7 @@ function ringed<T>(owner: Owner | null, compute: () => T, first: T | undefined, 
       return weak(reader, asking);
     }
     if (reader && back?.has(reader)) return weak(reader, asking);
-    if (!asking) return settledOwed(read.start()());
+    if (!asking) return settledOwed(() => read.start()());
     // Only what it did not read before can close a ring, and only around
     // what something was computed from.
     if (asking.done && asking.asked && !asking.from?.has(record) && !asking.fresh?.has(record)) {
@@ -1051,13 +1053,15 @@ let deep = 0;
 // been computed, before the reader goes on, as when it is made outside one.
 // Qt tells it inside the binding; here nothing is told while one computes.
 // A computation that reads it is in a flush, which tells it at its end.
+// What the item does on hearing of it can change what the binding reads,
+// so the binding is read again once it has been told.
 let owed = false;
-function settledOwed<T>(value: T): T {
-  if (owed && deep === 0 && !getObserver()) {
-    owed = false;
-    settle();
-  }
-  return value;
+function settledOwed<T>(get: () => T): T {
+  const value = get();
+  if (!owed || deep !== 0 || getObserver()) return value;
+  owed = false;
+  settle();
+  return get();
 }
 // Counts the changes of values, and the changes that began of themselves.
 let clock = 0;
@@ -2518,9 +2522,10 @@ function sameItems(value: unknown, last: unknown): boolean {
 }
 
 // Whether the type computes `name` afresh at each read and says when it
-// changes (`children`): no slot holds it.
+// changes (`children`): no slot holds it, not even one a type deriving from
+// it declares under the same name.
 const computed = (self: QObject, name: string): boolean =>
-  Boolean(self.$type?.chain.some((type) => type.spec.changes?.includes(name)));
+  !self.$type?.slots[name] && Boolean(self.$type?.chain.some((type) => type.spec.changes?.includes(name)));
 
 // What a computed list is read as again is a new array, though it holds the
 // same objects: a Timer made in an item is none of its children.
