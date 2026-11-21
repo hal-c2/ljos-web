@@ -958,22 +958,29 @@ const folds = (page) =>
         const card = holding(code);
         const picture = [...card.querySelectorAll(PICTURE)].find(shown);
         const line = parseFloat(getComputedStyle(code).lineHeight);
-        let window = code.parentElement;
-        while (
-          window !== card &&
-          getComputedStyle(window).overflow === "visible"
-        )
-          window = window.parentElement;
         const box = code.getBoundingClientRect();
+        // What of the code shows is what every window between it and
+        // its card lets through: a scroller as tall as the code can sit
+        // in a fold that clips it.
+        let [top, bottom] = [box.top, box.bottom];
+        for (
+          let up = code.parentElement;
+          up && up !== card;
+          up = up.parentElement
+        )
+          if (getComputedStyle(up).overflow !== "visible") {
+            const clip = up.getBoundingClientRect();
+            [top, bottom] = [
+              Math.max(top, clip.top),
+              Math.min(bottom, clip.bottom),
+            ];
+          }
         return {
           index,
           name: card.getAttribute("aria-label") ?? `code block ${index + 1}`,
           lines: Math.round(box.height / line),
           line,
-          shownHeight: Math.min(
-            window.getBoundingClientRect().height,
-            box.height,
-          ),
+          shownHeight: Math.max(0, bottom - top),
           codeTop: box.top,
           pictureTop: picture ? picture.getBoundingClientRect().top : null,
           showsAll: [...card.querySelectorAll('[role="button"], button')].some(
