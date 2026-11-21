@@ -29,6 +29,16 @@ QtObject {
         Scheme.mark(next, next === "dark" ? Tokens.dark.canvas : Tokens.light.canvas);
     }
 
+    // "light", "dark", or "" to follow the browser again.
+    function pick(scheme) {
+        picked = scheme;
+        Scheme.keep(scheme);
+        if (scheme === "")
+            Scheme.unmark(Tokens.light.canvas, Tokens.dark.canvas);
+        else
+            Scheme.mark(scheme, scheme === "dark" ? Tokens.dark.canvas : Tokens.light.canvas);
+    }
+
     // Reduced motion reduces movement: what slides or grows only fades,
     // and what fades still fades; a demo moves slower and softer, never
     // stops. It is the browser's prefers-reduced-motion until the reader

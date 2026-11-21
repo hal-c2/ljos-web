@@ -1,12 +1,13 @@
 import QtQuick
 import Site
+import Ljos.Core
 
 // Light or dark, the reader's: it shows the scheme a press goes to (a
 // moon in light, a sun in dark), and the choice is kept (Theme.toggle).
 IconButton {
     id: toggle
 
-    label: Theme.dark ? "Use the light theme" : "Use the dark theme"
+    label: Theme.dark ? t`Use the light theme` : t`Use the dark theme`
     onPressed: Theme.toggle()
 
     // The moon: a disc with a bite out of it.

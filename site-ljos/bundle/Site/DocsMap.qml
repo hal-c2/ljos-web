@@ -3,16 +3,18 @@ import Site
 
 // The docs, section by section, in the order their front matter puts
 // them: the sidebar on a wide page, and the menu's on a narrow one. The
-// page being read is the strong one.
+// page being read is the strong one. Given `sections`, it is those (a
+// workbench's tree of every page: Router.tree).
 Column {
     id: map
 
     property string route: ""
+    property var sections: Content.sidebar
 
     spacing: Theme.l
 
     Repeater {
-        model: Content.sidebar
+        model: map.sections
 
         Column {
             required property var modelData

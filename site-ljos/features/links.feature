@@ -74,6 +74,11 @@ Feature: The site's links are the page's own links
     When they go back and drag the page up from that link with a finger
     Then the page has scrolled, and the address is still the docs' first page
 
+  Scenario: With script, a link in a page's words to a heading whose name is not ASCII lands on it
+    Given a docs page with a heading "Where Ljós and Qt differ" out of view
+    When a reader presses a link in the page's words to that heading, its address percent-encoded
+    Then the heading is in view
+
   Scenario: With script, back comes to where the reader was on the page
     Given a reader with script, scrolled down the docs' first page
     When they press a link to another page

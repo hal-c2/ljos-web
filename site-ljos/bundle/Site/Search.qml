@@ -1,9 +1,11 @@
 import QtQuick
 import Site
+import Ljos.Core
 import "../nav.js" as Nav
 
-// The docs' search: page titles and the headings on them, found as the
-// reader types. Up and Down choose, Return goes, Escape clears; each
+// The site's search: the docs' page titles and the headings on them, and
+// the demos' pages (scripts/build.mjs, search.json), found as the reader
+// types. Up and Down choose, Return goes, Escape clears; each
 // result is also a real link a pointer can follow.
 Item {
     id: search
@@ -33,6 +35,12 @@ Item {
         }, function () {
             search.trouble = "The search could not be loaded. Try again in a moment.";
         });
+    }
+
+    // Asked for by name (the `/` key, a desktop's File menu): the field
+    // takes the keys, and the index comes as it does on a first focus.
+    function find() {
+        field.forceActiveFocus();
     }
 
     function go(index) {
@@ -82,7 +90,7 @@ Item {
             x: field.x
             anchors.verticalCenter: parent.verticalCenter
             visible: field.text === ""
-            text: "Search the docs…"
+            text: t`Search docs and demos`
             color: Theme.textMuted
             font.family: Theme.sans
             font.pixelSize: Theme.bodySize
@@ -100,7 +108,8 @@ Item {
             font.pixelSize: Theme.bodySize
             clip: true
             Accessible.role: Accessible.EditableText
-            Accessible.name: "Search the docs"
+            Accessible.name: t`Search`
+            Accessible.description: t`Press / to search`
             onActiveFocusChanged: if (activeFocus) search.load()
             onTextChanged: {
                 search.chosen = 0;
@@ -142,7 +151,7 @@ Item {
         // A list of none is no list: what stands then is the line
         // that says nothing was found.
         Accessible.role: search.results.length > 0 ? Accessible.List : Accessible.NoRole
-        Accessible.name: "Search results"
+        Accessible.name: t`Search results`
 
         Column {
             id: found
@@ -156,7 +165,10 @@ Item {
                 leftPadding: Theme.s
                 topPadding: Theme.xs
                 bottomPadding: Theme.xs
-                text: search.pages === null ? search.trouble : "Nothing in the docs matches “" + field.text.trim() + "”."
+                text: search.pages === null ? search.trouble : t`Nothing matches “${query}”. Try a type name, like ListView.`
+                // The reader's words as they typed them, never as markup.
+                textFormat: Text.PlainText
+                readonly property string query: field.text.trim()
                 color: Theme.textMuted
                 font.family: Theme.sans
                 font.pixelSize: Theme.bodySize

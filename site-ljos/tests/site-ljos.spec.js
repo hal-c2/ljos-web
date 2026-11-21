@@ -82,8 +82,10 @@ const shown = (locator) => locator.filter({ visible: true });
 test("the landing page leads with your own shell, and never pitches compatibility", async ({ page }) => {
   await page.goto("/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
-  // The footer says the same words, smaller, at the page's end.
+  // The page opens on its name; the footer, at the page's end, says in
+  // a line what Ljós is.
   await expect(page.getByText("Ljós — malleable software, everywhere", { exact: true }).first()).toBeInViewport();
+  await expect(page.getByText("Typed apps you can see inside and drive while they run.", { exact: true }).last()).toBeAttached();
   // The page's own words: the code in a field is the reader's to
   // edit, and an `import QtQuick` there pitches nothing.
   const words = await page.locator("#app").evaluate((app) => {
@@ -116,7 +118,7 @@ test("a docs page reads with JavaScript off: title, prose, table, code, sidebar 
     await expect(shown(page.getByText("ljos mcp --project .", { exact: false })).first()).toBeVisible();
     await expect(shown(page.getByText("What is Ljós?", { exact: true })).first()).toBeVisible();
     await expect(shown(page.getByText("On this page", { exact: true }))).toBeVisible();
-    await expect(shown(page.getByText("Search the docs…", { exact: true }))).toBeVisible();
+    await expect(shown(page.getByText("Search docs and demos", { exact: true }))).toBeVisible();
   } finally {
     await context.close();
   }
@@ -162,6 +164,72 @@ test("with script, the sidebar navigates and the contents list lands on its head
   await press(page, late);
   await expect(page.getByText("The authoring server (ljos mcp)", { exact: true }).first()).toBeInViewport();
   expect(errors).toEqual([]);
+});
+
+test("a link in a docs page's text to a heading on it whose name is not ASCII lands on that heading", async ({ browser }) => {
+  const context = await browser.newContext({ reducedMotion: "no-preference", viewport: { width: 1440, height: 900 } });
+  try {
+    const page = await context.newPage();
+    await page.goto("/language/porting-from-qt/");
+    await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+    const named = "Where Ljós and Qt differ";
+    const heading = page.getByRole("heading", { name: named, exact: true }).filter({ visible: true }).first();
+    await expect(heading, "the heading starts out of view").not.toBeInViewport();
+    // Its anchor as the page has it, written into an address as markdown
+    // writes one: what is not ASCII in it percent-encoded.
+    const at = `${(process.env.LJOS_SITE_BASE ?? "/").replace(/\/?$/, "/")}search.json`;
+    const { anchor } = await page.evaluate(
+      async ([named, at]) => {
+        const all = await (await fetch(at)).json();
+        return all.find((one) => one.route === "/language/porting-from-qt/").headings.find((one) => one.plain === named);
+      },
+      [named, at],
+    );
+    expect(anchor).toMatch(/[^\x00-\x7f]/);
+    const link = page.getByRole("region", { name: "Bringing existing QML", exact: true }).locator("a[data-link]").first();
+    await link.evaluate((element, to) => {
+      element.dataset.link = to;
+      element.click();
+    }, `#${encodeURIComponent(anchor)}`);
+    await expect(heading).toBeInViewport();
+  } finally {
+    await context.close();
+  }
+});
+
+test("search finds the demos it says it searches, and says a query with markup as written", async ({ browser }) => {
+  const context = await browser.newContext({ reducedMotion: "no-preference", viewport: { width: 1440, height: 900 } });
+  try {
+    const page = await context.newPage();
+    await page.goto("/start/");
+    await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+    const field = page.getByRole("textbox", { name: "Search", exact: true }).filter({ visible: true }).first();
+    await field.click();
+    await page.keyboard.type("Svala GT cockpit");
+    await expect(page.getByRole("list", { name: "Search results" }).getByText("Svala GT cockpit", { exact: true })).toBeVisible();
+    await page.keyboard.press("ControlOrMeta+A");
+    await page.keyboard.type("<b>AbsentType</b>");
+    await expect(page.getByText("Nothing matches “<b>AbsentType</b>”. Try a type name, like ListView.", { exact: true })).toBeVisible();
+  } finally {
+    await context.close();
+  }
+});
+
+test("on a phone the footer's words wrap inside the page", async ({ browser }) => {
+  const context = await browser.newContext({ reducedMotion: "no-preference", viewport: { width: 390, height: 844 } });
+  try {
+    const page = await context.newPage();
+    await page.goto("/");
+    await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+    const tagline = page.getByText("Typed apps you can see inside and drive while they run.", { exact: true }).filter({ visible: true }).last();
+    await tagline.scrollIntoViewIfNeeded();
+    const box = await tagline.boundingBox();
+    expect(box, "the tagline is laid out").toBeTruthy();
+    expect(box.x, "its start").toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width, "its end, inside the window").toBeLessThanOrEqual(390);
+  } finally {
+    await context.close();
+  }
 });
 
 test("a code block is its picture until the reader reaches for it, then runs beside its code, edits keep its state, and a broken edit keeps the last good result", async ({ page }) => {
@@ -518,8 +586,9 @@ test("light and dark are the reader's", async ({ page }) => {
   await page.emulateMedia({ colorScheme: "light" });
   await page.goto("/start/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
-  // The header's own ground, at a point nothing else covers.
-  const ground = () => page.evaluate(() => getComputedStyle(document.elementFromPoint(700, 28)).backgroundColor);
+  // The header's own ground, above its controls (each 40 high in its
+  // 64), where nothing else covers it whatever the header holds.
+  const ground = () => page.evaluate(() => getComputedStyle(document.elementFromPoint(700, 4)).backgroundColor);
   const before = await ground();
   expect(before).not.toBe("rgba(0, 0, 0, 0)");
   await page.getByRole("button", { name: "Use the dark theme" }).click();

@@ -279,11 +279,13 @@ const rooted = (value) =>
 // the sidebar already names every docs page (`Nav.titled`): each
 // page loads the shell, so a second list of every title would be in
 // every page's first load.
+const after = " — Ljós";
+// The demos page's own name, which search.json lists it by too.
+const demosTitle = "Live demos";
 const own = {
   "/": "Ljós — malleable software, everywhere",
-  "/demos/": "Live demos — Ljós",
+  "/demos/": `${demosTitle}${after}`,
 };
-const after = " — Ljós";
 // The pro demos' pages are the site's own too (scripts/pro.mjs).
 Object.assign(own, Pro.titles(Pro.demos, after));
 const titles = {
@@ -372,6 +374,25 @@ for (const demo of Pro.demos)
   writeFileSync(join(bundle, `Demos/${demo.name}-project.json`), `${JSON.stringify(Pro.projectOf(Pro.targetOf(demo), (code, lang) => packRich(highlight(code, lang))))}\n`);
 writeFileSync(join(bundle, "Demos/pro-later.js"), Pro.loaders(Pro.demos));
 
+// The QML of each shell the site ships and of each page it frames, as
+// data for "View this shell's source" and a workbench's Source tab
+// (shells.js imports it when a reader first asks): the very files the
+// bundle ships, highlighted as a code block's are. Generated; do not
+// edit by hand.
+{
+  const sourceOf = (file) => {
+    const text = readFileSync(join(bundle, file), "utf8");
+    return { file, text, rich: packRich(highlight(text, "qml")) };
+  };
+  writeFileSync(
+    join(bundle, "Shells/sources.json"),
+    `${JSON.stringify({
+      shells: Object.fromEntries(["Marketing", "Workbench", "Desktop"].map((name) => [name.toLowerCase(), sourceOf(`Shells/${name}.qml`)])),
+      pages: Object.fromEntries(["Landing", "DemosPage", "DocPage", "ProDemoPage"].map((name) => [name, sourceOf(`Site/${name}.qml`)])),
+    })}\n`,
+  );
+}
+
 // The bundle's manifest, of the bundle as it stands now.
 function files(directory, prefix = "") {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) =>
@@ -382,7 +403,7 @@ const paths = files(bundle).filter((path) => path !== "ljos-site.json").sort();
 const imports = new Set();
 for (const path of paths.filter((path) => path.endsWith(".qml"))) {
   for (const [, uri] of readFileSync(join(bundle, path), "utf8").matchAll(/^\s*import\s+([A-Za-z_][\w.]*)/gm)) {
-    if (!["Site", "Demos", "Pantry"].includes(uri)) imports.add(uri);
+    if (!["Site", "Shells", "Demos", "Pantry"].includes(uri)) imports.add(uri);
   }
 }
 let ljosWeb = "0".repeat(40);
@@ -397,10 +418,15 @@ writeFileSync(
       version: 1,
       target: "web",
       entry: "Main.qml",
-      blocks: [],
+      // The site's state, as blocks a shell places and a reader's own
+      // shell is written against (Site/qmldir's `# block` lines).
+      blocks: [
+        { block: "Site.Router", file: "Site/Router.qml" },
+        { block: "Site.Preferences", file: "Site/Preferences.qml" },
+      ],
       files: paths.map((path) => ({ path, bytes: statSync(join(bundle, path)).size })),
       left_out: [],
-      modules: [{ module: "Site", qmldir: "Site/qmldir" }, { module: "Demos", qmldir: "Demos/qmldir" }, { module: "Pantry", qmldir: "Pantry/qmldir" }],
+      modules: [{ module: "Site", qmldir: "Site/qmldir" }, { module: "Demos", qmldir: "Demos/qmldir" }, { module: "Pantry", qmldir: "Pantry/qmldir" }, { module: "Shells", qmldir: "Shells/qmldir" }],
       imports: [...imports].sort(),
       ljos_web: ljosWeb,
     },
@@ -462,8 +488,20 @@ function siteHead() {
   // keeps it, so the head's script never asks for another.
   const scheme = readFileSync(join(bundle, "scheme.js"), "utf8").replace(/^\.pragma library$/m, "");
   const { key } = new Function(`${scheme}\nreturn { key };`)();
+  // The same for the shell kept (shells.js), and the width under which
+  // the site shows the marketing shell whatever is kept (Theme.wideFrom).
+  const shells = readFileSync(join(bundle, "shells.js"), "utf8").replace(/^\.pragma library$/m, "");
+  const shellKey = new Function(`${shells}\nreturn key;`)();
+  const wideFrom = /readonly property int wideFrom:\s*(\d+)/.exec(readFileSync(join(bundle, "Site/Theme.qml"), "utf8"))?.[1];
+  if (!wideFrom) throw new Error("site-ljos: Site/Theme.qml names no wideFrom for the head's shell script");
+  // How long the head waits for a kept shell before it shows the page
+  // anyway: its fade's delay and its script's timer, one number.
+  const shellWait = 2500;
   return readFileSync(join(bundle, "assets/head.html"), "utf8")
     .replace("%SCHEME_KEY%", () => JSON.stringify(key))
+    .replace("%SHELL_KEY%", () => JSON.stringify(shellKey))
+    .replace("%WIDE_FROM%", () => wideFrom)
+    .replaceAll("%SHELL_WAIT%", () => String(shellWait))
     .replace("%LJOS_TOKENS%", () => tokens)
     .replaceAll("%LIGHT_CANVAS%", light.canvas)
     .replaceAll("%DARK_CANVAS%", dark.canvas);
@@ -593,7 +631,7 @@ const notFound = `<!doctype html>
   </head>
   <body>
     <header>
-      <a class="home" href="${base}" aria-label="Ljós — front page"><img src="${base}favicon.svg" width="28" height="28" alt="">Ljós</a>
+      <a class="home" href="${base}" aria-label="Ljós, home"><img src="${base}favicon.svg" width="28" height="28" alt="">Ljós</a>
       <nav aria-label="Site">
         <a href="${base}start/">Docs</a>
         <a href="${base}demos/">Demos</a>
@@ -622,12 +660,18 @@ cpSync(join(bundle, "assets/ljos-mark.svg"), join(out, "favicon.svg"));
 for (const name of ["apple-touch-icon.png", "og-image.png"]) cpSync(join(bundle, "assets", name), join(out, name));
 // The pictures a demo's frame shows until the demo runs, or instead of
 // it where it cannot: named by the pages as strings, like a live block's.
-// What the search looks through (Site/Search.qml): every page's title
-// and headings, fetched as a reader first searches, so no page's first
-// load holds the others' (each page's own reading is in its props).
+// What the search looks through (Site/Search.qml): every docs page's
+// title and headings, then the demos' pages by their titles (the field
+// says it searches both), fetched as a reader first searches, so no
+// page's first load holds the others' (each page's own reading is in
+// its props).
 writeFileSync(
   join(out, "search.json"),
-  JSON.stringify(site.pages.map(({ route, title, headings }) => ({ route, title, headings: headings.map(({ plain, anchor }) => ({ plain, anchor })) }))),
+  JSON.stringify([
+    ...site.pages.map(({ route, title, headings }) => ({ route, title, headings: headings.map(({ plain, anchor }) => ({ plain, anchor })) })),
+    { route: "/demos/", title: demosTitle, headings: [] },
+    ...Pro.demos.map((demo) => ({ route: Pro.route(demo), title: demo.title, headings: [] })),
+  ]),
 );
 mkdirSync(join(out, "pictures"), { recursive: true });
 for (const name of readdirSync(join(bundle, "assets")).filter((name) => /^demo-.*\.webp$/.test(name))) cpSync(join(bundle, "assets", name), join(out, "pictures", name));
