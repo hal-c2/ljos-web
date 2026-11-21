@@ -740,7 +740,7 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
       },
     };
     // What the compiler said of the bundle's files, for both builds: it
-    // says the same to each, and a run holds the event loop they share.
+    // says the same to each, so each thing is asked once.
     const answers = new Map();
     // A bundle's file is named by its path there; what is not the bundle's
     // (a module of the runtime's) is never inspected.
@@ -753,10 +753,9 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
     const plugin = () => qml({ qmlc, args: ["--root", dir], qt, styles, standins, theme: theme ? join(dir, theme) : false, liveShell, answers, inspect: placed });
     // The page's build and, for a prerender, the server bundle of the same
     // entry, at once: neither reads what the other writes, and each has a
-    // plugin of its own. The compiler is run to its end in the plugin's
-    // load (`runCompiler`), so no two compiles overlap, and what one build
-    // asked of it the other is told (`answers`); what overlaps is the
-    // bundler's own work around them.
+    // plugin of its own. A file's compile runs beside the others
+    // (`compilerRun`, as many as there are cores), and what one build asked
+    // of the compiler, or is asking, the other is told (`answers`).
     const client = timed("client", () =>
       build({
         ...shared,
