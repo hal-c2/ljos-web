@@ -3180,15 +3180,27 @@ export function instantiate(
   component: (data?: Props) => QObject | null,
   data?: Props,
   item?: QObject | null,
-  // What a layer's typed binding makes is its own even with a parent (`item`),
-  // which is still where it is shown: the layer ends it once nothing holds it.
-  owner: Owner | null = (maker && getOwner() === makerFor ? maker : null) ?? item?.$owner ?? getOwner(),
+  owner?: Owner | null,
 ): Instantiated {
+  // What a layer's typed binding makes is its own even with a parent (`item`),
+  // which is still where it is shown: the layer ends it once nothing holds it,
+  // and then it is no longer in that parent, as one `destroy()` ends is not.
+  const layer = owner === undefined && maker && getOwner() === makerFor ? maker : null;
+  const under = owner !== undefined ? owner : (layer ?? item?.$owner ?? getOwner());
   // What the object makes as it is made is its own, not the maker's.
   const before = maker;
   maker = null;
   try {
-    return instantiateUnder(component, data, item, owner);
+    const made = instantiateUnder(component, data, item, under);
+    const object = made.object;
+    if (layer && item && object)
+      runWithOwner(layer, () =>
+        onCleanup(() => {
+          if (object.$destroyed) return;
+          ((dynamic(object).parent as QObject | null | undefined) ?? object.$parent)?.$remove?.(object);
+        }),
+      );
+    return made;
   } finally {
     maker = before;
   }

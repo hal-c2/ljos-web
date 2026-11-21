@@ -478,3 +478,28 @@ test("an object a refused evaluation of a layer's binding made with a parent end
   });
   expect(said).toEqual(["refused kept ended 1", "again kept ended 2", "removed ended 3"]);
 });
+
+// Unlike a plain binding's, an object a layer's binding made with a parent is
+// the layer's: once the binding moves off it, it ends and leaves the parent.
+test("an object a layer's binding made with a parent ends and leaves the parent once the binding moves off it", async ({ page }) => {
+  await open(page, "objectlayered");
+  const said = await page.evaluate(async () => {
+    const root = window.scene;
+    const { other } = root.named;
+    // Read, as the wasm kernel runs a binding when what it gives is read.
+    const settle = async () => (window.flush(), root.made, await new Promise((resolve) => setTimeout(resolve)));
+    const under = (object) => Array.from(root.children).includes(object);
+    const over = window.override(root, "made", { binding: () => (root.pick > 0 ? other : root.makeIn()) });
+    await settle();
+    const first = root.made;
+    const said = [`made under ${under(first)} ended ${root.ended}`];
+    root.pick = 1;
+    await settle();
+    said.push(`moved ${root.made === other} under ${under(first)} ended ${root.ended}`);
+    over.remove();
+    await settle();
+    said.push(`removed ended ${root.ended}`);
+    return said;
+  });
+  expect(said).toEqual(["made under true ended 0", "moved true under false ended 1", "removed ended 1"]);
+});
