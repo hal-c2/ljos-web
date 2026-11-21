@@ -2341,7 +2341,10 @@ function onto(target: unknown, props: Props, key: string, rest: string): void {
   const had = Object.getOwnPropertyDescriptor(target.$props, rest);
   if (had && had.get === given.get && had.value === given.value) return;
   const handled = /^on([A-Z_])(\w*)$/.exec(rest);
-  if (handled) return connect(target, handled[1]!.toLowerCase() + handled[2]!, (...args: unknown[]) => (props[key] as Handler | undefined)?.(...args));
+  if (handled) {
+    connect(target, handled[1]!.toLowerCase() + handled[2]!, (...args: unknown[]) => (props[key] as Handler | undefined)?.(...args));
+    return;
+  }
   const held = slot(target, rest);
   if (held) return held.bind(props, key);
   if (rest.includes("$")) return through(target, props, key, rest);
@@ -2537,8 +2540,10 @@ const computed = (self: QObject, name: string): boolean =>
 const alike = (value: unknown, last: unknown): boolean => Object.is(value, last) || sameItems(value, last);
 
 // Runs `handler` when the property changes from what it is now, or from what
-// it is once the objects being created all are.
-export function onChange(self: QObject, name: string, handler: Handler, first?: First): void {
+// it is once the objects being created all are. What it returns tells of a
+// change the flush has made and not told yet, now: for one who stops
+// listening in that flush, because of that change, and was still to hear it.
+export function onChange(self: QObject, name: string, handler: Handler, first?: First): () => void {
   const owner = getOwner();
   // `fontChanged`: a group is the one object whatever is in it, and changes
   // when anything in it does.
@@ -2551,10 +2556,17 @@ export function onChange(self: QObject, name: string, handler: Handler, first?: 
     : computed(self, name)
       ? alike
       : Object.is;
+  let settle = () => {};
   const watch = (firsts?: Works) => {
     let last = untrack(read);
     let fresh = true;
     first?.(last, firsts);
+    settle = () => {
+      const value = untrack(read);
+      if (same(value, last) || sameItems(value, last)) return;
+      last = value;
+      after(() => heard(handler, undefined, self));
+    };
     runWithOwner(owner, () =>
       createEffect(
         read,
@@ -2576,6 +2588,7 @@ export function onChange(self: QObject, name: string, handler: Handler, first?: 
   };
   if (watches) watches.push(watch);
   else watch();
+  return () => settle();
 }
 
 // What an object is given as it is made is a change to whoever heard of the
@@ -2604,16 +2617,18 @@ function first(self: QObject, name: string, key: string, value: unknown, firsts:
 }
 
 // `target.onSignal` from outside the object: a signal it emits, or the change
-// of one of its properties (`widthChanged`).
-export function connect(target: QObject, name: string, listener: Handler): void {
+// of one of its properties (`widthChanged`). What it returns is `onChange`'s:
+// a signal is told as it is emitted, and has nothing left to tell.
+export function connect(target: QObject, name: string, listener: Handler): () => void {
   const emitted = dynamic(target)[name] as Signal | null | undefined;
   if (typeof emitted?.connect === "function") {
     emitted.connect(listener);
     onCleanup(() => emitted.disconnect(listener));
-    return;
+    return () => {};
   }
   const property = /^(\w+)Changed$/.exec(name)?.[1];
-  if (property && property in target) onChange(target, property, listener);
+  if (property && property in target) return onChange(target, property, listener);
+  return () => {};
 }
 
 function attach(name: string, Attached: QmlType, self: QObject | null | undefined): QObject | undefined {
