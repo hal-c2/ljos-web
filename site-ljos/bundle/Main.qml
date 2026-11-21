@@ -301,33 +301,39 @@ Rectangle {
                 height: shell.wide ? Theme.xxl : Theme.xl
             }
 
-            // Only this route's page is made, so the HTML the build
-            // writes for a route holds that page and no other. The
-            // landing and demos pages load by route; a docs page
-            // stands here directly, its page bound as it is made, so
-            // a prerender — which writes the page as it first stands —
-            // holds it whole.
-            Loader {
-                id: pageLoader
-                visible: !shell.docsRoute
-                Accessible.role: Accessible.Section
-                Accessible.name: shell.route === "/demos/" ? "Live demos" : shell.pro ? shell.pro.title : "Home"
-                active: !shell.docsRoute
-                width: Math.min(pageScroll.measure, pageScroll.width - 2 * shell.gutter)
-                x: Math.round((pageScroll.width - width) / 2)
-                sourceComponent: shell.route === "/" ? landingPage : shell.route === "/demos/" ? demosPage : shell.pro ? proPage : emptyPage
-            }
-            DocPage {
-                id: docItem
-                visible: shell.docsRoute
-                Accessible.role: Accessible.Section
-                Accessible.name: docItem.page ? docItem.page.title : ""
-                width: Math.min(pageScroll.measure, pageScroll.width - 2 * shell.gutter)
-                x: Math.round((pageScroll.width - width) / 2)
-                route: shell.docsRoute ? shell.route : ""
-                page: shell.page
-                scroller: pageScroll
-                onFollowed: (href) => shell.follow(href)
+            // The page's own content, between the header and the footer:
+            // the shell's client area, which a reader is taken to as
+            // the page's main landmark, named for the page. The footer
+            // and the docs beside it are landmarks of their own.
+            Column {
+                width: pageScroll.width
+                Accessible.role: Accessible.Client
+                Accessible.name: shell.docsRoute ? (docItem.page ? docItem.page.title : "") : shell.route === "/demos/" ? "Live demos" : shell.pro ? shell.pro.title : "Home"
+
+                // Only this route's page is made, so the HTML the build
+                // writes for a route holds that page and no other. The
+                // landing and demos pages load by route; a docs page
+                // stands here directly, its page bound as it is made, so
+                // a prerender — which writes the page as it first stands —
+                // holds it whole.
+                Loader {
+                    id: pageLoader
+                    visible: !shell.docsRoute
+                    active: !shell.docsRoute
+                    width: Math.min(pageScroll.measure, pageScroll.width - 2 * shell.gutter)
+                    x: Math.round((pageScroll.width - width) / 2)
+                    sourceComponent: shell.route === "/" ? landingPage : shell.route === "/demos/" ? demosPage : shell.pro ? proPage : emptyPage
+                }
+                DocPage {
+                    id: docItem
+                    visible: shell.docsRoute
+                    width: Math.min(pageScroll.measure, pageScroll.width - 2 * shell.gutter)
+                    x: Math.round((pageScroll.width - width) / 2)
+                    route: shell.docsRoute ? shell.route : ""
+                    page: shell.page
+                    scroller: pageScroll
+                    onFollowed: (href) => shell.follow(href)
+                }
             }
 
             Item {
