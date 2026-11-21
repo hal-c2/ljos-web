@@ -434,3 +434,123 @@ fn files_imported_before_a_module_whose_types_are_not_known_under_one_name_are_w
     );
     assert_eq!(described.warnings, Vec::<String>::new());
 }
+
+#[test]
+fn a_name_is_warned_of_exactly_where_knowing_the_module_would_change_what_it_resolves_to() {
+    // The warning and the table a name resolves to are two readings of the
+    // same imports. Compiled once with `Acme.Widgets` installed and not
+    // described, and once with the project describing it as having every
+    // type the files have, a file the first takes and the second leaves to
+    // the module is one the compiler took on a guess: the warning is to be
+    // given there, and nowhere else.
+    const SOURCES: [&str; 4] = [
+        "import \"parts\" as P",
+        "import App.Parts as P",
+        "import QtQuick.Controls as P",
+        "import Acme.Widgets as P",
+    ];
+    // What of the files Main imports: `parts` has Panel, App.Parts has Card.
+    let taken = |code: &str| {
+        (
+            code.contains("/parts/Panel.qml\""),
+            code.contains("/App/Parts/Card.qml\""),
+        )
+    };
+    let compiled = |imports: &str, described: bool| {
+        let item = "import QtQuick\nItem { }\n".to_string();
+        // Only what a file has is named: a type that nothing known has
+        // does not compile.
+        let mut named = String::new();
+        for (source, member) in [(SOURCES[0], "Panel"), (SOURCES[1], "Card")] {
+            if imports.contains(source) {
+                named += &format!("P.{member} {{ }} ");
+            }
+        }
+        let mut files = BTreeMap::from([
+            (
+                "Main.qml".to_string(),
+                format!("import QtQuick\n{imports}\nItem {{ {named}}}\n"),
+            ),
+            ("parts/Panel.qml".to_string(), item.clone()),
+            (
+                "src/parts/qmldir".to_string(),
+                "module App.Parts\nCard 1.0 Card.qml\n".to_string(),
+            ),
+            ("src/parts/Card.qml".to_string(), item.clone()),
+        ]);
+        let mut aliases = vec![Alias {
+            module: "App.Parts".into(),
+            dir: "src/parts".into(),
+        }];
+        if described {
+            files.insert(
+                "src/acme/qmldir".to_string(),
+                "module Acme.Widgets\nPanel 1.0 Panel.qml\nCard 1.0 Card.qml\n".to_string(),
+            );
+            files.insert("src/acme/Panel.qml".to_string(), item.clone());
+            files.insert("src/acme/Card.qml".to_string(), item);
+            aliases.push(Alias {
+                module: "Acme.Widgets".into(),
+                dir: "src/acme".into(),
+            });
+        }
+        let request = Request {
+            installed: vec!["Acme.Widgets".to_string()],
+            aliases,
+            ..request(files, "Main.qml")
+        };
+        compile(&request).unwrap_or_else(|errors| panic!("{imports}: {errors:?}"))
+    };
+
+    // Every order of two and of three of them that has the module.
+    let mut orders: Vec<Vec<&str>> = Vec::new();
+    for a in SOURCES {
+        for b in SOURCES.into_iter().filter(|b| *b != a) {
+            orders.push(vec![a, b]);
+            for c in SOURCES.into_iter().filter(|c| *c != a && *c != b) {
+                orders.push(vec![a, b, c]);
+            }
+        }
+    }
+    orders.retain(|order| order.contains(&SOURCES[3]));
+    let mut warned_somewhere = false;
+    for order in orders {
+        let imports = order.join("\n");
+        let unknown = compiled(&imports, false);
+        let known = compiled(&imports, true);
+        let guessed = taken(&unknown.modules[0].code) != taken(&known.modules[0].code);
+        let warned = unknown
+            .warnings
+            .iter()
+            .any(|warning| warning.contains("`import Acme.Widgets as P` comes after files"));
+        assert_eq!(
+            warned, guessed,
+            "{imports}\nwarnings: {:?}\nunknown:\n{}\nknown:\n{}",
+            unknown.warnings, unknown.modules[0].code, known.modules[0].code
+        );
+        // Described, its types are known: nothing is guessed.
+        assert_eq!(known.warnings, Vec::<String>::new(), "{imports}");
+        warned_somewhere |= warned;
+    }
+    assert!(warned_somewhere, "no order was warned of");
+
+    // A script under the name is what the name is: no file is taken for
+    // it, so none is taken over the module.
+    let mut files = BTreeMap::from([
+        (
+            "Main.qml".to_string(),
+            "import QtQuick\nimport \"parts\" as P\nimport \"logic.js\" as P\nimport Acme.Widgets as P\nItem { }\n".to_string(),
+        ),
+        ("logic.js".to_string(), "function f() { return 1 }\n".to_string()),
+    ]);
+    files.insert(
+        "parts/Panel.qml".to_string(),
+        "import QtQuick\nItem { }\n".to_string(),
+    );
+    let script = compile(&Request {
+        installed: vec!["Acme.Widgets".to_string()],
+        ..request(files, "Main.qml")
+    })
+    .expect("compiles");
+    assert_eq!(script.warnings, Vec::<String>::new());
+}
