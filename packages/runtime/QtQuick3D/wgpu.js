@@ -838,9 +838,14 @@ export function drawOn(self, canvas, told, instead) {
     instead(gaveCanvas);
     setDraws((times) => times + 1);
   };
+  // A loss told while the view is made, before it is kept, is acted on
+  // once it is.
+  let lostWhileMade = null;
   const lost = (message) => {
     const view = made();
-    if (gone || stopped || !view) return;
+    if (gone || stopped) return;
+    if (!view) return void (lostWhileMade ??= message);
+    lostWhileMade = null;
     setMade(null);
     queueMicrotask(() => into(() => view.free()));
     for (const end of followers.values()) end();
@@ -920,6 +925,7 @@ export function drawOn(self, canvas, told, instead) {
     queue = queue
       .then(async () => {
         if (gone) return;
+        lostWhileMade = null;
         if (givenUp) return void giveUp(givenUp);
         // Before the renderer is fetched or the canvas taken, so what draws
         // instead has both.
@@ -947,15 +953,17 @@ export function drawOn(self, canvas, told, instead) {
         // The context the view draws with, which a canvas gives again.
         if (state.backend === "webgl2") gl = canvas.getContext("webgl2");
         setMade(() => view);
+        if (lostWhileMade !== null) lost(lostWhileMade);
       })
       .catch(async (error) => {
         if (trapped(error)) return;
         // A view made again for a GPU lost gives WebGPU up for the page only
         // where WebGPU has no adapter after, or once another view found that
         // or gave up; a view that fails for a reason of its own, with an
-        // adapter still there, stops alone.
+        // adapter still there, stops alone. That is the page's though the
+        // view was let go meanwhile.
         const none = !givenUp && state.lost && !(await navigator.gpu?.requestAdapter().catch(() => null));
-        if ((none || givenUp) && !gone) {
+        if (none || givenUp) {
           givenUp ??= `the GPU was lost, and none is to be had again: ${error?.message ?? error}`;
           for (const other of [...retiring]) other();
           return void (gone || giveUp(givenUp));
