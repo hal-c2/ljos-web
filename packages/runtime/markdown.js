@@ -105,7 +105,10 @@ const KEYWORDS = new Set(
 // shell line, Rust) is coloured roughly, by the same classes: comments,
 // strings, numbers and the usual keywords. Either way the code is
 // escaped first and coloured by whole tokens after, so it can never
-// make markup of itself.
+// make markup of itself. Plain text (what a command printed) is words,
+// not code: it is escaped and not coloured, or "1 files, 0 errors"
+// reads as numbers to look at.
+const PLAIN = new Set(["text", "txt", "plain", "plaintext"]);
 function colourPlain(text) {
   // One pass: a second would read the first one's markup as words.
   return escapeHtml(text).replace(/\b(?:(\d+(?:\.\d+)?)|([A-Za-z_]\w*))\b/g, (all, number, word) =>
@@ -115,6 +118,7 @@ function colourPlain(text) {
 
 export function highlight(code, lang) {
   if (langOf(lang)) return highlightToHtml(String(code), lang);
+  if (PLAIN.has(String(lang ?? "").toLowerCase())) return escapeHtml(String(code));
   return String(code)
     .split("\n")
     .map((line) => {

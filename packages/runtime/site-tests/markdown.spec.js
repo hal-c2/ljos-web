@@ -70,6 +70,15 @@ test("highlighting never colours inside a string, a number, or its own markup", 
   expect(rough.match(/<span/g).length).toBe(4);
 });
 
+test("a block of plain text (what a command prints) is escaped and never coloured", () => {
+  // `1 files, 0 errors` is words, not code: no number in it is a token.
+  for (const lang of ["text", "txt", "plain", "plaintext", "TEXT"]) {
+    const plain = highlight('1 files, 0 errors\nif "a" < b // done', lang);
+    expect(plain).not.toContain("<span");
+    expect(plain).toBe("1 files, 0 errors\nif &quot;a&quot; &lt; b // done");
+  }
+});
+
 test("a table's cells are split outside code spans, and an escaped pipe is a pipe", () => {
   // As the docs themselves write one (quality/layout-and-typography):
   // a cell whose code span holds a `|`.
