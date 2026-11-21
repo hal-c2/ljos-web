@@ -73,6 +73,47 @@ test("a wheel moves the content", async ({ page }) => {
   expect(await page.evaluate(() => window.objects.margins.contentY)).toBe(-7);
 });
 
+// The browser's scroll chaining, which Qt has no part in. A Flickable keeps
+// the overscroll along a way it flicks to itself, never along one it does
+// not: a row of code that only goes sideways must not hold the page still.
+// The wheel that turns a row sideways moves it to its end, and then the
+// column it is in.
+test("a wheel over a row that only goes sideways moves the row, and at its end the column", async ({ page }) => {
+  await open(page, "sidewaysflick");
+  const at = () => page.evaluate(() => [window.objects.row.contentX, window.objects.column.contentY]);
+  const settled = () => page.waitForFunction(() => !window.objects.row.moving && !window.objects.column.moving);
+  await page.mouse.move(150, 100);
+  await page.mouse.wheel(0, 120);
+  await expect.poll(at).toEqual([120, 0]);
+  await settled();
+  await page.mouse.wheel(0, 120);
+  await expect.poll(at).toEqual([200, 0]);
+  await settled();
+  await page.mouse.wheel(0, 120);
+  await expect.poll(at).toEqual([200, 120]);
+  await settled();
+  // Up, over what is left in sight of the row, the row comes back first.
+  await page.mouse.move(150, 10);
+  await page.mouse.wheel(0, -50);
+  await expect.poll(at).toEqual([150, 120]);
+});
+
+test("a finger's swipe up over a row that only goes sideways scrolls the column", async ({ browser, baseURL }) => {
+  const context = await browser.newContext({ baseURL, viewport: { width: 400, height: 300 }, isMobile: true, hasTouch: true });
+  try {
+    const page = await context.newPage();
+    await page.goto("/?scene=sidewaysflick");
+    await page.waitForFunction(() => window.ready);
+    const device = await context.newCDPSession(page);
+    await device.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x: 150, y: 140 }] });
+    for (let step = 1; step <= 10; step++) await device.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: 150, y: 140 - step * 10 }] });
+    await device.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await expect.poll(() => page.evaluate(() => [window.objects.row.contentX, window.objects.column.contentY > 50])).toEqual([0, true]);
+  } finally {
+    await context.close();
+  }
+});
+
 test("margins put the content's beginning before zero", async ({ page }) => {
   await open(page, "flickable");
   const read = await page.evaluate(() => {
