@@ -111,6 +111,10 @@ struct Namespace<'p> {
 /// of the package imported after it also has is not in the table. None when
 /// none of them is files, or one is a script, which is then what the name
 /// is.
+///
+/// [`unsure_namespaces`] warns from the same rules: what is files (a
+/// directory, [`own_module`]) and when a module's types are known. Change
+/// them together, or the warning stops saying what this resolves.
 fn namespace_files<'p>(
     types: types::Types<'p>,
     name: &str,
@@ -157,7 +161,11 @@ fn namespace_files<'p>(
 /// `import Acme.Widgets as P`, a module the page has installed): neither
 /// Qt's table nor the project lists them, so a file of the same name as one
 /// of the module's types is taken over it, where Qt, which takes the type
-/// imported last, would take the module's. One warning a name, naming the first such module.
+/// imported last, would take the module's. One warning a name, naming the
+/// first such module.
+///
+/// The rules are [`namespace_files`]'s, which resolves the name: a change to
+/// what is files there, or to when a module's types are known, is one here.
 pub(crate) fn unsure_namespaces(project: &Project, options: &Options) -> Vec<String> {
     use qml_front::project::Source;
     let Some(summary) = project.summary(&options.name) else {
