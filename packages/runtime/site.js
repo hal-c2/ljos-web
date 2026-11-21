@@ -649,7 +649,7 @@ function rendering(args, input, signal) {
   });
 }
 
-export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", qt, styles = "ljos", with: standins = [], liveShell = false, prerender = false, css = [], head = "", logLevel = "warn", jobs, inspect } = {}) {
+export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", qt, styles = "ljos", with: standins = [], liveShell = false, prerender = false, css = [], head = "", logLevel = "warn", jobs, inspect, timings = {} } = {}) {
   if (!dir) throw new SiteError("which bundle? buildSite({ dir })");
   if (!Array.isArray(css) || css.some((path) => typeof path !== "string" || !path.endsWith(".css") || !existsSync(path))) {
     throw new SiteError(`css is a list of .css files that exist, not ${JSON.stringify(css)}`);
@@ -659,20 +659,31 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
   if (inspect !== undefined && typeof inspect !== "function") {
     throw new SiteError(`inspect is a function of a file's path in the bundle, true for those compiled with their places, not ${JSON.stringify(inspect)}`);
   }
+  if (timings === null || typeof timings !== "object") throw new SiteError(`timings is an object the build fills as it goes, not ${JSON.stringify(timings)}`);
   if (jobs !== undefined && (!Number.isInteger(jobs) || jobs < 1)) throw new SiteError(`jobs is how many renders may run at once, a whole number from 1, not ${JSON.stringify(jobs)}`);
   // Only a prerendered site runs renders, so only it asks how many: a
   // live shell's build is not refused over a setting it never uses.
   if (prerender) jobs ??= siteJobs();
   // How long each part of the build took, in milliseconds, for whoever
-  // builds a site to say where its time goes.
-  const timings = {};
-  const timed = async (part, work) => {
+  // builds a site to say where its time goes. A part under way is null,
+  // so a caller that gave `timings` and stops waiting (a test's time ran
+  // out) can say which part the build was in.
+  const timed = (part, work) => {
     const from = performance.now();
+    timings[part] = null;
+    const took = () => (timings[part] = Math.round(performance.now() - from));
+    let made;
     try {
-      return await work();
-    } finally {
-      timings[part] = Math.round(performance.now() - from);
+      made = work();
+    } catch (error) {
+      took();
+      throw error;
     }
+    if (typeof made?.then !== "function") {
+      took();
+      return made;
+    }
+    return made.finally(took);
   };
   const pages = prerender ? pagesOf(prerender) : null;
   const sizes = prerender ? sizesOf(prerender) : null;
@@ -680,8 +691,8 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
   dir = resolve(dir);
   out = resolve(out ?? `${dir}-site`);
   qmlc = compilerAt(qmlc);
-  const { manifest, needs } = check(dir, qmlc);
-  const theme = themeOf(dir, manifest, qmlc);
+  const { manifest, needs } = timed("check", () => check(dir, qmlc));
+  const theme = timed("theme", () => themeOf(dir, manifest, qmlc));
 
   if (styles !== "ljos" && styles !== "qt") throw new SiteError(`styles is "ljos" or "qt", not ${JSON.stringify(styles)}`);
   for (const { module, needs: wanted } of needs) {

@@ -1852,7 +1852,10 @@ What a prerender has, and what it has not:
   time made them before anything is written, so the site is the same
   byte for byte however many ran at once. The page's build and the
   server bundle are made at once too. `buildSite` returns how long
-  each part took (`timings`, in ms).
+  each part took (`timings`, in ms: the manifest's check, the theme,
+  the page's build, the server bundle, the renders). Given an object
+  as `timings`, it fills that as it goes, a part under way being
+  null, so a caller that stops waiting can say which part it was in.
 - A docs build's compiler check runs as many `qmlc` at once
   (`checkExamplesAll`, each distinct example once), and its
   pictures of the prerenders are drawn on a few pages of one

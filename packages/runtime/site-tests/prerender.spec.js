@@ -7,7 +7,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { buildSite } from "../site.js";
 import { bundle, design, qmlc } from "./bundle.js";
-import { expect, part, serve, shared, test } from "./served.js";
+import { building, expect, part, serve, shared, test } from "./served.js";
 
 for (const kernel of ["solid", "wasm"]) {
   test.describe(`a prerendered site on the ${kernel} kernel`, () => {
@@ -423,7 +423,8 @@ test("a site built without prerender keeps its empty page and mounts as before",
   const made = bundle("prerender");
   let server;
   try {
-    await part("build the site", () => buildSite({ dir: made.dir, out: made.out, qmlc }), { timeout: 60_000 });
+    const timings = {};
+    await part("build the site", () => buildSite({ dir: made.dir, out: made.out, qmlc, timings }), { timeout: 60_000, within: building(timings) });
     server = await part("serve it", () => serve(made.out), { timeout: 10_000 });
     expect(readFileSync(join(made.out, "index.html"), "utf8")).not.toContain("Prerendered heading");
     await part("load the page", () => page.goto(`${server.origin}/`), { timeout: 20_000 });
