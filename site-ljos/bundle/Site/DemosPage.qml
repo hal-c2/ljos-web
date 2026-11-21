@@ -66,7 +66,7 @@ Column {
         width: demos.textWidth
         wide: demos.wide
         title: t`A shell you rewrite`
-        body: t`Add items to the basket, then edit Shell.qml right in the page. Move a Slot to rearrange the interface while the basket keeps its items, or introduce a syntax error to watch the app fall back to its built-in shell with the compiler message shown. Switch light and dark themes to watch both shells follow.`
+        body: t`Add items to the basket, then edit Shell.qml right in the page. Move a Slot to rearrange the interface while the basket keeps its items, or introduce a syntax error: the last shell that compiled keeps running, with the compiler message shown beside the editor. Switch light and dark themes to watch both shells follow.`
 
         Slot {
             name: "demo-shell"
