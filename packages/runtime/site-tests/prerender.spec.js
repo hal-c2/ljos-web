@@ -417,9 +417,8 @@ test("the project bundle prerenders too, and hydrates in its design colour", asy
 
 // Each part bounded on its own: this once hung for the test's whole two
 // minutes, and a part that runs past its bound fails naming itself with
-// time left to stop the server. The build's bound is the compiler's own
-// (COMPILER_TIMEOUT), as each of its runs holds the event loop that a
-// step's timer would ring on.
+// time left to stop the server. A build's compiles run beside each other
+// and hold no event loop, so the build's bound rings when it is passed.
 test("a site built without prerender keeps its empty page and mounts as before", async ({ page }) => {
   const made = bundle("prerender");
   let server;

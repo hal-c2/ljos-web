@@ -621,6 +621,18 @@ export default function qml({
     if (!answers.has(key)) answers.set(key, runCompiler(qmlc, argv, options));
     return answers.get(key);
   };
+  // A file's compile, as many at once as `compilerRun` runs: a page that
+  // imports Ljos.Blocks has the page's compiler, which may import every
+  // module, so a build with a Qt installed compiles a hundred files of Qt's
+  // own QML, a second each, and one at a time that was most of a minute
+  // and a half. What two builds share is the run under way, kept by its
+  // promise and apart from what `ask` keeps.
+  const compile = (argv, options) => {
+    if (serving || !answers) return compilerRun(qmlc, argv, options);
+    const key = JSON.stringify(["load", qmlc, options.cwd ?? process.cwd(), argv]);
+    if (!answers.has(key)) answers.set(key, compilerRun(qmlc, argv, options));
+    return answers.get(key);
+  };
   // Saves of QML seen so far: a compile that a save came during gives back
   // what the file said before it, and is not kept in `compiled`.
   let saves = 0;
@@ -1111,11 +1123,12 @@ export default function qml({
       ];
       // A compiled file can be larger than a pipe's default room (a
       // page that carries its words as data is megabytes of it).
-      // A build compiles one file at a time (site.js counts on that); a dev
-      // server goes on answering while it compiles.
+      // Neither a build nor a dev server holds the event loop while it
+      // compiles: a dev server goes on answering, and a build's other files
+      // compile beside it.
       const options = { encoding: "utf8", maxBuffer: 1 << 28 };
       const savesBefore = saves;
-      const result = serving ? await compilerRun(qmlc, [...given, file], options) : ask([...given, file], options);
+      const result = await compile([...given, file], options);
       if (result.error) this.error(`could not run ${qmlc}: ${result.error.message}`);
       if (result.status !== 0) this.error(result.stderr.trim());
       // Kept with its ask, so what is kept of Qt's own QML asks too.
@@ -1131,7 +1144,7 @@ export default function qml({
       if (live && entries.has(file)) {
         // Asked with what the file is compiled with, and told which directory
         // the files are from: the one lookup says both.
-        const asked = serving ? await compilerRun(qmlc, ["--shell", ...given, file], options) : ask(["--shell", ...given, file], options);
+        const asked = await compile(["--shell", ...given, file], options);
         if (asked.error) this.error(`could not run ${qmlc}: ${asked.error.message}`);
         if (asked.status !== 0) this.error(asked.stderr.trim());
         for (const line of asked.stderr.split("\n")) if (line.trim()) this.warn(line.replace(/^warning: /, ""));

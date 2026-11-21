@@ -1,11 +1,12 @@
 // A compiler run holds Node's event loop until it ends, so its own bound is
 // the only one: a compiler that hangs is ended, and says it did not end.
-// A dev server's run does not hold it: the server goes on answering.
+// A dev server's run does not hold it: the server goes on answering. Nor
+// does a build's: its files compile beside each other.
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
-import { createServer } from "vite";
+import { build, createServer } from "vite";
 import qml, { compilerRun, runCompiler } from "../vite.js";
 
 test("a compiler run that does not end is ended at its bound, and says so", () => {
@@ -144,6 +145,52 @@ test("a file saved while it compiles is compiled again, not given back as it was
   } finally {
     writeFileSync(`${file}.go`, "");
     await server.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+// A page that imports Ljos.Blocks has the page's compiler, which may import
+// every module: with a Qt installed, a build compiled a hundred files of
+// Qt's own QML one at a time, and a site took a minute and a half to build.
+test("a build compiles a page's files beside each other", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "ljos-web-together-"));
+  const siblings = ["A", "B", "C", "D"];
+  const qmlc = join(dir, "qmlc");
+  // Main imports the four; each of them says it has begun, and waits for
+  // the others to have begun too, which only compiles run together see.
+  // Its ten seconds are the stub's own bound, so compiles one at a time
+  // end, each saying it was alone, rather than hang the build.
+  writeFileSync(
+    qmlc,
+    `#!/bin/sh
+for last; do :; done
+case "$last" in
+  */Main.qml) printf 'import "./%s.qml";\\n' ${siblings.join(" ")}; echo "export default function Main() {}";;
+  *.qml)
+    : > "$last.begun"; i=0
+    while [ $i -lt 100 ]; do
+      all=1; for name in ${siblings.join(" ")}; do [ -e "${dir}/$name.qml.begun" ] || all=0; done
+      [ $all = 1 ] && break; sleep 0.1; i=$((i+1))
+    done
+    [ $all = 1 ] && : > "$last.together"
+    echo "export default function Sibling() {}";;
+esac
+`,
+    { mode: 0o755 },
+  );
+  writeFileSync(join(dir, "Main.qml"), "import QtQuick\nItem {}\n");
+  for (const name of siblings) writeFileSync(join(dir, `${name}.qml`), "import QtQuick\nItem {}\n");
+  try {
+    await build({
+      configFile: false,
+      root: dir,
+      logLevel: "silent",
+      plugins: [qml({ qmlc, qt: [dir], root: dir, styles: "ljos", answers: new Map() })],
+      build: { write: false, rollupOptions: { input: join(dir, "Main.qml") } },
+    });
+    const alone = siblings.filter((name) => !existsSync(join(dir, `${name}.qml.together`)));
+    expect(alone, "files whose compile saw no other begun").toEqual([]);
+  } finally {
     rmSync(dir, { recursive: true, force: true });
   }
 });
