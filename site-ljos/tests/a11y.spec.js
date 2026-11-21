@@ -4,6 +4,7 @@
 // script runs and once they have come to life, at a phone's width and a
 // desktop's, light and dark; and the two parts of the header that only
 // stand once a reader opens them, the phone's menu and search results.
+import { createRequire } from "node:module";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
@@ -15,10 +16,19 @@ const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa", "best-prac
 // 130, Firefox long before); axe still asks the page to say so.
 const DISABLED = ["scrollable-region-focusable"];
 
+// axe lets a page with no main landmark pass when something fixed or
+// absolute covers most of the viewport, taking it for an open modal,
+// and it asks that before it looks for a main element: a Ljós page,
+// whose window is absolute and fills the viewport, always looks like
+// one. The main landmark is asked of every page outright.
+const axe = createRequire(import.meta.resolve("@axe-core/playwright"))("axe-core");
+const OUTRIGHT = `${axe.source}
+;axe.configure({ checks: [{ id: "page-has-main", options: { selector: "main:not([role]), [role='main']", passForModal: false } }] });`;
+
 // What axe found, said so that a failure names the rule, the element and
 // why, not a count.
 async function violations(page, include) {
-  let builder = new AxeBuilder({ page }).withTags(TAGS).disableRules(DISABLED);
+  let builder = new AxeBuilder({ page, axeSource: OUTRIGHT }).withTags(TAGS).disableRules(DISABLED);
   if (include) builder = builder.include(include);
   const { violations } = await builder.analyze();
   return violations.flatMap(({ id, impact, help, nodes }) =>
