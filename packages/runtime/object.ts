@@ -1574,7 +1574,9 @@ class Layer {
           this.end = end;
           const guard = guarded(slot.key, () => binding(below), true, slot.self);
           const typed = slot.kind ? converted(slot.key, slot.kind, guard, had) : guard;
-          const compute = slot.kind ? () => this.keeping(typed) : typed;
+          // Only an object type's binding can make what it gives; a value's
+          // pays for no root of its own.
+          const compute = slot.kind?.object ? () => this.keeping(typed) : typed;
           this.bound = ringed(getOwner(), compute, had, true);
           this.bound.start();
         }),
