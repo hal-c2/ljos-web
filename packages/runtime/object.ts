@@ -2175,7 +2175,9 @@ const HANDLER = /^(\w+\$)?on[A-Z_]/;
 // apart, at what the type says it is, and the item is drawn by that.
 const keptApart = new WeakMap<QObject, Record<string, Slot>>();
 export function native(self: QObject, name: string): unknown {
-  const own = self.$type.shadowed?.[name];
+  // What is not made by a type (a plain `{ x, y, scale }` given where an
+  // item is taken) has only the one by that name.
+  const own = self.$type?.shadowed?.[name];
   if (!own?.apart) return (self as unknown as Record<string, unknown>)[name];
   let kept = keptApart.get(self);
   if (!kept) keptApart.set(self, (kept = {}));
@@ -2186,7 +2188,7 @@ export function native(self: QObject, name: string): unknown {
 // type's own is then not what an animator of that name moves, which moves
 // the file's.
 export function declaredOver(self: QObject, name: string): boolean {
-  return Boolean(self.$type.shadowed?.[name]?.apart);
+  return Boolean(self.$type?.shadowed?.[name]?.apart);
 }
 
 // The type of an object that declares properties and signals of its own:
