@@ -156,3 +156,18 @@ test("a Connections does not hear a move through a property its target already w
   await open(page, "connectiontarget");
   expect(await page.evaluate(() => window.scene.watchedWidthSwitches())).toEqual([[], "wide2", 1]);
 });
+
+// The same switches inside one flush: a state's changes, in the order they
+// are written. Qt 6.12.0 (qml6 offscreen) hears each of these, from the
+// object named: box, nothing, other, box.
+for (const [name, heard, about] of [
+  ["changeThenSwitch", ["heard"], "a change of the old target before the switch is heard"],
+  ["switchThenChange", [], "a change of the old target after the switch is not heard"],
+  ["switchThenChangeNew", ["heard"], "a change of the new target after the switch is heard"],
+  ["bindThenChange", ["heard"], "a binding given to the target is not evaluated before the change"],
+]) {
+  test(`a Connections switched in a state's flush: ${about}`, async ({ page }) => {
+    await open(page, "connectionflush");
+    expect(await page.evaluate((name) => window.scene.entered(name), name)).toEqual(heard);
+  });
+}
