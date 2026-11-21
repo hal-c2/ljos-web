@@ -59,10 +59,17 @@ Item {
     property int pick: 0
     readonly property var named: ({ rect, other, plain })
     function bindPlain() { overlaid = Qt.binding(() => plain) }
-    // What a layer's binding makes, with no parent: the binding's own.
+    // A value-typed property put over the same way.
+    property int level: 3
+
+    // Put over by a layer whose binding makes the object it holds.
+    property Rectangle made
     property int ended: 0
-    Component { id: rectMaker; Rectangle { property int n: root.k; Component.onDestruction: root.ended += 1 } }
-    function makeRect() { return rectMaker.createObject(null) }
+    // Set, an object that ends changes `k`, which a binding may read.
+    property bool bump: false
+    Component { id: builder; Rectangle { property int n: root.pick; Component.onDestruction: { root.ended++; if (root.bump) root.k++ } } }
+    function make() { return builder.createObject(null) }
+    function makeIn() { return builder.createObject(root) }
 
     function more() {
         const is = (value) => value === null ? "null" : value === undefined ? "undefined" : value === rect ? "rect" : value === later ? "later" : value === plain ? "plain" : typeof value;
