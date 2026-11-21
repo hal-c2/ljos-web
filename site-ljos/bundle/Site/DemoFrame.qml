@@ -36,6 +36,15 @@ Item {
     // both.
     property string picture: ""
     property string pictureDark: ""
+    // Or a poster the page draws with its own parts, in both schemes at
+    // once: a demo whose picture is the page's own components needs no
+    // image to be fetched, and its words stay text a reader can select.
+    property Component poster: null
+    // What this page gives its demo and poster, set on each as it is
+    // made: one demo can stand on two pages, each wanting it a little
+    // differently (`{ tabs: false }`), and a demo fetched later has no
+    // tag here to set them on.
+    property var settings: ({})
     property string description: ""
     // What the demo is, for its control's name: "Run the 3D demo".
     property string what: "this demo"
@@ -92,6 +101,10 @@ Item {
     onNeedsChanged: frame.askWasm()
     readonly property bool runnable: awake && Nav.canRun(needs) && adapter === 1 && wasm === 1
     readonly property bool cannot: awake && (!Nav.canRun(needs) || adapter === -1 || wasm === -1)
+
+    function give(item) {
+        Object.keys(settings).forEach((name) => item[name] = settings[name]);
+    }
 
     function offset() {
         var y = 0;
@@ -159,6 +172,16 @@ Item {
             }
         }
 
+        Loader {
+            x: 1
+            y: 1
+            width: frame.width - 2
+            height: frame.surfaceHeight - 1
+            active: frame.poster !== null && !(frame.drawn && loader.opacity === 1)
+            sourceComponent: frame.poster
+            onLoaded: frame.give(item)
+        }
+
         // Said where the demo cannot run here, in the bar where Run
         // would stand: never over its picture.
         Rectangle {
@@ -209,6 +232,7 @@ Item {
             }
         }
         onLoaded: {
+            frame.give(item);
             item.active = Qt.binding(() => runner.running);
             item.calm = Qt.binding(() => Theme.calm);
         }
@@ -282,7 +306,9 @@ Item {
             visible: frame.drawn && frame.observed !== null
             checked: frame.observing
             label: t`Observer for ${frame.what}`
-            onPressed: Observing.toggle(frame.key, frame.observed, null, frame.what)
+            // What the demo's app said, where the demo keeps it apart from
+            // the page's console.
+            onPressed: Observing.toggle(frame.key, frame.observed, loader.item && loader.item.logs !== undefined ? loader.item.logs : null, frame.what)
         }
     }
 }

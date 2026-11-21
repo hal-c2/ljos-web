@@ -79,13 +79,20 @@ const BUILD_SIZE = { width: 1440, height: 900 };
 // page, all but one hidden by its stylesheet.
 const shown = (locator) => locator.filter({ visible: true });
 
-test("the landing page leads with your own shell, and never pitches compatibility", async ({ page }) => {
+test("the landing page leads with its claim and the agent replay, and never pitches compatibility", async ({ page }) => {
   await page.goto("/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
-  // The page opens on its name; the footer, at the page's end, says the
-  // same words, smaller. They are looked for in the footer, as the name
-  // at the top would answer for them.
-  await expect(page.getByText("Ljós — malleable software, everywhere", { exact: true }).first()).toBeInViewport();
+  await expect(page).toHaveTitle("Ljós — Rust UI toolkit for live, malleable apps");
+  // The page opens on its claim, the one heading of the first rank,
+  // with the replay's poster, the page's own drawing, under it; the
+  // footer, at the page's end, says in a line what Ljós is.
+  const claim = page.getByRole("heading", { level: 1 });
+  await expect(claim).toHaveCount(1);
+  await expect(claim).toHaveText("The UI toolkit your users and agents can reshape while it runs.");
+  await expect(shown(claim)).toBeInViewport();
+  await expect(shown(page.getByText("North district dispatch", { exact: true })).first()).toBeAttached();
+  await expect(page.getByRole("heading", { level: 2, name: "An agent reads the live tree, checks the code, and drives controls by role." })).toHaveCount(1);
+  await expect(page.getByText("Typed apps you can see inside and drive while they run.", { exact: true }).last()).toBeAttached();
   await expect(shown(page.getByRole("contentinfo").getByText("Ljós — malleable software, everywhere", { exact: true })).first()).toBeAttached();
   // The page's own words: the code in a field is the reader's to
   // edit, and an `import QtQuick` there pitches nothing.

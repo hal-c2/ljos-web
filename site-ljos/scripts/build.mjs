@@ -323,7 +323,7 @@ const after = " — Ljós";
 // The demos page's own name, which search.json lists it by too.
 const demosTitle = "Live demos";
 const own = {
-  "/": "Ljós — malleable software, everywhere",
+  "/": "Ljós — Rust UI toolkit for live, malleable apps",
   "/demos/": `${demosTitle}${after}`,
   "/showcase/": "Built with Ljós",
 };
@@ -685,7 +685,14 @@ try {
     // made of), and the demo that writes `PantryShell {}` says so, so that
     // its root is named as the shell it is; every other file of the site
     // carries none of it.
-    inspect: (path) => path === "Demos/PantryShell.qml" || path === "Demos/PantryDemo.qml" || path.startsWith("Pantry/"),
+    // The agent replay's card is what its Observer tab lists, so it and
+    // the stage that writes `DispatchCard {}` say so too.
+    inspect: (path) =>
+      path === "Demos/PantryShell.qml" ||
+      path === "Demos/PantryDemo.qml" ||
+      path.startsWith("Pantry/") ||
+      path === "Demos/DispatchCard.qml" ||
+      path === "Demos/AgentView.qml",
     prerender: {
       sizes: [
         { width: 390, height: 844 },
