@@ -380,8 +380,8 @@ fn files_imported_before_a_module_whose_types_are_not_known_under_one_name_are_w
     // whose types it knows; of one the page has installed but neither Qt's
     // table nor the project describes, a file of `parts` named as one of
     // its types would be taken instead: it warns.
-    let compiled_with = |imports: &str| {
-        let files = BTreeMap::from([
+    let compiled_given = |imports: &str, modules: &[(&str, &str)]| {
+        let mut files = BTreeMap::from([
             (
                 "Main.qml".to_string(),
                 format!("import QtQuick\n{imports}\nItem {{ P.Panel {{ }} }}\n"),
@@ -391,12 +391,30 @@ fn files_imported_before_a_module_whose_types_are_not_known_under_one_name_are_w
                 "import QtQuick\nItem { }\n".to_string(),
             ),
         ]);
+        let mut aliases = Vec::new();
+        // Each a module the project describes, by its directory.
+        for (module, dir) in modules {
+            files.insert(
+                format!("{dir}/qmldir"),
+                format!("module {module}\nPanel 1.0 Panel.qml\n"),
+            );
+            files.insert(
+                format!("{dir}/Panel.qml"),
+                "import QtQuick\nItem { }\n".to_string(),
+            );
+            aliases.push(Alias {
+                module: (*module).into(),
+                dir: (*dir).into(),
+            });
+        }
         let request = Request {
             installed: vec!["Acme.Widgets".to_string()],
+            aliases,
             ..request(files, "Main.qml")
         };
         compile(&request).expect("compiles")
     };
+    let compiled_with = |imports: &str| compiled_given(imports, &[]);
 
     let unsure = compiled_with("import \"parts\" as P\nimport Acme.Widgets as P");
     assert_eq!(unsure.warnings.len(), 1, "{:?}", unsure.warnings);
@@ -412,4 +430,18 @@ fn files_imported_before_a_module_whose_types_are_not_known_under_one_name_are_w
     // A module of Qt's table, whose types are known, after them.
     let known = compiled_with("import \"parts\" as P\nimport QtQuick.Controls as P");
     assert_eq!(known.warnings, Vec::<String>::new());
+
+    // The project's own module in place of the directory is files too.
+    let own = compiled_given(
+        "import App.Parts as P\nimport Acme.Widgets as P",
+        &[("App.Parts", "src/parts")],
+    );
+    assert_eq!(own.warnings.len(), 1, "{:?}", own.warnings);
+    // A module the page has installed and the project describes as well:
+    // its types are known, so the files it has are not taken over it.
+    let described = compiled_given(
+        "import \"parts\" as P\nimport Acme.Widgets as P",
+        &[("Acme.Widgets", "src/acme")],
+    );
+    assert_eq!(described.warnings, Vec::<String>::new());
 }
