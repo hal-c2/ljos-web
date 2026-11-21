@@ -118,6 +118,37 @@ Item {
 }
 
 #[test]
+fn a_property_of_the_file_s_own_type_names_the_file() {
+    // The file's own type is the function it declares, hoisted: no import.
+    let code = lowered_in(
+        &[("Node", "import QtQuick\nItem {\n    property Node next\n}")],
+        "Node",
+    )
+    .unwrap();
+    assert_contains(&code, r#"next: $instance(Node, "Node*")"#);
+    assert_lacks(&code, r#"from "./Node.qml""#);
+}
+
+#[test]
+fn a_property_of_a_qualified_or_another_file_s_type_imports_it() {
+    let code = lowered_in(
+        &[
+            (
+                "Sample",
+                "import QtQuick as Q\nQ.Item {\n    property Q.Rectangle r\n    property Tile tile\n}",
+            ),
+            ("Tile", "import QtQuick\nRectangle { }"),
+        ],
+        "Sample",
+    )
+    .unwrap();
+    assert_contains(&code, r#"import * as Q from "ljos-web/QtQuick";"#);
+    assert_contains(&code, r#"r: $instance(Q.Rectangle, "Rectangle*")"#);
+    assert_contains(&code, r#"import Tile from "./Tile.qml";"#);
+    assert_contains(&code, r#"tile: $instance(Tile, "Tile*")"#);
+}
+
+#[test]
 fn what_an_object_declares_is_its_type() {
     let code = lowered(
         r#"import QtQuick
