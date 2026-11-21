@@ -38,6 +38,28 @@ Item {
     Component { id: counter; Item { property int n } }
     Rectangle { id: later }
 
+    // Held by a Binding over it, and given a binding it refuses.
+    property Rectangle layered
+    Binding { target: root; property: "layered"; value: rect }
+    Rectangle { id: other }
+
+    function layers() {
+        const is = (value) => value === null ? "null" : value === undefined ? "undefined" : value === rect ? "rect" : value === other ? "other" : value === plain ? "plain" : typeof value;
+        const said = [`layered ${is(layered)}`];
+        layered = Qt.binding(() => plain);
+        said.push(`refused ${is(layered)}`);
+        layered = Qt.binding(() => other);
+        said.push(`taken ${is(layered)}`);
+        return said;
+    }
+
+    // Put over by a layer (a theme's role, a Block's content) whose binding
+    // it refuses.
+    property Rectangle overlaid: rect
+    property int pick: 0
+    readonly property var named: ({ rect, other, plain })
+    function bindPlain() { overlaid = Qt.binding(() => plain) }
+
     function more() {
         const is = (value) => value === null ? "null" : value === undefined ? "undefined" : value === rect ? "rect" : value === later ? "later" : value === plain ? "plain" : typeof value;
         const said = [`selected ${is(selected)}`];
