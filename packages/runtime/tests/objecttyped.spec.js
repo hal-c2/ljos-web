@@ -97,3 +97,36 @@ test("a property typed with an object type under a layer keeps what it had when 
   expect(said).toEqual(["had rect", "refused rect", "taken other", "set refused other", "set rect", "bound refused rect", "removed rect"]);
   expect(warned).toHaveLength(3);
 });
+
+// What a layer's binding made itself, and still holds when the binding that
+// replaces it is refused, is not ended with that binding: it goes on following
+// what it binds to, until a binding the property takes, or the layer's
+// removal, lets go of it.
+test("an object a layer's binding made outlives the binding that replaces it and is refused", async ({ page }) => {
+  await open(page, "objectlayered");
+  const said = await page.evaluate(() => {
+    const root = window.scene;
+    const { plain, other } = root.named;
+    const read = () => (window.flush(), root.overlaid);
+    const said = [];
+    const over = window.override(root, "overlaid", { binding: () => root.makeRect() });
+    const made = read();
+    root.k = 3;
+    said.push(`made ${made.n} ended ${root.ended}`);
+    over.set({ binding: () => plain });
+    root.k = 4;
+    said.push(`refused ${read() === made} ${made.n} ended ${root.ended}`);
+    over.set({ binding: () => plain });
+    root.k = 5;
+    said.push(`refused again ${read() === made} ${made.n} ended ${root.ended}`);
+    over.set({ binding: () => other });
+    said.push(`taken ${read() === other} ended ${root.ended}`);
+    const again = (over.set({ binding: () => root.makeRect() }), read());
+    over.set({ binding: () => plain });
+    said.push(`refused ${read() === again} ended ${root.ended}`);
+    over.remove();
+    said.push(`removed ended ${root.ended}`);
+    return said;
+  });
+  expect(said).toEqual(["made 3 ended 0", "refused true 4 ended 0", "refused again true 5 ended 0", "taken true ended 1", "refused true ended 1", "removed ended 2"]);
+});

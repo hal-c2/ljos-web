@@ -59,6 +59,10 @@ Item {
     property int pick: 0
     readonly property var named: ({ rect, other, plain })
     function bindPlain() { overlaid = Qt.binding(() => plain) }
+    // What a layer's binding makes, with no parent: the binding's own.
+    property int ended: 0
+    Component { id: rectMaker; Rectangle { property int n: root.k; Component.onDestruction: root.ended += 1 } }
+    function makeRect() { return rectMaker.createObject(null) }
 
     function more() {
         const is = (value) => value === null ? "null" : value === undefined ? "undefined" : value === rect ? "rect" : value === later ? "later" : value === plain ? "plain" : typeof value;
