@@ -191,7 +191,8 @@ function extract(tool, uri, folder, directory) {
 // files, and what went wrong running it. Builds that run at once share the
 // cache, so a folder is there whole or not at all: it is read into one of
 // this build's own and put in place when it is done, and one already there
-// is never taken away, as another build may be reading it. What Qt read
+// is never taken away, as another build may be reading it; one that holds
+// nothing to read is moved aside first. What Qt read
 // nothing of (one that ran out of time on a busy machine reads nothing) is
 // not kept: the next build asks Qt again.
 export function readOut(tool, uri, folder, directory) {
@@ -210,14 +211,33 @@ export function readOut(tool, uri, folder, directory) {
   try {
     failed = extract(tool, uri, folder, own);
     if (readdirSync(own).some((name) => !name.startsWith(".") && !name.includes("@"))) {
-      // An empty folder left by a build that stopped half way holds nothing
-      // anyone reads.
-      if (existsSync(directory) && names().length === 0) rmSync(directory, { recursive: true, force: true });
       try {
+        // An empty folder in the way is replaced by this one in the same step.
         renameSync(own, directory);
       } catch (error) {
         // Another build put the folder in place first: its is as good.
-        if (names().length === 0) throw error;
+        if (names().length > 0) {
+          // Kept.
+        } else if (error.code === "ENOTEMPTY" || error.code === "EEXIST") {
+          // What a build that stopped half way left, holding nothing anyone
+          // reads, such as Qt's script: moved aside under a name of its own,
+          // never deleted where it is, as another build may be putting its
+          // folder there at the same moment.
+          const stale = mkdtempSync(`${directory}.stale-`);
+          try {
+            renameSync(directory, join(stale, "folder"));
+          } catch (moved) {
+            if (moved.code !== "ENOENT") throw moved;
+          }
+          rmSync(stale, { recursive: true, force: true });
+          try {
+            renameSync(own, directory);
+          } catch (again) {
+            if (names().length === 0) throw again;
+          }
+        } else {
+          throw error;
+        }
       }
     }
   } finally {
@@ -787,6 +807,7 @@ export default function qml({
         directory = join(cache, version || "qt", owner, kind);
         const { names, failed } = readOut(join(bins || "", "qml"), owner.replaceAll("/", "."), folder, directory);
         if (failed) console.warn(`ljos-web: the ${kind} of ${owner} could not be read out of Qt: ${failed}`);
+        if (names.length === 0) console.warn(`ljos-web: no ${kind} of ${owner} could be read out of Qt's ${owner.replaceAll("/", ".")}`);
         return names.map((name) => [`${folder}/${name}`, join(directory, name)]);
       }
       return readdirSync(directory)
