@@ -2819,15 +2819,21 @@ function first(self: QObject, name: string, key: string, value: unknown, firsts:
 // `target.onSignal` from outside the object: a signal it emits, or the change
 // of one of its properties (`widthChanged`). What it returns is `onChange`'s:
 // a signal is the signal's to tell, to whoever is connected when it is
-// emitted, so there is nothing here for it to settle.
+// emitted, so there is nothing here for it to settle; a computed list's
+// change is the listener's own, and is.
 export function connect(target: QObject, name: string, listener: Handler): () => void {
+  const property = /^(\w+)Changed$/.exec(name)?.[1];
+  // A list the type computes (`children`) has a change signal, which it
+  // emits once the flush has settled: by then a listener that stopped
+  // listening in the flush would not hear it. Heard as its own change, it
+  // can be told it as it stops.
+  if (property && computed(target, property)) return onChange(target, property, listener);
   const emitted = dynamic(target)[name] as Signal | null | undefined;
   if (typeof emitted?.connect === "function") {
     emitted.connect(listener);
     onCleanup(() => emitted.disconnect(listener));
     return () => {};
   }
-  const property = /^(\w+)Changed$/.exec(name)?.[1];
   if (property && property in target) return onChange(target, property, listener);
   return () => {};
 }
