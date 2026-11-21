@@ -1,0 +1,146 @@
+// A demo lays itself out for the frame it is given: at a phone's width
+// as at a desk's, everything it draws stands inside its frame, so a
+// demo never draws over the page around it, and no two of its words
+// are drawn over each other (a hint over a badge).
+import { expect, test } from "@playwright/test";
+
+const SIZES = [
+  ["phone", { width: 390, height: 844 }],
+  ["desktop", { width: 1280, height: 800 }],
+];
+
+// The framed demos on the demos page, by what their Run says.
+const DEMOS = ["the 3D demo", "the shader demo", "the field guide", "the motion demo"];
+
+// A demo's Run pressed, as a reader presses it: once it runs, Run is
+// gone and the toolbar offers Pause.
+async function runDemo(page, what) {
+  const button = page.getByRole("button", { name: `Run ${what}` });
+  await expect(button, `"Run ${what}" is on the page`).toBeAttached();
+  await button.scrollIntoViewIfNeeded();
+  await button.click();
+  await expect(button, `"Run ${what}" goes once the demo runs`).toBeHidden({ timeout: 30_000 });
+  return page.getByRole("button", { name: `Pause ${what}` });
+}
+
+// What a running demo draws outside its frame, and which of its words
+// are drawn over others, read from its frame's toolbar button. The
+// frame is the button's first ancestor taller than the toolbar.
+//
+// A part is what is shown of an element or a run of words: what an
+// ancestor inside the demo clips away (a list's rows past its end) is
+// not shown, but a clip as wide as the frame is the frame's own edge,
+// and a part that edge cuts is a part that does not fit. Each finding
+// is said with the words or the element it is, so a failure says what
+// did not fit and by how much.
+function misfits(button) {
+  let frame = button;
+  while (frame && frame.getBoundingClientRect().height <= 100) frame = frame.parentElement;
+  const edge = frame.getBoundingClientRect();
+  const slack = 1;
+  const round = (n) => Math.round(n);
+  const say = (box) => `${round(box.left)},${round(box.top)} ${round(box.right - box.left)}x${round(box.bottom - box.top)}`;
+  const named = (node) => {
+    const words = (node.nodeType === Node.TEXT_NODE ? node.textContent : node.getAttribute("aria-label") ?? "").trim();
+    return words ? JSON.stringify(words.slice(0, 48)) : `<${node.tagName.toLowerCase()}>`;
+  };
+
+  // What of the element `from` up to the frame shows: null where an
+  // ancestor hides it, else the box its clipping ancestors leave.
+  const shownWithin = (element, includeSelf) => {
+    let clip = { left: -Infinity, top: -Infinity, right: Infinity, bottom: Infinity };
+    for (let at = element; at && at !== frame; at = at.parentElement) {
+      const style = getComputedStyle(at);
+      if (style.display === "none" || style.visibility === "hidden" || Number(style.opacity) === 0) return null;
+      if ((at !== element || includeSelf) && style.overflow !== "visible") {
+        const box = at.getBoundingClientRect();
+        const framesEdge = box.left <= edge.left + slack && box.right >= edge.right - slack;
+        if (!framesEdge)
+          clip = {
+            left: Math.max(clip.left, box.left),
+            top: Math.max(clip.top, box.top),
+            right: Math.min(clip.right, box.right),
+            bottom: Math.min(clip.bottom, box.bottom),
+          };
+      }
+    }
+    return clip;
+  };
+  const cut = (box, clip) => {
+    const part = {
+      left: Math.max(box.left, clip.left),
+      top: Math.max(box.top, clip.top),
+      right: Math.min(box.right, clip.right),
+      bottom: Math.min(box.bottom, clip.bottom),
+    };
+    return part.right - part.left > 0.5 && part.bottom - part.top > 0.5 ? part : null;
+  };
+
+  const outside = [];
+  const words = [];
+  const walker = document.createTreeWalker(frame, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    const text = node.nodeType === Node.TEXT_NODE;
+    if (text && node.textContent.trim() === "") continue;
+    const element = text ? node.parentElement : node;
+    const clip = shownWithin(element, text);
+    if (!clip) continue;
+    let boxes;
+    if (text) {
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      boxes = [...range.getClientRects()];
+    } else boxes = [element.getBoundingClientRect()];
+    for (const box of boxes) {
+      const part = cut(box, clip);
+      if (!part) continue;
+      if (part.left < edge.left - slack || part.top < edge.top - slack || part.right > edge.right + slack || part.bottom > edge.bottom + slack)
+        outside.push(`${named(node)} at ${say(part)}`);
+      if (text) words.push({ node, part });
+    }
+  }
+  const over = [];
+  for (let i = 0; i < words.length; i++)
+    for (let j = i + 1; j < words.length; j++) {
+      const a = words[i].part;
+      const b = words[j].part;
+      if (words[i].node === words[j].node) continue;
+      if (Math.min(a.right, b.right) - Math.max(a.left, b.left) > slack && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > slack)
+        over.push(`${named(words[i].node)} at ${say(a)} over ${named(words[j].node)} at ${say(b)}`);
+    }
+  return { frame: say(edge), outside: [...new Set(outside)], over };
+}
+
+// Every demo is measured, and each one's misfits said, though one fails.
+const softly = expect.configure({ soft: true });
+
+async function fits(button) {
+  const found = await button.evaluate(misfits);
+  return [...found.outside.map((part) => `outside the frame ${found.frame}: ${part}`), ...found.over.map((pair) => `drawn over: ${pair}`)];
+}
+
+for (const [size, viewport] of SIZES) {
+  test.describe(`at ${size} width`, () => {
+    test.use({ viewport, reducedMotion: "no-preference" });
+
+    // Each demo is paused once it is measured, as a reader moving on
+    // leaves it: one drawing in software takes the page's every frame.
+    test("every framed demo on the demos page stays inside its frame", async ({ page }) => {
+      await page.goto("/demos/");
+      await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+      for (const what of DEMOS) {
+        const pause = await runDemo(page, what);
+        await softly.poll(() => fits(pause), { message: `${what} at ${size} width stands inside its frame` }).toEqual([]);
+        await pause.click();
+        await expect(page.getByRole("button", { name: `Resume ${what}` })).toBeVisible();
+      }
+    });
+
+    test("the landing's showcase stays inside its frame", async ({ page }) => {
+      await page.goto("/");
+      await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+      const pause = await runDemo(page, "the 3D demo");
+      await expect.poll(() => fits(pause), { message: `the showcase at ${size} width stands inside its frame` }).toEqual([]);
+    });
+  });
+}
