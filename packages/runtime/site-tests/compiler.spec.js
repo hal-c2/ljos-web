@@ -3,7 +3,7 @@
 // A dev server's run does not hold it: the server goes on answering. Nor
 // does a build's: its files compile beside each other.
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { availableParallelism, tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
 import { build, createServer } from "vite";
@@ -153,10 +153,14 @@ test("a file saved while it compiles is compiled again, not given back as it was
 // every module: with a Qt installed, a build compiled a hundred files of
 // Qt's own QML one at a time, and a site took a minute and a half to build.
 test("a build compiles a page's files beside each other", async () => {
+  // As many as the machine compiles at once, up to four: on one that
+  // compiles one at a time, no two can be seen together.
+  const together = Math.min(4, availableParallelism());
+  test.skip(together < 2, "this machine compiles one file at a time");
   const dir = mkdtempSync(join(tmpdir(), "ljos-web-together-"));
-  const siblings = ["A", "B", "C", "D"];
+  const siblings = ["A", "B", "C", "D"].slice(0, together);
   const qmlc = join(dir, "qmlc");
-  // Main imports the four; each of them says it has begun, and waits for
+  // Main imports them; each of them says it has begun, and waits for
   // the others to have begun too, which only compiles run together see.
   // Its ten seconds are the stub's own bound, so compiles one at a time
   // end, each saying it was alone, rather than hang the build.
