@@ -419,8 +419,10 @@ for (const route of [
         route,
       );
       try {
-        // Tab is the app's own, so a tab has the keyboard only by it:
-        // back from Copy to the first file, then on to the last.
+        // A tab's focus is the runtime's, as an item's is in Qt, so only
+        // keys give it and it shows only in what they do: out of the code
+        // and back to Copy, back to the first file, then on to the last,
+        // Space choosing each.
         const card = page
           .locator('[data-object-name="codeCard"]:visible')
           .filter({ has: page.locator('[role="tab"]:visible') })
@@ -428,10 +430,10 @@ for (const route of [
         const tabs = card.locator('[role="tab"]:visible');
         const count = await tabs.count();
         expect(count, "a block of several files").toBeGreaterThan(1);
-        await card
-          .getByRole("button", { name: /^(Copy|Copied)\b/ })
-          .first()
-          .focus();
+        const copy = card.getByRole("button", { name: /^(Copy|Copied)\b/ }).first();
+        await intoCode(card);
+        await page.keyboard.press("Escape");
+        await page.keyboard.press("Shift+Tab");
         const steps = [];
         for (let index = count - 1; index >= 0; index--)
           steps.push(["Shift+Tab", index]);
@@ -439,7 +441,10 @@ for (const route of [
         for (const [key, index] of steps) {
           const tab = tabs.nth(index);
           await page.keyboard.press(key);
-          await expect(tab, `${key} gives tab ${index + 1} the keyboard`).toBeFocused();
+          await page.keyboard.press("Space");
+          await expect(tab, `${key} gives tab ${index + 1} the keyboard`).toHaveAttribute("aria-selected", "true");
+          // Down to the card's head, and never sideways to what it clips.
+          await copy.evaluate((node) => node.scrollIntoView({ block: "center", inline: "nearest" }));
           await expect
             .poll(
               () =>
