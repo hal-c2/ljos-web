@@ -8,7 +8,8 @@ Feature: A reload keeps what was assigned unless the file's declaration changed
 
   Covered by packages/runtime/site-tests/reload.spec.js, in a build
   with no places and in builds that say where each binding is written
-  (`inspect`).
+  (`inspect`), and by reload-names.spec.js beside it for the runtime's
+  own types.
 
   Background:
     Given a root mounted so that it can be reloaded
@@ -49,3 +50,10 @@ Feature: A reload keeps what was assigned unless the file's declaration changed
     When lines are added above a declaration and nothing else of it changes
     Then the property keeps what was assigned
     But a declaration edited in the same save still wins
+
+  Scenario: What a reload records takes the place of nothing a type holds
+    Given a Controller, a 3D graph or a particle system declares a list
+    When the app assigns the list and the same file is reloaded
+    Then the reload throws nothing and the list keeps what was assigned
+    And each still holds its declared Controllers, series or time
+    And a particle system's time during its setup is nought
