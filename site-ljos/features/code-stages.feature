@@ -59,6 +59,13 @@ Feature: A code block's window before its example runs
     Then the window's paper hides that picture
     And a picture with something in it still shows
 
+  Scenario: An example that stops its renderer takes no other example with it
+    Given an example whose uncaught error halts the runtime it is made on
+    And windows with words in a Pane after it, and a second such example among them
+    When the build prerenders them together in both schemes
+    Then each of those two is a failure that says it halted
+    And every window after them has its words in both schemes
+
   Scenario: An example that fails only in the dark is not shown as one that runs
     Given an example that throws only as it is made in the dark scheme
     When the build prerenders it beside one that runs
