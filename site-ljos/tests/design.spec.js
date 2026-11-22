@@ -7,6 +7,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
+import * as pictures from "../scripts/pictures.mjs";
 import { picturesOf, demos as proDemos } from "../scripts/pro.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -64,10 +65,10 @@ for (const scheme of ["light", "dark"]) {
 // the example running in that scheme are drawn on the same ground, read
 // from tokens.js as Theme reads it, never a colour of the build's own.
 test("an example's pictures are drawn on each scheme's window paper", () => {
-  const build = readFileSync(join(here, "../scripts/build.mjs"), "utf8");
-  expect(build).toContain("background:${lightTone.paper}");
-  expect(build).toContain("background:${darkTone.paper}");
-  expect(build).not.toContain(`background:${tokens.light.paper}`);
+  const stages = pictures.stagesOf(tokens);
+  const grounds = (scheme) => [...stages[scheme].matchAll(/background:([^;}]+)/g)].map(([, colour]) => colour);
+  expect(grounds("light")).toEqual([tokens.light.paper]);
+  expect(grounds("dark")).toEqual([tokens.dark.paper]);
 });
 
 // A running example is a window on a stage, and reads as one: what the
