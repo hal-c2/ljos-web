@@ -2,7 +2,7 @@
 // (scripts/pictures.mjs), held to the browser that draws them.
 import { existsSync, readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
-import { drawPictures, paperOnly, shipsDark, verdictKey } from "../scripts/pictures.mjs";
+import { drawPictures, shipsDark, verdictKey } from "../scripts/pictures.mjs";
 
 const source = readFileSync(new URL("../bundle/tokens.js", import.meta.url), "utf8").replace(/^\.pragma library$/m, "");
 const { light, dark } = new Function(`${source}\nreturn { light, dark };`)();
@@ -13,25 +13,38 @@ const box = (colour) => `<div style="width:60px;height:40px;background:${colour}
 
 async function drawn(page, info, html, htmlDark = html) {
   const to = { light: info.outputPath("light.png"), dark: info.outputPath("dark.png") };
-  const { blank } = await drawPictures(page, { html, htmlDark, width: 60, height: 40, papers, stages, to });
+  const { blank } = await drawPictures(page, { html, htmlDark, width: 60, height: 40, stages, to });
   const read = (path) => (existsSync(path) ? readFileSync(path) : null);
   return { blank, html, htmlDark, light: read(to.light), dark: read(to.dark) };
 }
 
-test("white content is not blank: the dark paper shows it", async ({ page }, info) => {
-  expect((await drawn(page, info, box("white"))).blank).toBe(false);
+test("white content is not blank on either paper", async ({ page }, info) => {
+  expect((await drawn(page, info, box("white"))).blank).toEqual({ light: false, dark: false });
 });
 
-test("content only the dark render draws is not blank", async ({ page }, info) => {
-  expect((await drawn(page, info, "", box("#808080"))).blank).toBe(false);
+test("content only the dark render draws is blank in light alone", async ({ page }, info) => {
+  expect((await drawn(page, info, "", box("#808080"))).blank).toEqual({ light: true, dark: false });
+});
+
+test("content only the light render draws is blank in dark alone", async ({ page }, info) => {
+  expect((await drawn(page, info, box("#808080"), "")).blank).toEqual({ light: false, dark: true });
 });
 
 test("white content with no dark render is judged on the dark paper too", async ({ page }, info) => {
-  expect((await drawn(page, info, box("white"), null)).blank).toBe(false);
+  expect((await drawn(page, info, box("white"), null)).blank).toEqual({ light: false, dark: false });
 });
 
-test("nothing drawn in either scheme is blank", async ({ page }, info) => {
-  expect((await drawn(page, info, "")).blank).toBe(true);
+// #eeeeee is 15, 13 and 8 off the light paper.
+test("pale content is not blank in the scheme that draws it", async ({ page }, info) => {
+  expect((await drawn(page, info, box("#eeeeee"), "")).blank).toEqual({ light: false, dark: true });
+});
+
+test("nothing drawn in either scheme is blank in both", async ({ page }, info) => {
+  expect((await drawn(page, info, "")).blank).toEqual({ light: true, dark: true });
+});
+
+test("an item that paints nothing is blank", async ({ page }, info) => {
+  expect((await drawn(page, info, box("transparent"))).blank).toEqual({ light: true, dark: true });
 });
 
 test("a picture the same in both schemes ships once", async ({ page }, info) => {
@@ -45,6 +58,6 @@ test("the same markup on two papers ships a picture for each", async ({ page }, 
 
 test("a kept blank verdict is dropped when the check changes", () => {
   const picture = "0123456789abcdef-0123456789ab.png";
-  expect(verdictKey(picture, paperOnly)).toBe(verdictKey(picture, paperOnly));
-  expect(verdictKey(picture, paperOnly)).not.toBe(verdictKey(picture, async () => true));
+  expect(verdictKey(picture, drawPictures)).toBe(verdictKey(picture));
+  expect(verdictKey(picture)).not.toBe(verdictKey(picture, async () => true));
 });

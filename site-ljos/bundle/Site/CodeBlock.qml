@@ -836,12 +836,12 @@ Column {
                             textFormat: Text.RichText
                             text: block.isLive && block.live.pictureDark ? stageBox.pictureOf(block.live.pictureDark) : ""
                         }
-                        // An example that draws nothing before the reader
-                        // runs it (its point is what it says, or it waits for
-                        // a press) says so, rather than show an empty window
-                        // that reads as one that failed.
+                        // An example that draws nothing in this scheme before
+                        // the reader runs it (its point is what it says, or it
+                        // waits for a press) says so, rather than show an empty
+                        // window that reads as one that failed.
                         Text {
-                            visible: block.isLive && !!block.live.blank && stage.status !== ShellLoader.Ready
+                            visible: block.isLive && !!(Theme.dark ? block.live.blankDark : block.live.blank) && stage.status !== ShellLoader.Ready
                             x: Theme.s
                             width: frame.width - 2 * Theme.s
                             anchors.verticalCenter: parent.verticalCenter
