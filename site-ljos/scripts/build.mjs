@@ -323,7 +323,7 @@ const after = " — Ljós";
 // The demos page's own name, which search.json lists it by too.
 const demosTitle = "Live demos";
 const own = {
-  "/": "Ljós — Rust UI toolkit for live, malleable apps",
+  "/": "Ljós — software you can reshape while it runs",
   "/demos/": `${demosTitle}${after}`,
   "/showcase/": "Built with Ljós",
 };
@@ -512,7 +512,7 @@ const pages = [
   {
     route: "/",
     title: titles["/"],
-    description: "Ljós is a Rust UI toolkit for malleable software: apps that the people who use them, and their agents, can reshape while they run.",
+    description: "Ljós is a Rust UI toolkit for apps that people and their agents can change live, with declarative interfaces and typed TypeScript.",
     props: { route: "/" },
   },
   {
