@@ -310,19 +310,22 @@ export function clothe(element, look) {
 const [pictures, setPictures] = signal(0);
 const arrived = new Set();
 
+// Heard from the copy that is measured and from the one on the page
+// (Text.js), as a lazy copy that is measured may never load. Known by
+// the file the browser chose, which it only says once it has: a
+// picture's `src` is just its fallback.
+export function arrive(event) {
+  const image = event.target;
+  if (image.localName !== "img") return;
+  const source = image.currentSrc || image.src;
+  if (!source || arrived.has(source)) return;
+  arrived.add(source);
+  setPictures((count) => count + 1);
+  flush();
+}
+
 function awaited(image) {
-  const source = image.src;
-  if (!source || image.complete || arrived.has(source)) return;
-  image.addEventListener(
-    "load",
-    () => {
-      if (arrived.has(source)) return;
-      arrived.add(source);
-      setPictures((count) => count + 1);
-      flush();
-    },
-    { once: true },
-  );
+  if (!image.complete) image.addEventListener("load", arrive, { once: true });
 }
 
 let bench;
