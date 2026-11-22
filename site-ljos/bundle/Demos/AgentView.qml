@@ -58,10 +58,10 @@ Rectangle {
     readonly property bool roomy: width >= 600
     readonly property int actWidth: 104
     // DECISION: the app's border is as tall as what it shows, and the room
-    // under it is held for the fullest its buttons reach, as tall as `fullest`
-    // says at this width and in these fonts, so neither the page nor the code
-    // under it moves.
-    readonly property int cardRoom: Math.ceil(Math.max(card.implicitHeight, fullest.implicitHeight))
+    // under it is held for the tallest its buttons reach, as `rooms` measures
+    // them all at this width and in these fonts, so neither the page nor the
+    // code under it moves.
+    readonly property int cardRoom: Math.ceil(Math.max(card.implicitHeight, rooms.implicitHeight))
     readonly property int sideRoom: 432
     implicitHeight: strip.height + pad + (wide ? Math.max(cardRoom, sideRoom) : cardRoom + gap + sideRoom)
     // Room for a focus ring at the edges, and no more: the app is the subject.
@@ -142,19 +142,29 @@ Rectangle {
         still: view.still
     }
 
-    // The card at its fullest, never shown and only measured: every ticket,
-    // all assigned, so all in one of the board's lanes. An item an ancestor
-    // hides keeps its place, so its height is the one it would be shown at.
-    DispatchCard {
-        id: fullest
+    // The card in each state it can reach, never shown and only measured:
+    // which is the tallest goes with the width and the fonts, as a lane alone
+    // is wider. An item an ancestor hides keeps its place, so a Row of them
+    // is as tall as the tallest would be shown.
+    Row {
+        id: rooms
         objectName: "dispatchRoom"
         visible: false
-        width: card.width
-        still: true
-        heading: AgentReplay.heading
-        filters: AgentReplay.filters
-        layout: "board"
-        tickets: AgentReplay.tickets.map((ticket) => Object.assign({}, ticket, { crew: ticket.crew || AgentReplay.crew }))
+
+        Repeater {
+            model: AgentReplay.reachable
+            DispatchCard {
+                required property var modelData
+                width: card.width
+                still: true
+                heading: AgentReplay.heading
+                filters: AgentReplay.filters
+                tickets: AgentReplay.tickets
+                crews: modelData.crews
+                layout: modelData.layout
+                openOnly: modelData.openOnly
+            }
+        }
     }
 
     // The log, the source or the Observer.

@@ -64,6 +64,8 @@ Feature: The front page shows software being reshaped while it runs
     And no ticket and no heading is cut
     And what stands under the replay has not moved
     And turning Open only off, for every ticket assigned, does not move it either
+    And with no ticket in "Needs a crew", "Crew assigned" takes the app's whole width
+    And the list and the board, filtered or not, with every ticket assigned, do not move it
 
   Scenario: The TypeScript shown is the TypeScript that runs
     When the page opens
