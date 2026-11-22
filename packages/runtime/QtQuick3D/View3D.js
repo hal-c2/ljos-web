@@ -79,19 +79,23 @@ function drawnWith(material) {
 
 // What a view draws: the shapes and lights among the nodes that are shown,
 // the places some of the shapes mirror the others from, and the first
-// camera there is; and whether any that is shown names what only wgpu
-// reads (`$unread`).
+// camera there is; the models and painters as they are declared, whether
+// their shapes are here or not; and those that name what only wgpu reads
+// (`$unread`). It asks for none of those files: a pick and wgpu's view
+// come through here too.
 function found(self) {
   const models = [];
   const lights = [];
   const paints = [];
   const probes = [];
+  const declared = [];
+  const loaders = [];
   let camera = null;
-  let unread = false;
   const walk = (part, above) => {
     if (!part) return;
-    if (part.unread) unread = true;
     const { node } = part;
+    if (part.unread) loaders.push(node);
+    if (node.$model || node.$paint) declared.push(node);
     const opacity = above * part.opacity;
     if (part.model) models.push({ ...part.model, opacity });
     else if (part.light) lights.push(part.light);
@@ -121,7 +125,40 @@ function found(self) {
     };
     for (const top of tops) lit(top);
   }
-  return { models, lights, paints, probes, camera, unread };
+  return { models, lights, paints, probes, declared, loaders, camera };
+}
+
+// Geometry's I32Type.
+const SIGNED = 2;
+
+// Whether a scene shows what is left to the JavaScript renderer, which draws
+// it as Qt does: such a view is not turned to wgpu for a model from a file.
+//
+// DECISION: that is fog, an effect, a light probe, a reflection probe, a
+// skin, particles, a CustomMaterial, a Mask or Opaque material seen through
+// by an opacity, a picture of numbers other than RGBA8 (a KTX one too) and
+// a Geometry of I32. It is what is recorded as failing on wgpu
+// (docs/LJOS_WEB.md, "What fails") and fog, and is wider where a part of
+// one cannot be told by itself (morph targets in a CustomMaterial, a probe's
+// blurred sky, affectors). That a scene is of very many nodes is not asked:
+// there is no number that says it.
+function scriptAlone(self, { models, probes, declared }) {
+  const environment = self.environment;
+  if (environment?.fog?.$fog?.() || environment?.lightProbe) return true;
+  // An ExtendedSceneEnvironment's own (`$kind`) are no effects to run.
+  if ([].concat(environment?.effects ?? []).some((each) => each && !each.$kind)) return true;
+  if (probes.length) return true;
+  if (models.some(({ opacity, materials }) => materials.some((drawn) => drawn?.solid && (opacity < 1 || drawn.opacity < 1)))) return true;
+  return declared.some((node) => {
+    if (node.$paint || node.skin || node.skeleton) return true;
+    if (node.geometry?.$held?.().attributes.some(({ componentType }) => componentType === SIGNED)) return true;
+    return node.$materials().some((material) => {
+      if (material?.$custom) return true;
+      const drawn = drawnWith(material);
+      if (!drawn) return false;
+      return [drawn.map, ...Object.values(drawn.maps ?? {})].some((map) => map?.data && map.data.format !== "RGBA8");
+    });
+  });
 }
 
 // The models a ray is tried against: those for picking, shown or not, of
@@ -297,17 +334,19 @@ export const View3D = defineType("View3D", Item, {
     let released = false;
     if (owner) onCleanup(() => (released = true));
     // Whether the JavaScript renderer may still hand the view to wgpu for
-    // what only that reads. Once at most: one wgpu could not draw stays on
-    // the JavaScript renderer, and one it draws stays wgpu's though what
-    // asked for it goes, as each change costs a canvas and all it holds.
+    // what only that reads. Once, and it may be handed back once
+    // (`overtaken`): each change costs a canvas and all it holds.
     let mayTurn = readable();
+    // Told to what takes the view's picture when it is handed back.
+    const [handovers, setHandovers] = signal(0, self.$owner);
     // wgpu taken for want of an ask, and WebGPU with no adapter for the
     // page: the JavaScript renderer draws on the same canvas, untaken.
     if (renderer() === "wgpu") byWgpu(chosen() ? undefined : () => runWithOwner(owner, byScript));
     else byScript();
 
-    // wgpu draws the view.
-    function byWgpu(unadapted) {
+    // wgpu draws the view. `handover`, if the view was handed to it, is
+    // told of its pictures and of its giving up.
+    function byWgpu(unadapted, handover) {
       self.$canvas = { element: canvas };
       self.$view = () => 0;
       // wgpu not to be had, or its GPU not again: the JavaScript renderer
@@ -318,10 +357,15 @@ export const View3D = defineType("View3D", Item, {
         : (taken) =>
             runWithOwner(owner, () => {
               mayTurn = false;
+              handover?.gaveUp();
               if (taken) renew();
               byScript();
             });
-      const dispose = drawOn(self, canvas, frame, instead, unadapted);
+      const framed = (from, to) => {
+        handover?.drew();
+        frame(from, to);
+      };
+      const dispose = drawOn(self, canvas, framed, instead, unadapted);
       if (getOwner()) onCleanup(dispose);
       // What the picture does not need but mapping does: the camera a view
       // is seen through, and the view it was last seen in.
@@ -330,6 +374,48 @@ export const View3D = defineType("View3D", Item, {
         ({ camera, width, height }) => {
           first = camera;
           if (camera) Object.assign(camera, { $width: width, $height: height });
+        },
+      );
+    }
+
+    // wgpu draws a view the JavaScript renderer handed it, under a root of
+    // its own: on a canvas beneath that renderer's last picture, which stays
+    // until wgpu has one. It is handed back, for good, when the scene comes
+    // to show what is left to that renderer (`scriptAlone`).
+    function overtaken(end) {
+      const before = canvas;
+      canvas = canvasFor();
+      before.before(canvas);
+      const uncover = () => before.remove();
+      onCleanup(uncover);
+      let left = false;
+      byWgpu(undefined, {
+        drew: uncover,
+        gaveUp() {
+          left = true;
+          uncover();
+        },
+      });
+      const view = self.$view;
+      self.$view = (down) => {
+        handovers();
+        return view(down);
+      };
+      effect(
+        () => scriptAlone(self, found(self)),
+        (alone) => {
+          if (!alone || left) return;
+          // After this effect, which is of the root that ends.
+          queueMicrotask(() => {
+            if (released || left) return;
+            left = true;
+            end();
+            runWithOwner(owner, () => {
+              renew();
+              byScript();
+            });
+            setHandovers((times) => times + 1);
+          });
         },
       );
     }
@@ -439,10 +525,10 @@ export const View3D = defineType("View3D", Item, {
           // A camera maps to the view it was last seen through.
           first = seen.camera;
           if (seen.camera) Object.assign(seen.camera, { $width: seen.width, $height: seen.height });
-          // Known only once the scene is made, or changed: turned to before
-          // a picture without it is drawn, and after this effect has ended,
-          // which is of the root that ends.
-          if (seen.unread && mayTurn) {
+          // Known once the scene is made or changed, or a file it waits for
+          // is here: turned to after this effect has ended, which is of the
+          // root that ends.
+          if (seen.turn && mayTurn) {
             mayTurn = false;
             over = true;
             return void queueMicrotask(turned);
@@ -459,23 +545,24 @@ export const View3D = defineType("View3D", Item, {
         // not drawn here, and would keep a script that draws after a failure
         // from asking for its own.
         due = null;
-        runWithOwner(owner, () => {
-          renew();
-          byWgpu();
-        });
+        runWithOwner(owner, () => createRoot(overtaken));
         // What took the view's picture asks it again, of what draws now.
         setTimes((times) => times + 1);
       }
 
       function sight() {
         const { width, height } = self;
-        const { models, lights, paints, probes, camera: any, unread } = found(self);
+        const seen = found(self);
+        const { models, lights, paints, probes, loaders, camera: any } = seen;
         const camera = self.camera ?? any;
+        // Every file is asked of, so they are fetched together: but none by
+        // a view that could not turn, or that has what keeps it here.
+        const turn = mayTurn && loaders.length > 0 && !scriptAlone(self, seen) && loaders.map((node) => node.$ready()).every(Boolean);
         return {
           width,
           height,
           camera,
-          unread,
+          turn,
           models,
           lights,
           paints,

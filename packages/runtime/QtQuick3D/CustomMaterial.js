@@ -88,6 +88,8 @@ export const CustomMaterial = defineType("CustomMaterial", Material, {
   },
   enums: { Unshaded, Shaded, ...BLENDS },
   setup(self) {
+    // Told before its shaders are here (`scriptAlone`, View3D.js).
+    self.$custom = true;
     self.$material = () => {
       // A piece is the file named, else the text given.
       const vertex = String(self.vertexShader ?? "") ? text(self.vertexShader, self) : String(self.__vertexShaderCode ?? "");

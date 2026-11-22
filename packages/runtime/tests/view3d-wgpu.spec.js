@@ -1385,7 +1385,8 @@ test("a view on the JavaScript renderer lit by baked surroundings is lit by them
 // Where neither the page nor the build asks for a renderer, a View3D is on
 // wgpu if WebGPU has an adapter for the page, and on the JavaScript one if
 // not (a browser may have WebGPU and no GPU it lets it use), unless the
-// scene shows what only wgpu reads: then on wgpu's WebGL 2.
+// scene shows models from files that are here and nothing left to the
+// JavaScript one: then on wgpu's WebGL 2.
 test.describe("a View3D no one asked a renderer of", () => {
   test.skip(!!process.env.VITE_LJOS_VIEW3D, "the build asks for one");
   const drawn = (page) =>
@@ -1420,7 +1421,12 @@ test.describe("a View3D no one asked a renderer of", () => {
       await page.addInitScript(missing);
       await page.goto("/?scene=wgpu_loader");
       await page.waitForFunction(() => window.ready);
-      expect(await (await drawn(page)).jsonValue()).toBe("wgpu");
+      // The JavaScript renderer draws until the file is here.
+      await page.waitForFunction(() => {
+        const state = document.querySelector(".qq-view3d")?.$view3d;
+        if (state?.error) throw new Error(state.error);
+        return state?.renderer === "wgpu" && state.frames > 0;
+      });
       expect(await page.evaluate(() => document.querySelector(".qq-view3d").$view3d.backend)).toBe("webgl2");
       // The file's red square, in the middle.
       await expect.poll(async () => (await pixels(page, [CENTRE]))[0], { message: "the model the file holds" }).toBe("255 0 0");
