@@ -3,7 +3,7 @@
 // large enough to read on lines far enough apart, every line of it can
 // be reached inside its card on a phone without the page scrolling
 // sideways, and every colour the highlighting gives reads on the
-// ground it is drawn on, in both schemes.
+// ground it is drawn on, in both schemes (features/code-card.feature).
 import { expect, test } from "@playwright/test";
 
 // A page of plain blocks (a shell line, what a command prints) and a
@@ -19,6 +19,7 @@ const VIEWS = [
   ["phone", { width: 390, height: 844 }],
   ["desktop", { width: 1440, height: 900 }],
 ];
+const SCHEMES = ["light", "dark"];
 
 async function opened(browser, viewport, colorScheme, route) {
   const context = await browser.newContext({
@@ -407,134 +408,138 @@ for (const route of [
   "/language/controllers/",
   "/language/modules-and-imports/",
 ]) {
-  test(`${route}'s file tabs can each be reached on a narrow phone`, async ({
+  for (const scheme of SCHEMES) {
+    test(`${route}'s file tabs can each be reached on a narrow phone, ${scheme}`, async ({
+      browser,
+    }) => {
+      const { context, page } = await opened(
+        browser,
+        { width: 320, height: 640 },
+        scheme,
+        route,
+      );
+      try {
+        // Tab is the app's own, so a tab has the keyboard only by it:
+        // back from Copy to the first file, then on to the last.
+        const card = page
+          .locator('[data-object-name="codeCard"]:visible')
+          .filter({ has: page.locator('[role="tab"]:visible') })
+          .first();
+        const tabs = card.locator('[role="tab"]:visible');
+        const count = await tabs.count();
+        expect(count, "a block of several files").toBeGreaterThan(1);
+        await card
+          .getByRole("button", { name: /^(Copy|Copied)\b/ })
+          .first()
+          .focus();
+        const steps = [];
+        for (let index = count - 1; index >= 0; index--)
+          steps.push(["Shift+Tab", index]);
+        for (let index = 1; index < count; index++) steps.push(["Tab", index]);
+        for (const [key, index] of steps) {
+          const tab = tabs.nth(index);
+          await page.keyboard.press(key);
+          await expect(tab, `${key} gives tab ${index + 1} the keyboard`).toBeFocused();
+          await expect
+            .poll(
+              () =>
+                tab.evaluate((node) => {
+                  const card = node.closest('[data-object-name="codeCard"]');
+                  const box = node.getBoundingClientRect();
+                  const middle = box.top + box.height / 2;
+                  const wrong = [];
+                  for (const x of [
+                    box.left + 1,
+                    box.left + box.width / 2,
+                    box.right - 1,
+                  ]) {
+                    if (!node.contains(document.elementFromPoint(x, middle)))
+                      wrong.push(`covered or clipped at x=${Math.round(x)}`);
+                  }
+                  for (const button of card.querySelectorAll('[role="button"], button')) {
+                    if (!/^(Copy|Copied)\b/.test(button.getAttribute("aria-label") ?? button.textContent.trim()))
+                      continue;
+                    const copy = button.getBoundingClientRect();
+                    if (box.left < copy.right && box.right > copy.left && box.top < copy.bottom && box.bottom > copy.top)
+                      wrong.push("under Copy");
+                  }
+                  // A card that clips is never scrolled to show what it clipped.
+                  for (let up = node.parentElement; up && card.contains(up); up = up.parentElement) {
+                    if (getComputedStyle(up).overflowX === "hidden" && up.scrollLeft)
+                      wrong.push("the card's clip was scrolled");
+                  }
+                  return wrong;
+                }),
+              { message: `tab ${index + 1} of ${count}`, timeout: 3000 },
+            )
+            .toEqual([]);
+        }
+      } finally {
+        await context.close();
+      }
+    });
+  }
+}
+
+// Run and edited, every control of the toolbar is clear of the others
+// and of the word that says the code is edited.
+for (const scheme of SCHEMES) {
+  test(`an edited, running example's toolbar fits a narrow phone, ${scheme}`, async ({
     browser,
   }) => {
     const { context, page } = await opened(
       browser,
       { width: 320, height: 640 },
-      "light",
-      route,
+      scheme,
+      "/start/first-app/",
     );
     try {
-      // Tab is the app's own, so a tab has the keyboard only by it:
-      // back from Copy to the first file, then on to the last.
       const card = page
-        .locator('[data-object-name="codeCard"]:visible')
-        .filter({ has: page.locator('[role="tab"]:visible') })
+        .locator('[data-object-name="codeCard"]')
+        .filter({ has: page.getByRole("textbox") })
         .first();
-      const tabs = card.locator('[role="tab"]:visible');
-      const count = await tabs.count();
-      expect(count, "a block of several files").toBeGreaterThan(1);
-      await card
-        .getByRole("button", { name: /^(Copy|Copied)\b/ })
-        .first()
-        .focus();
-      const steps = [];
-      for (let index = count - 1; index >= 0; index--)
-        steps.push(["Shift+Tab", index]);
-      for (let index = 1; index < count; index++) steps.push(["Tab", index]);
-      for (const [key, index] of steps) {
-        const tab = tabs.nth(index);
-        await page.keyboard.press(key);
-        await expect(tab, `${key} gives tab ${index + 1} the keyboard`).toBeFocused();
-        await expect
-          .poll(
-            () =>
-              tab.evaluate((node) => {
-                const card = node.closest('[data-object-name="codeCard"]');
-                const box = node.getBoundingClientRect();
-                const middle = box.top + box.height / 2;
-                const wrong = [];
-                for (const x of [
-                  box.left + 1,
-                  box.left + box.width / 2,
-                  box.right - 1,
-                ]) {
-                  if (!node.contains(document.elementFromPoint(x, middle)))
-                    wrong.push(`covered or clipped at x=${Math.round(x)}`);
+      await card.getByRole("button", { name: /^Run / }).click();
+      await expect(
+        card.getByRole("button", { name: /^Observer for/ }),
+      ).toBeVisible({ timeout: 15000 });
+      await intoCode(card);
+      await page.keyboard.press("ControlOrMeta+Home");
+      await page.keyboard.type("// as edited\n");
+      await expect(card.locator('[data-object-name="editedBadge"]')).toBeVisible();
+      await expect(
+        card.getByRole("button", { name: /^Observer for/ }),
+      ).toBeVisible({ timeout: 15000 });
+      await expect
+        .poll(
+          () =>
+            card.evaluate((node) => {
+              const bar = node.querySelector('[data-object-name="codeToolbar"]');
+              const within = bar.getBoundingClientRect();
+              const parts = [
+                ...bar.querySelectorAll('[role="button"], button, [data-object-name="editedBadge"]'),
+              ]
+                .filter((part) => part.getClientRects().length && getComputedStyle(part).visibility !== "hidden")
+                .map((part) => ({
+                  name: part.getAttribute("aria-label") ?? part.textContent.trim(),
+                  box: part.getBoundingClientRect(),
+                }))
+                .filter(({ box }) => box.width > 0 && box.height > 0);
+              const wrong = [];
+              parts.forEach(({ name, box }, index) => {
+                if (box.left < within.left - 0.5 || box.right > within.right + 0.5 || box.top < within.top - 0.5 || box.bottom > within.bottom + 0.5)
+                  wrong.push(`${name} is outside the toolbar`);
+                for (const other of parts.slice(index + 1)) {
+                  if (box.left < other.box.right - 0.5 && box.right > other.box.left + 0.5 && box.top < other.box.bottom - 0.5 && box.bottom > other.box.top + 0.5)
+                    wrong.push(`${name} overlaps ${other.name}`);
                 }
-                for (const button of card.querySelectorAll('[role="button"], button')) {
-                  if (!/^(Copy|Copied)\b/.test(button.getAttribute("aria-label") ?? button.textContent.trim()))
-                    continue;
-                  const copy = button.getBoundingClientRect();
-                  if (box.left < copy.right && box.right > copy.left && box.top < copy.bottom && box.bottom > copy.top)
-                    wrong.push("under Copy");
-                }
-                // A card that clips is never scrolled to show what it clipped.
-                for (let up = node.parentElement; up && card.contains(up); up = up.parentElement) {
-                  if (getComputedStyle(up).overflowX === "hidden" && up.scrollLeft)
-                    wrong.push("the card's clip was scrolled");
-                }
-                return wrong;
-              }),
-            { message: `tab ${index + 1} of ${count}`, timeout: 3000 },
-          )
-          .toEqual([]);
-      }
+              });
+              return wrong;
+            }),
+          { timeout: 5000 },
+        )
+        .toEqual([]);
     } finally {
       await context.close();
     }
   });
 }
-
-// Run and edited, every control of the toolbar is clear of the others
-// and of the word that says the code is edited.
-test("an edited, running example's toolbar fits a narrow phone", async ({
-  browser,
-}) => {
-  const { context, page } = await opened(
-    browser,
-    { width: 320, height: 640 },
-    "light",
-    "/start/first-app/",
-  );
-  try {
-    const card = page
-      .locator('[data-object-name="codeCard"]')
-      .filter({ has: page.getByRole("textbox") })
-      .first();
-    await card.getByRole("button", { name: /^Run / }).click();
-    await expect(
-      card.getByRole("button", { name: /^Observer for/ }),
-    ).toBeVisible({ timeout: 15000 });
-    await intoCode(card);
-    await page.keyboard.press("ControlOrMeta+Home");
-    await page.keyboard.type("// as edited\n");
-    await expect(card.locator('[data-object-name="editedBadge"]')).toBeVisible();
-    await expect(
-      card.getByRole("button", { name: /^Observer for/ }),
-    ).toBeVisible({ timeout: 15000 });
-    await expect
-      .poll(
-        () =>
-          card.evaluate((node) => {
-            const bar = node.querySelector('[data-object-name="codeToolbar"]');
-            const within = bar.getBoundingClientRect();
-            const parts = [
-              ...bar.querySelectorAll('[role="button"], button, [data-object-name="editedBadge"]'),
-            ]
-              .filter((part) => part.getClientRects().length && getComputedStyle(part).visibility !== "hidden")
-              .map((part) => ({
-                name: part.getAttribute("aria-label") ?? part.textContent.trim(),
-                box: part.getBoundingClientRect(),
-              }))
-              .filter(({ box }) => box.width > 0 && box.height > 0);
-            const wrong = [];
-            parts.forEach(({ name, box }, index) => {
-              if (box.left < within.left - 0.5 || box.right > within.right + 0.5 || box.top < within.top - 0.5 || box.bottom > within.bottom + 0.5)
-                wrong.push(`${name} is outside the toolbar`);
-              for (const other of parts.slice(index + 1)) {
-                if (box.left < other.box.right - 0.5 && box.right > other.box.left + 0.5 && box.top < other.box.bottom - 0.5 && box.bottom > other.box.top + 0.5)
-                  wrong.push(`${name} overlaps ${other.name}`);
-              }
-            });
-            return wrong;
-          }),
-        { timeout: 5000 },
-      )
-      .toEqual([]);
-  } finally {
-    await context.close();
-  }
-});
