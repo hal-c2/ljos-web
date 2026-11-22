@@ -27,6 +27,7 @@ import { packRich } from "ljos-web/codeblock/rich";
 import * as Pro from "./pro.mjs";
 import { giveFiles, readGiven } from "../../site/scripts/codeblock-files.mjs";
 import { keysByHash, listedEverywhere, pageOfRoute, pageRecords, readLedger, saysEverywhere } from "../../site/scripts/codeblocks-ledger.mjs";
+import { drawPictures, shipsDark, verdictKey } from "./pictures.mjs";
 
 const here = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 // Where the site stands below its address's root: `/` at a domain of
@@ -178,6 +179,7 @@ const liveAt = new Map(); // a page's code block -> its live payload
   // drew, and a changed recipe draws again. The page names them by
   // their hash.
   const { light: lightTone, dark: darkTone } = tones();
+  const papers = { light: lightTone.paper, dark: darkTone.paper };
   const STAGES = {
     light: `<!doctype html><style>html,body{margin:0;background:${lightTone.paper}}</style>`,
     dark: `<!doctype html><style>html,body{margin:0;background:${darkTone.paper}}</style>`,
@@ -186,7 +188,7 @@ const liveAt = new Map(); // a page's code block -> its live payload
   const drawnBy = createHash("sha256").update(`${chromium.executablePath()}\n${STAGES.light}\n${STAGES.dark}\n${UNSIZED}`).digest("hex").slice(0, 12);
   const kept = (hash, scheme = "light") =>
     `${hash.slice(0, 16)}${scheme === "dark" ? "-dark" : ""}-${createHash("sha256").update(`${prerendered[hash].stamp ?? ""}\n${drawnBy}`).digest("hex").slice(0, 12)}.png`;
-  const schemesOf = (hash) => (prerendered[hash].htmlDark ? ["light", "dark"] : ["light"]);
+  const SCHEMES = ["light", "dark"];
   // Which pictures show nothing but the paper: an example whose point
   // is what it logs, or one that waits for the reader before it draws.
   // Its window says so rather than stand empty. Known as each picture
@@ -201,11 +203,11 @@ const liveAt = new Map(); // a page's code block -> its live payload
   const blank = {};
   const shots = live.filter(({ example }) => {
     const hash = hashExample(example);
-    return schemesOf(hash).some((scheme) => !existsSync(join(cacheDir, kept(hash, scheme)))) || typeof blankWas[kept(hash)] !== "boolean";
+    return SCHEMES.some((scheme) => !existsSync(join(cacheDir, kept(hash, scheme)))) || typeof blankWas[verdictKey(kept(hash))] !== "boolean";
   });
   for (const { example } of live) {
-    const name = kept(hashExample(example));
-    if (typeof blankWas[name] === "boolean") blank[name] = blankWas[name];
+    const key = verdictKey(kept(hashExample(example)));
+    if (typeof blankWas[key] === "boolean") blank[key] = blankWas[key];
   }
   if (shots.length) {
     // A few pages of one browser, each drawing its share: one page drew
@@ -226,13 +228,10 @@ const liveAt = new Map(); // a page's code block -> its live payload
               // stage's own size is the picture's then, as in QML below.
               const width = prerendered[hash].width > 0 ? prerendered[hash].width : UNSIZED[0];
               const height = prerendered[hash].height > 0 ? prerendered[hash].height : UNSIZED[1];
-              await page.setViewportSize({ width, height });
-              for (const scheme of schemesOf(hash)) {
-                const html = scheme === "dark" ? prerendered[hash].htmlDark : prerendered[hash].html;
-                await page.setContent(`${STAGES[scheme]}<div id="app" style="position:relative;width:${width}px;height:${height}px">${html}</div>`);
-                const png = await page.screenshot({ path: join(cacheDir, kept(hash, scheme)), clip: { x: 0, y: 0, width, height } });
-                if (scheme === "light") blank[kept(hash)] = await page.evaluate(paperOnly, { png: png.toString("base64"), paper: lightTone.paper });
-              }
+              const { html, htmlDark } = prerendered[hash];
+              const to = Object.fromEntries(SCHEMES.map((scheme) => [scheme, join(cacheDir, kept(hash, scheme))]));
+              const drawn = await drawPictures(page, { html, htmlDark, width, height, papers, stages: STAGES, to });
+              blank[verdictKey(kept(hash))] = drawn.blank;
             } finally {
               free.push(page);
             }
@@ -247,16 +246,19 @@ const liveAt = new Map(); // a page's code block -> its live payload
   writeFileSync(blankFile, `${JSON.stringify(blank, null, 2)}\n`);
   // Pictures an older runtime or browser drew are never shown again.
   pruneCache(cacheDir, {
-    keep: new Set(live.flatMap(({ example }) => schemesOf(hashExample(example)).map((scheme) => kept(hashExample(example), scheme)))),
+    keep: new Set(live.flatMap(({ example }) => SCHEMES.map((scheme) => kept(hashExample(example), scheme)))),
     pattern: /^[0-9a-f]{16}(-dark)?-[0-9a-f]{12}\.png$/,
   });
   for (const { example } of live) {
     const hash = hashExample(example);
     const picture = `${hash.slice(0, 16)}.png`;
-    if (!existsSync(join(cacheDir, kept(hash)))) continue;
-    cpSync(join(cacheDir, kept(hash)), join(pictures, picture));
-    const pictureDark = existsSync(join(cacheDir, kept(hash, "dark"))) && prerendered[hash].htmlDark ? `${hash.slice(0, 16)}-dark.png` : undefined;
-    if (pictureDark) cpSync(join(cacheDir, kept(hash, "dark")), join(pictures, pictureDark));
+    const [keptLight, keptDark] = SCHEMES.map((scheme) => join(cacheDir, kept(hash, scheme)));
+    if (!existsSync(keptLight)) continue;
+    cpSync(keptLight, join(pictures, picture));
+    // A picture that is the same in both schemes is one file.
+    const ownDark = existsSync(keptDark) && shipsDark({ light: readFileSync(keptLight), dark: readFileSync(keptDark) });
+    const pictureDark = ownDark ? `${hash.slice(0, 16)}-dark.png` : undefined;
+    if (pictureDark) cpSync(keptDark, join(pictures, pictureDark));
     const width = prerendered[hash].width > 0 ? prerendered[hash].width : 320;
     const height = prerendered[hash].height > 0 ? prerendered[hash].height : 180;
     // The figure stands at the example's entry fence; its other
@@ -273,7 +275,7 @@ const liveAt = new Map(); // a page's code block -> its live payload
       ...(example.given ? { given: packGiven(example.given) } : {}),
       picture,
       ...(pictureDark ? { pictureDark } : {}),
-      ...(blank[kept(hash)] ? { blank: true } : {}),
+      ...(blank[verdictKey(kept(hash))] ? { blank: true } : {}),
       width,
       height,
       // What it said as it was made: the first lines of its values
@@ -506,23 +508,6 @@ const pages = [
 function tones() {
   const source = readFileSync(join(bundle, "tokens.js"), "utf8").replace(/^\.pragma library$/m, "");
   return new Function(`${source}\nreturn { light, dark };`)();
-}
-
-// Run in the drawing page: whether a picture (a PNG, as base64) is
-// the paper and nothing else. Its pixels are the browser's to decode;
-// within a few steps of the paper is paper still (the edge of a
-// shadow the app's root casts on nothing).
-async function paperOnly({ png, paper }) {
-  const bytes = Uint8Array.from(atob(png), (c) => c.charCodeAt(0));
-  const bitmap = await createImageBitmap(new Blob([bytes], { type: "image/png" }));
-  const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
-  const context = canvas.getContext("2d");
-  context.drawImage(bitmap, 0, 0);
-  const { data } = context.getImageData(0, 0, bitmap.width, bitmap.height);
-  const ground = [1, 3, 5].map((at) => parseInt(paper.slice(at, at + 2), 16));
-  for (let i = 0; i < data.length; i += 4)
-    if (Math.abs(data[i] - ground[0]) > 24 || Math.abs(data[i + 1] - ground[1]) > 24 || Math.abs(data[i + 2] - ground[2]) > 24) return false;
-  return true;
 }
 
 // A live block's pictures, addressed from its page: from its route's
