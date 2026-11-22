@@ -645,8 +645,16 @@ const STAGES = [
   "/quality/motion/",
 ];
 
-// Each live example's window, as the reader sees it before running it:
-// the picture's box's first ancestor that clips, which is the window.
+// The window a picture stands in: its box's first ancestor that clips.
+// Run in the page.
+const windowAround = (node) => {
+  let frame = node.parentElement;
+  while (frame && getComputedStyle(frame).overflow === "visible")
+    frame = frame.parentElement;
+  return frame;
+};
+
+// Each live example's window, as the reader sees it before running it.
 // What it draws is told from its pixels: how many differ from the
 // colour most of it is, and how light that colour is. Each window is
 // shot where it is once scrolled to: the page scrolls inside its own
@@ -657,14 +665,7 @@ async function windows(page) {
     .locator('#app img[alt="What this example draws"]')
     .elementHandles())
     if (await img.evaluate((node) => node.getBoundingClientRect().width > 0))
-      frames.push(
-        await img.evaluateHandle((node) => {
-          let frame = node.parentElement;
-          while (frame && getComputedStyle(frame).overflow === "visible")
-            frame = frame.parentElement;
-          return frame;
-        }),
-      );
+      frames.push(await img.evaluateHandle(windowAround));
   const out = [];
   for (const [index, frame] of frames.entries()) {
     await frame.evaluate((node) => node.scrollIntoView({ block: "center" }));
@@ -740,4 +741,79 @@ for (const route of STAGES) {
       }
     });
   }
+}
+
+// An empty picture can have any ground: a bare Window's is white, in
+// the dark too. Every picture is served as one loud colour, which no
+// token of the site's is, so wherever a picture shows, it shows as that.
+const LOUD =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1" preserveAspectRatio="none"><rect width="1" height="1" fill="#ff00ff"/></svg>';
+const NOTHING = "Nothing drawn yet. Run it to see what it does.";
+
+for (const colorScheme of ["light", "dark"]) {
+  test(`"Nothing drawn yet" hides the picture's own ground in the ${colorScheme} scheme`, async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({
+      viewport: { width: 1440, height: 900 },
+      colorScheme,
+    });
+    try {
+      await context.route("**/Examples/*.png", (route) =>
+        route.fulfill({ contentType: "image/svg+xml", body: LOUD }),
+      );
+      const page = await context.newPage();
+      const seen = { empty: 0, drawn: 0 };
+      // Examples that draw nothing, and examples that draw.
+      for (const route of ["/language/signals-and-handlers/", "/quality/motion/"]) {
+        await page.goto(route);
+        await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+        for (const img of await page
+          .locator('#app img[alt="What this example draws"]')
+          .filter({ visible: true })
+          .elementHandles()) {
+          const frame = await img.evaluateHandle(windowAround);
+          await frame.evaluate((node) => node.scrollIntoView({ block: "center" }));
+          await img.evaluate((node) => node.decode());
+          const says = await frame.evaluate(
+            (node, text) =>
+              [...node.querySelectorAll("*")].some(
+                (child) =>
+                  child.textContent.trim() === text &&
+                  child.checkVisibility({ visibilityProperty: true }),
+              ),
+            NOTHING,
+          );
+          const png = (await frame.screenshot()).toString("base64");
+          const loud = await page.evaluate(async (data) => {
+            const bitmap = await createImageBitmap(
+              await (await fetch(`data:image/png;base64,${data}`)).blob(),
+            );
+            const context = new OffscreenCanvas(
+              bitmap.width,
+              bitmap.height,
+            ).getContext("2d");
+            context.drawImage(bitmap, 0, 0);
+            const pixels = context.getImageData(0, 0, bitmap.width, bitmap.height).data;
+            let count = 0;
+            for (let i = 0; i < pixels.length; i += 4)
+              if (pixels[i] > 200 && pixels[i + 1] < 60 && pixels[i + 2] > 200)
+                count += 1;
+            return count;
+          }, png);
+          if (says) {
+            expect(loud, `${route}: no picture shows under the words`).toBe(0);
+            seen.empty += 1;
+          } else {
+            expect(loud, `${route}: a drawn picture still shows`).toBeGreaterThan(0);
+            seen.drawn += 1;
+          }
+        }
+      }
+      expect(seen.empty, "a window that says it is empty").toBeGreaterThan(0);
+      expect(seen.drawn, "a window with a picture").toBeGreaterThan(0);
+    } finally {
+      await context.close();
+    }
+  });
 }
