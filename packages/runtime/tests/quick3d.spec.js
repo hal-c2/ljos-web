@@ -1438,9 +1438,20 @@ test("a scene's fog hides what is far and what is low, as Qt's does", async ({ p
   }
 });
 
-// The JavaScript renderer has the fog, which wgpu has not yet: a scene
-// with nothing that only wgpu reads keeps it where WebGPU gives the page
-// nothing. The address names no renderer, so it is the default that draws.
+// The JavaScript renderer's fog is Qt's (above), and a browser WebGPU
+// gives nothing keeps it, also where a model from a file is beside it. The
+// address names no renderer, so it is the default that draws, and what is
+// held to is the picture.
+const FOG_AT = [[40, 100], [115, 60], [135, 30], [170, 40], [170, 100], [170, 160], [215, 75], [215, 130], [270, 100]];
+const FOGGED = [[91, 155, 224], [168, 174, 193], [190, 160, 103], [176, 171, 163], [176, 171, 164], [176, 171, 163], [64, 192, 96], [196, 146, 96], [30, 47, 64]];
+const fogIsQts = async (page) => near(await painted(page, FOG_AT.map((point, index) => [point, FOGGED[index]])), FOGGED, "the fog", 3);
+const everyViewDrew = (page) =>
+  page.waitForFunction(() => {
+    const views = [...document.querySelectorAll(".qq-view3d")].map((canvas) => canvas.$view3d);
+    const failed = views.find((view) => view?.error);
+    if (failed) throw new Error(failed.error);
+    return views.length > 0 && views.every((view) => view?.frames > 0 && !view.due);
+  });
 for (const [where, missing] of [
   ["the browser has no WebGPU", () => delete Navigator.prototype.gpu],
   ["WebGPU has no adapter", () => navigator.gpu && (navigator.gpu.requestAdapter = async () => null)],
@@ -1450,9 +1461,40 @@ for (const [where, missing] of [
     await page.addInitScript(missing);
     await page.goto("/?scene=fog3d");
     await page.waitForFunction(() => window.ready);
-    const at = [[40, 100], [115, 60], [135, 30], [170, 40], [170, 100], [170, 160], [215, 75], [215, 130], [270, 100]];
-    const colours = [[91, 155, 224], [168, 174, 193], [190, 160, 103], [176, 171, 163], [176, 171, 164], [176, 171, 163], [64, 192, 96], [196, 146, 96], [30, 47, 64]];
-    near(await painted(page, at.map((point, index) => [point, colours[index]])), colours, "the fog", 3);
+    await fogIsQts(page);
+  });
+
+  test(`a scene's fog stays Qt's beside a model from a file where ${where}`, async ({ page }) => {
+    test.skip(!!process.env.VITE_LJOS_VIEW3D, "the build asks for one");
+    await page.addInitScript(missing);
+    await page.goto("/?scene=fog3dbeside");
+    await page.waitForFunction(() => window.ready);
+    // The file is here, and whatever the view does for it is done.
+    await page.waitForLoadState("networkidle");
+    await everyViewDrew(page);
+    await fogIsQts(page);
+  });
+
+  test(`fog that comes to a scene wgpu was turned to is Qt's where ${where}`, async ({ page }) => {
+    test.skip(!!process.env.VITE_LJOS_VIEW3D, "the build asks for one");
+    await page.addInitScript(missing);
+    await page.goto("/?scene=fog3dbeside");
+    await page.waitForFunction(() => window.ready);
+    await page.evaluate(() => {
+      window.scene.cleared();
+      window.flush();
+    });
+    await page.waitForFunction(() => {
+      const state = document.querySelector(".qq-view3d")?.$view3d;
+      if (state?.error) throw new Error(state.error);
+      return state?.renderer === "wgpu" && state.frames > 0;
+    });
+    await page.evaluate(() => {
+      window.scene.fogged();
+      window.flush();
+    });
+    await everyViewDrew(page);
+    await fogIsQts(page);
   });
 }
 
