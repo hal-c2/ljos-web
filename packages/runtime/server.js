@@ -22,6 +22,7 @@
 //   const html = await renderToString(Entry);
 //
 // and puts `html` in the element its page hydrates.
+import { createRenderEffect, createRoot, createSignal, flush } from "solid-js";
 import { mount, settleMaking } from "./object.ts";
 import { installPrerenderGlobals, renumber, serialize } from "./server/dom.js";
 
@@ -67,5 +68,30 @@ export async function renderToString(Component, { props = {}, width = 1280, heig
   } finally {
     root.dispose?.();
     host.remove();
+  }
+}
+
+// Whether an uncaught error has halted this process's reactivity. Solid
+// then takes no update, of this component or of any made later: what
+// renders several in one process goes on in another. Asked by a write
+// and whether its effect saw it, as Solid has no public word for it.
+export function reactivityHalted() {
+  const [value, setValue] = createSignal(0);
+  let seen;
+  const dispose = createRoot((end) => {
+    createRenderEffect(value, (now) => {
+      seen = now;
+    });
+    return end;
+  });
+  try {
+    setValue(1);
+    flush();
+    return seen !== 1;
+  } catch {
+    // What was still queued threw out of the flush, which halts it.
+    return true;
+  } finally {
+    dispose();
   }
 }

@@ -458,10 +458,10 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
       writeFileSync(
         join(stage, "entries.js"),
         [
-          `import { renderToString } from "codeblock:server";`,
+          `import { reactivityHalted, renderToString } from "codeblock:server";`,
           ...imports,
           `export const pages = {\n${entries.join("\n")}\n};`,
-          `export { renderToString };`,
+          `export { reactivityHalted, renderToString };`,
           ``,
         ].join("\n"),
       );
@@ -512,9 +512,18 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
         return;
       }
       // Each scheme's render is a process of its own: what an example
-      // reads of the scheme it reads as it is made, once.
+      // reads of the scheme it reads as it is made, once. And so is the
+      // rest of the batch after an example that halted one.
       const made = async (scheme) => {
-        const ran = await run(process.execPath, [join(import.meta.dirname, "prerender-run.js"), join(stage, "server/entries.mjs"), JSON.stringify({ width, height, ...(scheme ? { scheme } : {}) })], env);
+        const answers = new Map();
+        let halted = true;
+        while (halted && answers.size < batch.length) halted = await madeUntilHalted(scheme, answers);
+        return answers;
+      };
+      // Adds what one process answered to `answers`; whether it halted.
+      const madeUntilHalted = async (scheme, answers) => {
+        const options = JSON.stringify({ width, height, ...(scheme ? { scheme } : {}), ...(answers.size ? { skip: [...answers.keys()] } : {}) });
+        const ran = await run(process.execPath, [join(import.meta.dirname, "prerender-run.js"), join(stage, "server/entries.mjs"), options], env);
         if (ran.error) throw new Error(`could not prerender the code blocks: ${ran.error.message}`);
         if (ran.status !== 0) throw new Error(`the code blocks could not be prerendered:\n${(ran.stderr || ran.stdout).trim()}`);
         // Each example's own words come back with it; what the process
@@ -522,13 +531,13 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
         // build before any of this batch is kept, so the next run makes
         // the batch again and is stopped again rather than served.
         if (ran.stderr.trim()) throw new Error(`the code block prerenderer said, outside any example:\n${ran.stderr.trimEnd()}`);
-        return new Map(
-          ran.stdout
-            .split("\n")
-            .filter(Boolean)
-            .map((line) => JSON.parse(line))
-            .map((answer) => [answer.hash, answer]),
-        );
+        let halted = false;
+        for (const line of ran.stdout.split("\n").filter(Boolean)) {
+          const answer = JSON.parse(line);
+          if (answer.halted) halted = true;
+          else answers.set(answer.hash, answer);
+        }
+        return halted;
       };
       // One after the other: a lane's memory is budgeted for one.
       const light = await made(undefined);
