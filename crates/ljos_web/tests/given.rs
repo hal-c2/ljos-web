@@ -449,19 +449,20 @@ fn a_name_is_warned_of_exactly_where_knowing_the_module_would_change_what_it_res
         "import QtQuick.Controls as P",
         "import Acme.Widgets as P",
     ];
-    // What of the files Main imports: `parts` has Panel, App.Parts has Card.
-    let taken = |code: &str| {
+    // What of the files Main imports: `parts` has Panel, App.Parts has
+    // `member`, a Card or a Panel of its own.
+    let taken = |code: &str, member: &str| {
         (
             code.contains("/parts/Panel.qml\""),
-            code.contains("/App/Parts/Card.qml\""),
+            code.contains(&format!("/App/Parts/{member}.qml\"")),
         )
     };
-    let compiled = |imports: &str, described: bool| {
+    let compiled = |imports: &str, own: &str, described: bool| {
         let item = "import QtQuick\nItem { }\n".to_string();
         // Only what a file has is named: a type that nothing known has
         // does not compile.
         let mut named = String::new();
-        for (source, member) in [(SOURCES[0], "Panel"), (SOURCES[1], "Card")] {
+        for (source, member) in [(SOURCES[0], "Panel"), (SOURCES[1], own)] {
             if imports.contains(source) {
                 named += &format!("P.{member} {{ }} ");
             }
@@ -474,9 +475,9 @@ fn a_name_is_warned_of_exactly_where_knowing_the_module_would_change_what_it_res
             ("parts/Panel.qml".to_string(), item.clone()),
             (
                 "src/parts/qmldir".to_string(),
-                "module App.Parts\nCard 1.0 Card.qml\n".to_string(),
+                format!("module App.Parts\n{own} 1.0 {own}.qml\n"),
             ),
-            ("src/parts/Card.qml".to_string(), item.clone()),
+            (format!("src/parts/{own}.qml"), item.clone()),
         ]);
         let mut aliases = vec![Alias {
             module: "App.Parts".into(),
@@ -514,43 +515,203 @@ fn a_name_is_warned_of_exactly_where_knowing_the_module_would_change_what_it_res
     }
     orders.retain(|order| order.contains(&SOURCES[3]));
     let mut warned_somewhere = false;
-    for order in orders {
-        let imports = order.join("\n");
-        let unknown = compiled(&imports, false);
-        let known = compiled(&imports, true);
-        let guessed = taken(&unknown.modules[0].code) != taken(&known.modules[0].code);
-        let warned = unknown
-            .warnings
-            .iter()
-            .any(|warning| warning.contains("`import Acme.Widgets as P` comes after files"));
-        assert_eq!(
-            warned, guessed,
-            "{imports}\nwarnings: {:?}\nunknown:\n{}\nknown:\n{}",
-            unknown.warnings, unknown.modules[0].code, known.modules[0].code
-        );
-        // Described, its types are known: nothing is guessed.
-        assert_eq!(known.warnings, Vec::<String>::new(), "{imports}");
-        warned_somewhere |= warned;
+    for own in ["Card", "Panel"] {
+        for order in &orders {
+            let imports = order.join("\n");
+            let unknown = compiled(&imports, own, false);
+            let known = compiled(&imports, own, true);
+            let guessed =
+                taken(&unknown.modules[0].code, own) != taken(&known.modules[0].code, own);
+            let warned = unknown
+                .warnings
+                .iter()
+                .any(|warning| warning.contains("`import Acme.Widgets as P` comes after files"));
+            assert_eq!(
+                warned, guessed,
+                "App.Parts has {own}\n{imports}\nwarnings: {:?}\nunknown:\n{}\nknown:\n{}",
+                unknown.warnings, unknown.modules[0].code, known.modules[0].code
+            );
+            // Described, its types are known: nothing is guessed.
+            assert_eq!(known.warnings, Vec::<String>::new(), "{imports}");
+            warned_somewhere |= warned;
+        }
     }
     assert!(warned_somewhere, "no order was warned of");
+}
 
-    // A script under the name is what the name is: no file is taken for
-    // it, so none is taken over the module.
+/// `imports` compiled in a Main with `parts` beside it, an `App.Parts` of the
+/// project's own with a Panel, and two modules installed and not described.
+fn warnings_of(imports: &str, parts: &[&str]) -> Vec<String> {
+    let item = "import QtQuick\nItem { }\n";
     let mut files = BTreeMap::from([
         (
             "Main.qml".to_string(),
-            "import QtQuick\nimport \"parts\" as P\nimport \"logic.js\" as P\nimport Acme.Widgets as P\nItem { }\n".to_string(),
+            format!("import QtQuick\n{imports}\nItem {{ }}\n"),
         ),
-        ("logic.js".to_string(), "function f() { return 1 }\n".to_string()),
+        (
+            "src/parts/qmldir".to_string(),
+            "module App.Parts\nPanel 1.0 Panel.qml\n".to_string(),
+        ),
+        ("src/parts/Panel.qml".to_string(), item.to_string()),
     ]);
-    files.insert(
-        "parts/Panel.qml".to_string(),
-        "import QtQuick\nItem { }\n".to_string(),
-    );
-    let script = compile(&Request {
-        installed: vec!["Acme.Widgets".to_string()],
+    for part in parts {
+        files.insert(format!("parts/{part}.qml"), item.to_string());
+    }
+    let request = Request {
+        installed: vec!["Acme.Widgets".to_string(), "Acme.More".to_string()],
+        aliases: vec![Alias {
+            module: "App.Parts".into(),
+            dir: "src/parts".into(),
+        }],
         ..request(files, "Main.qml")
-    })
-    .expect("compiles");
-    assert_eq!(script.warnings, Vec::<String>::new());
+    };
+    compile(&request)
+        .unwrap_or_else(|errors| panic!("{imports}: {errors:?}"))
+        .warnings
+}
+
+#[test]
+fn a_guess_is_warned_of_only_while_a_file_it_was_made_of_is_taken() {
+    const UNSURE: &str = "import \"parts\" as P\nimport Acme.Widgets as P";
+    // The one file it may have the type of, replaced by a file imported later.
+    let replaced = warnings_of(&format!("{UNSURE}\nimport App.Parts as P"), &["Panel"]);
+    assert_eq!(replaced, Vec::<String>::new());
+    // And left out for a module imported later whose types are known.
+    let left = warnings_of(
+        &format!("{UNSURE}\nimport QtQuick.Controls as P"),
+        &["Button"],
+    );
+    assert_eq!(left, Vec::<String>::new());
+    // One of two is still taken.
+    for (later, parts) in [
+        ("App.Parts", ["Card", "Panel"]),
+        ("QtQuick.Controls", ["Button", "Panel"]),
+    ] {
+        let warnings = warnings_of(&format!("{UNSURE}\nimport {later} as P"), &parts);
+        assert_eq!(warnings.len(), 1, "{later}: {warnings:?}");
+    }
+    // The first module's guess replaced, the second's not: that one is named.
+    let second = warnings_of(
+        &format!("{UNSURE}\nimport App.Parts as P\nimport Acme.More as P"),
+        &["Panel"],
+    );
+    assert_eq!(second.len(), 1, "{second:?}");
+    assert!(second[0].contains("`import Acme.More as P`"), "{second:?}");
+}
+
+#[test]
+fn each_name_is_warned_of_once_by_the_first_module_guessed_at() {
+    let warnings = warnings_of(
+        "import \"parts\" as P\nimport Acme.Widgets as P\nimport Acme.More as P\n\
+         import \"parts\" as Q\nimport Acme.More as Q\nimport Acme.Widgets as Q",
+        &["Panel"],
+    );
+    assert_eq!(warnings.len(), 2, "{warnings:?}");
+    for first in ["`import Acme.Widgets as P`", "`import Acme.More as Q`"] {
+        assert!(
+            warnings.iter().any(|warning| warning.contains(first)),
+            "{first}: {warnings:?}"
+        );
+    }
+}
+
+#[test]
+fn a_script_shares_its_name_with_no_other_import() {
+    // Qt 6.12: "Script import qualifiers must be unique.", at the name of
+    // each import that shares with a script, and of a script that shares.
+    let refused = |imports: &str, described: bool| {
+        let mut files = BTreeMap::from([
+            (
+                "Main.qml".to_string(),
+                format!("import QtQuick\n{imports}\nItem {{ P.Panel {{ special: 3 }} }}\n"),
+            ),
+            (
+                "parts/Panel.qml".to_string(),
+                "import QtQuick\nItem { property int special }\n".to_string(),
+            ),
+            (
+                "logic.js".to_string(),
+                "function f() { return 1 }\n".to_string(),
+            ),
+            (
+                "other.js".to_string(),
+                "function g() { return 2 }\n".to_string(),
+            ),
+        ]);
+        for name in ["logic.mjs", "logic.ts", "logic.lts"] {
+            files.insert(
+                name.to_string(),
+                "export function f() { return 1 }\n".to_string(),
+            );
+        }
+        let mut aliases = Vec::new();
+        if described {
+            files.insert(
+                "src/acme/qmldir".to_string(),
+                "module Acme.Widgets\nPanel 1.0 Panel.qml\n".to_string(),
+            );
+            files.insert(
+                "src/acme/Panel.qml".to_string(),
+                "import QtQuick\nItem { }\n".to_string(),
+            );
+            aliases.push(Alias {
+                module: "Acme.Widgets".into(),
+                dir: "src/acme".into(),
+            });
+        }
+        let request = Request {
+            installed: vec!["Acme.Widgets".to_string()],
+            aliases,
+            ..request(files, "Main.qml")
+        };
+        compile(&request)
+            .expect_err(imports)
+            .into_iter()
+            .map(|error| (error.line, error.column, error.message))
+            .collect::<Vec<_>>()
+    };
+    let at = |line: usize, column: usize| {
+        (
+            Some(line),
+            Some(column),
+            "Script import qualifiers must be unique.".to_string(),
+        )
+    };
+    let files = "import \"parts\" as P";
+    let script = "import \"logic.js\" as P";
+    let module = "import Acme.Widgets as P";
+    let other = "import \"other.js\" as P";
+    for (imports, errors) in [
+        (vec![script, files, module], vec![at(3, 19), at(4, 24)]),
+        (vec![files, script, module], vec![at(3, 22)]),
+        (vec![files, module, script], vec![at(4, 22)]),
+        (vec![script, files], vec![at(3, 19)]),
+        (vec![files, script], vec![at(3, 22)]),
+        (vec![script, module], vec![at(3, 24)]),
+        (vec![module, script], vec![at(3, 22)]),
+        (vec![script, other], vec![at(3, 22)]),
+    ] {
+        let imports = imports.join("\n");
+        // Whether or not the module's types are known.
+        assert_eq!(refused(&imports, false), errors, "{imports}");
+        assert_eq!(refused(&imports, true), errors, "described: {imports}");
+    }
+    // .mjs as Qt 6.12 has it. .ts and .lts by Ljós's rule, not Qt's: qml6
+    // loads neither, so there is nothing of Qt's to measure.
+    for (name, column) in [("logic.mjs", 23), ("logic.ts", 22), ("logic.lts", 23)] {
+        let own = format!("import \"{name}\" as P");
+        let own = own.as_str();
+        for (imports, errors) in [
+            (vec![own, files], vec![at(3, 19)]),
+            (vec![files, own], vec![at(3, column)]),
+            (vec![own, module], vec![at(3, 24)]),
+            (vec![module, own], vec![at(3, column)]),
+            (vec![own, script], vec![at(3, 22)]),
+            (vec![script, own], vec![at(3, column)]),
+        ] {
+            let imports = imports.join("\n");
+            assert_eq!(refused(&imports, false), errors, "{imports}");
+            assert_eq!(refused(&imports, true), errors, "described: {imports}");
+        }
+    }
 }
