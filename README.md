@@ -9,3 +9,8 @@ already existed and predate both rebases on da3ad7ff.
 - 170/pre-rebase-60936a72-plus-uncommitted: 60936a72 with four uncommitted
   files, later committed as 1f1cbcaa and not proven identical to it. The
   docs source is not proven.
+- 171/8478ba62: CI's site-ljos-root artifact (14761659853) of site run
+  45036312226, for head 8478ba621d5f847c9efeffcc36f8e67097881b34. Taken on
+  2026-11-22 in headless Chromium 158.0.8127.18 with no network, at 1440x900
+  and 390x844, light and dark. Four shots identical to another are left out.
+  Nothing was pressed: the demos show what they show before Run.
