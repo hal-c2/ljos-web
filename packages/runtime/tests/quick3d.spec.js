@@ -1,4 +1,5 @@
 import { expect, open, test } from "./open.js";
+import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { pixels } from "./pixels.js";
 
@@ -1442,6 +1443,11 @@ test("a scene's fog hides what is far and what is low, as Qt's does", async ({ p
 // gives nothing keeps it, also where a model from a file is beside it. The
 // address names no renderer, so it is the default that draws, and what is
 // held to is the picture.
+//
+// DECISION: turning needs wgpu's chunk, which CI's browser job does not
+// build (`mise run test:runtime` does): what waits for a turn is skipped
+// without it, as it could only time out there.
+const WGPU_BUILT = existsSync(new URL("../QtQuick3D/wgpu/ljos_web_3d.js", import.meta.url));
 const FOG_AT = [[40, 100], [115, 60], [135, 30], [170, 40], [170, 100], [170, 160], [215, 75], [215, 130], [270, 100]];
 const FOGGED = [[91, 155, 224], [168, 174, 193], [190, 160, 103], [176, 171, 163], [176, 171, 164], [176, 171, 163], [64, 192, 96], [196, 146, 96], [30, 47, 64]];
 const fogIsQts = async (page) => near(await painted(page, FOG_AT.map((point, index) => [point, FOGGED[index]])), FOGGED, "the fog", 3);
@@ -1477,6 +1483,7 @@ for (const [where, missing] of [
 
   test(`fog that comes to a scene wgpu was turned to is Qt's where ${where}`, async ({ page }) => {
     test.skip(!!process.env.VITE_LJOS_VIEW3D, "the build asks for one");
+    test.skip(!WGPU_BUILT, "wgpu's renderer is not built (mise run build:wasm-3d)");
     await page.addInitScript(missing);
     await page.goto("/?scene=fog3dbeside");
     await page.waitForFunction(() => window.ready);
