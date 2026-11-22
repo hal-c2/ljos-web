@@ -750,6 +750,16 @@ const LOUD =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1" preserveAspectRatio="none"><rect width="1" height="1" fill="#ff00ff"/></svg>';
 // With the Run's instruction once the page knows it can run, and without before.
 const NOTHING = ["Nothing drawn yet.", "Nothing drawn yet. Run it to see what it does."];
+const saysNothing = (frame) =>
+  frame.evaluate(
+    (node, texts) =>
+      [...node.querySelectorAll("*")].some(
+        (child) =>
+          texts.includes(child.textContent.trim()) &&
+          child.checkVisibility({ visibilityProperty: true }),
+      ),
+    NOTHING,
+  );
 
 for (const colorScheme of ["light", "dark"]) {
   test(`"Nothing drawn yet" hides the picture's own ground in the ${colorScheme} scheme`, async ({
@@ -776,15 +786,7 @@ for (const colorScheme of ["light", "dark"]) {
           const frame = await img.evaluateHandle(windowAround);
           await frame.evaluate((node) => node.scrollIntoView({ block: "center" }));
           await img.evaluate((node) => node.decode());
-          const says = await frame.evaluate(
-            (node, texts) =>
-              [...node.querySelectorAll("*")].some(
-                (child) =>
-                  texts.includes(child.textContent.trim()) &&
-                  child.checkVisibility({ visibilityProperty: true }),
-              ),
-            NOTHING,
-          );
+          const says = await saysNothing(frame);
           const png = (await frame.screenshot()).toString("base64");
           const loud = await page.evaluate(async (data) => {
             const bitmap = await createImageBitmap(
@@ -817,4 +819,99 @@ for (const colorScheme of ["light", "dark"]) {
       await context.close();
     }
   });
+}
+
+// The words are ink too, so the stages' test above passes over a picture
+// wrongly called empty. These are the docs' own examples, by a line of
+// each: whether it draws as it starts is told from its source, and the
+// build must say the same, with the picture's own pixels behind it.
+const AT_START = {
+  "/language/signals-and-handlers/": {
+    draws: [],
+    empty: [
+      'ping(3, "start")',
+      'objectName: "entry"',
+      "count = 5",
+      "function onPing(n)",
+      "later(finishBatch)",
+    ],
+  },
+  "/data/repeater-and-delegates/": {
+    draws: ['"count " + inst.count'],
+    empty: ['objectName: "d" + index'],
+  },
+  "/quality/motion/": {
+    draws: [
+      'qsTr("Menu transition")',
+      'qsTr("Reduced motion")',
+      'qsTr("Drawer reveal")',
+    ],
+    empty: [],
+  },
+  "/quality/accessibility/": {
+    draws: ['qsTr("Compose note")'],
+    empty: [],
+  },
+};
+
+for (const [route, { draws, empty }] of Object.entries(AT_START)) {
+  for (const colorScheme of ["light", "dark"]) {
+    test(`${route} calls empty only what draws nothing as it starts, in the ${colorScheme} scheme`, async ({
+      browser,
+    }) => {
+      const { context, page } = await opened(
+        browser,
+        { width: 1440, height: 900 },
+        colorScheme,
+        route,
+      );
+      try {
+        const sources = await page.evaluate(() =>
+          JSON.parse(document.getElementById("ljos-props").textContent)
+            .page.blocks.filter((block) => block.kind === "live")
+            .map(({ live }) => live.display.map(({ code }) => code).join("\n")),
+        );
+        const pictures = page
+          .locator('#app img[alt="What this example draws"]')
+          .filter({ visible: true });
+        await expect(pictures, "a picture for each live example").toHaveCount(
+          sources.length,
+        );
+        for (const line of [...draws, ...empty]) {
+          const at = sources.flatMap((code, index) =>
+            code.includes(line) ? [index] : [],
+          );
+          expect(at, `the one example with ${line}`).toHaveLength(1);
+          const img = await pictures.nth(at[0]).elementHandle();
+          await img.evaluate((node) =>
+            node.scrollIntoView({ block: "center" }),
+          );
+          const says = await saysNothing(await img.evaluateHandle(windowAround));
+          expect.soft(says, `${line}: says nothing is drawn`).toBe(
+            empty.includes(line),
+          );
+          if (empty.includes(line)) continue;
+          const ink = await img.evaluate(async (node) => {
+            await node.decode();
+            const canvas = new OffscreenCanvas(
+              node.naturalWidth,
+              node.naturalHeight,
+            );
+            const context = canvas.getContext("2d");
+            context.drawImage(node, 0, 0);
+            const pixels = new Uint32Array(
+              context.getImageData(0, 0, canvas.width, canvas.height).data.buffer,
+            );
+            const counts = new Map();
+            for (const pixel of pixels)
+              counts.set(pixel, (counts.get(pixel) ?? 0) + 1);
+            return pixels.length - Math.max(...counts.values());
+          });
+          expect.soft(ink, `${line}: the picture itself draws`).toBeGreaterThan(40);
+        }
+      } finally {
+        await context.close();
+      }
+    });
+  }
 }
