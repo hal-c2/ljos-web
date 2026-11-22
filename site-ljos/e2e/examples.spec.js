@@ -31,6 +31,7 @@ for (const { route, examples } of pages) {
       // Each picture is there and decoded, not only an element.
       for (const picture of await pictures.all()) {
         await expect(picture).toBeVisible();
+        await picture.evaluate((img) => img.scrollIntoView({ block: "center" }));
         await expect.poll(() => picture.evaluate((img) => img.complete && img.naturalWidth > 0), { message: "the picture decodes" }).toBe(true);
       }
       await page.waitForTimeout(500);

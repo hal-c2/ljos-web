@@ -578,7 +578,8 @@ test("with JavaScript off a runnable block is its code beside a picture of its r
     // image in the page, not words promising one.
     const pictured = shown(page.locator('img[src*="Examples/"][src$=".png"]')).first();
     await expect(pictured).toBeVisible();
-    expect(await pictured.evaluate((img) => img.complete && img.naturalWidth > 0)).toBe(true);
+    await pictured.scrollIntoViewIfNeeded();
+    await expect.poll(() => pictured.evaluate((img) => img.complete && img.naturalWidth > 0)).toBe(true);
   } finally {
     await context.close();
   }

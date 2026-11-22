@@ -8,6 +8,12 @@ Feature: A code block's window before its example runs
     When the reader uses the dark theme
     Then the window shows the example's dark picture
 
+  Scenario: A reader fetches only the picture that shows
+    Given an example that looks different in the dark
+    When the reader opens its page in one scheme
+    Then only that scheme's picture of it is fetched
+    And the other is fetched when the reader changes the theme
+
   Scenario: One picture serves both schemes where they are the same
     Given an example that looks the same in both schemes
     When the reader uses the dark theme
