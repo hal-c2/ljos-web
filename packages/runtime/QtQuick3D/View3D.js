@@ -336,7 +336,7 @@ export const View3D = defineType("View3D", Item, {
     // Whether the JavaScript renderer may still hand the view to wgpu for
     // what only that reads. Once, and it may be handed back once
     // (`overtaken`): each change costs a canvas and all it holds.
-    let mayTurn = readable();
+    let mayTurn = true;
     // Told to what takes the view's picture when it is handed back.
     const [handovers, setHandovers] = signal(0, self.$owner);
     // wgpu taken for want of an ask, and WebGPU with no adapter for the
@@ -583,7 +583,9 @@ export const View3D = defineType("View3D", Item, {
           ahead.sighting();
           // Every file is asked of, so they are fetched together: but none
           // by a view that could not turn, or that has what keeps it here.
-          const could = mayTurn && loaders.length > 0 && !scriptAlone(self, seen);
+          // Whether it could is asked once it has such files: that may
+          // compile WebAssembly to find out.
+          const could = mayTurn && loaders.length > 0 && readable() && !scriptAlone(self, seen);
           const shown = could ? loaders.map((node) => node.$ready(ahead)) : [];
           ahead.sighted();
           // Turned to once none is on the way and one can be shown: a file
