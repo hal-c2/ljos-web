@@ -614,6 +614,83 @@ test("the shell's own QML is shown, a broken edit falls back and says why, and R
   }
 });
 
+// A reader's shell that moves the page's place and never resizes it:
+// neither the window, the place's size, the shell nor the dock changes.
+const MOVING_SHELL = `import QtQuick
+import Ljos.Blocks
+
+Rectangle {
+    id: shell
+    property var site: null
+    property bool moved: false
+    width: parent ? parent.width : 1440
+    height: parent ? parent.height : 900
+
+    Rectangle {
+        x: 200
+        width: 120
+        height: 40
+        Accessible.role: Accessible.Button
+        Accessible.name: "Move the page"
+        MouseArea {
+            anchors.fill: parent
+            onClicked: shell.moved = true
+        }
+    }
+    Item {
+        x: shell.moved ? 100 : 0
+        y: shell.moved ? 160 : 60
+        width: shell.width - 100
+        height: shell.height - 200
+        Slot { name: "site.page" }
+    }
+}
+`;
+
+test("the Observer follows a shell that moves the page without resizing it", async ({ browser }) => {
+  const context = await reader(browser);
+  try {
+    const page = await context.newPage();
+    const said = listen(page);
+    await open(page, "/start/first-app/");
+    await pick(page, "workbench");
+    await press(switcher(page));
+    await press(page.getByRole("button", { name: "View this shell's source", exact: true }));
+    const source = page.getByRole("dialog", { name: /^Shells\// });
+    const editor = source.getByRole("textbox", { name: "Edit this shell's QML" });
+    await expect(editor).toContainText("workbenchShell");
+    await editor.click();
+    await expect(page.locator(`.cm-content[aria-label="Edit this shell's QML"]`)).toBeFocused({ timeout: 30_000 });
+    await page.keyboard.press("ControlOrMeta+a");
+    await page.keyboard.insertText(MOVING_SHELL);
+    await press(source.getByRole("button", { name: "Apply", exact: true }));
+    const move = page.getByRole("button", { name: "Move the page", exact: true });
+    await expect(move, "the reader's shell frames the page").toBeVisible({ timeout: 30_000 });
+    await press(source.getByRole("button", { name: "Close", exact: true }));
+    await expect(source).toBeHidden();
+
+    const picture = page.locator('img[alt="What this example draws"]').first();
+    await press(picture);
+    await expect(picture).toBeHidden({ timeout: 30_000 });
+    await press(page.getByRole("button", { name: /^Observer for / }).filter({ visible: true }).first());
+    const docked = page.getByRole("group", { name: "Observer", exact: true });
+    await expect(docked).toBeVisible();
+    const placed = async () => {
+      const panel = await docked.boundingBox();
+      const shown = await shownPage(page, "Your First App").boundingBox();
+      return { top: Math.round(panel.y), height: Math.round(panel.height), between: Math.round(panel.x - shown.x - shown.width) };
+    };
+    const height = DESKTOP.height - 200;
+    await expect.poll(placed, { message: "docked beside the page" }).toEqual({ top: 60, height, between: 0 });
+
+    await press(move);
+    await expect.poll(placed, { message: "still beside the page where it moved" }).toEqual({ top: 160, height, between: 0 });
+    expect(said, "what the page said").toEqual([]);
+  } finally {
+    await context.close();
+  }
+});
+
 test("the header names the source with an icon", async ({ browser }) => {
   const context = await reader(browser);
   try {
