@@ -329,6 +329,7 @@ Column {
                 CodeBlock {
                     readonly property bool isCode: blockItem.kind === "code"
                     width: doc.width
+                    scroller: doc.scroller
                     lang: blockItem.modelData.lang || ""
                     code: isCode ? (blockItem.modelData.code || "") : ""
                     rich: blockItem.modelData.rich || ""
