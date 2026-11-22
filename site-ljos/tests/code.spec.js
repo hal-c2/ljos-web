@@ -748,7 +748,8 @@ for (const route of STAGES) {
 // token of the site's is, so wherever a picture shows, it shows as that.
 const LOUD =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1" preserveAspectRatio="none"><rect width="1" height="1" fill="#ff00ff"/></svg>';
-const NOTHING = "Nothing drawn yet. Run it to see what it does.";
+// With the Run's instruction once the page knows it can run, and without before.
+const NOTHING = ["Nothing drawn yet.", "Nothing drawn yet. Run it to see what it does."];
 
 for (const colorScheme of ["light", "dark"]) {
   test(`"Nothing drawn yet" hides the picture's own ground in the ${colorScheme} scheme`, async ({
@@ -776,10 +777,10 @@ for (const colorScheme of ["light", "dark"]) {
           await frame.evaluate((node) => node.scrollIntoView({ block: "center" }));
           await img.evaluate((node) => node.decode());
           const says = await frame.evaluate(
-            (node, text) =>
+            (node, texts) =>
               [...node.querySelectorAll("*")].some(
                 (child) =>
-                  child.textContent.trim() === text &&
+                  texts.includes(child.textContent.trim()) &&
                   child.checkVisibility({ visibilityProperty: true }),
               ),
             NOTHING,

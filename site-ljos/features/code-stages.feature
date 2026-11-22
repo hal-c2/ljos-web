@@ -34,6 +34,13 @@ Feature: A code block's window before its example runs
     When the reader switches between the light and dark themes
     Then "Nothing drawn yet" shows only in the scheme that draws nothing
 
+  Scenario: The line asks for a Run only where there is one to press
+    Given an example that draws nothing
+    When the window says "Nothing drawn yet"
+    Then it says "Run it to see what it does" while the example waits for its Run
+    And it leaves that out where the example cannot run
+    And it leaves that out once the reader has run it
+
   Scenario: "Nothing drawn yet" stands on the page's paper
     Given an example whose empty picture has a ground of its own
     When the window says "Nothing drawn yet"
