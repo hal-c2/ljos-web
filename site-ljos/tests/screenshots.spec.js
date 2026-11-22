@@ -107,7 +107,8 @@ test("each picture stands beside the one before, named by kernel, renderer, sche
   const same = tile(page, "The front page, default shell: Solid kernel, light, desktop 1440×900");
   await same.scrollIntoViewIfNeeded();
   await expect(same.getByText("Same as before")).toBeVisible();
-  await expect(same.getByText("Its moving part was checked that it drew, not compared.")).toHaveCount(0);
+  // An item that is not shown keeps its element, so it is hidden, not absent.
+  await expect(same.getByText("Its moving part was checked that it drew, not compared.")).toBeHidden();
   const [was, now] = [same.getByRole("img", { name: /^Before/ }), same.getByRole("img", { name: /^Now/ })];
   await expect.poll(() => drawnFrom(was)).toMatch(/\/screenshots\/before\/shell-default\.solid\.dom\.light\.desktop\.webp$/);
   await expect.poll(() => drawnFrom(now)).toMatch(/\/screenshots\/now\/shell-default\.solid\.dom\.light\.desktop\.webp$/);
@@ -142,12 +143,13 @@ test("Changed shows only what changed, and All shows everything again", async ({
   await changed.click();
   await expect(changed).toHaveAttribute("aria-pressed", "true");
   await expect(all).toHaveAttribute("aria-pressed", "false");
-  await expect(page.getByRole("group", { name: /^(The front page|Svala GT): / })).toHaveCount(2);
+  const tiles = page.getByRole("group", { name: /^(The front page, default shell|Svala GT): / });
+  await expect(tiles).toHaveCount(2);
   await expect(page.getByText("Same as before")).toHaveCount(0);
   await page.getByRole("button", { name: "Broken", exact: true }).click();
-  await expect(page.getByRole("group", { name: /^(The front page|Svala GT): / })).toHaveCount(1);
+  await expect(tiles).toHaveCount(1);
   await all.click();
-  await expect(page.getByRole("group", { name: /^(The front page|Svala GT): / })).toHaveCount(5);
+  await expect(tiles).toHaveCount(5);
 });
 
 test("a picture opens full size, links to the image, and Escape gives the keyboard back", async ({ page }) => {
@@ -162,7 +164,11 @@ test("a picture opens full size, links to the image, and Escape gives the keyboa
   await expect.poll(() => drawnFrom(dialog.getByRole("img"))).toMatch(/\/screenshots\/now\/shell-default\.solid\.webgpu\.dark\.phone\.png$/);
   await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
-  await expect(full).toBeFocused();
+  // Ljós sends keys to its own focus item, which is not the document's
+  // active element: the button has the keyboard back if Enter presses it.
+  await page.keyboard.press("Enter");
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole("link", { name: "Open the image" })).toHaveAttribute("href", /\/screenshots\/now\/shell-default\.solid\.webgpu\.dark\.phone\.png$/);
 });
 
 test("Report a bug opens GitHub's form with the picture written in, and files nothing", async ({ page }) => {
