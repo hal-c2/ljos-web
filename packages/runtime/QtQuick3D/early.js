@@ -43,13 +43,20 @@ export const renderer = () => chosen() ?? (globalThis.navigator?.gpu && wasmWork
 // the one taken for want of an ask is drawn by the JavaScript renderer when
 // WebGPU gives it no adapter (`adapted`), where one asked for says why not.
 // What the build said is a default a browser that runs no WebAssembly
-// passes over, and `js` needs none to be so (`early-held.js` asks as every
-// page loads); a page that asks by its address gets what it asked.
+// passes over, and `js` needs none to be so; a page that asks by its
+// address gets what it asked.
+const said = () => import.meta.env?.VITE_LJOS_VIEW3D;
 const built = () => {
-  const said = import.meta.env?.VITE_LJOS_VIEW3D;
-  return said && (said === "js" || wasmWorks()) ? said : undefined;
+  const name = said();
+  return name && (name === "js" || wasmWorks()) ? name : undefined;
 };
 export const chosen = () => asked ?? built();
+
+// The renderer by what is named alone, for what is read as a module loads
+// (`early-held.js`): it compiles nothing, so a page that makes no View3D
+// reports nothing to its policy. Whether one runs is for `asking`.
+export const named = () =>
+  asked ?? (typeof WebAssembly === "object" ? said() || (globalThis.navigator?.gpu ? "wgpu" : "js") : "js");
 
 // Whether WebGPU has an adapter for this page, asked once: a browser may
 // have WebGPU and no GPU it lets it use.
