@@ -18,8 +18,5 @@ QtObject {
     readonly property string agenticEyebrow: t`Built for agents`
     readonly property string agenticHeadline: t`Your agent can use the app, too.`
     readonly property string agenticBody: t`It can read what’s on screen, press buttons, type, and check that its changes worked. You choose what it’s allowed to do. <a href="/start/mcp/">Connect an agent</a>.`
-    readonly property string agenticWhat: t`the replay, step by step`
-    readonly property string agenticBadge: t`Replay · no live agent`
-    readonly property string agenticCaption: t`The steps are scripted, but each one really runs against the app on this page. The log shows what the app answered.`
     readonly property string agenticDescription: t`A replay of an agent at work in a made-up dispatch app. It adds a heading and tickets, turns on a filter, assigns a crew, and checks the result. A log beside the app shows each step.`
 }
