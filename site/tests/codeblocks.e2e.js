@@ -36,6 +36,17 @@ test("with no JS the code and its prerendered result are the page", async ({ bro
   await context.close();
 });
 
+test("with no JS a block that asks on completion shows the page before any response", async ({ browser }) => {
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  const page = await context.newPage();
+  await page.goto("http://127.0.0.1:4399/start/live-blocks/");
+  // Node has no XMLHttpRequest: the prerender's is sent and never
+  // answered, so this is the block before its reply.
+  const asking = page.locator("[data-ljos-codeblock]").filter({ hasText: "XMLHttpRequest" });
+  await expect(asking.locator(".ljos-codeblock__stage")).toContainText("Waiting at 1");
+  await context.close();
+});
+
 test("a docs block hydrates, edits keep state, and a shell example runs", async ({ page }) => {
   await page.goto("/start/live-blocks/");
   const first = counter(page);

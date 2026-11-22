@@ -146,6 +146,36 @@ Rectangle { width: 80; height: 40; color: "red" }
 ljos check Main.qml
 ```
 
+A request for a file of the example's own, which the prerender leaves unanswered:
+
+```qml group=request
+import QtQuick
+
+Rectangle {
+    width: 280
+    height: 60
+    color: "#20242e"
+    Text {
+        id: said
+        anchors.centerIn: parent
+        color: "#e8eaf0"
+        text: "Not asked"
+        Component.onCompleted: {
+            const request = new XMLHttpRequest()
+            request.onreadystatechange = function () {
+                said.text = request.readyState === XMLHttpRequest.DONE ? request.responseText : "Waiting at " + request.readyState
+            }
+            request.open("GET", "reply.json")
+            request.send()
+        }
+    }
+}
+```
+
+```json file=reply.json group=request
+{"reply": "From the file beside it"}
+```
+
 A block inside a list item, carrying its container's indent:
 
 1. First, this:
