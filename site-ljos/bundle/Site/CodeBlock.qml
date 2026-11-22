@@ -378,67 +378,84 @@ Column {
 
                     // A live block of several files: a tab each, which
                     // name the files; of one, its name.
-                    Row {
+                    // More files than the head has room for scroll in it,
+                    // never under Copy.
+                    Flickable {
+                        id: tabsView
                         visible: block.isLive && block.sourceShown && block.live.display.length > 1
-                        // What holds the tabs, so a reader hears them as one set.
-                        Accessible.role: Accessible.PageTabList
+                        width: Math.min(tabRow.implicitWidth, named.width)
+                        height: 32
+                        contentWidth: tabRow.implicitWidth
+                        contentHeight: height
+                        flickableDirection: Flickable.HorizontalFlick
+                        boundsBehavior: Flickable.StopAtBounds
+                        acceptedButtons: Qt.NoButton
+                        clip: true
 
-                        Repeater {
-                            model: block.isLive ? block.live.display : []
+                        Row {
+                            id: tabRow
+                            // What holds the tabs, so a reader hears them as one set.
+                            Accessible.role: Accessible.PageTabList
 
-                            Item {
-                                id: tab
-                                required property var modelData
-                                required property int index
-                                readonly property bool current: index === block.currentFile
+                            Repeater {
+                                model: block.isLive ? block.live.display : []
 
-                                width: tabWords.implicitWidth + 2 * Theme.xs
-                                height: 32
-                                activeFocusOnTab: true
-                                // A tab, named by its file: the toolbar's Edit is
-                                // the one that says "Edit".
-                                Accessible.role: Accessible.PageTab
-                                Accessible.name: modelData.name
-                                Accessible.selected: current
-                                Accessible.onPressAction: () => block.currentFile = index
-                                Keys.onPressed: (event) => {
-                                    if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
-                                        block.currentFile = index;
-                                        event.accepted = true;
+                                Item {
+                                    id: tab
+                                    required property var modelData
+                                    required property int index
+                                    readonly property bool current: index === block.currentFile
+
+                                    width: tabWords.implicitWidth + 2 * Theme.xs
+                                    height: 32
+                                    activeFocusOnTab: true
+                                    // The tab with the keyboard is never out of the strip.
+                                    onActiveFocusChanged: if (activeFocus) tabsView.contentX = Math.min(x, Math.max(tabsView.contentX, x + width - tabsView.width))
+                                    // A tab, named by its file: the toolbar's Edit is
+                                    // the one that says "Edit".
+                                    Accessible.role: Accessible.PageTab
+                                    Accessible.name: modelData.name
+                                    Accessible.selected: current
+                                    Accessible.onPressAction: () => block.currentFile = index
+                                    Keys.onPressed: (event) => {
+                                        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                                            block.currentFile = index;
+                                            event.accepted = true;
+                                        }
                                     }
-                                }
 
-                                Text {
-                                    id: tabWords
-                                    anchors.centerIn: parent
-                                    text: tab.modelData.name
-                                    color: tab.current ? Theme.text : Theme.textMuted
-                                    font.family: Theme.mono
-                                    font.pixelSize: Theme.captionSize
-                                    font.weight: tab.current ? Font.DemiBold : Font.Normal
-                                }
-                                // The file shown: underlined in the accent.
-                                Rectangle {
-                                    visible: tab.current
-                                    anchors.bottom: parent.bottom
-                                    width: parent.width
-                                    height: 2
-                                    radius: 1
-                                    color: Theme.accent
-                                }
-                                Rectangle {
-                                    visible: tab.activeFocus
-                                    anchors.fill: parent
-                                    radius: Theme.radiusSmall
-                                    color: "transparent"
-                                    border.color: Theme.focusRing
-                                    border.width: 2
-                                }
-                                MouseArea {
-                                    anchors.fill: parent
-                                    Accessible.ignored: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: block.currentFile = tab.index
+                                    Text {
+                                        id: tabWords
+                                        anchors.centerIn: parent
+                                        text: tab.modelData.name
+                                        color: tab.current ? Theme.text : Theme.textMuted
+                                        font.family: Theme.mono
+                                        font.pixelSize: Theme.captionSize
+                                        font.weight: tab.current ? Font.DemiBold : Font.Normal
+                                    }
+                                    // The file shown: underlined in the accent.
+                                    Rectangle {
+                                        visible: tab.current
+                                        anchors.bottom: parent.bottom
+                                        width: parent.width
+                                        height: 2
+                                        radius: 1
+                                        color: Theme.accent
+                                    }
+                                    Rectangle {
+                                        visible: tab.activeFocus
+                                        anchors.fill: parent
+                                        radius: Theme.radiusSmall
+                                        color: "transparent"
+                                        border.color: Theme.focusRing
+                                        border.width: 2
+                                    }
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        Accessible.ignored: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: block.currentFile = tab.index
+                                    }
                                 }
                             }
                         }
@@ -622,10 +639,14 @@ Column {
                 Rectangle {
                     objectName: "codeToolbar"
                     width: parent.width
-                    height: 48
+                    height: Math.max(48, controls.height + 2 * Theme.xs)
                     color: Theme.surface
 
-                    Row {
+                    // On a narrow phone the controls wrap, beside the word
+                    // that says the code is edited and never under it.
+                    Flow {
+                        id: controls
+                        width: parent.width - 2 * block.inset - (block.edited ? editedBadge.width + Theme.xs : 0)
                         anchors.left: parent.left
                         anchors.leftMargin: block.inset
                         anchors.verticalCenter: parent.verticalCenter
@@ -685,6 +706,7 @@ Column {
                         }
                     }
                     Rectangle {
+                        id: editedBadge
                         objectName: "editedBadge"
                         visible: block.edited
                         anchors.right: parent.right
