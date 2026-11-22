@@ -8,10 +8,10 @@
 //
 // A glob, as for the glue in `wgpu.js`: a build of JavaScript alone has not
 // got the file.
-import { asking, renderer } from "./early.js";
+import { asking, named } from "./early.js";
 
 const addresses = import.meta.glob("./wgpu/ljos_web_3d_bg.wasm", { query: "?url", import: "default" });
-const coming = renderer() === "wgpu" ? addresses["./wgpu/ljos_web_3d_bg.wasm"]?.().catch(() => undefined) : undefined;
+const coming = named() === "wgpu" ? addresses["./wgpu/ljos_web_3d_bg.wasm"]?.().catch(() => undefined) : undefined;
 // Once it has come, the address itself, so the fetch starts in the task
 // that asks.
 let address;
