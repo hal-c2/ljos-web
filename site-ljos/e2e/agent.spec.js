@@ -142,7 +142,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       // Rows rise as they come, so each is measured once they stand.
       const measure = () => page.evaluate(() => {
         const seen = (element) => element.checkVisibility({ visibilityProperty: true });
-        const named = (words) => [...document.querySelectorAll("#app .qq-text")].find((element) => seen(element) && element.textContent === words);
+        const named = (words) => [...document.querySelectorAll("#app .qq-text")].find((element) => seen(element) && element.textContent.replaceAll("\n", " ") === words);
         const org = named("Brekka Grid");
         const rows = [...document.querySelectorAll('[role="listitem"]')].filter((row) => seen(row) && /^BG-/.test(row.getAttribute("aria-label") ?? ""));
         let body = org;
@@ -170,6 +170,9 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       await expect(page.getByRole("button", { name: "Assign crew to BG-421" })).toHaveCount(0);
       expect(await look("after the reader's press"), "the page after the press").toBeCloseTo(start, 0);
       await expect(shown(page.getByText("Done", { exact: true })), "nothing left to suggest").toBeVisible();
+      await press(shown(page.getByRole("button", { name: "Open only" })));
+      await expect(shown(page.getByText("West ridge battery test", { exact: true })), "the fullest board").toBeVisible();
+      expect(await look("the fullest board"), "the page at the fullest board").toBeCloseTo(start, 0);
     });
 
     test("says Done only once the last call has answered", async ({ page }) => {
