@@ -666,6 +666,12 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
     throw new SiteError(`inspect is a function of a file's path in the bundle, true for those compiled with their places, not ${JSON.stringify(inspect)}`);
   }
   if (timings === null || typeof timings !== "object") throw new SiteError(`timings is an object the build fills as it goes, not ${JSON.stringify(timings)}`);
+  // One build's own: a second would overwrite the first's parts, or report
+  // its renders as its own. The first writes before it awaits anything, so
+  // a second started beside it finds the object taken too.
+  if (Object.keys(timings).length) {
+    throw new SiteError(`timings is an empty object for one build to fill, and this one already holds ${Object.keys(timings).join(", ")}: give each build its own`);
+  }
   if (jobs !== undefined && (!Number.isInteger(jobs) || jobs < 1)) throw new SiteError(`jobs is how many renders may run at once, a whole number from 1, not ${JSON.stringify(jobs)}`);
   // Only a prerendered site runs renders, so only it asks how many: a
   // live shell's build is not refused over a setting it never uses.
