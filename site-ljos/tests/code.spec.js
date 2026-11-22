@@ -1158,6 +1158,30 @@ async function unfolded(page) {
   };
 }
 
+// What a phone paints first is the page as written, before any of it
+// runs: folded there too, not caught at the start of folding.
+test("a phone's long code is folded in the page as written", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    viewport: PHONE,
+    javaScriptEnabled: false,
+  });
+  try {
+    const page = await context.newPage();
+    await page.goto(LONG_PAGE);
+    const long = (await folds(page)).filter((card) => card.lines > LONG);
+    expect(long.length, "examples longer than a screenful").toBeGreaterThan(0);
+    for (const card of long)
+      expect(
+        card.shownHeight,
+        `${card.name}: its height as written`,
+      ).toBeLessThanOrEqual((FOLDED + 1) * card.line + 32);
+  } finally {
+    await context.close();
+  }
+});
+
 test("a phone's long code is folded as it loads, never seen shrinking to it", async ({
   browser,
 }) => {
