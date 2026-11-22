@@ -256,6 +256,21 @@ test("a click lands where a person's would, by target or at a point", async ({ p
   expect((await call(page, "app_click", {})).result.error.code).toBe("invalid_argument");
 });
 
+test("an object scrolled out of the window is still clicked, and the page stays where it is", async ({ page }) => {
+  await opened(page);
+  // A window smaller than the root: the MouseArea's centre, [50, 75], is
+  // out of it.
+  await page.setViewportSize({ width: 40, height: 40 });
+  const scrolled = await page.evaluate(() => [window.scrollX, window.scrollY]);
+  const clicked = await call(page, "app_click", { target: "id=area" });
+  expect(clicked.ok).toBe(true);
+  expect(clicked.result.structuredContent.at).toEqual([50, 75]);
+  expect(await page.evaluate(() => window.objects.app.count)).toBe(1);
+  expect(await page.evaluate(() => [window.scrollX, window.scrollY])).toEqual(scrolled);
+  // A bare point out of the window names nothing to click.
+  expect((await call(page, "app_click", { at: [50, 75] })).result.error.code).toBe("not_actionable");
+});
+
 test("a locator finds what is shown, by text, name, id or role, and its ref is a target", async ({ page }) => {
   await opened(page);
   const byText = (await call(page, "app_find", { locator: "text=N=0" })).result;

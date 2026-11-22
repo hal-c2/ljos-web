@@ -163,6 +163,24 @@ function plain(value) {
 
 const failed = (error, message) => ({ error, message });
 
+// Whether a point of the page is in its window.
+const seen = ([x, y]) => x >= 0 && y >= 0 && x < window.innerWidth && y < window.innerHeight;
+
+// Scrolls an element into the window, and answers what puts every box it
+// scrolled back where it stood.
+function bringIn(element) {
+  const stood = [];
+  for (let box = element.parentElement; box; box = box.parentElement) {
+    if (box.scrollHeight > box.clientHeight || box.scrollWidth > box.clientWidth) stood.push([box, box.scrollLeft, box.scrollTop]);
+  }
+  const page = document.scrollingElement;
+  if (page && !stood.some(([box]) => box === page)) stood.push([page, page.scrollLeft, page.scrollTop]);
+  element.scrollIntoView({ block: "center", inline: "center", behavior: "instant" });
+  return () => {
+    for (const [box, left, top] of stood) box.scrollTo({ left, top, behavior: "instant" });
+  };
+}
+
 export function inspect(root) {
   // The object an id names: in the root's file, or the object given.
   const find = (target) => {
@@ -219,33 +237,46 @@ export function inspect(root) {
     // `{ at: [x, y] }` is a point of the root in logical pixels, its right
     // and bottom edges not in it; an object is clicked at its centre.
     click(target) {
-      const shape = frame();
+      let shape = frame();
       let at;
+      let node = null;
       if (target && Array.isArray(target.at)) at = target.at;
       else {
         const object = find(target);
         if (!object) return failed("not_found", `no object is \`${target}\``);
         if (!object.$node) return failed("not_actionable", `\`${target}\` is drawn nowhere`);
-        const box = object.$node.getBoundingClientRect();
+        node = object.$node;
+        const box = node.getBoundingClientRect();
         at = [(box.left + box.width / 2 - shape.box.left) / shape.scale, (box.top + box.height / 2 - shape.box.top) / shape.scale];
       }
       if (!inside(shape, at)) return failed("not_actionable", `[${at}] is outside the root`);
-      const [clientX, clientY] = toPage(shape, at);
-      const element = document.elementFromPoint(clientX, clientY);
-      if (!element) return failed("not_actionable", `[${at}] is not on the page`);
-      const pointer = { bubbles: true, cancelable: true, composed: true, view: window, clientX, clientY, pointerId: 1, pointerType: "mouse", isPrimary: true };
-      const pressed = { ...pointer, button: 0, buttons: 1, detail: 1 };
-      const released = { ...pointer, button: 0, buttons: 0, detail: 1 };
-      element.dispatchEvent(new PointerEvent("pointermove", { ...pointer, buttons: 0 }));
-      element.dispatchEvent(new MouseEvent("mousemove", { ...pointer, buttons: 0 }));
-      element.dispatchEvent(new PointerEvent("pointerdown", pressed));
-      element.dispatchEvent(new MouseEvent("mousedown", pressed));
-      // What the press took is where the release goes, as a real one is.
-      const up = document.elementFromPoint(clientX, clientY) ?? element;
-      up.dispatchEvent(new PointerEvent("pointerup", released));
-      up.dispatchEvent(new MouseEvent("mouseup", released));
-      up.dispatchEvent(new MouseEvent("click", released));
-      flush();
+      // The page finds what is on top only in its window. An object
+      // scrolled out of it is brought in for the click and everything put
+      // back where it stood before the page paints again, so the reader's
+      // page does not move. A bare point out of the window names nothing
+      // to bring in.
+      const back = node && !seen(toPage(shape, at)) ? bringIn(node) : null;
+      try {
+        if (back) shape = frame();
+        const [clientX, clientY] = toPage(shape, at);
+        const element = document.elementFromPoint(clientX, clientY);
+        if (!element) return failed("not_actionable", `[${at}] is not on the page`);
+        const pointer = { bubbles: true, cancelable: true, composed: true, view: window, clientX, clientY, pointerId: 1, pointerType: "mouse", isPrimary: true };
+        const pressed = { ...pointer, button: 0, buttons: 1, detail: 1 };
+        const released = { ...pointer, button: 0, buttons: 0, detail: 1 };
+        element.dispatchEvent(new PointerEvent("pointermove", { ...pointer, buttons: 0 }));
+        element.dispatchEvent(new MouseEvent("mousemove", { ...pointer, buttons: 0 }));
+        element.dispatchEvent(new PointerEvent("pointerdown", pressed));
+        element.dispatchEvent(new MouseEvent("mousedown", pressed));
+        // What the press took is where the release goes, as a real one is.
+        const up = document.elementFromPoint(clientX, clientY) ?? element;
+        up.dispatchEvent(new PointerEvent("pointerup", released));
+        up.dispatchEvent(new MouseEvent("mouseup", released));
+        up.dispatchEvent(new MouseEvent("click", released));
+        flush();
+      } finally {
+        back?.();
+      }
       return { at };
     },
 
