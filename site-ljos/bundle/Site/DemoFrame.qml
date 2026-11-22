@@ -45,6 +45,9 @@ Item {
     // What the demo needs that a browser may not have: "webgl2",
     // "webgpu" (with an adapter for the page), "wasm".
     property string needs: ""
+    // False for a demo offered only where WebAssembly is, that compiles
+    // none of its own: a page's policy on compiling takes nothing from it.
+    property bool compiles: true
     // The flickable the page scrolls in, so the frame knows when it is
     // near the screen and when it is on it.
     property var scroller: null
@@ -72,14 +75,14 @@ Item {
     // page an adapter: 0 until it says, 1 if so (or where none is needed),
     // -1 if not, which keeps the picture as a browser without WebGPU does.
     property int adapter: needs.indexOf("webgpu") >= 0 ? 0 : 1
-    // Where the demo needs WebAssembly, whether the page can run it, as
+    // Where the demo compiles WebAssembly, whether the page can run it, as
     // its policy may refuse it: 0 until that is known, then as `adapter`.
     // A frame is given another demo as the page goes to it, so what was
     // found is kept apart from whether this one needs it.
     property int wasmFound: 0
-    readonly property int wasm: needs.indexOf("wasm") >= 0 ? wasmFound : 1
+    readonly property int wasm: compiles && needs.indexOf("wasm") >= 0 ? wasmFound : 1
     function askWasm() {
-        if (awake && wasmFound === 0 && needs.indexOf("wasm") >= 0 && Nav.canRun(needs))
+        if (awake && compiles && wasmFound === 0 && needs.indexOf("wasm") >= 0 && Nav.canRun(needs))
             Nav.wasmRuns().then((runs) => frame.wasmFound = runs ? 1 : -1);
     }
     onNeedsChanged: frame.askWasm()
