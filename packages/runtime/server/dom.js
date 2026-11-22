@@ -783,6 +783,15 @@ export class ServerDocument {
       element.naturalHeight = 0;
       element.complete = false;
     }
+    // A film or a sound is neither loaded nor played here: it stands at
+    // its start, paused, whatever it is told.
+    if (element.localName === "video" || element.localName === "audio") {
+      element.paused = true;
+      element.currentTime = 0;
+      element.pause = () => {};
+      element.play = () => Promise.resolve();
+      element.load = () => {};
+    }
     return element;
   }
   createElementNS(namespace, tag) {
