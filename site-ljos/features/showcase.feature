@@ -77,6 +77,11 @@ Feature: The showcase shows apps built with Ljós, recorded as they run
     When the window goes from narrow to wide and back
     Then the text is as tall as the file shown each time, and then measuring rests
 
+  Scenario: Text follows a picture that changes density and keeps its file
+    Given rich text with a picture whose sizes are larger in a wide window
+    When the window goes from narrow to wide and back
+    Then the text is as tall as the picture at each density, and then measuring rests
+
   Scenario: A picture keeps the size its source states for itself
     Given rich text with a source that has a width descriptor and sizes
     When the picture arrives
