@@ -1383,10 +1383,9 @@ test("a view on the JavaScript renderer lit by baked surroundings is lit by them
 });
 
 // Where neither the page nor the build asks for a renderer, a View3D is on
-// wgpu: on WebGPU if it has an adapter for the page, and on WebGL 2 if not,
-// as a browser may have WebGPU and no GPU it lets it use, or no WebGPU.
-// The JavaScript renderer, which reads no model from a file, is left for a
-// browser without WebAssembly and a build without wgpu.
+// wgpu if WebGPU has an adapter for the page, and on the JavaScript one if
+// not (a browser may have WebGPU and no GPU it lets it use), unless the
+// scene shows what only wgpu reads: then on wgpu's WebGL 2.
 test.describe("a View3D no one asked a renderer of", () => {
   test.skip(!!process.env.VITE_LJOS_VIEW3D, "the build asks for one");
   const drawn = (page) =>
@@ -1395,6 +1394,21 @@ test.describe("a View3D no one asked a renderer of", () => {
       if (state?.error) throw new Error(state.error);
       return state?.frames > 0 && state.renderer;
     });
+
+  test("draws on the JavaScript renderer where WebGPU has no adapter, and fetches none of wgpu", async ({ page }) => {
+    await page.addInitScript(() => {
+      if (navigator.gpu) navigator.gpu.requestAdapter = async () => null;
+    });
+    const fetched = [];
+    page.on("request", (request) => fetched.push(request.url()));
+    await page.goto("/?scene=shaded3d");
+    await page.waitForFunction(() => window.ready);
+    expect(await (await drawn(page)).jsonValue()).toBe("js");
+    // The rectangle of its own colour, up and to the left.
+    const [r, g, b] = (await pixels(page, [[50, 60]]))[0].split(" ").map(Number);
+    expect([r, g, b], "the model, not the window's colour").not.toEqual(CLEAR);
+    expect(fetched.filter((url) => /ljos_web_3d/.test(url) && !/\.wasm\?import&url$/.test(url))).toEqual([]);
+  });
 
   // A glTF model, which only wgpu reads, drawn where WebGPU gives the page
   // nothing to draw with: wgpu's WebGL 2 draws it.
@@ -1411,12 +1425,38 @@ test.describe("a View3D no one asked a renderer of", () => {
       // The file's red square, in the middle.
       await expect.poll(async () => (await pixels(page, [CENTRE]))[0], { message: "the model the file holds" }).toBe("255 0 0");
     });
+
+    // What needs wgpu may come after the view: a source named later, on a
+    // loader shown later. Until it is shown the view is as it was.
+    test(`turns to wgpu's WebGL 2 where ${where}, once a model from a file is shown`, async ({ page }) => {
+      await page.addInitScript(missing);
+      await page.goto("/?scene=wgpu_beside");
+      await page.waitForFunction(() => window.ready);
+      expect(await (await drawn(page)).jsonValue()).toBe("js");
+      await page.evaluate(() => {
+        window.objects.loader.visible = false;
+        window.objects.loader.source = "scenes/wgpu_models/square.gltf";
+        window.flush();
+      });
+      await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+      expect(await (await drawn(page)).jsonValue(), "while the loader is hidden").toBe("js");
+      await page.evaluate(() => {
+        window.objects.loader.visible = true;
+        window.flush();
+      });
+      await page.waitForFunction(() => {
+        const state = document.querySelector(".qq-view3d")?.$view3d;
+        if (state?.error) throw new Error(state.error);
+        return state?.renderer === "wgpu" && state.backend === "webgl2" && state.frames > 0;
+      });
+      await expect.poll(() => pixels(page, [CENTRE, [50, 150]]), { message: "the file's model and the one beside it" }).toEqual(["255 0 0", "0 0 255"]);
+      expect(await page.evaluate(() => document.querySelectorAll(".qq-view3d").length)).toBe(1);
+    });
   }
 
   // A WebGL 2 short of what wgpu needs fails the view as it is made, as a
-  // renderer that traps there does: no one asked for wgpu, so the
-  // JavaScript renderer draws it, as it did where WebGPU was not, and the
-  // page is told why.
+  // renderer that traps there does: the JavaScript renderer draws what it
+  // can of the scene, is not left for wgpu again, and the page is told why.
   for (const [how, failure] of [
     ["fails", 'new Error("this WebGL 2 lacks what wgpu needs")'],
     ["traps", 'new WebAssembly.RuntimeError("unreachable")'],
@@ -1428,26 +1468,29 @@ test.describe("a View3D no one asked a renderer of", () => {
       test("draws the view on the JavaScript renderer, where no one asked for wgpu", async ({ page }) => {
         await page.route(/\/wgpu\/ljos_web_3d\.js(\?|$)/, async (route) => {
           const response = await route.fetch();
-          await route.fulfill({ response, body: `${await response.text()}\nView3d.create = async () => { throw ${failure}; };\n` });
+          await route.fulfill({ response, body: `${await response.text()}\nView3d.create = async () => { window.creations = (window.creations ?? 0) + 1; throw ${failure}; };\n` });
         });
         await page.addInitScript(HIDDEN);
-        await page.goto("/?scene=shaded3d");
+        await page.goto("/?scene=wgpu_beside");
         await page.waitForFunction(() => window.ready);
+        await page.evaluate(() => {
+          window.objects.loader.source = "scenes/wgpu_models/square.gltf";
+          window.flush();
+        });
         await page.waitForFunction(() => {
           const state = document.querySelector(".qq-view3d")?.$view3d;
           if (state?.error) throw new Error(state.error);
-          return state?.renderer === "js" && state.frames > 0;
+          return window.creations > 0 && state?.renderer === "js" && state.frames > 0;
         });
-        expect(await page.evaluate(() => document.querySelectorAll(".qq-view3d").length)).toBe(1);
-        const [r, g, b] = (await pixels(page, [[50, 60]]))[0].split(" ").map(Number);
-        expect([r, g, b], "the model, not the window's colour").not.toEqual(CLEAR);
+        await expect.poll(async () => (await pixels(page, [[50, 150]]))[0], { message: "the model beside the file's" }).toBe("0 0 255");
+        expect(await page.evaluate(() => [window.creations, document.querySelectorAll(".qq-view3d").length])).toEqual([1, 1]);
       });
     });
   }
 
-  // A Loader that lets its View3D go while wgpu still asks WebGPU for an
-  // adapter: the answer, no adapter, comes to a view that is gone, and
-  // nothing draws on its canvas, or on one in its place, after.
+  // A Loader that lets its View3D go while WebGPU is still being asked for
+  // an adapter: the answer, no adapter, comes to a view that is gone, and
+  // nothing draws on its canvas instead.
   test("a view let go while WebGPU is asked for an adapter is not drawn on the JavaScript renderer after", async ({ page }) => {
     await page.addInitScript(() => {
       let answer;

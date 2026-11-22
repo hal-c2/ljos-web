@@ -30,6 +30,11 @@ export const RuntimeLoader = defineType("RuntimeLoader", Node, {
   },
   enums: { Empty: 0, Success: 1, Error: 2 },
   methods: {
+    // Whether it names what the JavaScript renderer does not read and wgpu
+    // does: a view that shows it is wgpu's where it can be (`View3D.js`).
+    $unread() {
+      return String(this.source ?? "") !== "";
+    },
     // The models a pick can meet of what the file holds: one for each of
     // its nodes with a mesh, `{ node, shape, placed }`, `node` what the
     // pick tells (`objectHit`), named after the file's node and inside

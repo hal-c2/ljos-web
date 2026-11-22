@@ -684,13 +684,13 @@ builds nothing 3D; it provides the canvas, the frame clock and the
 graph.
 
 As built so far (A25): the wgpu crate is reached through
-`crates/ljos_web_3d` and is the default (hal-c2/ljos-web#46) wherever the
-browser runs WebAssembly and the build has the renderer: on WebGPU where
-the page is given an adapter, and on WebGL 2 where WebGPU is off or gives
-none, so a scene of glTF models is drawn with them in either browser. A
-View3D draws with `QtQuick3D/render.js` where there is no WebAssembly, in
-a build without the wgpu renderer, where wgpu fails or traps as it first
-makes the view, once its GPU is not to be had again, and where a page asks with `?view3d=js` or `VITE_LJOS_VIEW3D=js`.
+`crates/ljos_web_3d` and is the default (hal-c2/ljos-web#46) where
+WebGPU has an adapter for the page. Where it has none, or the browser
+has no WebGPU, a View3D no one asked a renderer of draws with
+`QtQuick3D/render.js` until its scene shows what only wgpu reads (a
+`RuntimeLoader` with a `source`); from then on wgpu draws that view on
+WebGL 2, unless it cannot make it. A page has `render.js` throughout
+with `?view3d=js` or `VITE_LJOS_VIEW3D=js`.
 Picking stays in JavaScript (`pick.js`), not wasm.
 
 ### A11. Decisions taken in phase 1 (summary)
@@ -1699,15 +1699,13 @@ committed. Without that directory the switch has nothing to load.
 `size/check.js` holds the budgets below, and fails a page with no
 View3D that has either renderer in it.
 
-DECISION: wgpu is the default (hal-c2/ljos-web#46), on WebGPU where the
-page has an adapter and on WebGL 2 where it has none, and `render.js`
-stays for where wgpu cannot draw: no WebAssembly, a build without the
-renderer, a view whose first making fails or traps (it says why and is
-drawn by `render.js`), a GPU lost for good, and `?view3d=js` or
-`VITE_LJOS_VIEW3D=js`. `render.js` goes only once `tests/quick3d.spec.js`
-passes on wgpu; the mapping does not yet reach `pickable`, pivot,
-`depthBias`, scope, morph targets, fog, reflection probes, clearcoat,
-subsets, `DefaultMaterial`'s emissive and opacity, or mesh-file sources.
+DECISION: wgpu is the default (hal-c2/ljos-web#46) only where WebGPU
+has an adapter. Elsewhere `render.js` is, as wgpu does not yet draw all
+that it does (what fails of `tests/quick3d.spec.js` on wgpu is under
+"What it reaches today", below). `render.js` also draws a view whose
+first making on wgpu fails or traps, where no one asked for wgpu, and
+the console says why. It goes only once `tests/quick3d.spec.js` passes
+on wgpu.
 
 DECISION: `pick.js` keeps picking. QML's `pick` answers at once with
 JavaScript objects, which a renderer that loads and draws
@@ -1722,9 +1720,13 @@ neither.
 
 DECISION: `QtQuick3D.AssetUtils`' `RuntimeLoader` is a type on both
 renderers, but only wgpu reads the file: the JavaScript renderer draws
-what is declared and has no glTF reader. That is why wgpu, not the
-JavaScript renderer, draws a View3D where WebGPU has no adapter: on its
-WebGL 2 backend it reads the file as on WebGPU.
+what is declared and has no glTF reader. So without WebGPU a view is
+turned to wgpu's WebGL 2 when a shown node in it or in its `importScene`
+has such a file to read (`$unread`), once and one way: turning costs a
+canvas and all the renderer holds. The trade is a scene with both such a
+file and what only `render.js` draws (fog, say): it gets the file's
+models and loses the fog. A hidden loader costs nothing until it is
+shown.
 
 Known gaps: a live `sourceItem` texture and a `TextureData` that is not
 RGBA8 give no picture; a `.tga` is a picture on both renderers, a `.ktx` only
@@ -1754,10 +1756,10 @@ targets in a CustomMaterial, KTX pictures, what a probe mirrors, a blurred sky, 
 skin, Mask and Opaque with an opacity, a picture given as numbers by fractions,
 affectors, and a view of very many nodes.
 
-DECISION: wgpu is the default renderer of View3D (A10), as it draws glTF models
-and `render.js` reads none. `render.js` is not removed until those specs pass, and
-until a scene's rebuild and a view read back as a texture cost less than they do:
-a View3D drawn into another's scene reads back every frame.
+DECISION: JavaScript stays the renderer of a View3D without a WebGPU adapter,
+unless its scene shows a file only wgpu reads, until those specs pass and until
+a scene's rebuild and a view read back as a texture cost less than they do: a
+View3D drawn into another's scene reads back every frame.
 
 ### A26. A page written at build time, and taken over when it runs
 

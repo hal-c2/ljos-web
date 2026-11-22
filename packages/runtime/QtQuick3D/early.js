@@ -17,29 +17,47 @@ import { guardedFetch } from "../guard.js";
 
 const asked = new URLSearchParams(globalThis.location?.search ?? "").get("view3d");
 
-const glue = import.meta.glob("./wgpu/ljos_web_3d.js");
-
 // DECISION: which renderer a View3D has, until `render.js` goes: the page's
-// `?view3d=`, else what the build said (`VITE_LJOS_VIEW3D`), else wgpu
-// wherever the browser runs WebAssembly and the build has the renderer.
-// wgpu draws on WebGPU where the page is given an adapter and on WebGL 2
-// where it is not (ljos_3d's surface asks, `View3d.backend()` says which),
-// as Qt's pictures are drawn on either (`quick3d.spec.js`, `graphs3d.spec.js`
-// on `tests/wgpu.config.js`). The JavaScript renderer reads no model from a
-// file, so a browser without WebGPU, or without an adapter for it, would
-// draw a scene of glTF models without them: the site's watch had its light
-// strips and no case. `js` still has the JavaScript one, as does a browser
-// without WebAssembly, which cannot run the wgpu renderer, and a build
-// without it (`mise run build:wasm-3d`): there a view is drawn by the
-// JavaScript renderer instead of nothing.
+// `?view3d=`, else what the build said (`VITE_LJOS_VIEW3D`), else wgpu where
+// the browser has WebGPU, which draws Qt's pictures as the JavaScript one
+// does (`quick3d.spec.js`, `graphs3d.spec.js` on `tests/wgpu.config.js`).
+// `js` still has the JavaScript one, as does a browser without WebGPU, or
+// without WebAssembly, which cannot run the wgpu renderer: there it draws
+// with the JavaScript one instead of nothing.
+//
+// DECISION: where WebGPU is not, or gives no adapter, that stays so for a
+// scene until it shows what only wgpu reads (a node's `$unread`: a model
+// from a file). Such a view is drawn by wgpu on WebGL 2 from then on
+// (`View3D.js`, `readable`). Not every view: wgpu has not yet all the
+// JavaScript renderer draws (fog, a skin, a probe's reflections), and a
+// scene that asks nothing of wgpu would lose those for nothing.
 const wasm = typeof WebAssembly === "object";
-export const renderer = () => chosen() ?? (wasm && glue["./wgpu/ljos_web_3d.js"] ? "wgpu" : "js");
+export const renderer = () => chosen() ?? (wasm && globalThis.navigator?.gpu ? "wgpu" : "js");
 
-// The renderer the page or the build asked for, if either did. What the
-// build said is a default a browser without WebAssembly passes over; a page
-// that asks by its address gets what it asked.
+// The renderer the page or the build asked for, if either did: a view on
+// the one taken for want of an ask is drawn by the JavaScript renderer when
+// WebGPU gives it no adapter (`adapted`), where one asked for says why not.
+// What the build said is a default a browser without WebAssembly passes
+// over; a page that asks by its address gets what it asked.
 const built = () => (wasm ? import.meta.env?.VITE_LJOS_VIEW3D : undefined);
 export const chosen = () => asked ?? built();
+
+// Whether WebGPU has an adapter for this page, asked once: a browser may
+// have WebGPU and no GPU it lets it use.
+let adapter = null;
+export function adapted() {
+  adapter ??= Promise.resolve(globalThis.navigator?.gpu?.requestAdapter())
+    .then((found) => !!found)
+    .catch(() => false);
+  return adapter;
+}
+
+const glue = import.meta.glob("./wgpu/ljos_web_3d.js");
+
+// Whether wgpu can be turned to for what only it reads where WebGPU gives
+// the page nothing: no one asked for a renderer, the build has wgpu's, and
+// there is WebAssembly and WebGL 2 for it (a prerender has no WebGL 2).
+export const readable = () => !chosen() && wasm && !!glue["./wgpu/ljos_web_3d.js"] && typeof globalThis.WebGL2RenderingContext === "function";
 
 // What arrived, compiled: as it arrives where it is said to be wasm, else
 // from its bytes once they are all here, as the glue does. Not a copy of
@@ -67,7 +85,10 @@ export function asking(address) {
     import("./Particles3D/drawn.js").catch(() => {});
     return typeof address === "string" ? fetched(address) : address.then(fetched);
   };
-  compiled = fetching().catch(() => undefined);
+  // Taken for want of an ask, it is fetched only once WebGPU has an adapter
+  // for the page: one without draws on the JavaScript renderer.
+  const wanted = chosen() ? fetching() : adapted().then((found) => (found ? fetching() : undefined));
+  compiled = wanted.catch(() => undefined);
 }
 
 // The wasm compiled for the glue's `default()`, once it is: undefined when
