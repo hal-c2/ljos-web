@@ -9,7 +9,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, test } from "@playwright/test";
 import { PNG } from "pngjs";
-import { THRESHOLD, acceptedFor, blank, difference, readPng, sinceThen, writePng } from "../shots/pictures.mjs";
+import { adapterKind, drawnWith } from "../shots/adapters.mjs";
+import { THRESHOLD, acceptedFor, blank, difference, readPng, sinceThen, wellDeclared, writePng } from "../shots/pictures.mjs";
 import { shellKeyOf, shellsOf, shotId, siteLists, targets, viewports } from "../shots/targets.mjs";
 
 const scripts = new URL("../shots/", import.meta.url).pathname;
@@ -67,6 +68,44 @@ test.describe("what is shot", () => {
   });
 });
 
+test.describe("an adapter", () => {
+  test("is hardware only where it names a GPU, and never where it is software", () => {
+    for (const name of [
+      "amd rdna-3",
+      "nvidia turing",
+      "apple metal-3",
+      "qualcomm adreno-7xx",
+      "ANGLE (AMD, Vulkan 1.4.354 (AMD Radeon 8060S Graphics (RADV STRIX_HALO) (0x00001586)), radv)",
+      "ANGLE (Intel, Mesa Intel(R) UHD Graphics 630 (CFL GT2), OpenGL 4.6)",
+    ])
+      expect(adapterKind(name), name).toBe("hardware");
+    for (const name of [
+      "google swiftshader",
+      "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      // Named by a GPU's maker, and still the processor's work.
+      "ANGLE (Intel, llvmpipe (LLVM 21.1.8, 256 bits), OpenGL 4.5)",
+      "ANGLE (AMD, SwiftShader Device)",
+      "llvmpipe (LLVM 21.1.8, 256 bits)",
+      "lavapipe",
+      "ANGLE (Microsoft, Microsoft Basic Render Driver Direct3D11, D3D11)",
+    ])
+      expect(adapterKind(name), name).toBe("software");
+    expect(adapterKind("amd rdna-3", true)).toBe("software");
+    for (const name of ["", null, "WebKit WebGL", "Generic Renderer", "ANGLE (Google, Vulkan 1.3.0)"]) expect(adapterKind(name), String(name)).toBe("unknown");
+  });
+
+  test("is the one that drew, not the one that was asked for", () => {
+    const adapters = { webgpu: { name: "amd rdna-3", fallback: false }, webgl2: { name: "ANGLE (Google, SwiftShader driver)", fallback: false } };
+    expect(drawnWith(["webgl2"], adapters)).toEqual({ api: "webgl2", adapter: adapters.webgl2.name, kind: "software" });
+    expect(drawnWith(["webgpu"], adapters)).toEqual({ api: "webgpu", adapter: "amd rdna-3", kind: "hardware" });
+    // One software canvas makes the picture a software picture.
+    expect(drawnWith(["webgpu", "webgl2"], adapters).kind).toBe("software");
+    expect(drawnWith(["webgpu"], { ...adapters, webgpu: null })).toEqual({ api: "webgpu", adapter: "", kind: "unknown" });
+    // What draws in the DOM is the browser's own GPU's, as WebGL names it.
+    expect(drawnWith([], adapters)).toEqual({ api: null, adapter: adapters.webgl2.name, kind: "software" });
+  });
+});
+
 test.describe("a picture", () => {
   test("of one colour is blank, and one with something drawn is not", () => {
     expect(blank(picture(200, 100, [14, 14, 16]))).toBe(true);
@@ -117,6 +156,14 @@ test.describe("a picture", () => {
     expect(acceptedFor(since, "demo-cockpit.wasm.webgpu.dark.desktop")).toBeNull();
     expect(acceptedFor(since, "shell-default.solid.dom.light.phone")).not.toBeNull();
   });
+
+  test("changed on purpose says which pictures and why, or it is no declaration", () => {
+    const whole = { ids: ["demo-cockpit.*"], reason: "The dock moved." };
+    expect(wellDeclared(whole)).toBe(true);
+    expect(wellDeclared({ ...whole, pr: 140 })).toBe(true);
+    for (const wrong of [{ reason: undefined }, { reason: " " }, { ids: "demo-cockpit.*" }, { ids: [] }, { pr: "140/../../issues" }])
+      expect(wellDeclared({ ...whole, ...wrong }), JSON.stringify(wrong)).toBe(false);
+  });
 });
 
 // A capture's directory, its manifest and pictures written here.
@@ -159,12 +206,51 @@ test.describe("held against the deploy before", () => {
 
     const said = join(now, "said.json");
     writeFileSync(said, JSON.stringify({ changes: [{ ids: ["b.*"], reason: "The mark moved right.", pr: 7 }] }));
-    const again = shotsDir("bbbbbbb2", { "a.solid.dom.light.desktop": picture(80, 60, ground, mark(5)), "b.solid.dom.light.desktop": picture(80, 60, ground, mark(40)) });
+    const again = shotsDir("bbbbbbb2", { "a.solid.dom.light.desktop": picture(80, 60, ground, mark(5)), "b.solid.dom.light.desktop": picture(80, 60, ground, mark(40)), "c.solid.dom.light.desktop": picture(80, 60, ground) });
     const green = compare("--shots", again, "--before", join(before, "manifest.json"), "--accepted", said, "--check");
     expect(green.status, green.stdout + green.stderr).toBe(0);
     const passed = JSON.parse(readFileSync(join(again, "manifest.json"), "utf8"));
     expect(passed.shots.find((shot) => shot.id.startsWith("b.")).accepted).toEqual({ reason: "The mark moved right.", pr: 7 });
     expect(passed.declared).toEqual([{ ids: ["b.*"], reason: "The mark moved right.", pr: 7 }]);
+  });
+
+  test("a canvas lost is a picture gone, and fails unless a pull request names it", () => {
+    const drawn = "d.solid.webgpu.light.desktop";
+    const before = shotsDir("ddddddd4", { [drawn]: picture(40, 30, ground, mark(5)) });
+    // Without its canvas a part's id is the DOM's: one gone and one new.
+    const now = () => shotsDir("eeeeeee5", { "d.solid.dom.light.desktop": picture(40, 30, ground) });
+    const red = compare("--shots", now(), "--before", join(before, "manifest.json"), "--check");
+    expect(red.status, red.stdout + red.stderr).toBe(1);
+    expect(red.stdout).toContain(`gone    ${drawn}`);
+
+    const named = now();
+    const said = join(named, "said.json");
+    writeFileSync(said, JSON.stringify({ changes: [{ ids: [drawn], reason: "It draws in the DOM now." }] }));
+    const green = compare("--shots", named, "--before", join(before, "manifest.json"), "--accepted", said, "--check");
+    expect(green.status, green.stdout + green.stderr).toBe(0);
+  });
+
+  test("a picture before that can't be read fails the check, as no pictures at all do", () => {
+    const id = "e.solid.dom.light.desktop";
+    const before = shotsDir("fffffff6", { [id]: picture(40, 30, ground, mark(5)) });
+    const listed = JSON.parse(readFileSync(join(before, "manifest.json"), "utf8"));
+    listed.shots[0].file = "now/not-there.png";
+    writeFileSync(join(before, "manifest.json"), JSON.stringify(listed));
+    const unread = compare("--shots", shotsDir("aaaaaaa7", { [id]: picture(40, 30, ground, mark(5)) }), "--before", join(before, "manifest.json"), "--check");
+    expect(unread.status, unread.stdout + unread.stderr).toBe(1);
+    expect(unread.stdout).toContain(`unread  ${id}`);
+
+    const none = compare("--shots", shotsDir("bbbbbbb8", {}), "--check");
+    expect(none.status, none.stdout + none.stderr).toBe(1);
+  });
+
+  test("a list before that is there and can't be read fails the check", () => {
+    const now = shotsDir("cccccca9", { "f.solid.dom.light.desktop": picture(40, 30, ground, mark(5)) });
+    const page = join(now, "page-in-its-place.json");
+    writeFileSync(page, "<!doctype html>");
+    const result = compare("--shots", now, "--before", page, "--check");
+    expect(result.status, result.stdout + result.stderr).toBe(1);
+    expect(result.stdout).toContain("unread  the list before");
   });
 
   test("with no deploy before, every picture is new and nothing fails", () => {
@@ -205,6 +291,14 @@ const turn = (now) => {
   requestAnimationFrame(turn);
 };
 requestAnimationFrame(turn);`),
+  // A canvas WebGL 2 draws, whichever renderer was asked for.
+  webgl: page(`const gl = document.querySelector("canvas").getContext("webgl2", { preserveDrawingBuffer: true });
+gl.clearColor(0.91, 0.64, 0.24, 1);
+gl.clear(gl.COLOR_BUFFER_BIT);
+gl.enable(gl.SCISSOR_TEST);
+gl.scissor(40, 40, 120, 100);
+gl.clearColor(0.06, 0.06, 0.07, 1);
+gl.clear(gl.COLOR_BUFFER_BIT);`),
   // A face that tells the time, to the millisecond, in the reader's zone
   // and language.
   clock: `<!doctype html>
@@ -219,12 +313,14 @@ requestAnimationFrame(turn);`),
 tell();</script></body></html>`,
 };
 
-function capture(kind, out = scratch(`capture-${kind}`), zone = process.env.TZ) {
+function capture(kind, out = scratch(`capture-${kind}`), zone = process.env.TZ, flags = [], only = "shell-default") {
   const root = scratch(`site-${kind}`);
   writeFileSync(join(root, "index.html"), sites[kind]);
+  mkdirSync(join(root, "demos"));
+  writeFileSync(join(root, "demos/index.html"), sites[kind]);
   const lists = join(root, "lists.json");
   writeFileSync(lists, JSON.stringify({ shells: [""], shellKey: null, pro: [] }));
-  const result = spawnSync(process.execPath, [join(scripts, "capture.mjs"), "--site", `solid=${root}`, "--out", out, "--lists", lists, "--only", "shell-default", "--first-frame", "6000", "--sha", "fixture"], { encoding: "utf8", env: { ...process.env, TZ: zone } });
+  const result = spawnSync(process.execPath, [join(scripts, "capture.mjs"), "--site", `solid=${root}`, "--out", out, "--lists", lists, "--only", only, "--first-frame", "6000", "--sha", "fixture", ...flags], { encoding: "utf8", env: { ...process.env, TZ: zone } });
   return { result, out, manifest: JSON.parse(readFileSync(join(out, "manifest.json"), "utf8")) };
 }
 
@@ -270,6 +366,27 @@ test.describe("a render", () => {
     }
   });
 
+  test("records the browser, its version and the adapter that drew it, and SwiftShader is software", () => {
+    const { result, manifest } = capture("webgl", scratch("capture-software"), undefined, ["--software"]);
+    expect(result.status, result.stdout + result.stderr).toBe(0);
+    expect(manifest.shots.length).toBeGreaterThan(0);
+    for (const shot of manifest.shots) {
+      expect(shot.drawnBy, shot.id).toMatchObject({ browser: "chromium", api: "webgl2", kind: "software" });
+      expect(shot.drawnBy.version, shot.id).toMatch(/^\d+\.\d+\.\d+/);
+      expect(shot.drawnBy.adapter, shot.id).toMatch(/swiftshader/i);
+    }
+  });
+
+  test("on SwiftShader fails a capture that requires hardware", () => {
+    const { result, manifest } = capture("webgl", scratch("capture-required"), undefined, ["--software", "--require-hardware"]);
+    expect(result.status, result.stdout + result.stderr).toBe(1);
+    expect(manifest.shots.length).toBeGreaterThan(0);
+    for (const shot of manifest.shots) {
+      expect(shot.status, shot.id).toBe("broken");
+      expect(shot.health.problems.join("; "), shot.id).toMatch(/not drawn on a known GPU \(software: .*swiftshader/i);
+    }
+  });
+
   test("whose canvas stays blank is broken, and the capture fails", () => {
     const { result, manifest } = capture("blank");
     expect(result.status, result.stdout).toBe(1);
@@ -287,5 +404,23 @@ test.describe("a render", () => {
       expect(shot.status, shot.id).toBe("broken");
       expect(shot.health.problems, shot.id).toContain("threw: the scene has no camera");
     }
+  });
+
+  test("of a page with none of its sections is broken on each renderer, and the capture fails", () => {
+    const { result, manifest } = capture("clock", scratch("capture-no-sections"), undefined, [], "demos");
+    expect(result.status, result.stdout + result.stderr).toBe(1);
+    expect(manifest.shots.map((shot) => shot.id).sort()).toEqual(
+      ["webgl2", "webgpu"].flatMap((gpu) => ["dark", "light"].map((scheme) => `demos.solid.${gpu}.${scheme}.desktop`)).sort(),
+    );
+    for (const shot of manifest.shots) {
+      expect(shot.status, shot.id).toBe("broken");
+      expect(shot.health.problems, shot.id).toContain("shows none of the parts it is shot by");
+    }
+  });
+
+  test("of nothing fails the capture", () => {
+    const { result, manifest } = capture("clock", scratch("capture-nothing"), undefined, [], "no-such-target");
+    expect(manifest.shots).toEqual([]);
+    expect(result.status, result.stdout + result.stderr).toBe(1);
   });
 });

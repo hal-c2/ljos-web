@@ -38,6 +38,8 @@ Feature: Every deploy shows what it draws, beside what the last one drew
   Scenario: An intended change says why
     Given a pull request that lists a picture as changed on purpose, with its reason
     Then the picture is marked as an intended change, with that reason
+    And pictures it lists as taken off on purpose have that reason said once, where the gone are counted
+    But a listing with no reason, or with no list of pictures, is no pass and fails the check
 
   Scenario: Only what changed, on a press
     When a reader presses "Changed"
@@ -69,10 +71,29 @@ Feature: Every deploy shows what it draws, beside what the last one drew
     Then there is a shot of each pro demo, of the front page in each shell, and of each section of the demos page
     And a demo that draws on a GPU is shot with WebGPU and with WebGL 2
 
+  Scenario: Each picture says what drew it
+    When a picture is taken
+    Then it records the browser, its version and the adapter that drew it
+    And its tile and its bug report say all three
+
+  Scenario: A software adapter never passes for a real one
+    Given a picture drawn by SwiftShader, or by an adapter that does not name a GPU
+    Then it is not recorded as hardware, whatever renderer was asked for
+    And the page says in words that it was not drawn on a known GPU, and how many were not
+    And a capture that requires hardware fails on it
+
   Scenario: A blank or throwing render is broken
     Given a demo that draws a blank canvas, or throws as it runs
     Then its shot is marked broken, and the capture fails
     And a good build's shots are not
+    And a page that shows none of the parts it is shot by fails the capture too
+
+  Scenario: A picture that can't be compared never passes for an unchanged one
+    Given a deploy before that has a picture of a demo
+    When this deploy has none under that name, or the one before can't be read
+    Then the check fails, unless a pull request named the missing one with its reason
+    And a deploy with no pictures at all fails it
+    And so does a list of pictures before that is there and can't be read
 
   Scenario: What moves on its own is checked that it drew, not compared
     Given a demo whose canvas draws a different frame each moment, as a turning 3D scene does

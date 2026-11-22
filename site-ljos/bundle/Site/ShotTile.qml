@@ -15,6 +15,7 @@ Rectangle {
     property var viewer: null
 
     readonly property string status: shot ? shot.status : "same"
+    readonly property string adapterKind: shot ? Shots.adapterKind(shot) : "hardware"
     // A picture is fetched only once it comes within a screen of the
     // band the reader sees, and kept once it has.
     property bool near: false
@@ -105,6 +106,30 @@ Rectangle {
                     lineHeight: Theme.captionLine
                     wrapMode: Text.Wrap
                 }
+            }
+            // What drew it, and in words where that was no GPU.
+            Text {
+                visible: tile.shot !== null && tile.shot.drawnBy !== undefined
+                width: parent.width
+                text: visible ? ShotsWords.drawnBy(Shots.browser(tile.shot), tile.shot.drawnBy.api, tile.shot.drawnBy.adapter) : ""
+                color: Theme.textMuted
+                font.family: Theme.sans
+                font.pixelSize: Theme.captionSize
+                lineHeightMode: Text.FixedHeight
+                lineHeight: Theme.captionLine
+                wrapMode: Text.Wrap
+            }
+            Text {
+                visible: tile.adapterKind !== "hardware"
+                width: parent.width
+                text: visible ? ShotsWords.notGpu[tile.adapterKind] : ""
+                color: Theme.text
+                font.family: Theme.sans
+                font.pixelSize: Theme.captionSize
+                font.weight: Font.DemiBold
+                lineHeightMode: Text.FixedHeight
+                lineHeight: Theme.captionLine
+                wrapMode: Text.Wrap
             }
         }
 

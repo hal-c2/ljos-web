@@ -31,6 +31,7 @@ const shot = (id, over) => {
     height: viewport.height,
     health: { ok: true, problems: [] },
     moving: [],
+    drawnBy: { browser: "chromium", version: "158.0.8127.18", api: gpu === "dom" ? null : gpu, adapter: "amd rdna-3", kind: "hardware" },
     before: { file: `before/${id}.png`, thumb: `before/${id}.webp` },
     diff: { ratio: 0, file: null },
     status: "same",
@@ -57,8 +58,8 @@ const manifest = {
       diff: { ratio: 0.31, file: "diff/demo-cockpit.wasm.webgpu.dark.desktop.png" },
       accepted: { reason: "The cockpit's dock moved to the left.", pr: 140 },
     }),
-    shot("demo-cockpit.solid.webgl2.light.desktop", { status: "broken", health: { ok: false, problems: ["blank canvas (1040×607) after 15 s"] }, diff: null }),
-    shot("demo-cockpit.wasm.dom.light.phone", { status: "new", before: null, diff: null }),
+    shot("demo-cockpit.solid.webgl2.light.desktop", { drawnBy: { browser: "chromium", version: "158.0.8127.18", api: "webgl2", adapter: "ANGLE (Google, SwiftShader driver)", kind: "software" }, status: "broken", health: { ok: false, problems: ["blank canvas (1040×607) after 15 s"] }, diff: null }),
+    shot("demo-cockpit.wasm.dom.light.phone", { drawnBy: undefined, status: "new", before: null, diff: null }),
   ],
 };
 
@@ -195,6 +196,30 @@ test("Report a bug opens GitHub's form with the picture written in, and files no
   ])
     expect(body).toContain(line);
   expect(asked).toEqual([]);
+});
+
+test("each picture says what drew it, and a software adapter never passes for a GPU", async ({ page }) => {
+  await open(page);
+  const real = tile(page, "The front page, default shell: Solid kernel, WebGPU, dark, phone 390×844");
+  await expect(real.getByText("Chromium 158.0.8127.18, WebGPU on amd rdna-3")).toBeVisible();
+  await expect(real.getByText("Software adapter, not a GPU.")).toBeHidden();
+  const software = tile(page, "Svala GT: Solid kernel, WebGL 2, light, desktop 1440×900");
+  await expect(software.getByText("Chromium 158.0.8127.18, WebGL 2 on ANGLE (Google, SwiftShader driver)")).toBeVisible();
+  await expect(software.getByText("Software adapter, not a GPU.")).toBeVisible();
+  const unsaid = tile(page, "Svala GT: wasm kernel, light, phone 390×844");
+  await expect(unsaid.getByText("Adapter not known: not counted as a GPU.")).toBeVisible();
+  await expect(page.getByText("Not drawn on a known GPU: 2 of 5 pictures.")).toBeVisible();
+  const body = new URL(await software.getByRole("link", { name: "Report a bug" }).getAttribute("href")).searchParams.get("body");
+  expect(body).toContain("Browser: Chromium 158.0.8127.18");
+  expect(body).toContain("Adapter: ANGLE (Google, SwiftShader driver) (software, not a GPU)");
+});
+
+test("pictures taken off on purpose say why, once for each reason", async ({ page }) => {
+  const gone = ["demo-old.solid.webgpu.light.desktop", "demo-old.solid.dom.light.desktop"];
+  await open(page, { ...manifest, gone, removed: [{ reason: "The old demo was taken off.", pr: 152, ids: gone }] });
+  await expect(page.getByText("Intended: The old demo was taken off.")).toHaveCount(1);
+  await expect(page.getByText("Intended: The old demo was taken off.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "#152", exact: true })).toHaveAttribute("href", "https://github.com/hal-c2/ljos-web/pull/152");
 });
 
 test("a deploy with no pictures says so", async ({ page }) => {

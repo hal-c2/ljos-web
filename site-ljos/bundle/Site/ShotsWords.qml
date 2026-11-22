@@ -25,7 +25,7 @@ QtObject {
     readonly property string changed: t`changed`
     readonly property string broken: t`broken`
     function gone(count) {
-        return t`${count} pictures the deploy before had are gone: what they were of is no longer listed.`;
+        return t`${count} pictures the deploy before had are gone: this deploy drew none under their names.`;
     }
 
     readonly property string show: t`Show`
@@ -50,6 +50,25 @@ QtObject {
             light: t`light`,
             dark: t`dark`
         })
+
+    // What drew a picture, as a tile says it.
+    readonly property var apis: ({
+            webgpu: t`WebGPU`,
+            webgl2: t`WebGL 2`,
+            webgl: t`WebGL`
+        })
+    function drawnBy(browser, api, adapter) {
+        if (!adapter)
+            return browser;
+        return api ? t`${browser}, ${apis[api]} on ${adapter}` : t`${browser}, the page on ${adapter}`;
+    }
+    readonly property var notGpu: ({
+            software: t`Software adapter, not a GPU.`,
+            unknown: t`Adapter not known: not counted as a GPU.`
+        })
+    function notOnGpu(count, all) {
+        return t`Not drawn on a known GPU: ${count} of ${all} pictures.`;
+    }
 
     readonly property string same: t`Same as before`
     readonly property string fresh: t`New: nothing before to compare with`

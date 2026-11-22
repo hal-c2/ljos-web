@@ -22,6 +22,7 @@ Column {
     property var filter: Shots.everything
 
     readonly property var totals: manifest ? Shots.counts(manifest.shots) : ({ all: 0, changed: 0, broken: 0 })
+    readonly property int notOnGpu: manifest ? Shots.notOnGpu(manifest.shots) : 0
     readonly property var shown: manifest ? Shots.groups(manifest.shots, filter) : []
     readonly property bool any: manifest !== null && manifest.shots.length > 0
 
@@ -235,6 +236,18 @@ Column {
                 wrapMode: Text.Wrap
             }
             Text {
+                visible: screenshots.notOnGpu > 0
+                width: Math.min(parent.width, Theme.measure)
+                text: visible ? ShotsWords.notOnGpu(screenshots.notOnGpu, screenshots.totals.all) : ""
+                color: Theme.text
+                font.family: Theme.sans
+                font.pixelSize: Theme.captionSize
+                font.weight: Font.DemiBold
+                lineHeightMode: Text.FixedHeight
+                lineHeight: Theme.captionLine
+                wrapMode: Text.Wrap
+            }
+            Text {
                 visible: screenshots.manifest !== null && screenshots.manifest.gone.length > 0
                 width: Math.min(parent.width, Theme.measure)
                 text: visible ? ShotsWords.gone(screenshots.manifest.gone.length) : ""
@@ -244,6 +257,38 @@ Column {
                 lineHeightMode: Text.FixedHeight
                 lineHeight: Theme.captionLine
                 wrapMode: Text.Wrap
+            }
+            // A picture taken off has no tile to say why on.
+            Repeater {
+                model: screenshots.manifest !== null && screenshots.manifest.removed ? screenshots.manifest.removed : []
+                delegate: Column {
+                    id: removal
+                    required property var modelData
+                    width: Math.min(parent.width, Theme.measure)
+
+                    Text {
+                        width: parent.width
+                        text: ShotsWords.intended(removal.modelData.reason)
+                        color: Theme.text
+                        font.family: Theme.sans
+                        font.pixelSize: Theme.captionSize
+                        lineHeightMode: Text.FixedHeight
+                        lineHeight: Theme.captionLine
+                        wrapMode: Text.Wrap
+                    }
+                    Text {
+                        visible: removal.modelData.pr !== null
+                        textFormat: Text.RichText
+                        text: visible ? Nav.anchor(Shots.pullAddress(screenshots.manifest, removal.modelData.pr), "#" + removal.modelData.pr, true) : ""
+                        color: Theme.link
+                        linkColor: Theme.link
+                        font.family: Theme.sans
+                        font.pixelSize: Theme.captionSize
+                        lineHeightMode: Text.FixedHeight
+                        lineHeight: Theme.captionLine
+                        onLinkActivated: (to) => Nav.go(to)
+                    }
+                }
             }
         }
     }

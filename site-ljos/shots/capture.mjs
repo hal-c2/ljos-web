@@ -2,6 +2,7 @@
 //
 //   node shots/capture.mjs --site solid=dist --site wasm=../dist-wasm \
 //     --out dist/screenshots [--sha <commit>] [--date <ISO>] [--only <target>]
+//     [--software] [--require-hardware]
 //
 // Each `--site` is a kernel's build, a directory served here or an
 // address already serving one. What is shot is targets.mjs's, on each
@@ -11,9 +12,15 @@
 // a demo that did not start, a canvas that drew nothing make it broken;
 // a canvas that moves on its own is named, to be left out of the
 // comparison.
+// Each shot records the browser, its version and the adapter that drew
+// it, which is not always the renderer asked for (adapters.mjs):
+// --software draws all of it on SwiftShader, and --require-hardware makes
+// a shot broken where no known GPU drew it.
 // Writes <out>/now/<id>.png, a thumbnail beside it (.webp), and
 // <out>/manifest.json, which shots/compare.mjs completes against the
-// deploy before. Exits 1 when any shot is broken.
+// deploy before. A page with none of the parts it is shot by is shot
+// whole and broken, on each renderer, so that its loss is seen. Exits 1
+// when any shot is broken, and when none was taken.
 import { spawn } from "node:child_process";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
@@ -21,6 +28,7 @@ import { join, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { chromium } from "@playwright/test";
 import sharp from "sharp";
+import { drawnWith, leastTrusted } from "./adapters.mjs";
 import { blank, difference, readPng } from "./pictures.mjs";
 import { shotId, siteLists, slug, targets } from "./targets.mjs";
 
@@ -33,7 +41,9 @@ const { values } = parseArgs({
     repository: { type: "string", default: process.env.GITHUB_REPOSITORY ?? "hal-c2/ljos-web" },
     only: { type: "string", multiple: true, default: [] },
     "thumb-width": { type: "string", default: "560" },
-    jobs: { type: "string", default: "3" },
+    jobs: { type: "string", default: "2" },
+    software: { type: "boolean", default: false },
+    "require-hardware": { type: "boolean", default: false },
     // The site's lists as one file ({ shells, shellKey, pro }), in place
     // of the bundle's own: what a test shoots a site of its own with.
     lists: { type: "string" },
@@ -82,7 +92,8 @@ async function served(where) {
 // Chromium reads one --enable-features, the last, so each names all it
 // turns on. Vulkan lets WebGPU use the machine's GPU where it has one;
 // without one, Chromium falls back to SwiftShader.
-const SHARED = ["--enable-unsafe-webgpu", "--use-angle=vulkan", "--ignore-gpu-blocklist"];
+const ANGLE = values.software ? ["--use-angle=swiftshader", "--enable-unsafe-swiftshader", "--use-webgpu-adapter=swiftshader"] : ["--use-angle=vulkan"];
+const SHARED = ["--enable-unsafe-webgpu", ...ANGLE, "--ignore-gpu-blocklist"];
 const gpus = {
   webgpu: { args: [...SHARED, "--enable-features=Vulkan,WebGPU"], init: null },
   webgl2: {
@@ -185,6 +196,80 @@ function holdTime(moment) {
   Fixed.UTC = Real.UTC;
   globalThis.Date = Fixed;
 }
+// What drew each canvas, kept in the page as it draws. The canvas a
+// reader sees often only shows a bitmap, or a copy, of one drawn out of
+// sight, so what drew goes along with the bitmap and the copy. A canvas
+// nothing was seen to draw (a worker's) has nothing kept, and is nobody's
+// GPU.
+function watchDrawing() {
+  const kept = new WeakMap();
+  const keep = (on, sources) => {
+    if (!sources?.length) return;
+    const had = kept.get(on) ?? [];
+    for (const source of sources) if (!had.some(({ api, name }) => api === source.api && name === source.name)) had.push(source);
+    kept.set(on, had);
+  };
+  const around = (prototype, method, after) => {
+    const real = prototype?.[method];
+    if (!real) return;
+    prototype[method] = function (...given) {
+      const result = real.apply(this, given);
+      after(this, given, result);
+      return result;
+    };
+  };
+  const contexts = new WeakSet();
+  const made = (canvas, [type], context) => {
+    if (!context || contexts.has(context)) return;
+    contexts.add(context);
+    if (type === "2d") keep(canvas, [{ api: "2d", name: "" }]);
+    if (!String(type).includes("webgl")) return;
+    const named = context.getExtension("WEBGL_debug_renderer_info");
+    const name = String(context.getParameter(named ? named.UNMASKED_RENDERER_WEBGL : context.RENDERER) ?? "");
+    keep(canvas, [{ api: type === "webgl2" ? "webgl2" : "webgl", name }]);
+  };
+  around(globalThis.HTMLCanvasElement?.prototype, "getContext", made);
+  around(globalThis.OffscreenCanvas?.prototype, "getContext", made);
+  around(globalThis.GPUCanvasContext?.prototype, "configure", (context, [{ device }]) => {
+    const info = device.adapterInfo;
+    const name = info ? [info.vendor, info.architecture, info.device, info.description].filter(Boolean).join(" ") : "";
+    keep(context.canvas, [{ api: "webgpu", name, fallback: info?.isFallbackAdapter === true }]);
+  });
+  around(globalThis.OffscreenCanvas?.prototype, "transferToImageBitmap", (canvas, _, bitmap) => keep(bitmap, kept.get(canvas)));
+  around(globalThis.ImageBitmapRenderingContext?.prototype, "transferFromImageBitmap", (context, [bitmap]) => keep(context.canvas, kept.get(bitmap)));
+  for (const drawing of [globalThis.CanvasRenderingContext2D, globalThis.OffscreenCanvasRenderingContext2D])
+    around(drawing?.prototype, "drawImage", (context, [source]) => keep(context.canvas, kept.get(source)));
+  around(globalThis, "createImageBitmap", (_, [source], promised) => {
+    const sources = kept.get(source);
+    if (sources) promised.then((bitmap) => keep(bitmap, sources), () => {});
+  });
+  globalThis.__ljosShotDrew = (canvas) => kept.get(canvas) ?? [];
+}
+
+// What drew a part, of what drew each canvas it shows. 2D and the DOM are
+// the browser's own adapter's.
+function drewPart(seen, own) {
+  const drew = seen.flatMap((sources) =>
+    sources.length === 0 ? [drawnWith(null)] : sources.filter(({ api }) => api !== "2d").map((source) => drawnWith([source.api], { [source.api]: source })),
+  );
+  return drew.length > 0 ? leastTrusted(drew) : drawnWith([], { webgl2: own });
+}
+
+// The browser's own adapter, as WebGL names it.
+async function ownAdapter(browser) {
+  const page = await browser.newPage();
+  try {
+    return await page.evaluate(() => {
+      const gl = document.createElement("canvas").getContext("webgl2");
+      if (!gl) return { name: "" };
+      const named = gl.getExtension("WEBGL_debug_renderer_info");
+      return { name: String(gl.getParameter(named ? named.UNMASKED_RENDERER_WEBGL : gl.RENDERER) ?? "") };
+    });
+  } finally {
+    await page.close();
+  }
+}
+
 const ZONE = "UTC";
 const LANGUAGE = "en-GB";
 
@@ -199,6 +284,7 @@ async function canvases(page, part, whole, problems) {
   const found = await part.locator("canvas").all();
   let shown = 0;
   const moving = [];
+  const drew = [];
   for (const canvas of found) {
     const box = await canvas.boundingBox();
     if (box === null || box.width < 8 || box.height < 8 || !(await canvas.isVisible())) continue;
@@ -231,6 +317,7 @@ async function canvases(page, part, whole, problems) {
       first = await read();
       still = blank(first);
     }
+    drew.push(await canvas.evaluate((element) => globalThis.__ljosShotDrew?.(element) ?? []));
     if (still) {
       problems.push(`blank canvas (${Math.round(box.width)}×${Math.round(box.height)}) after ${FIRST_FRAME / 1000} s`);
       continue;
@@ -243,7 +330,7 @@ async function canvases(page, part, whole, problems) {
     const now = (await canvas.boundingBox()) ?? box;
     moving.push({ x: Math.round(now.x - at.x), y: Math.round(now.y - at.y), width: Math.round(now.width), height: Math.round(now.height) });
   }
-  return { shown, moving };
+  return { shown, moving, drew };
 }
 
 const shots = [];
@@ -256,6 +343,8 @@ async function save(shot, png) {
   await sharp(png).resize({ width: thumbWidth, withoutEnlargement: true }).webp({ quality: 80 }).toFile(join(out, thumb));
   const { width, height } = readPng(png);
   if (blank(readPng(png))) shot.problems.push("blank picture");
+  const { kind, adapter } = shot.drawnBy;
+  if (values["require-hardware"] && kind !== "hardware") shot.problems.push(`not drawn on a known GPU (${kind}${adapter ? `: ${adapter}` : ""})`);
   const ok = shot.problems.length === 0;
   shots.push({
     rank: shot.rank,
@@ -275,6 +364,7 @@ async function save(shot, png) {
     height,
     health: { ok, problems: shot.problems },
     moving: shot.moving,
+    drawnBy: shot.drawnBy,
     before: null,
     diff: null,
     status: ok ? "new" : "broken",
@@ -283,11 +373,12 @@ async function save(shot, png) {
   console.log(`${ok ? "ok    " : "BROKEN"} ${shot.id}${ok ? "" : `: ${shot.problems.join("; ")}`}`);
 }
 
-async function visit(browser, gpu, init, site, kernel, target, rank, scheme, viewport) {
+async function visit(browser, own, gpu, init, site, kernel, target, rank, scheme, viewport) {
   // Sections are shot whole, so the window is as tall as the tallest one.
   const size = target.take === "sections" ? { ...viewport, height: 1400 } : viewport;
   const context = await browser.newContext({ viewport: { width: size.width, height: size.height }, deviceScaleFactor: 1, colorScheme: scheme, reducedMotion: "no-preference", timezoneId: ZONE, locale: LANGUAGE });
   await context.addInitScript(holdTime, MOMENT);
+  await context.addInitScript(watchDrawing);
   if (init) await context.addInitScript(init);
   if (target.shell && lists.shellKey) await context.addInitScript(([key, shell]) => localStorage.setItem(key, shell), [lists.shellKey, target.shell]);
   const page = await context.newPage();
@@ -303,32 +394,37 @@ async function visit(browser, gpu, init, site, kernel, target, rank, scheme, vie
   }
   await settled(page).catch(() => {});
   // Each part of the page a shot is of: the window, or each section.
-  const parts =
+  const body = { name: target.target, title: target.title, part: page.locator("body"), whole: true };
+  const found =
     target.take === "view"
-      ? [{ name: target.target, title: target.title, part: page.locator("body"), whole: true }]
+      ? [body]
       : (await markSections(page)).map((section) => ({
           name: `demo-${slug(section.title)}`,
           title: section.title,
           part: page.locator(`[data-ljos-shot="${section.index}"]`),
           whole: false,
         }));
-  const atLoad = [...loading, ...threw];
+  const missing = found.length === 0;
+  const parts = missing ? [body] : found;
+  const atLoad = [...loading, ...threw, ...(missing ? ["shows none of the parts it is shot by"] : [])];
   for (const [index, { name, title, part, whole }] of parts.entries()) {
     const key = `${name}.${viewport.name}`;
     // WebGL 2 is shot only for what drew on a canvas with WebGPU.
-    if (gpu === "webgl2" && !onGpu.has(key)) continue;
+    if (gpu === "webgl2" && !missing && !onGpu.has(key)) continue;
     threw = [];
     const problems = [...atLoad];
     if (!whole) await part.scrollIntoViewIfNeeded();
     await run(part, problems);
     await settled(page);
     if (!whole) await part.scrollIntoViewIfNeeded();
-    const { shown: drawn, moving } = await canvases(page, part, whole, problems);
+    const { shown: drawn, moving, drew } = await canvases(page, part, whole, problems);
+    const drawnBy = { browser: browser.browserType().name(), version: browser.version(), ...drewPart(drew, own) };
     if (drawn > 0 && gpu === "webgpu") onGpu.add(key);
     problems.push(...threw);
-    const used = drawn > 0 ? gpu : null;
+    // Each renderer's broken page keeps a name of its own.
+    const used = drawn > 0 || missing ? gpu : null;
     const png = whole ? await page.screenshot({ animations: "allow" }) : await part.screenshot({ animations: "allow" });
-    await save({ ...base, rank: [rank, index], id: shotId({ target: name, kernel, gpu: used, scheme, viewport }), target: name, title, gpu: used, problems, moving }, png);
+    await save({ ...base, rank: [rank, index], id: shotId({ target: name, kernel, gpu: used, scheme, viewport }), target: name, title, gpu: used, problems, moving, drawnBy }, png);
   }
   await context.close();
 }
@@ -350,8 +446,9 @@ try {
     for (const [gpu, { args, init }] of Object.entries(gpus)) {
       const browser = await chromium.launch({ args });
       try {
+        const own = await ownAdapter(browser);
         const jobs = wanted.flatMap((target, rank) =>
-          ["light", "dark"].flatMap((scheme) => target.viewports.map((viewport) => () => visit(browser, gpu, init, site, kernel, target, rank, scheme, viewport))),
+          ["light", "dark"].flatMap((scheme) => target.viewports.map((viewport) => () => visit(browser, own, gpu, init, site, kernel, target, rank, scheme, viewport))),
         );
         await pool(jobs, Number(values.jobs));
       } finally {
@@ -382,4 +479,4 @@ const manifest = {
 writeFileSync(join(out, "manifest.json"), `${JSON.stringify(manifest, null, 1)}\n`);
 const broken = shots.filter((shot) => shot.status === "broken");
 console.log(`${shots.length} shots, ${broken.length} broken, in ${out}`);
-process.exit(broken.length > 0 ? 1 : 0);
+process.exit(shots.length === 0 || broken.length > 0 ? 1 : 0);

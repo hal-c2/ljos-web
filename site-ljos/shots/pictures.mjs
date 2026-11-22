@@ -83,6 +83,11 @@ export const THRESHOLD = 0.002;
 // after it.
 const same = (one, other) => JSON.stringify(one.ids) === JSON.stringify(other.ids) && one.reason === other.reason;
 export const sinceThen = (list, before) => list.filter((entry) => !before.some((old) => same(entry, old)));
+const text = (value) => typeof value === "string" && value.trim() !== "";
+// An entry with no reason is no declaration. Nor is one whose ids are a
+// string: read letter by letter, its `*` would take every picture there is.
+export const wellDeclared = (entry) =>
+  Array.isArray(entry?.ids) && entry.ids.length > 0 && entry.ids.every(text) && text(entry.reason) && ((entry.pr ?? null) === null || (Number.isSafeInteger(entry.pr) && entry.pr > 0));
 
 export function acceptedFor(list, id) {
   for (const entry of list)

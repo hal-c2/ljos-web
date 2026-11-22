@@ -27,6 +27,20 @@ export interface Picture {
     readonly thumb: string
 }
 
+export type AdapterKind = "hardware" | "software" | "unknown"
+export type Api = Gpu | "webgl"
+
+// What drew a picture, which is not always the renderer asked for: the
+// browser, and the adapter that answered.
+export interface DrawnBy {
+    readonly browser: string
+    readonly version: string
+    // Null for what draws in the DOM, put down to the browser's adapter.
+    readonly api: Api | null
+    readonly adapter: string
+    readonly kind: AdapterKind
+}
+
 export interface Shot {
     readonly id: string
     readonly target: string
@@ -49,6 +63,9 @@ export interface Shot {
     // new frame each moment): checked that they drew, left out of the
     // comparison. Absent from a manifest written before they were.
     readonly moving?: readonly Box[]
+    // Absent from a manifest written before it was recorded, which is not
+    // known to be a GPU's.
+    readonly drawnBy?: DrawnBy
     readonly before: Picture | null
     readonly diff: { readonly ratio: number; readonly file: string | null } | null
     readonly status: Status
@@ -71,6 +88,9 @@ export interface Manifest extends Deploy {
     readonly threshold: number
     readonly previous: Deploy | null
     readonly gone: readonly string[]
+    // Those of the gone that were meant, by the reason given. Optional, as
+    // only compare writes it and older manifests don't have it.
+    readonly removed?: readonly { readonly reason: string; readonly pr: number | null; readonly ids: readonly string[] }[]
     readonly shots: readonly Shot[]
 }
 
@@ -104,6 +124,17 @@ export async function load(address: string): Promise<Manifest | null> {
 
 // Whether part of a shot moves on its own, and so was not compared.
 export const moves = (shot: Shot): boolean => (shot.moving ?? []).length > 0
+
+export const adapterKind = (shot: Shot): AdapterKind => shot.drawnBy?.kind ?? "unknown"
+
+export const notOnGpu = (shots: readonly Shot[]): number => shots.filter((shot) => adapterKind(shot) !== "hardware").length
+
+// The browser by its name and version: "Chromium 158.0.8127.18".
+export function browser(shot: Shot): string {
+    if (shot.drawnBy === undefined) return ""
+    const { browser: name, version } = shot.drawnBy
+    return `${name.slice(0, 1).toUpperCase()}${name.slice(1)} ${version}`
+}
 
 export function counts(shots: readonly Shot[]): { all: number; changed: number; broken: number } {
     return {
@@ -202,6 +233,13 @@ export function commitAddress(manifest: Manifest, sha: string): string {
     return `https://github.com/${manifest.repository}/commit/${sha}`
 }
 
+function adapterSaid(shot: Shot): string {
+    const name = shot.drawnBy?.adapter || "not recorded"
+    const kind = adapterKind(shot)
+    if (kind === "hardware") return name
+    return `${name} (${kind === "software" ? "software, not a GPU" : "not known, not counted as a GPU"})`
+}
+
 // The new-issue form on the site's repository with the picture already
 // written in: the reader files it, or not; the site files nothing.
 // `at` turns a path beside the page into the address a maintainer opens.
@@ -212,6 +250,8 @@ export function issueAddress(manifest: Manifest, shot: Shot, at: (file: string) 
         `Commit: ${commitAddress(manifest, manifest.sha)}`,
         `Deployed: ${manifest.date}`,
         `Renderer: ${renderer(shot)}`,
+        `Browser: ${browser(shot) || "not recorded"}`,
+        `Adapter: ${adapterSaid(shot)}`,
         `Scheme: ${shot.scheme}`,
         `Size: ${size(shot)}`,
         `Image: ${at(shot.file)}`,

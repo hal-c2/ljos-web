@@ -28,9 +28,9 @@ function routesUnder(dir, prefix = "") {
   });
 }
 
-// The pro demos are pages of this site alone: the Astro site, the
-// reference for the docs, has no page of theirs.
-const OWN = demos.map(route);
+// The pro demos and the screenshots are pages of this site alone: the
+// Astro site, the reference for the docs, has no page of theirs.
+const OWN = [...demos.map(route), "/screenshots/"];
 
 const SECTIONS = [
   { id: "start", label: "Start" },
