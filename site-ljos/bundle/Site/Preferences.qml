@@ -27,7 +27,7 @@ QtObject {
     readonly property bool narrowed: shell !== shown
 
     readonly property var shells: [
-        { name: "marketing", label: t`Marketing`, about: t`A wide hero, then sections down the page.` },
+        { name: "marketing", label: t`Elegant`, about: t`A wide hero, then sections down the page.` },
         { name: "workbench", label: t`Workbench`, about: t`Files on the left, the page in the middle, and its Source on the right.` },
         { name: "desktop", label: t`Desktop`, about: t`Menu bar, toolbar, sidebar, tabbed documents and a status bar.` }
     ]
