@@ -7,7 +7,8 @@ import "logic/stage.ts" as Stage
 // The agent replay's poster: where it ends, drawn by its own parts and
 // still, so the page as written shows the card the agent made and the
 // calls that made it before anything runs. What each call answered is the
-// live stage's to say: the poster shows the calls as sent.
+// live stage's to say: the poster's calls have no state, as none of
+// them is on its way beside a card that is finished.
 AgentView {
     id: poster
 
@@ -30,7 +31,7 @@ AgentView {
             const step = steps[i];
             if (step.say !== "")
                 log.append({ kind: "say", text: step.say, tool: "", args: "", summary: "", answer: "", image: "" });
-            log.append({ kind: "call", text: "", tool: step.tool, args: Stage.argsText(step.args), summary: "", answer: "pending", image: "" });
+            log.append({ kind: "call", text: "", tool: step.tool, args: Stage.argsText(step.args), summary: "", answer: "", image: "" });
         }
     }
 }
