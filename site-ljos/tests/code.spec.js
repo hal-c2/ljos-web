@@ -303,7 +303,10 @@ test("a code example's Copy copies its code, and says so", async ({
   );
   try {
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-    const card = page.getByRole("group", { name: /^Code: / }).first();
+    const card = page
+      .getByRole("group", { name: /^Code: / })
+      .filter({ hasNot: page.getByRole("textbox") })
+      .first();
     const copy = card.getByRole("button", { name: /^Copy\b/ });
     await copy.click();
     await expect(card.getByText("Copied")).toBeVisible();
@@ -311,10 +314,78 @@ test("a code example's Copy copies its code, and says so", async ({
     expect(copied.trim().length).toBeGreaterThan(0);
     // The card shows every space as one that stays (a no-break space,
     // as rich text keeps no run of plain ones); what is copied has
-    // plain spaces, as written.
-    expect((await card.innerText()).replace(/\u00a0/g, " ")).toContain(
-      copied.trim().split("\n")[0].trim(),
+    // plain spaces, as written, and is every line the card shows.
+    const shown = (await card.locator(".qq-rich").first().innerText())
+      .replace(/\u00a0/g, " ")
+      .replace(/\n+$/, "");
+    expect(copied).toBe(shown);
+  } finally {
+    await context.close();
+  }
+});
+
+// A live block's Copy copies its code as the reader has it now, with
+// their edits.
+test("a live example's Copy copies its code as edited", async ({ browser }) => {
+  const { context, page } = await opened(
+    browser,
+    { width: 1440, height: 900 },
+    "light",
+    "/quality/motion/",
+  );
+  try {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    const card = page
+      .getByRole("group", { name: /^Code: / })
+      .filter({ has: page.getByRole("textbox") })
+      .first();
+    const copy = card.getByRole("button", { name: /^Copy\b/ });
+    await copy.click();
+    await expect(card.getByText("Copied")).toBeVisible();
+    const written = await page.evaluate(() => navigator.clipboard.readText());
+    expect(written.trim().length).toBeGreaterThan(0);
+    await card.getByRole("textbox").first().click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.type("// as edited\n");
+    await card.getByRole("button", { name: /^(Copy|Copied)\b/ }).click();
+    await expect
+      .poll(() => page.evaluate(() => navigator.clipboard.readText()), {
+        message: "the clipboard has the edited code",
+      })
+      .toBe(`// as edited\n${written}`);
+  } finally {
+    await context.close();
+  }
+});
+
+// A page with no clipboard copies nothing, and Copy never says it did.
+test("Copy on a page with no clipboard never says Copied", async ({
+  browser,
+}) => {
+  const { context, page } = await opened(
+    browser,
+    { width: 1440, height: 900 },
+    "light",
+    "/start/first-app/",
+  );
+  try {
+    await page.evaluate(() =>
+      Object.defineProperty(Navigator.prototype, "clipboard", {
+        get: () => undefined,
+        configurable: true,
+      }),
     );
+    const card = page.getByRole("group", { name: /^Code: / }).first();
+    await card.getByRole("button", { name: /^Copy\b/ }).click();
+    // What Copy is told comes back in a promise: past two frames it has.
+    await page.evaluate(
+      () =>
+        new Promise((done) =>
+          requestAnimationFrame(() => requestAnimationFrame(done)),
+        ),
+    );
+    await expect(card.getByText("Copied")).toHaveCount(0);
+    await expect(card.getByRole("button", { name: /^Copy\b/ })).toBeVisible();
   } finally {
     await context.close();
   }
