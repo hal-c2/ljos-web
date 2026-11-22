@@ -352,7 +352,6 @@ Rectangle {
         delegate: Component {
             Brand {
                 route: siteRouter.route
-                size: 18
             }
         }
     }

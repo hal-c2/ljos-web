@@ -11,11 +11,9 @@ Item {
     id: home
 
     property string route: "/"
-    // A tight bar (a workbench's, a desktop's) has the smaller one.
-    property int size: 22
     readonly property string href: Nav.at(Content.base, "/")
 
-    implicitWidth: mark.width + Theme.xs + wordmark.implicitWidth
+    implicitWidth: mark.width + 8 + wordmark.implicitWidth
     implicitHeight: 40
     activeFocusOnTab: true
     Accessible.role: Accessible.Link
@@ -30,22 +28,17 @@ Item {
 
     Text {
         id: mark
-        width: Math.round(home.size * 1.27)
-        height: width
+        width: 28
+        height: 28
         anchors.verticalCenter: parent.verticalCenter
         textFormat: Text.RichText
-        text: Nav.picture(home.route, "/favicon.svg", mark.width, mark.width, "")
+        text: Nav.picture(home.route, "/favicon.svg", 28, 28, "")
         Accessible.ignored: true
     }
-    Text {
+    Wordmark {
         id: wordmark
-        x: mark.width + Theme.xs
+        x: mark.width + 8
         anchors.verticalCenter: parent.verticalCenter
-        text: "Ljós"
-        color: Theme.text
-        font.family: Theme.sans
-        font.pixelSize: home.size
-        font.weight: Font.Bold
     }
     MouseArea {
         anchors.fill: parent
