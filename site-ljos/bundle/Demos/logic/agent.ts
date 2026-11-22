@@ -69,6 +69,20 @@ export function clamp(step: number, total: number): number {
 // The literal a QML file gives a property (`property color ink: "#d97706"`),
 // or "" where it binds it to something else.
 export function literalOf(text: string, name: string): string {
-    const found = new RegExp(`property \\w+ ${name}: "([^"]*)"`).exec(text)
-    return found ? found[1] : ""
+    return text.split("\n").map((line) => literalOn(line, name)).find((value) => value !== undefined) ?? ""
+}
+
+// The literal on one line of the form `property <type> <name>: "<value>"`.
+function literalOn(line: string, name: string): string | undefined {
+    const at = line.indexOf("property ")
+    if (at < 0) return undefined
+    const typed = line.slice(at + "property ".length)
+    const space = typed.indexOf(" ")
+    if (space <= 0) return undefined
+    const head = `${name}: "`
+    const rest = typed.slice(space + 1)
+    if (!rest.startsWith(head)) return undefined
+    const value = rest.slice(head.length)
+    const end = value.indexOf('"')
+    return end < 0 ? undefined : value.slice(0, end)
 }

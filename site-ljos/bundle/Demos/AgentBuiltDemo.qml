@@ -866,6 +866,7 @@ Item {
                                     width: 32
                                     horizontalAlignment: Text.AlignRight
                                     text: String(line)
+                                    elide: Text.ElideRight
                                     color: Page.Theme.codeGutter
                                     font.family: Page.Theme.mono
                                     font.pixelSize: 12
