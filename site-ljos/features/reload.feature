@@ -54,7 +54,15 @@ Feature: A reload keeps what was assigned unless the file's declaration changed
 
   Scenario: A call of the app's own shaped like a place is read whole
     Given a getter whose head is the app's own call of a file, a line and a column
-    And it is in a file compiled without places inside one compiled with them, in props written by hand, or an attached property's value in a file compiled with places
+    And it is in a file compiled without places inside one compiled with them, or in props written by hand
+    When an edit changes only the line, or only the column, of that call
+    Then the file's value wins
+    But the call unchanged keeps what was assigned
+
+  # Its test is marked fixme: on main too, a reload carries nothing assigned
+  # to an attached property a layout makes, so neither half can be seen yet.
+  Scenario: An attached property's call shaped like a place is read whole
+    Given an attached property's value in a file compiled with places is the app's own call of that file, a line and a column
     When an edit changes only the line, or only the column, of that call
     Then the file's value wins
     But the call unchanged keeps what was assigned
