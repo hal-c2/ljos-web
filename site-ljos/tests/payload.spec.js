@@ -14,7 +14,7 @@ const base = process.env.LJOS_SITE_BASE ?? "/";
 // What a page waits for before it is written or taken over is its first
 // load too, though the build imports it dynamically (bundle/Site/later.js,
 // `awaited`).
-const AWAITED = { "/showcase/": ["ShowcasePage-"] };
+const AWAITED = { "/": ["Landing-"], "/showcase/": ["ShowcasePage-"] };
 const report = pageReport(dist, { base, awaited: AWAITED });
 const kB = (bytes) => Math.round(bytes / 1024);
 const named = (file, prefix) => file.split("/").pop().startsWith(prefix);
@@ -148,13 +148,13 @@ test("nothing the bundle's first-load file imports imports it back", () => {
 
 // The front page is a module of its own (bundle/Site/later.js), with
 // its demos' posters and its words: no other page's first load holds
-// it. The front page is written with it, and asks for it as it is
-// taken over.
+// it. The front page is written with it and asks for it as it is taken
+// over, so it is counted in that page's first load.
 test("no page but the front page's first load holds the front page", () => {
   const front = report.find(({ route }) => route === "/");
   expect(reaching(["Landing-"], report.filter((entry) => entry !== front))).toEqual({});
-  const later = front.later.files.map((entry) => entry.file);
-  expect(later.some((file) => named(file, "Landing-")), "a Landing-* chunk the front page fetches").toBe(true);
+  expect(reaching(["Landing-"], pageReport(dist, { base })), "a chunk no page imports statically").toEqual({});
+  expect(reaching(["Landing-"], [front]), "the Landing-* chunk the front page waits for, counted").toHaveProperty(["/"]);
   // Its words as written, wrapped where the page laid them out.
   const written = readFileSync(join(dist, "index.html"), "utf8").replace(/\s+/g, " ");
   expect(written, "the front page as written").toContain("Software you can reshape while it runs.");
