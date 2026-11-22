@@ -1756,6 +1756,8 @@ test.describe("a View3D no one asked a renderer of", () => {
   // A WebGL 2 short of what wgpu needs fails the view as it is made, as a
   // renderer that traps there does: the JavaScript renderer draws what it
   // can of the scene, is not left for wgpu again, and the page is told why.
+  // The same where the view was turned to wgpu for a file and where it began
+  // on it, WebGPU having an adapter: and it goes on drawing what moves.
   for (const [how, failure] of [
     ["fails", 'new Error("this WebGL 2 lacks what wgpu needs")'],
     ["traps", 'new WebAssembly.RuntimeError("unreachable")'],
@@ -1784,6 +1786,36 @@ test.describe("a View3D no one asked a renderer of", () => {
         await expect.poll(async () => (await pixels(page, [[50, 150]]))[0], { message: "the model beside the file's" }).toBe("0 0 255");
         expect(await page.evaluate(() => [window.creations, document.querySelectorAll(".qq-view3d").length])).toEqual([1, 1]);
       });
+
+      for (const path of ["turned for a file", "begun on wgpu, WebGPU having an adapter"]) {
+        test(`is drawn by the JavaScript renderer and goes on moving, ${path}`, async ({ page }) => {
+          await page.route(/\/wgpu\/ljos_web_3d\.js(\?|$)/, async (route) => {
+            const response = await route.fetch();
+            await route.fulfill({ response, body: `${await response.text()}\nView3d.create = async () => { window.creations = (window.creations ?? 0) + 1; throw ${failure}; };\n` });
+          });
+          const turns = path === "turned for a file";
+          if (turns) await page.addInitScript(HIDDEN);
+          else
+            await page.addInitScript(() => {
+              Object.defineProperty(navigator, "gpu", { configurable: true, value: { requestAdapter: async () => ({}) } });
+            });
+          await page.goto("/?scene=wgpu_turned_moving");
+          await page.waitForFunction(() => window.ready);
+          await page.evaluate((file) => {
+            window.objects.moving = true;
+            if (file) for (const loader of ["first", "second"]) window.objects[loader].source = file;
+            window.flush();
+          }, turns ? "scenes/wgpu_models/square.gltf" : "");
+          await expect.poll(() => page.evaluate(() => window.creations ?? 0), { message: "wgpu was tried" }).toBeGreaterThan(0);
+          const states = () => page.evaluate(() => [...document.querySelectorAll(".qq-view3d")].map(({ $view3d }) => [$view3d?.renderer ?? null, $view3d?.frames ?? 0]));
+          await expect.poll(async () => (await states()).map(([renderer, frames]) => [renderer, frames > 0])).toEqual([["js", true], ["js", true]]);
+          const drawn = (await states()).map(([, frames]) => frames);
+          for (const x of [50, 250]) await moves(page, Array.from({ length: 27 }, (_, i) => [x, 20 + i * 10]), `the view at ${x}`);
+          const later = await states();
+          expect(later.map(([renderer]) => renderer)).toEqual(["js", "js"]);
+          later.forEach(([, frames], view) => expect(frames, `view ${view}'s frames`).toBeGreaterThan(drawn[view]));
+        });
+      }
     });
   }
 
@@ -1805,6 +1837,132 @@ test.describe("a View3D no one asked a renderer of", () => {
         .toBe(true);
     }
   };
+
+  // A page whose policy refuses WebAssembly still names it. Such a page has
+  // the JavaScript renderer as one without WebAssembly has, and not by way
+  // of wgpu's failing: none of the renderer is fetched, and nothing says a
+  // fallback was needed. One that asks for wgpu by its address is told why
+  // it has none. See docs/LJOS_WEB.md.
+  //
+  // What begins a view is left to a task of the page's own: what runs inside
+  // an evaluate may compile whatever the policy says, and the page's one
+  // answer of whether it can would then be the test's. So is waitForFunction
+  // left out, which compiles its predicate in the page.
+  test.describe("a page whose policy refuses WebAssembly", () => {
+    test.use({ told: [/Content Security Policy/i] });
+    let fetched = [];
+    test.beforeEach(async ({ page }) => {
+      fetched = [];
+      page.on("request", (request) => WASM.test(request.url()) && fetched.push(request.url()));
+      await page.route(
+        (url) => url.pathname === "/",
+        async (route) => {
+          const response = await route.fetch();
+          await route.fulfill({ response, headers: { ...response.headers(), "content-security-policy": "script-src 'self'" } });
+        },
+      );
+      await page.addInitScript(() => {
+        window.refusals = 0;
+        document.addEventListener("securitypolicyviolation", () => window.refusals++);
+      });
+    });
+    const begun = async (page, address, file = "") => {
+      await page.goto(address);
+      await expect.poll(() => page.evaluate(() => !!window.ready)).toBe(true);
+      await page.evaluate(
+        (file) =>
+          new Promise((done) =>
+            setTimeout(() => {
+              window.objects.moving = true;
+              if (file) for (const loader of ["first", "second"]) window.objects[loader].source = file;
+              window.flush();
+              done();
+            }),
+          ),
+        file,
+      );
+    };
+    const refused = (page) =>
+      page.evaluate(
+        () =>
+          new Promise((done) =>
+            setTimeout(() => {
+              try {
+                new WebAssembly.Module(new Uint8Array([0, 0x61, 0x73, 0x6d, 1, 0, 0, 0]));
+                done(false);
+              } catch {
+                done(true);
+              }
+            }),
+          ),
+      );
+    const byScript = async (page) => {
+      const renderers = () => page.evaluate(() => [...document.querySelectorAll(".qq-view3d")].map(({ $view3d }) => $view3d?.renderer ?? null));
+      await expect.poll(renderers).toEqual(["js", "js"]);
+      // Long enough for a turn or an early ask to have begun.
+      await page.waitForTimeout(2000);
+      expect(fetched, "the wgpu renderer's wasm").toEqual([]);
+      expect(await renderers()).toEqual(["js", "js"]);
+      for (const x of [50, 250]) await moves(page, Array.from({ length: 27 }, (_, i) => [x, 20 + i * 10]), `the view at ${x}`);
+      expect(await refused(page), "the policy was in force").toBe(true);
+    };
+    const adapter = (page) =>
+      page.addInitScript(() => {
+        Object.defineProperty(navigator, "gpu", { configurable: true, value: { requestAdapter: async () => ({}) } });
+      });
+
+    test("has the JavaScript renderer, though WebGPU has an adapter", async ({ page }) => {
+      await adapter(page);
+      await begun(page, "/?scene=wgpu_turned_moving");
+      await byScript(page);
+    });
+
+    test("keeps it for a scene with a glTF file, where WebGPU has no adapter", async ({ page }) => {
+      await page.addInitScript(HIDDEN);
+      await begun(page, "/?scene=wgpu_turned_moving", "scenes/wgpu_models/square.gltf");
+      await byScript(page);
+    });
+
+    for (const gpu of ["an adapter", "no WebGPU"]) {
+      test(`has it where the build's default is wgpu, with ${gpu}`, async ({ page }) => {
+        let said = 0;
+        await page.route(/\/QtQuick3D\/early\.js(\?|$)/, async (route) => {
+          const response = await route.fetch();
+          const body = (await response.text()).replace(/import\.meta\.env(\?)?\.VITE_LJOS_VIEW3D/g, () => (said++, '"wgpu"'));
+          await route.fulfill({ response, body });
+        });
+        if (gpu === "an adapter") await adapter(page);
+        else await page.addInitScript(HIDDEN);
+        await begun(page, "/?scene=wgpu_turned_moving");
+        expect(said, "the build's default was replaced").toBeGreaterThan(0);
+        await byScript(page);
+      });
+    }
+
+    test("is not asked whether it can by a page that has nothing for wgpu", async ({ page }) => {
+      await page.addInitScript(HIDDEN);
+      await page.goto("/?scene=wgpu_two");
+      await expect.poll(() => page.evaluate(() => [...document.querySelectorAll(".qq-view3d")].some(({ $view3d }) => $view3d?.frames > 0))).toBe(true);
+      expect(await page.evaluate(() => window.refusals), "what the policy refused").toBe(0);
+    });
+
+    test("is not asked by a page with no 3D, which has WebGPU", async ({ page }) => {
+      await adapter(page);
+      await page.goto("/?scene=rectangle");
+      await expect.poll(() => page.evaluate(() => !!window.ready)).toBe(true);
+      expect(await page.evaluate(() => window.refusals), "what the policy refused").toBe(0);
+    });
+
+    test.describe("asked for wgpu by its address", () => {
+      test.use({ told: [/Content Security Policy/i, /^View3D: /] });
+      test("says why it cannot", async ({ page }) => {
+        await page.addInitScript(HIDDEN);
+        await begun(page, "/?scene=wgpu_turned_moving&view3d=wgpu");
+        const states = () => page.evaluate(() => [...document.querySelectorAll(".qq-view3d")].map(({ $view3d }) => [$view3d?.renderer === "js", /WebAssembly|wasm/i.test($view3d?.error ?? "")]));
+        await expect.poll(states).toEqual([[false, true], [false, true]]);
+      });
+    });
+  });
 
   // A view turned to wgpu on WebGL 2 has a context and a device of its own,
   // and a scene the JavaScript renderer was drawing. Losing the context, or
@@ -2106,24 +2264,38 @@ View3d.prototype.${call} = function (...args) {
   // Each turned view has a context of its own, and a browser keeps only so
   // many at once, letting the oldest go: that may be the one every view on
   // the JavaScript renderer shares. However many turn, a view that moves
-  // where none turns moves here. These assert nothing of which renderer
-  // draws, so that they run the same where no view turns.
+  // where none turns moves here. The first of each two asserts nothing of
+  // which renderer draws, so that it runs the same where no view turns, and
+  // records how many turned. The second is the same and has one turn, so
+  // that its passing is not of a page where none did.
   test.describe("several views of files on one page", () => {
     test.use({
       viewport: { width: 640, height: 180 },
       told: [/^(View3D: drawn by the JavaScript renderer, as wgpu could not draw it: |WebGL: CONTEXT_LOST_WEBGL|WARNING: Too many active WebGL contexts)/],
     });
 
-    for (const [count, what] of [[7, "under"], [21, "past"]]) {
-      test(`${count}, ${what} the browser's limit on contexts: every one goes on moving, and none is blank`, async ({ page }) => {
+    for (const [count, what, turning] of [[7, "under", false], [7, "under", true], [21, "past", false], [21, "past", true]]) {
+      test(`${count}, ${what} the browser's limit on contexts${turning ? ", with views turned" : ""}: every one goes on moving, and none is blank`, async ({ page }, info) => {
         test.setTimeout(120_000);
         await page.addInitScript(HIDDEN);
         await page.addInitScript(() => {
           const get = OffscreenCanvas.prototype.getContext;
           window.scripted = new Set();
+          window.scriptedEverLost = 0;
           OffscreenCanvas.prototype.getContext = function (kind, ...options) {
             const context = get.call(this, kind, ...options);
-            if (kind === "webgl2" && context) window.scripted.add(context);
+            if (kind === "webgl2" && context && !window.scripted.has(context)) {
+              window.scripted.add(context);
+              this.addEventListener("webglcontextlost", () => window.scriptedEverLost++);
+            }
+            return context;
+          };
+          // Only wgpu takes a view's own canvas for WebGL 2.
+          const take = HTMLCanvasElement.prototype.getContext;
+          window.everTurned = new Set();
+          HTMLCanvasElement.prototype.getContext = function (kind, ...options) {
+            const context = take.call(this, kind, ...options);
+            if (kind === "webgl2" && context && this.classList.contains("qq-view3d")) window.everTurned.add(this);
             return context;
           };
         });
@@ -2136,6 +2308,8 @@ View3d.prototype.${call} = function (...args) {
           window.flush();
         }, count);
         await page.waitForLoadState("networkidle");
+        const turned = () => page.evaluate(() => window.everTurned.size);
+        if (turning) await expect.poll(turned, { message: "views that turned", timeout: 60_000 }).toBeGreaterThan(0);
         // Settled once the renderers stay what they are, a second apart.
         let was = null;
         let same = 0;
@@ -2154,7 +2328,11 @@ View3d.prototype.${call} = function (...args) {
           const column = Array.from({ length: 13 }, (_, i) => [(view % 8) * 80 + 40, Math.floor(view / 8) * 60 + i * 4 + 6]);
           await moves(page, column, `view ${view}`);
         }
-        expect(await page.evaluate(() => [...window.scripted].filter((context) => context.isContextLost()).length), "the JavaScript renderer's contexts lost").toBe(0);
+        info.annotations.push({ type: "views that turned", description: `${await turned()} of ${count}` });
+        const scripted = await page.evaluate(() => ({ made: window.scripted.size, everLost: window.scriptedEverLost, lost: [...window.scripted].filter((context) => context.isContextLost()).length }));
+        info.annotations.push({ type: "the JavaScript renderer's contexts ever lost", description: String(scripted.everLost) });
+        expect(scripted.made, "the JavaScript renderer's contexts").toBeGreaterThan(0);
+        expect([scripted.everLost, scripted.lost], "the JavaScript renderer's contexts: ever lost, lost now").toEqual([0, 0]);
       });
     }
   });
