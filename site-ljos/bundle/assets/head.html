@@ -82,3 +82,10 @@
   @keyframes ljos-fade-out { to { opacity: 0; } }
   @keyframes ljos-fade-in { from { opacity: 0; } }
 </style>
+<!-- With no script a Flickable is only a scroller, as folded code is
+     (Site/CodeBlock.qml): it shows its bar, and at its end the page
+     goes on. -->
+<noscript><style>
+  #app qq-flick { overscroll-behavior-y: auto !important; scrollbar-width: thin; }
+  #app qq-flick::-webkit-scrollbar { display: block; }
+</style></noscript>
