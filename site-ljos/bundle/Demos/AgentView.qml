@@ -155,6 +155,8 @@ Rectangle {
             Row {
                 id: tabRow
                 visible: view.tabs
+                Accessible.role: Accessible.PageTabList
+                Accessible.name: t`What the replay shows`
                 x: Theme.xs
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 2

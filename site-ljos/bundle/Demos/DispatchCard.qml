@@ -131,8 +131,6 @@ Rectangle {
                     font.pixelSize: Theme.titleSize
                     font.weight: Font.DemiBold
                     elide: Text.ElideRight
-                    readonly property int headingLevel: 3
-                    Accessible.role: Accessible.Heading
                     opacity: card.still ? 1 : 0
                     Component.onCompleted: {
                         if (!card.still)
@@ -159,8 +157,11 @@ Rectangle {
                 visible: !card.narrow
                 spacing: Theme.xs
 
+                // Both rows keep their buttons, and only one shows: what is
+                // made never waits on the card's width, so the page as written
+                // and the page as hydrated make the same parts in one order.
                 Repeater {
-                    model: card.narrow ? [] : card.filters
+                    model: card.filters
                     StageButton {
                         required property string modelData
                         text: modelData
@@ -177,7 +178,7 @@ Rectangle {
             spacing: Theme.xs
 
             Repeater {
-                model: card.narrow ? card.filters : []
+                model: card.filters
                 StageButton {
                     required property string modelData
                     text: modelData
@@ -195,130 +196,139 @@ Rectangle {
             color: Theme.divider
         }
 
-        Repeater {
-            model: card.shown
+        // The tickets, a list a screen reader counts.
+        Column {
+            visible: card.shown.length > 0
+            width: parent.width
+            spacing: body.spacing
+            Accessible.role: Accessible.List
+            Accessible.name: t`Tickets`
 
-            Rectangle {
-                id: row
-                required property var modelData
-                required property int index
-                readonly property string crew: card.crewOf(modelData)
-                readonly property bool open: modelData.state === "Open"
+            Repeater {
+                model: card.shown
 
-                width: body.width
-                height: Math.max(lines.height, crewSide.height) + 2 * Theme.xs
-                radius: Theme.radiusSmall
-                color: card.picked === modelData.key ? Theme.surfaceSelected : pick.containsMouse ? Theme.surfaceHover : "transparent"
-                Accessible.role: Accessible.ListItem
-                Accessible.name: `${modelData.key} ${modelData.title}, ${modelData.state}, ${crew === "" ? t`no crew` : crew}`
-
-                // A row rises in once, the first time its ticket shows.
-                opacity: 1
-                transform: Translate {
-                    id: lift
-                }
-                Component.onCompleted: {
-                    if (card.still || card.seen[modelData.key])
-                        return;
-                    const next = Object.assign({}, card.seen);
-                    next[modelData.key] = true;
-                    card.seen = next;
-                    row.opacity = 0;
-                    lift.y = card.calm ? 0 : 10;
-                    rise.start();
-                }
-                ParallelAnimation {
-                    id: rise
-                    NumberAnimation {
-                        target: row
-                        property: "opacity"
-                        to: 1
-                        duration: Theme.enterPanel
-                        easing.type: Easing.OutCubic
-                    }
-                    NumberAnimation {
-                        target: lift
-                        property: "y"
-                        to: 0
-                        duration: Theme.enterPanel + 100
-                        easing.type: Easing.OutCubic
-                    }
-                }
-                Behavior on color {
-                    ColorAnimation {
-                        duration: Theme.moveSmall
-                    }
-                }
-
-                MouseArea {
-                    id: pick
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    Accessible.ignored: true
-                    onClicked: {
-                        card.picked = row.modelData.key;
-                        card.told(`picked ${row.modelData.key}`);
-                    }
-                }
-
-                // Its state as a dot and a word, never the colour alone.
                 Rectangle {
-                    id: dot
-                    x: Theme.xs
-                    y: Theme.xs + 7
-                    width: 8
-                    height: 8
-                    radius: 4
-                    color: row.open ? Theme.accent : "transparent"
-                    border.color: row.open ? Theme.accent : Theme.border
-                    border.width: 1
-                }
-                Column {
-                    id: lines
-                    x: dot.x + dot.width + Theme.s
-                    y: Theme.xs
-                    width: row.width - x - crewSide.width - Theme.s
-                    spacing: 0
+                    id: row
+                    required property var modelData
+                    required property int index
+                    readonly property string crew: card.crewOf(modelData)
+                    readonly property bool open: modelData.state === "Open"
 
-                    Text {
-                        width: parent.width
-                        text: row.modelData.title
-                        color: Theme.text
-                        font.family: Theme.sans
-                        font.pixelSize: Theme.bodySize - 2
-                        elide: Text.ElideRight
-                    }
-                    Text {
-                        text: `${row.modelData.key}  ${row.open ? t`Open` : t`Closed`}`
-                        color: Theme.textMuted
-                        font.family: Theme.mono
-                        font.pixelSize: Theme.captionSize - 1
-                    }
-                }
-                Item {
-                    id: crewSide
-                    anchors.right: parent.right
-                    anchors.rightMargin: Theme.xs
-                    y: Theme.xs
-                    width: row.open && row.crew === "" ? assignButton.width : crewName.implicitWidth
-                    height: row.open && row.crew === "" ? assignButton.height : crewName.implicitHeight
+                    width: body.width
+                    height: Math.max(lines.height, crewSide.height) + 2 * Theme.xs
+                    radius: Theme.radiusSmall
+                    color: card.picked === modelData.key ? Theme.surfaceSelected : pick.containsMouse ? Theme.surfaceHover : "transparent"
+                    Accessible.role: Accessible.ListItem
+                    Accessible.name: `${modelData.key} ${modelData.title}, ${modelData.state}, ${crew === "" ? t`no crew` : crew}`
 
-                    Text {
-                        id: crewName
-                        visible: !(row.open && row.crew === "")
+                    // A row rises in once, the first time its ticket shows.
+                    opacity: 1
+                    transform: Translate {
+                        id: lift
+                    }
+                    Component.onCompleted: {
+                        if (card.still || card.seen[modelData.key])
+                            return;
+                        const next = Object.assign({}, card.seen);
+                        next[modelData.key] = true;
+                        card.seen = next;
+                        row.opacity = 0;
+                        lift.y = card.calm ? 0 : 10;
+                        rise.start();
+                    }
+                    ParallelAnimation {
+                        id: rise
+                        NumberAnimation {
+                            target: row
+                            property: "opacity"
+                            to: 1
+                            duration: Theme.enterPanel
+                            easing.type: Easing.OutCubic
+                        }
+                        NumberAnimation {
+                            target: lift
+                            property: "y"
+                            to: 0
+                            duration: Theme.enterPanel + 100
+                            easing.type: Easing.OutCubic
+                        }
+                    }
+                    Behavior on color {
+                        ColorAnimation {
+                            duration: Theme.moveSmall
+                        }
+                    }
+
+                    MouseArea {
+                        id: pick
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        Accessible.ignored: true
+                        onClicked: {
+                            card.picked = row.modelData.key;
+                            card.told(`picked ${row.modelData.key}`);
+                        }
+                    }
+
+                    // Its state as a dot and a word, never the colour alone.
+                    Rectangle {
+                        id: dot
+                        x: Theme.xs
+                        y: Theme.xs + 7
+                        width: 8
+                        height: 8
+                        radius: 4
+                        color: row.open ? Theme.accent : "transparent"
+                        border.color: row.open ? Theme.accent : Theme.border
+                        border.width: 1
+                    }
+                    Column {
+                        id: lines
+                        x: dot.x + dot.width + Theme.s
+                        y: Theme.xs
+                        width: row.width - x - crewSide.width - Theme.s
+                        spacing: 0
+
+                        Text {
+                            width: parent.width
+                            text: row.modelData.title
+                            color: Theme.text
+                            font.family: Theme.sans
+                            font.pixelSize: Theme.bodySize - 2
+                            elide: Text.ElideRight
+                        }
+                        Text {
+                            text: `${row.modelData.key}  ${row.open ? t`Open` : t`Closed`}`
+                            color: Theme.textMuted
+                            font.family: Theme.mono
+                            font.pixelSize: Theme.captionSize - 1
+                        }
+                    }
+                    Item {
+                        id: crewSide
                         anchors.right: parent.right
-                        text: row.crew === "" ? t`No crew` : row.crew
-                        color: row.open ? Theme.text : Theme.textMuted
-                        font.family: Theme.sans
-                        font.pixelSize: Theme.captionSize
-                    }
-                    StageButton {
-                        id: assignButton
-                        visible: row.open && row.crew === ""
-                        primary: true
-                        text: t`Assign crew`
-                        label: t`Assign crew to ${row.modelData.key}`
-                        onPressed: card.assign(row.modelData.key, t`On-call crew`)
+                        anchors.rightMargin: Theme.xs
+                        y: Theme.xs
+                        width: row.open && row.crew === "" ? assignButton.width : crewName.implicitWidth
+                        height: row.open && row.crew === "" ? assignButton.height : crewName.implicitHeight
+
+                        Text {
+                            id: crewName
+                            visible: !(row.open && row.crew === "")
+                            anchors.right: parent.right
+                            text: row.crew === "" ? t`No crew` : row.crew
+                            color: row.open ? Theme.text : Theme.textMuted
+                            font.family: Theme.sans
+                            font.pixelSize: Theme.captionSize
+                        }
+                        StageButton {
+                            id: assignButton
+                            visible: row.open && row.crew === ""
+                            primary: true
+                            text: t`Assign crew`
+                            label: t`Assign crew to ${row.modelData.key}`
+                            onPressed: card.assign(row.modelData.key, t`On-call crew`)
+                        }
                     }
                 }
             }
