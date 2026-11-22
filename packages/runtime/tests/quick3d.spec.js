@@ -1438,6 +1438,24 @@ test("a scene's fog hides what is far and what is low, as Qt's does", async ({ p
   }
 });
 
+// The JavaScript renderer has the fog, which wgpu has not yet: a scene
+// with nothing that only wgpu reads keeps it where WebGPU gives the page
+// nothing. The address names no renderer, so it is the default that draws.
+for (const [where, missing] of [
+  ["the browser has no WebGPU", () => delete Navigator.prototype.gpu],
+  ["WebGPU has no adapter", () => navigator.gpu && (navigator.gpu.requestAdapter = async () => null)],
+]) {
+  test(`a scene's fog is Qt's where ${where} and no one asked for a renderer`, async ({ page }) => {
+    test.skip(!!process.env.VITE_LJOS_VIEW3D, "the build asks for one");
+    await page.addInitScript(missing);
+    await page.goto("/?scene=fog3d");
+    await page.waitForFunction(() => window.ready);
+    const at = [[40, 100], [115, 60], [135, 30], [170, 40], [170, 100], [170, 160], [215, 75], [215, 130], [270, 100]];
+    const colours = [[91, 155, 224], [168, 174, 193], [190, 160, 103], [176, 171, 163], [176, 171, 164], [176, 171, 163], [64, 192, 96], [196, 146, 96], [30, 47, 64]];
+    near(await painted(page, at.map((point, index) => [point, colours[index]])), colours, "the fog", 3);
+  });
+}
+
 test("a table of instances has the entries Qt's has", async ({ page }) => {
   const read = async (call) => {
     await open(page, "instanced3d");
