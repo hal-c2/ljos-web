@@ -311,9 +311,9 @@ export function clothe(element, look) {
 }
 
 // Counted up when a picture inside some markup arrives: what was measured
-// around it is measured again. Once for each file, and again when a picture
-// changes to another: measuring makes the elements anew, and theirs load
-// again, from the browser's cache, but are never seen to change.
+// around it is measured again. Once for each file at each size, and again when
+// a picture changes to another: measuring makes the elements anew, and theirs
+// load again, from the browser's cache, but are never seen to change.
 const [pictures, setPictures] = signal(0);
 const arrived = new Set();
 const chosen = new WeakMap();
@@ -321,16 +321,18 @@ const chosen = new WeakMap();
 // Heard from the copy that is measured and from the one on the page
 // (Text.js), as a lazy copy that is measured may never load. Known by
 // the file the browser chose, which it only says once it has: a
-// picture's `src` is just its fallback.
+// picture's `src` is just its fallback. And by its natural size, which is
+// for the density it was chosen at: one file is as many sizes as that has.
 export function arrive(event) {
   const image = event.target;
   if (image.localName !== "img") return;
   const source = image.currentSrc || image.src;
   if (!source) return;
+  const arrival = `${image.naturalWidth}x${image.naturalHeight} ${source}`;
   const was = chosen.get(image);
-  chosen.set(image, source);
-  if (arrived.has(source) && (was === undefined || was === source)) return;
-  arrived.add(source);
+  chosen.set(image, arrival);
+  if (arrived.has(arrival) && (was === undefined || was === arrival)) return;
+  arrived.add(arrival);
   setPictures((count) => count + 1);
   flush();
 }
