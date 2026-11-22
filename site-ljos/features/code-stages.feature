@@ -36,7 +36,7 @@ Feature: A code block's window before its example runs
     And neither picture counts as empty
 
   Scenario: An example that draws as it starts is not called empty
-    Given a window that shows controls or an open popup as it starts
+    Given a window that shows controls or words as it starts
     When the build draws its pictures
     Then its picture has that content in it
     And the window doesn't say "Nothing drawn yet"
