@@ -106,6 +106,24 @@ test(`no page's first load is over ${CEILING_KB} kB gzip`, () => {
   expect(over).toEqual([]);
 });
 
+// Every page is written wide and narrow, so a list in a part the narrow
+// page hides is in every reader's first load (features/shells.feature).
+// /start/cli/ has the most headings, and so the most to lose.
+test("the contents beside the page are written only where they are shown", async ({ browser }) => {
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  try {
+    const page = await context.newPage();
+    await page.goto(`${base}start/cli/`);
+    const copies = await page
+      .locator('[role="complementary"][aria-label="On this page"]')
+      .evaluateAll((all) => all.map((one) => ({ shown: one.style.display !== "none", links: one.querySelectorAll("a").length })));
+    expect(copies.filter((copy) => copy.shown && copy.links > 0), "the wide page's list").toHaveLength(1);
+    expect(copies.filter((copy) => !copy.shown && copy.links > 0), "a hidden sidebar's list").toEqual([]);
+  } finally {
+    await context.close();
+  }
+});
+
 // A page with no code block asks for what its HTML names and nothing
 // else: no module it fetches on its own once it runs.
 test("a page with nothing to run asks for nothing past its first load", async ({ page }) => {
