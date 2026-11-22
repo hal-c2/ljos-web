@@ -603,7 +603,7 @@ test("the Workbench offers only what it can show", async ({ browser }) => {
     expect(await showing(page)).toBe("workbench");
     const landmark = (name) => page.getByRole("complementary", { name, exact: true }).filter({ visible: true });
     await expect(landmark("Pages")).toHaveCount(1);
-    await expect(landmark("Source")).toHaveCount(1);
+    await expect(landmark("Inspector").getByText("The QML this page is made from.").filter({ visible: true })).toHaveCount(1);
     for (const name of ["Observer", "Agent"]) await expect(page.getByRole("tab", { name, exact: true })).toHaveCount(0);
   } finally {
     await context.close();

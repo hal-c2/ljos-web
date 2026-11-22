@@ -86,6 +86,7 @@ Rectangle {
             width: parent.width
             height: 36
             color: look.surface
+
             Row {
                 x: 8
                 anchors.verticalCenter: parent.verticalCenter

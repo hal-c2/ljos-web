@@ -161,7 +161,7 @@ Rectangle {
         height: parent.height - y
         color: look.surface
         Accessible.role: Accessible.ComplementaryContent
-        Accessible.name: t({ message: "Source", context: "panel" })
+        Accessible.name: t`Inspector`
 
         Text {
             x: 16
