@@ -27,3 +27,5 @@ already existed and predate both rebases on da3ad7ff.
 - 166/4ec366ea: CI's site-ljos-root artifact (14758588267) of site run 45026470945, for head 4ec366ea578715555c70d5ac3ddbfdf31b8121cd. Headless Chromium 158.0.8127.18, no network, 1440x900 at 1x and 390x844 at 2x, light and dark: /showcase/ at its top and two screens down.
 
 - 164/90bf104c: CI's site-ljos-root artifact (14752865715) of site run 45017349060, for head 90bf104c5c3d30ae1a9f7d5f8d4ab8400a6d5c27. Headless Chromium 158.0.8127.18, no network, 1440x900 at 1x and 390x844 at 2x, light and dark. The first live example on three docs pages, centred on its Run · Edit · Source toolbar so its picture shows: Your First App, Repeater (an example that draws nothing until run), and Motion.
+
+- 165/8486ce06: CI's site-ljos-root artifact (14732409409) of site run 44967650504, for head 8486ce06b27e445b7379f2dc44d683e8adcd1edb. Headless Chromium 158.0.8127.18, no network, 1440x900 at 1x and 390x844 at 2x, light and dark. The first live example on three docs pages, centred on its Run · Edit · Source toolbar: on a phone its stage comes first and long code is folded under Show all; desktop for contrast.
