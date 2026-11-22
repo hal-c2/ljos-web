@@ -160,7 +160,7 @@ Column {
         width: demos.textWidth
         wide: demos.wide
         title: t`A whole app`
-        body: t`A bird field guide in WebAssembly. Once it runs, filter the list by typing in Search, pick a species to read its notes, mark birds as seen to update the counter, and switch light and dark themes while keeping your selection.`
+        body: t`A bird field guide. Once it runs, filter the list by typing in Search, pick a species to read its notes, mark birds as seen to update the counter, and switch light and dark themes while keeping your selection.`
 
         Slot {
             name: "demo-app"
