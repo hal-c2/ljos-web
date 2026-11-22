@@ -491,6 +491,7 @@ Rectangle {
                     y: Theme.xxl
                     width: parent.width - Theme.l - Theme.gutterWide
                     router: siteRouter
+                    listed: sitePreferences.wide
                 }
             }
         }

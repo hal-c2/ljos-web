@@ -12,7 +12,10 @@ Column {
 
     property var router: null
     property bool roomy: false
-    readonly property var headings: router ? router.headings : []
+    // False where it is hidden: the build writes the page wide and
+    // narrow, and would write every heading into both.
+    property bool listed: true
+    readonly property var headings: router && listed ? router.headings : []
 
     visible: headings.length > 0
     spacing: Theme.xs
