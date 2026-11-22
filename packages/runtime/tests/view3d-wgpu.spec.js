@@ -5,6 +5,7 @@
 // renderer drew (`references3d`).
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { expect, test } from "./open.js";
 import { pixels } from "./pixels.js";
 
@@ -1906,6 +1907,11 @@ test.describe("a View3D no one asked a renderer of", () => {
       for (const x of [50, 250]) await moves(page, Array.from({ length: 27 }, (_, i) => [x, 20 + i * 10]), `the view at ${x}`);
       expect(await refused(page), "the policy was in force").toBe(true);
     };
+    // After a count of none: what would have been counted is.
+    const wouldBeCounted = async (page) => {
+      expect(await refused(page), "the policy was in force").toBe(true);
+      await expect.poll(() => page.evaluate(() => window.refusals), "a refusal is counted").toBeGreaterThan(0);
+    };
     const adapter = (page) =>
       page.addInitScript(() => {
         Object.defineProperty(navigator, "gpu", { configurable: true, value: { requestAdapter: async () => ({}) } });
@@ -1944,6 +1950,7 @@ test.describe("a View3D no one asked a renderer of", () => {
       await page.goto("/?scene=wgpu_two");
       await expect.poll(() => page.evaluate(() => [...document.querySelectorAll(".qq-view3d")].some(({ $view3d }) => $view3d?.frames > 0))).toBe(true);
       expect(await page.evaluate(() => window.refusals), "what the policy refused").toBe(0);
+      await wouldBeCounted(page);
     });
 
     test("is not asked by a page with no 3D, which has WebGPU", async ({ page }) => {
@@ -1951,6 +1958,22 @@ test.describe("a View3D no one asked a renderer of", () => {
       await page.goto("/?scene=rectangle");
       await expect.poll(() => page.evaluate(() => !!window.ready)).toBe(true);
       expect(await page.evaluate(() => window.refusals), "what the policy refused").toBe(0);
+      await wouldBeCounted(page);
+    });
+
+    // A build for the JavaScript renderer loads this module with each page,
+    // and an application may import it (`ljos-web/early3d-held`): loading it
+    // is not asking whether the page can run WebAssembly.
+    test("is not asked as the held early ask loads, which has WebGPU", async ({ page }) => {
+      await adapter(page);
+      await page.goto("/?scene=rectangle");
+      await expect.poll(() => page.evaluate(() => !!window.ready)).toBe(true);
+      const held = `/@fs${fileURLToPath(new URL("../QtQuick3D/early-held.js", import.meta.url))}`;
+      await page.addScriptTag({ url: held, type: "module" });
+      // A refusal is reported in a task after the one it was made in.
+      await page.waitForTimeout(500);
+      expect(await page.evaluate(() => window.refusals), "what the policy refused").toBe(0);
+      await wouldBeCounted(page);
     });
 
     test.describe("asked for wgpu by its address", () => {

@@ -45,9 +45,13 @@ for (const demo of ["watch", "cockpit"]) {
       // The watch turns as it runs, and goes on turning.
       if (demo === "watch") {
         const canvas = page.locator(".qq-view3d").filter({ visible: true }).first();
+        const frames = () => canvas.evaluate(({ $view3d }) => $view3d.frames);
         for (let later = 0; later < 2; later++) {
+          const drawn = await frames();
           const before = await canvas.screenshot();
           await expect.poll(async () => (await canvas.screenshot()).equals(before), { timeout: 30_000 }).toBe(false);
+          // What lies over the canvas is in its picture too.
+          await expect.poll(frames, { message: "the view's own frames", timeout: 30_000 }).toBeGreaterThan(drawn);
         }
       }
       expect(errors).toEqual([]);
