@@ -765,6 +765,14 @@ for (const [what, markup] of [
     await page.evaluate(() => {
       window.objects.unsafe.y = 60;
       window.flush();
+      // Moving the text is a transform: WebKit looks at lazy pictures again
+      // only when something scrolls.
+      requestAnimationFrame(() => {
+        document.documentElement.style.height = "3000px";
+        document.body.style.height = "3000px";
+        scrollTo(0, 2);
+        setTimeout(() => scrollTo(0, 0), 100);
+      });
     });
     await expect.poll(() => asked, { message: "fetched once near" }).toContain("/lazy.svg");
     await expect.poll(() => tallness(page), { message: "room for it" }).toBeGreaterThanOrEqual(120);
