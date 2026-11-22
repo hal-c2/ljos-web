@@ -321,7 +321,7 @@ test.describe("when the frame narrows", () => {
       .poll(async () => {
         await page.clock.runFor(1);
         return width();
-      }, { message: "the tray narrows", intervals: [0], timeout: 20_000 })
+      }, { message: "the tray narrows", intervals: [0] })
       .toBeLessThan(box.width - 60);
     expect(await width(), "the narrowed tray still holds the target").toBeGreaterThan(box.width / 2 + 60);
   };
