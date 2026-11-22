@@ -8,8 +8,9 @@ Feature: A reload keeps what was assigned unless the file's declaration changed
 
   Covered by packages/runtime/site-tests/reload.spec.js, in a build
   with no places and in builds that say where each binding is written
-  (`inspect`), and by reload-names.spec.js beside it for the runtime's
-  own types.
+  (`inspect`), by reload-names.spec.js beside it for the runtime's
+  own types, and by reload-places.spec.js for a call of the app's own
+  shaped like a place.
 
   Background:
     Given a root mounted so that it can be reloaded
@@ -50,6 +51,13 @@ Feature: A reload keeps what was assigned unless the file's declaration changed
     When lines are added above a declaration and nothing else of it changes
     Then the property keeps what was assigned
     But a declaration edited in the same save still wins
+
+  Scenario: A call of the app's own shaped like a place is read whole
+    Given a getter whose head is the app's own call of a file, a line and a column
+    And it is in a file compiled without places inside one compiled with them, in props written by hand, or an attached property's value in a file compiled with places
+    When an edit changes only the line, or only the column, of that call
+    Then the file's value wins
+    But the call unchanged keeps what was assigned
 
   Scenario: What a reload records takes the place of nothing a type holds
     Given a Controller, a 3D graph or a particle system declares a list

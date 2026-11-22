@@ -769,7 +769,14 @@ while its text is unchanged.
 
 **DECISION:** what the file says of a property is the same when the
 compiled declaration is: the same literal, or a binding whose
-compiled function reads the same. A list or an object of plain data
+compiled function reads the same, where it is written left out. That
+is the line and column a build with places puts at the head of a
+binding's own getter (`$bound([file, line, column], …)`, the file
+being its level's `$at`); an attached property's value, which is not
+wrapped, and a place further in (`console`'s) are read with it. Code
+written by hand that gives its props the compiler's `$at` and a
+getter of just that shape is read without its place too: no QML
+makes one. A list or an object of plain data
 is the same when it holds the same, its keys in the same order, as
 it was when its object was recorded: a copy is taken then, so what
 the app changes in place afterwards is not taken for what the file
@@ -1025,8 +1032,11 @@ function of the file) puts `$at` (`[file, line, column, type]`), `$id`
 and, on a file's root, `$ids` among an object's props; it makes each
 free `console` `$console([file, line, column])`, and wraps each binding
 that can fail in `$bound([file, line, column], () => value)`. A file
-compiled so imports `ljos-web/inspect` before it makes anything. A file
-compiled without it has none of this, and the runtime has no code for
+compiled so imports `ljos-web/inspect` before it makes anything. These
+names, and every other name of an object's props that starts with
+`$`, are the compiler's and the runtime's: code written by hand gives
+props none of them, and a reload takes a `$at` for the compiler's. A
+file compiled without it has none of this, and the runtime has no code for
 it: `mise run test:size` is the same to the byte with and without this
 module in the tree.
 
