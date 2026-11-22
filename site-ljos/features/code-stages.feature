@@ -27,3 +27,9 @@ Feature: A code block's window before its example runs
     Given an example that draws in one scheme and nothing in the other
     When the reader switches between the light and dark themes
     Then "Nothing drawn yet" shows only in the scheme that draws nothing
+
+  Scenario: "Nothing drawn yet" stands on the page's paper
+    Given an example whose empty picture has a ground of its own
+    When the window says "Nothing drawn yet"
+    Then the window's paper hides that picture
+    And a picture with something in it still shows
