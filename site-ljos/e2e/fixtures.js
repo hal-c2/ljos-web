@@ -179,9 +179,12 @@ export async function centreOf(locator) {
 // (`stage`); once it runs, the running example, which is the one child
 // of the window a reader sees that holds anything (the window keeps
 // the picture's holder and the prerendered copy beside it, hidden).
-// The window stands on the stage's ground; before that ground, the
-// toolbar (Run, Edit, Reset, Source); after it, the line where the
-// block says what went wrong, then the values strip.
+// The window stands on the stage's ground; before that ground, a
+// one-pixel rule and before the rule the toolbar (Run, Edit, Reset,
+// Source); after it, the line where the block says what went wrong,
+// then the values strip. The block is the card the reader sees, named
+// "Code: …": its file tabs sit in the card's head, outside the column
+// the ground stands in, so the ground's parent would miss them.
 export function liveBlock(page, index) {
   const picture = page.locator(PICTURE).nth(index);
   const stage = picture.locator("xpath=../../..");
@@ -190,10 +193,10 @@ export function liveBlock(page, index) {
     picture,
     stage,
     running: stage.locator("xpath=./*[*]").filter({ visible: true }).first(),
-    toolbar: ground.locator("xpath=preceding-sibling::*[1]"),
+    toolbar: ground.locator("xpath=preceding-sibling::*[2]"),
     told: ground.locator("xpath=following-sibling::*[1]"),
     values: ground.locator("xpath=following-sibling::*[2]"),
-    block: ground.locator("xpath=.."),
+    block: stage.locator('xpath=ancestor::*[@role="group"][starts-with(@aria-label, "Code")][1]'),
   };
 }
 
