@@ -684,16 +684,20 @@ builds nothing 3D; it provides the canvas, the frame clock and the
 graph.
 
 As built so far (A25): the wgpu crate is reached through
-`crates/ljos_web_3d` and is the default (hal-c2/ljos-web#46) where
-WebGPU has an adapter for the page. Where it has none, or the browser
-has no WebGPU, a View3D no one asked a renderer of draws with
-`QtQuick3D/render.js` until each file its shown `RuntimeLoader`s name
-has arrived or failed (a fetch worth asking again is asked three times
-in all first), if one of them can be shown and the scene has nothing
-left to `render.js`; wgpu then draws that view on WebGL 2 and tells of
-the files that failed, unless it cannot make it, loses its context,
-traps, or such a thing comes to the scene (A25's DECISIONs). A page has
-`render.js` throughout with `?view3d=js` or `VITE_LJOS_VIEW3D=js`.
+`crates/ljos_web_3d` and is the default (hal-c2/ljos-web#46) where the
+page can run WebAssembly and WebGPU has an adapter for it. Elsewhere a
+View3D no one asked a renderer of draws with `QtQuick3D/render.js`, and
+turns to wgpu on WebGL 2 only for files only wgpu reads: where the page
+can run WebAssembly, once each file its shown `RuntimeLoader`s name has
+arrived or failed (a fetch worth asking again is asked three times in
+all first), if one of them can be shown and the scene has nothing left
+to `render.js`. wgpu then draws that view and tells of the files that
+failed. A view no one asked a renderer of goes back to `render.js` where
+wgpu cannot make it or its GPU is lost for good; a turned one also where
+it loses its context, the renderer traps or such a thing comes to the
+scene (A25's DECISIONs). A page whose policy refuses WebAssembly has
+`render.js` throughout, as one with `?view3d=js` or
+`VITE_LJOS_VIEW3D=js` has; `?view3d=wgpu` there says why it cannot.
 Picking stays in JavaScript (`pick.js`), not wasm.
 
 ### A11. Decisions taken in phase 1 (summary)
@@ -1702,13 +1706,18 @@ committed. Without that directory the switch has nothing to load.
 `size/check.js` holds the budgets below, and fails a page with no
 View3D that has either renderer in it.
 
-DECISION: wgpu is the default (hal-c2/ljos-web#46) only where WebGPU
-has an adapter. Elsewhere `render.js` is, as wgpu does not yet draw all
-that it does (what fails of `tests/quick3d.spec.js` on wgpu is under
-"What it reaches today", below). `render.js` also draws a view whose
-first making on wgpu fails or traps, where no one asked for wgpu, and
-the console says why. A trap in what `create` waits on never settles its
-promise, as the wasm aborts: the page hears it (`created` in `wgpu.js`),
+DECISION: wgpu is the default (hal-c2/ljos-web#46) only where the page
+can run WebAssembly and WebGPU has an adapter for it. Elsewhere
+`render.js` is, as wgpu does not yet draw all that it does (what fails
+of `tests/quick3d.spec.js` on wgpu is under "What it reaches today",
+below), until a view turns to wgpu on WebGL 2 for files only wgpu reads
+(`RuntimeLoader`'s DECISION, below), which takes WebAssembly too. Where
+no one asked for wgpu, `render.js` has back a view whose first making on
+wgpu fails or traps or whose GPU is lost for good, and a turned one that
+loses its context, whose renderer traps, or that comes to show what is
+left to `render.js`; the console says why of a failure, trap or loss.
+A trap in what `create` waits on never settles its promise, as the wasm
+aborts: the page hears it (`created` in `wgpu.js`),
 the view queued behind is not kept waiting, and no view is made on wgpu
 after it. `render.js` goes only once `tests/quick3d.spec.js` passes on
 wgpu.
@@ -1729,8 +1738,9 @@ renderers, but only wgpu reads the file: the JavaScript renderer draws
 what is declared and has no glTF reader. So without WebGPU a view is
 turned to wgpu's WebGL 2 when the shown nodes in it and in its
 `importScene` name such files (`$unread`: by extension, `.gltf`, `.glb`
-and `.obj`, as wgpu's loader reads them), every one has arrived or
-failed, one can be shown (`$ready`),
+and `.obj`, as wgpu's loader reads them), the page can run WebAssembly
+(`wasmWorks`), every one has arrived or failed, one can be shown
+(`$ready`),
 and the scene shows nothing left to `render.js` (`scriptAlone` in
 `View3D.js` has the list: fog, and what fails below). Until then
 `render.js` draws, and its picture stays up until wgpu's first. If such a
@@ -1776,10 +1786,15 @@ skin, Mask and Opaque with an opacity, a picture given as numbers by fractions,
 affectors, and a view of very many nodes.
 
 DECISION: JavaScript stays the renderer of a View3D without a WebGPU adapter,
-unless it shows files only wgpu reads and nothing left to JavaScript
-(`RuntimeLoader`'s DECISION, above), until those specs pass and until
+or on a page that cannot run WebAssembly, until those specs pass and until
 a scene's rebuild and a view read back as a texture cost less than they do: a
-View3D drawn into another's scene reads back every frame.
+View3D drawn into another's scene reads back every frame. The exception is
+the one above: where WebAssembly runs, a view turns to wgpu on WebGL 2 for
+files only wgpu reads while it shows nothing left to JavaScript, and goes
+back to JavaScript where wgpu cannot make it, its context is lost, the
+renderer traps or it comes to show such a thing. With an adapter wgpu is
+the default, and hands back what it cannot make or whose GPU is lost for
+good.
 
 ### A26. A page written at build time, and taken over when it runs
 
