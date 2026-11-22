@@ -15,8 +15,9 @@ import "later.js" as Later
 // the agent's) is said in its log, and streams back into the agent's log
 // through app_watch and app_logs, as it would to an agent.
 //
-// It runs only while its stage does (`active`): a watch out when it stops
-// is answered by its own timeout and not asked again.
+// It runs only while its stage does (`active`), and at its end nothing is
+// left scheduled: the app's log is asked after each thing the app says,
+// never waited on.
 AgentView {
     id: stage
 
@@ -28,6 +29,7 @@ AgentView {
 
     total: AgentReplay.steps.length
     playing: true
+    working: active && playing
     Component.onCompleted: reset()
 
     // The ref the last app_find answered.
@@ -35,8 +37,8 @@ AgentView {
     // The call of a step on its way, by its serial; -1 when none is.
     property int stepSerial: -1
     property int stepRow: -1
-    // Where `previous` replays to, fast: -1 when it does not.
-    property int fastTo: -1
+    // The app spoke while its log was being read: read it again after.
+    property bool owed: false
     // The app's log: how many lines it had at the last watch, and which
     // line the next app_logs starts at. -1 until the first watch says.
     property int logsSeen: -1
@@ -82,9 +84,10 @@ AgentView {
         stepRow = -1;
         found = "";
         at = 0;
-        card.heading = AgentReplay.heading;
-        card.tickets = AgentReplay.tickets;
-        card.filters = AgentReplay.filters;
+        edited = false;
+        card.heading = AgentReplay.startHeading;
+        card.tickets = AgentReplay.tickets.slice(0, 2);
+        card.filters = [];
         card.layout = "list";
         card.openOnly = false;
         card.crews = {};
@@ -95,27 +98,12 @@ AgentView {
         propertyRows = [];
     }
 
-    onPlay: {
+    // The frame's Play: from the start once it has ended, else on from
+    // where the reader took over.
+    function play() {
         if (at >= total)
             reset();
-        playing = true;
-    }
-    onPause: playing = false
-    onNext: {
-        playing = false;
-        step();
-    }
-    onPrevious: {
-        // Calls cannot be taken back one by one: the card goes back to
-        // where it started and the steps before are sent again, at once.
-        const to = Math.max(0, at - 1);
-        playing = false;
-        reset();
-        fastTo = to > 0 ? to : -1;
-    }
-    onRestart: {
-        reset();
-        fastTo = -1;
+        edited = false;
         playing = true;
     }
     // The reader's own edit of what the agent's call sets. It takes the
@@ -124,8 +112,9 @@ AgentView {
         if (picked === card.layout)
             return;
         playing = false;
+        edited = true;
         card.layout = picked;
-        Observed.say(key, "info", `layout changed to ${picked}`);
+        tell(`layout changed to ${picked}`);
     }
     onTabPicked: (picked) => {
         tab = picked;
@@ -142,13 +131,23 @@ AgentView {
             treeSerial = ask("app_objects", JSON.stringify({ depth: 6 }));
     }
 
-    // The app's log, as an agent follows it: one watch out at a time,
-    // which answers once the app has said more.
+    function tell(line) {
+        Observed.say(key, "info", line);
+        listen();
+    }
+
+    // The app's log, as an agent reads it: how much it has said, then
+    // those lines. app_watch without `since` answers at once and sets no
+    // timer, so it is asked when there is something to hear, one at a time.
     function listen() {
-        if (!active || watchSerial >= 0 || logsSerial >= 0 || tokenFile === "")
+        if (!active || tokenFile === "")
             return;
-        const args = logsSeen < 0 ? {} : { since: { logs: logsSeen }, wait_ms: 30000, holder: key };
-        watchSerial = ask("app_watch", JSON.stringify(args));
+        if (watchSerial >= 0 || logsSerial >= 0) {
+            owed = true;
+            return;
+        }
+        owed = false;
+        watchSerial = ask("app_watch", "{}");
     }
     onActiveChanged: listen()
 
@@ -165,14 +164,16 @@ AgentView {
                 logsSerial = ask("app_logs", JSON.stringify({ since: logSince, limit: 20 }));
                 return;
             }
-            listen();
+            if (owed)
+                listen();
             return;
         }
         if (serial === logsSerial) {
             logsSerial = -1;
             Stage.logEntries(answer).forEach((entry) => row({ kind: "event", text: entry.message }));
             logSince = Stage.nextSince(answer, logSince);
-            listen();
+            if (owed)
+                listen();
             return;
         }
         if (serial === treeSerial) {
@@ -197,8 +198,6 @@ AgentView {
         if (tool === "app_find" && ok)
             found = Stage.refOf(answer);
         at = at + 1;
-        if (fastTo >= 0 && at >= fastTo)
-            fastTo = -1;
         if (at >= total) {
             playing = false;
             row({ kind: "end", text: t`Your turn: try any button in the app and watch this log.` });
@@ -234,16 +233,17 @@ AgentView {
     Connections {
         target: stage.card
         function onTold(line) {
-            Observed.say(stage.key, "info", line);
+            stage.tell(line);
         }
     }
 
     // The replay's beat: each step stands for as long as it was given,
-    // and steps sent again to go back are sent at once.
+    // also for a reader who asked for less motion, who is moved less but
+    // shown each step.
     Timer {
         id: beat
-        interval: stage.fastTo >= 0 ? 0 : stage.at > 0 ? AgentReplay.steps[stage.at - 1].wait : 700
-        running: stage.active && !stage.busy && stage.at < stage.total && (stage.playing || stage.fastTo > stage.at) && stage.tokenFile !== ""
+        interval: stage.at > 0 ? AgentReplay.steps[stage.at - 1].wait : 700
+        running: stage.active && !stage.busy && stage.at < stage.total && stage.playing && stage.tokenFile !== ""
         onTriggered: stage.step()
     }
 

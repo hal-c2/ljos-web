@@ -25,6 +25,10 @@ const PANTRY = new Set(["/", "/demos/"]);
 // `ljos-web/wasm-check.js`'s NEEDS_WASM, as a reader reads it.
 const NEEDS_WASM = /^Live editing needs WebAssembly/;
 const PICTURE = 'img[alt="What this example draws"]';
+// The front page's replay stands 14 s of held time (Demos/AgentReplay.qml's
+// waits); the clock moves 500 ms at a look, so each step can take up to
+// two looks past its wait.
+const REPLAY_ENDS_WITHIN = 14_000 + 14 * 1000 + 2000;
 
 async function opened(browser, path, wasm) {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 1, colorScheme: "light" });
@@ -47,16 +51,25 @@ async function opened(browser, path, wasm) {
   for (let i = 0; i < 40; i++) await page.clock.fastForward(50);
   // The front page's replay starts itself, and each step stands up to
   // seconds of held time: on to its last, or each would be caught midway.
-  if (path === "/")
+  if (path === "/") {
+    // Held time is counted from the first call, less what a call on its
+    // way takes to answer, which is real time.
+    let held = 0;
+    let ended = false;
     await expect
       .poll(
         async () => {
           await page.clock.fastForward(500);
-          return page.evaluate(() => document.querySelector("#app").textContent.includes("Your turn: try any button in the app"));
+          const words = await page.evaluate(() => document.querySelector("#app").textContent);
+          ended = words.includes("Your turn: try any button in the app");
+          if (!ended && words.includes("Check that the app is running.") && !(await page.getByText("sent", { exact: true }).count())) held += 500;
+          return ended || held > REPLAY_ENDS_WITHIN;
         },
         { timeout: 30_000, intervals: [50], message: `the replay ran to its end ${wasm ? "with" : "without"} WebAssembly` },
       )
       .toBe(true);
+    expect(ended, `the replay ended within ${REPLAY_ENDS_WITHIN} ms of held time`).toBe(true);
+  }
   // A live block compiles, and says what its example lacks, in real
   // time after a held-clock debounce: move both until the page has said
   // nothing new for half a second.
@@ -69,6 +82,15 @@ async function opened(browser, path, wasm) {
   }
   expect(still, `${path} ${wasm ? "with" : "without"} WebAssembly stopped changing`).toBeGreaterThanOrEqual(10);
   await page.evaluate(() => document.fonts.ready);
+  if (path === "/") {
+    // At its end nothing is scheduled: held time goes on past any wait
+    // the replay could have left, and the page is as it was.
+    const before = { words: await page.evaluate(() => document.body.innerText), picture: await shot(page, 900) };
+    for (let i = 0; i < 70; i++) await page.clock.fastForward(500);
+    await page.waitForTimeout(500);
+    expect(await page.evaluate(() => document.body.innerText), "nothing is said after the replay's end").toBe(before.words);
+    expect(await differing(page, before.picture, await shot(page, 900)), "nothing moves after the replay's end").toEqual({ count: 0 });
+  }
   return { context, page, fetched };
 }
 
@@ -171,9 +193,15 @@ const differing = (page, a, b) =>
       const [one, two] = [await pixels(a), await pixels(b)];
       if (one.width !== two.width || one.height !== two.height) return { size: [one.width, one.height, two.width, two.height] };
       let count = 0;
+      // Where they differ, for who reads the failure.
+      let [left, top, right, bottom] = [one.width, one.height, 0, 0];
       for (let i = 0; i < one.data.length; i += 4)
-        if (one.data[i] !== two.data[i] || one.data[i + 1] !== two.data[i + 1] || one.data[i + 2] !== two.data[i + 2]) count++;
-      return { count };
+        if (one.data[i] !== two.data[i] || one.data[i + 1] !== two.data[i + 1] || one.data[i + 2] !== two.data[i + 2]) {
+          count++;
+          const [x, y] = [(i / 4) % one.width, Math.floor(i / 4 / one.width)];
+          [left, top, right, bottom] = [Math.min(left, x), Math.min(top, y), Math.max(right, x + 1), Math.max(bottom, y + 1)];
+        }
+      return count === 0 ? { count } : { count, differs: [left, top, right, bottom] };
     },
     [a.toString("base64"), b.toString("base64")],
   );

@@ -8,16 +8,21 @@ import "../observing.js" as Observing
 // when the page is idle once the button is shown, or when the reader comes
 // near the button. A page whose stages offer none fetches nothing of it.
 StageButton {
+    id: observer
+
+    // False where the button is far from what the page is first for: then
+    // only coming near it fetches.
+    property bool prefetchesWhenIdle: true
     checkable: true
     text: t({ message: "Observer", context: "stage" })
 
     onApproached: Observing.prefetch()
     onVisibleChanged: {
-        if (visible)
+        if (visible && observer.prefetchesWhenIdle)
             Observing.prefetchWhenIdle();
     }
     Component.onCompleted: {
-        if (visible)
+        if (visible && observer.prefetchesWhenIdle)
             Observing.prefetchWhenIdle();
     }
 }

@@ -16,7 +16,9 @@ import "../observing.js" as Observing
 // it is on screen and its tab is shown (`active`), gently where the
 // reader asks for less motion (`calm`). One more demo or example
 // started past the page's budget (Running) stops it: it is unmade, and
-// its poster waits for Run again. A browser without what the demo needs
+// its poster waits for Run again. The front page's replay alone has its
+// toolbar over it (`barOnTop`): its controls are the first thing read,
+// tabbed to and seen. A browser without what the demo needs
 // (WebGL 2, WebGPU, wasm) keeps the picture, and says why in the
 // toolbar's place, which is taller only where that takes a third line.
 //
@@ -82,8 +84,18 @@ Item {
         runner.run();
     }
 
+    // Its toolbar over it, in no frame of its own, with a line of `note`
+    // beside its one button; the poster can be used before any Run, so a
+    // press on it runs nothing.
+    property bool barOnTop: false
+    property string note: ""
+    readonly property int surfaceY: barOnTop ? barHeight : 0
+    // A demo that plays to an end and says it has stopped (`playing`)
+    // offers Play, never a Pause of what stands still.
+    readonly property bool replayable: barOnTop && loader.item !== null && loader.item.playing === false && (runner.phase === "live" || runner.phase === "paused")
+
     // The demo's own area, its poster's shape or taller (`least`); the
-    // toolbar under it.
+    // toolbar under it, or over it (`barOnTop`).
     readonly property int pictureHeight: Math.round(width * aspect)
     readonly property int surfaceHeight: Math.max(pictureHeight, least)
     // Room for Run at a finger's size on a phone, a little more than its
@@ -127,7 +139,7 @@ Item {
         return y;
     }
     readonly property real top: scroller ? offset() - scroller.contentY : 0
-    readonly property bool onScreen: !scroller || (top < scroller.height && top + surfaceHeight > 0)
+    readonly property bool onScreen: !scroller || (top + surfaceY < scroller.height && top + surfaceY + surfaceHeight > 0)
     readonly property bool drawn: loader.status === Loader.Ready && loader.item !== null && loader.item.ready !== false
 
     // The Observer on what runs here: the demo, or the app a demo holds
@@ -156,12 +168,23 @@ Item {
         }
     }
 
+    // Declared before the demo where it stands over it, so Tab and a
+    // screen reader come to it first; after it where it stands under.
+    Loader {
+        z: 1
+        width: frame.width
+        height: frame.barHeight
+        active: frame.barOnTop
+        visible: frame.barOnTop
+        sourceComponent: toolbar
+    }
+
     Rectangle {
         anchors.fill: parent
         radius: Theme.radius
-        color: Theme.surface
+        color: frame.barOnTop ? "transparent" : Theme.surface
         border.color: Theme.divider
-        border.width: 1
+        border.width: frame.barOnTop ? 0 : 1
         clip: true
 
         // The picture is in the page as written (Nav.picture), so it
@@ -176,7 +199,7 @@ Item {
                 required property string modelData
                 required property int index
                 x: 1
-                y: 1 + Math.round((frame.surfaceHeight - frame.pictureHeight) / 2)
+                y: frame.surfaceY + 1 + Math.round((frame.surfaceHeight - frame.pictureHeight) / 2)
                 width: frame.width - 2
                 height: frame.pictureHeight - 1
                 visible: modelData !== "" && (frame.pictureDark === "" || (index === 1) === Theme.dark) && !(frame.drawn && loader.opacity === 1)
@@ -186,10 +209,11 @@ Item {
         }
 
         Loader {
-            x: 1
-            y: 1
-            width: frame.width - 2
-            height: frame.surfaceHeight - 1
+            readonly property int inset: frame.barOnTop ? 0 : 1
+            x: inset
+            y: frame.surfaceY + inset
+            width: frame.width - 2 * inset
+            height: frame.surfaceHeight - inset
             // Where the demo starts itself its poster is hidden, not unmade:
             // the page is still being taken over as written when it starts.
             active: frame.poster !== null && (frame.startsItself || !(frame.drawn && loader.opacity === 1))
@@ -203,7 +227,7 @@ Item {
         Rectangle {
             visible: frame.cannot
             x: Theme.s
-            y: frame.surfaceHeight + 1
+            y: frame.barOnTop ? 1 : frame.surfaceHeight + 1
             width: parent.width - 2 * Theme.s
             height: frame.barHeight - 1
             color: "transparent"
@@ -228,6 +252,9 @@ Item {
 
     Loader {
         id: loader
+        y: frame.surfaceY
+        // Over a poster that takes presses, nothing lies until it runs.
+        visible: !frame.barOnTop || active
         width: frame.width
         height: frame.surfaceHeight
         // Whatever a demo draws past its area is cut at the frame's
@@ -257,75 +284,110 @@ Item {
 
     Runner {
         id: runner
+        y: frame.surfaceY
         spanWidth: frame.width
         spanHeight: frame.surfaceHeight
+        pressRuns: !frame.barOnTop
         can: frame.runnable
         what: frame.what
         ready: frame.drawn
     }
 
     // The toolbar: within the frame, under the demo, never over it.
-    Rectangle {
+    Loader {
         y: frame.surfaceHeight
         width: frame.width
         height: frame.barHeight
-        color: "transparent"
+        active: !frame.barOnTop
+        visible: !frame.barOnTop
+        sourceComponent: toolbar
+    }
+
+    Component {
+        id: toolbar
 
         Rectangle {
-            width: parent.width
-            height: 1
-            color: Theme.divider
-        }
+            width: frame.width
+            height: frame.barHeight
+            color: "transparent"
 
-        // One button through the run's phases, so the focus a keyboard
-        // reader gave it stays as it changes.
-        StageButton {
-            x: Theme.s
-            anchors.verticalCenter: parent.verticalCenter
-            visible: runner.phase !== ""
-            primary: runner.phase === "picture"
-            busy: runner.phase === "loading" || runner.phase === "failed"
-            text: {
-                switch (runner.phase) {
-                case "loading":
-                case "failed":
-                    return t`Starting…`;
-                case "live":
-                    return t`Pause`;
-                case "paused":
-                    return t`Resume`;
-                default:
-                    return t({ message: "Run", context: "stage" });
+            Rectangle {
+                visible: !frame.barOnTop
+                width: parent.width
+                height: 1
+                color: Theme.divider
+            }
+
+            // One button through the run's phases, so the focus a keyboard
+            // reader gave it stays as it changes.
+            StageButton {
+                x: frame.barOnTop ? Theme.xxs : Theme.s
+                anchors.verticalCenter: parent.verticalCenter
+                visible: runner.phase !== ""
+                primary: runner.phase === "picture" || frame.replayable
+                busy: runner.phase === "loading" || runner.phase === "failed"
+                text: {
+                    if (frame.replayable)
+                        return t`Play`;
+                    switch (runner.phase) {
+                    case "loading":
+                    case "failed":
+                        return t`Starting…`;
+                    case "live":
+                        return t`Pause`;
+                    case "paused":
+                        return t`Resume`;
+                    default:
+                        return t({ message: "Run", context: "stage" });
+                    }
+                }
+                label: {
+                    if (frame.replayable)
+                        return t`Play ${frame.what}`;
+                    switch (runner.phase) {
+                    case "loading":
+                    case "failed":
+                        return t`Starting ${frame.what}…`;
+                    case "live":
+                        return t`Pause ${frame.what}`;
+                    case "paused":
+                        return t`Resume ${frame.what}`;
+                    default:
+                        return t`Run ${frame.what}`;
+                    }
+                }
+                onPressed: {
+                    if (!frame.replayable)
+                        return runner.act();
+                    loader.item.play();
+                    runner.ask();
                 }
             }
-            label: {
-                switch (runner.phase) {
-                case "loading":
-                case "failed":
-                    return t`Starting ${frame.what}…`;
-                case "live":
-                    return t`Pause ${frame.what}`;
-                case "paused":
-                    return t`Resume ${frame.what}`;
-                default:
-                    return t`Run ${frame.what}`;
-                }
-            }
-            onPressed: runner.act()
-        }
 
-        // Ljós's Observer on the demo while it runs: its objects,
-        // properties, frames and log.
-        ObserverButton {
-            anchors.right: parent.right
-            anchors.rightMargin: Theme.s
-            anchors.verticalCenter: parent.verticalCenter
-            visible: frame.drawn && frame.observed !== null
-            checked: frame.observing
-            label: t`Observer for ${frame.what}`
-            // What the demo's app said, where the demo keeps it apart from
-            // the page's console.
-            onPressed: Observing.toggle(frame.key, frame.observed, loader.item && loader.item.logs !== undefined ? loader.item.logs : null, frame.what)
+            Text {
+                visible: frame.note !== ""
+                anchors.right: parent.right
+                anchors.rightMargin: Theme.xxs
+                anchors.verticalCenter: parent.verticalCenter
+                text: frame.note
+                color: Theme.textMuted
+                font.family: Theme.sans
+                font.pixelSize: Theme.captionSize
+            }
+
+            // Ljós's Observer on the demo while it runs: its objects,
+            // properties, frames and log.
+            ObserverButton {
+                anchors.right: parent.right
+                anchors.rightMargin: Theme.s
+                anchors.verticalCenter: parent.verticalCenter
+                visible: !frame.barOnTop && frame.drawn && frame.observed !== null
+                checked: frame.observing
+                label: t`Observer for ${frame.what}`
+                // What the demo's app said, where the demo keeps it apart from
+                // the page's console.
+                onPressed: Observing.toggle(frame.key, frame.observed, loader.item && loader.item.logs !== undefined ? loader.item.logs : null, frame.what)
+            }
         }
     }
 }

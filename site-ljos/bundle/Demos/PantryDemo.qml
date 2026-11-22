@@ -37,6 +37,8 @@ Column {
     // compiler, so the app's own shell (the fallback) stands and the
     // demo says why it cannot be rewritten here.
     property bool runs: true
+    // Whether its Observer is fetched ahead, once the page is idle.
+    property bool observerWhenIdle: true
 
     width: parent ? parent.width : 680
     spacing: 0
@@ -222,6 +224,7 @@ Column {
                     // properties, frames and log, under whichever shell stands.
                     ObserverButton {
                         id: observerButton
+                        prefetchesWhenIdle: demo.observerWhenIdle
                         anchors.right: parent.right
                         anchors.rightMargin: Theme.xs
                         anchors.verticalCenter: parent.verticalCenter
