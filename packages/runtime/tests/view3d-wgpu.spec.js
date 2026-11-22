@@ -1787,6 +1787,378 @@ test.describe("a View3D no one asked a renderer of", () => {
     });
   }
 
+  // A picture with the square in `column`, and two later ones that each
+  // have it somewhere else: a blank one is neither.
+  const moves = async (page, column, what) => {
+    let last = null;
+    for (let picture = 0; picture < 3; picture++) {
+      await expect
+        .poll(
+          async () => {
+            const now = (await pixels(page, column)).map((colour) => (colour === "0 0 255" ? "#" : ".")).join("");
+            if (!now.includes("#") || now === last) return false;
+            last = now;
+            return true;
+          },
+          { message: `${what}'s square, picture ${picture}` },
+        )
+        .toBe(true);
+    }
+  };
+
+  // A view turned to wgpu on WebGL 2 has a context and a device of its own,
+  // and a scene the JavaScript renderer was drawing. Losing the context, or
+  // the renderer trapping, hands it back: the scene is drawn, and what was
+  // moving in it goes on moving, as it does where no view turns. What the
+  // loss took is that view alone, and no view waits for one that cannot be
+  // made. See docs/LJOS_WEB.md.
+  test.describe("a turned view that wgpu cannot go on drawing", () => {
+    const SQUARE = "scenes/wgpu_models/square.gltf";
+    // A column through each view's moving square.
+    const COLUMNS = [50, 250].map((x) => Array.from({ length: 27 }, (_, i) => [x, 20 + i * 10]));
+    const renderers = (page) =>
+      page.evaluate(() => [...document.querySelectorAll(".qq-view3d")].map(({ $view3d }) => $view3d?.renderer ?? null));
+    const opened = async (page) => {
+      await page.goto("/?scene=wgpu_turned_moving");
+      await page.waitForFunction(() => window.ready);
+      await page.evaluate(() => {
+        window.objects.moving = true;
+        window.flush();
+      });
+    };
+    const named = (page, loaders = ["first", "second"]) =>
+      page.evaluate(([loaders, file]) => {
+        for (const loader of loaders) window.objects[loader].source = file;
+        window.flush();
+      }, [loaders, SQUARE]);
+    const bothTurned = async (page) => {
+      await opened(page);
+      await named(page);
+      await page.waitForFunction(() => {
+        const states = [...document.querySelectorAll(".qq-view3d")].map(({ $view3d }) => $view3d);
+        return states.length === 2 && states.every((state) => state?.renderer === "wgpu" && state.backend === "webgl2" && state.frames > 0);
+      });
+    };
+    // One picture, and two later ones that each changed, in every view.
+    const goesOn = async (page) => {
+      for (const [view, column] of COLUMNS.entries()) await moves(page, column, `view ${view}`);
+    };
+    // What the first WebGL 2 context asked from now of a canvas not there
+    // yet is: lost as it is given, or no WebGL 2 context at all, which traps
+    // wgpu's own create.
+    const spoils = (how) => {
+      const there = new Set(document.querySelectorAll(".qq-view3d"));
+      const get = HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext = function (kind, ...options) {
+        if (kind !== "webgl2" || !this.classList.contains("qq-view3d") || there.has(this) || window.contextSpoilt) return get.call(this, kind, ...options);
+        window.contextSpoilt = true;
+        if (how === "foreign") return {};
+        const context = get.call(this, kind, ...options);
+        context.getExtension("WEBGL_lose_context").loseContext();
+        return context;
+      };
+    };
+    const firstContext = (page, how) => page.addInitScript(spoils, how);
+    // Only what a turned view is drawn under asks a loader where its file is
+    // at each change of the scene: so a change that has it ask says that
+    // this is still there.
+    const countsNamed = (page) =>
+      page.evaluate(() => {
+        const { first } = window.objects;
+        const named = first.$named;
+        window.namedAsked = 0;
+        first.$named = function () {
+          window.namedAsked++;
+          return named.call(this);
+        };
+      });
+    const askedByAChange = (page) =>
+      page.evaluate(() => {
+        const { first } = window.objects;
+        window.namedAsked = 0;
+        first.opacity = first.opacity === 1 ? 0.5 : 1;
+        window.flush();
+        return window.namedAsked;
+      });
+
+    test.describe("whose context is lost", () => {
+      test.use({ told: [/^(View3D: drawn by the JavaScript renderer, as wgpu could not draw it: |WebGL: CONTEXT_LOST_WEBGL)/] });
+
+      test("it goes on moving on the JavaScript renderer, and the view beside it on wgpu", async ({ page }) => {
+        await page.addInitScript(HIDDEN);
+        await bothTurned(page);
+        await goesOn(page);
+        // The scene changes in the task that loses the context, before the
+        // page is told of the loss.
+        await page.evaluate(() => {
+          document.querySelector(".qq-view3d").getContext("webgl2").getExtension("WEBGL_lose_context").loseContext();
+          window.objects.turning.width = 198;
+          window.flush();
+        });
+        await expect.poll(() => renderers(page)).toEqual(["js", "wgpu"]);
+        await goesOn(page);
+      });
+
+      test("it goes on moving once the JavaScript renderer's own lost context is given back", async ({ page }) => {
+        await page.addInitScript(HIDDEN);
+        await page.addInitScript(() => {
+          const get = OffscreenCanvas.prototype.getContext;
+          window.scripted = new Set();
+          OffscreenCanvas.prototype.getContext = function (kind, ...options) {
+            const context = get.call(this, kind, ...options);
+            if (kind === "webgl2" && context && !window.scripted.has(context)) {
+              window.scripted.add(context);
+              // A task later: after every listener has had it.
+              this.addEventListener("webglcontextlost", (event) => setTimeout(() => (context.lossHandled = event.defaultPrevented)));
+            }
+            return context;
+          };
+        });
+        await bothTurned(page);
+        const losing = await page.evaluate(() => {
+          window.losers = [...window.scripted].map((context) => context.getExtension("WEBGL_lose_context"));
+          for (const loser of window.losers) loser.loseContext();
+          for (const canvas of document.querySelectorAll(".qq-view3d")) canvas.getContext("webgl2").getExtension("WEBGL_lose_context").loseContext();
+          return window.losers.length;
+        });
+        expect(losing, "the JavaScript renderer's contexts to lose").toBeGreaterThan(0);
+        await expect
+          .poll(() => page.evaluate(() => [...window.scripted].map((context) => [context.isContextLost(), context.lossHandled ?? null])), { message: "each lost, and its loss handled" })
+          .toEqual(Array(losing).fill([true, true]));
+        await expect.poll(() => renderers(page)).toEqual(["js", "js"]);
+        await page.evaluate(() => {
+          for (const loser of window.losers) loser.restoreContext();
+        });
+        await goesOn(page);
+      });
+
+      test("handed back, what it was drawn under by wgpu has ended", async ({ page }) => {
+        await page.addInitScript(HIDDEN);
+        await bothTurned(page);
+        await countsNamed(page);
+        expect(await askedByAChange(page), "asked while it is turned").toBeGreaterThan(0);
+        await page.evaluate(() => document.querySelector(".qq-view3d").getContext("webgl2").getExtension("WEBGL_lose_context").loseContext());
+        await expect.poll(() => renderers(page)).toEqual(["js", "wgpu"]);
+        await expect.poll(() => askedByAChange(page), { message: "asked once it is handed back" }).toBe(0);
+        await goesOn(page);
+      });
+    });
+
+    test.describe("whose context is lost before wgpu has made it", () => {
+      // wgpu's own create may refuse such a context or trap on it.
+      test.use({ told: [/^(View3D: (drawn by the JavaScript renderer, as wgpu could not draw it: |the renderer stopped: RuntimeError: unreachable|panicked at )|WebGL: CONTEXT_LOST_WEBGL)/] });
+
+      test("it goes on moving on the JavaScript renderer, and the view queued behind it is drawn", async ({ page }) => {
+        await page.addInitScript(HIDDEN);
+        await firstContext(page, "lost");
+        await opened(page);
+        await named(page);
+        await expect.poll(() => page.evaluate(() => window.contextSpoilt)).toBe(true);
+        // Two canvases once no picture of before the turn covers a view.
+        await expect
+          .poll(async () => {
+            const drawing = await renderers(page);
+            return [drawing.length, drawing[0]];
+          })
+          .toEqual([2, "js"]);
+        await goesOn(page);
+      });
+    });
+
+    // The wasm aborts on a panic: what `create` promised is then never
+    // settled, and only the page hears the trap, whose stack names the wasm
+    // as it was compiled: as it arrived, or from its bytes. A trap there
+    // stops no renderer: it is never told as one that did.
+    for (const [served, type] of [
+      ["", null],
+      [", the wasm not said to be wasm", "application/octet-stream"],
+    ]) {
+      test.describe(`a trap inside wgpu's own create${served}`, () => {
+        test.use({
+          told: [
+            /^View3D: (drawn by the JavaScript renderer, as wgpu could not draw it: |panicked at [^]*canvas context is not a WebGl2RenderingContext)/,
+            // The glue's own word as it compiles from the bytes.
+            ...(type ? [/^`WebAssembly\.instantiateStreaming` failed because your server does not serve Wasm/] : []),
+          ],
+        });
+        let typed = 0;
+        test.beforeEach(async ({ page }) => {
+          typed = 0;
+          await page.addInitScript(HIDDEN);
+          if (!type) return;
+          await page.route(WASM, async (route) => {
+            typed++;
+            const response = await route.fetch();
+            await route.fulfill({ response, headers: { ...response.headers(), "content-type": type } });
+          });
+        });
+        const trapped = async (page) => {
+          await expect.poll(() => page.evaluate(() => window.contextSpoilt)).toBe(true);
+          if (type) expect(typed, "the wasm's type was replaced").toBeGreaterThan(0);
+        };
+
+        test("leaves neither the turned view nor the one queued behind it undrawn", async ({ page }) => {
+          await firstContext(page, "foreign");
+          await opened(page);
+          await named(page);
+          await trapped(page);
+          await expect.poll(() => renderers(page)).toEqual(["js", "js"]);
+          await goesOn(page);
+        });
+
+        test("leaves neither view undrawn where the page was said to have an adapter", async ({ page }) => {
+          // The page is given an adapter and wgpu, asking after, none: the
+          // views start on wgpu, and it makes them on WebGL 2.
+          await page.addInitScript(() => {
+            let asks = 0;
+            Object.defineProperty(navigator, "gpu", { configurable: true, value: { requestAdapter: async () => (asks++ ? null : {}) } });
+          });
+          await firstContext(page, "foreign");
+          await opened(page);
+          await trapped(page);
+          await expect.poll(() => renderers(page)).toEqual(["js", "js"]);
+          await goesOn(page);
+        });
+
+        test("leaves the view made before it drawing on wgpu, and moving", async ({ page }) => {
+          await opened(page);
+          await named(page, ["first"]);
+          await page.waitForFunction(() => {
+            const [turned, beside, ...more] = [...document.querySelectorAll(".qq-view3d")].map(({ $view3d }) => $view3d);
+            return !more.length && turned?.renderer === "wgpu" && turned.backend === "webgl2" && turned.frames > 0 && beside?.renderer === "js";
+          });
+          await goesOn(page);
+          await page.evaluate(spoils, "foreign");
+          await named(page, ["second"]);
+          await trapped(page);
+          // Two canvases again once the second's create was given up.
+          await expect.poll(() => renderers(page)).toEqual(["wgpu", "js"]);
+          await goesOn(page);
+        });
+      });
+    }
+
+    for (const call of ["frame", "build"]) {
+      test.describe(`that traps in ${call} after it drew`, () => {
+        test.use({ told: [/^View3D: (drawn by the JavaScript renderer, as wgpu could not draw it: |the renderer stopped: RuntimeError: unreachable)/] });
+
+        test("it goes on moving on the JavaScript renderer, as every turned view does", async ({ page }) => {
+          await page.route(/\/wgpu\/ljos_web_3d\.js(\?|$)/, async (route) => {
+            const response = await route.fetch();
+            const trapping = `const called = View3d.prototype.${call};
+View3d.prototype.${call} = function (...args) {
+  if (window.trapNow) throw new WebAssembly.RuntimeError("unreachable");
+  return called.apply(this, args);
+};`;
+            await route.fulfill({ response, body: `${await response.text()}\n${trapping}\n` });
+          });
+          await page.addInitScript(HIDDEN);
+          await bothTurned(page);
+          await page.evaluate(() => {
+            window.trapNow = true;
+          });
+          await expect.poll(() => renderers(page)).toEqual(["js", "js"]);
+          await goesOn(page);
+        });
+      });
+    }
+
+    test.describe("that is given no context", () => {
+      test.use({ told: [/^View3D: drawn by the JavaScript renderer, as wgpu could not draw it: /] });
+
+      // A guard: a first make that rejects already hands the view back.
+      test("it goes on moving on the JavaScript renderer", async ({ page }) => {
+        await page.addInitScript(HIDDEN);
+        await page.addInitScript(() => {
+          const get = HTMLCanvasElement.prototype.getContext;
+          HTMLCanvasElement.prototype.getContext = function (kind, ...options) {
+            if (kind !== "webgl2" || !this.classList.contains("qq-view3d")) return get.call(this, kind, ...options);
+            window.contextRefused = true;
+            return null;
+          };
+        });
+        await opened(page);
+        await named(page);
+        await expect.poll(() => page.evaluate(() => window.contextRefused)).toBe(true);
+        await expect.poll(() => renderers(page)).toEqual(["js", "js"]);
+        await goesOn(page);
+      });
+
+      test("handed back, what it was to be drawn under by wgpu has ended", async ({ page }) => {
+        await page.addInitScript(HIDDEN);
+        await page.addInitScript(() => {
+          const get = HTMLCanvasElement.prototype.getContext;
+          HTMLCanvasElement.prototype.getContext = function (kind, ...options) {
+            return kind === "webgl2" && this.classList.contains("qq-view3d") ? null : get.call(this, kind, ...options);
+          };
+        });
+        await opened(page);
+        await countsNamed(page);
+        await named(page);
+        await expect.poll(() => page.evaluate(() => window.namedAsked), { message: "asked as it turned" }).toBeGreaterThan(0);
+        await expect.poll(() => renderers(page)).toEqual(["js", "js"]);
+        await expect.poll(() => askedByAChange(page), { message: "asked once it is handed back" }).toBe(0);
+        await goesOn(page);
+      });
+    });
+  });
+
+  // Each turned view has a context of its own, and a browser keeps only so
+  // many at once, letting the oldest go: that may be the one every view on
+  // the JavaScript renderer shares. However many turn, a view that moves
+  // where none turns moves here. These assert nothing of which renderer
+  // draws, so that they run the same where no view turns.
+  test.describe("several views of files on one page", () => {
+    test.use({
+      viewport: { width: 640, height: 180 },
+      told: [/^(View3D: drawn by the JavaScript renderer, as wgpu could not draw it: |WebGL: CONTEXT_LOST_WEBGL|WARNING: Too many active WebGL contexts)/],
+    });
+
+    for (const [count, what] of [[7, "under"], [21, "past"]]) {
+      test(`${count}, ${what} the browser's limit on contexts: every one goes on moving, and none is blank`, async ({ page }) => {
+        test.setTimeout(120_000);
+        await page.addInitScript(HIDDEN);
+        await page.addInitScript(() => {
+          const get = OffscreenCanvas.prototype.getContext;
+          window.scripted = new Set();
+          OffscreenCanvas.prototype.getContext = function (kind, ...options) {
+            const context = get.call(this, kind, ...options);
+            if (kind === "webgl2" && context) window.scripted.add(context);
+            return context;
+          };
+        });
+        await page.goto("/?scene=wgpu_many_moving");
+        await page.waitForFunction(() => window.ready);
+        await page.evaluate((count) => {
+          window.objects.count = count;
+          window.objects.moving = true;
+          window.objects.file = "scenes/wgpu_models/square.gltf";
+          window.flush();
+        }, count);
+        await page.waitForLoadState("networkidle");
+        // Settled once the renderers stay what they are, a second apart.
+        let was = null;
+        let same = 0;
+        await expect
+          .poll(
+            async () => {
+              const now = await page.evaluate(() => JSON.stringify([...document.querySelectorAll(".qq-view3d")].map(({ $view3d }) => [$view3d?.renderer, $view3d?.frames > 0])));
+              same = now === was ? same + 1 : 0;
+              was = now;
+              return same;
+            },
+            { intervals: [1000], timeout: 60_000 },
+          )
+          .toBeGreaterThanOrEqual(2);
+        for (let view = 0; view <= count; view++) {
+          const column = Array.from({ length: 13 }, (_, i) => [(view % 8) * 80 + 40, Math.floor(view / 8) * 60 + i * 4 + 6]);
+          await moves(page, column, `view ${view}`);
+        }
+        expect(await page.evaluate(() => [...window.scripted].filter((context) => context.isContextLost()).length), "the JavaScript renderer's contexts lost").toBe(0);
+      });
+    }
+  });
+
   // A Loader that lets its View3D go while WebGPU is still being asked for
   // an adapter: the answer, no adapter, comes to a view that is gone, and
   // nothing draws on its canvas instead.
