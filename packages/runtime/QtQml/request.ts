@@ -9,9 +9,9 @@ const KEPT =
   "content-transfer-encoding cookie cookie2 date dnt expect host keep-alive origin referer te trailer transfer-encoding upgrade via";
 const kept = new Set(KEPT.split(" "));
 
-// The browser's, where there is one: the server renders without it, and a
-// program there makes none. `readyState` is an accessor of its prototype,
-// as this one's is.
+// The browser's, where there is one: the server renders without it, and what
+// a program asks there is never answered. `readyState` is an accessor of its
+// prototype, as this one's is.
 type Rest = [async?: boolean, username?: string | null, password?: string | null];
 interface Request
   extends Omit<globalThis.XMLHttpRequest, "readyState" | "open" | "send" | "abort" | "setRequestHeader"> {
@@ -21,6 +21,71 @@ interface Request
   abort(): void;
   setRequestHeader(name: string, value: string): void;
 }
+// The server's: opened, sent and aborted, and never fetched or completed, so a
+// prerender is the program as it is before any response.
+class Inert extends EventTarget {
+  static readonly UNSENT = 0;
+  static readonly OPENED = 1;
+  static readonly HEADERS_RECEIVED = 2;
+  static readonly LOADING = 3;
+  static readonly DONE = 4;
+  readonly UNSENT = 0;
+  readonly OPENED = 1;
+  readonly HEADERS_RECEIVED = 2;
+  readonly LOADING = 3;
+  readonly DONE = 4;
+  readonly status = 0;
+  readonly statusText = "";
+  readonly response = "";
+  readonly responseText = "";
+  readonly responseURL = "";
+  readonly responseXML = null;
+  responseType = "";
+  timeout = 0;
+  withCredentials = false;
+  onreadystatechange: ((event: Event) => unknown) | null = null;
+  $at = 0;
+  $sent = false;
+
+  get readyState(): number {
+    return this.$at;
+  }
+
+  open(): void {
+    this.$sent = false;
+    if (this.$at === Inert.OPENED) return;
+    this.$at = Inert.OPENED;
+    const event = new Event("readystatechange");
+    // Node ends the process for a listener's throw, where a page reports it.
+    try {
+      this.onreadystatechange?.(event);
+    } catch (error) {
+      reportError(error);
+    }
+    this.dispatchEvent(event);
+  }
+
+  send(): void {
+    this.$sent = true;
+  }
+
+  abort(): void {
+    if (this.$sent) this.$at = Inert.UNSENT;
+    this.$sent = false;
+  }
+
+  setRequestHeader(): void {}
+  overrideMimeType(): void {}
+
+  getResponseHeader(): null {
+    return null;
+  }
+
+  getAllResponseHeaders(): string {
+    return "";
+  }
+}
+const browsers = globalThis.XMLHttpRequest as typeof globalThis.XMLHttpRequest | undefined;
 const Base: {
   new (): Request;
   readonly UNSENT: 0;
@@ -29,7 +94,7 @@ const Base: {
   readonly LOADING: 3;
   readonly DONE: 4;
 } =
-  globalThis.XMLHttpRequest ?? (class {} as unknown as typeof globalThis.XMLHttpRequest);
+  browsers ?? (Inert as unknown as typeof globalThis.XMLHttpRequest);
 
 export class XMLHttpRequest extends Base {
   declare $refused: string | undefined;
@@ -68,7 +133,7 @@ export class XMLHttpRequest extends Base {
   // Refused as a network failure is, step by step: a program waits for DONE,
   // or for `error`, and is to be told as it would be of any other failure.
   override send(body?: Document | XMLHttpRequestBodyInit | null): void {
-    if (!this.$refused) return super.send(body);
+    if (!this.$refused || !browsers) return super.send(body);
     if (!this.$waits) throw new DOMException(`Failed to load: ${this.$refused}`, "NetworkError");
     this.$failing = true;
     this.dispatchEvent(new ProgressEvent("loadstart"));
