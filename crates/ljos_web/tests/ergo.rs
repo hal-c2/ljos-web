@@ -288,6 +288,40 @@ Item {
 }
 
 #[test]
+fn a_pipes_steps_do_not_hide_an_object_without_an_id() {
+    let main = given(
+        r#"import Ljos.Ui
+Item {
+  property real n: 4
+  readonly property real m: 1 |> % + n |> % * n
+  Item { }
+}"#,
+    );
+    let code = code_of(&[("Main.qml", main)], "Main.qml", "Main.qml");
+    assert_contains(&code, "const $$1 =");
+    assert_contains(&code, "const $1 = $0 + $$1.n");
+    assert_contains(&code, "$1 * $$1.n");
+    // The child nothing names still has no binding.
+    assert_lacks(&code, "const $$2 =");
+}
+
+#[test]
+fn a_name_the_file_writes_does_not_hide_an_object_without_an_id() {
+    let main = given(
+        r#"import Ljos.Ui
+Item {
+  property real n: 4
+  function read(): number {
+    const $1 = 2
+    return $1 + n
+  }
+}"#,
+    );
+    let code = code_of(&[("Main.qml", main)], "Main.qml", "Main.qml");
+    assert_contains(&code, "return $1 + $$1.n");
+}
+
+#[test]
 fn a_body_that_does_not_use_the_topic_is_an_error_that_says_so() {
     let card = given(
         r#"import Ljos.Ui
