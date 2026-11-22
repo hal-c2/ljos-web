@@ -7,7 +7,7 @@ import { defineType, located } from "../../object.ts";
 import { buffers, header, parts } from "../gltf.js";
 import * as math from "../math.js";
 import { Node } from "../Node.js";
-import { retried } from "../scene.js";
+import { file, retried } from "../scene.js";
 
 // What a loader made for picking of the file it read last.
 const picked = new WeakMap();
@@ -20,6 +20,8 @@ const describedOf = (read, address) => {
   if (!described.has(read)) described.set(read, buffers(read, address));
   return described.get(read);
 };
+// What is kept of a buffer that is a file of its own.
+const bytesOf = (taken) => ({ bytes: new Uint8Array(taken) });
 
 export const RuntimeLoader = defineType("RuntimeLoader", Node, {
   properties: {
@@ -34,6 +36,24 @@ export const RuntimeLoader = defineType("RuntimeLoader", Node, {
     // does: a view that shows it is wgpu's where it can be (`View3D.js`).
     $unread() {
       return String(this.source ?? "") !== "";
+    },
+    // Whether that file and the buffers it names are here: till they are,
+    // turning to wgpu would show no more. Asking starts their fetch, and
+    // only a view that could turn asks. A failure is left as it is: asking
+    // again is a pick's (`retried`), as are the times it may.
+    $ready() {
+      const address = located(String(this.source ?? ""));
+      const read = file(address, "gltf", header).state();
+      if (!read || read.error) return false;
+      let named;
+      try {
+        named = describedOf(read, address);
+      } catch {
+        // A description with a buffer that cannot be read is not ready.
+        return false;
+      }
+      const bytes = named.map((buffer) => (buffer.url ? file(buffer.url, "buffer", bytesOf).state() : buffer));
+      return bytes.every((buffer) => buffer?.bytes);
     },
     // The models a pick can meet of what the file holds: one for each of
     // its nodes with a mesh, `{ node, shape, placed }`, `node` what the
@@ -51,7 +71,7 @@ export const RuntimeLoader = defineType("RuntimeLoader", Node, {
       let made = picked.get(this);
       if (made?.read !== read) {
         // Its buffers, decoded only when what the pick meets is made again.
-        const bytes = describedOf(read, address).map((buffer) => (buffer.url ? retried(buffer.url, "buffer", (taken) => ({ bytes: new Uint8Array(taken) })) : buffer));
+        const bytes = describedOf(read, address).map((buffer) => (buffer.url ? retried(buffer.url, "buffer", bytesOf) : buffer));
         if (bytes.some((buffer) => !buffer?.bytes)) return [];
         const models = parts(read.json, bytes.map((buffer) => buffer.bytes)).map(({ name, index, placed, shape }) => ({
           node: Object.freeze({ objectName: name, index, parent: this, pickable: true, visible: true }),
