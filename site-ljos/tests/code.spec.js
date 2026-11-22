@@ -324,6 +324,16 @@ test("a code example's Copy copies its code, and says so", async ({
   }
 });
 
+// Into a card's code as a reader goes, and on once the editor is there:
+// CodeMirror comes on the first press, and keys before it are lost.
+async function intoCode(card) {
+  await card.getByRole("textbox").first().click();
+  await expect(
+    card.locator(".cm-editor.cm-focused"),
+    "the code editor has the keyboard",
+  ).toBeVisible({ timeout: 30000 });
+}
+
 // A live block's Copy copies its code as the reader has it now, with
 // their edits.
 test("a live example's Copy copies its code as edited", async ({ browser }) => {
@@ -344,7 +354,7 @@ test("a live example's Copy copies its code as edited", async ({ browser }) => {
     await expect(card.getByText("Copied")).toBeVisible();
     const written = await page.evaluate(() => navigator.clipboard.readText());
     expect(written.trim().length).toBeGreaterThan(0);
-    await card.getByRole("textbox").first().click();
+    await intoCode(card);
     await page.keyboard.press("ControlOrMeta+Home");
     await page.keyboard.type("// as edited\n");
     await card.getByRole("button", { name: /^(Copy|Copied)\b/ }).click();
@@ -407,14 +417,27 @@ for (const route of [
       route,
     );
     try {
-      const tabs = page.locator(
-        '[data-object-name="codeCard"] [role="tab"]:visible',
-      );
+      // Tab is the app's own, so a tab has the keyboard only by it:
+      // back from Copy to the first file, then on to the last.
+      const card = page
+        .locator('[data-object-name="codeCard"]:visible')
+        .filter({ has: page.locator('[role="tab"]:visible') })
+        .first();
+      const tabs = card.locator('[role="tab"]:visible');
       const count = await tabs.count();
       expect(count, "a block of several files").toBeGreaterThan(1);
-      for (let index = 0; index < count; index++) {
+      await card
+        .getByRole("button", { name: /^(Copy|Copied)\b/ })
+        .first()
+        .focus();
+      const steps = [];
+      for (let index = count - 1; index >= 0; index--)
+        steps.push(["Shift+Tab", index]);
+      for (let index = 1; index < count; index++) steps.push(["Tab", index]);
+      for (const [key, index] of steps) {
         const tab = tabs.nth(index);
-        await tab.focus();
+        await page.keyboard.press(key);
+        await expect(tab, `${key} gives tab ${index + 1} the keyboard`).toBeFocused();
         await expect
           .poll(
             () =>
@@ -475,7 +498,7 @@ test("an edited, running example's toolbar fits a narrow phone", async ({
     await expect(
       card.getByRole("button", { name: /^Observer for/ }),
     ).toBeVisible({ timeout: 15000 });
-    await card.getByRole("textbox").first().click();
+    await intoCode(card);
     await page.keyboard.press("ControlOrMeta+Home");
     await page.keyboard.type("// as edited\n");
     await expect(card.locator('[data-object-name="editedBadge"]')).toBeVisible();
