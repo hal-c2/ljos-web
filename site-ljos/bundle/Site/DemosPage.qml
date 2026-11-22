@@ -14,7 +14,7 @@ import "../nav.js" as Nav
 // page holds it as first made and hydration takes it over in place.
 // The others stand in a frame their own size from the first paint,
 // a picture of each in it, and are made once the reader presses its
-// Run; a browser without wasm or WebGL 2 keeps the picture, and its
+// Run; a browser without what one needs keeps the picture, and its
 // words say what it shows. Each of those waits for its Run (Runner):
 // what runs on a page is the reader's to start, and at most three run
 // at once. The flagship has no Run: it holds still until pressed, as a
@@ -52,7 +52,7 @@ Column {
         }
         Text {
             width: Math.min(parent.width, Theme.measure)
-            text: t`Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in this page. Press Run to start any framed demo, switch between light and dark themes in the header to watch it follow, and edit the live source in the Pantry and on the cockpit and smartwatch pages. Where a browser lacks WebAssembly, WebGL 2 or WebGPU, each demo keeps its picture and description.`
+            text: t`Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in this page. Once a framed demo runs, switch between light and dark themes in the header to watch it follow, and edit the live source in the Pantry and on the cockpit and smartwatch pages. A demo keeps its picture and description where the browser lacks the WebAssembly or WebGL 2 it needs.`
             color: Theme.textMuted
             font.family: Theme.sans
             font.pixelSize: Theme.subtitleSize - 1
@@ -112,7 +112,7 @@ Column {
         width: demos.textWidth
         wide: demos.wide
         title: t`3D you can orbit`
-        body: t`Press Run to start a lit 3D scene rendered by the same engine that runs natively on desktop and mobile. Drag to orbit, scroll or pinch to zoom, and switch light and dark themes to watch the scene adapt.`
+        body: t`A lit 3D scene rendered by the same engine that runs natively on desktop and mobile. Once it runs, drag to orbit, scroll or pinch to zoom, and switch light and dark themes to watch the scene adapt.`
 
         Slot {
             name: "demo-orbit"
@@ -136,7 +136,7 @@ Column {
         width: demos.textWidth
         wide: demos.wide
         title: t`A shader effect`
-        body: t`Press Run, then move the pointer across the card to stir the light and tap to cycle colours. The shader runs over live app content rather than a pre-rendered texture, and follows the page's light and dark themes.`
+        body: t`Once it runs, move the pointer across the card to stir the light and tap to cycle colours. The shader runs over live app content rather than a pre-rendered texture, and follows the page's light and dark themes.`
 
         Slot {
             name: "demo-shader"
@@ -160,7 +160,7 @@ Column {
         width: demos.textWidth
         wide: demos.wide
         title: t`A whole app`
-        body: t`Press Run to open a bird field guide running in WebAssembly. Filter the list by typing in Search, pick a species to read its notes, mark birds as seen to update the counter, and switch light and dark themes while keeping your selection.`
+        body: t`A bird field guide in WebAssembly. Once it runs, filter the list by typing in Search, pick a species to read its notes, mark birds as seen to update the counter, and switch light and dark themes while keeping your selection.`
 
         Slot {
             name: "demo-app"
@@ -186,7 +186,7 @@ Column {
         width: demos.textWidth
         wide: demos.wide
         title: t`Motion`
-        body: t`Press Run, click Shuffle the tiles to watch them reorder on a single eased value, and press and drag in the spring tray so the puck springs after your pointer. When the motion settles, nothing ticks and an app at rest uses 0 % CPU.`
+        body: t`Once it runs, click Shuffle the tiles to watch them reorder on a single eased value, and press and drag in the spring tray so the puck springs after your pointer. When the motion settles, nothing ticks and an app at rest uses 0 % CPU.`
 
         Slot {
             name: "demo-motion"

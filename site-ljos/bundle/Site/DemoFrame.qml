@@ -16,7 +16,8 @@ import "../observing.js" as Observing
 // reader asks for less motion (`calm`). One more demo or example
 // started past the page's budget (Running) stops it: it is unmade, and
 // its poster waits for Run again. A browser without what the demo needs
-// (WebGL 2, WebGPU, wasm) keeps the picture, and says why.
+// (WebGL 2, WebGPU, wasm) keeps the picture, and says why in the
+// toolbar's place, which is taller only where that takes a third line.
 //
 // Made is not drawn: a demo whose drawing starts after it is made (a
 // renderer that starts, a shader that compiles) says so as `ready`, and
@@ -60,7 +61,7 @@ Item {
     // toolbar under it.
     readonly property int pictureHeight: Math.round(width * aspect)
     readonly property int surfaceHeight: Math.max(pictureHeight, least)
-    readonly property int barHeight: 48
+    readonly property int barHeight: cannot ? Math.max(48, Math.ceil(why.implicitHeight) + Theme.xs) : 48
     height: surfaceHeight + barHeight
 
     // Set once the page this frame was written into is the reader's:
@@ -139,23 +140,20 @@ Item {
             }
         }
 
-        // Said where the demo cannot run here.
+        // Said where the demo cannot run here, in the bar where Run
+        // would stand: never over its picture.
         Rectangle {
             visible: frame.cannot
             x: Theme.s
-            y: frame.surfaceHeight - height - Theme.s
+            y: frame.surfaceHeight + 1
             width: parent.width - 2 * Theme.s
-            height: why.implicitHeight + 2 * Theme.xs
-            radius: Theme.radiusSmall
-            color: Theme.surfaceRaised
-            border.color: Theme.border
-            border.width: 1
+            height: frame.barHeight - 1
+            color: "transparent"
 
             Text {
                 id: why
-                x: Theme.s
-                y: Theme.xs
-                width: parent.width - 2 * Theme.s
+                anchors.verticalCenter: parent.verticalCenter
+                width: parent.width
                 // The need this browser lacks; where it lacks none (WebGPU with no
                 // adapter for the page, or the build writing the page), the
                 // demo's main one.

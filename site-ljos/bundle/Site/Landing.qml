@@ -270,7 +270,7 @@ Column {
                         lineHeightMode: Text.FixedHeight
                         lineHeight: Theme.bodyLine
                         wrapMode: Text.Wrap
-                        text: Nav.linked(Content.base, t`Press Run to start this 3D scene, drag to orbit it, and switch between light and dark themes in the header to watch it follow. The <a href="/demos/">live demos</a> add a car cockpit and a smartwatch whose files you can edit, plus a shader effect, a bird field guide and a motion study — each a complete Ljós app that falls back to a picture and its description where WebAssembly or WebGL 2 is unavailable.`)
+                        text: Nav.linked(Content.base, t`Once this 3D scene runs, drag to orbit it, and switch between light and dark themes in the header to watch it follow. The <a href="/demos/">live demos</a> add a car cockpit and a smartwatch whose files you can edit, plus a shader effect, a bird field guide and a motion study — each a complete Ljós app that keeps a picture and its description where the browser lacks the WebAssembly or WebGL 2 it needs.`)
                         onLinkActivated: (link) => landing.follow(link)
                     }
                 }
