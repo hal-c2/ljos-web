@@ -665,10 +665,11 @@ async function windows(page) {
     .locator('#app img[alt="What this example draws"]')
     .elementHandles())
     if (await img.evaluate((node) => node.getBoundingClientRect().width > 0))
-      frames.push(await img.evaluateHandle(windowAround));
+      frames.push({ img, frame: await img.evaluateHandle(windowAround) });
   const out = [];
-  for (const [index, frame] of frames.entries()) {
+  for (const [index, { img, frame }] of frames.entries()) {
     await frame.evaluate((node) => node.scrollIntoView({ block: "center" }));
+    await img.evaluate((node) => node.decode());
     const shot = await frame.screenshot();
     out.push({
       index,

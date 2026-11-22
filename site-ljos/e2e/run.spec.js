@@ -747,6 +747,30 @@ test("each scheme shows the example's picture drawn in it, and the page never sh
   expect(await clear(), "no pixel of the dark picture lets the page through").toBe(0);
 });
 
+for (const scheme of ["light", "dark"]) {
+  test(`the ${scheme} page fetches only that scheme's picture of an example, until the theme changes`, async ({ page }) => {
+    const differs = examples.find(({ example }) => example.ownDark);
+    expect(differs, "the docs have an example that looks different in the dark").toBeTruthy();
+    const { hash, index } = differs.example;
+    const files = { light: `${hash}.png`, dark: `${hash}-dark.png` };
+    const other = scheme === "light" ? "dark" : "light";
+    const fetched = [];
+    page.on("request", (request) => fetched.push(new URL(request.url()).pathname.split("/").pop()));
+    await page.emulateMedia({ colorScheme: scheme });
+    await open(page, differs.route);
+    const shown = liveBlock(page, index).stage.locator('img[alt="What this example draws"]').filter({ visible: true });
+    await shown.evaluate((img) => img.scrollIntoView({ block: "center" }));
+    await shown.evaluate((img) => img.decode());
+    // An eager picture, hidden or not, is asked for before the page has loaded.
+    await page.waitForLoadState("load");
+    expect(fetched, `the ${scheme} picture`).toContain(files[scheme]);
+    expect(fetched, `the ${other} picture, which doesn't show`).not.toContain(files[other]);
+    await press(page.getByRole("button", { name: `Use the ${other} theme` }));
+    await shown.evaluate((img) => img.scrollIntoView({ block: "center" }));
+    await expect.poll(() => fetched, { message: `the ${other} picture, once it shows` }).toContain(files[other]);
+  });
+}
+
 test("an example that is the same picture in both schemes shows that one in the dark", async ({ page }) => {
   const same = examples.find(({ example }) => !example.ownDark);
   expect(same, "the docs have an example that looks the same in both schemes").toBeTruthy();
