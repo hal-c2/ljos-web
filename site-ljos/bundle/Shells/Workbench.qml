@@ -44,7 +44,7 @@ Rectangle {
         height: 52
         color: look.surface
         Accessible.role: Accessible.Section
-        Accessible.name: t`Main`
+        Accessible.name: "Ljós"
 
         Rectangle {
             y: parent.height - 1

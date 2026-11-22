@@ -531,7 +531,7 @@ test("a phone has one menu control, and the switcher says why it shows marketing
     const page = await context.newPage();
     await open(page, "/");
     expect(await showing(page)).toBe("marketing");
-    const header = region(page, "Main");
+    const header = region(page, "Ljós");
     const controls = header.getByRole("button").filter({ visible: true });
     await expect(controls).toHaveCount(1);
     await expect(controls.first()).toHaveAccessibleName("Menu");
@@ -544,6 +544,27 @@ test("a phone has one menu control, and the switcher says why it shows marketing
     await context.close();
   }
 });
+
+// A phone shows Marketing whichever shell is kept.
+for (const viewport of [DESKTOP, PHONE]) {
+  for (const kept of SHELLS) {
+    test(`the header is the Ljós landmark in ${kept}, at ${viewport.width}`, async ({ browser }) => {
+      const context = await reader(browser, { kept, viewport });
+      try {
+        const page = await context.newPage();
+        await open(page, "/");
+        const shown = viewport === PHONE ? "marketing" : kept;
+        expect(await showing(page)).toBe(shown);
+        const header = region(page, "Ljós");
+        await expect(header).toHaveCount(1);
+        await expect(header.getByRole("link", { name: "Ljós, home", exact: true }).filter({ visible: true })).toHaveCount(1);
+        if (shown === "desktop") await expect(header.getByRole("toolbar", { name: "Toolbar", exact: true })).toBeVisible();
+      } finally {
+        await context.close();
+      }
+    });
+  }
+}
 
 // What `data-ljos-swap` was set to, each time (shells.js `swap`).
 const swaps = () => {

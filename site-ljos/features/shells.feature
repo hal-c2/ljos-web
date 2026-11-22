@@ -125,6 +125,12 @@ Feature: The site is shown in a shell the reader picks
     When they open the menu and the shell switcher in it
     Then it says Workbench and Desktop need a wider window
 
+  Scenario: The header is the Ljós landmark in every shell
+    Given a reader has any shell, on a desktop or a phone
+    When their screen reader lists the page's landmarks
+    Then the header shown is one named "Ljós", with the link home in it
+    And in the Desktop shell the toolbar is in it too
+
   Scenario: A swap moves, or with reduced motion crossfades
     When a reader swaps the shell
     Then the swap is a transition that moves the next shell into place
