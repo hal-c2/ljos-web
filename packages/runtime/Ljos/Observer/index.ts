@@ -991,19 +991,38 @@ function valueText(state: State, value: unknown): { value: string | null; handle
   if (typeof value === "string") return { value };
   if (typeof value === "number" || typeof value === "boolean") return { value: String(value) };
   const object = value as QObject;
-  if (object.$type) {
-    const id = object.$props?.$id;
-    return { value: `${object.$type.typeName}${typeof id === "string" && id ? `#${id}` : ""}`, handle: handed(state, object) };
-  }
+  if (object.$type) return { value: objectText(object), handle: handed(state, object) };
   if (Array.isArray(value) && value.length > 0 && value.every((each) => (each as QObject)?.$type)) {
     return { value: `[${value.length} objects]`, items: value.map((each) => handed(state, each as QObject)) };
   }
+  if (Array.isArray(value) && value.toString === Array.prototype.toString) return { value: listText(value) };
   const text = value as { toString?: () => string };
   if (typeof text.toString === "function" && text.toString !== Object.prototype.toString) return { value: text.toString() };
   try {
     return { value: JSON.stringify(value) };
   } catch {
     return { value: String(value) };
+  }
+}
+
+function objectText(object: QObject): string {
+  const id = object.$props?.$id;
+  return `${object.$type.typeName}${typeof id === "string" && id ? `#${id}` : ""}`;
+}
+
+// An array as JSON: its own toString says each record is "[object Object]".
+// What has words of its own in it (an object, a value type) keeps them.
+function listText(list: unknown[]): string {
+  try {
+    return JSON.stringify(list, function (this: Record<string, unknown>, key: string, json: unknown) {
+      const each = this[key];
+      if (typeof each !== "object" || each === null || Array.isArray(each)) return json;
+      if ((each as QObject).$type) return objectText(each as QObject);
+      const own = each as { toString?: () => string };
+      return typeof own.toString === "function" && own.toString !== Object.prototype.toString ? own.toString() : json;
+    });
+  } catch {
+    return String(list);
   }
 }
 
