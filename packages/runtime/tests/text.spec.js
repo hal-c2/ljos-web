@@ -879,6 +879,60 @@ test("a picture that keeps its file at another density is measured again, and th
   expect(await remeasured(page), "back at the first density, nothing is measured again").toBe(0);
 });
 
+// Firefox picks a picture's source in a task of its own, so each new copy on
+// the bench is still empty when it is measured. Made so here in any browser.
+async function pickedLate(page) {
+  await page.addStyleTag({ content: ".qq-bench picture > img { display: none; }" });
+  await page.evaluate(() => {
+    const own = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, "naturalWidth");
+    Object.defineProperty(HTMLImageElement.prototype, "naturalWidth", {
+      ...own,
+      get() {
+        return this.closest(".qq-bench") ? 0 : own.get.call(this);
+      },
+    });
+  });
+}
+
+test("pictures picked after the bench is measured are made room for, and again when the text changes", async ({ page }) => {
+  await page.route("**/one.svg", (route) => route.fulfill(drawn(120)));
+  await page.route("**/two.svg", (route) => route.fulfill(drawn(100)));
+  await boxes(page, "markup");
+  await pickedLate(page);
+  await page.evaluate(() => {
+    const picture = (name) => `<picture><source type="image/svg+xml" srcset="/${name}.svg"><img src="/fallback.png"></picture>`;
+    window.objects.unsafe.text = `${picture("one")}<br>${picture("two")}`;
+    window.flush();
+  });
+  await expect.poll(() => tallness(page), { message: "room for both" }).toBeGreaterThanOrEqual(220);
+  const changed = await page.evaluate(() => {
+    window.objects.unsafe.text += "more";
+    window.flush();
+    return window.objects.unsafe.implicitHeight;
+  });
+  expect(changed, "and as soon as the text changes").toBeGreaterThanOrEqual(220);
+  expect(await remeasured(page), "both known, nothing is measured again").toBe(0);
+});
+
+test("a picture picked late keeps the size of the density it was picked at", async ({ page }) => {
+  await page.route("**/late.svg", (route) => route.fulfill(drawn(120)));
+  await page.setViewportSize({ width: 500, height: 600 });
+  await boxes(page, "markup");
+  await pickedLate(page);
+  await page.evaluate(() => {
+    window.objects.unsafe.text =
+      '<picture><source type="image/svg+xml" srcset="/late.svg 80w" sizes="(max-width: 600px) 80px, 160px">' +
+      '<img src="/late.svg"></picture>';
+    window.flush();
+  });
+  await expect.poll(() => tallness(page), { message: "room for it at 80 wide" }).toBeGreaterThanOrEqual(120);
+  await page.setViewportSize({ width: 1000, height: 600 });
+  await expect.poll(() => tallness(page), { message: "room for it at 160 wide" }).toBeGreaterThanOrEqual(240);
+  await page.setViewportSize({ width: 500, height: 600 });
+  await expect.poll(() => tallness(page), { message: "80 wide again" }).toBeLessThan(200);
+  expect(await remeasured(page), "known at each density, nothing is measured again").toBe(0);
+});
+
 test("a source's width descriptor is read by its sizes", async ({ page }) => {
   await page.route("**/sized.svg", (route) => route.fulfill(drawn(120)));
   await boxes(page, "markup");
