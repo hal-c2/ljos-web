@@ -1624,6 +1624,40 @@ test.describe("a View3D no one asked a renderer of", () => {
     expect(await page.evaluate(RENDERERS)).toEqual([{ renderer: "wgpu", lost: 2, error: null }]);
   });
 
+  // A view let go once it is kept but before Solid flushed that, in a
+  // microtask queued as the view was made: it is freed, as ending reads the
+  // kept view without waiting on the flush.
+  test("a view let go before its keeping is flushed is freed", async ({ page }) => {
+    await page.addInitScript(LOSABLE);
+    await page.goto("/?scene=shaded3d");
+    await page.waitForFunction(() => window.ready);
+    test.skip(!(await page.evaluate(async () => !!(await navigator.gpu?.requestAdapter()))), "WebGPU has no adapter here");
+    expect(await (await drawn(page)).jsonValue()).toBe("wgpu");
+    await page.evaluate(async () => {
+      const address = performance.getEntriesByType("resource").find(({ name }) => /\/wgpu\/ljos_web_3d\.js/.test(name)).name;
+      const { View3d } = await import(address);
+      const { backend, free } = View3d.prototype;
+      window.frees = 0;
+      View3d.prototype.free = function (...args) {
+        window.frees++;
+        return free.apply(this, args);
+      };
+      window.letGo = false;
+      // `backend` is asked just before the view is kept, in the same task.
+      View3d.prototype.backend = function (...args) {
+        queueMicrotask(() => {
+          window.dispose();
+          window.letGo = true;
+        });
+        return backend.apply(this, args);
+      };
+      await window.loseGpu();
+    });
+    await page.waitForFunction(() => window.letGo);
+    // The lost view, and the one that took its place.
+    await expect.poll(() => page.evaluate(() => window.frees)).toBe(2);
+  });
+
   // A GPU that keeps dying is given up for the page, at the fourth loss
   // within a minute: every view draws on the JavaScript renderer.
   const twoOnWgpu = async (page) => {
