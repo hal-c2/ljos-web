@@ -770,3 +770,49 @@ test("each shell's source shows that shell's own QML, and keeps the reader's edi
     await context.close();
   }
 });
+
+// The logo is the user's: the mark and the word are main's in every
+// shell, whatever that shell's type and colours are (Site/Wordmark.qml).
+const LOGO_FACE = "system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Helvetica Neue, Arial, sans-serif";
+for (const kept of SHELLS)
+  for (const colorScheme of ["light", "dark"])
+    for (const viewport of [DESKTOP, PHONE]) {
+      test(`the logo is the user's in ${kept}, ${colorScheme}, at ${viewport.width}`, async ({ browser }) => {
+        const context = await reader(browser, { kept, viewport });
+        try {
+          const page = await context.newPage();
+          await page.emulateMedia({ colorScheme });
+          await open(page, "/");
+          const ink = colorScheme === "dark" ? "rgb(239, 236, 233)" : "rgb(40, 38, 36)";
+          const styled = (word) =>
+            word.evaluate((node) => {
+              const style = getComputedStyle(node);
+              return {
+                face: style.fontFamily.replaceAll('"', ""),
+                size: style.fontSize,
+                weight: style.fontWeight,
+                spacing: parseFloat(style.letterSpacing) || 0,
+                upper: style.textTransform,
+                ink: style.color,
+              };
+            });
+          const same = { face: LOGO_FACE, spacing: 0, upper: "none", ink };
+
+          const home = page.getByRole("link", { name: "Ljós, home", exact: true }).filter({ visible: true }).first();
+          const word = home.getByText("Ljós", { exact: true });
+          expect(await styled(word), "the header's word").toEqual({ ...same, size: "22px", weight: "700" });
+          const mark = await home.locator('img[src$="favicon.svg"]').boundingBox();
+          expect([mark.width, mark.height].map(Math.round), "the header's mark").toEqual([28, 28]);
+          expect(Math.round((await word.boundingBox()).x - mark.x - mark.width), "its gap").toBe(8);
+
+          const line = page.getByText("Ljós — malleable software, everywhere", { exact: true }).filter({ visible: true }).last();
+          await line.scrollIntoViewIfNeeded();
+          expect(await styled(line), "the footer's line").toEqual({ ...same, size: "16px", weight: "600" });
+          const small = await page.locator('img[src$="favicon.svg"]').filter({ visible: true }).last().boundingBox();
+          expect([small.width, small.height].map(Math.round), "the footer's mark").toEqual([20, 20]);
+          expect(Math.round((await line.boundingBox()).x - small.x - small.width), "its gap").toBe(8);
+        } finally {
+          await context.close();
+        }
+      });
+    }

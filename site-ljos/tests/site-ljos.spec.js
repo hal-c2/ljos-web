@@ -82,10 +82,11 @@ const shown = (locator) => locator.filter({ visible: true });
 test("the landing page leads with your own shell, and never pitches compatibility", async ({ page }) => {
   await page.goto("/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
-  // The page opens on its name; the footer, at the page's end, says in
-  // a line what Ljós is.
+  // The page opens on its name; the footer, at the page's end, says the
+  // same words, smaller. They are looked for in the footer, as the name
+  // at the top would answer for them.
   await expect(page.getByText("Ljós — malleable software, everywhere", { exact: true }).first()).toBeInViewport();
-  await expect(page.getByText("Typed apps you can see inside and drive while they run.", { exact: true }).last()).toBeAttached();
+  await expect(shown(page.getByRole("contentinfo").getByText("Ljós — malleable software, everywhere", { exact: true })).first()).toBeAttached();
   // The page's own words: the code in a field is the reader's to
   // edit, and an `import QtQuick` there pitches nothing.
   const words = await page.locator("#app").evaluate((app) => {
@@ -221,7 +222,7 @@ test("on a phone the footer's words wrap inside the page", async ({ browser }) =
     const page = await context.newPage();
     await page.goto("/");
     await page.waitForSelector('#app[data-ljos-hydrated="true"]');
-    const tagline = page.getByText("Typed apps you can see inside and drive while they run.", { exact: true }).filter({ visible: true }).last();
+    const tagline = page.getByText("Ljós — malleable software, everywhere", { exact: true }).filter({ visible: true }).last();
     await tagline.scrollIntoViewIfNeeded();
     const box = await tagline.boundingBox();
     expect(box, "the tagline is laid out").toBeTruthy();

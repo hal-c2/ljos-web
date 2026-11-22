@@ -152,3 +152,9 @@ Feature: The site is shown in a shell the reader picks
     Then the header has a link "Ljós on GitHub" to https://github.com/hal-c2/ljos-ui, drawn as an icon
     And the icon is in the text colour of the scheme the page is shown in, with script or none
     And no page's first load holds QtQuick.Shapes to draw it
+
+  Scenario: The logo is the same in every shell
+    Given a reader has any shell, in light or dark, on a desktop or a phone
+    When they look at the header and the footer
+    Then the mark and "Ljós" are drawn as the user's logo
+    And the shell's typeface, colours and capitals don't reach them
