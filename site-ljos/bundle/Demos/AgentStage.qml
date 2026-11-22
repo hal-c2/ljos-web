@@ -2,13 +2,13 @@
 // both have (Timer) stays QtQuick's, the later import.
 import Ljos.Core
 import QtQuick
-import Ljos.Observer
 import Site
 import "logic/stage.ts" as Stage
 import "../observed.js" as Observed
+import "later.js" as Later
 
 // The agent replay, live: each recorded step is sent as the MCP tool call
-// it was, through an InspectorClient, to an Inspector serving the dispatch
+// it was, through an inspector's client, to an inspector serving the dispatch
 // card on this page, the same inspector `ljos observe` and a coding agent
 // ask. What the log says each call answered is what the card's inspector
 // answered here. What the card does (a press of the reader's, or one of
@@ -45,6 +45,19 @@ AgentView {
     property int treeSerial: -1
     property int inspectSerial: -1
     readonly property bool busy: stepSerial >= 0
+    readonly property string inspectedAs: t`Dispatch`
+    // The card's inspector's, empty until it is fetched and serves.
+    readonly property string tokenFile: held.item ? held.item.tokenFile : ""
+    onTokenFileChanged: {
+        listen();
+        // Its tab can be picked before the inspector has come.
+        if (tab === "observer")
+            readTree();
+    }
+
+    function ask(tool, args) {
+        return held.item ? held.item.call(tool, args) : -1;
+    }
 
     function row(fields) {
         log.append(Object.assign({ kind: "say", text: "", tool: "", args: "", summary: "", answer: "", image: "" }, fields));
@@ -52,14 +65,14 @@ AgentView {
     }
 
     function step() {
-        if (busy || at >= total || client.tokenFile === "")
+        if (busy || at >= total || tokenFile === "")
             return;
         const next = AgentReplay.steps[at];
         if (next.say !== "")
             row({ kind: "say", text: next.say });
         const args = Stage.withFound(next.args, found);
         stepRow = row({ kind: "call", tool: next.tool, args: Stage.argsText(args), answer: "pending" });
-        stepSerial = client.call(next.tool, JSON.stringify(args));
+        stepSerial = ask(next.tool, JSON.stringify(args));
     }
 
     // Back to the empty window the replay starts from.
@@ -110,21 +123,21 @@ AgentView {
     }
     onTreePicked: (ref) => {
         pickedRef = ref;
-        inspectSerial = client.call("app_inspect", JSON.stringify({ target: ref }));
+        inspectSerial = ask("app_inspect", JSON.stringify({ target: ref }));
     }
 
     function readTree() {
-        if (client.tokenFile !== "" && treeSerial < 0)
-            treeSerial = client.call("app_objects", JSON.stringify({ depth: 6 }));
+        if (tokenFile !== "" && treeSerial < 0)
+            treeSerial = ask("app_objects", JSON.stringify({ depth: 6 }));
     }
 
     // The app's log, as an agent follows it: one watch out at a time,
     // which answers once the app has said more.
     function listen() {
-        if (!active || watchSerial >= 0 || logsSerial >= 0 || client.tokenFile === "")
+        if (!active || watchSerial >= 0 || logsSerial >= 0 || tokenFile === "")
             return;
         const args = logsSeen < 0 ? {} : { since: { logs: logsSeen }, wait_ms: 30000, holder: key };
-        watchSerial = client.call("app_watch", JSON.stringify(args));
+        watchSerial = ask("app_watch", JSON.stringify(args));
     }
     onActiveChanged: listen()
 
@@ -138,7 +151,7 @@ AgentView {
                 logsSeen = counted;
             } else if (counted > logsSeen) {
                 logsSeen = counted;
-                logsSerial = client.call("app_logs", JSON.stringify({ since: logSince, limit: 20 }));
+                logsSerial = ask("app_logs", JSON.stringify({ since: logSince, limit: 20 }));
                 return;
             }
             listen();
@@ -182,22 +195,29 @@ AgentView {
         if (tab === "observer") {
             readTree();
             if (pickedRef !== "")
-                inspectSerial = client.call("app_inspect", JSON.stringify({ target: pickedRef }));
+                inspectSerial = ask("app_inspect", JSON.stringify({ target: pickedRef }));
         }
     }
 
-    Inspector {
-        id: inspector
-        target: stage.card
-        logs: stage.logs
-        title: t`Dispatch`
+    // Fetched by its path: Ljós's checker knows no type only the web has.
+    Loader {
+        id: held
+        visible: false
+        source: Later.inspectorSession
+        onLoaded: {
+            item.clientName = "replay";
+            // The log and title before the target: the target is served
+            // with what it is given then.
+            item.logs = Qt.binding(() => stage.logs);
+            item.title = Qt.binding(() => stage.inspectedAs);
+            item.target = Qt.binding(() => stage.card);
+        }
     }
-    InspectorClient {
-        id: client
-        tokenFile: inspector.tokenFile
-        clientName: "replay"
-        onAnswered: (serial, tool, ok, result) => stage.answered(serial, tool, ok, result)
-        onTokenFileChanged: stage.listen()
+    Connections {
+        target: held.item
+        function onAnswered(serial, tool, ok, result) {
+            stage.answered(serial, tool, ok, result);
+        }
     }
 
     Connections {
@@ -212,7 +232,7 @@ AgentView {
     Timer {
         id: beat
         interval: stage.fastTo >= 0 ? 0 : stage.at > 0 ? AgentReplay.steps[stage.at - 1].wait : 700
-        running: stage.active && !stage.busy && stage.at < stage.total && (stage.playing || stage.fastTo > stage.at) && inspector.tokenFile !== ""
+        running: stage.active && !stage.busy && stage.at < stage.total && (stage.playing || stage.fastTo > stage.at) && stage.tokenFile !== ""
         onTriggered: stage.step()
     }
 

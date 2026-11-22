@@ -103,6 +103,7 @@
     "./Ljos/Layout": "./Ljos/Layout/index.ts",
     "./Ljos/Core": "./Ljos/Core/index.js",
     "./Ljos/Observer": "./Ljos/Observer/index.ts",
+    "./observer/InspectorSession.qml": "./Ljos/Observer/InspectorSession.qml",
     "./observer/ObserverPanel.qml": "./Ljos/Observer/ObserverPanel.qml",
     "./vite": "./vite.js",
     "./site": "./site.js",
