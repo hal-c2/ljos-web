@@ -271,6 +271,29 @@ test("an object scrolled out of the window is still clicked, and the page stays 
   expect((await call(page, "app_click", { at: [50, 75] })).result.error.code).toBe("not_actionable");
 });
 
+test("an object under a page's fixed header is clicked, not the header, and the page stays where it is", async ({ page }) => {
+  await opened(page);
+  await page.setViewportSize({ width: 400, height: 300 });
+  // The root a long way down a page, scrolled to its top edge, under a
+  // header that stays at the top of the window: the MouseArea's centre,
+  // 75 px down, is under it.
+  const scrolled = await page.evaluate(() => {
+    document.body.style.paddingTop = "1000px";
+    document.body.style.paddingBottom = "1000px";
+    const header = document.createElement("div");
+    header.id = "header";
+    header.style.cssText = "position:fixed;top:0;left:0;right:0;height:120px;z-index:10;background:white";
+    header.addEventListener("click", () => (window.headerClicks = (window.headerClicks ?? 0) + 1));
+    document.body.append(header);
+    window.scrollTo({ top: window.objects.app.$node.getBoundingClientRect().top + window.scrollY, behavior: "instant" });
+    return [window.scrollX, window.scrollY];
+  });
+  const clicked = await call(page, "app_click", { target: "id=area" });
+  expect(clicked.ok).toBe(true);
+  expect(await page.evaluate(() => [window.objects.app.count, window.headerClicks ?? 0])).toEqual([1, 0]);
+  expect(await page.evaluate(() => [window.scrollX, window.scrollY])).toEqual(scrolled);
+});
+
 test("a locator finds what is shown, by text, name, id or role, and its ref is a target", async ({ page }) => {
   await opened(page);
   const byText = (await call(page, "app_find", { locator: "text=N=0" })).result;
