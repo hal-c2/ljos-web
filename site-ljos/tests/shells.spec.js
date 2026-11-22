@@ -627,6 +627,33 @@ test("the header names the source with an icon", async ({ browser }) => {
   }
 });
 
+// The icon is a picture in the page as written, one for each scheme, so
+// it stands in the header's text colour with no script too.
+for (const colorScheme of ["light", "dark"]) {
+  for (const javaScriptEnabled of [true, false]) {
+    test(`the header's icon is a picture in the ${colorScheme} scheme's text colour, script ${javaScriptEnabled ? "on" : "off"}`, async ({ browser }) => {
+      const context = await browser.newContext({ viewport: DESKTOP, colorScheme, javaScriptEnabled });
+      try {
+        const page = await context.newPage();
+        await page.goto(at("/start/cli/"));
+        if (javaScriptEnabled) await page.waitForSelector(HYDRATED, { timeout: 40_000 });
+        const link = page.getByRole("link", { name: "Ljós on GitHub", exact: true }).filter({ visible: true }).first();
+        const picture = link.locator("img").filter({ visible: true });
+        await expect.poll(() => picture.count(), { message: "one picture is shown as the icon" }).toBe(1);
+        await expect.poll(() => picture.evaluate((image) => image.complete && image.naturalWidth > 0), { message: "the picture is loaded" }).toBe(true);
+        const { src, text } = await picture.evaluate((image) => ({ src: image.src, text: getComputedStyle(document.documentElement).getPropertyValue("--ljos-text").trim() }));
+        expect(await (await page.request.get(src)).text()).toContain(`fill="${text}"`);
+        const [box, drawn] = [await link.boundingBox(), await picture.boundingBox()];
+        expect(drawn.width, "the icon's size").toBeCloseTo(20, 0);
+        expect(drawn.x + drawn.width / 2 - box.x, "centred across its link").toBeCloseTo(box.width / 2, 0);
+        expect(drawn.y + drawn.height / 2 - box.y, "centred down its link").toBeCloseTo(box.height / 2, 0);
+      } finally {
+        await context.close();
+      }
+    });
+  }
+}
+
 test("each shell's source shows that shell's own QML, and keeps the reader's edits to each", async ({ browser }) => {
   const context = await reader(browser);
   try {

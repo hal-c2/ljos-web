@@ -144,3 +144,5 @@ Feature: The site is shown in a shell the reader picks
   Scenario: The header names the source with an icon
     When a reader opens any page at a desktop's width
     Then the header has a link "Ljós on GitHub" to https://github.com/hal-c2/ljos-ui, drawn as an icon
+    And the icon is in the text colour of the scheme the page is shown in, with script or none
+    And no page's first load holds QtQuick.Shapes to draw it
