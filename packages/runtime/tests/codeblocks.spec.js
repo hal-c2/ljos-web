@@ -723,6 +723,49 @@ plain("a prerender's fetch reads the example's own files and nothing outside its
   }
 });
 
+plain("a film is prerendered unplayed, and the example after it is made", async ({}, info) => {
+  info.setTimeout(180_000);
+  const one = (code) => assemble(extractBlocks("```qml\n" + code.trimEnd() + "\n```\n"), {}).examples[0];
+  const film = (extra) =>
+    one(`import QtQuick
+import QtMultimedia
+
+Item {
+    width: 320
+    height: 240
+    Text { text: "The film" }
+    MediaPlayer {
+        audioOutput: AudioOutput {}
+        videoOutput: output
+        ${extra}
+    }
+    VideoOutput {
+        id: output
+        anchors.fill: parent
+    }
+}
+`);
+  // No source is a load at once, `autoPlay` a play, and every player is
+  // paused and loaded again as its example is taken down.
+  const empty = film("loops: 2");
+  const named = film('source: "clip.mp4"');
+  const playing = film('source: "clip.mp4"; autoPlay: true');
+  const after = one(`import QtQuick
+
+Text { text: "After the film" }
+`);
+  const cacheDir = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "ljos-codeblock-test-"));
+  try {
+    const { failures } = await renderPrerenders([empty, named, playing, after], { cacheDir, qmlc });
+    expect(failures.map(({ diagnostics }) => diagnostics.join("\n"))).toEqual([]);
+    const loaded = loadPrerenders(cacheDir);
+    for (const example of [empty, named, playing]) expect(loaded[hashExample(example)].html).toContain("The film");
+    expect(loaded[hashExample(after)].html).toContain("After the film");
+  } finally {
+    rmSync(cacheDir, { recursive: true, force: true });
+  }
+});
+
 plain("a prerender stands where a page stands: a Request is beside it, and a handler's throw is told of", async ({}, info) => {
   info.setTimeout(180_000);
   const one = (code) => assemble(extractBlocks("```qml\n" + code.trimEnd() + "\n```\n"), {}).examples[0];
