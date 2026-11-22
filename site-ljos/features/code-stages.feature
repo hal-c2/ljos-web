@@ -46,3 +46,14 @@ Feature: A code block's window before its example runs
     When the window says "Nothing drawn yet"
     Then the window's paper hides that picture
     And a picture with something in it still shows
+
+  Scenario: An example that fails only in the dark is not shown as one that runs
+    Given an example that throws only as it is made in the dark scheme
+    When the build prerenders it beside one that runs
+    Then it is one failure, said to be in the dark scheme, and kept for the next build
+    And the one beside it still has both its pictures' renders
+
+  Scenario: What an example says only in the dark is in the build's record
+    Given an example that warns only as it is made in the dark scheme
+    When the build prerenders it
+    Then the record has the warning, said to be in the dark scheme
