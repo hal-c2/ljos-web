@@ -169,6 +169,7 @@ Column {
                     width: demos.textWidth
                     scroller: demos.scroller
                     needs: "wasm"
+                    compiles: false
                     route: "/demos/"
                     // Narrow, the guide stacks its list over its detail.
                     least: 520
@@ -195,6 +196,7 @@ Column {
                     width: demos.textWidth
                     scroller: demos.scroller
                     needs: "wasm"
+                    compiles: false
                     route: "/demos/"
                     // Narrow, Motion's controls wrap onto two lines.
                     least: 440
