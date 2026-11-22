@@ -29,6 +29,12 @@ Feature: A code block's window before its example runs
     Then that content is in the picture
     And neither picture counts as empty
 
+  Scenario: An example that draws as it starts is not called empty
+    Given a window that shows controls or an open popup as it starts
+    When the build draws its pictures
+    Then its picture has that content in it
+    And the window doesn't say "Nothing drawn yet"
+
   Scenario: Only the scheme that draws nothing says so
     Given an example that draws in one scheme and nothing in the other
     When the reader switches between the light and dark themes
