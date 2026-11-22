@@ -27,7 +27,7 @@ import { packRich } from "ljos-web/codeblock/rich";
 import * as Pro from "./pro.mjs";
 import { giveFiles, readGiven } from "../../site/scripts/codeblock-files.mjs";
 import { keysByHash, listedEverywhere, pageOfRoute, pageRecords, readLedger, saysEverywhere } from "../../site/scripts/codeblocks-ledger.mjs";
-import { drawPictures, shipsDark, verdictKey } from "./pictures.mjs";
+import { drawPictures, shipsDark, stagesOf, verdictKey } from "./pictures.mjs";
 
 const here = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 // Where the site stands below its address's root: `/` at a domain of
@@ -178,11 +178,7 @@ const liveAt = new Map(); // a page's code block -> its live payload
   // across builds never answers with one an older runtime or browser
   // drew, and a changed recipe draws again. The page names them by
   // their hash.
-  const { light: lightTone, dark: darkTone } = tones();
-  const STAGES = {
-    light: `<!doctype html><style>html,body{margin:0;background:${lightTone.paper}}</style>`,
-    dark: `<!doctype html><style>html,body{margin:0;background:${darkTone.paper}}</style>`,
-  };
+  const STAGES = stagesOf(tones());
   const UNSIZED = [320, 180];
   const drawnBy = createHash("sha256").update(`${chromium.executablePath()}\n${STAGES.light}\n${STAGES.dark}\n${UNSIZED}`).digest("hex").slice(0, 12);
   const kept = (hash, scheme = "light") =>
