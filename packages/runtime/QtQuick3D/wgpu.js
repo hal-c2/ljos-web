@@ -54,7 +54,8 @@ let NAMES = null;
 // Why the renderer stopped, once a call into it trapped. A trap (a panic,
 // which aborts) leaves what the wasm held mid-call still held, so every
 // call into it after traps too: none is made, and each view it drew stops
-// where it stood, its last picture kept. Uncaught, a trap in a build (as a
+// where it stood, its last picture kept, but for a turned one, which the
+// JavaScript renderer draws on (`stop`). Uncaught, a trap in a build (as a
 // device lost on a loaded machine gave) halted every binding on the page,
 // as Solid stops all of them on an error nothing catches.
 let stopped = null;
@@ -84,6 +85,31 @@ function into(call, otherwise) {
 // Views are made one after another: the first makes the page's device, and
 // the others share it.
 let queue = Promise.resolve();
+
+// The wasm aborts on a panic (the view3d profile), so a trap in what
+// `create` waits on is thrown from a microtask of the wasm's own and never
+// settles what `create` promised: the page alone hears it, with the
+// renderer's file in its stack. It fails that making, so the views queued
+// behind are not kept waiting, and no view is made after. Those already
+// made are left drawing: a call of theirs that traps stops them (`trapped`).
+let unmakeable = null;
+async function created(canvas, host) {
+  let fail;
+  const trap = new Promise((_, reject) => (fail = reject));
+  const heard = (event) => {
+    const { error } = event;
+    if (!(error instanceof WebAssembly.RuntimeError) || !/ljos_web_3d/.test(error.stack)) return;
+    event.preventDefault();
+    unmakeable = `the renderer trapped as it made a view: ${error}`;
+    fail(new Error(unmakeable));
+  };
+  addEventListener("error", heard);
+  try {
+    return await Promise.race([module.View3d.create(canvas, host), trap]);
+  } finally {
+    removeEventListener("error", heard);
+  }
+}
 
 const NOTHING = 0xffffffff;
 
@@ -633,6 +659,13 @@ export function drawOn(self, canvas, told, instead, unadapted) {
   let gaveCanvas = false;
   let wanted = false;
   let own = false;
+  // Handed over by the JavaScript renderer, which can draw its scene again:
+  // it has a context and a device of its own, where the views on WebGPU
+  // share the page's.
+  const turned = !!instead && !unadapted;
+  // A context is lost before the page is told of it, and wgpu traps on what
+  // is asked of it meanwhile: nothing is.
+  const contextLost = () => turned && !!gl?.isContextLost();
   const state = (canvas.$view3d = {
     renderer: "wgpu",
     backend: null,
@@ -665,7 +698,7 @@ export function drawOn(self, canvas, told, instead, unadapted) {
   // has left the surface.
   self.$view = () => {
     wanted = true;
-    if (!canvas.$drawn) into(() => made()?.again());
+    if (!canvas.$drawn && !contextLost()) into(() => made()?.again());
     return own ? 0 : draws();
   };
   // A picture on WebGL 2 is the GPU's work, done after the call that asks
@@ -692,7 +725,7 @@ export function drawOn(self, canvas, told, instead, unadapted) {
     frame = 0;
     resting = 0;
     // A frame asked for may come after the picture it was for was drawn.
-    if (gone || stopped || !due) return;
+    if (gone || stopped || !due || contextLost()) return;
     // One whose picture others read gives it on once an animation frame:
     // what finishes or rests on a timer would otherwise draw it again
     // before the page paints, and two views that show each other's would
@@ -857,6 +890,9 @@ export function drawOn(self, canvas, told, instead, unadapted) {
   const lost = (message) => {
     const view = kept;
     if (gone || stopped) return;
+    // Not made again on the context it lost, nor counted against the GPU
+    // the page's other views share. After the task that told it, as below.
+    if (turned) return void queueMicrotask(() => handBack(`its GPU was lost: ${message}`));
     if (!view) return void (lostWhileMade ??= message);
     remake(view, message);
   };
@@ -885,7 +921,17 @@ export function drawOn(self, canvas, told, instead, unadapted) {
     setDraws((times) => times + 1);
   };
   if (instead) retiring.add(retire);
+  const handBack = (why) => {
+    if (gone) return;
+    console.warn(`View3D: drawn by the JavaScript renderer, as wgpu could not draw it: ${why}`);
+    retire();
+  };
+  const onContextLost = () => handBack("its WebGL 2 context was lost");
+  if (turned) canvas.addEventListener("webglcontextlost", onContextLost);
   const stop = () => {
+    // Its scene goes on on the JavaScript renderer, made after whatever
+    // trapped: that may be an effect's compute, where no root can be made.
+    if (turned) queueMicrotask(() => handBack(stopped));
     state.error = stopped;
     due = false;
     if (frame) cancelAnimationFrame(frame);
@@ -942,8 +988,10 @@ export function drawOn(self, canvas, told, instead, unadapted) {
   [canvas.width, canvas.height] = untrack(() => size(self.width, self.height));
   // One no one asked a renderer of that wgpu never made (its WebGL 2 short
   // of what wgpu needs, its chunk not fetched, the renderer stopped before
-  // it drew) draws on the JavaScript renderer instead and says why; one that
-  // drew keeps its last picture. One a renderer was asked of says why it stops.
+  // it drew) draws on the JavaScript renderer instead and says why. So does
+  // a turned one that drew, once its context is lost or the renderer stopped;
+  // any other that drew keeps its last picture then. One a renderer was asked
+  // of says why it stops.
   //
   // Whether a view was ever kept, which is not `kept`: that one lets go of
   // a view lost, and one that drew is not handed back for failing to be
@@ -951,8 +999,7 @@ export function drawOn(self, canvas, told, instead, unadapted) {
   let everKept = false;
   const unmade = (why) => {
     if (!instead || everKept || gone) return false;
-    console.warn(`View3D: drawn by the JavaScript renderer, as wgpu could not draw it: ${why}`);
-    retire();
+    handBack(why);
     return true;
   };
   const make = () => {
@@ -976,10 +1023,11 @@ export function drawOn(self, canvas, told, instead, unadapted) {
         // A renderer that trapped as it was first made is not kept, and is
         // not made again: a failed fetch alone is asked for again.
         if (stopped) return void unmade(stopped);
+        if (unmakeable) throw new Error(unmakeable);
         if (!module) await chunk();
         if (stopped) return void unmade(stopped);
         gaveCanvas = true;
-        const view = await module.View3d.create(canvas, host);
+        const view = await created(canvas, host);
         if (gone) return void into(() => view.free());
         // A view the renderer stopped in the making is let go of here, as
         // nothing keeps it.
@@ -996,6 +1044,8 @@ export function drawOn(self, canvas, told, instead, unadapted) {
       })
       .catch(async (error) => {
         if (trapped(error)) return void unmade(stopped);
+        // Handed back while it was made: the failure is no longer the view's.
+        if (turned && gone) return;
         // A view made again for a GPU lost gives WebGPU up for the page only
         // where WebGPU has no adapter after, or once another view found that
         // or gave up; a view that fails for a reason of its own, with an
@@ -1018,7 +1068,7 @@ export function drawOn(self, canvas, told, instead, unadapted) {
   effect(
     () => ({ view: made(), width: self.width, height: self.height }),
     ({ view, width, height }) => {
-      if (view) into(() => view.resize(...size(width, height)));
+      if (view && !contextLost()) into(() => view.resize(...size(width, height)));
     },
   );
   // The build reads in the compute, untracked, as what it reads may make
@@ -1028,7 +1078,7 @@ export function drawOn(self, canvas, told, instead, unadapted) {
     () => {
       const view = made();
       changes();
-      if (!view) return null;
+      if (!view || contextLost()) return null;
       const from = state.probe ? performance.now() : 0;
       host.reading++;
       host.crossed = 0;
@@ -1094,6 +1144,7 @@ export function drawOn(self, canvas, told, instead, unadapted) {
     gone = true;
     retiring.delete(retire);
     stopping.delete(stop);
+    canvas.removeEventListener("webglcontextlost", onContextLost);
     for (const end of followers.values()) end();
     followers.clear();
     following.end();
