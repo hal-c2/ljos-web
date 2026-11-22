@@ -41,6 +41,8 @@ Rectangle {
     readonly property int openCount: tickets.filter((ticket) => ticket.state === "Open").length
     readonly property int unassigned: tickets.filter((ticket) => ticket.state === "Open" && crewOf(ticket) === "").length
     readonly property bool narrow: width < 420
+    // Too narrow for the filters beside the heading.
+    readonly property bool tight: width < 360
     readonly property bool boarded: layout !== "list"
     readonly property var lanes: Board.lanes(layout, shown.map((ticket) => Object.assign({}, ticket, { crew: crewOf(ticket) })))
 
@@ -64,7 +66,8 @@ Rectangle {
     }
 
     implicitWidth: 520
-    implicitHeight: 360
+    // As tall as what it shows: nothing is cut, and no state is mostly blank.
+    implicitHeight: body.height + 2 * body.y
     radius: Theme.radius
     color: Theme.surfaceRaised
     border.color: Theme.divider
@@ -85,7 +88,7 @@ Rectangle {
 
             Column {
                 id: titles
-                width: parent.width - (card.narrow ? 0 : filterRow.width + Theme.s)
+                width: parent.width - (card.tight ? 0 : filterRow.width + Theme.s)
                 spacing: 2
 
                 Text {
@@ -105,7 +108,7 @@ Rectangle {
                     font.family: Theme.serif
                     font.pixelSize: card.narrow ? Theme.subtitleSize : Theme.titleSize
                     font.weight: Font.DemiBold
-                    elide: Text.ElideRight
+                    wrapMode: Text.Wrap
                     opacity: card.still ? 1 : 0
                     Component.onCompleted: {
                         if (!card.still)
@@ -129,7 +132,7 @@ Rectangle {
             Row {
                 id: filterRow
                 anchors.right: parent.right
-                visible: !card.narrow
+                visible: !card.tight
                 spacing: Theme.xs
 
                 // Both rows keep their buttons, and only one shows: what is
@@ -147,9 +150,9 @@ Rectangle {
                 }
             }
         }
-        // On a narrow card the filters go under the header.
+        // On a tight card the filters go under the header.
         Row {
-            visible: card.narrow && card.filters.length > 0
+            visible: card.tight && card.filters.length > 0
             spacing: Theme.xs
 
             Repeater {
@@ -295,8 +298,6 @@ Rectangle {
                                         font.family: Theme.sans
                                         font.pixelSize: Theme.bodySize - 2
                                         wrapMode: Text.Wrap
-                                        maximumLineCount: 2
-                                        elide: Text.ElideRight
                                     }
                                     Text {
                                         text: `${row.modelData.key}  ${row.open ? t`Open` : t`Closed`}`

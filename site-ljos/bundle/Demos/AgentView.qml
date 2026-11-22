@@ -6,13 +6,14 @@ import Site
 import Demos
 import "../Site/code-editor.js" as Editor
 
-// What the agent replay looks like: a strip with the request, in words,
+// What the agent replay looks like: a toolbar with the request, in words,
 // how it stands and the same change in the reader's hands; under that the
 // dispatch card, and beside it (under it, when narrow) the TypeScript that
 // lays the card out, the log of the agent's calls or a small Observer. It
 // only draws: the live stage (AgentStage) sends the calls and fills the
 // log, and a poster fills it once, still. That it is a replay, and its
-// Pause, are the frame's bar to say (DemoFrame.barOnTop).
+// one button, are the frame's to draw in that toolbar (DemoFrame.barOnTop):
+// one of each, whichever of stage and poster stands.
 Rectangle {
     id: view
 
@@ -28,6 +29,9 @@ Rectangle {
     property bool working: false
     // The layout shown is the reader's own.
     property bool edited: false
+    // Not at the board: calls follow it, and "Done" reads as finished. Nor
+    // ever a poster's: it shows the end, and nothing was run to reach it.
+    readonly property bool finished: !still && total > 0 && at >= total && card.layout === "board"
     property bool calm: false
     // A poster: nothing moves, and only the layout can be changed.
     property bool still: false
@@ -45,9 +49,20 @@ Rectangle {
     signal layoutPicked(string layout)
     signal treePicked(string ref)
 
-    // Side by side only where the card keeps its header on one row.
-    readonly property int sideWidth: 320
-    readonly property bool wide: width >= sideWidth + 420 + gap + 2 * pad
+    // Side by side only where the card keeps its filters by its heading
+    // and the code its 14 pixels.
+    readonly property int sideWidth: 358
+    readonly property bool wide: width >= sideWidth + 360 + gap + 2 * pad
+    // The toolbar on two rows, else three. The frame lays its button at the
+    // end of the first (actWidth) and its label at the end of the second.
+    readonly property bool roomy: width >= 600
+    readonly property int actWidth: 104
+    // DECISION: the app's border is as tall as what it shows, and the room
+    // under it is held for the fullest it plays to and the press it then
+    // asks for, so neither the page nor the code under it moves.
+    readonly property int cardRoom: Math.max(card.implicitHeight, wide ? 540 : width < 420 ? 640 : 480)
+    readonly property int sideRoom: 432
+    implicitHeight: strip.height + pad + (wide ? Math.max(cardRoom, sideRoom) : cardRoom + gap + sideRoom)
     // Room for a focus ring at the edges, and no more: the app is the subject.
     readonly property int pad: Theme.xxs
     readonly property int gap: Theme.s
@@ -58,53 +73,60 @@ Rectangle {
         id: logModel
     }
 
-    // Above it, at every width and in every tab: what the agent was asked,
-    // how that stands, and the same change in the reader's own hands.
+    // Above it, at every width and in every tab, the one toolbar: what the
+    // agent was asked, how that stands, the same change in the reader's own
+    // hands, and the room for the frame's label and button.
     Item {
         id: strip
         width: view.width
-        height: view.wide ? 56 : 80
+        height: view.roomy ? 76 : 112
 
         Text {
             id: request
             x: view.pad
-            y: view.wide ? Math.round((strip.height - height) / 2) : Theme.xs
+            y: Theme.xxs + Math.round((editButtons.height - height) / 2)
+            width: (view.roomy ? editButtons.x : strip.width - view.pad - view.actWidth) - x - Theme.xs
             text: t`Agent: make this a board`
             color: Theme.text
             font.family: Theme.sans
             font.pixelSize: Theme.bodySize
             font.weight: Font.DemiBold
-        }
-        Text {
-            x: view.wide ? request.x + request.width + Theme.s : view.pad
-            y: editButtons.y + Math.round((editButtons.height - height) / 2)
-            text: view.edited ? t`Your edit` : card.layout === "board" ? t`Done · applied live` : view.working ? t`Working…` : ""
-            color: Theme.link
-            font.family: Theme.sans
-            font.pixelSize: Theme.captionSize
-            font.weight: Font.DemiBold
+            wrapMode: Text.Wrap
         }
         Row {
             id: editButtons
-            x: strip.width - width - view.pad
-            y: view.wide ? Math.round((strip.height - height) / 2) : strip.height - height - Theme.xs
+            x: view.roomy ? strip.width - view.pad - view.actWidth - Theme.xs - width : view.pad
+            y: view.roomy ? Theme.xxs : 40
             spacing: Theme.xxs
             enabled: view.editable
 
             StageButton {
                 text: t`List`
-                label: t`Edit layout: list`
+                label: t`List layout`
                 checkable: true
                 checked: card.layout === "list"
                 onPressed: view.layoutPicked("list")
             }
             StageButton {
                 text: t`Board`
-                label: t`Edit layout: board`
+                label: t`Board layout`
                 checkable: true
                 checked: card.layout === "board"
                 onPressed: view.layoutPicked("board")
             }
+        }
+        // At the end the next step: the card's own button is the one in the
+        // accent, so it and these words are what is seen to press.
+        Text {
+            x: view.pad
+            y: view.roomy ? 48 : 76
+            width: strip.width - 2 * view.pad - (view.roomy ? 176 : 0)
+            text: view.edited ? t`Your edit` : view.still ? t`End result, not run` : view.finished ? (card.unassigned > 0 ? t`Done. Try Assign crew or List / Board.` : t`Done`) : view.working ? t`Working…` : ""
+            color: Theme.link
+            font.family: Theme.sans
+            font.pixelSize: Theme.captionSize
+            font.weight: Font.DemiBold
+            wrapMode: Text.Wrap
         }
     }
 
@@ -114,7 +136,7 @@ Rectangle {
         x: view.pad
         y: strip.height
         width: view.wide ? view.width - 2 * view.pad - view.gap - view.sideWidth : view.width - 2 * view.pad
-        height: view.wide ? view.height - y - view.pad : Math.round((view.height - y - view.pad - view.gap) * 0.6)
+        height: implicitHeight
         calm: view.calm
         still: view.still
     }
@@ -123,7 +145,7 @@ Rectangle {
     Item {
         id: side
         x: view.wide ? card.x + card.width + view.gap : view.pad
-        y: view.wide ? strip.height : card.y + card.height + view.gap
+        y: view.wide ? strip.height : strip.height + view.cardRoom + view.gap
         width: view.wide ? view.sideWidth : view.width - 2 * view.pad
         height: view.height - y - view.pad
         clip: true
@@ -319,9 +341,9 @@ Rectangle {
                         color: Theme.codeFg
                         font.family: Theme.mono
                         // board.ts keeps this to 39 columns, each 0.6 of the size, and a little.
-                        font.pixelSize: Math.max(10, Math.min(Theme.captionSize - 1, Math.floor(width / 24.4)))
+                        font.pixelSize: Math.max(10, Math.min(14, Math.floor(width / 23.6)))
                         lineHeightMode: Text.FixedHeight
-                        lineHeight: 17
+                        lineHeight: 22
                         textFormat: Text.RichText
                         wrapMode: Text.NoWrap
                         // Markup keeps no run of spaces: each line's own indent stays.

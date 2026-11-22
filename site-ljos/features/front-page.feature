@@ -17,8 +17,10 @@ Feature: The front page shows software being reshaped while it runs
     Given a window 1440 wide and 900 high
     When the page opens
     Then "Agent: make this a board", the app, its List and Board controls and one Pause or Run are all in the first screen
-    And once the app is a board, "Done · applied live" stands beside the request
-    And the TypeScript that makes the board fits beside it, with no line wrapped or cut
+    And the request says "Working…" while the calls go on, and "Done. Try Assign crew or List / Board." only once the last has answered
+    And the TypeScript that makes the board fits beside it at 14 pixels, with no line wrapped or cut
+    And the request, how it stands, List and Board, the replay's label and its one button are one toolbar
+    And that button is quiet, at the toolbar's end and before the app in Tab's order
 
   Scenario: A phone reader sees the change start
     Given a window 390 wide and 844 high
@@ -39,10 +41,12 @@ Feature: The front page shows software being reshaped while it runs
   Scenario: The replay plays by itself
     Given a reader who has not asked for less motion
     When the replay is on screen
-    Then it starts without a press, as the list
+    Then it starts without a press, as the list of tickets BG-412 and BG-415 under "Dispatch"
+    And it doesn't say Done when the app becomes a board, but when its last call has answered
     And the agent's calls turn the running app into a board and fill it
     And the reader can pause it with the keyboard alone
     And it ends with one ticket in "Needs a crew" and nothing left running
+    And then it says it is the reader's turn and what to press, and its button says it plays again
 
   Scenario: Less motion still shows the result
     Given a reader who asked for less motion
@@ -50,7 +54,15 @@ Feature: The front page shows software being reshaped while it runs
     Then the board stands finished beside its TypeScript
     And List and Board change it without a press on Run
     And nothing plays until the reader presses Run
+    And until then nothing says Done: what stands is said to be the end result
     And pressed, Run plays the calls one after another, moving less
+
+  Scenario: The app fits what it shows, and the page stays put
+    Given a window 1440 or 390 wide
+    When the replay plays to its end and the reader gives the last ticket its crew
+    Then the app's frame is no taller than what is in it
+    And no ticket and no heading is cut
+    And what stands under the replay has not moved
 
   Scenario: The TypeScript shown is the TypeScript that runs
     When the page opens
