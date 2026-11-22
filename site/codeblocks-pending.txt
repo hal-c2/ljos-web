@@ -32,7 +32,6 @@ rust/native-types.md 1 host-types the Example module is the Rust program's
 rust/overview.md 1 web:error-boundary an ErrorBoundary catches and restarts what it holds, and the web's runtime has no supervisor to do it yet
 rust/singletons-and-windows.md 1 host-types io.qt.filenameprovider is a module the Rust program registers
 rust/testing-rust.md 1 web:qttest the test types are not in ljos-web yet
-rust/threads-and-uihandle.md 1 web:xmlhttprequest XMLHttpRequest from Component.onCompleted throws on the web
 start/hot-reload.md 2 web:component-reloaded Component.onReloaded is no signal on the web
 start/testing.md 1 web:qttest the test types are not in ljos-web yet
 ui/items.md 2 logs it prints `hit: under`, as the page says it does
