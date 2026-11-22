@@ -189,11 +189,11 @@ export async function centreOf(locator) {
 // copy beside them, hidden).
 // The window stands on the stage's ground; after it, the line where
 // the block says what went wrong, then the values strip. The three
-// are the stage's part of the block, which follows the code's part and
-// the toolbar's (Run, Edit, Reset, Source) in the page, wherever a
-// phone places them. `block` is the card the reader sees (objectName
-// "codeCard", the same in every language): its file tabs sit in the
-// card's head, outside the column the ground stands in.
+// are the stage's part of the block. It and the toolbar's (Run, Edit,
+// Reset, Source) each stand in one of two places, before the code on a
+// phone and after it elsewhere. `block` is the card the reader sees
+// (objectName "codeCard", the same in every language): its file tabs
+// sit in the card's head, outside the column the ground stands in.
 export function liveBlock(page, index) {
   const stage = page.locator(PICTURE).nth(index).locator("xpath=../../..");
   const ground = stage.locator("xpath=..");
@@ -201,7 +201,7 @@ export function liveBlock(page, index) {
     picture: stage.locator(SHOWN).filter({ visible: true }),
     stage,
     running: stage.locator("xpath=./*[*]").filter({ visible: true }).first(),
-    toolbar: ground.locator("xpath=../preceding-sibling::*[1]"),
+    toolbar: ground.locator("xpath=../../../*[position()=2 or position()=4]/*"),
     told: ground.locator("xpath=following-sibling::*[1]"),
     values: ground.locator("xpath=following-sibling::*[2]"),
     block: stage.locator('xpath=ancestor::*[@data-object-name="codeCard"][1]'),

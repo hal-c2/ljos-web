@@ -106,7 +106,10 @@ Column {
     readonly property int foldAt: 12
     readonly property int codeLines: String(isLive ? live.display[currentFile].code : code).replace(/\n$/, "").split("\n").length
     property bool showsAll: false
-    readonly property bool folded: phone && !showsAll && codeLines > foldAt + 3
+    readonly property bool foldable: phone && codeLines > foldAt + 3
+    readonly property bool folded: foldable && !showsAll
+    // What the page scrolls in, so Show less can keep itself in view.
+    property var scroller: null
     // The height folded code shows: its first dozen lines and the
     // space above them.
     readonly property int foldedHeight: Theme.s + foldAt * Theme.codeLine
@@ -626,10 +629,26 @@ Column {
                 width: parent.width
                 height: visible ? codePart.height + toolbarPart.height + stagePart.height : 0
 
+                // The page and Tab go in the order the parts are declared
+                // in, whatever their y, so a phone has the stage and its
+                // toolbar in places of their own before the code. The code
+                // stays put: moving it would drop the editor's focus.
+                Item {
+                    id: stageAbove
+                    width: parent.width
+                    height: block.phone ? stagePart.height : 0
+                }
+                Item {
+                    id: barAbove
+                    y: stageAbove.height
+                    width: parent.width
+                    height: block.phone ? toolbarPart.height : 0
+                }
+
                 Column {
                     id: codePart
                     width: parent.width
-                    y: block.phone ? stagePart.height + toolbarPart.height : 0
+                    y: stageAbove.height + barAbove.height
 
                     // The editor's box, which rings while the reader is in it.
                     Rectangle {
@@ -702,10 +721,23 @@ Column {
                     }
                 }
 
+                Item {
+                    id: barBelow
+                    y: codePart.y + codePart.height
+                    width: parent.width
+                    height: block.phone ? 0 : toolbarPart.height
+                }
+                Item {
+                    id: stageBelow
+                    y: barBelow.y + barBelow.height
+                    width: parent.width
+                    height: block.phone ? 0 : stagePart.height
+                }
+
                 Column {
                     id: toolbarPart
+                    parent: block.phone ? barAbove : barBelow
                     width: parent.width
-                    y: block.phone ? stagePart.height : codePart.height
 
                     // The hairline toward the code, which is there only while
                     // the code is.
@@ -818,8 +850,8 @@ Column {
 
                 Column {
                     id: stagePart
+                    parent: block.phone ? stageAbove : stageBelow
                     width: parent.width
-                    y: block.phone ? 0 : codePart.height + toolbarPart.height
 
                     // The stage: a ground of the page's with the example's window
                     // on it. In the window, the picture the build drew of the
@@ -1109,9 +1141,20 @@ Column {
                 }
             }
 
-            // Folded code's way to all of it, under the code.
+            // The way to all of long code and back, under the code: one
+            // button, so the focus a keyboard reader gave it stays.
             Rectangle {
-                visible: block.folded && (!block.isLive || block.sourceShown)
+                id: foldBar
+                visible: block.foldable && (!block.isLive || block.sourceShown)
+                // Folding, the code shrinks above the button, which would
+                // go up out of the view with the reader's focus on it.
+                onYChanged: {
+                    if (!block.scroller || block.showsAll || !folding.running)
+                        return;
+                    var top = foldBar.mapToItem(block.scroller.contentItem, 0, 0).y - Theme.s;
+                    if (top < block.scroller.contentY)
+                        block.scroller.contentY = Math.max(0, top);
+                }
                 width: parent.width
                 height: visible ? 48 : 0
                 color: Theme.codeBg
@@ -1122,12 +1165,18 @@ Column {
                     color: Theme.divider
                 }
                 StageButton {
+                    id: foldButton
                     anchors.left: parent.left
                     anchors.leftMargin: block.inset
                     anchors.verticalCenter: parent.verticalCenter
-                    text: t`Show all ${block.codeLines} lines`
-                    label: t`Show all ${block.codeLines} lines of ${block.title}`
-                    onPressed: block.setFold(true)
+                    text: block.showsAll ? t`Show less` : t`Show all ${block.codeLines} lines`
+                    label: block.showsAll ? t`Show less of ${block.title}` : t`Show all ${block.codeLines} lines of ${block.title}`
+                    onPressed: {
+                        // Folded code takes no keys.
+                        if (block.editing)
+                            foldButton.forceActiveFocus();
+                        block.setFold(!block.showsAll);
+                    }
                 }
             }
         }
