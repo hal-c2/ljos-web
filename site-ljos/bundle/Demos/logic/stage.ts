@@ -91,6 +91,12 @@ function shownOrNull(value: unknown): string {
     return value === null || value === undefined ? "null" : shown(value)
 }
 
+// A property's value as the inspector answers it: text already, so not
+// quoted again.
+function readBack(value: unknown): string {
+    return typeof value === "string" ? value : shownOrNull(value)
+}
+
 export function argsText(args: Record<string, unknown>): string {
     if (keys(args).length === 0) return "{}"
     return `{ ${fieldsText(args)} }`
@@ -116,7 +122,7 @@ export function summary(tool: string, ok: boolean, answer: Answer): string {
         case "app_set_property":
             return `${String(s.property)}: ${clipped(shownOrNull(s.previous), 24)} → ${clipped(shownOrNull(s.value), 40)}`
         case "app_get_property":
-            return `${String(s.property)} = ${clipped(shownOrNull(s.value), 60)}`
+            return `${String(s.property)} = ${clipped(readBack(s.value), 60)}`
         case "app_find": {
             const matches: unknown[] = Array.isArray(s.matches) ? s.matches : []
             const first = matches[0]
