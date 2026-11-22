@@ -67,16 +67,17 @@ Rectangle {
         // phone turned) keeps a puck the reader has led inside it. Before
         // the first gesture the puck's centring binding already does.
         // The reader's last target is kept, clamped to the new tray, not
-        // the springing x and y. Where the clamp moved the target, or the
-        // puck stands past the tray's new edge, it is placed there, not
-        // sprung: a spring from where it stood would draw it past the edge.
-        // Otherwise it springs on to a target the tray still holds.
+        // the springing x and y. Where the clamp moved the target, it is
+        // placed there, not sprung. A target the tray still holds it
+        // springs on to, drawn no further out than the tray's edge (kept):
+        // the spring itself is left be, as one given a new start keeps
+        // its velocity and would carry the puck past that edge.
         function keepPuck() {
             if (!puck.led)
                 return;
             const inside = MotionLogic.clampPuck(puck.goalX + puck.width / 2, puck.goalY + puck.height / 2, puck.width, width, height);
-            const past = puck.x < 0 || puck.y < 0 || puck.x + puck.width > width || puck.y + puck.height > height;
-            if (inside.x === puck.goalX && inside.y === puck.goalY && !past)
+            puck.kept = true;
+            if (inside.x === puck.goalX && inside.y === puck.goalY)
                 return;
             puck.goalX = inside.x;
             puck.goalY = inside.y;
@@ -118,6 +119,15 @@ Rectangle {
             property bool led: false
             // Set while the tray places the puck itself (keepPuck).
             property bool placing: false
+            // From a tray's change of size until the reader next leads it
+            // from inside, the puck is drawn within the tray wherever its
+            // spring is.
+            property bool kept: false
+            readonly property var held: MotionLogic.clampPuck(x + width / 2, y + height / 2, width, tray.width, tray.height)
+            transform: Translate {
+                x: puck.kept ? puck.held.x - puck.x : 0
+                y: puck.kept ? puck.held.y - puck.y : 0
+            }
 
             Behavior on x {
                 enabled: root.active && puck.led && !puck.placing
@@ -153,6 +163,8 @@ Rectangle {
             function lead(mouse) {
                 const target = MotionLogic.clampPuck(mouse.x, mouse.y, puck.width, tray.width, tray.height);
                 puck.led = true;
+                // A spring still past the edge has yet to come in from it.
+                puck.kept = puck.kept && (Math.abs(puck.held.x - puck.x) > 0.5 || Math.abs(puck.held.y - puck.y) > 0.5);
                 puck.goalX = target.x;
                 puck.goalY = target.y;
                 puck.x = target.x;

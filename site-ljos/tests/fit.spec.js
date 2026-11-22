@@ -298,21 +298,79 @@ test.describe("when the frame narrows", () => {
     expect(await narrowedPast(page, tray), "the puck on its way is never drawn past the tray as it narrows").toEqual([]);
   });
 
-  // Led from the corner toward the tray's middle, and the tray narrowed a
-  // little once the puck is well inside it: the clamp leaves its target
-  // as it was, and nothing is past the edge, so it springs on there
-  // rather than jumping (a scrollbar that comes, a window a little
-  // narrower).
-  test("Motion's puck springs on when the tray narrows a little", async ({ page }) => {
+  // Led from the corner toward the tray's middle with the page's clock
+  // held from the lead on: the spring then moves only as the test steps
+  // it. On the machine's clock the test's own round trips could outlast
+  // the spring, and find a settled puck to sample.
+  const ledWithClockHeld = async (page) => {
+    await page.clock.install();
     const { tray, box } = await puckInCorner(page);
+    await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1000));
     await page.mouse.move(box.x + box.width - 2, box.y + box.height - 2);
     await page.mouse.down();
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 2 });
     await page.mouse.up();
-    await expect.poll(async () => (await tray.evaluate(puckPast)).right < -60, { message: "the puck is on its way, well inside the tray" }).toBe(true);
-    await tray.evaluate(puckMoves, 500);
+    return { tray, box };
+  };
+  const narrowed = async (page, tray, box) => {
     await page.setViewportSize({ width: 1060, height: 800 });
+    const width = () => tray.evaluate((area) => area.parentElement.getBoundingClientRect().width);
+    // The page lays out on its next frame, up to 16 ms of held time
+    // away. It's stepped there by one, so the puck has gone no further.
+    await expect
+      .poll(async () => {
+        await page.clock.runFor(1);
+        return width();
+      }, { message: "the tray narrows", intervals: [0], timeout: 20_000 })
+      .toBeLessThan(box.width - 60);
+    expect(await width(), "the narrowed tray still holds the target").toBeGreaterThan(box.width / 2 + 60);
+  };
+  const stepped = async (page, tray) => {
+    const rights = [];
+    for (let frame = 0; frame < 30; frame++) {
+      await page.clock.runFor(16);
+      rights.push((await tray.evaluate(puckPast)).right);
+    }
+    return rights;
+  };
+
+  // The tray narrowed once the puck is well inside it: the clamp leaves
+  // its target as it was, so it springs on there rather than jumping (a
+  // window a little narrower), also where the narrower tray's edge has
+  // come in past it, as a page wider than the window's does.
+  test("Motion's puck springs on when the tray narrows a little", async ({ page }) => {
+    const { tray, box } = await ledWithClockHeld(page);
+    await expect
+      .poll(async () => {
+        await page.clock.runFor(16);
+        return (await tray.evaluate(puckPast)).right < -60;
+      }, { message: "the puck is on its way, well inside the tray", intervals: [0] })
+      .toBe(true);
+    await tray.evaluate(puckMoves, 500);
+    await narrowed(page, tray, box);
+    await page.clock.runFor(600);
     expect(await sampled(page), "the frames the puck moves on as the tray narrows a little").toBeGreaterThan(5);
+  });
+
+  // The same lead, and the tray narrowed before the puck has come as far
+  // in as it narrows by, so that it is past the new edge: it springs on
+  // from that edge, and is drawn past it on no frame.
+  test("Motion's puck past the narrowed edge springs on to a target the tray holds", async ({ page }) => {
+    const { tray, box } = await ledWithClockHeld(page);
+    await narrowed(page, tray, box);
+    const rights = await stepped(page, tray);
+    const moves = rights.filter((right, at) => at > 0 && Math.abs(right - rights[at - 1]) > 0.5).length;
+    expect(moves, `the frames the puck moves on, from right ${rights.map(Math.round).join(" ")}`).toBeGreaterThan(5);
+    expect(Math.max(...rights), "how far it is drawn past the narrowed tray's edge").toBeLessThanOrEqual(1);
+  });
+
+  test("Motion's puck led again from past the narrowed edge stays in its tray", async ({ page }) => {
+    const { tray, box } = await ledWithClockHeld(page);
+    await narrowed(page, tray, box);
+    const now = await tray.boundingBox();
+    await page.mouse.click(now.x + now.width / 3, now.y + now.height / 2);
+    const rights = await stepped(page, tray);
+    expect(Math.max(...rights), `how far it is drawn past the edge, from right ${rights.map(Math.round).join(" ")}`).toBeLessThanOrEqual(1);
   });
 });
 
