@@ -11,7 +11,8 @@ import { expect, test } from "@playwright/test";
 const here = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const dist = join(here, "dist");
 const products = JSON.parse(readFileSync(join(here, "bundle/Showcase/products.json"), "utf8"));
-const route = "/showcase/";
+const base = (process.env.LJOS_SITE_BASE ?? "/").replace(/\/?$/, "/");
+const route = `${base}showcase/`;
 const hydrated = '#app[data-ljos-hydrated="true"]';
 
 test("each app's recording, poster and captures are built, the recordings small enough to load", () => {
@@ -136,6 +137,102 @@ test("a recording pauses out of view and plays again once back", async ({ browse
     await expect.poll(() => recording(page).evaluate((video) => video.paused)).toBe(true);
     for (let i = 0; i < 12; ++i) await page.mouse.wheel(0, -400);
     await expect.poll(() => playing(page)).toBe(true);
+  } finally {
+    await context.close();
+  }
+});
+
+// The first app's recording as it is asked for, in either format.
+function fetches(page) {
+  const asked = new Set();
+  const name = `/showcase/media/${products[0].recording.name}`;
+  page.on("request", (request) => {
+    const path = new URL(request.url()).pathname;
+    if (path.endsWith(`${name}.webm`) || path.endsWith(`${name}.mp4`)) asked.add(path);
+  });
+  return asked;
+}
+
+const poster = (page) => page.locator(`#app img[src$="/${products[0].recording.name}-poster.png"]`).first();
+
+// The tab as the browser says it: hidden or shown.
+const tab = (page, state) =>
+  page.evaluate((state) => {
+    Object.defineProperty(document, "visibilityState", { configurable: true, get: () => state });
+    Object.defineProperty(document, "hidden", { configurable: true, get: () => state === "hidden" });
+    document.dispatchEvent(new Event("visibilitychange"));
+  }, state);
+
+test("a recording below the window isn't fetched until it is scrolled to", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 240 }, reducedMotion: "no-preference" });
+  try {
+    const page = await context.newPage();
+    const asked = fetches(page);
+    await page.goto(route);
+    await page.waitForSelector(hydrated);
+    const top = (await poster(page).boundingBox()).y;
+    expect(top, "the frame starts below the window").toBeGreaterThan(240);
+    await page.waitForTimeout(1500);
+    expect([...asked], "none before it is seen").toEqual([]);
+    await page.mouse.move(720, 120);
+    await page.mouse.wheel(0, top - 80);
+    await expect.poll(() => asked.size, { message: "one once it is seen" }).toBe(1);
+    await expect.poll(() => playing(page), { timeout: 10_000 }).toBe(true);
+  } finally {
+    await context.close();
+  }
+});
+
+test("a recording in a hidden tab isn't fetched until the tab is shown", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: "no-preference" });
+  try {
+    const page = await context.newPage();
+    await page.addInitScript(() => {
+      Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" });
+      Object.defineProperty(document, "hidden", { configurable: true, get: () => true });
+    });
+    const asked = fetches(page);
+    await page.goto(route);
+    await page.waitForSelector(hydrated);
+    await expect(poster(page), "the frame is in the window").toBeInViewport();
+    await page.waitForTimeout(1500);
+    expect([...asked], "none while the tab is hidden").toEqual([]);
+    await tab(page, "visible");
+    await expect.poll(() => asked.size, { message: "one once the tab is shown" }).toBe(1);
+  } finally {
+    await context.close();
+  }
+});
+
+test("a recording pauses in a hidden tab and plays again once it is shown", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: "no-preference" });
+  try {
+    const page = await context.newPage();
+    await page.goto(route);
+    await page.waitForSelector(hydrated);
+    await expect.poll(() => playing(page), { timeout: 10_000 }).toBe(true);
+    await tab(page, "hidden");
+    await expect.poll(() => recording(page).evaluate((video) => video.paused)).toBe(true);
+    await tab(page, "visible");
+    await expect.poll(() => playing(page)).toBe(true);
+  } finally {
+    await context.close();
+  }
+});
+
+test("a browser that plays no WebM is given the MP4", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: "no-preference" });
+  try {
+    const page = await context.newPage();
+    await page.addInitScript(() => {
+      const can = HTMLMediaElement.prototype.canPlayType;
+      HTMLMediaElement.prototype.canPlayType = function (type) {
+        return type.startsWith("video/webm") ? "" : can.call(this, type);
+      };
+    });
+    await page.goto(route);
+    await page.waitForSelector(hydrated);
+    await expect.poll(() => recording(page).evaluate((video) => video.currentSrc)).toMatch(/\.mp4$/);
   } finally {
     await context.close();
   }

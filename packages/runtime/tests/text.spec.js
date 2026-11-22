@@ -723,6 +723,74 @@ test("a picture's alt is kept, an empty one too", async ({ page }) => {
   expect(alts).toEqual(["A mark", "", null]);
 });
 
+// A picture that states no size is as big as it turns out to be, and
+// the text is measured again around it as it arrives.
+const drawn = (height) => ({
+  contentType: "image/svg+xml",
+  body: `<svg xmlns="http://www.w3.org/2000/svg" width="80" height="${height}"/>`,
+});
+const tallness = (page) => page.evaluate(() => window.objects.unsafe.implicitHeight);
+
+for (const [what, markup] of [
+  ["img", '<img src="/lazy.svg" loading="lazy">'],
+  ["picture", '<picture><source type="image/svg+xml" srcset="/lazy.svg"><img src="/lazy.png" loading="lazy"></picture>'],
+]) {
+  test(`a lazy ${what} that states no size is fetched once near, and the text makes room for it`, async ({ page }) => {
+    const asked = [];
+    await page.route("**/lazy.*", (route) => {
+      asked.push(new URL(route.request().url()).pathname);
+      return route.fulfill(drawn(120));
+    });
+    await boxes(page, "markup");
+    await page.evaluate((markup) => {
+      const { unsafe } = window.objects;
+      unsafe.y = 20000;
+      unsafe.text = markup;
+      window.flush();
+    }, markup);
+    await page.waitForTimeout(500);
+    expect(asked, "none while it is far below").toEqual([]);
+    await page.evaluate(() => {
+      window.objects.unsafe.y = 60;
+      window.flush();
+    });
+    await expect.poll(() => asked, { message: "fetched once near" }).toContain("/lazy.svg");
+    await expect.poll(() => tallness(page), { message: "room for it" }).toBeGreaterThanOrEqual(120);
+  });
+}
+
+test("two pictures with one fallback are each made room for, and then measuring rests", async ({ page }) => {
+  let answer;
+  const held = new Promise((done) => (answer = done));
+  let askedSecond = false;
+  await page.route("**/first.svg", (route) => route.fulfill(drawn(40)));
+  await page.route("**/second.svg", async (route) => {
+    askedSecond = true;
+    await held;
+    await route.fulfill(drawn(100));
+  });
+  await boxes(page, "markup");
+  await page.evaluate(() => {
+    const picture = (name) => `<picture><source type="image/svg+xml" srcset="/${name}.svg"><img src="/fallback.png"></picture>`;
+    window.objects.unsafe.text = `${picture("first")}<br>${picture("second")}`;
+    window.flush();
+  });
+  await expect.poll(() => tallness(page), { message: "room for the first" }).toBeGreaterThanOrEqual(40);
+  await expect.poll(() => askedSecond).toBe(true);
+  answer();
+  await expect.poll(() => tallness(page), { message: "and for the second" }).toBeGreaterThanOrEqual(140);
+  const again = await page.evaluate(async () => {
+    await new Promise((done) => setTimeout(done, 200));
+    let changes = 0;
+    const seen = new MutationObserver((records) => (changes += records.length));
+    seen.observe(document.querySelector(".qq-bench"), { childList: true, subtree: true });
+    await new Promise((done) => setTimeout(done, 500));
+    seen.disconnect();
+    return changes;
+  });
+  expect(again, "both in, nothing is measured again").toBe(0);
+});
+
 // A picture in more than one format: the browser takes the first source
 // it can show, and the `img` in it where it can show none. Only a
 // picture's sources are kept, only pictures, and only what picks one;
