@@ -397,6 +397,8 @@ Rectangle {
 // /quality/design-guardrails/'s two windows: a Pane and what is in it.
 // The same Pane with no window round it tells the window's part from the
 // Pane's, and each made alone tells the example's part from the batch's.
+// Made after an example whose error halts Solid, nothing a window owes a
+// later update arrives: so it is made behind two of those as well.
 plain("what a root window's Pane holds is in its prerender, made alone or in a batch", async ({}, info) => {
   info.setTimeout(300_000);
   const one = (code) => assemble(extractBlocks("```qml\n" + code.trimEnd() + "\n```\n"), {}).examples[0];
@@ -448,17 +450,44 @@ Pane {
 }
 `),
   };
+  // /rust/multimedia/'s: its effect's throw is nobody's to catch here.
+  const halting = (width) =>
+    one(`import QtQuick
+import QtMultimedia
+
+Item {
+    width: ${width}
+    height: 240
+
+    MediaPlayer {
+        source: "clip.mp4"
+        audioOutput: AudioOutput {}
+        videoOutput: output
+    }
+
+    VideoOutput {
+        id: output
+        anchors.fill: parent
+    }
+}
+`);
+  const halts = { first: halting(320), second: halting(321) };
+  const made = { ...examples, ...halts };
   const words = { centred: "Words in a centred pane", filled: "Words in a filled pane", windowless: "Words in a pane with no window" };
-  const runs = [...Object.keys(examples).map((name) => [name]), Object.keys(examples)];
+  const runs = [...Object.keys(examples).map((name) => [name]), Object.keys(examples), ["first", "centred", "second", "filled", "windowless"]];
   for (const names of runs) {
     const cacheDir = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "ljos-codeblock-test-"));
     try {
-      const { manifest, failures } = await renderPrerenders(names.map((name) => examples[name]), { cacheDir, qmlc });
-      expect(failures, names.join()).toEqual([]);
-      for (const name of names)
-        expect
-          .soft(readFileSync(join(cacheDir, manifest[hashExample(examples[name])].file), "utf8"), `${name}, made with ${names.join()}`)
-          .toContain(words[name]);
+      const { manifest, failures } = await renderPrerenders(names.map((name) => made[name]), { cacheDir, qmlc, dark: true });
+      const stopping = names.filter((name) => name in halts);
+      expect(failures.map(({ example }) => hashExample(example)).sort(), names.join()).toEqual(stopping.map((name) => hashExample(halts[name])).sort());
+      // Where they no longer halt, this says nothing of what follows one.
+      for (const { diagnostics } of failures) expect(diagnostics.join("\n")).toContain("REACTIVITY_HALTED");
+      for (const name of names.filter((each) => each in examples))
+        for (const scheme of ["file", "dark"])
+          expect
+            .soft(readFileSync(join(cacheDir, manifest[hashExample(examples[name])][scheme]), "utf8"), `${name} (${scheme}), made with ${names.join()}`)
+            .toContain(words[name]);
     } finally {
       rmSync(cacheDir, { recursive: true, force: true });
     }
