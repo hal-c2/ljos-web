@@ -6,8 +6,8 @@
 // file. A function that is not one imports the component's module, which
 // comes later. Anything else is the URL it was given, for which there is
 // nothing to load: QML is not interpreted here.
-import { createEffect, runWithOwner } from "solid-js";
-import { defineType, derived, effect, instantiate, last, slot, whenComplete, whenMade } from "../object.ts";
+import { createEffect, onCleanup, runWithOwner } from "solid-js";
+import { awaitedLoad, defineType, derived, effect, instantiate, last, slot, whenComplete, whenMade } from "../object.ts";
 import { Item } from "./Item.js";
 import { settle } from "./settle.ts";
 import { signal, untrack } from "#kernel";
@@ -126,7 +126,14 @@ function load(self, state) {
   if (typeof source === "function") {
     write(self, "status", Loading);
     write(self, "progress", 0);
-    return void later(Promise.resolve().then(source), (module) => module?.default);
+    const pending = Promise.resolve().then(source);
+    // A source marked `awaited` is chosen by what server and browser both
+    // know (the address), so the page is written and taken over with what
+    // it loads. Any other is chosen by what only the reader's browser
+    // knows (a kept shell, a setting), and must not hold the page: the
+    // prerender never had it.
+    if (source.awaited === true) awaitedLoad(pending);
+    return void later(pending, (module) => module?.default);
   }
   fail(self, `cannot load ${source}: only a QML file the compiler saw can be loaded`);
 }
@@ -227,5 +234,11 @@ export const Loader = defineType("Loader", Item, {
     // After that `loaded` comes with the handlers of what changed, once
     // those of `item` and `status` have run.
     whenComplete(() => createEffect(made, () => last(() => self.loaded()), { defer: true }));
+    // A module that comes after the Loader is gone has nothing to be made
+    // in: a prerender's Loader is gone once the page is written, and a
+    // page left while its part still loads is gone with it.
+    onCleanup(() => {
+      state.turn++;
+    });
   },
 });

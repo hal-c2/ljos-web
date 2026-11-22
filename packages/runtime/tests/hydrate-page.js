@@ -9,6 +9,7 @@
 import { hydrate, mount, settleMaking } from "ljos-web/object";
 import Page from "./scenes/hydrating.qml";
 import Completing from "./scenes/completing.qml";
+import AwaitedLoad, { inBrowserGate } from "./scenes/awaitedload.js";
 
 const KIND = Symbol.for("ljos-web.making-kind");
 const OUTSIDE = Symbol.for("ljos-web.outside-the-count");
@@ -42,6 +43,8 @@ window.prerender = async (host, Scene = Page) => {
 };
 window.Page = Page;
 window.Completing = Completing;
+window.AwaitedLoad = AwaitedLoad;
+window.inBrowserGate = inBrowserGate;
 window.hydrate = hydrate;
 window.mount = mount;
 window.ready = true;
