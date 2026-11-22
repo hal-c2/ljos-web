@@ -982,6 +982,9 @@ const folds = (page) =>
           line,
           shownHeight: Math.max(0, bottom - top),
           codeTop: box.top,
+          codeBottom: box.bottom,
+          shownTop: top,
+          shownBottom: bottom,
           pictureTop: picture ? picture.getBoundingClientRect().top : null,
           showsAll: [...card.querySelectorAll('[role="button"], button')].some(
             (node) =>
@@ -1177,6 +1180,56 @@ test("a phone's long code is folded in the page as written", async ({
         card.shownHeight,
         `${card.name}: its height as written`,
       ).toBeLessThanOrEqual((FOLDED + 1) * card.line + 32);
+  } finally {
+    await context.close();
+  }
+});
+
+// With no script Show all can do nothing: the fold scrolls to its
+// last line instead, and lets the page go on from there.
+test("a phone's folded code can be read to its end without scripts", async ({
+  browser,
+}) => {
+  const context = await browser.newContext({
+    viewport: PHONE,
+    javaScriptEnabled: false,
+  });
+  try {
+    const page = await context.newPage();
+    await page.goto(LONG_PAGE);
+    const long = (await folds(page)).filter((card) => card.lines > LONG);
+    expect(long.length, "examples longer than a screenful").toBeGreaterThan(0);
+    for (const { index, name } of long) {
+      const read = async () => (await folds(page))[index];
+      const card = page
+        .locator(CARD)
+        .filter({ visible: true })
+        .and(page.getByRole("group", { name, exact: true }))
+        .first();
+      // The card, not its code: scrolling to the code would scroll the
+      // fold that is under test.
+      await card.evaluate((node) => node.scrollIntoView({ block: "end" }));
+      const { shownTop, shownBottom } = await read();
+      await page.mouse.move(PHONE.width / 2, (shownTop + shownBottom) / 2);
+      await page.mouse.wheel(0, 4000);
+      await expect
+        .poll(
+          async () => {
+            const now = await read();
+            return now.codeBottom - now.shownBottom;
+          },
+          { message: `${name}: its last line shows` },
+        )
+        .toBeLessThanOrEqual(1);
+    }
+    const last = long.at(-1);
+    const before = (await folds(page))[last.index].shownTop;
+    await page.mouse.wheel(0, 300);
+    await expect
+      .poll(async () => (await folds(page))[last.index].shownTop, {
+        message: `${last.name}: at its end, the page goes on`,
+      })
+      .toBeLessThan(before - 1);
   } finally {
     await context.close();
   }
