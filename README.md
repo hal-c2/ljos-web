@@ -25,3 +25,5 @@ already existed and predate both rebases on da3ad7ff.
 - 131/507d38d9: CI's site-ljos-root artifact (14759573329) of site run 45034362128, for head 507d38d960bca160846739233824d9c3c14a430e. Headless Chromium 158.0.8127.18, no network, 1440x900 at 1x and 390x844 at 2x, light and dark: each shell, picked as a reader would (stored pick), and the shell switcher open.
 
 - 166/4ec366ea: CI's site-ljos-root artifact (14758588267) of site run 45026470945, for head 4ec366ea578715555c70d5ac3ddbfdf31b8121cd. Headless Chromium 158.0.8127.18, no network, 1440x900 at 1x and 390x844 at 2x, light and dark: /showcase/ at its top and two screens down.
+
+- 164/90bf104c: CI's site-ljos-root artifact (14752865715) of site run 45017349060, for head 90bf104c5c3d30ae1a9f7d5f8d4ab8400a6d5c27. Headless Chromium 158.0.8127.18, no network, 1440x900 at 1x and 390x844 at 2x, light and dark. The first live example on three docs pages, centred on its Run · Edit · Source toolbar so its picture shows: Your First App, Repeater (an example that draws nothing until run), and Motion.
