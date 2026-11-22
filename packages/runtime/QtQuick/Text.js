@@ -26,7 +26,7 @@ import { Item } from "./Item.js";
 import { LeftButton } from "./keycodes.ts";
 import { alignment } from "./LayoutMirroring.ts";
 import { CancelGrabExclusive, receive } from "./pointer.js";
-import { clothe, elements, mightBeRichText, survey } from "./richtext.js";
+import { arrive, clothe, elements, mightBeRichText, survey } from "./richtext.js";
 
 const MANY = 2147483647;
 
@@ -567,6 +567,8 @@ export const Text = defineType("Text", Item, {
       // is read again when it is let go.
       content.addEventListener("mouseover", (event) => self.$pressed || hover(linked(event) ?? ""));
       content.addEventListener("mouseout", () => self.$pressed || hover(""));
+      // A load doesn't bubble: it is heard on its way down.
+      content.addEventListener("load", arrive, true);
     };
     let shown = {};
     effect(

@@ -127,8 +127,8 @@ Column {
                 id: player
                 anchors.fill: parent
                 // Made once the reader would see it play, and kept: a
-                // recording the reader never plays is never fetched.
-                active: app.awake && (app.wanted || status === Loader.Ready)
+                // recording the reader never sees play is never fetched.
+                active: app.awake && ((app.wanted && app.onScreen && Running.shown) || status === Loader.Ready)
                 source: Later.recording
                 opacity: item && item.begun ? 1 : 0
                 Behavior on opacity {
