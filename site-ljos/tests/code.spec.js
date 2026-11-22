@@ -390,3 +390,128 @@ test("Copy on a page with no clipboard never says Copied", async ({
     await context.close();
   }
 });
+
+// On the narrowest phone a live block of several files still gives each
+// file's tab to the reader: whole, under the pointer, clear of Copy.
+for (const route of [
+  "/language/controllers/",
+  "/language/modules-and-imports/",
+]) {
+  test(`${route}'s file tabs can each be reached on a narrow phone`, async ({
+    browser,
+  }) => {
+    const { context, page } = await opened(
+      browser,
+      { width: 320, height: 640 },
+      "light",
+      route,
+    );
+    try {
+      const tabs = page.locator(
+        '[data-object-name="codeCard"] [role="tab"]:visible',
+      );
+      const count = await tabs.count();
+      expect(count, "a block of several files").toBeGreaterThan(1);
+      for (let index = 0; index < count; index++) {
+        const tab = tabs.nth(index);
+        await tab.focus();
+        await expect
+          .poll(
+            () =>
+              tab.evaluate((node) => {
+                const card = node.closest('[data-object-name="codeCard"]');
+                const box = node.getBoundingClientRect();
+                const middle = box.top + box.height / 2;
+                const wrong = [];
+                for (const x of [
+                  box.left + 1,
+                  box.left + box.width / 2,
+                  box.right - 1,
+                ]) {
+                  if (!node.contains(document.elementFromPoint(x, middle)))
+                    wrong.push(`covered or clipped at x=${Math.round(x)}`);
+                }
+                for (const button of card.querySelectorAll('[role="button"], button')) {
+                  if (!/^(Copy|Copied)\b/.test(button.getAttribute("aria-label") ?? button.textContent.trim()))
+                    continue;
+                  const copy = button.getBoundingClientRect();
+                  if (box.left < copy.right && box.right > copy.left && box.top < copy.bottom && box.bottom > copy.top)
+                    wrong.push("under Copy");
+                }
+                // A card that clips is never scrolled to show what it clipped.
+                for (let up = node.parentElement; up && card.contains(up); up = up.parentElement) {
+                  if (getComputedStyle(up).overflowX === "hidden" && up.scrollLeft)
+                    wrong.push("the card's clip was scrolled");
+                }
+                return wrong;
+              }),
+            { message: `tab ${index + 1} of ${count}`, timeout: 3000 },
+          )
+          .toEqual([]);
+      }
+    } finally {
+      await context.close();
+    }
+  });
+}
+
+// Run and edited, every control of the toolbar is clear of the others
+// and of the word that says the code is edited.
+test("an edited, running example's toolbar fits a narrow phone", async ({
+  browser,
+}) => {
+  const { context, page } = await opened(
+    browser,
+    { width: 320, height: 640 },
+    "light",
+    "/start/first-app/",
+  );
+  try {
+    const card = page
+      .locator('[data-object-name="codeCard"]')
+      .filter({ has: page.getByRole("textbox") })
+      .first();
+    await card.getByRole("button", { name: /^Run / }).click();
+    await expect(
+      card.getByRole("button", { name: /^Observer for/ }),
+    ).toBeVisible({ timeout: 15000 });
+    await card.getByRole("textbox").first().click();
+    await page.keyboard.press("ControlOrMeta+Home");
+    await page.keyboard.type("// as edited\n");
+    await expect(card.locator('[data-object-name="editedBadge"]')).toBeVisible();
+    await expect(
+      card.getByRole("button", { name: /^Observer for/ }),
+    ).toBeVisible({ timeout: 15000 });
+    await expect
+      .poll(
+        () =>
+          card.evaluate((node) => {
+            const bar = node.querySelector('[data-object-name="codeToolbar"]');
+            const within = bar.getBoundingClientRect();
+            const parts = [
+              ...bar.querySelectorAll('[role="button"], button, [data-object-name="editedBadge"]'),
+            ]
+              .filter((part) => part.getClientRects().length && getComputedStyle(part).visibility !== "hidden")
+              .map((part) => ({
+                name: part.getAttribute("aria-label") ?? part.textContent.trim(),
+                box: part.getBoundingClientRect(),
+              }))
+              .filter(({ box }) => box.width > 0 && box.height > 0);
+            const wrong = [];
+            parts.forEach(({ name, box }, index) => {
+              if (box.left < within.left - 0.5 || box.right > within.right + 0.5 || box.top < within.top - 0.5 || box.bottom > within.bottom + 0.5)
+                wrong.push(`${name} is outside the toolbar`);
+              for (const other of parts.slice(index + 1)) {
+                if (box.left < other.box.right - 0.5 && box.right > other.box.left + 0.5 && box.top < other.box.bottom - 0.5 && box.bottom > other.box.top + 0.5)
+                  wrong.push(`${name} overlaps ${other.name}`);
+              }
+            });
+            return wrong;
+          }),
+        { timeout: 5000 },
+      )
+      .toEqual([]);
+  } finally {
+    await context.close();
+  }
+});

@@ -620,6 +620,7 @@ Column {
                 // The stage's toolbar: what the reader can do with it, never
                 // over what it draws.
                 Rectangle {
+                    objectName: "codeToolbar"
                     width: parent.width
                     height: 48
                     color: Theme.surface
@@ -684,6 +685,7 @@ Column {
                         }
                     }
                     Rectangle {
+                        objectName: "editedBadge"
                         visible: block.edited
                         anchors.right: parent.right
                         anchors.rightMargin: block.inset
