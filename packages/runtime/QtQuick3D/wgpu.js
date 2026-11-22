@@ -841,17 +841,22 @@ export function drawOn(self, canvas, told, instead) {
   // A loss told while the view is made, before it is kept, is acted on
   // in place of keeping it.
   let lostWhileMade = null;
+  // The view kept, as `setMade` keeps it but read at once: a `setMade`
+  // write reads back only once Solid flushes it, so a loss told between
+  // the two would read no view and be put off with no make left to act on
+  // it.
+  let kept = null;
   const lost = (message) => {
-    const view = made();
+    const view = kept;
     if (gone || stopped) return;
     if (!view) return void (lostWhileMade ??= message);
     remake(view, message);
   };
-  // `view` is handed over, not read: what `setMade` keeps reads back only
-  // once Solid flushes the write, so the call that made the view would
-  // read none.
+  // `view` is handed over, not read: the call that made the view has not
+  // kept it.
   const remake = (view, message) => {
     lostWhileMade = null;
+    kept = null;
     setMade(null);
     queueMicrotask(() => into(() => view.free()));
     for (const end of followers.values()) end();
@@ -960,6 +965,7 @@ export function drawOn(self, canvas, told, instead) {
         if (state.backend === "webgl2") gl = canvas.getContext("webgl2");
         // Lost before it is kept, it is never kept: it is made again.
         if (lostWhileMade !== null) return void remake(view, lostWhileMade);
+        kept = view;
         setMade(() => view);
       })
       .catch(async (error) => {
@@ -1076,7 +1082,9 @@ export function drawOn(self, canvas, told, instead) {
     frameMade.port1.close();
     if (fence) gl.deleteSync(fence);
     fence = null;
-    const view = made();
+    // Not `made()`: a view kept in this task reads back only once flushed.
+    const view = kept;
+    kept = null;
     if (view) {
       setMade(null);
       into(() => view.free());
