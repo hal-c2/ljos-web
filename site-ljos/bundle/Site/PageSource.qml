@@ -6,7 +6,7 @@ import "../shells.js" as Shells
 import "../nav.js" as Nav
 
 // The QML the page shown is made from, highlighted as a code block is:
-// a workbench's Source tab. The text comes the first time the tab is
+// a workbench's Source panel. The text comes the first time the panel is
 // shown (Shells/sources.json), so no page loads it for a reader who
 // never looks.
 Item {

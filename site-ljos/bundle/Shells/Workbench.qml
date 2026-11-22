@@ -4,15 +4,12 @@ import Ljos.Blocks
 import Ljos.Controls as C
 
 // The site as a workbench: every page of it on the left, as files are,
-// the page in the middle, and on the right what it is made of and what
-// is in it as it runs: its Source, an Observer of a running example, and
-// the calls an Agent made to drive it.
+// the page in the middle, and on the right what it is made of: its
+// Source.
 //
 // Its parts are places (Slots) the site puts its pieces in by name, as
 // the marketing shell's are: `site.page` is the very page another shell
-// showed, still where the reader was on it. `site.observer` and
-// `site.agent` are places a part of the site that shows one adds to; till
-// one does, each says what it will hold.
+// showed, still where the reader was on it.
 Rectangle {
     id: shell
     objectName: "workbenchShell"
@@ -110,8 +107,6 @@ Rectangle {
         width: 264
         height: parent.height - y
         color: look.surface
-        Accessible.role: Accessible.ComplementaryContent
-        Accessible.name: t`Pages`
 
         Text {
             x: 16
@@ -150,7 +145,7 @@ Rectangle {
         Slot { name: "site.page" }
     }
 
-    // What the page is made of, and what is in it as it runs.
+    // What the page is made of.
     Rectangle {
         x: panel.x - 1
         y: bar.height
@@ -166,72 +161,25 @@ Rectangle {
         height: parent.height - y
         color: look.surface
         Accessible.role: Accessible.ComplementaryContent
-        Accessible.name: t`Inspector`
+        Accessible.name: t({ message: "Source", context: "panel" })
 
-        C.TabBar {
-            id: tabs
-            width: parent.width
-
-            C.TabButton {
-                text: t({ message: "Source", context: "stage tab" })
-                iconName: "code"
-            }
-            C.TabButton {
-                text: t`Observer`
-                iconName: "eye"
-            }
-            C.TabButton {
-                text: t`Agent`
-                iconName: "sparkles"
-            }
+        Text {
+            x: 16
+            y: 12
+            text: t({ message: "Source", context: "panel" })
+            color: look.textMuted
+            font.family: look.sans
+            font.pixelSize: 12
+            font.weight: Font.DemiBold
+            font.capitalization: Font.AllUppercase
+            font.letterSpacing: 0.6
+            Accessible.ignored: true
         }
         Item {
-            y: tabs.height
+            y: 32
             width: parent.width
             height: parent.height - y
-            visible: tabs.currentIndex === 0
             Slot { name: "site.source" }
-        }
-        // The Observer of what runs on the page: a part of the site that
-        // can show one (an embeddable Observer view, given the running
-        // app to inspect) replaces this slot's own words.
-        Item {
-            y: tabs.height
-            width: parent.width
-            height: parent.height - y
-            visible: tabs.currentIndex === 1
-            Slot {
-                name: "site.observer"
-                delegate: Component {
-                    C.EmptyState {
-                        x: 16
-                        y: 48
-                        width: parent ? parent.width - 32 : 300
-                        iconName: "eye"
-                        title: t`Observer`
-                        description: t`Nothing to show yet. Run the app to see inside it.`
-                    }
-                }
-            }
-        }
-        Item {
-            y: tabs.height
-            width: parent.width
-            height: parent.height - y
-            visible: tabs.currentIndex === 2
-            Slot {
-                name: "site.agent"
-                delegate: Component {
-                    C.EmptyState {
-                        x: 16
-                        y: 48
-                        width: parent ? parent.width - 32 : 300
-                        iconName: "sparkles"
-                        title: t`Agent`
-                        description: t`No calls yet. Press Replay to watch an agent drive this app.`
-                    }
-                }
-            }
         }
     }
 }

@@ -86,9 +86,6 @@ Rectangle {
             width: parent.width
             height: 36
             color: look.surface
-            Accessible.role: Accessible.MenuBar
-            Accessible.name: t`Menu bar`
-
             Row {
                 x: 8
                 anchors.verticalCenter: parent.verticalCenter
@@ -99,6 +96,7 @@ Rectangle {
                     Slot { name: "site.brand.small" }
                 }
                 C.Button {
+                    anchors.verticalCenter: parent.verticalCenter
                     subtle: true
                     text: t`File`
                     onClicked: fileMenu.open()
@@ -122,6 +120,7 @@ Rectangle {
                     }
                 }
                 C.Button {
+                    anchors.verticalCenter: parent.verticalCenter
                     subtle: true
                     text: t`View`
                     onClicked: viewMenu.open()
@@ -167,6 +166,7 @@ Rectangle {
                     }
                 }
                 C.Button {
+                    anchors.verticalCenter: parent.verticalCenter
                     subtle: true
                     text: t`Go`
                     onClicked: goMenu.open()
@@ -204,6 +204,7 @@ Rectangle {
                     }
                 }
                 C.Button {
+                    anchors.verticalCenter: parent.verticalCenter
                     subtle: true
                     text: t`Help`
                     onClicked: helpMenu.open()
@@ -254,6 +255,7 @@ Rectangle {
                 spacing: 4
 
                 C.Button {
+                    anchors.verticalCenter: parent.verticalCenter
                     subtle: true
                     iconName: "arrow-left"
                     display: C.Button.IconOnly
@@ -261,6 +263,7 @@ Rectangle {
                     onClicked: shell.site.back()
                 }
                 C.Button {
+                    anchors.verticalCenter: parent.verticalCenter
                     subtle: true
                     iconName: "arrow-right"
                     display: C.Button.IconOnly
@@ -268,6 +271,7 @@ Rectangle {
                     onClicked: shell.site.forward()
                 }
                 C.Button {
+                    anchors.verticalCenter: parent.verticalCenter
                     subtle: true
                     iconName: "house"
                     display: C.Button.IconOnly
@@ -345,6 +349,9 @@ Rectangle {
             width: parent.width
             height: tabBar.height
             color: look.surface
+            // Between the header and the page, so a landmark of its own.
+            Accessible.role: Accessible.Section
+            Accessible.name: t`Open pages`
 
             C.TabBar {
                 id: tabBar
