@@ -19,6 +19,8 @@ Column {
 
     property var manifest: null
     property bool loaded: false
+    // The first part of the list that can't be read, where one can't.
+    property string unreadable: ""
     property var filter: Shots.everything
 
     readonly property var totals: manifest ? Shots.counts(manifest.shots) : ({ all: 0, changed: 0, broken: 0 })
@@ -34,7 +36,9 @@ Column {
         if (!Nav.inBrowser())
             return;
         Shots.load(Nav.at(Content.base, "/screenshots/manifest.json")).then((found) => {
-            screenshots.manifest = found;
+            if (found.manifest !== undefined)
+                screenshots.manifest = found.manifest;
+            screenshots.unreadable = found.bad ?? "";
             screenshots.loaded = true;
         });
     }
@@ -88,7 +92,7 @@ Column {
         onLinkActivated: (to) => Nav.go(to)
     }
 
-    // A deploy that drew nothing.
+    // A deploy that drew nothing, or a list that can't be read.
     Rectangle {
         visible: screenshots.loaded && !screenshots.any
         width: parent.width
@@ -107,7 +111,7 @@ Column {
 
             Text {
                 width: parent.width
-                text: ShotsWords.none
+                text: screenshots.unreadable === "" ? ShotsWords.none : ShotsWords.unreadable
                 color: Theme.text
                 font.family: Theme.sans
                 font.pixelSize: Theme.titleSize
@@ -118,7 +122,7 @@ Column {
             }
             Text {
                 width: Math.min(parent.width, Theme.measure)
-                text: ShotsWords.noneWhy
+                text: screenshots.unreadable === "" ? ShotsWords.noneWhy : ShotsWords.unreadableWhy(screenshots.unreadable)
                 color: Theme.textMuted
                 font.family: Theme.sans
                 font.pixelSize: Theme.bodySize
@@ -161,14 +165,14 @@ Column {
                     manifest: screenshots.manifest
                 }
                 DeployLine {
-                    visible: screenshots.manifest !== null && screenshots.manifest.previous !== null
+                    visible: screenshots.manifest !== null && screenshots.manifest.previous !== undefined
                     heading: ShotsWords.comparedWith
                     sha: visible ? screenshots.manifest.previous.sha : ""
                     date: visible ? screenshots.manifest.previous.date : ""
                     manifest: screenshots.manifest
                 }
                 Text {
-                    visible: screenshots.manifest !== null && screenshots.manifest.previous === null
+                    visible: screenshots.manifest !== null && screenshots.manifest.previous === undefined
                     width: Math.min(about.width, 320)
                     text: ShotsWords.firstDeploy
                     color: Theme.textMuted
@@ -277,7 +281,7 @@ Column {
                         wrapMode: Text.Wrap
                     }
                     Text {
-                        visible: removal.modelData.pr !== null
+                        visible: removal.modelData.pr !== undefined
                         textFormat: Text.RichText
                         text: visible ? Nav.anchor(Shots.pullAddress(screenshots.manifest, removal.modelData.pr), "#" + removal.modelData.pr, true) : ""
                         color: Theme.link

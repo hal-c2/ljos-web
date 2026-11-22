@@ -13,6 +13,10 @@ QtObject {
     readonly property string loading: t`Reading the list of pictures…`
     readonly property string none: t`No pictures here yet.`
     readonly property string noneWhy: t`Each deploy draws them after the site is built. This one drew none, so there is nothing to show.`
+    readonly property string unreadable: t`The list of pictures can't be read.`
+    function unreadableWhy(field) {
+        return t`This is a fault, not a deploy without pictures. The first part that can't be read: ${field}`;
+    }
 
     readonly property string thisDeploy: t`This deploy`
     readonly property string comparedWith: t`Compared with`

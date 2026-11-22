@@ -72,8 +72,8 @@ function picture(width, height) {
 const desk = picture(144, 90);
 const phone = picture(39, 84);
 
-async function open(page, given = manifest) {
-  await page.route("**/screenshots/manifest.json", (route) => (given === null ? route.fulfill({ status: 404, body: "" }) : route.fulfill({ json: given })));
+async function open(page, given = manifest, answer = given === null ? { status: 404, body: "" } : { json: given }) {
+  await page.route("**/screenshots/manifest.json", (route) => route.fulfill(answer));
   await page.route(/\/screenshots\/(now|before|diff)\//, (route) => route.fulfill({ body: route.request().url().includes(".phone.") ? phone : desk, contentType: "image/png" }));
   await page.goto("/screenshots/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
@@ -239,6 +239,57 @@ test("a deploy with no pictures says so", async ({ page }) => {
   await expect(page.getByText("No pictures here yet.")).toBeVisible();
   await expect(page.getByRole("button", { name: "Changed", exact: true })).toHaveCount(0);
 });
+
+const [first, second] = manifest.shots;
+for (const [what, field, answer] of [
+  ["of another format", "format", { json: { ...manifest, format: "other" } }],
+  ["of another version", "version", { json: { ...manifest, version: 2 } }],
+  ["without a required part", "shots[1].viewport.width", { json: { ...manifest, shots: [first, { ...second, viewport: { ...second.viewport, width: undefined } }] } }],
+  ["with a part of the wrong type", "shots[1].health.ok", { json: { ...manifest, shots: [first, { ...second, health: { ok: "yes", problems: [] } }] } }],
+  ["with a bad item in a list", "shots[0].health.problems[1]", { json: { ...manifest, shots: [{ ...first, health: { ok: false, problems: ["blank", 7] } }] } }],
+  ["with a bad optional part", "shots[0].diff.file", { json: { ...manifest, shots: [{ ...first, diff: { ratio: 0, file: 7 } }] } }],
+  ["with two bad parts", "repository", { json: { ...manifest, repository: 7, shots: {} } }],
+  ["that is not JSON", "manifest.json", { body: "{", contentType: "application/json" }],
+  ["that is JSON null", "manifest.json", { body: "null", contentType: "application/json" }],
+  ["that is not served", "manifest.json (HTTP 500)", { status: 500, body: "" }],
+])
+  test(`a list ${what} says it can't be read, and names ${field}`, async ({ page }) => {
+    await open(page, manifest, answer);
+    await expect(page.getByText("The list of pictures can't be read.", { exact: true })).toBeVisible();
+    await expect(page.getByText(`This is a fault, not a deploy without pictures. The first part that can't be read: ${field}`, { exact: true })).toBeVisible();
+    await expect(page.getByText("No pictures here yet.")).toBeHidden();
+    await expect(page.getByRole("button", { name: "Changed", exact: true })).toHaveCount(0);
+  });
+
+// Between them the two lists have a null in every part that may be absent.
+for (const [what, withNull] of [
+  ["a whole optional part", { ...manifest, previous: null, removed: null, shots: [{ ...first, gpu: null, moving: null, drawnBy: null, before: null, diff: null, accepted: null }] }],
+  [
+    "a part inside an optional part",
+    {
+      ...manifest,
+      gone: ["demo-old.solid.dom.light.desktop"],
+      removed: [{ reason: "The old demo was taken off.", pr: null, ids: ["demo-old.solid.dom.light.desktop"] }],
+      shots: [{ ...first, status: "changed", drawnBy: { ...first.drawnBy, api: null }, diff: { ratio: 0.1, file: null }, accepted: { reason: "It moved.", pr: null } }],
+    },
+  ],
+])
+  test(`null and absent look the same, for ${what}`, async ({ page }) => {
+    const leftOut = JSON.parse(JSON.stringify(withNull, (_, value) => value ?? undefined));
+    const drawn = [];
+    for (const given of [withNull, leftOut]) {
+      await open(page, given);
+      const only = tile(page, "The front page, default shell: Solid kernel, light, desktop 1440×900");
+      await only.scrollIntoViewIfNeeded();
+      await expect(only).toBeVisible();
+      drawn.push({
+        words: await page.locator("#app").innerText(),
+        pictures: await only.getByRole("img").evaluateAll((all) => all.map((image) => image.getAttribute("aria-label"))),
+        links: await page.locator("#app a:visible").evaluateAll((all) => all.map((link) => link.getAttribute("href"))),
+      });
+    }
+    expect(drawn[1]).toEqual(drawn[0]);
+  });
 
 const axe = createRequire(import.meta.resolve("@axe-core/playwright"))("axe-core");
 

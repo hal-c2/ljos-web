@@ -63,6 +63,18 @@ Feature: Every deploy shows what it draws, beside what the last one drew
     When a reader opens /screenshots/
     Then the page says the pictures are made by each deploy and none are here yet
 
+  Scenario: A list that can't be read never passes for no pictures
+    Given a list of pictures that is malformed, or of another version, or fails to load
+    And is not just missing, which is a deploy with no pictures yet
+    When a reader opens /screenshots/
+    Then the page says the list can't be read, and names the first part that can't
+    And it does not say that there are no pictures yet
+
+  Scenario: A part left out and a part written as null look the same
+    Given two lists of pictures, one with null where the other leaves an optional part out
+    When a reader opens /screenshots/ with each
+    Then both show the same words, pictures and links
+
   Scenario: The page is right in light and dark, wide and narrow
     When a reader opens /screenshots/ at 1440 and at 390 pixels wide, in light and in dark
     Then nothing runs past the edge of the window, and every text meets AA contrast

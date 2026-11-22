@@ -149,7 +149,7 @@ Rectangle {
                 height: pair.tall
                 caption: ShotsWords.before(tile.manifest && tile.manifest.previous ? Shots.short(tile.manifest.previous.sha) : "")
                 address: tile.near && tile.shot && tile.shot.before ? tile.beside(tile.shot.before.thumb) : ""
-                missing: tile.shot !== null && tile.shot.before === null
+                missing: tile.shot !== null && tile.shot.before === undefined
                 onOpened: tile.open(true)
             }
             Thumb {
@@ -178,7 +178,7 @@ Rectangle {
 
         // Why it changed, where a pull request said it would.
         Text {
-            visible: tile.shot !== null && tile.shot.accepted !== null
+            visible: tile.shot !== null && tile.shot.accepted !== undefined
             width: parent.width
             text: visible ? ShotsWords.intended(tile.shot.accepted.reason) : ""
             color: Theme.text
@@ -189,7 +189,7 @@ Rectangle {
             wrapMode: Text.Wrap
         }
         Text {
-            visible: tile.shot !== null && tile.shot.accepted !== null && tile.shot.accepted.pr !== null && tile.manifest !== null
+            visible: tile.shot !== null && tile.shot.accepted !== undefined && tile.shot.accepted.pr !== undefined && tile.manifest !== null
             textFormat: Text.RichText
             text: visible ? Nav.anchor(Shots.pullAddress(tile.manifest, tile.shot.accepted.pr), "#" + tile.shot.accepted.pr, true) : ""
             color: Theme.link
@@ -211,7 +211,7 @@ Rectangle {
                 onPressed: tile.open(false)
             }
             Text {
-                visible: tile.shot !== null && tile.shot.diff !== null && tile.shot.diff.file !== null
+                visible: tile.shot !== null && tile.shot.diff !== undefined && tile.shot.diff.file !== undefined
                 height: full.height
                 verticalAlignment: Text.AlignVCenter
                 textFormat: Text.RichText
