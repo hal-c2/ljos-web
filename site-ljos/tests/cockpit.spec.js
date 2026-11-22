@@ -10,25 +10,18 @@ const target = targetOf(demos.find((demo) => demo.name === "cockpit"));
 
 const shown = (locator) => locator.filter({ visible: true });
 
-// A browser that offers WebGPU and gives the page no adapter draws a
-// View3D on the JavaScript renderer, which reads no model from a file:
-// the car would stand without its body. The cockpit keeps its picture
-// there, as where WebGPU is missing, and says why.
-test("without a WebGPU adapter the cockpit keeps its picture and says why", async ({ browser }) => {
-  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
-  try {
-    await context.addInitScript(() => {
-      if (navigator.gpu) navigator.gpu.requestAdapter = async () => null;
-    });
-    const page = await context.newPage();
-    await page.goto("/demos/cockpit/");
-    await page.waitForSelector('#app[data-ljos-hydrated="true"]');
-    await expect(shown(page.getByText(/runs in a browser with WebGPU/)).first()).toBeAttached({ timeout: 30_000 });
-    await expect(page.getByRole("button", { name: "Run the cockpit" })).toHaveCount(0);
-    await expect(shown(page.locator('img[src*="demo-cockpit"]')).first()).toBeAttached();
-  } finally {
-    await context.close();
-  }
+// Without WebGPU, or with no adapter for the page, the cockpit runs on
+// WebGL 2, its car drawn whole: webgl2.spec.js reads that from its pixels.
+
+// Without WebAssembly there is no wgpu, and the JavaScript renderer reads
+// no model from a file, so the car would have no body: the cockpit keeps
+// its picture, and names WebAssembly though it needs WebGL 2 as well.
+test("without WebAssembly the cockpit keeps its picture and says it needs WebAssembly", async ({ page }) => {
+  await page.addInitScript(() => delete globalThis.WebAssembly);
+  await page.goto("/demos/cockpit/");
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  await expect(shown(page.getByText("A picture of the demo: it runs in a browser with WebAssembly, which this one does not offer.")).first()).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole("button", { name: "Run the cockpit" })).toHaveCount(0);
 });
 
 // With an adapter (SwiftShader's, so any machine has one) the cockpit

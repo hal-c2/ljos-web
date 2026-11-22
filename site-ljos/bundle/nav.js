@@ -271,26 +271,32 @@ function inBrowser() {
     return agent !== "" && agent.indexOf("ljos-web prerender") < 0;
 }
 
-// What a demo needs that a browser may not have.
-function canRun(needs) {
-    if (!inBrowser())
-        return false;
+// What a demo needs that a browser does not have, named as a reader
+// knows it, or "" when it has all of it: the first missing, so that a demo
+// that needs two names the one this browser lacks.
+function lacks(needs) {
     if (needs.indexOf("wasm") >= 0 && typeof globalThis.WebAssembly !== "object")
-        return false;
+        return "WebAssembly";
     if (needs.indexOf("webgpu") >= 0 && !(globalThis.navigator && globalThis.navigator.gpu))
-        return false;
+        return "WebGPU";
     // That the browser offers it, not that a context is to be had: making
     // one to ask would cost a GPU context for a demo never scrolled to. A
     // demo that gets none keeps its picture (DemoFrame).
     if (needs.indexOf("webgl2") >= 0 && (typeof globalThis.WebGL2RenderingContext !== "function" || typeof globalThis.OffscreenCanvas !== "function"))
-        return false;
-    return true;
+        return "WebGL 2";
+    return "";
 }
 
-// Whether WebGPU gives this page an adapter, asked once. A browser may
-// offer WebGPU and no GPU it lets a page use; there a View3D draws on
-// the JavaScript renderer, which reads no model from a file, so a demo
-// whose scene is such models would stand without them.
+// Whether a demo can run here: in a reader's browser that has all it needs.
+function canRun(needs) {
+    return inBrowser() && lacks(needs) === "";
+}
+
+// Whether WebGPU gives this page an adapter, asked once: for a demo that
+// needs WebGPU itself, as a browser may offer WebGPU and no GPU it lets a
+// page use. A View3D needs neither: there it is drawn on WebGL 2, by wgpu
+// where its models come from glTF files and by the JavaScript renderer
+// where none does.
 var adapter = null;
 function gpuAdapted() {
     if (adapter === null) {

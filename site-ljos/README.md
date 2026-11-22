@@ -88,8 +88,8 @@ One place holds each decision; everything else reads it.
     paint (`Site/DemoFrame.qml`), showing a picture of the demo
     and its words. The demo is made only near the screen, fades in
     over the picture, and runs only while it is on screen.
-  - A browser without WebGPU or wasm keeps the picture and says
-    why.
+  - A browser without what a demo needs (WebGL 2, WebGPU or wasm)
+    keeps the picture and says why.
   - Layout shift on the landing, demos and a docs page is held
     under 0.01 by a test.
 - **Reduced motion** reduces movement and never removes feedback.
@@ -111,10 +111,13 @@ pnpm --filter ljos-site-ljos test
 pnpm --filter ljos-site-ljos test:e2e  # serves dist/ itself
 ```
 
-The 3D demos are drawn by wgpu's renderer wherever the browser's
-WebGPU gives it an adapter (after `mise run build:wasm-3d`), and by
-the JavaScript one on WebGL2 where it does not, or where the browser
-has no WebAssembly. `?view3d=` or `VITE_LJOS_VIEW3D` asks for one.
+The 3D demos are drawn by wgpu's renderer where the browser's WebGPU
+gives it an adapter (after `mise run build:wasm-3d`). Where it gives
+none, or the browser has no WebGPU, a demo whose models come from
+glTF files (the watch, the cockpit) is drawn by wgpu on WebGL 2 and
+any other by the JavaScript renderer, which is also the one for a
+browser without WebAssembly.
+`?view3d=` or `VITE_LJOS_VIEW3D` asks for one.
 
 ## What runs, and when
 

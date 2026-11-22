@@ -66,9 +66,10 @@ Item {
     // Set once the page this frame was written into is the reader's:
     // the demo is never part of the page the build writes.
     property bool awake: false
-    // Where the demo needs WebGPU, whether the browser gave the page an
-    // adapter: 0 until it says, 1 if so (or where none is needed), -1 if
-    // not, which keeps the picture as a browser without WebGPU does.
+    // Where the demo needs WebGPU itself (a View3D does not: without it
+    // one of the renderers draws on WebGL 2), whether the browser gave the
+    // page an adapter: 0 until it says, 1 if so (or where none is needed),
+    // -1 if not, which keeps the picture as a browser without WebGPU does.
     property int adapter: needs.indexOf("webgpu") >= 0 ? 0 : 1
     readonly property bool runnable: awake && Nav.canRun(needs) && adapter === 1
     readonly property bool cannot: awake && (!Nav.canRun(needs) || adapter === -1)
@@ -155,7 +156,10 @@ Item {
                 x: Theme.s
                 y: Theme.xs
                 width: parent.width - 2 * Theme.s
-                text: "A picture of the demo: it runs in a browser with " + (frame.needs.indexOf("webgl2") >= 0 ? "WebGL 2" : frame.needs.indexOf("webgpu") >= 0 ? "WebGPU" : "WebAssembly") + ", which this one does not offer."
+                // The need this browser lacks; where it lacks none (WebGPU with no
+                // adapter for the page, or the build writing the page), the
+                // demo's main one.
+                text: "A picture of the demo: it runs in a browser with " + (Nav.lacks(frame.needs) || (frame.needs.indexOf("webgl2") >= 0 ? "WebGL 2" : frame.needs.indexOf("webgpu") >= 0 ? "WebGPU" : "WebAssembly")) + ", which this one does not offer."
                 color: Theme.text
                 font.family: Theme.sans
                 font.pixelSize: Theme.captionSize

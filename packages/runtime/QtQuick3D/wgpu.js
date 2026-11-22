@@ -17,7 +17,7 @@
 import { createRenderEffect, createRoot, getOwner, runWithOwner } from "solid-js";
 import { flush, located, slot, effect } from "../object.ts";
 import { color } from "../QtQuick/color.ts";
-import { made } from "./early.js";
+import { adapted, made } from "./early.js";
 import { signal, untrack } from "#kernel";
 import { CustomMaterial } from "./CustomMaterial.js";
 import { handed, text } from "./effects.js";
@@ -27,7 +27,7 @@ import { fetched, taken } from "./scene.js";
 import { Format } from "./TextureData.js";
 
 // Which renderer a View3D has is said where the page asks for it early.
-export { chosen, renderer } from "./early.js";
+export { chosen, readable, renderer } from "./early.js";
 
 // A glob, as an import of a file a build of JavaScript alone has not got
 // would fail, for the renderer it does not ask for.
@@ -601,9 +601,11 @@ export const gave = (view) => {
 // ("sync": the scene read into the renderer), each frame drawn ("draw"),
 // and, on WebGL 2, each frame's GPU work ("gpu", until it was done, as the
 // view is paced by), from when until when. Unset, nothing is timed for it.
-// `instead`, if given, draws the view on the JavaScript renderer once its
-// GPU is not to be had again (`giveUp`).
-export function drawOn(self, canvas, told, instead) {
+// `instead`, if given, draws the view on the JavaScript renderer where
+// wgpu cannot make it or its GPU is not to be had again (`giveUp`).
+// `unadapted`, if given, is called in place of drawing where WebGPU gives
+// the page no adapter; without it wgpu draws on WebGL 2 there.
+export function drawOn(self, canvas, told, instead, unadapted) {
   const [made, setMade] = signal(null, self.$owner);
   const [arrivals, setArrivals] = signal(0, self.$owner);
   const [draws, setDraws] = signal(0, self.$owner);
@@ -825,9 +827,8 @@ export function drawOn(self, canvas, told, instead) {
   // One no one asked a renderer of, whose GPU is not to be had again (a
   // browser whose GPU process gave up may have no adapter after) or is lost
   // too often to go on, draws on the JavaScript renderer instead: on a
-  // canvas of its own, as this one keeps WebGPU's context, if it was given
-  // it. One a renderer was asked
-  // of says why it stops.
+  // canvas of its own, as this one keeps the context wgpu took, if it took
+  // one. One a renderer was asked of says why it stops.
   const giveUp = (why) => {
     if (!instead) {
       state.error = why;
@@ -935,9 +936,8 @@ export function drawOn(self, canvas, told, instead) {
   [canvas.width, canvas.height] = untrack(() => size(self.width, self.height));
   // One no one asked a renderer of that wgpu never made (its WebGL 2 short
   // of what wgpu needs, its chunk not fetched, the renderer stopped before
-  // it drew) draws on the JavaScript renderer instead, as it did before
-  // wgpu drew where WebGPU is not, and says why; one that drew keeps its
-  // last picture. One a renderer was asked of says why it stops.
+  // it drew) draws on the JavaScript renderer instead and says why; one that
+  // drew keeps its last picture. One a renderer was asked of says why it stops.
   //
   // Whether a view was ever kept, which is not `kept`: that one lets go of
   // a view lost, and one that drew is not handed back for failing to be
@@ -955,6 +955,18 @@ export function drawOn(self, canvas, told, instead) {
         if (gone) return;
         lostWhileMade = null;
         if (givenUp) return void giveUp(givenUp);
+        // Before the renderer is fetched or the canvas taken, so what draws
+        // instead has both.
+        if (unadapted && !(await adapted())) {
+          // A view let go while WebGPU was asked has no owner left for what
+          // draws instead to live under.
+          if (gone) return;
+          gone = true;
+          retiring.delete(retire);
+          unadapted();
+          // What took the view's picture asks it again, of what draws now.
+          return void setDraws((times) => times + 1);
+        }
         // A renderer that trapped as it was first made is not kept, and is
         // not made again: a failed fetch alone is asked for again.
         if (stopped) return void unmade(stopped);

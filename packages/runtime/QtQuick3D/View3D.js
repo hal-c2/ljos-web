@@ -23,9 +23,9 @@ import { met } from "./pick.js";
 import { draw, restored } from "./render.js";
 import { SceneEnvironment } from "./scene.js";
 import { paced } from "./paced.js";
-import { chosen, drawOn, gave, gaveNow, renderer } from "./wgpu.js";
+import { chosen, drawOn, gave, gaveNow, readable, renderer } from "./wgpu.js";
 import { signal, untrack } from "#kernel";
-import { getOwner, onCleanup, runWithOwner } from "solid-js";
+import { createRoot, getOwner, onCleanup, runWithOwner } from "solid-js";
 
 const sheet = new CSSStyleSheet();
 sheet.replaceSync(`.qq-view3d { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }`);
@@ -63,7 +63,7 @@ function given(node) {
     } else if (node.$light) light = node.$light();
     else if (node.$mirror) probe = node.$mirror();
     else if (node.$camera) camera = true;
-    return { node, opacity: node.opacity, model, light, probe, camera, inside: inside(node).map(given) };
+    return { node, opacity: node.opacity, model, light, probe, camera, unread: Boolean(node.$unread?.()), inside: inside(node).map(given) };
   });
   return node.$given() ?? null;
 }
@@ -79,15 +79,18 @@ function drawnWith(material) {
 
 // What a view draws: the shapes and lights among the nodes that are shown,
 // the places some of the shapes mirror the others from, and the first
-// camera there is.
+// camera there is; and whether any that is shown names what only wgpu
+// reads (`$unread`).
 function found(self) {
   const models = [];
   const lights = [];
   const paints = [];
   const probes = [];
   let camera = null;
+  let unread = false;
   const walk = (part, above) => {
     if (!part) return;
+    if (part.unread) unread = true;
     const { node } = part;
     const opacity = above * part.opacity;
     if (part.model) models.push({ ...part.model, opacity });
@@ -118,7 +121,7 @@ function found(self) {
     };
     for (const top of tops) lit(top);
   }
-  return { models, lights, paints, probes, camera };
+  return { models, lights, paints, probes, camera, unread };
 }
 
 // The models a ray is tried against: those for picking, shown or not, of
@@ -262,8 +265,13 @@ export const View3D = defineType("View3D", Item, {
     };
     let canvas = canvasFor();
     self.$node.append(canvas);
-    // A canvas has one kind of context: wgpu's is made where it draws.
-    const wgpu = renderer() === "wgpu";
+    // A canvas has one kind of context: a renderer that follows another
+    // which took one draws on a canvas in its place.
+    const renew = () => {
+      const made = canvasFor();
+      canvas.replaceWith(made);
+      canvas = made;
+    };
 
     // The scene is a node of its own, whose children are the view's.
     const scene = (self.$scene = within(null, () => Node({})));
@@ -285,25 +293,35 @@ export const View3D = defineType("View3D", Item, {
     let due = null;
     const stats = (self.$stats = within(null, () => RenderStats({})));
     const frame = counted(stats);
-    if (wgpu) {
+    const owner = getOwner();
+    let released = false;
+    if (owner) onCleanup(() => (released = true));
+    // Whether the JavaScript renderer may still hand the view to wgpu for
+    // what only that reads. Once at most: one wgpu could not draw stays on
+    // the JavaScript renderer, and one it draws stays wgpu's though what
+    // asked for it goes, as each change costs a canvas and all it holds.
+    let mayTurn = readable();
+    // wgpu taken for want of an ask, and WebGPU with no adapter for the
+    // page: the JavaScript renderer draws on the same canvas, untaken.
+    if (renderer() === "wgpu") byWgpu(chosen() ? undefined : () => runWithOwner(owner, byScript));
+    else byScript();
+
+    // wgpu draws the view.
+    function byWgpu(unadapted) {
       self.$canvas = { element: canvas };
       self.$view = () => 0;
-      // wgpu taken for want of an ask, and its GPU not to be had again: the
-      // JavaScript renderer draws on the canvas instead, or on one in its
-      // place where wgpu took the canvas's context (`taken`).
-      const owner = getOwner();
+      // wgpu not to be had, or its GPU not again: the JavaScript renderer
+      // draws on the canvas instead, or on one in its place where wgpu took
+      // the canvas's context (`taken`).
       const instead = chosen()
         ? undefined
         : (taken) =>
             runWithOwner(owner, () => {
-              if (taken) {
-                const made = canvasFor();
-                canvas.replaceWith(made);
-                canvas = made;
-              }
+              mayTurn = false;
+              if (taken) renew();
               byScript();
             });
-      const dispose = drawOn(self, canvas, frame, instead);
+      const dispose = drawOn(self, canvas, frame, instead, unadapted);
       if (getOwner()) onCleanup(dispose);
       // What the picture does not need but mapping does: the camera a view
       // is seen through, and the view it was last seen in.
@@ -314,19 +332,22 @@ export const View3D = defineType("View3D", Item, {
           if (camera) Object.assign(camera, { $width: width, $height: height });
         },
       );
-      return;
     }
-    byScript();
 
-    // The JavaScript renderer draws the view.
+    // The JavaScript renderer draws the view, under a root of its own: it
+    // ends with the view, or before it where wgpu is turned to.
     function byScript() {
+      createRoot(scripted);
+    }
+    function scripted(end) {
+      let over = false;
       const paper = canvas.getContext("bitmaprenderer");
       // What a test or a tool may ask, as of the wgpu renderer's view
       // (`drawOn`): `probe` is told of each sight taken ("sync") and each
       // picture drawn ("draw"); `view` is the View3D itself, to read what it
       // shows from; `held` counts the draws put off to the next frame, and
       // `due` says a picture asked for is still to be drawn.
-      const state = (canvas.$view3d = { renderer: "js", backend: "webgl2", frames: 0, held: 0, builds: 0, error: null, probe: null, view: self, get due() { return due !== null; } });
+      const state = (canvas.$view3d = { renderer: "js", backend: "webgl2", frames: 0, held: 0, builds: 0, error: null, probe: null, view: self, get due() { return over || due !== null; } });
       // Drawn once what asked for it has settled, in the same task; one that
       // gave its picture on in this task waits for the next frame, as the
       // wgpu renderer's does (`gaveNow`).
@@ -354,6 +375,8 @@ export const View3D = defineType("View3D", Item, {
           clearTimeout(resting);
         });
       const drawn = () => {
+        // One asked for before wgpu was turned to has nothing to draw on.
+        if (over) return;
         const from = performance.now();
         const wait = pace.wait(from);
         if (wait) return void (resting = setTimeout(drawn, wait));
@@ -412,22 +435,47 @@ export const View3D = defineType("View3D", Item, {
           }
         },
         (seen) => {
+          if (over) return;
           // A camera maps to the view it was last seen through.
           first = seen.camera;
           if (seen.camera) Object.assign(seen.camera, { $width: seen.width, $height: seen.height });
+          // Known only once the scene is made, or changed: turned to before
+          // a picture without it is drawn, and after this effect has ended,
+          // which is of the root that ends.
+          if (seen.unread && mayTurn) {
+            mayTurn = false;
+            over = true;
+            return void queueMicrotask(turned);
+          }
           if (!due) soon();
           due = { ...seen, camera: seen.eye };
         },
       );
 
+      function turned() {
+        if (released) return;
+        end();
+        // A picture still asked for (the last, by what takes the view's) is
+        // not drawn here, and would keep a script that draws after a failure
+        // from asking for its own.
+        due = null;
+        runWithOwner(owner, () => {
+          renew();
+          byWgpu();
+        });
+        // What took the view's picture asks it again, of what draws now.
+        setTimes((times) => times + 1);
+      }
+
       function sight() {
         const { width, height } = self;
-        const { models, lights, paints, probes, camera: any } = found(self);
+        const { models, lights, paints, probes, camera: any, unread } = found(self);
         const camera = self.camera ?? any;
         return {
           width,
           height,
           camera,
+          unread,
           models,
           lights,
           paints,
