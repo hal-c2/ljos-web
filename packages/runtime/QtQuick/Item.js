@@ -463,6 +463,14 @@ export const Item = defineType("Item", QtObject, {
     addressed(self, node);
     if ("focus" in props) declared(self, props);
     if ("activeFocusOnTab" in props) reachable(self);
+    // An item its author names says the name on its element, as Qt's tools
+    // find an object by its objectName: a page's tests find the item there,
+    // not by words a translation changes.
+    if ("objectName" in props)
+      effect(
+        () => self.objectName,
+        (name) => (name ? node.setAttribute("data-object-name", name) : node.removeAttribute("data-object-name")),
+      );
     navigable(self, props);
   },
   // Qt 6.11: `childrenChanged` is told as a child comes or goes, though
