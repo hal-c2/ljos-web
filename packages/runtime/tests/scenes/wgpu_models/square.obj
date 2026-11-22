@@ -1,0 +1,11 @@
+# The red square of square.gltf as an OBJ, which wgpu's RuntimeLoader reads too.
+mtllib square.mtl
+v -50 -50 0
+v 50 -50 0
+v 50 50 0
+v -50 50 0
+vn 0 0 1
+o square
+usemtl red
+f 1//1 2//1 3//1
+f 1//1 3//1 4//1

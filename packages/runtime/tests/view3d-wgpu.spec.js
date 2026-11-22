@@ -1460,6 +1460,47 @@ test.describe("a View3D no one asked a renderer of", () => {
     });
   }
 
+  // wgpu's loader reads an OBJ too (ljos_3d's `load_any`), which is as
+  // much a model only wgpu draws as a glTF is.
+  test("turns to wgpu's WebGL 2 for a model from an OBJ, where the browser has no WebGPU", async ({ page }) => {
+    await page.addInitScript(HIDDEN);
+    await page.goto("/?scene=wgpu_beside");
+    await page.waitForFunction(() => window.ready);
+    expect(await (await drawn(page)).jsonValue()).toBe("js");
+    await page.evaluate(() => {
+      window.objects.loader.source = "scenes/wgpu_models/square.obj";
+      window.flush();
+    });
+    await page.waitForFunction(() => {
+      const state = document.querySelector(".qq-view3d")?.$view3d;
+      if (state?.error) throw new Error(state.error);
+      return state?.renderer === "wgpu" && state.backend === "webgl2" && state.frames > 0;
+    });
+    await expect.poll(() => pixels(page, [CENTRE, [50, 150]]), { message: "the file's model and the one beside it" }).toEqual(["255 0 0", "0 0 255"]);
+  });
+
+  // It reads a file by its extension: one it refuses is no reason to turn,
+  // nor to fetch, whatever is in it.
+  test("stays on the JavaScript renderer for a file whose name wgpu's loader refuses", async ({ page }) => {
+    let asked = 0;
+    await page.route(/\/wgpu_models\/square\.model$/, async (route) => {
+      asked++;
+      const response = await route.fetch({ url: route.request().url().replace(/model$/, "gltf") });
+      await route.fulfill({ response });
+    });
+    await page.addInitScript(HIDDEN);
+    await page.goto("/?scene=wgpu_beside");
+    await page.waitForFunction(() => window.ready);
+    expect(await (await drawn(page)).jsonValue()).toBe("js");
+    await page.evaluate(() => {
+      window.objects.loader.source = "scenes/wgpu_models/square.model";
+      window.flush();
+    });
+    await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+    expect(asked, "fetches of a file wgpu would not read").toBe(0);
+    expect(await (await drawn(page)).jsonValue()).toBe("js");
+  });
+
   // A WebGL 2 short of what wgpu needs fails the view as it is made, as a
   // renderer that traps there does: the JavaScript renderer draws what it
   // can of the scene, is not left for wgpu again, and the page is told why.
