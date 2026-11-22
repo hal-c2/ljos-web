@@ -398,8 +398,9 @@ test("the Pantry is looked into while its shell is rewritten", async ({ page }) 
   await pageTab(page, "Objects").click();
   // The tree starts at the app's shell, named as the shell it is, and
   // holds its blocks.
-  await expect(page.getByRole("listitem").first()).toHaveAccessibleName(/^PantryShell\b/, { timeout: 30_000 });
-  await expect(page.getByRole("listitem", { name: /^Basket/ }).first()).toBeVisible();
+  // The Observer's, not the other lists the front page holds.
+  await expect(dock(page).getByRole("listitem").first()).toHaveAccessibleName(/^PantryShell\b/, { timeout: 30_000 });
+  await expect(dock(page).getByRole("listitem", { name: /^Basket/ }).first()).toBeVisible();
   // A press in the app is a frame woken by input.
   await pageTab(page, "Frames").click();
   await press(pantry.getByRole("button", { name: "Add tea" }));
