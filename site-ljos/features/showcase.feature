@@ -43,6 +43,29 @@ Feature: The showcase shows apps built with Ljós, recorded as they run
     Then it pauses
     And it plays again once it is back in view
 
+  Scenario: A recording is fetched once it would be seen
+    Given a browser that allows motion
+    And a recording's frame below the window, or the page in a hidden tab
+    When the reader opens /showcase/
+    Then that recording isn't fetched
+    And it is fetched and plays once the frame and the tab are shown
+
+  Scenario: A recording waits while its tab is hidden
+    Given a recording is playing
+    When the reader hides its tab
+    Then it pauses
+    And it plays again once the tab is shown
+
+  Scenario: A browser without WebM is given the MP4
+    Given a browser that plays no WebM
+    When the reader opens /showcase/
+    Then each recording's source is its MP4
+
+  Scenario: Text makes room for its pictures as they arrive
+    Given rich text with a picture that states no size
+    When the picture arrives, be it fetched lazily or one of two with the same fallback
+    Then the text is measured again around it
+
   Scenario: The showcase fits a phone and a desktop, in both schemes
     When the reader opens /showcase/ at 390 and at 1440 pixels wide, light and dark
     Then nothing is wider than the page
