@@ -106,6 +106,18 @@ function readBack(value: unknown): string {
     return typeof value === "string" ? value : shownOrNull(value)
 }
 
+// An array or a record the inspector answered as JSON text, as the value it
+// is, so the log shows it as it shows an argument.
+function structuredValue(value: unknown): unknown {
+    if (typeof value !== "string") return value
+    if (!value.startsWith("[") && !value.startsWith("{")) return value
+    try {
+        return JSON.parse(value)
+    } catch {
+        return value
+    }
+}
+
 export function argsText(args: Record<string, unknown>): string {
     if (keys(args).length === 0) return "{}"
     return `{ ${fieldsText(args)} }`
@@ -129,9 +141,9 @@ export function summary(tool: string, ok: boolean, answer: Answer): string {
         case "app_objects":
             return `${Array.isArray(s.objects) ? s.objects.length : 0} objects${s.truncated === true ? ", more to come" : ""}`
         case "app_set_property":
-            return `${String(s.property)}: ${clipped(shownOrNull(s.previous), 24)} → ${clipped(shownOrNull(s.value), 40)}`
+            return `${String(s.property)}: ${clipped(shownOrNull(structuredValue(s.previous)), 24)} → ${clipped(shownOrNull(structuredValue(s.value)), 40)}`
         case "app_get_property":
-            return `${String(s.property)} = ${clipped(readBack(s.value), 60)}`
+            return `${String(s.property)} = ${clipped(readBack(structuredValue(s.value)), 60)}`
         case "app_find": {
             const matches: unknown[] = Array.isArray(s.matches) ? s.matches : []
             const first = matches[0]
