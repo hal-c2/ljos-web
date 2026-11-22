@@ -18,6 +18,11 @@ Feature: A code block's window before its example runs
     When the build draws its pictures
     Then neither picture counts as empty
 
+  Scenario: A window with nothing on its own ground is empty
+    Given an example whose window shows only its background before it runs
+    When the build draws its pictures
+    Then its picture counts as empty in that scheme
+
   Scenario: Only the scheme that draws nothing says so
     Given an example that draws in one scheme and nothing in the other
     When the reader switches between the light and dark themes

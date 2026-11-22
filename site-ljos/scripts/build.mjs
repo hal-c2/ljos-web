@@ -188,7 +188,7 @@ const liveAt = new Map(); // a page's code block -> its live payload
   const kept = (hash, scheme = "light") =>
     `${hash.slice(0, 16)}${scheme === "dark" ? "-dark" : ""}-${createHash("sha256").update(`${prerendered[hash].stamp ?? ""}\n${drawnBy}`).digest("hex").slice(0, 12)}.png`;
   const SCHEMES = ["light", "dark"];
-  // In which schemes an example's picture is the empty stage: one whose
+  // In which schemes an example's picture is empty (pictures.mjs): one whose
   // point is what it logs, or one that waits for the reader before it
   // draws. Its window says so there rather than stand empty. Known as
   // each picture is drawn, and kept beside them, by picture.
