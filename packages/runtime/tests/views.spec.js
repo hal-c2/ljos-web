@@ -114,6 +114,44 @@ test("a finger's swipe up over a row that only goes sideways scrolls the column"
   }
 });
 
+// A wheel listener that may cancel the scroll keeps Chromium from
+// scrolling on its compositor: every wheel tick waits for the page's
+// script. Only a Flickable that turns a wheel sideways cancels anything,
+// so only one that goes sideways listens that way.
+test("only a Flickable that goes sideways holds the wheel back from the browser", async ({ page }) => {
+  await page.addInitScript(() => {
+    const held = new WeakMap();
+    const add = EventTarget.prototype.addEventListener;
+    const remove = EventTarget.prototype.removeEventListener;
+    EventTarget.prototype.addEventListener = function (type, listener, options) {
+      if (type === "wheel" && !(typeof options === "object" && options?.passive)) held.set(this, (held.get(this) ?? 0) + 1);
+      return add.call(this, type, listener, options);
+    };
+    EventTarget.prototype.removeEventListener = function (type, listener, options) {
+      if (type === "wheel" && held.has(this)) held.set(this, held.get(this) - 1);
+      return remove.call(this, type, listener, options);
+    };
+    window.holdsWheel = (object) => (held.get(object.$viewport) ?? 0) > 0;
+  });
+  await open(page, "sidewaysflick");
+  expect(await page.evaluate(() => [window.holdsWheel(window.objects.column), window.holdsWheel(window.objects.row)])).toEqual([false, true]);
+  // Turned upright, the row lets go; sideways again, it holds on.
+  await page.evaluate(() => (window.objects.row.flickableDirection = 2));
+  expect(await page.evaluate(() => window.holdsWheel(window.objects.row))).toBe(false);
+  await page.evaluate(() => (window.objects.row.flickableDirection = 1));
+  expect(await page.evaluate(() => window.holdsWheel(window.objects.row))).toBe(true);
+});
+
+// A column in a row: the wheel scrolls the column while it has room,
+// and is never taken from it to turn the row.
+test("a wheel over a column in a row that only goes sideways scrolls the column", async ({ page }) => {
+  await open(page, "uprightinrow");
+  const at = () => page.evaluate(() => [window.objects.row.contentX, window.objects.column.contentY]);
+  await page.mouse.move(75, 100);
+  await page.mouse.wheel(0, 120);
+  await expect.poll(at).toEqual([0, 120]);
+});
+
 test("margins put the content's beginning before zero", async ({ page }) => {
   await open(page, "flickable");
   const read = await page.evaluate(() => {
