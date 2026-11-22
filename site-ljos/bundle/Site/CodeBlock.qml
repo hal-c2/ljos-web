@@ -757,8 +757,11 @@ Column {
                     // middle of it.
                     readonly property int least: 96
                     readonly property int leastWide: Math.min(2 * least, width - 2 * pad)
+                    // Lazy, as the page has both schemes' pictures and the
+                    // one that is hidden is not laid out: it is fetched
+                    // when the reader's theme shows it.
                     function pictureOf(src) {
-                        return "<img src=\"" + src + "\" width=\"" + pictureWidth + "\" height=\"" + Math.round(pictureHeight) + "\" alt=\"What this example draws\">";
+                        return "<img loading=\"lazy\" src=\"" + src + "\" width=\"" + pictureWidth + "\" height=\"" + Math.round(pictureHeight) + "\" alt=\"What this example draws\">";
                     }
                     height: frame.height + 2 * pad
                     color: Theme.stage
