@@ -44,6 +44,7 @@ Feature: Every deploy shows what it draws, beside what the last one drew
   Scenario: Only what changed, on a press
     When a reader presses "Changed"
     Then only the changed pictures are shown, and the button says it is pressed
+    And it looks pressed while the pointer is still on it
     When they press "All"
     Then every picture is shown again
 

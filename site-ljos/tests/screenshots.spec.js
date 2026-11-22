@@ -153,6 +153,18 @@ test("Changed shows only what changed, and All shows everything again", async ({
   await expect(tiles).toHaveCount(5);
 });
 
+test("the chosen filter looks chosen while the pointer is still on it", async ({ page }) => {
+  await open(page);
+  const fill = (button) => button.evaluate((element) => getComputedStyle(element).backgroundColor);
+  const all = page.getByRole("button", { name: "All", exact: true });
+  const changed = page.getByRole("button", { name: "Changed", exact: true });
+  const chosen = await fill(all);
+  expect(await fill(changed)).not.toBe(chosen);
+  await changed.click();
+  await expect(changed).toHaveAttribute("aria-pressed", "true");
+  await expect.poll(() => fill(changed), { timeout: 5000 }).toBe(chosen);
+});
+
 test("a picture opens full size, links to the image, and Escape gives the keyboard back", async ({ page }) => {
   await open(page);
   const changed = tile(page, "The front page, default shell: Solid kernel, WebGPU, dark, phone 390×844");
