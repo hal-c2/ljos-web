@@ -4,6 +4,12 @@
 // site as it is imported, so a spec can hold the rules to a browser.
 import { createHash } from "node:crypto";
 
+// What an example is drawn on in each scheme, from tokens.js's two tones.
+export function stagesOf({ light, dark }) {
+  const stage = ({ paper }) => `<!doctype html><style>html,body{margin:0;background:${paper}}</style>`;
+  return { light: stage(light), dark: stage(dark) };
+}
+
 // Draws an example on each scheme's paper (an example with no dark
 // render is its one render on both) and says of each whether it is
 // blank: the picture the empty stage makes, or the one its root window's

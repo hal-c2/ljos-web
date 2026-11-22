@@ -3,13 +3,12 @@
 import { existsSync, readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 import { prerenderSize } from "ljos-web/codeblocks";
-import { drawPictures, shipsDark, verdictKey } from "../scripts/pictures.mjs";
+import { drawPictures, shipsDark, stagesOf, verdictKey } from "../scripts/pictures.mjs";
 
 const source = readFileSync(new URL("../bundle/tokens.js", import.meta.url), "utf8").replace(/^\.pragma library$/m, "");
 const { light, dark } = new Function(`${source}\nreturn { light, dark };`)();
 const papers = { light: light.paper, dark: dark.paper };
-const stageOf = (paper) => `<!doctype html><style>html,body{margin:0;background:${paper}}</style>`;
-const stages = { light: stageOf(papers.light), dark: stageOf(papers.dark) };
+const stages = stagesOf({ light, dark });
 const box = (colour) => `<div style="width:60px;height:40px;background:${colour}"></div>`;
 const square = (colour) => `<div style="width:20px;height:20px;background:${colour}"></div>`;
 // A root window as it prerenders: its styles, then itself with its ground on it.
