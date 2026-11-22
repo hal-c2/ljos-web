@@ -30,6 +30,8 @@ AgentView {
     total: AgentReplay.steps.length
     playing: true
     working: active && playing
+    // Its button then plays it again, rather than on.
+    readonly property bool ended: at >= total
     Component.onCompleted: reset()
 
     // The ref the last app_find answered.

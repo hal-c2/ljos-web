@@ -18,6 +18,6 @@ QtObject {
     // Built for agents.
     readonly property string agenticEyebrow: t`Built for agents`
     readonly property string agenticHeadline: t`Your agent can use the app, too.`
-    readonly property string agenticBody: t`Over MCP, it can read what’s on screen, press buttons, type, and check that its changes worked. You choose what it’s allowed to do. <a href="/start/mcp/">Connect an agent</a>.`
+    readonly property string agenticBody: t`It can read what’s on screen, press buttons, type, and check that its changes worked. You choose what it’s allowed to do. <a href="/start/mcp/">Connect an agent</a>.`
     readonly property string agenticDescription: t`A recorded replay of an agent at work in a made-up dispatch app. It turns the list into a board while the app runs, filters it, assigns a crew and checks the result. The app’s TypeScript and the agent’s log are beside it.`
 }

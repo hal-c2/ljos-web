@@ -14,6 +14,7 @@ const steps = 14;
 const BOARD = readFileSync(new URL("../bundle/Demos/logic/board.ts", import.meta.url), "utf8");
 const SHOWN = BOARD.slice(BOARD.indexOf("export function lanes(")).trimEnd();
 const shown = (locator) => locator.filter({ visible: true }).first();
+const nextStep = "Done. Try Assign crew or List / Board.";
 const replayLabel = (page) => shown(page.getByText("Replay · no live agent", { exact: true }));
 
 test("the agent replay drives the card over MCP, and what the card does streams back", async ({ page }) => {
@@ -43,7 +44,8 @@ test("the agent replay drives the card over MCP, and what the card does streams 
   await expect(page.getByRole("button", { name: /^Assign crew to / }).filter({ visible: true })).toHaveAccessibleName("Assign crew to BG-421");
   // At its end there is nothing to pause.
   await expect(page.getByRole("button", { name: "Pause the agent replay" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Play the agent replay" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Run again: the agent replay" })).toBeVisible();
+  await expect(shown(page.getByText(nextStep, { exact: true })), "the reader's next step").toBeVisible();
 
   // The replay's own presses, said by the card, back in the log.
   await expect(page.getByText(/^app {2}filter open only: 4 of 5 tickets$/)).toHaveCount(1);
@@ -57,7 +59,7 @@ test("the agent replay drives the card over MCP, and what the card does streams 
 
   // And so does their own edit of what the agent changed: the same app,
   // a list again, with the crew it was given.
-  await press(shown(page.getByRole("button", { name: "Edit layout: list" })));
+  await press(shown(page.getByRole("button", { name: "List layout" })));
   await expect(page.getByText("Crew assigned", { exact: true }).filter({ visible: true })).toHaveCount(0);
   await expect(shown(page.getByText("On-call crew", { exact: true }))).toBeVisible();
   await expect(page.getByRole("button", { name: "Assign crew to BG-415" })).toHaveCount(0);
@@ -69,7 +71,7 @@ test("nothing of the whole Observer's is fetched before it is wanted", async ({ 
   const fetched = [];
   page.on("request", (request) => /ObserverPanel/.test(request.url()) && fetched.push(request.url()));
   await open(page, "/");
-  await expect(shown(page.getByText("Done · applied live", { exact: true })), "the replay is under way").toBeVisible();
+  await expect(shown(page.getByText("Crew assigned", { exact: true })), "the replay is under way").toBeVisible();
   await page.evaluate(() => new Promise((done) => requestIdleCallback(() => done())));
   await animationFrames(page, 30);
   expect(fetched).toEqual([]);
@@ -91,30 +93,115 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       await expect(page.getByText("Replay · no live agent", { exact: true }).filter({ visible: true }), "said once").toHaveCount(1);
       await expect(page.getByRole("button", { name: "Observer for the agent replay" }), "one Observer, its tab").toHaveCount(0);
       await expect(shown(page.getByText("Agent: make this a board", { exact: true })), "what was asked").toBeInViewport({ ratio: 1 });
-      await expect(shown(page.getByText("Done · applied live", { exact: true })), "that it is done").toBeInViewport({ ratio: 1 });
+      await expect(shown(page.getByText("Working…", { exact: true })), "that it is working").toBeInViewport({ ratio: 1 });
       await expect(shown(page.getByText("North district dispatch", { exact: true })), "the app it changes").toBeInViewport({ ratio: 1 });
       const code = shown(page.getByText(/export function lanes\(/));
       if (!phone) {
         await expect(shown(page.getByText("board.ts, the code this app runs", { exact: true })), "its source").toBeInViewport({ ratio: 1 });
         await expect(code, "the code").toBeInViewport({ ratio: 1 });
-        for (const layout of ["list", "board"])
-          await expect(shown(page.getByRole("button", { name: `Edit layout: ${layout}` })), `Edit: ${layout}`).toBeInViewport({ ratio: 1 });
+        for (const layout of ["List", "Board"])
+          await expect(shown(page.getByRole("button", { name: `${layout} layout` })), `Edit: ${layout}`).toBeInViewport({ ratio: 1 });
       }
       const drawn = await code.evaluate((element) => {
         const text = element.closest(".qq-text") ?? element;
         const range = document.createRange();
         range.selectNodeContents(text);
         const [box, ink] = [text.getBoundingClientRect(), range.getBoundingClientRect()];
-        return { past: ink.right - box.right, tall: ink.bottom - box.top };
+        const size = parseFloat(getComputedStyle(range.startContainer.querySelector?.("span") ?? text).fontSize);
+        return { past: ink.right - box.right, tall: ink.bottom - box.top, size };
       });
       expect(drawn.past, "no line of the code is cut").toBeLessThanOrEqual(0.5);
-      expect(drawn.tall, "no line of the code wraps").toBeLessThanOrEqual(SHOWN.split("\n").length * 17 + 1);
+      expect(drawn.tall, "no line of the code wraps").toBeLessThanOrEqual(SHOWN.split("\n").length * 22 + 1);
+      expect(drawn.size, "large enough to read").toBeGreaterThanOrEqual(14);
+      // One toolbar: its parts in the band over the app, its button last.
+      const boxOf = (locator) => locator.boundingBox();
+      const app = await boxOf(shown(page.getByText("Brekka Grid", { exact: true })));
+      const request = await boxOf(shown(page.getByText("Agent: make this a board", { exact: true })));
+      const [button, label, list] = [await boxOf(pause), await boxOf(replayLabel(page)), await boxOf(shown(page.getByRole("button", { name: "List layout" })))];
+      for (const [name, box] of Object.entries({ button, label, list })) {
+        expect(box.y, `${name} in the toolbar`).toBeGreaterThanOrEqual(request.y - 16);
+        expect(box.y + box.height, `${name} over the app`).toBeLessThanOrEqual(app.y);
+      }
+      expect(button.x, "the button after the request").toBeGreaterThanOrEqual(request.x + request.width - 1);
+      if (!phone) expect(button.x, "the button at the end").toBeGreaterThanOrEqual(list.x + list.width);
+      // No fill of the accent: Assign crew, in the app, is the one thing in it.
+      const fill = (locator) => locator.evaluate((element) => getComputedStyle(element).backgroundColor);
+      expect(await fill(pause), "a quiet button").not.toBe(await fill(shown(page.getByRole("button", { name: /^Assign crew to / }))));
       for (const name of ["Agent", "Observer", "TypeScript"]) {
         await press(shown(page.getByRole("tab", { name, exact: true })));
         await expect(pause, "still playing").toBeVisible();
         await expect(replayLabel(page), `its label over the ${name} tab`).toBeVisible();
         if (!phone) await expect(replayLabel(page)).toBeInViewport({ ratio: 1 });
       }
+    });
+
+    test("the app fits what it shows, and the page stays put", async ({ page }) => {
+      test.skip(test.info().project.name === "no-webassembly", "what plays is the webassembly project's to check");
+      await open(page, "/");
+      await expect(page.getByRole("button", { name: "Pause the agent replay" })).toBeVisible();
+      // Rows rise as they come, so each is measured once they stand.
+      const measure = () => page.evaluate(() => {
+        const seen = (element) => element.checkVisibility({ visibilityProperty: true });
+        const named = (words) => [...document.querySelectorAll("#app .qq-text")].find((element) => seen(element) && element.textContent === words);
+        const org = named("Brekka Grid");
+        const rows = [...document.querySelectorAll('[role="listitem"]')].filter((row) => seen(row) && /^BG-/.test(row.getAttribute("aria-label") ?? ""));
+        let body = org;
+        while (!body.contains(rows[0])) body = body.parentElement;
+        const card = body.parentElement.getBoundingClientRect();
+        const under = named("Your agent can use the app, too.").getBoundingClientRect().top - org.getBoundingClientRect().top;
+        return {
+          blank: card.bottom - Math.max(...rows.map((row) => row.getBoundingClientRect().bottom)),
+          cut: body.textContent.includes("…"),
+          under,
+        };
+      });
+      const look = async (state) => {
+        await expect.poll(async () => Math.abs((await measure()).blank - 12), { message: `${state}: the frame is as tall as what is in it` }).toBeLessThanOrEqual(3);
+        const now = await measure();
+        expect(now.cut, `${state}: nothing cut`).toBe(false);
+        return now.under;
+      };
+      const start = await look("the list");
+      await expect(shown(page.getByText("Crew assigned", { exact: true }))).toBeVisible();
+      expect(await look("the board"), "the page at the board").toBeCloseTo(start, 0);
+      await expect(page.getByText("answered", { exact: true })).toHaveCount(steps, { timeout: 60_000 });
+      expect(await look("the end"), "the page at the end").toBeCloseTo(start, 0);
+      await press(shown(page.getByRole("button", { name: "Assign crew to BG-421" })));
+      await expect(page.getByRole("button", { name: "Assign crew to BG-421" })).toHaveCount(0);
+      expect(await look("after the reader's press"), "the page after the press").toBeCloseTo(start, 0);
+      await expect(shown(page.getByText("Done", { exact: true })), "nothing left to suggest").toBeVisible();
+    });
+
+    test("says Done only once the last call has answered", async ({ page }) => {
+      test.skip(test.info().project.name === "no-webassembly", "what plays is the webassembly project's to check");
+      await open(page, "/");
+      await expect(page.getByRole("button", { name: "Pause the agent replay" })).toBeVisible();
+      // Each frame, so a Done between two of expect's looks is caught too.
+      await page.evaluate((steps) => {
+        const seen = { early: 0, boardWithoutDone: 0, after: 0 };
+        window.saidDone = seen;
+        const visible = (node) => node.parentElement.checkVisibility({ visibilityProperty: true, opacityProperty: true });
+        const look = () => {
+          let [answered, done, board] = [0, false, false];
+          const texts = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+          for (let node = texts.nextNode(); node; node = texts.nextNode()) {
+            if (node.data === "answered") answered += 1;
+            else if (/^Done\b/.test(node.data)) done ||= visible(node);
+            else if (node.data === "Crew assigned") board ||= visible(node);
+          }
+          if (done && answered < steps) seen.early += 1;
+          if (done && answered >= steps) seen.after += 1;
+          if (board && !done && answered < steps) seen.boardWithoutDone += 1;
+          if (!seen.after) requestAnimationFrame(look);
+        };
+        requestAnimationFrame(look);
+      }, steps);
+      await expect(page.getByText("answered", { exact: true }), "every step is answered").toHaveCount(steps, { timeout: 60_000 });
+      await expect(shown(page.getByText(nextStep, { exact: true })), "that it is done, and what to press").toBeInViewport({ ratio: 1 });
+      await expect.poll(() => page.evaluate(() => window.saidDone.after), { message: "Done after the last answer" }).toBeGreaterThan(0);
+      const seen = await page.evaluate(() => window.saidDone);
+      expect(seen.early, "no Done before the last answer").toBe(0);
+      expect(seen.boardWithoutDone, "a board still at work was seen").toBeGreaterThan(0);
     });
 
     test("its Pause is reached by Tab, and Enter on it stops the calls", async ({ page }) => {
@@ -154,7 +241,8 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
         await expect(page.getByText("answered", { exact: true }), "no call was sent").toHaveCount(0);
         await expect(replayLabel(page)).toBeInViewport({ ratio: 1 });
         await expect(shown(page.getByText("Agent: make this a board", { exact: true }))).toBeInViewport({ ratio: 1 });
-        await expect(shown(page.getByText("Done · applied live", { exact: true }))).toBeInViewport({ ratio: 1 });
+        await expect(shown(page.getByText("End result, not run", { exact: true })), "what stands, before Run").toBeInViewport({ ratio: 1 });
+        await expect(page.getByText(/^Done\b/).filter({ visible: true }), "no Done before Run").toHaveCount(0);
         await expect(shown(page.getByText("Crew assigned", { exact: true })), "the result").toBeVisible();
         const run = runButton(page, "Run the agent replay");
         await expect(run).toBeVisible();
@@ -162,10 +250,10 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
 
         // List and Board work on the finished board, with no Run.
         const lanes = page.getByText("Crew assigned", { exact: true }).filter({ visible: true });
-        await press(shown(page.getByRole("button", { name: "Edit layout: list" })));
+        await press(shown(page.getByRole("button", { name: "List layout" })));
         await expect(lanes, "List, without Run").toHaveCount(0);
         await expect(shown(page.getByText("Your edit", { exact: true }))).toBeVisible();
-        await press(shown(page.getByRole("button", { name: "Edit layout: board" })));
+        await press(shown(page.getByRole("button", { name: "Board layout" })));
         await expect(lanes, "Board, without Run").toHaveCount(1);
         await expect(page.getByText("answered", { exact: true }), "still no call was sent").toHaveCount(0);
 
@@ -175,9 +263,16 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
         await press(run);
         await expect(page.getByRole("button", { name: "Pause the agent replay" }), "Run plays it").toBeVisible();
         await expect(lanes, "from the list").toHaveCount(0);
+        await expect(shown(page.getByText("Dispatch", { exact: true })), "under its plain heading").toBeVisible();
+        const tickets = page.getByRole("list", { name: "Tickets", exact: true }).filter({ visible: true }).getByRole("listitem");
+        await expect(tickets, "the two tickets it starts with").toHaveCount(2);
+        await expect(tickets.nth(0)).toHaveAccessibleName(/^BG-412 Substation Nord-4 transformer fan alert, /);
+        await expect(tickets.nth(1)).toHaveAccessibleName(/^BG-415 Feeder 12 voltage sag log, /);
+        await expect(page.getByText(/^Done\b/).filter({ visible: true }), "not Done at its start").toHaveCount(0);
         await expect(lanes, "to the board").toHaveCount(1);
         expect(await page.getByText("answered", { exact: true }).count(), "less motion does not snap every step").toBeLessThan(steps);
         await expect(page.getByText("answered", { exact: true }), "every step is answered").toHaveCount(steps, { timeout: 60_000 });
+        await expect(shown(page.getByText(nextStep, { exact: true })), "Done at its end").toBeVisible();
       });
     });
   });

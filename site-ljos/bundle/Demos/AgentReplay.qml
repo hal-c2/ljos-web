@@ -35,10 +35,10 @@ QtObject {
         { tool: "app_set_property", args: { target: "#dispatch", property: "tickets", value: tickets.slice(0, 3) }, say: t`Bring in the rest of the tickets.`, wait: 450 },
         { tool: "app_set_property", args: { target: "#dispatch", property: "tickets", value: tickets.slice(0, 4) }, say: "", wait: 450 },
         { tool: "app_set_property", args: { target: "#dispatch", property: "tickets", value: tickets }, say: "", wait: 900 },
-        { tool: "app_set_property", args: { target: "#dispatch", property: "filters", value: filters }, say: t`Offer a filter for open tickets.`, wait: 1000 },
+        { tool: "app_set_property", args: { target: "#dispatch", property: "filters", value: filters }, say: t`Add a filter for open tickets.`, wait: 1000 },
         { tool: "app_find", args: { locator: "role=button[name=\"Open only\"]" }, say: t`Find the filter by its name on screen.`, wait: 1000 },
         { tool: "app_click", args: { target: "$found" }, say: t`Press it, as a person would.`, wait: 1300 },
-        { tool: "app_find", args: { locator: `role=button[name="Assign crew to ${uncrewed}"]` }, say: t`The feeder fault needs a crew. Find its button.`, wait: 1000 },
+        { tool: "app_find", args: { locator: `role=button[name="Assign crew to ${uncrewed}"]` }, say: t`Feeder 12 needs a crew. Find its button.`, wait: 1000 },
         { tool: "app_click", args: { target: "$found" }, say: "", wait: 1300 },
         { tool: "app_get_property", args: { target: "#dispatch", property: "unassigned" }, say: t`Check what still needs a crew.`, wait: 1100 },
         { tool: "app_screenshot", args: { max_size: 320 }, say: t`Take a screenshot to check the result.`, wait: 1400 }
