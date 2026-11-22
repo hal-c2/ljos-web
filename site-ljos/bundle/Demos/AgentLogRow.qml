@@ -11,7 +11,7 @@ Item {
     id: line
 
     // A row of the stage's log model (a delegate), by its roles. `answer`: "pending",
-    // "ok" or "error".
+    // "ok" or "error", or "" for what has no state: the still poster's calls.
     required property string kind
     required property string text
     required property string tool
@@ -116,6 +116,7 @@ Item {
                 }
                 // Where the call is: on its way, answered, refused.
                 Row {
+                    visible: line.answer !== ""
                     anchors.right: parent.right
                     anchors.verticalCenter: toolName.verticalCenter
                     spacing: 6
@@ -130,7 +131,7 @@ Item {
                         border.width: 1
                     }
                     Text {
-                        text: line.answer === "pending" ? t`sent` : line.answer === "error" ? t`refused` : t`answered`
+                        text: line.answer === "" ? "" : line.answer === "pending" ? t`sent` : line.answer === "error" ? t`refused` : t`answered`
                         color: Theme.codeGutter
                         font.family: Theme.sans
                         font.pixelSize: Theme.captionSize - 1
