@@ -25,6 +25,8 @@ Rectangle {
     property bool openOnly: false
     // "list" or "board" (board.ts's Layout).
     property var layout: "list"
+    // Another board module's `lanes`, where one lays the card out.
+    property var lay: null
     // The crew each ticket was given here, by its key: a person's press
     // or an agent's, over the crew the ticket came with.
     property var crews: ({})
@@ -43,8 +45,9 @@ Rectangle {
     readonly property bool narrow: width < 420
     // Too narrow for the filters beside the heading.
     readonly property bool tight: width < 360
-    readonly property bool boarded: layout !== "list"
-    readonly property var lanes: Board.lanes(layout, shown.map((ticket) => Object.assign({}, ticket, { crew: crewOf(ticket) })))
+    readonly property var placed: shown.map((ticket) => Object.assign({}, ticket, { crew: crewOf(ticket) }))
+    readonly property var lanes: lay ? lay(placed) : Board.lanes(layout, placed)
+    readonly property bool boarded: lanes.length > 1
     // The board with no ticket left to assign: its crewed lane has all the
     // width, as half a board of nothing reads as something missing.
     readonly property bool staffed: lanes.length === 2 && lanes[0].tickets.length === 0 && lanes[1].tickets.length > 0
@@ -237,7 +240,7 @@ Rectangle {
                                     id: lift
                                 }
                                 Component.onCompleted: {
-                                    const place = `${card.layout} ${modelData.key} ${crew}`;
+                                    const place = `${card.boarded} ${modelData.key} ${crew}`;
                                     if (card.still || card.seen[place])
                                         return;
                                     card.seen[place] = true;
