@@ -90,7 +90,7 @@ test("the landing page leads with its claim and the agent replay, and never pitc
   await expect(claim).toHaveCount(1);
   await expect(claim).toHaveText("Software you can reshape while it runs.");
   await expect(shown(claim)).toBeInViewport();
-  await expect(shown(page.getByText("North district dispatch", { exact: true })).first()).toBeAttached();
+  await expect(shown(page.getByText("North district dispatch", { exact: true })), "one replay, the hero's").toHaveCount(1);
   await expect(page.getByRole("heading", { level: 2, name: "Your agent can use the app, too." })).toHaveCount(1);
   await expect(shown(page.getByRole("contentinfo").getByText("Ljós — malleable software, everywhere", { exact: true })).first()).toBeAttached();
   // The page's own words: the code in a field is the reader's to
