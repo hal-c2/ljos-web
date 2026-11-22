@@ -731,6 +731,18 @@ const drawn = (height) => ({
 });
 const tallness = (page) => page.evaluate(() => window.objects.unsafe.implicitHeight);
 
+// How often the bench is measured on once what was asked for is in.
+const remeasured = (page) =>
+  page.evaluate(async () => {
+    await new Promise((done) => setTimeout(done, 200));
+    let changes = 0;
+    const seen = new MutationObserver((records) => (changes += records.length));
+    seen.observe(document.querySelector(".qq-bench"), { childList: true, subtree: true });
+    await new Promise((done) => setTimeout(done, 500));
+    seen.disconnect();
+    return changes;
+  });
+
 for (const [what, markup] of [
   ["img", '<img src="/lazy.svg" loading="lazy">'],
   ["picture", '<picture><source type="image/svg+xml" srcset="/lazy.svg"><img src="/lazy.png" loading="lazy"></picture>'],
@@ -779,16 +791,77 @@ test("two pictures with one fallback are each made room for, and then measuring 
   await expect.poll(() => askedSecond).toBe(true);
   answer();
   await expect.poll(() => tallness(page), { message: "and for the second" }).toBeGreaterThanOrEqual(140);
-  const again = await page.evaluate(async () => {
-    await new Promise((done) => setTimeout(done, 200));
-    let changes = 0;
-    const seen = new MutationObserver((records) => (changes += records.length));
-    seen.observe(document.querySelector(".qq-bench"), { childList: true, subtree: true });
-    await new Promise((done) => setTimeout(done, 500));
-    seen.disconnect();
-    return changes;
+  expect(await remeasured(page), "both in, nothing is measured again").toBe(0);
+});
+
+// Chromium waits for the picture whatever is done; WebKit fetches once an
+// img has an address. So where and when it is given one is checked too.
+test("a picture never asks for the fallback of a source it can show", async ({ page }) => {
+  const asked = [];
+  await page.route("**/taken.*", (route) => {
+    asked.push(new URL(route.request().url()).pathname);
+    return route.fulfill(drawn(30));
   });
-  expect(again, "both in, nothing is measured again").toBe(0);
+  await boxes(page, "markup");
+  const given = await page.evaluate(() => {
+    const own = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, "src");
+    const given = [];
+    Object.defineProperty(HTMLImageElement.prototype, "src", {
+      ...own,
+      set(value) {
+        given.push({ inPage: this.ownerDocument === document, loading: this.getAttribute("loading") });
+        own.set.call(this, value);
+      },
+    });
+    const picture = (loading) =>
+      `<picture><source type="image/svg+xml" srcset="/taken.svg"><img src="/taken.png" loading="${loading}"></picture>`;
+    window.objects.unsafe.text = `${picture("eager")}${picture("lazy")}`;
+    window.flush();
+    Object.defineProperty(HTMLImageElement.prototype, "src", own);
+    return given;
+  });
+  expect(given).toEqual([
+    { inPage: false, loading: "eager" },
+    { inPage: false, loading: "lazy" },
+  ]);
+  await expect.poll(() => asked).toContain("/taken.svg");
+  await page.waitForLoadState("networkidle");
+  expect(asked).not.toContain("/taken.png");
+});
+
+test("a picture that switches back to an earlier file is measured again, and then measuring rests", async ({ page }) => {
+  await page.route("**/narrow.svg", (route) => route.fulfill(drawn(60)));
+  await page.route("**/broad.svg", (route) => route.fulfill(drawn(150)));
+  await page.setViewportSize({ width: 500, height: 600 });
+  await boxes(page, "markup");
+  await page.evaluate(() => {
+    window.objects.unsafe.text =
+      '<picture><source media="(max-width: 600px)" srcset="/narrow.svg"><img src="/broad.svg"></picture>';
+    window.flush();
+  });
+  await expect.poll(() => tallness(page), { message: "room for the narrow one" }).toBeGreaterThanOrEqual(60);
+  await expect.poll(() => tallness(page), { message: "and no more" }).toBeLessThan(100);
+  await page.setViewportSize({ width: 1000, height: 600 });
+  await expect.poll(() => tallness(page), { message: "room for the broad one" }).toBeGreaterThanOrEqual(150);
+  await page.setViewportSize({ width: 500, height: 600 });
+  await expect.poll(() => tallness(page), { message: "the narrow one again" }).toBeLessThan(100);
+  expect(await remeasured(page), "switched back, nothing is measured again").toBe(0);
+});
+
+test("a source's width descriptor is read by its sizes", async ({ page }) => {
+  await page.route("**/sized.svg", (route) => route.fulfill(drawn(120)));
+  await boxes(page, "markup");
+  await page.evaluate(() => {
+    window.objects.unsafe.text =
+      '<picture><source type="image/svg+xml" srcset="/sized.svg 80w" sizes="80px"><img src="/sized.png"></picture>';
+    window.flush();
+  });
+  const shown = () =>
+    page.evaluate(() => {
+      const picture = window.objects.unsafe.$markup.querySelector("picture");
+      return [picture.querySelector("source").getAttribute("sizes"), picture.querySelector("img").getBoundingClientRect().width];
+    });
+  await expect.poll(shown).toEqual(["80px", 80]);
 });
 
 // A picture in more than one format: the browser takes the first source

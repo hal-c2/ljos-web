@@ -66,6 +66,27 @@ Feature: The showcase shows apps built with Ljós, recorded as they run
     When the picture arrives, be it fetched lazily or one of two with the same fallback
     Then the text is measured again around it
 
+  Scenario: A picture asks only for the file the browser takes
+    Given rich text with a picture whose source the browser can show
+    When the text is made
+    Then its img is given its loading, then its address, where nothing loads
+    And the picture's fallback isn't fetched
+
+  Scenario: Text follows a picture back to an earlier file
+    Given rich text with a picture whose source is for a narrow window
+    When the window goes from narrow to wide and back
+    Then the text is as tall as the file shown each time, and then measuring rests
+
+  Scenario: A picture keeps the size its source states for itself
+    Given rich text with a source that has a width descriptor and sizes
+    When the picture arrives
+    Then it is as wide as its sizes say
+
+  Scenario: The phone's menu gives way to the page it opened
+    Given the phone's menu is open
+    When the reader chooses a page in it
+    Then that page is shown and the menu is shut
+
   Scenario: The showcase fits a phone and a desktop, in both schemes
     When the reader opens /showcase/ at 390 and at 1440 pixels wide, light and dark
     Then nothing is wider than the page
