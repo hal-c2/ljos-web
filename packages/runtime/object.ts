@@ -75,6 +75,7 @@ export interface QObject {
   readonly $id?: string;
   readonly $fault?: Boundary;
   readonly $born?: QObject[];
+  readonly $declared?: Map<string, { value: object; copy: Copy }>;
   readonly $row?: number;
   readonly $attached?: Record<string, QObject | undefined>;
   readonly $replaced?: Record<string, Handler | undefined>;
@@ -2594,7 +2595,7 @@ function create(Type: QmlType, props: Props): QObject {
       // A root that may be reloaded knows what was made in what, so that a
       // reload can tell which object of the new tree is which of the old.
       const born = parent ? parent.$born : making;
-      if (born) record(self, born);
+      if (born) record(self, born, props);
       hidden(self, "$slots", Object.create(null));
       hidden(self, "$groups", Object.create(null));
       hidden(self, "$signals", Object.create(null));
@@ -2673,10 +2674,79 @@ function create(Type: QmlType, props: Props): QObject {
 // was made in: what goes is taken out, so a view scrolled a long way holds
 // only the delegates it shows.
 let making: QObject[] | null = null;
-function record(self: QObject, born: QObject[]): void {
+function record(self: QObject, born: QObject[], props: Props): void {
   hidden(self, "$born", []);
+  const declared = untrack(() => copies(props));
+  if (declared) hidden(self, "$declared", declared);
   born.push(self);
   if (getOwner()) onCleanup(() => born.splice(born.indexOf(self) >>> 0, 1));
+}
+
+// A list or an object of plain data as it was written. Each build makes one
+// anew and the app may change it in place, so what a reload compares is the
+// copy taken as the object is recorded, before the app's code has it.
+export class Copy {
+  readonly kind: object | null;
+  readonly keys: PropertyKey[];
+  readonly values: unknown[];
+  readonly height: number;
+  constructor(kind: object | null, keys: PropertyKey[], values: unknown[]) {
+    this.kind = kind;
+    this.keys = keys;
+    this.values = values;
+    let height = 0;
+    for (const value of values) if (value instanceof Copy && value.height >= height) height = value.height + 1;
+    this.height = height;
+  }
+}
+
+// How deep a value is copied. One that is deeper, or that holds itself, is
+// only itself, whole.
+const DEEPEST = 256;
+
+// What is not plain data is itself: a function, an instance, an object with
+// something computed in it, which is not run to be copied.
+function copied(value: unknown, seen: Map<object, unknown>, depth = 0): unknown {
+  if (typeof value !== "object" || value === null) return value;
+  if (seen.has(value)) {
+    const known = seen.get(value);
+    if (known === null) throw new RangeError("it holds itself");
+    return known;
+  }
+  const kind: object | null = Object.getPrototypeOf(value);
+  if (Array.isArray(value) ? kind !== Array.prototype : kind !== null && kind !== Object.prototype) return value;
+  if (depth >= DEEPEST) throw new RangeError("it is too deep");
+  const keys = Reflect.ownKeys(value);
+  const parts: unknown[] = [];
+  for (const key of keys) {
+    const part = Object.getOwnPropertyDescriptor(value, key)!;
+    if (part.get || part.set) {
+      seen.set(value, value);
+      return value;
+    }
+    parts.push(part.value);
+  }
+  seen.set(value, null);
+  const copy = new Copy(kind, keys, parts.map((part) => copied(part, seen, depth + 1)));
+  if (copy.height >= DEEPEST) throw new RangeError("it is too deep");
+  seen.set(value, copy);
+  return copy;
+}
+
+function copies(props: Props): Map<string, { value: object; copy: Copy }> | undefined {
+  let all: Map<string, { value: object; copy: Copy }> | undefined;
+  for (const key of Object.keys(props)) {
+    if (key[0] === "$" || key === "children") continue;
+    const value: unknown = Object.getOwnPropertyDescriptor(props, key)?.value;
+    if (typeof value !== "object" || value === null) continue;
+    try {
+      const copy = copied(value, new Map());
+      if (copy instanceof Copy) (all ??= new Map()).set(key, { value, copy });
+    } catch {
+      // With no copy it is compared as itself.
+    }
+  }
+  return all;
 }
 
 // The objects declared inside one, created now: its `children` prop,

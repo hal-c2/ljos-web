@@ -21,7 +21,7 @@
 //
 // Nothing here knows of a build tool: the Vite plugin calls `$reloaded` on a
 // save, and a page that compiles QML itself calls `reload`.
-import { $hot, flush, made, mounted, slot } from "./object.ts";
+import { $hot, Copy, flush, made, mounted, slot } from "./object.ts";
 import { keepTheme } from "./theme.js";
 
 // What `reload` gave up on: the new component, made, threw.
@@ -153,6 +153,7 @@ function kept(root, Old, across = false) {
     records.set(object, {
       type: typeOf(object, Old, across),
       props: object.$props,
+      declared: object.$declared,
       assigned: Object.entries(object.$slots ?? {}).flatMap(([key, held]) => (held.assigned ? [[key, held.value, held.kind?.type]] : [])),
       focused: object.activeFocus === true && !object.$born?.some((child) => child.activeFocus === true),
       selection: typeof object.selectionStart === "number" && object.selectionStart !== object.selectionEnd ? [object.selectionStart, object.selectionEnd] : null,
@@ -210,18 +211,37 @@ function moved(value, all, pairs) {
 }
 
 // Whether the file says the same of `key` in both: nothing, the same
-// value, or the same binding.
-function same(before, after, key) {
-  const was = before && Object.getOwnPropertyDescriptor(before, key);
-  const is = after && Object.getOwnPropertyDescriptor(after, key);
+// value, the same list or object as it was written, or the same binding.
+function same(old, object, key) {
+  const was = old.props && Object.getOwnPropertyDescriptor(old.props, key);
+  const is = object.$props && Object.getOwnPropertyDescriptor(object.$props, key);
   if (!was || !is) return !was && !is;
   if (was.get || is.get) return String(was.get) === String(is.get);
-  return Object.is(was.value, is.value) || (typeof was.value !== "object" && typeof is.value !== "object" && String(was.value) === String(is.value));
+  if (Object.is(was.value, is.value)) return true;
+  if (typeof was.value !== "object" && typeof is.value !== "object") return String(was.value) === String(is.value);
+  const before = old.declared?.get(key);
+  const after = object.$declared?.get(key);
+  // A copy speaks only for the value it was taken of: a held block's
+  // properties can be given others later.
+  if (!before || !after || before.value !== was.value || after.value !== is.value) return false;
+  return alike(before.copy, after.copy, new Map());
+}
+
+// Whether two copies hold the same, each pair of their parts looked at once
+// however often they share one.
+function alike(before, after, met) {
+  if (!(before instanceof Copy) || !(after instanceof Copy)) return Object.is(before, after);
+  let others = met.get(before);
+  if (others?.has(after)) return true;
+  if (before.kind !== after.kind || before.keys.length !== after.keys.length) return false;
+  if (!others) met.set(before, (others = new Set()));
+  others.add(after);
+  return before.keys.every((key, at) => key === after.keys[at] && alike(before.values[at], after.values[at], met));
 }
 
 function given(old, object, map) {
   for (const [key, value, type] of old.assigned) {
-    if (!same(old.props, object.$props, key)) continue;
+    if (!same(old, object, key)) continue;
     const into = slot(object, key);
     // A property whose type changed starts from what the file says.
     if (!into || into.kind?.type !== type) continue;
