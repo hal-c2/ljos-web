@@ -292,3 +292,33 @@ test("what is inspected is said by a function of each file's path in the bundle"
     made.remove();
   }
 });
+
+test("two builds under way at once do not fill one timings object", async () => {
+  const made = bundle("project");
+  try {
+    const timings = {};
+    const build = (out) => buildSite({ dir: made.dir, out, qmlc, with: [design], timings });
+    const other = join(made.root, "other");
+    const [first, second] = await part("build twice at once", () => Promise.allSettled([build(made.out), build(other)]));
+    expect(first.status).toBe("fulfilled");
+    expect(second.status).toBe("rejected");
+    expect(second.reason.message).toMatch(/timings is an empty object for one build to fill/);
+    expect(existsSync(other)).toBe(false);
+  } finally {
+    made.remove();
+  }
+});
+
+test("a build does not add to the timings an earlier build returned", async () => {
+  const made = bundle("project");
+  try {
+    const { timings } = await part("build the site", () => buildSite({ dir: made.dir, out: made.out, qmlc, with: [design] }));
+    const earlier = { ...timings };
+    await part("build it again with those timings", () =>
+      expect(buildSite({ dir: made.dir, out: made.out, qmlc, with: [design], timings })).rejects.toThrow(/timings is an empty object for one build to fill/),
+    );
+    expect(timings).toEqual(earlier);
+  } finally {
+    made.remove();
+  }
+});
