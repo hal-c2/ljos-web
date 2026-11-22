@@ -1076,7 +1076,7 @@ for (const [view, viewport] of [
 // The phone's fold as the reader meets it and works it.
 const LONG_PAGE = "/quality/motion/";
 const PHONE = { width: 390, height: 844 };
-const CARD = '[data-object-name="codeCard"]';
+const CARD = '#app [role="group"][aria-label^="Code"]';
 
 async function onPhone(browser, reducedMotion = "no-preference", init) {
   const context = await browser.newContext({
