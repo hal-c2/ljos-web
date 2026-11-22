@@ -26,7 +26,6 @@
 data/other-views.md 3 web:treeview TreeView is not in ljos-web yet
 data/repeater-and-delegates.md 2 web:delegatechooser DelegateChooser is not in ljos-web yet
 language/controllers.md 5 web:ts-controller a Controller written as a .ts module, controller({...}), is no type to the web's compiler
-language/overview.md 3 web:outer-assign the web's compiler refuses an inline delegate assigning to its enclosing component's properties
 language/pipe.md 1 web:pipe-chain a chain of |> with a topic in each step fails before it runs
 language/pipe.md 2 web:pipe-chain a chain of |> with a topic in each step fails before it runs
 rust/models.md 1 host-types titlesModel is a model the Rust program sets
