@@ -402,6 +402,11 @@ export const View3D = defineType("View3D", Item, {
           left = true;
           uncover();
           letGo();
+          // After the effect or event that told it, as below: what draws
+          // instead is under a root of the view's, not of this one.
+          queueMicrotask(() => {
+            if (!released) end();
+          });
         },
       });
       const view = self.$view;

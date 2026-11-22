@@ -691,9 +691,9 @@ has no WebGPU, a View3D no one asked a renderer of draws with
 has arrived or failed (a fetch worth asking again is asked three times
 in all first), if one of them can be shown and the scene has nothing
 left to `render.js`; wgpu then draws that view on WebGL 2 and tells of
-the files that failed, unless it cannot make it or such a thing comes to
-the scene (A25's DECISIONs). A page has `render.js` throughout
-with `?view3d=js` or `VITE_LJOS_VIEW3D=js`.
+the files that failed, unless it cannot make it, loses its context,
+traps, or such a thing comes to the scene (A25's DECISIONs). A page has
+`render.js` throughout with `?view3d=js` or `VITE_LJOS_VIEW3D=js`.
 Picking stays in JavaScript (`pick.js`), not wasm.
 
 ### A11. Decisions taken in phase 1 (summary)
@@ -1707,8 +1707,11 @@ has an adapter. Elsewhere `render.js` is, as wgpu does not yet draw all
 that it does (what fails of `tests/quick3d.spec.js` on wgpu is under
 "What it reaches today", below). `render.js` also draws a view whose
 first making on wgpu fails or traps, where no one asked for wgpu, and
-the console says why. It goes only once `tests/quick3d.spec.js` passes
-on wgpu.
+the console says why. A trap in what `create` waits on never settles its
+promise, as the wasm aborts: the page hears it (`created` in `wgpu.js`),
+the view queued behind is not kept waiting, and no view is made on wgpu
+after it. `render.js` goes only once `tests/quick3d.spec.js` passes on
+wgpu.
 
 DECISION: `pick.js` keeps picking. QML's `pick` answers at once with
 JavaScript objects, which a renderer that loads and draws
@@ -1726,14 +1729,23 @@ renderers, but only wgpu reads the file: the JavaScript renderer draws
 what is declared and has no glTF reader. So without WebGPU a view is
 turned to wgpu's WebGL 2 when the shown nodes in it and in its
 `importScene` name such files (`$unread`: by extension, `.gltf`, `.glb`
-and `.obj`, as wgpu's loader reads them), every one is here (`$ready`),
+and `.obj`, as wgpu's loader reads them), every one has arrived or
+failed, one can be shown (`$ready`),
 and the scene shows nothing left to `render.js` (`scriptAlone` in
 `View3D.js` has the list: fog, and what fails below). Until then
 `render.js` draws, and its picture stays up until wgpu's first. If such a
 thing comes to a turned scene the view goes back, once and for good: it
 keeps that thing as Qt draws it and goes without the files' models, as a
-scene that had it from the start does. One file that cannot be read keeps
-its view on `render.js`. A hidden loader costs nothing until it is shown.
+scene that had it from the start does. A file that cannot be read holds no
+turn: wgpu tells of it, and the view stays on `render.js` only where none
+can be shown. A hidden loader costs nothing until it is shown.
+
+DECISION: a turned view whose WebGL 2 context is lost, or whose renderer
+traps, goes back to `render.js` too, for good, and the console says why:
+what moved in its scene goes on moving, without the files' models, as where
+no view turns. It has a context and a device of its own, so its loss takes
+no other view and does not count against the GPU the views on WebGPU
+share. Those views are made again on another device.
 
 Known gaps: a `sourceItem` that paints no canvas of its own and a
 `TextureData` that is not RGBA8 give no picture; a `.tga` is a picture on both renderers, a `.ktx` only
