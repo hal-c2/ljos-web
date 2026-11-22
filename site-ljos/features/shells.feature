@@ -112,6 +112,11 @@ Feature: The site is shown in a shell the reader picks
     And each of those comes the first time a reader picks it
     And the shell choices and a shell's source come the first time a reader opens them
 
+  Scenario: The contents beside the page are written only where there is room for them
+    Given a docs page with headings, as the build wrote it wide and narrow
+    Then the wide page lists them beside it
+    And the narrow page's hidden sidebar lists none, as the menu holds them there
+
   Scenario: A reader with no script gets the Marketing shell
     Given a reader whose kept shell is Desktop
     When they open a page with no script
