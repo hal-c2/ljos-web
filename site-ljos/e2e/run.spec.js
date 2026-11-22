@@ -760,7 +760,8 @@ test("an example that is the same picture in both schemes shows that one in the 
 });
 
 // The build's verdicts are tests/pictures.spec.js's. Here the page is
-// handed one, as no example of the docs draws in one scheme alone.
+// handed one, so that each scheme is tried alone whatever the docs draw.
+// The test after these takes the build's own.
 for (const scheme of ["light", "dark"]) {
   test(`only the ${scheme} page says nothing is drawn, where only that scheme draws nothing`, async ({ page, wasm }) => {
     const { route, example } = plain;
@@ -776,3 +777,18 @@ for (const scheme of ["light", "dark"]) {
     await expect(said, "on the dark page").toHaveText(scheme === "dark" ? [line] : [], { timeout: 30_000 });
   });
 }
+
+// /language/match/'s button: its ground is the window's in the light and
+// another colour in the dark, so the build finds it blank in light alone.
+test("the docs' example that draws only in the dark says so on the light page alone", async ({ page, wasm }) => {
+  const route = "/language/match/";
+  const buttons = (livePages().find((each) => each.route === route)?.examples ?? []).filter(({ code }) => code.includes("fill: match (look)"));
+  expect(buttons, `${route} has the one button that only the dark draws`).toHaveLength(1);
+  await page.emulateMedia({ colorScheme: "light" });
+  await open(page, route);
+  const said = saysNothing(liveBlock(page, buttons[0].index));
+  await expect(said, "on the light page").toHaveText([wasm ? NOTHING_RUN_IT : NOTHING], { timeout: 30_000 });
+  await press(page.getByRole("button", { name: "Use the dark theme" }));
+  await expect(page.getByRole("button", { name: "Use the light theme" })).toBeVisible();
+  await expect(said, "on the dark page").toHaveText([], { timeout: 30_000 });
+});
