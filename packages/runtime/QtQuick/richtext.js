@@ -311,12 +311,38 @@ export function clothe(element, look) {
 }
 
 // Counted up when a picture inside some markup arrives: what was measured
-// around it is measured again. Once for each file at each size, and again when
-// a picture changes to another: measuring makes the elements anew, and theirs
-// load again, from the browser's cache, but are never seen to change.
+// around it is measured again. Once for each file at each size, for each
+// choice a picture offers, and again when a picture changes to another:
+// measuring makes the elements anew, and theirs load again, from the browser's
+// cache, but are never seen to change.
 const [pictures, setPictures] = signal(0);
 const arrived = new Set();
 const chosen = new WeakMap();
+const picked = new Map();
+
+// What a picture's choice is made from, which is the same on each copy of it.
+function offered(image) {
+  const picture = image.parentElement;
+  if (picture?.localName !== "picture") return undefined;
+  const sources = [...picture.querySelectorAll("source")].map((source) => source.outerHTML);
+  return JSON.stringify([image.getAttribute("src"), ...sources]);
+}
+
+// Firefox picks a picture's source in a task of its own, so a copy just made
+// is empty when it is measured. It is measured by a canvas of the size last
+// picked: that is laid out at once as a picture is, and fetches nothing. The
+// img stays where it is, hidden, to say what is picked now.
+function standIn(image) {
+  if (image.naturalWidth || !picked.size) return;
+  const size = picked.get(offered(image));
+  if (!size?.width || !size.height) return;
+  const stand = outsideTheCount(() => document.createElement("canvas"));
+  stand.width = size.width;
+  stand.height = size.height;
+  stand.style.cssText = image.style.cssText;
+  image.style.display = "none";
+  image.after(stand);
+}
 
 // Heard from the copy that is measured and from the one on the page
 // (Text.js), as a lazy copy that is measured may never load. Known by
@@ -331,7 +357,10 @@ export function arrive(event) {
   const arrival = `${image.naturalWidth}x${image.naturalHeight} ${source}`;
   const was = chosen.get(image);
   chosen.set(image, arrival);
-  if (arrived.has(arrival) && (was === undefined || was === arrival)) return;
+  const offer = offered(image);
+  const repicked = offer !== undefined && picked.get(offer)?.arrival !== arrival;
+  if (repicked) picked.set(offer, { arrival, width: image.naturalWidth, height: image.naturalHeight });
+  if (!repicked && arrived.has(arrival) && (was === undefined || was === arrival)) return;
   arrived.add(arrival);
   setPictures((count) => count + 1);
   flush();
@@ -362,7 +391,10 @@ export function survey(markup, look) {
   const box = bench.firstChild;
   clothe(box, look);
   box.replaceChildren(elements(markup));
-  for (const image of box.querySelectorAll("img")) awaited(image);
+  for (const image of box.querySelectorAll("img")) {
+    awaited(image);
+    standIn(image);
+  }
   const frame = box.getBoundingClientRect();
   // Each run of text and each picture, for the extent of the lines and for
   // how many there are: what does not overlap what came before is a new one.
@@ -376,7 +408,9 @@ export function survey(markup, look) {
       const found = range.getClientRects();
       if (found.length) runs.push({ node, box: found[0] });
       boxes.push(...found);
-    } else if (node.localName === "img") boxes.push(node.getBoundingClientRect());
+    } else if ((node.localName === "img" && node.style.display !== "none") || node.localName === "canvas") {
+      boxes.push(node.getBoundingClientRect()); // a picture, or what stands in for one
+    }
   }
   let right = frame.left;
   for (const each of boxes) right = Math.max(right, each.right);
