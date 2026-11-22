@@ -12,7 +12,8 @@ QtObject {
     readonly property string start: t`Get started`
     readonly property string tryDemo: t`Try a demo`
     readonly property string heroWhat: t`the agent replay`
-    readonly property string heroCaption: t`In this recorded replay, an agent turns a running app’s list into a board. No live agent is running. You can switch the layout yourself, too.`
+    readonly property string heroNote: t`Replay · no live agent`
+    readonly property string heroCaption: t`An agent turns a list into a board while the app runs; then it’s your turn.`
 
     // Built for agents.
     readonly property string agenticEyebrow: t`Built for agents`

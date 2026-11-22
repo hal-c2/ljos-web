@@ -9,6 +9,10 @@ export interface Lane {
     readonly tickets: readonly Ticket[]
 }
 
+const free = (t: Ticket): boolean => t.crew === ""
+const busy = (t: Ticket): boolean => t.crew !== ""
+
+// From here on is what the front page shows: keep it 39 columns or fewer.
 export function lanes(
     layout: Layout,
     tickets: readonly Ticket[],
@@ -16,12 +20,11 @@ export function lanes(
     if (layout === "list")
         return [{ title: "", tickets }]
 
-    const free = (t: Ticket) => t.crew === ""
-    const busy = (t: Ticket) => t.crew !== ""
-    return [
-        { title: "Needs a crew",
-          tickets: tickets.filter(free) },
-        { title: "Crew assigned",
-          tickets: tickets.filter(busy) },
-    ]
+    return [{
+        title: "Needs a crew",
+        tickets: tickets.filter(free),
+    }, {
+        title: "Crew assigned",
+        tickets: tickets.filter(busy),
+    }]
 }

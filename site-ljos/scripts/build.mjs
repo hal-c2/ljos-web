@@ -425,9 +425,13 @@ QtObject {
   );
 }
 
-// The front page's TypeScript, as it is shown: the very file the dispatch
-// card calls (bundle/Demos/logic/board.ts), coloured. Generated like the
-// Pantry's; do not edit by hand.
+// The front page's TypeScript, as it is shown: the part that makes the
+// board, cut from the very file the dispatch card calls
+// (bundle/Demos/logic/board.ts) and coloured. Generated like the Pantry's;
+// do not edit by hand.
+const boardFile = readFileSync(join(bundle, "Demos/logic/board.ts"), "utf8");
+const boardFrom = boardFile.indexOf("export function lanes(");
+if (boardFrom < 0) throw new Error("bundle/Demos/logic/board.ts has no `export function lanes(` for the front page to show");
 writeFileSync(
   join(bundle, "Demos/DispatchSource.qml"),
   `pragma Singleton
@@ -437,7 +441,7 @@ import QtQuick
 // the code the front page shows beside the app that runs it. Do not edit
 // by hand.
 QtObject {
-    readonly property string rich: ${JSON.stringify(packRich(highlight(readFileSync(join(bundle, "Demos/logic/board.ts"), "utf8").trimEnd(), "ts")))}
+    readonly property string rich: ${JSON.stringify(packRich(highlight(boardFile.slice(boardFrom).trimEnd(), "ts")))}
 }
 `,
 );

@@ -110,8 +110,12 @@ test("the landing page leads with its claim and the agent replay, and never pitc
   expect(words).toContain("shell.qml");
   expect(words).toContain("ShellLoader");
   expect(words).toContain("Slot");
-  // The TypeScript it shows first is the file the app runs (wrapped to fit).
-  expect(words.replace(/\s+/g, " ")).toContain(BOARD.replace(/\s+/g, " ").trim());
+  // The TypeScript it shows first is, word for word, the part of the file
+  // the app runs that makes the board: from `lanes` to the file's end.
+  expect(BOARD.indexOf("export function lanes(")).toBeGreaterThan(-1);
+  const board = BOARD.slice(BOARD.indexOf("export function lanes("));
+  expect(board).toContain('title: "Crew assigned"');
+  expect(words.replace(/\s+/g, " ")).toContain(board.replace(/\s+/g, " ").trim());
   expect(words).not.toMatch(/Qt[\s-]?compatible|compatible with Qt/i);
   // Qt is named on the porting page, not on the front page.
   expect(words).not.toContain("Qt");

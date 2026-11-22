@@ -73,9 +73,9 @@ Rectangle {
 
     Column {
         id: body
-        x: Theme.m
-        y: Theme.m
-        width: card.width - 2 * Theme.m
+        x: Theme.s
+        y: Theme.s
+        width: card.width - 2 * Theme.s
         spacing: Theme.s
 
         // The header: who it is for, what it is, and the filters offered.
@@ -103,7 +103,7 @@ Rectangle {
                     visible: text !== ""
                     color: Theme.text
                     font.family: Theme.serif
-                    font.pixelSize: Theme.titleSize
+                    font.pixelSize: card.narrow ? Theme.subtitleSize : Theme.titleSize
                     font.weight: Font.DemiBold
                     elide: Text.ElideRight
                     opacity: card.still ? 1 : 0
@@ -185,7 +185,7 @@ Rectangle {
                     id: lane
                     required property var modelData
                     width: Math.floor((board.width - (card.lanes.length - 1) * board.spacing) / card.lanes.length)
-                    spacing: card.boarded ? Theme.xs : body.spacing
+                    spacing: Theme.xs
 
                     Text {
                         visible: lane.modelData.title !== ""

@@ -6,13 +6,13 @@ import Site
 import Demos
 import "../Site/code-editor.js" as Editor
 
-// What the agent replay looks like: a strip that says what it is, what
-// changed and lets the reader change it; under that the dispatch card in
-// its window, and beside it (under it, when narrow) the TypeScript that
+// What the agent replay looks like: a strip with the request, in words,
+// how it stands and the same change in the reader's hands; under that the
+// dispatch card, and beside it (under it, when narrow) the TypeScript that
 // lays the card out, the log of the agent's calls or a small Observer. It
 // only draws: the live stage (AgentStage) sends the calls and fills the
-// log, and a poster fills it once, still. The controls say what they want
-// through signals.
+// log, and a poster fills it once, still. That it is a replay, and its
+// Pause, are the frame's bar to say (DemoFrame.barOnTop).
 Rectangle {
     id: view
 
@@ -20,14 +20,18 @@ Rectangle {
     property bool tabs: true
     // "source", "agent" or "observer".
     property string tab: tabs ? "source" : "agent"
-    property string badge: t`Replay · no live agent`
     // Steps done and how many there are.
     property int at: 0
     property int total: 0
     property bool playing: false
+    // A step of the replay is on its way or due.
+    property bool working: false
+    // The layout shown is the reader's own.
+    property bool edited: false
     property bool calm: false
-    // A poster: nothing moves, nothing can be pressed.
+    // A poster: nothing moves, and only the layout can be changed.
     property bool still: false
+    property bool editable: !still
     // The small Observer's tree (Stage.treeRows) and the picked object's
     // properties (Stage.propertyRows).
     property var treeRows: []
@@ -37,76 +41,55 @@ Rectangle {
     readonly property alias card: card
     readonly property alias log: logModel
 
-    signal play
-    signal pause
-    signal next
-    signal previous
-    signal restart
     signal tabPicked(string tab)
     signal layoutPicked(string layout)
     signal treePicked(string ref)
 
-    readonly property bool wide: width >= 680
-    readonly property int pad: Theme.s
-    readonly property int gap: wide ? Theme.s : Theme.xs
+    // Side by side only where the card keeps its header on one row.
+    readonly property int sideWidth: 320
+    readonly property bool wide: width >= sideWidth + 420 + gap + 2 * pad
+    // Room for a focus ring at the edges, and no more: the app is the subject.
+    readonly property int pad: Theme.xxs
+    readonly property int gap: Theme.s
 
-    color: Theme.stage
+    color: Theme.canvas
 
     ListModel {
         id: logModel
     }
 
-    // Above all of it, at every width and in every tab: that this is a
-    // replay, never taken for a model at work; the change; and that change
-    // in the reader's own hands.
+    // Above it, at every width and in every tab: what the agent was asked,
+    // how that stands, and the same change in the reader's own hands.
     Item {
         id: strip
         width: view.width
         height: view.wide ? 56 : 80
 
-        Rectangle {
-            id: badgePill
-            x: view.pad
-            y: view.wide ? Math.round((strip.height - height) / 2) : Theme.xs + 2
-            width: badgeWords.implicitWidth + 2 * Theme.xs
-            height: 24
-            radius: 12
-            color: Theme.surface
-            border.color: Theme.border
-            border.width: 1
-            Text {
-                id: badgeWords
-                anchors.centerIn: parent
-                text: view.badge
-                color: Theme.text
-                font.family: Theme.sans
-                font.pixelSize: Theme.captionSize - 1
-            }
-        }
         Text {
-            x: view.wide ? badgePill.x + badgePill.width + Theme.s : view.pad
-            y: view.wide ? Math.round((strip.height - height) / 2) : editButtons.y + Math.round((editButtons.height - height) / 2)
-            text: card.layout === "board" ? 'layout: "list" → "board"' : 'layout: "list"'
+            id: request
+            x: view.pad
+            y: view.wide ? Math.round((strip.height - height) / 2) : Theme.xs
+            text: t`Agent: make this a board`
             color: Theme.text
-            font.family: Theme.mono
-            font.pixelSize: Theme.captionSize - 1
+            font.family: Theme.sans
+            font.pixelSize: Theme.bodySize
             font.weight: Font.DemiBold
         }
         Text {
-            id: editWord
-            x: view.wide ? editButtons.x - width - Theme.xs : strip.width - width - view.pad
-            y: view.wide ? Math.round((strip.height - height) / 2) : badgePill.y + Math.round((badgePill.height - height) / 2)
-            text: t`Edit layout`
-            color: Theme.text
+            x: view.wide ? request.x + request.width + Theme.s : view.pad
+            y: editButtons.y + Math.round((editButtons.height - height) / 2)
+            text: view.edited ? t`Your edit` : card.layout === "board" ? t`Done · applied live` : view.working ? t`Working…` : ""
+            color: Theme.link
             font.family: Theme.sans
             font.pixelSize: Theme.captionSize
+            font.weight: Font.DemiBold
         }
         Row {
             id: editButtons
             x: strip.width - width - view.pad
-            y: view.wide ? Math.round((strip.height - height) / 2) : strip.height - height - Theme.xxs
+            y: view.wide ? Math.round((strip.height - height) / 2) : strip.height - height - Theme.xs
             spacing: Theme.xxs
-            enabled: !view.still
+            enabled: view.editable
 
             StageButton {
                 text: t`List`
@@ -125,98 +108,24 @@ Rectangle {
         }
     }
 
-    // The app's window.
-    Rectangle {
-        id: window
+    // The app: the one frame here.
+    DispatchCard {
+        id: card
         x: view.pad
         y: strip.height
-        width: view.wide ? Math.round((view.width - 2 * view.pad - view.gap) * 0.56) : view.width - 2 * view.pad
-        height: view.wide ? view.height - y - view.pad : Math.round((view.height - y - view.pad - view.gap) * 0.56)
-        radius: Theme.radius
-        color: Theme.paper
-        border.color: Theme.stageEdge
-        border.width: 1
-
-        Item {
-            id: titleBar
-            width: parent.width
-            height: 34
-
-            Text {
-                x: Theme.s
-                anchors.verticalCenter: parent.verticalCenter
-                text: t`Dispatch`
-                color: Theme.textMuted
-                font.family: Theme.sans
-                font.pixelSize: Theme.captionSize
-            }
-            // The app runs: live, not a picture (a poster says nothing).
-            Row {
-                visible: !view.still
-                anchors.right: parent.right
-                anchors.rightMargin: Theme.s
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: 6
-
-                Rectangle {
-                    id: liveDot
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 7
-                    height: 7
-                    radius: 3.5
-                    color: Theme.accent
-                    SequentialAnimation on opacity {
-                        running: !view.calm && !view.still && view.playing
-                        loops: Animation.Infinite
-                        NumberAnimation {
-                            to: 0.35
-                            duration: 900
-                            easing.type: Easing.InOutSine
-                        }
-                        NumberAnimation {
-                            to: 1
-                            duration: 900
-                            easing.type: Easing.InOutSine
-                        }
-                    }
-                }
-                Text {
-                    text: t`live app`
-                    color: Theme.textMuted
-                    font.family: Theme.sans
-                    font.pixelSize: Theme.captionSize
-                }
-            }
-            Rectangle {
-                anchors.bottom: parent.bottom
-                width: parent.width
-                height: 1
-                color: Theme.divider
-            }
-        }
-
-        DispatchCard {
-            id: card
-            x: Theme.s
-            y: titleBar.height + Theme.s
-            width: parent.width - 2 * Theme.s
-            height: parent.height - y - Theme.s
-            calm: view.calm
-            still: view.still
-        }
+        width: view.wide ? view.width - 2 * view.pad - view.gap - view.sideWidth : view.width - 2 * view.pad
+        height: view.wide ? view.height - y - view.pad : Math.round((view.height - y - view.pad - view.gap) * 0.6)
+        calm: view.calm
+        still: view.still
     }
 
     // The log, the source or the Observer.
-    Rectangle {
+    Item {
         id: side
-        x: view.wide ? window.x + window.width + view.gap : view.pad
-        y: view.wide ? strip.height : window.y + window.height + view.gap
-        width: view.wide ? view.width - x - view.pad : view.width - 2 * view.pad
+        x: view.wide ? card.x + card.width + view.gap : view.pad
+        y: view.wide ? strip.height : card.y + card.height + view.gap
+        width: view.wide ? view.sideWidth : view.width - 2 * view.pad
         height: view.height - y - view.pad
-        radius: Theme.radius
-        color: Theme.surface
-        border.color: Theme.divider
-        border.width: 1
         clip: true
 
         // Its tabs, or its title.
@@ -230,7 +139,7 @@ Rectangle {
                 visible: view.tabs
                 Accessible.role: Accessible.PageTabList
                 Accessible.name: t`Replay views`
-                x: Theme.xs
+                x: 2
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 2
 
@@ -306,15 +215,24 @@ Rectangle {
             }
         }
 
+        Text {
+            id: stepLine
+            visible: view.tab === "agent"
+            y: head.height + Theme.xs
+            text: t`Step ${view.at} of ${view.total}`
+            color: Theme.textMuted
+            font.family: Theme.sans
+            font.pixelSize: Theme.captionSize
+        }
+
         // The agent's log, kept at its newest line while the reader
         // has not scrolled back up it.
         Flickable {
             id: logView
             visible: view.tab === "agent"
-            x: Theme.s
-            y: head.height + Theme.xs
-            width: parent.width - 2 * Theme.s
-            height: controls.y - y - Theme.xs
+            y: stepLine.y + stepLine.height + Theme.xs
+            width: parent.width
+            height: parent.height - y
             contentWidth: width
             contentHeight: lines.height + Theme.xs
             clip: true
@@ -359,15 +277,15 @@ Rectangle {
             }
         }
 
-        // The TypeScript the card calls, word for word (DispatchSource is
-        // written from the file), with the file it is.
+        // The part of the TypeScript the card calls that makes the board,
+        // word for word (DispatchSource is cut from the file), with the
+        // file it is. No line wraps: the type is sized to its longest.
         Flickable {
             id: sourceView
             visible: view.tab === "source"
-            x: Theme.s
             y: head.height + Theme.xs
-            width: parent.width - 2 * Theme.s
-            height: controls.y - y - Theme.xs
+            width: parent.width
+            height: parent.height - y
             contentWidth: width
             contentHeight: sourceColumn.height
             clip: true
@@ -386,34 +304,44 @@ Rectangle {
                     font.pixelSize: Theme.captionSize - 1
                     wrapMode: Text.Wrap
                 }
-                Text {
-                    objectName: "boardSource"
+                Rectangle {
                     width: parent.width
-                    color: Theme.codeFg
-                    font.family: Theme.mono
-                    font.pixelSize: Theme.captionSize - 1
-                    lineHeightMode: Text.FixedHeight
-                    lineHeight: 17
-                    textFormat: Text.RichText
-                    wrapMode: Text.Wrap
-                    // Markup keeps no run of spaces: each line's own indent stays.
-                    text: Editor.richOf(DispatchSource.rich).split("\n").map((line) => {
-                        const indent = /^ */.exec(line)[0];
-                        return "&nbsp;".repeat(indent.length) + line.slice(indent.length);
-                    }).join("<br/>")
+                    height: source.height + 2 * Theme.xs
+                    radius: Theme.radiusSmall
+                    color: Theme.codeBg
+
+                    Text {
+                        id: source
+                        objectName: "boardSource"
+                        x: Theme.xs
+                        y: Theme.xs
+                        width: parent.width - 2 * Theme.xs
+                        color: Theme.codeFg
+                        font.family: Theme.mono
+                        // board.ts keeps this to 39 columns, each 0.6 of the size, and a little.
+                        font.pixelSize: Math.max(10, Math.min(Theme.captionSize - 1, Math.floor(width / 24.4)))
+                        lineHeightMode: Text.FixedHeight
+                        lineHeight: 17
+                        textFormat: Text.RichText
+                        wrapMode: Text.NoWrap
+                        // Markup keeps no run of spaces: each line's own indent stays.
+                        text: Editor.richOf(DispatchSource.rich).split("\n").map((line) => {
+                            const indent = /^ */.exec(line)[0];
+                            return "&nbsp;".repeat(indent.length) + line.slice(indent.length);
+                        }).join("<br/>")
+                    }
                 }
             }
         }
 
         // A small Observer: the card's live tree, and what the picked
-        // object holds. The whole Observer opens from the stage's toolbar.
+        // object holds. It is the replay's one Observer.
         Item {
             id: observerView
             visible: view.tab === "observer"
-            x: Theme.s
             y: head.height + Theme.s
-            width: parent.width - 2 * Theme.s
-            height: controls.y - y - Theme.xs
+            width: parent.width
+            height: parent.height - y
             readonly property bool sideBySide: width >= 440
 
             Flickable {
@@ -494,63 +422,6 @@ Rectangle {
                         }
                     }
                 }
-            }
-        }
-
-        // The replay's own controls, under every tab.
-        Item {
-            id: controls
-            y: parent.height - height
-            width: parent.width
-            height: 48
-            readonly property bool roomy: width >= 620
-
-            Rectangle {
-                width: parent.width
-                height: 1
-                color: Theme.divider
-            }
-            Row {
-                id: controlRow
-                x: Theme.xs
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: Theme.xxs
-                enabled: !view.still
-
-                StageButton {
-                    text: view.playing ? t`Pause` : controls.roomy ? t`Play replay` : t`Play`
-                    label: view.playing ? t`Pause` : t`Play replay`
-                    primary: !view.playing && view.at < view.total
-                    onPressed: view.playing ? view.pause() : view.play()
-                }
-                StageButton {
-                    text: controls.roomy ? t`Previous step` : "←"
-                    label: t`Previous step`
-                    enabled: view.at > 0
-                    onPressed: view.previous()
-                }
-                StageButton {
-                    text: controls.roomy ? t`Next step` : "→"
-                    label: t`Next step`
-                    enabled: view.at < view.total
-                    onPressed: view.next()
-                }
-                StageButton {
-                    text: controls.roomy ? t`Restart replay` : "↺"
-                    label: t`Restart replay`
-                    enabled: view.at > 0
-                    onPressed: view.restart()
-                }
-            }
-            Text {
-                visible: controls.width - controlRow.width >= implicitWidth + 2 * Theme.xs
-                anchors.right: parent.right
-                anchors.rightMargin: Theme.xs
-                anchors.verticalCenter: parent.verticalCenter
-                text: t`Step ${view.at} of ${view.total}`
-                color: Theme.textMuted
-                font.family: Theme.sans
-                font.pixelSize: Theme.captionSize
             }
         }
     }

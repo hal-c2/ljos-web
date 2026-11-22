@@ -2,6 +2,7 @@
 import Ljos.Core
 import QtQuick
 import Site
+import "../nav.js" as Nav
 import "logic/stage.ts" as Stage
 
 // The agent replay's poster: where it ends, drawn by its own parts and
@@ -15,8 +16,24 @@ AgentView {
 
     still: true
     playing: false
+    // The finished board is the reader's to change before anything plays,
+    // and where they asked that nothing play.
+    editable: awake
+    property bool awake: false
     total: AgentReplay.steps.length
     at: AgentReplay.steps.length
+
+    Timer {
+        interval: 0
+        running: Nav.inBrowser()
+        onTriggered: poster.awake = true
+    }
+    onLayoutPicked: (picked) => {
+        if (picked === card.layout)
+            return;
+        card.layout = picked;
+        edited = true;
+    }
 
     Component.onCompleted: {
         const crews = {};

@@ -7,7 +7,8 @@ import Site
 // Whether what it lies over runs, an example's stage or a demo. Nothing
 // runs until the reader asks, but the front page's replay, which starts
 // itself (DemoFrame.startsItself, never said aloud): the stage's toolbar (StageButton) asks
-// with its Run, and a press anywhere on the picture asks too. It draws
+// with its Run, and a press anywhere on the picture asks too, unless
+// that picture takes presses of its own (`pressRuns`). It draws
 // nothing over what runs: a control over an app would hide what the app
 // draws (a demo's caption, a field) and take the presses meant for it.
 // Its phases are what the toolbar says:
@@ -46,6 +47,8 @@ Item {
     // field under it (an example's text input) would never be pressed.
     // Only the press on the picture takes any, and only before it runs.
     property real spanWidth: 0
+    // Whether a press on the picture runs it.
+    property bool pressRuns: true
     property real spanHeight: 0
 
     property bool asked: false
@@ -130,9 +133,9 @@ Item {
         id: hover
         width: runner.spanWidth
         height: runner.spanHeight
-        visible: !runner.started
-        enabled: runner.can
-        hoverEnabled: runner.can
+        visible: runner.pressRuns && !runner.started
+        enabled: runner.can && runner.pressRuns
+        hoverEnabled: runner.can && runner.pressRuns
         Accessible.ignored: true
         cursorShape: runner.can ? Qt.PointingHandCursor : Qt.ArrowCursor
         // Where the picture stood on the page at the press. A finger
