@@ -848,6 +848,29 @@ test("a picture that switches back to an earlier file is measured again, and the
   expect(await remeasured(page), "switched back, nothing is measured again").toBe(0);
 });
 
+test("a picture that keeps its file at another density is measured again, and then measuring rests", async ({ page }) => {
+  await page.route("**/dense.svg", (route) => route.fulfill(drawn(120)));
+  await page.setViewportSize({ width: 500, height: 600 });
+  await boxes(page, "markup");
+  await page.evaluate(() => {
+    // One file: 80 wide at a density of 1 and 160 at a half, so twice as tall.
+    window.objects.unsafe.text =
+      '<picture><source type="image/svg+xml" srcset="/dense.svg 80w" sizes="(max-width: 600px) 80px, 160px">' +
+      '<img src="/dense.svg"></picture>';
+    window.flush();
+  });
+  const file = () => page.evaluate(() => window.objects.unsafe.$markup.querySelector("img").currentSrc);
+  await expect.poll(() => tallness(page), { message: "room for it at 80 wide" }).toBeGreaterThanOrEqual(120);
+  await expect.poll(() => tallness(page), { message: "and no more" }).toBeLessThan(200);
+  const first = await file();
+  await page.setViewportSize({ width: 1000, height: 600 });
+  await expect.poll(() => tallness(page), { message: "room for it at 160 wide" }).toBeGreaterThanOrEqual(240);
+  expect(await file(), "the same file").toBe(first);
+  await page.setViewportSize({ width: 500, height: 600 });
+  await expect.poll(() => tallness(page), { message: "80 wide again" }).toBeLessThan(200);
+  expect(await remeasured(page), "back at the first density, nothing is measured again").toBe(0);
+});
+
 test("a source's width descriptor is read by its sizes", async ({ page }) => {
   await page.route("**/sized.svg", (route) => route.fulfill(drawn(120)));
   await boxes(page, "markup");
