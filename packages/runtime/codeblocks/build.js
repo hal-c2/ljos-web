@@ -535,9 +535,9 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
       const inDark = dark ? await made("dark") : null;
       for (const { hash, html, error, logged } of light.values()) {
         const example = byHash.get(hash);
-        // What the reader is shown first is said as it was made in the
-        // light; the dark one is the same example, and only refuses
-        // where the palette it reads does.
+        // The dark one is the same example made again: it refuses only
+        // where the scheme it reads does, and what it says only there is
+        // said to be of the dark.
         const darkly = inDark?.get(hash);
         if (error !== undefined) fail(example, [`${example.entry}:1: ${error}`, ...(logged ?? []).map(unstaged)]);
         else if (inDark && darkly?.html === undefined)
@@ -547,7 +547,10 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
           writeFileSync(join(cacheDir, file), html);
           const shade = darkly ? `${hash.slice(0, 16)}-dark.html` : undefined;
           if (shade) writeFileSync(join(cacheDir, shade), darkly.html);
-          manifest[hash] = { file, ...(shade ? { dark: shade } : {}), ...prerenderSize(html), ...(logged?.length ? { logged: logged.map(unstaged) } : {}), stamp };
+          const inLight = (logged ?? []).map(unstaged);
+          const onlyDark = (darkly?.logged ?? []).map(unstaged).filter((line) => !inLight.includes(line));
+          const said = [...inLight, ...onlyDark.map((line) => `in the dark scheme: ${line}`)];
+          manifest[hash] = { file, ...(shade ? { dark: shade } : {}), ...prerenderSize(html), ...(said.length ? { logged: said } : {}), stamp };
         }
       }
       const answered = new Set(light.keys());
