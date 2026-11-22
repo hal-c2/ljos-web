@@ -69,235 +69,246 @@ Rectangle {
     height: parent ? parent.height : 900
     color: look.canvas
 
-    // The menu bar.
-    Rectangle {
-        id: menuBar
+    // The header: both bars are one landmark, so a reader finds it by
+    // the name it has in every shell.
+    Item {
+        id: header
         z: 4
         width: parent.width
-        height: 36
-        color: look.surface
-        Accessible.role: Accessible.MenuBar
-        Accessible.name: t`Menu bar`
+        height: toolBar.y + toolBar.height
+        Accessible.role: Accessible.Section
+        Accessible.name: "Ljós"
 
-        Row {
-            x: 8
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: 2
+        // The menu bar.
+        Rectangle {
+            id: menuBar
+            z: 4
+            width: parent.width
+            height: 36
+            color: look.surface
+            Accessible.role: Accessible.MenuBar
+            Accessible.name: t`Menu bar`
 
             Row {
+                x: 8
                 anchors.verticalCenter: parent.verticalCenter
-                Slot { name: "site.brand.small" }
-            }
-            C.Button {
-                subtle: true
-                text: t`File`
-                onClicked: fileMenu.open()
+                spacing: 2
 
-                C.Menu {
-                    id: fileMenu
-                    y: parent.height
-
-                    C.MenuItem {
-                        text: t`Open…`
-                        iconName: "search"
-                        shortcut: "/"
-                        onTriggered: shell.site.find()
-                    }
-                    C.MenuItem {
-                        text: t`Close tab`
-                        iconName: "x"
-                        enabled: shell.tabs.length > 1
-                        onTriggered: shell.close(shell.tabs.indexOf(shell.route))
-                    }
+                Row {
+                    anchors.verticalCenter: parent.verticalCenter
+                    Slot { name: "site.brand.small" }
                 }
-            }
-            C.Button {
-                subtle: true
-                text: t`View`
-                onClicked: viewMenu.open()
+                C.Button {
+                    subtle: true
+                    text: t`File`
+                    onClicked: fileMenu.open()
 
-                C.Menu {
-                    id: viewMenu
-                    y: parent.height
+                    C.Menu {
+                        id: fileMenu
+                        y: parent.height
 
-                    Repeater {
-                        model: shell.preferences ? shell.preferences.schemes : []
                         C.MenuItem {
-                            required property var modelData
-                            text: modelData.label
-                            checkable: true
-                            checked: shell.preferences.scheme === modelData.name
-                            onTriggered: shell.preferences.setScheme(modelData.name)
+                            text: t`Open…`
+                            iconName: "search"
+                            shortcut: "/"
+                            onTriggered: shell.site.find()
+                        }
+                        C.MenuItem {
+                            text: t`Close tab`
+                            iconName: "x"
+                            enabled: shell.tabs.length > 1
+                            onTriggered: shell.close(shell.tabs.indexOf(shell.route))
                         }
                     }
-                    C.MenuSeparator {}
-                    C.MenuItem {
-                        text: t`Reduce motion`
-                        checkable: true
-                        checked: shell.preferences ? shell.preferences.calm : false
-                        onTriggered: shell.preferences.setCalm(!shell.preferences.calm)
-                    }
-                    C.MenuSeparator {}
-                    Repeater {
-                        model: shell.preferences ? shell.preferences.shells : []
+                }
+                C.Button {
+                    subtle: true
+                    text: t`View`
+                    onClicked: viewMenu.open()
+
+                    C.Menu {
+                        id: viewMenu
+                        y: parent.height
+
+                        Repeater {
+                            model: shell.preferences ? shell.preferences.schemes : []
+                            C.MenuItem {
+                                required property var modelData
+                                text: modelData.label
+                                checkable: true
+                                checked: shell.preferences.scheme === modelData.name
+                                onTriggered: shell.preferences.setScheme(modelData.name)
+                            }
+                        }
+                        C.MenuSeparator {}
                         C.MenuItem {
-                            required property var modelData
-                            text: modelData.label
+                            text: t`Reduce motion`
                             checkable: true
-                            checked: shell.preferences.shell === modelData.name
-                            onTriggered: shell.preferences.setShell(modelData.name)
+                            checked: shell.preferences ? shell.preferences.calm : false
+                            onTriggered: shell.preferences.setCalm(!shell.preferences.calm)
+                        }
+                        C.MenuSeparator {}
+                        Repeater {
+                            model: shell.preferences ? shell.preferences.shells : []
+                            C.MenuItem {
+                                required property var modelData
+                                text: modelData.label
+                                checkable: true
+                                checked: shell.preferences.shell === modelData.name
+                                onTriggered: shell.preferences.setShell(modelData.name)
+                            }
+                        }
+                        C.MenuSeparator {}
+                        C.MenuItem {
+                            text: t`View this shell's source`
+                            iconName: "code"
+                            onTriggered: shell.site.showSource("desktop")
                         }
                     }
-                    C.MenuSeparator {}
-                    C.MenuItem {
-                        text: t`View this shell's source`
-                        iconName: "code"
-                        onTriggered: shell.site.showSource("desktop")
+                }
+                C.Button {
+                    subtle: true
+                    text: t`Go`
+                    onClicked: goMenu.open()
+
+                    C.Menu {
+                        id: goMenu
+                        y: parent.height
+
+                        C.MenuItem {
+                            text: t`Back`
+                            iconName: "arrow-left"
+                            onTriggered: shell.site.back()
+                        }
+                        C.MenuItem {
+                            text: t`Forward`
+                            iconName: "arrow-right"
+                            onTriggered: shell.site.forward()
+                        }
+                        C.MenuSeparator {}
+                        C.MenuItem {
+                            text: t`Home`
+                            iconName: "house"
+                            onTriggered: shell.router.go("/")
+                        }
+                        C.MenuItem {
+                            text: t`Docs`
+                            iconName: "file-text"
+                            onTriggered: shell.router.go("/start/")
+                        }
+                        C.MenuItem {
+                            text: t`Demos`
+                            iconName: "play"
+                            onTriggered: shell.router.go("/demos/")
+                        }
+                    }
+                }
+                C.Button {
+                    subtle: true
+                    text: t`Help`
+                    onClicked: helpMenu.open()
+
+                    C.Menu {
+                        id: helpMenu
+                        y: parent.height
+
+                        C.MenuItem {
+                            text: t`Your first app`
+                            onTriggered: shell.router.go("/start/first-app/")
+                        }
+                        C.MenuItem {
+                            text: t`Your own shell`
+                            onTriggered: shell.router.go("/start/your-own-shell/")
+                        }
+                        C.MenuSeparator {}
+                        C.MenuItem {
+                            text: t`Ljós on GitHub`
+                            iconName: "external-link"
+                            onTriggered: shell.router.go(shell.router.github)
+                        }
                     }
                 }
             }
-            C.Button {
-                subtle: true
-                text: t`Go`
-                onClicked: goMenu.open()
-
-                C.Menu {
-                    id: goMenu
-                    y: parent.height
-
-                    C.MenuItem {
-                        text: t`Back`
-                        iconName: "arrow-left"
-                        onTriggered: shell.site.back()
-                    }
-                    C.MenuItem {
-                        text: t`Forward`
-                        iconName: "arrow-right"
-                        onTriggered: shell.site.forward()
-                    }
-                    C.MenuSeparator {}
-                    C.MenuItem {
-                        text: t`Home`
-                        iconName: "house"
-                        onTriggered: shell.router.go("/")
-                    }
-                    C.MenuItem {
-                        text: t`Docs`
-                        iconName: "file-text"
-                        onTriggered: shell.router.go("/start/")
-                    }
-                    C.MenuItem {
-                        text: t`Demos`
-                        iconName: "play"
-                        onTriggered: shell.router.go("/demos/")
-                    }
-                }
-            }
-            C.Button {
-                subtle: true
-                text: t`Help`
-                onClicked: helpMenu.open()
-
-                C.Menu {
-                    id: helpMenu
-                    y: parent.height
-
-                    C.MenuItem {
-                        text: t`Your first app`
-                        onTriggered: shell.router.go("/start/first-app/")
-                    }
-                    C.MenuItem {
-                        text: t`Your own shell`
-                        onTriggered: shell.router.go("/start/your-own-shell/")
-                    }
-                    C.MenuSeparator {}
-                    C.MenuItem {
-                        text: t`Ljós on GitHub`
-                        iconName: "external-link"
-                        onTriggered: shell.router.go(shell.router.github)
-                    }
-                }
-            }
-        }
-        Rectangle {
-            y: parent.height - 1
-            width: parent.width
-            height: 1
-            color: look.divider
-        }
-    }
-
-    // The toolbar.
-    Rectangle {
-        id: toolBar
-        z: 3
-        y: menuBar.height
-        width: parent.width
-        height: 48
-        color: look.canvas
-        Accessible.role: Accessible.ToolBar
-        Accessible.name: t`Toolbar`
-
-        Row {
-            x: 8
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: 4
-
-            C.Button {
-                subtle: true
-                iconName: "arrow-left"
-                display: C.Button.IconOnly
-                text: t`Back`
-                onClicked: shell.site.back()
-            }
-            C.Button {
-                subtle: true
-                iconName: "arrow-right"
-                display: C.Button.IconOnly
-                text: t`Forward`
-                onClicked: shell.site.forward()
-            }
-            C.Button {
-                subtle: true
-                iconName: "house"
-                display: C.Button.IconOnly
-                text: t`Home`
-                onClicked: shell.router.go("/")
-            }
-            Item {
-                width: 12
+            Rectangle {
+                y: parent.height - 1
+                width: parent.width
                 height: 1
-            }
-            Item {
-                anchors.verticalCenter: parent.verticalCenter
-                width: Math.max(200, Math.min(480, toolBar.width - 520))
-                height: 36
-                Slot { name: "site.search" }
+                color: look.divider
             }
         }
-        Row {
-            x: parent.width - width - 12
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: 8
+
+        // The toolbar.
+        Rectangle {
+            id: toolBar
+            z: 3
+            y: menuBar.height
+            width: parent.width
+            height: 48
+            color: look.canvas
+            Accessible.role: Accessible.ToolBar
+            Accessible.name: t`Toolbar`
 
             Row {
+                x: 8
                 anchors.verticalCenter: parent.verticalCenter
-                Slot { name: "site.github" }
+                spacing: 4
+
+                C.Button {
+                    subtle: true
+                    iconName: "arrow-left"
+                    display: C.Button.IconOnly
+                    text: t`Back`
+                    onClicked: shell.site.back()
+                }
+                C.Button {
+                    subtle: true
+                    iconName: "arrow-right"
+                    display: C.Button.IconOnly
+                    text: t`Forward`
+                    onClicked: shell.site.forward()
+                }
+                C.Button {
+                    subtle: true
+                    iconName: "house"
+                    display: C.Button.IconOnly
+                    text: t`Home`
+                    onClicked: shell.router.go("/")
+                }
+                Item {
+                    width: 12
+                    height: 1
+                }
+                Item {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: Math.max(200, Math.min(480, toolBar.width - 520))
+                    height: 36
+                    Slot { name: "site.search" }
+                }
             }
             Row {
+                x: parent.width - width - 12
                 anchors.verticalCenter: parent.verticalCenter
-                Slot { name: "site.switcher" }
+                spacing: 8
+
+                Row {
+                    anchors.verticalCenter: parent.verticalCenter
+                    Slot { name: "site.github" }
+                }
+                Row {
+                    anchors.verticalCenter: parent.verticalCenter
+                    Slot { name: "site.switcher" }
+                }
+                Row {
+                    anchors.verticalCenter: parent.verticalCenter
+                    Slot { name: "site.preferences" }
+                }
             }
-            Row {
-                anchors.verticalCenter: parent.verticalCenter
-                Slot { name: "site.preferences" }
+            Rectangle {
+                y: parent.height - 1
+                width: parent.width
+                height: 1
+                color: look.divider
             }
-        }
-        Rectangle {
-            y: parent.height - 1
-            width: parent.width
-            height: 1
-            color: look.divider
         }
     }
 
