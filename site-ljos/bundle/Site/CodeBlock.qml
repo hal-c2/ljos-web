@@ -857,7 +857,8 @@ Column {
                             anchors.verticalCenter: parent.verticalCenter
                             horizontalAlignment: Text.AlignHCenter
                             wrapMode: Text.Wrap
-                            text: t`Nothing drawn yet. Run it to see what it does.`
+                            // It asks for a Run only where there is one to press.
+                            text: runner.phase === "picture" ? t`Nothing drawn yet. Run it to see what it does.` : t`Nothing drawn yet.`
                             color: Theme.textMuted
                             font.family: Theme.sans
                             font.pixelSize: Theme.captionSize
