@@ -148,9 +148,11 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
         let body = org;
         while (!body.contains(rows[0])) body = body.parentElement;
         const card = body.parentElement.getBoundingClientRect();
+        const widest = Math.max(...rows.map((row) => row.getBoundingClientRect().width));
         const under = named("Your agent can use the app, too.").getBoundingClientRect().top - org.getBoundingClientRect().top;
         return {
           blank: card.bottom - Math.max(...rows.map((row) => row.getBoundingClientRect().bottom)),
+          beside: card.width - widest,
           cut: body.textContent.includes("…"),
           under,
         };
@@ -173,6 +175,18 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       await press(shown(page.getByRole("button", { name: "Open only" })));
       await expect(shown(page.getByText("West ridge battery test", { exact: true })), "the fullest board").toBeVisible();
       expect(await look("the fullest board"), "the page at the fullest board").toBeCloseTo(start, 0);
+      await expect(page.getByText("Needs a crew", { exact: true }).filter({ visible: true }), "no empty lane").toHaveCount(0);
+      expect(Math.abs((await measure()).beside - 24), "the crewed lane has the app's whole width").toBeLessThanOrEqual(3);
+      // The rest of what every ticket assigned can be: which is tallest isn't assumed.
+      await press(shown(page.getByRole("button", { name: "List layout" })));
+      await expect(page.getByText("Crew assigned", { exact: true }).filter({ visible: true })).toHaveCount(0);
+      expect(await look("the fullest list"), "the page at the fullest list").toBeCloseTo(start, 0);
+      await press(shown(page.getByRole("button", { name: "Open only" })));
+      await expect(page.getByText("West ridge battery test", { exact: true }).filter({ visible: true })).toHaveCount(0);
+      expect(await look("the filtered list"), "the page at the filtered list").toBeCloseTo(start, 0);
+      await press(shown(page.getByRole("button", { name: "Board layout" })));
+      await expect(shown(page.getByText("Crew assigned", { exact: true }))).toBeVisible();
+      expect(await look("the filtered board, all assigned"), "the page at the filtered board, all assigned").toBeCloseTo(start, 0);
     });
 
     test("says Done only once the last call has answered", async ({ page }) => {

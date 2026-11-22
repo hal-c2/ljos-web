@@ -25,6 +25,20 @@ QtObject {
     // The ticket the agent finds without a crew, and gives one.
     readonly property string uncrewed: "BG-415"
     readonly property string crew: t`On-call crew`
+    // Every state the app's own buttons and the toolbar reach on all its
+    // tickets: each set of them given a crew, in each layout, filtered or
+    // not. An earlier step's fewer tickets, under a shorter heading and
+    // without the filter's button, are no taller than the same state here.
+    readonly property var reachable: {
+        const given = tickets.filter((ticket) => ticket.state === "Open" && ticket.crew === "").reduce((sets, ticket) => sets.concat(sets.map((set) => {
+            const next = Object.assign({}, set);
+            next[ticket.key] = crew;
+            return next;
+        })), [{}]);
+        const states = [];
+        given.forEach((crews) => ["list", "board"].forEach((layout) => [false, true].forEach((openOnly) => states.push({ crews: crews, layout: layout, openOnly: openOnly }))));
+        return states;
+    }
 
     // `$found` is the ref the last app_find answered with.
     readonly property var steps: [

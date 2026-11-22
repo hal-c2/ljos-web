@@ -45,6 +45,9 @@ Rectangle {
     readonly property bool tight: width < 360
     readonly property bool boarded: layout !== "list"
     readonly property var lanes: Board.lanes(layout, shown.map((ticket) => Object.assign({}, ticket, { crew: crewOf(ticket) })))
+    // The board with no ticket left to assign: its crewed lane has all the
+    // width, as half a board of nothing reads as something missing.
+    readonly property bool staffed: lanes.length === 2 && lanes[0].tickets.length === 0 && lanes[1].tickets.length > 0
 
     // Where rows already stood: a row rises in the first time its ticket
     // stands in a layout with that crew, so a change of either is seen to
@@ -187,7 +190,11 @@ Rectangle {
                 Column {
                     id: lane
                     required property var modelData
-                    width: Math.floor((board.width - (card.lanes.length - 1) * board.spacing) / card.lanes.length)
+                    required property int index
+                    // Hidden, not unmade: the page as written and as hydrated
+                    // make the same parts.
+                    visible: !card.staffed || index === 1
+                    width: card.staffed ? board.width : Math.floor((board.width - (card.lanes.length - 1) * board.spacing) / card.lanes.length)
                     spacing: Theme.xs
 
                     Text {
