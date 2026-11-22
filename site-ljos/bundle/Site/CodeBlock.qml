@@ -351,6 +351,9 @@ Column {
         border.color: Theme.divider
         border.width: 1
         clip: true
+        // Its name in the page whatever the language: tests find the card
+        // by it, as its accessible name is translated.
+        objectName: "codeCard"
         Accessible.role: Accessible.Grouping
         Accessible.name: t`Code: ${block.title}`
 

@@ -182,9 +182,10 @@ export async function centreOf(locator) {
 // The window stands on the stage's ground; before that ground, a
 // one-pixel rule and before the rule the toolbar (Run, Edit, Reset,
 // Source); after it, the line where the block says what went wrong,
-// then the values strip. The block is the card the reader sees, named
-// "Code: …": its file tabs sit in the card's head, outside the column
-// the ground stands in, so the ground's parent would miss them.
+// then the values strip. The block is the card the reader sees
+// (objectName "codeCard", the same in every language): its file tabs
+// sit in the card's head, outside the column the ground stands in, so
+// the ground's parent would miss them.
 export function liveBlock(page, index) {
   const picture = page.locator(PICTURE).nth(index);
   const stage = picture.locator("xpath=../../..");
@@ -196,7 +197,7 @@ export function liveBlock(page, index) {
     toolbar: ground.locator("xpath=preceding-sibling::*[2]"),
     told: ground.locator("xpath=following-sibling::*[1]"),
     values: ground.locator("xpath=following-sibling::*[2]"),
-    block: stage.locator('xpath=ancestor::*[@role="group"][starts-with(@aria-label, "Code")][1]'),
+    block: stage.locator('xpath=ancestor::*[@data-object-name="codeCard"][1]'),
   };
 }
 
