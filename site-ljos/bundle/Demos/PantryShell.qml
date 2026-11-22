@@ -1,20 +1,15 @@
 import QtQuick
 import Pantry
 
-// The Pantry app's own shell: the arrangement, words and colours
-// around its blocks. This is the file the editor beside the demo
-// starts from — rewrite it and apply: the basket, the note and
-// the status contribution are the app's blocks, so they stay
-// exactly as they were while everything around them changes.
+// The shop's layout, yours to edit. Its basket, note and status
+// keep what they hold while you change everything around them.
 Rectangle {
     objectName: "appShell"
     width: 480
     height: 400
     color: look.canvas
 
-    // The colours this app draws with, for the scheme the reader chose:
-    // each the dark it was drawn in or a light that keeps the text on it
-    // as readable.
+    // Colours for light and dark.
     QtObject {
         id: look
         readonly property bool dark: Application.styleHints.colorScheme === Qt.ColorScheme.Dark
@@ -34,11 +29,10 @@ Rectangle {
         Text {
             objectName: "pantryTitle"
             color: look.ink1
-            font.pixelSize: 24
+            font.pixelSize: 26
             text: "The Corner Pantry"
         }
-        // The status line lives here, in the header. Move the
-        // StatusSlot somewhere else and it moves.
+        // The basket's summary. Try moving it below Basket.
         StatusSlot {
             objectName: "statusSlot"
         }
@@ -56,7 +50,7 @@ Rectangle {
                     x: 10
                     y: 8
                     color: look.ink2
-                    font.pixelSize: 15
+                    font.pixelSize: 18
                     text: "Tea · £" + basket.teaPrice.toFixed(2)
                 }
                 Text {
@@ -64,7 +58,7 @@ Rectangle {
                     x: 10
                     y: 32
                     color: look.muted1
-                    font.pixelSize: 13
+                    font.pixelSize: 16
                     text: basket.teaCount + " in basket"
                 }
                 MouseArea {
@@ -85,7 +79,7 @@ Rectangle {
                     x: 10
                     y: 8
                     color: look.ink2
-                    font.pixelSize: 15
+                    font.pixelSize: 18
                     text: "Bread · £" + basket.breadPrice.toFixed(2)
                 }
                 Text {
@@ -93,7 +87,7 @@ Rectangle {
                     x: 10
                     y: 32
                     color: look.muted1
-                    font.pixelSize: 13
+                    font.pixelSize: 16
                     text: basket.breadCount + " in basket"
                 }
                 MouseArea {
@@ -114,7 +108,7 @@ Rectangle {
                     x: 10
                     y: 8
                     color: look.ink2
-                    font.pixelSize: 15
+                    font.pixelSize: 18
                     text: "Jam · £" + basket.jamPrice.toFixed(2)
                 }
                 Text {
@@ -122,7 +116,7 @@ Rectangle {
                     x: 10
                     y: 32
                     color: look.muted1
-                    font.pixelSize: 13
+                    font.pixelSize: 16
                     text: basket.jamCount + " in basket"
                 }
                 MouseArea {
@@ -146,8 +140,8 @@ Rectangle {
         }
         Text {
             color: look.muted2
-            font.pixelSize: 13
-            text: "Tap a good to add it. Then rewrite this shell — nothing you bought moves."
+            font.pixelSize: 16
+            text: "Add an item, then edit the code. Your basket stays."
         }
     }
 }

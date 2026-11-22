@@ -207,7 +207,7 @@ Column {
                             color: Theme.textMuted
                             font.family: Theme.mono
                             font.pixelSize: Theme.captionSize - 1
-                            text: "Shell.qml — the app's shell, yours to rewrite"
+                            text: "Shell.qml: edit it live"
                         }
                         StageButton {
                             id: resetButton
@@ -290,7 +290,7 @@ Column {
     Text {
         width: parent.width
         topPadding: Theme.m
-        text: "Try: move the StatusSlot under the Basket, turn the background #241a10, or rename the shop. The basket and your note keep what they hold."
+        text: "Try moving StatusSlot below Basket, setting color: \"#241a10\", or renaming the shop. Your basket and note stay as they are."
         color: Theme.textMuted
         font.family: Theme.sans
         font.pixelSize: Theme.uiSize

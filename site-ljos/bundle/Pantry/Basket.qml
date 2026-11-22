@@ -67,7 +67,7 @@ Rectangle {
             Text {
                 objectName: "statusText"
                 color: look.basketStatus
-                font.pixelSize: 14
+                font.pixelSize: 16
                 text: basket.summary
             }
         }
@@ -86,7 +86,7 @@ Rectangle {
         x: 14
         y: 36
         color: look.basketMuted
-        font.pixelSize: 14
+        font.pixelSize: 16
         text: basket.summary
     }
 }
