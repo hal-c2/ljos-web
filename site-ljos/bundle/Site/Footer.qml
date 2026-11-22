@@ -34,7 +34,7 @@ Rectangle {
 
         Row {
             width: parent.width
-            spacing: Theme.xs
+            spacing: 8
             // In the page as written, as the header's is (Nav.picture).
             // Its size is given: a picture has none until it loads, and
             // the row leaves out what has none.
@@ -49,14 +49,12 @@ Rectangle {
             }
             // What is left of the row beside the mark, wrapped where a
             // phone has less than its one line.
-            Text {
+            Wordmark {
                 width: parent.width - mark.width - parent.spacing
                 anchors.verticalCenter: parent.verticalCenter
                 wrapMode: Text.Wrap
-                text: t`Typed apps you can see inside and drive while they run.`
-                color: Theme.text
-                font.family: Theme.sans
-                font.pixelSize: Theme.bodySize
+                text: "Ljós — malleable software, everywhere"
+                font.pixelSize: 16
                 font.weight: Font.DemiBold
             }
         }
