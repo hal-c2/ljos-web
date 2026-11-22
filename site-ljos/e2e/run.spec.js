@@ -42,6 +42,24 @@ async function start(page, heading) {
   await expect(button, `${heading} starts`).toBeHidden();
   return slot;
 }
+const NOTHING = "Nothing drawn yet.";
+const NOTHING_RUN_IT = `${NOTHING} Run it to see what it does.`;
+const saysNothing = (block) => block.block.getByText(/^Nothing drawn yet\./).filter({ visible: true });
+// Serves the page as if the example drew nothing in `schemes`.
+function drawsNothing(page, { route, example }, schemes) {
+  return page.route(`**${url(route)}`, async (request) => {
+    const response = await request.fetch();
+    const body = (await response.text()).replace(/(<script type="application\/json" id="ljos-props">)([\s\S]*?)(<\/script>)/, (_, start, json, end) => {
+      const props = JSON.parse(json);
+      const { live } = props.page.blocks.filter((block) => block.kind === "live")[example.index];
+      delete live.blank;
+      delete live.blankDark;
+      for (const scheme of schemes) live[scheme === "dark" ? "blankDark" : "blank"] = true;
+      return `${start}${JSON.stringify(props).replaceAll("<", "\\u003c")}${end}`;
+    });
+    await request.fulfill({ response, body });
+  });
+}
 // From now on, every name `control` is given and every sentence said in
 // the page's live region, in order: a phase that passes within one
 // frame is still in the list.
@@ -168,6 +186,21 @@ test.describe("examples", () => {
     expect(said, "what a screen reader is told").toEqual(["Starting this example…", "This example did not compile"]);
     // The compile's own complaint is the one error expected.
     expect(unexpected(errors).filter((text) => !/ShellLoader|Main\.qml/.test(text))).toEqual([]);
+  });
+
+  // A broken first edit is a run whose fallback stands, so the line does too.
+  test("an example that draws nothing asks for a Run only until it is run", async ({ page }) => {
+    await drawsNothing(page, plain, ["light", "dark"]);
+    await open(page, plain.route);
+    const block = liveBlock(page, plain.example.index);
+    await centre(block.picture);
+    const said = saysNothing(block);
+    await expect(said, "waiting, it asks for a Run").toHaveText([NOTHING_RUN_IT], { timeout: 30_000 });
+    await intoCode(block);
+    await page.keyboard.press("Control+Home");
+    await page.keyboard.type("Broken {");
+    await expect(runButton(block.toolbar, "Stop this example")).toBeVisible({ timeout: 30_000 });
+    await expect(said, "run, it asks for no other").toHaveText([NOTHING]);
   });
 
   test("a finger that scrolls the page over a picture runs nothing; a tap on it runs it", async ({ page, errors }) => {
@@ -729,26 +762,17 @@ test("an example that is the same picture in both schemes shows that one in the 
 // The build's verdicts are tests/pictures.spec.js's. Here the page is
 // handed one, as no example of the docs draws in one scheme alone.
 for (const scheme of ["light", "dark"]) {
-  test(`only the ${scheme} page says nothing is drawn, where only that scheme draws nothing`, async ({ page }) => {
+  test(`only the ${scheme} page says nothing is drawn, where only that scheme draws nothing`, async ({ page, wasm }) => {
     const { route, example } = plain;
-    await page.route(`**${url(route)}`, async (request) => {
-      const response = await request.fetch();
-      const body = (await response.text()).replace(/(<script type="application\/json" id="ljos-props">)([\s\S]*?)(<\/script>)/, (_, start, json, end) => {
-        const props = JSON.parse(json);
-        const { live } = props.page.blocks.filter((block) => block.kind === "live")[example.index];
-        delete live.blank;
-        delete live.blankDark;
-        live[scheme === "dark" ? "blankDark" : "blank"] = true;
-        return `${start}${JSON.stringify(props).replaceAll("<", "\\u003c")}${end}`;
-      });
-      await request.fulfill({ response, body });
-    });
+    await drawsNothing(page, plain, [scheme]);
     await page.emulateMedia({ colorScheme: "light" });
     await open(page, route);
-    const said = liveBlock(page, example.index).block.getByText("Nothing drawn yet. Run it to see what it does.").filter({ visible: true });
-    await expect(said, "on the light page").toHaveCount(scheme === "light" ? 1 : 0);
+    const said = saysNothing(liveBlock(page, example.index));
+    // It asks for a Run only where there is one to press.
+    const line = wasm ? NOTHING_RUN_IT : NOTHING;
+    await expect(said, "on the light page").toHaveText(scheme === "light" ? [line] : [], { timeout: 30_000 });
     await press(page.getByRole("button", { name: "Use the dark theme" }));
     await expect(page.getByRole("button", { name: "Use the light theme" })).toBeVisible();
-    await expect(said, "on the dark page").toHaveCount(scheme === "dark" ? 1 : 0);
+    await expect(said, "on the dark page").toHaveText(scheme === "dark" ? [line] : [], { timeout: 30_000 });
   });
 }
