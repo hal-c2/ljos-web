@@ -141,6 +141,12 @@ Feature: The site is shown in a shell the reader picks
     When they press "Reset"
     Then the page is framed by the Workbench shell again
 
+  Scenario: The Observer follows a shell that moves the page
+    Given a reader in a shell they wrote, with the Observer docked beside a running example
+    When that shell moves the page's place across and down, at the same size
+    Then the Observer stands from the page's new top, as tall as the page
+    And the page still ends where the Observer starts
+
   Scenario: The header names the source with an icon
     When a reader opens any page at a desktop's width
     Then the header has a link "Ljós on GitHub" to https://github.com/hal-c2/ljos-ui, drawn as an icon
