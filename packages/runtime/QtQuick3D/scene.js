@@ -39,16 +39,27 @@ export function linear(value) {
 // to its wasm, and what the page makes of them (a Model's bounds) is made
 // from the same fetch. The bytes are held only while one who asked has yet
 // to take them: the page once it has made something of them (`file`), the
-// wasm once it has its copy (`taken`), whichever is last. Most of what the
-// wasm reads (a texture, a glTF and its buffers) the page never makes
-// anything of, so it is let go as soon as the wasm has it. One who holds
-// the record still has the bytes after. A failure is not kept: whoever asks
-// after it reads the file again.
+// wasm once it has its copy (`taken`), and each view that read them ahead
+// of the wasm (`readsAhead`), whichever is last. Most of what the wasm
+// reads (a texture, a glTF and its buffers) the page never makes anything
+// of, so it is let go as soon as the wasm has it. One who holds the record
+// still has the bytes after. A failure is not kept: whoever asks after it
+// reads the file again.
 const fetches = new Map();
+// One for a file however it is named: the wasm may name a glTF's buffer by
+// its path where the page names it by its whole address.
+const keyed = (url) => {
+  try {
+    return new URL(url, globalThis.document?.baseURI).href;
+  } catch {
+    return url;
+  }
+};
 export function fetched(url) {
-  let made = fetches.get(url);
+  const key = keyed(url);
+  let made = fetches.get(key);
   if (made) return made;
-  made = { bytes: null, failed: null, wanted: false };
+  made = { bytes: null, failed: null, wanted: false, readers: new Set() };
   made.done = guardedFetch(url)
     .then((answer) => (answer.ok ? answer.arrayBuffer() : Promise.reject(Object.assign(new Error(`${answer.status}`), { told: `${answer.status} ${answer.statusText}`, status: answer.status }))))
     .then(
@@ -58,19 +69,22 @@ export function fetched(url) {
         release(url, made);
       },
     );
-  fetches.set(url, made);
+  fetches.set(key, made);
   return made;
 }
 
-// The wasm has its copy of `made`: let it go, unless the page is still to
-// make something of it.
-export function taken(url, made) {
-  if (!made.wanted) release(url, made);
+// The wasm has its copy of `made`, for the view that read `ahead` of it if
+// one did: let it go, unless the page is still to make something of it or
+// another view holds it.
+export function taken(url, made, ahead) {
+  ahead?.took(made);
+  if (!made.wanted && !made.readers.size) release(url, made);
 }
 
 // Only this fetch: a later one of the same file is another's to let go.
 function release(url, made) {
-  if (fetches.get(url) === made) fetches.delete(url);
+  const key = keyed(url);
+  if (fetches.get(key) === made) fetches.delete(key);
 }
 
 // How many files' bytes are held for one who has yet to take them: what a
@@ -84,20 +98,35 @@ export const held = () => fetches.size;
 // levels) is read again by `reread()`, for a card made anew: the JavaScript
 // renderer's context lost and given back. The file is fetched again, and
 // `state()` is what it made of it then.
+//
+// Read for a `reader` ahead of the wasm, a file's bytes are held while that
+// reader holds them, and what was made of them is forgotten with its last
+// reader (`readsAhead`), unless the page has asked for the file for itself.
 const files = new Map();
-export function file(url, kind, took) {
+export function file(url, kind, took, reader = null) {
   const key = `${kind} ${url}`;
   let record = files.get(key);
-  if (record) return record;
+  if (record) {
+    if (!reader) record.ahead = false;
+    else {
+      record.readers.add(reader);
+      record.bytes.readers.add(reader);
+    }
+    return record;
+  }
+  record = { ahead: !!reader, readers: new Set(reader ? [reader] : []) };
   const asked = () => {
     const bytes = fetched(url);
-    bytes.wanted = true;
-    return bytes;
+    if (!record.ahead) bytes.wanted = true;
+    for (const each of record.readers) bytes.readers.add(each);
+    return (record.bytes = bytes);
   };
   const make = (bytes) => {
     try {
       if (bytes.failed) return { error: `could not be read: ${bytes.failed.message}`, fetching: again(bytes.failed) };
       const made = took(bytes.bytes);
+      // No view turns for it, so no wasm takes it.
+      if (made?.error) release(url, bytes);
       if (typeof made?.spent === "function") {
         let read = false;
         made.reread = () => {
@@ -108,15 +137,18 @@ export function file(url, kind, took) {
       }
       return made;
     } catch (error) {
+      release(url, bytes);
       return { error: `could not be read: ${error.message}` };
     } finally {
-      release(url, bytes);
+      bytes.wanted = false;
+      if (!bytes.readers.size) release(url, bytes);
     }
   };
   const bytes = asked();
   const [state, setState] = signal(bytes.bytes || bytes.failed ? make(bytes) : null);
   const arrives = (bytes) => awaited(bytes.done.then(() => setState(make(bytes))).then(() => flush()));
-  files.set(key, (record = { state }));
+  record.state = state;
+  files.set(key, record);
   if (!bytes.bytes && !bytes.failed) arrives(bytes);
   return record;
 }
@@ -141,15 +173,126 @@ const asked = new Map();
 export function retried(url, kind, took) {
   const key = `${kind} ${url}`;
   const state = file(url, kind, took).state();
+  forgottenToAskAgain(key, state);
+  return state;
+}
+
+// Whether the file `key` names was forgotten, for who asks next to fetch.
+function forgottenToAskAgain(key, state) {
   if (!state?.fetching) {
     if (state) asked.delete(key);
-    return state;
+    return false;
   }
   const times = (asked.get(key) ?? 1) + 1;
-  if (times > ASKS) return state;
+  if (times > ASKS) return false;
   asked.set(key, times);
   files.delete(key);
-  return state;
+  return true;
+}
+
+// What one view reads ahead of the wasm, to tell whether to turn to it, and
+// the one place that lets it go. Each read is `from` the loader's file it
+// was read for. Before the turn, what a sight doesn't read again is let go.
+// Once the view turns (`hand`) the bytes are the wasm's to take, and what is
+// left of them is let go when its loader is done, names another file or is
+// not shown, and when the view stops being wgpu's.
+//
+// DECISION: a fetch worth asking again is asked again at once, as many
+// times in all as picks may (`ASKS`). Nothing else would ask: a view that
+// doesn't turn has no wasm to, and waits for no pick. Then it has settled,
+// and it is told to the wasm as failed without another fetch, so a server
+// is asked no more for a view that turns than for one that picks.
+export function readsAhead() {
+  const reader = {};
+  let reads = new Map();
+  let seen = null;
+  const letBytesGo = (url, bytes) => {
+    bytes.readers.delete(reader);
+    // Bytes still on the way are released as they are made something of.
+    if (!bytes.readers.size && !bytes.wanted && bytes.bytes) release(url, bytes);
+  };
+  const letRecordGo = (key, record) => {
+    record.readers.delete(reader);
+    if (record.ahead && !record.readers.size && files.get(key) === record) files.delete(key);
+  };
+  const drop = ({ url, key, record }) => {
+    letRecordGo(key, record);
+    letBytesGo(url, record.bytes);
+  };
+  // Lets go of the reads `goes` picks, but of no file another read still has.
+  const dropped = (goes) => {
+    const gone = [];
+    for (const [id, each] of reads)
+      if (goes(each)) {
+        reads.delete(id);
+        gone.push(each);
+      }
+    if (!gone.length) return;
+    const kept = new Set([...reads.values()].map(({ record }) => record));
+    for (const each of gone) if (!kept.has(each.record)) drop(each);
+  };
+  return {
+    // A sight begins: it reads (`read`) what it waits for, then `sighted`.
+    sighting() {
+      seen = new Map();
+    },
+    read(url, kind, took, from) {
+      const key = `${kind} ${url}`;
+      let record = file(url, kind, took, reader);
+      let state = record.state();
+      if (forgottenToAskAgain(key, state)) {
+        record = file(url, kind, took, reader);
+        state = record.state();
+      }
+      seen.set(`${from} ${key}`, { url, key, record, from });
+      return state;
+    },
+    sighted() {
+      const before = reads;
+      reads = seen;
+      seen = null;
+      const kept = new Set([...reads.values()].map(({ record }) => record));
+      for (const each of before.values()) if (!kept.has(each.record)) drop(each);
+    },
+    // All have settled and none can be shown: no wasm is to take them. What
+    // was made of them stays while it is read, so none is fetched again.
+    spend() {
+      for (const { url, record } of reads.values()) letBytesGo(url, record.bytes);
+    },
+    // The view turned: the bytes are the wasm's. What was made of them is
+    // not kept, unless it is a failure, which is a pick's answer too.
+    hand() {
+      for (const { key, record } of reads.values()) {
+        if (untrack(record.state)?.error) record.ahead = false;
+        letRecordGo(key, record);
+      }
+    },
+    // The failure the wasm is told of `url` in place of fetching it again,
+    // once; a loader that names the file again reads it again.
+    refused(url) {
+      const named = keyed(url);
+      let failed = null;
+      for (const [id, each] of reads)
+        if (each.record.bytes.failed && keyed(each.url) === named) {
+          failed = each.record.bytes.failed;
+          reads.delete(id);
+        }
+      return failed;
+    },
+    took(bytes) {
+      for (const [id, each] of reads) if (each.record.bytes === bytes) reads.delete(id);
+      bytes.readers.delete(reader);
+    },
+    done(from) {
+      dropped((each) => each.from === from);
+    },
+    keep(named) {
+      dropped((each) => !named.includes(each.from));
+    },
+    end() {
+      dropped(() => true);
+    },
+  };
 }
 
 const PRIMITIVE = /#(Cube|Sphere|Cylinder|Cone|Rectangle)$/;
