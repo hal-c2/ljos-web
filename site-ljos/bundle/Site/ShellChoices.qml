@@ -120,7 +120,7 @@ Item {
                 leftPadding: Theme.xs
                 rightPadding: Theme.xs
                 topPadding: Theme.xxs
-                text: t`Workbench and Desktop need a wider window. This one shows Marketing.`
+                text: t`Workbench and Desktop need a wider window. This one shows Elegant.`
                 color: Theme.textMuted
                 font.family: Theme.sans
                 font.pixelSize: Theme.captionSize

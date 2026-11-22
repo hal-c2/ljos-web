@@ -12,7 +12,7 @@ const HYDRATED = '#app[data-ljos-hydrated="true"]';
 const KEY = "ljos.dev:shell";
 const DESKTOP = { width: 1440, height: 900 };
 const PHONE = { width: 390, height: 844 };
-const LABEL = { marketing: "Marketing", workbench: "Workbench", desktop: "Desktop" };
+const LABEL = { marketing: "Elegant", workbench: "Workbench", desktop: "Desktop" };
 const SHELLS = Object.keys(LABEL);
 // What each kind of page's main landmark is named (Site/PageView.qml).
 const PAGES = [
@@ -539,7 +539,7 @@ test("a phone has one menu control, and the switcher says why it shows marketing
     const menu = region(page, "Menu");
     await expect(menu).toBeVisible();
     await press(menu.getByRole("button", { name: SWITCHER }));
-    await expect(page.getByText("Workbench and Desktop need a wider window. This one shows Marketing.", { exact: true })).toBeVisible();
+    await expect(page.getByText("Workbench and Desktop need a wider window. This one shows Elegant.", { exact: true })).toBeVisible();
   } finally {
     await context.close();
   }
