@@ -466,9 +466,12 @@ const pages = [
 // The site's head, with the colours of bundle/tokens.js (the table
 // Site/Theme.qml reads) written in as CSS custom properties: one table,
 // so the HTML around the app and the app never disagree.
-function siteHead() {
+function colourTokens() {
   const source = readFileSync(join(bundle, "tokens.js"), "utf8").replace(/^\.pragma library$/m, "");
-  const { light, dark } = new Function(`${source}\nreturn { light, dark };`)();
+  return new Function(`${source}\nreturn { light, dark };`)();
+}
+function siteHead() {
+  const { light, dark } = colourTokens();
   const css = (name) => `--ljos-${name.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`;
   const declarations = (tone) =>
     [
@@ -682,6 +685,11 @@ writeFileSync(
 );
 mkdirSync(join(out, "pictures"), { recursive: true });
 for (const name of readdirSync(join(bundle, "assets")).filter((name) => /^demo-.*\.webp$/.test(name))) cpSync(join(bundle, "assets", name), join(out, "pictures", name));
+// The header's icon, in each scheme's text colour (Site/GitHubMark.qml).
+const githubMark = readFileSync(join(bundle, "assets/github-mark.svg"), "utf8");
+for (const [scheme, { text }] of Object.entries(colourTokens())) {
+  writeFileSync(join(out, "pictures", scheme === "dark" ? "github-mark-dark.svg" : "github-mark.svg"), githubMark.replace("%TEXT%", () => text));
+}
 // A live block's picture is named from its payload, not written in
 // any QML the compiler sees, so no build step carries it: the
 // pictures the bundle was built with stand beside the pages.

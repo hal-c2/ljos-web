@@ -411,6 +411,7 @@ Rectangle {
         slot: "site.github"
         delegate: Component {
             GitHubMark {
+                route: siteRouter.route
                 to: siteRouter.github
             }
         }

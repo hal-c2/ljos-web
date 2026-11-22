@@ -67,6 +67,12 @@ test("no page's first load holds a shell it is not written in, nor what picks on
   for (const panel of ["ShellChoices-", "ShellSource-"]) expect([...later].some((file) => named(file, panel)), `a ${panel}* chunk opening it fetches`).toBe(true);
 });
 
+// The header's one icon is a picture (Site/GitHubMark.qml): QtQuick.Shapes
+// is for a demo that draws with it, and comes with that demo.
+test("no page's first load holds QtQuick.Shapes", () => {
+  expect(reaching(["Shape-", "Shapes-", "Path-"])).toEqual({});
+});
+
 // A docs page's reading is its own: in its HTML's props, not in a
 // script every page loads. Another page's headings are in none of
 // a page's first-load files.
