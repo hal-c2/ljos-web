@@ -198,9 +198,12 @@ const payload = (example, prerendered) =>
 // carries it inline, and the stage is sized by it so the page does
 // not move when the running result takes the prerender's place (the
 // elements themselves are absolutely placed, as the runtime lays out).
+// A root window fills whatever it is in: the size it asked is its
+// content item's, the first element a window makes after its own.
 export const prerenderSize = (html) => {
-  const tag = /<[^>]*data-hk="1:[^"]*"[^>]*>/.exec(html)?.[0];
-  const style = /style="([^"]*)"/.exec(tag ?? "")?.[1] ?? "";
+  const root = /<[^>]*data-hk="1:[^"]*"[^>]*>/.exec(html)?.[0] ?? "";
+  const sized = /class="qq-window[ "]/.test(root) ? /<[^>]*data-hk="2:Item"[^>]*>/.exec(html)?.[0] : root;
+  const style = /style="([^"]*)"/.exec(sized ?? "")?.[1] ?? "";
   const width = /width:\s*([\d.]+)px/.exec(style)?.[1];
   const height = /height:\s*([\d.]+)px/.exec(style)?.[1];
   return width && height ? { width: Math.round(Number(width)), height: Math.round(Number(height)) } : {};
