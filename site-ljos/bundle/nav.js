@@ -292,6 +292,16 @@ function canRun(needs) {
     return inBrowser() && lacks(needs) === "";
 }
 
+// Whether WebAssembly runs here, for a demo that needs it: a page's
+// policy may refuse it where the browser names it (`ljos-web/wasm-check`,
+// which keeps the answer). A check that did not arrive refuses nothing.
+var wasm = null;
+function wasmRuns() {
+    if (wasm === null)
+        wasm = import("ljos-web/wasm-check").then(function (check) { return check.wasmWorks(); }, function () { return true; });
+    return wasm;
+}
+
 // Whether WebGPU gives this page an adapter, asked once: for a demo that
 // needs WebGPU itself, as a browser may offer WebGPU and no GPU it lets a
 // page use. A View3D needs neither: there it is drawn on WebGL 2, by wgpu

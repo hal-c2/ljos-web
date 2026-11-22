@@ -72,8 +72,19 @@ Item {
     // page an adapter: 0 until it says, 1 if so (or where none is needed),
     // -1 if not, which keeps the picture as a browser without WebGPU does.
     property int adapter: needs.indexOf("webgpu") >= 0 ? 0 : 1
-    readonly property bool runnable: awake && Nav.canRun(needs) && adapter === 1
-    readonly property bool cannot: awake && (!Nav.canRun(needs) || adapter === -1)
+    // Where the demo needs WebAssembly, whether the page can run it, as
+    // its policy may refuse it: 0 until that is known, then as `adapter`.
+    // A frame is given another demo as the page goes to it, so what was
+    // found is kept apart from whether this one needs it.
+    property int wasmFound: 0
+    readonly property int wasm: needs.indexOf("wasm") >= 0 ? wasmFound : 1
+    function askWasm() {
+        if (awake && wasmFound === 0 && needs.indexOf("wasm") >= 0 && Nav.canRun(needs))
+            Nav.wasmRuns().then((runs) => frame.wasmFound = runs ? 1 : -1);
+    }
+    onNeedsChanged: frame.askWasm()
+    readonly property bool runnable: awake && Nav.canRun(needs) && adapter === 1 && wasm === 1
+    readonly property bool cannot: awake && (!Nav.canRun(needs) || adapter === -1 || wasm === -1)
 
     function offset() {
         var y = 0;
@@ -108,6 +119,7 @@ Item {
             frame.awake = true;
             if (frame.adapter === 0 && Nav.canRun(frame.needs))
                 Nav.gpuAdapted().then((found) => frame.adapter = found ? 1 : -1);
+            frame.askWasm();
         }
     }
 
@@ -157,7 +169,7 @@ Item {
                 // The need this browser lacks; where it lacks none (WebGPU with no
                 // adapter for the page, or the build writing the page), the
                 // demo's main one.
-                text: "A picture of the demo: it runs in a browser with " + (Nav.lacks(frame.needs) || (frame.needs.indexOf("webgl2") >= 0 ? "WebGL 2" : frame.needs.indexOf("webgpu") >= 0 ? "WebGPU" : "WebAssembly")) + ", which this one does not offer."
+                text: "A picture of the demo: it runs in a browser with " + (Nav.lacks(frame.needs) || (frame.wasm === -1 ? "WebAssembly" : frame.needs.indexOf("webgl2") >= 0 ? "WebGL 2" : frame.needs.indexOf("webgpu") >= 0 ? "WebGPU" : "WebAssembly")) + ", which this one does not offer."
                 color: Theme.text
                 font.family: Theme.sans
                 font.pixelSize: Theme.captionSize

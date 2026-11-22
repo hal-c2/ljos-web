@@ -5,8 +5,9 @@
 // bytes rather than trusting the name, and never reads the user agent.
 // What runs Rust compiled to wasm asks this first: the compiler of live
 // code blocks and dropped shells (`compiler/link.js`,
-// `Ljos/Blocks/shell-worker.js`, `codeblocks/live.js`), and the opt-in
-// wasm kernel (`kernel/checked.js`). Rendering never needs it: that is
+// `Ljos/Blocks/shell-worker.js`, `codeblocks/live.js`), the opt-in wasm
+// kernel (`kernel/checked.js`) and the choice of a View3D's renderer
+// (`QtQuick3D/early.js`). The rest of rendering never needs it: that is
 // Solid's, into the DOM.
 //
 // (module (func (export "f") (result i32) i32.const 42))
