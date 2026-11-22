@@ -204,12 +204,11 @@ function copy(from, to, name, inert) {
     if (pixels(read("height") ?? "")) style.height = pixels(read("height"));
     const align = read("align");
     if (align) style.verticalAlign = { top: "top", middle: "middle", bottom: "baseline" }[align] ?? "";
-    // When to fetch it and how to decode it: only the words the web has.
-    if (/^(lazy|eager)$/.test(read("loading") ?? "")) to.setAttribute("loading", read("loading"));
-    if (/^(async|sync|auto)$/.test(read("decoding") ?? "")) to.setAttribute("decoding", read("decoding"));
   } else if (name === "source") {
     // Its pictures are fetched as an img's are: only while markup loads.
     if (!inert && read("srcset")) to.setAttribute("srcset", read("srcset")); // guarded
+    // What a width descriptor is of: without it, the window's whole width.
+    if (read("sizes")) to.setAttribute("sizes", read("sizes"));
     if (read("type")) to.setAttribute("type", read("type"));
     if (read("media")) to.setAttribute("media", read("media"));
   } else if (name === "table") {
@@ -238,7 +237,7 @@ function rebuild(from, to, inert) {
       rebuild(node, to, inert);
       continue;
     }
-    const made = outsideTheCount(() => document.createElement(AS[name] ?? name));
+    const made = outsideTheCount(() => to.ownerDocument.createElement(AS[name] ?? name));
     copy(node, made, name, inert);
     rebuild(node, made, inert);
     to.append(made);
@@ -247,6 +246,12 @@ function rebuild(from, to, inert) {
 
 const parser = new DOMParser();
 const built = new Map();
+// Markup is built and copied in a document that loads nothing, and joins
+// the page whole: an img that met the page before it stood in its picture
+// would fetch the fallback. The build's document has no other to make, and
+// loads nothing itself.
+let apart;
+const aside = () => (document.implementation ? (apart ??= document.implementation.createHTMLDocument("")) : document);
 
 // While a visitor's shell is shown (docs/LJOS_WEB.md A9) markup loads nothing
 // and links nowhere: a block may pass what a shell gives it on to a text of its
@@ -261,12 +266,13 @@ export function elements(markup) {
   const key = `${inert}|${markup}`;
   let fragment = built.get(key);
   if (!fragment) {
-    fragment = document.createDocumentFragment();
+    fragment = aside().createDocumentFragment();
     rebuild(parser.parseFromString(markup, "text/html").body, fragment, inert);
     if (built.size > 256) built.clear();
     built.set(key, fragment);
   }
-  return fragment.cloneNode(true);
+  const copied = fragment.cloneNode(true);
+  return document.implementation ? document.adoptNode(copied) : copied;
 }
 
 // How the element that holds markup is told to set it: `look` is its kind
@@ -305,10 +311,12 @@ export function clothe(element, look) {
 }
 
 // Counted up when a picture inside some markup arrives: what was measured
-// around it is measured again. Once for each picture: measuring makes the
-// elements anew, and theirs load again, from the browser's cache.
+// around it is measured again. Once for each file, and again when a picture
+// changes to another: measuring makes the elements anew, and theirs load
+// again, from the browser's cache, but are never seen to change.
 const [pictures, setPictures] = signal(0);
 const arrived = new Set();
+const chosen = new WeakMap();
 
 // Heard from the copy that is measured and from the one on the page
 // (Text.js), as a lazy copy that is measured may never load. Known by
@@ -318,7 +326,10 @@ export function arrive(event) {
   const image = event.target;
   if (image.localName !== "img") return;
   const source = image.currentSrc || image.src;
-  if (!source || arrived.has(source)) return;
+  if (!source) return;
+  const was = chosen.get(image);
+  chosen.set(image, source);
+  if (arrived.has(source) && (was === undefined || was === source)) return;
   arrived.add(source);
   setPictures((count) => count + 1);
   flush();
