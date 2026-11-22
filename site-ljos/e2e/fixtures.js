@@ -36,8 +36,9 @@ function* pagesIn(dir) {
 }
 
 // Every docs page the build wrote with its live examples, in order:
-// `{ route, examples: [{ index, hash, entry, code, files }] }`, where
-// `code` is the entry file's and `files` every file the block shows. A page's
+// `{ route, examples: [{ index, hash, ownDark, entry, code, files }] }`, where
+// `code` is the entry file's and `files` every file the block shows, and
+// `ownDark` whether the build shipped a dark picture for it. A page's
 // example is its index among the page's live pictures, which is how a
 // reader meets it, and its hash, which is how the audit names it.
 export function livePages() {
@@ -51,6 +52,7 @@ export function livePages() {
       .map((block, index) => ({
         index,
         hash: block.live.hash,
+        ownDark: existsSync(join(dist, "Examples", `${block.live.hash}-dark.png`)),
         entry: block.live.entry,
         code: (block.live.display.find((file) => file.name === block.live.entry) ?? block.live.display[0]).code,
         files: block.live.display.map(({ name, code }) => ({ name, code })),

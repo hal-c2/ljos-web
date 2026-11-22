@@ -179,7 +179,6 @@ const liveAt = new Map(); // a page's code block -> its live payload
   // drew, and a changed recipe draws again. The page names them by
   // their hash.
   const { light: lightTone, dark: darkTone } = tones();
-  const papers = { light: lightTone.paper, dark: darkTone.paper };
   const STAGES = {
     light: `<!doctype html><style>html,body{margin:0;background:${lightTone.paper}}</style>`,
     dark: `<!doctype html><style>html,body{margin:0;background:${darkTone.paper}}</style>`,
@@ -189,10 +188,10 @@ const liveAt = new Map(); // a page's code block -> its live payload
   const kept = (hash, scheme = "light") =>
     `${hash.slice(0, 16)}${scheme === "dark" ? "-dark" : ""}-${createHash("sha256").update(`${prerendered[hash].stamp ?? ""}\n${drawnBy}`).digest("hex").slice(0, 12)}.png`;
   const SCHEMES = ["light", "dark"];
-  // Which pictures show nothing but the paper: an example whose point
-  // is what it logs, or one that waits for the reader before it draws.
-  // Its window says so rather than stand empty. Known as each picture
-  // is drawn, and kept beside them, by picture.
+  // In which schemes an example's picture is the empty stage: one whose
+  // point is what it logs, or one that waits for the reader before it
+  // draws. Its window says so there rather than stand empty. Known as
+  // each picture is drawn, and kept beside them, by picture.
   const blankFile = join(cacheDir, "blank.json");
   let blankWas = {};
   try {
@@ -201,13 +200,14 @@ const liveAt = new Map(); // a page's code block -> its live payload
     blankWas = {};
   }
   const blank = {};
+  const judged = (verdict) => SCHEMES.every((scheme) => typeof verdict?.[scheme] === "boolean");
   const shots = live.filter(({ example }) => {
     const hash = hashExample(example);
-    return SCHEMES.some((scheme) => !existsSync(join(cacheDir, kept(hash, scheme)))) || typeof blankWas[verdictKey(kept(hash))] !== "boolean";
+    return SCHEMES.some((scheme) => !existsSync(join(cacheDir, kept(hash, scheme)))) || !judged(blankWas[verdictKey(kept(hash))]);
   });
   for (const { example } of live) {
     const key = verdictKey(kept(hashExample(example)));
-    if (typeof blankWas[key] === "boolean") blank[key] = blankWas[key];
+    if (judged(blankWas[key])) blank[key] = blankWas[key];
   }
   if (shots.length) {
     // A few pages of one browser, each drawing its share: one page drew
@@ -230,7 +230,7 @@ const liveAt = new Map(); // a page's code block -> its live payload
               const height = prerendered[hash].height > 0 ? prerendered[hash].height : UNSIZED[1];
               const { html, htmlDark } = prerendered[hash];
               const to = Object.fromEntries(SCHEMES.map((scheme) => [scheme, join(cacheDir, kept(hash, scheme))]));
-              const drawn = await drawPictures(page, { html, htmlDark, width, height, papers, stages: STAGES, to });
+              const drawn = await drawPictures(page, { html, htmlDark, width, height, stages: STAGES, to });
               blank[verdictKey(kept(hash))] = drawn.blank;
             } finally {
               free.push(page);
@@ -275,7 +275,8 @@ const liveAt = new Map(); // a page's code block -> its live payload
       ...(example.given ? { given: packGiven(example.given) } : {}),
       picture,
       ...(pictureDark ? { pictureDark } : {}),
-      ...(blank[verdictKey(kept(hash))] ? { blank: true } : {}),
+      ...(blank[verdictKey(kept(hash))]?.light ? { blank: true } : {}),
+      ...(blank[verdictKey(kept(hash))]?.dark ? { blankDark: true } : {}),
       width,
       height,
       // What it said as it was made: the first lines of its values
