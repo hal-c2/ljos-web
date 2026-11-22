@@ -31,6 +31,27 @@ test("each app's recording, poster and captures are built, the recordings small 
   }
 });
 
+test("on a phone, a page chosen from the menu shuts it", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  try {
+    const page = await context.newPage();
+    await page.goto(base);
+    await page.waitForSelector(hydrated);
+    for (const [label, to] of [
+      ["Showcase", "showcase/"],
+      ["Demos", "demos/"],
+    ]) {
+      await page.getByRole("button", { name: "Open the menu" }).click();
+      await expect(page.getByRole("button", { name: "Close the menu" })).toBeVisible();
+      await page.getByRole("region", { name: "Menu" }).getByRole("link", { name: label, exact: true }).click();
+      await page.waitForURL(`**${base}${to}`);
+      await expect(page.getByRole("button", { name: "Open the menu" }), label).toBeVisible();
+    }
+  } finally {
+    await context.close();
+  }
+});
+
 test("with no script, each app stands with its heading, poster, captures and links", async ({ browser }) => {
   for (const width of [390, 1440]) {
     const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width, height: 900 } });
