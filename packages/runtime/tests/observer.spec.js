@@ -101,7 +101,8 @@ test("a pass is counted when input changes the application, and a watch waits fo
   expect(frames.summary.total_us.max).toBeGreaterThanOrEqual(0);
   // A timer's step is a timer's pass, an animation's an animation's.
   await page.evaluate(() => window.scene.tickOnce());
-  await page.waitForFunction(() => window.objects.app.count === 1);
+  // The click left the count at 1: the timer's step makes it 2.
+  await page.waitForFunction(() => window.objects.app.count === 2);
   await page.evaluate(() => window.scene.spinOnce());
   // Until the passes they made are counted, not for a time that may be short.
   await expect
