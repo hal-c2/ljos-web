@@ -58,9 +58,10 @@ Rectangle {
     readonly property bool roomy: width >= 600
     readonly property int actWidth: 104
     // DECISION: the app's border is as tall as what it shows, and the room
-    // under it is held for the fullest it plays to and the press it then
-    // asks for, so neither the page nor the code under it moves.
-    readonly property int cardRoom: Math.max(card.implicitHeight, wide ? 540 : width < 420 ? 640 : 480)
+    // under it is held for the fullest its buttons reach, as tall as `fullest`
+    // says at this width and in these fonts, so neither the page nor the code
+    // under it moves.
+    readonly property int cardRoom: Math.ceil(Math.max(card.implicitHeight, fullest.implicitHeight))
     readonly property int sideRoom: 432
     implicitHeight: strip.height + pad + (wide ? Math.max(cardRoom, sideRoom) : cardRoom + gap + sideRoom)
     // Room for a focus ring at the edges, and no more: the app is the subject.
@@ -139,6 +140,21 @@ Rectangle {
         height: implicitHeight
         calm: view.calm
         still: view.still
+    }
+
+    // The card at its fullest, never shown and only measured: every ticket,
+    // all assigned, so all in one of the board's lanes. An item an ancestor
+    // hides keeps its place, so its height is the one it would be shown at.
+    DispatchCard {
+        id: fullest
+        objectName: "dispatchRoom"
+        visible: false
+        width: card.width
+        still: true
+        heading: AgentReplay.heading
+        filters: AgentReplay.filters
+        layout: "board"
+        tickets: AgentReplay.tickets.map((ticket) => Object.assign({}, ticket, { crew: ticket.crew || AgentReplay.crew }))
     }
 
     // The log, the source or the Observer.
@@ -335,9 +351,9 @@ Rectangle {
                     Text {
                         id: source
                         objectName: "boardSource"
-                        x: Theme.xs
+                        x: Theme.xxs
                         y: Theme.xs
-                        width: parent.width - 2 * Theme.xs
+                        width: parent.width - 2 * Theme.xxs
                         color: Theme.codeFg
                         font.family: Theme.mono
                         // board.ts keeps this to 39 columns, each 0.6 of the size, and a little.

@@ -26,7 +26,7 @@ Feature: The front page shows software being reshaped while it runs
     Given a window 390 wide and 844 high
     When the page opens
     Then the request, the replay's Pause and the top of the app it changes are in the first screen
-    And the TypeScript under the app has no line wrapped or cut
+    And the TypeScript under the app fits at 14 pixels, with no line wrapped or cut
 
   Scenario Outline: The replay is never taken for a live agent
     Given a window <width> wide
@@ -63,6 +63,7 @@ Feature: The front page shows software being reshaped while it runs
     Then the app's frame is no taller than what is in it
     And no ticket and no heading is cut
     And what stands under the replay has not moved
+    And turning Open only off, for every ticket assigned, does not move it either
 
   Scenario: The TypeScript shown is the TypeScript that runs
     When the page opens
