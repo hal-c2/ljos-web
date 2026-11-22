@@ -297,3 +297,12 @@ test("what a state binds a property to may come of what the property makes of ot
     [69, 24, 40, 24, 29, 10],
   ]);
 });
+
+test("a file's own `states`, `state` or `transitions` is not what the item's states go by", async ({ page }) => {
+  await open(page, "stateshadowed");
+  const read = () => page.evaluate(() => window.scene.read());
+  // The `when` is entered, and is no change of the file's `state`.
+  expect(await read()).toEqual(["", "wide", 20, 1, 20, ""]);
+  await page.evaluate(() => window.scene.widen());
+  expect(await read()).toEqual(["1", "busy", 50, 1, 50, "busy"]);
+});
