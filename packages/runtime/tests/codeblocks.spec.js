@@ -579,6 +579,7 @@ plain("a renderer's every answer reaches a reader that is late to read them", as
       [
         `export const pages = Object.fromEntries(Array.from({ length: 24 }, (_, i) => [String(i).padStart(16, "0"), () => null]));`,
         `export async function renderToString() { return "x".repeat(20_000); }`,
+        `export const reactivityHalted = () => false;`,
       ].join("\n"),
     );
     const { spawn } = await import("node:child_process");

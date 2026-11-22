@@ -7,6 +7,11 @@
 // one that did not run, with the page's words, and `logged`, what the
 // example said on the console as it was made.
 //
+// An example whose error halts Solid ends the process once it is
+// answered, with `{ halted: true }`: whatever was made after it would
+// be drawn without one update. The build runs the rest in another,
+// naming those answered in `skip`.
+//
 //   node prerender-run.js ENTRIES-BUNDLE '{"width":1280,"height":720}'
 import { readFile } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
@@ -14,7 +19,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { installPrerenderGlobals } from "../server/dom.js";
 
 const [bundle, said] = process.argv.slice(2);
-const options = said ? JSON.parse(said) : {};
+const { skip = [], ...options } = said ? JSON.parse(said) : {};
+const answered = new Set(skip);
 
 // The wasm kernel is fetched as a page fetches it; here the file it
 // names is read, as in server/prerender.js. A file an example reads
@@ -102,8 +108,9 @@ for (const [set, clear] of [
 // still in the pipe when this process ends is lost. Each is awaited
 // out before the next, so ending after the last loses none.
 const answer = (line) => new Promise((done, failed) => process.stdout.write(line, (error) => (error ? failed(error) : done())));
-const { pages, renderToString } = await import(pathToFileURL(resolve(bundle)).href);
+const { pages, reactivityHalted, renderToString } = await import(pathToFileURL(resolve(bundle)).href);
 for (const [hash, Component] of Object.entries(pages)) {
+  if (answered.has(hash)) continue;
   const own = [];
   logged = own;
   making = hash;
@@ -116,6 +123,12 @@ for (const [hash, Component] of Object.entries(pages)) {
   for (const stop of timers.set.splice(0)) stop();
   if (own.length) reply.logged = own;
   await answer(`${JSON.stringify(reply)}\n`);
+  // After the answer has gone: what the example left in microtasks has
+  // run by then, and a halt of its is not the next one's to meet.
+  if (reactivityHalted()) {
+    await answer(`${JSON.stringify({ halted: true })}\n`);
+    break;
+  }
 }
 logged = null;
 // An example's animations and timers would keep this process: the
