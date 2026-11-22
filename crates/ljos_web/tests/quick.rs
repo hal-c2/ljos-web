@@ -518,6 +518,36 @@ Item {
 }
 
 #[test]
+fn a_delegate_assigns_to_a_property_around_it_unless_the_model_has_the_role() {
+    let code = lowered(
+        r#"import QtQuick
+Item {
+    id: root
+    property int created: 0
+    property int total: 0
+    Repeater {
+        model: 3
+        Item {
+            Component.onCompleted: { created++; total += index }
+            Repeater { model: 2; Item { Component.onCompleted: total = 1 } }
+        }
+    }
+}"#,
+    );
+    // It is written where it would be read: on the row that has a role of
+    // the name, the nearest first, else on the object around it.
+    assert_contains(&code, r#"("created" in $data ? $data : root).created++"#);
+    assert_contains(
+        &code,
+        r#"("total" in $data ? $data : root).total += $data.index"#,
+    );
+    assert_contains(
+        &code,
+        r#"("total" in $data1 ? $data1 : "total" in $data ? $data : root).total = 1"#,
+    );
+}
+
+#[test]
 fn a_role_written_in_a_delegate_stays_assignable_when_a_global_shares_its_name() {
     let code = lowered(
         r#"import QtQuick
