@@ -198,7 +198,7 @@ const payload = (example, prerendered) =>
 // carries it inline, and the stage is sized by it so the page does
 // not move when the running result takes the prerender's place (the
 // elements themselves are absolutely placed, as the runtime lays out).
-const prerenderSize = (html) => {
+export const prerenderSize = (html) => {
   const tag = /<[^>]*data-hk="1:[^"]*"[^>]*>/.exec(html)?.[0];
   const style = /style="([^"]*)"/.exec(tag ?? "")?.[1] ?? "";
   const width = /width:\s*([\d.]+)px/.exec(style)?.[1];
