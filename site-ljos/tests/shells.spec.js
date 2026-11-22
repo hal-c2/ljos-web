@@ -386,7 +386,16 @@ test("the pick is kept, and a reload puts it in before the page is seen", async 
     await page.addInitScript(frames);
     await page.reload();
     await page.waitForSelector(HYDRATED);
-    await page.waitForFunction(() => "ljosShellShown" in document.documentElement.dataset);
+    // The head's watchdog runs on the wall clock here: a shell that comes
+    // after it has shown the page is never said to be shown, so the wait
+    // ends on either and says which.
+    const outcome = await page
+      .waitForFunction(() => {
+        const set = document.documentElement.dataset;
+        return "ljosShellShown" in set ? "shown" : "ljosShellLate" in set ? "late" : false;
+      })
+      .then((handle) => handle.jsonValue());
+    expect(outcome, "the kept shell came before the head's watchdog (2500 ms) showed the page without it").toBe("shown");
     expect(await showing(page)).toBe("desktop");
     expect(await page.evaluate(() => window.__atFirst), "the page as written is held back").toBe("0");
     await expect(page.locator("#app")).toHaveCSS("opacity", "1");
