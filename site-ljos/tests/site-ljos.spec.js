@@ -82,17 +82,16 @@ const shown = (locator) => locator.filter({ visible: true });
 test("the landing page leads with its claim and the agent replay, and never pitches compatibility", async ({ page }) => {
   await page.goto("/");
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
-  await expect(page).toHaveTitle("Ljós — Rust UI toolkit for live, malleable apps");
+  await expect(page).toHaveTitle("Ljós — software you can reshape while it runs");
   // The page opens on its claim, the one heading of the first rank,
   // with the replay's poster, the page's own drawing, under it; the
   // footer, at the page's end, says in a line what Ljós is.
   const claim = page.getByRole("heading", { level: 1 });
   await expect(claim).toHaveCount(1);
-  await expect(claim).toHaveText("The UI toolkit your users and agents can reshape while it runs.");
+  await expect(claim).toHaveText("Software you can reshape while it runs.");
   await expect(shown(claim)).toBeInViewport();
   await expect(shown(page.getByText("North district dispatch", { exact: true })).first()).toBeAttached();
-  await expect(page.getByRole("heading", { level: 2, name: "An agent reads the live tree, checks the code, and drives controls by role." })).toHaveCount(1);
-  await expect(page.getByText("Typed apps you can see inside and drive while they run.", { exact: true }).last()).toBeAttached();
+  await expect(page.getByRole("heading", { level: 2, name: "Your agent can use the app, too." })).toHaveCount(1);
   await expect(shown(page.getByRole("contentinfo").getByText("Ljós — malleable software, everywhere", { exact: true })).first()).toBeAttached();
   // The page's own words: the code in a field is the reader's to
   // edit, and an `import QtQuick` there pitches nothing.
@@ -103,8 +102,8 @@ test("the landing page leads with its claim and the agent replay, and never pitc
     for (const field of fields) field.style.visibility = "";
     return text;
   });
-  expect(words.indexOf("Your own shell")).toBeGreaterThan(-1);
-  expect(words.indexOf("Your own shell")).toBeLessThan(words.indexOf("TypeScript first"));
+  expect(words.indexOf("Make it your own")).toBeGreaterThan(-1);
+  expect(words.indexOf("Make it your own")).toBeLessThan(words.indexOf("TypeScript first"));
   expect(words).toContain("shell.qml");
   expect(words).toContain("ShellLoader");
   expect(words).toContain("Slot");

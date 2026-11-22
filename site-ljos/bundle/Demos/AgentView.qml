@@ -17,7 +17,7 @@ Rectangle {
     property bool tabs: true
     // "agent", "source" or "observer".
     property string tab: "agent"
-    property string badge: t`Recorded replay`
+    property string badge: t`Replay · no live agent`
     // Steps done and how many there are.
     property int at: 0
     property int total: 0

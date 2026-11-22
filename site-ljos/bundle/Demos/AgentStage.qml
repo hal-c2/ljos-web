@@ -177,7 +177,7 @@ AgentView {
             fastTo = -1;
         if (at >= total) {
             playing = false;
-            row({ kind: "end", text: t`Your turn: press anything in the app. What it does streams in here, through app_watch and app_logs.` });
+            row({ kind: "end", text: t`Your turn: press any button in the app and watch this log.` });
         }
         if (tab === "observer") {
             readTree();
