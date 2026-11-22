@@ -216,7 +216,7 @@ function same(old, object, key) {
   const was = old.props && Object.getOwnPropertyDescriptor(old.props, key);
   const is = object.$props && Object.getOwnPropertyDescriptor(object.$props, key);
   if (!was || !is) return !was && !is;
-  if (was.get || is.get) return String(was.get) === String(is.get);
+  if (was.get || is.get) return said(old.props, key, was.get) === said(object.$props, key, is.get);
   if (Object.is(was.value, is.value)) return true;
   if (typeof was.value !== "object" && typeof is.value !== "object") return String(was.value) === String(is.value);
   const before = old.written?.get(key);
@@ -225,6 +225,30 @@ function same(old, object, key) {
   // properties can be given others later.
   if (!before || !after || before.value !== was.value || after.value !== is.value) return false;
   return alike(before.copy, after.copy, new Map());
+}
+
+// `get width() { return $bound([file, line, column], () => value) }`: a
+// build with places has each binding say where it is written, whatever its
+// minifier calls `$bound`. That moves with a line above it and is no part
+// of what the binding says, so it is left out, but only where the compiler
+// wrote it: at a key of the object's own (an attached one, `Layout$…`, is
+// not wrapped, and the object it makes has no `$at`), in a level the
+// compiler placed (`$at`, a name of its own), naming that level's file. Anything else is read whole, as before, so a
+// call of the app's own that looks the same (`f(["Board.qml", 3, 5], …)`)
+// is never taken for a place. Code written by hand that gives its props a
+// `$at` and a getter of just that shape is read without its place.
+const PLACE = /^(get[^{]*\{\s*return\s+[\w$]+\(\s*\[\s*)("[^"\\\n]*"|'[^'\\\n]*'|`[^`\\$\n]*`)(\s*,)\s*\d[\de]*\s*,\s*\d[\de]*\s*(\]\s*,\s*\(\)\s*=>)/;
+
+function said(props, key, get) {
+  const text = String(get);
+  if (typeof get !== "function" || /^[A-Z$]/.test(key)) return text;
+  // The level whose own getter it is: a component's root has the file's
+  // and the instance's, and `$at` on the whole is only the outer one's.
+  const level = (props.$levels ?? [props]).findLast((level) => Object.getOwnPropertyDescriptor(level, key)?.get === get);
+  const file = level && Object.getOwnPropertyDescriptor(level, "$at")?.value?.[0];
+  const found = typeof file === "string" && PLACE.exec(text);
+  if (!found || found[2].slice(1, -1) !== file) return text;
+  return found[1] + found[2] + found[3] + found[4] + text.slice(found[0].length);
 }
 
 // Whether two copies hold the same, each pair of their parts looked at once
