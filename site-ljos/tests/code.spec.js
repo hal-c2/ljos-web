@@ -1072,3 +1072,213 @@ for (const [view, viewport] of [
     }
   });
 }
+
+// The phone's fold as the reader meets it and works it.
+const LONG_PAGE = "/quality/motion/";
+const PHONE = { width: 390, height: 844 };
+const CARD = '[data-object-name="codeCard"]';
+
+async function onPhone(browser, reducedMotion = "no-preference", init) {
+  const context = await browser.newContext({
+    viewport: PHONE,
+    reducedMotion,
+  });
+  if (init) await context.addInitScript(init, CARD);
+  const page = await context.newPage();
+  await page.goto(LONG_PAGE);
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  return { context, page };
+}
+
+// The first live card that is folded, by its place: a card found by its
+// Show all would be another one once this is pressed.
+async function foldedCard(page) {
+  const cards = page.locator(CARD);
+  await expect(
+    page.getByRole("button", { name: /^Show all \d+/ }).first(),
+  ).toBeVisible();
+  for (let index = 0; index < (await cards.count()); index++) {
+    const card = cards.nth(index);
+    if (
+      (await card.getByRole("textbox").count()) &&
+      (await card.getByRole("button", { name: /^Show all \d+/ }).count())
+    ) {
+      await card.scrollIntoViewIfNeeded();
+      return card;
+    }
+  }
+  throw new Error("no folded live card");
+}
+
+// Every frame of a card from now until it has stood still: its height,
+// and how opaque its code is drawn.
+const watched = (card) =>
+  card.evaluate((node) => {
+    const frames = (window.foldFrames = []);
+    const sample = () => {
+      let opacity = 1;
+      const code =
+        node.querySelector(".cm-content") ??
+        [...node.querySelectorAll(".qq-rich")].find((rich) =>
+          getComputedStyle(rich).fontFamily.startsWith("ui-monospace"),
+        );
+      for (let up = code; up && up !== node; up = up.parentElement)
+        opacity *= Number(getComputedStyle(up).opacity);
+      frames.push({ height: node.getBoundingClientRect().height, opacity });
+      if (frames.length < 600) requestAnimationFrame(sample);
+    };
+    sample();
+  });
+
+async function unfolded(page) {
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const frames = window.foldFrames;
+        const last = frames.slice(-8);
+        return (
+          frames.length > 12 &&
+          last[0].height > frames[0].height + 16 &&
+          last.every(
+            (frame) =>
+              Math.abs(frame.height - last[0].height) < 1 &&
+              frame.opacity === 1,
+          )
+        );
+      }),
+    )
+    .toBe(true);
+  const frames = await page.evaluate(() => window.foldFrames);
+  const [from, to] = [frames[0].height, frames.at(-1).height];
+  return {
+    between: frames.filter(
+      ({ height }) => height > from + 8 && height < to - 8,
+    ).length,
+    faintest: Math.min(...frames.map(({ opacity }) => opacity)),
+  };
+}
+
+test("a phone's long code is folded as it loads, never seen shrinking to it", async ({
+  browser,
+}) => {
+  const { context, page } = await onPhone(browser, "no-preference", (CARD) => {
+    const heights = (window.cardHeights = []);
+    const sample = () => {
+      if (document.querySelector('#app[data-ljos-hydrated="true"]'))
+        document.querySelectorAll(CARD).forEach((card, index) => {
+          (heights[index] ??= []).push(card.getBoundingClientRect().height);
+        });
+      if ((heights[0]?.length ?? 0) < 60) requestAnimationFrame(sample);
+    };
+    requestAnimationFrame(sample);
+  });
+  try {
+    await expect
+      .poll(() => page.evaluate(() => window.cardHeights[0]?.length ?? 0))
+      .toBeGreaterThanOrEqual(60);
+    // As written and as folded are two heights; an animation, many.
+    const moved = await page.evaluate(() =>
+      window.cardHeights
+        .map((seen, index) => ({
+          index,
+          heights: seen.filter(
+            (height, at) =>
+              !seen.slice(0, at).some((was) => Math.abs(was - height) <= 4),
+          ),
+        }))
+        .filter(({ heights }) => heights.length > 2),
+    );
+    expect(moved, "cards that moved through heights as they loaded").toEqual(
+      [],
+    );
+  } finally {
+    await context.close();
+  }
+});
+
+test("Show all keeps the focus, as Show less, and gives it back", async ({
+  browser,
+}) => {
+  const { context, page } = await onPhone(browser);
+  try {
+    const card = await foldedCard(page);
+    await card.getByRole("button", { name: /^Show all \d+/ }).focus();
+    await page.keyboard.press("Enter");
+    const less = card.getByRole("button", { name: /^Show less/ });
+    await expect(less).toBeFocused();
+    await page.keyboard.press("Enter");
+    const all = card.getByRole("button", { name: /^Show all \d+/ });
+    await expect(all).toBeFocused();
+    await expect(all).toBeInViewport();
+  } finally {
+    await context.close();
+  }
+});
+
+test("a phone's page and Tab go stage, toolbar, code, as it shows them", async ({
+  browser,
+}) => {
+  const { context, page } = await onPhone(browser);
+  try {
+    const card = await foldedCard(page);
+    const order = await card.evaluate((node) => {
+      const stage = node.querySelector('img[alt="What this example draws"]');
+      const edit = node.querySelector('[role="button"][aria-label^="Edit "]');
+      const code = node.querySelector('[role="textbox"]');
+      const before = (a, b) =>
+        !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+      return { stage: before(stage, edit), toolbar: before(edit, code) };
+    });
+    expect(order, "each before the next in the page").toEqual({
+      stage: true,
+      toolbar: true,
+    });
+
+    await card.getByRole("button", { name: /^Edit / }).focus();
+    await page.keyboard.press("Tab");
+    await expect(
+      card.getByRole("button", { name: "Show the source" }),
+    ).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(card.getByRole("textbox").first()).toBeFocused();
+  } finally {
+    await context.close();
+  }
+});
+
+for (const [how, go] of [
+  ["Edit", (card) => card.getByRole("button", { name: /^Edit / }).click()],
+  ["focus in the code", (card) => card.getByRole("textbox").first().focus()],
+  [
+    "Show all",
+    (card) => card.getByRole("button", { name: /^Show all \d+/ }).click(),
+  ],
+]) {
+  test(`${how} unfolds the code, growing it`, async ({ browser }) => {
+    const { context, page } = await onPhone(browser);
+    try {
+      const card = await foldedCard(page);
+      await watched(card);
+      await go(card);
+      expect((await unfolded(page)).between).toBeGreaterThan(0);
+    } finally {
+      await context.close();
+    }
+  });
+
+  test(`${how} unfolds the code with a crossfade for reduced motion`, async ({
+    browser,
+  }) => {
+    const { context, page } = await onPhone(browser, "reduce");
+    try {
+      const card = await foldedCard(page);
+      await watched(card);
+      await go(card);
+      const { between, faintest } = await unfolded(page);
+      expect(between, "heights moved through").toBe(0);
+      expect(faintest, "the code fades in").toBeLessThan(0.9);
+    } finally {
+      await context.close();
+    }
+  });
+}
