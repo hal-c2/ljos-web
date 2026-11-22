@@ -203,6 +203,18 @@ function lifted(event) {
   self.flickStarted();
 }
 
+// Whether something between the wheel and the viewport scrolls down or up
+// by itself, the way the wheel turns: a column in a row keeps its wheel.
+function scrollsUpright(from, viewport, down) {
+  for (let node = from; node && node !== viewport; node = node.parentElement) {
+    if (node.scrollHeight <= node.clientHeight) continue;
+    const overflow = getComputedStyle(node).overflowY;
+    if (overflow !== "auto" && overflow !== "scroll") continue;
+    if (down ? node.scrollTop + node.clientHeight < node.scrollHeight - 1 : node.scrollTop > 0) return true;
+  }
+  return false;
+}
+
 // A wheel that only turns one way moves content that only goes the other,
 // as far as it goes: at its end the wheel is left to the browser, which
 // scrolls what the Flickable is in, so a row in a page never holds the
@@ -214,6 +226,7 @@ function wheeled(event) {
   if (viewport.style.overflowX === "hidden") return;
   const room = event.deltaY > 0 ? viewport.scrollWidth - viewport.clientWidth - viewport.scrollLeft : viewport.scrollLeft;
   if (room < 1) return;
+  if (scrollsUpright(event.target, viewport, event.deltaY > 0)) return;
   event.preventDefault();
   viewport.scrollLeft += event.deltaY;
 }
@@ -614,7 +627,6 @@ export const Flickable = defineType("Flickable", Item, {
     self.$node.append(viewport);
     viewport.addEventListener("scroll", scrolled, PASSIVE);
     viewport.addEventListener("scrollend", ended, PASSIVE);
-    viewport.addEventListener("wheel", wheeled, ACTIVE);
     viewport.addEventListener("touchstart", touched, PASSIVE);
     viewport.addEventListener("touchend", lifted, PASSIVE);
     viewport.addEventListener("touchcancel", lifted, PASSIVE);
@@ -640,6 +652,7 @@ export const Flickable = defineType("Flickable", Item, {
       },
       (state) => show(self, state),
     );
+    let turnsWheel = false;
     effect(
       () => [self.interactive, self.flickableDirection, self.boundsBehavior],
       ([interactive, direction, bounds]) => {
@@ -651,6 +664,15 @@ export const Flickable = defineType("Flickable", Item, {
         const changed = viewport.isConnected && (x !== style.overflowX || y !== style.overflowY);
         style.overflowX = x;
         style.overflowY = y;
+        // Only a Flickable that goes sideways turns a wheel, and so cancels
+        // its scroll; any other leaves Chromium to scroll on its compositor,
+        // which it can only do where no listener may cancel the wheel.
+        const sideways = x === "auto";
+        if (sideways !== turnsWheel) {
+          if (sideways) viewport.addEventListener("wheel", wheeled, ACTIVE);
+          else viewport.removeEventListener("wheel", wheeled, ACTIVE);
+          turnsWheel = sideways;
+        }
         // Its overscroll is its own only along a way it scrolls: along the
         // other a wheel or a finger goes on to what it is in.
         const kept = bounds === StopAtBounds ? "none" : "contain";
