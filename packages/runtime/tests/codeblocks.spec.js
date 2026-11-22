@@ -11,7 +11,7 @@ import { join } from "node:path";
 import { test as plain } from "@playwright/test";
 import { Text } from "@codemirror/state";
 import { assemble, displayPosition, exampleFiles, extractBlocks, parseInfo, spliceHarness } from "../codeblocks/parse.js";
-import { checkExamples, checkExamplesAll, hashExample, loadPrerenders, prerenderStamp, pruneCache, renderCode, renderPrerenders, renderStatic } from "../codeblocks/build.js";
+import { checkExamples, checkExamplesAll, hashExample, loadPrerenders, prerenderSize, prerenderStamp, pruneCache, renderCode, renderPrerenders, renderStatic } from "../codeblocks/build.js";
 import { toDiagnostics } from "../codeblocks/editor.js";
 import { PACKED, packRich, unpackRich } from "../codeblocks/rich.js";
 import { highlight } from "../markdown.js";
@@ -561,6 +561,15 @@ plain("a block's colouring packs small and reads back exactly", () => {
   }
   expect(packRich('<span class="tok-unknown">x</span>')).toBe('<span class="tok-unknown">x</span>');
   expect(unpackRich("<b>not packed</b>")).toBe("<b>not packed</b>");
+});
+
+plain("a root window's prerender is as large as the window asked", () => {
+  const window = (content) =>
+    `<div class="qq-window" data-hk="1:ApplicationWindow" style="top: 0; left: 0; height: 100%; width: 100%;"><div class="qq" data-hk="2:Item" style="transform: translate(0px,0px); ${content}"></div></div>`;
+  expect(prerenderSize(window("width: 400px; height: 260px;"))).toEqual({ width: 400, height: 260 });
+  // Only a window's: an item that says no size doesn't take its child's.
+  const item = '<div class="qq" data-hk="1:Item" style="width: 100%;"><div class="qq" data-hk="2:Item" style="width: 40px; height: 30px;"></div></div>';
+  expect(prerenderSize(item)).toEqual({});
 });
 
 plain("static HTML shows code and the prerendered result and carries the payload", () => {

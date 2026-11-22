@@ -2,6 +2,7 @@
 // (scripts/pictures.mjs), held to the browser that draws them.
 import { existsSync, readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
+import { prerenderSize } from "ljos-web/codeblocks";
 import { drawPictures, shipsDark, verdictKey } from "../scripts/pictures.mjs";
 
 const source = readFileSync(new URL("../bundle/tokens.js", import.meta.url), "utf8").replace(/^\.pragma library$/m, "");
@@ -65,6 +66,15 @@ test("pale content on a window's ground is not blank", async ({ page }, info) =>
 test("content the colour of its window's ground is blank in that scheme alone", async ({ page }, info) => {
   const { blank } = await drawn(page, info, windowOn("#efefef", square("#efefef")), windowOn("black", square("#2f2f2f")));
   expect(blank).toEqual({ light: true, dark: false });
+});
+
+// A root window fills what it is drawn in; the size it asked is its
+// content item's. Its picture is that size, or what stands past the
+// unsized stage (320 by 180) is cut off and the window reads as empty.
+test("content past the unsized stage is in its window's picture", async ({ page }) => {
+  const html = `<style>.qq-window{position:absolute;left:0;top:0}</style><div class="qq-window" data-hk="1:ApplicationWindow" style="top: 0; left: 0; height: 100%; width: 100%; background: #ffffff;"><div class="qq" data-hk="2:Item" style="position: absolute; width: 400px; height: 260px;"><div style="position:absolute;left:16px;top:204px;width:80px;height:30px;background:#bdbdbd"></div></div></div>`;
+  const { width = 320, height = 180 } = prerenderSize(html);
+  expect((await drawPictures(page, { html, width, height, stages })).blank).toEqual({ light: false, dark: false });
 });
 
 test("a picture the same in both schemes ships once", async ({ page }, info) => {
