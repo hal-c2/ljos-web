@@ -82,6 +82,12 @@ Feature: The showcase shows apps built with Ljós, recorded as they run
     When the window goes from narrow to wide and back
     Then the text is as tall as the picture at each density, and then measuring rests
 
+  Scenario: Text makes room for a picture the browser picks late
+    Given rich text with a picture that states no size
+    And a browser that picks its source after the text is measured
+    When the picture arrives, or the text changes after it has
+    Then the text is as tall as the picture at the density it was picked at
+
   Scenario: A picture keeps the size its source states for itself
     Given rich text with a source that has a width descriptor and sizes
     When the picture arrives
