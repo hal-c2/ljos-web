@@ -1542,6 +1542,217 @@ test.describe("a View3D no one asked a renderer of", () => {
     expect(await (await drawn(page)).jsonValue()).toBe("js");
   });
 
+  // What a view reads ahead of wgpu to tell whether to turn. A file that
+  // has settled, failed or not, holds no turn, and whatever comes of the
+  // view, no bytes read for it are held after.
+  test.describe("what is read ahead of wgpu", () => {
+    const MODELS = "scenes/wgpu_models";
+    const opened = async (page, scene = "wgpu_ahead") => {
+      await page.addInitScript(HIDDEN);
+      await page.goto(`/?scene=${scene}`);
+      await page.waitForFunction(() => window.ready);
+      await page.waitForFunction(() => [...document.querySelectorAll(".qq-view3d")].every(({ $view3d }) => $view3d?.renderer === "js" && $view3d.frames > 0));
+    };
+    const named = (page, sources) =>
+      page.evaluate(([models, sources]) => {
+        for (const [loader, file] of Object.entries(sources)) window.objects[loader].source = file && `${models}/${file}`;
+        window.flush();
+      }, [MODELS, sources]);
+    const held = (page) =>
+      page.evaluate(async () => {
+        const address = performance.getEntriesByType("resource").find(({ name }) => /\/QtQuick3D\/scene\.js/.test(name)).name;
+        return (await import(address)).held();
+      });
+    const letGo = (page) => expect.poll(() => held(page), { message: "bytes held for the wasm" }).toBe(0);
+    const settled = (page) => page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+    const turned = (page) =>
+      page.waitForFunction(() => {
+        const state = document.querySelector(".qq-view3d")?.$view3d;
+        if (state?.error) throw new Error(state.error);
+        return state?.renderer === "wgpu" && state.backend === "webgl2" && state.frames > 0;
+      });
+    const counted = async (page, pattern, answer = (route) => route.continue()) => {
+      const asked = {};
+      await page.route(pattern, (route) => {
+        const file = new URL(route.request().url()).pathname.split("/").pop();
+        asked[file] = (asked[file] ?? 0) + 1;
+        return answer(route, file, asked[file]);
+      });
+      return asked;
+    };
+    // pair.gltf's buffer, kept on the way until the test lets it come.
+    const bufferWaits = async (page) => {
+      let come;
+      let asked;
+      const coming = new Promise((resolve) => (come = resolve));
+      const underWay = new Promise((resolve) => (asked = resolve));
+      await page.route(/\/wgpu_models\/pair\.bin(\?.*)?$/, async (route) => {
+        asked();
+        await coming;
+        await route.continue();
+      });
+      return { underWay, come };
+    };
+    // wgpu's view, kept in the making until the test lets it be made.
+    const makingWaits = async (page) => {
+      await page.route(/\/wgpu\/ljos_web_3d\.js(\?|$)/, async (route) => {
+        const response = await route.fetch();
+        const waits = "\nconst create = View3d.create;\nView3d.create = async function (...args) { await new Promise((made) => (window.makeNow = made)); return create.apply(this, args); };\n";
+        await route.fulfill({ response, body: `${await response.text()}${waits}` });
+      });
+    };
+
+    test.describe("a file that is not there", () => {
+      test.use({ told: [/status of 404|gone\.gltf|pair\.bin/] });
+
+      test("doesn't keep the other files' models from wgpu, which says it failed", async ({ page }) => {
+        const asked = await counted(page, /\/wgpu_models\/(square|gone)\.gltf(\?.*)?$/, (route, file) => (file === "gone.gltf" ? route.fulfill({ status: 404, body: "" }) : route.continue()));
+        await opened(page);
+        await named(page, { loader: "square.gltf", other: "gone.gltf" });
+        await turned(page);
+        await expect.poll(() => pixels(page, [CENTRE, [50, 150]]), { message: "the file that is there and the shape beside it" }).toEqual(["255 0 0", "0 0 255"]);
+        await expect.poll(() => page.evaluate(() => [window.objects.loader.status, window.objects.other.status])).toEqual([1, 2]);
+        expect(await page.evaluate(() => window.objects.other.errorString)).toMatch(/404/);
+        expect(asked, "fetches").toEqual({ "square.gltf": 1, "gone.gltf": 1 });
+        await letGo(page);
+      });
+
+      test("is no turn by itself, and what was read beside it is let go", async ({ page }) => {
+        await page.route(/\/wgpu_models\/pair\.bin(\?.*)?$/, (route) => route.fulfill({ status: 404, body: "" }));
+        await opened(page);
+        const answered = page.waitForResponse(/\/wgpu_models\/pair\.bin/);
+        await named(page, { loader: "pair.gltf" });
+        await answered;
+        await letGo(page);
+        expect(await (await drawn(page)).jsonValue()).toBe("js");
+      });
+    });
+
+    test.describe("a server that is busy", () => {
+      test.use({ told: [/status of 503|pair\.gltf/] });
+
+      test("once, is asked again, and the models are drawn", async ({ page }) => {
+        const asked = await counted(page, /\/wgpu_models\/pair\.(gltf|bin)(\?.*)?$/, (route, file, times) => (times === 1 ? route.fulfill({ status: 503, body: "" }) : route.continue()));
+        await opened(page);
+        await named(page, { loader: "pair.gltf" });
+        await turned(page);
+        await expect.poll(() => pixels(page, [[150, 150]]), { message: "the left of the file's two models" }).toEqual(["0 255 0"]);
+        expect(asked, "fetches").toEqual({ "pair.gltf": 2, "pair.bin": 2 });
+        await letGo(page);
+      });
+
+      test("for good, is asked three times, and doesn't keep the other files' models from wgpu", async ({ page }) => {
+        const asked = await counted(page, /\/wgpu_models\/(square|pair)\.gltf(\?.*)?$/, (route, file) => (file === "pair.gltf" ? route.fulfill({ status: 503, body: "" }) : route.continue()));
+        await opened(page);
+        await named(page, { loader: "square.gltf", other: "pair.gltf" });
+        await turned(page);
+        await expect.poll(() => page.evaluate(() => [window.objects.loader.status, window.objects.other.status])).toEqual([1, 2]);
+        expect(asked, "fetches").toEqual({ "square.gltf": 1, "pair.gltf": 3 });
+        await letGo(page);
+      });
+    });
+
+    test("is let go where fog comes before the turn", async ({ page }) => {
+      const buffer = await bufferWaits(page);
+      await opened(page);
+      await named(page, { loader: "pair.gltf" });
+      await buffer.underWay;
+      await page.evaluate(() => {
+        window.objects.fog.enabled = true;
+        window.flush();
+      });
+      buffer.come();
+      await letGo(page);
+      expect(await (await drawn(page)).jsonValue()).toBe("js");
+    });
+
+    test("is let go where the source changes before the turn", async ({ page }) => {
+      const buffer = await bufferWaits(page);
+      await opened(page);
+      await named(page, { loader: "pair.gltf" });
+      await buffer.underWay;
+      await named(page, { loader: "" });
+      buffer.come();
+      await letGo(page);
+      expect(await (await drawn(page)).jsonValue()).toBe("js");
+    });
+
+    test("is let go where the view goes before the turn", async ({ page }) => {
+      const buffer = await bufferWaits(page);
+      await opened(page);
+      await named(page, { loader: "pair.gltf" });
+      await buffer.underWay;
+      await page.evaluate(() => window.dispose());
+      buffer.come();
+      await letGo(page);
+    });
+
+    test("is let go where a pick asked after it was read, and no turn came", async ({ page }) => {
+      const buffer = await bufferWaits(page);
+      await opened(page);
+      const square = page.waitForResponse(/\/wgpu_models\/square\.gltf/);
+      await named(page, { loader: "square.gltf", other: "pair.gltf" });
+      await (await square).finished();
+      await buffer.underWay;
+      await settled(page);
+      expect(await page.evaluate(() => window.objects.loader.$picks().map(({ node }) => node.objectName)), "a pick of the file read ahead").toEqual(["square"]);
+      await page.evaluate(() => {
+        window.objects.fog.enabled = true;
+        window.flush();
+      });
+      buffer.come();
+      await letGo(page);
+    });
+
+    test.describe("wgpu not to be made after the turn", () => {
+      test.use({ told: [/^View3D: drawn by the JavaScript renderer, as wgpu could not draw it: /] });
+
+      test("lets go of what was read ahead of it", async ({ page }) => {
+        await page.route(/\/wgpu\/ljos_web_3d\.js(\?|$)/, async (route) => {
+          const response = await route.fetch();
+          await route.fulfill({ response, body: `${await response.text()}\nView3d.create = async () => { window.refused = true; throw new Error("no WebGL 2 to be had"); };\n` });
+        });
+        await opened(page);
+        await named(page, { loader: "pair.gltf" });
+        await page.waitForFunction(() => window.refused && document.querySelector(".qq-view3d")?.$view3d?.renderer === "js");
+        await letGo(page);
+      });
+    });
+
+    for (const [what, change] of [
+      ["the source changes", () => (window.objects.loader.source = "")],
+      ["fog hands the view back", () => (window.objects.fog.enabled = true)],
+      ["the view goes", () => window.dispose()],
+    ]) {
+      test(`is let go where ${what} after the turn, before wgpu has taken it`, async ({ page }) => {
+        await makingWaits(page);
+        await opened(page);
+        await named(page, { loader: "pair.gltf" });
+        await page.waitForFunction(() => window.makeNow);
+        await page.evaluate(change);
+        await page.evaluate(() => window.flush());
+        await letGo(page);
+        await page.evaluate(() => window.makeNow());
+        await settled(page);
+      });
+    }
+
+    // Each view turns when its own files have settled, and what one took
+    // is there still for another that waits.
+    test("is fetched once for two views of it, though one turns after the other", async ({ page }) => {
+      const asked = await counted(page, /\/wgpu_models\/square\.gltf(\?.*)?$/);
+      const buffer = await bufferWaits(page);
+      await opened(page, "wgpu_ahead_two");
+      await named(page, { first: "square.gltf", second: "square.gltf", apart: "pair.gltf" });
+      await buffer.underWay;
+      await page.waitForFunction(() => window.objects.first.status === 1);
+      buffer.come();
+      await page.waitForFunction(() => window.objects.second.status === 1 && window.objects.apart.status === 1);
+      expect(asked, "fetches").toEqual({ "square.gltf": 1 });
+      await letGo(page);
+    });
+  });
+
   // A WebGL 2 short of what wgpu needs fails the view as it is made, as a
   // renderer that traps there does: the JavaScript renderer draws what it
   // can of the scene, is not left for wgpu again, and the page is told why.
