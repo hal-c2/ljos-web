@@ -20,6 +20,11 @@ const describedOf = (read, address) => {
   if (!described.has(read)) described.set(read, buffers(read, address));
   return described.get(read);
 };
+// What wgpu's loader reads, by the extension as it tells them (ljos_3d's
+// `load_any`): any other name it refuses.
+const extension = (source) => /\.(gltf|glb|obj)$/i.exec(source.split(/[?#]/, 1)[0])?.[1].toLowerCase();
+// What is kept of an OBJ: that it is here.
+const arrived = () => ({});
 // What is kept of a buffer that is a file of its own.
 const bytesOf = (taken) => ({ bytes: new Uint8Array(taken) });
 
@@ -35,14 +40,20 @@ export const RuntimeLoader = defineType("RuntimeLoader", Node, {
     // Whether it names what the JavaScript renderer does not read and wgpu
     // does: a view that shows it is wgpu's where it can be (`View3D.js`).
     $unread() {
-      return String(this.source ?? "") !== "";
+      return extension(String(this.source ?? "")) !== undefined;
     },
-    // Whether that file and the buffers it names are here: till they are,
-    // turning to wgpu would show no more. Asking starts their fetch, and
+    // Whether that file is here, and the buffers a glTF names: till they are,
+    // turning to wgpu would show no more. (An OBJ's materials are wgpu's to
+    // ask for: the last picture stays up meanwhile.) Asking starts the fetch, and
     // only a view that could turn asks. A failure is left as it is: asking
     // again is a pick's (`retried`), as are the times it may.
     $ready() {
-      const address = located(String(this.source ?? ""));
+      const source = String(this.source ?? "");
+      const address = located(source);
+      if (extension(source) === "obj") {
+        const here = file(address, "obj", arrived).state();
+        return Boolean(here && !here.error);
+      }
       const read = file(address, "gltf", header).state();
       if (!read || read.error) return false;
       let named;

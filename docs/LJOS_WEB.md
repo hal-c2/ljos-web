@@ -1723,7 +1723,8 @@ DECISION: `QtQuick3D.AssetUtils`' `RuntimeLoader` is a type on both
 renderers, but only wgpu reads the file: the JavaScript renderer draws
 what is declared and has no glTF reader. So without WebGPU a view is
 turned to wgpu's WebGL 2 when the shown nodes in it and in its
-`importScene` name such files (`$unread`), every one is here (`$ready`),
+`importScene` name such files (`$unread`: by extension, `.gltf`, `.glb`
+and `.obj`, as wgpu's loader reads them), every one is here (`$ready`),
 and the scene shows nothing left to `render.js` (`scriptAlone` in
 `View3D.js` has the list: fog, and what fails below). Until then
 `render.js` draws, and its picture stays up until wgpu's first. If such a
