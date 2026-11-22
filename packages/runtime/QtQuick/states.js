@@ -7,7 +7,7 @@
 // a Behavior, and reads as what the transition's animations show until they
 // are done.
 import { createEffect, createMemo, createRoot, runWithOwner } from "solid-js";
-import { bound, contents, defineType, flush, group, QtObject, replace, slot, whenComplete, writtenBy } from "../object.ts";
+import { bound, contents, declaredOver, defineType, flush, group, native, QtObject, replace, slot, whenComplete, writtenBy } from "../object.ts";
 import { follow, parallel } from "./animation/Animation.js";
 import { drain, later } from "./animation/clock.js";
 import { display, Property } from "./animation/property.js";
@@ -19,6 +19,11 @@ const NONE = Object.freeze([]);
 const next = (version) => version + 1;
 
 const list = (value) => (value == null ? NONE : Array.isArray(value) ? value : [value]);
+
+// The type's own `states` and `transitions`: a file that declares one of
+// the name (`property string states: ""`) has that for itself (`native`).
+const statesOf = (self) => list(native(self, "states"));
+const transitionsOf = (self) => list(native(self, "transitions"));
 
 // What decides a slot's value, to put back later.
 const capture = (property) => {
@@ -220,7 +225,7 @@ function findTransition(self, from, to) {
   let highest = null;
   let score = 0;
   let reversed = false;
-  search: for (const transition of list(self.transitions)) {
+  search: for (const transition of transitionsOf(self)) {
     if (!transition.enabled) continue;
     const fromState = String(transition.from).split(",").map((name) => name.trim());
     const toState = String(transition.to).split(",").map((name) => name.trim());
@@ -256,7 +261,7 @@ function generate(self, state, actions) {
   state.$generating = true;
   const base = state.extend;
   if (base) {
-    const extended = list(self.states).find((other) => other.name === base);
+    const extended = statesOf(self).find((other) => other.name === base);
     if (extended) generate(self, extended, actions);
   }
   for (const operation of state.$operations) operation.$actions?.(actions, self.$states);
@@ -433,8 +438,9 @@ function setState(self, name, immediate) {
     states.bump(next);
     flush();
     // The first state is entered before the handler has anything to hear.
-    if (states.starting) self.$props.onStateChanged?.();
-    const state = name === "" ? null : (list(self.states).find((other) => other.name === name) ?? null);
+    // Over a `state` the file declares, the handler is of the file's.
+    if (states.starting && !declaredOver(self, "state")) self.$props.onStateChanged?.();
+    const state = name === "" ? null : (statesOf(self).find((other) => other.name === name) ?? null);
     enter(self, state, transition);
     states.applying = false;
   });
@@ -457,7 +463,7 @@ function auto(self, current = self.$states.current) {
   }
   return untrack(() => {
     let revert = false;
-    for (const state of list(self.states)) {
+    for (const state of statesOf(self)) {
       if (!slot(state, "when").explicit() || !state.name) continue;
       if (state.when) {
         if (current === state.name) return false;
@@ -521,23 +527,25 @@ export const stateful = {
       setState(this, name == null ? "" : String(name), false);
     },
   },
-  // An object that has none of the three is left as it is.
+  // An object that has none of the three is left as it is. What is given by
+  // a name the file declares is given to the file's, and none of it to these.
   setup(self, props) {
     self.$states = null;
-    if (!("states" in props) && !("state" in props)) return;
+    const given = (name) => name in props && !declaredOver(self, name);
+    if (!given("states") && !given("state")) return;
     const states = machine(self);
     states.complete = false;
     whenComplete(() => {
       let unnamed = 0;
-      const all = list(untrack(() => self.states));
+      const all = untrack(() => statesOf(self));
       for (const state of all) {
         if (!untrack(() => state.name)) slot(state, "name").provide(`anonymousState${++unnamed}`);
       }
       // The transitions exist from the start, as the states do.
-      untrack(() => self.transitions);
+      untrack(() => transitionsOf(self));
       states.complete = true;
-      const given = slot(self, "state");
-      const named = createMemo(() => String(given.get() ?? ""), SYNC);
+      const own = declaredOver(self, "state") ? null : slot(self, "state");
+      const named = createMemo(() => String(own?.get() ?? ""), SYNC);
       const whens = createMemo(
         () => all.map((state) => (slot(state, "when").explicit() ? (state.when ? "1" : "0") : "-")).join(""),
         SYNC,
