@@ -38,3 +38,6 @@ Wordmark 1.0 Wordmark.qml
 Toc 1.0 Toc.qml
 PageTree 1.0 PageTree.qml
 PageSource 1.0 PageSource.qml
+ShowcasePage 1.0 ShowcasePage.qml
+ShowcaseApp 1.0 ShowcaseApp.qml
+ShowcaseCapture 1.0 ShowcaseCapture.qml

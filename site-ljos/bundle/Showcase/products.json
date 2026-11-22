@@ -1,0 +1,55 @@
+[
+  {
+    "id": "office",
+    "name": "The Office",
+    "what": "the Office",
+    "maker": "HAL-C2",
+    "claim": "A whole floor of agents, drawn and moved by one page of QML",
+    "body": [
+      "HAL-C2 runs coding agents in threads. Its Office plugin seats each thread at a desk as a person in a pixel-art office, with the workers it handed work to beside it.",
+      "They type, plan at the whiteboard, read at the bookshelves and wait in the break room. When one agent hands work to another, the two walk over and talk.",
+      "The page is HAL-C2's own plugin, loaded at run time and running on Ljós as written."
+    ],
+    "recording": {
+      "name": "office",
+      "width": 1280,
+      "height": 800,
+      "label": "Recording of the Office: people at their desks type and walk over to talk, with speech bubbles, while others wait in the break room."
+    },
+    "captures": [
+      {
+        "name": "office-hover",
+        "width": 760,
+        "height": 480,
+        "alt": "A person's card in the Office, naming the thread, its project, its agent and what it is doing.",
+        "shows": "Hover a person and its thread's card opens",
+        "about": "Pointer input over a scene drawn on Canvas, with the card bound to the thread's data."
+      },
+      {
+        "name": "office-rooms",
+        "width": 900,
+        "height": 600,
+        "alt": "The review corner with two reviewers at their desks, and the break room with a sofa, a table and someone walking in.",
+        "shows": "The review corner and the break room",
+        "about": "Floor, furniture and a sprite sheet per person are painted once into Canvas items, then only moved."
+      },
+      {
+        "name": "office-desks",
+        "width": 560,
+        "height": 280,
+        "alt": "Two desk teams at their screens, an exclamation mark over a thread whose last turn failed and a question mark over one asking for an answer.",
+        "shows": "A failure and a question, at the desk",
+        "about": "The floor is redrawn from what the plugin publishes. One timer moves everyone, and only while the page is shown."
+      }
+    ],
+    "note": "Recorded off-screen on Linux on 2026-11-21, from HAL-C2 at commit 45ae652. The page is HAL-C2's, unchanged. The threads, projects and lines in it are made up for this recording.",
+    "source": {
+      "label": "The Office's source",
+      "href": "https://github.com/hal-c2/hal-c2/tree/45ae65216639d1d6ad41e8ad3919b407915ef3d8/plugins/office"
+    },
+    "repo": {
+      "label": "HAL-C2 on GitHub",
+      "href": "https://github.com/hal-c2/hal-c2"
+    }
+  }
+]

@@ -325,7 +325,11 @@ const demosTitle = "Live demos";
 const own = {
   "/": "Ljós — malleable software, everywhere",
   "/demos/": `${demosTitle}${after}`,
+  "/showcase/": "Built with Ljós",
 };
+// The apps built with Ljós the showcase shows, as data, and the
+// recordings and captures of each (bundle/Showcase).
+const showcase = JSON.parse(readFileSync(join(bundle, "Showcase/products.json"), "utf8"));
 // The pro demos' pages are the site's own too (scripts/pro.mjs).
 Object.assign(own, Pro.titles(Pro.demos, after));
 const titles = {
@@ -373,6 +377,9 @@ QtObject {
     // The pro demos (Demos/pro.json), each with its route: the shell
     // finds a route's page here, the demos page a card for each.
     readonly property var pro: (${JSON.stringify(Pro.demos.map((demo) => ({ ...demo, route: Pro.route(demo), upstream: undefined })))})
+    // The apps built with Ljós (Showcase/products.json), each with its
+    // recording and captures: the showcase page is made from these.
+    readonly property var showcase: (${JSON.stringify(showcase)})
     readonly property var sidebar: ${JSON.stringify(site.sidebar)}
 }
 `,
@@ -428,7 +435,7 @@ writeFileSync(join(bundle, "Demos/pro-later.js"), Pro.loaders(Pro.demos));
     join(bundle, "Shells/sources.json"),
     `${JSON.stringify({
       shells: Object.fromEntries(["Marketing", "Workbench", "Desktop"].map((name) => [name.toLowerCase(), sourceOf(`Shells/${name}.qml`)])),
-      pages: Object.fromEntries(["Landing", "DemosPage", "DocPage", "ProDemoPage"].map((name) => [name, sourceOf(`Site/${name}.qml`)])),
+      pages: Object.fromEntries(["Landing", "DemosPage", "ShowcasePage", "DocPage", "ProDemoPage"].map((name) => [name, sourceOf(`Site/${name}.qml`)])),
     })}\n`,
   );
 }
@@ -499,6 +506,12 @@ const pages = [
     title: titles["/demos/"],
     description: "Complete Ljós apps running in the page: a shell you rewrite, a 3D scene to orbit, a shader effect, a whole app, and motion.",
     props: { route: "/demos/" },
+  },
+  {
+    route: "/showcase/",
+    title: titles["/showcase/"],
+    description: "Apps that run on Ljós today, recorded as they run: what each shows about the toolkit, and where its source is.",
+    props: { route: "/showcase/" },
   },
   ...Pro.pages(Pro.demos, after),
   ...site.pages.map((page, i) => ({ route: page.route, title: titles[page.route], description: describe(page), props: { route: page.route, page: slim[i] } })),
@@ -697,6 +710,7 @@ const notFound = `<!doctype html>
       <nav aria-label="Site">
         <a href="${base}start/">Docs</a>
         <a href="${base}demos/">Demos</a>
+        <a href="${base}showcase/">Showcase</a>
         <a href="https://github.com/hal-c2/ljos-ui">GitHub</a>
       </nav>
     </header>
@@ -742,6 +756,8 @@ const githubMark = readFileSync(join(bundle, "assets/github-mark.svg"), "utf8");
 for (const [scheme, { text }] of Object.entries(tones())) {
   writeFileSync(join(out, "pictures", scheme === "dark" ? "github-mark-dark.svg" : "github-mark.svg"), githubMark.replace("%TEXT%", () => text));
 }
+// The showcase's recordings and captures, named by its data.
+cpSync(join(bundle, "Showcase/media"), join(out, "showcase/media"), { recursive: true });
 // A live block's picture is named from its payload, not written in
 // any QML the compiler sees, so no build step carries it: the
 // pictures the bundle was built with stand beside the pages.

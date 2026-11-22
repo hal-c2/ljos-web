@@ -28,9 +28,9 @@ function routesUnder(dir, prefix = "") {
   });
 }
 
-// The pro demos are pages of this site alone: the Astro site, the
-// reference for the docs, has no page of theirs.
-const OWN = demos.map(route);
+// The pro demos and the showcase are pages of this site alone: the
+// Astro site, the reference for the docs, has no page of theirs.
+const OWN = ["/showcase/", ...demos.map(route)];
 
 const SECTIONS = [
   { id: "start", label: "Start" },
@@ -42,7 +42,7 @@ const SECTIONS = [
   { id: "rust", label: "Rust" },
 ];
 
-test("the built routes are the docs' routes, the landing page and the demos page", () => {
+test("the built routes are the docs' routes, the landing page, the demos page and the showcase", () => {
   expect(docsDir(), docs.problem).toBeTruthy();
   const expected = ["/", "/demos/", ...OWN, ...readMarkdownSite({ dir: docsDir(), sections: SECTIONS }).pages.map((page) => page.route)].sort();
   expect(routesUnder(join(here, "dist")).sort()).toEqual(expected);

@@ -134,7 +134,7 @@ test("the page's head says tokens.js's colours, for both schemes and for the rea
 // What every page has before any script runs: a language, a title and
 // a description of its own, a viewport, the site's icon and colours,
 // and exactly one render shown — the one for the reader's window.
-const PAGES = ["/", "/demos/", "/start/", "/start/mcp/"];
+const PAGES = ["/", "/demos/", "/showcase/", "/start/", "/start/mcp/"];
 for (const route of PAGES) {
   test(`${route} has a reader's and a crawler's basics, with no script`, async ({ browser }) => {
     for (const [width, scheme] of [
@@ -202,7 +202,7 @@ test("every page's description is at most 160 characters and an ellipsis", () =>
 // A page's outline, as a reader moving by heading hears it: its title
 // is the one heading of the first level, and each heading below it is
 // at most one level deeper than the one before.
-for (const route of ["/", "/demos/", "/start/", "/controls/overview/"]) {
+for (const route of ["/", "/demos/", "/showcase/", "/start/", "/controls/overview/"]) {
   test(`${route} is an outline under one title`, async ({ page }) => {
     await page.goto(route);
     await page.waitForSelector('#app[data-ljos-hydrated="true"]');
@@ -282,7 +282,7 @@ for (const [route, demos] of [
 
 // The first paint is the page: nothing moves as the script takes it
 // over, as a demo comes, or as pictures load.
-for (const route of ["/", "/demos/", "/start/first-app/"]) {
+for (const route of ["/", "/demos/", "/showcase/", "/start/first-app/"]) {
   for (const width of [390, 1440]) {
     test(`${route} at ${width} does not shift as it comes to life`, async ({ browser }) => {
       const context = await browser.newContext({ viewport: { width, height: width < 800 ? 844 : 900 } });

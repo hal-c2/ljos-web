@@ -56,13 +56,14 @@ test("the build wrote the pages read here", () => {
   expect(pages.map(({ at }) => at)).toEqual(expect.arrayContaining([base, `${base}start/`, `${base}demos/`]));
 });
 
-test(`every page's header links to the front page, the docs and the demos, at ${base}`, () => {
+test(`every page's header links to the front page, the docs, the demos and the showcase, at ${base}`, () => {
   const missing = [];
   for (const { at, links } of pages) {
     for (const [name, href] of [
       ["Ljós, home", base],
       ["Docs", `${base}start/`],
       ["Demos", `${base}demos/`],
+      ["Showcase", `${base}showcase/`],
     ]) {
       if (!links.some((link) => link.name === name && link.href === href)) missing.push(`${at}: no link "${name}" to ${href}`);
     }
@@ -86,9 +87,10 @@ test(`every page names its icon at ${base}, and the build wrote it`, () => {
 });
 
 test("every docs page's reading stands beside its HTML, for a shell that shows it in place", () => {
-  // The front page and the demos, the gallery and each pro demo's own
-  // route, are the site's own pages, not docs pages with a reading.
-  const docs = pages.filter(({ at }) => at !== base && !at.startsWith(`${base}demos/`));
+  // The front page, the showcase and the demos, the gallery and each
+  // pro demo's own route, are the site's own pages, not docs pages with
+  // a reading.
+  const docs = pages.filter(({ at }) => at !== base && at !== `${base}showcase/` && !at.startsWith(`${base}demos/`));
   expect(docs.length).toBeGreaterThan(50);
   const unread = docs.filter(({ file, at }) => {
     const reading = join(dirname(file), "page.json");
@@ -408,6 +410,7 @@ test("the site's 404 page has the header, says so, and links home at the base", 
   expect(links).toEqual(expect.arrayContaining([
     { name: "Ljós, home", href: base },
     { name: "Docs", href: `${base}start/` },
+    { name: "Showcase", href: `${base}showcase/` },
     { name: "Go to the front page", href: base },
     { name: "Community principles", href: "https://community-software.org/" },
   ]));

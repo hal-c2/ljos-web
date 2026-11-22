@@ -13,7 +13,7 @@ Item {
     id: source
 
     property var router: null
-    readonly property string name: !router || router.route === "/" ? "Landing" : router.route === "/demos/" ? "DemosPage" : router.pro ? "ProDemoPage" : "DocPage"
+    readonly property string name: !router || router.route === "/" ? "Landing" : router.route === "/demos/" ? "DemosPage" : router.route === "/showcase/" ? "ShowcasePage" : router.pro ? "ProDemoPage" : "DocPage"
     property var all: null
     readonly property var file: all ? all.pages[name] ?? null : null
 

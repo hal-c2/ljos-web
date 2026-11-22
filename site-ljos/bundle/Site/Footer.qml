@@ -64,6 +64,7 @@ Rectangle {
 
             NavLink { label: t`Docs`; to: "/start/"; muted: true; size: Theme.captionSize + 1; line: Theme.captionLine }
             NavLink { label: t`Demos`; to: "/demos/"; muted: true; size: Theme.captionSize + 1; line: Theme.captionLine }
+            NavLink { label: t`Showcase`; to: "/showcase/"; muted: true; size: Theme.captionSize + 1; line: Theme.captionLine }
             NavLink { label: t`Your first app`; to: "/start/first-app/"; muted: true; size: Theme.captionSize + 1; line: Theme.captionLine }
             NavLink { label: t`GitHub`; to: "https://github.com/hal-c2/ljos-ui"; muted: true; size: Theme.captionSize + 1; line: Theme.captionLine }
             // How the project means to work together, on every page.

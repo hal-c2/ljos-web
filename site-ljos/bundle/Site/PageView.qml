@@ -170,7 +170,7 @@ Flickable {
         Column {
             width: view.width
             Accessible.role: Accessible.Client
-            Accessible.name: docItem.visible ? (docItem.page ? docItem.page.title : "") : pageLoader.route === "/demos/" ? "Live demos" : view.router && view.router.pro ? view.router.pro.title : "Home"
+            Accessible.name: docItem.visible ? (docItem.page ? docItem.page.title : "") : pageLoader.route === "/demos/" ? "Live demos" : pageLoader.route === "/showcase/" ? "Built with Ljós" : view.router && view.router.pro ? view.router.pro.title : "Home"
 
             // Only this route's page is made, so the HTML the build
             // writes for a route holds that page and no other. The
@@ -186,7 +186,7 @@ Flickable {
                 active: visible
                 width: Math.min(view.measure, view.width - 2 * view.gutter)
                 x: Math.round((view.width - width) / 2)
-                sourceComponent: route === "/" ? landingPage : route === "/demos/" ? demosPage : view.router && view.router.pro ? proPage : emptyPage
+                sourceComponent: route === "/" ? landingPage : route === "/demos/" ? demosPage : route === "/showcase/" ? showcasePage : view.router && view.router.pro ? proPage : emptyPage
             }
             DocPage {
                 id: docItem
@@ -222,6 +222,13 @@ Flickable {
     Component {
         id: demosPage
         DemosPage {
+            scroller: view
+            wide: view.wide
+        }
+    }
+    Component {
+        id: showcasePage
+        ShowcasePage {
             scroller: view
             wide: view.wide
         }
