@@ -6,8 +6,9 @@ import { createHash } from "node:crypto";
 
 // Draws an example on each scheme's paper (an example with no dark
 // render is its one render on both) and says of each whether it is
-// blank: the picture the empty stage makes, to the byte. Not paper
-// within a tolerance: pale content is content.
+// blank: the picture the empty stage makes, or the one its root window's
+// own ground makes with nothing on it, to the byte. Not paper within a
+// tolerance: pale content is content.
 export async function drawPictures(page, { html, htmlDark, width, height, stages, to = {} }) {
   await page.setViewportSize({ width, height });
   const shot = async (stage, drawn, path) => {
@@ -17,7 +18,18 @@ export async function drawPictures(page, { html, htmlDark, width, height, stages
   const blank = {};
   for (const [scheme, drawn] of Object.entries({ light: html, dark: htmlDark ?? html })) {
     const empty = await shot(stages[scheme], "");
-    blank[scheme] = (await shot(stages[scheme], drawn, to[scheme])).equals(empty);
+    const picture = await shot(stages[scheme], drawn, to[scheme]);
+    blank[scheme] = picture.equals(empty);
+    if (blank[scheme]) continue;
+    // A window paints its ground whatever is on it, so one whose content
+    // waits (a popup at the start of its fade) is empty too. Its styles
+    // stand beside it and stay.
+    const bared = await page.evaluate(() => {
+      const root = document.querySelector("#app > .qq-window");
+      root?.replaceChildren();
+      return Boolean(root);
+    });
+    if (bared) blank[scheme] = (await page.screenshot({ clip: { x: 0, y: 0, width, height } })).equals(picture);
   }
   return { blank };
 }

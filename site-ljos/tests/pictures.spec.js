@@ -10,6 +10,10 @@ const papers = { light: light.paper, dark: dark.paper };
 const stageOf = (paper) => `<!doctype html><style>html,body{margin:0;background:${paper}}</style>`;
 const stages = { light: stageOf(papers.light), dark: stageOf(papers.dark) };
 const box = (colour) => `<div style="width:60px;height:40px;background:${colour}"></div>`;
+const square = (colour) => `<div style="width:20px;height:20px;background:${colour}"></div>`;
+// A root window as it prerenders: its styles, then itself with its ground on it.
+const windowOn = (ground, inner) =>
+  `<style>.qq-window{position:absolute;left:0;top:0;width:100%;height:100%}</style><div class="qq-window" style="background:${ground}">${inner}</div>`;
 
 async function drawn(page, info, html, htmlDark = html) {
   const to = { light: info.outputPath("light.png"), dark: info.outputPath("dark.png") };
@@ -45,6 +49,22 @@ test("nothing drawn in either scheme is blank in both", async ({ page }, info) =
 
 test("an item that paints nothing is blank", async ({ page }, info) => {
   expect((await drawn(page, info, box("transparent"))).blank).toEqual({ light: true, dark: true });
+});
+
+test("a window that shows only its own ground is blank", async ({ page }, info) => {
+  const hidden = '<div style="width:20px;height:20px;background:red;opacity:0"></div>';
+  const { blank } = await drawn(page, info, windowOn("white", hidden), windowOn("black", hidden));
+  expect(blank).toEqual({ light: true, dark: true });
+});
+
+test("pale content on a window's ground is not blank", async ({ page }, info) => {
+  const { blank } = await drawn(page, info, windowOn("white", square("#f7f7f7")), windowOn("black", square("#101010")));
+  expect(blank).toEqual({ light: false, dark: false });
+});
+
+test("content the colour of its window's ground is blank in that scheme alone", async ({ page }, info) => {
+  const { blank } = await drawn(page, info, windowOn("#efefef", square("#efefef")), windowOn("black", square("#2f2f2f")));
+  expect(blank).toEqual({ light: true, dark: false });
 });
 
 test("a picture the same in both schemes ships once", async ({ page }, info) => {
