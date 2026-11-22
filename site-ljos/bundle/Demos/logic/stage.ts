@@ -73,13 +73,22 @@ export function parsed(ok: boolean, text: string): Answer {
 // A value as the log shows it: short, one line, and an array of records as
 // how many there are, so a call that sends four tickets reads as one.
 export function shown(value: unknown): string {
-    if (typeof value === "string") return JSON.stringify(value)
+    if (typeof value === "string") return quoted(value)
     if (Array.isArray(value)) {
         if (value.length > 1 && value.every(isRecord)) return `[${value.length} × {${keys(value[0]).join(", ")}}]`
         return `[${value.map(shown).join(", ")}]`
     }
     if (isRecord(value)) return `{${fieldsText(value)}}`
     return `${value}`
+}
+
+// A string in quotes. One whose double quotes are all it would have to
+// escape, as a locator's are, stands in single ones, so it reads as written.
+function quoted(text: string): string {
+    const json = JSON.stringify(text)
+    if (!text.includes("\"") || text.includes("'")) return json
+    const bare = text.replaceAll("\"", "")
+    return JSON.stringify(bare) === `"${bare}"` ? `'${text}'` : json
 }
 
 function fieldsText(fields: Record<string, unknown>): string {
