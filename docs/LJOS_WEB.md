@@ -695,7 +695,8 @@ to `render.js`. wgpu then draws that view and tells of the files that
 failed. A view no one asked a renderer of goes back to `render.js` where
 wgpu cannot make it or its GPU is lost for good; a turned one also where
 it loses its context, the renderer traps or such a thing comes to the
-scene (A25's DECISIONs). A page whose policy refuses WebAssembly has
+scene (A25's DECISIONs). One the address or the build chose wgpu for is
+never handed back. A page whose policy refuses WebAssembly has
 `render.js` throughout, as one with `?view3d=js` or
 `VITE_LJOS_VIEW3D=js` has; `?view3d=wgpu` there says why it cannot.
 Picking stays in JavaScript (`pick.js`), not wasm.
@@ -1716,6 +1717,8 @@ no one asked for wgpu, `render.js` has back a view whose first making on
 wgpu fails or traps or whose GPU is lost for good, and a turned one that
 loses its context, whose renderer traps, or that comes to show what is
 left to `render.js`; the console says why of a failure, trap or loss.
+Where the address or the build chose wgpu there is no hand-back of any
+of these.
 A trap in what `create` waits on never settles its promise, as the wasm
 aborts: the page hears it (`created` in `wgpu.js`),
 the view queued behind is not kept waiting, and no view is made on wgpu
@@ -1785,16 +1788,21 @@ targets in a CustomMaterial, KTX pictures, what a probe mirrors, a blurred sky, 
 skin, Mask and Opaque with an opacity, a picture given as numbers by fractions,
 affectors, and a view of very many nodes.
 
-DECISION: JavaScript stays the renderer of a View3D without a WebGPU adapter,
-or on a page that cannot run WebAssembly, until those specs pass and until
-a scene's rebuild and a view read back as a texture cost less than they do: a
-View3D drawn into another's scene reads back every frame. The exception is
-the one above: where WebAssembly runs, a view turns to wgpu on WebGL 2 for
-files only wgpu reads while it shows nothing left to JavaScript, and goes
-back to JavaScript where wgpu cannot make it, its context is lost, the
-renderer traps or it comes to show such a thing. With an adapter wgpu is
-the default, and hands back what it cannot make or whose GPU is lost for
-good.
+DECISION: JavaScript stays the renderer of a View3D without a WebGPU adapter
+until those specs pass and until a scene's rebuild and a view read back as a
+texture cost less than they do: a View3D drawn into another's scene reads
+back every frame. The exception is the one above: where WebAssembly runs, a
+view no one asked a renderer of turns to wgpu on WebGL 2 for files only wgpu
+reads while it shows nothing left to JavaScript, and goes back to JavaScript
+where wgpu cannot make it, its context is lost, the renderer traps or it
+comes to show such a thing. With an adapter wgpu is the default where
+WebAssembly runs, and hands back what it cannot make or whose GPU is lost
+for good, unless the address or the build chose it: then nothing is handed
+back.
+
+DECISION: on a page that cannot run WebAssembly JavaScript is the renderer
+whatever those specs do, as wgpu is WebAssembly. An address that asks for
+wgpu there is told why it cannot have it.
 
 ### A26. A page written at build time, and taken over when it runs
 
