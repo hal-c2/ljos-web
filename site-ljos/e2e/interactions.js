@@ -110,7 +110,7 @@ export const interactions = {
   "/language/controllers/#2": { act: tap, expect: (text) => /^1 taps/m.test(text) },
   "/language/match/#6": { act: tap, expect: (text) => /^Next: \S/m.test(text) },
   // The handler's pipe resolves a promise: 12 doubled, in pixels.
-  "/language/pipe/#3": { act: tap, expect: (text) => text.includes("24 px") },
+  "/language/pipe/#5": { act: tap, expect: (text) => text.includes("24 px") },
   // A typed TypeScript module's answer, drawn: only("b") is 3.
   "/start/#1": { act: reads, expect: (text) => text.includes('Logic.only("b") is 3') },
   // An .lts module's typed widths, added: 1 and 3.
