@@ -135,3 +135,15 @@ test("what is said is what ARIA allows on the role it is said with", async ({ pa
   expect(said.busy).toEqual({ role: "progressbar", "aria-valuenow": "0.5", "aria-valuemin": "0", "aria-valuemax": "1" });
   expect(said.result).toEqual({ role: "listitem", "aria-label": "Result", "aria-current": "true" });
 });
+
+// Qt's tools find an object by its objectName; a page's tests find the
+// item's element by it, without reading words a translation changes.
+test("an item's objectName is on its element, and only where it has one", async ({ page }) => {
+  await open(page, "objectname");
+  const named = () => page.evaluate(() => [...document.querySelectorAll("[data-object-name]")].map((node) => node.dataset.objectName));
+  expect(await named()).toEqual(["card"]);
+  await page.evaluate(() => (window.objects.named.objectName = "picked"));
+  expect(await named()).toEqual(["picked"]);
+  await page.evaluate(() => (window.objects.named.objectName = ""));
+  expect(await named()).toEqual([]);
+});
