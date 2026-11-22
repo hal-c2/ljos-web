@@ -14,3 +14,8 @@ already existed and predate both rebases on da3ad7ff.
   2026-11-22 in headless Chromium 158.0.8127.18 with no network, at 1440x900
   and 390x844, light and dark. Four shots identical to another are left out.
   Nothing was pressed: the demos show what they show before Run.
+- 171/c734c463: CI's site-ljos-root artifact (14766355994) of site run
+  45051613200, for head c734c4634bdd37372c5660f8696f4112509dc61a. Taken on
+  2026-11-22 in headless Chromium with no network, at 1440x900 and 390x844,
+  light and dark: the replay's start, the board arriving, its end, the code
+  further down, and the first screen with reduced motion. Nothing was pressed.
