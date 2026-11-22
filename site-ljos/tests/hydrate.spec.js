@@ -7,7 +7,7 @@
 import { expect, test } from "@playwright/test";
 
 const base = (process.env.LJOS_SITE_BASE ?? "/").replace(/\/?$/, "/");
-const ROUTES = ["", "demos/"];
+const ROUTES = ["", "demos/", "showcase/"];
 const SIZES = [
   { width: 1440, height: 900 },
   { width: 390, height: 844 },

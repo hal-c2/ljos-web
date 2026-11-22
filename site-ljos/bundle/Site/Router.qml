@@ -24,7 +24,9 @@ QtObject {
     property var view: null
 
     readonly property bool demosRoute: route.startsWith("/demos/")
-    readonly property bool docsRoute: route !== "/" && !demosRoute
+    // The apps built with Ljós (Site/ShowcasePage.qml).
+    readonly property bool showcaseRoute: route === "/showcase/"
+    readonly property bool docsRoute: route !== "/" && !demosRoute && !showcaseRoute
     // The pro demo this route is the page of (Demos/pro.json), or null.
     readonly property var pro: Content.pro.find((demo) => demo.route === route) ?? null
     readonly property var headings: docsRoute && page !== null && page.headings ? page.headings : []
@@ -34,14 +36,15 @@ QtObject {
     // The places the header names, with which one the reader is in.
     readonly property var sections: [
         { label: t`Docs`, to: "/start/", current: docsRoute },
-        { label: t`Demos`, to: "/demos/", current: demosRoute }
+        { label: t`Demos`, to: "/demos/", current: demosRoute },
+        { label: t`Showcase`, to: "/showcase/", current: showcaseRoute }
     ]
     readonly property string github: "https://github.com/hal-c2/ljos-ui"
 
     // The site's pages as a tree: the front page, the demos and each one,
     // then the docs in their sections, for a shell that lists them all.
     readonly property var tree: [
-        { label: t`Ljós`, pages: [{ route: "/", title: t`Home` }, { route: "/demos/", title: t`Demos` }].concat(Content.pro.map((demo) => ({ route: demo.route, title: demo.title }))) }
+        { label: t`Ljós`, pages: [{ route: "/", title: t`Home` }, { route: "/demos/", title: t`Demos` }, { route: "/showcase/", title: t`Showcase` }].concat(Content.pro.map((demo) => ({ route: demo.route, title: demo.title }))) }
     ].concat(Content.sidebar.map((section) => ({ label: section.label, pages: section.pages })))
 
     // Said after each move to another page or place on it, so a shell
@@ -53,6 +56,8 @@ QtObject {
             return t`Home`;
         if (to === "/demos/")
             return t`Demos`;
+        if (to === "/showcase/")
+            return t`Showcase`;
         var demo = Content.pro.find((one) => one.route === to);
         if (demo)
             return demo.title;
@@ -113,8 +118,8 @@ QtObject {
         Nav.follow(Content.base, {
             title: (to) => Nav.titled(Content.titles, Content.sidebar, Content.after, to),
             // A docs page's reading stands beside its HTML (the build's
-            // page.json); the front page and the demos need none.
-            reading: (to) => to === "/" || to.startsWith("/demos/") ? null : Nav.at(Content.base, to) + "page.json",
+            // page.json); the front page, the demos and the showcase need none.
+            reading: (to) => to === "/" || to === "/showcase/" || to.startsWith("/demos/") ? null : Nav.at(Content.base, to) + "page.json",
             page: () => router.page,
             show: (to, fragment, offset, reading) => router.show(to, fragment, offset, reading),
             offset: () => router.view ? router.view.offset : 0

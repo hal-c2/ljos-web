@@ -10,7 +10,7 @@ import { extname, join, normalize, resolve } from "node:path";
 const dir = resolve(process.argv[2] ?? "dist");
 const port = Number(process.argv[3] ?? 4471);
 const base = process.argv[4] ?? process.env.LJOS_SITE_BASE ?? "/";
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png", ".json": "application/json", ".wasm": "application/wasm", ".xml": "application/xml", ".txt": "text/plain" };
+const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml", ".png": "image/png", ".json": "application/json", ".wasm": "application/wasm", ".xml": "application/xml", ".txt": "text/plain", ".webp": "image/webp", ".avif": "image/avif", ".webm": "video/webm", ".mp4": "video/mp4" };
 
 createServer((request, response) => {
   let path = decodeURIComponent(new URL(request.url, "http://site").pathname);
@@ -34,5 +34,20 @@ createServer((request, response) => {
     else response.writeHead(404).end("not here\n");
     return;
   }
-  response.writeHead(200, { "content-type": TYPES[extname(file)] ?? "application/octet-stream" }).end(readFileSync(file));
+  const type = TYPES[extname(file)] ?? "application/octet-stream";
+  // A part of a file, as Pages sends one: what a browser asks of a
+  // recording it plays, and Safari plays none it cannot ask a part of.
+  const range = /^bytes=(\d*)-(\d*)$/.exec(request.headers.range ?? "");
+  if (range && (range[1] !== "" || range[2] !== "")) {
+    const body = readFileSync(file);
+    const start = range[1] === "" ? Math.max(0, body.length - Number(range[2])) : Number(range[1]);
+    const end = range[1] === "" || range[2] === "" ? body.length - 1 : Math.min(Number(range[2]), body.length - 1);
+    if (start > end || start >= body.length) {
+      response.writeHead(416, { "content-range": `bytes */${body.length}` }).end();
+      return;
+    }
+    response.writeHead(206, { "content-type": type, "accept-ranges": "bytes", "content-range": `bytes ${start}-${end}/${body.length}` }).end(body.subarray(start, end + 1));
+    return;
+  }
+  response.writeHead(200, { "content-type": type, "accept-ranges": "bytes" }).end(readFileSync(file));
 }).listen(port, "127.0.0.1", () => console.log(`site-ljos: ${dir} at http://127.0.0.1:${port}${base}`));
