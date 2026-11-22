@@ -11,7 +11,8 @@ import "../observing.js" as Observing
 // moves when the demo comes. The picture is the demo's poster, and
 // under it a toolbar with Run (Runner): nothing is ever drawn over the
 // demo. The demo is made in a reader's browser once they press Run or
-// its poster, fades in over its picture, and runs only while
+// its poster (or, for one that starts itself, once it is on screen),
+// fades in over its picture, and runs only while
 // it is on screen and its tab is shown (`active`), gently where the
 // reader asks for less motion (`calm`). One more demo or example
 // started past the page's budget (Running) stops it: it is unmade, and
@@ -68,6 +69,18 @@ Item {
     // with no jump where the demo changes its layout, and a frame wide
     // enough that its picture is that tall keeps the picture's shape.
     property int least: 0
+    // For the front page's replay alone (README, "What runs, and when"):
+    // it starts once on screen, unless the reader asked for less motion.
+    // Once only: what a reader pauses, or the budget stops, stays so.
+    property bool startsItself: false
+    property bool startedItself: false
+    readonly property bool startable: startsItself && runnable && !Theme.calm && runner.onScreen && Running.shown
+    onStartableChanged: {
+        if (!startable || startedItself)
+            return;
+        startedItself = true;
+        runner.run();
+    }
 
     // The demo's own area, its poster's shape or taller (`least`); the
     // toolbar under it.
@@ -177,7 +190,10 @@ Item {
             y: 1
             width: frame.width - 2
             height: frame.surfaceHeight - 1
-            active: frame.poster !== null && !(frame.drawn && loader.opacity === 1)
+            // Where the demo starts itself its poster is hidden, not unmade:
+            // the page is still being taken over as written when it starts.
+            active: frame.poster !== null && (frame.startsItself || !(frame.drawn && loader.opacity === 1))
+            visible: !(frame.drawn && loader.opacity === 1)
             sourceComponent: frame.poster
             onLoaded: frame.give(item)
         }
@@ -221,6 +237,7 @@ Item {
         // DECISION: made when the reader presses Run, not as the frame
         // nears the screen: a demo the reader never asks for costs them
         // no GPU device, and one the budget stops gives its device back.
+        // The one exception takes no GPU device (`startsItself`).
         active: frame.runnable && runner.started
         sourceComponent: frame.demo
         source: frame.demo ? undefined : frame.source

@@ -122,7 +122,7 @@ Rectangle {
         }
         Text {
             width: parent.width
-            text: "This site is itself a Ljós app, written out as HTML at build time and brought to life in the page."
+            text: "This site is itself a Ljós app, written to HTML when it’s built and live in your browser."
             color: Theme.textMuted
             font.family: Theme.sans
             font.pixelSize: Theme.captionSize

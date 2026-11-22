@@ -3,7 +3,8 @@ pragma Singleton
 import Ljos.Core
 import QtQuick
 
-// The agent session the landing replays: each step one MCP tool call, with
+// The agent session the landing replays, from the app as a list to the
+// same app as a board: each step one MCP tool call, with
 // the arguments a coding agent sent the dispatch card's inspector. The
 // replay sends them for real, to the card on the page, so what the log
 // shows is what the page's inspector answered; only the agent's choice of
@@ -24,19 +25,14 @@ QtObject {
 
     // `$found` is the ref the last app_find answered with.
     readonly property var steps: [
-        { tool: "app_status", args: {}, say: t`Is the app up, and what can I do to it?`, wait: 1100 },
-        { tool: "app_objects", args: { depth: 2 }, say: t`Read the live tree before touching anything.`, wait: 1100 },
-        { tool: "app_set_property", args: { target: "#dispatch", property: "heading", value: heading }, say: t`The window is empty. Give it a heading.`, wait: 1200 },
-        { tool: "app_set_property", args: { target: "#dispatch", property: "tickets", value: tickets.slice(0, 1) }, say: t`Stream the tickets in, one call each.`, wait: 450 },
-        { tool: "app_set_property", args: { target: "#dispatch", property: "tickets", value: tickets.slice(0, 2) }, say: "", wait: 450 },
-        { tool: "app_set_property", args: { target: "#dispatch", property: "tickets", value: tickets.slice(0, 3) }, say: "", wait: 450 },
-        { tool: "app_set_property", args: { target: "#dispatch", property: "tickets", value: tickets }, say: "", wait: 1100 },
-        { tool: "app_set_property", args: { target: "#dispatch", property: "filters", value: filters }, say: t`Offer a filter. The card draws the button itself, from data.`, wait: 1200 },
-        { tool: "app_find", args: { locator: "role=button[name=\"Open only\"]" }, say: t`Find the filter the way a screen reader hears it.`, wait: 1000 },
-        { tool: "app_click", args: { target: "$found" }, say: t`Press it, where a person's pointer would land.`, wait: 1300 },
-        { tool: "app_find", args: { locator: `role=button[name="Assign crew to ${uncrewed}"]` }, say: t`One open ticket has no crew. Find its button by role and name.`, wait: 1000 },
+        { tool: "app_status", args: {}, say: t`Check that the app is running.`, wait: 500 },
+        { tool: "app_objects", args: { depth: 2 }, say: t`Look at the app before changing it.`, wait: 900 },
+        { tool: "app_set_property", args: { target: "#dispatch", property: "layout", value: "board" }, say: t`Turn the list into a board, without restarting it.`, wait: 2200 },
+        { tool: "app_find", args: { locator: "role=button[name=\"Open only\"]" }, say: t`Find the filter by its name on screen.`, wait: 1000 },
+        { tool: "app_click", args: { target: "$found" }, say: t`Press it, as a person would.`, wait: 1300 },
+        { tool: "app_find", args: { locator: `role=button[name="Assign crew to ${uncrewed}"]` }, say: t`One open ticket has no crew. Find its button.`, wait: 1000 },
         { tool: "app_click", args: { target: "$found" }, say: "", wait: 1300 },
-        { tool: "app_get_property", args: { target: "#dispatch", property: "unassigned" }, say: t`Check the app agrees: no open ticket is left without a crew.`, wait: 1100 },
-        { tool: "app_screenshot", args: { max_size: 320 }, say: t`Look at what a person sees now.`, wait: 1400 }
+        { tool: "app_get_property", args: { target: "#dispatch", property: "unassigned" }, say: t`Check that no open ticket is left without a crew.`, wait: 1100 },
+        { tool: "app_screenshot", args: { max_size: 320 }, say: t`Take a screenshot to check the result.`, wait: 1400 }
     ]
 }

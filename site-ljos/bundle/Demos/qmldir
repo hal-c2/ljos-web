@@ -2,6 +2,7 @@ module Demos
 singleton PantryProject 1.0 PantryProject.qml
 PantryDemo 1.0 PantryDemo.qml
 PantryShell 1.0 PantryShell.qml
+singleton DispatchSource 1.0 DispatchSource.qml
 singleton AgentReplay 1.0 AgentReplay.qml
 DispatchCard 1.0 DispatchCard.qml
 AgentLogRow 1.0 AgentLogRow.qml

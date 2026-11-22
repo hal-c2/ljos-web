@@ -129,7 +129,7 @@ Column {
                     picture: "/pictures/demo-orbit.webp"
                     pictureDark: "/pictures/demo-orbit-dark.webp"
                     what: t`the 3D demo`
-                    description: t`A lit 3D scene of shapes on a floor, which a drag turns.`
+                    description: t`A lit 3D scene of shapes on a floor. Drag to turn it.`
                     source: Later.orbit
                 }
             }
