@@ -1577,6 +1577,53 @@ test.describe("a View3D no one asked a renderer of", () => {
     expect(await page.evaluate(RENDERERS)).toEqual([{ renderer: "wgpu", lost: 2, error: null }]);
   });
 
+  // A loss told once the view is kept but before Solid flushed that, in a
+  // microtask queued as the view was made: the kept view is read without
+  // waiting on the flush, so the loss is acted on and not put off with no
+  // make left to act on it. No browser tells a loss there today; the host's
+  // `lost` is called by hand to reach it.
+  test("a view whose device's loss is told before its keeping is flushed is made again, and draws", async ({ page }) => {
+    await page.addInitScript(LOSABLE);
+    await page.goto("/?scene=shaded3d");
+    await page.waitForFunction(() => window.ready);
+    test.skip(!(await page.evaluate(async () => !!(await navigator.gpu?.requestAdapter()))), "WebGPU has no adapter here");
+    expect(await (await drawn(page)).jsonValue()).toBe("wgpu");
+    await page.evaluate(async () => {
+      const address = performance.getEntriesByType("resource").find(({ name }) => /\/wgpu\/ljos_web_3d\.js/.test(name)).name;
+      const { View3d } = await import(address);
+      const create = View3d.create;
+      View3d.create = function (canvas, host) {
+        window.host = host;
+        return create.call(this, canvas, host);
+      };
+      // `backend` is asked just before the view is kept, in the same task:
+      // what it queues runs after `setMade`, ahead of the flush it queued.
+      const backend = View3d.prototype.backend;
+      window.tellAfterKept = 0;
+      View3d.prototype.backend = function (...args) {
+        if (window.tellAfterKept && window.tellAfterKept--) {
+          const host = window.host;
+          // Told by hand, the device itself not destroyed: its own loss
+          // would come later and be told again.
+          queueMicrotask(() => host.lost("the device was lost"));
+        }
+        return backend.apply(this, args);
+      };
+      window.frames = document.querySelector(".qq-view3d").$view3d.frames;
+      window.tellAfterKept = 1;
+      await window.loseGpu();
+    });
+    // Made a third time, and it draws: the second view was told its loss
+    // once it was kept, and never drew. On the same device, as the page
+    // shares one and that one was not really lost.
+    await page.waitForFunction(() => {
+      const state = document.querySelector(".qq-view3d").$view3d;
+      if (state.error) throw new Error(state.error);
+      return state.lost === 2 && state.frames > window.frames;
+    });
+    expect(await page.evaluate(RENDERERS)).toEqual([{ renderer: "wgpu", lost: 2, error: null }]);
+  });
+
   // A GPU that keeps dying is given up for the page, at the fourth loss
   // within a minute: every view draws on the JavaScript renderer.
   const twoOnWgpu = async (page) => {
