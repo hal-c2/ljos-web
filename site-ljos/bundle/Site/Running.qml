@@ -2,7 +2,9 @@ pragma Singleton
 import QtQuick
 
 // What runs on the page. The rule of thumb (site-ljos/README.md):
-// nothing runs until the reader asks. A plain example runs when its
+// nothing runs until the reader asks, but the front page's replay,
+// which starts itself on screen unless the reader wants less motion.
+// A plain example runs when its
 // picture is pressed or its code edited; one that is a window, draws
 // in 3D, or keeps moving on its own (a timer, an animation that
 // loops), and every demo but the Pantry, waits for the reader to

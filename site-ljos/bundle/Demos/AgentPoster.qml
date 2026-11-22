@@ -5,8 +5,9 @@ import Site
 import "logic/stage.ts" as Stage
 
 // The agent replay's poster: where it ends, drawn by its own parts and
-// still, so the page as written shows the card the agent made and the
-// calls that made it before anything runs. What each call answered is the
+// still, so the page as written, and a reader who asked for less motion,
+// has the board the agent turned the list into and the calls that did it
+// before anything runs. What each call answered is the
 // live stage's to say: the poster's calls have no state, as none of
 // them is on its way beside a card that is finished.
 AgentView {
@@ -24,10 +25,11 @@ AgentView {
         card.tickets = AgentReplay.tickets;
         card.filters = AgentReplay.filters;
         card.openOnly = true;
+        card.layout = "board";
         card.crews = crews;
-        // The calls past the tickets, as the end of the log shows them.
+        // From the call that reshaped it on, as the end of the log shows them.
         const steps = AgentReplay.steps;
-        for (let i = 7; i < steps.length; i++) {
+        for (let i = steps.findIndex((step) => step.args.property === "layout"); i < steps.length; i++) {
             const step = steps[i];
             if (step.say !== "")
                 log.append({ kind: "say", text: step.say, tool: "", args: "", summary: "", answer: "", image: "" });

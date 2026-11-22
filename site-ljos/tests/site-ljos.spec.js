@@ -14,6 +14,9 @@ import { highlight } from "ljos-web/markdown";
 // here, without the newline that ends the file (the editor shows none).
 const APP_SHELL = readFileSync(new URL("../bundle/Demos/PantryShell.qml", import.meta.url), "utf8").replace(/\n$/, "");
 
+// The TypeScript beside the front page's app, as the app imports it.
+const BOARD = readFileSync(new URL("../bundle/Demos/logic/board.ts", import.meta.url), "utf8");
+
 // The site reads the build's packed colouring with its own copy of
 // `unpackRich` (a library file imports nothing): the two read alike.
 test("the site reads a block's packed colouring as the runtime does", () => {
@@ -107,6 +110,8 @@ test("the landing page leads with its claim and the agent replay, and never pitc
   expect(words).toContain("shell.qml");
   expect(words).toContain("ShellLoader");
   expect(words).toContain("Slot");
+  // The TypeScript it shows first is the file the app runs (wrapped to fit).
+  expect(words.replace(/\s+/g, " ")).toContain(BOARD.replace(/\s+/g, " ").trim());
   expect(words).not.toMatch(/Qt[\s-]?compatible|compatible with Qt/i);
   // Qt is named on the porting page, not on the front page.
   expect(words).not.toContain("Qt");

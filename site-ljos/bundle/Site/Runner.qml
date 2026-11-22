@@ -5,7 +5,8 @@ import QtQuick
 import Site
 
 // Whether what it lies over runs, an example's stage or a demo. Nothing
-// runs until the reader asks: the stage's toolbar (StageButton) asks
+// runs until the reader asks, but the front page's replay, which starts
+// itself (DemoFrame.startsItself, never said aloud): the stage's toolbar (StageButton) asks
 // with its Run, and a press anywhere on the picture asks too. It draws
 // nothing over what runs: a control over an app would hide what the app
 // draws (a demo's caption, a field) and take the presses meant for it.

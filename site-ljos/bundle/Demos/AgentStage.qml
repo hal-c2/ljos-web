@@ -28,6 +28,7 @@ AgentView {
 
     total: AgentReplay.steps.length
     playing: true
+    Component.onCompleted: reset()
 
     // The ref the last app_find answered.
     property string found: ""
@@ -75,15 +76,16 @@ AgentView {
         stepSerial = ask(next.tool, JSON.stringify(args));
     }
 
-    // Back to the empty window the replay starts from.
+    // Back to the app the replay starts from: its tickets, in a list.
     function reset() {
         stepSerial = -1;
         stepRow = -1;
         found = "";
         at = 0;
-        card.heading = "";
-        card.tickets = [];
-        card.filters = [];
+        card.heading = AgentReplay.heading;
+        card.tickets = AgentReplay.tickets;
+        card.filters = AgentReplay.filters;
+        card.layout = "list";
         card.openOnly = false;
         card.crews = {};
         card.picked = "";
@@ -105,7 +107,7 @@ AgentView {
     }
     onPrevious: {
         // Calls cannot be taken back one by one: the card goes back to
-        // empty and the steps before are sent again, at once.
+        // where it started and the steps before are sent again, at once.
         const to = Math.max(0, at - 1);
         playing = false;
         reset();
@@ -115,6 +117,15 @@ AgentView {
         reset();
         fastTo = -1;
         playing = true;
+    }
+    // The reader's own edit of what the agent's call sets. It takes the
+    // replay's place, or the next call would be theirs to fight.
+    onLayoutPicked: (picked) => {
+        if (picked === card.layout)
+            return;
+        playing = false;
+        card.layout = picked;
+        Observed.say(key, "info", `layout changed to ${picked}`);
     }
     onTabPicked: (picked) => {
         tab = picked;
@@ -190,7 +201,7 @@ AgentView {
             fastTo = -1;
         if (at >= total) {
             playing = false;
-            row({ kind: "end", text: t`Your turn: press any button in the app and watch this log.` });
+            row({ kind: "end", text: t`Your turn: try any button in the app and watch this log.` });
         }
         if (tab === "observer") {
             readTree();

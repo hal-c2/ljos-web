@@ -45,6 +45,18 @@ async function opened(browser, path, wasm) {
     .toBe(1);
   // As long on both, past any debounce and the first second of motion.
   for (let i = 0; i < 40; i++) await page.clock.fastForward(50);
+  // The front page's replay starts itself, and each step stands up to
+  // seconds of held time: on to its last, or each would be caught midway.
+  if (path === "/")
+    await expect
+      .poll(
+        async () => {
+          await page.clock.fastForward(500);
+          return page.evaluate(() => document.querySelector("#app").textContent.includes("Your turn: try any button in the app"));
+        },
+        { timeout: 30_000, intervals: [50], message: `the replay ran to its end ${wasm ? "with" : "without"} WebAssembly` },
+      )
+      .toBe(true);
   // A live block compiles, and says what its example lacks, in real
   // time after a held-clock debounce: move both until the page has said
   // nothing new for half a second.

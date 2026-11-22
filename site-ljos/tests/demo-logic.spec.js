@@ -26,6 +26,17 @@ test("a tap from any start palette moves to the next of the scheme's ramps", () 
   expect(nextPalette(7, count)).toBe(2);
 });
 
+// The TypeScript the front page shows, which lays out the app beside it.
+test("the board puts each ticket in one lane, by whether it has a crew, and the list keeps the one order", async () => {
+  const { lanes } = await import("../bundle/Demos/logic/board.ts");
+  const tickets = [{ key: "A", crew: "" }, { key: "B", crew: "Ana" }, { key: "C", crew: "" }];
+  expect(lanes("list", tickets)).toEqual([{ title: "", tickets }]);
+  expect(lanes("board", tickets)).toEqual([
+    { title: "Needs a crew", tickets: [tickets[0], tickets[2]] },
+    { title: "Crew assigned", tickets: [tickets[1]] },
+  ]);
+});
+
 // The agent replay's log reads each call in a line: what was sent, short,
 // and what came back, in a few words.
 test("the agent log shows a call's arguments short, and puts a found ref where a step names it", async () => {
