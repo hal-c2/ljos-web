@@ -26,8 +26,6 @@
 data/other-views.md 3 web:treeview TreeView is not in ljos-web yet
 data/repeater-and-delegates.md 2 web:delegatechooser DelegateChooser is not in ljos-web yet
 language/controllers.md 5 web:ts-controller a Controller written as a .ts module, controller({...}), is no type to the web's compiler
-language/pipe.md 1 web:pipe-chain a chain of |> with a topic in each step fails before it runs
-language/pipe.md 2 web:pipe-chain a chain of |> with a topic in each step fails before it runs
 rust/models.md 1 host-types titlesModel is a model the Rust program sets
 rust/multimedia.md 1 web:media-pause a media element has no pause() on the web yet
 rust/native-types.md 1 host-types the Example module is the Rust program's
