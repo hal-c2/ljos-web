@@ -519,7 +519,7 @@ test("a reader with no script gets the marketing shell, whatever is kept", async
     await expect(page.locator("html")).not.toHaveAttribute("data-ljos-shell");
     await expect(page.locator("#app")).toHaveCSS("opacity", "1");
     await expect(page.getByRole("link", { name: "Docs", exact: true }).filter({ visible: true }).first()).toBeVisible();
-    await expect(page.getByRole("menubar")).toHaveCount(0);
+    await expect(page.getByRole("tablist", { name: "Open pages" })).toHaveCount(0);
   } finally {
     await context.close();
   }
@@ -565,6 +565,50 @@ for (const viewport of [DESKTOP, PHONE]) {
     });
   }
 }
+
+for (const width of [1000, 1100, 1440]) {
+  test(`the Desktop shell's buttons are centred in their bars, at ${width}`, async ({ browser }) => {
+    const context = await reader(browser, { kept: "desktop", viewport: { width, height: 900 } });
+    try {
+      const page = await context.newPage();
+      await open(page, "/start/cli/");
+      expect(await showing(page)).toBe("desktop");
+      const header = region(page, "Ljós");
+      const top = await header.boundingBox();
+      const toolbar = header.getByRole("toolbar", { name: "Toolbar", exact: true });
+      const tools = await toolbar.boundingBox();
+      const centre = (box) => box.y + box.height / 2;
+      const bars = [
+        // The menu bar is what the header has above its toolbar.
+        { within: header, names: ["File", "View", "Go", "Help"], middle: (top.y + tools.y) / 2 },
+        { within: toolbar, names: ["Back", "Forward", "Home"], middle: centre(tools) },
+      ];
+      for (const { within, names, middle } of bars) {
+        for (const name of names) {
+          const box = await within.getByRole("button", { name, exact: true }).filter({ visible: true }).boundingBox();
+          expect(Math.abs(centre(box) - middle), `${name}'s centre from its bar's`).toBeLessThanOrEqual(1);
+        }
+      }
+    } finally {
+      await context.close();
+    }
+  });
+}
+
+test("the Workbench offers only what it can show", async ({ browser }) => {
+  const context = await reader(browser, { kept: "workbench" });
+  try {
+    const page = await context.newPage();
+    await open(page, "/start/first-app/");
+    expect(await showing(page)).toBe("workbench");
+    const landmark = (name) => page.getByRole("complementary", { name, exact: true }).filter({ visible: true });
+    await expect(landmark("Pages")).toHaveCount(1);
+    await expect(landmark("Source")).toHaveCount(1);
+    for (const name of ["Observer", "Agent"]) await expect(page.getByRole("tab", { name, exact: true })).toHaveCount(0);
+  } finally {
+    await context.close();
+  }
+});
 
 // What `data-ljos-swap` was set to, each time (shells.js `swap`).
 const swaps = () => {

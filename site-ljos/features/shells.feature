@@ -4,9 +4,9 @@ Feature: The site is shown in a shell the reader picks
   its own in site-ljos/bundle/Shells/ that only says where each of the
   site's pieces goes. Three ship: Marketing, the one every page is
   written in and the one a reader with no script gets; Workbench, the
-  pages on the left, the page in the middle and its Source, Observer
-  and Agent on the right; and Desktop, a menu bar, a toolbar, the pages
-  in a sidebar, routes as tabs and a status bar. A reader swaps them
+  pages on the left, the page in the middle and its Source on the
+  right; and Desktop, a menu bar, a toolbar, the pages in a sidebar,
+  routes as tabs and a status bar. A reader swaps them
   live, and keeps their page, their place on it and what they did in
   an example on it.
 
@@ -135,6 +135,28 @@ Feature: The site is shown in a shell the reader picks
     When their screen reader lists the page's landmarks
     Then the header shown is one named "Ljós", with the link home in it
     And in the Desktop shell the toolbar is in it too
+
+  Scenario Outline: A kept shell gives a reader all axe asks
+    Given a reader who kept the <shell> shell, in light or dark
+    When they open the front page, a docs page or the demos at a desktop's width
+    Then the page is framed by that shell
+    And axe finds nothing to say of it
+
+    Examples:
+      | shell     |
+      | workbench |
+      | desktop   |
+
+  Scenario: The Desktop shell's buttons are centred in their bars
+    Given a reader in the Desktop shell, at 1000, 1100 or 1440 wide
+    Then File, View, Go and Help are centred in the menu bar
+    And Back, Forward and Home are centred in the toolbar
+
+  Scenario: The Workbench offers only what it can show
+    Given a reader in the Workbench shell
+    Then one landmark is named "Pages"
+    And the panel on the right is the page's Source
+    And no tab offers an Observer or an Agent
 
   Scenario: A swap moves, or with reduced motion crossfades
     When a reader swaps the shell

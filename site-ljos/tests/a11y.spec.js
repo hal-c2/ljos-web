@@ -2,8 +2,9 @@
 // held by axe-core, the checker Lighthouse's accessibility score is
 // made of: the landing, a docs page and the demos page, before any
 // script runs and once they have come to life, at a phone's width and a
-// desktop's, light and dark; and the two parts of the header that only
-// stand once a reader opens them, the phone's menu and search results.
+// desktop's, light and dark; the same in each shell a reader can keep;
+// and the two parts of the header that only stand once a reader opens
+// them, the phone's menu and search results.
 import { createRequire } from "node:module";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
@@ -73,6 +74,31 @@ for (const route of ROUTES) {
           } finally {
             await context.close();
           }
+        }
+      });
+    }
+  }
+}
+
+// The prerendered page is Marketing, which the pages above hold; the
+// others stand only for a reader who kept one, at a desktop's width.
+for (const kept of ["workbench", "desktop"]) {
+  for (const route of ROUTES) {
+    for (const colorScheme of ["light", "dark"]) {
+      test(`${route} in the kept ${kept} shell, in ${colorScheme}, gives a reader all axe asks`, async ({ browser }) => {
+        const context = await browser.newContext({ viewport: SIZES[1], colorScheme, reducedMotion: "reduce" });
+        try {
+          await context.addInitScript((name) => localStorage.setItem("ljos.dev:shell", name), kept);
+          const page = await context.newPage();
+          await page.goto(route);
+          await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+          await page.waitForFunction(() => "ljosShellShown" in document.documentElement.dataset);
+          // Else axe would pass on the Marketing shell it fell back to.
+          await expect(page.locator("html")).toHaveAttribute("data-ljos-shell-showing", kept);
+          await expect(page.locator("#app")).toHaveCSS("opacity", "1");
+          expect(await violations(page), kept).toEqual([]);
+        } finally {
+          await context.close();
         }
       });
     }

@@ -222,7 +222,8 @@ test("on a phone the footer's words wrap inside the page", async ({ browser }) =
     const page = await context.newPage();
     await page.goto("/");
     await page.waitForSelector('#app[data-ljos-hydrated="true"]');
-    const tagline = page.getByText("Ljós — malleable software, everywhere", { exact: true }).filter({ visible: true }).last();
+    // The footer's own: the hero says the same words.
+    const tagline = page.getByRole("contentinfo").getByText("Ljós — malleable software, everywhere", { exact: true }).filter({ visible: true });
     await tagline.scrollIntoViewIfNeeded();
     const box = await tagline.boundingBox();
     expect(box, "the tagline is laid out").toBeTruthy();
