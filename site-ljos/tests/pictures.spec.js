@@ -7,7 +7,6 @@ import { drawPictures, shipsDark, stagesOf, verdictKey } from "../scripts/pictur
 
 const source = readFileSync(new URL("../bundle/tokens.js", import.meta.url), "utf8").replace(/^\.pragma library$/m, "");
 const { light, dark } = new Function(`${source}\nreturn { light, dark };`)();
-const papers = { light: light.paper, dark: dark.paper };
 const stages = stagesOf({ light, dark });
 const box = (colour) => `<div style="width:60px;height:40px;background:${colour}"></div>`;
 const square = (colour) => `<div style="width:20px;height:20px;background:${colour}"></div>`;
