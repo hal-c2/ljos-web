@@ -991,7 +991,8 @@ function valueText(state: State, value: unknown): { value: string | null; handle
   if (typeof value === "string") return { value };
   if (typeof value === "number" || typeof value === "boolean") return { value: String(value) };
   const object = value as QObject;
-  if (object.$type) return { value: objectText(object), handle: handed(state, object) };
+  // Any value is asked, so `$type` is missing unless it is an object of the page's.
+  if (Boolean(object.$type)) return { value: objectText(object), handle: handed(state, object) };
   if (Array.isArray(value) && value.length > 0 && value.every((each) => (each as QObject)?.$type)) {
     return { value: `[${value.length} objects]`, items: value.map((each) => handed(state, each as QObject)) };
   }
