@@ -23,3 +23,5 @@ already existed and predate both rebases on da3ad7ff.
 - 171/32aa499e: CI's site-ljos-root artifact (14770033245) of site run 45062353299, for head 32aa499ec80c79feaf56661e56034a7d2c0f4d49. Headless Chromium 158.0.8127.18, no network, 1440x900 at 1x and 390x844 at 2x, light and dark: the front page's replay at its start, middle (5.5 s in) and end.
 
 - 131/507d38d9: CI's site-ljos-root artifact (14759573329) of site run 45034362128, for head 507d38d960bca160846739233824d9c3c14a430e. Headless Chromium 158.0.8127.18, no network, 1440x900 at 1x and 390x844 at 2x, light and dark: each shell, picked as a reader would (stored pick), and the shell switcher open.
+
+- 166/4ec366ea: CI's site-ljos-root artifact (14758588267) of site run 45026470945, for head 4ec366ea578715555c70d5ac3ddbfdf31b8121cd. Headless Chromium 158.0.8127.18, no network, 1440x900 at 1x and 390x844 at 2x, light and dark: /showcase/ at its top and two screens down.
