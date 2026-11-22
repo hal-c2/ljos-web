@@ -332,6 +332,68 @@ Rectangle {
   }
 });
 
+// The dark is a second making of the same example, and its answer
+// counts: what refuses there has failed, and what it says there is said.
+plain("what an example refuses or says only in the dark is its answer too", async ({}, info) => {
+  info.setTimeout(180_000);
+  const one = (code) => assemble(extractBlocks("```qml\n" + code.trimEnd() + "\n```\n"), {}).examples[0];
+  const refusing = one(`import QtQuick
+
+Rectangle {
+    function side() {
+        if (Qt.styleHints.colorScheme === Qt.ColorScheme.Dark)
+            throw new Error("no side in the dark");
+        return 40;
+    }
+    width: side()
+    height: 40
+}
+`);
+  const warning = one(`import QtQuick
+
+Rectangle {
+    width: 40
+    height: 40
+    Component.onCompleted: {
+        console.warn("said in both");
+        if (Qt.styleHints.colorScheme === Qt.ColorScheme.Dark)
+            console.warn("said in the dark");
+    }
+}
+`);
+  const sibling = one(`import QtQuick
+
+Rectangle {
+    width: 40
+    height: 40
+    color: palette.window
+}
+`);
+  const cacheDir = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "ljos-codeblock-test-"));
+  try {
+    const examples = [refusing, warning, sibling];
+    const { manifest, failures } = await renderPrerenders(examples, { cacheDir, qmlc, dark: true });
+    expect(failures.map(({ example }) => example), "one failure").toEqual([refusing]);
+    const [first] = failures[0].diagnostics;
+    expect(first).toContain(`${refusing.entry}:1: in the dark scheme: `);
+    expect(first).toContain("no side in the dark");
+    expect(manifest[hashExample(refusing)].failed).toBe(true);
+    const beside = manifest[hashExample(sibling)];
+    for (const file of [beside.file, beside.dark]) expect(existsSync(join(cacheDir, file)), file).toBe(true);
+    expect.soft(manifest[hashExample(warning)].logged, "what it said in either scheme").toEqual(["said in both", "in the dark scheme: said in the dark"]);
+
+    // Served, not made again: the second answer is the cache's own words.
+    const kept = JSON.parse(readFileSync(join(cacheDir, "manifest.json"), "utf8"));
+    kept[hashExample(refusing)].diagnostics = ["as the cache has it"];
+    writeFileSync(join(cacheDir, "manifest.json"), JSON.stringify(kept));
+    const again = await renderPrerenders(examples, { cacheDir, qmlc, dark: true });
+    expect(again.failures).toEqual([{ example: refusing, diagnostics: ["as the cache has it"] }]);
+    expect(again.manifest[hashExample(sibling)]).toEqual(beside);
+  } finally {
+    rmSync(cacheDir, { recursive: true, force: true });
+  }
+});
+
 // A batch of examples is one bundle: what the runtime lacks is told for
 // all of them in it (`lacking`), where a stopped build names one a build
 // and a batch of a dozen such examples is built a dozen times.
