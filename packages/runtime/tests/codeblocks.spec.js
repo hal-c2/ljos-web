@@ -691,6 +691,56 @@ Text {
   }
 });
 
+// There is no server to ask while a page is made: the picture is the
+// example as it is before any response, which the browser then asks for.
+plain("a prerender's request opens, is sent and is aborted, and never completes", async ({}, info) => {
+  info.setTimeout(180_000);
+  const one = (code) => assemble(extractBlocks("```qml\n" + code.trimEnd() + "\n```\n"), {}).examples[0];
+  const waiting = one(`import Ljos.Ui
+import Ljos.Core
+
+Text {
+    id: root
+    text: "before a response"
+    Component.onCompleted: {
+        const http = new XMLHttpRequest()
+        http.onreadystatechange = function () {
+            root.text = \`seen \${http.readyState} of \${XMLHttpRequest.DONE}\`
+        }
+        http.open("GET", "https://example.invalid/act.json", true)
+        http.setRequestHeader("Content-type", "application/json")
+        http.send()
+    }
+}
+`);
+  const aborted = one(`import Ljos.Ui
+import Ljos.Core
+
+Text {
+    id: root
+    text: ""
+    Component.onCompleted: {
+        const http = new XMLHttpRequest()
+        http.open("GET", "names.json")
+        http.send()
+        const sent = http.readyState
+        http.abort()
+        root.text = \`sent at \${sent}, aborted to \${http.readyState}, answered \${http.status}\`
+    }
+}
+`);
+  const cacheDir = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "ljos-codeblock-test-"));
+  try {
+    const { failures } = await renderPrerenders([waiting, aborted], { cacheDir, qmlc });
+    expect(failures.map(({ diagnostics }) => diagnostics.join("\n"))).toEqual([]);
+    const loaded = loadPrerenders(cacheDir);
+    expect(loaded[hashExample(waiting)].html).toContain("seen 1 of 4");
+    expect(loaded[hashExample(aborted)].html).toContain("sent at 1, aborted to 0, answered 0");
+  } finally {
+    rmSync(cacheDir, { recursive: true, force: true });
+  }
+});
+
 // A prerender is made by the compiler's bytes as they are now, and by
 // the 3D renderer the build asks for: a compiler rebuilt where the old
 // one stood, or another renderer, is another stamp.
