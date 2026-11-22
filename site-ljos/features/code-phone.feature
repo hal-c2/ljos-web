@@ -8,3 +8,14 @@ Feature: A code block on a phone
     When the reader scrolls inside the folded code
     Then its last line shows
     And scrolling on from there moves the page
+
+  Scenario: The fold's button keeps the reader's focus
+    Given a phone and an example longer than a screenful
+    When the reader tabs out of its code to Show less and presses Enter
+    Then the code folds and Show all has the focus, in view
+    And pressing Enter again unfolds it with Show less focused
+
+  Scenario: Reading and tabbing follow what a phone shows
+    Given a phone and an example longer than a screenful
+    When the reader goes through the example in page or Tab order
+    Then the stage comes first, then its toolbar, then its code

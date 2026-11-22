@@ -1273,20 +1273,49 @@ test("a phone's long code is folded as it loads, never seen shrinking to it", as
   }
 });
 
+// A button takes no focus of the browser's: the runtime's focus is the
+// ring it draws round the button, the one thing of it wider and taller
+// than the button itself.
+const ringed = (button) =>
+  button.evaluate((node) => {
+    const own = node.getBoundingClientRect();
+    return [...node.querySelectorAll("*")].some((part) => {
+      const box = part.getBoundingClientRect();
+      return (
+        box.width > own.width + 2 &&
+        box.height > own.height + 2 &&
+        getComputedStyle(part).visibility !== "hidden"
+      );
+    });
+  });
+
+// Into the card's code, as a reader who then leaves it by keys: Escape
+// makes the next Tab, or Shift+Tab, leave the editor.
+async function intoCode(page, card) {
+  await card.getByRole("textbox").first().click();
+  await expect(card.locator(".cm-editor.cm-focused")).toHaveCount(1, {
+    timeout: 30_000,
+  });
+  await page.keyboard.press("Escape");
+}
+
 test("Show all keeps the focus, as Show less, and gives it back", async ({
   browser,
 }) => {
   const { context, page } = await onPhone(browser);
   try {
     const card = await foldedCard(page);
-    await card.getByRole("button", { name: /^Show all \d+/ }).focus();
-    await page.keyboard.press("Enter");
-    const less = card.getByRole("button", { name: /^Show less/ });
-    await expect(less).toBeFocused();
-    await page.keyboard.press("Enter");
     const all = card.getByRole("button", { name: /^Show all \d+/ });
-    await expect(all).toBeFocused();
-    await expect(all).toBeInViewport();
+    const less = card.getByRole("button", { name: /^Show less/ });
+    await intoCode(page, card);
+    await page.keyboard.press("Tab");
+    await expect(less, "unfolded code can be folded again").toBeVisible();
+    await expect.poll(() => ringed(less), "Tab leaves the code to Show less").toBe(true);
+    await page.keyboard.press("Enter");
+    await expect.poll(() => ringed(all), "folded, Show all has the focus").toBe(true);
+    await expect(all, "and is where the reader can see it").toBeInViewport();
+    await page.keyboard.press("Enter");
+    await expect.poll(() => ringed(less), "unfolded, Show less has it").toBe(true);
   } finally {
     await context.close();
   }
@@ -1311,13 +1340,17 @@ test("a phone's page and Tab go stage, toolbar, code, as it shows them", async (
       toolbar: true,
     });
 
-    await card.getByRole("button", { name: /^Edit / }).focus();
+    const source = card.getByRole("button", { name: "Show the source" });
+    const edit = card.getByRole("button", { name: /^Edit / });
+    await intoCode(page, card);
+    await page.keyboard.press("Shift+Tab");
+    await expect.poll(() => ringed(source), "before the code, the toolbar").toBe(true);
+    await page.keyboard.press("Shift+Tab");
+    await expect.poll(() => ringed(edit), "and back along it").toBe(true);
     await page.keyboard.press("Tab");
-    await expect(
-      card.getByRole("button", { name: "Show the source" }),
-    ).toBeFocused();
+    await expect.poll(() => ringed(source), "forward again").toBe(true);
     await page.keyboard.press("Tab");
-    await expect(card.getByRole("textbox").first()).toBeFocused();
+    await expect(card.locator(".cm-editor.cm-focused"), "and into the code").toHaveCount(1);
   } finally {
     await context.close();
   }
