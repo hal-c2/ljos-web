@@ -344,7 +344,8 @@ impl<'a> Resolver<'a, '_, '_> {
     }
 
     /// What reads `name` where it is written; None to leave it as it is.
-    /// `written` when it is assigned to: then it has to be one place. What
+    /// `written` when it is assigned to: a choice between objects is then
+    /// made one place of by [`one_place`]. What
     /// the name is, is the front end's reading of the file
     /// ([`qml_front::names`]); what JavaScript reads it as is written here.
     fn bare(&mut self, name: &str, span: Span, written: bool) -> Option<Expression<'a>> {
@@ -1235,9 +1236,14 @@ impl<'a> VisitMut<'a> for Resolver<'a, '_, '_> {
                 Some(Expression::StaticMemberExpression(member)) => {
                     *target = SimpleAssignmentTarget::StaticMemberExpression(member);
                 }
-                Some(_) => self
-                    .errors
-                    .push(Error::new(format!("`{name}` cannot be assigned to"), span)),
+                Some(read) => match one_place(self.b, read, name) {
+                    Some(Expression::StaticMemberExpression(member)) => {
+                        *target = SimpleAssignmentTarget::StaticMemberExpression(member);
+                    }
+                    _ => self
+                        .errors
+                        .push(Error::new(format!("`{name}` cannot be assigned to"), span)),
+                },
                 None => {}
             }
             return;
@@ -1298,6 +1304,30 @@ impl<'a> VisitMut<'a> for Resolver<'a, '_, '_> {
     fn visit_variable_declarator(&mut self, declarator: &mut VariableDeclarator<'a>) {
         declarator.type_annotation = None;
         walk_mut::walk_variable_declarator(self, declarator);
+    }
+}
+
+/// `("n" in $data ? $data : root).n` for what reads
+/// `"n" in $data ? $data.n : root.n`: which object has the name is only
+/// known as the program runs, and whichever it is, its member is the one
+/// place to write. None where a side is no member, as a global is.
+fn one_place<'a>(b: B<'a>, read: Expression<'a>, name: &str) -> Option<Expression<'a>> {
+    Some(b.member(holder(b, read, name)?, name))
+}
+
+/// The object `read` finds `name` on.
+fn holder<'a>(b: B<'a>, read: Expression<'a>, name: &str) -> Option<Expression<'a>> {
+    let allocator = b.allocator();
+    match read {
+        Expression::StaticMemberExpression(mut member) if member.property.name == name => {
+            Some(member.object.take_in(&allocator))
+        }
+        Expression::ConditionalExpression(mut choice) => Some(b.conditional(
+            choice.test.take_in(&allocator),
+            holder(b, choice.consequent.take_in(&allocator), name)?,
+            holder(b, choice.alternate.take_in(&allocator), name)?,
+        )),
+        _ => None,
     }
 }
 
