@@ -182,10 +182,10 @@ Flickable {
             // Only this route's page is made, so the HTML the build
             // writes for a route holds that page and no other. The
             // landing, demos and showcase pages load by route, the
-            // showcase's from a module of its own (later.js); a docs
-            // page stands here directly, its page bound as it is made,
-            // so a prerender, which writes the page as it first stands,
-            // holds it whole.
+            // landing's and the showcase's each from a module of its own
+            // (later.js); a docs page stands here directly, its page bound
+            // as it is made, so a prerender, which writes the page as it
+            // first stands, holds it whole.
             Loader {
                 id: pageLoader
                 readonly property string route: view.router ? view.router.route : "/"
@@ -194,11 +194,17 @@ Flickable {
                 active: visible
                 width: Math.min(view.measure, view.width - 2 * view.gutter)
                 x: Math.round((view.width - width) / 2)
-                sourceComponent: route === "/showcase/" ? null : route === "/" ? landingPage : route === "/demos/" ? demosPage : view.router && view.router.pro ? proPage : emptyPage
-                source: route === "/showcase/" ? Later.showcase : undefined
+                sourceComponent: route === "/" || route === "/showcase/" ? null : route === "/demos/" ? demosPage : view.router && view.router.pro ? proPage : emptyPage
+                source: route === "/" ? Later.landing : route === "/showcase/" ? Later.showcase : undefined
                 // What the showcase reads as it is made (ShowcasePage's
                 // `wide`), so it is bound from the start, not once loaded.
                 readonly property bool wide: view.wide
+                onLoaded: {
+                    if (route !== "/")
+                        return;
+                    item.scroller = view;
+                    item.wide = Qt.binding(() => view.wide);
+                }
             }
             DocPage {
                 id: docItem
@@ -224,13 +230,6 @@ Flickable {
         }
     }
 
-    Component {
-        id: landingPage
-        Landing {
-            scroller: view
-            wide: view.wide
-        }
-    }
     Component {
         id: demosPage
         DemosPage {
