@@ -394,6 +394,77 @@ Rectangle {
   }
 });
 
+// /quality/design-guardrails/'s two windows: a Pane and what is in it.
+// The same Pane with no window round it tells the window's part from the
+// Pane's, and each made alone tells the example's part from the batch's.
+plain("what a root window's Pane holds is in its prerender, made alone or in a batch", async ({}, info) => {
+  info.setTimeout(300_000);
+  const one = (code) => assemble(extractBlocks("```qml\n" + code.trimEnd() + "\n```\n"), {}).examples[0];
+  const examples = {
+    centred: one(`import Ljos.Ui
+import Ljos.Controls.Basic
+
+ApplicationWindow {
+    width: 400
+    height: 240
+    visible: true
+
+    Pane {
+        anchors.centerIn: parent
+        Label {
+            text: "Words in a centred pane"
+        }
+    }
+}
+`),
+    filled: one(`import Ljos.Ui
+import Ljos.Controls.Basic
+
+ApplicationWindow {
+    width: 360
+    height: 120
+    visible: true
+
+    Pane {
+        anchors.fill: parent
+        Row {
+            anchors.fill: parent
+            Label {
+                text: "Words in a filled pane"
+            }
+        }
+    }
+}
+`),
+    windowless: one(`import Ljos.Ui
+import Ljos.Controls.Basic
+
+Pane {
+    width: 360
+    height: 120
+    Label {
+        text: "Words in a pane with no window"
+    }
+}
+`),
+  };
+  const words = { centred: "Words in a centred pane", filled: "Words in a filled pane", windowless: "Words in a pane with no window" };
+  const runs = [...Object.keys(examples).map((name) => [name]), Object.keys(examples)];
+  for (const names of runs) {
+    const cacheDir = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "ljos-codeblock-test-"));
+    try {
+      const { manifest, failures } = await renderPrerenders(names.map((name) => examples[name]), { cacheDir, qmlc });
+      expect(failures, names.join()).toEqual([]);
+      for (const name of names)
+        expect
+          .soft(readFileSync(join(cacheDir, manifest[hashExample(examples[name])].file), "utf8"), `${name}, made with ${names.join()}`)
+          .toContain(words[name]);
+    } finally {
+      rmSync(cacheDir, { recursive: true, force: true });
+    }
+  }
+});
+
 // A batch of examples is one bundle: what the runtime lacks is told for
 // all of them in it (`lacking`), where a stopped build names one a build
 // and a batch of a dozen such examples is built a dozen times.
