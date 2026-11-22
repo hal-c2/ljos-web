@@ -33,7 +33,7 @@ Rectangle {
         x: 12
         y: 8
         color: look.muted1
-        font.pixelSize: 12
+        font.pixelSize: 14
         text: note.label
     }
     // TextField (rather than a bare TextInput) exposes its placeholder as the

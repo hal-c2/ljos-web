@@ -413,7 +413,7 @@ test("the Pantry is looked into while its shell is rewritten", async ({ page }) 
   const code = page.getByRole("textbox", { name: "Edit the Pantry's Shell.qml" }).first();
   // The highlighted code keeps its runs of spaces as no-break ones.
   const text = (await code.innerText()).replaceAll("\u00a0", " ");
-  await centre(page.getByText("Shell.qml — the app's shell, yours to rewrite"));
+  await centre(page.getByText("Shell.qml: edit it live"));
   const top = await code.boundingBox();
   await page.mouse.click(top.x + 80, top.y + 30);
   await expect(page.locator(".cm-editor.cm-focused"), "the code editor has the keyboard").toBeVisible({ timeout: 30_000 });
