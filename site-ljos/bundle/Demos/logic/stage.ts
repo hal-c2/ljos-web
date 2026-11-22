@@ -3,6 +3,8 @@
 // card's state written back as the declarative source it amounts to. The
 // stage holds the state; nothing here keeps any.
 
+import { keys } from "./keys.mjs"
+
 export interface Step {
     readonly tool: string
     readonly args: Record<string, unknown>
@@ -30,7 +32,7 @@ export interface Answer {
 // replay cannot know a handle ahead of the page that mints it.
 export function withFound(args: Record<string, unknown>, found: string): Record<string, unknown> {
     const out: Record<string, unknown> = {}
-    for (const name of Object.keys(args)) {
+    for (const name of keys(args)) {
         const value = args[name]
         out[name] = value === "$found" ? found : value
     }
@@ -44,7 +46,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 // The client's answer text, ok or not: `{structuredContent, content}` when
 // the tool answered, `{error: {code, message}}` when it refused.
 export function parsed(ok: boolean, text: string): Answer {
-    let data: unknown = null
+    let data: unknown
     try {
         data = JSON.parse(text)
     } catch {
@@ -57,7 +59,7 @@ export function parsed(ok: boolean, text: string): Answer {
         return { structured: { code, message }, text: `${code}: ${message}`, image: "" }
     }
     const structured = isRecord(data) && isRecord(data.structuredContent) ? data.structuredContent : {}
-    const content = isRecord(data) && Array.isArray(data.content) ? data.content : []
+    const content: unknown[] = isRecord(data) && Array.isArray(data.content) ? data.content : []
     let said = ""
     let image = ""
     for (const part of content) {
@@ -73,17 +75,25 @@ export function parsed(ok: boolean, text: string): Answer {
 export function shown(value: unknown): string {
     if (typeof value === "string") return JSON.stringify(value)
     if (Array.isArray(value)) {
-        if (value.length > 1 && value.every(isRecord)) return `[${value.length} × {${Object.keys(value[0] as Record<string, unknown>).join(", ")}}]`
+        if (value.length > 1 && value.every(isRecord)) return `[${value.length} × {${keys(value[0]).join(", ")}}]`
         return `[${value.map(shown).join(", ")}]`
     }
-    if (isRecord(value)) return `{${Object.keys(value).map((name) => `${name}: ${shown(value[name])}`).join(", ")}}`
-    return String(value)
+    if (isRecord(value)) return `{${fieldsText(value)}}`
+    return `${value}`
+}
+
+function fieldsText(fields: Record<string, unknown>): string {
+    return keys(fields).map((name: string) => `${name}: ${shown(fields[name])}`).join(", ")
+}
+
+// A value that may be missing, which reads as null.
+function shownOrNull(value: unknown): string {
+    return value === null || value === undefined ? "null" : shown(value)
 }
 
 export function argsText(args: Record<string, unknown>): string {
-    const names = Object.keys(args)
-    if (names.length === 0) return "{}"
-    return `{ ${names.map((name) => `${name}: ${shown(args[name])}`).join(", ")} }`
+    if (keys(args).length === 0) return "{}"
+    return `{ ${fieldsText(args)} }`
 }
 
 function clipped(text: string, most: number): string {
@@ -96,20 +106,21 @@ export function summary(tool: string, ok: boolean, answer: Answer): string {
     if (!ok) return clipped(answer.text, 120)
     switch (tool) {
         case "app_status": {
-            const windows = Array.isArray(s.windows) ? s.windows : []
-            const first = isRecord(windows[0]) ? windows[0] : {}
+            const windows: unknown[] = Array.isArray(s.windows) ? s.windows : []
+            const front = windows[0]
+            const first = isRecord(front) ? front : {}
             return `${String(s.objects ?? 0)} objects · ${Math.round(Number(first.width ?? 0))}×${Math.round(Number(first.height ?? 0))} · ${Array.isArray(s.capabilities) ? s.capabilities.length : 0} tools`
         }
         case "app_objects":
             return `${Array.isArray(s.objects) ? s.objects.length : 0} objects${s.truncated === true ? ", more to come" : ""}`
         case "app_set_property":
-            return `${String(s.property)}: ${clipped(shown(s.previous ?? null), 24)} → ${clipped(shown(s.value ?? null), 40)}`
+            return `${String(s.property)}: ${clipped(shownOrNull(s.previous), 24)} → ${clipped(shownOrNull(s.value), 40)}`
         case "app_get_property":
-            return `${String(s.property)} = ${clipped(shown(s.value ?? null), 60)}`
+            return `${String(s.property)} = ${clipped(shownOrNull(s.value), 60)}`
         case "app_find": {
-            const matches = Array.isArray(s.matches) ? s.matches : []
-            const first = isRecord(matches[0]) ? matches[0] : null
-            return first ? `${String(s.count)} match · ${String(first.role)} “${clipped(String(first.name ?? ""), 32)}” → ${String(first.ref)}` : "no match"
+            const matches: unknown[] = Array.isArray(s.matches) ? s.matches : []
+            const first = matches[0]
+            return isRecord(first) ? `${String(s.count)} match · ${String(first.role)} “${clipped(String(first.name ?? ""), 32)}” → ${String(first.ref)}` : "no match"
         }
         case "app_click":
             return Array.isArray(s.at) ? `clicked at ${s.at.join(", ")}` : answer.text
@@ -142,7 +153,7 @@ export interface LogEntry {
 export function logEntries(answer: Answer): LogEntry[] {
     const entries = answer.structured.entries
     if (!Array.isArray(entries)) return []
-    return entries.filter(isRecord).map((entry) => ({ seq: Number(entry.seq), message: String(entry.message ?? "") }))
+    return entries.filter(isRecord).map((entry: Record<string, unknown>) => ({ seq: Number(entry.seq), message: String(entry.message ?? "") }))
 }
 
 export function nextSince(answer: Answer, fallback: number): number {
@@ -178,7 +189,7 @@ export interface TreeRow {
 export function treeRows(answer: Answer): TreeRow[] {
     const objects = answer.structured.objects
     if (!Array.isArray(objects)) return []
-    return objects.filter(isRecord).map((row) => {
+    return objects.filter(isRecord).map((row: Record<string, unknown>) => {
         const named = typeof row.id === "string" ? `#${row.id}` : typeof row.object_name === "string" ? ` "${row.object_name}"` : ""
         return { ref: String(row.handle ?? ""), depth: Number(row.depth ?? 0), label: `${String(row.type ?? "Object")}${named}` }
     })
@@ -193,7 +204,7 @@ export interface PropertyRow {
 export function propertyRows(answer: Answer): PropertyRow[] {
     const properties = answer.structured.properties
     if (!Array.isArray(properties)) return []
-    return properties.filter(isRecord).map((row) => ({
+    return properties.filter(isRecord).map((row: Record<string, unknown>) => ({
         name: String(row.name ?? ""),
         value: clipped(row.value === null || row.value === undefined ? "null" : String(row.value), 48),
         mine: row.assigned_by === "devtools",
