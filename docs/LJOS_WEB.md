@@ -769,7 +769,14 @@ while its text is unchanged.
 
 **DECISION:** what the file says of a property is the same when the
 compiled declaration is: the same literal, or a binding whose
-compiled function reads the same. An edited declaration wins over a
+compiled function reads the same. A list or an object of plain data
+is the same when it holds the same, its keys in the same order, as
+it was when its object was recorded: a copy is taken then, so what
+the app changes in place afterwards is not taken for what the file
+says. The copy is only taken in a tree a reload may carry (a
+reloadable root's, a ShellLoader's). What is not plain data in it
+is only itself, and a value that holds itself, or is over 256 deep,
+is only itself whole. An edited declaration wins over a
 run-time value, as on the desktop ("a declaration that was edited
 wins"). The compiled text names objects by handles (`$1`) that an
 edit elsewhere can renumber; such a binding counts as edited, and the
