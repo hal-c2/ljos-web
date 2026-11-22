@@ -21,7 +21,7 @@ import * as math from "./math.js";
 import { inside, Node } from "./Node.js";
 import { met } from "./pick.js";
 import { draw, restored } from "./render.js";
-import { SceneEnvironment } from "./scene.js";
+import { readsAhead, SceneEnvironment } from "./scene.js";
 import { paced } from "./paced.js";
 import { chosen, drawOn, gave, gaveNow, readable, renderer } from "./wgpu.js";
 import { signal, untrack } from "#kernel";
@@ -382,18 +382,26 @@ export const View3D = defineType("View3D", Item, {
     // its own: on a canvas beneath that renderer's last picture, which stays
     // until wgpu has one. It is handed back, for good, when the scene comes
     // to show what is left to that renderer (`scriptAlone`).
-    function overtaken(end) {
+    function overtaken(end, ahead) {
       const before = canvas;
       canvas = canvasFor();
       before.before(canvas);
       const uncover = () => before.remove();
       onCleanup(uncover);
+      // What was read ahead, for wgpu to take (`Host.fetched`).
+      self.$ahead = ahead;
+      const letGo = () => {
+        ahead.end();
+        self.$ahead = null;
+      };
+      onCleanup(letGo);
       let left = false;
       byWgpu(undefined, {
         drew: uncover,
         gaveUp() {
           left = true;
           uncover();
+          letGo();
         },
       });
       const view = self.$view;
@@ -402,8 +410,12 @@ export const View3D = defineType("View3D", Item, {
         return view(down);
       };
       effect(
-        () => scriptAlone(self, found(self)),
-        (alone) => {
+        () => {
+          const seen = found(self);
+          return { alone: scriptAlone(self, seen), named: seen.loaders.map((node) => node.$named()) };
+        },
+        ({ alone, named }) => {
+          ahead.keep(named);
           if (!alone || left) return;
           // After this effect, which is of the root that ends.
           queueMicrotask(() => {
@@ -427,6 +439,8 @@ export const View3D = defineType("View3D", Item, {
     }
     function scripted(end) {
       let over = false;
+      const ahead = readsAhead();
+      let handed = false;
       const paper = canvas.getContext("bitmaprenderer");
       // What a test or a tool may ask, as of the wgpu renderer's view
       // (`drawOn`): `probe` is told of each sight taken ("sync") and each
@@ -456,6 +470,7 @@ export const View3D = defineType("View3D", Item, {
       });
       if (getOwner())
         onCleanup(() => {
+          if (!handed) ahead.end();
           unheard();
           if (waiting) cancelAnimationFrame(waiting);
           clearTimeout(resting);
@@ -540,12 +555,14 @@ export const View3D = defineType("View3D", Item, {
 
       function turned() {
         if (released) return;
+        handed = true;
         end();
+        ahead.hand();
         // A picture still asked for (the last, by what takes the view's) is
         // not drawn here, and would keep a script that draws after a failure
         // from asking for its own.
         due = null;
-        runWithOwner(owner, () => createRoot(overtaken));
+        runWithOwner(owner, () => createRoot((done) => overtaken(done, ahead)));
         // What took the view's picture asks it again, of what draws now.
         setTimes((times) => times + 1);
       }
@@ -555,9 +572,22 @@ export const View3D = defineType("View3D", Item, {
         const seen = found(self);
         const { models, lights, paints, probes, loaders, camera: any } = seen;
         const camera = self.camera ?? any;
-        // Every file is asked of, so they are fetched together: but none by
-        // a view that could not turn, or that has what keeps it here.
-        const turn = mayTurn && loaders.length > 0 && !scriptAlone(self, seen) && loaders.map((node) => node.$ready()).every(Boolean);
+        let turn = false;
+        // A view about to turn has handed on what it read, or is about to.
+        if (!over) {
+          ahead.sighting();
+          // Every file is asked of, so they are fetched together: but none
+          // by a view that could not turn, or that has what keeps it here.
+          const could = mayTurn && loaders.length > 0 && !scriptAlone(self, seen);
+          const shown = could ? loaders.map((node) => node.$ready(ahead)) : [];
+          ahead.sighted();
+          // Turned to once none is on the way and one can be shown: a file
+          // that failed is wgpu's to tell of.
+          if (!shown.includes(null)) {
+            turn = shown.includes(true);
+            if (!turn) ahead.spend();
+          }
+        }
         return {
           width,
           height,

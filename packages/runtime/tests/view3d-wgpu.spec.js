@@ -1385,8 +1385,8 @@ test("a view on the JavaScript renderer lit by baked surroundings is lit by them
 // Where neither the page nor the build asks for a renderer, a View3D is on
 // wgpu if WebGPU has an adapter for the page, and on the JavaScript one if
 // not (a browser may have WebGPU and no GPU it lets it use), unless the
-// scene shows models from files that are here and nothing left to the
-// JavaScript one: then on wgpu's WebGL 2.
+// scene shows models from files, none still on the way and one that can be
+// shown, and nothing left to the JavaScript one: then on wgpu's WebGL 2.
 test.describe("a View3D no one asked a renderer of", () => {
   test.skip(!!process.env.VITE_LJOS_VIEW3D, "the build asks for one");
   const drawn = (page) =>

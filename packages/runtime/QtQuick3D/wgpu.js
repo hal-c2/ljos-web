@@ -509,6 +509,9 @@ class Host {
   // The page's own fetch, which what it makes of the file shares.
   async fetched(url) {
     const address = located(url);
+    const ahead = this.view.$ahead;
+    const refused = ahead?.refused(address);
+    if (refused) throw refused.told ?? refused;
     const file = fetched(address);
     await file.done;
     if (file.failed) throw file.failed.told ?? file.failed;
@@ -519,7 +522,7 @@ class Host {
     // once: its parse is kept, and the browser's cache usually answers.
     // That second fetch is the price of not holding every texture and
     // glTF, which the page never reads, for as long as the page lives.
-    taken(address, file);
+    taken(address, file, ahead);
     return new Uint8Array(file.bytes);
   }
   report(url, error) {
@@ -529,6 +532,9 @@ class Host {
   // the build reads: so after it.
   loaderStatus(o, status, error) {
     const loader = this.objectsBy.get(o);
+    // Done with, read or not (Success, Error): whatever of it was read ahead
+    // and not taken is nobody's now.
+    if (status) this.view.$ahead?.done(untrack(() => loader.$named?.()));
     if (loader.status === status && loader.errorString === error) return;
     queueMicrotask(() => {
       loader.status = status;

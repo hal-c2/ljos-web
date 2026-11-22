@@ -687,9 +687,11 @@ As built so far (A25): the wgpu crate is reached through
 `crates/ljos_web_3d` and is the default (hal-c2/ljos-web#46) where
 WebGPU has an adapter for the page. Where it has none, or the browser
 has no WebGPU, a View3D no one asked a renderer of draws with
-`QtQuick3D/render.js` until the files its shown `RuntimeLoader`s name
-are here, if the scene has nothing left to `render.js`; wgpu then draws
-that view on WebGL 2, unless it cannot make it or such a thing comes to
+`QtQuick3D/render.js` until each file its shown `RuntimeLoader`s name
+has arrived or failed (a fetch worth asking again is asked three times
+in all first), if one of them can be shown and the scene has nothing
+left to `render.js`; wgpu then draws that view on WebGL 2 and tells of
+the files that failed, unless it cannot make it or such a thing comes to
 the scene (A25's DECISIONs). A page has `render.js` throughout
 with `?view3d=js` or `VITE_LJOS_VIEW3D=js`.
 Picking stays in JavaScript (`pick.js`), not wasm.

@@ -7,7 +7,7 @@ import { defineType, located } from "../../object.ts";
 import { buffers, header, parts } from "../gltf.js";
 import * as math from "../math.js";
 import { Node } from "../Node.js";
-import { file, retried } from "../scene.js";
+import { retried } from "../scene.js";
 
 // What a loader made for picking of the file it read last.
 const picked = new WeakMap();
@@ -42,29 +42,35 @@ export const RuntimeLoader = defineType("RuntimeLoader", Node, {
     $unread() {
       return extension(String(this.source ?? "")) !== undefined;
     },
-    // Whether that file is here, and the buffers a glTF names: till they are,
-    // turning to wgpu would show no more. (An OBJ's materials are wgpu's to
-    // ask for: the last picture stays up meanwhile.) Asking starts the fetch, and
-    // only a view that could turn asks. A failure is left as it is: asking
-    // again is a pick's (`retried`), as are the times it may.
-    $ready() {
+    // Where the file it names is.
+    $named() {
+      return located(String(this.source ?? ""));
+    },
+    // Whether that file can be shown, with the buffers a glTF names: null
+    // while one is on the way, as turning to wgpu would show no more till
+    // then; false once it has settled as one that cannot be. (An OBJ's
+    // materials are wgpu's to ask for: the last picture stays up meanwhile.)
+    // Asking starts the fetch, as `ahead`'s (`readsAhead`), and only a view
+    // that could turn asks.
+    $ready(ahead) {
       const source = String(this.source ?? "");
-      const address = located(source);
+      const address = this.$named();
       if (extension(source) === "obj") {
-        const here = file(address, "obj", arrived).state();
-        return Boolean(here && !here.error);
+        const here = ahead.read(address, "obj", arrived, address);
+        return here ? !here.error : null;
       }
-      const read = file(address, "gltf", header).state();
-      if (!read || read.error) return false;
+      const read = ahead.read(address, "gltf", header, address);
+      if (!read) return null;
+      if (read.error) return false;
       let named;
       try {
         named = describedOf(read, address);
       } catch {
-        // A description with a buffer that cannot be read is not ready.
+        // A description with a buffer that cannot be read is not to be shown.
         return false;
       }
-      const bytes = named.map((buffer) => (buffer.url ? file(buffer.url, "buffer", bytesOf).state() : buffer));
-      return bytes.every((buffer) => buffer?.bytes);
+      const bytes = named.map((buffer) => (buffer.url ? ahead.read(buffer.url, "buffer", bytesOf, address) : buffer));
+      return bytes.some((buffer) => !buffer) ? null : bytes.every((buffer) => buffer.bytes);
     },
     // The models a pick can meet of what the file holds: one for each of
     // its nodes with a mesh, `{ node, shape, placed }`, `node` what the

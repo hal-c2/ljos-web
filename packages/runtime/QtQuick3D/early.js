@@ -26,9 +26,9 @@ const asked = new URLSearchParams(globalThis.location?.search ?? "").get("view3d
 // with the JavaScript one instead of nothing.
 //
 // DECISION: where WebGPU is not, or gives no adapter, that stays so for a
-// scene unless it shows models from files (a node's `$unread`), all of
-// them are here, and it shows nothing left to the JavaScript renderer
-// (`View3D.js`, `scriptAlone`, `readable`). Such a view is drawn by wgpu on
+// scene unless it shows models from files (a node's `$unread`), none of
+// them is still on the way, one at least can be shown, and it shows nothing
+// left to the JavaScript renderer (`View3D.js`, `scriptAlone`, `readable`). Such a view is drawn by wgpu on
 // WebGL 2, and by the JavaScript renderer again if such a thing comes to
 // it. Not every view: some of what that one draws as Qt does is not so on
 // wgpu, or is not known to be, and a scene is to look no worse for this.
