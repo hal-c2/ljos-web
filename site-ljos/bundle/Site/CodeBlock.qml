@@ -110,7 +110,22 @@ Column {
     // space above them.
     readonly property int foldedHeight: Theme.s + foldAt * Theme.codeLine
     // A reader who goes into the code has all of it, and keeps it.
-    onEditingChanged: if (editing) showsAll = true
+    onEditingChanged: if (editing) setFold(true)
+    // Only a fold the reader asks for moves. One the card is laid out
+    // with (as it is first drawn, or narrows to a phone) is there at
+    // once, so the page the build writes has folded code at its height.
+    Timer {
+        id: folding
+        interval: Theme.enterPanel
+    }
+    function setFold(all) {
+        if (all === showsAll)
+            return;
+        // First: a Behavior reads whether it is enabled as it is written to.
+        if (phone)
+            folding.restart();
+        showsAll = all;
+    }
     // Unfolding, for a reader who asked for less movement: the code
     // stands at its whole height at once, and the lines it brings fade
     // in rather than slide.
@@ -568,7 +583,7 @@ Column {
                 // reader who has not asked for less movement; never as the
                 // reader types, when each line comes at once.
                 Behavior on height {
-                    enabled: block.phone && !Theme.calm && !block.editing
+                    enabled: folding.running && !Theme.calm
                     NumberAnimation { duration: Theme.enterPanel; easing.type: Easing.OutCubic }
                 }
                 contentWidth: Math.max(width, body.implicitWidth + 2 * block.inset)
@@ -622,7 +637,7 @@ Column {
                         // reader who has not asked for less movement; never as the
                         // reader types, when each line comes at once.
                         Behavior on height {
-                            enabled: block.phone && !Theme.calm && !block.editing
+                            enabled: folding.running && !Theme.calm
                             NumberAnimation { duration: Theme.enterPanel; easing.type: Easing.OutCubic }
                         }
                         color: Theme.codeBg
@@ -1107,7 +1122,7 @@ Column {
                     anchors.verticalCenter: parent.verticalCenter
                     text: t`Show all ${block.codeLines} lines`
                     label: t`Show all ${block.codeLines} lines of ${block.title}`
-                    onPressed: block.showsAll = true
+                    onPressed: block.setFold(true)
                 }
             }
         }
