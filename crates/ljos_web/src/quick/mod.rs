@@ -103,9 +103,9 @@ fn own_module<'p>(
 struct Namespace<'p> {
     files: std::collections::BTreeMap<String, String>,
     modules: Vec<&'p qml_front::project::Source>,
-    /// The first module imported under the name after files whose types
-    /// are not known ([`known_types`]): a file named as one of them stays in
-    /// [`Self::files`], where Qt would take the module's type.
+    /// The first module whose types are not known ([`known_types`]) that
+    /// was imported after a file still in [`Self::files`]: Qt would take
+    /// the module's type over it, if it has one of that name.
     unsure: Option<&'p str>,
 }
 
@@ -120,8 +120,8 @@ fn known_types(uri: &str, project: &Project) -> bool {
 /// P`, `import Parts as P`), so they are one table, and where two have a
 /// type the one imported last is it, as it is to the types: a file a module
 /// of the package imported after it also has is not in the table. None when
-/// none of them is files, or one is a script, which is then what the name
-/// is.
+/// none of them is files, or it is a script's, which no other import may
+/// share ([`shared_qualifiers`]).
 ///
 /// [`unsure_namespaces`] warns from what this finds, so the two cannot
 /// differ on what is files or on when a module's types are known.
@@ -138,25 +138,18 @@ fn namespace_files<'p>(
         unsure: None,
     };
     let mut any = false;
+    // Each module whose types are not known, with the files it may have the
+    // types of that nothing imported after it has replaced.
+    let mut guessed: Vec<(&str, std::collections::BTreeSet<String>)> = Vec::new();
     for source in types.namespaces(name) {
-        match source {
+        let files = match source {
             Source::Path(path) if qml_front::project::is_script(path) => return None,
-            Source::Path(path) => {
-                any = true;
-                namespace
-                    .files
-                    .extend(project.directory_types(&options.name, path));
-            }
+            Source::Path(path) => project.directory_types(&options.name, path),
             Source::Module(uri) => match own_module(source, project, options) {
-                Some(files) => {
-                    any = true;
-                    namespace.files.extend(files.clone());
-                }
+                Some(files) => files.clone(),
                 None => {
                     if !known_types(uri, project) {
-                        if any && namespace.unsure.is_none() {
-                            namespace.unsure = Some(uri.as_str());
-                        }
+                        guessed.push((uri.as_str(), namespace.files.keys().cloned().collect()));
                     } else {
                         namespace.files.retain(|member, _| {
                             QtTypeOracle.module_type(uri, member).is_none()
@@ -166,11 +159,60 @@ fn namespace_files<'p>(
                         });
                     }
                     namespace.modules.push(source);
+                    continue;
                 }
             },
+        };
+        any = true;
+        for (_, members) in &mut guessed {
+            members.retain(|member| !files.contains_key(member));
+        }
+        namespace.files.extend(files);
+    }
+    namespace.unsure = guessed
+        .iter()
+        .find(|(_, members)| {
+            members
+                .iter()
+                .any(|member| namespace.files.contains_key(member))
+        })
+        .map(|(uri, _)| *uri);
+    any.then_some(namespace)
+}
+
+/// The imports that share a name one of which is a script's: Qt takes a
+/// script only under a name of its own, and says so at the name of the
+/// later import. An import it refuses doesn't take the name.
+// Qt 6.12: "Script import qualifiers must be unique.", measured for a
+// script with a directory, a module and a script, in either order.
+// Ljós's rule, not Qt's, for .ts and .lts: qml6 loads neither, but they are
+// scripts here, and one that shares a name would be as wrongly bound.
+fn shared_qualifiers(document: &QmlDocument<'_>) -> Vec<Error> {
+    let mut is_script_name = std::collections::BTreeMap::<&str, bool>::new();
+    let mut errors = Vec::new();
+    for import in &document.imports {
+        let Some(alias) = &import.alias else {
+            continue;
+        };
+        let is_script = matches!(
+            &import.source,
+            QmlImportSource::Path(path) if qml_front::project::is_script(path)
+        );
+        let name = alias.name.as_str();
+        match is_script_name.get(name) {
+            None => {
+                is_script_name.insert(name, is_script);
+            }
+            Some(&taken_by_script) if taken_by_script || is_script => {
+                errors.push(Error::new(
+                    "Script import qualifiers must be unique.".to_string(),
+                    alias.span,
+                ));
+            }
+            Some(_) => {}
         }
     }
-    any.then_some(namespace)
+    errors
 }
 
 /// What can be wrong with a name the file imports files under and then a
@@ -178,8 +220,9 @@ fn namespace_files<'p>(
 /// `import Acme.Widgets as P`, a module the page has installed): neither
 /// Qt's table nor the project lists them, so a file of the same name as one
 /// of the module's types is taken over it, where Qt, which takes the type
-/// imported last, would take the module's. One warning a name, naming the
-/// first such module.
+/// imported last, would take the module's. Only while such a file is taken:
+/// one replaced by a later import is no guess. One warning a name, naming
+/// the first such module.
 ///
 /// It is what [`namespace_files`], which resolves each name, finds
 /// ([`Namespace::unsure`]), so the warning says what the compile does.
@@ -229,7 +272,12 @@ fn lower_from<'a>(
         project,
         file: &options.name,
     };
-    let mut errors = Vec::new();
+    // Before anything resolves such a name: the types would be read from
+    // one of its imports and the binding written from another.
+    let mut errors = shared_qualifiers(&document);
+    if !errors.is_empty() {
+        return Err(errors);
+    }
     let tree = Tree::analyze(&document, types, &mut errors);
 
     // `Button.qml` whose root is the `Button` it imports: the function is not

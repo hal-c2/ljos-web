@@ -22,11 +22,15 @@ let parts = null;
 export async function phase(title, run) {
   if (!parts) throw new Error(`phase "${title}" runs outside a test: nothing would say where it stalled`);
   const at = { title, since: Date.now(), took: null };
+  // Taken now: the part may settle after the test is over.
+  const info = test.info();
   parts.push(at);
   try {
     return await test.step(title, run);
   } finally {
-    at.took = Date.now() - at.since;
+    // Out of time, what ends the wait is teardown closing what it waited
+    // on: the part didn't end, and is the one to name.
+    if (info.status !== "timedOut") at.took = Date.now() - at.since;
   }
 }
 
