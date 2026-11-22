@@ -19,3 +19,5 @@ already existed and predate both rebases on da3ad7ff.
   2026-11-22 in headless Chromium with no network, at 1440x900 and 390x844,
   light and dark: the replay's start, the board arriving, its end, the code
   further down, and the first screen with reduced motion. Nothing was pressed.
+
+- 171/32aa499e: CI's site-ljos-root artifact (14770033245) of site run 45062353299, for head 32aa499ec80c79feaf56661e56034a7d2c0f4d49. Headless Chromium 158.0.8127.18, no network, 1440x900 at 1x and 390x844 at 2x, light and dark: the front page's replay at its start, middle (5.5 s in) and end.
