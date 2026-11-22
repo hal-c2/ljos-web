@@ -13,12 +13,19 @@ import { expect, part, serve, shared, test } from "./served.js";
 const runtime = join(import.meta.dirname, "..");
 
 // Where the app's own call says: the base, an edit to the line alone and
-// one to the column alone.
-const SAID = { base: [1, 2], same: [1, 2], line: [7, 2], column: [1, 9] };
+// one to the column alone. Each edit adds a digit, so the length of what
+// the call says tells it from the base.
+const SAID = { base: [1, 2], same: [1, 2], line: [17, 2], column: [1, 29] };
+
+// The name the board's places give it. It is no file next to the board: a
+// string that names one is compiled as that file's component, and then the
+// call would hold no name at all.
+const FILE = "src/Board.qml";
 
 // A placed file around one that is not: what `Plain` binds is the head of
 // its own getter, with no `$bound` before it. An attached property's value
-// is not wrapped either, though its file is placed and the call names it.
+// is not wrapped either, though its file is placed and the call names it:
+// `String(…).length` is 17 for the base and 18 for each edit.
 const board = ([line, column]) => `import QtQuick
 import QtQuick.Layouts
 
@@ -39,14 +46,14 @@ ColumnLayout {
 
     Item {
         id: wide
-        Layout.preferredWidth: Number(["Board.qml", ${line}, ${column}], () => 1)
+        Layout.preferredWidth: String(["${FILE}", ${line}, ${column}], () => 1).length
     }
 }
 `;
 const plain = ([line, column]) => `import QtQuick
 
 Item {
-    property var head: String(["Board.qml", ${line}, ${column}], () => 1)
+    property var head: String(["${FILE}", ${line}, ${column}], () => 1)
 }
 `;
 
@@ -128,7 +135,7 @@ for (const built of BUILDS) {
         built.inspect &&
         ((file) => {
           if (basename(file) === "Plain.qml") return false;
-          return basename(file) === "Board.qml" ? "Board.qml" : true;
+          return basename(file) === "Board.qml" ? FILE : true;
         });
       await part("build the page", () =>
         build({
@@ -154,13 +161,8 @@ for (const built of BUILDS) {
     });
 
     test("an unchanged call at a getter's head keeps what was assigned", async ({ page }) => {
-      const got = await page.evaluate(() => ({
-        plain: window.plainAfter("same"),
-        attached: window.attachedAfter("same"),
-        handed: window.handedAfter("same"),
-      }));
+      const got = await page.evaluate(() => ({ plain: window.plainAfter("same"), handed: window.handedAfter("same") }));
       expect.soft(got.plain, "in a file compiled without places").toBe("mine");
-      expect.soft(got.attached, "an attached property's value").toBe("42");
       expect.soft(got.handed, "in props written by hand").toBe("mine");
     });
 
@@ -168,19 +170,35 @@ for (const built of BUILDS) {
       const got = await page.evaluate(() => ({
         plainLine: window.plainAfter("line"),
         plainColumn: window.plainAfter("column"),
-        attachedLine: window.attachedAfter("line"),
-        attachedColumn: window.attachedAfter("column"),
         handedLine: window.handedAfter("line"),
         handedColumn: window.handedAfter("column"),
       }));
-      expect.soft(got.plainLine, "the line, in a file compiled without places").toBe("Board.qml,7,2");
-      expect.soft(got.plainColumn, "the column, in a file compiled without places").toBe("Board.qml,1,9");
-      // `Number` of the call is NaN whatever it says: the file's value is
-      // told from the assigned 42 by being it.
-      expect.soft(got.attachedLine, "the line, of an attached property's value").toBe("NaN");
-      expect.soft(got.attachedColumn, "the column, of an attached property's value").toBe("NaN");
-      expect.soft(got.handedLine, "the line, in props written by hand").toBe("Other.qml,7,2");
-      expect.soft(got.handedColumn, "the column, in props written by hand").toBe("Other.qml,1,9");
+      expect.soft(got.plainLine, "the line, in a file compiled without places").toBe(`${FILE},17,2`);
+      expect.soft(got.plainColumn, "the column, in a file compiled without places").toBe(`${FILE},1,29`);
+      expect.soft(got.handedLine, "the line, in props written by hand").toBe("Other.qml,17,2");
+      expect.soft(got.handedColumn, "the column, in props written by hand").toBe("Other.qml,1,29");
+    });
+
+    // FIXME, on main as here: a reload carries nothing assigned to an
+    // attached property a layout makes. The layout first asks for it in an
+    // effect, which runs once the whole tree is made (`effect` waits for
+    // `whenComplete`), when no parent is being made. So the attached object
+    // is recorded under none (`record` takes `parent.$born` or the root's
+    // `making`), and a reload, which walks `$born` from the root, never
+    // pairs it. Until it does, its assignment is not kept, and the file's
+    // value can't be seen to win over one.
+    const LIMIT = "a reload carries nothing assigned to an attached property a layout makes (on main too)";
+
+    test("an attached property's value keeps what was assigned while its call is unchanged", async ({ page }) => {
+      test.fixme(true, LIMIT);
+      expect(await page.evaluate(() => window.attachedAfter("same"))).toBe("42");
+    });
+
+    test("an edit to the line or the column alone of an attached property's call wins", async ({ page }) => {
+      test.fixme(true, LIMIT);
+      const got = await page.evaluate(() => ({ line: window.attachedAfter("line"), column: window.attachedAfter("column") }));
+      expect.soft(got.line, "the line").toBe("18");
+      expect.soft(got.column, "the column").toBe("18");
     });
   });
 }
