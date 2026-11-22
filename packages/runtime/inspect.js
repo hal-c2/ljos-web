@@ -163,8 +163,13 @@ function plain(value) {
 
 const failed = (error, message) => ({ error, message });
 
-// Whether a point of the page is in its window.
-const seen = ([x, y]) => x >= 0 && y >= 0 && x < window.innerWidth && y < window.innerHeight;
+// Whether an element is what a person's pointer would reach at a point of
+// the page: the point is in the window and nothing else is drawn over it.
+function onTop(element, [x, y]) {
+  if (x < 0 || y < 0 || x >= window.innerWidth || y >= window.innerHeight) return false;
+  const top = document.elementFromPoint(x, y);
+  return top !== null && element.contains(top);
+}
 
 // Scrolls an element into the window, and answers what puts every box it
 // scrolled back where it stood.
@@ -250,12 +255,12 @@ export function inspect(root) {
         at = [(box.left + box.width / 2 - shape.box.left) / shape.scale, (box.top + box.height / 2 - shape.box.top) / shape.scale];
       }
       if (!inside(shape, at)) return failed("not_actionable", `[${at}] is outside the root`);
-      // The page finds what is on top only in its window. An object
-      // scrolled out of it is brought in for the click and everything put
-      // back where it stood before the page paints again, so the reader's
-      // page does not move. A bare point out of the window names nothing
-      // to bring in.
-      const back = node && !seen(toPage(shape, at)) ? bringIn(node) : null;
+      // The page finds what is on top only in its window. An object out of
+      // it, or under what stands over that part of it (a page's sticky
+      // header), is brought in for the click and everything put back where
+      // it stood before the page paints again, so the reader's page does
+      // not move. A bare point names nothing to bring in.
+      const back = node && !onTop(node, toPage(shape, at)) ? bringIn(node) : null;
       try {
         if (back) shape = frame();
         const [clientX, clientY] = toPage(shape, at);
