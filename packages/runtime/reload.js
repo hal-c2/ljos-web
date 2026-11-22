@@ -21,7 +21,7 @@
 //
 // Nothing here knows of a build tool: the Vite plugin calls `$reloaded` on a
 // save, and a page that compiles QML itself calls `reload`.
-import { $hot, Copy, flush, made, mounted, slot } from "./object.ts";
+import { $hot, asWritten, Copy, flush, made, mounted, slot } from "./object.ts";
 import { keepTheme } from "./theme.js";
 
 // What `reload` gave up on: the new component, made, threw.
@@ -153,7 +153,7 @@ function kept(root, Old, across = false) {
     records.set(object, {
       type: typeOf(object, Old, across),
       props: object.$props,
-      declared: object.$declared,
+      written: asWritten.get(object),
       assigned: Object.entries(object.$slots ?? {}).flatMap(([key, held]) => (held.assigned ? [[key, held.value, held.kind?.type]] : [])),
       focused: object.activeFocus === true && !object.$born?.some((child) => child.activeFocus === true),
       selection: typeof object.selectionStart === "number" && object.selectionStart !== object.selectionEnd ? [object.selectionStart, object.selectionEnd] : null,
@@ -219,8 +219,8 @@ function same(old, object, key) {
   if (was.get || is.get) return String(was.get) === String(is.get);
   if (Object.is(was.value, is.value)) return true;
   if (typeof was.value !== "object" && typeof is.value !== "object") return String(was.value) === String(is.value);
-  const before = old.declared?.get(key);
-  const after = object.$declared?.get(key);
+  const before = old.written?.get(key);
+  const after = asWritten.get(object)?.get(key);
   // A copy speaks only for the value it was taken of: a held block's
   // properties can be given others later.
   if (!before || !after || before.value !== was.value || after.value !== is.value) return false;
