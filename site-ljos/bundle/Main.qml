@@ -94,8 +94,12 @@ Rectangle {
         main.pageHeight = main.pageHost.height;
     }
     // A shell may move the page's place without changing its size (one
-    // the reader wrote): it is placed again whenever the window or the
-    // shell changes, and as the Observer opens over it.
+    // the reader wrote), by any item the place stands in: mapping it
+    // reads each one's, so a move of any is heard. It is copied a turn
+    // later, not bound, as a shell may lay out by `docked`, which is
+    // itself worked out from where the page stands.
+    readonly property var pageAt: main.pageHost ? main.pageHost.mapToItem(main, 0, 0) : null
+    onPageAtChanged: Qt.callLater(placePage)
     onPageHostChanged: Qt.callLater(placePage)
     onWidthChanged: Qt.callLater(placePage)
     onHeightChanged: Qt.callLater(placePage)
