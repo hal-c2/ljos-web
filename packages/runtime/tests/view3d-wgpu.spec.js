@@ -2360,6 +2360,37 @@ View3d.prototype.${call} = function (...args) {
     }
   });
 
+  // A first view whose loss is told before it is kept never was: where
+  // wgpu then cannot make another, the view has no picture of its own to
+  // keep, and is handed back as one wgpu never made. The adapter and that
+  // first view are stand-ins, as no browser tells a loss there.
+  test.describe("a first view lost before it is kept, that cannot be made again", () => {
+    test.use({ told: [/^View3D: drawn by the JavaScript renderer, as wgpu could not draw it: /] });
+    test("draws on the JavaScript renderer, where no one asked for wgpu", async ({ page }) => {
+      await page.addInitScript(() => {
+        Object.defineProperty(navigator, "gpu", { configurable: true, value: { requestAdapter: async () => ({}) } });
+      });
+      await page.route(/\/wgpu\/ljos_web_3d\.js(\?|$)/, async (route) => {
+        const response = await route.fetch();
+        const losing = `View3d.create = async (canvas, host) => {
+  window.creations = (window.creations ?? 0) + 1;
+  if (window.creations > 1) throw new Error("no view to be made again");
+  host.lost("the device was lost");
+  return { backend: () => "webgpu", free() {}, resize() {}, build() {}, again() {}, frame: () => false };
+};`;
+        await route.fulfill({ response, body: `${await response.text()}\n${losing}\n` });
+      });
+      await page.goto("/?scene=shaded3d");
+      await page.waitForFunction(() => window.ready);
+      await page.waitForFunction(() => {
+        const state = document.querySelector(".qq-view3d")?.$view3d;
+        if (state?.error) throw new Error(state.error);
+        return window.creations === 2 && state?.renderer === "js" && state.frames > 0;
+      });
+      expect(await page.evaluate(() => document.querySelectorAll(".qq-view3d").length)).toBe(1);
+    });
+  });
+
   // A Loader that lets its View3D go while WebGPU is still being asked for
   // an adapter: the answer, no adapter, comes to a view that is gone, and
   // nothing draws on its canvas instead.
