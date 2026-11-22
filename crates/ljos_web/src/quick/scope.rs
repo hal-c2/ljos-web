@@ -12,7 +12,12 @@
 
 use std::collections::HashSet;
 
-use qml_syntax::ast::{QmlDocument, QmlObject};
+use oxc_ast::ast::{BindingIdentifier, Function, IdentifierReference};
+use oxc_ast_visit::Visit;
+use oxc_syntax::scope::ScopeFlags;
+use qml_syntax::ast::{
+    QmlBinding, QmlBindingValue, QmlDocument, QmlMember, QmlObject, QmlPropertyDeclaration,
+};
 
 use super::types::{Member, Property, Qt, Types};
 use crate::Error;
@@ -25,8 +30,12 @@ pub(crate) type Front<'a> = qml_front::scope::Tree<'a, Qt>;
 pub(crate) struct Tree<'a> {
     pub front: Front<'a>,
     /// The JavaScript binding that holds each object, in the order of
-    /// `front.objects`: its `id`, or `$1`, `$2`, … in source order.
+    /// `front.objects`: its `id`, or `sigils` and a number, in source order.
     handles: Vec<String>,
+    /// What starts the name of an object without an id: `$`, or one `$`
+    /// more than any name the file's scripts have of `$`s and a number (a
+    /// pipe's steps are `$0`, `$1`, …), which would hide the object.
+    sigils: String,
     /// The binding that holds what a delegate is given, in the order of
     /// `front.contexts`: `index`, the roles.
     datas: Vec<Option<String>>,
@@ -56,6 +65,12 @@ impl<'a> Tree<'a> {
                 .map(|error| Error::new(error.message, error.span)),
         );
 
+        let mut written = Written::default();
+        written.object(&document.root);
+        for id in front.objects.iter().filter_map(|object| object.id) {
+            written.name(id);
+        }
+        let sigils = "$".repeat(written.most + 1);
         let mut handles = Vec::with_capacity(front.objects.len());
         let mut ids = HashSet::new();
         let mut next = 0;
@@ -67,7 +82,7 @@ impl<'a> Tree<'a> {
                 }
                 None => {
                     next += 1;
-                    handles.push(format!("${next}"));
+                    handles.push(format!("{sigils}{next}"));
                 }
             }
         }
@@ -95,6 +110,7 @@ impl<'a> Tree<'a> {
         Self {
             front,
             handles,
+            sigils,
             datas,
             ids,
         }
@@ -115,6 +131,11 @@ impl<'a> Tree<'a> {
     /// The JavaScript binding that holds the object.
     pub(crate) fn handle(&self, index: usize) -> &str {
         &self.handles[index]
+    }
+
+    /// Whether `name` is one given here to an object without an id.
+    pub(crate) fn is_unnamed(&self, name: &str) -> bool {
+        name.strip_prefix(&self.sigils).is_some_and(is_number)
     }
 
     /// The binding that holds what the delegates of a context are given.
@@ -205,4 +226,67 @@ impl<'a> Tree<'a> {
 /// `font { ... }`: an object whose "type" is a lowercase property name.
 pub(crate) fn is_group(object: &QmlObject<'_>) -> bool {
     qml_front::scope::is_group(object)
+}
+
+fn is_number(text: &str) -> bool {
+    !text.is_empty() && text.bytes().all(|byte| byte.is_ascii_digit())
+}
+
+/// The most `$`s before a number in a name the file's scripts declare or
+/// read.
+#[derive(Default)]
+struct Written {
+    most: usize,
+}
+
+impl Written {
+    fn name(&mut self, name: &str) {
+        let number = name.trim_start_matches('$');
+        if is_number(number) {
+            self.most = self.most.max(name.len() - number.len());
+        }
+    }
+
+    fn object(&mut self, object: &QmlObject<'_>) {
+        for member in &object.members {
+            match member {
+                QmlMember::Object(child) => self.object(child),
+                QmlMember::InlineComponent(inline) => self.object(&inline.object),
+                QmlMember::Binding(QmlBinding { value, .. })
+                | QmlMember::Property(QmlPropertyDeclaration {
+                    value: Some(value), ..
+                }) => match value {
+                    QmlBindingValue::Expression(expression) => self.visit_expression(expression),
+                    QmlBindingValue::Statement(statement) => self.visit_statement(statement),
+                    QmlBindingValue::Object(child) => self.object(child),
+                    QmlBindingValue::Objects(children) => {
+                        for child in children {
+                            self.object(child);
+                        }
+                    }
+                },
+                // Its parameters too, not only its body.
+                QmlMember::Function(function) => {
+                    let function: &Function<'_> = function;
+                    self.visit_function(function, ScopeFlags::Function);
+                }
+                QmlMember::Signal(signal) => {
+                    for param in &signal.params {
+                        self.name(param.name.name.as_str());
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+}
+
+impl<'a> Visit<'a> for Written {
+    fn visit_binding_identifier(&mut self, identifier: &BindingIdentifier<'a>) {
+        self.name(identifier.name.as_str());
+    }
+
+    fn visit_identifier_reference(&mut self, identifier: &IdentifierReference<'a>) {
+        self.name(identifier.name.as_str());
+    }
 }

@@ -114,6 +114,7 @@ pub(crate) fn resolve<'a>(
     resolver.visit_program(program);
     Pruner {
         used: &resolver.uses.handles,
+        tree,
     }
     .visit_program(program);
 }
@@ -1332,23 +1333,24 @@ fn holder<'a>(b: B<'a>, read: Expression<'a>, name: &str) -> Option<Expression<'
 }
 
 /// Takes out the bindings of the objects nothing names.
-struct Pruner<'s> {
+struct Pruner<'s, 't> {
     used: &'s HashSet<String>,
+    tree: &'s Tree<'t>,
 }
 
-impl Pruner<'_> {
-    /// `$7`: a name the analysis gave an object that has no id. `$scope`: a
+impl Pruner<'_, '_> {
+    /// A name the analysis gave an object that has no id (`$7`). `$scope`: a
     /// context nothing looks anything up in.
     fn is_unused(&self, name: &str) -> bool {
-        let ours = name.strip_prefix('$').is_some_and(|rest| {
-            let rest = rest.strip_prefix("scope").unwrap_or(rest);
-            rest.bytes().all(|byte| byte.is_ascii_digit()) && name.len() > 1
-        });
+        let ours = self.tree.is_unnamed(name)
+            || name
+                .strip_prefix("$scope")
+                .is_some_and(|rest| rest.bytes().all(|byte| byte.is_ascii_digit()));
         ours && !self.used.contains(name)
     }
 }
 
-impl<'a> VisitMut<'a> for Pruner<'_> {
+impl<'a> VisitMut<'a> for Pruner<'_, '_> {
     fn visit_statements(&mut self, statements: &mut oxc_allocator::ArenaVec<'a, Statement<'a>>) {
         statements.retain(|statement| {
             let Statement::VariableDeclaration(declaration) = statement else {
