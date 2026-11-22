@@ -3398,10 +3398,13 @@ export function mount(Component: Mountable, element: Element, props: Props = {},
   if (mounting === undefined && taking.length > 0) return mountAs(null, () => mount(Component, element, props, options));
   hosts.add(element);
   const reloadable = options.reloadable ?? hot;
-  const root = made(Component, props, reloadable);
-  element.classList.add("q-scene");
-  if (root.object.$node) element.append(root.object.$node);
-  root.within(() => root.object.$mounted?.(element, options));
+  let root!: Root;
+  asMaking(() => {
+    root = made(Component, props, reloadable);
+    element.classList.add("q-scene");
+    if (root.object.$node) element.append(root.object.$node);
+    root.within(() => root.object.$mounted?.(element, options));
+  });
   if (!reloadable) return root;
   const handle: Mounted = {
     object: root.object,
@@ -3467,11 +3470,44 @@ export function outsideTheCount<T>(make: () => T): T {
 // nothing left to take.
 export const SETTLING_ROUNDS = 10;
 export async function settleMaking(done: () => boolean = () => false): Promise<void> {
-  flush();
-  for (let round = 0; round < SETTLING_ROUNDS && !done(); round++) {
-    await null;
-    flush();
+  const rounds = async (): Promise<void> => {
+    asMaking(flush);
+    for (let round = 0; round < SETTLING_ROUNDS && !done(); round++) {
+      await null;
+      asMaking(flush);
+    }
+  };
+  await rounds();
+  // A module the making asked for comes in its own time (`awaitedLoad`):
+  // the page is written once it has come and what it made has settled,
+  // and a hydration takes the page over through the same wait, so a
+  // part a page loads by route is in the page as written and is taken
+  // over as the prerender made it.
+  while (loads.size > 0 && !done()) {
+    await Promise.allSettled([...loads]);
+    await rounds();
   }
+}
+
+// The modules a page's making is waiting for: asked for while a root
+// was being mounted, or as what that set going settled. What the
+// reader's input or a timer asks for later is no part of the page as
+// written, and nothing waits for it.
+const loads = new Set<Promise<unknown>>();
+let makingNow = 0;
+function asMaking(work: () => void): void {
+  makingNow++;
+  try {
+    work();
+  } finally {
+    makingNow--;
+  }
+}
+export function awaitedLoad(pending: Promise<unknown>): void {
+  if (makingNow === 0) return;
+  loads.add(pending);
+  const gone = (): void => void loads.delete(pending);
+  pending.then(gone, gone);
 }
 
 // One hydration taking its root's prerendered elements over: offered a

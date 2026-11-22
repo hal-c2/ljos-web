@@ -2,8 +2,10 @@
 // hydrated at once each take their own elements over and settle on
 // their own rounds, a page mounted beside them or into a detached
 // element makes its own, what a part's completion makes as the page
-// settles is taken over once, what a page's own script makes meanwhile
-// is new, and a page that throws as it is made leaves the document
+// settles is taken over once, what a part it loads by address is
+// written and taken over with it while what only the browser chooses is
+// not waited for, what a page's own script makes meanwhile is new, and a
+// page that throws as it is made leaves the document
 // making its own elements again.
 import { expect, test } from "@playwright/test";
 
@@ -187,4 +189,34 @@ test("a page that throws as it is made leaves the document making its own elemen
     };
   });
   expect(after).toEqual({ thrown: "made wrong", answering: false, fresh: true });
+});
+
+// A Loader's source marked `awaited` is chosen by the address, the same on
+// both sides, so the page is written with what it loads and taken over
+// as written. Any other source is the browser's own choice (a kept
+// shell): the prerender never had it, and taking the page over does not
+// wait for it.
+test("a part loaded by address is written and taken over with the page, and one the browser chooses is not waited for", async ({ page }) => {
+  const warnings = await open(page);
+  const taken = await page.evaluate(async () => {
+    const one = document.getElementById("one");
+    const written = await prerender(one, AwaitedLoad);
+    const asWritten = one.textContent;
+    const before = [...one.querySelectorAll("[data-hk]")];
+    await hydrate(AwaitedLoad, one).hydrated;
+    return {
+      written,
+      byAddress: asWritten.includes("Loaded with the page"),
+      inBrowser: asWritten.includes("Loaded in the browser's own time"),
+      kept: before.filter((element) => one.contains(element)).length,
+      unclaimed: document.querySelectorAll("[data-hk]").length,
+      hydrated: one.dataset.ljosHydrated,
+    };
+  });
+  expect(taken).toEqual({ written: taken.written, byAddress: true, inBrowser: false, kept: taken.written, unclaimed: 0, hydrated: "true" });
+  expect(taken.written).toBeGreaterThan(2);
+  await page.evaluate(() => inBrowserGate.open());
+  await expect(page.locator("#one")).toContainText("Loaded in the browser's own time");
+  await expect(page.locator("#one")).toContainText("Loaded with the page");
+  expect(warnings).toEqual([]);
 });
