@@ -75,7 +75,6 @@ export interface QObject {
   readonly $id?: string;
   readonly $fault?: Boundary;
   readonly $born?: QObject[];
-  readonly $declared?: Map<string, { value: object; copy: Copy }>;
   readonly $row?: number;
   readonly $attached?: Record<string, QObject | undefined>;
   readonly $replaced?: Record<string, Handler | undefined>;
@@ -2674,10 +2673,13 @@ function create(Type: QmlType, props: Props): QObject {
 // was made in: what goes is taken out, so a view scrolled a long way holds
 // only the delegates it shows.
 let making: QObject[] | null = null;
+// What each was declared with, as a reload compares it. Kept apart from the
+// object, where any name may be one its type or the app already has.
+export const asWritten = new WeakMap<QObject, Map<string, { value: object; copy: Copy }>>();
 function record(self: QObject, born: QObject[], props: Props): void {
   hidden(self, "$born", []);
   const declared = untrack(() => copies(props));
-  if (declared) hidden(self, "$declared", declared);
+  if (declared) asWritten.set(self, declared);
   born.push(self);
   if (getOwner()) onCleanup(() => born.splice(born.indexOf(self) >>> 0, 1));
 }
