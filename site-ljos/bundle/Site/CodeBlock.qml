@@ -6,6 +6,7 @@ import QtQuick.Effects
 import Ljos.Blocks
 import Site
 import "../live.js" as Live
+import "../nav.js" as Nav
 import "../observed.js" as Observed
 import "../observing.js" as Observing
 import "code-editor.js" as Editor
@@ -109,6 +110,10 @@ Column {
     // The height folded code shows: its first dozen lines and the
     // space above them.
     readonly property int foldedHeight: Theme.s + foldAt * Theme.codeLine
+    // In the page as written Show all has no script to run, so the fold
+    // scrolls to the rest at the same height. Once the page runs it
+    // doesn't: Show all is the way, and a finger moves the page.
+    readonly property bool scrollsFolded: folded && !Nav.inBrowser()
     // A reader who goes into the code has all of it, and keeps it.
     onEditingChanged: if (editing) setFold(true)
     // Only a fold the reader asks for moves. One the card is laid out
@@ -587,8 +592,8 @@ Column {
                     NumberAnimation { duration: Theme.enterPanel; easing.type: Easing.OutCubic }
                 }
                 contentWidth: Math.max(width, body.implicitWidth + 2 * block.inset)
-                contentHeight: height
-                flickableDirection: Flickable.HorizontalFlick
+                contentHeight: block.scrollsFolded ? body.height + 2 * Theme.s : height
+                flickableDirection: block.scrollsFolded ? Flickable.AutoFlickIfNeeded : Flickable.HorizontalFlick
                 boundsBehavior: Flickable.StopAtBounds
                 acceptedButtons: Qt.NoButton
                 clip: true
@@ -647,10 +652,10 @@ Column {
                         Flickable {
                             id: editorScroll
                             width: parent.width
-                            height: editorBox.height
+                            height: block.scrollsFolded ? block.foldedHeight : editorBox.height
                             contentWidth: Math.max(width, editorBox.implicitWidth)
                             contentHeight: editorBox.height
-                            flickableDirection: Flickable.HorizontalFlick
+                            flickableDirection: block.scrollsFolded ? Flickable.AutoFlickIfNeeded : Flickable.HorizontalFlick
                             boundsBehavior: Flickable.StopAtBounds
                             acceptedButtons: Qt.NoButton
                             clip: true
