@@ -5,7 +5,7 @@
 use std::{
     collections::BTreeMap,
     path::{Path, PathBuf},
-    process::Command,
+    process::{Command, Output},
 };
 
 use ljos_web::given::{Alias, Diagnostic, Request, Target, compile};
@@ -38,6 +38,14 @@ fn read(dir: &Path) -> BTreeMap<String, String> {
 
 /// What `qmlc --root DIR` prints for `file`, with no Qt installed.
 fn qmlc(dir: &Path, args: &[&str], file: &str) -> String {
+    let output = run_qmlc(dir, args, file);
+    // It prints the module with a line of its own after it.
+    let printed = String::from_utf8(output.stdout).expect("UTF-8 output");
+    printed.strip_suffix('\n').unwrap_or(&printed).to_string()
+}
+
+/// `qmlc --root DIR` on `file`, which compiles, and what it said of it.
+fn run_qmlc(dir: &Path, args: &[&str], file: &str) -> Output {
     let output = Command::new(env!("CARGO_BIN_EXE_qmlc"))
         .arg("--root")
         .arg(dir)
@@ -52,9 +60,7 @@ fn qmlc(dir: &Path, args: &[&str], file: &str) -> String {
         "qmlc failed: {}",
         String::from_utf8_lossy(&output.stderr)
     );
-    // It prints the module with a line of its own after it.
-    let printed = String::from_utf8(output.stdout).expect("UTF-8 output");
-    printed.strip_suffix('\n').unwrap_or(&printed).to_string()
+    output
 }
 
 fn request(files: BTreeMap<String, String>, entry: &str) -> Request {
@@ -601,17 +607,38 @@ fn a_guess_is_warned_of_only_while_a_file_it_was_made_of_is_taken() {
 
 #[test]
 fn each_name_is_warned_of_once_by_the_first_module_guessed_at() {
-    let warnings = warnings_of(
-        "import \"parts\" as P\nimport Acme.Widgets as P\nimport Acme.More as P\n\
-         import \"parts\" as Q\nimport Acme.More as Q\nimport Acme.Widgets as Q",
-        &["Panel"],
-    );
-    assert_eq!(warnings.len(), 2, "{warnings:?}");
-    for first in ["`import Acme.Widgets as P`", "`import Acme.More as Q`"] {
-        assert!(
-            warnings.iter().any(|warning| warning.contains(first)),
-            "{first}: {warnings:?}"
-        );
+    // Counted in what qmlc prints: `compile` keeps one of each warning it is
+    // given, so a name warned of three times would count once there.
+    let place = Path::new(env!("CARGO_TARGET_TMPDIR")).join("warned-of-once");
+    let _ = std::fs::remove_dir_all(&place);
+    let write = |path: &str, text: &str| {
+        let path = place.join(path);
+        std::fs::create_dir_all(path.parent().expect("a directory")).expect("directory");
+        std::fs::write(path, text).expect("fixture text");
+    };
+    let main = "import QtQuick\n\
+         import \"parts\" as P\nimport Acme.Widgets as P\nimport Acme.More as P\n\
+         import \"parts\" as Q\nimport Acme.More as Q\nimport Acme.Widgets as Q\n\
+         Item { }\n";
+    write("project/Main.qml", main);
+    write("project/parts/Panel.qml", "import QtQuick\nItem { }\n");
+    // Installed, as each has a `qmldir`, and of types not known, as it names
+    // no module.
+    for module in ["Widgets", "More"] {
+        write(&format!("qt/Acme/{module}/qmldir"), "");
+    }
+    let qt = place.join("qt");
+    let args = ["--qt", qt.to_str().expect("UTF-8 path")];
+    let output = run_qmlc(&place.join("project"), &args, "Main.qml");
+    let said = String::from_utf8_lossy(&output.stderr);
+    let warnings: Vec<&str> = said
+        .lines()
+        .filter(|line| line.starts_with("warning: "))
+        .collect();
+    assert_eq!(warnings.len(), 2, "{said}");
+    let firsts = ["`import Acme.Widgets as P`", "`import Acme.More as Q`"];
+    for (warning, first) in warnings.iter().zip(firsts) {
+        assert!(warning.contains(first), "{first}: {said}");
     }
 }
 
