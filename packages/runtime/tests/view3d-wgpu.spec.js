@@ -1479,6 +1479,47 @@ test.describe("a View3D no one asked a renderer of", () => {
     await expect.poll(() => pixels(page, [CENTRE, [50, 150]]), { message: "the file's model and the one beside it" }).toEqual(["255 0 0", "0 0 255"]);
   });
 
+  // What tells that a view can turn is wgpu's to have: the same fetch, and
+  // nothing of it kept by the page once the wasm has its copy.
+  for (const [form, named, kept] of [
+    ["a glTF and its buffer", "pair.gltf", [["gltf", "pair.gltf"], ["buffer", "pair.bin"]]],
+    ["a GLB", "cube.glb", [["gltf", "cube.glb"]]],
+    ["an OBJ", "square.obj", [["obj", "square.obj"]]],
+  ]) {
+    test(`turns for ${form} with one fetch of each, and keeps none of it`, async ({ page }) => {
+      const asked = {};
+      await page.route(/\/wgpu_models\/(pair\.(gltf|bin)|cube\.glb|square\.obj)(\?.*)?$/, (route) => {
+        const file = new URL(route.request().url()).pathname.split("/").pop();
+        asked[file] = (asked[file] ?? 0) + 1;
+        return route.continue();
+      });
+      await page.addInitScript(HIDDEN);
+      await page.goto("/?scene=wgpu_beside");
+      await page.waitForFunction(() => window.ready);
+      expect(await (await drawn(page)).jsonValue()).toBe("js");
+      const source = `scenes/wgpu_models/${named}`;
+      await page.evaluate((source) => {
+        window.objects.loader.source = source;
+        window.flush();
+      }, source);
+      await page.waitForFunction(() => document.querySelector(".qq-view3d")?.$view3d?.renderer === "wgpu" && window.objects.loader.status === 1);
+      expect(asked, "fetches").toEqual(Object.fromEntries(kept.map(([, file]) => [file, 1])));
+      // The page's own instance of the module, by the address it was loaded from.
+      const scene = await page.evaluateHandle(() => {
+        const address = performance.getEntriesByType("resource").find(({ name }) => /\/QtQuick3D\/scene\.js/.test(name)).name;
+        return import(address);
+      });
+      await expect.poll(() => scene.evaluate((scene) => scene.held()), { message: "bytes held for the wasm" }).toBe(0);
+      for (const [kind, file] of kept) {
+        const path = `scenes/wgpu_models/${file}`;
+        // A buffer is kept by its whole address, a loader's file by the one it was named by.
+        const address = kind === "buffer" ? new URL(path, page.url()).href : path;
+        // Asked again, one not kept is not here at once.
+        expect(await scene.evaluate((scene, [address, kind]) => scene.file(address, kind, () => ({})).state(), [address, kind]), `${file}, kept`).toBe(null);
+      }
+    });
+  }
+
   // It reads a file by its extension: one it refuses is no reason to turn,
   // nor to fetch, whatever is in it.
   test("stays on the JavaScript renderer for a file whose name wgpu's loader refuses", async ({ page }) => {
