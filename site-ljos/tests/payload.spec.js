@@ -81,8 +81,8 @@ test("no page's first load holds a shell it is not written in, nor what picks on
   for (const shell of ["Cyberpunk-", "Workbench-", "Desktop-"]) expect([...later].some((file) => named(file, shell)), `a ${shell}* chunk a pick fetches`).toBe(true);
   // The shell choices and a shell's source are drawn in Ljós's own
   // controls, which reading a page does not need (bundle/Site/later.js).
-  expect(reaching(["ShellChoices-", "ShellSource-"])).toEqual({});
-  for (const panel of ["ShellChoices-", "ShellSource-"]) expect([...later].some((file) => named(file, panel)), `a ${panel}* chunk opening it fetches`).toBe(true);
+  expect(reaching(["ShellChoices-", "ShellSource-", "LiveSource-"])).toEqual({});
+  for (const panel of ["ShellChoices-", "ShellSource-", "LiveSource-"]) expect([...later].some((file) => named(file, panel)), `a ${panel}* chunk opening it fetches`).toBe(true);
 });
 
 // The showcase is a module of its own (bundle/Site/later.js), with its

@@ -110,39 +110,66 @@ function sources() {
 // the site's pieces stand in them. Answers the loader's module, or
 // throws with what broke and where.
 var compiler = null;
+function made(file, text) {
+    var compile = compiler ? Promise.resolve(compiler) : Promise.all([import("ljos-web/compiler"), import("ljos-web/compiler/modules")]).then(function (made) {
+        // As bundle/live.js gives an example's: Ljós's own controls
+        // are QML that comes with the runtime, so the compiler is
+        // told where they are; the rest is the page's module map.
+        var modules = Object.assign({}, made[1].modules, {
+            "ljos-web/Ljos/Controls": function () {
+                return import("ljos-web/Ljos/Controls");
+            },
+            "ljos-web/Ljos/Controls/Basic": function () {
+                return import("ljos-web/Ljos/Controls/Basic");
+            },
+            "ljos-web/Ljos/Design": function () {
+                return import("ljos-web/Ljos/Design");
+            }
+        });
+        compiler = made[0].createCompiler({ modules: modules });
+        return compiler;
+    });
+    return compile.then(function (run) {
+        var files = {};
+        files[file] = text;
+        return run.compile({ files: files, entry: file });
+    });
+}
+// What a diagnostic says, where it is: "file:line:column: message".
+function said(file, d) {
+    return d.line ? (d.file || file) + ":" + d.line + ":" + (d.column || 1) + ": " + d.message : (d.file || file) + ": " + d.message;
+}
 function compiled(file, text) {
     return function () {
-        var compile = compiler ? Promise.resolve(compiler) : Promise.all([import("ljos-web/compiler"), import("ljos-web/compiler/modules")]).then(function (made) {
-            // As bundle/live.js gives an example's: Ljós's own controls
-            // are QML that comes with the runtime, so the compiler is
-            // told where they are; the rest is the page's module map.
-            var modules = Object.assign({}, made[1].modules, {
-                "ljos-web/Ljos/Controls": function () {
-                    return import("ljos-web/Ljos/Controls");
-                },
-                "ljos-web/Ljos/Controls/Basic": function () {
-                    return import("ljos-web/Ljos/Controls/Basic");
-                },
-                "ljos-web/Ljos/Design": function () {
-                    return import("ljos-web/Ljos/Design");
-                }
-            });
-            compiler = made[0].createCompiler({ modules: modules });
-            return compiler;
-        });
-        return compile.then(function (run) {
-            var files = {};
-            files[file] = text;
-            return run.compile({ files: files, entry: file });
-        }).then(function (made) {
-            if (made.diagnostics) {
-                throw new Error(made.diagnostics.map(function (d) {
-                    return d.line ? (d.file || file) + ":" + d.line + ":" + (d.column || 1) + ": " + d.message : (d.file || file) + ": " + d.message;
-                }).join("\n"));
-            }
+        return made(file, text).then(function (made) {
+            if (made.diagnostics)
+                throw new Error(made.diagnostics.map(function (d) { return said(file, d); }).join("\n"));
             return { "default": made.component };
         });
     };
+}
+
+// The same, for an editor that runs each edit as it is typed (Site/
+// LiveSource.qml): answers what is wrong with it, each with where and
+// the words to show, or the shell it makes, for a loader to show. Never
+// throws: a broken edit is the reader's to mend, not an error.
+function checked(file, text) {
+    return made(file, text).then(function (made) {
+        if (made.diagnostics)
+            return {
+                diagnostics: made.diagnostics.map(function (d) {
+                    return { file: d.file || file, line: d.line || 0, column: d.column || 0, endLine: d.endLine, endColumn: d.endColumn, message: d.message, text: said(file, d) };
+                })
+            };
+        var module = { "default": made.component };
+        return {
+            shell: function () {
+                return Promise.resolve(module);
+            }
+        };
+    }, function (error) {
+        return { diagnostics: [{ file: file, line: 0, column: 0, message: String(error && error.message || error), text: file + ": " + String(error && error.message || error) }] };
+    });
 }
 
 // Swaps the shell (`change()`, which sets what the loader shows) as one
@@ -322,4 +349,10 @@ function come(sheet, name) {
                 done();
         });
     });
+}
+
+// The page loaded again: every demo as it first ran.
+function reload() {
+    if (globalThis.location)
+        globalThis.location.reload();
 }

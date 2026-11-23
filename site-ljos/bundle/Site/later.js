@@ -21,3 +21,4 @@ landing.awaited = true;
 // the page as written holds it all the same.
 function showcase() { return import("./ShowcasePage.qml"); }
 showcase.awaited = true;
+function liveSource() { return import("./LiveSource.qml"); }

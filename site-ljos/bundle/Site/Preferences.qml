@@ -15,17 +15,14 @@ QtObject {
     readonly property bool dark: Theme.dark
     readonly property bool calm: Theme.calm
 
-    // The shell the reader picked, and the one shown: a window narrower
-    // than Theme.wideFrom has no room for a workbench's three columns or
-    // a desktop's sidebar beside its documents, and shows the elegant
-    // shell, which is laid out for a phone, until it is wide again.
-    // Elegant and Cyberpunk each have a phone's layout of their own.
-    // Every page is prerendered in the Elegant shell, so `shell` is
-    // that until the page has been taken over (Main.qml).
+    // The shell the reader picked, which is the one shown: each has a
+    // phone's layout of its own (a narrow Workbench or Desktop is one
+    // pane with a tab bar along the bottom). Every page is prerendered in
+    // the Elegant shell, so `shell` is that until the page has been taken
+    // over (Main.qml). `wide` is whether the window is a desktop's.
     property string shell: "elegant"
     property bool wide: true
-    readonly property string shown: wide || shell === "cyberpunk" ? shell : "elegant"
-    readonly property bool narrowed: shell !== shown
+    readonly property string shown: shell
 
     readonly property var shells: [
         { name: "elegant", label: t`Elegant`, about: t`Editorial layout for reading, trying demos, and comparing specs.` },

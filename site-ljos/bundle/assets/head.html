@@ -12,27 +12,26 @@
 <script>try{const s=localStorage.getItem(%SCHEME_KEY%);if(s==="light"||s==="dark"){const r=document.documentElement;r.dataset.ljosScheme=s;r.style.colorScheme=s;for(const m of document.querySelectorAll('meta[name="theme-color"]'))m.content=s==="dark"?"%DARK_CANVAS%":"%LIGHT_CANVAS%"}}catch{}</script>
 <!-- The shell the reader picked (shells.js keeps it): every page is
      written in the Elegant shell, and another is put in once the page
-     has been taken over. Where one is kept and the window has room for
-     it, the page waits unseen until it is in (shells.js `shown`), so
-     the reader never sees one shell turn into another; if that never
-     comes, it shows anyway, and says so (`data-ljos-shell-late`) as
-     the page starts to show: the page then stays in the shell it is
-     being shown in (Main.qml `late`). Said on a timer as well as when
-     the fade starts: a browser in the middle of a view transition
-     sends no animation events until the transition is let go, which
-     is what being late has to do. The kept shell's colours hold the
-     first frame back (`blocking="render"`) only until then. The
-     watchdog ends that hold even for a shell shown in time, whose
-     colours then come when they come; if the shell was not shown, it
-     drops them, still on their way, and the page stays in Elegant's
-     colours (shells.js `dress` asks for them again if another shell
-     is picked). A reader with no script
-     runs none of this. -->
+     has been taken over. Where one is kept, the page waits unseen
+     until it is in (shells.js `shown`), so the reader never sees one
+     shell turn into another; if that never comes, it shows anyway,
+     and says so (`data-ljos-shell-late`) as the page starts to show:
+     the page then stays in the shell it is being shown in (Main.qml
+     `late`). Said on a timer as well as when the fade starts: a
+     browser in the middle of a view transition sends no animation
+     events until the transition is let go, which is what being late
+     has to do. The kept shell's colours hold the first frame back
+     (`blocking="render"`) only until then. The watchdog ends that hold
+     even for a shell shown in time, whose colours then come when they
+     come; if the shell was not shown, it drops them, still on their
+     way, and the page stays in Elegant's colours (shells.js `dress`
+     asks for them again if another shell is picked). A reader with no
+     script runs none of this. -->
 <!-- Where the other shells' colours are (the build's `looks`): asked
      for once a reader keeps or shows another shell (here, and
      shells.js `dress`), never by a page read in the default one. -->
 <meta name="ljos-looks" content="%LOOKS_CSS%" />
-<script>try{const k=localStorage.getItem(%SHELL_KEY%);if(k==="cyberpunk"||(k==="workbench"||k==="desktop")&&innerWidth>=%WIDE_FROM%){const r=document.documentElement;r.dataset.ljosShell=k;const s=document.createElement("link");s.id="ljos-looks";s.rel="stylesheet";s.href=document.querySelector('meta[name="ljos-looks"]').content;s.blocking="render";s.onerror=()=>s.remove();document.head.append(s);const l=()=>{s.removeAttribute("blocking");if(!("ljosShellShown"in r.dataset)){r.dataset.ljosShellLate="";s.remove()}};setTimeout(l,%SHELL_WAIT%);addEventListener("animationstart",e=>{if(e.animationName==="ljos-shell-late")l()})}}catch{}</script>
+<script>try{const k=localStorage.getItem(%SHELL_KEY%);if(k==="cyberpunk"||k==="workbench"||k==="desktop"){const r=document.documentElement;r.dataset.ljosShell=k;const s=document.createElement("link");s.id="ljos-looks";s.rel="stylesheet";s.href=document.querySelector('meta[name="ljos-looks"]').content;s.blocking="render";s.onerror=()=>s.remove();document.head.append(s);const l=()=>{s.removeAttribute("blocking");if(!("ljosShellShown"in r.dataset)){r.dataset.ljosShellLate="";s.remove()}};setTimeout(l,%SHELL_WAIT%);addEventListener("animationstart",e=>{if(e.animationName==="ljos-shell-late")l()})}}catch{}</script>
 <!-- The design tokens as the HTML around the app reads them: the
      build writes tokens.js's colours here as `--ljos-<role>` and
      `--ljos-code-<tag>` (which the code blocks' `.tok-<tag>` classes

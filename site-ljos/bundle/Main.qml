@@ -5,6 +5,7 @@ import Ljos.Core
 import Ljos.Blocks
 import "nav.js" as Nav
 import "shells.js" as Frames
+import "observing.js" as Observing
 import "Shells/later.js" as Later
 import "Site/later.js" as SiteLater
 
@@ -164,6 +165,68 @@ Rectangle {
             main.alive = Frames.alive(main);
     }
 
+    // The pages the reader opened, in the order they were opened: kept
+    // here, not in a shell, so a shell that shows them as tabs
+    // (Workbench's files, Desktop's documents) shows the same ones after
+    // a swap or an edit of its own QML. Opened as the reader goes, never
+    // bound to the route, which would make the list the route alone.
+    property var opened: []
+    function keepOpen() {
+        if (main.opened.indexOf(siteRouter.route) < 0)
+            main.opened = main.opened.concat([siteRouter.route]);
+    }
+    // Closes the page opened `at`; the last one open stays. Closing the
+    // one shown goes to the one beside it.
+    function close(at) {
+        if (main.opened.length < 2 || at < 0 || at >= main.opened.length)
+            return;
+        var open = main.opened.slice();
+        var gone = open.splice(at, 1)[0];
+        main.opened = open;
+        if (gone === siteRouter.route)
+            siteRouter.go(open[Math.min(at, open.length - 1)]);
+    }
+
+    // The Observer on the page itself, whichever shell asks: its
+    // toolbar's or activity bar's button.
+    property bool observing: false
+    function observe() {
+        Observing.toggle("site", pageView, null, t`this page`);
+    }
+    // Every demo as it first ran: the page loaded again.
+    function reload() {
+        Frames.reload();
+    }
+
+    // What is wrong with the running shell's QML as the reader edits it
+    // in place (Site/LiveSource.qml), each `{ file, line, column,
+    // message, text }`: a shell's Problems and its count of diagnostics.
+    property var problems: []
+    // Where the editor of the running shell's QML stands: the item the
+    // shown shell's `site.source.live` slot holds, null in a shell with
+    // none. The editor is made once and moves between them.
+    property var liveHost: null
+    property bool liveWanted: false
+    // The editor is of the shell that first asked for it, which may no
+    // longer be the one shown by the time it has come.
+    onLiveHostChanged: {
+        if (liveHost && !liveWanted) {
+            liveOf = framed;
+            liveWanted = true;
+        }
+        housed();
+    }
+    // The shell the reader's last edit made, and the last of those that
+    // came up: a later edit that compiles but does not run gives way to
+    // it, and coming back to the shell it is of shows the edit again,
+    // one that compiled while they were away too.
+    property var liveShell: null
+    property var liveGood: null
+    property string liveOf: ""
+    // The shell the editor edits is the one shown, and no other is asked
+    // for: only then is an edit's answer put in as it comes.
+    readonly property bool liveShown: framed === liveOf && sitePreferences.shown === liveOf
+
     // The shell shown: as one view transition where the browser has
     // them (a rise, or with reduced motion a crossfade), else faded in.
     function frame(name) {
@@ -178,7 +241,7 @@ Rectangle {
             if (sitePreferences.shown !== name)
                 return false;
             pageView.hold();
-            main.userShell = null;
+            main.userShell = name === main.liveOf ? (main.liveShell ?? main.liveGood) : null;
             main.framed = name;
             return true;
         }, sitePreferences.calm ? "calm" : name === "cyberpunk" ? "glitch" : "rich", (done) => {
@@ -195,7 +258,10 @@ Rectangle {
         page: main.page
         view: pageView
         onWent: main.menuOpen = false
-        onRouteChanged: Qt.callLater(main.count)
+        onRouteChanged: {
+            main.keepOpen();
+            Qt.callLater(main.count);
+        }
     }
     Preferences {
         id: sitePreferences
@@ -208,6 +274,8 @@ Rectangle {
 
     Component.onCompleted: {
         Theme.narrow = !sitePreferences.wide;
+        main.keepOpen();
+        Observing.watch(() => main.observing = Observing.isShown("site"));
         siteRouter.start();
         Frames.whenHydrated((ms) => {
             main.hydratedIn = ms;
@@ -218,18 +286,11 @@ Rectangle {
             if (kept !== "" && kept !== sitePreferences.shell && !Frames.late()) {
                 main.revealing = true;
                 sitePreferences.shell = kept;
-                // Too narrow for it: the Elegant shell stays, as written.
-                // Asked of the window, not of what is framed: where there
-                // are no view transitions the swap is made at once, so
-                // `framed` is the kept shell's name already while its
-                // module is still on its way, and the page must wait for
+                // Where there are no view transitions the swap is made at
+                // once, so `framed` is the kept shell's name already while
+                // its module is still on its way, and the page waits for
                 // it (loader.onItemChanged shows it).
-                if (sitePreferences.narrowed) {
-                    main.revealing = false;
-                    main.settle();
-                } else {
-                    Frames.whenLate(() => main.late());
-                }
+                Frames.whenLate(() => main.late());
             } else {
                 main.settle();
             }
@@ -477,6 +538,31 @@ Rectangle {
         }
     }
     Contribution {
+        slot: "site.switcher.compact"
+        delegate: Component {
+            ShellSwitcher {
+                compact: true
+                preferences: sitePreferences
+                onChoosing: main.controlsShown = true
+                onSourceAsked: (name) => main.showSource(name)
+            }
+        }
+    }
+    Contribution {
+        slot: "site.source.live"
+        delegate: Component {
+            Item {
+                id: liveSpot
+                width: parent ? parent.width : 0
+                height: parent ? parent.height : 0
+                // As the page's host: the next shell's takes the editor
+                // before the last one's goes.
+                Component.onCompleted: main.liveHost = liveSpot
+                Component.onDestruction: if (main.liveHost === liveSpot) main.liveHost = null
+            }
+        }
+    }
+    Contribution {
         slot: "site.preferences"
         delegate: Component {
             Row {
@@ -607,6 +693,8 @@ Rectangle {
             if ("site" in loader.item && loader.item.site !== main)
                 loader.item.site = main;
             main.letGo();
+            if (main.userShell !== null && main.userShell === main.liveShell && loader.error === "")
+                main.liveGood = main.liveShell;
             Qt.callLater(main.placePage);
             if (fadeIn.armed) {
                 fadeIn.armed = false;
@@ -661,6 +749,68 @@ Rectangle {
             item.room = main;
             item.error = Qt.binding(() => loader.error);
             item.show(shellSource.asked);
+        }
+    }
+    // The running shell's QML, edited in place (Site/LiveSource.qml): it
+    // comes the first time a shell has a place for it, and stays.
+    Loader {
+        id: liveSource
+        // Its item lives in the shell's place for it. The loader stays here
+        // at the item's size, and above the shell it would take the
+        // presses of the shell's top left: it lies under the shell.
+        z: -1
+        active: main.liveWanted
+        source: SiteLater.liveSource
+        onLoaded: {
+            main.controlsShown = true;
+            item.name = main.liveOf;
+            item.touch = Qt.binding(() => !sitePreferences.wide);
+            main.housed();
+            item.visible = Qt.binding(() => main.liveHost !== null);
+        }
+    }
+    // Moved by a write each time, not bound: a bound `parent` that
+    // changes is not among its new parent's children (ljos-web), so the
+    // editor stayed in the shell it left and went with it.
+    function housed() {
+        if (liveSource.item)
+            liveSource.item.parent = main.liveHost ?? main;
+    }
+    Connections {
+        target: liveSource.item
+        function onRan(shell) {
+            main.problems = [];
+            main.liveShell = shell;
+            if (!main.liveShown)
+                return;
+            pageView.hold();
+            main.userShell = shell;
+        }
+        function onBroke(diagnostics) {
+            main.problems = diagnostics;
+        }
+        function onReset() {
+            main.problems = [];
+            main.liveShell = null;
+            main.liveGood = null;
+            if (!main.liveShown)
+                return;
+            pageView.hold();
+            main.userShell = null;
+        }
+    }
+    // An edit that compiled but did not come up: it is a problem too, and
+    // the last that did stays.
+    Connections {
+        target: loader
+        function onErrorChanged() {
+            if (loader.error === "" || main.liveShell === null || main.userShell !== main.liveShell)
+                return;
+            var file = liveSource.item && liveSource.item.source ? liveSource.item.source.file : "";
+            main.problems = [{ file: file, line: 0, column: 0, message: loader.error, text: loader.error }];
+            main.liveShell = null;
+            pageView.hold();
+            main.userShell = main.liveGood;
         }
     }
     Connections {

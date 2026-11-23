@@ -4,8 +4,8 @@ import Ljos.Core
 import "later.js" as Later
 
 // Which shell frames the site: a button naming the one shown, and a
-// popover with the three and what each is, the note a narrow window
-// needs, and the way to the shell's own QML. Picking one swaps the shell
+// popover with the four and what each is, and the way to the shell's
+// own QML. Picking one swaps the shell
 // live (Main.qml): the page and what the reader did on it stay.
 // The button is drawn as the header's others are; the popover is drawn
 // with Ljós's own controls and comes the first time it is pressed
