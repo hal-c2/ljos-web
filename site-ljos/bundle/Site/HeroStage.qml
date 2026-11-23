@@ -129,24 +129,31 @@ DeviceFrame {
                             opacity: hover.containsMouse ? 1 : 0
                         }
                         Row {
+                            id: named
                             x: Theme.xs + line.modelData.depth * Theme.m
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: Theme.xs
                             Text {
+                                id: kind
                                 text: line.modelData.type
                                 color: Theme.text
                                 font.family: Theme.mono
                                 font.pixelSize: 12
                                 font.weight: Font.Medium
                             }
+                            // A long name gives way to its reading on the
+                            // right, ending in an ellipsis, never under it.
                             Text {
+                                width: Math.max(0, Math.min(implicitWidth, reading.x - Theme.s - named.x - kind.width - named.spacing))
                                 text: line.modelData.name
+                                elide: Text.ElideRight
                                 color: Theme.accent2Text
                                 font.family: Theme.mono
                                 font.pixelSize: 12
                             }
                         }
                         Row {
+                            id: reading
                             x: parent.width - width - Theme.xs
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: Theme.xs

@@ -1584,6 +1584,17 @@ test("Cyberpunk's front page is a mission console: the Observer tree, the live a
     const stage = main.getByRole("region", { name: "Live stage", exact: true });
     const stream = main.getByRole("region", { name: "Agent MCP stream", exact: true });
     for (const part of [tree, stage, stream]) await expect(part).toBeInViewport();
+    // Each line of the tree reads as a node and its value, never one
+    // run over the other: a long name ends in an ellipsis instead.
+    const crossed = await tree.evaluate((region) => {
+      const words = [...region.querySelectorAll("*")].filter((node) => node.childElementCount === 0 && node.textContent.trim()).map((node) => ({ text: node.textContent.trim(), box: node.getBoundingClientRect() }));
+      const over = [];
+      for (const a of words)
+        for (const b of words)
+          if (a !== b && a.box.left < b.box.left && a.box.right > b.box.left + 0.5 && a.box.top < b.box.bottom - 0.5 && b.box.top < a.box.bottom - 0.5) over.push(`${a.text} runs over ${b.text}`);
+      return over;
+    });
+    expect(crossed, "no words in the tree run over others").toEqual([]);
     const [left, centre, right] = await Promise.all([tree, stage, stream].map((part) => part.boundingBox()));
     expect(left.x + left.width, "the tree is left of the app").toBeLessThanOrEqual(centre.x + 1);
     expect(centre.x + centre.width, "the calls are right of the app").toBeLessThanOrEqual(right.x + 1);
