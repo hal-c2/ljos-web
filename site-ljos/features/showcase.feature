@@ -18,6 +18,10 @@ Feature: The showcase shows apps built with Ljós, recorded as they run
     When a reader with no script opens any page
     Then the header, the phone's menu and the 404 page each have a link "Showcase" to /showcase/
 
+  Scenario: Search finds the showcase
+    When a reader searches for "Built with"
+    Then the results list "Built with Ljós", which leads to /showcase/
+
   Scenario: Each app is shown as it runs, before any script does
     When a reader with no script opens /showcase/
     Then each app has a heading, its words and a poster of its recording
