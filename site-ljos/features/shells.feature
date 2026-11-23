@@ -408,3 +408,9 @@ Feature: The site is shown in a shell the reader picks
     When they look at the header and the footer
     Then the mark and "Ljós" are drawn as the user's logo
     And the shell's typeface, colours and capitals don't reach them
+
+  Scenario: The search field's words stay in its box in every shell
+    Given a reader on a desktop has any shell, Cyberpunk's narrow rail among them
+    When they open a docs page
+    Then the search field's "Search docs and demos" ends inside the field, shortened if it must be
+    And where the field shows the "/" key, its words end before it

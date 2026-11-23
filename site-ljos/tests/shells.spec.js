@@ -1730,3 +1730,34 @@ for (const kept of SHELLS)
         }
       });
     }
+
+// A narrow rail's search field (Cyberpunk's is a third of Elegant's)
+// once ran its words under the `/` key and out of the box.
+for (const shell of SHELLS) {
+  test(`${LABEL[shell]}'s search field keeps its words in its box, clear of the key`, async ({ browser }) => {
+    const context = await reader(browser, { kept: shell });
+    try {
+      const page = await context.newPage();
+      await open(page, "/start/first-app/");
+      expect(await showing(page)).toBe(shell);
+      const boxes = await page.evaluate(() => [...document.querySelectorAll('[aria-label="Search"]')]
+        .filter((field) => field.getBoundingClientRect().width > 0)
+        .map((field) => {
+          const box = field.parentElement.parentElement;
+          const edge = (node) => { const r = node.getBoundingClientRect(); return { left: r.left, right: r.right, shown: r.width > 0 && getComputedStyle(node).display !== "none" }; };
+          const parts = [...box.children];
+          const words = parts.find((node) => node.textContent.startsWith("Search docs"));
+          const key = parts.find((node) => node.textContent === "/");
+          return { box: edge(box), words: words ? { ...edge(words), text: words.textContent } : null, key: key ? edge(key) : null };
+        }));
+      expect(boxes.length, "a search field is on the page").toBeGreaterThan(0);
+      for (const { box, words, key } of boxes) {
+        expect(words, "the field says what it searches").not.toBeNull();
+        expect(words.right, `"${words.text}" ends inside the field`).toBeLessThanOrEqual(box.right);
+        if (key?.shown) expect(words.right, `"${words.text}" ends before the / key`).toBeLessThanOrEqual(key.left);
+      }
+    } finally {
+      await context.close();
+    }
+  });
+}
