@@ -421,6 +421,7 @@ ApplicationWindow {
 `),
     filled: one(`import Ljos.Ui
 import Ljos.Controls.Basic
+import Ljos.Layout
 
 ApplicationWindow {
     width: 360
