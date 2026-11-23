@@ -924,9 +924,11 @@ const LONG = 15;
 
 // Each block's code as the page lays it out, with the card it is in:
 // the card's group where it has one, else what holds the code and the
-// example's picture.
-const folds = (page) =>
-  page.evaluate(() => {
+// example's picture. `scrollTo` brings the card of that index into
+// view first, at the bottom: a card's name needn't be its own (many
+// are "Code: Main.qml").
+const folds = (page, scrollTo) =>
+  page.evaluate((scrollTo) => {
     const shown = (node) => {
       const box = node.getBoundingClientRect();
       return (
@@ -948,13 +950,14 @@ const folds = (page) =>
         if ([...up.querySelectorAll(PICTURE)].some(shown)) return up;
       return node.parentElement;
     };
-    return [...document.querySelectorAll("#app .qq-rich")]
-      .filter(
-        (node) =>
-          shown(node) &&
-          getComputedStyle(node).fontFamily.startsWith("ui-monospace"),
-      )
-      .map((code, index) => {
+    const codes = [...document.querySelectorAll("#app .qq-rich")].filter(
+      (node) =>
+        shown(node) &&
+        getComputedStyle(node).fontFamily.startsWith("ui-monospace"),
+    );
+    if (scrollTo !== undefined)
+      holding(codes[scrollTo]).scrollIntoView({ block: "end" });
+    return codes.map((code, index) => {
         const card = holding(code);
         const picture = [...card.querySelectorAll(PICTURE)].find(shown);
         const line = parseFloat(getComputedStyle(code).lineHeight);
@@ -995,7 +998,7 @@ const folds = (page) =>
           ),
         };
       });
-  });
+  }, scrollTo);
 
 for (const route of ["/quality/motion/", "/data/repeater-and-delegates/"]) {
   test(`${route} on a phone shows each example's stage before its code`, async ({
@@ -1201,15 +1204,9 @@ test("a phone's folded code can be read to its end without scripts", async ({
     expect(long.length, "examples longer than a screenful").toBeGreaterThan(0);
     for (const { index, name } of long) {
       const read = async () => (await folds(page))[index];
-      const card = page
-        .locator(CARD)
-        .filter({ visible: true })
-        .and(page.getByRole("group", { name, exact: true }))
-        .first();
       // The card, not its code: scrolling to the code would scroll the
       // fold that is under test.
-      await card.evaluate((node) => node.scrollIntoView({ block: "end" }));
-      const { shownTop, shownBottom } = await read();
+      const { shownTop, shownBottom } = (await folds(page, index))[index];
       await page.mouse.move(PHONE.width / 2, (shownTop + shownBottom) / 2);
       await page.mouse.wheel(0, 4000);
       await expect
@@ -1356,9 +1353,33 @@ test("a phone's page and Tab go stage, toolbar, code, as it shows them", async (
   }
 });
 
-for (const [how, go] of [
+const cardHeight = (card) =>
+  card.evaluate((node) => node.getBoundingClientRect().height);
+
+// The code's field takes no focus of the browser's either: a reader
+// comes into it by keys. From folded code's Show all, Shift+Tab goes
+// back into it, so the card is first unfolded by going in, folded with
+// Show less, and stood still.
+async function besideFoldedCode(page, card) {
+  const folded = await cardHeight(card);
+  const all = card.getByRole("button", { name: /^Show all \d+/ });
+  await intoCode(page, card);
+  await page.keyboard.press("Tab");
+  await expect
+    .poll(() => ringed(card.getByRole("button", { name: /^Show less/ })))
+    .toBe(true);
+  await page.keyboard.press("Enter");
+  await expect.poll(() => ringed(all)).toBe(true);
+  await expect.poll(() => cardHeight(card)).toBeCloseTo(folded, 0);
+}
+
+for (const [how, go, ready] of [
   ["Edit", (card) => card.getByRole("button", { name: /^Edit / }).click()],
-  ["focus in the code", (card) => card.getByRole("textbox").first().focus()],
+  [
+    "focus in the code",
+    (card, page) => page.keyboard.press("Shift+Tab"),
+    besideFoldedCode,
+  ],
   [
     "Show all",
     (card) => card.getByRole("button", { name: /^Show all \d+/ }).click(),
@@ -1368,8 +1389,9 @@ for (const [how, go] of [
     const { context, page } = await onPhone(browser);
     try {
       const card = await foldedCard(page);
+      await ready?.(page, card);
       await watched(card);
-      await go(card);
+      await go(card, page);
       expect((await unfolded(page)).between).toBeGreaterThan(0);
     } finally {
       await context.close();
@@ -1382,8 +1404,9 @@ for (const [how, go] of [
     const { context, page } = await onPhone(browser, "reduce");
     try {
       const card = await foldedCard(page);
+      await ready?.(page, card);
       await watched(card);
-      await go(card);
+      await go(card, page);
       const { between, faintest } = await unfolded(page);
       expect(between, "heights moved through").toBe(0);
       expect(faintest, "the code fades in").toBeLessThan(0.9);
