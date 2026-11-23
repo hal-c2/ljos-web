@@ -42,3 +42,5 @@ The four sets below were taken on 2026-11-23 from local builds: each head built 
 - 177/46a2f3a9: head 46a2f3a9. Docs at ljos-ui 5858c162. The first live example on Your First App and Motion, centred on its toolbar; Your First App on a 320 px phone; and the second example's tab strip on Your First App, at 390 px and 320 px.
 - 179/7fdd8070: head 7fdd8070. Docs at ljos-ui 4087f8ed8. The film on /rust/multimedia/ before Run, and about 2 s after Run while the clip plays.
 - 181/fd11b2cf: head fd11b2cf. Docs at ljos-ui 4087f8ed8. The fetch example on /rust/threads-and-uihandle/ before Run (the prerender) and after Run.
+
+- 171/5f81ae5c: CI's site-ljos-root artifact (14836827806) of site run 45204394067, for head 5f81ae5ca03280da1230057eef1fcce4c27ed73f. Headless Chromium 158.0.8127.18, no network, 1440x900 at 1x and 390x844 at 2x, light and dark. The front page's replay, as it plays with motion allowed.
