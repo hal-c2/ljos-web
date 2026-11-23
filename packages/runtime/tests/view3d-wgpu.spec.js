@@ -1596,6 +1596,56 @@ test.describe("a View3D no one asked a renderer of", () => {
     expect(readers, "readers of the fetch the second read holds").toBe(1);
   });
 
+  // A file the page has made something of, read again ahead of wgpu by a
+  // view that goes before its fetch is back: the bytes go with the view.
+  test("bytes fetched again for a reader that goes before they are here are not held", async ({ page }) => {
+    await page.goto("/?scene=wgpu_beside");
+    await page.waitForFunction(() => window.ready);
+    const scene = await sceneOf(page);
+    const before = await scene.evaluate((scene) => scene.held());
+    const path = "scenes/wgpu_models/square.obj";
+    const made = () => scene.evaluate((scene, path) => scene.file(path, "size", (bytes) => ({ size: bytes.byteLength })).state()?.size ?? null, path);
+    await expect.poll(made, { message: "what the page made of the file" }).toBeGreaterThan(0);
+    await scene.evaluate((scene, path) => {
+      const ahead = scene.readsAhead();
+      ahead.sighting();
+      ahead.read(path, "size", (bytes) => ({ size: bytes.byteLength }), "view");
+      ahead.sighted();
+      ahead.end();
+    }, path);
+    await expect.poll(() => scene.evaluate((scene) => scene.held()), { message: "bytes held" }).toBe(before);
+  });
+
+  // A view that shows nothing wgpu could draw spends what it read; another
+  // view still reading the same file keeps its fetch, for its wasm to take.
+  test("bytes one view spends are kept for another view that reads them", async ({ page }) => {
+    await page.goto("/?scene=wgpu_beside");
+    await page.waitForFunction(() => window.ready);
+    const scene = await sceneOf(page);
+    const same = await scene.evaluate(async (scene) => {
+      const path = "scenes/wgpu_models/pair.bin";
+      const took = () => ({});
+      const [one, other] = [scene.readsAhead(), scene.readsAhead()];
+      for (const ahead of [one, other]) {
+        ahead.sighting();
+        ahead.read(path, "buffer", took, "loader");
+        ahead.sighted();
+      }
+      const bytes = scene.fetched(path);
+      await bytes.done;
+      one.spend();
+      // The other view's next sight reads it again.
+      other.sighting();
+      other.read(path, "buffer", took, "loader");
+      other.sighted();
+      const same = scene.fetched(path) === bytes && bytes.readers.size === 1;
+      one.end();
+      other.end();
+      return same;
+    });
+    expect(same, "the fetch the other view holds").toBe(true);
+  });
+
   // It reads a file by its extension: one it refuses is no reason to turn,
   // nor to fetch, whatever is in it.
   test("stays on the JavaScript renderer for a file whose name wgpu's loader refuses", async ({ page }) => {
