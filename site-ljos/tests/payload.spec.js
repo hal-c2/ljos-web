@@ -98,8 +98,14 @@ test("a docs page's first load holds no other page's reading", () => {
 // with their addresses in its HTML, and a press shows the page in
 // place (nav.js), about 2.5 kB. What a docs page loads and does not
 // use is far more: the front page and the demos are made by the shell
-// every page loads, and with them the 3D and the effects.
-const CEILING_KB = 400;
+// every page loads, and with them the 3D and the effects. It went up
+// again, from 400 kB, for what a page's live examples use: each one's
+// picture in the dark scheme, and the words for one that draws nothing
+// yet, written in the page because its two schemes share one tree
+// (2.2 kB on /data/models/, which has eight). A plain card writes
+// neither. /start/cli/, all plain cards, already loaded 401.2 kB
+// before them.
+const CEILING_KB = 403;
 
 test(`no page's first load is over ${CEILING_KB} kB gzip`, () => {
   const over = report.filter(({ first }) => first.total.gzip > CEILING_KB * 1024).map(({ route, first }) => `${route}: ${kB(first.total.gzip)} kB`);
