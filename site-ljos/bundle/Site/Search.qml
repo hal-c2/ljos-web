@@ -89,6 +89,11 @@ Item {
         }
         Text {
             x: field.x
+            // Up to the key's box where it shows, else the field's own
+            // edge: a narrow rail's field ends its words, never runs them
+            // under the key or out of the box.
+            width: (keyHint.visible ? keyHint.x - Theme.xs : field.x + field.width) - x
+            elide: Text.ElideRight
             anchors.verticalCenter: parent.verticalCenter
             visible: field.text === ""
             text: t`Search docs and demos`
@@ -99,7 +104,10 @@ Item {
         }
         // The key that comes here, where a keyboard is likely.
         Rectangle {
-            visible: !Theme.narrow && field.text === "" && !field.activeFocus
+            id: keyHint
+            // Only where the words fit beside it: a rail as narrow as
+            // Cyberpunk's keeps the room for them.
+            visible: !Theme.narrow && field.text === "" && !field.activeFocus && search.width >= 220
             x: parent.width - width - Theme.s
             anchors.verticalCenter: parent.verticalCenter
             width: 22
