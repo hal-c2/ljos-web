@@ -44,3 +44,9 @@ The four sets below were taken on 2026-11-23 from local builds: each head built 
 - 181/fd11b2cf: head fd11b2cf. Docs at ljos-ui 4087f8ed8. The fetch example on /rust/threads-and-uihandle/ before Run (the prerender) and after Run.
 
 - 171/5f81ae5c: CI's site-ljos-root artifact (14836827806) of site run 45204394067, for head 5f81ae5ca03280da1230057eef1fcce4c27ed73f. Headless Chromium 158.0.8127.18, no network, 1440x900 at 1x and 390x844 at 2x, light and dark. The front page's replay, as it plays with motion allowed.
+
+The three sets below were taken on 2026-11-23 from local builds of each head (site-ljos `scripts/build.mjs` at `/`, default JS kernel), served on loopback. Headless Chromium 158.0.8127.18, no network, 1440x900 and 390x844 at 1x, light and dark: home, /demos/, /start/first-app/ (a docs page with a live example) and /controls/buttons-and-toggles/ (a code-heavy reference page). Per view: `-0` the first screen, `-1` one screen down, `-end` the footer. Nothing was pressed; no page logged an error.
+
+- 170/ab1ba441: the Elegant shell (the site's default), first screen and footer.
+- 172/6c56b350: the Cyberpunk shell, picked as a reader would; first screen, one screen down, and the home footer.
+- 173/4b2be4fb: the Workbench (`workbench/`) and Desktop (`desktop/`) shells, picked as a reader would; first screen and one screen down.
