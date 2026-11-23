@@ -28,7 +28,6 @@ data/pointer-input.md 6 web:multipointtoucharea MultiPointTouchArea is not in lj
 data/repeater-and-delegates.md 2 web:delegatechooser DelegateChooser is not in ljos-web yet
 language/controllers.md 5 web:ts-controller a Controller written as a .ts module, controller({...}), is no type to the web's compiler
 rust/models.md 1 host-types titlesModel is a model the Rust program sets
-rust/multimedia.md 1 web:media-pause a media element has no pause() on the web yet
 rust/native-types.md 1 host-types the Example module is the Rust program's
 rust/overview.md 1 web:error-boundary an ErrorBoundary catches and restarts what it holds, and the web's runtime has no supervisor to do it yet
 rust/singletons-and-windows.md 1 host-types io.qt.filenameprovider is a module the Rust program registers

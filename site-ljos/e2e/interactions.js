@@ -125,8 +125,11 @@ export const interactions = {
   "/data/fetching/#1": { act: reads, expect: (text) => /^POST \S+\/names$/m.test(text) && text.includes("content-type: application/json") },
   // Aborted as soon as it is made: the file beside it is never read.
   "/data/fetching/#2": { act: reads, expect: (text) => text.includes("stopped") },
-  // The chime the site ships (beep.wav), played on a press.
-  "/rust/multimedia/#0": { act: button("Play chime"), expect: (text) => text.includes("Played 1") },
+  // The chime the site ships (beep.wav), played on a press. #0 is the
+  // MediaPlayer's film (media.spec.js).
+  "/rust/multimedia/#1": { act: button("Play chime"), expect: (text) => text.includes("Played 1") },
+  // fetch of the act.json beside it, read against the page.
+  "/rust/threads-and-uihandle/#0": { act: reads, expect: (text) => text.includes("Walk to the lighthouse") },
   "/language/controllers/#1": {
     // The Wheel controller's rotation moves the distance the text shows.
     act: async ({ page, at }) => {
