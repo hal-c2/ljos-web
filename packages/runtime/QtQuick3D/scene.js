@@ -121,7 +121,9 @@ export function file(url, kind, took, reader = null) {
     }
     return record;
   }
-  record = { ahead: !!reader, readers: new Set(reader ? [reader] : []) };
+  // `spent`: the readers that have let go of the bytes (`spend`) and still
+  // read what was made of them.
+  record = { ahead: !!reader, readers: new Set(reader ? [reader] : []), spent: new Set() };
   const asked = () => {
     const bytes = fetched(url);
     if (!record.ahead) bytes.wanted = true;
@@ -227,7 +229,14 @@ export function readsAhead() {
   };
   const letRecordGo = (key, record) => {
     record.readers.delete(reader);
-    if (record.readers.size) return;
+    record.spent.delete(reader);
+    if (record.readers.size) {
+      // Readers that have spent theirs hold none: the bytes go with the
+      // last that holds them. The spent stay readers, so that their next
+      // sight is not given them again.
+      if (record.readers.size === record.spent.size) record.bytes = null;
+      return;
+    }
     if (record.ahead && files.get(key) === record) files.delete(key);
     // The record lets go of them whether they are here or not: what is made
     // of a first fetch is made of the bytes `make` is given, and one fetched
@@ -288,6 +297,7 @@ export function readsAhead() {
         letBytesGo(each.bytes);
         // Another view that reads the file keeps them, for its wasm.
         if (each.record.bytes === each.bytes && !each.bytes?.readers.size) each.record.bytes = null;
+        each.record.spent.add(reader);
         each.bytes = null;
       }
     },
