@@ -22,8 +22,10 @@ const cut = (version) => {
 const SHOWN = { list: cut("before"), board: cut("after") };
 const words = (text) => text.replace(/\s+/g, " ").trim();
 const shown = (locator) => locator.filter({ visible: true }).first();
-// The code the page shows beside the app, as its text.
-const codeOf = (page) => shown(page.getByText(/export function lanes\(/)).evaluate((element) => (element.closest(".qq-text") ?? element).textContent);
+// The code the page shows beside the app, as it reads: its lines are rich
+// text's breaks, which only the rendered text keeps (textContent runs the
+// last word of one line into the first of the next).
+const codeOf = (page) => shown(page.getByText(/export function lanes\(/)).evaluate((element) => (element.closest(".qq-text") ?? element).innerText);
 const nextStep = "Done. Try Assign crew or List / Board.";
 const replayLabel = (page) => shown(page.getByText("Replay · no live agent", { exact: true }));
 
