@@ -5,6 +5,7 @@
 // out, so plain text is measured and broken into lines here and the element
 // is given the lines. Markup is the browser's to set: it is measured in an
 // element off the page.
+import { onCleanup } from "solid-js";
 import { $string, defineType, derived, effect, flush, kinds, slot, typed, work } from "../object.ts";
 import { color, css } from "./color.ts";
 import { given, lazy, sized } from "./compute.ts";
@@ -556,6 +557,8 @@ export const Text = defineType("Text", Item, {
       });
       for (const image of images) pictured.observe(image);
     };
+    // A text that is gone hears nothing of the pictures it showed.
+    onCleanup(() => pictured?.disconnect());
     self.$pressed = "";
     // Not `$hover`: that is the scene's, for what is hovered as an item.
     const hover = (self.$linkHover = (link) => {

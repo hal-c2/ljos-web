@@ -879,6 +879,37 @@ test("a picture that keeps its file at another density is measured again, and th
   expect(await remeasured(page), "back at the first density, nothing is measured again").toBe(0);
 });
 
+test("a text that shows a picture lets it go once the text is gone", async ({ page }) => {
+  // What watches a picture's box, and is not yet told to stop.
+  await page.addInitScript(() => {
+    window.watching = new Set();
+    const Own = window.ResizeObserver;
+    window.ResizeObserver = class extends Own {
+      observe(target, ...rest) {
+        if (target.localName === "img") window.watching.add(this);
+        return super.observe(target, ...rest);
+      }
+      disconnect() {
+        window.watching.delete(this);
+        return super.disconnect();
+      }
+    };
+  });
+  await page.route("**/dense.svg", (route) => route.fulfill(drawn(120)));
+  await boxes(page, "markup");
+  const watched = () => page.evaluate(() => window.watching.size);
+  await page.evaluate(() => {
+    window.objects.pictured.active = true;
+    window.flush();
+  });
+  await expect.poll(watched, { message: "its picture is watched" }).toBe(1);
+  await page.evaluate(() => {
+    window.objects.pictured.active = false;
+    window.flush();
+  });
+  await expect.poll(watched, { message: "and no longer once the Loader lets the text go" }).toBe(0);
+});
+
 // Pictures for the tests of what is known of them, without fetching
 // anything: `copyOf(set, index, shown)` is what the browser's img says of a
 // copy of picture `index` of a set, a picture with a choice of its own,
