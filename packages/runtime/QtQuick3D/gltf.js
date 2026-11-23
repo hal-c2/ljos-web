@@ -71,6 +71,20 @@ export function parts(json, bytes) {
   return found;
 }
 
+// Whether the file's scene has a node with a mesh: what a renderer that
+// reads it would draw something of. Its buffers are not looked into.
+export function modelled(json) {
+  const walk = (index, seen) => {
+    const node = json.nodes?.[index];
+    if (!node || seen.has(index)) return false;
+    if (node.mesh !== undefined && json.meshes?.[node.mesh]) return true;
+    seen.add(index);
+    return (node.children ?? []).some((child) => walk(child, seen));
+  };
+  const seen = new Set();
+  return roots(json).some((root) => walk(root, seen));
+}
+
 // The nodes the file's scene starts from, or, with no scene, those that
 // are inside no other.
 function roots(json) {

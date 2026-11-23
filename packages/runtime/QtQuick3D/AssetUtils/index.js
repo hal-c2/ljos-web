@@ -4,7 +4,7 @@
 // draws what is declared and has no reader of glTF. What a pick meets of
 // them is read here, by the page (`$picks`).
 import { defineType, located } from "../../object.ts";
-import { buffers, header, parts } from "../gltf.js";
+import { buffers, header, modelled, parts } from "../gltf.js";
 import * as math from "../math.js";
 import { Node } from "../Node.js";
 import { retried } from "../scene.js";
@@ -23,8 +23,20 @@ const describedOf = (read, address) => {
 // What wgpu's loader reads, by the extension as it tells them (ljos_3d's
 // `load_any`): any other name it refuses.
 const extension = (source) => /\.(gltf|glb|obj)$/i.exec(source.split(/[?#]/, 1)[0])?.[1].toLowerCase();
-// What is kept of an OBJ: that it is here.
-const arrived = () => ({});
+// What is kept of an OBJ: whether it has a face, a line that begins `f`,
+// without which wgpu's loader makes no model of it.
+const F = 0x66;
+const arrived = (taken) => {
+  const bytes = new Uint8Array(taken);
+  let start = true;
+  for (let at = 0; at < bytes.length; at++) {
+    const byte = bytes[at];
+    if (start && byte === F && (bytes[at + 1] === 0x20 || bytes[at + 1] === 0x09)) return { faces: true };
+    if (byte === 0x0a || byte === 0x0d) start = true;
+    else if (start && byte !== 0x20 && byte !== 0x09) start = false;
+  }
+  return { faces: false };
+};
 // What is kept of a buffer that is a file of its own.
 const bytesOf = (taken) => ({ bytes: new Uint8Array(taken) });
 
@@ -48,8 +60,10 @@ export const RuntimeLoader = defineType("RuntimeLoader", Node, {
     },
     // Whether that file can be shown, with the buffers a glTF names: null
     // while one is on the way, as turning to wgpu would show no more till
-    // then; false once it has settled as one that cannot be. (An OBJ's
-    // materials are wgpu's to ask for: the last picture stays up meanwhile.)
+    // then; false once it has settled as one that cannot be, or as one with
+    // no model: a glTF whose scene has no node with a mesh, an OBJ with no
+    // face. (An OBJ's materials are wgpu's to ask for: the last picture
+    // stays up meanwhile.)
     // Asking starts the fetch, as `ahead`'s (`readsAhead`), and only a view
     // that could turn asks.
     $ready(ahead) {
@@ -57,11 +71,11 @@ export const RuntimeLoader = defineType("RuntimeLoader", Node, {
       const address = this.$named();
       if (extension(source) === "obj") {
         const here = ahead.read(address, "obj", arrived, address);
-        return here ? !here.error : null;
+        return here ? !here.error && here.faces : null;
       }
       const read = ahead.read(address, "gltf", header, address);
       if (!read) return null;
-      if (read.error) return false;
+      if (read.error || !modelled(read.json)) return false;
       let named;
       try {
         named = describedOf(read, address);

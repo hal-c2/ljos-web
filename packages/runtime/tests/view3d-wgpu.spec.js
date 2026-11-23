@@ -842,686 +842,7 @@ for (const backend of ["webgpu", "webgl2"]) {
       await expect.poll(() => at(page, 200 - 25, 150 - 25)).toEqual([255, 0, 0]);
       const held = () =>
         page.evaluate(async () => {
-          // The page's own instance of the module, by the address it was loaded from.
-          const address = performance.getEntriesByType("resource").find(({ name }) => /\/QtQuick3D\/scene\.js/.test(name)).name;
-          return (await import(address)).held();
-        });
-      expect(await held()).toBe(0);
-    });
-
-    test("a file arriving for one loader asks nothing again of another whose file is in", async ({ page }) => {
-      await show(page, "wgpu_twoloaders");
-      await expect.poll(() => at(page, 100, 150)).toEqual([255, 0, 0]);
-      // What a build asks of one loader, all of it.
-      await set(page, () => (window.objects.first.x = -90));
-      const one = (await counts(page)).reads;
-      expect(one).toBeGreaterThan(0);
-      await set(page, () => (window.objects.second.source = "scenes/wgpu_models/square.gltf"));
-      await expect.poll(() => at(page, 300, 150)).toEqual([255, 0, 0]);
-      expect(await page.evaluate(() => window.objects.loaded)).toBe(true);
-      // The build the arrival made asked of the second loader alone.
-      expect((await counts(page)).reads).toBeLessThanOrEqual(one);
-    });
-
-    test.describe("a file that cannot be read", () => {
-      test.use({ told: [/gone\.gltf|404/] });
-      test("says why on the loader, and is read again when the loader names it again", async ({ page }) => {
-        let refusals = 1;
-        await page.route(/gone\.gltf/, (route) => (refusals-- > 0 ? route.fulfill({ status: 404 }) : route.fulfill({ path: join(import.meta.dirname, "scenes/wgpu_models/square.gltf") })));
-        await show(page, "wgpu_loader");
-        await set(page, () => (window.objects.loader.source = "scenes/wgpu_models/gone.gltf"));
-        await expect.poll(() => loaderSays(page)).toMatchObject({ status: 2, failed: true, errorString: expect.stringMatching(/404/) });
-        // Another build asks nothing: a loader reads when its source changes.
-        await set(page, () => (window.objects.loader.x = 1));
-        near(await at(page, ...CENTRE), CLEAR);
-        await set(page, () => (window.objects.loader.source = "scenes/wgpu_models/square.gltf"));
-        await expect.poll(() => loaderSays(page)).toMatchObject({ status: 1, errorString: "" });
-        await set(page, () => (window.objects.loader.source = "scenes/wgpu_models/gone.gltf"));
-        await expect.poll(() => loaderSays(page)).toMatchObject({ status: 1, errorString: "" });
-        expect(refusals).toBe(-1);
-      });
-    });
-
-    test.describe("a shader that does not translate", () => {
-      test.use({ told: [/View3D: CustomMaterial: /] });
-      test("is said once, with why, however many builds read it", async ({ page }) => {
-        const said = [];
-        page.on("console", (message) => /CustomMaterial/.test(message.text()) && said.push(message.text()));
-        await show(page, "wgpu_badshader");
-        await set(page, () => (window.objects.other.x = 10));
-        await set(page, () => (window.objects.other.x = 20));
-        expect(said.length, said.join("\n")).toBe(1);
-        expect(said[0]).toMatch(/fragment shader/);
-      });
-    });
-
-    // A wasm that traps (a panic, which aborts) is left with what it held
-    // mid-call still held, so every call into it after traps too. One that
-    // trapped inside a build, as a lost device's did on a loaded machine,
-    // stopped every binding on the page with it: Solid halts all of them
-    // on an error nothing catches. The view stops and says why; the page
-    // around it goes on.
-    test.describe("a renderer that trapped", () => {
-      test.use({ told: [/^View3D: the renderer stopped: RuntimeError: unreachable/] });
-      test("stops its view and says why, and the page around it goes on", async ({ page }) => {
-        await show(page, "wgpu_trapped");
-        await page.evaluate(async () => {
-          const address = performance.getEntriesByType("resource").find(({ name }) => /\/wgpu\/ljos_web_3d\.js/.test(name)).name;
-          const { View3d } = await import(address);
-          window.calls = 0;
-          const trap = () => {
-            window.calls++;
-            throw new WebAssembly.RuntimeError("unreachable");
-          };
-          for (const name of ["build", "frame", "resize", "again", "pieces", "free"]) View3d.prototype[name] = trap;
-        });
-        const frames = await page.evaluate(() => document.querySelector(".qq-view3d").$view3d.frames);
-        await page.evaluate(() => (window.objects.moved.x = 40));
-        await expect.poll(() => page.evaluate(() => document.querySelector(".qq-view3d").$view3d.error)).toMatch(/^the renderer stopped: RuntimeError: unreachable/);
-        await page.evaluate(() => (window.objects.counter.count = 1));
-        await expect(page.getByText("count 1")).toBeAttached();
-        await page.evaluate(() => (window.objects.moved.x = 80));
-        await page.evaluate(() => (window.objects.counter.count = 2));
-        await expect(page.getByText("count 2")).toBeAttached();
-        expect(await page.evaluate(() => document.querySelector(".qq-view3d").$view3d.frames)).toBe(frames);
-        expect(await page.evaluate(() => window.calls), "the renderer is not called again once it trapped").toBe(1);
-      });
-
-      // What the wasm started before it trapped (a fetch's callback) may
-      // still ask its view for a picture: a stopped view never draws again,
-      // so it is not due, which a host that reads its pixels waits on.
-      test("is not due for a picture asked of it once stopped", async ({ page }) => {
-        await show(page, "wgpu_trapped");
-        await page.evaluate(async () => {
-          const address = performance.getEntriesByType("resource").find(({ name }) => /\/wgpu\/ljos_web_3d\.js/.test(name)).name;
-          const { View3d } = await import(address);
-          const create = View3d.create;
-          View3d.create = function (canvas, host) {
-            window.host = host;
-            return create.call(this, canvas, host);
-          };
-          window.objects.later.active = true;
-        });
-        await page.waitForFunction(() => {
-          const views = [...document.querySelectorAll(".qq-view3d")];
-          return views.length === 2 && views.every((view) => view.$view3d.frames > 0) && window.host;
-        });
-        await page.evaluate(async () => {
-          const address = performance.getEntriesByType("resource").find(({ name }) => /\/wgpu\/ljos_web_3d\.js/.test(name)).name;
-          const { View3d } = await import(address);
-          const trap = () => {
-            throw new WebAssembly.RuntimeError("unreachable");
-          };
-          for (const name of ["build", "frame", "resize", "again", "pieces", "free"]) View3d.prototype[name] = trap;
-          window.objects.moved.x = 40;
-        });
-        await expect.poll(() => page.evaluate(() => document.querySelectorAll(".qq-view3d")[1].$view3d.error)).toMatch(/^the renderer stopped/);
-        await page.evaluate(() => window.host.request());
-        await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
-        expect(await page.evaluate(() => [...document.querySelectorAll(".qq-view3d")].map((view) => view.$view3d.due))).toEqual([false, false]);
-      });
-
-      // A trap as the renderer is first made (as it reads its names) leaves
-      // no renderer kept, which a view after asks for again, as it does
-      // after a fetch that failed: a renderer that trapped is not asked.
-      test("that trapped as it was first made is not made again for the next view", async ({ page }) => {
-        await page.route(/\/wgpu\/ljos_web_3d\.js(\?|$)/, async (route) => {
-          const response = await route.fetch();
-          const glue = (await response.text()).replace("export function propNames(", "function propNamesOfWasm(");
-          const trap = 'export function propNames() { self.namesAsked = (self.namesAsked ?? 0) + 1; throw new WebAssembly.RuntimeError("unreachable"); }';
-          await route.fulfill({ response, body: `${glue}\n${trap}\n` });
-        });
-        if (backend === "webgl2") await page.addInitScript(HIDDEN);
-        await page.goto("/?scene=wgpu_trapped&view3d=wgpu");
-        await page.waitForFunction(() => window.ready);
-        const error = (index) => page.evaluate((index) => document.querySelectorAll(".qq-view3d")[index]?.$view3d.error, index);
-        await expect.poll(() => error(0)).toMatch(/^the renderer stopped: RuntimeError: unreachable/);
-        await page.evaluate(() => (window.objects.later.active = true));
-        await expect.poll(() => error(1)).toMatch(/^the renderer stopped: RuntimeError: unreachable/);
-        await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
-        expect(await page.evaluate(() => self.namesAsked), "the renderer is not made again once it trapped").toBe(1);
-      });
-    });
-
-    test.describe("a chunk that did not arrive", () => {
-      test.use({ told: [/View3D: |net::ERR_FAILED/] });
-      test("is asked for again by the next view, which draws", async ({ page }) => {
-        // The page's own ask, before its first view, and the first view's.
-        let refusals = 2;
-        await page.route(WASM, (route) => (refusals-- > 0 ? route.abort() : route.fallback()));
-        if (backend === "webgl2") await page.addInitScript(HIDDEN);
-        await page.goto("/?scene=wgpu_two&view3d=wgpu");
-        await page.waitForFunction(() => window.ready);
-        const states = () => page.evaluate(() => [...document.querySelectorAll(".qq-view3d")].map(({ $view3d: { error, frames } }) => ({ error, drew: frames > 0 })));
-        await expect.poll(async () => (await states()).filter(({ drew }) => drew).length).toBe(1);
-        const failed = (await states()).filter(({ error }) => error);
-        expect(failed.length).toBe(1);
-        expect(failed[0].error).not.toMatch(/undefined|not a function|Cannot read/);
-      });
-    });
-
-    test.describe("a chunk that did not arrive while the page loaded", () => {
-      test.use({ told: [/net::ERR_FAILED/] });
-      test("is asked for again by the first view, and every view draws", async ({ page }) => {
-        let refusals = 1;
-        await page.route(WASM, (route) => (refusals-- > 0 ? route.abort() : route.fallback()));
-        if (backend === "webgl2") await page.addInitScript(HIDDEN);
-        await page.goto("/?scene=wgpu_two&view3d=wgpu");
-        await page.waitForFunction(() => window.ready);
-        const states = () => page.evaluate(() => [...document.querySelectorAll(".qq-view3d")].map(({ $view3d: { error, frames } }) => ({ error, drew: frames > 0 })));
-        // Each view as it stands, so a view that never draws says why: its
-        // error, or that it still waits. Two first frames, each after the
-        // renderer's compile, take longer than a poll's default on a busy
-        // machine.
-        const said = async () => (await states()).map(({ error, drew }) => error ?? (drew ? "drew" : "waiting"));
-        await expect.poll(said, { timeout: 20_000 }).toEqual(["drew", "drew"]);
-      });
-    });
-
-    test.describe("while a dropped shell is shown", () => {
-      test.use({ told: [/not fetched while a dropped shell/] });
-      test("a loader's file from another host is not fetched", async ({ page }) => {
-        let asked = 0;
-        await page.route(/evil\.example/, (route) => (asked++, route.abort()));
-        await show(page, "wgpu_loader");
-        await page.evaluate(async () => {
-          // The page's own instance of the guard, by the address it was loaded from.
-          const address = performance.getEntriesByType("resource").find(({ name }) => /\/guard\.js/.test(name)).name;
-          (await import(address)).zoneShows({});
-          window.objects.loader.source = "https://evil.example/model.gltf";
-        });
-        await still(page);
-        await still(page);
-        expect(asked).toBe(0);
-        // The guard's own reason, not "the file is broken".
-        await expect.poll(() => loaderSays(page)).toMatchObject({ status: 2, errorString: expect.stringMatching(/not fetched while a dropped shell/) });
-      });
-    });
-
-    test("two entries draw two copies and not the model, and an entry moves its copy", async ({ page }) => {
-      await show(page, "wgpu_instancing");
-      near(await at(page, 150, 150), [255, 255, 0]);
-      near(await at(page, 250, 150), [255, 255, 0]);
-      near(await at(page, ...CENTRE), CLEAR);
-      await set(page, () => (window.objects.first.position = { x: -100, y: 0, z: 0 }));
-      near(await at(page, 100, 150), [255, 255, 0]);
-      near(await at(page, 150, 150), CLEAR);
-      await set(page, () => (window.objects.model.instancing = null));
-      near(await at(page, ...CENTRE), [255, 255, 0]);
-    });
-
-    test("a geometry the application commits is drawn, and again when it commits another", async ({ page }) => {
-      await show(page, "wgpu_geometry");
-      // As a type of an application's would, which QML itself cannot.
-      const square = (half) =>
-        set(page, (half) => {
-          const { shape } = window.objects;
-          shape.clear();
-          shape.setVertexData(new Float32Array([-half, -half, 0, half, -half, 0, half, half, 0, -half, -half, 0, half, half, 0, -half, half, 0]).buffer);
-          shape.setStride(12);
-          shape.addAttribute(1, 0, 3);
-          shape.setBounds({ x: -half, y: -half, z: 0 }, { x: half, y: half, z: 0 });
-          shape.update();
-        }, half);
-      await square(50);
-      near(await at(page, ...CENTRE), [0, 255, 255]);
-      near(await at(page, 200 + 40, 150), [0, 255, 255]);
-      near(await at(page, 200 + 80, 150), CLEAR);
-      await square(100);
-      near(await at(page, 200 + 80, 150), [0, 255, 255]);
-    });
-
-    test.describe("what is committed over and over", () => {
-      // A table of two thousand entries reads each of them: that is its size.
-      test.use({ told: [/HUGE_FAN_IN/] });
-      test("is let go: the page's memory and the GPU's stay level", async ({ page }) => {
-        test.setTimeout(120000);
-        await show(page, "wgpu_revisions");
-        const commit = (times) =>
-          page.evaluate(async (times) => {
-            const { shape, picture, table } = window.objects;
-            const entries = Array.from(table.instances);
-            // A quarter of a megabyte each of shape and picture, each time.
-            const corners = new Float32Array(21843 * 3);
-            corners.set([-50, -50, 0, 50, -50, 0, 50, 50, 0]);
-            shape.setStride(12);
-            shape.addAttribute(1, 0, 3);
-            shape.setBounds({ x: -50, y: -50, z: 0 }, { x: 50, y: 50, z: 0 });
-            picture.setSize({ width: 256, height: 256 });
-            picture.setFormat(1);
-            for (let time = 0; time < times; time++) {
-              const shade = (window.shade = ((window.shade ?? 0) + 1) % 255);
-              shape.setVertexData(corners.slice().buffer);
-              shape.update();
-              picture.setTextureData(new Uint8Array(256 * 256 * 4).fill(shade).map((value, at) => (at % 4 === 3 ? 255 : value)).buffer);
-              entries[0].position = { x: time % 100, y: 0, z: 0 };
-              window.flush();
-              await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
-            }
-            return { memory: document.querySelector(".qq-view3d").$view3d.memory(), live: await window.gpuLive(), builds: document.querySelector(".qq-view3d").$view3d.builds };
-          }, times);
-        const settled = await commit(30);
-        const later = await commit(100);
-        // Kept, a hundred revisions of these are over 75 MB.
-        const MB = 1024 * 1024;
-        console.log(`${backend}: wasm ${settled.memory / MB} -> ${later.memory / MB} MB, GPU objects ${settled.live} -> ${later.live}, builds ${settled.builds} -> ${later.builds}`);
-        expect(later.builds - settled.builds).toBeGreaterThanOrEqual(100);
-        expect((later.memory - settled.memory) / MB).toBeLessThan(16);
-        expect(later.live - settled.live).toBeLessThan(10);
-      });
-    });
-
-    test("a live texture whose item has no size yet is no picture, and the scene goes on", async ({ page }) => {
-      await show(page, "wgpu_livezero");
-      near(await at(page, 300, 150), [255, 0, 0]);
-      const builds = () => page.evaluate(() => document.querySelector(".qq-view3d").$view3d.builds);
-      const before = await builds();
-      await set(page, () => {
-        window.scene.effectSize = 100;
-        window.objects.cube.x = 60;
-      });
-      expect(await builds()).toBeGreaterThan(before);
-      near(await at(page, 260, 150), [255, 0, 0]);
-      near(await at(page, 300, 150), CLEAR);
-    });
-
-    // A canvas is drawn on with nothing to follow: what a build passed by
-    // (a hidden model's material) is asked again when it is reached again,
-    // however many builds passed it by.
-    test("a canvas's picture on a model hidden for a while is the canvas's as it is now", async ({ page }) => {
-      await show(page, "wgpu_livehidden");
-      near(await at(page, ...CENTRE), [255, 0, 0]);
-      await set(page, () => (window.scene.drawn = false));
-      near(await at(page, ...CENTRE), CLEAR);
-      await set(page, () => (window.scene.elsewhere = 120));
-      await set(page, () => (window.scene.faceColor = "#0000ff"));
-      await set(page, () => (window.scene.elsewhere = 150));
-      near(await at(page, 350, 150), [0, 255, 0]);
-      await set(page, () => (window.scene.drawn = true));
-      near(await at(page, ...CENTRE), [0, 0, 255]);
-    });
-
-    test("one sprite system in two views is toned by each view's own surroundings", async ({ page }) => {
-      await show(page, "wgpu_twotoned");
-      await page.waitForFunction(() => [...document.querySelectorAll(".qq-view3d")].every((c) => c.$view3d.frames > 0));
-      await still(page);
-      const [left, right] = [await at(page, 100, 150), await at(page, 300, 150)];
-      // #404040 with no tone mapping, and with the linear one (toScreen).
-      expect(left[0], `left ${left}, right ${right}`).toBeGreaterThanOrEqual(50);
-      expect(left[0], `left ${left}, right ${right}`).toBeLessThanOrEqual(85);
-      expect(right[0], `left ${left}, right ${right}`).toBeGreaterThan(left[0] + 40);
-    });
-
-    test.describe("texture data that is not drawn", () => {
-      test.use({ told: [/TextureData: a picture with a depth is not drawn|HUGE_FAN_IN/] });
-      test("says why, once, however often it is committed again", async ({ page }) => {
-        const said = [];
-        page.on("console", (message) => /TextureData: a picture with a depth/.test(message.text()) && said.push(message.text()));
-        await show(page, "wgpu_revisions");
-        const commit = (shade) =>
-          set(page, (shade) => {
-            const { picture } = window.objects;
-            picture.setSize({ width: 2, height: 2 });
-            picture.setFormat(1);
-            picture.setDepth(2);
-            picture.setTextureData(new Uint8Array(2 * 2 * 4).fill(shade).buffer);
-          }, shade);
-        await commit(7);
-        await commit(9);
-        expect(said, said.join("\n")).toEqual(["TextureData: a picture with a depth is not drawn"]);
-      });
-    });
-
-    test("two views each draw their own scene, and one taken away is let go", async ({ page }) => {
-      await show(page, "wgpu_two");
-      near(await at(page, 100, 150), [255, 0, 0]);
-      near(await at(page, 300, 150), [0, 0, 255]);
-      await set(page, () => (window.objects.second.active = false));
-      expect(await page.locator(".qq-view3d").count()).toBe(1);
-      await set(page, () => (window.objects.first.x = 40));
-      near(await at(page, 140, 150), [255, 0, 0]);
-    });
-
-    test("views whose GPU is lost are made again on a new one, and go on drawing", async ({ page }) => {
-      test.skip(backend !== "webgpu", "a device the page can lose is WebGPU's");
-      await page.addInitScript(LOSABLE);
-      await show(page, "wgpu_two");
-      const first = await page.evaluateHandle(() => document.querySelector(".qq-view3d").$view3d);
-      const drawn = await first.evaluate(({ frames }) => frames);
-      await page.evaluate(() => window.loseGpu());
-      // One drawing when it was lost draws again, and so does one made after.
-      await first.evaluate((state, drawn) => new Promise((done) => {
-        const look = () => (state.error ? done() : state.frames > drawn ? done() : requestAnimationFrame(look));
-        look();
-      }), drawn);
-      expect(await first.evaluate(({ lost, error }) => ({ lost, error }))).toEqual({ lost: 1, error: null });
-      await set(page, () => (window.objects.second.active = false));
-      await set(page, () => (window.objects.second.active = true));
-      await page.waitForFunction(() => {
-        const views = [...document.querySelectorAll(".qq-view3d")];
-        return views.length === 2 && views.every(({ $view3d }) => $view3d.frames > 0 && !$view3d.error);
-      });
-      await still(page);
-      near(await at(page, 100, 150), [255, 0, 0]);
-      near(await at(page, 300, 150), [0, 0, 255]);
-      await set(page, () => (window.objects.first.x = 40));
-      near(await at(page, 140, 150), [255, 0, 0]);
-      expect(await page.evaluate(() => window.gpuDevices.filter(({ lost }) => !lost).length)).toBe(1);
-    });
-
-    // A GPU that keeps dying: views a renderer was asked of are made again
-    // for the first three losses within a minute, and stop at the fourth,
-    // saying why.
-    test.describe("a GPU that keeps dying", () => {
-      test.use({ told: [/^View3D: the GPU was lost: /] });
-
-      test("views a renderer was asked of stop, saying why, once their GPU is lost too often", async ({ page }) => {
-        test.skip(backend !== "webgpu", "a device the page can lose is WebGPU's");
-        await page.addInitScript(LOSABLE);
-        await show(page, "wgpu_two");
-        for (let time = 0; time < 4; time++) await page.evaluate(LOST_AND_SETTLED);
-        const stopped = { renderer: "wgpu", lost: 3, error: "the GPU was lost" };
-        expect(await page.evaluate(RENDERERS)).toEqual([stopped, stopped]);
-      });
-    });
-
-    test("the view's size is the canvas's in device pixels, and changing it draws again", async ({ page }) => {
-      await show(page, "wgpu_mapped");
-      const size = () => page.evaluate(() => { const c = document.querySelector(".qq-view3d"); return [c.width, c.height]; });
-      expect(await size()).toEqual([400, 300]);
-      await set(page, () => {
-        window.scene.width = 200;
-        window.scene.height = 100;
-      });
-      expect(await size()).toEqual([200, 100]);
-      near(await at(page, 100, 50), [255, 0, 0]);
-    });
-
-    test("the picture is the native renderer's within 3 a channel on all but 0.5 % of pixels", async ({ page }) => {
-      await show(page, "wgpu_reference");
-      const shot = (await page.screenshot({ clip: { x: 0, y: 0, width: 400, height: 300 } })).toString("base64");
-      const reference = readFileSync(join(import.meta.dirname, "references3d/lit.png")).toString("base64");
-      const { over, total, largest } = await page.evaluate(
-        async ([shot, reference]) => {
-          const read = async (base64) => {
-            const picture = document.createElement("img");
-            picture.src = `data:image/png;base64,${base64}`;
-            await picture.decode();
-            const context = new OffscreenCanvas(picture.naturalWidth, picture.naturalHeight).getContext("2d");
-            context.drawImage(picture, 0, 0);
-            return context.getImageData(0, 0, picture.naturalWidth, picture.naturalHeight).data;
-          };
-          const [got, want] = [await read(shot), await read(reference)];
-          let over = 0;
-          let largest = 0;
-          for (let i = 0; i < want.length; i += 4) {
-            const most = Math.max(Math.abs(got[i] - want[i]), Math.abs(got[i + 1] - want[i + 1]), Math.abs(got[i + 2] - want[i + 2]));
-            largest = Math.max(largest, most);
-            if (most > 3) over++;
-          }
-          return { over, total: want.length / 4, largest };
-        },
-        [shot, reference],
-      );
-      if (process.env.LJOS_SHOTS) (await import("node:fs")).writeFileSync(join(process.env.LJOS_SHOTS, `web-${backend}.png`), Buffer.from(shot, "base64"));
-      expect(over / total, `${over} of ${total} pixels over 3, the largest ${largest}`).toBeLessThanOrEqual(0.005);
-    });
-  });
-}
-
-test("a page with no View3D fetches none of the renderer", async ({ page }) => {
-  const fetched = [];
-  page.on("request", (request) => fetched.push(request.url()));
-  await page.goto("/?scene=rectangle");
-  await page.waitForFunction(() => window.ready);
-  expect(fetched.filter((url) => /ljos_web_3d|QtQuick3D/.test(url))).toEqual([]);
-});
-
-test("a page with a View3D on the JavaScript renderer fetches none of the wgpu one", async ({ page }) => {
-  const fetched = [];
-  page.on("request", (request) => fetched.push(request.url()));
-  await page.goto("/?scene=shaded3d&view3d=js");
-  await page.waitForFunction(() => window.ready);
-  await page.waitForTimeout(100);
-  // A dev server serves the wasm's address as a module of its own, which is
-  // a string and none of the renderer; a build writes it into the page's.
-  expect(fetched.filter((url) => /ljos_web_3d/.test(url) && !/\.wasm\?import&url$/.test(url))).toEqual([]);
-});
-
-// The JavaScript renderer draws every view with one WebGL 2 context, which
-// the browser may lose (a GPU process that went down takes it, as it takes
-// WebGPU's device): a view keeps the picture it last drew, and no frame
-// throws for the picture it can no longer hand over.
-test("a view on the JavaScript renderer whose context is lost keeps its last picture, and throws nothing", async ({ page }) => {
-  const errors = [];
-  page.on("pageerror", (error) => errors.push(error.message));
-  await page.addInitScript(() => {
-    const get = OffscreenCanvas.prototype.getContext;
-    OffscreenCanvas.prototype.getContext = function (kind, ...rest) {
-      const made = get.call(this, kind, ...rest);
-      if (kind === "webgl2" && made) window.drawing = made;
-      return made;
-    };
-  });
-  await page.goto("/?scene=shaded3d&view3d=js");
-  await page.waitForFunction(() => window.ready && document.querySelector(".qq-view3d")?.$view3d?.frames > 0);
-  const frames = await page.evaluate(() => document.querySelector(".qq-view3d").$view3d.frames);
-  await page.evaluate(() => window.drawing.getExtension("WEBGL_lose_context").loseContext());
-  // A change the view draws again for, and the frames it would be drawn in.
-  await page.evaluate(() => (window.objects.height = 290));
-  await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(done, 100)))));
-  expect(errors).toEqual([]);
-  expect(await page.evaluate(() => document.querySelector(".qq-view3d").$view3d.frames), "no picture drawn without a context").toBe(frames);
-  const [r, g, b] = (await pixels(page, [[50, 60]]))[0].split(" ").map(Number);
-  expect([r, g, b], "the model it last drew, not the window's colour").not.toEqual(CLEAR);
-});
-
-// A browser that lost the context may give it back, as one whose GPU
-// process came up again does: all that was made on the lost one is made
-// again, and the view draws the picture last asked of it.
-test("a view on the JavaScript renderer whose context is given back draws again", async ({ page }) => {
-  const errors = [];
-  page.on("pageerror", (error) => errors.push(error.message));
-  await page.addInitScript(() => {
-    const get = OffscreenCanvas.prototype.getContext;
-    OffscreenCanvas.prototype.getContext = function (kind, ...rest) {
-      const made = get.call(this, kind, ...rest);
-      if (kind === "webgl2" && made) window.drawing = made;
-      return made;
-    };
-  });
-  await page.goto("/?scene=shaded3d&view3d=js");
-  await page.waitForFunction(() => window.ready && document.querySelector(".qq-view3d")?.$view3d?.frames > 0);
-  const frames = await page.evaluate(() => {
-    window.losing = window.drawing.getExtension("WEBGL_lose_context");
-    window.losing.loseContext();
-    return document.querySelector(".qq-view3d").$view3d.frames;
-  });
-  await page.evaluate(() => (window.objects.height = 290));
-  await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => setTimeout(done, 50))));
-  await page.evaluate(() => window.losing.restoreContext());
-  await page.waitForFunction((was) => document.querySelector(".qq-view3d").$view3d.frames > was, frames);
-  expect(errors).toEqual([]);
-  const [r, g, b] = (await pixels(page, [[50, 60]]))[0].split(" ").map(Number);
-  expect([r, g, b], "the model, not the window's colour").not.toEqual(CLEAR);
-});
-
-// Surroundings Qt baked into a file are handed to the context as they are,
-// and the file let go of: a context given back reads it again, and the
-// scene is lit by it and has it behind as before.
-test("a view on the JavaScript renderer lit by baked surroundings is lit by them again once its context is given back", async ({ page }) => {
-  const errors = [];
-  page.on("pageerror", (error) => errors.push(error.message));
-  await page.addInitScript(() => {
-    const get = OffscreenCanvas.prototype.getContext;
-    OffscreenCanvas.prototype.getContext = function (kind, ...rest) {
-      const made = get.call(this, kind, ...rest);
-      if (kind === "webgl2" && made) window.drawing = made;
-      return made;
-    };
-  });
-  await page.goto("/?scene=baked3d&view3d=js");
-  await page.waitForFunction(() => window.ready && document.querySelector(".qq-view3d")?.$view3d?.frames > 0);
-  // Behind, the mirror, and the ball half as smooth, as quick3d.spec.js
-  // has them.
-  const points = [[60, 60], [300, 60], [200, 150], [320, 150]];
-  const colours = [[62, 168, 168], [129, 129, 43], [87, 87, 208], [45, 45, 134]];
-  const lit = async () => {
-    const got = (await pixels(page, points)).map((one) => one.split(" ").map(Number));
-    return got.every((colour, index) => colour.every((value, at) => Math.abs(value - colours[index][at]) <= 3)) || got;
-  };
-  await expect.poll(lit).toBe(true);
-  const frames = await page.evaluate(() => {
-    window.losing = window.drawing.getExtension("WEBGL_lose_context");
-    window.losing.loseContext();
-    return document.querySelector(".qq-view3d").$view3d.frames;
-  });
-  await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => setTimeout(done, 50))));
-  await page.evaluate(() => window.losing.restoreContext());
-  await page.waitForFunction((was) => document.querySelector(".qq-view3d").$view3d.frames > was, frames);
-  await expect.poll(lit, { message: "lit and behind as before the context was lost" }).toBe(true);
-  expect(errors).toEqual([]);
-});
-
-// Where neither the page nor the build asks for a renderer, a View3D is on
-// wgpu if WebGPU has an adapter for the page, and on the JavaScript one if
-// not (a browser may have WebGPU and no GPU it lets it use), unless the
-// scene shows models from files, none still on the way and one that can be
-// shown, and nothing left to the JavaScript one: then on wgpu's WebGL 2.
-test.describe("a View3D no one asked a renderer of", () => {
-  test.skip(!!process.env.VITE_LJOS_VIEW3D, "the build asks for one");
-  const drawn = (page) =>
-    page.waitForFunction(() => {
-      const state = document.querySelector(".qq-view3d")?.$view3d;
-      if (state?.error) throw new Error(state.error);
-      return state?.frames > 0 && state.renderer;
-    });
-
-  test("draws on the JavaScript renderer where WebGPU has no adapter, and fetches none of wgpu", async ({ page }) => {
-    await page.addInitScript(() => {
-      if (navigator.gpu) navigator.gpu.requestAdapter = async () => null;
-    });
-    const fetched = [];
-    page.on("request", (request) => fetched.push(request.url()));
-    await page.goto("/?scene=shaded3d");
-    await page.waitForFunction(() => window.ready);
-    expect(await (await drawn(page)).jsonValue()).toBe("js");
-    // The rectangle of its own colour, up and to the left.
-    const [r, g, b] = (await pixels(page, [[50, 60]]))[0].split(" ").map(Number);
-    expect([r, g, b], "the model, not the window's colour").not.toEqual(CLEAR);
-    expect(fetched.filter((url) => /ljos_web_3d/.test(url) && !/\.wasm\?import&url$/.test(url))).toEqual([]);
-  });
-
-  // A glTF model, which only wgpu reads, drawn where WebGPU gives the page
-  // nothing to draw with: wgpu's WebGL 2 draws it.
-  for (const [where, missing] of [
-    ["WebGPU has no adapter", () => navigator.gpu && (navigator.gpu.requestAdapter = async () => null)],
-    ["the browser has no WebGPU", HIDDEN],
-  ]) {
-    test(`draws on wgpu's WebGL 2 where ${where}, a model from a file and all`, async ({ page }) => {
-      await page.addInitScript(missing);
-      await page.goto("/?scene=wgpu_loader");
-      await page.waitForFunction(() => window.ready);
-      // The JavaScript renderer draws until the file is here.
-      await page.waitForFunction(() => {
-        const state = document.querySelector(".qq-view3d")?.$view3d;
-        if (state?.error) throw new Error(state.error);
-        return state?.renderer === "wgpu" && state.frames > 0;
-      });
-      expect(await page.evaluate(() => document.querySelector(".qq-view3d").$view3d.backend)).toBe("webgl2");
-      // The file's red square, in the middle.
-      await expect.poll(async () => (await pixels(page, [CENTRE]))[0], { message: "the model the file holds" }).toBe("255 0 0");
-    });
-
-    // What needs wgpu may come after the view: a source named later, on a
-    // loader shown later. Until it is shown the view is as it was.
-    test(`turns to wgpu's WebGL 2 where ${where}, once a model from a file is shown`, async ({ page }) => {
-      await page.addInitScript(missing);
-      await page.goto("/?scene=wgpu_beside");
-      await page.waitForFunction(() => window.ready);
-      expect(await (await drawn(page)).jsonValue()).toBe("js");
-      await page.evaluate(() => {
-        window.objects.loader.visible = false;
-        window.objects.loader.source = "scenes/wgpu_models/square.gltf";
-        window.flush();
-      });
-      await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
-      expect(await (await drawn(page)).jsonValue(), "while the loader is hidden").toBe("js");
-      await page.evaluate(() => {
-        window.objects.loader.visible = true;
-        window.flush();
-      });
-      await page.waitForFunction(() => {
-        const state = document.querySelector(".qq-view3d")?.$view3d;
-        if (state?.error) throw new Error(state.error);
-        return state?.renderer === "wgpu" && state.backend === "webgl2" && state.frames > 0;
-      });
-      await expect.poll(() => pixels(page, [CENTRE, [50, 150]]), { message: "the file's model and the one beside it" }).toEqual(["255 0 0", "0 0 255"]);
-      expect(await page.evaluate(() => document.querySelectorAll(".qq-view3d").length)).toBe(1);
-    });
-  }
-
-  // wgpu's loader reads an OBJ too (ljos_3d's `load_any`), which is as
-  // much a model only wgpu draws as a glTF is.
-  test("turns to wgpu's WebGL 2 for a model from an OBJ, where the browser has no WebGPU", async ({ page }) => {
-    await page.addInitScript(HIDDEN);
-    await page.goto("/?scene=wgpu_beside");
-    await page.waitForFunction(() => window.ready);
-    expect(await (await drawn(page)).jsonValue()).toBe("js");
-    await page.evaluate(() => {
-      window.objects.loader.source = "scenes/wgpu_models/square.obj";
-      window.flush();
-    });
-    await page.waitForFunction(() => {
-      const state = document.querySelector(".qq-view3d")?.$view3d;
-      if (state?.error) throw new Error(state.error);
-      return state?.renderer === "wgpu" && state.backend === "webgl2" && state.frames > 0;
-    });
-    await expect.poll(() => pixels(page, [CENTRE, [50, 150]]), { message: "the file's model and the one beside it" }).toEqual(["255 0 0", "0 0 255"]);
-  });
-
-  // What tells that a view can turn is wgpu's to have: the same fetch, and
-  // nothing of it kept by the page once the wasm has its copy.
-  for (const [form, named, kept] of [
-    ["a glTF and its buffer", "pair.gltf", [["gltf", "pair.gltf"], ["buffer", "pair.bin"]]],
-    ["a GLB", "cube.glb", [["gltf", "cube.glb"]]],
-    ["an OBJ", "square.obj", [["obj", "square.obj"]]],
-  ]) {
-    test(`turns for ${form} with one fetch of each, and keeps none of it`, async ({ page }) => {
-      const asked = {};
-      await page.route(/\/wgpu_models\/(pair\.(gltf|bin)|cube\.glb|square\.obj)(\?.*)?$/, (route) => {
-        const file = new URL(route.request().url()).pathname.split("/").pop();
-        asked[file] = (asked[file] ?? 0) + 1;
-        return route.continue();
-      });
-      await page.addInitScript(HIDDEN);
-      await page.goto("/?scene=wgpu_beside");
-      await page.waitForFunction(() => window.ready);
-      expect(await (await drawn(page)).jsonValue()).toBe("js");
-      const source = `scenes/wgpu_models/${named}`;
-      await page.evaluate((source) => {
-        window.objects.loader.source = source;
-        window.flush();
-      }, source);
-      await page.waitForFunction(() => document.querySelector(".qq-view3d")?.$view3d?.renderer === "wgpu" && window.objects.loader.status === 1);
-      expect(asked, "fetches").toEqual(Object.fromEntries(kept.map(([, file]) => [file, 1])));
-      // The page's own instance of the module, by the address it was loaded from.
-      const scene = await page.evaluateHandle(() => {
-        const address = performance.getEntriesByType("resource").find(({ name }) => /\/QtQuick3D\/scene\.js/.test(name)).name;
-        return import(address);
-      });
-      await expect.poll(() => scene.evaluate((scene) => scene.held()), { message: "bytes held for the wasm" }).toBe(0);
-      for (const [kind, file] of kept) {
-        const path = `scenes/wgpu_models/${file}`;
-        // A buffer is kept by its whole address, a loader's file by the one it was named by.
-        const address = kind === "buffer" ? new URL(path, page.url()).href : path;
-        // Asked again, one not kept is not here at once.
-        expect(await scene.evaluate((scene, [address, kind]) => scene.file(address, kind, () => ({})).state(), [address, kind]), `${file}, kept`).toBe(null);
-      }
-    });
-  }
-
-  // It reads a file by its extension: one it refuses is no reason to turn,
+          // It reads a file by its extension: one it refuses is no reason to turn,
   // nor to fetch, whatever is in it.
   test("stays on the JavaScript renderer for a file whose name wgpu's loader refuses", async ({ page }) => {
     let asked = 0;
@@ -1542,6 +863,33 @@ test.describe("a View3D no one asked a renderer of", () => {
     expect(asked, "fetches of a file wgpu would not read").toBe(0);
     expect(await (await drawn(page)).jsonValue()).toBe("js");
   });
+
+  // A file that arrives and has no model in it shows nothing on wgpu either,
+  // so it is no reason to turn.
+  for (const [form, named, body] of [
+    ["a glTF whose scene has no mesh", "empty.gltf", JSON.stringify({ asset: { version: "2.0" }, scene: 0, scenes: [{ nodes: [0] }], nodes: [{ name: "nothing" }] })],
+    ["an OBJ with no face", "empty.obj", "# corners, and nothing made of them\nv 0 0 0\nv 1 0 0\nv 0 1 0\n"],
+  ]) {
+    test(`stays on the JavaScript renderer for ${form}, where the browser has no WebGPU`, async ({ page }) => {
+      const fetched = [];
+      page.on("request", (request) => fetched.push(request.url()));
+      await page.route(new RegExp(`/wgpu_models/${named.replace(".", "\\.")}$`), (route) => route.fulfill({ body }));
+      await page.addInitScript(HIDDEN);
+      await page.goto("/?scene=wgpu_beside");
+      await page.waitForFunction(() => window.ready);
+      expect(await (await drawn(page)).jsonValue()).toBe("js");
+      const arrived = page.waitForEvent("requestfinished", (request) => request.url().endsWith(named));
+      await page.evaluate((source) => {
+        window.objects.loader.source = source;
+        window.flush();
+      }, `scenes/wgpu_models/${named}`);
+      await arrived;
+      // Long enough for a turn to have begun: the renderer's chunk asked for.
+      await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(done, 500)))));
+      expect(fetched.filter((url) => /ljos_web_3d/.test(url) && !/\.wasm\?import&url$/.test(url)), "the wgpu renderer").toEqual([]);
+      expect(await (await drawn(page)).jsonValue()).toBe("js");
+    });
+  }
 
   // What a view reads ahead of wgpu to tell whether to turn. A file that
   // has settled, failed or not, holds no turn, and whatever comes of the
@@ -1852,9 +1200,14 @@ test.describe("a View3D no one asked a renderer of", () => {
   test.describe("a page whose policy refuses WebAssembly", () => {
     test.use({ told: [/Content Security Policy/i] });
     let fetched = [];
+    // What wgpu says when it could not draw a view and the JavaScript
+    // renderer took it: `told` lets a line through that names the policy.
+    let fellBack = [];
     test.beforeEach(async ({ page }) => {
       fetched = [];
+      fellBack = [];
       page.on("request", (request) => WASM.test(request.url()) && fetched.push(request.url()));
+      page.on("console", (message) => /^View3D: drawn by the JavaScript renderer/.test(message.text()) && fellBack.push(message.text()));
       await page.route(
         (url) => url.pathname === "/",
         async (route) => {
@@ -1903,6 +1256,7 @@ test.describe("a View3D no one asked a renderer of", () => {
       // Long enough for a turn or an early ask to have begun.
       await page.waitForTimeout(2000);
       expect(fetched, "the wgpu renderer's wasm").toEqual([]);
+      expect(fellBack, "wgpu's falling back").toEqual([]);
       expect(await renderers()).toEqual(["js", "js"]);
       for (const x of [50, 250]) await moves(page, Array.from({ length: 27 }, (_, i) => [x, 20 + i * 10]), `the view at ${x}`);
       expect(await refused(page), "the policy was in force").toBe(true);
@@ -1949,6 +1303,18 @@ test.describe("a View3D no one asked a renderer of", () => {
       await page.addInitScript(HIDDEN);
       await page.goto("/?scene=wgpu_two");
       await expect.poll(() => page.evaluate(() => [...document.querySelectorAll(".qq-view3d")].some(({ $view3d }) => $view3d?.frames > 0))).toBe(true);
+      expect(await page.evaluate(() => window.refusals), "what the policy refused").toBe(0);
+      await wouldBeCounted(page);
+    });
+
+    // Fog keeps a view on the JavaScript renderer whatever its files are,
+    // so a view with fog has no question to ask.
+    test("is not asked whether it can by a scene with fog, though it shows a glTF", async ({ page }) => {
+      await page.addInitScript(HIDDEN);
+      await page.goto("/?scene=fog3dbeside");
+      await expect.poll(() => page.evaluate(() => document.querySelector(".qq-view3d")?.$view3d?.frames > 0)).toBe(true);
+      // A refusal is reported in a task after the one it was made in.
+      await page.waitForTimeout(500);
       expect(await page.evaluate(() => window.refusals), "what the policy refused").toBe(0);
       await wouldBeCounted(page);
     });

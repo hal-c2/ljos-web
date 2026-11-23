@@ -1742,10 +1742,12 @@ what is declared and has no glTF reader. So without WebGPU a view is
 turned to wgpu's WebGL 2 when the shown nodes in it and in its
 `importScene` name such files (`$unread`: by extension, `.gltf`, `.glb`
 and `.obj`, as wgpu's loader reads them), the page can run WebAssembly
-(`wasmWorks`), every one has arrived or failed, one can be shown
-(`$ready`),
-and the scene shows nothing left to `render.js` (`scriptAlone` in
-`View3D.js` has the list: fog, and what fails below). Until then
+(`wasmWorks`, asked only of a scene with nothing left to `render.js`),
+every one has arrived or failed, one can be shown (`$ready`: a glTF whose
+scene has a node with a mesh and whose buffers have arrived, an OBJ with a
+face; what is in them is not checked further), and the scene shows nothing
+left to `render.js` (`scriptAlone` in `View3D.js` has the list: fog, and
+what fails below). Until then
 `render.js` draws, and its picture stays up until wgpu's first. If such a
 thing comes to a turned scene the view goes back, once and for good: it
 keeps that thing as Qt draws it and goes without the files' models, as a
