@@ -638,6 +638,9 @@ plain("a renderer's every answer reaches a reader that is late to read them", as
 // from its own directory and nowhere else: an address that climbs out,
 // as `../` or as `..%2F` (which the URL keeps and decoding makes `../`),
 // is a file that is not there, though there is one at the place it names.
+// An address from the page's root (`/own.json`) is the example's own
+// file too, as the page stands at the prerender document's root; one
+// that climbs from there is not let out by the root clamping it.
 plain("a prerender's fetch reads the example's own files and nothing outside its directory", async () => {
   const dir = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "ljos-codeblock-test-"));
   try {
@@ -658,6 +661,11 @@ plain("a prerender's fetch reads the example's own files and nothing outside its
       "../beside.json",
       "../../outside.json",
       "http://prerender.invalid/../beside.json",
+      "/own.json",
+      "/../beside.json",
+      "/../../outside.json",
+      "/%2e%2e/beside.json",
+      "/..%2Fbeside.json",
     ];
     writeFileSync(
       join(dir, "server", "entries.mjs"),
@@ -684,6 +692,11 @@ plain("a prerender's fetch reads the example's own files and nothing outside its
       "../beside.json": [404, ""],
       "../../outside.json": [404, ""],
       "http://prerender.invalid/../beside.json": [404, ""],
+      "/own.json": [200, "its own"],
+      "/../beside.json": [404, ""],
+      "/../../outside.json": [404, ""],
+      "/%2e%2e/beside.json": [404, ""],
+      "/..%2Fbeside.json": [404, ""],
     });
   } finally {
     rmSync(dir, { recursive: true, force: true });
