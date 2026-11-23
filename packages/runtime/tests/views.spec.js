@@ -142,12 +142,17 @@ test("only a Flickable a wheel turns sideways holds the wheel back from the brow
   expect(await page.evaluate(() => window.holdsWheel(window.objects.row))).toBe(true);
   // The default direction, a page's scroller: content taller than it is
   // scrolled down by the browser, so the wheel is not held back. Content
-  // only wider is turned sideways by the wheel, and is.
+  // only wider is turned sideways by the wheel, and is; content that fits
+  // both ways gives a wheel nothing to turn.
   await open(page, "flickable");
   const holds = () => page.evaluate(() => window.holdsWheel(window.objects.flick));
   expect(await page.evaluate(() => window.objects.flick.flickableDirection)).toBe(0);
   expect(await holds()).toBe(false);
   await page.evaluate(() => (window.objects.flick.contentHeight = 100));
+  expect(await holds()).toBe(true);
+  await page.evaluate(() => (window.objects.flick.contentWidth = 200));
+  expect(await holds()).toBe(false);
+  await page.evaluate(() => (window.objects.flick.contentWidth = 300));
   expect(await holds()).toBe(true);
   await page.evaluate(() => (window.objects.flick.contentHeight = 400));
   expect(await holds()).toBe(false);
