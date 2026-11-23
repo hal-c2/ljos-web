@@ -50,3 +50,5 @@ The three sets below were taken on 2026-11-23 from local builds of each head (si
 - 170/ab1ba441: the Elegant shell (the site's default), first screen and footer.
 - 172/6c56b350: the Cyberpunk shell, picked as a reader would; first screen, one screen down, and the home footer.
 - 173/4b2be4fb: the Workbench (`workbench/`) and Desktop (`desktop/`) shells, picked as a reader would; first screen and one screen down.
+
+- 166/e26f284b: CI's site-ljos-root artifact (14860397882) of site run 45257256661, for head e26f284b77fc1531a2e0f169c7ebb3db437f2692. Headless Chromium 158.0.8127.18, no network, 1440x900 at 1x and 390x844 at 2x, light and dark. /showcase/ at its top, then scrolled down by most of a screen twice.
