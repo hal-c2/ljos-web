@@ -14,9 +14,11 @@ Rectangle {
     property int size: 20
     // The page it is on, which the picture's address is written from.
     property string route: "/"
+    // The default look's pictures carry no name: every page is written in it.
+    readonly property string picture: "/pictures/github-mark" + (Theme.lookName === "elegant" ? "" : "-" + Theme.lookName)
 
-    implicitWidth: 40
-    implicitHeight: 40
+    implicitWidth: Theme.target
+    implicitHeight: Theme.target
     radius: Theme.radiusSmall
     color: area.pressed ? Theme.surfacePressed : area.containsMouse ? Theme.surfaceHover : "transparent"
 
@@ -34,7 +36,7 @@ Rectangle {
     // GitHub's mark, a picture as the name's is (Site/Brand.qml): drawn
     // with QtQuick.Shapes it would put that engine in every page's first
     // load, for one icon. A picture takes no colour from the page, so
-    // the build writes one for each scheme (scripts/build.mjs). Both are
+    // the build writes one for each look and scheme (scripts/build.mjs). Both are
     // here and one is shown, as the theme toggle's moon and sun are: one
     // whose address followed the scheme would make the schemes' renders
     // differ in more than style, and each page carry both in full.
@@ -45,7 +47,7 @@ Rectangle {
         width: link.size
         height: link.size
         textFormat: Text.RichText
-        text: Nav.picture(link.route, "/pictures/github-mark.svg", link.size, link.size, "")
+        text: Nav.picture(link.route, link.picture + ".svg", link.size, link.size, "")
         Accessible.ignored: true
     }
     Text {
@@ -55,7 +57,7 @@ Rectangle {
         width: link.size
         height: link.size
         textFormat: Text.RichText
-        text: Nav.picture(link.route, "/pictures/github-mark-dark.svg", link.size, link.size, "")
+        text: Nav.picture(link.route, link.picture + "-dark.svg", link.size, link.size, "")
         Accessible.ignored: true
     }
     MouseArea {

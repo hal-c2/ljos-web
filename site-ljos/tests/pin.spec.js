@@ -33,7 +33,9 @@ for (const route of PINNED_PAGES) {
     // title: a real <a href>, so it is followed with no script too. Its
     // words may stand in an element of their own inside it.
     const start = readFileSync(join(here, "dist/start/index.html"), "utf8");
-    const quoted = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    // A title longer than the sidebar is wide wraps there, and its
+    // words stand on more than one line.
+    const quoted = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/ /g, "\\s+");
     expect(start).toMatch(new RegExp(`<a [^>]*href="${quoted(route)}"[^>]*>(?:\\s|<[^>]*>)*${quoted(title)}(?:\\s|<[^>]*>)*</a>`));
   });
 }

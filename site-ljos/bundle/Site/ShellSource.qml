@@ -7,14 +7,14 @@ import "../shells.js" as Shells
 // A shell's own QML, the very file the site ships (Shells/), to read and
 // to change: Apply compiles the edit in the page and shows the site in
 // it, the page and the reader's place on it kept; a shell that does not
-// work gives way to the marketing shell and says here what broke.
+// work gives way to the Elegant shell and says here what broke.
 // The text comes with the first look (Shells/sources.json), so no page
 // loads it for a reader who never asks.
 C.Popup {
     id: panel
 
-    // The shell whose QML this is ("marketing", "workbench", "desktop").
-    property string name: "marketing"
+    // The shell whose QML this is ("elegant", "workbench", "desktop").
+    property string name: "elegant"
     // Why the shell shown is not the one asked for, as ShellLoader says.
     property string error: ""
     property var source: null
@@ -75,7 +75,7 @@ C.Popup {
                 Text {
                     id: heading
                     width: parent.width
-                    text: panel.source ? panel.source.file : t`Shell`
+                    text: panel.source ? t`Source of ${panel.source.file}` : t`Shell`
                     color: Theme.text
                     font.family: Theme.mono
                     font.pixelSize: Theme.bodySize
@@ -97,7 +97,7 @@ C.Popup {
                 subtle: true
                 iconName: "x"
                 display: C.Button.IconOnly
-                text: t`Close`
+                text: t`Close shell source`
                 onClicked: panel.close()
             }
         }
@@ -153,12 +153,14 @@ C.Popup {
                 C.Button {
                     primary: true
                     iconName: "play"
+                    font.family: Theme.sans
                     text: t`Apply`
                     enabled: panel.source !== null
                     onClicked: panel.applied(panel.source.file, editor.text)
                 }
                 C.Button {
                     iconName: "refresh-cw"
+                    font.family: Theme.sans
                     text: t`Reset`
                     enabled: panel.source !== null
                     onClicked: {

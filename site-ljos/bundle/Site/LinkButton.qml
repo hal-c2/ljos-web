@@ -10,15 +10,23 @@ Rectangle {
 
     property string label: ""
     property string href: ""
-    // Filled with the accent, or outlined on the page's ground.
+    // Filled with the accent, or a ghost: a hairline on the page's ground.
     property bool primary: false
+    // A lesser call beside the first: its words alone, in the link's colour.
+    property bool quiet: false
 
-    implicitWidth: words.implicitWidth + 2 * Theme.l
+    implicitWidth: words.implicitWidth + 2 * (quiet ? Theme.m : Theme.l)
     implicitHeight: 48
-    radius: Theme.radius
-    color: primary ? (area.pressed ? Theme.accentPressed : area.containsMouse ? Theme.accentHover : Theme.accent) : (area.pressed ? Theme.surfacePressed : area.containsMouse ? Theme.surfaceHover : Theme.surfaceRaised)
-    border.color: primary ? "transparent" : Theme.border
-    border.width: primary ? 0 : 1
+    radius: Theme.brackets ? Theme.radiusSmall : Math.min(Theme.radius, height / 2)
+    color: primary ? (area.pressed ? Theme.accentPressed : area.containsMouse ? Theme.accentHover : Theme.accent) : (area.pressed ? Theme.surfacePressed : area.containsMouse ? Theme.surfaceHover : "transparent")
+    border.color: primary || quiet ? "transparent" : Theme.border
+    border.width: primary || quiet ? 0 : 1
+
+    Behavior on color {
+        ColorAnimation {
+            duration: Theme.moveSmall
+        }
+    }
 
     MouseArea {
         id: area
@@ -30,13 +38,17 @@ Rectangle {
     }
     Text {
         id: words
-        anchors.centerIn: parent
+        // A quiet link that wraps to the start of a row keeps its words
+        // on the edge the text above starts from, not a padding in from
+        // it; beside another button its padding is the gap between them.
+        x: button.quiet && button.x === 0 ? 0 : Math.round((parent.width - width) / 2)
+        anchors.verticalCenter: parent.verticalCenter
         textFormat: Text.RichText
         text: Nav.anchor(Nav.at(Content.base, button.href), button.label, false)
-        color: button.primary ? Theme.textOnAccent : Theme.text
+        color: button.primary ? Theme.textOnAccent : button.quiet ? Theme.link : Theme.text
         linkColor: color
         font.family: Theme.sans
-        font.pixelSize: Theme.bodySize
+        font.pixelSize: Theme.bodySize - 1
         font.weight: Font.DemiBold
         lineHeightMode: Text.FixedHeight
         lineHeight: Theme.bodyLine

@@ -16,7 +16,7 @@ import Ljos.Blocks
 // router, the reader's preferences and the look.
 Rectangle {
     id: shell
-    objectName: "marketingShell"
+    objectName: "elegantShell"
 
     property var site: null
     readonly property var router: site ? site.router : null
@@ -31,7 +31,12 @@ Rectangle {
     readonly property bool menuOpen: site ? site.menuOpen && !wide : false
     // A page other than the docs is this wide at most here: a front page
     // has the room to span.
-    readonly property int pageWidest: 1200
+    readonly property int pageWidest: 1280
+    // The header's row stands over the page's grid, so the name lines up
+    // with the page's first column and the reader's choices with its
+    // last; on the docs, whose sidebar meets the window's edge, and on a
+    // phone it keeps to the gutter.
+    readonly property int inset: docs || !wide ? gutter : Math.max(gutter, Math.round((width - pageWidest) / 2))
 
     // The colours the site draws in, for this shell's own lines: none of
     // its own before it is given the site.
@@ -62,23 +67,26 @@ Rectangle {
             height: 1
             color: look.divider
         }
+        // The brand and the sections, each on the header's middle line:
+        // the row is the header's height so each part centres on it,
+        // whatever height the other has.
         Row {
-            x: shell.gutter
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: 24
+            x: shell.inset
+            height: header.height
+            spacing: 32
 
             Row {
-                anchors.verticalCenter: parent.verticalCenter
+                y: Math.round((header.height - height) / 2)
                 Slot { name: "site.brand" }
             }
             Row {
                 visible: shell.wide
-                anchors.verticalCenter: parent.verticalCenter
+                y: Math.round((header.height - height) / 2)
                 Slot { name: "site.nav" }
             }
         }
         Row {
-            x: parent.width - width - (shell.wide ? shell.gutter : shell.gutter - 8)
+            x: parent.width - width - (shell.wide ? shell.inset : shell.gutter - 8)
             anchors.verticalCenter: parent.verticalCenter
             spacing: 12
 
@@ -178,50 +186,59 @@ Rectangle {
             }
         }
 
-        Flickable {
+        // What it holds is made when it opens and let go once it has
+        // faded: closed, it is the docs' whole list again in every
+        // page's first load, which a reader on a wide window never sees.
+        Loader {
             anchors.fill: parent
-            contentWidth: width
-            contentHeight: menuColumn.implicitHeight + 48
-            clip: true
+            active: shell.menuOpen || menu.opacity > 0
+            sourceComponent: Component {
+                Flickable {
+                    anchors.fill: parent
+                    contentWidth: width
+                    contentHeight: menuColumn.implicitHeight + 48
+                    clip: true
 
-            Column {
-                id: menuColumn
-                x: shell.gutter
-                y: 24
-                width: parent.width - 2 * shell.gutter
-                spacing: 24
+                    Column {
+                        id: menuColumn
+                        x: shell.gutter
+                        y: 24
+                        width: parent.width - 2 * shell.gutter
+                        spacing: 24
 
-                Item {
-                    z: 2
-                    width: parent.width
-                    height: 44
-                    Slot { name: "site.search" }
-                }
-                Column {
-                    width: parent.width
-                    Slot { name: "site.nav.large" }
-                }
-                Row {
-                    spacing: 8
-                    Slot { name: "site.github" }
-                    Slot { name: "site.preferences" }
-                }
-                Row {
-                    Slot { name: "site.switcher" }
-                }
-                Column {
-                    visible: shell.docs
-                    width: parent.width
-                    Slot { name: "site.toc.inline" }
-                }
-                Rectangle {
-                    width: parent.width
-                    height: 1
-                    color: look.divider
-                }
-                Column {
-                    width: parent.width
-                    Slot { name: "site.docs.inline" }
+                        Item {
+                            z: 2
+                            width: parent.width
+                            height: 44
+                            Slot { name: "site.search" }
+                        }
+                        Column {
+                            width: parent.width
+                            Slot { name: "site.nav.large" }
+                        }
+                        Row {
+                            spacing: 8
+                            Slot { name: "site.github" }
+                            Slot { name: "site.preferences" }
+                        }
+                        Row {
+                            Slot { name: "site.switcher" }
+                        }
+                        Column {
+                            visible: shell.docs
+                            width: parent.width
+                            Slot { name: "site.toc.inline" }
+                        }
+                        Rectangle {
+                            width: parent.width
+                            height: 1
+                            color: look.divider
+                        }
+                        Column {
+                            width: parent.width
+                            Slot { name: "site.docs.inline" }
+                        }
+                    }
                 }
             }
         }

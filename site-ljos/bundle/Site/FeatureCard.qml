@@ -1,10 +1,13 @@
 import QtQuick
+import QtQuick.Effects
 import Site
 import "../nav.js" as Nav
 
 // One of the landing page's points: a heading and the words under it,
-// on a card of its own.
-Rectangle {
+// on a card of its own in the shell's look (Site/Panel.qml's: its
+// corners, hairline and depth, or Cyberpunk's brackets). A card that
+// leads somewhere lifts a little under the pointer.
+Item {
     id: card
 
     property string title: ""
@@ -12,16 +15,68 @@ Rectangle {
     // Where the card leads, if anywhere: its title is then the link,
     // and the whole card takes a press.
     property string href: ""
+    // A small index over the title ("01"), in the mono face; none if empty.
+    property string mark: ""
+    readonly property int padding: Theme.l + Theme.xxs
     // What the card's words hold, for a row of cards to share the
     // tallest one's height.
-    readonly property real contentHeight: words.implicitHeight + 2 * Theme.l
+    readonly property real contentHeight: words.implicitHeight + 2 * padding
+    readonly property bool lifted: area.containsMouse
     signal followed(string href)
 
     height: contentHeight
-    radius: Theme.radiusLarge
-    color: Theme.surface
-    border.color: Theme.divider
-    border.width: 1
+
+    RectangularShadow {
+        anchors.fill: face
+        visible: Theme.shadowBlur > 0
+        offset.y: card.lifted ? Theme.shadowY : Theme.shadowY / 2
+        blur: card.lifted ? Theme.shadowBlur : Theme.shadowBlur / 2
+        spread: -Theme.shadowBlur / 4
+        radius: face.radius
+        color: Theme.shadow
+        opacity: card.lifted ? 1 : 0.5
+        Accessible.ignored: true
+        Behavior on opacity {
+            NumberAnimation {
+                duration: Theme.moveSmall
+                easing.type: Easing.OutCubic
+            }
+        }
+    }
+    Rectangle {
+        id: face
+        anchors.fill: parent
+        radius: Theme.brackets ? 0 : Theme.radiusLarge
+        color: card.lifted ? Theme.surfaceRaised : Theme.surface
+        border.color: Theme.brackets ? "transparent" : card.lifted ? Theme.border : Theme.divider
+        border.width: 1
+        Accessible.ignored: true
+    }
+    Repeater {
+        model: Theme.brackets ? 4 : 0
+        Item {
+            required property int index
+            readonly property bool atRight: index % 2 === 1
+            readonly property bool atBottom: index > 1
+            x: atRight ? card.width - width : 0
+            y: atBottom ? card.height - height : 0
+            width: 14
+            height: 14
+            Accessible.ignored: true
+            Rectangle {
+                y: parent.atBottom ? parent.height - 2 : 0
+                width: parent.width
+                height: 2
+                color: Theme.accent
+            }
+            Rectangle {
+                x: parent.atRight ? parent.width - 2 : 0
+                width: 2
+                height: parent.height
+                color: Theme.accent
+            }
+        }
+    }
 
     MouseArea {
         id: area
@@ -32,32 +87,52 @@ Rectangle {
         Accessible.ignored: true
         onClicked: card.followed(card.href)
     }
-    Rectangle {
-        anchors.fill: parent
-        radius: parent.radius
-        color: Theme.surfaceHover
-        opacity: area.containsMouse ? 0.5 : 0
-        Accessible.ignored: true
-    }
 
     Column {
         id: words
-        x: Theme.l
-        y: Theme.l
-        width: parent.width - 2 * Theme.l
-        spacing: Theme.xs
+        x: card.padding
+        y: card.padding
+        width: parent.width - 2 * card.padding
+        spacing: Theme.s
 
+        // The mark, set large, and a hairline running from it to the
+        // card's edge: an index the eye finds before the words.
+        Item {
+            visible: card.mark !== ""
+            width: parent.width
+            height: visible ? markWords.implicitHeight + Theme.xs : 0
+            Accessible.ignored: true
+
+            Text {
+                id: markWords
+                text: card.mark
+                color: Theme.accent2Text
+                font.family: Theme.mono
+                font.pixelSize: Theme.subtitleSize
+                font.weight: Font.Medium
+                lineHeightMode: Text.FixedHeight
+                lineHeight: Theme.subtitleLine
+            }
+            Rectangle {
+                x: markWords.implicitWidth + Theme.s
+                anchors.verticalCenter: markWords.verticalCenter
+                width: parent.width - x
+                height: 1
+                color: Theme.divider
+            }
+        }
         Text {
             width: parent.width
             textFormat: card.href !== "" ? Text.RichText : Text.PlainText
             text: card.href !== "" ? Nav.anchor(Nav.at(Content.base, card.href), card.title, area.containsMouse) : card.title
-            color: card.href !== "" ? Theme.link : Theme.text
+            color: card.href !== "" ? Theme.link : Theme.onCanvasStrong
             linkColor: color
             font.family: Theme.sans
             font.pixelSize: Theme.titleSize - 3
             font.weight: Font.DemiBold
+            font.letterSpacing: -0.2
             lineHeightMode: Text.FixedHeight
-            lineHeight: Theme.titleLine
+            lineHeight: Theme.titleLine - 2
             wrapMode: Text.Wrap
             // A card stands under its section's heading.
             readonly property int headingLevel: 3
@@ -73,7 +148,7 @@ Rectangle {
             font.family: Theme.sans
             font.pixelSize: Theme.bodySize - 1
             lineHeightMode: Text.FixedHeight
-            lineHeight: Theme.bodyLine
+            lineHeight: Theme.bodyLine - 2
             wrapMode: Text.Wrap
             onLinkActivated: (link) => card.followed(link)
         }

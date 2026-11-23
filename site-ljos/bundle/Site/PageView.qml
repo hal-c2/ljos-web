@@ -14,7 +14,7 @@ Flickable {
     property var router: null
     property bool wide: true
     // How wide a page other than the docs may grow: the shell's to say
-    // (a marketing page is wider than a workbench's middle column).
+    // (an Elegant page is wider than a workbench's middle column).
     property int widest: Theme.pageWidth
     readonly property int gutter: wide ? Theme.gutterWide : Theme.gutterCompact
     readonly property int measure: router && router.docsRoute ? Theme.measure : widest
@@ -103,6 +103,12 @@ Flickable {
             return;
         var to = view.placeBlock.mapToItem(column, 0, 0).y + view.placeInto * view.placeBlock.height;
         view.contentY = Math.max(0, Math.min(to, view.contentHeight - view.height));
+    }
+    // Before another shell lays the page out: a scroll `keeping` still
+    // waits on is where the reader is, not the place marked before it.
+    function hold() {
+        if (keeping.running && !view.placing)
+            view.mark();
     }
     function reflowed() {
         if (!placed())

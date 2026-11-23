@@ -11,20 +11,26 @@ Column {
     property bool wide: true
     default property alias content: holder.data
 
-    spacing: Theme.s
+    spacing: Theme.m
 
-    Text {
+    // Each demo opens on a hairline across the page, its heading a step
+    // under the page's own, so the page reads as a set of chapters.
+    Rectangle {
         width: parent.width
+        height: 1
+        color: Theme.divider
+        Accessible.ignored: true
+    }
+    Item {
+        width: 1
+        height: section.wide ? Theme.m : Theme.xs
+    }
+    Heading {
+        width: parent.width
+        level: "headline"
+        wide: section.wide
+        headingLevel: 2
         text: section.title
-        color: Theme.text
-        font.family: Theme.sans
-        font.pixelSize: section.wide ? Theme.titleSize + 1 : Theme.titleSize - 1
-        font.weight: Font.Bold
-        lineHeightMode: Text.FixedHeight
-        lineHeight: Theme.titleLine + 4
-        wrapMode: Text.Wrap
-        readonly property int headingLevel: 2
-        Accessible.role: Accessible.Heading
     }
     Text {
         width: Math.min(parent.width, Theme.measure)
@@ -40,7 +46,7 @@ Column {
     }
     Item {
         width: 1
-        height: Theme.xxs
+        height: Theme.xs
     }
     Column {
         id: holder

@@ -72,7 +72,7 @@ test("no page's first load holds the compiler's modules or a whole namespace", (
   expect([...later].some((file) => named(file, "modules-")), "a modules-* chunk").toBe(true);
 });
 
-// Every page is written in the Marketing shell; the others a reader
+// Every page is written in the Elegant shell; the others a reader
 // picks come with the pick (bundle/Shells/later.js,
 // features/shells.feature), and so do the switcher's choices and a
 // shell's source with the first look at them.
@@ -162,6 +162,23 @@ test("a docs page's first load holds no other page's reading", () => {
   const reader = report.find((entry) => entry.route === "/rust/overview/");
   const holding = reader.first.files.filter((entry) => entry.file.endsWith(".js")).filter((entry) => words.some((text) => readFileSync(join(dist, entry.file), "utf8").includes(JSON.stringify(text).slice(1, -1))));
   expect(holding.map((entry) => entry.file)).toEqual([]);
+});
+
+// The head is written into every page: what it says to whoever edits
+// it stays in bundle/assets/head.html.
+test("no page's head carries the comments of the file it is written from", () => {
+  const source = readFileSync(join(dist, "../bundle/assets/head.html"), "utf8");
+  const comments = [...source.matchAll(/<!--[\s\S]*?-->|\/\*[\s\S]*?\*\//g)].map(([comment]) => comment.split("\n")[0]);
+  expect(comments.length, "head.html says why").toBeGreaterThan(0);
+  const html = readFileSync(join(dist, "index.html"), "utf8");
+  const head = html.slice(0, html.indexOf("</head>"));
+  expect(comments.filter((comment) => head.includes(comment))).toEqual([]);
+});
+
+// The page's one property that follows the window's width is set by
+// its change: no page needs the Binding type for it (bundle/Main.qml).
+test("no page's first load holds the Binding type", () => {
+  expect(reaching(["Binding-"])).toEqual({});
 });
 
 // The ceiling stands at what a page loads now, its own HTML with it,

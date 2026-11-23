@@ -13,8 +13,8 @@ Rectangle {
     // What the toggle stands on, which it is filled with at rest.
     property color ground: Theme.canvas
 
-    width: 40
-    height: 40
+    width: Theme.target
+    height: Theme.target
     radius: Theme.radiusSmall
     color: hit.pressed ? Theme.surfacePressed : hit.containsMouse ? Theme.surfaceHover : Theme.calm ? Theme.surfaceSelected : ground
     border.width: activeFocus ? 2 : 0
@@ -33,26 +33,45 @@ Rectangle {
         }
     }
 
-    Column {
+    // A ball and the lines it leaves behind it: with reduced motion the
+    // lines draw in and the ball stands still.
+    Row {
         anchors.centerIn: parent
-        spacing: 4
+        spacing: 3
+        Accessible.ignored: true
 
-        Repeater {
-            model: 3
-            Rectangle {
-                required property int index
-                x: index * 3
-                width: Theme.calm && index > 0 ? 8 : 18 - index * 3
-                height: 2
-                radius: 1
-                color: Theme.text
-                Behavior on width {
-                    NumberAnimation {
-                        duration: Theme.moveSmall
-                        easing.type: Easing.OutCubic
+        Column {
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 3
+
+            Repeater {
+                model: [7, 10, 7]
+                Item {
+                    required property var modelData
+                    width: 10
+                    height: 2
+                    Rectangle {
+                        x: parent.width - width
+                        width: Theme.calm ? 0 : modelData
+                        height: 2
+                        radius: 1
+                        color: Theme.text
+                        Behavior on width {
+                            NumberAnimation {
+                                duration: Theme.moveSmall
+                                easing.type: Easing.OutCubic
+                            }
+                        }
                     }
                 }
             }
+        }
+        Rectangle {
+            anchors.verticalCenter: parent.verticalCenter
+            width: 10
+            height: 10
+            radius: 5
+            color: Theme.text
         }
     }
 

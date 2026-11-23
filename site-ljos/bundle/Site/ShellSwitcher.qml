@@ -22,7 +22,7 @@ Rectangle {
     // gives those the site's colours).
     signal choosing
 
-    readonly property string shown: preferences ? preferences.shown : "marketing"
+    readonly property string shown: preferences ? preferences.shown : "elegant"
     readonly property string label: preferences ? preferences.labelOf(shown) : ""
     readonly property bool opened: choices.item ? choices.item.opened : false
 
@@ -39,8 +39,8 @@ Rectangle {
         }
     }
 
-    implicitWidth: switcher.compact ? 40 : row.implicitWidth + 2 * Theme.xs
-    implicitHeight: 40
+    implicitWidth: switcher.compact ? Theme.target : row.implicitWidth + 2 * Theme.xs
+    implicitHeight: Theme.target
     radius: Theme.radiusSmall
     color: hit.pressed ? Theme.surfacePressed : hit.containsMouse || switcher.opened ? Theme.surfaceHover : "transparent"
     border.width: activeFocus ? 2 : 0
@@ -49,9 +49,9 @@ Rectangle {
     activeFocusOnTab: true
     Accessible.role: Accessible.Button
     // Where its words show, the name holds them (a reader who says what
-    // they see, "Marketing", finds it); where only the icon does, the
+    // they see, "Elegant", finds it); where only the icon does, the
     // name says what it is for.
-    Accessible.name: switcher.compact || !label ? t`Shell` : t`Shell: ${label}`
+    Accessible.name: switcher.compact || !label ? t`Switch shell` : t`Current shell: ${label}`
     Accessible.onPressAction: () => switcher.toggle()
     Keys.onPressed: (event) => {
         if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {

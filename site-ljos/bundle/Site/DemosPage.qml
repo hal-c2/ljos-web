@@ -30,25 +30,19 @@ Column {
     readonly property int textWidth: width
 
     width: parent ? parent.width : 680
-    spacing: Theme.xxl
+    spacing: demos.wide ? Theme.xxxl : Theme.xxl
     topPadding: demos.wide ? Theme.xl : Theme.m
 
     Column {
         width: parent.width
-        spacing: Theme.s
+        spacing: Theme.l
 
-        Text {
+        Heading {
             width: parent.width
+            level: "display"
+            wide: demos.wide
+            headingLevel: 1
             text: t`Live demos`
-            color: Theme.text
-            font.family: Theme.sans
-            font.pixelSize: demos.wide ? Theme.displaySize : Theme.compactDisplaySize
-            font.weight: Font.Bold
-            lineHeightMode: Text.FixedHeight
-            lineHeight: demos.wide ? Theme.displayLine : Theme.compactDisplayLine
-            wrapMode: Text.Wrap
-            readonly property int headingLevel: 1
-            Accessible.role: Accessible.Heading
         }
         Text {
             width: Math.min(parent.width, Theme.measure)
@@ -94,11 +88,21 @@ Column {
                 width: demos.textWidth
                 spacing: Theme.s
 
-                Text {
+                // The picture on the same rounded panel as the demos that
+                // run in the page, so every demo reads as one kind of thing.
+                Rectangle {
                     width: parent.width
                     height: Math.round(width * card.modelData.height / card.modelData.width)
-                    textFormat: Text.RichText
-                    text: Nav.picture("/demos/", Nav.proPicture(card.modelData, Theme.picked, Theme.dark), width, height, card.modelData.cardAlt)
+                    radius: Theme.radiusLarge
+                    color: Theme.stage
+                    clip: true
+
+                    Text {
+                        width: parent.width
+                        height: parent.height
+                        textFormat: Text.RichText
+                        text: Nav.picture("/demos/", Nav.proPicture(card.modelData, Theme.picked, Theme.dark), width, height, card.modelData.cardAlt)
+                    }
                 }
                 LinkButton {
                     label: card.modelData.open

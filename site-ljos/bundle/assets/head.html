@@ -3,12 +3,15 @@
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="%DARK_CANVAS%" />
 <meta property="og:image" content="https://ljos.dev/og-image.png" />
 <meta property="og:site_name" content="Ljós" />
+<!-- The faces the first lines are set in, asked for with the page
+     rather than when the style below is read. -->
+%FONT_PRELOADS%
 <!-- The scheme the reader picked (scheme.js keeps it, under the key the
      build writes in here from it), on the root before the body is read,
      so the first paint is already in it. -->
 <script>try{const s=localStorage.getItem(%SCHEME_KEY%);if(s==="light"||s==="dark"){const r=document.documentElement;r.dataset.ljosScheme=s;r.style.colorScheme=s;for(const m of document.querySelectorAll('meta[name="theme-color"]'))m.content=s==="dark"?"%DARK_CANVAS%":"%LIGHT_CANVAS%"}}catch{}</script>
 <!-- The shell the reader picked (shells.js keeps it): every page is
-     written in the marketing shell, and another is put in once the page
+     written in the Elegant shell, and another is put in once the page
      has been taken over. Where one is kept and the window has room for
      it, the page waits unseen until it is in (shells.js `shown`), so
      the reader never sees one shell turn into another; if that never
@@ -26,6 +29,7 @@
      read), for light, for dark as the browser asks, and for dark as
      the reader picked. -->
 <style>
+%FONT_FACES%
 %LJOS_TOKENS%
   html, body { background: var(--ljos-canvas); color: var(--ljos-text); }
   :focus-visible { outline: 2px solid var(--ljos-focus); outline-offset: 2px; }
@@ -41,7 +45,7 @@
   /* Not under #app alone: the runtime measures where markup wraps in a
      bench beside the app, which must set inline code the same way. */
   .qq-markup code:not(pre code) {
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "DejaVu Sans Mono", "Liberation Mono", monospace;
+    font-family: var(--ljos-font-mono);
     font-size: 0.875em;
     padding: 0.1em 0.35em;
     border-radius: 4px;

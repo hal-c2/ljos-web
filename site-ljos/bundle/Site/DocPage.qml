@@ -73,19 +73,14 @@ Column {
         spacing: Theme.s
         bottomPadding: Theme.s
 
-        Text {
+        // The page's title is its outline's one first-level heading,
+        // in the look's display face.
+        Heading {
             width: parent.width
+            level: "display"
+            wide: !doc.narrow
+            headingLevel: 1
             text: doc.page ? doc.page.title : ""
-            color: Theme.text
-            font.family: Theme.sans
-            font.pixelSize: doc.narrow ? Theme.compactDisplaySize : Theme.displaySize
-            font.weight: Font.Bold
-            lineHeightMode: Text.FixedHeight
-            lineHeight: doc.narrow ? Theme.compactDisplayLine : Theme.displayLine
-            wrapMode: Text.Wrap
-            // The page's title is its outline's one first-level heading.
-            readonly property int headingLevel: 1
-            Accessible.role: Accessible.Heading
         }
         Text {
             width: parent.width
@@ -127,9 +122,10 @@ Column {
                     topPadding: level <= 2 ? Theme.xl : Theme.m
                     text: "<a name=\"" + blockItem.anchor + "\"></a>" + blockItem.modelData.rich
                     textFormat: Text.RichText
-                    color: Theme.text
+                    color: Theme.onCanvasStrong
                     linkColor: Theme.link
                     font.family: Theme.sans
+                    font.letterSpacing: level <= 2 ? -0.3 : 0
                     font.pixelSize: level <= 2 ? Theme.headlineSize - (doc.narrow ? 4 : 0) : level === 3 ? Theme.subtitleSize : Theme.bodySize
                     font.weight: level <= 3 ? Font.DemiBold : Font.Bold
                     lineHeightMode: Text.FixedHeight

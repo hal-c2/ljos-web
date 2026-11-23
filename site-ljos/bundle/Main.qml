@@ -24,7 +24,7 @@ import "Site/later.js" as SiteLater
 // the reader's place on it stay: the page is made once, here, and moves
 // into whichever shell is shown.
 //
-// Every page is written in the marketing shell, the one a reader with no
+// Every page is written in the Elegant shell, the one a reader with no
 // script gets; another kept shell is put in once the page has been taken
 // over (shells.js, assets/head.html).
 Rectangle {
@@ -62,11 +62,11 @@ Rectangle {
     property real pageHeight: 0
     // How much of the right the Observer a stage opened is docked over
     // (Site/ObserverDock.qml): the page gives it the room, and a shell
-    // lets what else is beside the page go (Marketing's contents).
+    // lets what else is beside the page go (Elegant's contents).
     readonly property int docked: observerDock.open && !observerDock.sheet ? observerDock.panelWidth : 0
     // The shell framing the page, by name, and one the reader wrote and
     // applied (Site/ShellSource.qml), which is shown over it.
-    property string framed: "marketing"
+    property string framed: "elegant"
     property var userShell: null
     // Called once the next shell is in, to let a swap's transition go.
     property var arrived: null
@@ -74,12 +74,18 @@ Rectangle {
     // the head script held back is shown once it is (shells.js `shown`).
     property bool revealing: false
     readonly property bool hydrated: hydratedIn >= 0
-    // Which shell is in, by its name ("marketing", "workbench",
+    // Which shell is in, by its name ("elegant", "workbench",
     // "desktop"), or "yours" for one that names itself nothing: said on
     // the page's root (shells.js `showing`), so a stylesheet, a test or
     // an agent driving the page knows what frames it.
     readonly property string showing: loader.item ? String(loader.item.objectName).replace(/Shell$/, "") || "yours" : ""
-    onShowingChanged: Frames.showing(main.showing)
+    // The page dresses in the look of the shell that frames it (Theme
+    // `shell`), and the HTML around it in that look's colours (the head,
+    // by `data-ljos-shell-showing`).
+    onShowingChanged: {
+        Theme.shell = main.showing;
+        Frames.showing(main.showing);
+    }
 
     // Each search the shell shows, to find the one the reader can see.
     property var searches: []
@@ -153,6 +159,7 @@ Rectangle {
             // nothing to wait for.
             if (sitePreferences.shown !== name)
                 return false;
+            pageView.hold();
             main.userShell = null;
             main.framed = name;
             return true;
@@ -175,21 +182,25 @@ Rectangle {
     Preferences {
         id: sitePreferences
         wide: main.width >= Theme.wideFrom
+        // Set by the change, not by a Binding: every page would load
+        // that type for this one property.
+        onWideChanged: Theme.narrow = !sitePreferences.wide
         onShownChanged: main.frame(sitePreferences.shown)
     }
 
     Component.onCompleted: {
+        Theme.narrow = !sitePreferences.wide;
         siteRouter.start();
         Frames.whenHydrated((ms) => {
             main.hydratedIn = ms;
             var kept = Frames.picked();
             // The head's watchdog has shown the page as written already:
-            // the reader is reading Marketing, which stays on this page
+            // the reader is reading Elegant, which stays on this page
             // (the pick is still kept for the next).
             if (kept !== "" && kept !== sitePreferences.shell && !Frames.late()) {
                 main.revealing = true;
                 sitePreferences.shell = kept;
-                // Too narrow for it: the marketing shell stays, as written.
+                // Too narrow for it: the Elegant shell stays, as written.
                 // Asked of the window, not of what is framed: where there
                 // are no view transitions the swap is made at once, so
                 // `framed` is the kept shell's name already while its
@@ -220,7 +231,7 @@ Rectangle {
     }
 
     // The head's watchdog showed the page while the kept shell was still
-    // on its way: what the reader now sees is Marketing, so the kept
+    // on its way: what the reader now sees is Elegant, so the kept
     // shell is not put over it, which would be the very jump the page
     // was held back to spare them.
     function late() {
@@ -228,18 +239,18 @@ Rectangle {
             return;
         main.letGo();
         fadeIn.armed = false;
-        main.framed = "marketing";
-        sitePreferences.shell = "marketing";
+        main.framed = "elegant";
+        sitePreferences.shell = "elegant";
         main.revealing = false;
     }
 
     // Ljós's own controls draw in the site's colours (Site/ControlsLook.qml)
     // from the first time the site shows one: a shell other than
-    // Marketing, the shell choices or a shell's source, each of which
+    // Elegant, the shell choices or a shell's source, each of which
     // comes after a page's first load and brings them. Once made it stays,
     // so it is the one thing that colours them.
     property bool controlsShown: false
-    readonly property bool framesControls: framed !== "marketing"
+    readonly property bool framesControls: framed !== "elegant"
     onFramesControlsChanged: if (framesControls) controlsShown = true
     Loader {
         active: main.controlsShown
@@ -342,16 +353,20 @@ Rectangle {
     Contribution {
         slot: "site.brand"
         delegate: Component {
+            // The link's press box; the logo's own file keeps its size.
             Brand {
                 route: siteRouter.route
+                height: Theme.target
             }
         }
     }
     Contribution {
         slot: "site.brand.small"
         delegate: Component {
+            // The link's press box; the logo's own file keeps its size.
             Brand {
                 route: siteRouter.route
+                height: Theme.target
             }
         }
     }
@@ -364,12 +379,17 @@ Rectangle {
                 Repeater {
                     model: siteRouter.sections
 
+                    // At the header's own size, beside the search and the
+                    // switcher; a fixed line as tall as the words, so they
+                    // stand on the header's middle line with the mark.
                     NavLink {
                         required property var modelData
                         anchors.verticalCenter: parent.verticalCenter
                         label: modelData.label
                         to: modelData.to
                         current: modelData.current
+                        size: Theme.uiSize + 1
+                        line: Theme.uiLine
                     }
                 }
             }
@@ -379,7 +399,7 @@ Rectangle {
         slot: "site.nav.large"
         delegate: Component {
             Column {
-                spacing: Theme.s
+                spacing: Theme.narrow ? 0 : Theme.s
 
                 Repeater {
                     model: siteRouter.sections
@@ -391,6 +411,7 @@ Rectangle {
                         current: modelData.current
                         size: Theme.subtitleSize
                         line: Theme.subtitleLine
+                        least: Theme.rowLeast
                     }
                 }
             }
@@ -534,13 +555,13 @@ Rectangle {
         }
     }
 
-    // The shells the site ships. Marketing, the one every page is
+    // The shells the site ships. Elegant, the one every page is
     // written in, is given the site here; the others come when first
     // picked (Shells/later.js) and, as a shell the reader wrote, are
     // given it once they are in.
     Component {
-        id: marketingShell
-        Marketing {
+        id: elegantShell
+        Elegant {
             site: main
         }
     }
@@ -549,10 +570,10 @@ Rectangle {
         id: loader
         width: main.width
         height: main.height
-        source: main.userShell ?? (main.framed === "workbench" ? Later.workbench : main.framed === "desktop" ? Later.desktop : marketingShell)
+        source: main.userShell ?? (main.framed === "workbench" ? Later.workbench : main.framed === "desktop" ? Later.desktop : elegantShell)
         // A shell that does not work gives way to the one every page is
         // written in, and says why (Site/ShellSource.qml shows it).
-        fallback: marketingShell
+        fallback: elegantShell
 
         onItemChanged: {
             if (!loader.item)
@@ -619,9 +640,11 @@ Rectangle {
     Connections {
         target: shellSource.item
         function onApplied(file, text) {
+            pageView.hold();
             main.userShell = Frames.compiled(file, text);
         }
         function onReset() {
+            pageView.hold();
             main.userShell = null;
         }
     }

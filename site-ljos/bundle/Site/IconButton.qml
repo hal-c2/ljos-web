@@ -12,8 +12,8 @@ Rectangle {
     property color ground: Theme.canvas
     signal pressed
 
-    width: 40
-    height: 40
+    width: Theme.target
+    height: Theme.target
     radius: Theme.radiusSmall
     color: hit.pressed ? Theme.surfacePressed : hit.containsMouse ? Theme.surfaceHover : ground
     border.width: activeFocus ? 2 : 0

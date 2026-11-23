@@ -42,3 +42,13 @@ PageSource 1.0 PageSource.qml
 ShowcasePage 1.0 ShowcasePage.qml
 ShowcaseApp 1.0 ShowcaseApp.qml
 ShowcaseCapture 1.0 ShowcaseCapture.qml
+Heading 1.0 Heading.qml
+Panel 1.0 Panel.qml
+DeviceFrame 1.0 DeviceFrame.qml
+DevicePage 1.0 DevicePage.qml
+Rise 1.0 Rise.qml
+CountUp 1.0 CountUp.qml
+HeroApp 1.0 HeroApp.qml
+HeroStage 1.0 HeroStage.qml
+Hero 1.0 Hero.qml
+Capability 1.0 Capability.qml
