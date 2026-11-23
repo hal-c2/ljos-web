@@ -244,7 +244,9 @@ function moved(value, all, pairs, copies) {
     const part = reaching.pop();
     if (copied.has(part)) continue;
     copied.add(part);
-    reaching.push(...holders.get(part));
+    // One at a time: a part held a million times has a million holders,
+    // too many for one call's arguments.
+    for (const holder of holders.get(part)) reaching.push(holder);
   }
   if (!copied.has(value)) return value;
   for (const part of copied) {

@@ -242,6 +242,20 @@ for (const built of BUILDS) {
       expect(got).toEqual({ one: true, moved: true, copied: true });
     });
 
+    // A part held a million times has a million holders, each appended
+    // one at a time: as one call's arguments they overflow the stack.
+    test("a part a list holds a million times is moved once", async ({ page }) => {
+      const got = await page.evaluate(() => {
+        const app = window.board("base");
+        const leaf = { part: app.root.part };
+        app.root.items = new Array(1_000_000).fill(leaf);
+        app.save("same");
+        const items = app.root.items;
+        return { length: items.length, one: items[0] === items[999_999], moved: items[0].part === app.root.part, copied: items[0] !== leaf };
+      });
+      expect(got).toEqual({ length: 1_000_000, one: true, moved: true, copied: true });
+    });
+
     test("an assignment survives the app changing the declared value in place", async ({ page }) => {
       const got = await page.evaluate(() => {
         const other = window.board("base");
