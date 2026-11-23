@@ -84,6 +84,31 @@ test("a page's first load holds the bundle's own code in one file", () => {
   expect(reaching(["Toc-", "CodeBlock-", "StageButton-", "shells-", "observed-", "code-editor-", "LinkButton-", "Theme-"])).toEqual({});
 });
 
+// The `site-*` group takes the bundle's files without what they import
+// (packages/runtime/site.js), and rolldown keeps the order modules run
+// in only between chunks that are not in a cycle. So nothing `site-*`
+// imports, however far down, may import it back: the runtime's chunks
+// never reach the bundle's code.
+test("nothing the bundle's first-load file imports imports it back", () => {
+  const sites = new Set(report.flatMap(({ first }) => first.files.filter((entry) => named(entry.file, "site-") && entry.file.endsWith(".js")).map((entry) => join(dist, entry.file))));
+  expect(sites.size).toBeGreaterThan(0);
+  const imports = (file) => [...readFileSync(file, "utf8").matchAll(/(?:\bimport|\bfrom)\s*["'](\.{1,2}\/[^"']+\.js)["']/g)].map(([, spec]) => join(dirname(file), spec));
+  const back = {};
+  for (const site of sites) {
+    const seen = new Set();
+    const stack = imports(site);
+    while (stack.length) {
+      const file = stack.pop();
+      if (seen.has(file)) continue;
+      seen.add(file);
+      const next = imports(file);
+      if (next.includes(site)) (back[site.slice(dist.length + 1)] ??= []).push(file.slice(dist.length + 1));
+      stack.push(...next);
+    }
+  }
+  expect(back, "chunks that import the site-* file they are imported by").toEqual({});
+});
+
 // A docs page's reading is its own: in its HTML's props, not in a
 // script every page loads. Another page's headings are in none of
 // a page's first-load files.

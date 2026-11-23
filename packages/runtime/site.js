@@ -17,7 +17,7 @@ import { dirname, isAbsolute, join, posix, relative, resolve, sep } from "node:p
 import { build } from "vite";
 import { findTheme } from "./find-theme.ts";
 import { provided } from "./modules.js";
-import qml, { compilerAt, hasControls, installed, kernelNamed, runCompiler } from "./vite.js";
+import qml, { compilerAt, hasControls, installed, isTheme, kernelNamed, runCompiler } from "./vite.js";
 import { CLIENT_CONDITIONS } from "./server/conditions.js";
 import { askedJobs, fittingJobs, pooled } from "./pool.js";
 
@@ -799,14 +799,19 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
         // not what they import: the runtime's are reached through whole
         // namespaces (`ljos-web:QtQuick`), so all of QtQuick counts as
         // imported statically, and its chunks stay as rolldown cuts them
-        // to what each page uses.
+        // to what each page uses. A group without its modules'
+        // dependencies keeps the order they run in only while no chunk
+        // it imports imports it back (tests/payload.spec.js). The runtime
+        // never imports the bundle, but the bundle's theme, a module of
+        // its own that the entry imports too, would stay in the entry's
+        // file, which imports `site-*`, so it is in the group as well.
         build: {
           outDir: join(stage, "dist"),
           emptyOutDir: true,
           target: "esnext",
           chunkSizeWarningLimit: 4000,
           rollupOptions: {
-            output: { codeSplitting: { groups: [{ name: "site", test: (id) => bundled.some((at) => id.startsWith(at)), tags: ["$initial"], includeDependenciesRecursively: false }] } },
+            output: { codeSplitting: { groups: [{ name: "site", test: (id) => isTheme(id) || bundled.some((at) => id.startsWith(at)), tags: ["$initial"], includeDependenciesRecursively: false }] } },
             checks: { bundlerTimings: false },
           },
         },
