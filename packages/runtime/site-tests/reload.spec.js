@@ -183,6 +183,65 @@ for (const built of BUILDS) {
       expect(got).toEqual({ ring: true, deep: true, rows: true });
     });
 
+    // Moving them reads each property by its descriptor: a getter is never
+    // run, and so never refuses the reload by throwing, and stays a getter.
+    test("an assigned object's getters are not run by a reload, and stay getters", async ({ page }) => {
+      const got = await page.evaluate(() => {
+        const app = window.board("base");
+        const old = app.root.part;
+        let runs = 0;
+        app.root.items = {
+          get broken() {
+            throw new Error("not ready");
+          },
+        };
+        app.root.lookup = {
+          rows: [old],
+          get n() {
+            runs += 1;
+            return runs;
+          },
+        };
+        app.save("same");
+        const lookup = app.root.lookup;
+        return {
+          runs,
+          getter: typeof Object.getOwnPropertyDescriptor(lookup, "n")?.get === "function",
+          rows: lookup.rows[0] === app.root.part,
+          broken: typeof Object.getOwnPropertyDescriptor(app.root.items, "broken")?.get === "function",
+        };
+      });
+      expect(got).toEqual({ runs: 0, getter: true, rows: true, broken: true });
+    });
+
+    test("an assigned object keeps its symbol and hidden properties beside the moved one", async ({ page }) => {
+      const got = await page.evaluate(() => {
+        const app = window.board("base");
+        const tag = Symbol("tag");
+        const value = { target: app.root.part, [tag]: 42 };
+        Object.defineProperty(value, "hidden", { value: 7, enumerable: false });
+        app.root.lookup = value;
+        app.save("same");
+        const lookup = app.root.lookup;
+        const hidden = Object.getOwnPropertyDescriptor(lookup, "hidden");
+        return { target: lookup.target === app.root.part, tag: lookup[tag], hidden: [hidden?.value, hidden?.enumerable] };
+      });
+      expect(got).toEqual({ target: true, tag: 42, hidden: [7, false] });
+    });
+
+    test("a list two properties share is still one list after the reload", async ({ page }) => {
+      const got = await page.evaluate(() => {
+        const app = window.board("base");
+        const shared = [app.root.part];
+        app.root.items = shared;
+        app.root.part.given = shared;
+        app.save("same");
+        const items = app.root.items;
+        return { one: items === app.root.part.given, moved: items[0] === app.root.part, copied: items !== shared };
+      });
+      expect(got).toEqual({ one: true, moved: true, copied: true });
+    });
+
     test("an assignment survives the app changing the declared value in place", async ({ page }) => {
       const got = await page.evaluate(() => {
         const other = window.board("base");
