@@ -74,6 +74,11 @@ Feature: A code block's window before its example runs
     And its dark refusal is kept, said to be in the dark scheme, and a later build of it fails nothing
     And the one beside it still has both its pictures' renders
 
+  Scenario: An example that claims to run and fails only in the dark stops the build
+    Given an example that claims to run and throws only as it is made in the dark scheme
+    When the build prerenders it
+    Then the build stops, naming the dark refusal, as it would for a warning there
+
   Scenario: What an example says only in the dark is in the build's record
     Given an example that warns only as it is made in the dark scheme
     When the build prerenders it
