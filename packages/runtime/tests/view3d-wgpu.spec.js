@@ -1699,10 +1699,14 @@ test.describe("a View3D no one asked a renderer of", () => {
   for (const [form, named, body] of [
     ["a glTF whose scene has no mesh", "empty.gltf", JSON.stringify({ asset: { version: "2.0" }, scene: 0, scenes: [{ nodes: [0] }], nodes: [{ name: "nothing" }] })],
     ["an OBJ with no face", "empty.obj", "# corners, and nothing made of them\nv 0 0 0\nv 1 0 0\nv 0 1 0\n"],
+    ["a glTF whose description is null", "null.gltf", "null"],
   ]) {
     test(`stays on the JavaScript renderer for ${form}, where the browser has no WebGPU`, async ({ page }) => {
       const fetched = [];
+      const thrown = [];
       page.on("request", (request) => fetched.push(request.url()));
+      page.on("pageerror", (error) => thrown.push(error.message));
+      page.on("console", (message) => message.type() === "error" && thrown.push(message.text()));
       await page.route(new RegExp(`/wgpu_models/${named.replace(".", "\\.")}$`), (route) => route.fulfill({ body }));
       await page.addInitScript(HIDDEN);
       await page.goto("/?scene=wgpu_beside");
@@ -1718,6 +1722,7 @@ test.describe("a View3D no one asked a renderer of", () => {
       await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(done, 500)))));
       expect(fetched.filter((url) => /ljos_web_3d/.test(url) && !/\.wasm\?import&url$/.test(url)), "the wgpu renderer").toEqual([]);
       expect(await (await drawn(page)).jsonValue()).toBe("js");
+      expect(thrown, "what the page threw or logged as an error").toEqual([]);
     });
   }
 

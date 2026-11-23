@@ -29,9 +29,16 @@ export function header(buffer) {
       else if (kind === BIN_CHUNK) bin = chunk;
       at += 8 + length + ((4 - (length % 4)) % 4);
     }
-    return json ? { json, bin } : { error: "it has no description" };
+    return described(json) ? { json, bin } : { error: "it has no description" };
   }
-  return { json: JSON.parse(new TextDecoder().decode(bytes)), bin: null };
+  const json = JSON.parse(new TextDecoder().decode(bytes));
+  return described(json) ? { json, bin: null } : { error: "it has no description" };
+}
+
+// A description is an object: JSON that is `null`, a number or a list
+// describes nothing, and everything that reads one reads it as an object.
+function described(json) {
+  return typeof json === "object" && json !== null && !Array.isArray(json);
 }
 
 // Where each buffer's bytes are: in the binary file, in the description
