@@ -31,6 +31,23 @@ test("each app's recording, poster and captures are built, the recordings small 
   }
 });
 
+test("search finds the showcase by its name, as it finds the demos", async ({ browser }) => {
+  const listed = JSON.parse(readFileSync(join(dist, "search.json"), "utf8"));
+  expect(listed.filter((one) => one.route === "/showcase/")).toEqual([{ route: "/showcase/", title: "Built with Ljós", headings: [] }]);
+  const context = await browser.newContext({ reducedMotion: "no-preference", viewport: { width: 1440, height: 900 } });
+  try {
+    const page = await context.newPage();
+    await page.goto(`${base}start/`);
+    await page.waitForSelector(hydrated);
+    const field = page.getByRole("textbox", { name: "Search", exact: true }).filter({ visible: true }).first();
+    await field.click();
+    await page.keyboard.type("Built with");
+    await expect(page.getByRole("list", { name: "Search results" }).getByText("Built with Ljós", { exact: true })).toBeVisible();
+  } finally {
+    await context.close();
+  }
+});
+
 test("on a phone, a page chosen from the menu shuts it", async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   try {

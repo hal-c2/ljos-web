@@ -735,15 +735,16 @@ for (const name of ["apple-touch-icon.png", "og-image.png"]) cpSync(join(bundle,
 // The pictures a demo's frame shows until the demo runs, or instead of
 // it where it cannot: named by the pages as strings, like a live block's.
 // What the search looks through (Site/Search.qml): every docs page's
-// title and headings, then the demos' pages by their titles (the field
-// says it searches both), fetched as a reader first searches, so no
-// page's first load holds the others' (each page's own reading is in
-// its props).
+// title and headings, then the demos' pages and the showcase by their
+// titles (the field says it searches docs and demos), fetched as a reader
+// first searches, so no page's first load holds the others' (each page's
+// own reading is in its props).
 writeFileSync(
   join(out, "search.json"),
   JSON.stringify([
     ...site.pages.map(({ route, title, headings }) => ({ route, title, headings: headings.map(({ plain, anchor }) => ({ plain, anchor })) })),
     { route: "/demos/", title: demosTitle, headings: [] },
+    { route: "/showcase/", title: own["/showcase/"], headings: [] },
     ...Pro.demos.map((demo) => ({ route: Pro.route(demo), title: demo.title, headings: [] })),
   ]),
 );
