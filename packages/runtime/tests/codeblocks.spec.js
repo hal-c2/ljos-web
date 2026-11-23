@@ -484,6 +484,9 @@ Item {
       expect(failures.map(({ example }) => hashExample(example)).sort(), names.join()).toEqual(stopping.map((name) => hashExample(halts[name])).sort());
       // Where they no longer halt, this says nothing of what follows one.
       for (const { diagnostics } of failures) expect(diagnostics.join("\n")).toContain("REACTIVITY_HALTED");
+      // The size the build reads from a real window's prerender, not a
+      // hand-written one: the window's, so its picture isn't cut short.
+      if (names.includes("centred")) expect(manifest[hashExample(examples.centred)], names.join()).toMatchObject({ width: 400, height: 240 });
       for (const name of names.filter((each) => each in examples))
         for (const scheme of ["file", "dark"])
           expect
@@ -734,6 +737,14 @@ plain("a root window's prerender is as large as the window asked", () => {
   // Only a window's: an item that says no size doesn't take its child's.
   const item = '<div class="qq" data-hk="1:Item" style="width: 100%;"><div class="qq" data-hk="2:Item" style="width: 40px; height: 30px;"></div></div>';
   expect(prerenderSize(item)).toEqual({});
+  // Something a window makes before its content item doesn't hide it,
+  // nor does an Item inside that something.
+  const before =
+    '<div class="qq" data-hk="2:Rectangle" style="width: 10px; height: 10px;"><img src="a.png"><div class="qq" data-hk="3:Item" style="width: 20px; height: 20px;"></div></div><!-- <b> -->';
+  const backed = `<div class="qq-window" data-hk="1:ApplicationWindow" style="height: 100%; width: 100%;">${before}<div class="qq" data-hk="4:Item" style="width: 400px; height: 260px;"></div></div>`;
+  expect(prerenderSize(backed)).toEqual({ width: 400, height: 260 });
+  // Only the window's own children: an Item after the window isn't its.
+  expect(prerenderSize(`<div class="qq-window" data-hk="1:Window" style="width: 100%;"></div><div class="qq" data-hk="2:Item" style="width: 5px; height: 5px;"></div>`)).toEqual({});
 });
 
 plain("static HTML shows code and the prerendered result and carries the payload", () => {
