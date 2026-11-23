@@ -294,8 +294,10 @@ Item {
 
 // A reader who asked for the dark scheme is first shown the example as
 // it is made in the dark: one that paints from the palette paints its
-// dark colours there, made by the same bundle a second time.
-plain("asked for the dark scheme too, each example is made in both, each from its own palette", async ({}, info) => {
+// dark colours there, made by the same bundle a second time. Both are
+// shown on one stage and drawn at one size, so that size is one both
+// fit in.
+plain("asked for the dark scheme too, each example is made in both, each from its own palette, at a size both fit in", async ({}, info) => {
   info.setTimeout(180_000);
   const one = (code) => assemble(extractBlocks("```qml\n" + code.trimEnd() + "\n```\n"), {}).examples[0];
   const painted = one(`import QtQuick
@@ -306,10 +308,20 @@ Rectangle {
     color: palette.window
 }
 `);
+  const wider = one(`import QtQuick
+
+Rectangle {
+    readonly property bool dark: Qt.styleHints.colorScheme === Qt.ColorScheme.Dark
+    width: dark ? 80 : 40
+    height: dark ? 30 : 60
+}
+`);
   const cacheDir = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "ljos-codeblock-test-"));
   try {
-    const { manifest, failures } = await renderPrerenders([painted], { cacheDir, qmlc, dark: true });
+    const { manifest, failures } = await renderPrerenders([painted, wider], { cacheDir, qmlc, dark: true });
     expect(failures).toEqual([]);
+    expect(manifest[hashExample(painted)], "the same size in both").toMatchObject({ width: 40, height: 40 });
+    expect(manifest[hashExample(wider)], "the dark's width and the light's height").toMatchObject({ width: 80, height: 60 });
     const { html, htmlDark } = loadPrerenders(cacheDir)[hashExample(painted)];
     expect(htmlDark).toBeDefined();
     // The rectangle's fill, as the prerender writes it.
