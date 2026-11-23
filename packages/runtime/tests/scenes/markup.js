@@ -53,9 +53,13 @@
 //             onLinkActivated: (link) => log.push("activated " + link)
 //         }
 //     }
+//     Loader {
+//         id: pictured; y: 240; active: false
+//         sourceComponent: Boxed { textFormat: Text.RichText; text: "<img src=\"/dense.svg\">" }
+//     }
 // }
-import { $object } from "ljos-web/object";
-import { Flickable, FontLoader, Item, MouseArea, Text } from "ljos-web/QtQuick";
+import { $component, $object } from "ljos-web/object";
+import { Flickable, FontLoader, Item, Loader, MouseArea, Text } from "ljos-web/QtQuick";
 import { make } from "../scene.js";
 
 export const objects = { log: [] };
@@ -125,5 +129,10 @@ export default function Markup() {
         onLinkActivated: (link) => log.push(`activated ${link}`),
       }),
     ]),
+    named(Loader, "pictured", {
+      y: 240,
+      active: false,
+      sourceComponent: $component(() => boxed("picture", { textFormat: Text.RichText, text: '<img src="/dense.svg">' })),
+    }),
   ]);
 }
