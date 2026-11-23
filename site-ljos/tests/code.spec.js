@@ -521,6 +521,24 @@ for (const scheme of SCHEMES) {
       await expect(tab, "a reader hears the whole name").toHaveCount(1);
       const card = page.locator('[data-object-name="codeCard"]:visible').filter({ has: tab });
       const copy = card.getByRole("button", { name: /^(Copy|Copied)\b/ }).first();
+      // The tabs come in the order of the page's blocks, and the strip
+      // starts at the first: the long name's place is said in each
+      // message, so a page that reorders them reads plainly.
+      const names = await card
+        .locator('[role="tab"]:visible')
+        .evaluateAll((nodes) => nodes.map((node) => node.getAttribute("aria-label") ?? node.textContent.trim()));
+      const at = names.indexOf(LONG);
+      const order = `tab ${at + 1} of ${names.join(", ")}`;
+      expect(at, `the long name is one of the card's tabs (${order})`).toBeGreaterThanOrEqual(0);
+      // Given the keyboard as a reader gives it, wherever it is: its focus
+      // scrolls the strip to it. Out of the code to Copy, then back along
+      // the tabs from the last.
+      await intoCode(card);
+      await page.keyboard.press("Escape");
+      await page.keyboard.press("Shift+Tab");
+      for (let index = names.length - 1; index >= at; index--) await page.keyboard.press("Shift+Tab");
+      await page.keyboard.press("Space");
+      await expect(tab, `Shift+Tab gives it the keyboard (${order})`).toHaveAttribute("aria-selected", "true");
       await copy.evaluate((node) => node.scrollIntoView({ block: "center", inline: "nearest" }));
       await expect
         .poll(
@@ -546,7 +564,7 @@ for (const scheme of SCHEMES) {
               }
               return wrong;
             }, LONG),
-          { message: "the long name's tab", timeout: 3000 },
+          { message: `the long name's tab, ${order}`, timeout: 3000 },
         )
         .toEqual([]);
     } finally {
