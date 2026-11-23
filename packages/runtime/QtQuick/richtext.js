@@ -194,9 +194,12 @@ function copy(from, to, name, inert) {
     }
   } else if (name === "img") {
     // When to fetch it and how to decode it: only the words the web has.
-    // Said before its address, which WebKit acts on as it is given.
-    if (/^(lazy|eager)$/.test(read("loading") ?? "")) to.setAttribute("loading", read("loading"));
-    if (/^(async|sync|auto)$/.test(read("decoding") ?? "")) to.setAttribute("decoding", read("decoding"));
+    // Said before its address, which WebKit acts on as it is given. The
+    // words are the web's in any case, as HTML reads them.
+    const loading = read("loading")?.toLowerCase() ?? "";
+    const decoding = read("decoding")?.toLowerCase() ?? "";
+    if (/^(lazy|eager)$/.test(loading)) to.setAttribute("loading", loading);
+    if (/^(async|sync|auto)$/.test(decoding)) to.setAttribute("decoding", decoding);
     if (!inert && read("src")) to.src = read("src"); // guarded
     // Empty, it says the picture is decoration: kept, not dropped.
     if (from.hasAttribute("alt")) to.alt = read("alt");
