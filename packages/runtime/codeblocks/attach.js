@@ -112,16 +112,40 @@ export function attachCodeEditor(item, { lang = "qml", label = "Code", descripti
   if (like) like.visible = false;
   node.append(host);
 
-  const sized = () => {
-    const height = view.dom.getBoundingClientRect().height;
+  const sized = (height) => {
     if (Math.abs((item.implicitHeight ?? 0) - height) > 0.25) {
       item.implicitHeight = height;
       settle();
     }
   };
-  const watch = typeof ResizeObserver === "function" ? new ResizeObserver(sized) : null;
+  // The first height waits for CodeMirror to have measured its lines.
+  // Until then it guesses the lines it hasn't drawn at a default height
+  // of its own, and an item sized to the guess drew long code shorter
+  // for a frame and then grew it back. So the editor's height is read
+  // in CodeMirror's measuring, and taken once two readings agree; the
+  // item keeps the Text's height, the same lines', until then. After
+  // that a change (a line typed) is taken in the frame it is made.
+  let first = true;
+  let read;
+  const measuring = {
+    key: "ljos-codeblock-height",
+    read: () => view.dom.getBoundingClientRect().height,
+    write: (height) => {
+      if (height !== read) {
+        read = height;
+        view.requestMeasure(measuring);
+        return;
+      }
+      first = false;
+      sized(height);
+    },
+  };
+  const watch =
+    typeof ResizeObserver === "function"
+      ? new ResizeObserver(() => (first ? view.requestMeasure(measuring) : sized(view.dom.getBoundingClientRect().height)))
+      : null;
   watch?.observe(view.dom);
-  sized();
+  view.requestMeasure(measuring);
 
   if (point) {
     const at = view.posAtCoords(point);
