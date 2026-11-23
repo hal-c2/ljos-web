@@ -47,6 +47,20 @@ class Inert extends EventTarget {
   $at = 0;
   $sent = false;
 
+  // The handler is called as the event is dispatched, as a page's is: its
+  // `this` and its event's target are the request.
+  constructor() {
+    super();
+    this.addEventListener("readystatechange", (event) => {
+      // Node ends the process for a listener's throw, where a page reports it.
+      try {
+        this.onreadystatechange?.call(this, event);
+      } catch (error) {
+        reportError(error);
+      }
+    });
+  }
+
   get readyState(): number {
     return this.$at;
   }
@@ -55,14 +69,7 @@ class Inert extends EventTarget {
     this.$sent = false;
     if (this.$at === Inert.OPENED) return;
     this.$at = Inert.OPENED;
-    const event = new Event("readystatechange");
-    // Node ends the process for a listener's throw, where a page reports it.
-    try {
-      this.onreadystatechange?.(event);
-    } catch (error) {
-      reportError(error);
-    }
-    this.dispatchEvent(event);
+    this.dispatchEvent(new Event("readystatechange"));
   }
 
   send(): void {
