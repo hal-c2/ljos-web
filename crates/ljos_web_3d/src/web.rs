@@ -391,11 +391,35 @@ extern "C" {
     fn console_error(message: &str);
 }
 
+thread_local! {
+    // What the page has told of a panic (`onPanic`).
+    static PANICS: RefCell<Option<js_sys::Function>> = const { RefCell::new(None) };
+}
+
 /// The workspace builds with `panic = "abort"`, so without a hook a panic
 /// reaches the page as a bare `unreachable` that names nothing.
 #[wasm_bindgen(start)]
 fn start() {
-    std::panic::set_hook(Box::new(|info| console_error(&format!("View3D: {info}"))));
+    std::panic::set_hook(Box::new(|info| {
+        let message = format!("View3D: {info}");
+        console_error(&message);
+        PANICS.with(|heard| {
+            if let Ok(heard) = heard.try_borrow()
+                && let Some(heard) = heard.as_ref()
+            {
+                let _ = heard.call1(&JsValue::NULL, &JsValue::from_str(&message));
+            }
+        });
+    }));
+}
+
+/// Has `heard` called with what panicked, as the renderer panics and before
+/// the trap the abort makes. The trap alone does not say it is the
+/// renderer's where the wasm was compiled from its bytes: its frames are
+/// then named by a hash, not by the file.
+#[wasm_bindgen(js_name = onPanic)]
+pub fn on_panic(heard: js_sys::Function) {
+    PANICS.with(|panics| *panics.borrow_mut() = Some(heard));
 }
 
 /// A device and the views that draw with it. A browser may lose a device at
