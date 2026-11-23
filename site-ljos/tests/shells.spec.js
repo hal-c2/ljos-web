@@ -1641,7 +1641,7 @@ test("Cyberpunk stands on a phone, with one menu control and its telemetry along
 });
 
 // The glitch's bands jump right, past the page's edge; the page clips
-// its width only while they do (assets/head.html), so a phone never
+// its width only while they do (assets/looks.css), so a phone never
 // scrolls sideways and an overflow after it still shows.
 test("a phone never scrolls sideways while Cyberpunk glitches in", async ({ browser }) => {
   const context = await reader(browser, { viewport: PHONE, kept: "cyberpunk" });
@@ -1672,7 +1672,7 @@ test("a phone never scrolls sideways while Cyberpunk glitches in", async ({ brow
 
 // Cyberpunk's scanlines are one still picture, tiled over the whole
 // shell; its glitch is the swap's own transition into it (shells.js
-// `swap`, assets/head.html), so it is over when the swap is.
+// `swap`, assets/looks.css), so it is over when the swap is.
 const scanlines = () =>
   [...document.querySelectorAll(".qq-image")]
     .map((node) => ({ node, style: getComputedStyle(node), box: node.getBoundingClientRect() }))
@@ -1688,10 +1688,13 @@ for (const reducedMotion of ["no-preference", "reduce"]) {
       await open(page, "/");
       await pick(page, "cyberpunk");
       expect(await page.evaluate(() => window.__swaps)).toEqual([reducedMotion === "reduce" ? "calm" : "glitch"]);
-      const css = await page.evaluate(() =>
-        [...document.styleSheets].flatMap((sheet) => [...sheet.cssRules].map((rule) => rule.cssText)).filter((text) => text.includes('data-ljos-swap="glitch"')),
+      const glitch = await page.evaluate(() =>
+        [...document.styleSheets].flatMap((sheet) =>
+          [...sheet.cssRules].filter((rule) => rule.cssText.includes('data-ljos-swap="glitch"')).map((rule) => ({ from: sheet.href ?? "the head", text: rule.cssText })),
+        ),
       );
-      expect(css.join("\n"), "the glitch is the head's").toMatch(/ljos-glitch/);
+      expect(glitch.map(({ text }) => text).join("\n"), "the glitch is Cyberpunk's own").toMatch(/ljos-glitch/);
+      for (const { from } of glitch) expect(from, "it comes with Cyberpunk's colours, not in every page's head").toMatch(/\/looks-[0-9a-f]{10}\.css$/);
       await expect.poll(() => page.evaluate(scanlines), { message: "one still layer of scanlines over the shell" }).toEqual(["none"]);
     } finally {
       await context.close();

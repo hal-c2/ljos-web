@@ -647,7 +647,10 @@ function siteHead() {
       `${scoped(shell, "", '[data-ljos-scheme="dark"]')} { ${declarations(look.dark)} }`,
     ])
     .join("\n");
-  looksSheet = { name: `looks-${createHash("sha256").update(others).digest("hex").slice(0, 10)}.css`, text: `${others}\n` };
+  // And what a shell does beyond its colours, as Cyberpunk's glitch.
+  const ways = readFileSync(join(bundle, "assets/looks.css"), "utf8").replace(/^[ \t]*\/\*[\s\S]*?\*\/\n/gm, "");
+  const sheet = `${others}\n${ways}`;
+  looksSheet = { name: `looks-${createHash("sha256").update(sheet).digest("hex").slice(0, 10)}.css`, text: sheet };
   // The site's own faces (bundle/assets/fonts, served at the base's
   // fonts/): the default shell's are fetched with the page, so its first
   // lines are set in them; another shell's come when it shows.
