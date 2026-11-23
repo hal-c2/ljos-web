@@ -920,7 +920,7 @@ for (const [route, { draws, empty }] of Object.entries(AT_START)) {
 // about twelve lines until they ask for all of it. On a desktop
 // nothing folds.
 const FOLDED = 12;
-const LONG = 15;
+const FOLDS_PAST = 15;
 
 // Each block's code as the page lays it out, with the card it is in:
 // the card's group where it has one, else what holds the code and the
@@ -1041,12 +1041,12 @@ for (const [view, viewport] of [
     );
     try {
       const all = (await folds(page)).filter((card) => card.lines > 0);
-      const long = all.filter((card) => card.lines > LONG);
+      const long = all.filter((card) => card.lines > FOLDS_PAST);
       expect(long.length, "examples longer than a screenful").toBeGreaterThan(
         0,
       );
       for (const card of all) {
-        if (view === "phone" && card.lines > LONG) {
+        if (view === "phone" && card.lines > FOLDS_PAST) {
           expect(
             card.shownHeight,
             `${card.name}: lines shown before Show all`,
@@ -1176,7 +1176,7 @@ test("a phone's long code is folded in the page as written", async ({
   try {
     const page = await context.newPage();
     await page.goto(LONG_PAGE);
-    const long = (await folds(page)).filter((card) => card.lines > LONG);
+    const long = (await folds(page)).filter((card) => card.lines > FOLDS_PAST);
     expect(long.length, "examples longer than a screenful").toBeGreaterThan(0);
     for (const card of long)
       expect(
@@ -1200,7 +1200,7 @@ test("a phone's folded code can be read to its end without scripts", async ({
   try {
     const page = await context.newPage();
     await page.goto(LONG_PAGE);
-    const long = (await folds(page)).filter((card) => card.lines > LONG);
+    const long = (await folds(page)).filter((card) => card.lines > FOLDS_PAST);
     expect(long.length, "examples longer than a screenful").toBeGreaterThan(0);
     for (const { index, name } of long) {
       const read = async () => (await folds(page))[index];
@@ -1288,7 +1288,7 @@ const ringed = (button) =>
 
 // Into the card's code, as a reader who then leaves it by keys: Escape
 // makes the next Tab, or Shift+Tab, leave the editor.
-async function intoCode(page, card) {
+async function intoCodeAndOut(page, card) {
   await card.getByRole("textbox").first().click();
   await expect(card.locator(".cm-editor.cm-focused")).toHaveCount(1, {
     timeout: 30_000,
@@ -1304,7 +1304,7 @@ test("Show all keeps the focus, as Show less, and gives it back", async ({
     const card = await foldedCard(page);
     const all = card.getByRole("button", { name: /^Show all \d+/ });
     const less = card.getByRole("button", { name: /^Show less/ });
-    await intoCode(page, card);
+    await intoCodeAndOut(page, card);
     await page.keyboard.press("Tab");
     await expect(less, "unfolded code can be folded again").toBeVisible();
     await expect.poll(() => ringed(less), "Tab leaves the code to Show less").toBe(true);
@@ -1339,7 +1339,7 @@ test("a phone's page and Tab go stage, toolbar, code, as it shows them", async (
 
     const source = card.getByRole("button", { name: "Show the source" });
     const edit = card.getByRole("button", { name: /^Edit / });
-    await intoCode(page, card);
+    await intoCodeAndOut(page, card);
     await page.keyboard.press("Shift+Tab");
     await expect.poll(() => ringed(source), "before the code, the toolbar").toBe(true);
     await page.keyboard.press("Shift+Tab");
@@ -1381,7 +1381,7 @@ test("crossing a phone's width keeps the focus on Stop, Tab's way on from it, an
     await expect(card.getByText("Count: 1", { exact: true })).toBeVisible();
     const stop = card.getByRole("button", { name: /^Stop / });
     const edit = card.getByRole("button", { name: /^Edit / });
-    await intoCode(page, card);
+    await intoCodeAndOut(page, card);
     await page.keyboard.press("Tab");
     await expect.poll(() => ringed(stop), "below the code, Stop is first").toBe(true);
     for (const [width, where] of [
@@ -1408,7 +1408,7 @@ test("a fold that goes as the page widens gives its focus to Run", async ({
   try {
     const card = await foldedCard(page);
     const less = card.getByRole("button", { name: /^Show less/ });
-    await intoCode(page, card);
+    await intoCodeAndOut(page, card);
     await page.keyboard.press("Tab");
     await expect.poll(() => ringed(less), "Tab leaves the code to Show less").toBe(true);
     await page.setViewportSize(DESKTOP);
@@ -1463,7 +1463,7 @@ const cardHeight = (card) =>
 async function besideFoldedCode(page, card) {
   const folded = await cardHeight(card);
   const all = card.getByRole("button", { name: /^Show all \d+/ });
-  await intoCode(page, card);
+  await intoCodeAndOut(page, card);
   await page.keyboard.press("Tab");
   await expect
     .poll(() => ringed(card.getByRole("button", { name: /^Show less/ })))
