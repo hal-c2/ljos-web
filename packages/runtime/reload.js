@@ -204,10 +204,39 @@ function pairedWith({ olds, all, records }, newRoot, New, across = false) {
 }
 
 // A value that is an object of the old tree is the one at its place in the
-// new tree; one with none there is no longer held.
+// new tree; one with none there is no longer held. Lists and plain objects
+// that reach one, however deep and even in a cycle, are copied with every
+// such object moved, so nothing of the retired tree stays held.
 function moved(value, all, pairs) {
-  if (Array.isArray(value) && value.some((item) => all.has(item))) return value.map((item) => moved(item, all, pairs));
-  return all.has(value) ? (pairs.get(value) ?? null) : value;
+  if (all.has(value)) return pairs.get(value) ?? null;
+  if (!plain(value)) return value;
+  const met = new Set();
+  let old = false;
+  const reach = [value];
+  while (reach.length > 0) {
+    const part = reach.pop();
+    if (met.has(part)) continue;
+    met.add(part);
+    for (const item of Object.values(part)) {
+      if (all.has(item)) old = true;
+      else if (plain(item)) reach.push(item);
+    }
+  }
+  if (!old) return value;
+  const copies = new Map();
+  for (const part of met) copies.set(part, Array.isArray(part) ? new Array(part.length) : Object.create(Object.getPrototypeOf(part)));
+  const at = (item) => (all.has(item) ? (pairs.get(item) ?? null) : (copies.get(item) ?? item));
+  for (const [part, copy] of copies) {
+    for (const key of Object.keys(part)) copy[key] = at(part[key]);
+  }
+  return copies.get(value);
+}
+
+function plain(value) {
+  if (Array.isArray(value)) return true;
+  if (value === null || typeof value !== "object") return false;
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
 }
 
 // Whether the file says the same of `key` in both: nothing, the same

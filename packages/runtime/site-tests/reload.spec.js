@@ -162,6 +162,27 @@ for (const built of BUILDS) {
       expect.soft(got.twice).toEqual(mine);
     });
 
+    test("an assigned list or object that holds an old object holds the new one", async ({ page }) => {
+      const got = await page.evaluate(() => {
+        const app = window.board("base");
+        const old = app.root.part;
+        const ring = [old];
+        ring.push(ring);
+        app.root.items = ring;
+        app.root.lookup = { deep: { part: old }, rows: [old] };
+        app.save("same");
+        const items = app.root.items;
+        const lookup = app.root.lookup;
+        const part = app.root.part;
+        return {
+          ring: items[0] === part && items[1] === items,
+          deep: lookup.deep.part === part,
+          rows: lookup.rows[0] === part,
+        };
+      });
+      expect(got).toEqual({ ring: true, deep: true, rows: true });
+    });
+
     test("an assignment survives the app changing the declared value in place", async ({ page }) => {
       const got = await page.evaluate(() => {
         const other = window.board("base");
