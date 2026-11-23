@@ -202,6 +202,11 @@ Rectangle {
                             iconName: "play"
                             onTriggered: shell.router.go("/demos/")
                         }
+                        C.MenuItem {
+                            text: t`Showcase`
+                            iconName: "image"
+                            onTriggered: shell.router.go("/showcase/")
+                        }
                     }
                 }
                 C.Button {
@@ -365,7 +370,7 @@ Rectangle {
                         required property var modelData
                         required property int index
                         text: shell.router ? shell.router.nameOf(modelData) : modelData
-                        iconName: modelData === "/" ? "house" : modelData.startsWith("/demos/") ? "play" : "file-text"
+                        iconName: modelData === "/" ? "house" : modelData.startsWith("/demos/") ? "play" : modelData === "/showcase/" ? "image" : "file-text"
                         onClicked: if (modelData !== shell.route) shell.router.go(modelData)
                     }
                 }
