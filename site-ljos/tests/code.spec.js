@@ -1099,7 +1099,7 @@ async function onPhone(browser, reducedMotion = "no-preference", init) {
   });
   if (init) await context.addInitScript(init, CARD);
   const page = await context.newPage();
-  await page.goto(LONG_PAGE);
+  await page.goto(base + LONG_PAGE.replace(/^\//, ""));
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
   return { context, page };
 }
@@ -1183,7 +1183,7 @@ test("a phone's long code is folded in the page as written", async ({
   });
   try {
     const page = await context.newPage();
-    await page.goto(LONG_PAGE);
+    await page.goto(base + LONG_PAGE.replace(/^\//, ""));
     const long = (await folds(page)).filter((card) => card.lines > FOLDS_PAST);
     expect(long.length, "examples longer than a screenful").toBeGreaterThan(0);
     for (const card of long)
@@ -1207,7 +1207,7 @@ test("a phone's folded code can be read to its end without scripts", async ({
   });
   try {
     const page = await context.newPage();
-    await page.goto(LONG_PAGE);
+    await page.goto(base + LONG_PAGE.replace(/^\//, ""));
     const long = (await folds(page)).filter((card) => card.lines > FOLDS_PAST);
     expect(long.length, "examples longer than a screenful").toBeGreaterThan(0);
     for (const { index, name } of long) {
@@ -1372,7 +1372,7 @@ async function liveCard(browser, route) {
     reducedMotion: "no-preference",
   });
   const page = await context.newPage();
-  await page.goto(route);
+  await page.goto(base + route.replace(/^\//, ""));
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
   return { context, page };
 }
