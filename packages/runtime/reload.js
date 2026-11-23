@@ -196,8 +196,10 @@ function pairedWith({ olds, all, records }, newRoot, New, across = false) {
     pairs.set(old, object);
   }, across);
   let focused = null;
+  // One map for the whole reload: a list two properties share stays one.
+  const copies = new Map();
   for (const [old, object] of pairs) {
-    given(records.get(old), object, (value) => moved(value, all, pairs));
+    given(records.get(old), object, (value) => moved(value, all, pairs, copies));
     if (records.get(old).focused) focused = object;
   }
   return focused;
@@ -206,28 +208,60 @@ function pairedWith({ olds, all, records }, newRoot, New, across = false) {
 // A value that is an object of the old tree is the one at its place in the
 // new tree; one with none there is no longer held. Lists and plain objects
 // that reach one, however deep and even in a cycle, are copied with every
-// such object moved, so nothing of the retired tree stays held.
-function moved(value, all, pairs) {
+// such object moved, so nothing of the retired tree stays held. Only the
+// parts on the way to one are copied, and each once per reload (`copies`),
+// so a part two values share is still one part after it. Properties are
+// read by their descriptors: a getter is never run (it may throw, or do
+// something), and is carried over as it is, as are symbol keys, ones that
+// are not enumerable, and what a property may be written or reconfigured.
+function moved(value, all, pairs, copies) {
   if (all.has(value)) return pairs.get(value) ?? null;
+  if (copies.has(value)) return copies.get(value);
   if (!plain(value)) return value;
-  const met = new Set();
-  let old = false;
+  // Each part met, with the parts that hold it, and those that hold an old
+  // object or a part already copied.
+  const holders = new Map([[value, []]]);
+  const reaching = [];
   const reach = [value];
   while (reach.length > 0) {
     const part = reach.pop();
-    if (met.has(part)) continue;
-    met.add(part);
-    for (const item of Object.values(part)) {
-      if (all.has(item)) old = true;
-      else if (plain(item)) reach.push(item);
+    for (const key of Reflect.ownKeys(part)) {
+      const own = Object.getOwnPropertyDescriptor(part, key);
+      if (!own || !("value" in own)) continue;
+      const item = own.value;
+      if (all.has(item) || copies.has(item)) reaching.push(part);
+      else if (plain(item)) {
+        if (!holders.has(item)) {
+          holders.set(item, []);
+          reach.push(item);
+        }
+        holders.get(item).push(part);
+      }
     }
   }
-  if (!old) return value;
-  const copies = new Map();
-  for (const part of met) copies.set(part, Array.isArray(part) ? new Array(part.length) : Object.create(Object.getPrototypeOf(part)));
+  const copied = new Set();
+  while (reaching.length > 0) {
+    const part = reaching.pop();
+    if (copied.has(part)) continue;
+    copied.add(part);
+    reaching.push(...holders.get(part));
+  }
+  if (!copied.has(value)) return value;
+  for (const part of copied) {
+    const proto = Object.getPrototypeOf(part);
+    const copy = Array.isArray(part) ? [] : Object.create(proto);
+    if (Array.isArray(part) && proto !== Array.prototype) Object.setPrototypeOf(copy, proto);
+    copies.set(part, copy);
+  }
   const at = (item) => (all.has(item) ? (pairs.get(item) ?? null) : (copies.get(item) ?? item));
-  for (const [part, copy] of copies) {
-    for (const key of Object.keys(part)) copy[key] = at(part[key]);
+  for (const part of copied) {
+    const copy = copies.get(part);
+    for (const key of Reflect.ownKeys(part)) {
+      const own = Object.getOwnPropertyDescriptor(part, key);
+      if ("value" in own) own.value = at(own.value);
+      Object.defineProperty(copy, key, own);
+    }
+    if (!Object.isExtensible(part)) Object.preventExtensions(copy);
   }
   return copies.get(value);
 }

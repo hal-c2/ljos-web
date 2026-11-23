@@ -42,6 +42,14 @@ Feature: A reload keeps what was assigned unless the file's declaration changed
     Then the file's value wins
     And the reload ends, throws nothing and runs no accessor
 
+  Scenario: What was assigned moves to the new tree as it was
+    Given the app assigned a list or plain object that holds an object of the old tree
+    When the same file is reloaded
+    Then each such object, however deep or in a cycle, is its counterpart in the new tree
+    And a list two properties share is still one list
+    And no getter in it is run, and each stays a getter
+    And its symbol keys and hidden properties are kept
+
   Scenario: An object's keys and a list's holes are part of its content
     When an edit changes which keys an object has, their order, or which items a list has
     Then the file's value wins
