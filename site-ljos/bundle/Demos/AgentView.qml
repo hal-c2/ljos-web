@@ -19,7 +19,7 @@ import "logic/after/board.ts" as LanesBoard
 // other in, keeping what the app was given. It only draws: the live stage
 // (AgentStage) sends the calls, swaps the module and fills the log, and a
 // poster fills it once, still. That it is a replay, and its
-// one button, are the frame's to draw in that toolbar (DemoFrame.barOnTop):
+// one button, are the frame's to draw in that toolbar (ReplayFrame):
 // one of each, whichever of stage and poster stands.
 Rectangle {
     id: view

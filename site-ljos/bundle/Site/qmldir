@@ -16,6 +16,7 @@ ThemeToggle 1.0 ThemeToggle.qml
 MenuButton 1.0 MenuButton.qml
 Search 1.0 Search.qml
 DemoFrame 1.0 DemoFrame.qml
+ReplayFrame 1.0 ReplayFrame.qml
 DemoSection 1.0 DemoSection.qml
 DocsMap 1.0 DocsMap.qml
 Footer 1.0 Footer.qml
