@@ -26,7 +26,7 @@ import { kernelNamed } from "ljos-web/vite";
 import { packRich } from "ljos-web/codeblock/rich";
 import * as Pro from "./pro.mjs";
 import { giveFiles, readGiven } from "../../site/scripts/codeblock-files.mjs";
-import { keysByHash, listedEverywhere, pageOfRoute, pageRecords, readLedger, saysEverywhere } from "../../site/scripts/codeblocks-ledger.mjs";
+import { keysByHash, listedEverywhere, liveOutcome, madeNews, pageOfRoute, pageRecords, readLedger, saysEverywhere } from "../../site/scripts/codeblocks-ledger.mjs";
 import { drawPictures, shipsDark, stagesOf, verdictKey } from "./pictures.mjs";
 
 const here = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -144,12 +144,12 @@ const liveAt = new Map(); // a page's code block -> its live payload
   // As in site/scripts/codeblock-prerenders.mjs: what a live example
   // said as it was made is news unless the ledger says it is the
   // page's point, and the example does not run as far as a reader is
-  // concerned.
+  // concerned. One that claims to run and refused in the dark has not
+  // run for a dark reader: that is news too (madeNews).
   for (const { example } of runnable) {
     const hash = hashExample(example);
-    const said = manifest[hash]?.file ? manifest[hash].logged : undefined;
-    if (said?.length && !saysEverywhere(keysOf.get(hash) ?? [], ledger))
-      failures.push({ example, diagnostics: said.map((line) => `said as it was made: ${line}`) });
+    const news = madeNews(manifest[hash], { claimed: mustRun({ example }), logs: saysEverywhere(keysOf.get(hash) ?? [], ledger) });
+    if (news.length) failures.push({ example, diagnostics: news });
   }
   const unrun = new Map(failures.map(({ example, diagnostics }) => [hashExample(example), diagnostics]));
   const claimedUnrun = failures.filter(mustRun);
@@ -290,8 +290,7 @@ const liveAt = new Map(); // a page's code block -> its live payload
     if (!liveSet.has(example)) return { state: "not running", diagnostics: ["no prerender was made"] };
     // Live, and drawn light in the dark, where only its dark making
     // refused: the record says what the dark said.
-    const { logged, darkFailed } = prerendered[hash] ?? {};
-    return { state: "live", ...(logged?.length ? { logged } : {}), ...(darkFailed?.length ? { diagnostics: darkFailed } : {}) };
+    return liveOutcome(prerendered[hash]);
   };
   const report = onPages.flatMap(({ page, fences, examples }) => pageRecords(page, fences, examples, outcome, tagged));
   writeFileSync(join(cacheDir, "report.json"), `${JSON.stringify(report, null, 2)}\n`);

@@ -105,6 +105,28 @@ export function saysEverywhere(keys, ledger) {
   return keys.length > 0 && keys.every((key) => ledger.entries.get(key)?.reason === "logs");
 }
 
+/**
+ * What a prerendered example's making (its manifest entry) leaves for
+ * the build to answer for: what it said, unless the ledger says that is
+ * its page's point (`logs`), and, for one that claims to run
+ * (`claimed`), what refused in the dark scheme. One nobody claimed
+ * stays live with its dark refusal in its record (`liveOutcome`),
+ * drawn light in the dark; a claimed one that crashes for every reader
+ * in the dark is answered for at least as a warning there is.
+ */
+export function madeNews(made, { claimed = false, logs = false } = {}) {
+  if (!made?.file) return [];
+  const dark = claimed ? (made.darkFailed ?? []) : [];
+  const said = logs ? [] : (made.logged ?? []).map((line) => `said as it was made: ${line}`);
+  return [...dark, ...said];
+}
+
+/** A live example's outcome for the report: what it said, and what refused only in the dark. */
+export function liveOutcome(made) {
+  const { logged, darkFailed } = made ?? {};
+  return { state: "live", ...(logged?.length ? { logged } : {}), ...(darkFailed?.length ? { diagnostics: darkFailed } : {}) };
+}
+
 export function readLedger(text = readFileSync(LEDGER, "utf8")) {
   const entries = new Map();
   const problems = [];
