@@ -10,15 +10,18 @@ const FRAMED = {
   "/demos/cockpit/": { "the cockpit": "webgl2 wasm" },
   "/demos/watch/": { "the watch": "webgl2" },
 };
-// What each page has next under a demo's frame.
+// What each page has next under a demo's frame, words in its text: a demo's
+// own page says what it is above the frame, and how to use it below.
 const FOLLOWS = {
   "/": { "the 3D demo": "Once this 3D scene runs" },
   "/demos/": { "the 3D demo": "A shader effect", "the shader demo": "A whole app", "the field guide": "Motion", "the motion demo": null },
-  "/demos/cockpit/": { "the cockpit": "Once it runs, open doors" },
-  "/demos/watch/": { "the watch": "Once it runs, swipe between screens" },
+  "/demos/cockpit/": { "the cockpit": "Its files" },
+  "/demos/watch/": { "the watch": "Wear it with the pointer" },
 };
-const PRESS_RUN = /\bpress(ing)? (its )?run\b/i;
-const NOTE = /^A picture of the demo: it runs in a browser with [^,]+, which this one does not offer\.$/;
+// Wrapped text is laid out a line at a time, each ended by a line break, so
+// words are apart by any space.
+const PRESS_RUN = /\bpress(ing)?\s+(its\s+)?run\b/i;
+const NOTE = /^A\s+picture\s+of\s+the\s+demo:\s+it\s+runs\s+in\s+a\s+browser\s+with\s+[^,]+,\s+which\s+this\s+one\s+does\s+not\s+offer\.$/;
 
 const LACKS = {
   wasm: () => delete globalThis.WebAssembly,
@@ -76,7 +79,7 @@ for (const [path, demos] of Object.entries(FRAMED)) {
               let follows = null;
               for (let node; !follows && (node = words.nextNode()); ) {
                 const element = node.parentElement;
-                if (node.data.trim().startsWith(next) && !frame.contains(element) && frame.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING && element.checkVisibility()) follows = element;
+                if (node.data.replace(/\s+/g, " ").includes(next) && !frame.contains(element) && frame.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING && element.checkVisibility()) follows = element;
               }
               return { ...seen, followsBelow: !!follows && follows.getBoundingClientRect().top >= edge.bottom - 1 };
             }, next);
@@ -103,7 +106,7 @@ for (const [path, demos] of Object.entries(FRAMED)) {
 for (const path of ["/", "/demos/"]) {
   test(`${path} says a demo keeps its picture only for what it needs`, async ({ page }) => {
     await page.goto(path);
-    const said = await page.locator("#app").innerText();
+    const said = (await page.locator("#app").innerText()).replace(/\s+/g, " ");
     expect(said).toContain("lacks the WebAssembly or WebGL 2 it needs");
     expect(said).not.toMatch(/lacks WebAssembly, WebGL 2 or WebGPU|where WebAssembly or WebGL 2 is unavailable/);
   });
