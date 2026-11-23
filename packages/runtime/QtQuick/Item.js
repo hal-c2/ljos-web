@@ -465,7 +465,10 @@ export const Item = defineType("Item", QtObject, {
     if ("activeFocusOnTab" in props) reachable(self);
     // An item its author names says the name on its element, as Qt's tools
     // find an object by its objectName: a page's tests find the item there,
-    // not by words a translation changes.
+    // not by words a translation changes. Only an item that declares an
+    // objectName pays for the effect, so a name first given from script to an
+    // item that never declared one is not on its element; Qt's findChild
+    // would still find it.
     if ("objectName" in props)
       effect(
         () => self.objectName,

@@ -516,7 +516,7 @@ jobs:
         env:
           QMLC: ${{ github.workspace }}/target/debug/qmlc
           LJOS_SITE_BASE: /${{ github.event.repository.name }}/
-      - run: pnpm --filter ljos-site-ljos exec playwright test tests/base.spec.js tests/links.spec.js tests/canonical.spec.js
+      - run: pnpm --filter ljos-site-ljos exec playwright test tests/base.spec.js tests/links.spec.js tests/canonical.spec.js tests/code.spec.js
         env:
           LJOS_SITE_BASE: /${{ github.event.repository.name }}/
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

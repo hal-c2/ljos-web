@@ -116,6 +116,11 @@ jobs:
         env:
           LJOS_KERNEL: wasm
         run: pnpm --filter ljos-web exec playwright test -c tests kernelchoice
+      # accessible.spec: what a page tells assistive tools and tests, such as
+      # an item's objectName on its element.
+      - name: what a page tells assistive tools, on the Solid kernel
+        if: ${{ !cancelled() && steps.setup.outcome == 'success' }}
+        run: pnpm --filter ljos-web exec playwright test -c tests accessible.spec
       # messages.spec: ljos-ui's features/i18n/messages.feature, compiled in the page.
       # compiler.spec: what the page compiles is what qmlc makes of the same
       # files, and compiled QML may import every module the runtime exports
