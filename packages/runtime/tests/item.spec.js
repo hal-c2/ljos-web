@@ -161,6 +161,28 @@ test("an item or a node given another parent is among that one's children and pl
   }
 });
 
+// Moving an element takes the browser's focus from it; the item keeps
+// Qt's, so the reader's keys must go on reaching the field, at the caret.
+test("a field moved to another parent while typed in keeps the keys and the caret", async ({ page }) => {
+  await open(page, "reparentfocus");
+  await page.click("input, textarea");
+  await page.keyboard.type("ab");
+  await page.keyboard.press("ArrowLeft");
+  const state = () =>
+    page.evaluate(() => {
+      const { input, box } = window.scene;
+      return [input.text, input.activeFocus, document.activeElement === input.$input, box.mapToItem(window.scene, 0, 0).y];
+    });
+  for (const [below, key, text, y] of [
+    [true, "X", "aXb", 150],
+    [false, "Y", "aXYb", 0],
+  ]) {
+    await page.evaluate((below) => (window.scene.below = below), below);
+    await page.keyboard.type(key);
+    expect(await state()).toEqual([text, true, true, y]);
+  }
+});
+
 // What Qt 6.11 answers for the same scene, as it is and after each step: a
 // Repeater is a child too, of no size and at the origin.
 test("childrenRect is the rectangle an item's children take together", async ({ page }) => {

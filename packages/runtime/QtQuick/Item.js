@@ -212,16 +212,54 @@ function resources(self) {
   return [...self.$held, ...loose.filter((child) => !self.$held.includes(child))];
 }
 
+// The browser takes its focus from an element the moment it leaves the
+// document, or is moved in it, though the item stays where focus is: a
+// field a reader types in would stop taking keys when its item is given
+// another parent. What had it, and where its caret was, until the item's
+// element is placed again. The old parent may let it go before the new one
+// takes it, so this outlives one `arrange`; nothing placed by then and it
+// is forgotten.
+let holding = null;
+
+function hold(node) {
+  if (typeof document === "undefined") return holding;
+  const element = document.activeElement;
+  if (!element || element === document.body || !node.contains(element)) return holding?.node === node ? holding : null;
+  const caret = typeof element.selectionStart === "number" ? [element.selectionStart, element.selectionEnd, element.selectionDirection] : null;
+  return { node, element, caret };
+}
+
+function lift(node) {
+  const held = hold(node);
+  node.remove();
+  if (!held) return;
+  holding = held;
+  queueMicrotask(() => {
+    if (holding === held) holding = null;
+  });
+}
+
+function placeIn(container, node, cursor) {
+  const held = hold(node);
+  container.insertBefore(node, cursor);
+  if (!held) return;
+  if (holding === held) holding = null;
+  const { element, caret } = held;
+  if (!element.isConnected || document.activeElement === element) return;
+  element.focus({ preventScroll: true });
+  if (caret) element.setSelectionRange(...caret);
+}
+
 // Puts `nodes` in `container` in that order, after what the type itself
 // keeps there, moving only what is out of place.
 function arrange(container, nodes, previous) {
   const wanted = new Set(nodes);
   // One that is gone may be another item's by now: a ParentChange moved it.
-  for (const node of previous) if (!wanted.has(node) && node.parentNode === container) node.remove();
+  for (const node of previous) if (!wanted.has(node) && node.parentNode === container) lift(node);
   let cursor = null;
   for (let index = nodes.length - 1; index >= 0; index--) {
     const node = nodes[index];
-    if (node.parentNode !== container || node.nextSibling !== cursor) container.insertBefore(node, cursor);
+    if (node.parentNode !== container || node.nextSibling !== cursor) placeIn(container, node, cursor);
     cursor = node;
   }
 }
