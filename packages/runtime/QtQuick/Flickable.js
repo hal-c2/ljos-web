@@ -652,7 +652,21 @@ export const Flickable = defineType("Flickable", Item, {
       },
       (state) => show(self, state),
     );
+    // Only a Flickable a wheel can turn sideways cancels its scroll, and so
+    // listens that way: one that goes sideways and has no room to go down,
+    // which `wheeled` asks again of each tick. Any other, the default
+    // page-like one included, leaves Chromium to scroll on its compositor,
+    // which it can only do where no listener may cancel the wheel.
     let turnsWheel = false;
+    effect(
+      () => self.interactive && self.flickableDirection !== VerticalFlick && self.$maxY() - self.$minY() < 1,
+      (sideways) => {
+        if (sideways === turnsWheel) return;
+        if (sideways) viewport.addEventListener("wheel", wheeled, ACTIVE);
+        else viewport.removeEventListener("wheel", wheeled, ACTIVE);
+        turnsWheel = sideways;
+      },
+    );
     effect(
       () => [self.interactive, self.flickableDirection, self.boundsBehavior],
       ([interactive, direction, bounds]) => {
@@ -664,15 +678,6 @@ export const Flickable = defineType("Flickable", Item, {
         const changed = viewport.isConnected && (x !== style.overflowX || y !== style.overflowY);
         style.overflowX = x;
         style.overflowY = y;
-        // Only a Flickable that goes sideways turns a wheel, and so cancels
-        // its scroll; any other leaves Chromium to scroll on its compositor,
-        // which it can only do where no listener may cancel the wheel.
-        const sideways = x === "auto";
-        if (sideways !== turnsWheel) {
-          if (sideways) viewport.addEventListener("wheel", wheeled, ACTIVE);
-          else viewport.removeEventListener("wheel", wheeled, ACTIVE);
-          turnsWheel = sideways;
-        }
         // Its overscroll is its own only along a way it scrolls: along the
         // other a wheel or a finger goes on to what it is in.
         const kept = bounds === StopAtBounds ? "none" : "contain";
