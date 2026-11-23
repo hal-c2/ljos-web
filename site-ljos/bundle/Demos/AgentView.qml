@@ -242,12 +242,11 @@ Rectangle {
 
     // The card in each state it can reach, never shown and only measured:
     // which is the tallest goes with the width and the fonts, as a lane alone
-    // is wider. An item an ancestor hides keeps its place, so a Row of them
-    // is as tall as the tallest would be shown.
-    Row {
-        id: rooms
+    // is wider, so a Row of them is as tall as the tallest. A property's
+    // item stands in no visual parent: it is measured, never in the page,
+    // and the page as written (and taken over) does not carry it.
+    readonly property Item rooms: Row {
         objectName: "dispatchRoom"
-        visible: false
 
         Repeater {
             model: AgentReplay.reachable
