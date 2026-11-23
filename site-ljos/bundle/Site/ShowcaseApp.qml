@@ -5,6 +5,7 @@ import QtQuick
 import Site
 import "../Showcase/later.js" as Later
 import "../nav.js" as Nav
+import "../Showcase/media.js" as Media
 
 // One app built with Ljós, as its entry in Showcase/products.json has
 // it: who made it, what it is, a recording of it running, the captures
@@ -121,7 +122,7 @@ Column {
             Text {
                 anchors.fill: parent
                 textFormat: Text.RichText
-                text: Nav.pictureSet(app.route, "/showcase/media/" + app.product.recording.name + "-poster", parent.width, parent.height, app.product.recording.label, true)
+                text: Media.pictureSet(app.route, "/showcase/media/" + app.product.recording.name + "-poster", parent.width, parent.height, app.product.recording.label, true)
             }
             Loader {
                 id: player
@@ -138,7 +139,7 @@ Column {
                     }
                 }
                 onLoaded: {
-                    item.source = Nav.at(Content.base, "/showcase/media/" + app.product.recording.name) + Nav.recordingFormat();
+                    item.source = Nav.at(Content.base, "/showcase/media/" + app.product.recording.name) + Media.recordingFormat();
                     item.wanted = Qt.binding(() => app.wanted && app.onScreen && Running.shown);
                 }
             }
