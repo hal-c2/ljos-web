@@ -301,12 +301,35 @@ export const clockOf = (page) => page.evaluate(() => ({ frames: 0, time: 0, ...g
 
 // Until the page's clock has run `more` frames past `frames`, however long
 // they take: a loaded machine runs fewer of them a second, not fewer of
-// them. A clock that stops waits for the test's own timeout, in a step that
-// says what it waited for.
-async function clockRuns(page, frames, more, what) {
-  await base.step(`${what}: the clock runs ${more} more frames`, () =>
-    page.waitForFunction(([after]) => (globalThis[Symbol.for("ljos-web/clock")]?.frames ?? 0) >= after, [frames + more], { timeout: 0, polling: "raf" }),
-  );
+// them. A clock with nothing left to run steps no frame at all, so waiting
+// on it would say only, at the test's timeout, that the wait timed out: it
+// is told of at once, with what `region` shows by then.
+async function clockRuns(page, frames, more, what, region) {
+  await base.step(`${what}: the clock runs ${more} more frames`, async () => {
+    for (;;) {
+      const waited = await page.waitForFunction(
+        ([after]) => {
+          const clock = globalThis[Symbol.for("ljos-web/clock")];
+          if ((clock?.frames ?? 0) >= after) return "ran";
+          return clock?.jobs ? false : "stopped";
+        },
+        [frames + more],
+        { timeout: 0, polling: "raf" },
+      );
+      if ((await waited.jsonValue()) === "ran") return;
+      // A job that ends as the next one starts can leave none for a moment:
+      // a stop is none over two of the page's frames.
+      await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+      const now = await clockOf(page);
+      if (now.frames >= frames + more) return;
+      if (now.jobs) continue;
+      const shows = region ? (await region.innerText().catch(() => "")).replace(/\s+/g, " ").trim().slice(0, 200) : "";
+      throw new Error(
+        `${what}: waited for the clock to run ${more} more frames past ${frames}, but the clock has nothing left to run, ` +
+          `at ${now.frames} frames and ${Math.round(now.time)} ms of the scene's time; the region shows "${shows}"`,
+      );
+    }
+  });
 }
 
 // Until the scene's clock has handed out `ms` of its own time from now, or
@@ -339,8 +362,10 @@ export async function sceneRuns(page, ms, what) {
 // and every picture since is the same. Two pictures a fixed time apart are
 // not enough: an animation whose loop lasts that long (a pulse of 1 s) shows
 // the same frame in both. For a canvas (3D, a shader) its pixels are read
-// back as the screen shows them, which is what a reader sees stop.
-export async function expectFramesAdvance(locator, { span = 3_000, frames = 30, message = "the picture keeps changing" } = {}) {
+// back as the screen shows them, which is what a reader sees stop. `once`
+// is for a scene that moves for a while and then comes to rest by design:
+// it must change once, not keep changing.
+export async function expectFramesAdvance(locator, { span = 3_000, frames = 30, message = "the picture keeps changing", once = false } = {}) {
   const page = locator.page();
   const clip = async () => {
     const box = await locator.boundingBox();
@@ -358,7 +383,7 @@ export async function expectFramesAdvance(locator, { span = 3_000, frames = 30, 
   };
   // Twice, each from a fresh picture: a region that changed once and
   // then stopped does not pass on its one change.
-  for (const time of ["first", "again"]) {
+  for (const time of once ? ["first"] : ["first", "again"]) {
     const from = await page.screenshot({ clip: await clip() });
     const start = await clockOf(page);
     for (let pictures = 1; ; pictures++) {
@@ -368,7 +393,7 @@ export async function expectFramesAdvance(locator, { span = 3_000, frames = 30, 
         ran.frames < frames || ran.time < span,
         `${message} (${time}): the clock ran ${ran.frames} frames and ${ran.time} ms of the scene's time, and ${pictures} pictures of it are the first`,
       ).toBe(true);
-      await clockRuns(page, seen.frames, 6, `${message} (${time})`);
+      await clockRuns(page, seen.frames, 6, `${message} (${time})`, locator);
       if (Buffer.compare(from, await page.screenshot({ clip: await clip() })) !== 0) break;
     }
   }
