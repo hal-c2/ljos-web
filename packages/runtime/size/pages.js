@@ -13,7 +13,7 @@
 //   --json   the report as JSON, for a test or a before/after table
 //   --files  each page's files by name under its line
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { dirname, join, posix, relative, resolve } from "node:path";
+import { basename, dirname, join, posix, relative, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { gzipSync } from "node:zlib";
 
@@ -130,13 +130,22 @@ function summed(files, dist) {
   return { total: total(list), html: total(kind(".html")), js: total(kind(".js")), css: total(kind(".css")), wasm: total(kind(".wasm")), files: list };
 }
 
-export function pageReport(dist, { base = "/" } = {}) {
+// `awaited` names, by route, the starts of the chunks that page waits for
+// before it is written or taken over (a Loader's `awaited` source). The
+// build gives those as dynamic imports, but no visit to that page is
+// without them, so they and their static imports are its first load.
+export function pageReport(dist, { base = "/", awaited = {} } = {}) {
   dist = resolve(dist);
   site = { dist, base: base.endsWith("/") ? base : `${base}/` };
   gzipped.clear();
   edges.clear();
   return pagesUnder(dist).map(({ route, file }) => {
-    const first = closure(htmlAssets(file));
+    const roots = htmlAssets(file);
+    let first = closure(roots);
+    for (const prefix of awaited[route] ?? []) {
+      roots.push(...[...first.lazy].filter((path) => basename(path).startsWith(prefix)));
+      first = closure(roots);
+    }
     // The page itself is first-load too, with what it carries (its
     // props, its prerendered markup).
     first.got.add(file);
