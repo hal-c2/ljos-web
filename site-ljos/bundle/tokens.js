@@ -404,13 +404,16 @@ var looks = {
     cyberpunk: {
         light: cyberpunkLight,
         dark: cyberpunkDark,
-        fonts: { display: families.techno, sans: families.techno, mono: families.mono, displayWeight: 700, displayTracking: 0.5, displayUpper: true },
+        fonts: { display: families.techno, sans: families.techno, mono: families.mono, displayWeight: 600, displayTracking: 0, displayUpper: false },
         type: {
             hero: [60, 64], compactHero: [36, 40], display: [44, 48], compactDisplay: [32, 36],
             headline: [28, 36], title: [21, 28], subtitle: [18, 28], body: [16, 26],
             caption: [13, 20], ui: [13, 18], code: [14, 22]
         },
-        shape: { radiusSmall: 0, radius: 2, radiusLarge: 4, brackets: true, shadowBlur: 0, shadowY: 0 }
+        shape: { radiusSmall: 0, radius: 2, radiusLarge: 4, brackets: true, shadowBlur: 0, shadowY: 0 },
+        // A live device is a mission console: what it is made of, the app
+        // and the agent driving it side by side, with no tabs between.
+        console: true
     },
     workbench: {
         light: toolLight,

@@ -47,8 +47,11 @@ Column {
         wide: landing.wide
         wordsColumns: 4
         stageFrom: AgentReplay.sideBySide
-        title: LandingCopy.headline
-        subtitle: LandingCopy.subhead
+        // Cyberpunk's console says it tersely (copy v2, shells.md).
+        readonly property bool terse: Theme.shell === "cyberpunk"
+        eyebrow: terse ? t`Live runtime on an open tree` : ""
+        title: terse ? t`Reshape the running interface, human or agent.` : LandingCopy.headline
+        subtitle: terse ? t`Inspect every node, patch state in flight, drop a new shell on the wire.` : LandingCopy.subhead
         caption: LandingCopy.heroCaption
         onFollowed: (link) => landing.follow(link)
 
@@ -87,6 +90,8 @@ Column {
         Capability {
             id: agentic
             wide: landing.wide
+            // Cyberpunk shows the live app as a console, under the words.
+            stacked: Theme.consoleLayout
             eyebrow: LandingCopy.agenticEyebrow
             title: LandingCopy.agenticHeadline
             body: LandingCopy.agenticBody

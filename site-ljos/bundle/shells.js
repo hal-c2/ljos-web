@@ -10,7 +10,7 @@
 // hydrated (`whenHydrated`), never while it is being taken over, which
 // would be a page other than the one the build wrote.
 var key = "ljos.dev:shell";
-var names = ["elegant", "workbench", "desktop"];
+var names = ["elegant", "cyberpunk", "workbench", "desktop"];
 
 // What a shell was called before, to the name it has now: a reader who
 // picked it then keeps it.
@@ -148,20 +148,21 @@ function compiled(file, text) {
 // Swaps the shell (`change()`, which sets what the loader shows) as one
 // view transition where the browser has them: the old shell's picture
 // gives way to the new one's, which the page's styles move (assets/
-// head.html: a rise and a scale, or with reduced motion a crossfade).
+// head.html: `kind` "rich", a rise and a scale; "glitch", Cyberpunk's
+// slices and jitter; "calm", for reduced motion, a crossfade).
 // The transition is let go when `arrived` says the new shell is in,
 // and in any case after a second, so a shell that never comes does not
 // hold the page still; at once if `change()` answers false, having
 // changed nothing. Answers false where there are none, for the shell
 // to fade itself in instead.
-function swap(change, calm, arrived) {
+function swap(change, kind, arrived) {
     var document = globalThis.document;
     var root = document && document.documentElement;
     if (!root || typeof document.startViewTransition !== "function") {
         change();
         return false;
     }
-    root.dataset.ljosSwap = calm ? "calm" : "rich";
+    root.dataset.ljosSwap = kind;
     var transition = document.startViewTransition(function () {
         if (change() === false)
             return undefined;

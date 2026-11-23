@@ -5,6 +5,10 @@
 // Each is one function, the same each time it is asked for, so the
 // loader is not given a new source on every read.
 
+function cyberpunk() {
+    return import("./Cyberpunk.qml");
+}
+
 function workbench() {
     return import("./Workbench.qml");
 }

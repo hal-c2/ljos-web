@@ -4,7 +4,7 @@
 // is a landmark a reader can go to, and a window's client area is its
 // main content; a control of a value says its value,
 // which ARIA asks of a slider; the chosen item of a list is its current
-// one. Every attribute
+// one, and a link to the page the reader is on is that page. Every attribute
 // is one ARIA allows on the role it is said with.
 import QtQuick
 import QtQuick.Templates as T
@@ -55,11 +55,12 @@ Item {
             Accessible.name: "Results"
             Rectangle { id: result; width: 80; height: 20; Accessible.role: Accessible.ListItem; Accessible.name: "Result"; Accessible.selected: root.on }
         }
+        Rectangle { id: here; width: 80; height: 20; Accessible.role: Accessible.Link; Accessible.name: "Docs"; Accessible.selected: root.on }
         Rectangle { id: puck; width: 40; height: 40; Accessible.role: Accessible.Slider; Accessible.name: "Lead the puck" }
     }
 
     function items() {
-        return { menu, bold, plain, entry, title, subtitle, named, picture, blank, caret, section, aside, footer, client, progress, busy, spin, puck, result }
+        return { menu, bold, plain, entry, title, subtitle, named, picture, blank, caret, section, aside, footer, client, progress, busy, spin, puck, result, here }
     }
 
     function step() {

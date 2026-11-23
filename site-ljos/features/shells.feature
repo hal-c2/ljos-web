@@ -2,12 +2,15 @@ Feature: The site is shown in a shell the reader picks
   The site's state (where the reader is, what they chose) and its pages
   are one thing; the shell that frames them is another, a QML file of
   its own in site-ljos/bundle/Shells/ that only says where each of the
-  site's pieces goes. Three ship: Elegant, the one every page is
+  site's pieces goes. Four ship: Elegant, the one every page is
   written in and the one a reader with no script gets, a wide editorial
   page in one sans with the front page's replay beside its headline;
-  Workbench, the pages on the left, the page in the middle and its
-  Source on the right; and Desktop, a menu bar, a toolbar, the pages in
-  a sidebar, routes as tabs and a status bar. A reader swaps them
+  Cyberpunk, a full-bleed console with a telemetry rail along its top,
+  a nav rail down its left and the front page's live app as a mission
+  console between its Observer tree and its agent's calls; Workbench, the
+  pages on the left, the page in the middle and its Source on the right;
+  and Desktop, a menu bar, a toolbar, the pages in a sidebar, routes as
+  tabs and a status bar. A reader swaps them
   live, and keeps their page, their place on it and what they did in
   an example on it.
 
@@ -25,17 +28,29 @@ Feature: The site is shown in a shell the reader picks
 
     Examples:
       | route              | from      | to        |
+      | /                  | elegant   | cyberpunk |
       | /                  | elegant   | workbench |
       | /                  | elegant   | desktop   |
+      | /                  | cyberpunk | elegant   |
+      | /                  | cyberpunk | workbench |
+      | /                  | cyberpunk | desktop   |
       | /                  | workbench | elegant   |
+      | /                  | workbench | cyberpunk |
       | /                  | workbench | desktop   |
       | /                  | desktop   | elegant   |
+      | /                  | desktop   | cyberpunk |
       | /                  | desktop   | workbench |
+      | /start/first-app/  | elegant   | cyberpunk |
       | /start/first-app/  | elegant   | workbench |
       | /start/first-app/  | elegant   | desktop   |
+      | /start/first-app/  | cyberpunk | elegant   |
+      | /start/first-app/  | cyberpunk | workbench |
+      | /start/first-app/  | cyberpunk | desktop   |
       | /start/first-app/  | workbench | elegant   |
+      | /start/first-app/  | workbench | cyberpunk |
       | /start/first-app/  | workbench | desktop   |
       | /start/first-app/  | desktop   | elegant   |
+      | /start/first-app/  | desktop   | cyberpunk |
       | /start/first-app/  | desktop   | workbench |
 
   Scenario: Every kind of page stands in every shell
@@ -45,7 +60,7 @@ Feature: The site is shown in a shell the reader picks
   Scenario: A running example keeps its state across a swap
     Given a reader running the counter on "/start/first-app/"
     And they have pressed "Increment" twice, so it reads "Count: 2"
-    When they swap to Workbench, then to Desktop, then back to Elegant
+    When they swap to Cyberpunk, then to Workbench, then to Desktop, then back to Elegant
     Then the counter reads "Count: 2" in each
 
   Scenario: The reader's place on the page is kept across a swap
@@ -163,7 +178,7 @@ Feature: The site is shown in a shell the reader picks
 
   Scenario: A page's first load carries only the shell it is written in
     Given any page the build wrote
-    Then what it loads before a reader does anything holds no Workbench or Desktop shell
+    Then what it loads before a reader does anything holds no Cyberpunk, Workbench or Desktop shell
     And each of those comes the first time a reader picks it
     And the shell choices and a shell's source come the first time a reader opens them
 
@@ -202,8 +217,9 @@ Feature: The site is shown in a shell the reader picks
     Then each link, button, field and choice in the header, the menu and the switcher is at least 44 pixels high
 
     Examples:
-      | shell   |
-      | Elegant |
+      | shell     |
+      | Elegant   |
+      | Cyberpunk |
 
   Scenario: The header is the Ljós landmark in every shell
     Given a reader has any shell, on a desktop or a phone
@@ -264,7 +280,7 @@ Feature: The site is shown in a shell the reader picks
 
   Scenario: The switcher lists every shell, each with a line that says what it is
     When a reader opens the shell switcher
-    Then it lists Elegant, Workbench and Desktop, in that order
+    Then it lists Elegant, Cyberpunk, Workbench and Desktop, in that order
     And each is shown with one line about it
 
   Scenario: A pick kept under the shell's old name is read as Elegant
@@ -333,6 +349,59 @@ Feature: The site is shown in a shell the reader picks
     Then each section rises into place the first time it is seen
     When a reader who asked for reduced motion does the same
     Then the sections fade in without moving
+
+  Scenario: Cyberpunk's telemetry rail says where the reader is and what runs
+    Given a reader with script at a desktop's width, in the Cyberpunk shell
+    When they open "/start/first-app/"
+    Then the rail along the top says "Route /start/first-app/"
+    And it says the time as "Clock" with hours and minutes
+    And it says how many objects are alive, the frame rate in fps and the renderer
+    And the renderer is WebGPU, WebGL2 or Solid DOM, as the browser can run
+
+  Scenario: Cyberpunk's nav rail goes to each part of the site
+    Given a reader with script at a desktop's width, in the Cyberpunk shell
+    When they open the front page
+    Then a rail down the left lists "Console", "Demos", "Docs", "Shells" and "Source", numbered
+    And "Console" is marked as where they are
+    When they press "Demos"
+    Then the demos page is shown and "Demos" is marked as where they are
+    When they press "Source"
+    Then they see "Source of Shells/Cyberpunk.qml"
+
+  Scenario: Cyberpunk's front page is a mission console
+    Given a reader with script at a desktop's width, in the Cyberpunk shell
+    When they open the front page
+    Then the live app stands between the "Observer tree" on its left and the "Agent MCP stream" on its right, all seen at once
+    And its headline is in sentence case, never all capitals
+
+  Scenario: Cyberpunk stands on a phone, with one menu control and its telemetry at the bottom
+    Given a reader on a phone whose kept shell is Cyberpunk
+    When they open the front page
+    Then the page is framed by the Cyberpunk shell
+    And its header has exactly one control besides the home link: "Menu"
+    And a bar along the bottom says the route, the objects alive, the frame rate and the clock
+
+  Scenario: Cyberpunk's scanlines hold still, and with reduced motion it never glitches
+    When a reader swaps to the Cyberpunk shell
+    Then the swap is a short glitch, and the shell lies under still scanlines
+    When a reader who asked for reduced motion swaps to it
+    Then the swap is a crossfade, and the scanlines are there and still
+
+  Scenario: A reader who comes back to Cyberpunk sees it glitch in
+    Given a reader whose kept shell is Cyberpunk
+    When they open the front page
+    Then the page glitches in as it is first shown
+    When a reader who asked for reduced motion does the same
+    Then it only fades in
+
+  Scenario Outline: Cyberpunk's words stand out from what they are on
+    Given a reader in the Cyberpunk shell, in <scheme>
+    Then every text and background pair it draws meets WCAG AA
+
+    Examples:
+      | scheme |
+      | light  |
+      | dark   |
 
   Scenario: The logo is the same in every shell
     Given a reader has any shell, in light or dark, on a desktop or a phone

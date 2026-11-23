@@ -183,6 +183,9 @@ QtObject {
     readonly property bool brackets: look.shape.brackets
     readonly property int shadowBlur: look.shape.shadowBlur
     readonly property int shadowY: look.shape.shadowY
+    // Whether a live device lays its panels out beside its app, all at
+    // once, as a console (Cyberpunk), rather than under it, a tab each.
+    readonly property bool consoleLayout: look.console === true
 
     // Layout: the reading column, the wide layout's side columns, and
     // where the wide layout starts.

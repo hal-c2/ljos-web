@@ -77,8 +77,8 @@ test("no page's first load holds the compiler's modules or a whole namespace", (
 // features/shells.feature), and so do the switcher's choices and a
 // shell's source with the first look at them.
 test("no page's first load holds a shell it is not written in, nor what picks one", () => {
-  expect(reaching(["Workbench-", "Desktop-"])).toEqual({});
-  for (const shell of ["Workbench-", "Desktop-"]) expect([...later].some((file) => named(file, shell)), `a ${shell}* chunk a pick fetches`).toBe(true);
+  expect(reaching(["Cyberpunk-", "Workbench-", "Desktop-"])).toEqual({});
+  for (const shell of ["Cyberpunk-", "Workbench-", "Desktop-"]) expect([...later].some((file) => named(file, shell)), `a ${shell}* chunk a pick fetches`).toBe(true);
   // The shell choices and a shell's source are drawn in Ljós's own
   // controls, which reading a page does not need (bundle/Site/later.js).
   expect(reaching(["ShellChoices-", "ShellSource-"])).toEqual({});
