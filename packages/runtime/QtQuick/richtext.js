@@ -320,26 +320,43 @@ export function clothe(element, look) {
 // cache, but are never seen to change.
 const [pictures, setPictures] = signal(0);
 // Each arrival, and each choice picked, with the images it was heard on,
-// held weakly. Past 256 what is no longer on the page is forgotten, so a
-// page that shows pictures for a long time does not grow. What is still
-// shown is kept however many there are: forgotten, its next arrival (from
-// the copies a measure makes anew) would be news, and measure everything
-// again, and those copies would arrive again, and so on.
-const arrived = new Map();
+// held weakly. What is known lasts as long as one of those images does: the
+// one on the page, or a measure's copy, which its survey keeps. Being on the
+// page is not what tells: a measure's copies have left the bench before they
+// arrive, and a Text that is measured but not shown has no other. Forgotten
+// while still in use, a picture's next arrival would be news, and measure
+// everything again, and those copies would arrive again, and so on. Once as
+// many are known as `limit`, what was heard only on images that are gone is
+// forgotten, so a page that shows pictures for a long time does not grow;
+// then `limit` is twice what stayed, so that is seldom.
+const arrived = known();
 const chosen = new WeakMap();
-const picked = new Map();
+const picked = known();
 
-// The images still on the page that `on` was heard on, and `image` with them.
-function held(on, image) {
-  const kept = (on ?? []).filter((ref) => ref.deref()?.isConnected);
-  if (!kept.some((ref) => ref.deref() === image)) kept.push(new WeakRef(image));
-  return kept;
+function known() {
+  return { entries: new Map(), limit: 256 };
 }
 
-// Past 256, what was heard only on images that have left the page.
-function forget(known) {
-  if (known.size <= 256) return;
-  for (const [key, { on }] of known) if (!on.some((ref) => ref.deref()?.isConnected)) known.delete(key);
+const alive = (ref) => ref.deref() !== undefined;
+
+// The entry for `key`, heard now on `image` too.
+function heard(memory, key, image) {
+  const entry = memory.entries.get(key);
+  if (entry) {
+    entry.on = entry.on.filter(alive);
+    if (!entry.on.some((ref) => ref.deref() === image)) entry.on.push(new WeakRef(image));
+  }
+  return entry;
+}
+
+// `entry` kept for `key`, heard on `image`, once what is gone is forgotten.
+function keep(memory, key, entry, image) {
+  if (memory.entries.size >= memory.limit) {
+    for (const [old, { on }] of memory.entries) if (!on.some(alive)) memory.entries.delete(old);
+    memory.limit = Math.max(256, 2 * memory.entries.size);
+  }
+  entry.on = [new WeakRef(image)];
+  memory.entries.set(key, entry);
 }
 
 // What a picture's choice is made from, which is the same on each copy of it.
@@ -355,8 +372,8 @@ function offered(image) {
 // picked: that is laid out at once as a picture is, and fetches nothing. The
 // img stays where it is, hidden, to say what is picked now.
 function standIn(image) {
-  if (image.naturalWidth || !picked.size) return;
-  const size = picked.get(offered(image));
+  if (image.naturalWidth || !picked.entries.size) return;
+  const size = picked.entries.get(offered(image));
   if (!size?.width || !size.height) return;
   const stand = outsideTheCount(() => document.createElement("canvas"));
   stand.width = size.width;
@@ -380,19 +397,12 @@ export function arrive(event) {
   const was = chosen.get(image);
   chosen.set(image, arrival);
   const offer = offered(image);
-  const pick = offer === undefined ? undefined : picked.get(offer);
+  const pick = offer === undefined ? undefined : heard(picked, offer, image);
   const repicked = offer !== undefined && pick?.arrival !== arrival;
-  if (repicked) {
-    forget(picked);
-    picked.set(offer, { arrival, width: image.naturalWidth, height: image.naturalHeight, on: held(undefined, image) });
-  } else if (pick) pick.on = held(pick.on, image);
-  const known = arrived.get(arrival);
-  if (known) known.on = held(known.on, image);
-  if (!repicked && known && (was === undefined || was === arrival)) return;
-  if (!known) {
-    forget(arrived);
-    arrived.set(arrival, { on: held(undefined, image) });
-  }
+  if (repicked) keep(picked, offer, { arrival, width: image.naturalWidth, height: image.naturalHeight }, image);
+  const before = heard(arrived, arrival, image);
+  if (!repicked && before && (was === undefined || was === arrival)) return;
+  if (!before) keep(arrived, arrival, {}, image);
   setPictures((count) => count + 1);
   flush();
 }
@@ -400,15 +410,21 @@ export function arrive(event) {
 // How many arrivals and picks are kept in mind, and how often what was
 // measured around pictures was measured again, which a test reads.
 export function remembered() {
-  return { arrived: arrived.size, picked: picked.size, measures: untrack(pictures) };
+  return { arrived: arrived.entries.size, picked: picked.entries.size, measures: untrack(pictures) };
 }
 
+// Whether `image` is still to arrive, and is listened to for when it does.
 function awaited(image) {
-  if (!image.complete) image.addEventListener("load", arrive, { once: true });
+  if (image.complete) return false;
+  image.addEventListener("load", arrive, { once: true });
+  return true;
 }
 
 let bench;
 const surveys = new Map();
+// The copies each survey made that were still to arrive, kept as long as the
+// survey is: what is known of them lasts that long (`arrived`).
+const waiting = new WeakMap();
 
 // Lays the markup out off the page and reads what Text reports: the width
 // of its widest line, its height, its lines, where its first baseline is.
@@ -428,8 +444,9 @@ export function survey(markup, look) {
   const box = bench.firstChild;
   clothe(box, look);
   box.replaceChildren(elements(markup));
+  const copies = [];
   for (const image of box.querySelectorAll("img")) {
-    awaited(image);
+    if (awaited(image)) copies.push(image);
     standIn(image);
   }
   const frame = box.getBoundingClientRect();
@@ -493,6 +510,7 @@ export function survey(markup, look) {
     ascent,
   };
   box.replaceChildren();
+  if (copies.length) waiting.set(found, copies);
   if (surveys.size > 256) surveys.clear();
   surveys.set(key, found);
   return found;

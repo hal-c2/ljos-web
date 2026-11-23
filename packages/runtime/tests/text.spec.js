@@ -879,45 +879,14 @@ test("a picture that keeps its file at another density is measured again, and th
   expect(await remeasured(page), "back at the first density, nothing is measured again").toBe(0);
 });
 
-// What is known of the pictures that arrived is kept to as many as the
-// markup and its measures are, however many a page shows over its life.
-test("the pictures that arrived and the choices picked are kept to a bounded number", async ({ page }) => {
-  await boxes(page, "markup");
-  const kept = await page.evaluate(async () => {
-    // The page's own instance of the module, by the address it was loaded from.
-    const address = performance.getEntriesByType("resource").find(({ name }) => /\/QtQuick\/richtext\.js/.test(name)).name;
-    const { arrive, remembered } = await import(address);
-    const sizes = [];
-    // Each is a picture with a choice of its own, arrived at a size of its
-    // own: what the browser's img says of it, without fetching anything.
-    for (let index = 0; index < 600; index++) {
-      const picture = document.createElement("picture");
-      const source = document.createElement("source");
-      source.srcset = `/many-${index}.svg`;
-      picture.append(source);
-      const src = "/many.png";
-      const image = { localName: "img", currentSrc: `/many-${index}.svg`, src, naturalWidth: 80, naturalHeight: 1 + index, parentElement: picture, getAttribute: () => src };
-      arrive({ target: image });
-      sizes.push(remembered());
-    }
-    window.flush();
-    return { early: sizes[199], most: Math.max(...sizes.flatMap(({ arrived, picked }) => [arrived, picked])) };
-  });
-  expect(kept.early, "each one is kept while there are few").toEqual({ arrived: 200, picked: 200 });
-  expect(kept.most, "and no more than the markup's 256 and the one just come").toBeLessThanOrEqual(257);
-});
-
-// More pictures than that shown at once are all kept while they are shown:
-// a measure makes each anew, and the copies' arrivals are not news, or each
-// would measure everything again, and so on. Once they leave, they go.
-test("more than 256 pictures shown at once settle, and are forgotten once they leave", async ({ page }) => {
-  await boxes(page, "markup");
-  const seen = await page.evaluate(async () => {
-    const address = performance.getEntriesByType("resource").find(({ name }) => /\/QtQuick\/richtext\.js/.test(name)).name;
-    const { arrive, remembered } = await import(address);
-    // A copy of picture `index` of a set, on the page or not: what the
-    // browser's img says of it, without fetching anything.
-    const copy = (set, index, shown) => {
+// Pictures for the tests of what is known of them, without fetching
+// anything: `copyOf(set, index, shown)` is what the browser's img says of a
+// copy of picture `index` of a set, a picture with a choice of its own,
+// arrived at a size of its own. Returns the page's own instance of the
+// module, by the address it was loaded from.
+async function pictureCopies(page) {
+  return page.evaluate(() => {
+    window.copyOf = (set, index, shown) => {
       const picture = document.createElement("picture");
       const source = document.createElement("source");
       source.srcset = `/${set}-${index}.svg`;
@@ -925,27 +894,125 @@ test("more than 256 pictures shown at once settle, and are forgotten once they l
       const src = `/${set}.png`;
       return { localName: "img", currentSrc: `/${set}-${index}.svg`, src, naturalWidth: 80, naturalHeight: 1 + index, parentElement: picture, getAttribute: () => src, isConnected: shown };
     };
-    const shown = (set) => Array.from({ length: 300 }, (_, index) => copy(set, index, true));
-    const measures = () => remembered().measures;
-    const start = measures();
-    const onPage = shown("live");
-    for (const image of onPage) arrive({ target: image });
-    const first = measures() - start;
-    // A measure's own copies of the same 300, made anew.
-    const bench = shown("live");
-    for (const image of bench) arrive({ target: image });
-    const again = measures() - start - first;
-    const kept = remembered();
-    // They leave the page, and 300 others are shown.
-    for (const image of [...onPage, ...bench]) image.isConnected = false;
-    for (const image of shown("next")) arrive({ target: image });
-    window.flush();
-    return { first, again, kept, after: remembered() };
+    return performance.getEntriesByType("resource").find(({ name }) => /\/QtQuick\/richtext\.js/.test(name)).name;
   });
-  expect(seen.first, "each picture shown is measured for once").toBe(300);
-  expect(seen.again, "and its copies' arrivals measure nothing again").toBe(0);
-  expect([seen.kept.arrived, seen.kept.picked], "all 300 are kept while they are shown").toEqual([300, 300]);
-  expect([seen.after.arrived, seen.after.picked], "once they leave, only those shown now are").toEqual([300, 300]);
+}
+
+// What nobody holds any more is collected, as the browser does in time.
+async function collected(page) {
+  const session = await page.context().newCDPSession(page);
+  await session.send("HeapProfiler.collectGarbage");
+  await session.detach();
+}
+
+// 300 copies of a set arrive; with `holder`, they are kept as long as
+// `window[holder]` is, as the page keeps what it shows and a survey the copies
+// it measured. Returns how often that measured everything again.
+function arrivals(page, address, set, holder) {
+  return page.evaluate(
+    async ({ address, set, holder }) => {
+      const { arrive, remembered } = await import(address);
+      const before = remembered().measures;
+      const copies = Array.from({ length: 300 }, (_, index) => window.copyOf(set, index, holder === "shownCopies"));
+      for (const image of copies) arrive({ target: image });
+      if (holder) window[holder] = copies;
+      window.flush();
+      return remembered().measures - before;
+    },
+    { address, set, holder },
+  );
+}
+
+// Pictures that pass by and are gone arrive until what is known is swept,
+// which forgets what nobody holds. Returns whether it forgot anything.
+async function swept(page, address) {
+  const pass = (until) =>
+    page.evaluate(
+      async ({ address, until }) => {
+        const { arrive, remembered } = await import(address);
+        window.passed ??= 0;
+        for (let count = 0; count < 300 || until; count++) {
+          const before = remembered().arrived;
+          arrive({ target: window.copyOf("passing", window.passed++, false) });
+          if (remembered().arrived < before) return true;
+          if (count > 8192) return false;
+        }
+        return false;
+      },
+      { address, until },
+    );
+  await pass(false);
+  await collected(page);
+  const forgot = await pass(true);
+  await page.evaluate(() => window.flush());
+  return forgot;
+}
+
+// What is known of the pictures that arrived is kept to as many as the
+// markup and its measures hold, however many a page shows over its life.
+test("the pictures that arrived and the choices picked are kept to a bounded number", async ({ page }) => {
+  await boxes(page, "markup");
+  const address = await pictureCopies(page);
+  const sizes = [];
+  // 600 pictures in three rounds, each round's gone before the next.
+  for (let round = 0; round < 3; round++) {
+    const each = await page.evaluate(
+      async ({ address, round }) => {
+        const { arrive, remembered } = await import(address);
+        const sizes = [];
+        for (let index = round * 200; index < (round + 1) * 200; index++) {
+          arrive({ target: window.copyOf("many", index, false) });
+          const { arrived, picked } = remembered();
+          sizes.push({ arrived, picked });
+        }
+        window.flush();
+        return sizes;
+      },
+      { address, round },
+    );
+    sizes.push(...each);
+    await collected(page);
+  }
+  expect(sizes[199], "each one is kept while there are few").toEqual({ arrived: 200, picked: 200 });
+  const most = Math.max(...sizes.flatMap(({ arrived, picked }) => [arrived, picked]));
+  expect(most, "and no more than the markup's 256 and the one just come").toBeLessThanOrEqual(257);
+});
+
+// More pictures than that shown at once are all kept while they are shown:
+// a measure makes each anew, and the copies' arrivals are not news, or each
+// would measure everything again, and so on. A measure's copies have left
+// the bench before they arrive: what keeps them known is the page's.
+test("more than 256 pictures shown at once settle, and are forgotten once they leave", async ({ page }) => {
+  await boxes(page, "markup");
+  const address = await pictureCopies(page);
+  const counts = () => page.evaluate(async (address) => (await import(address)).remembered(), address);
+  expect(await arrivals(page, address, "live", "shownCopies"), "each picture shown is measured for once").toBe(300);
+  // A measure's own copies of the same 300, made anew, off the page.
+  expect(await arrivals(page, address, "live"), "and its copies' arrivals measure nothing again").toBe(0);
+  const kept = await counts();
+  expect([kept.arrived, kept.picked], "all 300 are kept while they are shown").toEqual([300, 300]);
+  await collected(page);
+  expect(await swept(page, address), "what nobody holds is forgotten").toBe(true);
+  expect(await arrivals(page, address, "live"), "but not what the page shows, which its copies do not hold").toBe(0);
+  // They leave the page.
+  await page.evaluate(() => delete window.shownCopies);
+  await collected(page);
+  expect(await swept(page, address), "once they leave").toBe(true);
+  expect(await arrivals(page, address, "live"), "they are forgotten, and arrive as news").toBe(300);
+});
+
+// A Text that is measured and not shown has no picture on the page, only the
+// copies its survey made, and those are kept as long as the survey is. More
+// than 256 of them settle too.
+test("more than 256 pictures only measured settle, and stay known while measured", async ({ page }) => {
+  await boxes(page, "markup");
+  const address = await pictureCopies(page);
+  expect(await arrivals(page, address, "unseen", "surveyCopies"), "each picture measured is measured for once").toBe(300);
+  // The next measure's copies, which its survey keeps in place of the last.
+  expect(await arrivals(page, address, "unseen", "surveyCopies"), "and its copies' arrivals measure nothing again").toBe(0);
+  await collected(page);
+  expect(await swept(page, address), "what nobody holds is forgotten").toBe(true);
+  expect(await arrivals(page, address, "unseen", "surveyCopies"), "but not what the survey still holds").toBe(0);
 });
 
 // Firefox picks a picture's source in a task of its own, so each new copy on
