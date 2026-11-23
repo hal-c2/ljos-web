@@ -238,8 +238,10 @@ test("a code block is its picture until the reader reaches for it, then runs bes
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   // Tall enough that the first block's editor and its result stand
-  // together without scrolling the page's own Flickable.
-  await page.setViewportSize({ width: 1440, height: 1600 });
+  // together without scrolling the page's own Flickable: at the look's
+  // 17 px body the card starts near 860 and its picture, under the
+  // code, ends past 1600.
+  await page.setViewportSize({ width: 1440, height: 1800 });
   // The language overview's first block is a counter that runs on the
   // web; the first app's counter waits on Ljos.Controls there.
   await page.goto("/language/overview/");
