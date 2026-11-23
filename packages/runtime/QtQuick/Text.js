@@ -231,9 +231,11 @@ function leading(font, factor, fixed) {
   return factor === 1 ? line : `calc(${line} * ${factor})`;
 }
 
-// How wide the text is when nothing constrains it: its `implicitWidth`.
-// Apart from the layout, which depends on the width: a binding of `width`
-// may read this one.
+// How wide the text is when nothing constrains it: its `implicitWidth`, as
+// `{ width }`. Apart from the layout, which depends on the width: a binding
+// of `width` may read this one. Markup's is the survey itself, which the
+// text holds for as long as it is the measure: so are the copies it made of
+// the pictures, and so what is known of them (richtext.js).
 function natural(self, state) {
   fonts();
   const { text, kind } = state.source();
@@ -241,11 +243,11 @@ function natural(self, state) {
   if (kind) {
     const fixed = self.lineHeightMode === 1;
     const line = leading(font, self.lineHeight, fixed);
-    return survey(text, { kind, font, line, pitch: 0, limit: Infinity, mode: 0, most: MANY, elide: ELIDE_NONE }).width;
+    return survey(text, { kind, font, line, pitch: 0, limit: Infinity, mode: 0, most: MANY, elide: ELIDE_NONE });
   }
   let width = 0;
   for (const { shown } of paragraphs(text).parts) width = Math.max(width, advance(font, shown) + overhang(font, shown));
-  return width;
+  return { width };
 }
 
 // The text laid out in the item's width. With `bounded`, in its height too
@@ -276,7 +278,9 @@ function laid(self, state, bounded) {
     const pitch = fixed ? factor : face.height * factor;
     if (kind) {
       const look = { kind, font, line: leading(font, factor, fixed), pitch, limit, mode, most, elide };
-      return { ...survey(text, look), kind, text, look, font, pitch, below: 0 };
+      // The survey too, not only what it read: held, it holds its copies.
+      const surveyed = survey(text, look);
+      return { ...surveyed, surveyed, kind, text, look, font, pitch, below: 0 };
     }
     const made = arrange(text, font, limit, mode, elide, most, ceiling, pitch, align);
     made.kind = 0;
@@ -404,7 +408,7 @@ export const Text = defineType("Text", Item, {
     rightPadding: padding,
     bottomPadding: padding,
     hoveredLink: "",
-    implicitWidth: derived((self) => self.$text.natural() + self.leftPadding + self.rightPadding),
+    implicitWidth: derived((self) => self.$text.natural().width + self.leftPadding + self.rightPadding),
     implicitHeight: derived((self) => {
       const made = self.$text.implicit();
       return made.height + made.below + self.topPadding + self.bottomPadding;

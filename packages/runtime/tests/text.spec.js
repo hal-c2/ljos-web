@@ -924,7 +924,8 @@ function arrivals(page, address, set, holder) {
 }
 
 // Pictures that pass by and are gone arrive until what is known is swept,
-// which forgets what nobody holds. Returns whether it forgot anything.
+// which forgets what nobody holds. Returns whether it forgot anything. After
+// each, `window.passedBy`, if a test has one.
 async function swept(page, address) {
   const pass = (until) =>
     page.evaluate(
@@ -934,6 +935,7 @@ async function swept(page, address) {
         for (let count = 0; count < 300 || until; count++) {
           const before = remembered().arrived;
           arrive({ target: window.copyOf("passing", window.passed++, false) });
+          window.passedBy?.();
           if (remembered().arrived < before) return true;
           if (count > 8192) return false;
         }
@@ -1013,6 +1015,72 @@ test("more than 256 pictures only measured settle, and stay known while measured
   await collected(page);
   expect(await swept(page, address), "what nobody holds is forgotten").toBe(true);
   expect(await arrivals(page, address, "unseen", "surveyCopies"), "but not what the survey still holds").toBe(0);
+});
+
+// The same, with no stand-in: a Text's own survey holds the copies it made,
+// for as long as the Text keeps that measure, though the cache of surveys is
+// emptied. The page's own pictures never arrive here, so only the copies say
+// what is known. Each copy arrives at once, as one from the browser's cache.
+test("a Text keeps its measure's copies, and what is known of them, past the cache", async ({ page }) => {
+  await page.route("**/held-*.png", () => new Promise(() => {}));
+  await boxes(page, "markup");
+  const address = await pictureCopies(page);
+  await page.evaluate(() => {
+    // Each copy listened to for its arrival, held weakly.
+    const own = EventTarget.prototype.addEventListener;
+    window.measured = [];
+    window.sources = new Set();
+    HTMLImageElement.prototype.addEventListener = function (type, ...rest) {
+      if (type === "load") window.measured.push({ ref: new WeakRef(this), done: false });
+      return own.call(this, type, ...rest);
+    };
+    // The copies made so far arrive; what they measure makes the next ones.
+    window.deliver = () => {
+      for (const copy of [...window.measured]) {
+        if (copy.done) continue;
+        copy.done = true;
+        const image = copy.ref.deref();
+        if (!image) continue;
+        window.sources.add(image.currentSrc || image.src);
+        image.dispatchEvent(new Event("load"));
+      }
+    };
+    window.objects.unsafe.text = [0, 1, 2].map((index) => `<img src="/held-${index}.png">`).join("");
+    window.flush();
+  });
+  const round = () =>
+    page.evaluate(async (address) => {
+      const { remembered } = await import(address);
+      const before = remembered().measures;
+      window.deliver();
+      return remembered().measures - before;
+    }, address);
+  expect(await round(), "each picture measured is measured for once").toBe(3);
+  expect(await round(), "the next measure's copies are not news").toBe(0);
+  // More measures than the cache of surveys keeps, which empties it.
+  await page.evaluate(() => {
+    for (let index = 0; index < 300; index++) {
+      window.objects.rich.text = `<p>${index}</p>`;
+      window.flush();
+    }
+  });
+  await collected(page);
+  const held = await page.evaluate(() => window.measured.filter(({ ref }) => ref.deref()).length);
+  expect(held, "the Text's measure still holds its copies").toBeGreaterThanOrEqual(3);
+  // Each passing picture measures the Text again, and its copies arrive.
+  await page.evaluate(() => (window.passedBy = window.deliver));
+  expect(await swept(page, address), "what nobody holds is forgotten").toBe(true);
+  const again = await page.evaluate(async (address) => {
+    const { arrive, remembered } = await import(address);
+    delete HTMLImageElement.prototype.addEventListener;
+    const before = remembered().measures;
+    for (const source of window.sources) {
+      arrive({ target: { localName: "img", currentSrc: source, src: source, naturalWidth: 0, naturalHeight: 0, parentElement: null } });
+    }
+    window.flush();
+    return remembered().measures - before;
+  }, address);
+  expect(again, "but not what the Text's copies arrived as").toBe(0);
 });
 
 // Firefox picks a picture's source in a task of its own, so each new copy on
