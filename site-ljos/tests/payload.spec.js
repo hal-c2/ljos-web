@@ -18,6 +18,8 @@ const AWAITED = { "/showcase/": ["ShowcasePage-"] };
 const report = pageReport(dist, { base, awaited: AWAITED });
 const kB = (bytes) => Math.round(bytes / 1024);
 const named = (file, prefix) => file.split("/").pop().startsWith(prefix);
+// What some page fetches once it runs, past its first load.
+const later = new Set(report.flatMap(({ later }) => later.files.map((entry) => entry.file)));
 
 // Each page's first-load files that match, by page.
 function reaching(prefixes, pages = report) {
@@ -40,6 +42,20 @@ test("the report reads every page the build wrote", () => {
 // what a visit asks for is pinned in a browser.
 test("no page's static first load holds the editor, the compiler, PhysX or sql.js", () => {
   expect(reaching(["attach-", "ljos_web_compiler", "physx-", "sql-wasm"])).toEqual({});
+  // What a page imports statically is joined into one first-load file
+  // (packages/runtime/site.js), so a module that got in would not be
+  // named and the line above would pass with it there. The editor is a
+  // chunk of its own, fetched later; the compiler's, PhysX's and sql.js's
+  // scripts each name their .wasm, which no first-load script does.
+  expect([...later].some((file) => named(file, "attach-") && file.endsWith(".js")), "an attach-* chunk an edit fetches").toBe(true);
+  const wasmOf = ["ljos_web_compiler-", "physx-js-webidl-", "sql-wasm-browser-"];
+  for (const prefix of wasmOf) expect([...later].some((file) => named(file, prefix) && file.endsWith(".wasm")), `a ${prefix}*.wasm fetched later`).toBe(true);
+  const scripts = new Set(report.flatMap(({ first }) => first.files.map((entry) => entry.file).filter((file) => file.endsWith(".js"))));
+  const naming = [...scripts].flatMap((file) => {
+    const text = readFileSync(join(dist, file), "utf8");
+    return wasmOf.filter((prefix) => text.includes(prefix)).map((prefix) => `${file} names ${prefix}*.wasm`);
+  });
+  expect(naming).toEqual([]);
   const wasm = report.filter(({ first }) => first.wasm.count > 0).map(({ route, first }) => `${route}: ${first.files.filter((entry) => entry.file.endsWith(".wasm")).map((entry) => entry.file)}`);
   expect(wasm).toEqual([]);
 });
@@ -52,7 +68,6 @@ test("no page's first load holds the compiler's modules or a whole namespace", (
   // The whole namespace is a chunk of its own, fetched later: folded
   // back into a page's first chunk, it would not be named and the line
   // above would pass with it there.
-  const later = new Set(report.flatMap(({ later }) => later.files.map((entry) => entry.file)));
   expect([...later].some((file) => named(file, "QtQuick-")), "a QtQuick-* chunk the compiler's modules fetch").toBe(true);
   expect([...later].some((file) => named(file, "modules-")), "a modules-* chunk").toBe(true);
 });
@@ -63,7 +78,6 @@ test("no page's first load holds the compiler's modules or a whole namespace", (
 // shell's source with the first look at them.
 test("no page's first load holds a shell it is not written in, nor what picks one", () => {
   expect(reaching(["Workbench-", "Desktop-"])).toEqual({});
-  const later = new Set(report.flatMap(({ later }) => later.files.map((entry) => entry.file)));
   for (const shell of ["Workbench-", "Desktop-"]) expect([...later].some((file) => named(file, shell)), `a ${shell}* chunk a pick fetches`).toBe(true);
   // The shell choices and a shell's source are drawn in Ljós's own
   // controls, which reading a page does not need (bundle/Site/later.js).
@@ -93,7 +107,6 @@ test("no page's first load holds QtQuick.Shapes", () => {
   // Its Shape is a chunk of its own, fetched later: joined into the
   // first load's one file (packages/runtime/site.js), it would not be
   // named and the line above would pass with it there.
-  const later = new Set(report.flatMap(({ later }) => later.files.map((entry) => entry.file)));
   expect([...later].some((file) => named(file, "Shape-")), "a Shape-* chunk a demo fetches").toBe(true);
 });
 
