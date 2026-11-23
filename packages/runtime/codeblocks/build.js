@@ -212,7 +212,12 @@ export const prerenderSize = (html) => {
 // The stage and both schemes' pictures share one size (pictures.mjs), so
 // an example that asks a size of its own in each scheme is given one
 // both fit in, rather than the light one's, which would crop the dark.
-const bothSchemes = (light, dark) => (light.width && dark?.width ? { width: Math.max(light.width, dark.width), height: Math.max(light.height, dark.height) } : light);
+// A scheme with no size of its own gives none, so the other's is it.
+const bothSchemes = (light, dark) => {
+  if (!dark?.width) return light;
+  if (!light.width) return dark;
+  return { width: Math.max(light.width, dark.width), height: Math.max(light.height, dark.height) };
+};
 
 const sizeOf = (tag) => {
   const style = /style="([^"]*)"/.exec(tag)?.[1] ?? "";
