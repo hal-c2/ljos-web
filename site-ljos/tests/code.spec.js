@@ -963,7 +963,7 @@ const folds = (page, scrollTo) =>
     const codes = [...document.querySelectorAll("#app .qq-rich")].filter(
       (node) =>
         shown(node) &&
-        getComputedStyle(node).fontFamily.startsWith("ui-monospace"),
+        /\bmonospace\s*$/.test(getComputedStyle(node).fontFamily),
     );
     if (scrollTo !== undefined)
       holding(codes[scrollTo]).scrollIntoView({ block: "end" });
@@ -1136,7 +1136,7 @@ const watched = (card) =>
       const code =
         node.querySelector(".cm-content") ??
         [...node.querySelectorAll(".qq-rich")].find((rich) =>
-          getComputedStyle(rich).fontFamily.startsWith("ui-monospace"),
+          /\bmonospace\s*$/.test(getComputedStyle(rich).fontFamily),
         );
       for (let up = code; up && up !== node; up = up.parentElement)
         opacity *= Number(getComputedStyle(up).opacity);
