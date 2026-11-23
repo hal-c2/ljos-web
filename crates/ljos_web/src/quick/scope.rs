@@ -19,7 +19,7 @@ use qml_syntax::ast::{
     QmlBinding, QmlBindingValue, QmlDocument, QmlMember, QmlObject, QmlPropertyDeclaration,
 };
 
-use super::types::{Member, Property, Qt, Types};
+use super::types::{Member, Property, Qt, Types, handled};
 use crate::Error;
 
 pub(crate) use qml_front::scope::{CHANGES, object_id as id};
@@ -67,6 +67,7 @@ impl<'a> Tree<'a> {
 
         let mut written = Written::default();
         written.object(&document.root);
+        written.handlers(&front, types, &document.root);
         for id in front.objects.iter().filter_map(|object| object.id) {
             written.name(id);
         }
@@ -273,6 +274,50 @@ impl Written {
                 QmlMember::Signal(signal) => {
                     for param in &signal.params {
                         self.name(param.name.name.as_str());
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+}
+
+impl Written {
+    /// A handler's body reads its arguments by the names its signal gives
+    /// them, which may be in another file (`signal ping(real $$1)` in the
+    /// type the object is), so they are names the scripts have too.
+    fn handlers<'a>(&mut self, front: &Front<'a>, types: Types<'_>, object: &QmlObject<'a>) {
+        let index = front.index_of(object);
+        for member in &object.members {
+            let value = match member {
+                QmlMember::Object(child) => {
+                    self.handlers(front, types, child);
+                    continue;
+                }
+                QmlMember::InlineComponent(inline) => {
+                    self.handlers(front, types, &inline.object);
+                    continue;
+                }
+                QmlMember::Binding(QmlBinding { name, value, .. }) => {
+                    if let (Some(index), [part]) = (index, &name.parts[..]) {
+                        let parameters = handled(part)
+                            .and_then(|signal| front.signal(types.front(), index, &signal));
+                        for parameter in parameters.unwrap_or_default() {
+                            self.name(&parameter);
+                        }
+                    }
+                    value
+                }
+                QmlMember::Property(QmlPropertyDeclaration {
+                    value: Some(value), ..
+                }) => value,
+                _ => continue,
+            };
+            match value {
+                QmlBindingValue::Object(child) => self.handlers(front, types, child),
+                QmlBindingValue::Objects(children) => {
+                    for child in children {
+                        self.handlers(front, types, child);
                     }
                 }
                 _ => {}
