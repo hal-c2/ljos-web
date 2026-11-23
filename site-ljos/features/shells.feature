@@ -3,7 +3,8 @@ Feature: The site is shown in a shell the reader picks
   are one thing; the shell that frames them is another, a QML file of
   its own in site-ljos/bundle/Shells/ that only says where each of the
   site's pieces goes. Three ship: Marketing, the one every page is
-  written in and the one a reader with no script gets; Workbench, the
+  written in and the one a reader with no script gets, which the
+  switcher names "Elegant"; Workbench, the
   pages on the left, the page in the middle and its Source on the
   right; and Desktop, a menu bar, a toolbar, the pages in a sidebar,
   routes as tabs and a status bar. A reader swaps them
@@ -128,7 +129,7 @@ Feature: The site is shown in a shell the reader picks
     Then the page is framed by the Marketing shell
     And its header has exactly one control besides the home link: "Menu"
     When they open the menu and the shell switcher in it
-    Then it says Workbench and Desktop need a wider window
+    Then it says Workbench and Desktop need a wider window, and that this one shows "Elegant"
 
   Scenario: The header is the Ljós landmark in every shell
     Given a reader has any shell, on a desktop or a phone
