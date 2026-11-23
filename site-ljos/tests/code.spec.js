@@ -425,7 +425,8 @@ for (const route of [
         // A tab's focus is the runtime's, as an item's is in Qt, so only
         // keys give it and it shows only in what they do: out of the code
         // and back to Copy, back to the first file, then on to the last,
-        // Space choosing each.
+        // Space choosing each. On a phone the stage and its toolbar come
+        // before the code, so Copy is a few steps back, past them.
         const card = page
           .locator('[data-object-name="codeCard"]:visible')
           .filter({ has: page.locator('[role="tab"]:visible') })
@@ -436,7 +437,14 @@ for (const route of [
         const copy = card.getByRole("button", { name: /^(Copy|Copied)\b/ }).first();
         await intoCode(card);
         await page.keyboard.press("Escape");
-        await page.keyboard.press("Shift+Tab");
+        let back = 0;
+        do {
+          await page.keyboard.press("Shift+Tab");
+          back++;
+          // The ring is drawn on the frame after the focus moves.
+          await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
+        } while (back < 12 && !(await ringed(copy)));
+        expect(await ringed(copy), "Shift+Tab from the code comes to Copy").toBe(true);
         const steps = [];
         for (let index = count - 1; index >= 0; index--)
           steps.push(["Shift+Tab", index]);
