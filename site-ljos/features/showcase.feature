@@ -8,8 +8,8 @@ Feature: The showcase shows apps built with Ljós, recorded as they run
 
   Covered by site-ljos/tests/showcase.spec.js, with the route in
   links.spec.js, parity.spec.js, hydrate.spec.js, a11y.spec.js and
-  design.spec.js, and the rich text's <picture> by
-  packages/runtime/tests/text.spec.js.
+  design.spec.js, the first load by payload.spec.js, and the rich text's
+  <picture> by packages/runtime/tests/text.spec.js.
 
   Background:
     Given the site is built
@@ -28,6 +28,11 @@ Feature: The showcase shows apps built with Ljós, recorded as they run
     And the poster offers AVIF and WebP, with a PNG for a browser with neither, at its own size
     And each of its three captures is sized, fetched lazily, and says what it shows about Ljós
     And it links to the app's source and its repository
+
+  Scenario: No other page loads the showcase
+    When a reader opens any page but /showcase/
+    Then its first load holds none of the showcase: not the page, its apps' data or what names its pictures
+    And /showcase/ is written with all of them, and waits for them before it is taken over
 
   Scenario: The recording plays, muted and looping, where the reader allows motion
     Given a browser that allows motion

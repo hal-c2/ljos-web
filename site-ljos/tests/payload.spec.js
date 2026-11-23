@@ -11,7 +11,11 @@ import { pageReport } from "../../packages/runtime/size/pages.js";
 
 const dist = join(resolve(dirname(fileURLToPath(import.meta.url)), ".."), "dist");
 const base = process.env.LJOS_SITE_BASE ?? "/";
-const report = pageReport(dist, { base });
+// What a page waits for before it is written or taken over is its first
+// load too, though the build imports it dynamically (bundle/Site/later.js,
+// `awaited`).
+const AWAITED = { "/showcase/": ["ShowcasePage-"] };
+const report = pageReport(dist, { base, awaited: AWAITED });
 const kB = (bytes) => Math.round(bytes / 1024);
 const named = (file, prefix) => file.split("/").pop().startsWith(prefix);
 
@@ -65,6 +69,21 @@ test("no page's first load holds a shell it is not written in, nor what picks on
   // controls, which reading a page does not need (bundle/Site/later.js).
   expect(reaching(["ShellChoices-", "ShellSource-"])).toEqual({});
   for (const panel of ["ShellChoices-", "ShellSource-"]) expect([...later].some((file) => named(file, panel)), `a ${panel}* chunk opening it fetches`).toBe(true);
+});
+
+// The showcase is a module of its own (bundle/Site/later.js), with its
+// apps' data: no other page's first load holds it. The showcase is
+// written with it and asks for it as it is taken over, so it is counted
+// in that page's first load.
+test("no page but the showcase's first load holds the showcase", () => {
+  const showcase = report.find(({ route }) => route === "/showcase/");
+  expect(reaching(["ShowcasePage-"], report.filter((entry) => entry !== showcase))).toEqual({});
+  expect(reaching(["ShowcasePage-"], pageReport(dist, { base })), "a chunk no page imports statically").toEqual({});
+  expect(reaching(["ShowcasePage-"], [showcase]), "the ShowcasePage-* chunk the showcase waits for, counted").toHaveProperty(["/showcase/"]);
+  // Its apps as written, from the data only that module carries.
+  const written = readFileSync(join(dist, "showcase/index.html"), "utf8");
+  expect(written, "the showcase as written").toContain("Built with Ljós");
+  expect(written, "an app the showcase shows, as written").toContain("The Office");
 });
 
 // The header's one icon is a picture (Site/GitHubMark.qml): QtQuick.Shapes

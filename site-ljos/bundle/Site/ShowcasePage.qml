@@ -5,7 +5,7 @@ import QtQuick
 import Site
 
 // The showcase: apps built with Ljós, each recorded as it runs. The
-// apps are data (Showcase/products.json, carried in Content.showcase),
+// apps are data (Showcase/products.json, carried in ShowcaseApps.apps),
 // so another is another entry and its files, and no app is named here.
 Column {
     id: showcase
@@ -47,7 +47,7 @@ Column {
     }
 
     Repeater {
-        model: Content.showcase
+        model: ShowcaseApps.apps
         ShowcaseApp {
             required property var modelData
             product: modelData

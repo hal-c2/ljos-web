@@ -1,6 +1,7 @@
 import QtQuick
 import Site
 import "../nav.js" as Nav
+import "../Showcase/media.js" as Media
 
 // A capture of an app built with Ljós (Showcase/products.json): the
 // picture at its own shape, what it shows, and what that says about
@@ -29,7 +30,7 @@ Column {
             width: parent.width - 2
             height: parent.height - 2
             textFormat: Text.RichText
-            text: Nav.pictureSet(card.route, "/showcase/media/" + card.capture.name, width, height, card.capture.alt, false)
+            text: Media.pictureSet(card.route, "/showcase/media/" + card.capture.name, width, height, card.capture.alt, false)
         }
     }
     Text {

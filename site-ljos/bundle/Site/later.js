@@ -7,3 +7,10 @@
 function shellChoices() { return import("./ShellChoices.qml"); }
 function shellSource() { return import("./ShellSource.qml"); }
 function controlsLook() { return import("./ControlsLook.qml"); }
+// The showcase, which no other page's first load carries, with its apps'
+// data (ShowcaseApps). It is chosen by the address alone, the same in the
+// prerender and the browser, so a page made at `/showcase/` waits for it
+// before it is written or taken over (a Loader's `awaited` source), and
+// the page as written holds it all the same.
+function showcase() { return import("./ShowcasePage.qml"); }
+showcase.awaited = true;
