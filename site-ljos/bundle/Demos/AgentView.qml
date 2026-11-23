@@ -458,26 +458,19 @@ Rectangle {
                     radius: Theme.radiusSmall
                     color: Theme.codeBg
 
-                    // Behind the lines the edit changed, a bar and a tint: the
-                    // bar is the mark, so it is not told by colour alone.
+                    // Beside the lines the edit changed, a bar: a mark that is
+                    // not told by colour alone. DECISION: no tint behind them,
+                    // as any tint that shows takes the light scheme's green
+                    // strings under 4.5:1 (4.79 on the code's own ground).
                     Repeater {
                         model: view.running === "board" || view.swaps > 0 ? DispatchSource[view.running].changed : []
-                        Item {
+                        Rectangle {
                             required property int modelData
                             objectName: "editedLine"
                             y: source.y + modelData * source.lineHeight
-                            width: parent.width
+                            width: 3
                             height: source.lineHeight
-                            Rectangle {
-                                anchors.fill: parent
-                                color: Theme.link
-                                opacity: 0.12
-                            }
-                            Rectangle {
-                                width: 3
-                                height: parent.height
-                                color: Theme.link
-                            }
+                            color: Theme.link
                         }
                     }
                     Text {
