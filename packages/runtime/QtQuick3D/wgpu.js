@@ -46,6 +46,7 @@ async function chunk() {
   // What the page compiled as it loaded, so the wasm is fetched once.
   const compiled = await made();
   ({ memory } = await loaded.default(compiled && { module_or_path: compiled }));
+  loaded.onPanic(() => (panicked = true));
   NAMES = loaded.propNames();
   module = loaded;
 }
@@ -88,17 +89,21 @@ let queue = Promise.resolve();
 
 // The wasm aborts on a panic (the view3d profile), so a trap in what
 // `create` waits on is thrown from a microtask of the wasm's own and never
-// settles what `create` promised: the page alone hears it, with the
-// renderer's file in its stack. It fails that making, so the views queued
-// behind are not kept waiting, and no view is made after. Those already
-// made are left drawing: a call of theirs that traps stops them (`trapped`).
+// settles what `create` promised: the page alone hears it, after the
+// renderer said it panicked (or with its file in the stack). It fails that
+// making, so the views queued behind are not kept waiting, and no view is
+// made after. Those already made are left drawing: a call of theirs that
+// traps stops them (`trapped`).
 let unmakeable = null;
+// Whether the renderer panicked: a trap is its own then, though compiled
+// from its bytes (served as other than wasm) its frames name no file.
+let panicked = false;
 async function created(canvas, host) {
   let fail;
   const trap = new Promise((_, reject) => (fail = reject));
   const heard = (event) => {
     const { error } = event;
-    if (!(error instanceof WebAssembly.RuntimeError) || !/ljos_web_3d/.test(error.stack)) return;
+    if (!(error instanceof WebAssembly.RuntimeError) || !(panicked || /ljos_web_3d/.test(error.stack))) return;
     event.preventDefault();
     unmakeable = `the renderer trapped as it made a view: ${error}`;
     fail(new Error(unmakeable));
