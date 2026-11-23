@@ -50,6 +50,24 @@ Rectangle {
     // and how many objects it holds: what a status bar says.
     property int hydratedIn: -1
     property int alive: 0
+    // What draws the page's live examples at best here: "WebGPU" where an
+    // adapter is given, "WebGL2" where only that runs, else "Solid DOM"
+    // (every page is DOM; only 3D wants a canvas). Measured once, and
+    // only for a shell that says it (measureRenderer), so a page whose
+    // shell does not asks the browser for no adapter.
+    property string renderer: ""
+    function measureRenderer() {
+        if (main.renderer !== "")
+            return;
+        main.renderer = Nav.canRun(["webgl2"]) ? "WebGL2" : "Solid DOM";
+        Nav.gpuAdapted().then((ok) => {
+            if (ok)
+                main.renderer = "WebGPU";
+        });
+    }
+    // How far down the page the reader is: a shell that shows a frame
+    // rate measures it while the page moves.
+    readonly property real pageOffset: pageView.contentY
 
     // Where the page is put: the item the shown shell's `site.page` slot
     // holds. Null until a shell is in; the page stands in this item then.
@@ -74,8 +92,8 @@ Rectangle {
     // the head script held back is shown once it is (shells.js `shown`).
     property bool revealing: false
     readonly property bool hydrated: hydratedIn >= 0
-    // Which shell is in, by its name ("elegant", "workbench",
-    // "desktop"), or "yours" for one that names itself nothing: said on
+    // Which shell is in, by its name ("elegant", "cyberpunk",
+    // "workbench", "desktop"), or "yours" for one that names itself nothing: said on
     // the page's root (shells.js `showing`), so a stylesheet, a test or
     // an agent driving the page knows what frames it.
     readonly property string showing: loader.item ? String(loader.item.objectName).replace(/Shell$/, "") || "yours" : ""
@@ -163,7 +181,7 @@ Rectangle {
             main.userShell = null;
             main.framed = name;
             return true;
-        }, sitePreferences.calm, (done) => {
+        }, sitePreferences.calm ? "calm" : name === "cyberpunk" ? "glitch" : "rich", (done) => {
             main.letGo();
             main.arrived = done;
         });
@@ -578,7 +596,7 @@ Rectangle {
         id: loader
         width: main.width
         height: main.height
-        source: main.userShell ?? (main.framed === "workbench" ? Later.workbench : main.framed === "desktop" ? Later.desktop : elegantShell)
+        source: main.userShell ?? (main.framed === "cyberpunk" ? Later.cyberpunk : main.framed === "workbench" ? Later.workbench : main.framed === "desktop" ? Later.desktop : elegantShell)
         // A shell that does not work gives way to the one every page is
         // written in, and says why (Site/ShellSource.qml shows it).
         fallback: elegantShell

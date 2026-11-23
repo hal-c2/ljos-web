@@ -154,7 +154,8 @@ const states: readonly (readonly [name: string, attribute: string, has: (own: Ow
 // tells it. A control of a value says it and where it lies, as Qt's
 // value interface does; a slider or scroll bar with none to say is no
 // slider to ARIA, which asks one of it, and is a group too. ARIA has no
-// selected list item: the one chosen is its list's current. A progress
+// selected list item: the one chosen is its list's current; nor a
+// selected link: the one chosen is the page the reader is on. A progress
 // bar under way at a pace it cannot tell has no value to say, as ARIA
 // asks of one.
 const HEADING_LEVEL = "2";
@@ -192,6 +193,10 @@ function worded(
   let current: string | null = null;
   if (role === "listitem") {
     current = told[at("selected")] === "true" ? "true" : null;
+    told[at("selected")] = null;
+  }
+  if (role === "link") {
+    current = told[at("selected")] === "true" ? "page" : null;
     told[at("selected")] = null;
   }
   if (role !== null && OWES_VALUE.has(role) && !value) role = null;

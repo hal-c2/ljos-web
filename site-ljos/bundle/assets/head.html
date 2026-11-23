@@ -32,7 +32,7 @@
      for once a reader keeps or shows another shell (here, and
      shells.js `dress`), never by a page read in the default one. -->
 <meta name="ljos-looks" content="%LOOKS_CSS%" />
-<script>try{const k=localStorage.getItem(%SHELL_KEY%);if((k==="workbench"||k==="desktop")&&innerWidth>=%WIDE_FROM%){const r=document.documentElement;r.dataset.ljosShell=k;const s=document.createElement("link");s.id="ljos-looks";s.rel="stylesheet";s.href=document.querySelector('meta[name="ljos-looks"]').content;s.blocking="render";s.onerror=()=>s.remove();document.head.append(s);const l=()=>{s.removeAttribute("blocking");if(!("ljosShellShown"in r.dataset)){r.dataset.ljosShellLate="";s.remove()}};setTimeout(l,%SHELL_WAIT%);addEventListener("animationstart",e=>{if(e.animationName==="ljos-shell-late")l()})}}catch{}</script>
+<script>try{const k=localStorage.getItem(%SHELL_KEY%);if(k==="cyberpunk"||(k==="workbench"||k==="desktop")&&innerWidth>=%WIDE_FROM%){const r=document.documentElement;r.dataset.ljosShell=k;const s=document.createElement("link");s.id="ljos-looks";s.rel="stylesheet";s.href=document.querySelector('meta[name="ljos-looks"]').content;s.blocking="render";s.onerror=()=>s.remove();document.head.append(s);const l=()=>{s.removeAttribute("blocking");if(!("ljosShellShown"in r.dataset)){r.dataset.ljosShellLate="";s.remove()}};setTimeout(l,%SHELL_WAIT%);addEventListener("animationstart",e=>{if(e.animationName==="ljos-shell-late")l()})}}catch{}</script>
 <!-- The design tokens as the HTML around the app reads them: the
      build writes tokens.js's colours here as `--ljos-<role>` and
      `--ljos-code-<tag>` (which the code blocks' `.tok-<tag>` classes
@@ -91,6 +91,28 @@
   :root[data-ljos-swap="rich"]::view-transition-new(root) { animation: ljos-swap-in 360ms cubic-bezier(0.16, 1, 0.3, 1) 60ms both; }
   :root[data-ljos-swap="calm"]::view-transition-old(root) { animation: ljos-fade-out 220ms ease both; }
   :root[data-ljos-swap="calm"]::view-transition-new(root) { animation: ljos-fade-in 220ms ease both; }
+  /* Into Cyberpunk the swap is a glitch: the next shell comes in as a
+     few torn bands that jump sideways, edged in its cyan and magenta,
+     and settles within half a second. A reader coming back to it sees
+     the same as the page is first shown, unless they asked for reduced
+     motion (the site's own choice, `data-ljos-motion`, over the
+     browser's): then it only fades, as above. */
+  :root[data-ljos-swap="glitch"]::view-transition-old(root) { animation: ljos-fade-out 140ms linear both; }
+  :root[data-ljos-swap="glitch"]::view-transition-new(root) { animation: ljos-glitch-in 420ms linear both; }
+  @media (prefers-reduced-motion: no-preference) {
+    :root[data-ljos-shell="cyberpunk"][data-ljos-shell-shown]:not([data-ljos-motion="reduce"]) #app { animation: ljos-glitch-in 420ms linear both; }
+  }
+  :root[data-ljos-shell="cyberpunk"][data-ljos-shell-shown][data-ljos-motion="no-preference"] #app { animation: ljos-glitch-in 420ms linear both; }
+  @keyframes ljos-glitch-in {
+    0% { opacity: 0; clip-path: inset(0 0 100% 0); }
+    8% { opacity: 1; clip-path: inset(14% 0 62% 0); transform: translateX(-12px); filter: drop-shadow(3px 0 #ff2bd6) drop-shadow(-3px 0 #00f0ff); }
+    16% { clip-path: inset(58% 0 18% 0); transform: translateX(9px); }
+    24% { clip-path: inset(34% 0 44% 0); transform: translateX(-6px); }
+    32% { clip-path: inset(0 0 52% 0); transform: translateX(4px); }
+    44% { clip-path: inset(0); transform: translateX(-2px); filter: drop-shadow(2px 0 #ff2bd6) drop-shadow(-2px 0 #00f0ff); }
+    60% { transform: translateX(1px); filter: drop-shadow(1px 0 #ff2bd6) drop-shadow(-1px 0 #00f0ff); }
+    100% { opacity: 1; clip-path: inset(0); transform: none; filter: none; }
+  }
   @keyframes ljos-swap-out { to { opacity: 0; transform: scale(0.98); } }
   @keyframes ljos-swap-in { from { opacity: 0; transform: translateY(16px) scale(1.01); } }
   @keyframes ljos-fade-out { to { opacity: 0; } }

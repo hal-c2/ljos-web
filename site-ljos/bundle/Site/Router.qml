@@ -76,6 +76,11 @@ QtObject {
         }
     }
 
+    // A route's address, as a link's `href` holds it.
+    function address(to) {
+        return Nav.at(Content.base, to);
+    }
+
     // Goes to a route of the site's, or another site's address.
     function go(to) {
         Nav.go(Nav.at(Content.base, to));

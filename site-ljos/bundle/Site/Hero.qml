@@ -67,7 +67,7 @@ Item {
             visible: hero.eyebrow !== ""
             width: pill.implicitWidth + Theme.m + 14
             height: 30
-            radius: 15
+            radius: Theme.brackets ? 0 : 15
             color: Theme.surfaceRaised
             border.color: Theme.divider
             border.width: 1

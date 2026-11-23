@@ -64,7 +64,7 @@ DeviceFrame {
 
     stage: HeroApp {
         id: app
-        width: hero.width
+        width: hero.stageWidth
         height: hero.stageHeight
     }
 

@@ -122,6 +122,9 @@ test("what is said is what ARIA allows on the role it is said with", async ({ pa
   expect(said.puck).toEqual({ role: "group", "aria-label": "Lead the puck" });
   // ARIA has no selected list item: the one chosen is the list's current.
   expect(said.result).toEqual({ role: "listitem", "aria-label": "Result" });
+  // A link to the page the reader is on is that page, which ARIA says
+  // with `aria-current` (it has no selected link).
+  expect(said.here).toEqual({ role: "link", "aria-label": "Docs" });
   await expect(page.getByRole("heading", { name: "Title", level: 2 })).toHaveCount(1);
   await expect(page.getByRole("button", { name: "Menu", pressed: false })).toHaveCount(1);
 
@@ -134,6 +137,7 @@ test("what is said is what ARIA allows on the role it is said with", async ({ pa
   expect(said.subtitle["aria-level"]).toBe("4");
   expect(said.busy).toEqual({ role: "progressbar", "aria-valuenow": "0.5", "aria-valuemin": "0", "aria-valuemax": "1" });
   expect(said.result).toEqual({ role: "listitem", "aria-label": "Result", "aria-current": "true" });
+  expect(said.here).toEqual({ role: "link", "aria-label": "Docs", "aria-current": "page" });
 });
 
 // Qt's tools find an object by its objectName; a page's tests find the

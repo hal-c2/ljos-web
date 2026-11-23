@@ -37,6 +37,7 @@ Item {
     activeFocusOnTab: true
     Accessible.role: Accessible.Link
     Accessible.name: label
+    Accessible.selected: current
     Accessible.onPressAction: () => link.follow()
     Keys.onPressed: (event) => {
         if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {

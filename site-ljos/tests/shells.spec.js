@@ -15,7 +15,7 @@ const HYDRATED = '#app[data-ljos-hydrated="true"]';
 const KEY = "ljos.dev:shell";
 const DESKTOP = { width: 1440, height: 900 };
 const PHONE = { width: 390, height: 844 };
-const LABEL = { elegant: "Elegant", workbench: "Workbench", desktop: "Desktop" };
+const LABEL = { elegant: "Elegant", cyberpunk: "Cyberpunk", workbench: "Workbench", desktop: "Desktop" };
 const SHELLS = Object.keys(LABEL);
 // What each kind of page's main landmark is named (Site/PageView.qml).
 const PAGES = [
@@ -109,7 +109,7 @@ async function pick(page, name) {
   if ((await switcher(page).count()) === 0 && (await menu.count()) > 0) await press(menu.first());
   await press(switcher(page));
   await press(page.getByRole("radio", { name: LABEL[name], exact: true }));
-  // Workbench and Desktop come the first time one is picked
+  // Cyberpunk, Workbench and Desktop come the first time one is picked
   // (Shells/later.js): the wait is the fetch's, not a fixed few seconds.
   await expect.poll(() => showing(page), { message: `the ${name} shell frames the page`, timeout: 30_000 }).toBe(name);
   await page.waitForFunction(() => !document.documentElement.dataset.ljosSwap);
@@ -175,7 +175,7 @@ test("a running example keeps its count across every swap", async ({ browser }) 
     await press(increment);
     const count = page.getByText("Count: 2", { exact: true }).filter({ visible: true });
     await expect(count).toBeVisible();
-    for (const shell of ["workbench", "desktop", "elegant"]) {
+    for (const shell of ["cyberpunk", "workbench", "desktop", "elegant"]) {
       await pick(page, shell);
       await expect(count, `the count in ${shell}`).toBeVisible();
     }
@@ -192,7 +192,7 @@ test("the reader's place on a docs page is kept across a swap", async ({ browser
     const heading = page.getByRole("heading", { name: /^Edit live with/ }).filter({ visible: true }).first();
     await heading.evaluate((element) => element.scrollIntoView({ block: "start" }));
     await expect(heading).toBeInViewport();
-    for (const shell of ["workbench", "desktop", "elegant"]) {
+    for (const shell of ["cyberpunk", "workbench", "desktop", "elegant"]) {
       await pick(page, shell);
       await expect(heading, `the heading is still in view in ${shell}`).toBeInViewport();
     }
@@ -730,7 +730,7 @@ const short = (nodes, least) =>
     .filter(({ high }) => high < least)
     .map(({ name, high }) => `${name}: ${high}`);
 
-for (const shell of ["elegant"]) {
+for (const shell of ["elegant", "cyberpunk"]) {
   test(`what a finger presses in ${shell}'s phone header and menu is 44 high`, async ({ browser }) => {
     const context = await reader(browser, { viewport: PHONE, kept: shell });
     try {
@@ -761,7 +761,7 @@ for (const shell of ["elegant"]) {
   });
 }
 
-// A phone shows Elegant whichever shell is kept.
+// Cyberpunk stands on a phone; for any other kept shell it shows Elegant.
 for (const viewport of [DESKTOP, PHONE]) {
   for (const kept of SHELLS) {
     test(`the header is the Ljós landmark in ${kept}, at ${viewport.width}`, async ({ browser }) => {
@@ -769,7 +769,7 @@ for (const viewport of [DESKTOP, PHONE]) {
       try {
         const page = await context.newPage();
         await open(page, "/");
-        const shown = viewport === PHONE ? "elegant" : kept;
+        const shown = viewport === PHONE && kept !== "cyberpunk" ? "elegant" : kept;
         expect(await showing(page)).toBe(shown);
         const header = region(page, "Ljós");
         await expect(header).toHaveCount(1);
@@ -1514,6 +1514,165 @@ for (const reducedMotion of ["no-preference", "reduce"]) {
     }
   });
 }
+
+// Cyberpunk's telemetry: each reading is one named group, its label and
+// value as one message (Shells/Cyberpunk.qml `Reading`).
+const reading = (page, name) => page.getByRole("group", { name }).filter({ visible: true }).first();
+const RENDERERS = /^Renderer (WebGPU|WebGL2|Solid DOM)$/;
+
+test("Cyberpunk's telemetry rail says the route, the time, what is alive, the frame rate and the renderer", async ({ browser }) => {
+  const context = await reader(browser, { kept: "cyberpunk" });
+  try {
+    const page = await context.newPage();
+    const said = listen(page);
+    await open(page, "/start/first-app/");
+    expect(await showing(page)).toBe("cyberpunk");
+    const rail = region(page, "Ljós");
+    await expect(rail.getByRole("group", { name: "Route /start/first-app/", exact: true })).toBeVisible();
+    await expect(rail.getByRole("group", { name: /^Clock \d\d:\d\d$/ })).toBeVisible();
+    await expect(rail.getByRole("group", { name: /^Objects alive \d+$/ })).toBeVisible();
+    // Measured while something moves (the shell's entry): a number, never one made up.
+    await expect(rail.getByRole("group", { name: /^Frame rate \d+ fps$/ })).toBeVisible({ timeout: 10_000 });
+    await expect(rail.getByRole("group", { name: RENDERERS })).toBeVisible();
+    // The time the reader's own clock says.
+    const clock = await rail.getByRole("group", { name: /^Clock / }).getAttribute("aria-label");
+    const now = await page.evaluate(() => {
+      const d = new Date();
+      const two = (n) => String(n).padStart(2, "0");
+      return [`${two(d.getHours())}:${two(d.getMinutes())}`, `${two(new Date(d.getTime() - 60_000).getHours())}:${two(new Date(d.getTime() - 60_000).getMinutes())}`];
+    });
+    expect(now, "the clock is the reader's own time").toContain(clock.replace("Clock ", ""));
+    // Going elsewhere moves the route the rail says.
+    await press(page.getByRole("link", { name: "Demos", exact: true }).filter({ visible: true }).first());
+    await expect(rail.getByRole("group", { name: "Route /demos/", exact: true })).toBeVisible();
+    expect(said).toEqual([]);
+  } finally {
+    await context.close();
+  }
+});
+
+test("Cyberpunk's nav rail goes to each part of the site and marks where the reader is", async ({ browser }) => {
+  const context = await reader(browser, { kept: "cyberpunk" });
+  try {
+    const page = await context.newPage();
+    await open(page, "/");
+    const rail = region(page, "Sections");
+    for (const name of ["Console", "Demos", "Docs", "Shells"]) await expect(rail.getByRole("link", { name, exact: true }), name).toBeVisible();
+    await expect(rail.getByRole("button", { name: "Source", exact: true })).toBeVisible();
+    // Numbered as a console's channels: 01, 02, …
+    await expect(rail.getByText("01", { exact: true })).toBeVisible();
+    await expect(rail.getByRole("link", { name: "Console", exact: true })).toHaveAttribute("aria-current", "page");
+    await press(rail.getByRole("link", { name: "Demos", exact: true }));
+    await expect(shownPage(page, "Live demos")).toBeVisible();
+    await expect(rail.getByRole("link", { name: "Demos", exact: true })).toHaveAttribute("aria-current", "page");
+    await expect(rail.getByRole("link", { name: "Console", exact: true })).not.toHaveAttribute("aria-current", "page");
+    await press(rail.getByRole("button", { name: "Source", exact: true }));
+    await expect(page.getByRole("dialog", { name: "Source of Shells/Cyberpunk.qml" })).toBeVisible();
+    await expect(page.getByRole("textbox", { name: "Edit this shell's QML" })).toContainText("cyberpunkShell");
+  } finally {
+    await context.close();
+  }
+});
+
+test("Cyberpunk's front page is a mission console: the Observer tree, the live app and the agent's calls, all at once", async ({ browser }) => {
+  const context = await reader(browser, { kept: "cyberpunk" });
+  try {
+    const page = await context.newPage();
+    await open(page, "/");
+    const main = shownPage(page, "Home");
+    const tree = main.getByRole("region", { name: "Observer tree", exact: true });
+    const stage = main.getByRole("region", { name: "Live stage", exact: true });
+    const stream = main.getByRole("region", { name: "Agent MCP stream", exact: true });
+    for (const part of [tree, stage, stream]) await expect(part).toBeInViewport();
+    const [left, centre, right] = await Promise.all([tree, stage, stream].map((part) => part.boundingBox()));
+    expect(left.x + left.width, "the tree is left of the app").toBeLessThanOrEqual(centre.x + 1);
+    expect(centre.x + centre.width, "the calls are right of the app").toBeLessThanOrEqual(right.x + 1);
+    // The tabs give way to the console: nothing to pick, all is shown.
+    await expect(main.getByRole("tablist").filter({ visible: true })).toHaveCount(0);
+    // Sentence case: the headline is written, and drawn, as it is said.
+    const headline = main.getByRole("heading", { level: 1 }).first();
+    const drawn = await headline.evaluate((node) => getComputedStyle(node.querySelector("*") ?? node).textTransform);
+    expect(drawn).not.toBe("uppercase");
+    const words = (await headline.textContent()).trim();
+    expect(words).not.toBe(words.toUpperCase());
+  } finally {
+    await context.close();
+  }
+});
+
+test("Cyberpunk stands on a phone, with one menu control and its telemetry along the bottom", async ({ browser }) => {
+  const context = await reader(browser, { viewport: PHONE, kept: "cyberpunk" });
+  try {
+    const page = await context.newPage();
+    const said = listen(page);
+    await open(page, "/");
+    expect(await showing(page)).toBe("cyberpunk");
+    const header = region(page, "Ljós");
+    const controls = header.getByRole("button").filter({ visible: true });
+    await expect(controls).toHaveCount(1);
+    await expect(controls.first()).toHaveAccessibleName("Menu");
+    const bar = region(page, "Telemetry");
+    await expect(bar).toBeVisible();
+    const box = await bar.boundingBox();
+    expect(box.y + box.height, "the bar sits on the bottom edge").toBeGreaterThanOrEqual(PHONE.height - 1);
+    await expect(bar.getByRole("group", { name: "Route /", exact: true })).toBeVisible();
+    await expect(bar.getByRole("group", { name: /^Objects alive \d+$/ })).toBeVisible();
+    await expect(bar.getByRole("group", { name: /^Frame rate \d+ fps$/ })).toBeVisible({ timeout: 10_000 });
+    await expect(bar.getByRole("group", { name: /^Clock \d\d:\d\d$/ })).toBeVisible();
+    // Nothing is wider than the phone.
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(PHONE.width);
+    await press(controls.first());
+    await expect(region(page, "Menu")).toBeVisible();
+    expect(said).toEqual([]);
+  } finally {
+    await context.close();
+  }
+});
+
+// Cyberpunk's scanlines are one still picture, tiled over the whole
+// shell; its glitch is the swap's own transition into it (shells.js
+// `swap`, assets/head.html), so it is over when the swap is.
+const scanlines = () =>
+  [...document.querySelectorAll(".qq-image")]
+    .map((node) => ({ node, style: getComputedStyle(node), box: node.getBoundingClientRect() }))
+    .filter(({ style, box }) => style.backgroundRepeat === "repeat" && style.backgroundImage.includes("svg") && box.width >= innerWidth - 1 && box.height >= innerHeight - 1)
+    .map(({ style }) => style.animationName);
+
+for (const reducedMotion of ["no-preference", "reduce"]) {
+  test(`Cyberpunk's scanlines hold still${reducedMotion === "reduce" ? ", and with reduced motion it never glitches" : ", and it glitches as it comes in"}`, async ({ browser }) => {
+    const context = await reader(browser, { reducedMotion });
+    try {
+      const page = await context.newPage();
+      await page.addInitScript(swaps);
+      await open(page, "/");
+      await pick(page, "cyberpunk");
+      expect(await page.evaluate(() => window.__swaps)).toEqual([reducedMotion === "reduce" ? "calm" : "glitch"]);
+      const css = await page.evaluate(() =>
+        [...document.styleSheets].flatMap((sheet) => [...sheet.cssRules].map((rule) => rule.cssText)).filter((text) => text.includes('data-ljos-swap="glitch"')),
+      );
+      expect(css.join("\n"), "the glitch is the head's").toMatch(/ljos-glitch/);
+      await expect.poll(() => page.evaluate(scanlines), { message: "one still layer of scanlines over the shell" }).toEqual(["none"]);
+    } finally {
+      await context.close();
+    }
+  });
+}
+
+test("a reader who comes back to Cyberpunk sees it glitch in, unless they asked for reduced motion", async ({ browser }) => {
+  const context = await reader(browser, { kept: "cyberpunk" });
+  try {
+    const page = await context.newPage();
+    await open(page, "/");
+    const entry = await page.evaluate(() => getComputedStyle(document.getElementById("app")).animationName);
+    expect(entry).toContain("ljos-glitch");
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.reload();
+    await page.waitForSelector(HYDRATED, { timeout: 40_000 });
+    expect(await page.evaluate(() => getComputedStyle(document.getElementById("app")).animationName)).not.toContain("ljos-glitch");
+  } finally {
+    await context.close();
+  }
+});
 
 // The logo is the user's: the mark and the word are main's in every
 // shell, whatever that shell's type and colours are (Site/Wordmark.qml).
