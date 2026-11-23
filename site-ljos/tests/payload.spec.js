@@ -73,6 +73,17 @@ test("no page's first load holds QtQuick.Shapes", () => {
   expect(reaching(["Shape-", "Shapes-", "Path-"])).toEqual({});
 });
 
+// The bundle's own code a page loads first is one file (`site-*`,
+// packages/runtime/site.js): not cut into a file for each set of later
+// modules that share some of it (a page or a demo of its own), each
+// costing every page a file and a context gzip shares. Those cuts were
+// named after a type or script they held.
+test("a page's first load holds the bundle's own code in one file", () => {
+  const sites = report.filter(({ first }) => first.files.filter((entry) => named(entry.file, "site-") && entry.file.endsWith(".js")).length !== 1).map(({ route }) => route);
+  expect(sites, "pages without exactly one site-* script").toEqual([]);
+  expect(reaching(["Toc-", "CodeBlock-", "StageButton-", "shells-", "observed-", "code-editor-", "LinkButton-", "Theme-"])).toEqual({});
+});
+
 // A docs page's reading is its own: in its HTML's props, not in a
 // script every page loads. Another page's headings are in none of
 // a page's first-load files.
