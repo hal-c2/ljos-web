@@ -359,11 +359,23 @@ export function arrive(event) {
   chosen.set(image, arrival);
   const offer = offered(image);
   const repicked = offer !== undefined && picked.get(offer)?.arrival !== arrival;
-  if (repicked) picked.set(offer, { arrival, width: image.naturalWidth, height: image.naturalHeight });
+  // Both are forgotten past as many as `built` and `surveys` keep, so a page
+  // that shows pictures for a long time does not grow: a picture forgotten is
+  // measured once more, and a late pick has no stand-in until it arrives.
+  if (repicked) {
+    if (picked.size > 256) picked.clear();
+    picked.set(offer, { arrival, width: image.naturalWidth, height: image.naturalHeight });
+  }
   if (!repicked && arrived.has(arrival) && (was === undefined || was === arrival)) return;
+  if (arrived.size > 256) arrived.clear();
   arrived.add(arrival);
   setPictures((count) => count + 1);
   flush();
+}
+
+// How many arrivals and picks are kept in mind, which a test reads.
+export function remembered() {
+  return { arrived: arrived.size, picked: picked.size };
 }
 
 function awaited(image) {
