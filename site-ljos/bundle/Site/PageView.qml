@@ -190,12 +190,9 @@ Flickable {
                 x: Math.round((view.width - width) / 2)
                 sourceComponent: route === "/showcase/" ? null : route === "/" ? landingPage : route === "/demos/" ? demosPage : view.router && view.router.pro ? proPage : emptyPage
                 source: route === "/showcase/" ? Later.showcase : undefined
-                onLoaded: {
-                    if (route !== "/showcase/")
-                        return;
-                    item.scroller = view;
-                    item.wide = Qt.binding(() => view.wide);
-                }
+                // What the showcase reads as it is made (ShowcasePage's
+                // `wide`), so it is bound from the start, not once loaded.
+                readonly property bool wide: view.wide
             }
             DocPage {
                 id: docItem

@@ -10,8 +10,9 @@ import Site
 Column {
     id: showcase
 
-    property var scroller: null
-    property bool wide: true
+    // Wide or not as it is made, from what loads it (PageView's Loader
+    // says), so a phone never lays out the wide page first and then again.
+    property bool wide: parent && parent.wide !== undefined ? parent.wide : true
 
     width: parent ? parent.width : 680
     spacing: showcase.wide ? Theme.xxxl + Theme.l : Theme.xxl
