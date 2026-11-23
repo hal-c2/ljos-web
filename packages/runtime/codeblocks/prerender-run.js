@@ -32,8 +32,16 @@ const answered = new Set(skip);
 const realFetch = globalThis.fetch;
 const served = pathToFileURL(dirname(resolve(bundle))).href + "/";
 let making = null;
+// A page reads a relative address against itself, and the prerender
+// document is at prerender.invalid (server/dom.js): either form is the
+// example's own file, as the docs' threads example fetches "act.json".
+const page = "http://prerender.invalid/";
+const placed = (asked) => {
+  if (asked.startsWith(page)) return served + asked.slice(page.length);
+  return URL.canParse(asked) ? asked : new URL(asked, served).href;
+};
 globalThis.fetch = async (url, init) => {
-  const asked = String(url);
+  const asked = placed(url instanceof Request ? url.url : String(url));
   if (making && asked.startsWith(served) && !asked.endsWith(".wasm")) {
     const name = decodeURIComponent(new URL(asked).pathname.slice(new URL(served).pathname.length));
     try {
