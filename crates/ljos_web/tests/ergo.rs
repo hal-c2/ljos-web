@@ -322,6 +322,34 @@ Item {
 }
 
 #[test]
+fn a_signal_argument_named_in_another_file_does_not_hide_an_object_without_an_id() {
+    let base = given(
+        r#"import Ljos.Ui
+Item {
+  signal ping(real $$1)
+}"#,
+    );
+    let main = given(
+        r#"import Ljos.Ui
+Base {
+  property real n: 0
+  function read(): number {
+    const $1 = 2
+    return $1
+  }
+  onPing: { n += 1 }
+}"#,
+    );
+    let code = code_of(
+        &[("Base.qml", base), ("Main.qml", main)],
+        "Main.qml",
+        "Main.qml",
+    );
+    // The handler's `$$1` is ping's argument, so the root is `$$$1`.
+    assert_contains(&code, "$$$1.n");
+}
+
+#[test]
 fn a_body_that_does_not_use_the_topic_is_an_error_that_says_so() {
     let card = given(
         r#"import Ljos.Ui
