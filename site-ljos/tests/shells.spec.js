@@ -1,7 +1,7 @@
 // The site in a shell the reader picks (features/shells.feature): the
 // site's state and pages stay, the shell that frames them is swapped
 // live, kept for the next visit and put in without a jump, and a reader
-// with no script, or on a phone, gets the one every page is written in.
+// with no script gets the one every page is written in.
 // Which shell frames the page is on its root, `data-ljos-shell-showing`
 // (bundle/shells.js `showing`).
 import { readdirSync, readFileSync } from "node:fs";
@@ -87,6 +87,9 @@ async function open(page, route, { arrival = false } = {}) {
     return;
   }
   expect(late, why).toBe(false);
+  // A kept shell moves into place as a swap does, and a document in a
+  // view transition takes no presses: the test presses once it is in.
+  await page.waitForFunction(() => !document.documentElement.dataset.ljosSwap);
 }
 
 // A press where a finger lands: an item's own press area lies over it.
@@ -99,6 +102,8 @@ async function press(locator) {
 
 // Named "Current shell: <the one shown>" where its words show, "Switch shell" as an icon.
 const SWITCHER = /^(Switch shell|Current shell: \w+)$/;
+// The shells whose wide bars hold the switcher as an icon only.
+const ICON_SWITCHER = new Set(["workbench", "desktop"]);
 const switcher = (page) => page.getByRole("button", { name: SWITCHER }).filter({ visible: true }).first();
 
 // Picks `name` in the shell switcher and waits until it frames the page
@@ -134,7 +139,8 @@ for (const route of ["/", "/start/first-app/"]) {
           await expect(shownPage(page, named)).toBeVisible();
           await pick(page, to);
           await expect(shownPage(page, named), "the page is still shown").toBeVisible();
-          await expect(switcher(page)).toHaveAccessibleName(`Current shell: ${LABEL[to]}`);
+          // Workbench and Desktop keep the switcher as an icon, named for what it does.
+          await expect(switcher(page)).toHaveAccessibleName(ICON_SWITCHER.has(to) ? "Switch shell" : `Current shell: ${LABEL[to]}`);
           expect(said, "what the page said").toEqual([]);
         } finally {
           await context.close();
@@ -645,6 +651,11 @@ test("the Desktop shell keeps every page the reader opened as a tab", async ({ b
     await expect(tabs, "the page left is still a tab").toHaveCount(2);
     await expect(tabs.nth(0)).toHaveAccessibleName(/Your First App/);
     await expect(tabs.nth(1)).toHaveAccessibleName(/Editor Setup/);
+    await expect(tabs.nth(1)).toHaveAttribute("aria-selected", "true");
+    await press(page.getByRole("button", { name: "Close document tab", exact: true }).filter({ visible: true }).first());
+    await expect(tabs, "only the page the reader is on").toHaveCount(1);
+    await expect(tabs.first()).toHaveAccessibleName(/Editor Setup/);
+    expect(new URL(page.url()).pathname).toBe(at("/start/editors/"));
   } finally {
     await context.close();
   }
@@ -686,25 +697,48 @@ test("a reader with no script gets the Elegant shell, whatever is kept", async (
   }
 });
 
-test("a phone has one menu control, and the switcher says why it shows elegant", async ({ browser }) => {
-  const context = await reader(browser, { viewport: PHONE, kept: "workbench" });
-  try {
-    const page = await context.newPage();
-    await open(page, "/");
-    expect(await showing(page)).toBe("elegant");
-    const header = region(page, "Ljós");
-    const controls = header.getByRole("button").filter({ visible: true });
-    await expect(controls).toHaveCount(1);
-    await expect(controls.first()).toHaveAccessibleName("Menu");
-    await press(controls.first());
-    const menu = region(page, "Menu");
-    await expect(menu).toBeVisible();
-    await press(menu.getByRole("button", { name: SWITCHER }));
-    await expect(page.getByText("Workbench and Desktop need a wider window. This one shows Elegant.", { exact: true })).toBeVisible();
-  } finally {
-    await context.close();
-  }
-});
+// Workbench and Desktop on a phone: one pane, a tab bar along the
+// bottom to change it, and the one menu control in the header.
+for (const [shell, tabs, pane, region_] of [
+  ["workbench", ["Explorer", "Preview", "Inspector", "Problems"], "Explorer", "Explorer"],
+  ["desktop", ["Page", "Pages", "Open pages"], "Pages", "Pages"],
+]) {
+  test(`${shell} stands on a phone as one pane with a tab bar along the bottom`, async ({ browser }) => {
+    const context = await reader(browser, { viewport: PHONE, kept: shell });
+    try {
+      const page = await context.newPage();
+      const said = listen(page);
+      await open(page, "/");
+      expect(await showing(page)).toBe(shell);
+      const header = region(page, "Ljós");
+      const controls = header.getByRole("button").filter({ visible: true });
+      await expect(controls).toHaveCount(1);
+      await expect(controls.first()).toHaveAccessibleName("Menu");
+      const bar = page.getByRole("tablist", { name: "Views", exact: true });
+      await expect(bar.getByRole("tab")).toHaveText(tabs);
+      const box = await bar.boundingBox();
+      expect(box.y + box.height, "the tab bar sits on the bottom edge").toBeGreaterThanOrEqual(PHONE.height - 1);
+      await expect(bar.getByRole("tab", { selected: true })).toHaveText(shell === "workbench" ? "Preview" : "Page");
+      await expect(shownPage(page, "Home")).toBeVisible();
+      await press(bar.getByRole("tab", { name: pane, exact: true }));
+      await expect(bar.getByRole("tab", { name: pane, exact: true })).toHaveAttribute("aria-selected", "true");
+      await expect(page.getByRole("complementary", { name: region_, exact: true }).filter({ visible: true })).toBeVisible();
+      await expect(shownPage(page, "Home"), "the pane is shown in the page's place").toBeHidden();
+      // Nothing is wider than the phone.
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(PHONE.width);
+      await press(controls.first());
+      const menu = region(page, "Menu");
+      await expect(menu).toBeVisible();
+      await expect(menu.getByRole("textbox", { name: "Search", exact: true })).toBeVisible();
+      await expect(menu.getByRole("button", { name: SWITCHER })).toBeVisible();
+      await press(menu.getByRole("button", { name: SWITCHER }));
+      await expect(page.getByText("Workbench and Desktop need a wider window. This one shows Elegant.", { exact: true })).toHaveCount(0);
+      expect(said).toEqual([]);
+    } finally {
+      await context.close();
+    }
+  });
+}
 
 // What a finger presses: the box that takes the press, not the row drawn round it.
 // A field's is not its input, which is a line high and takes the presses on
@@ -761,7 +795,60 @@ for (const shell of ["elegant", "cyberpunk"]) {
   });
 }
 
-// Cyberpunk stands on a phone; for any other kept shell it shows Elegant.
+for (const [shell, pane] of [
+  ["workbench", "Explorer"],
+  ["workbench", "Inspector"],
+  ["workbench", "Problems"],
+  ["desktop", "Pages"],
+  ["desktop", "Open pages"],
+]) {
+  test(`what a finger presses in ${shell}'s ${pane} pane on a phone is 44 high`, async ({ browser }) => {
+    const context = await reader(browser, { viewport: PHONE, kept: shell });
+    try {
+      const page = await context.newPage();
+      await open(page, "/start/first-app/");
+      const views = page.getByRole("tablist", { name: "Views", exact: true });
+      const to = (name) => press(views.getByRole("tab", { name, exact: true }));
+      const aside = (name) => page.getByRole("complementary", { name, exact: true }).filter({ visible: true });
+      const found = [];
+      const measure = async (targets) => {
+        await expect(targets.first(), "there is something to press").toBeVisible({ timeout: 30_000 });
+        found.push(...(await targets.evaluateAll(short, 44)));
+      };
+      if (pane === "Open pages") {
+        // A page alone has no close: a second is opened first.
+        await to("Pages");
+        await press(aside("Pages").getByRole("link", { name: "All demos", exact: true }));
+        await expect(shownPage(page, "Live demos")).toBeVisible();
+      }
+      await to(pane);
+      if (pane === "Explorer" || pane === "Pages") {
+        await measure(aside(pane).locator(TARGETS).filter({ visible: true }));
+      } else if (pane === "Inspector") {
+        // Its one view is the Source, so it holds no tab: what it holds to press is the editor's.
+        await measure(aside(pane).getByRole("button").filter({ visible: true }));
+      } else if (pane === "Problems") {
+        const tabs = page.getByRole("tablist", { name: "Panel", exact: true }).getByRole("tab");
+        await measure(tabs);
+        await press(tabs.filter({ hasText: "MCP log" }));
+        await measure(page.getByRole("button", { name: "Clear log", exact: true }).filter({ visible: true }));
+      } else {
+        await measure(page.getByRole("tablist", { name: pane, exact: true }).getByRole("tab"));
+        const closes = page.getByRole("button", { name: "Close document tab", exact: true }).filter({ visible: true });
+        await measure(closes);
+        for (const close of await closes.all()) {
+          const { width } = await close.boundingBox();
+          if (width < 44) found.push(`Close document tab: ${Math.round(width)} wide`);
+        }
+      }
+      expect(found, "under 44 pixels").toEqual([]);
+    } finally {
+      await context.close();
+    }
+  });
+}
+
+// Every shell stands on a phone, where Desktop's toolbar has no room.
 for (const viewport of [DESKTOP, PHONE]) {
   for (const kept of SHELLS) {
     test(`the header is the Ljós landmark in ${kept}, at ${viewport.width}`, async ({ browser }) => {
@@ -769,12 +856,11 @@ for (const viewport of [DESKTOP, PHONE]) {
       try {
         const page = await context.newPage();
         await open(page, "/");
-        const shown = viewport === PHONE && kept !== "cyberpunk" ? "elegant" : kept;
-        expect(await showing(page)).toBe(shown);
+        expect(await showing(page)).toBe(kept);
         const header = region(page, "Ljós");
         await expect(header).toHaveCount(1);
         await expect(header.getByRole("link", { name: "Ljós, home", exact: true }).filter({ visible: true })).toHaveCount(1);
-        if (shown === "desktop") await expect(header.getByRole("toolbar", { name: "Toolbar", exact: true })).toBeVisible();
+        if (kept === "desktop" && viewport === DESKTOP) await expect(header.getByRole("toolbar", { name: "Toolbar", exact: true })).toBeVisible();
       } finally {
         await context.close();
       }
@@ -796,12 +882,13 @@ for (const width of [1000, 1100, 1440]) {
       const centre = (box) => box.y + box.height / 2;
       const bars = [
         // The menu bar is what the header has above its toolbar.
-        { within: header, names: ["File", "View", "Go", "Help"], middle: (top.y + tools.y) / 2 },
-        { within: toolbar, names: ["Back", "Forward", "Home"], middle: centre(tools) },
+        // Its menus are a menu bar's items, as a desktop app's are.
+        { within: header.getByRole("menubar", { name: "Menu bar", exact: true }), role: "menuitem", names: ["File", "View", "Go", "Help"], middle: (top.y + tools.y) / 2 },
+        { within: toolbar, role: "button", names: ["Back", "Forward", "Home"], middle: centre(tools) },
       ];
-      for (const { within, names, middle } of bars) {
+      for (const { within, role, names, middle } of bars) {
         for (const name of names) {
-          const box = await within.getByRole("button", { name, exact: true }).filter({ visible: true }).boundingBox();
+          const box = await within.getByRole(role, { name, exact: true }).filter({ visible: true }).boundingBox();
           expect(Math.abs(centre(box) - middle), `${name}'s centre from its bar's`).toBeLessThanOrEqual(1);
         }
       }
@@ -818,8 +905,10 @@ test("the Workbench offers only what it can show", async ({ browser }) => {
     await open(page, "/start/first-app/");
     expect(await showing(page)).toBe("workbench");
     const landmark = (name) => page.getByRole("complementary", { name, exact: true }).filter({ visible: true });
-    await expect(landmark("Pages")).toHaveCount(1);
-    await expect(landmark("Inspector").getByText("The QML this page is made from.").filter({ visible: true })).toHaveCount(1);
+    // The site's pages are the Explorer's files, in one landmark, not a second list beside it.
+    await expect(landmark("Explorer")).toHaveCount(1);
+    await expect(landmark("Pages")).toHaveCount(0);
+    await expect(landmark("Inspector").getByRole("textbox", { name: "Edit the running shell's QML" })).toBeVisible();
     for (const name of ["Observer", "Agent"]) await expect(page.getByRole("tab", { name, exact: true })).toHaveCount(0);
   } finally {
     await context.close();
@@ -1820,6 +1909,384 @@ test("a reader who comes back to Cyberpunk sees it glitch in, unless they asked 
   }
 });
 
+// A control of Workbench's or Desktop's whose tooltip says what it does:
+// hovered, the one tooltip shown says `words`.
+async function tipOf(page, control, words) {
+  await control.hover();
+  await expect(page.getByRole("tooltip").filter({ visible: true }), `the tooltip of ${await control.getAttribute("aria-label")}`).toHaveText(words);
+}
+const statusBar = (page) => page.getByRole("status", { name: "Status bar", exact: true }).filter({ visible: true });
+const explorerOf = (page) => page.getByRole("complementary", { name: "Explorer", exact: true }).filter({ visible: true });
+const inspectorOf = (page) => page.getByRole("complementary", { name: "Inspector", exact: true });
+const fontSizeOf = (locator) => locator.evaluate((node) => getComputedStyle(node).fontSize);
+
+test("Workbench lays the site out as an editor's workspace", async ({ browser }) => {
+  const context = await reader(browser, { kept: "workbench" });
+  try {
+    const page = await context.newPage();
+    const said = listen(page);
+    await open(page, "/start/first-app/");
+    const activity = page.getByRole("toolbar", { name: "Activity bar", exact: true });
+    for (const [name, tip] of [
+      ["Explorer", "Explorer"],
+      ["Observer", "Observer"],
+      ["Switch shell", "Shell switcher"],
+      ["Appearance settings", "Appearance settings"],
+    ]) {
+      const control = activity.getByRole("button", { name, exact: true });
+      await expect(control, `${name} is in the activity bar`).toBeVisible();
+      await tipOf(page, control, tip);
+    }
+    const explorer = explorerOf(page);
+    await expect(explorer.getByText("Workspace: ljos.dev", { exact: true })).toBeVisible();
+    for (const folder of ["Shells/", "Site/", "Demos/", "Start/", "User interface/"])
+      await expect(explorer.getByRole("button", { name: folder, exact: true }), `the folder ${folder}`).toBeVisible();
+    await expect(explorer.getByRole("link", { name: "first-app.md", exact: true })).toHaveAttribute("aria-current", "page");
+
+    const inspector = inspectorOf(page);
+    await expect(inspector.getByRole("heading", { name: "Source", exact: true })).toBeVisible();
+    await expect(inspector.getByRole("tab"), "no tab to stand empty").toHaveCount(0);
+
+    const panel = page.getByRole("tablist", { name: "Panel", exact: true });
+    await expect(panel.getByRole("tab")).toHaveText(["Problems", "MCP log", "Output"]);
+    await expect(page.getByText("No compiler or lint diagnostics in the open file.", { exact: true })).toBeVisible();
+
+    const status = statusBar(page);
+    for (const words of ["Shell: Workbench", "Route: /start/first-app/", "Diagnostics: 0"])
+      await expect(status.getByText(words, { exact: true })).toBeVisible();
+    await expect(status.getByText(/^Objects: \d+$/)).toBeVisible();
+    await expect(status.getByText(/^Renderer: (WebGPU|WebGL2|Solid DOM)$/)).toBeVisible();
+    expect(await fontSizeOf(status.getByText("Shell: Workbench", { exact: true })), "the status bar's words").toBe("13px");
+    expect(await fontSizeOf(page.getByRole("tablist", { name: "Open files" }).getByRole("tab").first().getByText("first-app.md")), "a tab's words").toBe("13px");
+
+    const shown = shownPage(page, "Your First App");
+    const before = (await shown.boundingBox()).width;
+    await press(page.getByRole("button", { name: "Collapse inspector", exact: true }));
+    await expect(inspector, "the inspector is gone").toBeHidden();
+    await expect.poll(async () => (await shown.boundingBox()).width, { message: "the page takes its room" }).toBeGreaterThan(before);
+    await press(page.getByRole("button", { name: "Expand inspector", exact: true }));
+    await expect(inspector, "the inspector is back").toBeVisible();
+    expect(said).toEqual([]);
+  } finally {
+    await context.close();
+  }
+});
+
+test("editing Workbench's Source tab changes the running page in place", async ({ browser }) => {
+  const shipped = readFileSync(new URL("../bundle/Shells/Workbench.qml", import.meta.url), "utf8");
+  expect(shipped).toContain("t`Shell: Workbench`");
+  const edited = shipped.replace("t`Shell: Workbench`", "t`Shell: Workbench, edited`");
+  const context = await reader(browser, { kept: "workbench" });
+  try {
+    const page = await context.newPage();
+    await open(page, "/start/first-app/");
+    const picture = page.locator('img[alt="What this example draws"]').first();
+    await press(picture);
+    await expect(picture, "the example runs").toBeHidden({ timeout: 30_000 });
+    const increment = page.getByRole("button", { name: "Increment", exact: true }).filter({ visible: true }).first();
+    await press(increment);
+    await press(increment);
+    const count = page.getByText("Count: 2", { exact: true }).filter({ visible: true });
+    await expect(count).toBeVisible();
+    const place = await increment.boundingBox();
+
+    const inspector = inspectorOf(page);
+    await inspector.getByRole("textbox", { name: "Edit the running shell's QML" }).click();
+    const source = page.locator(`.cm-content[aria-label="Edit the running shell's QML"]`);
+    await expect(source).toBeFocused({ timeout: 30_000 });
+    await source.fill(edited);
+    const status = statusBar(page);
+    await expect(status.getByText("Shell: Workbench, edited", { exact: true }), "the edit runs, with no press").toBeVisible({ timeout: 30_000 });
+    await expect(count, "the example keeps its state").toBeVisible();
+    expect((await increment.boundingBox()).y, "the page is where it was").toBeCloseTo(place.y, 0);
+    await expect(source, "the reader is still in the editor").toBeFocused();
+
+    await source.fill(`${edited}\n}}`);
+    const problems = page.getByRole("list", { name: "Problems", exact: true });
+    await expect(problems.getByRole("listitem").first(), "what broke, with its line").toHaveText(/Shells\/Workbench\.qml:\d+:\d+/, { timeout: 30_000 });
+    await expect(status.getByText("Diagnostics: 1", { exact: true })).toBeVisible();
+    await expect(status.getByText("Shell: Workbench, edited", { exact: true }), "the last shell that compiled").toBeVisible();
+    expect(await showing(page)).toBe("workbench");
+
+    await press(inspector.getByRole("button", { name: "Reset", exact: true }));
+    await expect(status.getByText("Shell: Workbench", { exact: true })).toBeVisible({ timeout: 30_000 });
+    await expect(status.getByText("Diagnostics: 0", { exact: true })).toBeVisible();
+    await expect(count).toBeVisible();
+  } finally {
+    await context.close();
+  }
+});
+
+// A live edit lays the page out again as another shell does, so the
+// place is held first (PageView `hold`): here the edit's explorer is
+// wider, and Reset gives the page that width back, pressed before
+// `keeping` has marked where the reader scrolled to.
+test("the reader's place is kept when a live edit is put back", async ({ browser }) => {
+  const shipped = readFileSync(new URL("../bundle/Shells/Workbench.qml", import.meta.url), "utf8");
+  const width = "width: !shown ? 0 : shell.wide ? 240 : shell.width";
+  expect(shipped).toContain(width);
+  const edited = shipped.replace(width, width.replace("240", "320")).replace("t`Shell: Workbench`", "t`Shell: Workbench, edited`");
+  const context = await reader(browser, { kept: "workbench" });
+  try {
+    const page = await context.newPage();
+    await open(page, "/start/first-app/");
+    const inspector = inspectorOf(page);
+    await inspector.getByRole("textbox", { name: "Edit the running shell's QML" }).click();
+    const source = page.locator(`.cm-content[aria-label="Edit the running shell's QML"]`);
+    await expect(source).toBeFocused({ timeout: 30_000 });
+    await source.fill(edited);
+    const status = statusBar(page);
+    await expect(status.getByText("Shell: Workbench, edited", { exact: true }), "the edit runs").toBeVisible({ timeout: 30_000 });
+    const heading = page.getByRole("heading", { name: /^Edit live with/ }).filter({ visible: true }).first();
+    await heading.evaluate((element) => {
+      let scroller = element.parentElement;
+      while (scroller && !(/auto|scroll/.test(getComputedStyle(scroller).overflowY) && scroller.scrollHeight > scroller.clientHeight)) scroller = scroller.parentElement;
+      scroller.scrollTop = 120;
+    });
+    await expect.poll(() => page.evaluate(() => history.state?.offset), { message: "the page keeps where they first stopped" }).toBe(120);
+    const box = await inspector.getByRole("button", { name: "Reset", exact: true }).boundingBox();
+    await heading.evaluate(async (element, [clientX, clientY]) => {
+      const frame = () => new Promise((done) => requestAnimationFrame(done));
+      element.scrollIntoView({ block: "start" });
+      await frame();
+      await frame();
+      const pointer = { bubbles: true, cancelable: true, composed: true, clientX, clientY, pointerId: 1, pointerType: "mouse", isPrimary: true, detail: 1 };
+      const under = () => document.elementFromPoint(clientX, clientY);
+      under().dispatchEvent(new PointerEvent("pointerdown", { ...pointer, buttons: 1 }));
+      under().dispatchEvent(new PointerEvent("pointerup", { ...pointer, buttons: 0 }));
+    }, [box.x + box.width / 2, box.y + box.height / 2]);
+    await expect(status.getByText("Shell: Workbench", { exact: true }), "the shell as shipped").toBeVisible({ timeout: 30_000 });
+    // The page is put back after each of its changes of height, until
+    // `settling` ends 300 ms after the last.
+    await page.waitForTimeout(600);
+    await expect(heading, "the heading they scrolled to is still in view").toBeInViewport();
+  } finally {
+    await context.close();
+  }
+});
+
+test("an edit still compiling doesn't take over the shell switched to", async ({ browser }) => {
+  const shipped = readFileSync(new URL("../bundle/Shells/Workbench.qml", import.meta.url), "utf8");
+  const edited = shipped.replace("t`Shell: Workbench`", "t`Shell: Workbench, edited`");
+  const context = await reader(browser, { kept: "workbench" });
+  let compile;
+  let asked;
+  const held = new Promise((done) => (compile = done));
+  const compiling = new Promise((done) => (asked = done));
+  await context.route(/ljos_web_compiler[^/]*\.wasm/, async (route) => {
+    asked();
+    await held;
+    await route.continue();
+  });
+  try {
+    const page = await context.newPage();
+    await open(page, "/start/first-app/");
+    await inspectorOf(page).getByRole("textbox", { name: "Edit the running shell's QML" }).click();
+    const source = page.locator(`.cm-content[aria-label="Edit the running shell's QML"]`);
+    await expect(source).toBeFocused({ timeout: 30_000 });
+    await source.fill(edited);
+    await compiling;
+    await pick(page, "desktop");
+    compile();
+    // Nothing is to happen, so there is nothing to wait for but time.
+    await page.waitForTimeout(3000);
+    const ran = page.getByText("Shell: Workbench, edited", { exact: true }).filter({ visible: true });
+    await expect(ran, "Desktop stays").toHaveCount(0);
+    await pick(page, "workbench");
+    await expect(ran, "the edit waited").toBeVisible({ timeout: 30_000 });
+  } finally {
+    compile();
+    await context.close();
+  }
+});
+
+test("the editor holds the shell that asked for it", async ({ browser }) => {
+  const context = await reader(browser, { kept: "workbench" });
+  let arrive;
+  let asked;
+  const held = new Promise((done) => (arrive = done));
+  const coming = new Promise((done) => (asked = done));
+  await context.route(/\/LiveSource-[^/]+\.js$/, async (route) => {
+    asked();
+    await held;
+    await route.continue();
+  });
+  try {
+    const page = await context.newPage();
+    await open(page, "/start/first-app/");
+    await coming;
+    await pick(page, "desktop");
+    arrive();
+    await pick(page, "workbench");
+    const editor = inspectorOf(page).getByRole("textbox", { name: "Edit the running shell's QML" });
+    await expect(editor, "Workbench's QML").toContainText("workbenchShell", { timeout: 30_000 });
+  } finally {
+    arrive();
+    await context.close();
+  }
+});
+
+// A string that names a QML file beside the one it is written in is
+// that component to the compiler, and imports it: a name meant as words
+// was an empty row, and Workbench brought the other shells with it.
+test("Workbench names the site's files without fetching them", async ({ browser }) => {
+  const context = await reader(browser, { kept: "workbench" });
+  try {
+    const page = await context.newPage();
+    const scripts = [];
+    page.on("request", (request) => {
+      if (request.resourceType() === "script") scripts.push(new URL(request.url()).pathname);
+    });
+    await open(page, "/start/first-app/");
+    const explorer = explorerOf(page);
+    for (const name of ["Elegant.qml", "Cyberpunk.qml", "Workbench.qml", "Desktop.qml"])
+      await expect.soft(explorer.getByRole("button", { name, exact: true }), name).toBeVisible();
+    for (const name of ["Landing.qml", "DemosPage.qml"])
+      await expect.soft(explorer.getByRole("link", { name, exact: true }), name).toBeVisible();
+    const code = (shell) => scripts.filter((path) => new RegExp(`/${shell}-[^/]+\\.js$`).test(path));
+    expect(code("Workbench"), "Workbench's own code, so the pattern finds a shell's").not.toEqual([]);
+    expect.soft(code("Cyberpunk"), "Cyberpunk's code").toEqual([]);
+    expect.soft(code("Desktop"), "Desktop's code").toEqual([]);
+  } finally {
+    await context.close();
+  }
+});
+
+test("Workbench's explorer opens each kind of file, and the pages opened stay open across a swap", async ({ browser }) => {
+  const context = await reader(browser, { kept: "workbench" });
+  try {
+    const page = await context.newPage();
+    const said = listen(page);
+    await open(page, "/start/first-app/");
+    const explorer = explorerOf(page);
+    await press(explorer.getByRole("link", { name: "Landing.qml", exact: true }));
+    await expect(shownPage(page, "Home"), "the front page").toBeVisible();
+    const files = page.getByRole("tablist", { name: "Open files", exact: true }).getByRole("tab");
+    await expect(files).toHaveText(["first-app.md", "Landing.qml"]);
+    await expect(files.nth(1)).toHaveAttribute("aria-selected", "true");
+
+    await press(explorer.getByRole("button", { name: "Desktop.qml", exact: true }));
+    const dialog = page.getByRole("dialog", { name: "Source of Shells/Desktop.qml" });
+    await expect(dialog).toBeVisible();
+    await press(dialog.getByRole("button", { name: "Close shell source", exact: true }));
+    await expect(dialog).toBeHidden();
+
+    await press(page.getByRole("button", { name: "Collapse inspector", exact: true }));
+    await expect(inspectorOf(page)).toBeHidden();
+    await press(explorer.getByRole("button", { name: "Workbench.qml", exact: true }));
+    await expect(inspectorOf(page), "the inspector, opened on its Source").toBeVisible();
+    await expect(inspectorOf(page).getByRole("textbox", { name: "Edit the running shell's QML" })).toContainText("workbenchShell");
+
+    const demos = explorer.getByRole("button", { name: "Demos/", exact: true });
+    await expect(demos).toHaveAttribute("aria-pressed", "true");
+    await expect(explorer.getByRole("link", { name: "CockpitDemo.qml", exact: true })).toBeVisible();
+    await press(demos);
+    await expect(demos, "the folder says it is shut").toHaveAttribute("aria-pressed", "false");
+    await expect(explorer.getByRole("link", { name: "CockpitDemo.qml", exact: true })).toBeHidden();
+
+    await pick(page, "desktop");
+    const documents = page.getByRole("tablist", { name: "Open pages", exact: true }).getByRole("tab");
+    await expect(documents).toHaveCount(2);
+    await expect(documents.nth(0)).toHaveAccessibleName(/Your First App/);
+    await expect(documents.nth(1)).toHaveAccessibleName(/Home/);
+    await expect(documents.nth(1)).toHaveAttribute("aria-selected", "true");
+    expect(said).toEqual([]);
+  } finally {
+    await context.close();
+  }
+});
+
+// A menu of Desktop's menu bar, and an item in it: one that checks is a
+// menu item of its own role.
+async function menu(page, title, item) {
+  await press(page.getByRole("menubar", { name: "Menu bar", exact: true }).getByRole("menuitem", { name: title, exact: true }));
+  const choice = page
+    .getByRole("menuitem", { name: item, exact: true })
+    .or(page.getByRole("menuitemcheckbox", { name: item, exact: true }))
+    .filter({ visible: true });
+  await press(choice);
+}
+
+test("Desktop's menus do what they say", async ({ browser }) => {
+  const context = await reader(browser, { kept: "desktop" });
+  try {
+    const page = await context.newPage();
+    const said = listen(page);
+    await open(page, "/start/first-app/");
+    await expect(page.getByText("Ljós — Your First App", { exact: true }), "the window's title").toBeVisible();
+
+    await menu(page, "File", "Open demos");
+    await expect(shownPage(page, "Live demos")).toBeVisible();
+    await expect(page.getByText("Ljós — Demos", { exact: true })).toBeVisible();
+
+    await menu(page, "View", "Dark colour scheme");
+    await expect.poll(() => page.evaluate(() => document.documentElement.style.colorScheme), { message: "the site is dark" }).toBe("dark");
+
+    const sidebar = page.getByRole("complementary", { name: "Pages", exact: true });
+    await expect(sidebar).toBeVisible();
+    await menu(page, "View", "Toggle sidebar");
+    await expect(sidebar, "the sidebar is gone").toBeHidden();
+    await menu(page, "View", "Toggle sidebar");
+    await expect(sidebar, "and back").toBeVisible();
+
+    await menu(page, "Go", "Capability: malleable");
+    await page.waitForURL(`**${at("/start/your-own-shell/")}`);
+
+    await menu(page, "Help", "About ljos.dev");
+    const about = page.getByRole("dialog", { name: "About ljos.dev", exact: true });
+    await expect(about.getByText(/^This site runs Ljós compiled to Solid DOM with ljos-web/)).toBeVisible();
+    await press(about.getByRole("button", { name: "Close", exact: true }));
+    await expect(about).toBeHidden();
+
+    await menu(page, "File", "View this shell's QML");
+    const source = page.getByRole("dialog", { name: "Source of Shells/Desktop.qml" });
+    await expect(source).toBeVisible();
+    await press(source.getByRole("button", { name: "Close shell source", exact: true }));
+
+    await menu(page, "View", "Switch to Workbench shell");
+    await expect.poll(() => showing(page), { message: "the Workbench shell frames the page", timeout: 30_000 }).toBe("workbench");
+    expect(said).toEqual([]);
+  } finally {
+    await context.close();
+  }
+});
+
+test("Desktop's toolbar says what each button does, and its status bar what runs", async ({ browser }) => {
+  const context = await reader(browser, { kept: "desktop" });
+  try {
+    const page = await context.newPage();
+    const said = listen(page);
+    await open(page, "/start/first-app/");
+    const toolbar = page.getByRole("toolbar", { name: "Toolbar", exact: true });
+    for (const [name, tip] of [
+      ["Back", "Go to previous route"],
+      ["Forward", "Go to next route"],
+      ["Home", "Open landing page"],
+      ["Demos", "Browse all interactive demos"],
+      ["Observer", "Toggle live Observer panel"],
+      ["Switch shell", "Switch between Elegant, Cyberpunk, Workbench, and Desktop shells"],
+      ["Scheme", "Toggle light and dark colour scheme"],
+      ["View QML", "View this shell's QML source"],
+    ]) {
+      const control = toolbar.getByRole("button", { name, exact: true });
+      await expect(control, `${name} is in the toolbar`).toBeVisible();
+      await tipOf(page, control, tip);
+    }
+    const status = statusBar(page);
+    await expect(status.getByText("Route: /start/first-app/", { exact: true })).toBeVisible();
+    await expect(status.getByText(/^Hydrated in \d+ ms$/)).toBeVisible();
+    await expect(status.getByText(/^Objects alive: \d+$/)).toBeVisible();
+    await expect(status.getByText(/^Renderer: (WebGPU|WebGL2|Solid DOM)$/)).toBeVisible();
+    await expect(status.getByText("Shell: Desktop", { exact: true })).toBeVisible();
+
+    await press(toolbar.getByRole("button", { name: "Observer", exact: true }));
+    await expect(page.getByRole("group", { name: "Observer", exact: true }).filter({ visible: true }), "the Observer, open on the page").toBeVisible();
+    expect(said).toEqual([]);
+  } finally {
+    await context.close();
+  }
+});
+
 // The logo is the user's: the mark and the word are main's in every
 // shell, whatever that shell's type and colours are (Site/Wordmark.qml).
 const LOGO_FACE = "system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Helvetica Neue, Arial, sans-serif";
@@ -1861,9 +2328,18 @@ for (const kept of SHELLS)
           const home = page.getByRole("link", { name: "Ljós, home", exact: true }).filter({ visible: true }).first();
           const word = home.getByText("Ljós", { exact: true });
           expect(await styled(word), "the header's word").toEqual({ ...same, size: "22px", weight: "700" });
-          const header = await apart(home.locator('img[src$="favicon.svg"]'), word);
-          expect(header.mark, "the header's mark").toEqual([28, 28]);
-          expect(Math.round(header.gap), `its gap (${header.at})`).toBe(8);
+          const logo = await apart(home.locator('img[src$="favicon.svg"]'), word);
+          expect(logo.mark, "the header's mark").toEqual([28, 28]);
+          expect(Math.round(logo.gap), `its gap (${logo.at})`).toBe(8);
+          if (kept === "desktop") {
+            const header = await region(page, "Ljós").first().boundingBox();
+            // The landmark holds the toolbar too: the bar ends where that starts.
+            const under = viewport === DESKTOP ? (await page.getByRole("toolbar", { name: "Toolbar", exact: true }).boundingBox()).y : header.y + header.height;
+            const bar = { y: header.y, height: under - header.y };
+            const link = await home.boundingBox();
+            expect(link.y + 0.5, "the bar holds it, top").toBeGreaterThanOrEqual(bar.y);
+            expect(link.y + link.height - 0.5, "the bar holds it, bottom").toBeLessThanOrEqual(bar.y + bar.height);
+          }
 
           const line = page.getByText("Ljós — malleable software, everywhere", { exact: true }).filter({ visible: true }).last();
           await line.scrollIntoViewIfNeeded();

@@ -47,6 +47,29 @@ QtObject {
         { label: t`Ljós`, pages: [{ route: "/", title: t`Home` }, { route: "/demos/", title: t`Demos` }, { route: "/showcase/", title: t`Showcase` }].concat(Content.pro.map((demo) => ({ route: demo.route, title: demo.title }))) }
     ].concat(Content.sidebar.map((section) => ({ label: section.label, pages: section.pages })))
 
+    // The pro demos, each with its route, title and the file its app is
+    // (Demos/pro.json), and the docs in their sections: for a shell that
+    // lays the site out as its files.
+    readonly property var demos: Content.pro
+    readonly property var docs: Content.sidebar
+
+    // The file a route is shown from, as a workbench names its tab: the
+    // front page's and the demos' QML, a pro demo's app, a docs page's
+    // markdown. The two beside this file are put together with join:
+    // written whole, or as a sum that ends in their suffix, each would
+    // be the component and not its name.
+    function fileOf(to) {
+        if (to === "/")
+            return ["Landing", "qml"].join(".");
+        if (to === "/demos/")
+            return ["DemosPage", "qml"].join(".");
+        var demo = Content.pro.find((one) => one.route === to);
+        if (demo)
+            return demo.app;
+        var parts = to.split("/").filter((part) => part !== "");
+        return (parts.length > 1 ? parts[parts.length - 1] : "index") + ".md";
+    }
+
     // Said after each move to another page or place on it, so a shell
     // closes what the reader opened to get there (a menu).
     signal went

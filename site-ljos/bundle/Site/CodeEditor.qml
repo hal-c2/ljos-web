@@ -49,6 +49,13 @@ Item {
         Editor.bringIn(field, shown, true);
     }
     onTextChanged: Editor.textChanged(field)
+
+    // The reader back in the field after it was moved: the page lost
+    // their focus with the element, though the field still has it here.
+    function refocus() {
+        field.forceActiveFocus();
+        Editor.bringIn(field, shown, true);
+    }
     onDiagnosticsChanged: Editor.diagnosticsChanged(field)
 
     Text {

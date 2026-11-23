@@ -127,18 +127,6 @@ Item {
                     }
                 }
             }
-            Text {
-                visible: choices.preferences !== null && !choices.preferences.wide
-                width: 304
-                leftPadding: Theme.xs
-                rightPadding: Theme.xs
-                topPadding: Theme.xxs
-                text: t`Workbench and Desktop need a wider window. This one shows Elegant.`
-                color: Theme.textMuted
-                font.family: Theme.sans
-                font.pixelSize: Theme.captionSize
-                wrapMode: Text.Wrap
-            }
             Rectangle {
                 width: 304
                 height: 1

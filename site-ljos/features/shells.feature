@@ -7,12 +7,15 @@ Feature: The site is shown in a shell the reader picks
   page in one sans with the front page's replay beside its headline;
   Cyberpunk, a full-bleed console with a telemetry rail along its top,
   a nav rail down its left and the front page's live app as a mission
-  console between its Observer tree and its agent's calls; Workbench, the
-  pages on the left, the page in the middle and its Source on the right;
-  and Desktop, a menu bar, a toolbar, the pages in a sidebar, routes as
-  tabs and a status bar. A reader swaps them
-  live, and keeps their page, their place on it and what they did in
-  an example on it.
+  console between its Observer tree and its agent's calls; Workbench, an
+  editor's workspace with an activity bar, the site's QML files in an
+  explorer, the pages open as tabs, an inspector holding the Source that
+  edits the running shell, a panel of problems and calls, and a status bar;
+  and Desktop, a menu bar whose menus do what they say, a toolbar, the
+  pages in a sidebar, routes as document tabs and a status bar. A reader
+  swaps them live, and keeps their page, their place on it, the pages
+  they opened and what they did in an example on it. On a phone each is
+  a phone's layout of its own.
 
   Covered by site-ljos/tests/shells.spec.js, and the first load by
   site-ljos/tests/payload.spec.js.
@@ -163,6 +166,100 @@ Feature: The site is shown in a shell the reader picks
     Given a reader in the Desktop shell on "/start/first-app/"
     When they go to another docs page
     Then both pages are open as tabs
+    When they press "Close document tab" on the first
+    Then only the page they are on is open
+
+  Scenario: The pages a reader opened stay open across a swap
+    Given a reader in the Workbench shell who opened "first-app.md" and then "Landing.qml" from the explorer
+    Then both are open as tabs named by their files, "Landing.qml" selected
+    When they swap to the Desktop shell
+    Then the same two pages are open as document tabs, named by their titles
+
+  Scenario: Workbench lays the site out as an editor's workspace
+    Given a reader with script at a desktop's width, in the Workbench shell
+    When they open "/start/first-app/"
+    Then an activity bar holds "Explorer", "Observer", the shell switcher and "Appearance settings", each with a tooltip
+    And the explorer says "Workspace: ljos.dev" and lists the folders "Shells/", "Site/", "Demos/" and the docs' sections
+    And "first-app.md" is marked as the page they are on
+    And the inspector shows the "Source", with no tab beside it to stand empty
+    And a panel along the bottom has the tabs "Problems", "MCP log" and "Output", and says "No compiler or lint diagnostics in the open file."
+    And a status bar says "Shell: Workbench", "Route: /start/first-app/", "Diagnostics: 0", the objects and the renderer
+    And its tabs and status bar are set at 13 pixels
+    When they press "Collapse inspector"
+    Then the inspector is gone and the page takes its room
+    When they press "Expand inspector"
+    Then the inspector is back
+
+  Scenario: Editing Workbench's Source tab changes the running page in place
+    Given a reader in the Workbench shell on "/start/first-app/" whose example has counted to 2
+    When they change the status bar's "Shell: Workbench" to "Shell: Workbench, edited" in the Source tab
+    Then the status bar says "Shell: Workbench, edited" without a press of anything
+    And the example still says "Count: 2", the page is where it was and the editor still has their cursor
+    When they break the QML
+    Then the panel's "Problems" lists what broke, with its line, and the status bar says "Diagnostics: 1"
+    And the shell stays the last one that compiled
+    When they press "Reset"
+    Then the status bar says "Shell: Workbench" again, and "Diagnostics: 0"
+
+  Scenario: The reader's place is kept when a live edit is put back
+    Given a reader whose edit made Workbench's explorer wider, stopped near the top of a docs page
+    When they scroll to a heading below the first screen and press "Reset" at once
+    Then that heading is still in view
+
+  Scenario: An edit still compiling doesn't take over the shell switched to
+    Given a reader in the Workbench shell who changed its QML in the Source tab
+    When they pick Desktop before the edit has compiled
+    Then Desktop stays once it has
+    When they pick Workbench again
+    Then it runs their edit
+
+  Scenario: The editor holds the shell that asked for it
+    Given a reader in the Workbench shell whose editor is still on its way
+    When they pick Desktop before it arrives, and Workbench again after
+    Then the Source tab holds Workbench's QML
+
+  Scenario: Workbench names the site's files without fetching them
+    Given a reader whose kept shell is Workbench
+    When they open "/start/first-app/"
+    Then the explorer lists "Elegant.qml", "Cyberpunk.qml", "Workbench.qml" and "Desktop.qml" under "Shells/"
+    And it lists "Landing.qml" and "DemosPage.qml" under "Site/"
+    And neither Cyberpunk's nor Desktop's code has been fetched
+
+  Scenario: Workbench's explorer opens each kind of file
+    Given a reader with script at a desktop's width, in the Workbench shell
+    When they press "Landing.qml" under "Site/"
+    Then the front page is shown, and open as a tab
+    When they press "Desktop.qml" under "Shells/"
+    Then they see "Source of Shells/Desktop.qml"
+    When they press "Workbench.qml" under "Shells/"
+    Then the inspector shows the running shell's QML
+    When they press the folder "Demos/"
+    Then its files are hidden, and the folder says it is shut
+
+  Scenario: Desktop's menus do what they say
+    Given a reader with script at a desktop's width, in the Desktop shell, on "/start/first-app/"
+    Then the window's title says "Ljós — Your First App"
+    When they pick "Open demos" from the "File" menu
+    Then the demos page is shown
+    When they pick "Dark colour scheme" from the "View" menu
+    Then the site is dark
+    When they pick "Toggle sidebar" from the "View" menu
+    Then the sidebar is gone, and picked again it is back
+    When they pick "Capability: malleable" from the "Go" menu
+    Then "/start/your-own-shell/" is shown
+    When they pick "About ljos.dev" from the "Help" menu
+    Then a dialog "About ljos.dev" says what the site runs on
+    When they pick "View this shell's QML" from the "File" menu
+    Then they see "Source of Shells/Desktop.qml"
+    When they pick "Switch to Workbench shell" from the "View" menu
+    Then the page is framed by the Workbench shell
+
+  Scenario: Desktop's toolbar says what each button does, and its status bar what runs
+    Given a reader with script at a desktop's width, in the Desktop shell, on "/start/first-app/"
+    Then each toolbar button has a tooltip, "Back" saying "Go to previous route" when it is hovered
+    And the status bar says "Route: /start/first-app/", "Hydrated in" some ms, "Objects alive:" a count, the renderer and "Shell: Desktop"
+    When they press the toolbar's "Observer"
+    Then the Observer is open on the page
 
   Scenario: The shell choices come on a later press when the first could not load them
     Given a reader whose first press on the shell switcher could not load the choices
@@ -203,13 +300,35 @@ Feature: The site is shown in a shell the reader picks
     When they open a page with no script
     Then the page is shown in the Elegant shell, as the build wrote it
 
-  Scenario: A phone has one menu control, and the shells say why they wait
-    Given a reader on a phone whose kept shell is Workbench
+  Scenario Outline: Workbench and Desktop stand on a phone as one pane with a tab bar along the bottom
+    Given a reader on a phone whose kept shell is <shell>
     When they open the front page
-    Then the page is framed by the Elegant shell
+    Then the page is framed by the <shell> shell
     And its header has exactly one control besides the home link: "Menu"
-    When they open the menu and the shell switcher in it
-    Then it says Workbench and Desktop need a wider window, and that this one shows "Elegant"
+    And a tab bar along the bottom has <tabs>, with the page's own selected
+    When they press the tab "<pane>"
+    Then that pane fills the window in place of the page
+    When they open the menu
+    Then it holds search, the shell switcher and the reader's preferences
+
+    Examples:
+      | shell     | tabs                                           | pane     |
+      | Workbench | "Explorer", "Preview", "Inspector", "Problems" | Explorer |
+      | Desktop   | "Page", "Pages", "Open pages"                  | Pages    |
+
+  Scenario Outline: What a finger presses in a phone's panes is big enough
+    Given a reader on a phone whose kept shell is <shell>
+    When they press the tab "<pane>"
+    Then each row, tab and button in it is at least 44 pixels high
+    And a button that is only an icon is at least 44 pixels wide
+
+    Examples:
+      | shell     | pane       |
+      | Workbench | Explorer   |
+      | Workbench | Inspector  |
+      | Workbench | Problems   |
+      | Desktop   | Pages      |
+      | Desktop   | Open pages |
 
   Scenario Outline: What a finger presses in a shell's phone header and menu is big enough
     Given a reader on a phone whose kept shell is <shell>
@@ -225,7 +344,7 @@ Feature: The site is shown in a shell the reader picks
     Given a reader has any shell, on a desktop or a phone
     When their screen reader lists the page's landmarks
     Then the header shown is one named "Ljós", with the link home in it
-    And in the Desktop shell the toolbar is in it too
+    And on a desktop, in the Desktop shell, the toolbar is in it too
 
   Scenario Outline: A kept shell gives a reader all axe asks
     Given a reader who kept the <shell> shell, in light or dark
@@ -245,8 +364,8 @@ Feature: The site is shown in a shell the reader picks
 
   Scenario: The Workbench offers only what it can show
     Given a reader in the Workbench shell
-    Then one landmark is named "Pages"
-    And the panel on the right is the page's Source
+    Then one landmark is named "Explorer", and none "Pages"
+    And the panel on the right is the running shell's Source
     And no tab offers an Observer or an Agent
 
   Scenario: A swap moves, or with reduced motion crossfades
@@ -439,6 +558,7 @@ Feature: The site is shown in a shell the reader picks
     When they look at the header and the footer
     Then the mark and "Ljós" are drawn as the user's logo
     And the shell's typeface, colours and capitals don't reach them
+    And the bar that holds the logo is tall enough for it at that size
 
   Scenario: The search field's words stay in its box in every shell
     Given a reader on a desktop has any shell, Cyberpunk's narrow rail among them
