@@ -127,7 +127,17 @@ Rectangle {
         y: header.height
         width: 264
         height: parent.height - y
-        Slot { name: "site.sidebar" }
+        // Made where it shows: a narrow page would carry the docs' whole
+        // list, hidden, in its first load.
+        Loader {
+            anchors.fill: parent
+            active: shell.sidebarShown
+            sourceComponent: Component {
+                Item {
+                    Slot { name: "site.sidebar" }
+                }
+            }
+        }
     }
     Rectangle {
         visible: shell.sidebarShown
