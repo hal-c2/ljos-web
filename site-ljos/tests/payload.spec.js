@@ -226,6 +226,28 @@ test("the contents beside the page are written only where they are shown", async
   }
 });
 
+// A plain code card is its code and its Copy. The toolbar and stage
+// a live block runs in are made in a live card only: written hidden in
+// every card, they were most of a long page's first load (Site/CodeBlock.qml).
+test("a plain code card carries no live block's toolbar or stage", async ({ browser }) => {
+  const context = await browser.newContext({ javaScriptEnabled: false });
+  try {
+    const page = await context.newPage();
+    const live = async (route) => {
+      await page.goto(`${base}${route}`);
+      const cards = page.locator('[role="group"][aria-label^="Code"]');
+      expect(await cards.count(), `${route} has code cards`).toBeGreaterThan(0);
+      return cards.evaluateAll((all) =>
+        all.filter((card) => card.querySelector('img[alt="What this example draws"]') || /\bReset\b/.test(card.textContent)).length,
+      );
+    };
+    expect(await live("start/cli/"), "/start/cli/'s plain cards").toBe(0);
+    expect(await live("start/first-app/"), "/start/first-app/'s live cards").toBeGreaterThan(0);
+  } finally {
+    await context.close();
+  }
+});
+
 // A page with no code block asks for what its HTML names and nothing
 // else: no module it fetches on its own once it runs.
 test("a page with nothing to run asks for nothing past its first load", async ({ page }) => {
