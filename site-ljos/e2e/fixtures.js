@@ -302,10 +302,11 @@ export const clockOf = (page) => page.evaluate(() => ({ frames: 0, time: 0, ...g
 // Until the page's clock has run `more` frames past `frames`, however long
 // they take: a loaded machine runs fewer of them a second, not fewer of
 // them. A clock with nothing left to run steps no frame at all, so waiting
-// on it would say only, at the test's timeout, that the wait timed out: it
-// is told of at once, with what `region` shows by then.
-async function clockRuns(page, frames, more, what, region) {
-  await base.step(`${what}: the clock runs ${more} more frames`, async () => {
+// on it would say only, at the test's timeout, that the wait timed out:
+// what the clock stopped at is returned at once instead, for the caller to
+// read the region once more and say so.
+async function clockRuns(page, frames, more, what) {
+  return base.step(`${what}: the clock runs ${more} more frames`, async () => {
     for (;;) {
       const waited = await page.waitForFunction(
         ([after]) => {
@@ -316,18 +317,14 @@ async function clockRuns(page, frames, more, what, region) {
         [frames + more],
         { timeout: 0, polling: "raf" },
       );
-      if ((await waited.jsonValue()) === "ran") return;
+      if ((await waited.jsonValue()) === "ran") return null;
       // A job that ends as the next one starts can leave none for a moment:
       // a stop is none over two of the page's frames.
       await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
       const now = await clockOf(page);
-      if (now.frames >= frames + more) return;
+      if (now.frames >= frames + more) return null;
       if (now.jobs) continue;
-      const shows = region ? (await region.innerText().catch(() => "")).replace(/\s+/g, " ").trim().slice(0, 200) : "";
-      throw new Error(
-        `${what}: waited for the clock to run ${more} more frames past ${frames}, but the clock has nothing left to run, ` +
-          `at ${now.frames} frames and ${Math.round(now.time)} ms of the scene's time; the region shows "${shows}"`,
-      );
+      return now;
     }
   });
 }
@@ -393,8 +390,17 @@ export async function expectFramesAdvance(locator, { span = 3_000, frames = 30, 
         ran.frames < frames || ran.time < span,
         `${message} (${time}): the clock ran ${ran.frames} frames and ${ran.time} ms of the scene's time, and ${pictures} pictures of it are the first`,
       ).toBe(true);
-      await clockRuns(page, seen.frames, 6, `${message} (${time})`, locator);
+      const stopped = await clockRuns(page, seen.frames, 6, `${message} (${time})`);
+      // A scene can draw its last change and stop within those frames: the
+      // picture it stopped on is compared before the stop is held against it.
       if (Buffer.compare(from, await page.screenshot({ clip: await clip() })) !== 0) break;
+      if (stopped) {
+        const shows = (await locator.innerText().catch(() => "")).replace(/\s+/g, " ").trim().slice(0, 200);
+        throw new Error(
+          `${message} (${time}): the clock has nothing left to run, at ${stopped.frames} frames and ${Math.round(stopped.time)} ms ` +
+            `of the scene's time, and the region still shows its first picture: "${shows}"`,
+        );
+      }
     }
   }
 }
