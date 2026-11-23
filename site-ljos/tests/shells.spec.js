@@ -4,6 +4,9 @@
 // with no script, or on a phone, gets the one every page is written in.
 // Which shell frames the page is on its root, `data-ljos-shell-showing`
 // (bundle/shells.js `showing`).
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
 
 const base = (process.env.LJOS_SITE_BASE ?? "/").replace(/\/?$/, "/");
@@ -21,6 +24,12 @@ const PAGES = [
   { route: "/demos/cockpit/", region: "Svala GT cockpit" },
   { route: "/start/first-app/", region: "Your First App" },
 ];
+
+// bundle/tokens.js, read as the build reads it: each shell's look.
+const { looks } = (() => {
+  const source = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../bundle/tokens.js"), "utf8").replace(/^\.pragma library$/m, "");
+  return new Function(`${source}\nreturn { looks };`)();
+})();
 
 const showing = (page) => page.evaluate(() => document.documentElement.dataset.ljosShellShowing ?? "");
 
@@ -922,6 +931,28 @@ test("the site's buttons are set in its own type", async ({ browser }) => {
     await context.close();
   }
 });
+
+// The other shells' colours are not in the page's head but a stylesheet
+// it names (the build's `looks`): a shell picked, or kept, still brings
+// its own ground and text to the HTML around the app.
+for (const how of ["picked", "kept"]) {
+  test(`a shell ${how} brings its own colours to the HTML around the app`, async ({ browser }) => {
+    const context = await reader(browser, { kept: how === "kept" ? "workbench" : "" });
+    try {
+      const page = await context.newPage();
+      const said = listen(page);
+      await open(page, "/start/cli/");
+      if (how === "picked") await pick(page, "workbench");
+      expect(await showing(page)).toBe("workbench");
+      const tone = (name) => page.evaluate((name) => getComputedStyle(document.documentElement).getPropertyValue(`--ljos-${name}`).trim().toLowerCase(), name);
+      await expect.poll(() => tone("canvas"), { message: "the ground is Workbench's" }).toBe(looks.workbench.light.canvas.toLowerCase());
+      expect(await tone("text")).toBe(looks.workbench.light.text.toLowerCase());
+      expect(said).toEqual([]);
+    } finally {
+      await context.close();
+    }
+  });
+}
 
 test("the header's icon takes the text colour of the shell picked", async ({ browser }) => {
   const context = await reader(browser);

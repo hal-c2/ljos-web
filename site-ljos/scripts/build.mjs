@@ -546,6 +546,10 @@ function pictured(live, up) {
   };
 }
 
+// The other shells' colours, which siteHead() names and the build
+// writes beside the pages.
+let looksSheet;
+
 // The site's head, with the colours of bundle/tokens.js (the table
 // Site/Theme.qml reads) written in as CSS custom properties: one table,
 // so the HTML around the app and the app never disagree.
@@ -575,23 +579,29 @@ function siteHead() {
       `--ljos-radius-large: ${look.shape.radiusLarge}px;`,
     ].join(" ");
   // Every page is written in the default shell (tokens.js's own light
-  // and dark), so its colours come first and alone decide the first
-  // paint; each other shell's follow, under the name of the shell shown
-  // (Frames.showing), so a code block or a page's ground changes with a
-  // switch and no script of its own.
+  // and dark), so its colours alone are in the head and decide the
+  // first paint. Each other shell's are under the name of the shell
+  // shown (Frames.showing), so a code block or a page's ground changes
+  // with a switch and no script of its own; they are a stylesheet of
+  // their own (`looks`), which the head names and the page asks for
+  // once a reader keeps or shows another shell (shells.js `dress`):
+  // every page carrying every look's colours was 1.3 kB of each first
+  // load for what most readers never switch to.
   const scoped = (shell, tail = "") => `:root[data-ljos-shell-showing="${shell}"]${tail}`;
   const tokens = [
     `  :root { ${declarations(light)} ${shape(looks.elegant)} }`,
     `  @media (prefers-color-scheme: dark) { :root:not([data-ljos-scheme="light"]) { ${declarations(dark)} } }`,
     `  :root[data-ljos-scheme="dark"] { ${declarations(dark)} }`,
-    ...Object.entries(looks)
-      .filter(([shell]) => shell !== "elegant")
-      .flatMap(([shell, look]) => [
-        `  ${scoped(shell)} { ${declarations(look.light)} ${shape(look)} }`,
-        `  @media (prefers-color-scheme: dark) { ${scoped(shell, ':not([data-ljos-scheme="light"])')} { ${declarations(look.dark)} } }`,
-        `  :root[data-ljos-scheme="dark"][data-ljos-shell-showing="${shell}"] { ${declarations(look.dark)} }`,
-      ]),
   ].join("\n");
+  const others = Object.entries(looks)
+    .filter(([shell]) => shell !== "elegant")
+    .flatMap(([shell, look]) => [
+      `${scoped(shell)} { ${declarations(look.light)} ${shape(look)} }`,
+      `@media (prefers-color-scheme: dark) { ${scoped(shell, ':not([data-ljos-scheme="light"])')} { ${declarations(look.dark)} } }`,
+      `:root[data-ljos-scheme="dark"][data-ljos-shell-showing="${shell}"] { ${declarations(look.dark)} }`,
+    ])
+    .join("\n");
+  looksSheet = { name: `looks-${createHash("sha256").update(others).digest("hex").slice(0, 10)}.css`, text: `${others}\n` };
   // The site's own faces (bundle/assets/fonts, served at the base's
   // fonts/): the default shell's are fetched with the page, so its first
   // lines are set in them; another shell's come when it shows.
@@ -629,6 +639,7 @@ function siteHead() {
     .replace("%WIDE_FROM%", () => wideFrom)
     .replaceAll("%SHELL_WAIT%", () => String(shellWait))
     .replace("%LJOS_TOKENS%", () => tokens)
+    .replace("%LOOKS_CSS%", () => `${base}${looksSheet.name}`)
     .replace("%FONT_FACES%", () => fontFaces)
     .replace("%FONT_PRELOADS%", () => preloads)
     .replaceAll("%LIGHT_CANVAS%", light.canvas)
@@ -687,6 +698,8 @@ try {
   }
   rmSync(noQt, { recursive: true, force: true });
 }
+
+writeFileSync(join(out, looksSheet.name), looksSheet.text);
 
 // Each page is told the base it stands at, in its head, before
 // anything of the page runs.

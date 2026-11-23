@@ -139,15 +139,24 @@ test("every shell's look names its fonts, its type steps and its shape", () => {
 });
 
 // Each shell's colours reach the HTML drawn parts too: a code block in
-// Cyberpunk is Cyberpunk's.
-test("the page's head says each shell's colours under that shell's name", async ({ request }) => {
+// Cyberpunk is Cyberpunk's. DESIGN CHANGE: they were in every page's
+// head; they are a stylesheet the head names, asked for once another
+// shell is kept or shown (shells.js `dress`), so a first load in the
+// default shell carries only its own.
+test("the page's head names a stylesheet with each shell's colours under that shell's name", async ({ request }) => {
   const html = await (await request.get("/")).text();
   const head = html.slice(0, html.indexOf("</head>"));
+  expect(head).not.toContain("data-ljos-shell-showing=");
+  const link = head.match(/<meta name="ljos-looks" content="([^"]+)"/)?.[1];
+  expect(link).toBeTruthy();
+  const response = await request.get(link);
+  expect(response.ok()).toBe(true);
+  const sheet = await response.text();
   for (const shell of SHELLS.slice(1)) {
-    const light = head.match(new RegExp(`:root\\[data-ljos-shell-showing="${shell}"\\] \\{([^}]*)\\}`))?.[1] ?? "";
+    const light = sheet.match(new RegExp(`:root\\[data-ljos-shell-showing="${shell}"\\] \\{([^}]*)\\}`))?.[1] ?? "";
     expect(light, shell).toContain(`--ljos-canvas: ${tokens.looks[shell].light.canvas};`);
     expect(light, shell).toContain(`--ljos-code-keyword: ${tokens.looks[shell].light.code.keyword};`);
-    const dark = head.match(new RegExp(`:root\\[data-ljos-scheme="dark"\\]\\[data-ljos-shell-showing="${shell}"\\] \\{([^}]*)\\}`))?.[1] ?? "";
+    const dark = sheet.match(new RegExp(`:root\\[data-ljos-scheme="dark"\\]\\[data-ljos-shell-showing="${shell}"\\] \\{([^}]*)\\}`))?.[1] ?? "";
     expect(dark, shell).toContain(`--ljos-canvas: ${tokens.looks[shell].dark.canvas};`);
   }
 });
