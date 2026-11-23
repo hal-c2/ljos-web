@@ -406,7 +406,10 @@ Column {
                                     required property int index
                                     readonly property bool current: index === block.currentFile
 
-                                    width: tabWords.implicitWidth + 2 * Theme.xs
+                                    // A name too long for the strip is cut in its middle,
+                                    // so the tab fits and its end (.qml) still shows;
+                                    // a reader still hears the whole name.
+                                    width: Math.min(tabWords.implicitWidth + 2 * Theme.xs, named.width)
                                     height: 32
                                     activeFocusOnTab: true
                                     // The tab with the keyboard is never out of the strip.
@@ -427,6 +430,8 @@ Column {
                                     Text {
                                         id: tabWords
                                         anchors.centerIn: parent
+                                        width: Math.min(implicitWidth, tab.width - 2 * Theme.xs)
+                                        elide: Text.ElideMiddle
                                         text: tab.modelData.name
                                         color: tab.current ? Theme.text : Theme.textMuted
                                         font.family: Theme.mono
