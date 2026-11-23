@@ -163,3 +163,11 @@ export const still = new Set([
   "/ui/offscreen-and-cost/#2", // the spinner runs only while `busy`, which stays false
   "/quality/performance/#0", // the pulse runs only while `syncing`, which stays false
 ]);
+
+// Examples that move for a while and then come to rest by design: they must
+// change once they run, not keep changing. By hash, not by place on the
+// page: a block before one that does not run where the site was built (a
+// pending one) moves its place.
+export const ends = new Map([
+  ["3f3c043768509236", "/language/overview/: the Timer counts to 30 in 5 s of the scene's time, then stops"],
+]);

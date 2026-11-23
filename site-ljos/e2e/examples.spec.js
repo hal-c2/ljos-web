@@ -11,7 +11,7 @@
 // and turns red the day it passes, so the change that fixes it must
 // take it out of known.js.
 import { NEEDS_WASM, PICTURE, centre, centreOf, classify, drag, expect, expectFramesAdvance, livePages, liveBlock, open, pinch, press, run, signature, test, unexpected } from "./fixtures.js";
-import { interactions, invisible, still } from "./interactions.js";
+import { ends, interactions, invisible, still } from "./interactions.js";
 import { brokenExample } from "./known.js";
 
 const CONTROL = '[role="button"],[role="checkbox"],[role="switch"],[role="radio"],[role="slider"],[role="tab"],[role="combobox"],[role="spinbutton"],[role="textbox"]:not([aria-label^="Edit "]),input,textarea';
@@ -67,7 +67,8 @@ for (const { route, examples } of pages) {
         const { box } = await centreOf(shown);
         expect(box.width * box.height, "the running example has a size").toBeGreaterThan(100);
         expect(await shown.evaluate((element) => element.querySelectorAll("*").length), "the running example holds what it draws").toBeGreaterThan(0);
-        if ((kind.moves || kind.threeD) && !still.has(key)) await expectFramesAdvance(shown, { message: "what moves on its own keeps moving" });
+        if ((kind.moves || kind.threeD) && !still.has(key))
+          await expectFramesAdvance(shown, ends.has(example.hash) ? { message: "what moves on its own moves", once: true } : { message: "what moves on its own keeps moving" });
 
         // The reader's first move. An example named in interactions.js
         // gets what it is for, and must show the change it names; any
