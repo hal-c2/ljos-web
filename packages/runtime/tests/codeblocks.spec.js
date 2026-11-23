@@ -316,12 +316,22 @@ Rectangle {
     height: dark ? 30 : 60
 }
 `);
+  // Sized only in the dark: the light render has no size to give.
+  const darkOnly = one(`import QtQuick
+
+Rectangle {
+    readonly property bool dark: Qt.styleHints.colorScheme === Qt.ColorScheme.Dark
+    width: dark ? 400 : 0
+    height: dark ? 30 : 0
+}
+`);
   const cacheDir = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "ljos-codeblock-test-"));
   try {
-    const { manifest, failures } = await renderPrerenders([painted, wider], { cacheDir, qmlc, dark: true });
+    const { manifest, failures } = await renderPrerenders([painted, wider, darkOnly], { cacheDir, qmlc, dark: true });
     expect(failures).toEqual([]);
     expect(manifest[hashExample(painted)], "the same size in both").toMatchObject({ width: 40, height: 40 });
     expect(manifest[hashExample(wider)], "the dark's width and the light's height").toMatchObject({ width: 80, height: 60 });
+    expect(manifest[hashExample(darkOnly)], "the dark's, as the light has none").toMatchObject({ width: 400, height: 30 });
     const { html, htmlDark } = loadPrerenders(cacheDir)[hashExample(painted)];
     expect(htmlDark).toBeDefined();
     // The rectangle's fill, as the prerender writes it.
