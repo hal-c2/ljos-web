@@ -423,7 +423,9 @@ function awaited(image) {
 let bench;
 const surveys = new Map();
 // The copies each survey made that were still to arrive, kept as long as the
-// survey is: what is known of them lasts that long (`arrived`).
+// survey is: what is known of them lasts that long (`arrived`). The Text that
+// measured is what holds a survey (Text.js), not this cache, which is
+// emptied all at once.
 const waiting = new WeakMap();
 
 // Lays the markup out off the page and reads what Text reports: the width
