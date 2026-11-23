@@ -38,7 +38,9 @@ async function opened(browser, viewport, colorScheme, route) {
 
 // Every code card the page shows, as the page lays it out: its own
 // box, the code in it (the rich, monospaced Text the build highlighted,
-// or the editor that took its place), and what each says it is.
+// or the editor that took its place), and what each says it is. A
+// shell's look sets code in its own face first; its stack ends in the
+// generic monospace, as every mono stack does.
 const cards = (page) =>
   page.evaluate(() => {
     const shown = (node) => {
@@ -58,7 +60,7 @@ const cards = (page) =>
         const code = [...card.querySelectorAll(".qq-rich")].filter(
           (node) =>
             shown(node) &&
-            getComputedStyle(node).fontFamily.startsWith("ui-monospace"),
+            /\bmonospace\s*$/.test(getComputedStyle(node).fontFamily),
         );
         const words = [...card.querySelectorAll(".qq-text")].filter(
           (node) => shown(node) && node.textContent.trim() !== "",
@@ -177,7 +179,7 @@ for (const route of ROUTES) {
         ].filter(
           (node) =>
             node.classList.contains("cm-content") ||
-            getComputedStyle(node).fontFamily.startsWith("ui-monospace"),
+            /\bmonospace\s*$/.test(getComputedStyle(node).fontFamily),
         );
         if (blocks.length === 0) out.push("no code on the page");
         for (const code of blocks) {
@@ -262,7 +264,7 @@ for (const route of ROUTES) {
           const out = [];
           const blocks = [...document.querySelectorAll("#app .qq-rich")].filter(
             (node) =>
-              getComputedStyle(node).fontFamily.startsWith("ui-monospace"),
+              /\bmonospace\s*$/.test(getComputedStyle(node).fontFamily),
           );
           if (blocks.length === 0) out.push("no code on the page");
           for (const code of blocks) {
