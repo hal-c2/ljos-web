@@ -1146,6 +1146,15 @@ Column {
             Rectangle {
                 id: foldBar
                 visible: block.foldable && (!block.isLive || block.sourceShown)
+                // The fold goes when the card widens past a phone's (a phone
+                // turned, a window made wider), and a focus left on its
+                // hidden button reaches nothing a reader sees. It goes to
+                // what is under the code once the fold has gone: the
+                // toolbar's first button, or Copy where nothing runs.
+                onVisibleChanged: {
+                    if (!visible && foldButton.activeFocus)
+                        (block.isLive && runButton.visible ? runButton : copyButton).forceActiveFocus();
+                }
                 // Folding, the code shrinks above the button, which would
                 // go up out of the view with the reader's focus on it.
                 onYChanged: {

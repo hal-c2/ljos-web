@@ -1353,6 +1353,106 @@ test("a phone's page and Tab go stage, toolbar, code, as it shows them", async (
   }
 });
 
+// Across a phone's width the card puts its stage and toolbar above the
+// code or below it, giving them other parents: the runtime's focus, the
+// browser's in a running example, and the example itself go with them.
+const DESKTOP = { width: 1440, height: 900 };
+
+async function liveCard(browser, route) {
+  const context = await browser.newContext({
+    viewport: DESKTOP,
+    reducedMotion: "no-preference",
+  });
+  const page = await context.newPage();
+  await page.goto(route);
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  return { context, page };
+}
+
+test("crossing a phone's width keeps the focus on Stop, Tab's way on from it, and the example as used", async ({
+  browser,
+}) => {
+  const { context, page } = await liveCard(browser, "/start/first-app/");
+  try {
+    const card = page.locator(CARD).filter({ has: page.getByRole("textbox") }).first();
+    await card.scrollIntoViewIfNeeded();
+    await card.getByRole("button", { name: /^Run / }).click();
+    await card.getByRole("button", { name: "Increment" }).click();
+    await expect(card.getByText("Count: 1", { exact: true })).toBeVisible();
+    const stop = card.getByRole("button", { name: /^Stop / });
+    const edit = card.getByRole("button", { name: /^Edit / });
+    await intoCode(page, card);
+    await page.keyboard.press("Tab");
+    await expect.poll(() => ringed(stop), "below the code, Stop is first").toBe(true);
+    for (const [width, where] of [
+      [PHONE.width, "on a phone"],
+      [DESKTOP.width, "widened again"],
+    ]) {
+      await page.setViewportSize({ ...DESKTOP, width });
+      await expect.poll(() => ringed(stop), `${where}, Stop has the focus`).toBe(true);
+      await expect(card.getByText("Count: 1", { exact: true }), `${where}, the example is as used`).toBeVisible();
+      await page.keyboard.press("Tab");
+      await expect.poll(() => ringed(edit), `${where}, Tab goes on to Edit`).toBe(true);
+      await page.keyboard.press("Shift+Tab");
+      await expect.poll(() => ringed(stop), "and back").toBe(true);
+    }
+  } finally {
+    await context.close();
+  }
+});
+
+test("a fold that goes as the page widens gives its focus to Run", async ({
+  browser,
+}) => {
+  const { context, page } = await onPhone(browser);
+  try {
+    const card = await foldedCard(page);
+    const less = card.getByRole("button", { name: /^Show less/ });
+    await intoCode(page, card);
+    await page.keyboard.press("Tab");
+    await expect.poll(() => ringed(less), "Tab leaves the code to Show less").toBe(true);
+    await page.setViewportSize(DESKTOP);
+    const run = card.getByRole("button", { name: /^Run / });
+    await expect.poll(() => ringed(run), "no fold, so Run has the focus").toBe(true);
+    await page.keyboard.press("Tab");
+    await expect
+      .poll(() => ringed(card.getByRole("button", { name: /^Edit / })), "and Tab goes on from it")
+      .toBe(true);
+  } finally {
+    await context.close();
+  }
+});
+
+test("a running example's field keeps the keys as the card crosses a phone's width", async ({
+  browser,
+}) => {
+  const { context, page } = await liveCard(browser, "/controls/value-inputs/");
+  try {
+    let card;
+    const cards = page.locator(CARD).filter({ has: page.getByRole("textbox") });
+    for (let index = 0; index < (await cards.count()) && !card; index++)
+      if (/\bTextField\s*\{/.test(await cards.nth(index).textContent())) card = cards.nth(index);
+    await card.scrollIntoViewIfNeeded();
+    await card.getByRole("button", { name: /^Run / }).click();
+    const field = card.locator("input").first();
+    await field.click();
+    await page.keyboard.press("End");
+    await page.keyboard.type("a");
+    const before = await field.inputValue();
+    for (const [width, key] of [
+      [PHONE.width, "b"],
+      [DESKTOP.width, "c"],
+    ]) {
+      await page.setViewportSize({ ...DESKTOP, width });
+      await page.keyboard.type(key);
+      await expect(field, `at ${width} px the keys still reach it`).toBeFocused();
+    }
+    await expect(field).toHaveValue(`${before}bc`);
+  } finally {
+    await context.close();
+  }
+});
+
 const cardHeight = (card) =>
   card.evaluate((node) => node.getBoundingClientRect().height);
 
