@@ -14,6 +14,11 @@ Feature: A code card works on the narrowest phone, and gives its code as the rea
     Then the tab with the keyboard is whole and under the pointer, clear of Copy
     And the card itself is never scrolled to show it
 
+  Scenario: A file's long name keeps its tab inside the card's head
+    Given a live example of several files, one named wider than the card's head, on a screen 320 px wide, in light or dark
+    Then that file's tab is whole, inside the head and clear of Copy
+    And a reader still hears the file's whole name
+
   Scenario: An edited, running example's toolbar fits a narrow phone
     Given a live example on a screen 320 px wide, in light or dark
     When the reader runs it and edits its code

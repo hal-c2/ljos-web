@@ -489,6 +489,72 @@ for (const route of [
   }
 }
 
+// A file whose name is wider than the card's head on the narrowest
+// phone: its tab still fits in the head, clear of Copy, and a reader
+// still hears the whole name. The docs have no such name, so the test
+// gives one to the fetching page's example of two files, everywhere the
+// page says it (the tab, the code that fetches it, the prose), and the
+// example stays the same example.
+const LONG = "north-district-crew-activity-for-the-whole-week.json";
+for (const scheme of SCHEMES) {
+  test(`a file's long name keeps its tab inside the card's head on a narrow phone, ${scheme}`, async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({
+      viewport: { width: 320, height: 640 },
+      colorScheme: scheme,
+      reducedMotion: "no-preference",
+    });
+    try {
+      await context.route("**/data/fetching/**", async (route) => {
+        const response = await route.fetch();
+        if (!/html|json|javascript/.test(response.headers()["content-type"] ?? ""))
+          return route.fulfill({ response });
+        const body = (await response.text()).replaceAll("activity.json", LONG);
+        await route.fulfill({ response, body });
+      });
+      const page = await context.newPage();
+      await page.goto(base + "data/fetching/");
+      await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+      // Found by the name a reader hears: the whole of it.
+      const tab = page.getByRole("tab", { name: LONG, exact: true }).filter({ visible: true });
+      await expect(tab, "a reader hears the whole name").toHaveCount(1);
+      const card = page.locator('[data-object-name="codeCard"]:visible').filter({ has: tab });
+      const copy = card.getByRole("button", { name: /^(Copy|Copied)\b/ }).first();
+      await copy.evaluate((node) => node.scrollIntoView({ block: "center", inline: "nearest" }));
+      await expect
+        .poll(
+          () =>
+            tab.evaluate((node, name) => {
+              const card = node.closest('[data-object-name="codeCard"]');
+              const [box, edge] = [node.getBoundingClientRect(), card.getBoundingClientRect()];
+              const copy = [...card.querySelectorAll('[role="button"], button')]
+                .find((button) => /^(Copy|Copied)\b/.test(button.getAttribute("aria-label") ?? button.textContent.trim()))
+                .getBoundingClientRect();
+              const wrong = [];
+              // What the test is about: the whole name could not fit.
+              const words = node.querySelector(".qq-text") ?? node;
+              const pen = document.createElement("canvas").getContext("2d");
+              pen.font = getComputedStyle(words).font;
+              if (pen.measureText(name).width <= copy.left - edge.left)
+                wrong.push("the name is not wider than the head");
+              if (box.left < edge.left || box.right > copy.left) wrong.push("out of the head, or under Copy");
+              const middle = box.top + box.height / 2;
+              for (const x of [box.left + 1, box.left + box.width / 2, box.right - 1]) {
+                if (!node.contains(document.elementFromPoint(x, middle)))
+                  wrong.push(`covered or clipped at x=${Math.round(x)}`);
+              }
+              return wrong;
+            }, LONG),
+          { message: "the long name's tab", timeout: 3000 },
+        )
+        .toEqual([]);
+    } finally {
+      await context.close();
+    }
+  });
+}
+
 // Run and edited, every control of the toolbar is clear of the others
 // and of the word that says the code is edited.
 for (const scheme of SCHEMES) {
