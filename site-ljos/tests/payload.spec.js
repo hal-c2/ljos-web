@@ -42,9 +42,9 @@ test("the report reads every page the build wrote", () => {
 // what a visit asks for is pinned in a browser.
 test("no page's static first load holds the editor, the compiler, PhysX or sql.js", () => {
   expect(reaching(["attach-", "ljos_web_compiler", "physx-", "sql-wasm"])).toEqual({});
-  // What a page imports statically is joined into one first-load file
-  // (packages/runtime/site.js), so a module that got in would not be
-  // named and the line above would pass with it there. The editor is a
+  // The bundle's own first-load code is one file (`site-*`,
+  // packages/runtime/site.js): a module that got in with it would not
+  // be named, and the line above would pass with it there. The editor is a
   // chunk of its own, fetched later; the compiler's, PhysX's and sql.js's
   // scripts each name their .wasm, which no first-load script does.
   expect([...later].some((file) => named(file, "attach-") && file.endsWith(".js")), "an attach-* chunk an edit fetches").toBe(true);
@@ -104,8 +104,8 @@ test("no page but the showcase's first load holds the showcase", () => {
 // is for a demo that draws with it, and comes with that demo.
 test("no page's first load holds QtQuick.Shapes", () => {
   expect(reaching(["Shape-", "Shapes-", "Path-"])).toEqual({});
-  // Its Shape is a chunk of its own, fetched later: joined into the
-  // first load's one file (packages/runtime/site.js), it would not be
+  // Its Shape is a chunk of its own, fetched later: joined into a
+  // first-load file (`site-*`, packages/runtime/site.js), it would not be
   // named and the line above would pass with it there.
   expect([...later].some((file) => named(file, "Shape-")), "a Shape-* chunk a demo fetches").toBe(true);
 });
