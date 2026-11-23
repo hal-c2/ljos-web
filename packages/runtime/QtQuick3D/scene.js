@@ -229,8 +229,11 @@ export function readsAhead() {
     record.readers.delete(reader);
     if (record.readers.size) return;
     if (record.ahead && files.get(key) === record) files.delete(key);
-    // Still on the way, they are let go once made something of (`file`).
-    else if (record.bytes && (record.bytes.bytes || record.bytes.failed)) record.bytes = null;
+    // The record lets go of them whether they are here or not: what is made
+    // of a first fetch is made of the bytes `make` is given, and one fetched
+    // again for a reader is made nothing of. The fetch itself goes with its
+    // last reader (`letBytesGo`).
+    else record.bytes = null;
   };
   // Lets go of what the reads in `gone` hold that no read in `reads` does:
   // a record, and apart from it, the bytes.
@@ -283,7 +286,8 @@ export function readsAhead() {
     spend() {
       for (const each of reads.values()) {
         letBytesGo(each.bytes);
-        if (each.record.bytes === each.bytes) each.record.bytes = null;
+        // Another view that reads the file keeps them, for its wasm.
+        if (each.record.bytes === each.bytes && !each.bytes?.readers.size) each.record.bytes = null;
         each.bytes = null;
       }
     },
