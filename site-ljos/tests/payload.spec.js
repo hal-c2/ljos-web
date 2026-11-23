@@ -104,8 +104,14 @@ test("a docs page's first load holds no other page's reading", () => {
 // yet, written in the page because its two schemes share one tree
 // (2.2 kB on /data/models/, which has eight). A plain card writes
 // neither. /start/cli/, all plain cards, already loaded 401.2 kB
-// before them.
-const CEILING_KB = 403;
+// before them. It went up again, from 403 kB, for a live example on a
+// phone: its stage and toolbar come before its code, so the narrow
+// page writes them in another order than the wide one and the two
+// compress less together (1.6 kB on /data/models/), and the runtime
+// keeps a reader's focus in a part that moves (1.1 kB). A plain card
+// now writes none of a live one's parts, nor a fold its code is too
+// short for: /start/cli/ came down from 403 kB to 374 kB.
+const CEILING_KB = 405;
 
 test(`no page's first load is over ${CEILING_KB} kB gzip`, () => {
   const over = report.filter(({ first }) => first.total.gzip > CEILING_KB * 1024).map(({ route, first }) => `${route}: ${kB(first.total.gzip)} kB`);
