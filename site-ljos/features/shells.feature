@@ -123,6 +123,11 @@ Feature: The site is shown in a shell the reader picks
     Then the wide page lists them beside it
     And the narrow page's hidden sidebar lists none, as the menu holds them there
 
+  Scenario: A plain code card is written without a live block's parts
+    Given a docs page whose code cards are all plain, as the build wrote it
+    Then no card holds a live block's toolbar or stage
+    And a page with a live block still writes that block's toolbar and stage
+
   Scenario: A page's first load stays within its ceiling
     Given any page the build wrote
     Then what it loads before a reader does anything is at most 400 kB gzip
