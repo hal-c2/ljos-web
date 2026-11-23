@@ -1646,6 +1646,32 @@ test.describe("a View3D no one asked a renderer of", () => {
     expect(same, "the fetch the other view holds").toBe(true);
   });
 
+  // A view that has spent what it read still names the file, but holds no
+  // bytes: once the last view that held them goes, the record doesn't either.
+  test("bytes are not held for a view that has spent them once the one that held them goes", async ({ page }) => {
+    await page.goto("/?scene=wgpu_beside");
+    await page.waitForFunction(() => window.ready);
+    const scene = await sceneOf(page);
+    const [before, after] = await scene.evaluate(async (scene) => {
+      const before = scene.held();
+      const path = "scenes/wgpu_models/pair.bin";
+      const took = () => ({});
+      const [spent, holds] = [scene.readsAhead(), scene.readsAhead()];
+      for (const ahead of [spent, holds]) {
+        ahead.sighting();
+        ahead.read(path, "buffer", took, "loader");
+        ahead.sighted();
+      }
+      await scene.fetched(path).done;
+      spent.spend();
+      holds.end();
+      const after = scene.held();
+      spent.end();
+      return [before, after];
+    });
+    expect(after, "bytes held while only the view that spent them names the file").toBe(before);
+  });
+
   // It reads a file by its extension: one it refuses is no reason to turn,
   // nor to fetch, whatever is in it.
   test("stays on the JavaScript renderer for a file whose name wgpu's loader refuses", async ({ page }) => {
