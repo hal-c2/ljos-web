@@ -284,12 +284,30 @@ test("a page with nothing to run asks for nothing past its first load", async ({
 // The front page's replay reloads its app from a second module the build
 // made, so it asks for nothing an edit needs: not as it loads, not while
 // it plays, not once it has played to its end.
+//
+// Quiet is counted here, not read from Playwright's "networkidle": that
+// fires once a navigation, and a frame made and dropped after it (the
+// replay's screenshot measures styles in one) takes it back for good, as
+// nothing after it restarts the wait. A file is counted as it is asked
+// for, finished or not.
 test("/ fetches no compiler and no editor through its whole replay", async ({ page }) => {
   const asked = [];
-  page.on("requestfinished", (request) => {
+  let open = 0;
+  let stirred = Date.now();
+  page.on("request", (request) => {
+    open += 1;
+    stirred = Date.now();
     const url = new URL(request.url());
     if (url.protocol === "http:" && /\.(?:js|mjs|wasm)$/.test(url.pathname)) asked.push(url.pathname.split("/").pop());
   });
+  const settled = () => {
+    open -= 1;
+    stirred = Date.now();
+  };
+  page.on("requestfinished", settled);
+  page.on("requestfailed", settled);
+  // As Playwright counts it: nothing asked for or on its way for 500 ms.
+  const quiet = (message) => expect.poll(() => open === 0 && Date.now() - stirred >= 500, { message, timeout: 15_000 }).toBe(true);
   const forEdit = () => asked.filter((file) => file.endsWith(".wasm") || ["attach-", "modules-", "compiler-", "ljos_web_compiler"].some((prefix) => file.startsWith(prefix)));
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(base);
@@ -299,7 +317,7 @@ test("/ fetches no compiler and no editor through its whole replay", async ({ pa
   await expect(page.getByRole("button", { name: "Pause the agent replay" }), "while it plays").toBeVisible();
   await expect(page.getByText("reloaded", { exact: true }), "its edit, reloaded").toHaveCount(1, { timeout: 30_000 });
   await expect(page.getByText("answered", { exact: true }), "played to its end").toHaveCount(7, { timeout: 60_000 });
-  await page.waitForLoadState("networkidle");
+  await quiet("the page asks for nothing more once the replay has played");
   expect(forEdit(), "once it has played").toEqual([]);
 });
 
