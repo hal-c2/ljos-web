@@ -20,6 +20,9 @@ const VIEWS = [
   ["desktop", { width: 1440, height: 900 }],
 ];
 const SCHEMES = ["light", "dark"];
+// The site may stand at a base (/ljos-web/ on the project-path build), so
+// each route is opened under it, as base.spec.js does.
+const base = process.env.LJOS_SITE_BASE ?? "/";
 
 async function opened(browser, viewport, colorScheme, route) {
   const context = await browser.newContext({
@@ -28,7 +31,7 @@ async function opened(browser, viewport, colorScheme, route) {
     reducedMotion: "no-preference",
   });
   const page = await context.newPage();
-  await page.goto(route);
+  await page.goto(base + route.replace(/^\//, ""));
   await page.waitForSelector('#app[data-ljos-hydrated="true"]');
   return { context, page };
 }
