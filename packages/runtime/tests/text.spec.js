@@ -879,6 +879,34 @@ test("a picture that keeps its file at another density is measured again, and th
   expect(await remeasured(page), "back at the first density, nothing is measured again").toBe(0);
 });
 
+// What is known of the pictures that arrived is kept to as many as the
+// markup and its measures are, however many a page shows over its life.
+test("the pictures that arrived and the choices picked are kept to a bounded number", async ({ page }) => {
+  await boxes(page, "markup");
+  const kept = await page.evaluate(async () => {
+    // The page's own instance of the module, by the address it was loaded from.
+    const address = performance.getEntriesByType("resource").find(({ name }) => /\/QtQuick\/richtext\.js/.test(name)).name;
+    const { arrive, remembered } = await import(address);
+    const sizes = [];
+    // Each is a picture with a choice of its own, arrived at a size of its
+    // own: what the browser's img says of it, without fetching anything.
+    for (let index = 0; index < 600; index++) {
+      const picture = document.createElement("picture");
+      const source = document.createElement("source");
+      source.srcset = `/many-${index}.svg`;
+      picture.append(source);
+      const src = "/many.png";
+      const image = { localName: "img", currentSrc: `/many-${index}.svg`, src, naturalWidth: 80, naturalHeight: 1 + index, parentElement: picture, getAttribute: () => src };
+      arrive({ target: image });
+      sizes.push(remembered());
+    }
+    window.flush();
+    return { early: sizes[199], most: Math.max(...sizes.flatMap(({ arrived, picked }) => [arrived, picked])) };
+  });
+  expect(kept.early, "each one is kept while there are few").toEqual({ arrived: 200, picked: 200 });
+  expect(kept.most, "and no more than the markup's 256 and the one just come").toBeLessThanOrEqual(257);
+});
+
 // Firefox picks a picture's source in a task of its own, so each new copy on
 // the bench is still empty when it is measured. Made so here in any browser.
 async function pickedLate(page) {
