@@ -15,7 +15,10 @@ import { highlight } from "ljos-web/markdown";
 const APP_SHELL = readFileSync(new URL("../bundle/Demos/PantryShell.qml", import.meta.url), "utf8").replace(/\n$/, "");
 
 // The TypeScript beside the front page's app, as the app imports it.
-const BOARD = readFileSync(new URL("../bundle/Demos/logic/board.ts", import.meta.url), "utf8");
+// The board's board.ts, which the poster's app runs, and the list's, which
+// the replay starts from.
+const BOARD = readFileSync(new URL("../bundle/Demos/logic/after/board.ts", import.meta.url), "utf8");
+const LIST = readFileSync(new URL("../bundle/Demos/logic/before/board.ts", import.meta.url), "utf8");
 
 // The site reads the build's packed colouring with its own copy of
 // `unpackRich` (a library file imports nothing): the two read alike.
@@ -111,11 +114,18 @@ test("the landing page leads with its claim and the agent replay, and never pitc
   expect(words).toContain("ShellLoader");
   expect(words).toContain("Slot");
   // The TypeScript it shows first is, word for word, the part of the file
-  // the app runs that makes the board: from `lanes` to the file's end.
+  // the app runs that lays it out: from `lanes` to the file's end. The
+  // poster's app is the board; the replay, once it plays, starts from the
+  // list, so which it is depends on when it is read, but never both.
   expect(BOARD.indexOf("export function lanes(")).toBeGreaterThan(-1);
+  expect(LIST.indexOf("export function lanes(")).toBeGreaterThan(-1);
   const board = BOARD.slice(BOARD.indexOf("export function lanes("));
+  const list = LIST.slice(LIST.indexOf("export function lanes("));
   expect(board).toContain('title: "Crew assigned"');
-  expect(words.replace(/\s+/g, " ")).toContain(board.replace(/\s+/g, " ").trim());
+  expect(list).not.toContain('title: "Crew assigned"');
+  const flat = words.replace(/\s+/g, " ");
+  const shows = [board, list].filter((file) => flat.includes(file.replace(/\s+/g, " ").trim()));
+  expect(shows, "one board.ts, the running app's, word for word").toHaveLength(1);
   expect(words).not.toMatch(/Qt[\s-]?compatible|compatible with Qt/i);
   // Qt is named on the porting page, not on the front page.
   expect(words).not.toContain("Qt");

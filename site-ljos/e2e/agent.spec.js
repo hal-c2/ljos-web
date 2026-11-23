@@ -1,42 +1,64 @@
-// The front page's agent replay, run: each recorded step is sent as the
-// MCP tool call it was, to the inspector of the dispatch card on the page,
-// and the card changes as an agent's calls change it: its list turned
-// into a board, a filter and a crew button found by role and pressed. What
-// the card says it did comes back into the agent's log through app_watch
-// and app_logs, the replay's own presses and then the reader's. It starts
+// The front page's agent replay, run: each recorded call is sent as the
+// MCP tool call it was, to the inspector of the dispatch app on the page,
+// and the app changes as an agent changes it: a crew button found by role
+// and pressed, then board.ts edited, and the running app reloaded from the
+// module the build made of the edited file, with the crew kept. What the
+// app says it did comes back into the agent's log through app_watch and
+// app_logs, the replay's own presses and then the reader's. It starts
 // itself unless the reader asked for less motion, and says all along that
 // it is a replay (features/front-page.feature).
 import { readFileSync } from "node:fs";
 import { animationFrames, expect, open, press, runButton, test } from "./fixtures.js";
 
-const steps = 14;
-// The part of board.ts the page shows (scripts/build.mjs cuts it the same).
-const BOARD = readFileSync(new URL("../bundle/Demos/logic/board.ts", import.meta.url), "utf8");
-const SHOWN = BOARD.slice(BOARD.indexOf("export function lanes(")).trimEnd();
+const steps = 8;
+// The steps that are calls, each answered: the one that is not is the edit.
+const calls = 7;
+// The part of each board.ts the page shows (scripts/build.mjs cuts them the
+// same): the list's, which the app starts from, and the board's.
+const cut = (version) => {
+  const file = readFileSync(new URL(`../bundle/Demos/logic/${version}/board.ts`, import.meta.url), "utf8");
+  return file.slice(file.indexOf("export function lanes(")).trimEnd();
+};
+const SHOWN = { list: cut("before"), board: cut("after") };
+const words = (text) => text.replace(/\s+/g, " ").trim();
 const shown = (locator) => locator.filter({ visible: true }).first();
+// The code the page shows beside the app, as its text.
+const codeOf = (page) => shown(page.getByText(/export function lanes\(/)).evaluate((element) => (element.closest(".qq-text") ?? element).textContent);
 const nextStep = "Done. Try Assign crew or List / Board.";
 const replayLabel = (page) => shown(page.getByText("Replay · no live agent", { exact: true }));
 
-test("the agent replay drives the card over MCP, and what the card does streams back", async ({ page }) => {
+test("the agent replay drives the app over MCP, its edit reloads it with the crew kept, and what the app does streams back", async ({ page }) => {
   test.skip(test.info().project.name === "no-webassembly", "the replay's poster stands where nothing runs; site-ljos.spec.js reads it");
   await open(page, "/");
   await expect(page.getByRole("button", { name: "Pause the agent replay" }), "it starts without a press").toBeVisible();
+  // It starts as the list: the whole app, one lane, the list's code.
+  await expect(shown(page.getByText("North district dispatch", { exact: true })), "under its own heading").toBeVisible();
+  await expect(page.getByRole("list", { name: "Tickets", exact: true }).filter({ visible: true }).getByRole("listitem"), "its five tickets").toHaveCount(5);
+  expect(words(await codeOf(page)), "the list's board.ts").toBe(words(SHOWN.list));
   await press(shown(page.getByRole("tab", { name: "Agent", exact: true })));
 
   // Every call answered, none refused: the poster's calls say neither.
-  await expect(page.getByText("answered", { exact: true }), "every step is answered").toHaveCount(steps, { timeout: 60_000 });
+  await expect(page.getByText("answered", { exact: true }), "every call is answered").toHaveCount(calls, { timeout: 60_000 });
   await expect(page.getByText("refused", { exact: true })).toHaveCount(0);
   await expect(shown(page.getByText(`Step ${steps} of ${steps}`, { exact: true }))).toBeVisible();
 
-  // The card as the calls left it: a board, the filter on (the closed
-  // ticket gone), and the ticket that had no crew given one.
+  // The edit, as the log records it: the file, the lines it took out and
+  // put in, and the app reloaded from the module built from it.
+  await expect(page.getByText("reloaded", { exact: true }), "the edit's reload").toHaveCount(1);
+  await expect(page.getByText("kept the last board", { exact: true })).toHaveCount(0);
+  await expect(page.getByText(/\+ title: "Crew assigned",/).first(), "a line the edit put in").toBeAttached();
+
+  // The app as the edit left it: a board, and the ticket that had no
+  // crew given one before the edit, still with it.
   await expect(shown(page.getByText("North district dispatch", { exact: true }))).toBeVisible();
   await expect(shown(page.getByText("Crew assigned", { exact: true })), "the list became a board").toBeVisible();
   await expect(page.getByRole("button", { name: "Assign crew to BG-415" })).toHaveCount(0);
-  // What it set, each read back from the app's answer.
-  await expect(page.getByText(/→ heading: .*North district/), "the heading it set").toHaveCount(1);
-  await expect(page.getByText(/→ tickets: /), "the tickets it brought in").toHaveCount(3);
-  await expect(page.getByText(/→ filters: .*Open only/), "the filter it offered").toHaveCount(1);
+  // The code beside it is now the board's file.
+  await press(shown(page.getByRole("tab", { name: "TypeScript", exact: true })));
+  expect(words(await codeOf(page)), "the board's board.ts").toBe(words(SHOWN.board));
+  await press(shown(page.getByRole("tab", { name: "Agent", exact: true })));
+  // What the reload kept, read back from the app's answer.
+  await expect(page.getByText(/→ crews = .*BG-415.*On-call crew/), "the crew it kept").toHaveCount(1);
   // One ticket is left for a person, where the board says so.
   await expect(page.getByText("→ unassigned = 1", { exact: false }).first()).toBeAttached();
   await expect(shown(page.getByText("Needs a crew", { exact: true }))).toBeVisible();
@@ -47,23 +69,27 @@ test("the agent replay drives the card over MCP, and what the card does streams 
   await expect(page.getByRole("button", { name: "Run again: the agent replay" })).toBeVisible();
   await expect(shown(page.getByText(nextStep, { exact: true })), "the reader's next step").toBeVisible();
 
-  // The replay's own presses, said by the card, back in the log.
-  await expect(page.getByText(/^app {2}filter open only: 4 of 5 tickets$/)).toHaveCount(1);
+  // The replay's own press, said by the app, back in the log.
   await expect(page.getByText(/^app {2}assigned BG-415 to On-call crew$/)).toHaveCount(1);
 
   // The reader's turn: a press of theirs streams in the same way.
   const filter = shown(page.getByRole("button", { name: "Open only" }));
   await press(filter);
+  await expect(page.getByText(/^app {2}filter open only: 4 of 5 tickets$/)).toHaveCount(1);
+  await expect(page.getByText("West ridge battery test", { exact: true }).filter({ visible: true }), "the closed ticket filtered out").toHaveCount(0);
+  await press(filter);
   await expect(page.getByText(/^app {2}filter off: 5 tickets$/)).toHaveCount(1);
   await expect(shown(page.getByText("West ridge battery test", { exact: true }))).toBeVisible();
 
-  // And so does their own edit of what the agent changed: the same app,
-  // a list again, with the crew it was given.
+  // And so does their own undo of the agent's edit: the app reloaded
+  // from the list's module, with the crew it was given.
   await press(shown(page.getByRole("button", { name: "List layout" })));
   await expect(page.getByText("Crew assigned", { exact: true }).filter({ visible: true })).toHaveCount(0);
   await expect(shown(page.getByText("On-call crew", { exact: true }))).toBeVisible();
   await expect(page.getByRole("button", { name: "Assign crew to BG-415" })).toHaveCount(0);
   await expect(page.getByText(/^app {2}layout changed to list$/)).toHaveCount(1);
+  await press(shown(page.getByRole("tab", { name: "TypeScript", exact: true })));
+  expect(words(await codeOf(page)), "the list's board.ts again").toBe(words(SHOWN.list));
 });
 
 test("nothing of the whole Observer's is fetched before it is wanted", async ({ page }) => {
@@ -101,6 +127,9 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
         await expect(code, "the code").toBeInViewport({ ratio: 1 });
         for (const layout of ["List", "Board"])
           await expect(shown(page.getByRole("button", { name: `${layout} layout` })), `Edit: ${layout}`).toBeInViewport({ ratio: 1 });
+      } else {
+        // Over the app, the lines of the running file the edit changes.
+        await expect(shown(page.getByText(/^(return \[\{ )?title: "/)), "the code strip").toBeInViewport({ ratio: 1 });
       }
       const drawn = await code.evaluate((element) => {
         const text = element.closest(".qq-text") ?? element;
@@ -111,7 +140,11 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
         return { past: ink.right - box.right, tall: ink.bottom - box.top, size };
       });
       expect(drawn.past, "no line of the code is cut").toBeLessThanOrEqual(0.5);
-      expect(drawn.tall, "no line of the code wraps").toBeLessThanOrEqual(SHOWN.split("\n").length * 22 + 1);
+      // Whichever file runs as it is measured, word for word, and no line of it wrapped.
+      const text = await codeOf(page);
+      expect([SHOWN.list, SHOWN.board].map(words), "the running app's board.ts").toContain(words(text));
+      const file = words(text) === words(SHOWN.list) ? SHOWN.list : SHOWN.board;
+      expect(drawn.tall, "no line of the code wraps").toBeLessThanOrEqual(file.split("\n").length * 22 + 1);
       expect(drawn.size, "large enough to read").toBeGreaterThanOrEqual(14);
       // One toolbar: its parts in the band over the app, its button last.
       const boxOf = (locator) => locator.boundingBox();
@@ -166,13 +199,13 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       const start = await look("the list");
       await expect(shown(page.getByText("Crew assigned", { exact: true }))).toBeVisible();
       expect(await look("the board"), "the page at the board").toBeCloseTo(start, 0);
-      await expect(page.getByText("answered", { exact: true })).toHaveCount(steps, { timeout: 60_000 });
+      await expect(page.getByText("answered", { exact: true })).toHaveCount(calls, { timeout: 60_000 });
       expect(await look("the end"), "the page at the end").toBeCloseTo(start, 0);
       await press(shown(page.getByRole("button", { name: "Assign crew to BG-421" })));
       await expect(page.getByRole("button", { name: "Assign crew to BG-421" })).toHaveCount(0);
       expect(await look("after the reader's press"), "the page after the press").toBeCloseTo(start, 0);
       await expect(shown(page.getByText("Done", { exact: true })), "nothing left to suggest").toBeVisible();
-      await press(shown(page.getByRole("button", { name: "Open only" })));
+      // The replay leaves the filter off, so this is already every ticket.
       await expect(shown(page.getByText("West ridge battery test", { exact: true })), "the fullest board").toBeVisible();
       expect(await look("the fullest board"), "the page at the fullest board").toBeCloseTo(start, 0);
       await expect(page.getByText("Needs a crew", { exact: true }).filter({ visible: true }), "no empty lane").toHaveCount(0);
@@ -194,7 +227,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       await open(page, "/");
       await expect(page.getByRole("button", { name: "Pause the agent replay" })).toBeVisible();
       // Each frame, so a Done between two of expect's looks is caught too.
-      await page.evaluate((steps) => {
+      await page.evaluate((calls) => {
         const seen = { early: 0, boardWithoutDone: 0, after: 0 };
         window.saidDone = seen;
         const visible = (node) => node.parentElement.checkVisibility({ visibilityProperty: true, opacityProperty: true });
@@ -206,14 +239,14 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
             else if (/^Done\b/.test(node.data)) done ||= visible(node);
             else if (node.data === "Crew assigned") board ||= visible(node);
           }
-          if (done && answered < steps) seen.early += 1;
-          if (done && answered >= steps) seen.after += 1;
-          if (board && !done && answered < steps) seen.boardWithoutDone += 1;
+          if (done && answered < calls) seen.early += 1;
+          if (done && answered >= calls) seen.after += 1;
+          if (board && !done && answered < calls) seen.boardWithoutDone += 1;
           if (!seen.after) requestAnimationFrame(look);
         };
         requestAnimationFrame(look);
-      }, steps);
-      await expect(page.getByText("answered", { exact: true }), "every step is answered").toHaveCount(steps, { timeout: 60_000 });
+      }, calls);
+      await expect(page.getByText("answered", { exact: true }), "every call is answered").toHaveCount(calls, { timeout: 60_000 });
       await expect(shown(page.getByText(nextStep, { exact: true })), "that it is done, and what to press").toBeInViewport({ ratio: 1 });
       await expect.poll(() => page.evaluate(() => window.saidDone.after), { message: "Done after the last answer" }).toBeGreaterThan(0);
       const seen = await page.evaluate(() => window.saidDone);
@@ -242,7 +275,7 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
       // A call already on its way may still answer; none follows it.
       await page.waitForTimeout(500);
       const answered = await page.getByText("answered", { exact: true }).count();
-      expect(answered, "paused before its end").toBeLessThan(steps);
+      expect(answered, "paused before its end").toBeLessThan(calls);
       await page.waitForTimeout(3000);
       expect(await page.getByText("answered", { exact: true }).count(), "no call after Pause").toBe(answered);
     });
@@ -280,15 +313,16 @@ for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 
         await press(run);
         await expect(page.getByRole("button", { name: "Pause the agent replay" }), "Run plays it").toBeVisible();
         await expect(lanes, "from the list").toHaveCount(0);
-        await expect(shown(page.getByText("Dispatch", { exact: true })), "under its plain heading").toBeVisible();
+        await expect.poll(async () => words(await codeOf(page)), { message: "the list's board.ts" }).toBe(words(SHOWN.list));
+        await expect(shown(page.getByText("North district dispatch", { exact: true })), "under its heading").toBeVisible();
         const tickets = page.getByRole("list", { name: "Tickets", exact: true }).filter({ visible: true }).getByRole("listitem");
-        await expect(tickets, "the two tickets it starts with").toHaveCount(2);
+        await expect(tickets, "the five tickets it starts with").toHaveCount(5);
         await expect(tickets.nth(0)).toHaveAccessibleName(/^BG-412 Substation Nord-4 transformer fan alert, /);
         await expect(tickets.nth(1)).toHaveAccessibleName(/^BG-415 Feeder 12 voltage sag log, /);
         await expect(page.getByText(/^Done\b/).filter({ visible: true }), "not Done at its start").toHaveCount(0);
         await expect(lanes, "to the board").toHaveCount(1);
-        expect(await page.getByText("answered", { exact: true }).count(), "less motion does not snap every step").toBeLessThan(steps);
-        await expect(page.getByText("answered", { exact: true }), "every step is answered").toHaveCount(steps, { timeout: 60_000 });
+        expect(await page.getByText("answered", { exact: true }).count(), "less motion does not snap every step").toBeLessThan(calls);
+        await expect(page.getByText("answered", { exact: true }), "every call is answered").toHaveCount(calls, { timeout: 60_000 });
         await expect(shown(page.getByText(nextStep, { exact: true })), "Done at its end").toBeVisible();
       });
     });
