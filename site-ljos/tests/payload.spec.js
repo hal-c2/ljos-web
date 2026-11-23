@@ -90,6 +90,11 @@ test("no page but the showcase's first load holds the showcase", () => {
 // is for a demo that draws with it, and comes with that demo.
 test("no page's first load holds QtQuick.Shapes", () => {
   expect(reaching(["Shape-", "Shapes-", "Path-"])).toEqual({});
+  // Its Shape is a chunk of its own, fetched later: joined into the
+  // first load's one file (packages/runtime/site.js), it would not be
+  // named and the line above would pass with it there.
+  const later = new Set(report.flatMap(({ later }) => later.files.map((entry) => entry.file)));
+  expect([...later].some((file) => named(file, "Shape-")), "a Shape-* chunk a demo fetches").toBe(true);
 });
 
 // The bundle's own code a page loads first is one file (`site-*`,
