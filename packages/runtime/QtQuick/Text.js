@@ -541,6 +541,21 @@ export const Text = defineType("Text", Item, {
     });
     // Markup only: plain text has no links.
     let listening = false;
+    // A browser picks a picture's density again when what its `sizes` say
+    // changes with the window, and so its natural size, with no load
+    // (Chromium). Its box changes with it, which is heard as an arrival:
+    // one already known is nothing new (richtext.js). Only the pictures on
+    // the page now are watched, so those it no longer shows are let go.
+    let pictured;
+    const watchPictures = () => {
+      pictured?.disconnect();
+      const images = content.querySelectorAll("img");
+      if (!images.length) return;
+      pictured ??= new ResizeObserver((changed) => {
+        for (const { target } of changed) if (target.complete && target.naturalWidth) arrive({ target });
+      });
+      for (const image of images) pictured.observe(image);
+    };
     self.$pressed = "";
     // Not `$hover`: that is the scene's, for what is hovered as an item.
     const hover = (self.$linkHover = (link) => {
@@ -609,6 +624,7 @@ export const Text = defineType("Text", Item, {
           if (shown.kind !== made.kind || shown.text !== made.text || shown.inert !== made.inert) {
             const fresh = elements(made.text);
             if (shown.kind !== undefined || !same(content, fresh)) content.replaceChildren(fresh);
+            watchPictures();
           }
           clothe(content, made.look);
           style.setProperty("--qq-link", next.link);
@@ -618,6 +634,7 @@ export const Text = defineType("Text", Item, {
           if (shown.kind) {
             content.className = "qq-text";
             style.cssText = "";
+            pictured?.disconnect();
             shown = {};
           }
           if (shown.font !== made.font || shown.pitch !== made.pitch) {
