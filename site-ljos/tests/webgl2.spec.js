@@ -9,10 +9,12 @@
 // canvas being there: the view's picture is held against the same demo
 // drawn by the same renderer on the same WebGL 2 with the models' files
 // refused, and the models are what the two differ by, more than two
-// pictures without them differ (the watch turns as it runs, and is paused
-// where it was). Not against WebGPU's picture: SwiftShader's WebGPU, all a
-// machine without a GPU has, may lose its device as it draws, and so is
-// no yardstick.
+// pictures without them differ. The watch turns on its turntable from
+// Run until it is paused, so time is held from Run until the demo is
+// opened: every run pauses it at the same angle, however long its page
+// took to load, and never one run facing and another edge-on. Not
+// against WebGPU's picture: SwiftShader's WebGPU, all a machine without
+// a GPU has, may lose its device as it draws, and so is no yardstick.
 import { expect, test } from "@playwright/test";
 
 // Each browser draws WebGL 2 with SwiftShader, as a machine without a GPU
@@ -128,6 +130,7 @@ async function drawn(playwright, baseURL, testInfo, demo, { name, args, init, qu
   const said = [];
   try {
     const context = await browser.newContext({ baseURL, viewport: { width: 1440, height: 900 }, reducedMotion: "no-preference" });
+    await context.clock.install();
     if (init) await context.addInitScript(init);
     if (refused) await context.route(refused, (route) => route.abort());
     page = await context.newPage();
@@ -138,9 +141,26 @@ async function drawn(playwright, baseURL, testInfo, demo, { name, args, init, qu
     const run = page.getByRole("button", { name: `Run the ${demo.name}` });
     await expect(run, "the demo offers to run").toBeVisible({ timeout: 30_000 });
     await run.scrollIntoViewIfNeeded();
+    // Held from here, time moves only a frame at a time while the demo
+    // loads, and as far on every run that loads in as many frames.
+    await page.clock.pauseAt(await page.evaluate(() => Date.now() + 1000));
     await run.click();
-    await expect(page.getByRole("button", { name: `Pause the ${demo.name}` }), "once the demo is drawn, Run is its Pause").toBeVisible({ timeout: 90_000 });
+    const pause = page.getByRole("button", { name: `Pause the ${demo.name}` });
+    await expect
+      .poll(
+        async () => {
+          if (await pause.isVisible()) return true;
+          await page.clock.runFor(16);
+          return pause.isVisible();
+        },
+        { message: "once the demo is drawn, Run is its Pause", timeout: 90_000 },
+      )
+      .toBe(true);
+    // As long running on every run, for the watch's screen to draw its
+    // face, before the demo is opened (the watch paused).
+    await page.clock.runFor(1500);
     await demo.open(page);
+    await page.clock.resume();
     await page.waitForLoadState("networkidle");
     let reading = null;
     let canvas;
