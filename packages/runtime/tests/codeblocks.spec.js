@@ -634,6 +634,62 @@ plain("a renderer's every answer reaches a reader that is late to read them", as
   }
 });
 
+// What an example reads by a relative address is its own file, read
+// from its own directory and nowhere else: an address that climbs out,
+// as `../` or as `..%2F` (which the URL keeps and decoding makes `../`),
+// is a file that is not there, though there is one at the place it names.
+plain("a prerender's fetch reads the example's own files and nothing outside its directory", async () => {
+  const dir = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "ljos-codeblock-test-"));
+  try {
+    const hash = "0123456789abcdef";
+    const { mkdirSync } = await import("node:fs");
+    mkdirSync(join(dir, "server"));
+    mkdirSync(join(dir, "examples", hash), { recursive: true });
+    writeFileSync(join(dir, "examples", hash, "own.json"), "its own");
+    writeFileSync(join(dir, "examples", "beside.json"), "another's");
+    writeFileSync(join(dir, "outside.json"), "the build's");
+    const asked = [
+      "own.json",
+      "http://prerender.invalid/own.json",
+      "..%2Fbeside.json",
+      "..%2F..%2Foutside.json",
+      "%2E%2E%2Fbeside.json",
+      "http://prerender.invalid/..%2Fbeside.json",
+      "../beside.json",
+      "../../outside.json",
+      "http://prerender.invalid/../beside.json",
+    ];
+    writeFileSync(
+      join(dir, "server", "entries.mjs"),
+      [
+        `export const pages = { ${JSON.stringify(hash)}: () => null };`,
+        `export async function renderToString() {`,
+        `  const read = async (url) => { try { const r = await fetch(url); return [r.status, await r.text()]; } catch (e) { return ["threw", String(e)]; } };`,
+        `  return JSON.stringify(await Promise.all(${JSON.stringify(asked)}.map(read)));`,
+        `}`,
+      ].join("\n"),
+    );
+    const { spawnSync } = await import("node:child_process");
+    const run = spawnSync(process.execPath, [join(import.meta.dirname, "../codeblocks/prerender-run.js"), join(dir, "server", "entries.mjs"), "{}"], { encoding: "utf8" });
+    const [{ html, error }] = run.stdout.split("\n").filter(Boolean).map((line) => JSON.parse(line));
+    expect(error, run.stderr).toBeUndefined();
+    const got = Object.fromEntries(asked.map((url, i) => [url, JSON.parse(html)[i]]));
+    expect(got).toEqual({
+      "own.json": [200, "its own"],
+      "http://prerender.invalid/own.json": [200, "its own"],
+      "..%2Fbeside.json": [404, ""],
+      "..%2F..%2Foutside.json": [404, ""],
+      "%2E%2E%2Fbeside.json": [404, ""],
+      "http://prerender.invalid/..%2Fbeside.json": [404, ""],
+      "../beside.json": [404, ""],
+      "../../outside.json": [404, ""],
+      "http://prerender.invalid/../beside.json": [404, ""],
+    });
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 plain("a prerender stands where a page stands: a Request is beside it, and a handler's throw is told of", async ({}, info) => {
   info.setTimeout(180_000);
   const one = (code) => assemble(extractBlocks("```qml\n" + code.trimEnd() + "\n```\n"), {}).examples[0];

@@ -14,7 +14,7 @@
 //
 //   node prerender-run.js ENTRIES-BUNDLE '{"width":1280,"height":720}'
 import { readFile } from "node:fs/promises";
-import { basename, dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { installPrerenderGlobals } from "../server/dom.js";
 
@@ -43,10 +43,15 @@ const placed = (asked) => {
 globalThis.fetch = async (url, init) => {
   const asked = placed(url instanceof Request ? url.url : String(url));
   if (making && asked.startsWith(served) && !asked.endsWith(".wasm")) {
-    const name = decodeURIComponent(new URL(asked).pathname.slice(new URL(served).pathname.length));
     try {
+      const name = decodeURIComponent(new URL(asked).pathname.slice(new URL(served).pathname.length));
+      // Decoding makes a kept `..%2F` a `../`: what it names is resolved,
+      // and anything not inside the example's own directory is not there.
+      const own = resolve(dirname(resolve(bundle)), "../examples", making.slice(0, 16));
+      const file = resolve(own, name);
+      if (!file.startsWith(own + sep)) return new Response("", { status: 404 });
       const type = { svg: "image/svg+xml", json: "application/json", qml: "text/plain" }[name.split(".").pop()] ?? "application/octet-stream";
-      return new Response(await readFile(join(dirname(resolve(bundle)), "../examples", making.slice(0, 16), name)), { headers: { "content-type": type } });
+      return new Response(await readFile(file), { headers: { "content-type": type } });
     } catch {
       return new Response("", { status: 404 });
     }
