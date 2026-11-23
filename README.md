@@ -35,3 +35,10 @@ already existed and predate both rebases on da3ad7ff.
 - 162/6d93bdc4: CI's site-ljos-root artifact (14731281330) of site run 44962969647, for head 6d93bdc43e822207fd9269f3c13727a62567fea7. Headless Chromium 158.0.8127.18, no network, 1440x900 at 1x and 390x844 at 2x, light and dark. These show the pushed head, 6d93bdc4, not the unpushed 279395c5 the text below describes. WebGPU absent: an init script makes `navigator.gpu` undefined before the page loads, and Chromium runs WebGL 2 on SwiftShader (`--use-angle=swiftshader`). Each demo's Run was pressed, and the picture was taken 5 s later. In every view the 3D canvas held a non-2d context while `navigator.gpu` was undefined, so it drew on WebGL 2.
 
 - 170/8d726947: a local build of head 8d726947d1d7a0e57a0c3bde6b8e1e0b38004b70 (site-ljos `scripts/build.mjs` at base `/`, the 3d832bdd prebuilt compiler), served on loopback. Headless Chromium 158.0.8127.18, no network, 1440x900 and 390x844 at 1x, light and dark, the Elegant shell: home, /demos/, /start/first-app/ (a docs page with a live example) and /controls/buttons-and-toggles/ (a code-heavy reference page). Per view: `-0` the first screen, `-1` one screen down, `-end` the footer. Nothing was pressed.
+
+The four sets below were taken on 2026-11-23 from local builds: each head built in a fresh clone, site-ljos on the default (JS) kernel at `/`. Headless Chromium 158.0.8127.18, no network, 1440x900 at 1x and 390x844 at 2x, light and dark.
+
+- 166/837b9a83: head 837b9a8362. Docs at ljos-ui 5858c162. /showcase/ at its top and after two and four wheel turns down, as a reader scrolls it.
+- 177/46a2f3a9: head 46a2f3a9. Docs at ljos-ui 5858c162. The first live example on Your First App and Motion, centred on its toolbar; Your First App on a 320 px phone; and the second example's tab strip on Your First App, at 390 px and 320 px.
+- 179/7fdd8070: head 7fdd8070. Docs at ljos-ui 4087f8ed8. The film on /rust/multimedia/ before Run, and about 2 s after Run while the clip plays.
+- 181/fd11b2cf: head fd11b2cf. Docs at ljos-ui 4087f8ed8. The fetch example on /rust/threads-and-uihandle/ before Run (the prerender) and after Run.
