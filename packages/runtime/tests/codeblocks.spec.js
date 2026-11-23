@@ -236,14 +236,15 @@ Column {
     Text { text: "Two" }
 }
 `);
-  // `states` is Item's own list; a string of that name throws as the
-  // object completes (a docs example does exactly this).
+  // A width whose binding throws on purpose, read as the item is made:
+  // what a handler throws is only told of (a test below), a throw while
+  // the object is made fails it. It once was a string `states`, which
+  // the runtime threw on until it read the type's own.
   const throwing = one(`import QtQuick
 
 Item {
-    width: 40
     height: 40
-    property string states: ""
+    width: { throw new Error("thrown on purpose") }
 }
 `);
   const cacheDir = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "ljos-codeblock-test-"));
