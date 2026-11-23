@@ -907,6 +907,47 @@ test("the pictures that arrived and the choices picked are kept to a bounded num
   expect(kept.most, "and no more than the markup's 256 and the one just come").toBeLessThanOrEqual(257);
 });
 
+// More pictures than that shown at once are all kept while they are shown:
+// a measure makes each anew, and the copies' arrivals are not news, or each
+// would measure everything again, and so on. Once they leave, they go.
+test("more than 256 pictures shown at once settle, and are forgotten once they leave", async ({ page }) => {
+  await boxes(page, "markup");
+  const seen = await page.evaluate(async () => {
+    const address = performance.getEntriesByType("resource").find(({ name }) => /\/QtQuick\/richtext\.js/.test(name)).name;
+    const { arrive, remembered } = await import(address);
+    // A copy of picture `index` of a set, on the page or not: what the
+    // browser's img says of it, without fetching anything.
+    const copy = (set, index, shown) => {
+      const picture = document.createElement("picture");
+      const source = document.createElement("source");
+      source.srcset = `/${set}-${index}.svg`;
+      picture.append(source);
+      const src = `/${set}.png`;
+      return { localName: "img", currentSrc: `/${set}-${index}.svg`, src, naturalWidth: 80, naturalHeight: 1 + index, parentElement: picture, getAttribute: () => src, isConnected: shown };
+    };
+    const shown = (set) => Array.from({ length: 300 }, (_, index) => copy(set, index, true));
+    const measures = () => remembered().measures;
+    const start = measures();
+    const onPage = shown("live");
+    for (const image of onPage) arrive({ target: image });
+    const first = measures() - start;
+    // A measure's own copies of the same 300, made anew.
+    const bench = shown("live");
+    for (const image of bench) arrive({ target: image });
+    const again = measures() - start - first;
+    const kept = remembered();
+    // They leave the page, and 300 others are shown.
+    for (const image of [...onPage, ...bench]) image.isConnected = false;
+    for (const image of shown("next")) arrive({ target: image });
+    window.flush();
+    return { first, again, kept, after: remembered() };
+  });
+  expect(seen.first, "each picture shown is measured for once").toBe(300);
+  expect(seen.again, "and its copies' arrivals measure nothing again").toBe(0);
+  expect([seen.kept.arrived, seen.kept.picked], "all 300 are kept while they are shown").toEqual([300, 300]);
+  expect([seen.after.arrived, seen.after.picked], "once they leave, only those shown now are").toEqual([300, 300]);
+});
+
 // Firefox picks a picture's source in a task of its own, so each new copy on
 // the bench is still empty when it is measured. Made so here in any browser.
 async function pickedLate(page) {

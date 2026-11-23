@@ -319,9 +319,28 @@ export function clothe(element, look) {
 // measuring makes the elements anew, and theirs load again, from the browser's
 // cache, but are never seen to change.
 const [pictures, setPictures] = signal(0);
-const arrived = new Set();
+// Each arrival, and each choice picked, with the images it was heard on,
+// held weakly. Past 256 what is no longer on the page is forgotten, so a
+// page that shows pictures for a long time does not grow. What is still
+// shown is kept however many there are: forgotten, its next arrival (from
+// the copies a measure makes anew) would be news, and measure everything
+// again, and those copies would arrive again, and so on.
+const arrived = new Map();
 const chosen = new WeakMap();
 const picked = new Map();
+
+// The images still on the page that `on` was heard on, and `image` with them.
+function held(on, image) {
+  const kept = (on ?? []).filter((ref) => ref.deref()?.isConnected);
+  if (!kept.some((ref) => ref.deref() === image)) kept.push(new WeakRef(image));
+  return kept;
+}
+
+// Past 256, what was heard only on images that have left the page.
+function forget(known) {
+  if (known.size <= 256) return;
+  for (const [key, { on }] of known) if (!on.some((ref) => ref.deref()?.isConnected)) known.delete(key);
+}
 
 // What a picture's choice is made from, which is the same on each copy of it.
 function offered(image) {
@@ -361,24 +380,27 @@ export function arrive(event) {
   const was = chosen.get(image);
   chosen.set(image, arrival);
   const offer = offered(image);
-  const repicked = offer !== undefined && picked.get(offer)?.arrival !== arrival;
-  // Both are forgotten past as many as `built` and `surveys` keep, so a page
-  // that shows pictures for a long time does not grow: a picture forgotten is
-  // measured once more, and a late pick has no stand-in until it arrives.
+  const pick = offer === undefined ? undefined : picked.get(offer);
+  const repicked = offer !== undefined && pick?.arrival !== arrival;
   if (repicked) {
-    if (picked.size > 256) picked.clear();
-    picked.set(offer, { arrival, width: image.naturalWidth, height: image.naturalHeight });
+    forget(picked);
+    picked.set(offer, { arrival, width: image.naturalWidth, height: image.naturalHeight, on: held(undefined, image) });
+  } else if (pick) pick.on = held(pick.on, image);
+  const known = arrived.get(arrival);
+  if (known) known.on = held(known.on, image);
+  if (!repicked && known && (was === undefined || was === arrival)) return;
+  if (!known) {
+    forget(arrived);
+    arrived.set(arrival, { on: held(undefined, image) });
   }
-  if (!repicked && arrived.has(arrival) && (was === undefined || was === arrival)) return;
-  if (arrived.size > 256) arrived.clear();
-  arrived.add(arrival);
   setPictures((count) => count + 1);
   flush();
 }
 
-// How many arrivals and picks are kept in mind, which a test reads.
+// How many arrivals and picks are kept in mind, and how often what was
+// measured around pictures was measured again, which a test reads.
 export function remembered() {
-  return { arrived: arrived.size, picked: picked.size };
+  return { arrived: arrived.size, picked: picked.size, measures: untrack(pictures) };
 }
 
 function awaited(image) {
