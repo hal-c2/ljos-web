@@ -490,24 +490,18 @@ Pane {
 }
 `),
   };
-  // /rust/multimedia/'s: its effect's throw is nobody's to catch here.
+  // A binding that throws on purpose as it is first read: the throw
+  // escapes every boundary, and Solid halts. Nothing the runtime makes
+  // inert (a film, say) stands in for it, so it halts for as long as a
+  // binding's throw does.
   const halting = (width) =>
     one(`import QtQuick
-import QtMultimedia
 
-Item {
+Rectangle {
     width: ${width}
     height: 240
-
-    MediaPlayer {
-        source: "clip.mp4"
-        audioOutput: AudioOutput {}
-        videoOutput: output
-    }
-
-    VideoOutput {
-        id: output
-        anchors.fill: parent
+    color: {
+        throw new Error("halts on purpose");
     }
 }
 `);
