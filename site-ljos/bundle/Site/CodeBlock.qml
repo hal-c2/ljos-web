@@ -832,12 +832,23 @@ Column {
                             textFormat: Text.RichText
                             text: block.isLive ? stageBox.pictureOf(block.live.picture) : ""
                         }
-                        Text {
-                            visible: block.isLive && stage.status !== ShellLoader.Ready && Theme.dark && !!block.live.pictureDark
-                            x: frame.appX
-                            y: frame.appY
-                            textFormat: Text.RichText
-                            text: block.isLive && block.live.pictureDark ? stageBox.pictureOf(block.live.pictureDark) : ""
+                        // The dark scheme's picture, and below the words for a
+                        // window with nothing drawn yet, are made only for a
+                        // block that has them. A page writes every item it
+                        // has, shown or not, and a page of plain code has
+                        // dozens of cards: these items in each of them came to
+                        // 2 kB of its first load. Each Loader is hidden while
+                        // what it holds is, so the window's first shown child
+                        // is still what it shows.
+                        Loader {
+                            active: block.isLive && !!block.live.pictureDark
+                            visible: active && stage.status !== ShellLoader.Ready && Theme.dark
+                            sourceComponent: Text {
+                                x: frame.appX
+                                y: frame.appY
+                                textFormat: Text.RichText
+                                text: stageBox.pictureOf(block.live.pictureDark)
+                            }
                         }
                         // An example that draws nothing in this scheme before
                         // the reader runs it (its point is what it says, or it
@@ -846,27 +857,29 @@ Column {
                         // still have a ground of its own (a bare Window's white,
                         // in the dark too): the paper covers it, and the words
                         // read in the scheme's colours.
-                        Rectangle {
-                            visible: nothing.visible
+                        Loader {
                             anchors.fill: parent
-                            radius: frame.radius
-                            color: Theme.paper
-                        }
-                        Text {
-                            id: nothing
-                            visible: block.isLive && !!(Theme.dark ? block.live.blankDark : block.live.blank) && stage.status !== ShellLoader.Ready
-                            x: Theme.s
-                            width: frame.width - 2 * Theme.s
-                            anchors.verticalCenter: parent.verticalCenter
-                            horizontalAlignment: Text.AlignHCenter
-                            wrapMode: Text.Wrap
-                            // It asks for a Run only where there is one to press.
-                            text: runner.phase === "picture" ? t`Nothing drawn yet. Run it to see what it does.` : t`Nothing drawn yet.`
-                            color: Theme.textMuted
-                            font.family: Theme.sans
-                            font.pixelSize: Theme.captionSize
-                            lineHeight: Theme.captionLine
-                            lineHeightMode: Text.FixedHeight
+                            active: block.isLive && (!!block.live.blank || !!block.live.blankDark)
+                            visible: active && !!(Theme.dark ? block.live.blankDark : block.live.blank) && stage.status !== ShellLoader.Ready
+                            sourceComponent: Rectangle {
+                                radius: frame.radius
+                                color: Theme.paper
+
+                                Text {
+                                    x: Theme.s
+                                    width: frame.width - 2 * Theme.s
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    horizontalAlignment: Text.AlignHCenter
+                                    wrapMode: Text.Wrap
+                                    // It asks for a Run only where there is one to press.
+                                    text: runner.phase === "picture" ? t`Nothing drawn yet. Run it to see what it does.` : t`Nothing drawn yet.`
+                                    color: Theme.textMuted
+                                    font.family: Theme.sans
+                                    font.pixelSize: Theme.captionSize
+                                    lineHeight: Theme.captionLine
+                                    lineHeightMode: Text.FixedHeight
+                                }
+                            }
                         }
                         // The window fits its app to itself, as a window does:
                         // what it draws is laid out at its picture's size, never
