@@ -125,10 +125,11 @@ DECISION: the rule of thumb for what a page runs.
 
 - Nothing runs until the reader asks: not an example, not a demo, with
   one exception. The front page's agent replay starts itself once it is
-  on screen (`DemoFrame.startsItself`), as it is the page's claim being
-  shown and takes neither WebAssembly nor a GPU device. It plays for
-  about 14 seconds and ends with nothing scheduled; its one quiet button
-  stands in its own toolbar (`DemoFrame.barOnTop`): Pause, then Run again. A reader who asked for less motion gets
+  on screen (`Site/ReplayFrame.qml`, which only the front page loads),
+  as it is the page's claim being shown and takes neither WebAssembly
+  nor a GPU device. It plays for about 14 seconds and ends with nothing
+  scheduled; its one quiet button stands in its own toolbar: Pause,
+  then Run again. A reader who asked for less motion gets
   its result, whose List and Board work (so a press on that picture runs
   nothing), and a Run. For everything else the
   build's picture stands, and on it one control (`Site/Runner.qml`),

@@ -34,7 +34,7 @@ AgentView {
     working: active && playing
     // Its button then plays it again, rather than on.
     readonly property bool ended: at >= total
-    // The frame keeps the poster until the app has come (DemoFrame's
+    // The frame keeps the poster until the app has come (ReplayFrame's
     // `drawn`), and not again: a swap of modules takes the old app away
     // just before it puts the new one in.
     readonly property bool ready: seeded
