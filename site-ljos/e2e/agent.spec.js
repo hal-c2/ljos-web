@@ -36,6 +36,10 @@ test("the agent replay drives the app over MCP, its edit reloads it with the cre
   // It starts as the list: the whole app, one lane, the list's code.
   await expect(shown(page.getByText("North district dispatch", { exact: true })), "under its own heading").toBeVisible();
   await expect(page.getByRole("list", { name: "Tickets", exact: true }).filter({ visible: true }).getByRole("listitem"), "its five tickets").toHaveCount(5);
+  // One lane: no lane of the board shows. The poster, the board and its
+  // code, stays under the demo while it fades in (ReplayFrame.qml), and
+  // comes first on the page, so its code is the first read until it goes.
+  await expect(page.getByText("Crew assigned", { exact: true }).filter({ visible: true }), "one lane, the poster's board gone").toHaveCount(0);
   expect(words(await codeOf(page)), "the list's board.ts").toBe(words(SHOWN.list));
   await press(shown(page.getByRole("tab", { name: "Agent", exact: true })));
 
