@@ -726,6 +726,51 @@ Text {
   }
 });
 
+// A script's fetch of a file the example gives, by the relative address
+// the docs' threads example uses, is on its way when the page settles:
+// the picture is the example before the reply, as for any request. It
+// once matched none of the example's files, was answered 404 at once,
+// and the picture said 404.
+plain("a prerender's fetch of the example's own file is on its way, not refused", async ({}, info) => {
+  info.setTimeout(180_000);
+  const [reading] = assemble(
+    extractBlocks(`\`\`\`qml group=reply
+import Ljos.Ui
+import Ljos.Core
+
+Text {
+    id: root
+    property string got: ""
+    text: got === "" ? "before a reply" : got
+
+    Component.onCompleted: {
+        const read = async (): Promise<void> => {
+            const reply = await fetch("reply.json")
+            root.got = reply.ok ? "replied" : \`refused \${reply.status}\`
+        }
+        read()
+    }
+}
+\`\`\`
+
+\`\`\`json file=reply.json group=reply
+{"said": "beside the page"}
+\`\`\`
+`),
+    {},
+  ).examples;
+  const cacheDir = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "ljos-codeblock-test-"));
+  try {
+    const { failures } = await renderPrerenders([reading], { cacheDir, qmlc });
+    expect(failures.map(({ diagnostics }) => diagnostics.join("\n"))).toEqual([]);
+    const { html } = loadPrerenders(cacheDir)[hashExample(reading)];
+    expect(html).toContain("before a reply");
+    expect(html).not.toContain("refused");
+  } finally {
+    rmSync(cacheDir, { recursive: true, force: true });
+  }
+});
+
 // A prerender is made by the compiler's bytes as they are now, and by
 // the 3D renderer the build asks for: a compiler rebuilt where the old
 // one stood, or another renderer, is another stamp.
