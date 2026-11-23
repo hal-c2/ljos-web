@@ -755,8 +755,9 @@ const saysNothing = (frame) =>
   frame.evaluate(
     (node, texts) =>
       [...node.querySelectorAll("*")].some(
+        // A narrow window wraps the line, and the wrap is in its text.
         (child) =>
-          texts.includes(child.textContent.trim()) &&
+          texts.includes(child.textContent.replace(/\s+/g, " ").trim()) &&
           child.checkVisibility({ visibilityProperty: true }),
       ),
     NOTHING,
