@@ -288,7 +288,10 @@ const liveAt = new Map(); // a page's code block -> its live payload
     if (refused.has(hash)) return { state: "not compiling", diagnostics: refused.get(hash) };
     if (unrun.has(hash)) return { state: "not running", diagnostics: unrun.get(hash) };
     if (!liveSet.has(example)) return { state: "not running", diagnostics: ["no prerender was made"] };
-    return prerendered[hash]?.logged?.length ? { state: "live", logged: prerendered[hash].logged } : { state: "live" };
+    // Live, and drawn light in the dark, where only its dark making
+    // refused: the record says what the dark said.
+    const { logged, darkFailed } = prerendered[hash] ?? {};
+    return { state: "live", ...(logged?.length ? { logged } : {}), ...(darkFailed?.length ? { diagnostics: darkFailed } : {}) };
   };
   const report = onPages.flatMap(({ page, fences, examples }) => pageRecords(page, fences, examples, outcome, tagged));
   writeFileSync(join(cacheDir, "report.json"), `${JSON.stringify(report, null, 2)}\n`);

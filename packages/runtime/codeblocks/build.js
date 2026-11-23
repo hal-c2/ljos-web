@@ -450,7 +450,9 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
       failures.push({ example, diagnostics: had.diagnostics ?? [] });
       return false;
     }
-    return !had?.file || !existsSync(join(cacheDir, had.file)) || (dark && !(had.dark && existsSync(join(cacheDir, had.dark))));
+    // One whose dark making refused (`darkFailed`) has all it will get
+    // from this stamp: its light render, which the dark falls back to.
+    return !had?.file || !existsSync(join(cacheDir, had.file)) || (dark && !had.darkFailed && !(had.dark && existsSync(join(cacheDir, had.dark))));
   });
   // A cache restored from an older run holds what older compilers and
   // runtimes made too: what this manifest does not name goes, so the
@@ -586,22 +588,38 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
       const inDark = dark ? await made("dark") : null;
       for (const { hash, html, error, logged } of light.values()) {
         const example = byHash.get(hash);
-        // The dark one is the same example made again: it refuses only
-        // where the scheme it reads does, and what it says only there is
-        // said to be of the dark.
+        // The dark one is the same example made again: what it says only
+        // there is said to be of the dark. What refuses only there is
+        // not a failure of the example, whose light render ran: that
+        // render is kept, live, and the dark is shown it as it is where
+        // there is no dark render (the pictures' light fallback). The
+        // dark's refusal is kept beside it (`darkFailed`), for the
+        // build's record, and not taken for a failure: as a cached
+        // failure it would leave the example plain in both schemes, on
+        // every build of this stamp.
         const darkly = inDark?.get(hash);
         if (error !== undefined) fail(example, [`${example.entry}:1: ${error}`, ...(logged ?? []).map(unstaged)]);
-        else if (inDark && darkly?.html === undefined)
-          fail(example, [`${example.entry}:1: in the dark scheme: ${darkly ? darkly.error : "the prerender gave no answer for it"}`, ...(darkly?.logged ?? []).map(unstaged)]);
         else {
+          const shown = darkly?.html !== undefined ? darkly : undefined;
+          const darkFailed =
+            inDark && !shown
+              ? [`${example.entry}:1: in the dark scheme: ${darkly ? darkly.error : "the prerender gave no answer for it"}`, ...(darkly?.logged ?? []).map(unstaged)]
+              : undefined;
           const file = `${hash.slice(0, 16)}.html`;
           writeFileSync(join(cacheDir, file), html);
-          const shade = darkly ? `${hash.slice(0, 16)}-dark.html` : undefined;
-          if (shade) writeFileSync(join(cacheDir, shade), darkly.html);
+          const shade = shown ? `${hash.slice(0, 16)}-dark.html` : undefined;
+          if (shade) writeFileSync(join(cacheDir, shade), shown.html);
           const inLight = (logged ?? []).map(unstaged);
-          const onlyDark = (darkly?.logged ?? []).map(unstaged).filter((line) => !inLight.includes(line));
+          const onlyDark = (shown?.logged ?? []).map(unstaged).filter((line) => !inLight.includes(line));
           const said = [...inLight, ...onlyDark.map((line) => `in the dark scheme: ${line}`)];
-          manifest[hash] = { file, ...(shade ? { dark: shade } : {}), ...bothSchemes(prerenderSize(html), darkly && prerenderSize(darkly.html)), ...(said.length ? { logged: said } : {}), stamp };
+          manifest[hash] = {
+            file,
+            ...(shade ? { dark: shade } : {}),
+            ...bothSchemes(prerenderSize(html), shown && prerenderSize(shown.html)),
+            ...(said.length ? { logged: said } : {}),
+            ...(darkFailed ? { darkFailed } : {}),
+            stamp,
+          };
         }
       }
       const answered = new Set(light.keys());
@@ -640,7 +658,8 @@ export function pruneCache(cacheDir, { keep, pattern }) {
 }
 
 // What a manifest's cache holds, read back for the build that embeds
-// it: `{ [hash]: { html } }` for a prerendered example, and a failed
+// it: `{ [hash]: { html } }` for a prerendered example (`htmlDark` too
+// where its dark one was made, `darkFailed` where that refused), and a failed
 // entry as the step that ran them left it (`{ failed, diagnostics }`).
 export function loadPrerenders(cacheDir) {
   const at = join(cacheDir, "manifest.json");
@@ -656,6 +675,7 @@ export function loadPrerenders(cacheDir) {
         height: had.height,
         stamp: had.stamp,
         ...(had.logged ? { logged: had.logged } : {}),
+        ...(had.darkFailed ? { darkFailed: had.darkFailed } : {}),
       };
     else if (had?.failed) loaded[hash] = had;
   }
