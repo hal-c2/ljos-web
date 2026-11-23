@@ -41,11 +41,11 @@ test("on a phone, a page chosen from the menu shuts it", async ({ browser }) => 
       ["Showcase", "showcase/"],
       ["Demos", "demos/"],
     ]) {
-      await page.getByRole("button", { name: "Open the menu" }).click();
-      await expect(page.getByRole("button", { name: "Close the menu" })).toBeVisible();
+      await page.getByRole("button", { name: "Menu", exact: true }).click();
+      await expect(page.getByRole("button", { name: "Close menu", exact: true })).toBeVisible();
       await page.getByRole("region", { name: "Menu" }).getByRole("link", { name: label, exact: true }).click();
       await page.waitForURL(`**${base}${to}`);
-      await expect(page.getByRole("button", { name: "Open the menu" }), label).toBeVisible();
+      await expect(page.getByRole("button", { name: "Menu", exact: true }), label).toBeVisible();
     }
   } finally {
     await context.close();
