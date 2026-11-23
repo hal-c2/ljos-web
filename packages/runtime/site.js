@@ -773,6 +773,8 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
           return !path.startsWith("../") && !isAbsolute(path) && inspect(path) ? path : false;
         }
       : false;
+    // The bundle as a module's id names it, through a link or not.
+    const bundled = [...new Set([dir, realpathSync(dir)])].map((at) => at + sep);
     const plugin = () => qml({ qmlc, args: ["--root", dir], qt, styles, standins, theme: theme ? join(dir, theme) : false, liveShell, answers, inspect: placed });
     // The page's build and, for a prerender, the server bundle of the same
     // entry, at once: neither reads what the other writes, and each has a
@@ -785,7 +787,29 @@ export async function buildSite({ dir, out, qmlc = process.env.QMLC ?? "qmlc", q
         plugins: [plugin()],
         // Each file is compiled by qmlc in the plugin's load, so nearly all
         // of a build's time is in callbacks; that is expected, not a warning.
-        build: { outDir: join(stage, "dist"), emptyOutDir: true, target: "esnext", chunkSizeWarningLimit: 4000, rollupOptions: { checks: { bundlerTimings: false } } },
+        //
+        // The bundle's own files that the entry imports statically, which
+        // every page loads before it runs, are one file (`site-*`). Left to
+        // itself, rolldown cuts them into a file per set of later modules
+        // (a page of its own, a demo) that import a part of them, as a
+        // top-level await in the graph (QtQuick's LocalStorage, say) turns
+        // off the merging that would join them again (its
+        // `chunkOptimization`): each cut costs every page a file and gzip a
+        // shared context (tests/payload.spec.js). Only the bundle's files,
+        // not what they import: the runtime's are reached through whole
+        // namespaces (`ljos-web:QtQuick`), so all of QtQuick counts as
+        // imported statically, and its chunks stay as rolldown cuts them
+        // to what each page uses.
+        build: {
+          outDir: join(stage, "dist"),
+          emptyOutDir: true,
+          target: "esnext",
+          chunkSizeWarningLimit: 4000,
+          rollupOptions: {
+            output: { codeSplitting: { groups: [{ name: "site", test: (id) => bundled.some((at) => id.startsWith(at)), tags: ["$initial"], includeDependenciesRecursively: false }] } },
+            checks: { bundlerTimings: false },
+          },
+        },
         // The live shell's compiler runs in a module worker.
         worker: { format: "es" },
       }),
