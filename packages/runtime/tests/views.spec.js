@@ -117,8 +117,8 @@ test("a finger's swipe up over a row that only goes sideways scrolls the column"
 // A wheel listener that may cancel the scroll keeps Chromium from
 // scrolling on its compositor: every wheel tick waits for the page's
 // script. Only a Flickable that turns a wheel sideways cancels anything,
-// so only one that goes sideways listens that way.
-test("only a Flickable that goes sideways holds the wheel back from the browser", async ({ page }) => {
+// so only one that goes sideways with no room to go down listens that way.
+test("only a Flickable a wheel turns sideways holds the wheel back from the browser", async ({ page }) => {
   await page.addInitScript(() => {
     const held = new WeakMap();
     const add = EventTarget.prototype.addEventListener;
@@ -140,16 +140,34 @@ test("only a Flickable that goes sideways holds the wheel back from the browser"
   expect(await page.evaluate(() => window.holdsWheel(window.objects.row))).toBe(false);
   await page.evaluate(() => (window.objects.row.flickableDirection = 1));
   expect(await page.evaluate(() => window.holdsWheel(window.objects.row))).toBe(true);
+  // The default direction, a page's scroller: content taller than it is
+  // scrolled down by the browser, so the wheel is not held back. Content
+  // only wider is turned sideways by the wheel, and is.
+  await open(page, "flickable");
+  const holds = () => page.evaluate(() => window.holdsWheel(window.objects.flick));
+  expect(await page.evaluate(() => window.objects.flick.flickableDirection)).toBe(0);
+  expect(await holds()).toBe(false);
+  await page.evaluate(() => (window.objects.flick.contentHeight = 100));
+  expect(await holds()).toBe(true);
+  await page.evaluate(() => (window.objects.flick.contentHeight = 400));
+  expect(await holds()).toBe(false);
 });
 
 // A column in a row: the wheel scrolls the column while it has room,
-// and is never taken from it to turn the row.
-test("a wheel over a column in a row that only goes sideways scrolls the column", async ({ page }) => {
+// and is never taken from it to turn the row. At the column's end the
+// wheel turns the row.
+test("a wheel over a column in a row that only goes sideways scrolls the column, and at its end the row", async ({ page }) => {
   await open(page, "uprightinrow");
   const at = () => page.evaluate(() => [window.objects.row.contentX, window.objects.column.contentY]);
+  const settled = () => page.waitForFunction(() => !window.objects.row.moving && !window.objects.column.moving);
   await page.mouse.move(75, 100);
   await page.mouse.wheel(0, 120);
   await expect.poll(at).toEqual([0, 120]);
+  await settled();
+  await page.evaluate(() => (window.objects.column.contentY = 600));
+  await settled();
+  await page.mouse.wheel(0, 120);
+  await expect.poll(at).toEqual([120, 600]);
 });
 
 test("margins put the content's beginning before zero", async ({ page }) => {
