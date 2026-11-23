@@ -779,7 +779,7 @@ for (const colorScheme of ["light", "dark"]) {
       const seen = { empty: 0, drawn: 0 };
       // Examples that draw nothing, and examples that draw.
       for (const route of ["/language/signals-and-handlers/", "/quality/motion/"]) {
-        await page.goto(route);
+        await page.goto(base + route.replace(/^\//, ""));
         await page.waitForSelector('#app[data-ljos-hydrated="true"]');
         for (const img of await page
           .locator('#app img[alt="What this example draws"]')
