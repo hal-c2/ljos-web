@@ -18,12 +18,10 @@ const TYPES = { ".html": "text/html", ".js": "text/javascript", ".css": "text/cs
 function bundled(dir) {
   cpSync(fixture, dir, { recursive: true });
   mkdirSync(join(dir, "Site"));
-  mkdirSync(join(dir, "logic"));
   for (const name of ["motion.js", "scheme.js", "tokens.js"]) cpSync(join(site, name), join(dir, name));
   for (const name of ["Theme.qml", "StageButton.qml"]) cpSync(join(site, "Site", name), join(dir, "Site", name));
   writeFileSync(join(dir, "Site/qmldir"), "module Site\nsingleton Theme 1.0 Theme.qml\nStageButton 1.0 StageButton.qml\n");
   cpSync(join(site, "Demos/DispatchCard.qml"), join(dir, "DispatchCard.qml"));
-  cpSync(join(site, "Demos/logic/board.ts"), join(dir, "logic/board.ts"));
   writeFileSync(join(dir, "ljos-site.json"), JSON.stringify(manifest(dir, "Main.qml")));
 }
 

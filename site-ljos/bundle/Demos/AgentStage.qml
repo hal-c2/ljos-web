@@ -11,7 +11,9 @@ import "later.js" as Later
 // it was, through an inspector's client, to an inspector serving the dispatch
 // card on this page, the same inspector `ljos observe` and a coding agent
 // ask. What the log says each call answered is what the card's inspector
-// answered here. What the card does (a press of the reader's, or one of
+// answered here. The agent's edit of board.ts is recorded: the stage
+// reloads the running app from the module the build made of the edited
+// file, and the log says what that reload did. What the card does (a press of the reader's, or one of
 // the agent's) is said in its log, and streams back into the agent's log
 // through app_watch and app_logs, as it would to an agent.
 //
@@ -32,7 +34,31 @@ AgentView {
     working: active && playing
     // Its button then plays it again, rather than on.
     readonly property bool ended: at >= total
+    // The frame keeps the poster until the app has come (DemoFrame's
+    // `drawn`), and not again: a swap of modules takes the old app away
+    // just before it puts the new one in.
+    readonly property bool ready: seeded
     Component.onCompleted: reset()
+
+    // The app the replay starts from, given to the first card made as the
+    // program's own assignments: a reload carries those, where it would
+    // take what a file declares from the new module.
+    property bool seeded: false
+    onCardChanged: {
+        if (card !== null && !seeded) {
+            seed();
+            seeded = true;
+        }
+    }
+    function seed() {
+        card.heading = AgentReplay.heading;
+        card.tickets = AgentReplay.tickets;
+        card.filters = AgentReplay.filters;
+        card.openOnly = false;
+        card.crews = {};
+        card.picked = "";
+        card.seen = {};
+    }
 
     // The ref the last app_find answered.
     property string found: ""
@@ -49,7 +75,9 @@ AgentView {
     property int logsSerial: -1
     property int treeSerial: -1
     property int inspectSerial: -1
-    readonly property bool busy: stepSerial >= 0
+    // A swap of the app's module on its way.
+    property bool swapping: false
+    readonly property bool busy: stepSerial >= 0 || swapping
     readonly property string inspectedAs: t`Dispatch`
     // The card's inspector's, empty until it is fetched and serves.
     readonly property string tokenFile: held.item ? held.item.tokenFile : ""
@@ -75,9 +103,26 @@ AgentView {
         const next = AgentReplay.steps[at];
         if (next.say !== "")
             row({ kind: "say", text: next.say });
+        if (next.edit) {
+            edit(next.edit);
+            return;
+        }
         const args = Stage.withFound(next.args, found);
         stepRow = row({ kind: "call", tool: next.tool, args: Stage.argsText(args), answer: "pending" });
         stepSerial = ask(next.tool, JSON.stringify(args));
+    }
+
+    // The agent's edit of board.ts: the running app reloaded from the
+    // module built from the edited file, as a save does under `--watch`.
+    function edit(layout) {
+        stepRow = row({ kind: "edit", tool: "board.ts", args: AgentReplay.editText(running, layout), answer: "pending" });
+        swapping = true;
+        swap(layout).then((why) => {
+            stage.swapping = false;
+            log.setProperty(stage.stepRow, "answer", why ? "error" : "ok");
+            log.setProperty(stage.stepRow, "summary", why ? why : t`the app runs the module built from it now`);
+            stage.advance();
+        });
     }
 
     // Back to the app the replay starts from: its tickets, in a list.
@@ -87,17 +132,17 @@ AgentView {
         found = "";
         at = 0;
         edited = false;
-        card.heading = AgentReplay.startHeading;
-        card.tickets = AgentReplay.tickets.slice(0, 2);
-        card.filters = [];
-        card.layout = "list";
-        card.openOnly = false;
-        card.crews = {};
-        card.picked = "";
-        card.seen = {};
         log.clear();
         pickedRef = "";
         propertyRows = [];
+        if (card !== null)
+            seed();
+        if (running !== "list") {
+            swapping = true;
+            swap("list").then(() => {
+                stage.swapping = false;
+            });
+        }
     }
 
     // The frame's Play: from the start once it has ended, else on from
@@ -108,15 +153,20 @@ AgentView {
         edited = false;
         playing = true;
     }
-    // The reader's own edit of what the agent's call sets. It takes the
-    // replay's place, or the next call would be theirs to fight.
+    // The reader's own swap to either module: the agent's edit undone or
+    // made again. It takes the replay's place, or the next step would be
+    // theirs to fight.
     onLayoutPicked: (picked) => {
-        if (picked === card.layout)
+        if (picked === running || swapping)
             return;
         playing = false;
         edited = true;
-        card.layout = picked;
-        tell(`layout changed to ${picked}`);
+        swapping = true;
+        swap(picked).then((why) => {
+            stage.swapping = false;
+            if (!why)
+                stage.tell(`layout changed to ${picked}`);
+        });
     }
     onTabPicked: (picked) => {
         tab = picked;
@@ -199,6 +249,11 @@ AgentView {
             log.setProperty(stepRow, "image", answer.image);
         if (tool === "app_find" && ok)
             found = Stage.refOf(answer);
+        advance();
+    }
+
+    // The step done: on to the next, or the reader's turn.
+    function advance() {
         at = at + 1;
         if (at >= total) {
             playing = false;

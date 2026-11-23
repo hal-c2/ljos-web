@@ -4,9 +4,11 @@ import QtQuick
 import Site
 
 // One line of the agent's log: what it said it would do (`say`), a tool
-// call and what came back (`call`), something the app did that streamed
-// back (`event`), or the end of the replay (`end`). Each kind has its own
-// mark and words, so none is told by colour alone.
+// call and what came back (`call`), the agent's edit of a file and what
+// the running app made of it (`edit`: `tool` is the file, `args` the lines
+// changed), something the app did that streamed back (`event`), or the
+// end of the replay (`end`). Each kind has its own mark and words, so
+// none is told by colour alone.
 Item {
     id: line
 
@@ -23,7 +25,8 @@ Item {
     property bool fresh: false
     property bool calm: false
 
-    implicitHeight: kind === "call" ? callBox.height : kind === "event" ? eventRow.height : sayRow.height
+    readonly property bool boxed: kind === "call" || kind === "edit"
+    implicitHeight: boxed ? callBox.height : kind === "event" ? eventRow.height : sayRow.height
     height: implicitHeight
 
     opacity: 1
@@ -84,10 +87,11 @@ Item {
         }
     }
 
-    // A call: the tool, its arguments as sent, and what came back.
+    // A call: the tool, its arguments as sent, and what came back. An
+    // edit: the file, the lines it changed, and what the app did with it.
     Rectangle {
         id: callBox
-        visible: line.kind === "call"
+        visible: line.boxed
         width: line.width
         height: callColumn.height + 2 * Theme.xs
         radius: Theme.radiusSmall
@@ -114,7 +118,9 @@ Item {
                     font.pixelSize: Theme.captionSize
                     font.weight: Font.DemiBold
                 }
-                // Where the call is: on its way, answered, refused.
+                // Where the call is: on its way, answered, refused; where the
+                // edit is: the app on its way to the edited module, on it,
+                // or still on the last one.
                 Row {
                     visible: line.answer !== ""
                     anchors.right: parent.right
@@ -131,7 +137,7 @@ Item {
                         border.width: 1
                     }
                     Text {
-                        text: line.answer === "" ? "" : line.answer === "pending" ? t`sent` : line.answer === "error" ? t`refused` : t`answered`
+                        text: line.answer === "" ? "" : line.kind === "edit" ? (line.answer === "pending" ? t`reloading` : line.answer === "error" ? t`kept the last board` : t`reloaded`) : line.answer === "pending" ? t`sent` : line.answer === "error" ? t`refused` : t`answered`
                         color: Theme.codeGutter
                         font.family: Theme.sans
                         font.pixelSize: Theme.captionSize - 1

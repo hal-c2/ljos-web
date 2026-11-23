@@ -3,14 +3,15 @@
 import Ljos.Core
 import QtQuick
 import Site
-import "logic/board.ts" as Board
 
 // A field-service dispatch card for Brekka Grid, a made-up grid operator:
 // the app the landing's agent reshapes. Everything it shows is data in its
-// own properties (a heading, the tickets, the filters, its layout), drawn
-// by the card's own trusted parts through typed TypeScript (logic/board.ts).
-// An agent changes what the card shows by setting those properties over
-// MCP; it never sends a part to draw.
+// own properties (a heading, the tickets, the filters), drawn by the
+// card's own trusted parts, in the lanes a board module's typed TypeScript
+// gives it (`lay`): DispatchList.qml is built from logic/before/board.ts,
+// DispatchBoard.qml from logic/after/board.ts. An agent changes what the
+// card shows by setting those properties over MCP, and how it is laid out
+// by an edit of board.ts; it never sends a part to draw.
 // What a person (or the agent) does in it is said through `told`, which
 // the stage keeps as the app's log.
 Rectangle {
@@ -23,9 +24,9 @@ Rectangle {
     property var tickets: []
     property var filters: []
     property bool openOnly: false
-    // "list" or "board" (board.ts's Layout).
-    property var layout: "list"
-    // Another board module's `lanes`, where one lays the card out.
+    // Which board module made the card: "list" or "board".
+    property string layout: ""
+    // That module's `lanes`. Without one, the tickets are one list.
     property var lay: null
     // The crew each ticket was given here, by its key: a person's press
     // or an agent's, over the crew the ticket came with.
@@ -33,7 +34,9 @@ Rectangle {
     // The ticket picked, by its key.
     property string picked: ""
     // Gently, for a reader who asked for less motion: rows fade in place.
-    property bool calm: false
+    // From its first frame, as a loader makes the card before anyone can
+    // tell it.
+    property bool calm: Theme.calm
     // A picture of the card (a poster): what it shows stands at once.
     property bool still: false
 
@@ -46,7 +49,7 @@ Rectangle {
     // Too narrow for the filters beside the heading.
     readonly property bool tight: width < 360
     readonly property var placed: shown.map((ticket) => Object.assign({}, ticket, { crew: crewOf(ticket) }))
-    readonly property var lanes: lay ? lay(placed) : Board.lanes(layout, placed)
+    readonly property var lanes: lay ? lay(placed) : [{ title: "", tickets: placed }]
     readonly property bool boarded: lanes.length > 1
     // The board with no ticket left to assign: its crewed lane has all the
     // width, as half a board of nothing reads as something missing.
@@ -181,11 +184,14 @@ Rectangle {
         }
 
         // The tickets, a list a screen reader counts, in the lanes board.ts
-        // puts them in: one for the list, two for the board.
-        Row {
+        // puts them in: one for the list, two for the board, one over the
+        // other on a narrow card.
+        Grid {
             id: board
             width: parent.width
-            spacing: Theme.xs
+            columns: card.narrow ? 1 : Math.max(1, card.lanes.length)
+            columnSpacing: Theme.xs
+            rowSpacing: Theme.s
 
             Repeater {
                 model: card.lanes
@@ -197,7 +203,7 @@ Rectangle {
                     // Hidden, not unmade: the page as written and as hydrated
                     // make the same parts.
                     visible: !card.staffed || index === 1
-                    width: card.staffed ? board.width : Math.floor((board.width - (card.lanes.length - 1) * board.spacing) / card.lanes.length)
+                    width: card.staffed || board.columns === 1 ? board.width : Math.floor((board.width - (card.lanes.length - 1) * board.columnSpacing) / card.lanes.length)
                     spacing: Theme.xs
 
                     Text {

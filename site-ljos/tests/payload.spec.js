@@ -281,6 +281,28 @@ test("a page with nothing to run asks for nothing past its first load", async ({
   expect(asked.filter((file) => !expected.has(file))).toEqual([]);
 });
 
+// The front page's replay reloads its app from a second module the build
+// made, so it asks for nothing an edit needs: not as it loads, not while
+// it plays, not once it has played to its end.
+test("/ fetches no compiler and no editor through its whole replay", async ({ page }) => {
+  const asked = [];
+  page.on("requestfinished", (request) => {
+    const url = new URL(request.url());
+    if (url.protocol === "http:" && /\.(?:js|mjs|wasm)$/.test(url.pathname)) asked.push(url.pathname.split("/").pop());
+  });
+  const forEdit = () => asked.filter((file) => file.endsWith(".wasm") || ["attach-", "modules-", "compiler-", "ljos_web_compiler"].some((prefix) => file.startsWith(prefix)));
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(base);
+  await page.waitForSelector('#app[data-ljos-hydrated="true"]');
+  await page.waitForLoadState("networkidle");
+  expect(forEdit(), "as it loads").toEqual([]);
+  await expect(page.getByRole("button", { name: "Pause the agent replay" }), "while it plays").toBeVisible();
+  await expect(page.getByText("reloaded", { exact: true }), "its edit, reloaded").toHaveCount(1, { timeout: 30_000 });
+  await expect(page.getByText("answered", { exact: true }), "played to its end").toHaveCount(7, { timeout: 60_000 });
+  await page.waitForLoadState("networkidle");
+  expect(forEdit(), "once it has played").toEqual([]);
+});
+
 // A page whose code blocks run asks for what an edit needs (the
 // compiler, its wasm and modules, the editor) only once the reader
 // reaches for a block's code and edits it: a reader who only reads

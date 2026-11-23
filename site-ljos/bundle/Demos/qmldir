@@ -5,6 +5,8 @@ PantryShell 1.0 PantryShell.qml
 singleton DispatchSource 1.0 DispatchSource.qml
 singleton AgentReplay 1.0 AgentReplay.qml
 DispatchCard 1.0 DispatchCard.qml
+DispatchList 1.0 DispatchList.qml
+DispatchBoard 1.0 DispatchBoard.qml
 AgentLogRow 1.0 AgentLogRow.qml
 AgentView 1.0 AgentView.qml
 AgentPoster 1.0 AgentPoster.qml
