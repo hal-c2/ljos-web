@@ -770,6 +770,24 @@ Text {
     }
 }
 `);
+  // The handler is called as the event is dispatched, as a page's is:
+  // what it reads of the event is the request it was set on.
+  const targeted = one(`import Ljos.Ui
+import Ljos.Core
+
+Text {
+    id: root
+    text: "before a response"
+    Component.onCompleted: {
+        const http = new XMLHttpRequest()
+        http.onreadystatechange = function (event) {
+            root.text = \`handler saw \${event.target.readyState}, on its request \${event.target === http && event.currentTarget === http}\`
+        }
+        http.open("GET", "https://example.invalid/act.json", true)
+        http.send()
+    }
+}
+`);
   const aborted = one(`import Ljos.Ui
 import Ljos.Core
 
@@ -788,11 +806,12 @@ Text {
 `);
   const cacheDir = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), "ljos-codeblock-test-"));
   try {
-    const { failures } = await renderPrerenders([waiting, aborted], { cacheDir, qmlc });
+    const { failures } = await renderPrerenders([waiting, aborted, targeted], { cacheDir, qmlc });
     expect(failures.map(({ diagnostics }) => diagnostics.join("\n"))).toEqual([]);
     const loaded = loadPrerenders(cacheDir);
     expect(loaded[hashExample(waiting)].html).toContain("seen 1 of 4");
     expect(loaded[hashExample(aborted)].html).toContain("sent at 1, aborted to 0, answered 0");
+    expect(loaded[hashExample(targeted)].html).toContain("handler saw 1, on its request true");
   } finally {
     rmSync(cacheDir, { recursive: true, force: true });
   }
