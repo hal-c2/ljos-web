@@ -209,6 +209,11 @@ export const prerenderSize = (html) => {
   return sizeOf(sized ?? "");
 };
 
+// The stage and both schemes' pictures share one size (pictures.mjs), so
+// an example that asks a size of its own in each scheme is given one
+// both fit in, rather than the light one's, which would crop the dark.
+const bothSchemes = (light, dark) => (light.width && dark?.width ? { width: Math.max(light.width, dark.width), height: Math.max(light.height, dark.height) } : light);
+
 const sizeOf = (tag) => {
   const style = /style="([^"]*)"/.exec(tag)?.[1] ?? "";
   const width = /width:\s*([\d.]+)px/.exec(style)?.[1];
@@ -591,7 +596,7 @@ export async function renderPrerenders(examples, { cacheDir, qmlc, width = 1280,
           const inLight = (logged ?? []).map(unstaged);
           const onlyDark = (darkly?.logged ?? []).map(unstaged).filter((line) => !inLight.includes(line));
           const said = [...inLight, ...onlyDark.map((line) => `in the dark scheme: ${line}`)];
-          manifest[hash] = { file, ...(shade ? { dark: shade } : {}), ...prerenderSize(html), ...(said.length ? { logged: said } : {}), stamp };
+          manifest[hash] = { file, ...(shade ? { dark: shade } : {}), ...bothSchemes(prerenderSize(html), darkly && prerenderSize(darkly.html)), ...(said.length ? { logged: said } : {}), stamp };
         }
       }
       const answered = new Set(light.keys());
