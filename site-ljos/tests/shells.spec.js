@@ -1629,6 +1629,36 @@ test("Cyberpunk stands on a phone, with one menu control and its telemetry along
   }
 });
 
+// The glitch's bands jump right, past the page's edge; the page clips
+// its width only while they do (assets/head.html), so a phone never
+// scrolls sideways and an overflow after it still shows.
+test("a phone never scrolls sideways while Cyberpunk glitches in", async ({ browser }) => {
+  const context = await reader(browser, { viewport: PHONE, kept: "cyberpunk" });
+  try {
+    const page = await context.newPage();
+    await page.addInitScript(() => {
+      window.__widest = 0;
+      window.__glitched = false;
+      const frame = () => {
+        window.__widest = Math.max(window.__widest, document.documentElement.scrollWidth);
+        const app = document.getElementById("app");
+        if (app && app.getAnimations().some((animation) => animation.animationName === "ljos-glitch-in")) window.__glitched = true;
+        requestAnimationFrame(frame);
+      };
+      requestAnimationFrame(frame);
+    });
+    await open(page, "/");
+    expect(await page.evaluate(() => window.__glitched), "the page glitched in").toBe(true);
+    await expect
+      .poll(() => page.evaluate(() => document.getElementById("app").getAnimations().filter((animation) => animation.animationName === "ljos-glitch-in").map((animation) => animation.playState)), { message: "the glitch ends" })
+      .toEqual(["finished"]);
+    expect(await page.evaluate(() => window.__widest), "no frame of the glitch is wider than the phone").toBeLessThanOrEqual(PHONE.width);
+    expect(await page.evaluate(() => [getComputedStyle(document.documentElement).overflowX, getComputedStyle(document.body).overflowX])).toEqual(["visible", "visible"]);
+  } finally {
+    await context.close();
+  }
+});
+
 // Cyberpunk's scanlines are one still picture, tiled over the whole
 // shell; its glitch is the swap's own transition into it (shells.js
 // `swap`, assets/head.html), so it is over when the swap is.

@@ -381,6 +381,12 @@ Feature: The site is shown in a shell the reader picks
     And its header has exactly one control besides the home link: "Menu"
     And a bar along the bottom says the route, the objects alive, the frame rate and the clock
 
+  Scenario: A phone never scrolls sideways while Cyberpunk glitches in
+    Given a reader on a phone whose kept shell is Cyberpunk
+    When they open the front page and it glitches in
+    Then the page is never wider than the phone, in any frame of the glitch
+    And once the glitch is over, the page no longer clips its width
+
   Scenario: Cyberpunk's scanlines hold still, and with reduced motion it never glitches
     When a reader swaps to the Cyberpunk shell
     Then the swap is a short glitch, and the shell lies under still scanlines

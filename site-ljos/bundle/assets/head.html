@@ -103,6 +103,17 @@
     :root[data-ljos-shell="cyberpunk"][data-ljos-shell-shown]:not([data-ljos-motion="reduce"]) #app { animation: ljos-glitch-in 420ms linear both; }
   }
   :root[data-ljos-shell="cyberpunk"][data-ljos-shell-shown][data-ljos-motion="no-preference"] #app { animation: ljos-glitch-in 420ms linear both; }
+  /* The bands jump right past the page's edge, and a transform is part
+     of what a page scrolls to, so a phone would scroll sideways for as
+     long as they jump. The page clips its width for exactly the glitch's
+     420 ms, no longer: after it an overflow shows as one. */
+  @media (prefers-reduced-motion: no-preference) {
+    :root[data-ljos-shell="cyberpunk"][data-ljos-shell-shown]:not([data-ljos-motion="reduce"]),
+    :root[data-ljos-shell="cyberpunk"][data-ljos-shell-shown]:not([data-ljos-motion="reduce"]) body { animation: ljos-glitch-clip 420ms linear; }
+  }
+  :root[data-ljos-shell="cyberpunk"][data-ljos-shell-shown][data-ljos-motion="no-preference"],
+  :root[data-ljos-shell="cyberpunk"][data-ljos-shell-shown][data-ljos-motion="no-preference"] body { animation: ljos-glitch-clip 420ms linear; }
+  @keyframes ljos-glitch-clip { from, to { overflow-x: clip; } }
   @keyframes ljos-glitch-in {
     0% { opacity: 0; clip-path: inset(0 0 100% 0); }
     8% { opacity: 1; clip-path: inset(14% 0 62% 0); transform: translateX(-12px); filter: drop-shadow(3px 0 #ff2bd6) drop-shadow(-3px 0 #00f0ff); }
