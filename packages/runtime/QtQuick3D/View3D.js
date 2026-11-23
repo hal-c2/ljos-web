@@ -583,9 +583,10 @@ export const View3D = defineType("View3D", Item, {
           ahead.sighting();
           // Every file is asked of, so they are fetched together: but none
           // by a view that could not turn, or that has what keeps it here.
-          // Whether it could is asked once it has such files: that may
-          // compile WebAssembly to find out.
-          const could = mayTurn && loaders.length > 0 && readable() && !scriptAlone(self, seen);
+          // Whether it could is asked last, of a view with such files and
+          // nothing that keeps it here: that may compile WebAssembly to find
+          // out, which a page's policy may refuse and report.
+          const could = mayTurn && loaders.length > 0 && !scriptAlone(self, seen) && readable();
           const shown = could ? loaders.map((node) => node.$ready(ahead)) : [];
           ahead.sighted();
           // Turned to once none is on the way and one can be shown: a file
