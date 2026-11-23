@@ -17,8 +17,8 @@ IconButton {
         model: 3
         Rectangle {
             required property int index
-            x: 11
-            y: menu.open ? 19 : 13 + index * 6
+            x: Math.round((menu.width - width) / 2)
+            y: menu.height / 2 - 1 + (menu.open ? 0 : (index - 1) * 6)
             width: 18
             height: 2
             radius: 1

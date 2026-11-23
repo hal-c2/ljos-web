@@ -32,8 +32,11 @@ Rectangle {
 
     readonly property bool live: enabled && !busy
 
-    implicitWidth: words.implicitWidth + 2 * Theme.s
-    implicitHeight: 32
+    // The one that starts something stands a step larger than the rest,
+    // so Run is the stage's first thing to find.
+    implicitWidth: words.implicitWidth + 2 * (primary ? Theme.m : Theme.s)
+    // A finger's target on a phone; a pointer's, a little less, beside it.
+    implicitHeight: Theme.narrow ? Theme.target : primary ? 36 : 32
     radius: Theme.radiusSmall
     color: primary ? (hit.pressed ? Theme.accentPressed : hit.containsMouse && live ? Theme.accentHover : Theme.accent) : (hit.pressed ? Theme.surfacePressed : hit.containsMouse && live ? Theme.surfaceHover : checked ? Theme.surfaceSelected : Theme.surfaceRaised)
     border.color: primary ? "transparent" : Theme.border
@@ -86,7 +89,7 @@ Rectangle {
         text: button.text
         color: button.primary ? Theme.textOnAccent : Theme.text
         font.family: Theme.sans
-        font.pixelSize: Theme.captionSize
+        font.pixelSize: button.primary ? Theme.uiSize : Theme.captionSize
         font.weight: Font.DemiBold
     }
 

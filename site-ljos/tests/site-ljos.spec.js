@@ -787,7 +787,10 @@ test("Reset applies the app's shell once over the visitor's, keeps the basket, a
     // it.
     const resetStands = async () => {
       await shownInHeldTime(page, page.getByText("The Corner Pantry", { exact: true }));
-      await expect(editor, "the reset puts the app's shell back in the editor").toContainText('"The Corner Pantry"');
+      // CodeMirror writes only the lines near the window into the page,
+      // so the app's shell is known by its name near its top, where the
+      // visitor's has none: its title is further down than that.
+      await expect(editor, "the reset puts the app's shell back in the editor").toContainText('objectName: "appShell"');
       await expect(editor, "and none of the visitor's").not.toContainText("My Pantry");
       await goneInHeldTime(page, page.getByText("My Pantry", { exact: true }), "the visitor's shell is gone from the stage");
       await shownInHeldTime(page, page.getByText(basket).first());
@@ -904,13 +907,17 @@ test("the landing's showcase demo stands in its slot", async ({ page }) => {
   // cannot, and its picture, with the button on it, until then.
   const run = shown(page.getByText("See it run", { exact: true }));
   await run.scrollIntoViewIfNeeded();
-  await expect.poll(() => demoIn(page, run, "demo-orbit.webp"), { timeout: 30_000 }).toBeGreaterThan(0);
+  // Its slot is in the section the heading names: beside the words on a
+  // wide page, so level with them, and under them on a phone.
+  const section = shown(page.getByRole("region", { name: "See it run", exact: true }));
+  const stands = shown(section.locator('canvas, img[src$="demo-orbit.webp"]')).first();
+  await expect(stands).toBeVisible({ timeout: 30_000 });
   // Asked as the page asks (Nav.canRun "webgl2"), not by what stands:
   // the picture stands before the frame may run as well as after.
   const runs = await page.evaluate(() => typeof WebGL2RenderingContext === "function" && typeof OffscreenCanvas === "function");
   if (runs) await runDemo(page, "Run the 3D demo");
   else await expect(page.getByRole("button", { name: "Run the 3D demo" }), "where it cannot run, there is no Run").toHaveCount(0);
-  await expect.poll(() => demoIn(page, run, "demo-orbit.webp"), { timeout: 30_000, message: "Orbit stands in its slot" }).toBeGreaterThan(0);
+  await expect(stands, "Orbit stands in its slot").toBeVisible({ timeout: 30_000 });
 });
 
 // A page of its own, apart from the landing. Each demo is paused once

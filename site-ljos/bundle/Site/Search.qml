@@ -55,14 +55,15 @@ Item {
     Rectangle {
         id: box
         anchors.fill: parent
-        radius: Theme.radiusSmall
-        color: Theme.surfaceRaised
+        // A field in the header is a pill where the look has corners.
+        radius: Theme.radiusSmall > 0 ? height / 2 : 0
+        color: field.activeFocus ? Theme.surfaceRaised : Theme.surface
         border.color: field.activeFocus ? Theme.focusRing : Theme.border
         border.width: field.activeFocus ? 2 : 1
 
         // A magnifying glass.
         Item {
-            x: 12
+            x: 14
             anchors.verticalCenter: parent.verticalCenter
             width: 16
             height: 16
@@ -93,19 +94,43 @@ Item {
             text: t`Search docs and demos`
             color: Theme.textMuted
             font.family: Theme.sans
-            font.pixelSize: Theme.bodySize
+            font.pixelSize: field.font.pixelSize
             Accessible.ignored: true
+        }
+        // The key that comes here, where a keyboard is likely.
+        Rectangle {
+            visible: !Theme.narrow && field.text === "" && !field.activeFocus
+            x: parent.width - width - Theme.s
+            anchors.verticalCenter: parent.verticalCenter
+            width: 22
+            height: 22
+            radius: Theme.radiusSmall > 0 ? 6 : 0
+            color: Theme.canvas
+            border.color: Theme.divider
+            border.width: 1
+            Accessible.ignored: true
+
+            Text {
+                anchors.centerIn: parent
+                text: "/"
+                color: Theme.textMuted
+                font.family: Theme.mono
+                font.pixelSize: Theme.captionSize - 1
+            }
         }
         TextInput {
             id: field
-            x: 36
-            width: parent.width - x - Theme.s
-            anchors.verticalCenter: parent.verticalCenter
+            x: 38
+            width: parent.width - x - Theme.m
+            // The whole box's height, so a press anywhere in it is the field's.
+            height: parent.height
+            verticalAlignment: TextInput.AlignVCenter
             color: Theme.text
             selectionColor: Theme.surfaceSelected
             selectedTextColor: Theme.text
             font.family: Theme.sans
-            font.pixelSize: Theme.bodySize
+            // A phone's browser zooms into a field set under 16 px.
+            font.pixelSize: Theme.narrow ? Theme.bodySize : Theme.uiSize + 1
             clip: true
             Accessible.role: Accessible.EditableText
             Accessible.name: t`Search`

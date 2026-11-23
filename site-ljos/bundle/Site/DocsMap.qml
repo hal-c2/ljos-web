@@ -41,15 +41,17 @@ Column {
                     readonly property bool current: modelData.route === map.route
 
                     width: map.width
-                    height: words.implicitHeight + Theme.xs
+                    // A finger's row is the link from top to bottom.
+                    height: Math.max(words.implicitHeight + Theme.xs, Theme.rowLeast)
                     radius: Theme.radiusSmall
                     color: current ? Theme.surfaceSelected : "transparent"
 
                     NavLink {
                         id: words
                         x: Theme.xs
-                        y: Theme.xxs
+                        y: Theme.narrow ? 0 : Theme.xxs
                         width: parent.width - 2 * Theme.xs
+                        height: Theme.narrow ? parent.height : implicitHeight
                         label: modelData.title
                         to: modelData.route
                         current: parent.current

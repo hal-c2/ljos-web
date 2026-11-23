@@ -448,7 +448,7 @@ writeFileSync(join(bundle, "Demos/pro-later.js"), Pro.loaders(Pro.demos));
   writeFileSync(
     join(bundle, "Shells/sources.json"),
     `${JSON.stringify({
-      shells: Object.fromEntries(["Marketing", "Workbench", "Desktop"].map((name) => [name.toLowerCase(), sourceOf(`Shells/${name}.qml`)])),
+      shells: Object.fromEntries(["Elegant", "Workbench", "Desktop"].map((name) => [name.toLowerCase(), sourceOf(`Shells/${name}.qml`)])),
       pages: Object.fromEntries(["Landing", "DemosPage", "ShowcasePage", "DocPage", "ProDemoPage"].map((name) => [name, sourceOf(`Site/${name}.qml`)])),
     })}\n`,
   );
@@ -530,10 +530,10 @@ const pages = [
   ...Pro.pages(Pro.demos, after),
   ...site.pages.map((page, i) => ({ route: page.route, title: titles[page.route], description: describe(page), props: { route: page.route, page: slim[i] } })),
 ];
-// bundle/tokens.js's two tones, the table Site/Theme.qml reads.
+// bundle/tokens.js's two tones and each look's, the table Site/Theme.qml reads.
 function tones() {
   const source = readFileSync(join(bundle, "tokens.js"), "utf8").replace(/^\.pragma library$/m, "");
-  return new Function(`${source}\nreturn { light, dark };`)();
+  return new Function(`${source}\nreturn { light, dark, looks };`)();
 }
 
 // A live block's pictures, addressed from its page: from its route's
@@ -550,28 +550,69 @@ function pictured(live, up) {
 // Site/Theme.qml reads) written in as CSS custom properties: one table,
 // so the HTML around the app and the app never disagree.
 function siteHead() {
-  const { light, dark } = tones();
+  const { light, dark, looks } = tones();
   const css = (name) => `--ljos-${name.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`;
+  // A colour with alpha is written as QML reads it, #AARRGGBB; CSS
+  // reads eight digits as #RRGGBBAA, so it is turned round for the head.
+  const color = (value) => (/^#[0-9a-f]{8}$/i.test(value) ? `#${value.slice(3)}${value.slice(1, 3)}` : value);
   const declarations = (tone) =>
     [
       ...Object.entries(tone)
         .filter(([, value]) => typeof value === "string")
-        .map(([name, value]) => `${css(name)}: ${value};`),
+        .map(([name, value]) => `${css(name)}: ${color(value)};`),
       `--ljos-codeblock-border: ${tone.divider};`,
       `--ljos-codeblock-focus: ${tone.focus};`,
-      ...Object.entries(tone.code).map(([tag, value]) => `--ljos-code-${tag}: ${value};`),
+      ...Object.entries(tone.code).map(([tag, value]) => `--ljos-code-${tag}: ${color(value)};`),
     ].join(" ");
+  // A look's type and shape, which do not change with the scheme.
+  const shape = (look) =>
+    [
+      `--ljos-font-display: ${look.fonts.display};`,
+      `--ljos-font-sans: ${look.fonts.sans};`,
+      `--ljos-font-mono: ${look.fonts.mono};`,
+      `--ljos-radius-small: ${look.shape.radiusSmall}px;`,
+      `--ljos-radius: ${look.shape.radius}px;`,
+      `--ljos-radius-large: ${look.shape.radiusLarge}px;`,
+    ].join(" ");
+  // Every page is written in the default shell (tokens.js's own light
+  // and dark), so its colours come first and alone decide the first
+  // paint; each other shell's follow, under the name of the shell shown
+  // (Frames.showing), so a code block or a page's ground changes with a
+  // switch and no script of its own.
+  const scoped = (shell, tail = "") => `:root[data-ljos-shell-showing="${shell}"]${tail}`;
   const tokens = [
-    `  :root { ${declarations(light)} }`,
+    `  :root { ${declarations(light)} ${shape(looks.elegant)} }`,
     `  @media (prefers-color-scheme: dark) { :root:not([data-ljos-scheme="light"]) { ${declarations(dark)} } }`,
     `  :root[data-ljos-scheme="dark"] { ${declarations(dark)} }`,
+    ...Object.entries(looks)
+      .filter(([shell]) => shell !== "elegant")
+      .flatMap(([shell, look]) => [
+        `  ${scoped(shell)} { ${declarations(look.light)} ${shape(look)} }`,
+        `  @media (prefers-color-scheme: dark) { ${scoped(shell, ':not([data-ljos-scheme="light"])')} { ${declarations(look.dark)} } }`,
+        `  :root[data-ljos-scheme="dark"][data-ljos-shell-showing="${shell}"] { ${declarations(look.dark)} }`,
+      ]),
   ].join("\n");
+  // The site's own faces (bundle/assets/fonts, served at the base's
+  // fonts/): the default shell's are fetched with the page, so its first
+  // lines are set in them; another shell's come when it shows.
+  const faces = [
+    { family: "Inter", file: "inter-var.woff2", weight: "100 900", style: "normal", early: true },
+    { family: "JetBrains Mono", file: "jetbrains-mono-var.woff2", weight: "100 800", style: "normal" },
+  ];
+  const latin = "U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD";
+  const fontFaces = faces
+    .map((face) => `  @font-face { font-family: "${face.family}"; src: url("${base}fonts/${face.file}") format("woff2"); font-weight: ${face.weight}; font-style: ${face.style}; font-display: swap; unicode-range: ${latin}; }`)
+    .join("\n");
+  const preloads = faces
+    .filter((face) => face.early)
+    .map((face) => `<link rel="preload" href="${base}fonts/${face.file}" as="font" type="font/woff2" crossorigin />`)
+    .join("\n");
   // Where the app keeps the reader's scheme, read from the script that
   // keeps it, so the head's script never asks for another.
   const scheme = readFileSync(join(bundle, "scheme.js"), "utf8").replace(/^\.pragma library$/m, "");
   const { key } = new Function(`${scheme}\nreturn { key };`)();
   // The same for the shell kept (shells.js), and the width under which
-  // the site shows the marketing shell whatever is kept (Theme.wideFrom).
+  // the site shows the Elegant shell whatever is kept (Theme.wideFrom).
   const shells = readFileSync(join(bundle, "shells.js"), "utf8").replace(/^\.pragma library$/m, "");
   const shellKey = new Function(`${shells}\nreturn key;`)();
   const wideFrom = /readonly property int wideFrom:\s*(\d+)/.exec(readFileSync(join(bundle, "Site/Theme.qml"), "utf8"))?.[1];
@@ -580,11 +621,16 @@ function siteHead() {
   // anyway: its fade's delay and its script's timer, one number.
   const shellWait = 2500;
   return readFileSync(join(bundle, "assets/head.html"), "utf8")
+    // Its comments are whole lines, for whoever edits it: every page
+    // would carry them.
+    .replace(/^[ \t]*(?:<!--[\s\S]*?-->|\/\*[\s\S]*?\*\/)\n/gm, "")
     .replace("%SCHEME_KEY%", () => JSON.stringify(key))
     .replace("%SHELL_KEY%", () => JSON.stringify(shellKey))
     .replace("%WIDE_FROM%", () => wideFrom)
     .replaceAll("%SHELL_WAIT%", () => String(shellWait))
     .replace("%LJOS_TOKENS%", () => tokens)
+    .replace("%FONT_FACES%", () => fontFaces)
+    .replace("%FONT_PRELOADS%", () => preloads)
     .replaceAll("%LIGHT_CANVAS%", light.canvas)
     .replaceAll("%DARK_CANVAS%", dark.canvas);
 }
@@ -747,6 +793,8 @@ site.pages.forEach((page, i) => writeFileSync(join(out, page.route.slice(1), "pa
 // The brand files a browser asks for by name: the mark, and the
 // pictures of it made once from it (bundle/assets).
 cpSync(join(bundle, "assets/ljos-mark.svg"), join(out, "favicon.svg"));
+// The site's own faces, with their licence (the head's @font-face).
+cpSync(join(bundle, "assets/fonts"), join(out, "fonts"), { recursive: true });
 for (const name of ["apple-touch-icon.png", "og-image.png"]) cpSync(join(bundle, "assets", name), join(out, name));
 // The pictures a demo's frame shows until the demo runs, or instead of
 // it where it cannot: named by the pages as strings, like a live block's.
@@ -766,10 +814,12 @@ writeFileSync(
 );
 mkdirSync(join(out, "pictures"), { recursive: true });
 for (const name of readdirSync(join(bundle, "assets")).filter((name) => /^demo-.*\.webp$/.test(name))) cpSync(join(bundle, "assets", name), join(out, "pictures", name));
-// The header's icon, in each scheme's text colour (Site/GitHubMark.qml).
+// The header's icon, in each look's text colour for each scheme (Site/GitHubMark.qml).
 const githubMark = readFileSync(join(bundle, "assets/github-mark.svg"), "utf8");
-for (const [scheme, { text }] of Object.entries(tones())) {
-  writeFileSync(join(out, "pictures", scheme === "dark" ? "github-mark-dark.svg" : "github-mark.svg"), githubMark.replace("%TEXT%", () => text));
+for (const [look, toned] of Object.entries(tones().looks)) {
+  const name = look === "elegant" ? "github-mark" : `github-mark-${look}`;
+  writeFileSync(join(out, "pictures", `${name}.svg`), githubMark.replace("%TEXT%", () => toned.light.text));
+  writeFileSync(join(out, "pictures", `${name}-dark.svg`), githubMark.replace("%TEXT%", () => toned.dark.text));
 }
 // The showcase's recordings and captures, named by its data.
 cpSync(join(bundle, "Showcase/media"), join(out, "showcase/media"), { recursive: true });

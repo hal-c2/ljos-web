@@ -10,7 +10,7 @@ import Ljos.Controls as C
 // many objects are alive in it.
 //
 // Its parts are places (Slots) the site puts its pieces in by name, as
-// the marketing shell's are: `site.page` is the very page another shell
+// the Elegant shell's are: `site.page` is the very page another shell
 // showed, still where the reader was on it. The tabs are this shell's
 // own: which pages are open is how it shows the site, not the site's.
 Rectangle {

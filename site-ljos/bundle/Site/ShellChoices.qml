@@ -12,7 +12,7 @@ Item {
     id: choices
 
     property var preferences: null
-    property string shown: "marketing"
+    property string shown: "elegant"
     readonly property bool opened: popover.opened
     signal sourceAsked(string name)
 
@@ -38,6 +38,19 @@ Item {
                 font.family: Theme.sans
                 font.pixelSize: Theme.captionSize
                 font.weight: Font.DemiBold
+            }
+            Text {
+                width: 304
+                leftPadding: Theme.xs
+                rightPadding: Theme.xs
+                bottomPadding: Theme.xs
+                text: t`Same app, different shell. Switching keeps your route, scroll position, and running demos.`
+                color: Theme.textMuted
+                font.family: Theme.sans
+                font.pixelSize: Theme.captionSize
+                lineHeightMode: Text.FixedHeight
+                lineHeight: 18
+                wrapMode: Text.Wrap
             }
             Repeater {
                 model: choices.preferences ? choices.preferences.shells : []
@@ -132,9 +145,11 @@ Item {
                 color: Theme.divider
             }
             C.Button {
+                height: Math.max(implicitHeight, Theme.rowLeast)
                 subtle: true
                 iconName: "code"
-                text: t`View this shell's source`
+                font.family: Theme.sans
+                text: t`View this shell's QML`
                 onClicked: {
                     popover.close();
                     choices.sourceAsked(choices.shown);

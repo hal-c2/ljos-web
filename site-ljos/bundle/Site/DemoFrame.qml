@@ -64,7 +64,11 @@ Item {
     // toolbar under it.
     readonly property int pictureHeight: Math.round(width * aspect)
     readonly property int surfaceHeight: Math.max(pictureHeight, least)
-    readonly property int barHeight: cannot ? Math.max(48, Math.ceil(why.implicitHeight) + Theme.xs) : 48
+    // Room for Run at a finger's size on a phone, a little more than its
+    // height beside a pointer; where the demo can't run, room for the
+    // words that say why.
+    readonly property int leastBar: Theme.narrow ? Theme.target + Theme.s : 52
+    readonly property int barHeight: cannot ? Math.max(leastBar, Math.ceil(why.implicitHeight) + Theme.xs) : leastBar
     height: surfaceHeight + barHeight
 
     // Set once the page this frame was written into is the reader's:

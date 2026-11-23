@@ -24,7 +24,7 @@ Item {
     property var diagnostics: []
     property Item errors: null
     property color color: Theme.ink
-    property int pixelSize: 12
+    property int pixelSize: Theme.codeSize - 1
     // A line height of the code's own, in pixels: the build and the
     // browser set lines that far apart whatever the font, so the page
     // the build wrote does not move when it hydrates, and the editor

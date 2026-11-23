@@ -8,7 +8,7 @@ import Ljos.Controls as C
 // Source.
 //
 // Its parts are places (Slots) the site puts its pieces in by name, as
-// the marketing shell's are: `site.page` is the very page another shell
+// the Elegant shell's are: `site.page` is the very page another shell
 // showed, still where the reader was on it.
 Rectangle {
     id: shell

@@ -13,12 +13,13 @@ import { picturesOf, demos as proDemos } from "../scripts/pro.mjs";
 const here = dirname(fileURLToPath(import.meta.url));
 const bundle = join(here, "../bundle");
 
-// bundle/tokens.js is a QML library script: its two tables, read as
-// the build reads them.
+// bundle/tokens.js is a QML library script: the default shell's two
+// tables, and each shell's look, read as the build reads them.
 const tokens = (() => {
   const source = readFileSync(join(bundle, "tokens.js"), "utf8").replace(/^\.pragma library$/m, "");
-  return new Function(`${source}\nreturn { light, dark };`)();
+  return new Function(`${source}\nreturn { light, dark, looks };`)();
 })();
+const SHELLS = ["elegant", "cyberpunk", "workbench", "desktop"];
 
 // WCAG 2.2's relative luminance and contrast ratio, of #rrggbb.
 function luminance(hex) {
@@ -35,7 +36,7 @@ function contrast(a, b) {
 const GROUNDS = ["canvas", "surface", "surfaceRaised", "surfaceHover", "surfacePressed", "surfaceSelected"];
 function pairs(tone) {
   const all = [];
-  for (const fg of ["text", "textMuted", "link", "danger"]) for (const bg of GROUNDS) all.push([fg, bg, tone[fg], tone[bg], 4.5]);
+  for (const fg of ["text", "textMuted", "link", "danger", "accent2Text"]) for (const bg of GROUNDS) all.push([fg, bg, tone[fg], tone[bg], 4.5]);
   for (const bg of ["accent", "accentHover", "accentPressed"]) all.push(["textOnAccent", bg, tone.textOnAccent, tone[bg], 4.5]);
   for (const bg of ["canvas", "surface", "surfaceRaised"]) {
     all.push(["border", bg, tone.border, tone[bg], 3]);
@@ -51,10 +52,11 @@ function pairs(tone) {
   return all;
 }
 
-for (const scheme of ["light", "dark"]) {
-  test(`every colour read on another meets WCAG AA in ${scheme}`, () => {
+for (const [shell, scheme] of SHELLS.flatMap((shell) => [[shell, "light"], [shell, "dark"]])) {
+  test(`every colour read on another meets WCAG AA in ${shell} ${scheme}`, () => {
     // Compared as it is, rounded only to be read: 4.499 is short of 4.5.
-    const short = pairs(tokens[scheme])
+    expect(Object.keys(tokens.looks), "the shells with a look").toEqual(SHELLS);
+    const short = pairs(tokens.looks[shell][scheme])
       .filter(([, , a, b, least]) => contrast(a, b) < least)
       .map(([fg, bg, a, b, least]) => ({ pair: `${fg} on ${bg}`, ratio: Math.round(contrast(a, b) * 1000) / 1000, least }));
     expect(short).toEqual([]);
@@ -103,9 +105,50 @@ for (const scheme of ["light", "dark"]) {
 const CODE_TAGS = ["keyword", "string", "number", "bool", "null", "regexp", "comment", "typeName", "propertyName", "variableName", "function", "operator", "punctuation", "meta", "invalid", "topic"];
 const CODE_PARTS = ["bg", "fg", "selection", "gutter", "diagnostic-error", "diagnostic-warning"];
 
-test("the code theme colours every tag and every part of a code block, in both schemes", () => {
-  for (const scheme of ["light", "dark"]) {
-    expect(Object.keys(tokens[scheme].code).sort(), scheme).toEqual([...CODE_TAGS, ...CODE_PARTS].sort());
+test("the code theme colours every tag and every part of a code block, in every shell and both schemes", () => {
+  for (const shell of SHELLS)
+    for (const scheme of ["light", "dark"]) {
+      expect(Object.keys(tokens.looks[shell][scheme].code).sort(), `${shell} ${scheme}`).toEqual([...CODE_TAGS, ...CODE_PARTS].sort());
+    }
+  // The default shell's tables are the ones every page is written in.
+  expect(tokens.looks.elegant.light).toBe(tokens.light);
+  expect(tokens.looks.elegant.dark).toBe(tokens.dark);
+});
+
+// Each shell's look is whole: a family for each part of its words, a
+// size for each step, and its shape, so content never has to know which
+// shell frames it ($S/site7/shells-tokens.md).
+const STEPS = ["hero", "compactHero", "display", "compactDisplay", "headline", "title", "subtitle", "body", "caption", "ui", "code"];
+test("every shell's look names its fonts, its type steps and its shape", () => {
+  for (const shell of SHELLS) {
+    const { type, shape, fonts } = tokens.looks[shell];
+    for (const family of ["display", "sans", "mono"]) expect(typeof fonts[family], `${shell} ${family}`).toBe("string");
+    for (const step of STEPS) {
+      const [size, line] = type[step];
+      expect(line, `${shell} ${step}`).toBeGreaterThanOrEqual(size);
+    }
+    for (const part of ["radiusSmall", "radius", "radiusLarge"]) expect(typeof shape[part], `${shell} ${part}`).toBe("number");
+  }
+  // Elegant's headline is set at 56 to 72 on a desktop and
+  // 36 to 40 on a phone.
+  const elegant = tokens.looks.elegant.type;
+  expect(elegant.hero[0]).toBeGreaterThanOrEqual(56);
+  expect(elegant.hero[0]).toBeLessThanOrEqual(72);
+  expect(elegant.compactHero[0]).toBeGreaterThanOrEqual(36);
+  expect(elegant.compactHero[0]).toBeLessThanOrEqual(40);
+});
+
+// Each shell's colours reach the HTML drawn parts too: a code block in
+// Cyberpunk is Cyberpunk's.
+test("the page's head says each shell's colours under that shell's name", async ({ request }) => {
+  const html = await (await request.get("/")).text();
+  const head = html.slice(0, html.indexOf("</head>"));
+  for (const shell of SHELLS.slice(1)) {
+    const light = head.match(new RegExp(`:root\\[data-ljos-shell-showing="${shell}"\\] \\{([^}]*)\\}`))?.[1] ?? "";
+    expect(light, shell).toContain(`--ljos-canvas: ${tokens.looks[shell].light.canvas};`);
+    expect(light, shell).toContain(`--ljos-code-keyword: ${tokens.looks[shell].light.code.keyword};`);
+    const dark = head.match(new RegExp(`:root\\[data-ljos-scheme="dark"\\]\\[data-ljos-shell-showing="${shell}"\\] \\{([^}]*)\\}`))?.[1] ?? "";
+    expect(dark, shell).toContain(`--ljos-canvas: ${tokens.looks[shell].dark.canvas};`);
   }
 });
 
@@ -168,7 +211,8 @@ for (const route of PAGES) {
         expect(basics.themeColor).toBe(2);
         expect(basics.colorScheme).toBe("light dark");
         expect(basics.shown, `one render shown at ${width} in ${scheme}`).toBe(1);
-        expect(basics.ground).toBe(scheme === "dark" ? "rgb(12, 12, 12)" : "rgb(249, 249, 248)");
+        // Elegant's warm paper, and its graphite in dark.
+        expect(basics.ground).toBe(scheme === "dark" ? "rgb(14, 14, 16)" : "rgb(247, 245, 240)");
         expect(basics.unnamedImages).toBe(0);
         expect(basics.links).toBeGreaterThan(3);
         // The icon and the picture a shared link shows are there.
@@ -325,7 +369,7 @@ test("the reader's pick of light or dark is kept, and is the first paint next ti
     // The next page is dark before its script is asked for.
     await page.route("**/*.js", (route) => route.abort());
     await page.goto("/start/mcp/");
-    expect(await page.evaluate(() => [document.documentElement.dataset.ljosScheme, getComputedStyle(document.body).backgroundColor])).toEqual(["dark", "rgb(12, 12, 12)"]);
+    expect(await page.evaluate(() => [document.documentElement.dataset.ljosScheme, getComputedStyle(document.body).backgroundColor])).toEqual(["dark", "rgb(14, 14, 16)"]);
     await expect(page.getByText("Use the light theme", { exact: true })).toHaveCount(0);
   } finally {
     await context.close();
@@ -524,8 +568,7 @@ for (const viewport of [
 // first column. Which editor of the page: /quality/motion/'s first
 // example is taller than the window, whose edge would cut its ring
 // wherever it was scrolled to, so its second is read, in a window tall
-// enough to hold it whole (code at 14 px on 22 px lines makes it a
-// little over 900).
+// enough to hold it whole at any of the shells' code sizes.
 for (const [route, name, nth, colorScheme, width] of [
   ["/quality/motion/", "Edit Main.qml", 1, "light", 1440],
   ["/quality/motion/", "Edit Main.qml", 1, "dark", 390],

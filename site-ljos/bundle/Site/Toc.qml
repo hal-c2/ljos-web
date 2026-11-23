@@ -1,12 +1,11 @@
 import QtQuick
 import Site
 import Ljos.Core
-import "../nav.js" as Nav
 
 // On this page: the headings of the docs page being read, each a link
 // that lands on it without leaving the page. Beside the page where there
-// is room, and in a phone's menu (`roomy`: the larger words a finger
-// needs).
+// is room, and in a phone's menu (`roomy`: the larger words and rows a
+// finger needs).
 Column {
     id: toc
 
@@ -18,7 +17,7 @@ Column {
     readonly property var headings: router && listed ? router.headings : []
 
     visible: headings.length > 0
-    spacing: Theme.xs
+    spacing: toc.roomy ? 0 : Theme.xs
     Accessible.role: Accessible.Section
     Accessible.name: t`On this page`
 
@@ -35,24 +34,20 @@ Column {
     Repeater {
         model: toc.headings
 
-        Text {
+        NavLink {
             required property var modelData
-            // The heading's own address, so it can be kept or opened
-            // apart; a press lands on it in place.
-            property string href: Nav.at(Content.base, toc.router.route) + "#" + modelData.anchor
 
             x: modelData.level > 2 ? (toc.roomy ? Theme.m : Theme.s) : 0
             width: toc.width - x
-            textFormat: Text.RichText
-            text: Nav.anchor("#" + modelData.anchor, modelData.plain, hoveredLink !== "")
-            color: Theme.textMuted
-            linkColor: Theme.textMuted
-            font.family: Theme.sans
-            font.pixelSize: toc.roomy ? Theme.bodySize : Theme.captionSize + 1
-            lineHeightMode: Text.FixedHeight
-            lineHeight: toc.roomy ? Theme.bodyLine : Theme.captionLine
-            wrapMode: Text.Wrap
-            onLinkActivated: (to) => toc.router.follow("#" + modelData.anchor)
+            label: modelData.plain
+            // The heading's own address, so it can be kept or opened
+            // apart; a press lands on it in place.
+            to: toc.router ? toc.router.route + "#" + modelData.anchor : "/"
+            router: toc.router
+            muted: true
+            size: toc.roomy ? Theme.bodySize : Theme.captionSize + 1
+            line: toc.roomy ? Theme.bodyLine : Theme.captionLine
+            least: toc.roomy ? Theme.rowLeast : 0
         }
     }
 }

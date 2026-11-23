@@ -113,137 +113,162 @@ Column {
         onTriggered: demo.apply()
     }
 
-    // The stage: the running app, under whichever shell stands. It
-    // is a named group, so the app's controls are found as the app's,
-    // apart from the editor's and the page's.
-    Item {
-        id: stageBox
-        // The app is a 480 × 400 window, as its shell is written; on a
-        // screen narrower than that it is shown whole, smaller, never
-        // cut off at the page's edge.
-        readonly property real fit: Math.min(1, width / 480)
-        width: parent.width
-        height: Math.round(400 * fit)
-        Accessible.role: Accessible.Grouping
-        Accessible.name: "The Pantry, running"
+    // A wide page puts the app and its shell's source side by side, as
+    // a playground: the app at its own size on the left, the editor
+    // filling the rest at the app's height. A narrow one stacks them.
+    readonly property bool side: width >= 900
+    readonly property int editorHeight: side ? 400 - head.height : 300
 
-        ShellLoader {
-            id: stage
-            onItemChanged: Observing.retarget(demo.observerKey, item)
-            width: 480
-            height: 400
-            scale: stageBox.fit
-            transformOrigin: Item.TopLeft
-            x: Math.max(0, (parent.width - width * stageBox.fit) / 2)
-            fallback: appShell
-        }
-        Component {
-            id: appShell
-            PantryShell {}
-        }
-    }
-
+    // The playground: one panel, its corners the look's, the app and the
+    // editor in it with a hairline between. Its own hairline is the frame
+    // round it, a pixel wider: a line drawn over the panel would take the
+    // visitor's clicks from the app.
     Rectangle {
         width: parent.width
-        height: Math.max(headRow.implicitHeight, observerButton.implicitHeight) + 10
-        color: Theme.panel
-        border.color: Theme.border
-        border.width: 1
+        height: bench.height + 2
+        radius: Theme.radiusLarge
+        color: Theme.divider
 
-        Row {
-            id: headRow
-            anchors.left: parent.left
-            anchors.leftMargin: 10
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: 14
-            // Up to the Observer button, when it shows: on a phone the
-            // caption gives up its room, elided, before Reset gives any.
-            readonly property real room: parent.width - anchors.leftMargin
-                - (observerButton.visible ? observerButton.width + observerButton.anchors.rightMargin + spacing : anchors.leftMargin)
+        Rectangle {
+            id: bench
+            x: 1
+            y: 1
+            width: parent.width - 2
+            height: demo.side ? 400 : stageBox.height + 1 + head.height + editorBox.height
+            radius: Theme.radiusLarge - 1
+            color: Theme.codeBg
+            clip: true
 
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                width: Math.max(0, Math.min(implicitWidth, headRow.room - resetBox.width - headRow.spacing))
-                elide: Text.ElideRight
-                color: Theme.muted
-                font.family: Theme.mono
-                font.pixelSize: 11
-                text: "Shell.qml — the app's shell, yours to rewrite"
+            // The stage: the running app, under whichever shell stands. It
+            // is a named group, so the app's controls are found as the app's,
+            // apart from the editor's and the page's.
+            Rectangle {
+                id: stageBox
+                // The app is a 480 × 400 window, as its shell is written; on a
+                // screen narrower than that it is shown whole, smaller, never
+                // cut off at the page's edge.
+                readonly property real fit: Math.min(1, width / 480)
+                width: demo.side ? 480 : parent.width
+                height: Math.round(400 * fit)
+                color: Theme.stage
+                Accessible.role: Accessible.Grouping
+                Accessible.name: "The Pantry, running"
+
+                ShellLoader {
+                    id: stage
+                    onItemChanged: Observing.retarget(demo.observerKey, item)
+                    width: 480
+                    height: 400
+                    scale: stageBox.fit
+                    transformOrigin: Item.TopLeft
+                    x: Math.max(0, (parent.width - width * stageBox.fit) / 2)
+                    fallback: appShell
+                }
+                Component {
+                    id: appShell
+                    PantryShell {}
+                }
             }
-            Item {
-                id: resetBox
-                width: resetWords.implicitWidth
-                height: resetWords.implicitHeight + 4
-                anchors.verticalCenter: parent.verticalCenter
-                activeFocusOnTab: true
-                Accessible.role: Accessible.Button
-                Accessible.name: "Reset to the app's shell"
-                Accessible.onPressAction: () => demo.resetToAppShell()
-                Keys.onPressed: (event) => {
-                    if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
-                        demo.resetToAppShell();
-                        event.accepted = true;
+            // The hairline between the app and its source.
+            Rectangle {
+                x: demo.side ? stageBox.width : 0
+                y: demo.side ? 0 : stageBox.height
+                width: demo.side ? 1 : parent.width
+                height: demo.side ? parent.height : 1
+                color: Theme.divider
+            }
+
+            Column {
+                x: demo.side ? stageBox.width + 1 : 0
+                y: demo.side ? 0 : stageBox.height + 1
+                width: parent.width - x
+
+                Rectangle {
+                    id: head
+                    width: parent.width
+                    height: Math.max(headRow.implicitHeight, observerButton.implicitHeight) + 2 * Theme.xs
+                    color: Theme.surface
+
+                    Row {
+                        id: headRow
+                        anchors.left: parent.left
+                        anchors.leftMargin: Theme.m
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: Theme.s
+                        // Up to the Observer button, when it shows: on a phone the
+                        // caption gives up its room, elided, before Reset gives any.
+                        readonly property real room: parent.width - anchors.leftMargin
+                            - (observerButton.visible ? observerButton.width + observerButton.anchors.rightMargin + spacing : anchors.leftMargin)
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: Math.max(0, Math.min(implicitWidth, headRow.room - resetButton.width - headRow.spacing))
+                            elide: Text.ElideRight
+                            color: Theme.textMuted
+                            font.family: Theme.mono
+                            font.pixelSize: Theme.captionSize - 1
+                            text: "Shell.qml — the app's shell, yours to rewrite"
+                        }
+                        StageButton {
+                            id: resetButton
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "Reset"
+                            label: "Reset to the app's shell"
+                            onPressed: demo.resetToAppShell()
+                        }
+                    }
+
+                    // Ljós's Observer on the app while it runs: its objects,
+                    // properties, frames and log, under whichever shell stands.
+                    ObserverButton {
+                        id: observerButton
+                        anchors.right: parent.right
+                        anchors.rightMargin: Theme.xs
+                        anchors.verticalCenter: parent.verticalCenter
+                        visible: stage.item !== null
+                        checked: demo.observing
+                        label: t`Observer for the Pantry`
+                        onPressed: Observing.toggle(demo.observerKey, stage.item, null, t`the Pantry`)
+                    }
+                    Rectangle {
+                        y: parent.height - 1
+                        width: parent.width
+                        height: 1
+                        color: Theme.divider
                     }
                 }
 
-                Text {
-                    id: resetWords
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: "Reset"
-                    color: Theme.accent
-                    font.family: Theme.sans
-                    font.pixelSize: 12
-                }
-                MouseArea {
-                    anchors.fill: parent
-                    Accessible.ignored: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: demo.resetToAppShell()
-                }
-            }
-        }
+                Rectangle {
+                    id: editorBox
+                    width: parent.width
+                    height: demo.editorHeight
+                    color: Theme.codeBg
+                    // The ring of the editor in it, which scrolls (Site/CodeEditor).
+                    border.color: editor.activeFocus ? Theme.focusRing : "transparent"
+                    border.width: 2
 
-        // Ljós's Observer on the app while it runs: its objects,
-        // properties, frames and log, under whichever shell stands.
-        ObserverButton {
-            id: observerButton
-            anchors.right: parent.right
-            anchors.rightMargin: 6
-            anchors.verticalCenter: parent.verticalCenter
-            visible: stage.item !== null
-            checked: demo.observing
-            label: t`Observer for the Pantry`
-            onPressed: Observing.toggle(demo.observerKey, stage.item, null, t`the Pantry`)
-        }
-    }
+                    Flickable {
+                        anchors.fill: parent
+                        anchors.margins: Theme.s
+                        contentWidth: editor.width
+                        contentHeight: editor.height
+                        clip: true
 
-    Rectangle {
-        width: parent.width
-        height: 300
-        color: Theme.codeBg
-        // The ring of the editor in it, which scrolls (Site/CodeEditor).
-        border.color: editor.activeFocus ? Theme.focusRing : Theme.border
-        border.width: editor.activeFocus ? 2 : 1
-
-        Flickable {
-            anchors.fill: parent
-            anchors.margins: 10
-            contentWidth: editor.width
-            contentHeight: editor.height
-            clip: true
-
-            // Highlighted by the build; CodeMirror once the reader is
-            // in it (Site/CodeEditor).
-            CodeEditor {
-                id: editor
-                width: Math.max(parent.width, implicitWidth)
-                code: PantryProject.shellText
-                rich: PantryProject.shellRich
-                label: "Edit the Pantry's Shell.qml"
-                errors: told
-                onTextChanged: {
-                    if (text !== demo.applied)
-                        debounce.restart();
+                        // Highlighted by the build; CodeMirror once the reader is
+                        // in it (Site/CodeEditor).
+                        CodeEditor {
+                            id: editor
+                            width: Math.max(parent.width, implicitWidth)
+                            code: PantryProject.shellText
+                            rich: PantryProject.shellRich
+                            label: "Edit the Pantry's Shell.qml"
+                            errors: told
+                            onTextChanged: {
+                                if (text !== demo.applied)
+                                    debounce.restart();
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -253,18 +278,24 @@ Column {
         id: told
         visible: (demo.said || stage.error) !== ""
         width: parent.width
+        topPadding: Theme.s
         text: demo.said || stage.error
-        color: Theme.accent
+        color: Theme.danger
         font.family: Theme.mono
-        font.pixelSize: 12
+        font.pixelSize: Theme.captionSize
+        lineHeightMode: Text.FixedHeight
+        lineHeight: Theme.captionLine
         wrapMode: Text.Wrap
     }
     Text {
         width: parent.width
+        topPadding: Theme.m
         text: "Try: move the StatusSlot under the Basket, turn the background #241a10, or rename the shop. The basket and your note keep what they hold."
-        color: Theme.muted
+        color: Theme.textMuted
         font.family: Theme.sans
-        font.pixelSize: 12
+        font.pixelSize: Theme.uiSize
+        lineHeightMode: Text.FixedHeight
+        lineHeight: Theme.uiLine
         wrapMode: Text.Wrap
     }
 }

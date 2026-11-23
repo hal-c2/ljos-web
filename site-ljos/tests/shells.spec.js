@@ -12,7 +12,7 @@ const HYDRATED = '#app[data-ljos-hydrated="true"]';
 const KEY = "ljos.dev:shell";
 const DESKTOP = { width: 1440, height: 900 };
 const PHONE = { width: 390, height: 844 };
-const LABEL = { marketing: "Elegant", workbench: "Workbench", desktop: "Desktop" };
+const LABEL = { elegant: "Elegant", workbench: "Workbench", desktop: "Desktop" };
 const SHELLS = Object.keys(LABEL);
 // What each kind of page's main landmark is named (Site/PageView.qml).
 const PAGES = [
@@ -46,11 +46,20 @@ function listen(page) {
   return said;
 }
 
-// Opened, taken over, and its kept shell in (shells.js `shown`).
+// Opened, taken over, and its kept shell in (shells.js `shown`). Once
+// the head's watchdog has shown the page as written no kept shell comes
+// (Main.qml `late`): that fails here as what it is, with when the page
+// was taken over, and is not waited on until the test times out.
 async function open(page, route) {
   await page.goto(at(route));
   await page.waitForSelector(HYDRATED, { timeout: 40_000 });
-  await page.waitForFunction(() => "ljosShellShown" in document.documentElement.dataset && document.documentElement.dataset.ljosShellShowing);
+  const taken = await page.evaluate(() => Math.round(performance.now()));
+  await page.waitForFunction(() => {
+    const said = document.documentElement.dataset;
+    return "ljosShellLate" in said || ("ljosShellShown" in said && said.ljosShellShowing);
+  });
+  const late = await page.evaluate(() => "ljosShellLate" in document.documentElement.dataset);
+  expect(late, `${route}: the head's watchdog (2500 ms) showed the page before the kept shell was in; it was taken over by ${taken} ms`).toBe(false);
 }
 
 // A press where a finger lands: an item's own press area lies over it.
@@ -61,8 +70,8 @@ async function press(locator) {
   await locator.page().mouse.click(box.x + box.width / 2, box.y + box.height / 2);
 }
 
-// Named "Shell: <the one shown>" where its words show, "Shell" as an icon.
-const SWITCHER = /^Shell(: \w+)?$/;
+// Named "Current shell: <the one shown>" where its words show, "Switch shell" as an icon.
+const SWITCHER = /^(Switch shell|Current shell: \w+)$/;
 const switcher = (page) => page.getByRole("button", { name: SWITCHER }).filter({ visible: true }).first();
 
 // Picks `name` in the shell switcher and waits until it frames the page
@@ -91,11 +100,11 @@ for (const route of ["/", "/start/first-app/"]) {
           const page = await context.newPage();
           const said = listen(page);
           await open(page, route);
-          if (from !== "marketing") await pick(page, from);
+          if (from !== "elegant") await pick(page, from);
           await expect(shownPage(page, named)).toBeVisible();
           await pick(page, to);
           await expect(shownPage(page, named), "the page is still shown").toBeVisible();
-          await expect(switcher(page)).toHaveAccessibleName(`Shell: ${LABEL[to]}`);
+          await expect(switcher(page)).toHaveAccessibleName(`Current shell: ${LABEL[to]}`);
           expect(said, "what the page said").toEqual([]);
         } finally {
           await context.close();
@@ -136,7 +145,7 @@ test("a running example keeps its count across every swap", async ({ browser }) 
     await press(increment);
     const count = page.getByText("Count: 2", { exact: true }).filter({ visible: true });
     await expect(count).toBeVisible();
-    for (const shell of ["workbench", "desktop", "marketing"]) {
+    for (const shell of ["workbench", "desktop", "elegant"]) {
       await pick(page, shell);
       await expect(count, `the count in ${shell}`).toBeVisible();
     }
@@ -153,10 +162,48 @@ test("the reader's place on a docs page is kept across a swap", async ({ browser
     const heading = page.getByRole("heading", { name: /^Edit live with/ }).filter({ visible: true }).first();
     await heading.evaluate((element) => element.scrollIntoView({ block: "start" }));
     await expect(heading).toBeInViewport();
-    for (const shell of ["workbench", "desktop", "marketing"]) {
+    for (const shell of ["workbench", "desktop", "elegant"]) {
       await pick(page, shell);
       await expect(heading, `the heading is still in view in ${shell}`).toBeInViewport();
     }
+  } finally {
+    await context.close();
+  }
+});
+
+// A swap inside the quarter second the page waits before it keeps where
+// the reader stopped (PageView `keeping`). They stopped near the top
+// first, so the place it has kept by then is not the one they scrolled
+// to. The pick is made in the page, two frames after the scroll: a
+// round trip for each press would as often as not outlast the wait.
+test("the reader's place is kept when they swap just after scrolling", async ({ browser }) => {
+  const context = await reader(browser);
+  try {
+    const page = await context.newPage();
+    await open(page, "/start/first-app/");
+    const heading = page.getByRole("heading", { name: /^Edit live with/ }).filter({ visible: true }).first();
+    await heading.evaluate((element) => {
+      let scroller = element.parentElement;
+      while (scroller && !(/auto|scroll/.test(getComputedStyle(scroller).overflowY) && scroller.scrollHeight > scroller.clientHeight)) scroller = scroller.parentElement;
+      scroller.scrollTop = 120;
+    });
+    await expect.poll(() => page.evaluate(() => history.state?.offset), { message: "the page keeps where they first stopped" }).toBe(120);
+    await press(switcher(page));
+    const box = await page.getByRole("radio", { name: LABEL.workbench, exact: true }).boundingBox();
+    await heading.evaluate(async (element, [clientX, clientY]) => {
+      const frame = () => new Promise((done) => requestAnimationFrame(done));
+      element.scrollIntoView({ block: "start" });
+      await frame();
+      await frame();
+      // A press as the runtime's inspector makes one (inspect.js `press`).
+      const pointer = { bubbles: true, cancelable: true, composed: true, clientX, clientY, pointerId: 1, pointerType: "mouse", isPrimary: true, detail: 1 };
+      const under = () => document.elementFromPoint(clientX, clientY);
+      under().dispatchEvent(new PointerEvent("pointerdown", { ...pointer, buttons: 1 }));
+      under().dispatchEvent(new PointerEvent("pointerup", { ...pointer, buttons: 0 }));
+    }, [box.x + box.width / 2, box.y + box.height / 2]);
+    await expect.poll(() => showing(page), { message: "Workbench frames the page", timeout: 30_000 }).toBe("workbench");
+    await page.waitForFunction(() => !document.documentElement.dataset.ljosSwap);
+    await expect(heading, "the heading they scrolled to is still in view").toBeInViewport();
   } finally {
     await context.close();
   }
@@ -362,8 +409,8 @@ test("a kept shell that comes after the head's watchdog showed the page does not
     const sawFrom = await page.evaluate(() => window.__seen.length);
     // What the module's arrival would set off, given its turn.
     if (asked) await settled(page, await came);
-    expect(await showing(page), "the page stays in the shell the reader sees").toBe("marketing");
-    const after = await page.evaluate((from) => window.__seen.slice(from).filter(({ shell }) => shell !== "marketing"), sawFrom);
+    expect(await showing(page), "the page stays in the shell the reader sees").toBe("elegant");
+    const after = await page.evaluate((from) => window.__seen.slice(from).filter(({ shell }) => shell !== "elegant"), sawFrom);
     expect(after, "frames in which another shell came").toEqual([]);
     await expect(page.locator("#app")).toHaveCSS("opacity", "1");
   } finally {
@@ -409,9 +456,9 @@ test("when the head's watchdog shows the page during the kept shell's swap, the 
     const letGoAt = await page.evaluate(() => window.__letGoAt);
     await page.waitForFunction((from) => window.__seen.some(({ t, opacity }) => t > from && opacity !== "0"), letGoAt, { polling: 50, timeout: 5_000 });
     const first = await page.evaluate((from) => window.__seen.find(({ t, opacity }) => t > from && opacity !== "0"), letGoAt);
-    expect(first.shell, "the page is seen in the shell it is written in").toBe("marketing");
+    expect(first.shell, "the page is seen in the shell it is written in").toBe("elegant");
     await expect(page.locator("#app")).toHaveCSS("opacity", "1");
-    expect(await showing(page)).toBe("marketing");
+    expect(await showing(page)).toBe("elegant");
   } finally {
     release();
     await context.close();
@@ -451,7 +498,7 @@ test("a kept shell that comes while the head's watchdog fades the page in does n
     expect(await page.evaluate(() => typeof window.__heldTimer), "the head's timer is held back").toBe("function");
     expect(await page.evaluate(() => "ljosShellLate" in document.documentElement.dataset)).toBe(false);
     // The watchdog half way through its fade, held there: the reader
-    // sees Marketing coming in.
+    // sees Elegant coming in.
     await page.evaluate(() => window.__fade(2580, false));
     await page.waitForFunction(() => window.__fadeAt !== undefined, null, { polling: 50 });
     const fadeAt = await page.evaluate(() => window.__fadeAt);
@@ -461,8 +508,8 @@ test("a kept shell that comes while the head's watchdog fades the page in does n
     // Now the module comes.
     release();
     await settled(page, await came);
-    expect(await showing(page), "the page stays in the shell the reader sees").toBe("marketing");
-    const after = await page.evaluate((from) => window.__seen.filter(({ t, shell }) => t >= from && shell !== "marketing"), fadeAt);
+    expect(await showing(page), "the page stays in the shell the reader sees").toBe("elegant");
+    const after = await page.evaluate((from) => window.__seen.filter(({ t, shell }) => t >= from && shell !== "elegant"), fadeAt);
     expect(after, "frames in which another shell came").toEqual([]);
     await page.evaluate(() => window.__fade(2660, true));
     await expect(page.locator("#app")).toHaveCSS("opacity", "1");
@@ -511,7 +558,7 @@ test("the shell choices come on a later press when the first could not load them
   }
 });
 
-test("a reader with no script gets the marketing shell, whatever is kept", async ({ browser }) => {
+test("a reader with no script gets the Elegant shell, whatever is kept", async ({ browser }) => {
   const context = await reader(browser, { kept: "desktop", javaScriptEnabled: false });
   try {
     const page = await context.newPage();
@@ -525,12 +572,12 @@ test("a reader with no script gets the marketing shell, whatever is kept", async
   }
 });
 
-test("a phone has one menu control, and the switcher says why it shows marketing", async ({ browser }) => {
+test("a phone has one menu control, and the switcher says why it shows elegant", async ({ browser }) => {
   const context = await reader(browser, { viewport: PHONE, kept: "workbench" });
   try {
     const page = await context.newPage();
     await open(page, "/");
-    expect(await showing(page)).toBe("marketing");
+    expect(await showing(page)).toBe("elegant");
     const header = region(page, "Ljós");
     const controls = header.getByRole("button").filter({ visible: true });
     await expect(controls).toHaveCount(1);
@@ -545,7 +592,62 @@ test("a phone has one menu control, and the switcher says why it shows marketing
   }
 });
 
-// A phone shows Marketing whichever shell is kept.
+// What a finger presses: the box that takes the press, not the row drawn round it.
+// A field's is not its input, which is a line high and takes the presses on
+// the item round it (TextInput.js): `missed` presses that instead.
+const TARGETS = 'a[href], button, [role="button"], [role="link"], [role="checkbox"], [role="radio"], [role="switch"]';
+const missed = async (fields, least) => {
+  const out = [];
+  for (const field of await fields.all()) {
+    const { x, y, width, height } = await field.boundingBox();
+    for (const off of [1 - least / 2, least / 2 - 1]) {
+      await field.evaluate((node) => node.blur());
+      await field.page().mouse.click(x + width / 2, y + height / 2 + off);
+      if (!(await field.evaluate((node) => node === document.activeElement)))
+        out.push(`${await field.getAttribute("aria-label")}: no press ${off} from its middle`);
+    }
+    await field.evaluate((node) => node.blur());
+  }
+  return out;
+};
+const short = (nodes, least) =>
+  nodes
+    .map((node) => ({ name: node.getAttribute("aria-label") || node.textContent.trim() || node.tagName, high: Math.round(node.getBoundingClientRect().height) }))
+    .filter(({ high }) => high < least)
+    .map(({ name, high }) => `${name}: ${high}`);
+
+for (const shell of ["elegant"]) {
+  test(`what a finger presses in ${shell}'s phone header and menu is 44 high`, async ({ browser }) => {
+    const context = await reader(browser, { viewport: PHONE, kept: shell });
+    try {
+      const page = await context.newPage();
+      await open(page, "/start/first-app/");
+      const small = async (within) => {
+        const targets = within.locator(TARGETS).filter({ visible: true });
+        expect(await targets.count(), "there is something to press").toBeGreaterThan(0);
+        const fields = within.locator("input, textarea").filter({ visible: true });
+        return [...(await targets.evaluateAll(short, 44)), ...(await missed(fields, 44))];
+      };
+      const header = region(page, "Ljós");
+      const found = await small(header);
+      await press(header.getByRole("button", { name: "Menu", exact: true }));
+      const menu = region(page, "Menu");
+      await expect(menu).toBeVisible();
+      // It slides in: measured once it stands still.
+      await expect(menu).toHaveCSS("opacity", "1");
+      found.push(...(await small(menu)));
+      await press(menu.getByRole("button", { name: SWITCHER }));
+      const choices = page.getByRole("radio").or(page.getByRole("button", { name: "View this shell's QML", exact: true })).filter({ visible: true });
+      await expect(choices.first()).toBeVisible();
+      found.push(...(await choices.evaluateAll(short, 44)));
+      expect(found, "under 44 pixels high").toEqual([]);
+    } finally {
+      await context.close();
+    }
+  });
+}
+
+// A phone shows Elegant whichever shell is kept.
 for (const viewport of [DESKTOP, PHONE]) {
   for (const kept of SHELLS) {
     test(`the header is the Ljós landmark in ${kept}, at ${viewport.width}`, async ({ browser }) => {
@@ -553,7 +655,7 @@ for (const viewport of [DESKTOP, PHONE]) {
       try {
         const page = await context.newPage();
         await open(page, "/");
-        const shown = viewport === PHONE ? "marketing" : kept;
+        const shown = viewport === PHONE ? "elegant" : kept;
         expect(await showing(page)).toBe(shown);
         const header = region(page, "Ljós");
         await expect(header).toHaveCount(1);
@@ -658,9 +760,9 @@ test("the shell's own QML is shown, a broken edit falls back and says why, and R
     await open(page, "/start/first-app/");
     await pick(page, "workbench");
     await press(switcher(page));
-    await press(page.getByRole("button", { name: "View this shell's source", exact: true }));
+    await press(page.getByRole("button", { name: "View this shell's QML", exact: true }));
     const dialog = page.getByRole("dialog");
-    await expect(dialog.getByText("Shells/Workbench.qml", { exact: true })).toBeVisible();
+    await expect(dialog.getByText("Source of Shells/Workbench.qml", { exact: true })).toBeVisible();
     const editor = dialog.getByRole("textbox", { name: "Edit this shell's QML" });
     await expect(editor).toContainText("workbenchShell");
     await editor.click();
@@ -669,7 +771,7 @@ test("the shell's own QML is shown, a broken edit falls back and says why, and R
     await page.keyboard.press("ControlOrMeta+End");
     await page.keyboard.type("\n}}");
     await press(dialog.getByRole("button", { name: "Apply", exact: true }));
-    await expect.poll(() => showing(page), { message: "the marketing shell stands in", timeout: 30_000 }).toBe("marketing");
+    await expect.poll(() => showing(page), { message: "the Elegant shell stands in", timeout: 30_000 }).toBe("elegant");
     await expect(dialog.getByText(/Shells\/Workbench\.qml:/)).toBeVisible();
     await expect(shownPage(page, "Your First App")).toBeVisible();
     await press(dialog.getByRole("button", { name: "Reset", exact: true }));
@@ -720,8 +822,8 @@ test("the Observer follows a shell that moves the page without resizing it", asy
     await open(page, "/start/first-app/");
     await pick(page, "workbench");
     await press(switcher(page));
-    await press(page.getByRole("button", { name: "View this shell's source", exact: true }));
-    const source = page.getByRole("dialog", { name: /^Shells\// });
+    await press(page.getByRole("button", { name: "View this shell's QML", exact: true }));
+    const source = page.getByRole("dialog", { name: /^Source of Shells\// });
     const editor = source.getByRole("textbox", { name: "Edit this shell's QML" });
     await expect(editor).toContainText("workbenchShell");
     await editor.click();
@@ -731,7 +833,7 @@ test("the Observer follows a shell that moves the page without resizing it", asy
     await press(source.getByRole("button", { name: "Apply", exact: true }));
     const move = page.getByRole("button", { name: "Move the page", exact: true });
     await expect(move, "the reader's shell frames the page").toBeVisible({ timeout: 30_000 });
-    await press(source.getByRole("button", { name: "Close", exact: true }));
+    await press(source.getByRole("button", { name: "Close shell source", exact: true }));
     await expect(source).toBeHidden();
 
     const picture = page.locator('img[alt="What this example draws"]').first();
@@ -796,6 +898,46 @@ for (const colorScheme of ["light", "dark"]) {
   }
 }
 
+test("the site's buttons are set in its own type", async ({ browser }) => {
+  const context = await reader(browser);
+  try {
+    const page = await context.newPage();
+    await open(page, "/start/first-app/");
+    // The face of the node the words are in: a button's own node is named by them.
+    const face = (button) =>
+      button.evaluate((node) => {
+        const texts = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+        while (texts.nextNode())
+          if (texts.currentNode.textContent.trim()) return getComputedStyle(texts.currentNode.parentElement).fontFamily;
+        return "no words";
+      });
+    await press(switcher(page));
+    const view = page.getByRole("button", { name: "View this shell's QML", exact: true });
+    await expect.poll(() => face(view)).toMatch(/^"?Inter/);
+    await press(view);
+    const dialog = page.getByRole("dialog", { name: /^Source of Shells\// });
+    for (const name of ["Apply", "Reset"])
+      await expect.poll(() => face(dialog.getByRole("button", { name, exact: true })), { message: name }).toMatch(/^"?Inter/);
+  } finally {
+    await context.close();
+  }
+});
+
+test("the header's icon takes the text colour of the shell picked", async ({ browser }) => {
+  const context = await reader(browser);
+  try {
+    const page = await context.newPage();
+    await open(page, "/start/cli/");
+    await pick(page, "workbench");
+    const picture = page.getByRole("link", { name: "Ljós on GitHub", exact: true }).filter({ visible: true }).first().locator("img").filter({ visible: true });
+    await expect(picture).toHaveAttribute("src", /github-mark-workbench/);
+    const { src, text } = await picture.evaluate((image) => ({ src: image.src, text: getComputedStyle(document.documentElement).getPropertyValue("--ljos-text").trim() }));
+    expect(await (await page.request.get(src)).text()).toContain(`fill="${text}"`);
+  } finally {
+    await context.close();
+  }
+});
+
 test("each shell's source shows that shell's own QML, and keeps the reader's edits to each", async ({ browser }) => {
   const context = await reader(browser);
   try {
@@ -803,11 +945,11 @@ test("each shell's source shows that shell's own QML, and keeps the reader's edi
     await open(page, "/start/first-app/");
     await pick(page, "workbench");
     // Named by the file it shows; the shell choices are a dialog too.
-    const dialog = page.getByRole("dialog", { name: /^Shells\// });
+    const dialog = page.getByRole("dialog", { name: /^Source of Shells\// });
     const editor = dialog.getByRole("textbox", { name: "Edit this shell's QML" });
     const view = async () => {
       await press(switcher(page));
-      await press(page.getByRole("button", { name: "View this shell's source", exact: true }));
+      await press(page.getByRole("button", { name: "View this shell's QML", exact: true }));
       await expect(dialog).toBeVisible();
     };
     await view();
@@ -817,24 +959,219 @@ test("each shell's source shows that shell's own QML, and keeps the reader's edi
     await page.keyboard.press("ControlOrMeta+Home");
     await page.keyboard.type("// the reader's own\n");
     await expect(editor).toContainText("// the reader's own");
-    await press(dialog.getByRole("button", { name: "Close", exact: true }));
+    await press(dialog.getByRole("button", { name: "Close shell source", exact: true }));
     await expect(dialog).toBeHidden();
     await pick(page, "desktop");
     await view();
-    await expect(dialog).toHaveAccessibleName("Shells/Desktop.qml");
+    await expect(dialog).toHaveAccessibleName("Source of Shells/Desktop.qml");
     await expect(editor, "the Desktop shell's own QML").toContainText("desktopShell");
     await expect(editor).not.toContainText("// the reader's own");
-    await press(dialog.getByRole("button", { name: "Close", exact: true }));
+    await press(dialog.getByRole("button", { name: "Close shell source", exact: true }));
     await expect(dialog).toBeHidden();
     await pick(page, "workbench");
     await view();
-    await expect(dialog).toHaveAccessibleName("Shells/Workbench.qml");
+    await expect(dialog).toHaveAccessibleName("Source of Shells/Workbench.qml");
     await expect(editor, "the Workbench edit, kept").toContainText("// the reader's own");
     await expect(editor).toContainText("workbenchShell");
   } finally {
     await context.close();
   }
 });
+
+// What each shell is, in the one line the switcher gives it.
+test("the switcher lists every shell, each with a line that says what it is", async ({ browser }) => {
+  const context = await reader(browser);
+  try {
+    const page = await context.newPage();
+    await open(page, "/");
+    await press(switcher(page));
+    const choices = page.getByRole("radio").filter({ visible: true });
+    await expect(choices).toHaveCount(SHELLS.length);
+    for (const [at, name] of SHELLS.entries()) {
+      await expect(choices.nth(at)).toHaveAccessibleName(LABEL[name]);
+      await expect(choices.nth(at), `${name}'s line`).toHaveAccessibleDescription(/^\S.{10,90}\.$/);
+    }
+  } finally {
+    await context.close();
+  }
+});
+
+test("a pick kept under the shell's old name is read as Elegant", async ({ browser }) => {
+  const context = await reader(browser, { kept: "marketing" });
+  try {
+    const page = await context.newPage();
+    const said = listen(page);
+    await open(page, "/");
+    expect(await showing(page)).toBe("elegant");
+    await expect(switcher(page)).toHaveAccessibleName("Current shell: Elegant");
+    expect(said).toEqual([]);
+  } finally {
+    await context.close();
+  }
+});
+
+// The family the text of `node` is drawn in: that of the element that
+// holds its first words.
+function familyOf(node) {
+  const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT, { acceptNode: (text) => (text.data.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP) });
+  const text = walker.nextNode();
+  return getComputedStyle(text ? text.parentElement : node).fontFamily;
+}
+const FACES = { display: "Inter", sans: "Inter", mono: "JetBrains Mono" };
+
+test("Elegant sets its words in the site's own fonts", async ({ browser }) => {
+  const context = await reader(browser);
+  try {
+    const page = await context.newPage();
+    const fonts = [];
+    page.on("response", (response) => {
+      if (/\.woff2(\?|$)/.test(response.url())) fonts.push(new URL(response.url()).pathname);
+    });
+    await open(page, "/");
+    await page.evaluate(() => document.fonts.ready);
+    const main = shownPage(page, "Home");
+    expect(await main.getByRole("heading", { level: 1 }).first().evaluate(familyOf)).toContain(FACES.display);
+    // The words under the headline are the page's body text.
+    const body = await main.evaluate((node) => {
+      const heading = node.querySelector('[role="heading"][aria-level="1"]');
+      const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+      let past = false;
+      for (let text = walker.nextNode(); text; text = walker.nextNode()) {
+        if (!text.data.trim()) continue;
+        if (heading.contains(text.parentElement)) past = true;
+        else if (past) return getComputedStyle(text.parentElement).fontFamily;
+      }
+      return "";
+    });
+    expect(body).toContain(FACES.sans);
+    const code = page.locator(".qq-markup code, .cm-content").filter({ visible: true }).first();
+    expect(await code.evaluate((node) => getComputedStyle(node).fontFamily)).toContain(FACES.mono);
+    for (const face of Object.values(FACES)) expect(await page.evaluate((face) => document.fonts.check(`16px "${face}"`), face), `${face} is in`).toBe(true);
+    // Served by the site, from its own fonts/.
+    expect(fonts.length).toBeGreaterThan(0);
+    for (const path of fonts) expect(path.startsWith(`${base}fonts/`), path).toBe(true);
+  } finally {
+    await context.close();
+  }
+});
+
+for (const [viewport, least, most] of [
+  [DESKTOP, 56, 72],
+  [PHONE, 36, 40],
+]) {
+  for (const colorScheme of ["light", "dark"]) {
+    test(`Elegant's front page opens on a headline beside a live app at ${viewport.width} in ${colorScheme}`, async ({ browser }) => {
+      const context = await browser.newContext({ viewport, colorScheme, reducedMotion: "no-preference" });
+      try {
+        const page = await context.newPage();
+        const said = listen(page);
+        await open(page, "/");
+        const heading = shownPage(page, "Home").getByRole("heading", { level: 1 }).first();
+        const size = await heading.evaluate((node) => {
+          const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+          const text = walker.nextNode();
+          return parseFloat(getComputedStyle(text ? text.parentElement : node).fontSize);
+        });
+        expect(size).toBeGreaterThanOrEqual(least);
+        expect(size).toBeLessThanOrEqual(most);
+        const device = page.getByRole("tablist", { name: "Live app" }).filter({ visible: true });
+        await expect(device).toBeVisible();
+        await expect(device.getByRole("tab")).toHaveText(["Source", "Observer", "Agent"]);
+        for (const name of ["Observer", "Agent", "Source"]) {
+          const tab = device.getByRole("tab", { name, exact: true });
+          await press(tab);
+          await expect(tab).toHaveAttribute("aria-selected", "true");
+          await expect(page.getByRole("tabpanel", { name, exact: true }).filter({ visible: true })).toBeVisible();
+        }
+        expect(said).toEqual([]);
+      } finally {
+        await context.close();
+      }
+    });
+  }
+}
+
+// A capability section is a region named for its headline that holds a
+// group named "Example": its words are on one side, the example on the
+// other, and the sides swap from one section to the next.
+const CAPABILITY = (node) => [...node.querySelectorAll('[role="region"]')].filter((section) => section.querySelector(':scope [role="group"][aria-label="Example"]'));
+test("Elegant lays a wide page out on a wide grid", async ({ browser }) => {
+  const context = await reader(browser);
+  try {
+    const page = await context.newPage();
+    await open(page, "/");
+    const main = shownPage(page, "Home");
+    const box = await main.evaluate((node) => {
+      const own = [...node.querySelectorAll("*")].map((one) => one.getBoundingClientRect()).filter((r) => r.width > 0 && r.height > 0);
+      const left = Math.min(...own.map((r) => r.left));
+      const right = Math.max(...own.map((r) => r.right));
+      return { left, right, width: right - left };
+    });
+    expect(box.width).toBeGreaterThan(1040);
+    expect(box.width).toBeLessThanOrEqual(1280);
+    expect(Math.abs(box.left - (DESKTOP.width - box.right)), "centred").toBeLessThan(4);
+    const sides = await main.evaluate(
+      (node, capability) =>
+        new Function(`return ${capability}`)()(node).map((section) => {
+          const heading = section.querySelector('[role="heading"]').getBoundingClientRect();
+          const example = section.querySelector('[role="group"][aria-label="Example"]').getBoundingClientRect();
+          return heading.left < example.left ? "words left" : "words right";
+        }),
+      CAPABILITY.toString(),
+    );
+    expect(sides.length).toBeGreaterThanOrEqual(2);
+    for (let at = 1; at < sides.length; at++) expect(sides[at], `section ${at + 1}`).not.toBe(sides[at - 1]);
+  } finally {
+    await context.close();
+  }
+});
+
+// Where a section below the first screen stands and how opaque it is,
+// frame by frame, from the moment it is scrolled into view.
+async function watchRise(page) {
+  const main = shownPage(page, "Home");
+  return main.evaluate(async (root, capability) => {
+    const node = new Function(`return ${capability}`)()(root).at(-1);
+    const opacity = (at) => {
+      let value = 1;
+      for (let one = at; one; one = one.parentElement) value *= parseFloat(getComputedStyle(one).opacity);
+      return value;
+    };
+    const frames = [];
+    node.scrollIntoView({ block: "center" });
+    const settle = node.getBoundingClientRect().top;
+    const started = performance.now();
+    while (performance.now() - started < 900) {
+      await new Promise((done) => requestAnimationFrame(done));
+      frames.push({ top: node.getBoundingClientRect().top, opacity: opacity(node) });
+    }
+    return { settle, frames };
+  }, CAPABILITY.toString());
+}
+
+for (const reducedMotion of ["no-preference", "reduce"]) {
+  test(`Elegant's sections ${reducedMotion === "reduce" ? "only fade in with reduced motion" : "rise in the first time they are seen"}`, async ({ browser }) => {
+    const context = await reader(browser, { reducedMotion });
+    try {
+      const page = await context.newPage();
+      await open(page, "/");
+      const { frames } = await watchRise(page);
+      const last = frames.at(-1);
+      const moved = Math.max(...frames.map((frame) => frame.top - last.top));
+      const faded = Math.min(...frames.map((frame) => frame.opacity));
+      expect(last.opacity, "it ends opaque").toBeCloseTo(1, 2);
+      expect(faded, "it fades in").toBeLessThan(0.9);
+      if (reducedMotion === "reduce") expect(moved, "it does not move").toBeLessThan(0.5);
+      else expect(moved, "it rises").toBeGreaterThan(3);
+      // Seen once: scrolled away and back, it is simply there.
+      await page.mouse.wheel(0, -4000);
+      const again = await watchRise(page);
+      expect(Math.min(...again.frames.map((frame) => frame.opacity)), "the second time").toBeCloseTo(1, 2);
+    } finally {
+      await context.close();
+    }
+  });
+}
 
 // The logo is the user's: the mark and the word are main's in every
 // shell, whatever that shell's type and colours are (Site/Wordmark.qml).

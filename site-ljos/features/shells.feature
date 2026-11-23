@@ -2,12 +2,12 @@ Feature: The site is shown in a shell the reader picks
   The site's state (where the reader is, what they chose) and its pages
   are one thing; the shell that frames them is another, a QML file of
   its own in site-ljos/bundle/Shells/ that only says where each of the
-  site's pieces goes. Three ship: Marketing, the one every page is
-  written in and the one a reader with no script gets, which the
-  switcher names "Elegant"; Workbench, the
-  pages on the left, the page in the middle and its Source on the
-  right; and Desktop, a menu bar, a toolbar, the pages in a sidebar,
-  routes as tabs and a status bar. A reader swaps them
+  site's pieces goes. Three ship: Elegant, the one every page is
+  written in and the one a reader with no script gets, a wide editorial
+  page in one sans with a live app framed beside its headline;
+  Workbench, the pages on the left, the page in the middle and its
+  Source on the right; and Desktop, a menu bar, a toolbar, the pages in
+  a sidebar, routes as tabs and a status bar. A reader swaps them
   live, and keeps their page, their place on it and what they did in
   an example on it.
 
@@ -25,17 +25,17 @@ Feature: The site is shown in a shell the reader picks
 
     Examples:
       | route              | from      | to        |
-      | /                  | marketing | workbench |
-      | /                  | marketing | desktop   |
-      | /                  | workbench | marketing |
+      | /                  | elegant   | workbench |
+      | /                  | elegant   | desktop   |
+      | /                  | workbench | elegant   |
       | /                  | workbench | desktop   |
-      | /                  | desktop   | marketing |
+      | /                  | desktop   | elegant   |
       | /                  | desktop   | workbench |
-      | /start/first-app/  | marketing | workbench |
-      | /start/first-app/  | marketing | desktop   |
-      | /start/first-app/  | workbench | marketing |
+      | /start/first-app/  | elegant   | workbench |
+      | /start/first-app/  | elegant   | desktop   |
+      | /start/first-app/  | workbench | elegant   |
       | /start/first-app/  | workbench | desktop   |
-      | /start/first-app/  | desktop   | marketing |
+      | /start/first-app/  | desktop   | elegant   |
       | /start/first-app/  | desktop   | workbench |
 
   Scenario: Every kind of page stands in every shell
@@ -45,12 +45,17 @@ Feature: The site is shown in a shell the reader picks
   Scenario: A running example keeps its state across a swap
     Given a reader running the counter on "/start/first-app/"
     And they have pressed "Increment" twice, so it reads "Count: 2"
-    When they swap to Workbench, then to Desktop, then back to Marketing
+    When they swap to Workbench, then to Desktop, then back to Elegant
     Then the counter reads "Count: 2" in each
 
   Scenario: The reader's place on the page is kept across a swap
     Given a reader who has scrolled a docs page to a heading below the first screen
     When they swap to another shell
+    Then that heading is still in view
+
+  Scenario: The reader's place is kept when they swap just after scrolling
+    Given a reader who stopped near the top of a docs page
+    When they scroll to a heading below the first screen and swap to another shell at once
     Then that heading is still in view
 
   Scenario: The reader's place on the page is kept when the window narrows
@@ -62,33 +67,33 @@ Feature: The site is shown in a shell the reader picks
     Given a reader who picked the Desktop shell
     When they reload the page
     Then the page is framed by the Desktop shell
-    And the page was not shown in the Marketing shell before it was
+    And the page was not shown in the Elegant shell before it was
 
   Scenario: A reload shows the kept shell without a jump in a browser with no view transitions
     Given a reader in a browser with no view transitions, who picked the Desktop shell
     And the Desktop shell is slow to come
     When they reload the page
     Then the page is framed by the Desktop shell
-    And the page was not shown in the Marketing shell before it was
+    And the page was not shown in the Elegant shell before it was
 
   Scenario: A kept shell that comes too late does not replace the page the reader sees
     Given a reader who picked the Desktop shell
     And the Desktop shell comes only after the page has been shown anyway
     When they reload the page
-    Then the page is shown in the Marketing shell
-    And it stays in the Marketing shell once the Desktop shell has come
+    Then the page is shown in the Elegant shell
+    And it stays in the Elegant shell once the Desktop shell has come
 
   Scenario: A page shown anyway while the kept shell is being put in is seen at once
     Given a reader who picked the Desktop shell
     And the Desktop shell is slow to come
     When the page is shown anyway while the Desktop shell is being put in
-    Then the page is seen a moment later, in the Marketing shell
+    Then the page is seen a moment later, in the Elegant shell
 
   Scenario: A kept shell that comes while the page fades in does not replace it
     Given a reader who picked the Desktop shell
     And the Desktop shell comes while the page is being shown anyway
     When they reload the page
-    Then it stays in the Marketing shell once the Desktop shell has come
+    Then it stays in the Elegant shell once the Desktop shell has come
 
   Scenario: The Desktop shell keeps every page the reader opened as a tab
     Given a reader in the Desktop shell on "/start/first-app/"
@@ -118,18 +123,33 @@ Feature: The site is shown in a shell the reader picks
     Then the wide page lists them beside it
     And the narrow page's hidden sidebar lists none, as the menu holds them there
 
-  Scenario: A reader with no script gets the Marketing shell
+  Scenario: A page's first load stays within its ceiling
+    Given any page the build wrote
+    Then what it loads before a reader does anything is at most 400 kB gzip
+    And its head holds none of the comments written for whoever edits the head
+    And it loads no Binding type to follow the window's width
+
+  Scenario: A reader with no script gets the Elegant shell
     Given a reader whose kept shell is Desktop
     When they open a page with no script
-    Then the page is shown in the Marketing shell, as the build wrote it
+    Then the page is shown in the Elegant shell, as the build wrote it
 
   Scenario: A phone has one menu control, and the shells say why they wait
     Given a reader on a phone whose kept shell is Workbench
     When they open the front page
-    Then the page is framed by the Marketing shell
+    Then the page is framed by the Elegant shell
     And its header has exactly one control besides the home link: "Menu"
     When they open the menu and the shell switcher in it
     Then it says Workbench and Desktop need a wider window, and that this one shows "Elegant"
+
+  Scenario Outline: What a finger presses in a shell's phone header and menu is big enough
+    Given a reader on a phone whose kept shell is <shell>
+    When they open a docs page, its menu and the shell switcher in it
+    Then each link, button, field and choice in the header, the menu and the switcher is at least 44 pixels high
+
+    Examples:
+      | shell   |
+      | Elegant |
 
   Scenario: The header is the Ljós landmark in every shell
     Given a reader has any shell, on a desktop or a phone
@@ -167,10 +187,10 @@ Feature: The site is shown in a shell the reader picks
 
   Scenario: The shell's own QML is shown, and one the reader breaks falls back
     Given a reader in the Workbench shell
-    When they choose "View this shell's source"
-    Then they see "Shells/Workbench.qml", the file the site ships
+    When they choose "View this shell's QML"
+    Then they see "Source of Shells/Workbench.qml", the file the site ships
     When they break it and press "Apply"
-    Then the page is framed by the Marketing shell, still on their page
+    Then the page is framed by the Elegant shell, still on their page
     And the source says what broke
     When they press "Reset"
     Then the page is framed by the Workbench shell again
@@ -185,7 +205,55 @@ Feature: The site is shown in a shell the reader picks
     When a reader opens any page at a desktop's width
     Then the header has a link "Ljós on GitHub" to https://github.com/hal-c2/ljos-ui, drawn as an icon
     And the icon is in the text colour of the scheme the page is shown in, with script or none
+    And the icon takes the text colour of a shell the reader picks
     And no page's first load holds QtQuick.Shapes to draw it
+
+  Scenario: The switcher lists every shell, each with a line that says what it is
+    When a reader opens the shell switcher
+    Then it lists Elegant, Workbench and Desktop, in that order
+    And each is shown with one line about it
+
+  Scenario: A pick kept under the shell's old name is read as Elegant
+    Given a reader whose kept shell is "marketing", from before Elegant had its name
+    When they open the front page
+    Then the page is framed by the Elegant shell, and nothing was said of an error
+
+  Scenario: Elegant sets its words in the site's own fonts
+    When a reader opens the front page in the Elegant shell
+    Then its headline is set in Inter, its body in Inter and its code in JetBrains Mono
+    And each of those fonts is served by the site itself
+
+  Scenario: The site's buttons are set in its own type
+    Given a reader in the Elegant shell
+    When they open the shell switcher
+    Then "View this shell's QML" is set in Inter
+    When they press it
+    Then "Apply" and "Reset" are set in Inter
+
+  Scenario Outline: Elegant's front page opens on a headline beside a live app
+    Given a reader with script at <width> wide, in <scheme>
+    When they open the front page in the Elegant shell
+    Then the headline is set at <least> to <most> pixels
+    And a live app runs in a framed device with the tabs "Source", "Observer" and "Agent"
+    And picking a tab shows what it names
+
+    Examples:
+      | width | scheme | least | most |
+      | 1440  | light  | 56    | 72   |
+      | 1440  | dark   | 56    | 72   |
+      | 390   | light  | 36    | 40   |
+      | 390   | dark   | 36    | 40   |
+
+  Scenario: Elegant lays a wide page out on a wide grid
+    When a reader opens the front page at 1440 wide in the Elegant shell
+    Then its content is at most 1280 pixels wide, centred
+    And the sections after the hero put their demo on alternate sides
+
+  Scenario: Elegant's sections rise in once, and with reduced motion only fade
+    When a reader scrolls the front page in the Elegant shell
+    Then each section rises into place the first time it is seen
+    When a reader who asked for reduced motion does the same
+    Then the sections fade in without moving
 
   Scenario: The logo is the same in every shell
     Given a reader has any shell, in light or dark, on a desktop or a phone

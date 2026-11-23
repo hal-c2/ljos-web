@@ -10,12 +10,18 @@
 // hydrated (`whenHydrated`), never while it is being taken over, which
 // would be a page other than the one the build wrote.
 var key = "ljos.dev:shell";
-var names = ["marketing", "workbench", "desktop"];
+var names = ["elegant", "workbench", "desktop"];
+
+// What a shell was called before, to the name it has now: a reader who
+// picked it then keeps it.
+var renamed = { marketing: "elegant" };
 
 // The shell kept, or "" where none is or can be, as in the build.
 function picked() {
     try {
         var kept = globalThis.localStorage && globalThis.localStorage.getItem(key);
+        if (renamed[kept])
+            kept = renamed[kept];
         return names.indexOf(kept) >= 0 ? kept : "";
     } catch (error) {
         return "";
@@ -88,7 +94,7 @@ function alive(root) {
     return count;
 }
 
-// The source of each shell the site ships, `{ Marketing: { text, rich } … }`,
+// The source of each shell the site ships, `{ Elegant: { text, rich } … }`,
 // written by the build from bundle/Shells (scripts/build.mjs). Imported
 // when a reader asks to see one, so no page loads them before.
 function sources() {

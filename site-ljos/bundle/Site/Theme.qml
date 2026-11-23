@@ -6,9 +6,12 @@ import "../tokens.js" as Tokens
 
 // The site's design system, in one place: colour roles, type, spacing,
 // shape and motion. Every page, demo frame and the code theme read it
-// from here. The colours are tokens.js's, which the build also writes
-// into each page's head for the HTML around the app; tests/design.spec.js
-// holds every text/background pair to WCAG AA in both schemes.
+// from here, and never which shell frames them: each shell has a look
+// of its own (tokens.js `looks`), and the roles here are the look of
+// the shell shown, so a page dresses itself in whichever frames it. The
+// colours are tokens.js's, which the build also writes into each page's
+// head for the HTML around the app; tests/design.spec.js holds every
+// text/background pair to WCAG AA in every shell and both schemes.
 //
 // Light and dark are the reader's: the browser's
 // prefers-color-scheme, until they pick one in the header, which is
@@ -26,7 +29,7 @@ QtObject {
         var next = dark ? "light" : "dark";
         picked = next;
         Scheme.keep(next);
-        Scheme.mark(next, next === "dark" ? Tokens.dark.canvas : Tokens.light.canvas);
+        Scheme.mark(next, next === "dark" ? look.dark.canvas : look.light.canvas);
     }
 
     // "light", "dark", or "" to follow the browser again.
@@ -34,9 +37,9 @@ QtObject {
         picked = scheme;
         Scheme.keep(scheme);
         if (scheme === "")
-            Scheme.unmark(Tokens.light.canvas, Tokens.dark.canvas);
+            Scheme.unmark(look.light.canvas, look.dark.canvas);
         else
-            Scheme.mark(scheme, scheme === "dark" ? Tokens.dark.canvas : Tokens.light.canvas);
+            Scheme.mark(scheme, scheme === "dark" ? look.dark.canvas : look.light.canvas);
     }
 
     // Reduced motion reduces movement: what slides or grows only fades,
@@ -58,9 +61,16 @@ QtObject {
     }
     Component.onCompleted: Motion.mark(motion)
 
-    // Colour roles: the scheme's own, from the one table both the
-    // pages and the page's head read (tokens.js).
-    readonly property var tone: dark ? Tokens.dark : Tokens.light
+    // The shell shown, by name (Main.qml says it as it changes), and its
+    // look; a shell the reader wrote, which names no look, wears the
+    // default one, Elegant, which is what every page is written in.
+    property string shell: "elegant"
+    readonly property string lookName: Tokens.looks[shell] ? shell : "elegant"
+    readonly property var look: Tokens.looks[lookName]
+
+    // Colour roles: the scheme's own in the shell's look, from the one
+    // table both the pages and the page's head read (tokens.js).
+    readonly property var tone: dark ? look.dark : look.light
     readonly property color canvas: tone.canvas
     readonly property color surface: tone.surface
     readonly property color surfaceRaised: tone.surfaceRaised
@@ -88,6 +98,19 @@ QtObject {
     readonly property color stageEdge: tone.stageEdge
     readonly property color stageShadow: tone.stageShadow
     readonly property color paper: tone.paper
+    // A second colour, for a second series, a tag or a tab's mark, and
+    // that colour as words; and a third, which only Cyberpunk has.
+    readonly property color accent2: tone.accent2
+    readonly property color accent2Text: tone.accent2Text
+    readonly property color accent3: tone.accent3
+    // What lifts a panel off the page: a long soft shadow in the light,
+    // a faint glow in the dark (each transparent where a look has none).
+    readonly property color glow: tone.glow
+    // The hero's wash behind its live app, from one colour to the other.
+    readonly property color washStart: tone.washStart
+    readonly property color washEnd: tone.washEnd
+    readonly property color shadow: tone.shadow
+    readonly property color onCanvasStrong: tone.onCanvasStrong
 
     // The code theme, for what the site draws around highlighted code
     // (the highlighting itself is the page's HTML, coloured by class).
@@ -102,33 +125,44 @@ QtObject {
     readonly property color muted: textMuted
     readonly property color onAccent: textOnAccent
 
-    // Type. A 16 px body; each step up about a fifth, rounded to lines
-    // of a 4 px grid, so a block of text lands on the grid whatever its
-    // size.
-    readonly property string sans: "system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Helvetica Neue, Arial, sans-serif"
-    readonly property string mono: "ui-monospace, SFMono-Regular, Menlo, Consolas, DejaVu Sans Mono, Liberation Mono, monospace"
-    readonly property string serif: sans
-    readonly property int captionSize: 13
-    readonly property int captionLine: 20
-    readonly property int bodySize: 16
-    readonly property int bodyLine: 24
-    readonly property int subtitleSize: 19
-    readonly property int subtitleLine: 28
-    readonly property int titleSize: 23
-    readonly property int titleLine: 28
-    readonly property int headlineSize: 28
-    readonly property int headlineLine: 36
-    readonly property int displaySize: 40
-    readonly property int displayLine: 48
-    readonly property int compactDisplaySize: 32
-    readonly property int compactDisplayLine: 40
+    // Type, the look's: a display family for the big lines (hero and
+    // display), a sans for the rest and a mono for code, each the site's
+    // own face first (bundle/assets/fonts) and the system's after it.
+    // Each step is a size and the line it sits on.
+    readonly property var type: look.type
+    readonly property string display: look.fonts.display
+    readonly property int displayWeight: look.fonts.displayWeight
+    // Letter spacing at the hero's size, in pixels; a smaller step is
+    // spaced in proportion (Site/Heading.qml).
+    readonly property real displayTracking: look.fonts.displayTracking
+    readonly property bool displayUpper: look.fonts.displayUpper
+    readonly property string sans: look.fonts.sans
+    readonly property string mono: look.fonts.mono
+    readonly property string serif: display
+    readonly property int captionSize: type.caption[0]
+    readonly property int captionLine: type.caption[1]
+    // The shell's own labels: its menus, tabs and status.
+    readonly property int uiSize: type.ui[0]
+    readonly property int uiLine: type.ui[1]
+    readonly property int bodySize: type.body[0]
+    readonly property int bodyLine: type.body[1]
+    readonly property int subtitleSize: type.subtitle[0]
+    readonly property int subtitleLine: type.subtitle[1]
+    readonly property int titleSize: type.title[0]
+    readonly property int titleLine: type.title[1]
+    readonly property int headlineSize: type.headline[0]
+    readonly property int headlineLine: type.headline[1]
+    readonly property int displaySize: type.display[0]
+    readonly property int displayLine: type.display[1]
+    readonly property int compactDisplaySize: type.compactDisplay[0]
+    readonly property int compactDisplayLine: type.compactDisplay[1]
     // The landing page's one big line.
-    readonly property int heroSize: 56
-    readonly property int heroLine: 64
-    readonly property int compactHeroSize: 36
-    readonly property int compactHeroLine: 44
-    readonly property int codeSize: 14
-    readonly property int codeLine: 22
+    readonly property int heroSize: type.hero[0]
+    readonly property int heroLine: type.hero[1]
+    readonly property int compactHeroSize: type.compactHero[0]
+    readonly property int compactHeroLine: type.compactHero[1]
+    readonly property int codeSize: type.code[0]
+    readonly property int codeLine: type.code[1]
 
     // Space, on a 4 px grid.
     readonly property int xxs: 4
@@ -140,15 +174,26 @@ QtObject {
     readonly property int xxl: 48
     readonly property int xxxl: 64
 
-    // Shape.
-    readonly property int radiusSmall: 6
-    readonly property int radius: 10
-    readonly property int radiusLarge: 16
+    // Shape, the look's: its corners, whether a panel wears corner
+    // brackets instead of a box (Site/Panel.qml), and how far its shadow
+    // falls.
+    readonly property int radiusSmall: look.shape.radiusSmall
+    readonly property int radius: look.shape.radius
+    readonly property int radiusLarge: look.shape.radiusLarge
+    readonly property bool brackets: look.shape.brackets
+    readonly property int shadowBlur: look.shape.shadowBlur
+    readonly property int shadowY: look.shape.shadowY
 
     // Layout: the reading column, the wide layout's side columns, and
     // where the wide layout starts.
     readonly property int measure: 720
     readonly property int pageWidth: 1040
+    // The widest a page's grid grows in a shell that gives it the whole
+    // window (Elegant), its columns and the gap between them.
+    readonly property int contentWidest: 1280
+    readonly property int columns: 12
+    readonly property int columnGap: 24
+    readonly property int compactColumnGap: 16
     readonly property int gutterCompact: 20
     readonly property int gutterWide: 32
     readonly property int tocFrom: 1200
@@ -156,6 +201,11 @@ QtObject {
     readonly property int tocWidth: 224
     readonly property int headerHeight: 64
     readonly property int wideFrom: 1000
+    // Below it a finger does the pressing (Main.qml says when): what
+    // is pressed is then 44 high, a row of links as much as a button.
+    property bool narrow: false
+    readonly property int target: narrow ? 44 : 40
+    readonly property int rowLeast: narrow ? target : 0
     // What Ljós's Observer lays its pages out for: its list of pages, an
     // object tree and the values beside it, each value wide enough to edit.
     readonly property int observerWidth: 680
@@ -172,4 +222,9 @@ QtObject {
     // How far something entering travels: none for a reader who asked
     // for less movement, who still sees it fade.
     readonly property int travel: calm ? 0 : 8
+    // A section of a page rising in the first time it is seen: further
+    // and slower than a control, so the page settles rather than snaps;
+    // with reduced motion it only fades, as quickly.
+    readonly property int enterSection: calm ? enterPanel : 560
+    readonly property int riseTravel: calm ? 0 : 28
 }
