@@ -66,10 +66,12 @@ Feature: A code block's window before its example runs
     Then each of those two is a failure that says it halted
     And every window after them has its words in both schemes
 
-  Scenario: An example that fails only in the dark is not shown as one that runs
+  Scenario: An example that fails only in the dark keeps its light render
     Given an example that throws only as it is made in the dark scheme
     When the build prerenders it beside one that runs
-    Then it is one failure, said to be in the dark scheme, and kept for the next build
+    Then it is no failure: its light render is kept, and it stays live
+    And it has no dark render, so the dark window shows the light one
+    And its dark refusal is kept, said to be in the dark scheme, and a later build of it fails nothing
     And the one beside it still has both its pictures' renders
 
   Scenario: What an example says only in the dark is in the build's record

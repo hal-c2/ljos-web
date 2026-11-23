@@ -354,9 +354,12 @@ Rectangle {
   }
 });
 
-// The dark is a second making of the same example, and its answer
-// counts: what refuses there has failed, and what it says there is said.
-plain("what an example refuses or says only in the dark is its answer too", async ({}, info) => {
+// The dark is a second making of the same example, and what it says
+// there is said. What refuses only there has not failed as an example:
+// its light render runs, and stays live; the dark window falls back to
+// that light render, and the dark refusal is kept beside it, said to
+// be the dark's, rather than taking the light one's place.
+plain("what an example says only in the dark is its answer too, and what refuses only there keeps its light render", async ({}, info) => {
   info.setTimeout(180_000);
   const one = (code) => assemble(extractBlocks("```qml\n" + code.trimEnd() + "\n```\n"), {}).examples[0];
   const refusing = one(`import QtQuick
@@ -395,21 +398,34 @@ Rectangle {
   try {
     const examples = [refusing, warning, sibling];
     const { manifest, failures } = await renderPrerenders(examples, { cacheDir, qmlc, dark: true });
-    expect(failures.map(({ example }) => example), "one failure").toEqual([refusing]);
-    const [first] = failures[0].diagnostics;
+    expect(failures, "a dark-only refusal fails no example").toEqual([]);
+    const made = manifest[hashExample(refusing)];
+    expect(made.failed, "not an example-level failure").toBeUndefined();
+    expect(existsSync(join(cacheDir, made.file)), "its light render is kept").toBe(true);
+    expect(made.dark, "no dark render to show").toBeUndefined();
+    expect(made).toMatchObject({ width: 40, height: 40 });
+    const [first] = made.darkFailed;
     expect(first).toContain(`${refusing.entry}:1: in the dark scheme: `);
     expect(first).toContain("no side in the dark");
-    expect(manifest[hashExample(refusing)].failed).toBe(true);
+    // What the build embeds: the light render, live, and no dark one,
+    // so the dark window draws the light one (pictures.mjs's fallback).
+    const loaded = loadPrerenders(cacheDir)[hashExample(refusing)];
+    expect(loaded.html).toContain("data-hk");
+    expect(loaded.htmlDark).toBeUndefined();
+    expect(loaded.darkFailed).toEqual(made.darkFailed);
     const beside = manifest[hashExample(sibling)];
     for (const file of [beside.file, beside.dark]) expect(existsSync(join(cacheDir, file)), file).toBe(true);
     expect.soft(manifest[hashExample(warning)].logged, "what it said in either scheme").toEqual(["said in both", "in the dark scheme: said in the dark"]);
 
-    // Served, not made again: the second answer is the cache's own words.
+    // Served, not made again: the second answer is the cache's own
+    // words, and the cached dark refusal still excludes nothing.
     const kept = JSON.parse(readFileSync(join(cacheDir, "manifest.json"), "utf8"));
-    kept[hashExample(refusing)].diagnostics = ["as the cache has it"];
+    kept[hashExample(refusing)].darkFailed = ["as the cache has it"];
     writeFileSync(join(cacheDir, "manifest.json"), JSON.stringify(kept));
     const again = await renderPrerenders(examples, { cacheDir, qmlc, dark: true });
-    expect(again.failures).toEqual([{ example: refusing, diagnostics: ["as the cache has it"] }]);
+    expect(again.failures).toEqual([]);
+    expect(again.manifest[hashExample(refusing)]).toEqual({ ...made, darkFailed: ["as the cache has it"] });
+    expect(loadPrerenders(cacheDir)[hashExample(refusing)].html).toContain("data-hk");
     expect(again.manifest[hashExample(sibling)]).toEqual(beside);
   } finally {
     rmSync(cacheDir, { recursive: true, force: true });
