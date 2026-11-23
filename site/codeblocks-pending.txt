@@ -24,6 +24,7 @@
 #                   as it is made leaves it plain until it is listed
 
 data/other-views.md 3 web:treeview TreeView is not in ljos-web yet
+data/pointer-input.md 6 web:multipointtoucharea MultiPointTouchArea is not in ljos-web yet
 data/repeater-and-delegates.md 2 web:delegatechooser DelegateChooser is not in ljos-web yet
 language/controllers.md 5 web:ts-controller a Controller written as a .ts module, controller({...}), is no type to the web's compiler
 rust/models.md 1 host-types titlesModel is a model the Rust program sets
