@@ -1,8 +1,8 @@
 // What plays on its own: every live example with a Video, a MediaPlayer
 // or a VideoOutput plays once run, and every one that moves on its own
-// (an animation, a timer, a shader, 3D) keeps drawing frames. The docs
-// show no video yet (SITE-4 part 7b), so the video test stands as a
-// fixme until a page shows one; it then holds the first.
+// (an animation, a timer, a shader, 3D) keeps drawing frames. The
+// docs' rust/multimedia page shows a film (SITE-4 part 7b); were no page
+// to show one, the video test would stand as a fixme until one did.
 import { centre, classify, expectFramesAdvance, expectVideoPlays, livePages, open, run, test, unexpected, expect } from "./fixtures.js";
 import { brokenExample } from "./known.js";
 
@@ -14,7 +14,7 @@ test.describe("video", () => {
 
   if (videos.length === 0) {
     test("a docs page shows a video, and it plays", () => {
-      test.fixme(true, "part 7b: no docs page shows a Video or MediaPlayer + VideoOutput yet; prerendering one throws (audit H c: MediaPlayer.js's server element has no play/pause)");
+      test.fixme(true, "part 7b: no docs page shows a Video or MediaPlayer + VideoOutput");
     });
   }
 
