@@ -199,15 +199,47 @@ const payload = (example, prerendered) =>
 // not move when the running result takes the prerender's place (the
 // elements themselves are absolutely placed, as the runtime lays out).
 // A root window fills whatever it is in: the size it asked is its
-// content item's, the first element a window makes after its own.
+// content item's, the window's own child that is an Item and says a
+// size. It is looked for among the window's children rather than by its
+// hydration key, so a background or header made before it can't hide it.
 export const prerenderSize = (html) => {
-  const root = /<[^>]*data-hk="1:[^"]*"[^>]*>/.exec(html)?.[0] ?? "";
-  const sized = /class="qq-window[ "]/.test(root) ? /<[^>]*data-hk="2:Item"[^>]*>/.exec(html)?.[0] : root;
-  const style = /style="([^"]*)"/.exec(sized ?? "")?.[1] ?? "";
+  const opened = /<[^>]*data-hk="1:[^"]*"[^>]*>/.exec(html);
+  const root = opened?.[0] ?? "";
+  const sized = /class="qq-window[ "]/.test(root) ? windowChildren(html, opened.index + root.length).find((tag) => /data-hk="\d+:Item"/.test(tag) && sizeOf(tag).width) : root;
+  return sizeOf(sized ?? "");
+};
+
+const sizeOf = (tag) => {
+  const style = /style="([^"]*)"/.exec(tag)?.[1] ?? "";
   const width = /width:\s*([\d.]+)px/.exec(style)?.[1];
   const height = /height:\s*([\d.]+)px/.exec(style)?.[1];
   return width && height ? { width: Math.round(Number(width)), height: Math.round(Number(height)) } : {};
 };
+
+// Elements that have no end tag, and so hold no children.
+const VOID = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"]);
+
+// The opening tags of the element's own children, from just after its
+// opening tag to its end. A prerender's text is escaped, so every `<` in
+// it starts a tag or a comment.
+function windowChildren(html, from) {
+  const children = [];
+  const tags = /<!--[\s\S]*?-->|<(\/?)([a-zA-Z][\w-]*)[^>]*?(\/?)>/g;
+  tags.lastIndex = from;
+  let depth = 0;
+  for (let tag; (tag = tags.exec(html)); ) {
+    const [whole, closing, name, selfClosing] = tag;
+    if (!name) continue;
+    if (closing) {
+      if (depth === 0) break;
+      depth -= 1;
+    } else {
+      if (depth === 0) children.push(whole);
+      if (!selfClosing && !VOID.has(name.toLowerCase())) depth += 1;
+    }
+  }
+  return children;
+}
 
 // One fence as static, highlighted HTML: the grammar's `tok-*` classes
 // around its words (lezer-ljos), coloured by codeblock.css's
