@@ -61,8 +61,8 @@ async function opened(browser, path, wasm) {
 }
 
 // The page as a reader has it, less its live blocks' stages and what
-// they say (the stage holds the window that holds the picture; what
-// it says is the line after it): its words, and its elements with what they look like.
+// they say (the stage, codeStage, holds the window that holds the
+// picture; what it says is the line after it): its words, and its elements with what they look like.
 // `placed` keeps where each element is and how big: on a page with
 // live blocks a block's note moves what is below it and grows what
 // holds it, so there the picture above the first block says it.
@@ -71,7 +71,7 @@ const read = (page, placed) =>
     ([picture, placed]) => {
       const skipped = new Set();
       for (const img of document.querySelectorAll(picture)) {
-        const stage = img.parentElement.parentElement.parentElement.parentElement;
+        const stage = img.closest('[data-object-name="codeStage"]');
         skipped.add(stage);
         if (stage.nextElementSibling) skipped.add(stage.nextElementSibling);
       }
@@ -119,7 +119,7 @@ const blocks = (page) =>
   page.locator(PICTURE).evaluateAll((imgs) => {
     const stages = new Map();
     for (const img of imgs) {
-      const stage = img.parentElement.parentElement.parentElement.parentElement;
+      const stage = img.closest('[data-object-name="codeStage"]');
       stages.set(stage, (stages.get(stage) ?? false) || img.checkVisibility());
     }
     return [...stages].map(([stage, picture]) => ({ picture, said: stage.nextElementSibling?.innerText.trim() ?? "" }));
@@ -131,7 +131,7 @@ const firstBlockAt = (page) =>
   page.evaluate((picture) => {
     const tops = [document.documentElement.scrollHeight];
     const img = document.querySelector(picture);
-    if (img) tops.push(img.parentElement.parentElement.parentElement.parentElement.getBoundingClientRect().top + scrollY);
+    if (img) tops.push(img.closest('[data-object-name="codeStage"]').getBoundingClientRect().top + scrollY);
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     for (let node = walker.nextNode(); node; node = walker.nextNode())
       if (/^Live editing needs WebAssembly/.test(node.textContent.trim())) {

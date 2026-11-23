@@ -746,6 +746,9 @@ Column {
                 // stand in the HTML as written.
                 Rectangle {
                     id: stageBox
+                    // Named so a check finds the stage from its picture
+                    // at any depth: the dark scheme's is a Loader deeper.
+                    objectName: "codeStage"
                     width: parent.width
                     // Room around the window to see it as one, less on a phone.
                     readonly property int pad: width < 480 ? Theme.s : Theme.l
