@@ -678,6 +678,28 @@ Rectangle {
         }
     }
 
+    // The running shell's QML, edited in place (Site/LiveSource.qml): it
+    // comes the first time a shell has a place for it, and stays.
+    Loader {
+        id: liveSource
+        // Its item lives in the shell's place for it. The loader stays here
+        // at the item's size, and above the shell it would take the
+        // presses of the shell's top left: it comes before the shell, so
+        // lies under it. Not by a negative z: that moves the site's
+        // ground into a layer of its own (Rectangle's qq-under), which
+        // contrast checkers cannot see through, so no words on the page
+        // could be read for contrast.
+        active: main.liveWanted
+        source: SiteLater.liveSource
+        onLoaded: {
+            main.controlsShown = true;
+            item.name = main.liveOf;
+            item.touch = Qt.binding(() => !sitePreferences.wide);
+            main.housed();
+            item.visible = Qt.binding(() => main.liveHost !== null);
+        }
+    }
+
     ShellLoader {
         id: loader
         width: main.width
@@ -749,24 +771,6 @@ Rectangle {
             item.room = main;
             item.error = Qt.binding(() => loader.error);
             item.show(shellSource.asked);
-        }
-    }
-    // The running shell's QML, edited in place (Site/LiveSource.qml): it
-    // comes the first time a shell has a place for it, and stays.
-    Loader {
-        id: liveSource
-        // Its item lives in the shell's place for it. The loader stays here
-        // at the item's size, and above the shell it would take the
-        // presses of the shell's top left: it lies under the shell.
-        z: -1
-        active: main.liveWanted
-        source: SiteLater.liveSource
-        onLoaded: {
-            main.controlsShown = true;
-            item.name = main.liveOf;
-            item.touch = Qt.binding(() => !sitePreferences.wide);
-            main.housed();
-            item.visible = Qt.binding(() => main.liveHost !== null);
         }
     }
     // Moved by a write each time, not bound: a bound `parent` that

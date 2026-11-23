@@ -7,6 +7,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
 const base = (process.env.LJOS_SITE_BASE ?? "/").replace(/\/?$/, "/");
@@ -162,6 +163,27 @@ for (const shell of SHELLS) {
         await expect(shownPage(page, named), `${route} shows its page`).toBeVisible();
       }
       expect(said, "what the pages said").toEqual([]);
+    } finally {
+      await context.close();
+    }
+  });
+}
+
+// What the page's words stand on is the site's own ground, drawn where a
+// contrast checker can read it. A child of negative z moves a
+// Rectangle's fill into a layer of its own (the runtime's qq-under), and
+// axe then says of every word over it only that it cannot tell
+// (`pseudoContent`): the AA checks would pass because nothing was read.
+for (const shell of SHELLS) {
+  test(`in the ${shell} shell, axe can read what the page's words stand on`, async ({ browser }) => {
+    const context = await reader(browser, { kept: shell });
+    try {
+      const page = await context.newPage();
+      await open(page, "/start/first-app/");
+      await expect(shownPage(page, "Your First App")).toBeVisible();
+      const { incomplete } = await new AxeBuilder({ page }).include("#app").withRules(["color-contrast"]).analyze();
+      const unread = incomplete.flatMap(({ nodes }) => nodes.filter((node) => node.any.some(({ data }) => data?.messageKey === "pseudoContent")).map((node) => node.target.join(" ")));
+      expect(unread, "words whose ground axe cannot read").toEqual([]);
     } finally {
       await context.close();
     }
