@@ -1,0 +1,37 @@
+/* What a shell does beyond its colours. It comes with the other looks'
+   colours (scripts/build.mjs `looksSheet`), in the stylesheet a page
+   asks for only once a reader keeps or shows a shell other than
+   Elegant (shells.js `dress`); a swap waits for it. */
+/* Into Cyberpunk the swap is a glitch: the next shell comes in as a
+   few torn bands that jump sideways, edged in its cyan and magenta,
+   and settles within half a second. A reader coming back to it sees
+   the same as the page is first shown, unless they asked for reduced
+   motion (the site's own choice, `data-ljos-motion`, over the
+   browser's): then it only fades, as the head's calm swap does. */
+:root[data-ljos-swap="glitch"]::view-transition-old(root) { animation: ljos-fade-out 140ms linear both; }
+:root[data-ljos-swap="glitch"]::view-transition-new(root) { animation: ljos-glitch-in 420ms linear both; }
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-ljos-shell="cyberpunk"][data-ljos-shell-shown]:not([data-ljos-motion="reduce"]) #app { animation: ljos-glitch-in 420ms linear both; }
+}
+:root[data-ljos-shell="cyberpunk"][data-ljos-shell-shown][data-ljos-motion="no-preference"] #app { animation: ljos-glitch-in 420ms linear both; }
+/* The bands jump right past the page's edge, and a transform is part
+   of what a page scrolls to, so a phone would scroll sideways for as
+   long as they jump. The page clips its width for exactly the glitch's
+   420 ms, no longer: after it an overflow shows as one. */
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-ljos-shell="cyberpunk"][data-ljos-shell-shown]:not([data-ljos-motion="reduce"]),
+  :root[data-ljos-shell="cyberpunk"][data-ljos-shell-shown]:not([data-ljos-motion="reduce"]) body { animation: ljos-glitch-clip 420ms linear; }
+}
+:root[data-ljos-shell="cyberpunk"][data-ljos-shell-shown][data-ljos-motion="no-preference"],
+:root[data-ljos-shell="cyberpunk"][data-ljos-shell-shown][data-ljos-motion="no-preference"] body { animation: ljos-glitch-clip 420ms linear; }
+@keyframes ljos-glitch-clip { from, to { overflow-x: clip; } }
+@keyframes ljos-glitch-in {
+  0% { opacity: 0; clip-path: inset(0 0 100% 0); }
+  8% { opacity: 1; clip-path: inset(14% 0 62% 0); transform: translateX(-12px); filter: drop-shadow(3px 0 #ff2bd6) drop-shadow(-3px 0 #00f0ff); }
+  16% { clip-path: inset(58% 0 18% 0); transform: translateX(9px); }
+  24% { clip-path: inset(34% 0 44% 0); transform: translateX(-6px); }
+  32% { clip-path: inset(0 0 52% 0); transform: translateX(4px); }
+  44% { clip-path: inset(0); transform: translateX(-2px); filter: drop-shadow(2px 0 #ff2bd6) drop-shadow(-2px 0 #00f0ff); }
+  60% { transform: translateX(1px); filter: drop-shadow(1px 0 #ff2bd6) drop-shadow(-1px 0 #00f0ff); }
+  100% { opacity: 1; clip-path: inset(0); transform: none; filter: none; }
+}
