@@ -31,6 +31,7 @@ function picked() {
 // Keeps the reader's pick; a browser that keeps nothing (storage off)
 // still shows it on this page.
 function keep(name) {
+    dress(name);
     try {
         if (globalThis.localStorage)
             globalThis.localStorage.setItem(key, name);
@@ -167,8 +168,14 @@ function swap(change, calm, arrived) {
         return new Promise(function (done) {
             var waited = globalThis.setTimeout(done, 1000);
             arrived(function () {
-                globalThis.clearTimeout(waited);
-                done();
+                var go = function () {
+                    globalThis.clearTimeout(waited);
+                    done();
+                };
+                if (dressed)
+                    dressed.then(go);
+                else
+                    go();
             });
         });
     });
@@ -233,6 +240,36 @@ function forward() {
 // Which shell frames the page, on its root (`data-ljos-shell-showing`).
 function showing(name) {
     var document = globalThis.document;
+    dress(name);
     if (document && document.documentElement && name)
         document.documentElement.dataset.ljosShellShowing = name;
+}
+
+// The other shells' colours (the build's `looks`, which the head names
+// in `meta[name="ljos-looks"]`) asked for as a stylesheet once a shell
+// other than the default is kept or shown; `dressed` is their arrival,
+// which a swap waits for as it waits for the shell.
+var dressed = null;
+function dress(name) {
+    var document = globalThis.document;
+    if (!document || !document.head || !name || name === "elegant")
+        return;
+    var sheet = document.getElementById("ljos-looks");
+    if (sheet) {
+        if (!dressed)
+            dressed = Promise.resolve();
+        return;
+    }
+    var named = document.querySelector('meta[name="ljos-looks"]');
+    if (!named)
+        return;
+    sheet = document.createElement("link");
+    sheet.id = "ljos-looks";
+    sheet.rel = "stylesheet";
+    sheet.href = named.content;
+    dressed = new Promise(function (done) {
+        sheet.onload = done;
+        sheet.onerror = done;
+    });
+    document.head.appendChild(sheet);
 }

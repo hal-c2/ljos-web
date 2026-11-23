@@ -69,6 +69,16 @@ Feature: The site is shown in a shell the reader picks
     Then the page is framed by the Desktop shell
     And the page was not shown in the Elegant shell before it was
 
+  Scenario Outline: A shell other than Elegant brings its own colours, and a page read in Elegant asks for none of them
+    Given a reader on "/start/cli/" who <how> the Workbench shell
+    Then the page's ground and text are the Workbench shell's
+    And a page read in the Elegant shell carries no other shell's colours
+
+    Examples:
+      | how    |
+      | picks  |
+      | kept   |
+
   Scenario: A reload shows the kept shell without a jump in a browser with no view transitions
     Given a reader in a browser with no view transitions, who picked the Desktop shell
     And the Desktop shell is slow to come
