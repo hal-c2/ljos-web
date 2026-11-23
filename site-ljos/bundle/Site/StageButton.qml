@@ -35,7 +35,7 @@ Rectangle {
     implicitWidth: words.implicitWidth + 2 * Theme.s
     implicitHeight: 32
     radius: Theme.radiusSmall
-    color: primary ? (hit.pressed ? Theme.accentPressed : hit.containsMouse && live ? Theme.accentHover : Theme.accent) : (hit.pressed ? Theme.surfacePressed : hit.containsMouse && live ? Theme.surfaceHover : checked ? Theme.surfaceSelected : Theme.surfaceRaised)
+    color: primary ? (hit.pressed ? Theme.accentPressed : hit.containsMouse && live ? Theme.accentHover : Theme.accent) : (hit.pressed ? Theme.surfacePressed : checked ? Theme.surfaceSelected : hit.containsMouse && live ? Theme.surfaceHover : Theme.surfaceRaised)
     border.color: primary ? "transparent" : Theme.border
     border.width: primary ? 0 : 1
     opacity: enabled ? 1 : 0.45

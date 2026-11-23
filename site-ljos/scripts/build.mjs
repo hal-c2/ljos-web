@@ -25,6 +25,7 @@ import { assemble, packGiven, tagged } from "ljos-web/codeblocks/parse";
 import { kernelNamed } from "ljos-web/vite";
 import { packRich } from "ljos-web/codeblock/rich";
 import * as Pro from "./pro.mjs";
+import { THRESHOLD } from "../shots/pictures.mjs";
 import { giveFiles, readGiven } from "../../site/scripts/codeblock-files.mjs";
 import { keysByHash, listedEverywhere, pageOfRoute, pageRecords, readLedger, saysEverywhere } from "../../site/scripts/codeblocks-ledger.mjs";
 
@@ -282,6 +283,7 @@ const rooted = (value) =>
 const own = {
   "/": "Ljós — malleable software, everywhere",
   "/demos/": "Live demos — Ljós",
+  "/screenshots/": "Screenshots — Ljós",
 };
 const after = " — Ljós";
 // The pro demos' pages are the site's own too (scripts/pro.mjs).
@@ -433,6 +435,14 @@ const pages = [
     title: titles["/demos/"],
     description: "Complete Ljós apps running in the page: a shell you rewrite, a 3D scene to orbit, a shader effect, a whole app, and motion.",
     props: { route: "/demos/" },
+  },
+  // What every deploy drew of each demo and shell (shots/), read by
+  // the page from the manifest the deploy writes beside it.
+  {
+    route: "/screenshots/",
+    title: titles["/screenshots/"],
+    description: "Every deploy draws each demo and each shell again, on both kernels, in light and dark, beside the pictures the deploy before drew.",
+    props: { route: "/screenshots/" },
   },
   ...Pro.pages(Pro.demos, after),
   ...site.pages.map((page, i) => ({ route: page.route, title: titles[page.route], description: describe(page), props: { route: page.route, page: slim[i] } })),
@@ -646,6 +656,15 @@ if (existsSync(join(bundle, "Examples"))) cpSync(join(bundle, "Examples"), join(
 // against them: what an edit does not change (a model, the other
 // files) is read from here, by the address the compiler gives it.
 for (const demo of Pro.demos) cpSync(Pro.targetOf(demo), join(out, Pro.sourceAt(demo)), { recursive: true });
+// /screenshots/ reads the pictures a deploy drew from a manifest beside
+// it, which the deploy's capture writes once the site is built
+// (shots/capture.mjs, shots/compare.mjs). Until then it is one with no
+// pictures, so the page and its link to the list stand in every build.
+mkdirSync(join(out, "screenshots"), { recursive: true });
+writeFileSync(
+  join(out, "screenshots/manifest.json"),
+  JSON.stringify({ format: "ljos-shots", version: 1, repository: process.env.GITHUB_REPOSITORY ?? "hal-c2/ljos-web", sha: process.env.GITHUB_SHA ?? "", date: new Date().toISOString(), threshold: THRESHOLD, previous: null, gone: [], declared: [], shots: [] }),
+);
 console.log(`site-ljos: ${pages.length} pages (${site.pages.length} docs) from ${docs}, standing at ${base}`);
 console.log(`site-ljos: ${out} (${built.files.length} files, ${built.bytes} bytes)`);
 // Where the build's time went, so a slow one says which part was slow.

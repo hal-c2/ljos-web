@@ -31,7 +31,9 @@ Rectangle {
     readonly property bool wide: width >= Theme.wideFrom
     // The demos page and each demo's own page under it.
     readonly property bool demosRoute: route.startsWith("/demos/")
-    readonly property bool docsRoute: route !== "/" && !demosRoute
+    // What every deploy drew (Site/ScreenshotsPage.qml).
+    readonly property bool shotsRoute: route === "/screenshots/"
+    readonly property bool docsRoute: route !== "/" && !demosRoute && !shotsRoute
     // The pro demo this route is the page of (Demos/pro.json), or null.
     readonly property var pro: Content.pro.find((demo) => demo.route === route) ?? null
     readonly property bool sidebarShown: wide && docsRoute
@@ -89,7 +91,7 @@ Rectangle {
         title: (to) => Nav.titled(Content.titles, Content.sidebar, Content.after, to),
         // A docs page's reading stands beside its HTML (the build's
         // page.json); the front page and the demos need none.
-        reading: (to) => to === "/" || to.startsWith("/demos/") ? null : Nav.at(Content.base, to) + "page.json",
+        reading: (to) => to === "/" || to === "/screenshots/" || to.startsWith("/demos/") ? null : Nav.at(Content.base, to) + "page.json",
         page: () => shell.page,
         show: (to, fragment, offset, reading) => shell.show(to, fragment, offset, reading),
         offset: () => pageScroll.contentY
@@ -313,7 +315,7 @@ Rectangle {
             Column {
                 width: pageScroll.width
                 Accessible.role: Accessible.Client
-                Accessible.name: shell.docsRoute ? (docItem.page ? docItem.page.title : "") : shell.route === "/demos/" ? "Live demos" : shell.pro ? shell.pro.title : "Home"
+                Accessible.name: shell.docsRoute ? (docItem.page ? docItem.page.title : "") : shell.route === "/demos/" ? "Live demos" : shell.shotsRoute ? "Screenshots" : shell.pro ? shell.pro.title : "Home"
 
                 // Only this route's page is made, so the HTML the build
                 // writes for a route holds that page and no other. The
@@ -327,7 +329,7 @@ Rectangle {
                     active: !shell.docsRoute
                     width: Math.min(pageScroll.measure, pageScroll.width - 2 * shell.gutter)
                     x: Math.round((pageScroll.width - width) / 2)
-                    sourceComponent: shell.route === "/" ? landingPage : shell.route === "/demos/" ? demosPage : shell.pro ? proPage : emptyPage
+                    sourceComponent: shell.route === "/" ? landingPage : shell.route === "/demos/" ? demosPage : shell.shotsRoute ? shotsPage : shell.pro ? proPage : emptyPage
                 }
                 DocPage {
                     id: docItem
@@ -366,6 +368,14 @@ Rectangle {
         DemosPage {
             scroller: pageScroll
             wide: shell.wide
+        }
+    }
+    Component {
+        id: shotsPage
+        ScreenshotsPage {
+            scroller: pageScroll
+            wide: shell.wide
+            viewer: pictureView
         }
     }
     Component {
@@ -576,5 +586,13 @@ Rectangle {
         roomHeight: parent.height - header.height
         // The sidebar and the line after it.
         beside: shell.sidebarShown ? Theme.sidebarWidth + 1 : 0
+    }
+
+    // A picture as big as the window holds (Site/PictureView.qml), over
+    // the page and the header both.
+    PictureView {
+        id: pictureView
+        z: 5
+        anchors.fill: parent
     }
 }

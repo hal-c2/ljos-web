@@ -60,6 +60,7 @@ Rectangle {
             NavLink { label: "Docs"; to: "/start/"; muted: true; size: Theme.captionSize + 1; line: Theme.captionLine }
             NavLink { label: "Demos"; to: "/demos/"; muted: true; size: Theme.captionSize + 1; line: Theme.captionLine }
             NavLink { label: "Your first app"; to: "/start/first-app/"; muted: true; size: Theme.captionSize + 1; line: Theme.captionLine }
+            NavLink { label: "Screenshots"; to: "/screenshots/"; muted: true; size: Theme.captionSize + 1; line: Theme.captionLine }
             NavLink { label: "GitHub"; to: "https://github.com/hal-c2/ljos-ui"; muted: true; size: Theme.captionSize + 1; line: Theme.captionLine }
             // How the project means to work together, on every page.
             NavLink { label: "Community principles"; to: "https://community-software.org/"; muted: true; size: Theme.captionSize + 1; line: Theme.captionLine }
