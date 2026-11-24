@@ -261,6 +261,18 @@ Item {
                     turn.pause();
             }
         }
+        // Stopped (off screen, its tab hidden, paused), the turn goes on
+        // from where it held when it runs again, never from the angle the
+        // turn under way began at: a snap back the reader would see.
+        Connections {
+            target: demo
+            function onActiveChanged() {
+                if (!demo.active)
+                    solid.turnFrom = solid.spin % 360;
+            }
+        }
+        // Whether the turntable turns now, for a test to wait on.
+        readonly property bool turning: turn.running && !turn.paused
         NumberAnimation on spin {
             id: turn
             from: solid.turnFrom
