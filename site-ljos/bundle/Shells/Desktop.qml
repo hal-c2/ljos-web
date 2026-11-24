@@ -22,22 +22,22 @@ Rectangle {
 
     // Missing until the site puts itself in.
     property L.Site site
-    readonly property L.MaybeRouter router: site !== undefined ? site.router : undefined
-    readonly property L.MaybePreferences preferences: site !== undefined ? site.preferences : undefined
-    readonly property bool wide: site !== undefined ? site.preferences.wide : width >= 1000
-    readonly property bool menuOpen: site !== undefined ? site.menuOpen && !wide : false
-    readonly property bool calm: site !== undefined ? site.preferences.calm : false
-    readonly property string route: router !== undefined ? router.route : "/"
+    readonly property L.MaybeRouter router: L.given(site) ? site.router : undefined
+    readonly property L.MaybePreferences preferences: L.given(site) ? site.preferences : undefined
+    readonly property bool wide: L.given(site) ? site.preferences.wide : width >= 1000
+    readonly property bool menuOpen: L.given(site) ? site.menuOpen && !wide : false
+    readonly property bool calm: L.given(site) ? site.preferences.calm : false
+    readonly property string route: router !== undefined && L.given(router) ? router.route : "/"
     // A page other than the docs is this wide at most here.
     readonly property int pageWidest: 1040
 
-    readonly property list<string> opened: site !== undefined ? site.opened : [route]
-    readonly property int hydratedMs: site !== undefined ? site.hydratedIn : -1
-    readonly property int alive: site !== undefined ? site.alive : 0
-    readonly property string renderer: site !== undefined ? site.renderer : ""
-    readonly property bool dark: site !== undefined ? site.theme.dark : false
+    readonly property list<string> opened: L.given(site) ? site.opened : [route]
+    readonly property int hydratedMs: L.given(site) ? site.hydratedIn : -1
+    readonly property int alive: L.given(site) ? site.alive : 0
+    readonly property string renderer: L.given(site) ? site.renderer : ""
+    readonly property bool dark: L.given(site) ? site.theme.dark : false
     readonly property string metricsRoute: "/benchmarks/"
-    readonly property bool hasMetrics: router !== undefined && router.nameOf(metricsRoute) !== metricsRoute
+    readonly property bool hasMetrics: router !== undefined && L.given(router) && router.nameOf(metricsRoute) !== metricsRoute
 
     property bool sidebarOpen: true
     // On a phone, the one pane shown: the page, the pages or those open.
@@ -74,37 +74,37 @@ Rectangle {
         // The page already shown keeps its route, so on a phone its pane is shown here.
         if (!shell.wide && to === shell.route)
             shell.view = 0;
-        if (shell.router !== undefined)
+        if (shell.router !== undefined && L.given(shell.router))
             shell.router.go(to);
     }
 
     onRouteChanged: if (!shell.wide) shell.view = 0
-    onSiteChanged: if (site !== undefined) site.measureRenderer()
-    Component.onCompleted: if (site !== undefined) site.measureRenderer()
+    onSiteChanged: if (L.given(site)) site.measureRenderer()
+    Component.onCompleted: if (L.given(site)) site.measureRenderer()
 
     // The site's colours, or the controls' own until it is had. A
     // component of its own so the shell's parts below can be given it.
     component Look: Object {
         property L.MaybeTheme theme
-        readonly property color canvas: theme !== undefined ? theme.canvas : C.Theme.canvas
-        readonly property color surface: theme !== undefined ? theme.surface : C.Theme.surface
-        readonly property color raised: theme !== undefined ? theme.surfaceRaised : C.Theme.surface
-        readonly property color hover: theme !== undefined ? theme.surfaceHover : C.Theme.surface
-        readonly property color pressed: theme !== undefined ? theme.surfacePressed : C.Theme.surface
-        readonly property color selected: theme !== undefined ? theme.surfaceSelected : C.Theme.surface
-        readonly property color divider: theme !== undefined ? theme.divider : C.Theme.border
-        readonly property color accent: theme !== undefined ? theme.accent : C.Theme.text
-        readonly property color focus: theme !== undefined ? theme.focusRing : C.Theme.text
-        readonly property color text: theme !== undefined ? theme.text : C.Theme.text
-        readonly property color muted: theme !== undefined ? theme.textMuted : C.Theme.textMuted
-        readonly property string sans: theme !== undefined ? theme.sans : ""
-        readonly property string mono: theme !== undefined ? theme.mono : "monospace"
+        readonly property color canvas: theme !== undefined && L.given(theme) ? theme.canvas : C.Theme.canvas
+        readonly property color surface: theme !== undefined && L.given(theme) ? theme.surface : C.Theme.surface
+        readonly property color raised: theme !== undefined && L.given(theme) ? theme.surfaceRaised : C.Theme.surface
+        readonly property color hover: theme !== undefined && L.given(theme) ? theme.surfaceHover : C.Theme.surface
+        readonly property color pressed: theme !== undefined && L.given(theme) ? theme.surfacePressed : C.Theme.surface
+        readonly property color selected: theme !== undefined && L.given(theme) ? theme.surfaceSelected : C.Theme.surface
+        readonly property color divider: theme !== undefined && L.given(theme) ? theme.divider : C.Theme.border
+        readonly property color accent: theme !== undefined && L.given(theme) ? theme.accent : C.Theme.text
+        readonly property color focus: theme !== undefined && L.given(theme) ? theme.focusRing : C.Theme.text
+        readonly property color text: theme !== undefined && L.given(theme) ? theme.text : C.Theme.text
+        readonly property color muted: theme !== undefined && L.given(theme) ? theme.textMuted : C.Theme.textMuted
+        readonly property string sans: theme !== undefined && L.given(theme) ? theme.sans : ""
+        readonly property string mono: theme !== undefined && L.given(theme) ? theme.mono : "monospace"
         // A desktop app's words: 13 px.
         readonly property int ui: 13
     }
     Look {
         id: look
-        theme: shell.site !== undefined ? shell.site.theme : undefined
+        theme: L.given(shell.site) ? shell.site.theme : undefined
     }
 
     width: parent !== null ? parent.width : 1440
@@ -119,7 +119,7 @@ Rectangle {
         required property Look look
         property string label: ""
         property C.Menu menu
-        readonly property bool open: menu !== undefined && menu.opened
+        readonly property bool open: L.given(menu) && menu.opened
 
         function toggle() {
             if (title.open)
@@ -204,7 +204,7 @@ Rectangle {
         property string icon: "file-text"
         property string to: ""
         property bool current: false
-        readonly property string href: to !== "" && shell.router !== undefined ? shell.router.address(to) : ""
+        readonly property string href: to !== "" && shell.router !== undefined && L.given(shell.router) ? shell.router.address(to) : ""
         signal pressed
 
         width: parent !== null ? parent.width : 232
@@ -470,19 +470,19 @@ Rectangle {
                             C.MenuItem {
                                 text: t`Light colour scheme`
                                 checkable: true
-                                checked: shell.preferences !== undefined ? shell.preferences.scheme === "light" : false
+                                checked: shell.preferences !== undefined && L.given(shell.preferences) ? shell.preferences.scheme === "light" : false
                                 onTriggered: shell.site.preferences.setScheme("light")
                             }
                             C.MenuItem {
                                 text: t`Dark colour scheme`
                                 checkable: true
-                                checked: shell.preferences !== undefined ? shell.preferences.scheme === "dark" : false
+                                checked: shell.preferences !== undefined && L.given(shell.preferences) ? shell.preferences.scheme === "dark" : false
                                 onTriggered: shell.site.preferences.setScheme("dark")
                             }
                             C.MenuItem {
                                 text: t`Follow system colour scheme`
                                 checkable: true
-                                checked: shell.preferences !== undefined ? shell.preferences.scheme === "system" : false
+                                checked: shell.preferences !== undefined && L.given(shell.preferences) ? shell.preferences.scheme === "system" : false
                                 onTriggered: shell.site.preferences.setScheme("system")
                             }
                             C.MenuSeparator {}
@@ -501,7 +501,7 @@ Rectangle {
                             C.MenuItem {
                                 text: t`Toggle Observer panel`
                                 checkable: true
-                                checked: shell.site !== undefined ? shell.site.observing : false
+                                checked: L.given(shell.site) ? shell.site.observing : false
                                 onTriggered: shell.site.observe()
                             }
                             C.MenuSeparator {}
@@ -611,7 +611,7 @@ Rectangle {
                 visible: shell.wide && shell.width >= 1100
                 anchors.centerIn: parent
                 width: Math.min(implicitWidth, parent.width - 760)
-                text: t`Ljós — ${shell.router !== undefined ? shell.router.title : ""}`
+                text: t`Ljós — ${shell.router !== undefined && L.given(shell.router) ? shell.router.title : ""}`
                 color: look.muted
                 font.family: look.sans
                 font.size: look.ui
@@ -692,7 +692,7 @@ Rectangle {
                     text: t`Observer`
                     tip: t`Toggle live Observer panel`
                     checkable: true
-                    checked: shell.site !== undefined ? shell.site.observing : false
+                    checked: L.given(shell.site) ? shell.site.observing : false
                     onClicked: shell.site.observe()
                 }
                 Item {
@@ -810,7 +810,7 @@ Rectangle {
                     current: shell.route === "/demos/"
                 }
                 Repeater {
-                    model: shell.router !== undefined ? shell.router.demos : []
+                    model: shell.router !== undefined && L.given(shell.router) ? shell.router.demos : []
                     Entry {
                         required property L.Demo modelData
                         shell: shell
@@ -823,7 +823,7 @@ Rectangle {
                 }
                 Group { look: look; text: t`Shells` }
                 Repeater {
-                    model: shell.preferences !== undefined ? shell.preferences.shells : []
+                    model: shell.preferences !== undefined && L.given(shell.preferences) ? shell.preferences.shells : []
                     Entry {
                         required property L.ShellChoice modelData
                         shell: shell
@@ -835,7 +835,7 @@ Rectangle {
                     }
                 }
                 Repeater {
-                    model: shell.router !== undefined ? shell.router.docs : []
+                    model: shell.router !== undefined && L.given(shell.router) ? shell.router.docs : []
                     Column {
                         id: section
                         required property L.Section modelData
@@ -913,7 +913,7 @@ Rectangle {
                                 height: shell.wide ? 32 : 48
                                 closable: shell.opened.length > 1
                                 icon: modelData === "/" ? "house" : modelData.startsWith("/demos/") ? "play" : modelData === "/showcase/" ? "image" : "file-text"
-                                label: shell.router !== undefined ? shell.router.nameOf(modelData) : modelData
+                                label: shell.router !== undefined && L.given(shell.router) ? shell.router.nameOf(modelData) : modelData
                                 current: modelData === shell.route
                                 onPressed: modelData !== shell.route ? shell.go(modelData) : (shell.view = 0)
                             }
@@ -933,7 +933,7 @@ Rectangle {
                             subtle: true
                             iconName: "x"
                             display: C.Button.IconOnly
-                            text: t`Close ${shell.router !== undefined ? shell.router.nameOf(modelData) : modelData}`
+                            text: t`Close ${shell.router !== undefined && L.given(shell.router) ? shell.router.nameOf(modelData) : modelData}`
                             onClicked: shell.site.close(index)
                         }
                     }

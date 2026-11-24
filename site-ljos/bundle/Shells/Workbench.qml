@@ -24,20 +24,20 @@ Rectangle {
 
     // Missing until the site puts itself in.
     property L.Site site
-    readonly property L.MaybeRouter router: site !== undefined ? site.router : undefined
-    readonly property bool wide: site !== undefined ? site.preferences.wide : width >= 1000
-    readonly property bool menuOpen: site !== undefined ? site.menuOpen && !wide : false
-    readonly property bool calm: site !== undefined ? site.preferences.calm : false
-    readonly property string route: router !== undefined ? router.route : "/"
+    readonly property L.MaybeRouter router: L.given(site) ? site.router : undefined
+    readonly property bool wide: L.given(site) ? site.preferences.wide : width >= 1000
+    readonly property bool menuOpen: L.given(site) ? site.menuOpen && !wide : false
+    readonly property bool calm: L.given(site) ? site.preferences.calm : false
+    readonly property string route: router !== undefined && L.given(router) ? router.route : "/"
     // A page other than the docs is this wide at most here.
     readonly property int pageWidest: 960
 
-    readonly property list<string> opened: site !== undefined ? site.opened : [route]
-    readonly property list<L.Problem> problems: site !== undefined ? site.problems : []
-    readonly property list<L.Call> calls: site !== undefined ? site.calls : []
-    readonly property int alive: site !== undefined ? site.alive : 0
-    readonly property string renderer: site !== undefined ? site.renderer : ""
-    readonly property int hydratedMs: site !== undefined ? site.hydratedIn : -1
+    readonly property list<string> opened: L.given(site) ? site.opened : [route]
+    readonly property list<L.Problem> problems: L.given(site) ? site.problems : []
+    readonly property list<L.Call> calls: L.given(site) ? site.calls : []
+    readonly property int alive: L.given(site) ? site.alive : 0
+    readonly property string renderer: L.given(site) ? site.renderer : ""
+    readonly property int hydratedMs: L.given(site) ? site.hydratedIn : -1
 
     // What the reader has shown and hidden.
     property bool explorerOpen: true
@@ -72,9 +72,9 @@ Rectangle {
     // view, and kept from then on.
     readonly property L.Arrangement arranged: ({ explorerOpen: shell.explorerOpen, inspectorOpen: shell.inspectorOpen, panelShown: shell.panelShown, view: shell.view, folded: shell.folded, route: shell.route })
     property bool restored: false
-    onArrangedChanged: if (site !== undefined && restored) site.keep(objectName, arranged)
+    onArrangedChanged: if (L.given(site) && restored) site.keep(objectName, arranged)
     function restore() {
-        if (site === undefined || restored)
+        if (!L.given(site) || restored)
             return;
         // Only what this shell gave it to keep is kept.
         const was = L.arrangementOf(site.kept(objectName));
@@ -90,13 +90,13 @@ Rectangle {
         site.keep(objectName, arranged);
     }
     onSiteChanged: {
-        if (site === undefined)
+        if (!L.given(site))
             return;
         site.measureRenderer();
         later(shell.restore);
     }
     Component.onCompleted: {
-        if (site === undefined)
+        if (!L.given(site))
             return;
         site.measureRenderer();
         later(shell.restore);
@@ -106,25 +106,25 @@ Rectangle {
     // component of its own so the shell's parts below can be given it.
     component Look: Object {
         property L.MaybeTheme theme
-        readonly property color canvas: theme !== undefined ? theme.canvas : C.Theme.canvas
-        readonly property color surface: theme !== undefined ? theme.surface : C.Theme.surface
-        readonly property color raised: theme !== undefined ? theme.surfaceRaised : C.Theme.surface
-        readonly property color hover: theme !== undefined ? theme.surfaceHover : C.Theme.surface
-        readonly property color selected: theme !== undefined ? theme.surfaceSelected : C.Theme.surface
-        readonly property color divider: theme !== undefined ? theme.divider : C.Theme.border
-        readonly property color accent: theme !== undefined ? theme.accent : C.Theme.text
-        readonly property color focus: theme !== undefined ? theme.focusRing : C.Theme.text
-        readonly property color text: theme !== undefined ? theme.text : C.Theme.text
-        readonly property color muted: theme !== undefined ? theme.textMuted : C.Theme.textMuted
-        readonly property color danger: theme !== undefined ? theme.danger : C.Theme.text
-        readonly property string sans: theme !== undefined ? theme.sans : ""
-        readonly property string mono: theme !== undefined ? theme.mono : "monospace"
+        readonly property color canvas: theme !== undefined && L.given(theme) ? theme.canvas : C.Theme.canvas
+        readonly property color surface: theme !== undefined && L.given(theme) ? theme.surface : C.Theme.surface
+        readonly property color raised: theme !== undefined && L.given(theme) ? theme.surfaceRaised : C.Theme.surface
+        readonly property color hover: theme !== undefined && L.given(theme) ? theme.surfaceHover : C.Theme.surface
+        readonly property color selected: theme !== undefined && L.given(theme) ? theme.surfaceSelected : C.Theme.surface
+        readonly property color divider: theme !== undefined && L.given(theme) ? theme.divider : C.Theme.border
+        readonly property color accent: theme !== undefined && L.given(theme) ? theme.accent : C.Theme.text
+        readonly property color focus: theme !== undefined && L.given(theme) ? theme.focusRing : C.Theme.text
+        readonly property color text: theme !== undefined && L.given(theme) ? theme.text : C.Theme.text
+        readonly property color muted: theme !== undefined && L.given(theme) ? theme.textMuted : C.Theme.textMuted
+        readonly property color danger: theme !== undefined && L.given(theme) ? theme.danger : C.Theme.text
+        readonly property string sans: theme !== undefined && L.given(theme) ? theme.sans : ""
+        readonly property string mono: theme !== undefined && L.given(theme) ? theme.mono : "monospace"
         // A tool's words: 13 px, as an editor's are.
         readonly property int ui: 13
     }
     Look {
         id: look
-        theme: shell.site !== undefined ? shell.site.theme : undefined
+        theme: L.given(shell.site) ? shell.site.theme : undefined
     }
 
     width: parent !== null ? parent.width : 1440
@@ -165,7 +165,7 @@ Rectangle {
         property bool folder: false
         property bool open: false
         property bool current: false
-        readonly property string href: to !== "" && shell.router !== undefined ? shell.router.address(to) : ""
+        readonly property string href: to !== "" && shell.router !== undefined && L.given(shell.router) ? shell.router.address(to) : ""
         signal pressed
 
         width: parent !== null ? parent.width : 240
@@ -185,7 +185,7 @@ Rectangle {
             }
         }
         function press() {
-            if (to !== "" && shell.router !== undefined) {
+            if (to !== "" && shell.router !== undefined && L.given(shell.router)) {
                 // Its page shown already is shown too: the route does
                 // not change, so it is not left to the route to.
                 if (!shell.wide)
@@ -336,7 +336,7 @@ Rectangle {
                 visible: shell.wide
                 Layout.alignment: Align.VCenter
                 width: Math.max(0, titleBar.width - 620)
-                text: shell.router !== undefined ? shell.router.fileOf(shell.route) : ""
+                text: shell.router !== undefined && L.given(shell.router) ? shell.router.fileOf(shell.route) : ""
                 color: look.muted
                 font.family: look.mono
                 font.size: look.ui
@@ -406,8 +406,8 @@ Rectangle {
                     iconName: "eye"
                     text: t`Observer`
                     checkable: true
-                    checked: shell.site !== undefined ? shell.site.observing : false
-                    onClicked: if (shell.site !== undefined) shell.site.observe()
+                    checked: L.given(shell.site) ? shell.site.observing : false
+                    onClicked: if (L.given(shell.site)) shell.site.observe()
                 }
             }
             Column {
@@ -540,7 +540,7 @@ Rectangle {
                         look: look
                         depth: 1
                         icon: "code"
-                        label: shell.router !== undefined ? shell.router.fileOf(modelData) : ""
+                        label: shell.router !== undefined && L.given(shell.router) ? shell.router.fileOf(modelData) : ""
                         to: modelData
                         current: shell.route === modelData
                     }
@@ -555,7 +555,7 @@ Rectangle {
                     onPressed: shell.fold("Demos/", !open)
                 }
                 Repeater {
-                    model: demosFolder.open && shell.router !== undefined ? shell.router.demos : []
+                    model: demosFolder.open && shell.router !== undefined && L.given(shell.router) ? shell.router.demos : []
                     Entry {
                         required property L.Demo modelData
                         shell: shell
@@ -568,7 +568,7 @@ Rectangle {
                     }
                 }
                 Repeater {
-                    model: shell.router !== undefined ? shell.router.docs : []
+                    model: shell.router !== undefined && L.given(shell.router) ? shell.router.docs : []
                     Column {
                         id: section
                         required property L.Section modelData
@@ -593,7 +593,7 @@ Rectangle {
                                 look: look
                                 depth: 1
                                 icon: "file-text"
-                                label: shell.router !== undefined ? shell.router.fileOf(modelData.route) : ""
+                                label: shell.router !== undefined && L.given(shell.router) ? shell.router.fileOf(modelData.route) : ""
                                 to: modelData.route
                                 current: shell.route === modelData.route
                             }
@@ -656,8 +656,8 @@ Rectangle {
                                 width: 176
                                 mono: true
                                 closable: shell.opened.length > 1
-                                icon: modelData.startsWith("/start/") || shell.router !== undefined && shell.router.docsRoute && modelData === shell.route ? "file-text" : "code"
-                                label: shell.router !== undefined ? shell.router.fileOf(modelData) : modelData
+                                icon: modelData.startsWith("/start/") || shell.router !== undefined && L.given(shell.router) && shell.router.docsRoute && modelData === shell.route ? "file-text" : "code"
+                                label: shell.router !== undefined && L.given(shell.router) ? shell.router.fileOf(modelData) : modelData
                                 current: modelData === shell.route
                                 onPressed: if (modelData !== shell.route) shell.site.router.go(modelData)
                             }
@@ -677,7 +677,7 @@ Rectangle {
                             subtle: true
                             iconName: "x"
                             display: C.Button.IconOnly
-                            text: t`Close ${shell.router !== undefined ? shell.router.fileOf(modelData) : modelData}`
+                            text: t`Close ${shell.router !== undefined && L.given(shell.router) ? shell.router.fileOf(modelData) : modelData}`
                             onClicked: shell.site.close(index)
                         }
                     }
@@ -936,7 +936,7 @@ Rectangle {
                     iconName: "trash"
                     text: t`Clear log`
                     enabled: shell.calls.length > 0
-                    onClicked: if (shell.site !== undefined) shell.site.clearCalls()
+                    onClicked: if (L.given(shell.site)) shell.site.clearCalls()
                 }
             }
             // What the page said as it came up.

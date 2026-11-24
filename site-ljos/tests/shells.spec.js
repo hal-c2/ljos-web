@@ -2090,10 +2090,10 @@ test("editing Workbench's Source tab changes the running page in place", async (
 // stays, not the shell every page falls back to.
 test("an edit that compiles but fails as it is made leaves the last that ran", async ({ browser }) => {
   const shipped = readFileSync(new URL("../bundle/Shells/Workbench.qml", import.meta.url), "utf8");
-  const completed = "    Component.onCompleted: {\n        if (!site)\n";
+  const completed = "    Component.onCompleted: {\n        if (!L.given(site))\n";
   expect(shipped).toContain(completed);
   const edited = shipped.replace("t`Shell: Workbench`", "t`Shell: Workbench, edited`");
-  const failing = edited.replace("t`Shell: Workbench, edited`", "t`Shell: Workbench, failing`").replace(completed, '    Component.onCompleted: {\n        throw new Error("made to fail");\n        if (!site)\n');
+  const failing = edited.replace("t`Shell: Workbench, edited`", "t`Shell: Workbench, failing`").replace(completed, '    Component.onCompleted: {\n        throw new Error("made to fail");\n        if (!L.given(site))\n');
   const context = await reader(browser, { kept: "workbench" });
   try {
     const page = await context.newPage();
@@ -2268,7 +2268,7 @@ test("the editor holds the shell that asked for it", async ({ browser }) => {
 // brings back the edit that faulted.
 test("an edit that faults after it came up is never the one fallen back to", async ({ browser }) => {
   const shipped = readFileSync(new URL("../bundle/Shells/Workbench.qml", import.meta.url), "utf8");
-  const completed = "    Component.onCompleted: {\n        if (!site)\n";
+  const completed = "    Component.onCompleted: {\n        if (!L.given(site))\n";
   expect(shipped).toContain(completed);
   const edited = shipped.replace("t`Shell: Workbench`", "t`Shell: Workbench, edited`");
   const later = '    Timer {\n        interval: 1000\n        running: true\n        onTriggered: {\n            throw new Error("faulted later");\n        }\n    }\n';

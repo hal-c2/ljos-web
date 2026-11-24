@@ -185,3 +185,10 @@ export interface ShellFile {
     readonly file: string
     readonly name: string
 }
+
+// Whether a value is had: an object property of a QML file that was given
+// nothing reads as null at run time, though its type says undefined, so
+// both are missing here.
+export function given<T extends object>(value: T | undefined): value is T {
+    return typeof value === "object" && value !== null
+}
