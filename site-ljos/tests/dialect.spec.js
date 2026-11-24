@@ -51,6 +51,14 @@ const qtQuick = {
   ...site(["Demos/Orbit", "Shells/Cyberpunk"], "Ljos.Ui has no FrameAnimation"),
   ...site(["Demos/Shader"], "Ljos.Ui has no ShaderEffect or FrameAnimation"),
   "site/src/demos/shader/Shader.qml": "Ljos.Ui has no ShaderEffect",
+  // A visitor's edit to it is compiled in the page and run by
+  // Ljos/Blocks/shell.js, which makes QtQuick's types only.
+  "site/src/demos/pantry/Shell.qml": "a visitor's edit runs in the page's shell runner, which makes QtQuick's types only",
+  // The Motion demo calms its own motion (a softer spring, shorter glides)
+  // when a reader asks for less; Ljos.Ui's animations would put what moves
+  // at its end at once (e2e/motion.spec.js holds that the puck travels).
+  ...site(["Demos/Motion"], "its animations calm themselves; Ljos.Ui's put what moves at its end under reduced motion"),
+  "site/src/demos/motion/Motion.qml": "its animations calm themselves; Ljos.Ui's put what moves at its end under reduced motion",
 };
 
 // Files that import a module of QtQuick's other than QtQuick3D's, and why.
