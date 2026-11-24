@@ -41,7 +41,10 @@ Rectangle {
         // A quiet link that wraps to the start of a row keeps its words
         // on the edge the text above starts from, not a padding in from
         // it; beside another button its padding is the gap between them.
-        x: button.quiet && button.x === 0 ? 0 : Math.round((parent.width - width) / 2)
+        // Where it starts, read from the left; a right-to-left page
+        // sets it as far from the right (LayoutMirroring).
+        readonly property real startX: button.quiet && button.x === 0 ? 0 : Math.round((parent.width - width) / 2)
+        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
         anchors.verticalCenter: parent.verticalCenter
         textFormat: Text.RichText
         text: Nav.anchor(Nav.at(Content.base, button.href), button.label, false)

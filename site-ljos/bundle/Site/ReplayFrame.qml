@@ -76,7 +76,10 @@ Item {
     // their presses.
     Rectangle {
         z: 1
-        x: frame.width - width - frame.inset
+        // Where it starts, read from the left; a right-to-left page
+        // sets it as far from the right (LayoutMirroring).
+        readonly property real startX: frame.width - width - frame.inset
+        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
         y: frame.inset
         width: frame.actWidth
         height: act.implicitHeight
@@ -142,7 +145,10 @@ Item {
     Text {
         z: 1
         visible: frame.note !== ""
-        x: frame.width - width - frame.inset
+        // Where it starts, read from the left; a right-to-left page
+        // sets it as far from the right (LayoutMirroring).
+        readonly property real startX: frame.width - width - frame.inset
+        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
         y: (pictured.item?.noteCentre ?? 56) - Math.round(height / 2)
         text: frame.note
         color: Theme.textMuted

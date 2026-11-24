@@ -74,8 +74,11 @@ Item {
         }
         Text {
             id: sayText
-            x: 14
-            width: parent.width - x
+            // Where it starts, read from the left; a right-to-left page
+            // sets it as far from the right (LayoutMirroring).
+            readonly property real startX: 14
+            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
+            width: parent.width - startX
             text: line.text
             color: line.kind === "end" ? Theme.text : Theme.textMuted
             font.family: Theme.sans
@@ -101,7 +104,10 @@ Item {
 
         Column {
             id: callColumn
-            x: Theme.s
+            // Where it starts, read from the left; a right-to-left page
+            // sets it as far from the right (LayoutMirroring).
+            readonly property real startX: Theme.s
+            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
             y: Theme.xs
             width: parent.width - 2 * Theme.s
             spacing: 2
@@ -190,9 +196,12 @@ Item {
         }
         Text {
             id: eventText
-            x: Theme.s
+            // Where it starts, read from the left; a right-to-left page
+            // sets it as far from the right (LayoutMirroring).
+            readonly property real startX: Theme.s
+            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
             y: 3
-            width: parent.width - x
+            width: parent.width - startX
             text: t`app` + "  " + (line.text)
             color: Theme.text
             font.family: Theme.mono

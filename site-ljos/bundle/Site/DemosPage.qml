@@ -45,6 +45,8 @@ Column {
             text: t`Live demos`
         }
         Text {
+            // Read from the side the page starts on (LayoutMirroring).
+            x: LayoutMirroring.enabled ? parent.width - width : 0
             width: Math.min(parent.width, Theme.measure)
             text: t`Each demo is a complete Ljós app that passes ljos check, compiled ahead of time and mounted in this page. Once a framed demo runs, switch between light and dark themes in the header to watch it follow, and edit the live source in the Pantry and on the cockpit and smartwatch pages. A demo keeps its picture and description where the browser lacks the WebAssembly or WebGL 2 it needs.`
             color: Theme.textMuted

@@ -68,7 +68,10 @@ Item {
             id: worn
             width: demo.screenWidth
             height: demo.screenHeight
-            x: Math.round((flat.width - width) / 2)
+            // Where it starts, read from the left; a right-to-left page
+            // sets it as far from the right (LayoutMirroring).
+            readonly property real startX: Math.round((flat.width - width) / 2)
+            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
             y: Math.round(Page.Theme.m + (flat.room - height) / 2)
             scale: flat.fit
             transformOrigin: Item.Center
@@ -236,7 +239,10 @@ Item {
     // The watch in 3D.
     Item {
         id: solid
-        x: demo.across ? flat.width : 0
+        // Where it starts, read from the left; a right-to-left page
+        // sets it as far from the right (LayoutMirroring).
+        readonly property real startX: demo.across ? flat.width : 0
+        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
         y: demo.across ? 0 : flat.height
         width: demo.across ? demo.width - flat.width : demo.width
         height: demo.across ? demo.height : demo.height - flat.height
@@ -401,7 +407,10 @@ Item {
         readonly property Kestrel.Spot spot: spots.at[place] ?? Kestrel.origin
         signal pressed()
 
-        x: spot.x
+        // Where it starts, read from the left; a right-to-left page
+        // sets it as far from the right (LayoutMirroring).
+        readonly property real startX: spot.x
+        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
         y: spot.y
 
         implicitWidth: words.implicitWidth + 2 * Page.Theme.s

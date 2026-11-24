@@ -189,7 +189,10 @@ Rectangle {
         C.ToolTip {
             visible: over.hovered
             text: tool.tip
-            x: Math.max(0, (tool.width - implicitWidth) / 2)
+            // Where it starts, read from the left; a right-to-left page
+            // sets it as far from the right (LayoutMirroring).
+            readonly property real startX: Math.max(0, (tool.width - implicitWidth) / 2)
+            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
             y: tool.height + 6
         }
     }
@@ -232,7 +235,10 @@ Rectangle {
         }
 
         Rectangle {
-            x: 6
+            // Where it starts, read from the left; a right-to-left page
+            // sets it as far from the right (LayoutMirroring).
+            readonly property real startX: 6
+            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
             width: parent.width - 12
             height: parent.height
             radius: 4
@@ -242,7 +248,10 @@ Rectangle {
             Accessible.ignored: true
         }
         C.Icon {
-            x: 16
+            // Where it starts, read from the left; a right-to-left page
+            // sets it as far from the right (LayoutMirroring).
+            readonly property real startX: 16
+            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
             // Beside the first line, where a title takes two.
             y: words.y + (Math.min(words.implicitHeight, words.font.size * 1.4) - height) / 2
             size: 14
@@ -252,9 +261,12 @@ Rectangle {
         }
         Text {
             id: words
-            x: 38
+            // Where it starts, read from the left; a right-to-left page
+            // sets it as far from the right (LayoutMirroring).
+            readonly property real startX: 38
+            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
             anchors.verticalCenter: parent.verticalCenter
-            width: parent.width - x - 12
+            width: parent.width - startX - 12
             text: entry.label
             color: look.text
             font.family: look.sans
@@ -330,7 +342,10 @@ Rectangle {
             Accessible.ignored: true
         }
         Rectangle {
-            x: parent.width - 1
+            // Where it starts, read from the left; a right-to-left page
+            // sets it as far from the right (LayoutMirroring).
+            readonly property real startX: parent.width - 1
+            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
             width: 1
             height: parent.height
             fill: look.divider
@@ -339,7 +354,10 @@ Rectangle {
         C.Icon {
             id: mark
             visible: tab.icon !== ""
-            x: tab.stacked ? (parent.width - width) / 2 : 12
+            // Where it starts, read from the left; a right-to-left page
+            // sets it as far from the right (LayoutMirroring).
+            readonly property real startX: tab.stacked ? (parent.width - width) / 2 : 12
+            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
             y: tab.stacked ? 9 : (parent.height - height) / 2
             size: tab.stacked ? 18 : 14
             name: tab.icon
@@ -347,9 +365,12 @@ Rectangle {
             Accessible.ignored: true
         }
         Text {
-            x: tab.stacked ? 4 : mark.visible ? 32 : 12
+            // Where it starts, read from the left; a right-to-left page
+            // sets it as far from the right (LayoutMirroring).
+            readonly property real startX: tab.stacked ? 4 : mark.visible ? 32 : 12
+            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
             y: tab.stacked ? mark.y + mark.height + 4 : (parent.height - height) / 2
-            width: tab.stacked ? parent.width - 8 : parent.width - x - (tab.closable ? (shell.wide ? 32 : 56) : 12)
+            width: tab.stacked ? parent.width - 8 : parent.width - startX - (tab.closable ? (shell.wide ? 32 : 56) : 12)
             align: tab.stacked ? Text.AlignHCenter : Text.AlignLeft
             text: tab.label
             color: tab.current ? look.text : look.muted
@@ -389,7 +410,10 @@ Rectangle {
             fill: look.surface
 
             Row {
-                x: shell.wide ? 8 : 16
+                // Where it starts, read from the left; a right-to-left page
+                // sets it as far from the right (LayoutMirroring).
+                readonly property real startX: shell.wide ? 8 : 16
+                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 6
 
@@ -621,7 +645,10 @@ Rectangle {
             // A phone's one control: the menu.
             Row {
                 visible: !shell.wide
-                x: parent.width - width - 8
+                // Where it starts, read from the left; a right-to-left page
+                // sets it as far from the right (LayoutMirroring).
+                readonly property real startX: parent.width - width - 8
+                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                 anchors.verticalCenter: parent.verticalCenter
                 Slot { name: "site.menu" }
             }
@@ -646,7 +673,10 @@ Rectangle {
             Accessible.name: t`Toolbar`
 
             Row {
-                x: 8
+                // Where it starts, read from the left; a right-to-left page
+                // sets it as far from the right (LayoutMirroring).
+                readonly property real startX: 8
+                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 2
 
@@ -707,7 +737,10 @@ Rectangle {
                 }
             }
             Row {
-                x: parent.width - width - 10
+                // Where it starts, read from the left; a right-to-left page
+                // sets it as far from the right (LayoutMirroring).
+                readonly property real startX: parent.width - width - 10
+                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 2
 
@@ -725,7 +758,10 @@ Rectangle {
                     C.ToolTip {
                         visible: overSwitcher.hovered
                         text: t`Switch between Elegant, Cyberpunk, Workbench, and Desktop shells`
-                        x: switcher.width - implicitWidth
+                        // Where it starts, read from the left; a right-to-left page
+                        // sets it as far from the right (LayoutMirroring).
+                        readonly property real startX: switcher.width - implicitWidth
+                        x: LayoutMirroring.enabled ? switcher.width - width - startX : startX
                         y: 38
                     }
                 }
@@ -754,6 +790,9 @@ Rectangle {
     // The sidebar: every page, and the shells.
     Rectangle {
         id: sidebar
+        // Under a phone's menu it is out of Tab's way, as what a
+        // sheet covers is: the keys go through the menu.
+        enabled: !shell.menuOpen
         readonly property bool shown: shell.wide ? shell.sidebarOpen : shell.view === 1
         visible: shown
         y: toolBar.y + toolBar.height
@@ -859,7 +898,10 @@ Rectangle {
         }
         Rectangle {
             visible: shell.wide
-            x: parent.width - 1
+            // Where it starts, read from the left; a right-to-left page
+            // sets it as far from the right (LayoutMirroring).
+            readonly property real startX: parent.width - 1
+            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
             width: 1
             height: parent.height
             fill: look.divider
@@ -870,11 +912,17 @@ Rectangle {
     // and the one shown under them.
     Item {
         id: documents
+        // Under a phone's menu it is out of Tab's way, as what a
+        // sheet covers is: the keys go through the menu.
+        enabled: !shell.menuOpen
         readonly property bool listed: !shell.wide && shell.view === 2
         visible: shell.wide || shell.view !== 1
-        x: shell.wide ? sidebar.width : 0
+        // Where it starts, read from the left; a right-to-left page
+        // sets it as far from the right (LayoutMirroring).
+        readonly property real startX: shell.wide ? sidebar.width : 0
+        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
         y: toolBar.y + toolBar.height
-        width: parent.width - x
+        width: parent.width - startX
         height: (shell.wide ? statusBar.y : views.y) - y
 
         Rectangle {
@@ -926,7 +974,10 @@ Rectangle {
                         C.Button {
                             required property int index
                             required property string modelData
-                            x: shell.wide ? index * 200 + 200 - width - 4 : documents.width - width - 8
+                            // Where it starts, read from the left; a right-to-left page
+                            // sets it as far from the right (LayoutMirroring).
+                            readonly property real startX: shell.wide ? index * 200 + 200 - width - 4 : documents.width - width - 8
+                            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                             y: shell.wide ? (32 - height) / 2 : index * 48 + (48 - height) / 2
                             width: shell.wide ? 26 : 44
                             height: shell.wide ? 26 : 44
@@ -960,6 +1011,9 @@ Rectangle {
     // A phone's panes, one at a time, along the bottom.
     Rectangle {
         id: views
+        // Under a phone's menu it is out of Tab's way, as what a
+        // sheet covers is: the keys go through the menu.
+        enabled: !shell.menuOpen
         visible: !shell.wide
         y: shell.wide ? shell.height : shell.height - height
         width: parent.width
@@ -1002,6 +1056,9 @@ Rectangle {
     // The status bar.
     Rectangle {
         id: statusBar
+        // Under a phone's menu it is out of Tab's way, as what a
+        // sheet covers is: the keys go through the menu.
+        enabled: !shell.menuOpen
         visible: shell.wide
         y: shell.wide ? shell.height - height : shell.height
         width: parent.width
@@ -1016,7 +1073,10 @@ Rectangle {
             fill: look.divider
         }
         Row {
-            x: 12
+            // Where it starts, read from the left; a right-to-left page
+            // sets it as far from the right (LayoutMirroring).
+            readonly property real startX: 12
+            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
             anchors.verticalCenter: parent.verticalCenter
             spacing: 18
 
@@ -1041,7 +1101,10 @@ Rectangle {
             }
         }
         Row {
-            x: parent.width - width - 12
+            // Where it starts, read from the left; a right-to-left page
+            // sets it as far from the right (LayoutMirroring).
+            readonly property real startX: parent.width - width - 12
+            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
             anchors.verticalCenter: parent.verticalCenter
             spacing: 18
 
@@ -1067,7 +1130,10 @@ Rectangle {
         modal: true
         focus: true
         width: Math.min(shell.width - 32, 440)
-        x: Math.round((shell.width - width) / 2)
+        // Where it starts, read from the left; a right-to-left page
+        // sets it as far from the right (LayoutMirroring).
+        readonly property real startX: Math.round((shell.width - width) / 2)
+        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
         y: Math.round(shell.height * 0.22)
         padding: 20
 
@@ -1099,7 +1165,10 @@ Rectangle {
                 height: shut.height
                 C.Button {
                     id: shut
-                    x: parent.width - width
+                    // Where it starts, read from the left; a right-to-left page
+                    // sets it as far from the right (LayoutMirroring).
+                    readonly property real startX: parent.width - width
+                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                     primary: true
                     text: t`Close`
                     onClicked: about.close()
@@ -1142,7 +1211,10 @@ Rectangle {
 
             Column {
                 id: menuColumn
-                x: 16
+                // Where it starts, read from the left; a right-to-left page
+                // sets it as far from the right (LayoutMirroring).
+                readonly property real startX: 16
+                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                 y: 24
                 width: parent.width - 32
                 spacing: 24

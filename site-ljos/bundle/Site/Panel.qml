@@ -54,7 +54,10 @@ Item {
             required property int index
             readonly property bool atRight: index === 1 || index === 2
             readonly property bool atBottom: index >= 2
-            x: atRight ? panel.width - width : 0
+            // Where it starts, read from the left; a right-to-left page
+            // sets it as far from the right (LayoutMirroring).
+            readonly property real startX: atRight ? panel.width - width : 0
+            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
             y: atBottom ? panel.height - height : 0
             width: 14
             height: 14
@@ -65,7 +68,10 @@ Item {
                 fill: Theme.accent
             }
             Rectangle {
-                x: corner.atRight ? corner.width - 2 : 0
+                // Where it starts, read from the left; a right-to-left page
+                // sets it as far from the right (LayoutMirroring).
+                readonly property real startX: corner.atRight ? corner.width - 2 : 0
+                x: LayoutMirroring.enabled ? corner.width - width - startX : startX
                 width: 2
                 height: parent.height
                 fill: Theme.accent
@@ -74,7 +80,10 @@ Item {
     }
     Column {
         id: inner
-        x: panel.padding
+        // Where it starts, read from the left; a right-to-left page
+        // sets it as far from the right (LayoutMirroring).
+        readonly property real startX: panel.padding
+        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
         y: panel.padding
         width: panel.innerWidth
     }

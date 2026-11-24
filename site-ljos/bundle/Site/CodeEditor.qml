@@ -1,3 +1,5 @@
+// Ljós's Core before QtQuick: only its t`` is wanted here.
+import Ljos.Core
 import QtQuick
 import Site
 import "code-editor.js" as Editor
@@ -20,7 +22,7 @@ Item {
     property string code: ""
     property string rich: ""
     property string lang: "qml"
-    property string label: "Code"
+    property string label: t`Code`
     property var diagnostics: []
     property Item errors: null
     property color color: Theme.ink

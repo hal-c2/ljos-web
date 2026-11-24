@@ -88,7 +88,10 @@ Item {
                     }
 
                     C.Icon {
-                        x: Theme.xs
+                        // Where it starts, read from the left; a right-to-left page
+                        // sets it as far from the right (LayoutMirroring).
+                        readonly property real startX: Theme.xs
+                        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                         y: Theme.xs + 2
                         name: "check"
                         size: 16
@@ -97,9 +100,12 @@ Item {
                     }
                     Column {
                         id: words
-                        x: Theme.xs + 24
+                        // Where it starts, read from the left; a right-to-left page
+                        // sets it as far from the right (LayoutMirroring).
+                        readonly property real startX: Theme.xs + 24
+                        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                         y: Theme.xs
-                        width: row.width - x - Theme.xs
+                        width: row.width - startX - Theme.xs
                         spacing: 2
 
                         Text {

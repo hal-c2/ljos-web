@@ -71,7 +71,10 @@ Rectangle {
         // the row is the header's height so each part centres on it,
         // whatever height the other has.
         Row {
-            x: shell.inset
+            // Where it starts, read from the left; a right-to-left page
+            // sets it as far from the right (LayoutMirroring).
+            readonly property real startX: shell.inset
+            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
             height: header.height
             spacing: 32
 
@@ -86,7 +89,10 @@ Rectangle {
             }
         }
         Row {
-            x: parent.width - width - (shell.wide ? shell.inset : shell.gutter - 8)
+            // Where it starts, read from the left; a right-to-left page
+            // sets it as far from the right (LayoutMirroring).
+            readonly property real startX: parent.width - width - (shell.wide ? shell.inset : shell.gutter - 8)
+            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
             anchors.verticalCenter: parent.verticalCenter
             spacing: 12
 
@@ -123,6 +129,9 @@ Rectangle {
     // The docs, beside the page.
     Item {
         id: sidebar
+        // Under a phone's menu it is out of Tab's way, as what a
+        // sheet covers is: the keys go through the menu.
+        enabled: !shell.menuOpen
         visible: shell.sidebarShown
         y: header.height
         width: 264
@@ -141,7 +150,10 @@ Rectangle {
     }
     Rectangle {
         visible: shell.sidebarShown
-        x: sidebar.width
+        // Where it starts, read from the left; a right-to-left page
+        // sets it as far from the right (LayoutMirroring).
+        readonly property real startX: sidebar.width
+        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
         y: header.height
         width: 1
         height: parent.height - y
@@ -151,9 +163,15 @@ Rectangle {
     // The page itself, the footer under it.
     Item {
         id: page
-        x: shell.sidebarShown ? sidebar.width + 1 : 0
+        // Under a phone's menu it is out of Tab's way, as what a
+        // sheet covers is: the keys go through the menu.
+        enabled: !shell.menuOpen
+        // Where it starts, read from the left; a right-to-left page
+        // sets it as far from the right (LayoutMirroring).
+        readonly property real startX: shell.sidebarShown ? sidebar.width + 1 : 0
+        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
         y: header.height
-        width: parent.width - x - (shell.tocShown ? toc.width : 0)
+        width: parent.width - startX - (shell.tocShown ? toc.width : 0)
         height: parent.height - y
         Slot { name: "site.page" }
     }
@@ -161,8 +179,14 @@ Rectangle {
     // On this page, beside it where there is room.
     Item {
         id: toc
+        // Under a phone's menu it is out of Tab's way, as what a
+        // sheet covers is: the keys go through the menu.
+        enabled: !shell.menuOpen
         visible: shell.tocShown
-        x: parent.width - width
+        // Where it starts, read from the left; a right-to-left page
+        // sets it as far from the right (LayoutMirroring).
+        readonly property real startX: parent.width - width
+        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
         y: header.height
         width: 224
         height: parent.height - y
@@ -211,7 +235,10 @@ Rectangle {
 
                     Column {
                         id: menuColumn
-                        x: shell.gutter
+                        // Where it starts, read from the left; a right-to-left page
+                        // sets it as far from the right (LayoutMirroring).
+                        readonly property real startX: shell.gutter
+                        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                         y: 24
                         width: parent.width - 2 * shell.gutter
                         spacing: 24

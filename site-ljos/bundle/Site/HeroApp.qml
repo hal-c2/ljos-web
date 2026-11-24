@@ -49,7 +49,10 @@ Item {
     Accessible.name: t`Task list`
 
     Column {
-        x: Theme.l
+        // Where it starts, read from the left; a right-to-left page
+        // sets it as far from the right (LayoutMirroring).
+        readonly property real startX: Theme.l
+        x: LayoutMirroring.enabled ? parent.width - width - startX : startX
         y: Theme.l
         width: app.width - 2 * Theme.l
         spacing: Theme.s
@@ -141,7 +144,10 @@ Item {
                 }
                 Rectangle {
                     id: box
-                    x: Theme.xs
+                    // Where it starts, read from the left; a right-to-left page
+                    // sets it as far from the right (LayoutMirroring).
+                    readonly property real startX: Theme.xs
+                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                     anchors.verticalCenter: parent.verticalCenter
                     width: 20
                     height: 20
@@ -166,9 +172,12 @@ Item {
                     }
                 }
                 Text {
-                    x: box.x + box.width + Theme.s
+                    // Where it starts, read from the left; a right-to-left page
+                    // sets it as far from the right (LayoutMirroring).
+                    readonly property real startX: box.startX + box.width + Theme.s
+                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                     anchors.verticalCenter: parent.verticalCenter
-                    width: parent.width - x - Theme.xs
+                    width: parent.width - startX - Theme.xs
                     elide: Text.ElideRight
                     text: row.modelData.title
                     color: row.modelData.done ? Theme.textMuted : Theme.text

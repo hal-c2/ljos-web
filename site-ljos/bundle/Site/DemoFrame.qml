@@ -149,7 +149,10 @@ Item {
             Text {
                 required property string modelData
                 required property int index
-                x: 1
+                // Where it starts, read from the left; a right-to-left page
+                // sets it as far from the right (LayoutMirroring).
+                readonly property real startX: 1
+                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                 y: 1 + Math.round((frame.surfaceHeight - frame.pictureHeight) / 2)
                 width: frame.width - 2
                 height: frame.pictureHeight - 1
@@ -163,7 +166,10 @@ Item {
         // would stand: never over its picture.
         Rectangle {
             visible: frame.cannot
-            x: Theme.s
+            // Where it starts, read from the left; a right-to-left page
+            // sets it as far from the right (LayoutMirroring).
+            readonly property real startX: Theme.s
+            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
             y: frame.surfaceHeight + 1
             width: parent.width - 2 * Theme.s
             height: frame.barHeight - 1
@@ -239,7 +245,10 @@ Item {
         // One button through the run's phases, so the focus a keyboard
         // reader gave it stays as it changes.
         StageButton {
-            x: Theme.s
+            // Where it starts, read from the left; a right-to-left page
+            // sets it as far from the right (LayoutMirroring).
+            readonly property real startX: Theme.s
+            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
             anchors.verticalCenter: parent.verticalCenter
             visible: runner.phase !== ""
             primary: runner.phase === "picture"

@@ -95,7 +95,10 @@ DeviceFrame {
                 clip: true
                 Text {
                     id: code
-                    x: Theme.m
+                    // Where it starts, read from the left; a right-to-left page
+                    // sets it as far from the right (LayoutMirroring).
+                    readonly property real startX: Theme.m
+                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                     y: Theme.m
                     width: parent.width - 2 * Theme.m
                     format: Text.RichText
@@ -115,7 +118,10 @@ DeviceFrame {
             frame: hero
             index: 1
             Column {
-                x: Theme.m
+                // Where it starts, read from the left; a right-to-left page
+                // sets it as far from the right (LayoutMirroring).
+                readonly property real startX: Theme.m
+                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                 y: Theme.s
                 width: parent.width - 2 * Theme.m
 
@@ -136,7 +142,10 @@ DeviceFrame {
                         }
                         Row {
                             id: named
-                            x: Theme.xs + line.modelData.depth * Theme.m
+                            // Where it starts, read from the left; a right-to-left page
+                            // sets it as far from the right (LayoutMirroring).
+                            readonly property real startX: Theme.xs + line.modelData.depth * Theme.m
+                            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: Theme.xs
                             Text {
@@ -150,7 +159,7 @@ DeviceFrame {
                             // A long name gives way to its reading on the
                             // right, ending in an ellipsis, never under it.
                             Text {
-                                width: Math.max(0, Math.min(implicitWidth, reading.x - Theme.s - named.x - kind.width - named.spacing))
+                                width: Math.max(0, Math.min(implicitWidth, reading.startX - Theme.s - named.startX - kind.width - named.spacing))
                                 text: line.modelData.name
                                 elide: Text.ElideRight
                                 color: Theme.accent2Text
@@ -160,7 +169,10 @@ DeviceFrame {
                         }
                         Row {
                             id: reading
-                            x: parent.width - width - Theme.xs
+                            // Where it starts, read from the left; a right-to-left page
+                            // sets it as far from the right (LayoutMirroring).
+                            readonly property real startX: parent.width - width - Theme.xs
+                            x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: Theme.xs
                             Text {
@@ -199,7 +211,10 @@ DeviceFrame {
                 height: 48
 
                 Rectangle {
-                    x: Theme.m
+                    // Where it starts, read from the left; a right-to-left page
+                    // sets it as far from the right (LayoutMirroring).
+                    readonly property real startX: Theme.m
+                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                     anchors.verticalCenter: parent.verticalCenter
                     width: badge.implicitWidth + 2 * Theme.xs
                     height: 22
@@ -218,7 +233,10 @@ DeviceFrame {
                     }
                 }
                 Row {
-                    x: parent.width - width - Theme.m
+                    // Where it starts, read from the left; a right-to-left page
+                    // sets it as far from the right (LayoutMirroring).
+                    readonly property real startX: parent.width - width - Theme.m
+                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: Theme.xs
                     StageButton {
@@ -236,7 +254,10 @@ DeviceFrame {
             }
             Column {
                 y: agentBar.height
-                x: Theme.m
+                // Where it starts, read from the left; a right-to-left page
+                // sets it as far from the right (LayoutMirroring).
+                readonly property real startX: Theme.m
+                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                 width: parent.width - 2 * Theme.m
                 spacing: Theme.xs
 

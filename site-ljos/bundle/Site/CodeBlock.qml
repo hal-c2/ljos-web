@@ -38,6 +38,11 @@ import "code-editor.js" as Editor
 // how live it is.
 Column {
     id: block
+    // Code is read from the left in every language, and so is the block
+    // it stands in, with the result its code makes beside it, on a page
+    // that runs from the right too.
+    LayoutMirroring.enabled: false
+    LayoutMirroring.childrenInherit: true
 
     property string lang: ""
     property string code: ""
@@ -732,7 +737,7 @@ Column {
                                                 code: modelData.code
                                                 rich: modelData.rich || ""
                                                 lang: modelData.lang || "qml"
-                                                label: "Edit " + modelData.name
+                                                label: t`Edit ${modelData.name}`
                                                 errors: told
                                                 onTextChanged: {
                                                     block.recheck();
@@ -1210,8 +1215,8 @@ Column {
                         anchors.left: parent.left
                         anchors.leftMargin: block.inset
                         anchors.verticalCenter: parent.verticalCenter
-                        text: block.showsAll ? t`Show less` : t`Show all ${block.codeLines} lines`
-                        label: block.showsAll ? t`Show less of ${block.title}` : t`Show all ${block.codeLines} lines of ${block.title}`
+                        text: block.showsAll ? t`Show less` : t`Show all ${plural(block.codeLines, { one: "# line", other: "# lines" })}`
+                        label: block.showsAll ? t`Show less of ${block.title}` : t`Show all ${plural(block.codeLines, { one: "# line", other: "# lines" })} of ${block.title}`
                         onPressed: {
                             // Folded code takes no keys.
                             if (block.editing)

@@ -76,7 +76,10 @@ Rectangle {
             border.color: Theme.text
 
             Rectangle {
-                x: 6
+                // Where it starts, read from the left; a right-to-left page
+                // sets it as far from the right (LayoutMirroring).
+                readonly property real startX: 6
+                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                 y: 2
                 width: 2
                 height: parent.height - 4
@@ -100,7 +103,10 @@ Rectangle {
             height: 8
 
             Rectangle {
-                x: 1
+                // Where it starts, read from the left; a right-to-left page
+                // sets it as far from the right (LayoutMirroring).
+                readonly property real startX: 1
+                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                 y: 3
                 width: 7
                 height: 2
@@ -109,7 +115,10 @@ Rectangle {
                 rotation: 40
             }
             Rectangle {
-                x: 4
+                // Where it starts, read from the left; a right-to-left page
+                // sets it as far from the right (LayoutMirroring).
+                readonly property real startX: 4
+                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                 y: 3
                 width: 7
                 height: 2

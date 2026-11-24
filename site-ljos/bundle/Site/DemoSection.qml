@@ -33,6 +33,8 @@ Column {
         text: section.title
     }
     Text {
+        // Read from the side the page starts on (LayoutMirroring).
+        x: LayoutMirroring.enabled ? parent.width - width : 0
         width: Math.min(parent.width, Theme.measure)
         text: section.body
         textFormat: Text.RichText

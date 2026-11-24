@@ -298,7 +298,10 @@ Column {
                 readonly property real column: (width - (Theme.columns - 1) * Theme.columnGap) / Theme.columns
                 readonly property int wordsX: landing.wide ? Math.round(5 * column + 5 * Theme.columnGap) : 0
 
-                x: togetherPanel.pad
+                // Where it starts, read from the left; a right-to-left page
+                // sets it as far from the right (LayoutMirroring).
+                readonly property real startX: togetherPanel.pad
+                x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                 y: togetherPanel.pad
                 width: parent.width - 2 * togetherPanel.pad
                 height: landing.wide ? Math.max(togetherHeading.height, togetherWords.implicitHeight) : togetherHeading.height + Theme.m + togetherWords.implicitHeight
@@ -312,9 +315,12 @@ Column {
                 }
                 Text {
                     id: togetherWords
-                    x: together.wordsX
+                    // Where it starts, read from the left; a right-to-left page
+                    // sets it as far from the right (LayoutMirroring).
+                    readonly property real startX: together.wordsX
+                    x: LayoutMirroring.enabled ? parent.width - width - startX : startX
                     y: landing.wide ? Theme.xs : togetherHeading.height + Theme.m
-                    width: Math.min(parent.width - x, Theme.measure)
+                    width: Math.min(parent.width - startX, Theme.measure)
                     format: Text.RichText
                     color: Theme.textMuted
                     linkColor: Theme.link
