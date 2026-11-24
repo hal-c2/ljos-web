@@ -77,7 +77,12 @@ async function until(what, test) {
   try {
     for (;;) {
       if (exited !== null) throw new Error(`ljos ended (${exited}) while waiting for ${what}; its log is ${logPath}`);
-      const got = await test();
+      // A request the step's end cut short is that step not done, said
+      // as one, not as the fetch's own abort.
+      const got = await Promise.resolve().then(test).catch((error) => {
+        if (error?.name === "TimeoutError") throw new Error(`no ${what} after ${STEP_MS} ms (a request to it was still unanswered); its log is ${logPath}`);
+        throw error;
+      });
       if (got) return got;
       if (Date.now() > end) throw new Error(`no ${what} after ${STEP_MS} ms; its log is ${logPath}`);
       await sleep(500);
