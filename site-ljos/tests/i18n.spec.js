@@ -261,6 +261,29 @@ test.describe("a page in the reader's language", () => {
   }
 });
 
+// The shell kept is the one shown. One the head's watchdog gave up on (a
+// busy machine took the page over after 2500 ms) leaves the page in
+// Elegant (Main.qml's late()): the reader then picks it, as
+// tests/shells.spec.js's open() does.
+async function inShell(page, shell, lang) {
+  await page.waitForFunction(() => {
+    const said = document.documentElement.dataset;
+    return "ljosShellLate" in said || ("ljosShellShown" in said && said.ljosShellShowing);
+  });
+  if (shell !== "elegant" && (await page.evaluate(() => "ljosShellLate" in document.documentElement.dataset))) {
+    test.info().annotations.push({ type: "late", description: `${new URL(page.url()).pathname} in ${lang}: the head's watchdog showed Elegant; ${shell} was then picked` });
+    const say = (message) => (lang === "en" ? message : translated(lang, message));
+    const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+    const [now] = say("Current shell: {label}").split("{label}");
+    await visible(page.getByRole("button", { name: new RegExp(`^(${escape(say("Switch shell"))}|${escape(now)}.+)$`, "u") })).click();
+    const label = shell[0].toUpperCase() + shell.slice(1);
+    await page.getByRole("radio", { name: say(label), exact: true }).click();
+  }
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.dataset.ljosShellShowing ?? "elegant"), { message: `${shell} is shown, not given up on by the head's watchdog`, timeout: 30_000 })
+    .toBe(shell);
+}
+
 // What stands apart in English stands apart in Arabic: each part of the
 // page (a landmark, a group, a list, a toolbar) is mirrored with what is
 // beside it, never left where the mirrored one now is.
@@ -272,26 +295,7 @@ async function parts(browser, shell, route, lang) {
   try {
     await open(page, `${route}?lang=${lang}`);
     await expect.poll(() => language(page)).toEqual({ lang, dir: lang === "ar" ? "rtl" : "ltr" });
-    // The shell kept is the one compared. One the head's watchdog gave up
-    // on (a busy machine took the page over after 2500 ms) leaves the page
-    // in Elegant (Main.qml's late()), which has other parts: the reader
-    // then picks it, as tests/shells.spec.js's open() does.
-    await page.waitForFunction(() => {
-      const said = document.documentElement.dataset;
-      return "ljosShellLate" in said || ("ljosShellShown" in said && said.ljosShellShowing);
-    });
-    if (shell !== "elegant" && (await page.evaluate(() => "ljosShellLate" in document.documentElement.dataset))) {
-      test.info().annotations.push({ type: "late", description: `${route} in ${lang}: the head's watchdog showed Elegant; ${shell} was then picked` });
-      const say = (message) => (lang === "en" ? message : translated(lang, message));
-      const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
-      const [now] = say("Current shell: {label}").split("{label}");
-      await visible(page.getByRole("button", { name: new RegExp(`^(${escape(say("Switch shell"))}|${escape(now)}.+)$`, "u") })).click();
-      const label = shell[0].toUpperCase() + shell.slice(1);
-      await page.getByRole("radio", { name: say(label), exact: true }).click();
-    }
-    await expect
-      .poll(() => page.evaluate(() => document.documentElement.dataset.ljosShellShowing ?? "elegant"), { message: `${shell} is shown, not given up on by the head's watchdog`, timeout: 30_000 })
-      .toBe(shell);
+    await inShell(page, shell, lang);
     // Down the whole page, so what is made where it shows is there.
     for (let y = 0; y < (await page.evaluate(() => document.documentElement.scrollHeight)); y += 600) {
       await page.evaluate((to) => window.scrollTo(0, to), y);
@@ -333,6 +337,38 @@ for (const [shell, route] of [["elegant", "/"], ["elegant", "/demos/"], ["cyberp
 
 // A catalogue is fetched only when its language is: the first load of a
 // page in English holds none.
+// On a mirrored menu bar the arrows go the way they point: Left to the
+// title on the left, which is the next one in Arabic.
+test("the arrows go along Desktop's menu bar the way they point in Arabic", async ({ browser }) => {
+  const context = await browser.newContext({ viewport: DESKTOP });
+  await context.addInitScript(() => localStorage.setItem("ljos.dev:shell", "desktop"));
+  const page = await context.newPage();
+  try {
+    await open(page, "/start/first-app/?lang=ar");
+    await expect.poll(() => language(page)).toEqual({ lang: "ar", dir: "rtl" });
+    await inShell(page, "desktop", "ar");
+    const bar = readPo(catalogues.find((one) => one.tag === "ar").text, "ar.po").messages;
+    const [file, view, go, help] = ["File", "View", "Go", "Help"].map((title) => bar.get(`menu bar\u0004${title}`)?.translation);
+    const titles = page.getByRole("menubar", { name: translated("ar", "Menu bar"), exact: true }).getByRole("menuitem");
+    await expect(titles).toHaveText([file, view, go, help]);
+    const lefts = await titles.evaluateAll((all) => all.map((title) => title.getBoundingClientRect().left));
+    expect(lefts[1], "View is left of File").toBeLessThan(lefts[0]);
+    const ringed = () => titles.evaluateAll((all) => all.filter((title) => !/^(transparent|rgba\(0, 0, 0, 0\))/.test(title.style.boxShadow)).map((title) => title.getAttribute("aria-label")));
+    for (let tabs = 0; (await ringed()).length === 0; tabs++) {
+      expect(tabs, "Tab comes to the menu bar").toBeLessThan(40);
+      await page.keyboard.press("Tab");
+    }
+    expect(await ringed()).toEqual([file]);
+    await page.keyboard.press("ArrowLeft");
+    await expect.poll(ringed, { message: "Left goes to the title on the left" }).toEqual([view]);
+    await page.keyboard.press("ArrowRight");
+    await page.keyboard.press("ArrowRight");
+    await expect.poll(ringed, { message: "Right goes round to the last" }).toEqual([help]);
+  } finally {
+    await context.close();
+  }
+});
+
 test("no catalogue is in an English page's first load", async ({ page }) => {
   const asked = [];
   page.on("request", (request) => asked.push(new URL(request.url()).pathname));

@@ -119,8 +119,11 @@ Item {
                 width: parent.width
                 height: toolName.implicitHeight
 
+                // Anchored, so a right-to-left page sets it at the right,
+                // across from the answer.
                 Text {
                     id: toolName
+                    anchors.left: parent.left
                     text: line.tool
                     color: Theme.link
                     font.family: Theme.mono

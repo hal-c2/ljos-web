@@ -50,10 +50,8 @@ Item {
     Accessible.name: t`Task list`
 
     Column {
-        // Where it starts, read from the left; a right-to-left page
-        // sets it as far from the right (LayoutMirroring).
-        readonly property real startX: Theme.l
-        x: Q.LayoutMirroring.enabled ? parent.width - width - startX : startX
+        // As far from either side, so the same on a mirrored page.
+        x: Theme.l
         y: Theme.l
         width: app.width - 2 * Theme.l
         spacing: Theme.s
@@ -62,8 +60,11 @@ Item {
             width: parent.width
             height: titleText.implicitHeight
 
+            // At the start, across from the count: on the right of a
+            // right-to-left page.
             Text {
                 id: titleText
+                x: Q.LayoutMirroring.enabled ? parent.width - width : 0
                 text: app.heading
                 color: Theme.text
                 font.family: Theme.sans
