@@ -36,7 +36,7 @@ Panel {
     // its three regions go by.
     property var columns: [1, 2]
     property var columnNames: [t`Observer tree`, t`Live stage`, t`Agent MCP stream`]
-    readonly property bool consoleLayout: Theme.consoleLayout && width >= 960
+    readonly property bool consoleLayout: Theme.consoleLayout && width >= Theme.consoleFrom
     readonly property int side: Math.min(400, Math.round(width * 0.3))
     readonly property int heading: consoleLayout ? 32 : 0
     readonly property int bodyHeight: consoleLayout ? Math.max(stageHeight, pageHeight) : stageHeight

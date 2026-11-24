@@ -90,8 +90,9 @@ Column {
         Capability {
             id: agentic
             wide: landing.wide
-            // Cyberpunk shows the live app as a console, under the words.
-            stacked: Theme.consoleLayout
+            // Cyberpunk shows the live app as a console, under the words,
+            // where the section is wide enough for one (DeviceFrame).
+            stacked: Theme.consoleLayout && width >= Theme.consoleFrom
             eyebrow: LandingCopy.agenticEyebrow
             title: LandingCopy.agenticHeadline
             body: LandingCopy.agenticBody
